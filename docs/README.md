@@ -43,7 +43,7 @@ See [Architecture](./ARCHITECTURE.md) for the component and data-flow details.
 
 The hosted showcases, API, and MCP endpoint require no account or authentication:
 
-- [Showcases](https://bitview.space)
+- [Bitview](https://bitview.space), its front page, Studio and showcases
 - [Interactive API](https://bitview.space/api)
 - [OpenAPI](https://bitview.space/openapi.json)
 - MCP client endpoint: `https://mcp.bitview.space/`
@@ -110,7 +110,7 @@ June 2027.
 
 [Discord](https://discord.gg/WACpShCB7M) ·
 [X](https://x.com/_nym21_) ·
-[Issues](https://github.com/bitcoinresearchkit/brk/issues) ·
+[Issues](https://github.com/bitcoinresearchkit/mono/issues) ·
 [Support](mailto:support@bitcoinresearchkit.org)
 
 ### Donations

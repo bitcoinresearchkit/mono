@@ -3,59 +3,73 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light" />
-    <meta name="theme-color" content="#f2efe8" />
-    <meta name="description" content="What can be built on Bitview's data: a pile of single-file pages, from explorers to on-chain indicators." />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='12'%20fill='%23171512'/%3E%3Cg%20transform='translate(12%209)%20scale(.23)'%20fill='%23f2efe8'%3E%3Cpolygon%20fill-opacity='.4'%20points='86.6,100%20173.2,150%2086.6,200%200,150'/%3E%3Cpolygon%20fill-opacity='.4'%20points='86.6,100%200,150%200,50%2086.6,0'/%3E%3Cpolygon%20fill-opacity='.4'%20points='86.6,100%20173.2,150%20173.2,50%2086.6,0'/%3E%3Cpolygon%20points='173.2,100%20173.2,150%2086.6,200%2086.6,150'/%3E%3Cpolygon%20points='0,100%200,150%2086.6,200%2086.6,150'/%3E%3C/g%3E%3C/svg%3E" type="image/svg+xml" />
-    <title>Showcases · bitview</title>
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f6f7" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08090a" />
+    <title>Bitview: Bitcoin's on-chain data, open to all</title>
+    <meta name="description" content="Bitview reads every block from a Bitcoin node and measures it. Chart the series in Studio, query them through the API, hand them to your assistant, or run the server on your own node. Free, with no account and no key." />
+    <meta property="og:title" content="Bitview" />
+    <meta property="og:description" content="Bitcoin's on-chain data, open to all: chart it in Studio, query it through the API, or run the server on your own node." />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://bitview.space/assets/favicon/web-app-manifest-512x512.png" />
+    <meta name="twitter:card" content="summary" />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png" />
+    <link rel="manifest" href="/assets/favicon/site.webmanifest" />
     <style>
       @font-face {
+        font-family: Inter;
+        src: url("/assets/fonts/InterVariable.woff2") format("woff2");
+        font-weight: 100 900;
+        font-display: swap;
+      }
+
+      @font-face {
         font-family: Lilex;
-        src: url("./assets/fonts/Lilex.woff2") format("woff2");
-        font-weight: 100 700;
+        src: url("/assets/fonts/Lilex.woff2") format("woff2");
+        font-weight: 500 700;
         font-display: swap;
       }
 
-      @font-face {
-        font-family: Instrument;
-        src: url("./assets/fonts/InstrumentSerif-Regular.woff2") format("woff2");
-        font-display: swap;
-      }
-
-      @font-face {
-        font-family: Instrument;
-        src: url("./assets/fonts/InstrumentSerif-Italic.woff2") format("woff2");
-        font-style: italic;
-        font-display: swap;
-      }
-
+      /* Studio's ground, inks and lines, by theme. */
       :root {
-        color-scheme: light;
-        --paper: #f2efe8;
-        --ink: #1a1815;
-        --soft: #5d584f;
-        --muted: #8f897e;
-        --rule: #dcd6c9;
-        --accent: #e5533d;
-        --mono: Lilex, ui-monospace, SFMono-Regular, Menlo, monospace;
-        --serif: Instrument, Georgia, serif;
-        --disk: min(15rem, 19vw, 27svh);
+        color-scheme: light dark;
+        --app: light-dark(#f6f6f7, #08090a);
+        --card: light-dark(#ffffff, #0e0f11);
+        --well: light-dark(#f6f6f7, #08090a);
+        --ink: light-dark(#0f1012, #f7f8f8);
+        --text: light-dark(#2b2f36, #d0d6e0);
+        --soft: light-dark(#5f6570, #8a8f98);
+        --muted: light-dark(#6b7079, #7c818a);
+        --line: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.06));
+        --line-strong: light-dark(rgb(0 0 0 / 0.13), rgb(255 255 255 / 0.1));
+        --edge: light-dark(rgb(0 0 0 / 0.32), rgb(255 255 255 / 0.32));
+        --grid: light-dark(rgb(0 0 0 / 0.06), rgb(255 255 255 / 0.05));
+        --focus: light-dark(rgb(0 0 0 / 0.45), rgb(255 255 255 / 0.5));
+        --live: light-dark(#0c7642, #3ccf7c);
+        /* The logo's orange; on it, its own dark. */
+        --brand: oklch(64.34% 0.191 44.41);
+        --on-brand: #1a0f02;
+        /* (As small text: darker on the light, for its contrast.) */
+        --brand-text: light-dark(oklch(52% 0.16 44.41), var(--brand));
+        --sheen: inset 0 1px 0 light-dark(rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.04));
+        --shadow: 0 1px 2px light-dark(rgb(0 0 0 / 0.04), transparent), 0 24px 60px -30px light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.6));
+        --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+        --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
+        --radius: 12px;
       }
 
       * {
         box-sizing: border-box;
       }
 
-      html {
-        scroll-snap-type: y mandatory;
-        background: var(--paper);
-      }
-
       body {
         margin: 0;
-        color: var(--ink);
-        background: var(--paper);
-        font: 13px/1.55 var(--mono);
+        color: var(--text);
+        background: var(--app);
+        font: 15px/1.55 var(--sans);
+        font-feature-settings: "cv11", "ss01";
+        -webkit-font-smoothing: antialiased;
       }
 
       a {
@@ -63,66 +77,89 @@
         text-decoration: none;
       }
 
-      button {
-        font: inherit;
-        color: inherit;
-      }
-
       :focus-visible {
-        outline: 2px solid var(--ink);
-        outline-offset: 3px;
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
       }
 
-      .site-header {
-        position: fixed;
-        top: 0;
-        right: 0;
-        left: 0;
-        z-index: 10;
+      .num,
+      code {
+        font-family: var(--mono);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .page {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 16px;
+
+        @media (min-width: 720px) {
+          padding: 0 32px;
+        }
+      }
+
+      /* ── Header: the brand, the way to each part, the latest block ── */
+
+      .top {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        padding: 1.4rem 2.5rem;
-        transition: opacity 260ms ease;
+        gap: 4px;
+        height: 64px;
+
+        nav {
+          display: flex;
+          gap: 4px;
+          margin-right: auto;
+          margin-left: 20px;
+
+          /* (A phone: the brand and the block; the ways in are the page's.) */
+          @media (max-width: 719px) {
+            display: none;
+          }
+
+          a {
+            border-radius: 6px;
+            padding: 4px 10px;
+            color: var(--soft);
+            font-size: 14px;
+
+            &:hover {
+              color: var(--ink);
+              background: var(--line);
+            }
+          }
+        }
       }
 
-      .site-brand {
+      .brand {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        font-size: 1rem;
-      }
+        gap: 10px;
+        color: var(--ink);
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
 
-      .site-brand-mark {
-        display: inline-grid;
-        padding: 0.2rem 0.3rem;
-        border-radius: 0.25rem;
-        place-items: center;
-        color: var(--paper);
-        background: var(--ink);
-      }
-
-      .site-brand-cube {
-        display: block;
-        width: 1.3rem;
-        height: 1.5rem;
-
-        .glass {
-          fill: currentColor;
-          fill-opacity: 0.4;
+        img {
+          width: 22px;
+          height: 25.5px;
         }
 
-        .liquid {
-          fill: currentColor;
+        @media (max-width: 719px) {
+          margin-right: auto;
         }
       }
 
       .tip {
         display: inline-flex;
         align-items: center;
-        gap: 0.55rem;
-        color: var(--muted);
-        font-size: 12px;
+        gap: 8px;
+        height: 28px;
+        border-radius: 14px;
+        padding: 0 12px;
+        color: var(--soft);
+        box-shadow: inset 0 0 0 1px var(--line-strong);
+        font-size: 13px;
 
         &[hidden] {
           display: none;
@@ -130,11 +167,11 @@
 
         &::before {
           content: "";
-          width: 0.45rem;
-          height: 0.45rem;
+          width: 6px;
+          height: 6px;
           border-radius: 50%;
-          background: #2fa66a;
-          animation: pulse 2.4s ease-out infinite;
+          background: var(--live);
+          box-shadow: 0 0 0 3px color-mix(in oklab, var(--live), transparent 80%);
         }
 
         b {
@@ -143,885 +180,899 @@
         }
       }
 
-      @keyframes pulse {
-        0% {
-          box-shadow: 0 0 0 0 rgb(47 166 106 / 0.45);
-        }
+      /* ── The pitch, beside what this server measures right now ── */
 
-        70%,
-        100% {
-          box-shadow: 0 0 0 0.5rem rgb(47 166 106 / 0);
-        }
-      }
+      .hero {
+        display: grid;
+        gap: 40px;
+        align-items: center;
+        padding: 56px 0 40px;
 
-      .stage {
-        --x: 46%;
-        --y: 61%;
-
-        position: fixed;
-        inset: 0;
-        overflow: hidden;
-        transition:
-          opacity 260ms ease,
-          scale 260ms ease;
-
-        /* The isometric floor, drawn flat: its lines run at ±30°, a quarter disk apart. */
-        &::before {
-          --step: calc(var(--disk) * 0.177);
-
-          content: "";
-          position: absolute;
-          inset: 0;
-          background:
-            repeating-linear-gradient(30deg, var(--rule) 0 1px, transparent 1px var(--step)),
-            repeating-linear-gradient(150deg, var(--rule) 0 1px, transparent 1px var(--step));
-          background-position: var(--x) var(--y);
-          mask-image: radial-gradient(42rem 30rem at var(--x) var(--y), #000 10%, transparent 75%);
+        @media (min-width: 960px) {
+          grid-template-columns: 1.15fr 1fr;
+          gap: 56px;
+          padding: 88px 0 56px;
         }
       }
 
-      [data-leaving] {
-        .stage {
-          opacity: 0;
-          scale: 1.03;
-        }
-
-        .site-header {
-          opacity: 0;
-        }
+      h1 {
+        margin: 0;
+        color: var(--ink);
+        font-size: clamp(36px, 6vw, 60px);
+        font-weight: 600;
+        line-height: 1.04;
+        letter-spacing: -0.04em;
+        text-wrap: balance;
       }
 
-      /* Every showcase at a glance, beside the pile. */
-      .index {
-        position: absolute;
-        top: 50%;
-        left: 2.5rem;
-        width: 15rem;
-        translate: 0 -46%;
+      .lede {
+        max-width: 34em;
+        margin: 20px 0 0;
+        color: var(--soft);
+        font-size: clamp(16px, 2vw, 18px);
+        line-height: 1.5;
+        text-wrap: pretty;
+      }
 
-        h1 {
-          margin: 0;
-          font: 400 2.9rem / 0.95 var(--serif);
-          letter-spacing: -0.01em;
+      .ctas {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 32px;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 40px;
+        border-radius: 8px;
+        padding: 0 16px;
+        color: var(--ink);
+        background: var(--card);
+        box-shadow: var(--sheen), inset 0 0 0 1px var(--line-strong);
+        font-weight: 500;
+
+        &:hover {
+          background: color-mix(in oklab, var(--card), var(--ink) 4%);
         }
 
-        .lede {
-          margin: 0.8rem 0 1.4rem;
-          color: var(--soft);
-          font-size: 12px;
-        }
-
-        ol {
-          margin: 0;
-          padding: 0;
-          list-style: none;
-        }
-
-        .group {
-          margin: 0.9rem 0 0.25rem;
-          color: var(--muted);
-          font-size: 10px;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
-        }
-
-        a {
-          display: flex;
-          align-items: center;
-          gap: 0.7rem;
-          padding: 0.08rem 0;
-          color: var(--muted);
-          font-size: 12px;
-          transition: color 150ms ease;
-
-          span {
-            width: 1.2rem;
-            color: #b9b3a7;
-            font-size: 10px;
-          }
+        &.primary {
+          color: var(--on-brand);
+          background: var(--brand);
+          box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2);
 
           &:hover {
-            color: var(--ink);
+            background: color-mix(in oklab, var(--brand), white 8%);
+          }
+        }
+      }
+
+      .surface {
+        border-radius: var(--radius);
+        background: var(--card);
+        box-shadow: var(--sheen), var(--shadow), 0 0 0 1px var(--line);
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        margin: 0;
+
+        > div {
+          padding: 16px 18px;
+
+          &:nth-child(odd) {
+            border-right: 1px solid var(--line);
           }
 
-          &[aria-current="true"] {
-            color: var(--ink);
-
-            span {
-              color: var(--accent);
-            }
-
-            &::after {
-              content: "";
-              flex: 1;
-              height: 1px;
-              margin-left: 0.25rem;
-              background: linear-gradient(90deg, var(--accent), transparent);
-            }
+          &:nth-child(n + 3) {
+            border-top: 1px solid var(--line);
           }
         }
 
-        .hint {
-          margin: 1.4rem 0 0;
+        dt {
           color: var(--muted);
-          font-size: 10.5px;
+          font-size: 12px;
+        }
+
+        dd {
+          margin: 4px 0 0;
+          color: var(--ink);
+          font-size: clamp(18px, 2.4vw, 22px);
+          letter-spacing: -0.02em;
+
+          &:empty::before {
+            content: "–";
+            color: var(--muted);
+          }
         }
       }
 
-      /* An orthographic, isometric camera: no perspective, a 45° turn and a tilt from above. */
-      .scene {
-        position: absolute;
-        top: var(--y);
-        left: var(--x);
-        transform: rotateX(-35.264deg) rotateY(45deg);
-        transform-style: preserve-3d;
+      .stats-foot {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        border-top: 1px solid var(--line);
+        padding: 10px 18px;
+        color: var(--muted);
+        font-size: 12px;
 
-        > * {
-          position: absolute;
-          pointer-events: none;
+        a:hover {
+          color: var(--ink);
         }
       }
 
-      .shadow {
-        width: calc(var(--disk) * 1.04);
-        height: calc(var(--disk) * 1.07);
-        margin: calc(var(--disk) * -0.535) 0 0 calc(var(--disk) * -0.52);
-        border-radius: 8%;
-        background: rgb(52 40 24 / 0.2);
-        filter: blur(calc(var(--disk) * 0.05));
+      /* ── The chart: lines stretched to the plot (strokes kept), the grid over it, labels in a gutter, a cursor ── */
+
+      .chart-card {
+        /* (Room at the plot's right for its labels.) */
+        --labels: 52px;
+        margin: 0;
+        padding: 18px 18px 14px;
       }
 
-      .held-shadow {
-        width: calc(var(--disk) * 1.3);
-        height: calc(var(--disk) * 0.34);
-        margin: calc(var(--disk) * -0.17) 0 0 calc(var(--disk) * -0.65);
-        background: radial-gradient(closest-side, rgb(52 40 24 / 0.22), transparent);
+      .chart-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 6px 20px;
+        font-size: 13px;
       }
 
-      .disk {
-        --th: calc(var(--disk) * 0.036);
+      /* (One height whatever week's read: the date under the name, each value in the room its widest takes.) */
+      .chart-title {
+        margin-right: auto;
+        color: var(--ink);
+        font-weight: 500;
 
-        position: absolute;
-        width: var(--disk);
-        height: calc(var(--disk) * 310 / 300);
-        margin: calc(var(--disk) * -155 / 300) 0 0 calc(var(--disk) * -0.5);
-        cursor: pointer;
-        pointer-events: auto;
-        transform-style: preserve-3d;
-        will-change: transform;
-        transition: translate 220ms ease;
+        .num {
+          display: block;
+          color: var(--muted);
+          font-weight: 400;
+          white-space: nowrap;
+        }
+      }
 
-        &.top:hover {
-          translate: 0 calc(var(--disk) * -0.05) 0;
+      .key {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 8px;
+        color: var(--soft);
+
+        &::before {
+          content: "";
+          align-self: center;
+          width: 10px;
+          height: 2px;
+          border-radius: 1px;
+          background: var(--color);
         }
 
-        /* One flat plane for the face, so the sides never split the label from its gloss. */
-        .face {
-          position: absolute;
-          inset: 0;
+        .num {
+          min-width: 8ch;
+          color: var(--ink);
+          white-space: nowrap;
+        }
+      }
+
+      .plot {
+        position: relative;
+        aspect-ratio: 2.8;
+        margin: 16px var(--labels) 0 0;
+        touch-action: pan-y;
+
+        /* (Taller on a phone: the years, not the dollars, are what it's short of.) */
+        @media (max-width: 600px) {
+          aspect-ratio: 1.5;
         }
 
         svg {
-          display: block;
-          width: 100%;
-          height: 100%;
-        }
-
-        /* Light catching the plastic, swept by the disk's angle. */
-        .gloss {
           position: absolute;
           inset: 0;
-          clip-path: polygon(0 0, 93.3% 0, 100% 6.5%, 100% 100%, 0 100%);
-          border-radius: 3.3%;
-          background: linear-gradient(105deg, transparent 38%, rgb(255 255 255 / 0.2) 46%, rgb(255 255 255 / 0.06) 52%, transparent 60%) var(--gloss, 100%) 0 / 300% 100% no-repeat;
+          width: 100%;
+          height: 100%;
+          overflow: visible;
         }
 
-        /* Four sides, each folded back from the face: a floppy is two shells with a seam between. */
-        .edge {
+        polyline {
+          fill: none;
+          stroke-width: 1.5;
+          stroke-linejoin: round;
+          vector-effect: non-scaling-stroke;
+        }
+
+        &[data-state]::after {
+          content: "Loading…";
           position: absolute;
+          inset: 0;
+          display: grid;
+          place-items: center;
+          color: var(--muted);
+          font-size: 13px;
         }
 
-        .bottom,
-        .top {
-          left: 0;
-          right: 0;
-          height: var(--th);
-          background: linear-gradient(var(--edge) 44%, var(--seam) 50%, var(--edge) 56%);
-        }
-
-        .bottom {
-          bottom: 0;
-          transform: rotateX(90deg);
-          transform-origin: bottom;
-        }
-
-        .top {
-          top: 0;
-          right: 7.3%;
-          transform: rotateX(-90deg);
-          transform-origin: top;
-        }
-
-        .left,
-        .right {
-          top: 0;
-          bottom: 0;
-          width: var(--th);
-          background: linear-gradient(90deg, var(--edge-dark) 44%, var(--seam) 50%, var(--edge-dark) 56%);
-        }
-
-        .left {
-          left: 0;
-          transform: rotateY(90deg);
-          transform-origin: left;
-        }
-
-        .right {
-          top: 7.1%;
-          right: 0;
-          transform: rotateY(-90deg);
-          transform-origin: right;
+        &[data-state="failed"]::after {
+          content: "This server's data isn't reachable right now.";
         }
       }
 
-      .ticks {
-        display: none;
-        align-items: end;
-        gap: 3px;
-        height: 1rem;
-        margin-bottom: 0.9rem;
+      .gridline {
+        position: absolute;
+        left: 0;
+        right: 0;
+        border-top: 1px solid var(--grid);
 
         span {
-          width: 3px;
-          height: 0.55rem;
-          border-radius: 1px;
-          background: var(--rule);
-          transition:
-            height 200ms ease,
-            background 200ms ease;
-        }
-
-        .on {
-          height: 1rem;
-          background: var(--accent);
+          position: absolute;
+          left: calc(100% + 8px);
+          translate: 0 -50%;
+          color: var(--muted);
+          font-size: 11px;
         }
       }
 
-      .caption {
+      .cursor {
         position: absolute;
-        right: 2.5rem;
-        bottom: 11%;
-        width: min(20rem, 24vw);
+        top: 0;
+        bottom: 0;
+        border-left: 1px dashed var(--edge);
+        pointer-events: none;
 
-        .line {
-          position: absolute;
-          top: 0.55rem;
-          right: calc(100% + 0.75rem);
-          width: clamp(2rem, 5vw, 5rem);
-          height: 1px;
-          background: var(--rule);
+        &[hidden] {
+          display: none;
         }
 
-        .meta {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          color: var(--muted);
-          font-size: 10.5px;
-          letter-spacing: 0.14em;
-          text-transform: uppercase;
+        i {
+          position: absolute;
+          width: 7px;
+          height: 7px;
+          margin: -3.5px 0 0 -4px;
+          border-radius: 50%;
+          background: var(--color);
+          box-shadow: 0 0 0 2px var(--card);
+        }
+      }
 
-          &::before {
-            content: "";
-            width: 0.45rem;
-            height: 0.45rem;
-            border-radius: 1px;
-            background: var(--accent);
-            transition: background 300ms ease;
+      .years {
+        position: relative;
+        height: 18px;
+        margin: 6px var(--labels) 0 0;
+        color: var(--muted);
+        font-size: 11px;
+
+        span {
+          position: absolute;
+          translate: -50% 0;
+        }
+      }
+
+      .chart-foot {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 10px;
+        border-top: 1px solid var(--line);
+        padding-top: 12px;
+        color: var(--muted);
+        font-size: 13px;
+
+        a {
+          color: var(--soft);
+
+          &:hover {
+            color: var(--ink);
           }
         }
+      }
 
-        h2 {
-          margin: 0.7rem 0 0;
-          font: 400 clamp(2.4rem, 3.7vw, 3.6rem) / 0.95 var(--serif);
-          letter-spacing: -0.01em;
-          text-wrap: balance;
+      /* ── Sections: the ways in, things to explore, what's underneath ── */
+
+      section {
+        padding: 72px 0 0;
+      }
+
+      h2 {
+        margin: 0;
+        color: var(--ink);
+        font-size: clamp(22px, 3vw, 28px);
+        font-weight: 600;
+        letter-spacing: -0.025em;
+      }
+
+      .section-lede {
+        margin: 6px 0 0;
+        color: var(--soft);
+      }
+
+      /* Columns by section (none left alone on a row): one on a phone, then each its own. */
+      .grid {
+        display: grid;
+        gap: 12px;
+        margin-top: 24px;
+
+        & + & {
+          margin-top: 12px;
+        }
+      }
+
+      @media (min-width: 720px) {
+        .two {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+
+      @media (min-width: 960px) {
+        .three {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+
+      /* Said to a screen reader only. */
+      .vh {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      .card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        border-radius: var(--radius);
+        padding: 20px;
+        background: var(--card);
+        box-shadow: var(--sheen), 0 0 0 1px var(--line);
+        transition: box-shadow 0.15s;
+
+        /* Pointed at or focused (its link's ring, the card's). */
+        &:has(.stretch:hover) {
+          box-shadow: var(--sheen), 0 0 0 1px var(--line-strong);
+        }
+
+        &:has(.stretch:focus-visible) {
+          box-shadow: var(--sheen), 0 0 0 2px var(--focus);
+        }
+
+        h3 {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin: 0;
+          color: var(--ink);
+          font-size: 16px;
+          font-weight: 600;
         }
 
         p {
-          margin: 0.9rem 0 0;
+          margin: 8px 0 0;
           color: var(--soft);
-          font-size: 13px;
+          font-size: 14px;
           text-wrap: pretty;
         }
 
-        .actions {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          margin: 1.3rem 0 0;
-        }
-
-        .open {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.6rem;
-          border: 1px solid var(--ink);
-          border-radius: 999px;
-          padding: 0.5rem 1rem 0.5rem 1.1rem;
-          font-size: 11.5px;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          transition:
-            color 150ms ease,
-            background 150ms ease;
-
-          &:hover {
-            color: var(--paper);
-            background: var(--ink);
-          }
-        }
-
-        .step {
-          display: grid;
-          width: 2.15rem;
-          height: 2.15rem;
-          border: 1px solid var(--rule);
-          border-radius: 50%;
-          padding: 0;
-          place-items: center;
-          background: none;
-          font-size: 13px;
-          cursor: pointer;
-          transition: border-color 150ms ease;
-
-          &:hover {
-            border-color: var(--ink);
-          }
-
-          &[aria-disabled="true"] {
-            color: var(--rule);
-            border-color: var(--rule);
-            cursor: default;
-          }
-        }
-
-        > :not(.line, .actions) {
-          transition:
-            opacity 180ms ease,
-            translate 180ms ease;
-        }
-
-        &[data-changing] > :not(.line, .actions) {
-          opacity: 0;
-          translate: 0 0.35rem;
+        svg.icon {
+          flex: none;
+          width: 18px;
+          height: 18px;
+          color: var(--brand);
+          fill: none;
+          stroke: currentColor;
+          stroke-width: 1.5;
+          stroke-linecap: round;
+          stroke-linejoin: round;
         }
       }
 
-      .stops {
+      /* A card is one link, its title's stretched over it; a link or button inside it stays above, its own. */
+      .stretch {
+        outline: none;
+
+        &::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+        }
+      }
+
+      .card :is(.links a, .proof a, .proof button) {
+        position: relative;
+        z-index: 1;
+      }
+
+      .go {
+        margin-left: auto;
+        color: var(--muted);
         pointer-events: none;
-      }
+        transition: translate 0.15s, color 0.15s;
 
-      .stop {
-        height: 38svh;
-        scroll-snap-align: start;
-      }
-
-      .stops::after {
-        content: "";
-        display: block;
-        height: 62svh;
-      }
-
-      @media (max-width: 68rem) {
-        .stage {
-          --x: 50%;
-          --y: 50%;
+        .card:has(.stretch:hover) & {
+          color: var(--ink);
+          translate: 2px 0;
         }
+      }
 
-        .index {
-          display: none;
-        }
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 14px;
+        margin-top: auto;
+        padding-top: 16px;
+        font-size: 13px;
 
-        .caption {
-          right: auto;
-          bottom: 2.5rem;
-          left: 2.5rem;
-          width: min(24rem, 44vw);
+        a {
+          color: var(--soft);
 
-          .line {
-            display: none;
+          &:hover {
+            color: var(--ink);
           }
         }
+      }
 
-        .ticks {
+      /* What a way in looks like in use: a request and its answer, an address to copy, a command. */
+      .proof {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 16px;
+        border-radius: 8px;
+        padding: 10px 12px;
+        background: var(--well);
+        box-shadow: inset 0 0 0 1px var(--line);
+        font-size: 12.5px;
+
+        code {
+          flex: 1;
+          min-width: 0;
+          overflow-wrap: break-word;
+          color: var(--text);
+        }
+
+        .reply {
+          display: block;
+          margin-top: 4px;
+          color: var(--ink);
+        }
+
+        .verb {
+          color: var(--brand-text);
+        }
+
+        .word {
+          white-space: nowrap;
+        }
+
+        button {
+          flex: none;
+          border: 0;
+          border-radius: 6px;
+          padding: 4px 8px;
+          color: var(--soft);
+          background: var(--card);
+          box-shadow: inset 0 0 0 1px var(--line-strong);
+          font: inherit;
+          font-family: var(--sans);
+          cursor: pointer;
+
+          &:hover {
+            color: var(--ink);
+          }
+        }
+      }
+
+      /* A card with a picture: the picture, a line, then its words (the card's padding theirs). */
+      .media {
+        overflow: hidden;
+        padding: 0;
+
+        > .body {
           display: flex;
+          flex: 1;
+          flex-direction: column;
+          padding: 20px;
+        }
+
+        > .shot {
+          border-bottom: 1px solid var(--line);
         }
       }
 
-      @media (max-height: 46rem) {
-        .index :is(ol, .hint) {
-          display: none;
-        }
+      .shot {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 16 / 10;
+        object-fit: cover;
+        background: var(--well);
       }
 
-      @media (max-width: 52rem) {
-        :root {
-          --disk: min(7.6rem, 31vw, 15svh);
-        }
+      /* Studio, first and widest: its words, then (wider) beside them as tall, its picture. */
+      .feature {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
 
-        .site-header {
-          padding: 1rem 1.25rem;
-        }
+        > .body {
+          padding: 24px;
 
-        .stage {
-          --y: 60%;
-        }
-
-        .caption {
-          right: 1.25rem;
-          bottom: 1.5rem;
-          left: 1.25rem;
-          width: auto;
-
-          h2 {
-            font-size: 2.3rem;
+          h3 {
+            font-size: 20px;
           }
 
           p {
-            margin-top: 0.6rem;
+            font-size: 15px;
+          }
+        }
+
+        > .shot {
+          order: -1;
+        }
+
+        @media (min-width: 720px) {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
+
+          > .body {
+            padding: 32px;
           }
 
-          .actions {
-            margin-top: 1rem;
+          > .shot {
+            order: 0;
+            height: 100%;
+            border-bottom: 0;
+            border-left: 1px solid var(--line);
+          }
+        }
+      }
+
+      footer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 20px;
+        margin-top: 88px;
+        border-top: 1px solid var(--line);
+        padding: 24px 0 40px;
+        color: var(--muted);
+        font-size: 13px;
+
+        a:hover {
+          color: var(--ink);
+        }
+
+        .brand {
+          margin-right: auto;
+          font-size: 14px;
+
+          img {
+            width: 16px;
+            height: 18.5px;
           }
         }
       }
 
       @media (prefers-reduced-motion: reduce) {
-        html {
-          scroll-snap-type: none;
-        }
-
-        .tip::before {
-          animation: none;
-        }
-
-        .caption > *,
-        .stage {
+        * {
           transition: none !important;
         }
       }
     </style>
   </head>
   <body>
-    <header class="site-header">
-      <a class="site-brand" href="./" aria-label="bitview home">
-        <span class="site-brand-mark" aria-hidden="true">
-          <svg class="site-brand-cube" viewBox="0 0 173.2 200" focusable="false">
-            <polygon class="glass" points="86.6,100 173.2,150 86.6,200 0,150" />
-            <polygon class="glass" points="86.6,100 0,150 0,50 86.6,0" />
-            <polygon class="glass" points="86.6,100 173.2,150 173.2,50 86.6,0" />
-            <polygon class="liquid" points="173.2,100 173.2,150 86.6,200 86.6,150" />
-            <polygon class="liquid" points="0,100 0,150 86.6,200 86.6,150" />
-          </svg>
-        </span>
-        <span>bitview</span>
-      </a>
-      <span class="tip" id="tip" hidden>Block <b id="tip-height"></b></span>
-    </header>
+    <div class="page">
+      <header class="top">
+        <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+        <nav aria-label="Bitview">
+          <a href="/studio/">Studio</a>
+          <a href="/api/">API</a>
+          <a href="/dev/">Run your own</a>
+          <a href="https://github.com/bitcoinresearchkit/mono">GitHub</a>
+        </nav>
+        <span class="tip" id="tip" hidden>Block <b class="num" id="tip-height"></b></span>
+      </header>
 
-    <main class="stage">
-      <nav class="index" aria-label="Showcases">
-        <h1>Showcases</h1>
-        <p class="lede">Single files, each reading live data from a Bitcoin node through Bitview.</p>
-        <ol id="index"></ol>
-        <p class="hint">Scroll, or ↑ ↓ · Enter opens</p>
-      </nav>
+      <main>
+        <div class="hero">
+          <div>
+            <h1>Bitcoin's on-chain data, open to all</h1>
+            <p class="lede">
+              Bitview reads every block from a Bitcoin node and measures it: prices, supply, holders, miners, fees and
+              much more. Chart it, query it, or run the server yourself. Free, with no account and no key.
+            </p>
+            <div class="ctas">
+              <a class="button primary" href="/studio/">Open Studio</a>
+              <a class="button" href="/api/">Explore the API</a>
+            </div>
+          </div>
 
-      <div class="scene" id="scene" aria-hidden="true">
-        <div class="shadow" id="shadow-next"></div>
-        <div class="shadow" id="shadow-seen"></div>
-        <div class="held-shadow" id="shadow-held"></div>
-      </div>
-
-      <section class="caption" id="caption" aria-live="polite">
-        <span class="line" aria-hidden="true"></span>
-        <div class="ticks" id="ticks" aria-hidden="true"></div>
-        <div class="meta"><span id="group"></span><span id="position"></span></div>
-        <h2 id="title"></h2>
-        <p id="description"></p>
-        <div class="actions">
-          <a class="open" id="open" href="#"><span>Open</span><span aria-hidden="true">↗</span></a>
-          <button class="step" id="previous" type="button" aria-label="Previous showcase">↑</button>
-          <button class="step" id="next" type="button" aria-label="Next showcase">↓</button>
+          <div class="surface">
+            <dl class="stats">
+              <div><dt>Price</dt><dd class="num" id="stat-price"></dd></div>
+              <div><dt>Market cap</dt><dd class="num" id="stat-cap"></dd></div>
+              <div><dt>MVRV</dt><dd class="num" id="stat-mvrv"></dd></div>
+              <div><dt>Supply in profit</dt><dd class="num" id="stat-profit"></dd></div>
+              <div><dt>Hashrate</dt><dd class="num" id="stat-hashrate"></dd></div>
+              <div><dt>Circulating supply</dt><dd class="num" id="stat-supply"></dd></div>
+            </dl>
+            <div class="stats-foot"><span>Live from this server</span><a href="/studio/">Studio <span aria-hidden="true">→</span></a></div>
+          </div>
         </div>
-      </section>
-    </main>
 
-    <div class="stops" id="stops" aria-hidden="true"></div>
+        <figure class="chart-card surface">
+          <div class="chart-head">
+            <span class="chart-title">Price and realized price, weekly<span class="num" id="chart-date"></span></span>
+            <span class="key" style="--color: var(--ink)">Price <span class="num" id="price"></span></span>
+            <span class="key" style="--color: var(--brand)">Realized price <span class="num" id="realized"></span></span>
+          </div>
+          <div class="plot" id="plot" data-state="loading"></div>
+          <div class="years" id="years" aria-hidden="true"></div>
+          <figcaption class="chart-foot">
+            <span>Realized price: what every coin cost when it last moved, on average.</span>
+            <a href="/studio/">Chart it yourself <span aria-hidden="true">→</span></a>
+          </figcaption>
+        </figure>
+
+        <section aria-labelledby="ways">
+          <h2 id="ways">Ways in</h2>
+          <p class="section-lede">The same data, however you work with it.</p>
+          <div class="grid">
+            <article class="card media feature">
+              <div class="body">
+                <h3><svg class="icon" viewBox="0 0 18 18" aria-hidden="true"><path d="M2.5 14.5l4-5 3 2.5 6-8" /><path d="M2.5 2.5v13h13" /></svg><a class="stretch" href="/studio/">Studio</a><span class="go" aria-hidden="true">→</span></h3>
+                <p>Chart any series: overlay them, stack panes, derive new ones with formulas, then keep, share or export them. Presets to start from, on your phone as on your desk.</p>
+              </div>
+              <img class="shot" src="/assets/previews/studio.jpg" alt="" width="800" height="500" />
+            </article>
+          </div>
+          <div class="grid three">
+            <article class="card">
+              <h3><svg class="icon" viewBox="0 0 18 18" aria-hidden="true"><path d="M6 2.5c-1.7 0-2 .8-2 2v2c0 1.2-.6 2.5-1.8 2.5 1.2 0 1.8 1.3 1.8 2.5v2c0 1.2.3 2 2 2M12 2.5c1.7 0 2 .8 2 2v2c0 1.2.6 2.5 1.8 2.5-1.2 0-1.8 1.3-1.8 2.5v2c0 1.2-.3 2-2 2" /></svg><a class="stretch" href="/api/">API</a><span class="go" aria-hidden="true">→</span></h3>
+              <p>Every series, block, transaction and address over plain HTTP, documented from the server's own specification.</p>
+              <div class="proof"><code><a href="/api/series/price/day1/latest"><span class="verb">GET</span> /api/series/price/day1/latest</a><span class="reply" id="reply"></span></code></div>
+              <div class="links"><a href="/openapi.json">OpenAPI</a><a href="/llms.txt">llms.txt</a><a href="https://www.npmjs.com/package/bitview-client">JavaScript</a><a href="https://pypi.org/project/bitview-client/">Python</a><a href="https://crates.io/crates/bitview_client">Rust</a></div>
+            </article>
+            <article class="card">
+              <h3><svg class="icon" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2v3M9 13v3M2 9h3M13 9h3M4 4l2 2M12 12l2 2M14 4l-2 2M6 12l-2 2" /></svg><a class="stretch" href="https://mcp.bitview.space/">For assistants</a><span class="go" aria-hidden="true">↗</span></h3>
+              <p>Add Bitview to Claude, ChatGPT or any MCP client: it searches the series by their names and descriptions, and reads them.</p>
+              <div class="proof"><code>https://mcp.bitview.space/</code><button type="button" data-copy="https://mcp.bitview.space/" aria-label="Copy the MCP address">Copy</button></div>
+            </article>
+            <article class="card">
+              <h3><svg class="icon" viewBox="0 0 18 18" aria-hidden="true"><rect x="2.5" y="3" width="13" height="5" rx="1.2" /><rect x="2.5" y="10" width="13" height="5" rx="1.2" /><path d="M5.5 5.5h.01M5.5 12.5h.01" /></svg><a class="stretch" href="/dev/">Run your own</a><span class="go" aria-hidden="true">→</span></h3>
+              <p>The same server beside your own Bitcoin Core, on Linux or macOS. Open source, under the MIT license.</p>
+              <div class="proof"><code>cargo install <span class="word">--locked</span> bitviewd</code><button type="button" data-copy="cargo install --locked bitviewd" aria-label="Copy the install command">Copy</button></div>
+            </article>
+          </div>
+        </section>
+
+        <section aria-labelledby="explore">
+          <h2 id="explore">Explore</h2>
+          <p class="section-lede">Pages built on the same data.</p>
+          <div class="grid three">
+            <article class="card media">
+              <img class="shot" src="/assets/previews/globe.jpg" alt="" width="800" height="500" loading="lazy" />
+              <div class="body">
+                <h3><a class="stretch" href="/globe/">Globe</a><span class="go" aria-hidden="true">→</span></h3>
+                <p>Where the pools that found the latest blocks are based, on a live globe, with replays of each block.</p>
+              </div>
+            </article>
+            <article class="card media">
+              <img class="shot" src="/assets/previews/calendar.jpg" alt="" width="800" height="500" loading="lazy" />
+              <div class="body">
+                <h3><a class="stretch" href="/calendar/">Calendar</a><span class="go" aria-hidden="true">→</span></h3>
+                <p>Every day of the year, the pool that found the most blocks, and every block of any day.</p>
+              </div>
+            </article>
+            <article class="card media">
+              <img class="shot" src="/assets/previews/trail.jpg" alt="" width="800" height="500" loading="lazy" />
+              <div class="body">
+                <h3><a class="stretch" href="/trail/">The Satoshi Trail</a><span class="go" aria-hidden="true">→</span></h3>
+                <p>Supply by the price it last moved at, through time, in two or three dimensions.</p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section aria-labelledby="underneath">
+          <h2 id="underneath">Underneath</h2>
+          <p class="section-lede">What Bitview is made of, open for anyone to build on.</p>
+          <div class="grid two">
+            <article class="card">
+              <h3><svg class="icon" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2l6 3.5v7L9 16l-6-3.5v-7z" /><path d="M3 5.5L9 9l6-3.5M9 9v7" /></svg><a class="stretch" href="/brk/">Bitcoin Research Kit</a><span class="go" aria-hidden="true">→</span></h3>
+              <p>The Rust crates Bitview is built from: RPC, block files, mempool, prices, types and storage.</p>
+            </article>
+            <article class="card">
+              <h3><svg class="icon" viewBox="0 0 18 18" aria-hidden="true"><path d="M6 5L2.5 9 6 13M12 5l3.5 4-3.5 4M10.5 3.5l-3 11" /></svg><a class="stretch" href="https://github.com/bitcoinresearchkit/mono">Source</a><span class="go" aria-hidden="true">↗</span></h3>
+              <p>Everything here, from the indexer to this page, in one open repository.</p>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <p class="vh" id="status" role="status"></p>
+
+      <footer>
+        <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+        <a href="/studio/">Studio</a>
+        <a href="/api/">API</a>
+        <a href="/dev/">Run your own</a>
+        <a href="https://github.com/bitcoinresearchkit/mono">GitHub</a>
+        <span>MIT license</span>
+      </footer>
+    </div>
 
     <script type="module">
       // @ts-check
-      // Two piles of floppy disks, one per showcase: the ones still to see, the ones seen, and the
-      // one held up in between. Every label is drawn here, by hand, as SVG.
+      const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
-      const cube = (x, y, s, top, left, right) =>
-        `<path d="M${x} ${y}l${s * 0.87} ${s * 0.5}l${-s * 0.87} ${s * 0.5}l${-s * 0.87} ${-s * 0.5}z" fill="${top}"/>` +
-        `<path d="M${x - s * 0.87} ${y + s * 0.5}l${s * 0.87} ${s * 0.5}v${s}l${-s * 0.87} ${-s * 0.5}z" fill="${left}"/>` +
-        `<path d="M${x} ${y + s}l${s * 0.87} ${-s * 0.5}v${s}l${-s * 0.87} ${s * 0.5}z" fill="${right}"/>`;
-      const line = (points, stroke, width = 2.5) =>
-        `<polyline points="${points}" fill="none" stroke="${stroke}" stroke-width="${width}" stroke-linejoin="round" stroke-linecap="round"/>`;
-
-      /** Label art, 244×152, in each page's own colors. */
-      const ART = {
-        // The studio: the sidebar on the page (search, the nav, layers by pane with their letters, values and
-        // changes) and the chart on one card: price over realized price, MVRV around 1, the navigator, the ranges.
-        studio: `<rect width="244" height="152" fill="#08090a"/><rect x="4" y="4" width="8" height="8" rx="2.2" fill="#f7931a"/><path d="M8 5.8l2.1 1.2v2.4L8 10.6 5.9 9.4V7z" fill="#1a0f02" opacity=".55"/><text x="15" y="10.1" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="4.4" fill="#f7f8f8" font-weight="600">Studio</text><rect x="3" y="16" width="57" height="7.6" rx="2" fill="#fff" fill-opacity=".035" stroke="#fff" stroke-opacity=".06" stroke-width=".5"/><circle cx="7.3" cy="19.5" r="1.25" fill="none" stroke="#8a8f98" stroke-width=".55" stroke-linecap="round" stroke-linejoin="round"/><path d="M8.2 20.4l.9.9" fill="none" stroke="#8a8f98" stroke-width=".55" stroke-linecap="round" stroke-linejoin="round"/><text x="11.2" y="20.9" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3.2" fill="#62666d">Add a series…</text><rect x="51.6" y="17.8" width="6.4" height="4" rx=".9" fill="#fff" fill-opacity=".07"/><text x="52.5" y="20.7" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="2.6" fill="#8a8f98">⌘K</text><text x="6" y="31.3" font-family="Georgia,serif" font-size="4" fill="#8a8f98">ƒ</text><text x="11.2" y="31.2" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3.4" fill="#d0d6e0" font-weight="500">Add a formula</text><rect x="5.6" y="34.9" width="3.6" height="3.2" rx=".6" fill="none" stroke="#8a8f98" stroke-width=".55" stroke-linecap="round" stroke-linejoin="round"/><text x="11.2" y="37.7" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3.4" fill="#d0d6e0" font-weight="500">My charts</text><path d="M5.6 41.4h1.4v1.4H5.6zM7.8 41.4h1.4v1.4H7.8zM5.6 43.2h1.4v1.4H5.6zM7.8 43.2h1.4v1.4H7.8z" fill="none" stroke="#8a8f98" stroke-width=".55" stroke-linecap="round" stroke-linejoin="round"/><text x="11.2" y="44.2" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3.4" fill="#d0d6e0" font-weight="500">Templates</text><path d="M5.4 48.1h1.4l.6.6h2v2.6H5.4z" fill="none" stroke="#8a8f98" stroke-width=".55" stroke-linecap="round" stroke-linejoin="round"/><text x="11.2" y="50.7" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3.4" fill="#d0d6e0" font-weight="500">Browse the catalog</text><text x="57.5" y="37.7" font-family="Lilex,monospace" font-size="2.6" fill="#62666d" text-anchor="end">1</text><text x="5" y="60" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3" fill="#62666d" font-weight="500">Layers</text><text x="16.4" y="60" font-family="Lilex,monospace" font-size="2.6" fill="#62666d">3</text><text x="5" y="66" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="2.9" fill="#62666d" font-weight="500">Pane 1</text><rect x="44.3" y="63.3" width="6" height="3.6" rx=".8" fill="#fff" fill-opacity=".08"/><text x="39.4" y="66" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">Lin</text><text x="45.1" y="66" font-family="Lilex,monospace" font-size="2.3" fill="#d0d6e0">Log</text><text x="51.4" y="66" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">%</text><text x="54.6" y="66" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">100</text><rect x="2.5" y="68" width="58" height="9.4" rx="1.8" fill="#fff" fill-opacity=".07"/><path d="M2.9 70.4v4.6" stroke="#f7931a" stroke-width=".7" stroke-linecap="round"/><rect x="4.4" y="69.5" width="5.8" height="5.8" rx="1.5" fill="#f7f8f8" fill-opacity=".14" stroke="#f7f8f8" stroke-opacity=".2" stroke-width=".4"/><text x="6.3" y="73.4" font-family="Lilex,monospace" font-size="2.8" fill="#f7f8f8" font-weight="600">A</text><text x="13" y="72.10000000000001" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3.3" fill="#d0d6e0" font-weight="500">Price close</text><text x="13" y="75.4" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">price_close</text><text x="58.4" y="72.10000000000001" font-family="Lilex,monospace" font-size="2.8" fill="#f7f8f8" text-anchor="end">$84,926</text><rect x="48" y="73.30000000000001" width="10.6" height="3.1" rx=".7" fill="#3ccf7c" fill-opacity=".11"/><text x="58" y="75.60000000000001" font-family="Lilex,monospace" font-size="2.2" fill="#3ccf7c" text-anchor="end">↑ 1.42M×</text><rect x="4.4" y="79.5" width="5.8" height="5.8" rx="1.5" fill="#f7931a" fill-opacity=".14" stroke="#f7931a" stroke-opacity=".2" stroke-width=".4"/><text x="6.3" y="83.4" font-family="Lilex,monospace" font-size="2.8" fill="#f7931a" font-weight="600">B</text><text x="13" y="82.10000000000001" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3.3" fill="#d0d6e0" font-weight="500">Realized price</text><text x="13" y="85.4" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">realized_price</text><text x="58.4" y="82.10000000000001" font-family="Lilex,monospace" font-size="2.8" fill="#f7f8f8" text-anchor="end">$53,666</text><rect x="48" y="83.30000000000001" width="10.6" height="3.1" rx=".7" fill="#3ccf7c" fill-opacity=".11"/><text x="58" y="85.60000000000001" font-family="Lilex,monospace" font-size="2.2" fill="#3ccf7c" text-anchor="end">↑ 5.37M×</text><text x="5" y="93" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="2.9" fill="#62666d" font-weight="500">Pane 2</text><rect x="38.6" y="90.3" width="6" height="3.6" rx=".8" fill="#fff" fill-opacity=".08"/><text x="39.4" y="93" font-family="Lilex,monospace" font-size="2.3" fill="#d0d6e0">Lin</text><text x="45.1" y="93" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">Log</text><text x="51.4" y="93" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">%</text><text x="54.6" y="93" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">100</text><rect x="4.4" y="96.69999999999999" width="5.8" height="5.8" rx="1.5" fill="#3b82f6" fill-opacity=".14" stroke="#3b82f6" stroke-opacity=".2" stroke-width=".4"/><text x="6.3" y="100.6" font-family="Lilex,monospace" font-size="2.8" fill="#3b82f6" font-weight="600">C</text><text x="13" y="99.3" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3.3" fill="#d0d6e0" font-weight="500">MVRV</text><text x="13" y="102.6" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">ƒ A / B</text><text x="58.4" y="99.3" font-family="Lilex,monospace" font-size="2.8" fill="#f7f8f8" text-anchor="end">1.58×</text><rect x="48" y="100.5" width="10.6" height="3.1" rx=".7" fill="#f2555a" fill-opacity=".11"/><text x="58" y="102.8" font-family="Lilex,monospace" font-size="2.2" fill="#f2555a" text-anchor="end">↓ 73.6%</text><circle cx="7.4" cy="129.6" r="1" fill="#3ccf7c"/><text x="11.2" y="130.6" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3" fill="#62666d">Live · 19:02</text><rect x="5.5" y="134.9" width="4" height="2.8" rx=".5" fill="none" stroke="#8a8f98" stroke-width=".55" stroke-linecap="round" stroke-linejoin="round"/><text x="11.2" y="137.4" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3.3" fill="#d0d6e0" font-weight="500">Shortcuts</text><rect x="5.5" y="141.4" width="4" height="3.4" rx=".6" fill="none" stroke="#8a8f98" stroke-width=".55" stroke-linecap="round" stroke-linejoin="round"/><path d="M6.8 141.4v3.4" fill="none" stroke="#8a8f98" stroke-width=".55" stroke-linecap="round" stroke-linejoin="round"/><text x="11.2" y="144.2" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3.3" fill="#d0d6e0" font-weight="500">Collapse</text><rect x="64.5" y="2.5" width="177" height="147" rx="4" fill="#0e0f11" stroke="#fff" stroke-opacity=".06" stroke-width=".5"/><text x="68.5" y="9.9" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3.3" fill="#62666d" font-weight="500">My charts</text><text x="84.6" y="9.9" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3.3" fill="#3e4147">/</text><text x="88" y="10" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3.9" fill="#f7f8f8" font-weight="600">Price &amp; realized price</text><text x="176" y="9.8" font-family="Lilex,monospace" font-size="2.9" fill="#8a8f98">1D</text><path d="M180.7 8.2l.8.8.8-.8" fill="none" stroke="#62666d" stroke-width=".4"/><path d="M186.4 10.6l3-3 1 1-3 3z" fill="none" stroke="#8a8f98" stroke-width=".45" stroke-linejoin="round"/><path d="M193.8 6.8v4.4" stroke="#fff" stroke-opacity=".1" stroke-width=".4"/><path d="M197.4 7.6l-1 1 1 1M196.4 8.6h2.2a1.3 1.3 0 0 1 0 2.6h-.6" fill="none" stroke="#62666d" stroke-opacity=".7" stroke-width=".45" stroke-linecap="round" stroke-linejoin="round"/><path d="M203.6 7.6l1 1-1 1M204.6 8.6h-2.2a1.3 1.3 0 0 0 0 2.6h.6" fill="none" stroke="#62666d" stroke-opacity=".7" stroke-width=".45" stroke-linecap="round" stroke-linejoin="round"/><path d="M207.6 6.8v4.4" stroke="#fff" stroke-opacity=".1" stroke-width=".4"/><rect x="210" y="5.6" width="15" height="7" rx="1.8" fill="#fff" fill-opacity=".04" stroke="#fff" stroke-opacity=".06" stroke-width=".5"/><text x="213.4" y="10.2" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3.2" fill="#f7f8f8" font-weight="500">Export</text><rect x="226.4" y="5.6" width="13.4" height="7" rx="1.8" fill="#f7931a"/><text x="229.4" y="10.2" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="3.2" fill="#1a0f02" font-weight="600">Share</text><path d="M64.5 15.5H241.5" stroke="#fff" stroke-opacity=".06" stroke-width=".5"/><path d="M68 33H223" stroke="#fff" stroke-opacity=".04" stroke-width=".4"/><path d="M68 47H223" stroke="#fff" stroke-opacity=".04" stroke-width=".4"/><path d="M68 61H223" stroke="#fff" stroke-opacity=".04" stroke-width=".4"/><path d="M68 75H223" stroke="#fff" stroke-opacity=".04" stroke-width=".4"/><path d="M68.5 20.9l1.1-1 .9.6 1.5-1.4" fill="none" stroke="#f7f8f8" stroke-width=".5" stroke-linecap="round" stroke-linejoin="round"/><text x="73.5" y="21.4" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="2.8" fill="#8a8f98" font-weight="500">Price close</text><text x="92.1" y="21.4" font-family="Lilex,monospace" font-size="2.7" fill="#f7f8f8">$84,926</text><path d="M109.5 20.9l1.1-1 .9.6 1.5-1.4" fill="none" stroke="#f7931a" stroke-width=".5" stroke-linecap="round" stroke-linejoin="round"/><text x="114.5" y="21.4" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="2.8" fill="#8a8f98" font-weight="500">Realized price</text><text x="136.9" y="21.4" font-family="Lilex,monospace" font-size="2.7" fill="#f7f8f8">$53,666</text>${line("72,82 76,76 80,69 84,65 88,61 92,58 96,55 100,52 104,51 108,48 112,46 116,46 120,44 124,42 128,42 132,41 136,41 140,40 144,39 148,38 152,38 156,37 160,37 164,36 168,36 172,36 176,36 180,35 184,35 188,34 192,34 196,33 200,33 204,33 208,33 212,32.6 216,32.6 220,32.4", "#f7931a", .75)}${line("70,78 73,74 76,67 79,58 81,62 84,54 87,50 90,56 93,49 97,45 101,47 105,41 109,38 113,42 117,36 121,33 125,37 129,34 133,36 137,32 141,34 145,31 149,33 153,30 157,32 161,29 165,31 169,29 173,32 177,29 181,30 185,27 189,29 193,27 197,28 201,26 205,27.6 209,26.4 213,28 217,26.8 220,27", "#f7f8f8", .75)}<rect x="224" y="24.8" width="12.6" height="4.2" rx=".8" fill="#f7f8f8"/><text x="225" y="27.9" font-family="Lilex,monospace" font-size="2.5" fill="#08090a">$84.9K</text><rect x="224" y="29.6" width="12.6" height="4.2" rx=".8" fill="#f7931a"/><text x="225" y="32.7" font-family="Lilex,monospace" font-size="2.5" fill="#1a0f02">$53.7K</text><text x="226" y="48" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">$10K</text><text x="226" y="62" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">$100</text><text x="226" y="76" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">$1</text><path d="M64.5 87.5H241.5" stroke="#fff" stroke-opacity=".08" stroke-width=".5"/><path d="M68.5 92.5l1.1-1 .9.6 1.5-1.4" fill="none" stroke="#3b82f6" stroke-width=".5" stroke-linecap="round" stroke-linejoin="round"/><text x="73.5" y="93" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="2.8" fill="#8a8f98" font-weight="500">MVRV</text><text x="83.9" y="93" font-family="Lilex,monospace" font-size="2.7" fill="#f7f8f8">1.58×</text><path d="M68 113.6H223" stroke="#fff" stroke-opacity=".12" stroke-width=".4" stroke-dasharray="1 1"/>${line("74,99 76,104 78,101 80,108 82,105 85,110 88,108 91,111.6 94,107 97,110 100,112 103,109 106,104 109,108 112,111 115,109 118,112.4 120,113.2", "#3b82f6", .75)}${line("120,113.2 121.6,115.2 123.4,113.6 124,112.8", "#f2555a", .75)}${line("124,112.8 127,107 130,110 133,112.2 136,108 139,104 142,107 145,111 148,112.6 151,110 154,108 157,110 160,112.2 163,109 166,107 169,109 172,113.2", "#3b82f6", .75)}${line("172,113.2 174.6,115.4 177,113", "#f2555a", .75)}${line("177,113 180,109 183,108 186,110 189,109 192,111 195,112 198,110 201,111 204,110 207,109.4 210,110 213,109 217,108.6 220,108.4", "#3b82f6", .75)}<rect x="224" y="106.4" width="10.4" height="4.2" rx=".8" fill="#3b82f6"/><text x="225.2" y="109.5" font-family="Lilex,monospace" font-size="2.5" fill="#fff">1.58×</text><text x="69" y="122.6" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">2009</text><text x="101" y="122.6" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">2013</text><text x="135" y="122.6" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">2017</text><text x="169" y="122.6" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">2021</text><text x="203" y="122.6" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">2025</text><rect x="68" y="125.6" width="155" height="5.8" rx="1.4" fill="#fff" fill-opacity=".02" stroke="#fff" stroke-opacity=".06" stroke-width=".5"/><polyline points="80,130.4 88,129.6 96,129 106,128.4 118,128 132,127.8 148,127.5 164,127.3 180,127.2 196,127 210,126.9 222,126.8" fill="none" stroke="#f7f8f8" stroke-opacity=".65" stroke-width=".4"/><path d="M69.2 127.4v2.2M221.8 127.4v2.2" stroke="#8a8f98" stroke-width=".45" stroke-linecap="round"/><path d="M64.5 134.5H241.5" stroke="#fff" stroke-opacity=".06" stroke-width=".5"/><rect x="67.5" y="137.6" width="28" height="7" rx="1.8" fill="#fff" fill-opacity=".03" stroke="#fff" stroke-opacity=".06" stroke-width=".5"/><rect x="87.4" y="138.2" width="7.6" height="5.8" rx="1.4" fill="#fff" fill-opacity=".08"/><text x="69.4" y="142.1" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="2.7" fill="#62666d" font-weight="500">3M</text><text x="75.4" y="142.1" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="2.7" fill="#62666d" font-weight="500">1Y</text><text x="81.2" y="142.1" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="2.7" fill="#62666d" font-weight="500">4Y</text><text x="88.6" y="142.1" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="2.7" fill="#f7f8f8" font-weight="500">All</text><text x="99" y="142" font-family="Lilex,monospace" font-size="2.3" fill="#62666d">1 Jan 2009 – 3 Oct 2026</text><rect x="219" y="137.6" width="20" height="7" rx="1.8" fill="#fff" fill-opacity=".03" stroke="#fff" stroke-opacity=".06" stroke-width=".5"/><path d="M221.6 141.1h2.2M227 141.1h2.2M228.1 140v2.2" stroke="#62666d" stroke-width=".45" stroke-linecap="round"/><text x="232.4" y="142.1" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-size="2.7" fill="#62666d" font-weight="500">Fit</text>`,
-        globe: `<rect width="244" height="152" fill="#07080b"/><ellipse cx="122" cy="80" rx="108" ry="22" fill="none" stroke="#2a2e36"/><circle cx="122" cy="76" r="56" fill="#16191f"/><path d="M122 20v112M76 44c30 18 62 18 92 0M70 96c34-16 70-16 104 0" fill="none" stroke="#262a31"/><path d="M110 58c10-8 26-6 30 4 4 12-6 24-18 22s-20-14-12-26z" fill="#de2910"/><circle cx="124" cy="68" r="11" fill="none" stroke="#fff" stroke-width="1.5"/><circle cx="210" cy="92" r="7" fill="#3a3e46"/><circle cx="58" cy="54" r="2.5" fill="#f7931a"/>`,
-        calendar: `<rect width="244" height="152" fill="#fff"/>${Array.from({ length: 35 }, (_, i) => {
-          const x = 30 + (i % 7) * 31;
-          const y = 22 + Math.floor(i / 7) * 26;
-          return [3, 11, 17, 24, 30].includes(i)
-            ? `<path d="M${x} ${y - 7}l6 11h-12z" fill="#13a374"/>`
-            : `<circle cx="${x - 2}" cy="${y - 4}" r="2.3" fill="#222"/><circle cx="${x + 2}" cy="${y}" r="2.3" fill="#f7931a"/>`;
-        }).join("")}`,
-        api: `<rect width="244" height="152" fill="#0b1713"/><text font-family="Lilex,monospace" font-size="12"><tspan x="16" y="34" fill="#7cc4f5">GET</tspan><tspan x="48" y="34" fill="#e3f2e9">/api/block/</tspan><tspan x="134" y="34" fill="#f2c46d">{hash}</tspan><tspan x="16" y="62" fill="#5fe0a4">{</tspan><tspan x="30" y="80" fill="#7cc4f5">"height"</tspan><tspan x="96" y="80" fill="#5fe0a4">840000</tspan><tspan x="30" y="98" fill="#7cc4f5">"tx_count"</tspan><tspan x="110" y="98" fill="#5fe0a4">3050</tspan><tspan x="16" y="116" fill="#5fe0a4">}</tspan></text><rect x="16" y="128" width="40" height="12" rx="3" fill="#5fe0a4"/>`,
-        trail: `<rect width="244" height="152" fill="#091513"/>${Array.from({ length: 16 }, (_, i) => {
-          const h = [30, 46, 22, 60, 38, 74, 52, 28, 64, 90, 44, 36, 70, 50, 26, 40][i];
-          const x = 22 + i * 13;
-          const y = 132 - i * 4;
-          const color = i % 5 === 3 ? "#9a9a9a" : i % 3 ? "#2f8f4e" : "#7a5a2a";
-          return `<path d="M${x} ${y}v${-h}l8 -4v${h}z" fill="${color}"/><path d="M${x + 8} ${y - 4}v${-h}l4 2v${h}z" fill="#000" opacity=".35"/>`;
-        }).join("")}`,
-        // The self-hosting page: its serif promise, the orange call to action and the requirements.
-        dev: `<rect width="244" height="152" fill="#0b0b0b"/><rect x="12" y="11" width="9" height="9" rx="1.5" fill="#ece6d8"/><path d="M16.5 13l3 1.7-3 1.7-3-1.7z" fill="#0b0b0b"/><text x="25" y="18.5" font-family="Lilex,monospace" font-size="6.5" fill="#ece6d8">bitview</text>${[["Run", 166], ["Plugins", 182], ["GitHub", 211]].map(([label, x]) => `<text x="${x}" y="18" font-family="Lilex,monospace" font-size="5" fill="#77726a">${label}</text>`).join("")}<path d="M12 27H232" stroke="#222"/><text font-family="Instrument,Georgia,serif" font-size="23" letter-spacing="-.4" fill="#ece6d8"><tspan x="12" y="56">A self-hosted</tspan><tspan x="12" y="79">Bitcoin data server.</tspan></text><rect x="12" y="92" width="52" height="15" fill="#f7931a"/><text x="18" y="102" font-family="Lilex,monospace" font-size="6" fill="#1a1206">Run Bitview</text><rect x="68.5" y="92.5" width="72" height="14" fill="none" stroke="#5a5650"/><text x="74" y="102" font-family="Lilex,monospace" font-size="6" fill="#ece6d8">Public instance</text><path d="M12 118H232" stroke="#222"/>${[["Bitcoin Core", 12], ["Linux · macOS", 72], ["16 GiB RAM", 140], ["MIT", 200]].map(([label, x]) => `<circle cx="${Number(x) + 1.5}" cy="130" r="1.5" fill="#f7931a"/><text x="${Number(x) + 6}" y="132" font-family="Lilex,monospace" font-size="5.5" fill="#9a958c">${label}</text>`).join("")}`,
-        brk: `<rect width="244" height="152" fill="#f3f0e8"/>${cube(122, 20, 58, "#d98a4e", "#b7410e", "#8f3209")}<text x="96" y="122" font-family="Lilex,monospace" font-weight="700" font-size="15" fill="#f3f0e8" transform="rotate(30 96 122)">BRK</text>`,
+      // Numbers as Studio writes them (its `precise`): thousands whole and grouped (82,156); under a thousand, four
+      // digits (123.4, 1.527); millions and up, four digits and a letter (1.655T), each threshold by the value as
+      // written; never wider than eight characters (0.0001234 as 1.234e-4); a unit said with an SI prefix takes the
+      // letter (1.167 ZH/s).
+      const SI = ["", "K", "M", "B", "T", "P", "E", "Z", "Y"];
+      const digits = (/** @type {number} */ n) => String(Number(n.toPrecision(4)));
+      const precise = (/** @type {number} */ value) => {
+        const abs = Math.abs(value), sign = value < 0 ? "−" : "";
+        if (Math.round(abs) < 1e6) {
+          const text = abs >= 999.95 ? Math.round(abs).toLocaleString("en-US") : abs >= 100 ? String(Number(abs.toFixed(1))) : digits(abs);
+          const short = Number(abs.toPrecision(4)).toExponential();
+          return sign + (text.length <= 8 ? text : short.length <= 8 ? short : abs.toExponential(2));
+        }
+        let tier = Math.min(SI.length - 1, Math.floor(Math.log10(abs) / 3)), scaled = abs / 1000 ** tier;
+        if (Number(scaled.toPrecision(4)) >= 1000 && tier < SI.length - 1) (tier++), (scaled /= 1000);
+        return `${sign}${digits(scaled)}${SI[tier]}`;
       };
+      const prefixed = (/** @type {number} */ value, /** @type {string} */ unit) => {
+        const text = precise(value), letter = text.slice(-1);
+        return /[A-Z]$/.test(text) ? `${text.slice(0, -1)} ${({ B: "G", K: "k" })[letter] ?? letter}${unit}` : `${text} ${unit}`;
+      };
+      const dollars = (/** @type {number} */ value) => `$${precise(value)}`;
+      const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      /** A date as Studio writes it: "19 Oct 2026". */
+      const day = (/** @type {string} */ date) => `${Number(date.slice(8, 10))} ${MONTHS[Number(date.slice(5, 7)) - 1]} ${date.slice(0, 4)}`;
 
-      const DISKS = [
-        { id: "studio", href: "./studio/", group: "Explore", title: "Studio", label: "studio", body: "#21242b", accent: "#f7931a", description: "Compose charts from any series: overlay them, stack panes, derive new ones with formulas, then keep, share or export them." },
-        { id: "globe", href: "./globe/", group: "Explore", title: "Globe", label: "globe", body: "#1c2235", accent: "#de2910", description: "Where blocks come from: every pool's home on a live globe, with replays of the latest blocks." },
-        { id: "calendar", href: "./calendar/", group: "Explore", title: "Miner calendar", label: "calendar", body: "#dedad2", accent: "#13a374", description: "Every day of the year, the pool that found the most blocks, and every block of any day." },
-        { id: "api", href: "./api/", group: "Explore", title: "API", label: "api", body: "#123329", accent: "#2fbf84", description: "Every endpoint, documented from the server's own spec and runnable in place." },
-        { id: "trail", href: "./trail/", group: "Stories", title: "Satoshi trail", label: "trail", body: "#143d32", accent: "#2f8f4e", description: "Supply by the price it last moved at, through time, in two or three dimensions." },
-        { id: "dev", href: "./dev/", group: "Build", title: "Run Bitview", label: "self-host", body: "#3a3a3a", accent: "#f7931a", description: "The server behind all of this, on your own Bitcoin node." },
-        { id: "brk", href: "./brk/", group: "Build", title: "Bitcoin Research Kit", label: "brk", body: "#b7410e", accent: "#b7410e", description: "The Rust crates underneath: RPC, block files, mempool, prices, types and storage." },
+      // What this server measures now, and its latest block, every minute.
+      /** @type {[string, string, (value: number) => string][]} */
+      const STATS = [
+        ["price", "stat-price", dollars],
+        ["market_cap", "stat-cap", dollars],
+        ["mvrv", "stat-mvrv", (value) => `${precise(value)}×`],
+        ["supply_in_profit_share", "stat-profit", (value) => `${precise(value)}%`],
+        ["hashrate", "stat-hashrate", (value) => prefixed(value, "H/s")],
+        ["circulating_supply", "stat-supply", (value) => `₿${precise(value)}`],
       ];
-
-      const shade = (hex, amount) => {
-        const value = parseInt(hex.slice(1), 16);
-        const channel = (shift) => Math.max(0, Math.min(255, ((value >> shift) & 255) + amount));
-        return `rgb(${channel(16)} ${channel(8)} ${channel(0)})`;
-      };
-      const pad = (n) => String(n).padStart(2, "0");
-
-      /**
-       * A 3.5" floppy, 300×310: a two-tone shell, the recess its brushed shutter slides in, the
-       * media behind the slot, the insertion arrow, write-protect tab and density hole, and a label.
-       */
-      function floppy(disk, index) {
-        const id = `f${index}`;
-        const deep = shade(disk.body, -58);
-        return `<svg viewBox="0 0 300 310" aria-hidden="true">
-          <defs>
-            <linearGradient id="${id}-shell" x2="0" y2="1"><stop offset="0" stop-color="${shade(disk.body, 22)}"/><stop offset=".3" stop-color="${disk.body}"/><stop offset="1" stop-color="${shade(disk.body, -12)}"/></linearGradient>
-            <linearGradient id="${id}-metal" x2="1"><stop offset="0" stop-color="#8f949a"/><stop offset=".42" stop-color="#e6e8ea"/><stop offset=".58" stop-color="#d0d3d6"/><stop offset="1" stop-color="#868b91"/></linearGradient>
-            <pattern id="${id}-brush" width="2.5" height="8" patternUnits="userSpaceOnUse"><rect width=".8" height="8" fill="#fff" opacity=".35"/></pattern>
-            <clipPath id="${id}-art"><rect width="244" height="150" rx="3"/></clipPath>
-          </defs>
-          <path d="M10 0H280L300 20V300a10 10 0 0 1-10 10H10A10 10 0 0 1 0 300V10A10 10 0 0 1 10 0z" fill="url(#${id}-shell)"/>
-          <path d="M54 0H246V102a5 5 0 0 1-5 5H59a5 5 0 0 1-5-5z" fill="${deep}" opacity=".3"/>
-          <rect x="64" width="160" height="98" rx="2" fill="url(#${id}-metal)"/>
-          <rect x="64" width="160" height="98" rx="2" fill="url(#${id}-brush)"/>
-          <rect x="64" y="96" width="160" height="2" fill="#000" opacity=".15"/>
-          <rect x="138" y="12" width="32" height="74" rx="3" fill="#24180f"/>
-          <path d="M140 14h28v26q-14 7-28 0z" fill="#5a4330" opacity=".55"/>
-          <path d="M24 30l8-11 8 11z" fill="${deep}" opacity=".7"/>
-          <rect x="10" y="272" width="15" height="22" rx="2" fill="${deep}"/>
-          <rect x="10" y="272" width="15" height="11" rx="2" fill="${shade(disk.body, -24)}"/>
-          <rect x="275" y="272" width="15" height="22" rx="2" fill="${deep}"/>
-          <rect x="28" y="114" width="244" height="190" rx="4" fill="#f8f5ee"/>
-          <path d="M32 114h236a4 4 0 0 1 4 4v3H28v-3a4 4 0 0 1 4-4z" fill="${disk.accent}"/>
-          <text x="38" y="143" font-family="Instrument,Georgia,serif" font-style="italic" font-size="21" fill="#2a2724">${disk.label}</text>
-          <text x="262" y="142" text-anchor="end" font-family="Lilex,monospace" font-size="9" letter-spacing=".5" fill="#9a948a">№ ${pad(index + 1)}</text>
-          <svg x="28" y="154" width="244" height="150" viewBox="0 0 244 150"><g clip-path="url(#${id}-art)">${ART[disk.id]}</g></svg>
-        </svg>`;
-      }
-
-      /** @type {(id: string) => any} */
-      const $ = (id) => document.getElementById(id);
-      const N = DISKS.length;
-      const scene = $("scene");
-      const stops = $("stops");
-      const caption = $("caption");
-      const WIDE = matchMedia("(min-width: 52rem)");
-      const FINE = matchMedia("(pointer: fine)");
-      const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
-
-      // A slightly messy pile: every disk keeps its own small offset and twist, the same on each visit.
-      const JITTER = DISKS.map((_, i) => {
-        const noise = (k) => {
-          const x = Math.sin((i + 1) * 12.9898 + k * 78.233) * 43758.5453;
-          return x - Math.floor(x) - 0.5;
-        };
-        return { x: noise(1) * 0.05, z: noise(2) * 0.05, angle: noise(3) * 8 };
-      });
-
-      const disks = DISKS.map((disk, index) => {
-        // Not focusable: the index beside the pile is the way in for keyboards.
-        const element = document.createElement("div");
-        element.className = "disk";
-        element.style.setProperty("--edge", shade(disk.body, -22));
-        element.style.setProperty("--edge-dark", shade(disk.body, -42));
-        element.style.setProperty("--seam", shade(disk.body, -70));
-        element.innerHTML = `<span class="face">${floppy(disk, index)}<i class="gloss"></i></span><i class="edge bottom"></i><i class="edge left"></i><i class="edge top"></i><i class="edge right"></i>`;
-        element.addEventListener("click", () => pick(index));
-        scene.append(element);
-        stops.append(Object.assign(document.createElement("div"), { className: "stop" }));
-        $("ticks").append(document.createElement("span"));
-        return element;
-      });
-
-      const entries = [];
-      DISKS.forEach((disk, index) => {
-        if (disk.group !== DISKS[index - 1]?.group) {
-          $("index").append(Object.assign(document.createElement("li"), { className: "group", textContent: disk.group }));
-        }
-        // Real links, so any entry opens in a new tab; a plain click moves the pile there first.
-        const item = document.createElement("li");
-        const link = document.createElement("a");
-        link.href = disk.href;
-        link.innerHTML = `<span>${pad(index + 1)}</span>${disk.title}`;
-        link.addEventListener("click", (/** @type {MouseEvent} */ event) => {
-          if (!plain(event)) return;
-          event.preventDefault();
-          pick(index);
-        });
-        item.append(link);
-        $("index").append(item);
-        entries.push(link);
-      });
-
-      let focused = -1;
-      // Where the pile is headed, so quick presses and notches add up while it moves.
-      let target = 0;
-      let steering = false;
-      // Unrounded: snap points sit at fractional offsets (38svh), and the glide must land exactly on one.
-      const stepHeight = () => /** @type {HTMLElement} */ (stops.firstElementChild).getBoundingClientRect().height;
-      /** A click that should stay in this tab, not one opening a new tab or window. */
-      const plain = (/** @type {MouseEvent} */ event) => !(event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0);
-      const go = (index) => {
-        target = Math.max(0, Math.min(N - 1, index));
-        steering = Math.abs(scrollY - target * stepHeight()) >= 1;
-        scrollTo({ top: target * stepHeight(), behavior: reducedMotion.matches ? "auto" : "smooth" });
-      };
-      const open = (index) => {
-        if (!DISKS[index]) return;
-        const { href } = DISKS[index];
-        if (reducedMotion.matches) return void (location.href = href);
-        document.body.dataset.leaving = "";
-        setTimeout(() => (location.href = href), 240);
-      };
-      addEventListener("pageshow", () => delete document.body.dataset.leaving);
-      const pick = (index) => (index === focused ? open(index) : go(index));
-
-      // The camera is 35.264° (atan √½) above the floor, turned 45°.
-      const COS = Math.cos(Math.atan(Math.SQRT1_2));
-      const SIN = Math.sin(Math.atan(Math.SQRT1_2));
-      /** A screen-space offset (right, down, toward the viewer) in scene coordinates. */
-      const toScene = (x, y, z) => {
-        const y1 = COS * y - SIN * z;
-        const z1 = SIN * y + COS * z;
-        return [Math.SQRT1_2 * (x - z1), y1, Math.SQRT1_2 * (x + z1)];
-      };
-
-      /** @type {{ width: number, thickness: number, zoom: number, next: number[], seen: number[], held: number[] }} */
-      let geometry;
-      function measure() {
-        const wide = WIDE.matches;
-        const width = disks[0].offsetWidth;
-        const height = (width * 310) / 300;
-        const thickness = width * 0.036;
-        const zoom = wide ? 1.3 : 1.6;
-        // Far enough apart that the two piles never share floor.
-        const [x, , z] = toScene(width * (wide ? 0.98 : 0.82), 0, 0);
-        // Wide: held between the piles. Narrow: held above them, clear of a full pile.
-        const pile = (N - 1) * thickness * COS + (SIN * Math.SQRT1_2 * (width + height)) / 2;
-        const lift = wide ? height * 0.62 : pile + (height * zoom) / 2 + width * 0.12;
-        const held = toScene(0, -lift, width * 1.3);
-        geometry = { width, thickness, zoom, next: [x, z], seen: [-x, -z], held };
-        $("shadow-next").style.transform = `translate3d(${x}px, -1px, ${z}px) rotateX(90deg)`;
-        $("shadow-seen").style.transform = `translate3d(${-x}px, -1px, ${-z}px) rotateX(90deg)`;
-        $("shadow-held").style.transform = `translate3d(${held[0]}px, -1px, ${held[2]}px) rotateY(-45deg) rotateX(90deg)`;
-      }
-
-      const tilt = { x: 0, y: 0, toX: 0, toY: 0 };
-      const arrival = reducedMotion.matches ? -Infinity : performance.now();
-
-      /**
-       * Everything follows one continuous focus: disks after it lie on the pile to see, disks
-       * before it on the pile seen, and the focused one is lifted off, turned to face the screen
-       * and held up between them.
-       */
-      function render() {
-        frame = 0;
-        const step = stepHeight();
-        // No room to lay anything out (a zero-height frame): wait for a resize.
-        if (!(step > 0)) return;
-        const focus = scrollY / step;
-        if (steering) steering = Math.abs(focus - target) * step >= 1;
-        else target = Math.round(focus);
-        tilt.x += (tilt.toX - tilt.x) * 0.12;
-        tilt.y += (tilt.toY - tilt.y) * 0.12;
-        const { width, thickness, zoom, next, seen, held } = geometry;
-        const now = performance.now();
-        let arriving = false;
-        const nearest = Math.max(0, Math.min(N - 1, Math.round(focus)));
-        disks.forEach((disk, index) => {
-          const d = index - focus;
-          const t = Math.max(0, 1 - Math.abs(d));
-          const [px, pz] = d > 0 ? next : seen;
-          const level = d > 0 ? N - 1 - index : index;
-          const jitter = JITTER[index];
-          const rest = [px + jitter.x * width, -(level + 1) * thickness, pz + jitter.z * width];
-          const arc = Math.sin(Math.PI * t) * width * 0.15;
-          const landed = Math.min(1, Math.max(0, (now - arrival - (t > 0 ? N : level) * 35) / 520));
-          arriving ||= landed < 1;
-          const fall = (1 - landed) ** 3 * width * 2.6;
-          const [x, y, z] = rest.map((value, axis) => value + (held[axis] - value) * t);
-          const scale = (1 + (zoom - 1) * t).toFixed(4);
-          disk.style.transform =
-            `translate3d(${x.toFixed(1)}px, ${(y - arc - fall).toFixed(1)}px, ${z.toFixed(1)}px) ` +
-            `rotateY(${(-45 * t).toFixed(2)}deg) rotateX(${(90 - 54.736 * t).toFixed(2)}deg) ` +
-            `rotateY(${(tilt.x * t).toFixed(2)}deg) rotateX(${(tilt.y * t).toFixed(2)}deg) ` +
-            `rotateZ(${(jitter.angle * (1 - t)).toFixed(2)}deg) scale3d(${scale}, ${scale}, ${scale})`;
-          disk.style.setProperty("--gloss", `${(100 - 66 * t - tilt.x * 2.5 * t).toFixed(1)}%`);
-          disk.classList.toggle("top", Math.abs(index - nearest) === 1);
-        });
-        const clamp = (value) => Math.max(0, Math.min(1, value));
-        $("shadow-next").style.opacity = clamp(N - 1 - focus).toFixed(3);
-        $("shadow-seen").style.opacity = clamp(focus).toFixed(3);
-        $("shadow-held").style.opacity = ((1 - 2 * Math.abs(focus - Math.round(focus))) ** 3).toFixed(3);
-        if (nearest !== focused) show(nearest);
-        if (arriving || Math.abs(tilt.toX - tilt.x) + Math.abs(tilt.toY - tilt.y) > 0.02) schedule();
-      }
-
-      function show(index) {
-        const first = focused < 0;
-        focused = index;
-        const disk = DISKS[index];
-        entries.forEach((entry, i) => entry.setAttribute("aria-current", String(i === index)));
-        $("previous").setAttribute("aria-disabled", String(index === 0));
-        $("next").setAttribute("aria-disabled", String(index === N - 1));
-        [...$("ticks").children].forEach((tick, i) => tick.classList.toggle("on", i === index));
-        document.documentElement.style.setProperty("--accent", disk.accent);
-        const fill = () => {
-          $("group").textContent = disk.group;
-          $("position").textContent = `${pad(index + 1)} / ${N}`;
-          $("title").textContent = disk.title;
-          $("description").textContent = disk.description;
-          $("open").href = disk.href;
-          $("open").firstElementChild.textContent = disk.href.startsWith("http") ? "Visit" : "Open";
-          caption.removeAttribute("data-changing");
-        };
-        if (first || reducedMotion.matches) fill();
-        else {
-          caption.dataset.changing = "";
-          setTimeout(fill, 140);
-        }
-        // Once the pile settles: browsers throttle rapid history updates.
-        clearTimeout(hashTimer);
-        hashTimer = setTimeout(() => history.replaceState(null, "", `#${disk.id}`), 250);
-      }
-      let hashTimer = 0;
-
-      let frame = 0;
-      const schedule = () => (frame ||= requestAnimationFrame(render));
-      addEventListener("scroll", schedule, { passive: true });
-      addEventListener("resize", () => {
-        measure();
-        schedule();
-      });
-      addEventListener("touchstart", () => (steering = false), { passive: true });
-      // Wherever a scroll settles (a glide, a swipe, the scrollbar), steps count from there again.
-      addEventListener("scrollend", () => {
-        steering = false;
-        schedule();
-      });
-      addEventListener("hashchange", () => {
-        const index = DISKS.findIndex((disk) => `#${disk.id}` === location.hash);
-        if (index >= 0) go(index);
-      });
-      $("previous").addEventListener("click", () => go(target - 1));
-      $("next").addEventListener("click", () => go(target + 1));
-
-      // The held disk leans a little toward the pointer.
-      addEventListener("pointermove", (event) => {
-        if (!FINE.matches || reducedMotion.matches) return;
-        tilt.toX = (event.clientX / innerWidth - 0.5) * 16;
-        tilt.toY = -(event.clientY / innerHeight - 0.5) * 12;
-        schedule();
-      });
-      document.documentElement.addEventListener("pointerleave", () => {
-        tilt.toX = tilt.toY = 0;
-        schedule();
-      });
-
-      // One floppy per wheel gesture: a mouse notch, or a trackpad swipe along with all of its inertia.
-      let wheelAt = -Infinity;
-      let wheelSum = 0;
-      addEventListener(
-        "wheel",
-        (event) => {
-          if (event.ctrlKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) return;
-          event.preventDefault();
-          if (event.timeStamp - wheelAt > 200) wheelSum = 0;
-          wheelAt = event.timeStamp;
-          if (Number.isNaN(wheelSum)) return;
-          wheelSum += event.deltaY * [1, 40, innerHeight][event.deltaMode];
-          if (Math.abs(wheelSum) < 20) return;
-          go(target + Math.sign(wheelSum));
-          wheelSum = NaN;
-        },
-        { passive: false },
-      );
-
-      addEventListener("keydown", (event) => {
-        if (event.metaKey || event.ctrlKey || event.altKey) return;
-        if (["ArrowDown", "ArrowRight", "PageDown"].includes(event.key)) go(target + 1);
-        else if (["ArrowUp", "ArrowLeft", "PageUp"].includes(event.key)) go(target - 1);
-        else if (event.key === "Home") go(0);
-        else if (event.key === "End") go(N - 1);
-        else if (event.key === "Enter" && !(event.target instanceof HTMLAnchorElement || event.target instanceof HTMLButtonElement)) open(focused);
-        else return;
-        event.preventDefault();
-      });
-
-      $("open").addEventListener("click", (/** @type {MouseEvent} */ event) => {
-        if (!plain(event)) return;
-        event.preventDefault();
-        open(focused);
-      });
-
-      // The latest block, live, as proof of where all of this comes from.
-      async function refreshTip() {
-        try {
-          const response = await fetch("/api/blocks/tip/height");
-          if (!response.ok) return;
-          $("tip-height").textContent = Number(await response.text()).toLocaleString("en-US");
+      const text = (/** @type {string} */ path) => fetch(path).then((response) => (response.ok ? response.text() : Promise.reject(new Error(String(response.status)))));
+      const json = (/** @type {string} */ path) => text(path).then((body) => JSON.parse(body));
+      // (Each part on its own: one failing leaves the others.)
+      function refresh() {
+        text("/api/blocks/tip/height").then((tip) => {
+          $("tip-height").textContent = precise(Number(tip));
           $("tip").hidden = false;
-        } catch {}
+        }, () => {});
+        json(`/api/series/bulk?series=${STATS.map(([series]) => series).join(",")}&index=day1&start=-1`).then((stats) => {
+          stats.forEach((/** @type {{ data: (number | null)[] }} */ series, /** @type {number} */ i) => {
+            const [, id, format] = STATS[i], value = series.data.at(-1);
+            $(id).textContent = typeof value === "number" ? format(value) : "";
+          });
+        }, () => {});
+        text("/api/series/price/day1/latest").then((reply) => ($("reply").textContent = reply), () => {});
       }
-      refreshTip();
-      setInterval(refreshTip, 60_000);
+      refresh();
+      setInterval(refresh, 60_000);
 
-      // Start at the floppy named in the URL, if any.
-      const start = Math.max(0, DISKS.findIndex((disk) => `#${disk.id}` === location.hash));
-      measure();
-      scrollTo({ top: start * stepHeight() });
-      target = start;
-      render();
+      // Copied, said on the button a moment (and to a screen reader, each time). Where the page can't write the clipboard (served
+      // over plain HTTP, but for localhost), no button: the text's there to select.
+      // (Said a moment after it's cleared: the same words set at once would be no change to a screen reader; gone a while
+      // after, none left to find reading through the page.)
+      let saying = 0;
+      const say = (/** @type {string} */ words) => {
+        clearTimeout(saying);
+        $("status").textContent = "";
+        saying = setTimeout(() => {
+          $("status").textContent = words;
+          saying = setTimeout(() => ($("status").textContent = ""), 3000);
+        }, 100);
+      };
+      for (const button of /** @type {NodeListOf<HTMLButtonElement>} */ (document.querySelectorAll("[data-copy]"))) {
+        let back = 0;
+        button.hidden = !navigator.clipboard;
+        button.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(/** @type {string} */ (button.dataset.copy));
+            clearTimeout(back);
+            button.textContent = "Copied";
+            say("Copied");
+            back = setTimeout(() => (button.textContent = "Copy"), 1500);
+          } catch {}
+        });
+      }
+
+      // The price and realized price, weekly, on a log scale, from the first week both have one; a cursor reads a week.
+      async function drawChart() {
+        const plot = $("plot");
+        try {
+          const [dates, price, realized] = /** @type {{ data: any[] }[]} */ (await json("/api/series/bulk?series=date,price,realized_price&index=week1")).map((series) => series.data);
+          const first = price.findIndex((value, i) => value > 0 && realized[i] > 0);
+          const weeks = first < 0 ? [] : dates.slice(first).map((date, k) => ({ date: String(date), price: Number(price[first + k]), realized: Number(realized[first + k]) }));
+          const values = weeks.flatMap((week) => [week.price, week.realized]).filter((value) => value > 0);
+          const low = Math.log10(Math.min(...values)), high = Math.log10(Math.max(...values));
+          if (weeks.length < 2 || !(high > low)) throw new Error("Too little history to draw");
+          const x = (/** @type {number} */ k) => (k / (weeks.length - 1)) * 1000;
+          const y = (/** @type {number} */ value) => 100 - ((Math.log10(value) - low) / (high - low)) * 100;
+          const line = (/** @type {"price" | "realized"} */ key) => weeks.flatMap((week, k) => (week[key] > 0 ? [`${x(k).toFixed(1)},${y(week[key]).toFixed(2)}`] : [])).join(" ");
+          // Gridlines at every other power of ten in range, labeled.
+          const powers = [];
+          for (let power = Math.ceil(low); power <= Math.floor(high); power++) if ((Math.floor(high) - power) % 2 === 0) powers.push(power);
+          const label = (/** @type {number} */ power) => (power >= 6 ? `$${10 ** (power - 6)}M` : power >= 3 ? `$${10 ** (power - 3)}K` : `$${10 ** power}`);
+          plot.innerHTML =
+            powers.map((power) => `<div class="gridline" style="top: ${y(10 ** power)}%"><span class="num">${label(power)}</span></div>`).join("") +
+            `<svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="${line("realized")}" stroke="var(--brand)"/><polyline points="${line("price")}" stroke="var(--ink)"/></svg>` +
+            `<div class="cursor" hidden><i style="--color: var(--ink)"></i><i style="--color: var(--brand)"></i></div>`;
+          const last = weeks[weeks.length - 1];
+          // The halving years, every four from 2012, where their first week starts, kept off the edges.
+          $("years").innerHTML = weeks
+            .map((week, k) => ({ year: Number(week.date.slice(0, 4)), at: x(k) / 10, starts: k > 0 && week.date.slice(0, 4) !== weeks[k - 1].date.slice(0, 4) }))
+            .filter((tick) => tick.starts && tick.year % 4 === 0 && tick.at > 3 && tick.at < 97)
+            .map((tick) => `<span class="num" style="left: ${tick.at}%">${tick.year}</span>`)
+            .join("");
+          // A week read (its values as it closed): in the head, the cursor on it; none, the latest. By a mouse over it (until
+          // it leaves), a tap or a sideways drag, by touch or pen (held until another; a scroll that starts on it moves
+          // nothing), or, focused, by a slider's keys: ← → ↑ ↓ a week, Page Up and Down a year, Home and End. Each said to a
+          // screen reader.
+          const cursor = /** @type {HTMLElement} */ (plot.querySelector(".cursor"));
+          const [priceDot, realizedDot] = /** @type {HTMLElement[]} */ ([...cursor.children]);
+          let reading = /** @type {number | null} */ (null);
+          plot.tabIndex = 0;
+          plot.setAttribute("role", "slider");
+          plot.setAttribute("aria-label", `Price and realized price, weekly from ${weeks[0].date.slice(0, 4)} to ${last.date.slice(0, 4)}, on a log scale`);
+          plot.setAttribute("aria-valuemin", "0");
+          plot.setAttribute("aria-valuemax", String(weeks.length - 1));
+          const show = (/** @type {number | null} */ k) => {
+            reading = k;
+            const week = weeks[k ?? weeks.length - 1];
+            $("chart-date").textContent = `Week of ${day(week.date)}`;
+            $("price").textContent = dollars(week.price);
+            $("realized").textContent = dollars(week.realized);
+            plot.setAttribute("aria-valuenow", String(k ?? weeks.length - 1));
+            plot.setAttribute("aria-valuetext", `${$("chart-date").textContent}: price ${$("price").textContent}, realized price ${$("realized").textContent}`);
+            cursor.hidden = k === null;
+            if (k === null) return;
+            cursor.style.left = `${x(k) / 10}%`;
+            priceDot.style.top = `${y(week.price)}%`;
+            realizedDot.style.top = `${y(week.realized)}%`;
+          };
+          const point = (/** @type {PointerEvent} */ event) => {
+            const box = plot.getBoundingClientRect();
+            show(Math.round(Math.min(1, Math.max(0, (event.clientX - box.left) / box.width)) * (weeks.length - 1)));
+          };
+          // (A touch that turns into a scroll: the reading as it was before it.)
+          let before = /** @type {number | null} */ (null);
+          plot.addEventListener("pointerdown", () => (before = reading));
+          plot.addEventListener("pointermove", point);
+          plot.addEventListener("pointerup", (event) => event.pointerType !== "mouse" && point(event));
+          plot.addEventListener("pointercancel", () => show(before));
+          // (Only a mouse leaving lets a reading go: a touch's or a pen's is held until another.)
+          plot.addEventListener("pointerleave", (event) => event.pointerType === "mouse" && show(null));
+          plot.addEventListener("blur", () => show(null));
+          plot.addEventListener("keydown", (event) => {
+            const at = reading ?? weeks.length - 1, end = weeks.length - 1;
+            const to = { ArrowLeft: at - 1, ArrowDown: at - 1, ArrowRight: at + 1, ArrowUp: at + 1, PageDown: at - 52, PageUp: at + 52, Home: 0, End: end }[event.key];
+            if (to === undefined) return;
+            event.preventDefault();
+            show(Math.min(end, Math.max(0, to)));
+          });
+          show(null);
+          delete plot.dataset.state;
+          // (Drawn in from the left, once.)
+          if (!reduced.matches) /** @type {SVGElement} */ (plot.querySelector("svg")).animate({ clipPath: ["inset(0 100% 0 0)", "inset(0 0 0 0)"] }, { duration: 1200, easing: "cubic-bezier(0.2, 0.7, 0.2, 1)" });
+        } catch {
+          plot.dataset.state = "failed";
+        }
+      }
+      drawChart();
     </script>
   </body>
 </html>

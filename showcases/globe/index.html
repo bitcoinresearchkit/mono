@@ -2139,7 +2139,7 @@
       // Blocks in [start, end) by height, newest first, shaped like the
       // `/api/v1/blocks` entries the rest of the page reads.
       async function fetchBlocks(start, end) {
-        const [pools, times] = await client.getSeriesBulk("pool,timestamp", "height", start, end, undefined, undefined, {
+        const [pools, times] = await client.getSeriesBulk("block_pool,timestamp", "height", start, end, undefined, undefined, {
           cache: false,
           memCache: false,
         });

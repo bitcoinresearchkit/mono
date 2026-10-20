@@ -1,6 +1,6 @@
 {
   "bugs": {
-    "url": "https://github.com/bitcoinresearchkit/brk/issues"
+    "url": "https://github.com/bitcoinresearchkit/mono/issues"
   },
   "description": "Bitcoin on-chain analytics client — thousands of metrics, block explorer, and address index",
   "engines": {
@@ -12,7 +12,7 @@
   "files": [
     "index.js"
   ],
-  "homepage": "https://github.com/bitcoinresearchkit/brk/tree/main/modules/bitview-client",
+  "homepage": "https://github.com/bitcoinresearchkit/mono/tree/main/modules/bitview-client",
   "keywords": [
     "brk",
     "bitcoin",
@@ -31,7 +31,7 @@
   "repository": {
     "directory": "modules/bitview-client",
     "type": "git",
-    "url": "git+https://github.com/bitcoinresearchkit/brk.git"
+    "url": "git+https://github.com/bitcoinresearchkit/mono.git"
   },
   "type": "module",
   "version": "0.12.2"

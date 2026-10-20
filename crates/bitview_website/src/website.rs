@@ -63,6 +63,7 @@ fn content_type(path: &Path) -> Option<&'static str> {
         "xml" => "application/xml",
         "woff2" => "font/woff2",
         "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
         "svg" => "image/svg+xml",
         "webmanifest" => "application/manifest+json",
         _ => return None,

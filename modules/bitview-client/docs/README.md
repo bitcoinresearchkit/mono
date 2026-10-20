@@ -6,7 +6,7 @@
 
 Zero-dependency JavaScript/TypeScript client for the [Bitview](https://bitview.space) Bitcoin analytics API.
 
-[npm](https://www.npmjs.com/package/bitview-client) | [API Reference](https://github.com/bitcoinresearchkit/brk/blob/main/modules/bitview-client/docs/globals.md) | [Source](https://github.com/bitcoinresearchkit/brk/tree/main/modules/bitview-client)
+[npm](https://www.npmjs.com/package/bitview-client) | [API Reference](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/docs/globals.md) | [Source](https://github.com/bitcoinresearchkit/mono/tree/main/modules/bitview-client)
 
 AI clients can use the same API through the official stateless, read-only MCP
 endpoint at [mcp.bitview.space](https://mcp.bitview.space/). No authentication

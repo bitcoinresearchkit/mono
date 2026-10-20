@@ -33,7 +33,7 @@ start-stop or multi-instance application server.
 
 ## Custom compositions
 
-The [custom plugin example](https://github.com/bitcoinresearchkit/brk/tree/main/examples/custom_plugin)
+The [custom plugin example](https://github.com/bitcoinresearchkit/mono/tree/main/examples/custom_plugin)
 is a complete, runnable template with persistent storage, typed dependencies,
 reorg-safe computation, composition, read-only queries, and automatic series API
 exposure. A custom binary depends on `bitview` plus its own composition (which

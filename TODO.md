@@ -25,15 +25,11 @@ Built against next.bitview.space; deployed to studio-next only, never studio.bit
 
 ## Showcases
 
-The website is gone: the server serves the showcases, their gallery (`showcases/index.html`) at `/`.
+The website is gone: the server serves the showcases, Bitview's front page (`showcases/index.html`) at `/`.
 
-- Rework the gallery page (`showcases/index.html`): what it says and links.
 - Each showcase's production is standalone at `<name>.DOMAIN`: one build, like Studio's, that inlines the shared
-  modules, fonts and pool logos into each page; the server keeps serving the sources.
-- Fix each showcase for the new server. Cohort ids are `age_<band>` and `amount_<band>` (were `utxos_<band>_old`,
-  `utxos_<band>`) and URPD cohorts `age_under_4m`, `age_2y_to_3y` (Trail's age filters send `utxos_*_old`). URPD weights
-  are `none`, `wakefulness`, `mobility` (were `raw`, `cointime`, `coinflow`: Trail, the API page's default). City, globe and calendar read the per-block pool as `pool` (now `block_pool`) and calendar a
-  pool's blocks as `<slug>_blocks_mined_cumulative` (now `pool_<slug>_block_count_cumulative`).
+  modules, fonts, pool logos, the logo and favicons into each page, and points its root links (`/studio/`, `/api/`)
+  at bitview.space; the server keeps serving the sources.
 - A home for what only the website had: block, transaction and address pages.
 
 ## Back end

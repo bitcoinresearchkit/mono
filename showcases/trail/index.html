@@ -482,9 +482,9 @@
             <label class="selector">
               <span>Weight</span>
               <select id="weight" aria-label="Supply weighting">
-                <option value="raw">NONE</option>
-                <option value="cointime">COINTIME</option>
-                <option value="coinflow">COINFLOW</option>
+                <option value="none">NONE</option>
+                <option value="wakefulness">WAKEFULNESS</option>
+                <option value="mobility">MOBILITY</option>
               </select>
             </label>
             <label class="selector">
@@ -494,29 +494,29 @@
                 <option value="sth">SHORT-TERM</option>
                 <option value="lth">LONG-TERM</option>
                 <optgroup label="AGE BANDS">
-                  <option value="utxos_under_1h_old">≤1H</option>
-                  <option value="utxos_1h_to_1d_old">1H–1D</option>
-                  <option value="utxos_1d_to_1w_old">1D–1W</option>
-                  <option value="utxos_1w_to_1m_old">1W–1M</option>
-                  <option value="utxos_1m_to_2m_old">1–2M</option>
-                  <option value="utxos_2m_to_3m_old">2–3M</option>
-                  <option value="utxos_3m_to_4m_old">3–4M</option>
-                  <option value="utxos_4m_to_5m_old">4–5M</option>
-                  <option value="utxos_5m_to_6m_old">5–6M</option>
-                  <option value="utxos_6m_to_9m_old">6–9M</option>
-                  <option value="utxos_9m_to_1y_old">9M–1Y</option>
-                  <option value="utxos_1y_to_18m_old">1Y–18M</option>
-                  <option value="utxos_18m_to_2y_old">18M–2Y</option>
-                  <option value="utxos_2y_to_3y_old">2–3Y</option>
-                  <option value="utxos_3y_to_4y_old">3–4Y</option>
-                  <option value="utxos_4y_to_5y_old">4–5Y</option>
-                  <option value="utxos_5y_to_6y_old">5–6Y</option>
-                  <option value="utxos_6y_to_7y_old">6–7Y</option>
-                  <option value="utxos_7y_to_8y_old">7–8Y</option>
-                  <option value="utxos_8y_to_10y_old">8–10Y</option>
-                  <option value="utxos_10y_to_12y_old">10–12Y</option>
-                  <option value="utxos_12y_to_15y_old">12–15Y</option>
-                  <option value="utxos_over_15y_old">15Y+</option>
+                  <option value="age_under_1h">≤1H</option>
+                  <option value="age_1h_to_1d">1H–1D</option>
+                  <option value="age_1d_to_1w">1D–1W</option>
+                  <option value="age_1w_to_1m">1W–1M</option>
+                  <option value="age_1m_to_2m">1–2M</option>
+                  <option value="age_2m_to_3m">2–3M</option>
+                  <option value="age_3m_to_4m">3–4M</option>
+                  <option value="age_4m_to_5m">4–5M</option>
+                  <option value="age_5m_to_6m">5–6M</option>
+                  <option value="age_6m_to_9m">6–9M</option>
+                  <option value="age_9m_to_1y">9M–1Y</option>
+                  <option value="age_1y_to_18m">1Y–18M</option>
+                  <option value="age_18m_to_2y">18M–2Y</option>
+                  <option value="age_2y_to_3y">2–3Y</option>
+                  <option value="age_3y_to_4y">3–4Y</option>
+                  <option value="age_4y_to_5y">4–5Y</option>
+                  <option value="age_5y_to_6y">5–6Y</option>
+                  <option value="age_6y_to_7y">6–7Y</option>
+                  <option value="age_7y_to_8y">7–8Y</option>
+                  <option value="age_8y_to_10y">8–10Y</option>
+                  <option value="age_10y_to_12y">10–12Y</option>
+                  <option value="age_12y_to_15y">12–15Y</option>
+                  <option value="age_over_15y">15Y+</option>
                 </optgroup>
               </select>
             </label>
@@ -816,7 +816,7 @@
           cohort: "all",
           metric: "supply",
           mode: "value",
-          weight: /** @type {import("../modules/bitview-client/index.js").UrpdWeight} */ ("raw"),
+          weight: /** @type {import("../modules/bitview-client/index.js").UrpdWeight} */ ("none"),
           dates: [],
           weeklyDates: [],
           availableDates: [],

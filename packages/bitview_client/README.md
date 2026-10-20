@@ -4,7 +4,7 @@ Zero-dependency Python client for the [Bitview](https://bitview.space) Bitcoin a
 
 Requires Python 3.9+.
 
-[PyPI](https://pypi.org/project/bitview-client/) | [API Reference](https://github.com/bitcoinresearchkit/brk/blob/main/packages/bitview_client/DOCS.md) | [Source](https://github.com/bitcoinresearchkit/brk/tree/main/packages/bitview_client)
+[PyPI](https://pypi.org/project/bitview-client/) | [API Reference](https://github.com/bitcoinresearchkit/mono/blob/main/packages/bitview_client/DOCS.md) | [Source](https://github.com/bitcoinresearchkit/mono/tree/main/packages/bitview_client)
 
 AI clients can use the same API through the official stateless, read-only MCP
 endpoint at [mcp.bitview.space](https://mcp.bitview.space/). No authentication

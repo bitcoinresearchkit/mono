@@ -968,7 +968,11 @@ has to be deleted by hand.
 - Data is safe across soft quits (SIGINT, SIGTERM) only: rawdb no longer syncs to the device on flush (v0.12.2 promised
   durability after `flush()`), so kernel panics, power loss and storage removal are not supported
 - The website is gone (Bitview Studio, a separate app, has its charts and search): the server serves the showcases
-  instead, their gallery at `/` and each one at `/<name>/`, embedded or, in debug builds, from `./showcases`.
+  instead, Bitview's front page at `/` (what Bitview is, a live weekly chart of the price and realized price from the
+  server that serves it, and the ways in: Studio, the API, MCP, running your own, the explorations and the crates) and
+  each one at `/<name>/`, embedded or, in debug builds, from `./showcases`. The self-hosting (`/dev`), Bitcoin Research
+  Kit (`/brk`) and API (`/api`) pages share its look, light and dark; the OpenAPI contact is Bitview and its license
+  link resolves (was `docs/LICENSE.md`, absent); `.jpg` files are served as `image/jpeg`.
   `--website` serves them (`true`), nothing (`false`) or a directory. The website's block, transaction and address pages
   have no replacement yet. `/api` is the API showcase: Scalar 1.75.1 from `modules/` (was 1.49.8, built into the server
   with its own `/scalar.js` route), so `--website false` serves no API page either and `/` redirects to `/openapi.json`

@@ -21,7 +21,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://bitcoinresearchkit.org"
-Repository = "https://github.com/bitcoinresearchkit/brk"
+Repository = "https://github.com/bitcoinresearchkit/mono"
 
 [dependency-groups]
 dev = [

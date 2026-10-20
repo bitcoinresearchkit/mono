@@ -95,7 +95,7 @@ The MCP server is stateless and read-only. Its tools are generated from these Op
 - [Python](https://pypi.org/project/bitview-client/)\n\
 - [Rust](https://crates.io/crates/bitview_client)\n\n\
 ## Source\n\n\
-- [GitHub](https://github.com/bitcoinresearchkit/brk)\n\
+- [GitHub](https://github.com/bitcoinresearchkit/mono)\n\
 - MIT licensed\n",
         endpoints.len(),
     )

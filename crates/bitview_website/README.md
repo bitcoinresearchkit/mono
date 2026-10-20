@@ -36,4 +36,4 @@ Pass a folder to serve it instead of the showcases:
 cargo run -p bitview_website --example website -- path/to/site
 ```
 
-Open `http://localhost:3110` (or port 3111 if 3110 is occupied) for the showcases gallery.
+Open `http://localhost:3110` (or port 3111 if 3110 is occupied) for Bitview's front page and its showcases.

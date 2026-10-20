@@ -186,21 +186,21 @@ Errors use `application/problem+json`:
 
 ### Links
 
-- [GitHub](https://github.com/bitcoinresearchkit/brk)
+- [GitHub](https://github.com/bitcoinresearchkit/mono)
 - [Bitview Studio](https://studio.bitview.space) - Charts of any series, built on this API"#
                 .to_string(),
         ),
         version: format!("v{VERSION}"),
         contact: Some(Contact {
-            name: Some("Bitcoin Research Kit".to_string()),
-            url: Some("https://github.com/bitcoinresearchkit/brk".to_string()),
+            name: Some("Bitview".to_string()),
+            url: Some("https://github.com/bitcoinresearchkit/mono".to_string()),
             email: Some("hello@bitcoinresearchkit.org".to_string()),
             ..Contact::default()
         }),
         license: Some(License {
             name: "MIT".to_string(),
             url: Some(
-                "https://github.com/bitcoinresearchkit/brk/blob/main/docs/LICENSE.md".to_string(),
+                "https://github.com/bitcoinresearchkit/mono/blob/main/LICENSE".to_string(),
             ),
             ..License::default()
         }),

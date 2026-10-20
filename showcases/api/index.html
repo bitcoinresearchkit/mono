@@ -18,6 +18,23 @@
     <meta name="twitter:card" content="summary" />
     <link rel="icon" type="image/svg+xml" href="../assets/favicon/favicon.svg" />
     <link rel="apple-touch-icon" href="../assets/favicon/apple-touch-icon.png" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#ffffff" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08090a" />
+    <style>
+      @font-face {
+        font-family: Inter;
+        src: url("../assets/fonts/InterVariable.woff2") format("woff2");
+        font-weight: 100 900;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: Lilex;
+        src: url("../assets/fonts/Lilex.woff2") format("woff2");
+        font-weight: 500 700;
+        font-display: swap;
+      }
+    </style>
   </head>
 
   <body>
@@ -26,13 +43,75 @@
     <!-- Every endpoint, from the specification of the server that serves this page. -->
     <script src="../modules/scalar-api-reference/1.75.1/dist/browser/standalone.js"></script>
     <script>
+      // In Bitview's type and colors (Studio's), light or dark as the system is (Scalar's own system mode, its toggle
+      // hidden, a choice it kept from when it had one let go); no toolbar.
+      try {
+        localStorage.removeItem("colorMode");
+      } catch {}
       Scalar.createApiReference("#app", {
         url: "/openapi.json",
         hideClientButton: true,
+        showDeveloperTools: "never",
+        hideDarkModeToggle: true,
         telemetry: false,
         withDefaultFonts: false,
         mcp: { disabled: true },
         agent: { disabled: true },
+        customCss: `
+          :root {
+            --scalar-font: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+            --scalar-font-code: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
+            --scalar-radius: 6px;
+            --scalar-radius-lg: 8px;
+            --scalar-radius-xl: 12px;
+          }
+          .light-mode {
+            --scalar-background-1: #ffffff;
+            --scalar-background-2: #f6f6f7;
+            --scalar-background-3: #ececee;
+            --scalar-color-1: #0f1012;
+            --scalar-color-2: #5f6570;
+            --scalar-color-3: #6b7079;
+            --scalar-color-accent: oklch(52% 0.16 44.41);
+            --scalar-background-accent: oklch(64.34% 0.191 44.41 / 0.1);
+            --scalar-border-color: rgb(0 0 0 / 0.08);
+            --scalar-sidebar-background-1: #f6f6f7;
+            --scalar-button-1: #0f1012;
+            --scalar-button-1-color: #ffffff;
+            --scalar-button-1-hover: #2b2f36;
+            /* (Syntax and method colors as small text: 4.5:1 or more on the light grounds.) */
+            --scalar-color-red: #bf2b31;
+            --scalar-color-danger: #bf2b31;
+            --scalar-color-orange: #a84300;
+            --scalar-color-yellow: #7a5c00;
+            --scalar-color-green: #0c7642;
+            --scalar-color-blue: #1d5fd1;
+            --scalar-color-purple: #7139c4;
+          }
+          .dark-mode {
+            --scalar-background-1: #08090a;
+            --scalar-background-2: #0e0f11;
+            --scalar-background-3: #17181b;
+            --scalar-color-1: #f7f8f8;
+            --scalar-color-2: #8a8f98;
+            --scalar-color-3: #7c818a;
+            --scalar-color-accent: oklch(64.34% 0.191 44.41);
+            --scalar-background-accent: oklch(64.34% 0.191 44.41 / 0.12);
+            --scalar-border-color: rgb(255 255 255 / 0.06);
+            --scalar-sidebar-background-1: #0e0f11;
+            /* (Red and danger as small text: 4.5:1 or more on the dark grounds.) */
+            --scalar-color-red: #f2555a;
+            --scalar-color-danger: #f2555a;
+            --scalar-button-1: #f7f8f8;
+            --scalar-button-1-color: #08090a;
+            --scalar-button-1-hover: #d0d6e0;
+          }
+          /* (Scalar's own offer, not this API's: its buttons, and the client card's.) */
+          .generate-sdk-button,
+          .selected-client-action {
+            display: none !important;
+          }
+        `,
       });
     </script>
   </body>

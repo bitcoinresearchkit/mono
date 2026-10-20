@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="A Bitcoin mining calendar. Every block, every day, and the miners behind them. Powered by the Bitview API." />
     <meta name="theme-color" content="#fff" />
-    <title>Miner calendar · Bitview</title>
+    <title>Calendar · Bitview</title>
     <style>
       :root {
         color-scheme: light;
@@ -142,7 +142,7 @@
             </svg>
             <span>bitview</span>
           </a>
-          <h1 class="calendar-title">Miner calendar</h1>
+          <h1 class="calendar-title">Calendar</h1>
           <nav class="year-heading" aria-label="Year navigation">
             <button id="previous-year" class="neighbor-year" aria-label="Previous year"></button>
             <button id="year-home" aria-label="Year overview"></button>
@@ -346,7 +346,7 @@
         const isDay = state.view === "day";
         $("year-home").textContent = String(year);
         $("year-home").disabled = !isDay;
-        $("year-home").setAttribute("aria-label", isDay ? `Back to ${year}` : `${year} miner calendar`);
+        $("year-home").setAttribute("aria-label", isDay ? `Back to ${year}` : `${year} calendar`);
         $("date-nav").hidden = !isDay;
         $("day-context").hidden = !isDay;
         $("day-heading").textContent = utcDate(state.date).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
@@ -359,7 +359,7 @@
         $("previous-day").disabled = state.date <= GENESIS;
         $("next-day").disabled = state.date >= todayUTC();
         $("period-note").textContent = isDay ? "Every block in height order. Dates follow Bitview’s UTC chain calendar; block times are miner-reported. Select the year heading to return to the year." : "The top miner for each UTC day, grouped by month with weeks starting on Monday. Select a day to explore its blocks. Ties are ordered by pool identifier.";
-        document.title = `${isDay ? state.date : year} · Miner calendar · Bitview`;
+        document.title = `${isDay ? state.date : year} · Calendar · Bitview`;
       }
 
       function navigate(changes, replace = false) {
@@ -416,7 +416,7 @@
           } else {
             const [responses] = await Promise.all([
               Promise.all(requestRanges(from, to, todayUTC()).map(range =>
-                fetchHeightSeries(["timestamp", "timestamp_monotonic", "pool"], range.start, range.end, signal))),
+                fetchHeightSeries(["timestamp", "timestamp_monotonic", "block_pool"], range.start, range.end, signal))),
               loadPools(),
             ]);
             blocks = responses.flatMap(decodeBlocks).filter(block => block.day >= from && block.day < to);
@@ -427,7 +427,7 @@
           if (id !== generation) return;
           if (isDay && blocks.length && blocks.some(block => block.poolTotal === undefined)) {
             const pools = [...new Set(blocks.map(block => block.pool))];
-            const names = pools.map(pool => `${pool}_blocks_mined_cumulative`);
+            const names = pools.map(pool => `pool_${pool}_block_count_cumulative`);
             const series = await fetchHeightSeries(names, blocks[0].height, blocks.at(-1).height + 1, signal);
             blocks = addPoolOrdinals(blocks, pools, series);
           }

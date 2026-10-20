@@ -116,7 +116,7 @@ plugin APIs are experimental.
 
 ## Custom plugins
 
-The [custom plugin example](https://github.com/bitcoinresearchkit/brk/tree/main/examples/custom_plugin)
+The [custom plugin example](https://github.com/bitcoinresearchkit/mono/tree/main/examples/custom_plugin)
 is a complete, runnable template. Custom binaries call
 [`bitview::run`](https://crates.io/crates/bitview) with their own composition
 (extending `bitview_default` or not); see the `bitview` README for features.
