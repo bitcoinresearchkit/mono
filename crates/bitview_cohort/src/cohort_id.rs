@@ -1,6 +1,6 @@
 use crate::{
-    AgeRangeId, AmountRangeId, CLASS_NAMES, ClassId, ENTRY_NAMES, EPOCH_NAMES, EntryPrice, EpochId,
-    OP_RETURN, SPENDABLE_TYPE_NAMES, SpendableTypeId, TERM_NAMES, Term,
+    AgeRangeId, AmountRangeId, ENTRY_NAMES, EntryPrice, HALVING_EPOCH_NAMES, HalvingEpochId,
+    OP_RETURN, SPENDABLE_TYPE_NAMES, SpendableTypeId, TERM_NAMES, Term, VINTAGE_NAMES, VintageId,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -9,8 +9,8 @@ pub enum CohortId {
     Term(Term),
     Age(AgeRangeId),
     Amount(AmountRangeId),
-    Epoch(EpochId),
-    Class(ClassId),
+    HalvingEpoch(HalvingEpochId),
+    Vintage(VintageId),
     Entry(EntryPrice),
     Type(SpendableTypeId),
     OpReturn,
@@ -23,8 +23,8 @@ impl CohortId {
             Self::Term(term) => TERM_NAMES.get(term).id,
             Self::Age(age) => age.name().id,
             Self::Amount(amount) => amount.name().id,
-            Self::Epoch(epoch) => epoch.select(&EPOCH_NAMES).id,
-            Self::Class(class) => class.select(&CLASS_NAMES).id,
+            Self::HalvingEpoch(epoch) => epoch.select(&HALVING_EPOCH_NAMES).id,
+            Self::Vintage(vintage) => vintage.select(&VINTAGE_NAMES).id,
             Self::Entry(entry) => entry.select(&ENTRY_NAMES).id,
             Self::Type(kind) => kind.select(&SPENDABLE_TYPE_NAMES).id,
             Self::OpReturn => OP_RETURN,

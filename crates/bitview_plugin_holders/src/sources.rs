@@ -10,11 +10,8 @@ macro_rules! with_columns {
     ($r:ident, $columns:ident) => {
         $columns!(
             (supply, &$r.supply.total.stored),
-            (count, &$r.outputs.unspent_count.stored),
-            (
-                spent_count,
-                $r.outputs.spent_count.stored.cumulative_source()
-            ),
+            (count, &$r.utxos.count.stored),
+            (spent_count, $r.utxos.spent_count.stored.cumulative_source()),
             (
                 volume_sats,
                 $r.activity.transfer_volume.sats.cumulative_source()

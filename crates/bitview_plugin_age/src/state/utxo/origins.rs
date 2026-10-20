@@ -40,10 +40,10 @@ impl UTXOStates {
                 self.age_range
                     .get_mut(age)
                     .send_utxo_precomputed(&sent, &pre);
-                if let Some(v) = self.epoch.get_mut(receive_height) {
+                if let Some(v) = self.halving_epoch.get_mut(receive_height) {
                     v.send_utxo_precomputed(&sent, &pre);
                 }
-                if let Some(v) = self.class.get_mut(origin_timestamp) {
+                if let Some(v) = self.vintage.get_mut(origin_timestamp) {
                     v.send_utxo_precomputed(&sent, &pre);
                 }
             } else if sent.utxo_count > 0 {
@@ -55,10 +55,10 @@ impl UTXOStates {
                     peak_price,
                     age,
                 );
-                if let Some(v) = self.epoch.get_mut(receive_height) {
+                if let Some(v) = self.halving_epoch.get_mut(receive_height) {
                     v.send_utxo(&sent, current_price, prev_price, peak_price, age);
                 }
-                if let Some(v) = self.class.get_mut(origin_timestamp) {
+                if let Some(v) = self.vintage.get_mut(origin_timestamp) {
                     v.send_utxo(&sent, current_price, prev_price, peak_price, age);
                 }
             }
@@ -84,10 +84,10 @@ impl UTXOStates {
         );
         let snapshot = CostBasisSnapshot::from_utxo(ctx.height_to_price[origin], &lost);
         self.age_range.get_mut(age).decrement_snapshot(&snapshot);
-        if let Some(v) = self.epoch.get_mut(receive_height) {
+        if let Some(v) = self.halving_epoch.get_mut(receive_height) {
             v.decrement_snapshot(&snapshot);
         }
-        if let Some(v) = self.class.get_mut(origin_timestamp) {
+        if let Some(v) = self.vintage.get_mut(origin_timestamp) {
             v.decrement_snapshot(&snapshot);
         }
     }
@@ -101,10 +101,10 @@ impl UTXOStates {
     ) {
         let snapshot = CostBasisSnapshot::from_utxo(price, &supply);
         self.age_range.under_1h.increment_snapshot(&snapshot);
-        if let Some(v) = self.epoch.get_mut(height) {
+        if let Some(v) = self.halving_epoch.get_mut(height) {
             v.increment_snapshot(&snapshot);
         }
-        if let Some(v) = self.class.get_mut(timestamp) {
+        if let Some(v) = self.vintage.get_mut(timestamp) {
             v.increment_snapshot(&snapshot);
         }
     }

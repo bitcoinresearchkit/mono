@@ -97,7 +97,7 @@ impl Query {
         let mut slugs = self
             .plugins()
             .pools
-            .pool
+            .block_pool
             .collect_range_at(start, end)
             .into_iter();
         let mut empty = [0u64; 256];

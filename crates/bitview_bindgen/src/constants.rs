@@ -4,8 +4,8 @@
 use std::collections::BTreeMap;
 
 use bitview_cohort::{
-    AGE_RANGE_NAMES, AMOUNT_RANGE_NAMES, CLASS_NAMES, ENTRY_NAMES, EPOCH_NAMES,
-    PROFITABILITY_RANGE_NAMES, SPENDABLE_TYPE_NAMES, TERM_NAMES,
+    AGE_RANGE_NAMES, AMOUNT_RANGE_NAMES, ENTRY_NAMES, HALVING_EPOCH_NAMES,
+    PROFITABILITY_RANGE_NAMES, SPENDABLE_TYPE_NAMES, TERM_NAMES, VINTAGE_NAMES,
 };
 use bitview_primitives::{Calendar, Index, pools};
 use brk_types::ADDRESS_PAYLOAD_LENGTHS;
@@ -65,8 +65,8 @@ pub fn address_payload_lengths() -> impl Iterator<Item = (String, usize)> {
 pub fn cohort_constants() -> Vec<(&'static str, Value)> {
     vec![
         ("TERM_NAMES", json!(TERM_NAMES)),
-        ("EPOCH_NAMES", json!(EPOCH_NAMES)),
-        ("CLASS_NAMES", json!(CLASS_NAMES)),
+        ("HALVING_EPOCH_NAMES", json!(HALVING_EPOCH_NAMES)),
+        ("VINTAGE_NAMES", json!(VINTAGE_NAMES)),
         ("ENTRY_NAMES", json!(ENTRY_NAMES)),
         ("SPENDABLE_TYPE_NAMES", json!(SPENDABLE_TYPE_NAMES)),
         ("AGE_RANGE_NAMES", json!(AGE_RANGE_NAMES)),

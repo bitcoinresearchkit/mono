@@ -1,4 +1,4 @@
-use bitview_cohort::{AGE_RANGE_COUNT, Age, AgeRange, ByEpoch, Class};
+use bitview_cohort::{AGE_RANGE_COUNT, Age, AgeRange, ByHalvingEpoch, Vintage};
 use bitview_primitives::CostBasisSnapshot;
 use brk_types::Height;
 use rayon::scope as RayonScope;
@@ -12,8 +12,8 @@ use crate::{
 
 pub struct UTXOStates {
     pub age_range: AgeRange<UTXOCohortState<RealizedState>>,
-    pub epoch: ByEpoch<UTXOCohortState<CoreRealizedState>>,
-    pub class: Class<UTXOCohortState<CoreRealizedState>>,
+    pub halving_epoch: ByHalvingEpoch<UTXOCohortState<CoreRealizedState>>,
+    pub vintage: Vintage<UTXOCohortState<CoreRealizedState>>,
     /// Search positions of the tick-tock age boundaries, valid for these states' origins.
     pub tick_tock_cached_positions: [usize; AGE_RANGE_COUNT - 1],
 }
@@ -22,8 +22,8 @@ impl UTXOStates {
     pub fn new() -> Self {
         Self {
             age_range: AgeRange::from_fn(|_| UTXOCohortState::default()),
-            epoch: ByEpoch::from_fn(|_| UTXOCohortState::default()),
-            class: Class::from_fn(|_| UTXOCohortState::default()),
+            halving_epoch: ByHalvingEpoch::from_fn(|_| UTXOCohortState::default()),
+            vintage: Vintage::from_fn(|_| UTXOCohortState::default()),
             tick_tock_cached_positions: [0; AGE_RANGE_COUNT - 1],
         }
     }
@@ -41,10 +41,10 @@ impl UTXOStates {
             self.age_range
                 .get_mut(Age::new(timestamp, origin_timestamp))
                 .increment_snapshot(&snapshot);
-            if let Some(state) = self.epoch.get_mut(Height::from(h)) {
+            if let Some(state) = self.halving_epoch.get_mut(Height::from(h)) {
                 state.increment_snapshot(&snapshot);
             }
-            if let Some(state) = self.class.get_mut(origin_timestamp) {
+            if let Some(state) = self.vintage.get_mut(origin_timestamp) {
                 state.increment_snapshot(&snapshot);
             }
         }
@@ -52,10 +52,10 @@ impl UTXOStates {
             for state in self.age_range.iter_mut() {
                 scope.spawn(move |_| state.finish_restore());
             }
-            for state in self.epoch.iter_mut() {
+            for state in self.halving_epoch.iter_mut() {
                 scope.spawn(move |_| state.finish_restore());
             }
-            for state in self.class.iter_mut() {
+            for state in self.vintage.iter_mut() {
                 scope.spawn(move |_| state.finish_restore());
             }
         });
@@ -64,18 +64,18 @@ impl UTXOStates {
     pub fn apply_pending(&mut self) {
         let Self {
             age_range,
-            epoch,
-            class,
+            halving_epoch,
+            vintage,
             ..
         } = self;
         RayonScope(|scope| {
             for state in age_range.iter_mut() {
                 scope.spawn(move |_| state.apply_pending());
             }
-            for state in epoch.iter_mut() {
+            for state in halving_epoch.iter_mut() {
                 scope.spawn(move |_| state.apply_pending());
             }
-            for state in class.iter_mut() {
+            for state in vintage.iter_mut() {
                 scope.spawn(move |_| state.apply_pending());
             }
         });
@@ -85,7 +85,11 @@ impl UTXOStates {
         self.age_range
             .iter_mut()
             .for_each(|state| state.reset_block());
-        self.epoch.iter_mut().for_each(|state| state.reset_block());
-        self.class.iter_mut().for_each(|state| state.reset_block());
+        self.halving_epoch
+            .iter_mut()
+            .for_each(|state| state.reset_block());
+        self.vintage
+            .iter_mut()
+            .for_each(|state| state.reset_block());
     }
 }

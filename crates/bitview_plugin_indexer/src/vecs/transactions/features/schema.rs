@@ -27,10 +27,10 @@ macro_rules! with_transaction_features {
                 op_return: has_op_return, OP_RETURN = 8;
                 /// Transactions that create or, outside coinbase, spend at least one output with an empty locking
                 /// script.
-                empty: has_empty, EMPTY = 9;
+                empty_script: has_empty_script, EMPTY = 9;
                 /// Transactions that create or, outside coinbase, spend at least one output not matching another
                 /// recognized locking-script type.
-                unknown: has_unknown, UNKNOWN = 10;
+                unknown_script: has_unknown_script, UNKNOWN = 10;
                 /// Transactions that create a P2PK output whose shaped public key is invalid, or a bare multisig
                 /// output containing an invalid or recognized burn public key.
                 fake_pubkey: has_fake_pubkey, FAKE_PUBKEY = 11;

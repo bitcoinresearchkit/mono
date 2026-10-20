@@ -18,8 +18,8 @@ Each collection holds one value per member and is built from its identifier with
 | `AgeAggregate` | `AgeAggregateId` | overlapping age filters built from those buckets: all, STH, LTH, under/over 4 and 6 months |
 | `ByTerm` | `Term` | short-term and long-term holders |
 | `AmountRange` | `AmountRangeId` | 15 disjoint amount buckets, `0sats` to `over_100k_btc` |
-| `ByEpoch` | `EpochId` | halving epochs |
-| `Class` | `ClassId` | creation years |
+| `ByHalvingEpoch` | `HalvingEpochId` | halving epochs |
+| `Vintage` | `VintageId` | creation years (vintages) |
 | `ByEntry` | `EntryPrice` | entry-price class: veteran (bought at a discount) or rookie |
 | `SpendableType` | `SpendableTypeId` | spendable output types, P2PK merged across key sizes |
 | `ByType` | `OutputTypeId` | the spendable types plus OP_RETURN (`UnspendableType`) |

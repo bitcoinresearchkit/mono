@@ -1,6 +1,6 @@
 use std::thread;
 
-use bitview_cohort::{AgeRange, ByEpoch, Class};
+use bitview_cohort::{AgeRange, ByHalvingEpoch, Vintage};
 use bitview_distribution::metrics::{CreationCohort, ShareTotals};
 use bitview_plugin::ImportContext;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
@@ -34,13 +34,13 @@ impl Vecs {
         let cohort =
             |id| CreationCohort::import(&db, id, version, mappings, windows, &spot, totals);
         // Age ranges and the other families import independently.
-        let (ranges, (epochs, classes)) = thread::scope(|scope| -> Result<_> {
+        let (ranges, (halving_epochs, vintages)) = thread::scope(|scope| -> Result<_> {
             let others = thread::Builder::new()
                 .stack_size(IMPORT_STACK_SIZE)
                 .spawn_scoped(scope, || -> Result<_> {
                     Ok((
-                        Box::new(ByEpoch::try_from_fn(|id| cohort(id.cohort()))?),
-                        Box::new(Class::try_from_fn(|id| cohort(id.cohort()))?),
+                        Box::new(ByHalvingEpoch::try_from_fn(|id| cohort(id.cohort()))?),
+                        Box::new(Vintage::try_from_fn(|id| cohort(id.cohort()))?),
                     ))
                 })?;
             let ranges = Box::new(AgeRange::try_from_fn(|id| {
@@ -62,8 +62,8 @@ impl Vecs {
             all_supply: all_supply.read_only_boxed_clone(),
             all_capital,
             ranges,
-            epochs,
-            classes,
+            halving_epochs,
+            vintages,
             coinblocks_destroyed,
         })
     }

@@ -41,7 +41,7 @@ impl Vecs {
             + fees.sats.version()
             + fees.cents.version();
         let to = self
-            .pool
+            .block_pool
             .len()
             .min(coinbase.sats.len())
             .min(coinbase.cents.len())
@@ -54,7 +54,8 @@ impl Vecs {
         // Bounded chunks: long refills keep little scratch.
         for chunk in write_chunks(from..to) {
             let (start, end) = (chunk.start, chunk.end);
-            self.pool.collect_range_into_at(start, end, &mut slugs);
+            self.block_pool
+                .collect_range_into_at(start, end, &mut slugs);
             coinbase
                 .sats
                 .collect_range_into_at(start, end, &mut coinbase_sats);
@@ -102,7 +103,7 @@ impl Vecs {
         .into_iter()
         .sum();
         let min = prepare_computed(
-            [&mut self.pool],
+            [&mut self.block_pool],
             dep_version,
             indexer.compute_start().height.to_usize(),
             exit,
@@ -147,12 +148,12 @@ impl Vecs {
             .collect::<Vec<_>>();
 
         for &slug in &pool_slugs {
-            self.pool.push(slug);
+            self.block_pool.push(slug);
         }
 
         let _lock = exit.lock();
-        self.pool.write()?;
-        snapshot.update(min, self.pool.version(), &pool_slugs);
+        self.block_pool.write()?;
+        snapshot.update(min, self.block_pool.version(), &pool_slugs);
         Ok(())
     }
 }

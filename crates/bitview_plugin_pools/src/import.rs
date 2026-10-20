@@ -25,8 +25,8 @@ impl Vecs {
         let version =
             STORAGE.schema_version() + POOL_ATTRIBUTION_VERSION + Version::new(pools.len() as u32);
 
-        let pool = BytesVec::import(&db, "pool", version)?;
-        let heights = PoolHeights::build(&pool);
+        let block_pool = BytesVec::import(&db, "block_pool", version)?;
+        let heights = PoolHeights::build(&block_pool);
         let by_slug = pools
             .iter()
             .map(|pool| {
@@ -43,7 +43,7 @@ impl Vecs {
             .collect::<BTreeMap<_, _>>();
 
         let this = Self {
-            pool,
+            block_pool,
             heights,
             by_slug,
             pools,

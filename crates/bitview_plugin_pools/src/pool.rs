@@ -73,7 +73,7 @@ impl PoolVecs {
         window_starts: &Windows<&LazyWindowStartVec>,
         network: &Windows<&impl ReadableCloneableVec<Height, Hashrate>>,
     ) -> Self {
-        let name = |suffix: &str| format!("{slug}_{suffix}");
+        let name = |suffix: &str| format!("pool_{slug}_{suffix}");
         let blocks = PoolCumulativeVec::<Count>::new(
             &name("blocks_mined_cumulative_source"),
             slug,

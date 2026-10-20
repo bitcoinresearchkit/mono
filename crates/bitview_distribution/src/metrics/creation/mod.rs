@@ -21,14 +21,14 @@ use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
 
-use super::{CohortCostBasis, ShareTotals, StoredOutputs};
+use super::{CohortCostBasis, ShareTotals, StoredUtxos};
 use crate::state::{MappedUTXOCohortState, RealizedOps};
 
 #[derive(Traversable)]
 pub struct CreationCohort<M: StorageMode = Rw> {
     pub supply: CreationSupply<M>,
     pub capital: CreationCapital<M>,
-    pub outputs: StoredOutputs<M>,
+    pub utxos: StoredUtxos<M>,
     pub activity: CreationActivity<M>,
     pub realized: CreationRealized<M>,
     pub unrealized: CreationUnrealized<M>,
@@ -64,7 +64,7 @@ impl CreationCohort {
                 window_starts,
                 totals.capital,
             )?,
-            outputs: StoredOutputs::import(db, name, version, mappings, window_starts)?,
+            utxos: StoredUtxos::import(db, name, version, mappings, window_starts)?,
             activity: CreationActivity::import(db, cohort, version, mappings, window_starts)?,
             realized: CreationRealized::import(db, cohort, version, mappings, window_starts)?,
             unrealized: CreationUnrealized::import(db, cohort, version, mappings)?,
@@ -80,7 +80,7 @@ impl CreationCohort {
         self.supply.push(state.supply.value, &profitability);
         self.capital.push(realized.cap, &profitability);
         self.unrealized.push(&profitability);
-        self.outputs.push(state.output_counts());
+        self.utxos.push(state.output_counts());
         self.activity
             .push(state.sent, state.coindays_destroyed(), price);
         self.realized.push(&realized);

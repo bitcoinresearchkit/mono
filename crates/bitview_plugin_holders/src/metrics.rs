@@ -1,5 +1,5 @@
 use bitview_cohort::AgeAggregateId;
-use bitview_distribution::metrics::OutputViews;
+use bitview_distribution::metrics::UtxoViews;
 use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
@@ -22,7 +22,7 @@ use crate::{
 pub struct Metrics<M: StorageMode = Rw> {
     pub supply: Supply<M>,
     pub capital: Capital<M>,
-    outputs: OutputViews,
+    utxos: UtxoViews,
     pub activity: Activity<M>,
     pub realized: Realized<M>,
     unrealized: Unrealized,
@@ -46,7 +46,7 @@ impl Metrics {
         Ok(Self {
             supply: Supply::import(db, id, v, c, mappings, windows, spot)?,
             capital: Capital::import(db, id, v, c, mappings, windows)?,
-            outputs: OutputViews::new(
+            utxos: UtxoViews::new(
                 |metric| id.metric_name(metric),
                 v,
                 v,

@@ -1,4 +1,4 @@
-use bitview_cohort::{AgeRange, ByEpoch, Class};
+use bitview_cohort::{AgeRange, ByHalvingEpoch, Vintage};
 use bitview_distribution::{metrics::CreationCohort, state::RealizedOps};
 use bitview_primitives::CoinBlocks;
 use bitview_vecs::{CachedSeries, PerBlockCumulativeRolling};
@@ -10,8 +10,8 @@ use crate::{RangeVecs, state::UTXOStates};
 /// The replay loop can write origin metrics but cannot access address state.
 pub struct OriginTargets<'a> {
     pub ranges: &'a mut AgeRange<RangeVecs>,
-    pub epochs: &'a mut ByEpoch<CreationCohort>,
-    pub classes: &'a mut Class<CreationCohort>,
+    pub halving_epochs: &'a mut ByHalvingEpoch<CreationCohort>,
+    pub vintages: &'a mut Vintage<CreationCohort>,
     pub coinblocks_destroyed: &'a mut PerBlockCumulativeRolling<CoinBlocks>,
     pub all_capital: &'a mut CachedSeries<Height, Cents>,
 }
@@ -27,10 +27,14 @@ impl OriginTargets<'_> {
             all_capital += state.realized.cap_raw();
         }
         self.all_capital.push(all_capital.to_cents());
-        for (vecs, state) in self.epochs.iter_mut().zip(states.epoch.iter_mut()) {
+        for (vecs, state) in self
+            .halving_epochs
+            .iter_mut()
+            .zip(states.halving_epoch.iter_mut())
+        {
             vecs.push(state, price);
         }
-        for (vecs, state) in self.classes.iter_mut().zip(states.class.iter_mut()) {
+        for (vecs, state) in self.vintages.iter_mut().zip(states.vintage.iter_mut()) {
             vecs.push(state, price);
         }
     }

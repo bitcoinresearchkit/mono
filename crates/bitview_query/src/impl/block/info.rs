@@ -264,7 +264,7 @@ impl Query {
         let all_pools = pools();
 
         let blockhashes = indexer.vecs().blocks.blockhash.collect_range_at(begin, end);
-        let pool_slugs = plugins.pools.pool.collect_range_at(begin, end);
+        let pool_slugs = plugins.pools.block_pool.collect_range_at(begin, end);
         let pool_block_numbers = plugins
             .pools
             .heights

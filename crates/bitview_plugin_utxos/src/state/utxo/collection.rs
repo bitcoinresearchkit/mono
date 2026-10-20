@@ -20,9 +20,8 @@ impl UTXOStates {
             .zip(metrics.amounts.iter())
             .chain(self.type_.iter_mut().zip(metrics.types.iter()))
         {
-            state.supply.value = cohort.supply.total.stored.collect_one(previous)?;
-            state.supply.utxo_count =
-                u64::from(cohort.outputs.unspent_count.stored.collect_one(previous)?);
+            state.supply.value = cohort.supply_at(previous)?;
+            state.supply.utxo_count = u64::from(cohort.utxos.count.stored.collect_one(previous)?);
         }
         Some(())
     }

@@ -1,50 +1,48 @@
 use bitview_plugin_indexer::FlagView;
-use bitview_primitives::{Count, Count16};
+use bitview_primitives::Count;
 use bitview_traversable::Traversable;
 use bitview_vecs::PerBlockCumulativeRolling;
-use brk_types::Height;
-use vecdb::{LazyVec, Rw, StorageMode};
+use vecdb::{Rw, StorageMode};
 
-use crate::flagged::{Block, Flagged};
+use crate::flagged::Flagged;
 
-pub(super) type BlockView = Block<LazyVec<Height, Count, Count16>>;
 type Windowed<M> = PerBlockCumulativeRolling<Count, M>;
 
-/// Transaction features: each one's per-transaction flag beside its per-block count, with
-/// cumulative and window sums where they are computed here.
+/// Transaction features: each one's per-transaction flag beside its per-block count, with its
+/// cumulative and window sums.
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     /// Transactions that create or, outside coinbase, spend at least one P2PK-shaped output with a 33- or 65-byte key
     /// field.
-    pub p2pk: Flagged<FlagView, BlockView>,
+    pub p2pk: Flagged<FlagView, Windowed<M>>,
     /// Transactions that create or, outside coinbase, spend at least one bare multisig output recognized by Bitcoin
     /// script parsing.
-    pub p2ms: Flagged<FlagView, BlockView>,
+    pub p2ms: Flagged<FlagView, Windowed<M>>,
     /// Transactions that create or, outside coinbase, spend at least one pay-to-public-key-hash output.
-    pub p2pkh: Flagged<FlagView, BlockView>,
+    pub p2pkh: Flagged<FlagView, Windowed<M>>,
     /// Transactions that create or, outside coinbase, spend at least one pay-to-script-hash output.
-    pub p2sh: Flagged<FlagView, BlockView>,
+    pub p2sh: Flagged<FlagView, Windowed<M>>,
     /// Transactions that create or, outside coinbase, spend at least one version-0 pay-to-witness-public-key-hash
     /// output.
-    pub p2wpkh: Flagged<FlagView, BlockView>,
+    pub p2wpkh: Flagged<FlagView, Windowed<M>>,
     /// Transactions that create or, outside coinbase, spend at least one version-0 pay-to-witness-script-hash output.
-    pub p2wsh: Flagged<FlagView, BlockView>,
+    pub p2wsh: Flagged<FlagView, Windowed<M>>,
     /// Transactions that create or, outside coinbase, spend at least one pay-to-Taproot output.
     pub p2tr: Flagged<FlagView, Windowed<M>>,
     /// Transactions that create or, outside coinbase, spend at least one pay-to-Anchor output matching `OP_1
     /// PUSHBYTES_2 0x4e73`.
-    pub p2a: Flagged<FlagView, BlockView>,
+    pub p2a: Flagged<FlagView, Windowed<M>>,
     /// Transactions that create or, outside coinbase, spend at least one output with an empty locking script.
-    pub empty: Flagged<FlagView, BlockView>,
+    pub empty_script: Flagged<FlagView, Windowed<M>>,
     /// Transactions that create or, outside coinbase, spend at least one output not matching another recognized
     /// locking-script type.
-    pub unknown: Flagged<FlagView, BlockView>,
+    pub unknown_script: Flagged<FlagView, Windowed<M>>,
     /// Transactions that create a P2PK output whose shaped public key is invalid, or a bare multisig output
     /// containing an invalid or recognized burn public key.
-    pub fake_pubkey: Flagged<FlagView, BlockView>,
+    pub fake_pubkey: Flagged<FlagView, Windowed<M>>,
     /// Transactions containing a consecutive run of P2WSH outputs whose 32-byte programs encode a big-endian two-byte
     /// payload length and the required zero padding in the final program.
-    pub fake_scripthash: Flagged<FlagView, BlockView>,
+    pub fake_scripthash: Flagged<FlagView, Windowed<M>>,
     /// Non-coinbase transactions using SegWit serialization.
     pub segwit: Windowed<M>,
     /// Transactions where at least one Taproot input with more than one witness element ends in an annex whose first
@@ -78,7 +76,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// excluded.
     pub dust_output: Flagged<FlagView, Windowed<M>>,
     /// Transactions with exactly one input, including the coinbase transaction.
-    pub one_input: BlockView,
+    pub one_input: Windowed<M>,
     /// Transactions with exactly one output, including the coinbase transaction.
-    pub one_output: BlockView,
+    pub one_output: Windowed<M>,
 }

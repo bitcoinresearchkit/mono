@@ -14,13 +14,6 @@ pub struct Flagged<F, C> {
     pub count: C,
 }
 
-/// A per-block count without windows.
-#[derive(Clone, Traversable)]
-pub struct Block<V> {
-    /// Value for the represented block.
-    pub block: V,
-}
-
 /// A kind of transaction this plugin classifies: its stored flag beside its windowed count.
 pub(crate) type Classified<M> = Flagged<
     <M as StorageMode>::Stored<PcoVec<TxIndex, Boolean>>,

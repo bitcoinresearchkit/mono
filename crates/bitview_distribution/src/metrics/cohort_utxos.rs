@@ -13,23 +13,23 @@ use crate::families::{CountWithDeltas, CumulativeQuantity};
 /// A cohort's output counts; `name` gives each series name from its metric (`utxo_count` ->
 /// `utxos_1d_to_1w_old_utxo_count`).
 #[derive(Clone, Traversable)]
-pub struct CohortOutputs<U, S> {
+pub struct CohortUtxos<U, S> {
     /// Number of transaction outputs that are unspent at the represented block.
-    pub unspent_count: U,
+    pub count: U,
     /// Number of the cohort's outputs spent in each block.
     pub spent_count: S,
 }
 
 /// Counts the cohort stores itself (`utxo_count`, `spent_utxo_count_cumulative`).
-pub type StoredOutputs<M = Rw> = CohortOutputs<CountWithDeltas<M>, CumulativeQuantity<Count, M>>;
+pub type StoredUtxos<M = Rw> = CohortUtxos<CountWithDeltas<M>, CumulativeQuantity<Count, M>>;
 
 /// Views over counts another plugin stores.
-pub type OutputViews = CohortOutputs<
+pub type UtxoViews = CohortUtxos<
     LazyPerBlockWithDeltas<Count, CountSigned, PartsPerMillionSigned64>,
     LazyPerBlockCumulativeRolling<Count>,
 >;
 
-impl StoredOutputs {
+impl StoredUtxos {
     pub fn import(
         db: &Database,
         name: impl Fn(&str) -> String,
@@ -38,7 +38,7 @@ impl StoredOutputs {
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         Ok(Self {
-            unspent_count: CountWithDeltas::import(
+            count: CountWithDeltas::import(
                 db,
                 &name("utxo_count"),
                 version,
@@ -57,12 +57,12 @@ impl StoredOutputs {
 
     #[inline(always)]
     pub fn push(&mut self, (unspent, spent): (Count, Count)) {
-        self.unspent_count.push(unspent);
+        self.count.push(unspent);
         self.spent_count.push_block(spent);
     }
 }
 
-impl OutputViews {
+impl UtxoViews {
     /// `unspent` holds each block's count, `spent` the running total of spent outputs.
     pub fn new(
         name: impl Fn(&str) -> String,
@@ -74,7 +74,7 @@ impl OutputViews {
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Self {
         Self {
-            unspent_count: LazyPerBlockWithDeltas::from_height_source(
+            count: LazyPerBlockWithDeltas::from_height_source(
                 &name("utxo_count"),
                 version,
                 unspent,

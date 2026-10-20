@@ -55,6 +55,7 @@ impl BucketVecs {
                 version,
                 import!("data_bytes")?,
                 block_size,
+                window_starts,
                 mappings,
             ),
             tx_count: import!("tx_count")?,

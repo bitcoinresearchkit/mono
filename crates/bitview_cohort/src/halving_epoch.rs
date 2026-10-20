@@ -7,18 +7,18 @@ use serde::{Deserialize, Serialize};
 
 use super::{CohortId, CohortName};
 
-pub const EPOCH_NAMES: ByEpoch<CohortName> = ByEpoch {
-    _0: CohortName::new("epoch_0", "0", "Epoch 0"),
-    _1: CohortName::new("epoch_1", "1", "Epoch 1"),
-    _2: CohortName::new("epoch_2", "2", "Epoch 2"),
-    _3: CohortName::new("epoch_3", "3", "Epoch 3"),
-    _4: CohortName::new("epoch_4", "4", "Epoch 4"),
-    _5: CohortName::new("epoch_5", "5", "Epoch 5"),
+pub const HALVING_EPOCH_NAMES: ByHalvingEpoch<CohortName> = ByHalvingEpoch {
+    _0: CohortName::new("halving_epoch_0", "0", "Halving epoch 0"),
+    _1: CohortName::new("halving_epoch_1", "1", "Halving epoch 1"),
+    _2: CohortName::new("halving_epoch_2", "2", "Halving epoch 2"),
+    _3: CohortName::new("halving_epoch_3", "3", "Halving epoch 3"),
+    _4: CohortName::new("halving_epoch_4", "4", "Halving epoch 4"),
+    _5: CohortName::new("halving_epoch_5", "5", "Halving epoch 5"),
 };
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(feature = "storage", derive(Traversable))]
-pub struct ByEpoch<T> {
+pub struct ByHalvingEpoch<T> {
     /// Uses UTXOs created during subsidy-halving epoch 0.
     _0: T,
     /// Uses UTXOs created during subsidy-halving epoch 1.
@@ -34,7 +34,7 @@ pub struct ByEpoch<T> {
 }
 
 define_cohort_id!(
-    EpochId for ByEpoch {
+    HalvingEpochId for ByHalvingEpoch {
         _0 => _0,
         _1 => _1,
         _2 => _2,
@@ -44,17 +44,20 @@ define_cohort_id!(
     }
 );
 
-impl<T> ByEpoch<T> {
+impl<T> ByHalvingEpoch<T> {
     pub fn get_mut(&mut self, height: Height) -> Option<&mut T> {
         let halving = usize::from(Halving::from(height));
-        let id = EpochId::ALL.get(halving).copied();
-        debug_assert!(id.is_some(), "no epoch cohort for halving {halving}");
+        let id = HalvingEpochId::ALL.get(halving).copied();
+        debug_assert!(
+            id.is_some(),
+            "no halving epoch cohort for halving {halving}"
+        );
         id.map(|id| id.select_mut(self))
     }
 }
 
-impl EpochId {
+impl HalvingEpochId {
     pub const fn cohort(self) -> CohortId {
-        CohortId::Epoch(self)
+        CohortId::HalvingEpoch(self)
     }
 }

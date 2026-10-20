@@ -33,7 +33,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// outputs of the coinbase transaction for a known pool payout address; if
     /// none matches, it performs case-insensitive substring matching against
     /// known coinbase tags. Unmatched blocks are classified as `unknown`.
-    pub pool: M::Stored<BytesVec<Height, PoolSlug>>,
+    pub block_pool: M::Stored<BytesVec<Height, PoolSlug>>,
     #[traversable(skip)]
     pub heights: PoolHeights,
     // Each known mining pool, plus `unknown` for unattributed blocks.

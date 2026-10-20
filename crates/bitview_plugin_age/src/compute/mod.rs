@@ -94,8 +94,8 @@ impl ComputePlugin for Vecs {
             replay_origins(
                 &mut OriginTargets {
                     ranges: &mut self.ranges,
-                    epochs: &mut self.epochs,
-                    classes: &mut self.classes,
+                    halving_epochs: &mut self.halving_epochs,
+                    vintages: &mut self.vintages,
                     coinblocks_destroyed: &mut self.coinblocks_destroyed,
                     all_capital: &mut self.all_capital,
                 },

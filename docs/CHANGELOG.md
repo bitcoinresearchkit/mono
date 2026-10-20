@@ -96,10 +96,15 @@ has to be deleted by hand.
   itself: `price.spot`, `price.ohlc`, realized caps and prices (were their `.usd` child), shares (were `.percent`), BTC
   changes over a window (were `.btc`). About 26,100 v0.12.2 ids were such copies
 - Renamed the rarity meter `*_index` series to `*_level` (`rarity_meter.full.level`, ...)
-- Rarity meter components are keyed by their reference series' id (`mobile_realized_price`, `true_market_mean`,
-  `utxos_under_6m_old_realized_price`; were `coinflow_price`, `true_market_mean_price`, `under_6m_realized_price`),
-  each percentile's price is its `band` (`<component>.<pct>.band`, ids `<component>_band_<pct>`; were
-  `<component>.<pct>.price`, ids `<component>_<pct>`), and a median component's reference shares its source's id.
+- Rarity meter components sit by cohort: `rarity_meter.components.{all, sth}.{realized_price, capitalized_price,
+  median_realized_price, median_capitalized_price}`, `under_6m.{realized_price, capitalized_price}`,
+  `awake.realized_price`, `mobile.{realized_price, median_realized_price, median_capitalized_price}`, `vaulted_price`
+  and `true_market_mean` (were `coinflow_price`, `true_market_mean_price`, `under_6m_realized_price`, ...). Each
+  percentile's price is its `band` (`<component>.<pct>.band`, ids `rarity_meter_<cohort><price>_band_<pct>`, as
+  `rarity_meter_sth_median_realized_price_band_pct1`; were `<component>.<pct>.price`, ids `<component>_<pct>`) and its
+  ratio `<component>.<pct>.ratio` (ids `rarity_meter_<cohort><price>_ratio_<pct>`; were `<component>_ratio_<pct>`),
+  `<cohort>` the source's prefix (none for all coins, `sth_`, `utxos_under_6m_old_`, `awake_`, `mobile_`), and a
+  median component's price and spot ratio share their source's ids (`sth_cost_basis_per_coin_median`, `..._ratio`).
   Extremes are named by their input, `supply_in_loss`, `realized_profit_24h`, `realized_loss_24h`,
   `realized_peak_regret_24h`, `sell_side_risk_ratio_24h` (were `coins_in_loss`, `profit_taking`, `capitulation`,
   `peak_regret`, `seller_exhaustion`), with `thresholds.{tail0_1, tail0_05, tail0_025}` and `tail_share` (were
@@ -111,9 +116,10 @@ has to be deleted by hand.
   price); cycle the all-chain realized and capitalized prices and median creation prices, the mobile supply's medians,
   the vaulted price, True Market Mean and the awake and mobile realized prices (was the all-chain, long-term holders'
   and over-four- and over-six-month realized prices, the all-chain and long-term capitalized prices and Bedrock's
-  floors); full both. New components: `awake_realized_price`, `utxos_under_6m_old_capitalized_price` and the six
-  medians (`cost_basis_per_coin_median`, ...). Gone: `lth_realized_price`, `lth_capitalized_price`,
-  `over_4m_realized_price`, `over_6m_realized_price`, `under_4m_realized_price`, `cointime_price` and `active_price`,
+  floors); full both. New components: `awake.realized_price`, `under_6m.capitalized_price` and the six medians
+  (`{all, sth, mobile}.{median_realized_price, median_capitalized_price}`). Gone: `lth_realized_price`,
+  `lth_capitalized_price`, `over_4m_realized_price`, `over_6m_realized_price`, `under_4m_realized_price`,
+  `cointime_price` and `active_price`,
   and the extremes' `rank` (a coarse copy of `tail_share` that counted a missing value as 0). Bands, levels and scores
   are null before height 210,000, where calibration starts (were computed from zero bands)
 - Bedrock's modes are `unweighted`, `awake` and `mobile` (were `raw`, `cointime`, `coinflow`; ids
@@ -190,8 +196,9 @@ has to be deleted by hand.
   the transaction weight statistics (`tx_weight_*`; vsize stays) are gone
 - The indexer's per-block transaction counts take the `<kind>_tx_count` template: `explicitly_rbf_tx_count`,
   `one_input_tx_count`, `one_output_tx_count`, `fake_pubkey_tx_count`, and per output type `p2pkh_tx_count`, ...,
-  `empty_tx_count` (transactions that create or spend that type, beside `outputs`' `p2pkh_output_tx_count` and
-  `inputs`' `p2pkh_input_tx_count`; were `tx_count_<kind>`). The OP_RETURN protocol per output is
+  `empty_script_tx_count`, `unknown_script_tx_count` (at `features.empty_script`, `features.unknown_script`):
+  transactions that create or spend that type, beside `outputs`' `p2pkh_output_tx_count` and `inputs`'
+  `p2pkh_input_tx_count` (were `tx_count_<kind>`). The OP_RETURN protocol per output is
   `indexer.op_return.protocol`, id `op_return_protocol` (was `kind`)
 - Ids that were index names say what they map: `spent_txout_index` (an input's spent output, was `txout_index`),
   `input_tx_index` (was `tx_index`), `spending_txin_index` (an output's spending input at
@@ -217,14 +224,17 @@ has to be deleted by hand.
   (were `transactions.policy.{is_nonstandard, count.nonstandard}`), `transactions.fees.cpfp_parent`/`cpfp_child` (were
   `fees.is_cpfp_*` and `fees.count.cpfp_*`), `transactions.inscription.flag` and `op_return.flag` (`has_inscription`,
   `has_op_return`; were under `transactions.features`). SegWit, single-input and single-output transactions have
-  counts only (`transactions.features.segwit`, `one_input`, `one_output`). The indexer's columns take the same shape:
+  counts without a flag (`transactions.features.segwit`, `one_input`, `one_output`). The indexer's columns take the
+  same shape:
   `indexer.transactions.features.<feature>.{flag, block}`, `is_explicitly_rbf` at
   `indexer.transactions.features.explicitly_rbf.flag` (was `transactions.raw.is_explicitly_rbf`) and the version
   counts at `indexer.transactions.versions.<version>.block` (were `transactions.features.count.{v1, ...,
-  other_version}`). Flag ids unchanged; where the indexer and a plugin publish one id, both paths serve the same
-  series with the same description. Per-block feature and version counts are `Count` (were `StoredU64`; stored as
-  `Count16`). SegWit, Taproot and explicit-RBF counts gain windows: `segwit_tx_count_cumulative`,
-  `segwit_tx_count_sum_<window>`, likewise `p2tr_tx_count` and `explicitly_rbf_tx_count`
+  other_version}`). Flag ids are unchanged but for `has_empty_script` and `has_unknown_script` (were `has_empty`,
+  `has_unknown`); where the indexer and a plugin publish one id, both paths serve the same series with the same
+  description. Per-block feature and version counts are `Count` (were `StoredU64`; stored as `Count16`). Every
+  feature's count now has its cumulative and window sums (`segwit_tx_count_cumulative`,
+  `segwit_tx_count_sum_<window>`, likewise `p2pkh_tx_count`, `one_input_tx_count`, ...; were only for Taproot, the
+  annex, the sighash types, opt-in RBF and dust outputs)
 - Mappings: address types sit at `mappings.addresses.<type>.{identity, address}` with ids `<type>_address` (were
   `mappings.addr.<type>.{identity, addr}`, ids `<type>_addr`); the P2MS, empty, unknown and OP_RETURN output indexes
   at `mappings.outputs.<type>.identity`. A block's period ids say what they map: `block_day1`, `block_week1`, ...
@@ -246,9 +256,9 @@ has to be deleted by hand.
   shares divide by non-coinbase inputs (were all inputs, coinbase included), as does the reused-address input share.
   The `all` members (`output_count_bis`, `input_count_bis`, `tx_count_bis`, `non_coinbase_tx_count`) are gone.
   `outputs.spendable_count` and `outputs.op_return_value` sit at the outputs root (were under `by_type` and `value`)
-- Age and UTXO cohorts are member-first: `age.ranges.<range>`, `age.epochs.<epoch>`, `age.classes.<year>`,
+- Age and UTXO cohorts are member-first: `age.ranges.<range>`, `age.halving_epochs.<epoch>`, `age.vintages.<year>`,
   `utxos.amounts.<band>` and `utxos.types.<type>` each hold `supply.{total, delta, share}`, `capital` (below),
-  `outputs.{unspent_count, spent_count}`, `activity.transfer_volume`, `realized.{profit, loss}` and
+  `utxos.{count, spent_count}`, `activity.transfer_volume`, `realized.{profit, loss}` and
   `cost_basis.per_coin.{avg, realized_price}` and, in age, `supply.{in_profit, in_loss}`,
   `activity.coindays_destroyed`, `realized.{net_pnl, value_destroyed}` and `unrealized.{profit, loss, net_pnl}` (were
   metric-first under `cohorts`: `cohorts.supply.total.age.range.<range>`,
@@ -258,7 +268,11 @@ has to be deleted by hand.
   `activity.transfer_volume.{in_profit, in_loss}`; the epochs', classes' and entry cohorts' volume in profit and in
   loss is gone (`epoch_0_transfer_volume_in_profit*`, `class_2009_transfer_volume_in_loss*`,
   `veteran_transfer_volume_in_profit*`, ...; the age ranges and holders keep the split). Ids are unchanged, but for
-  `supply.share`, `cost_basis` and `capital` (below)
+  `supply.share`, `cost_basis` and `capital` (below) and the halving epochs' and years' prefixes:
+  `halving_epoch_0_supply`, `vintage_2009_supply`, ... (were `epoch_0_supply`, `class_2009_supply`). The 0-sat band
+  (`utxos.amounts._0sats`) holds its counts only: its amounts, values and cost basis, zero or null by definition, are
+  gone (`utxos_0sats_realized_price`, `utxos_0sats_realized_profit`, ...). Age's `coinblocks_destroyed` is published at
+  `cointime.activity.coinblocks_destroyed` only
 - The open-ended cohorts are gone, all but the 4- and 6-month age cutoffs (now in `holders`): every age over and
   under each boundary (`utxos_over_1y_old_*`, `utxos_under_1w_old_*`, ...), every UTXO amount over and under each
   boundary (`utxos_over_1btc_*`, `utxos_under_1btc_*`, ...) and every address balance over and under each boundary
@@ -275,7 +289,8 @@ has to be deleted by hand.
   `funded` (with its window `delta`; was `addrs.delta.<type>`), `empty`, `total`, `new`, `activity`, `avg_balance` (was
   `addrs.avg_amount.addr.<type>`), `reused`, `respent` and `exposed`, reuse events under `events.{outputs, inputs,
   active}.{count, share}` (were `events.output_to_reused_addr_count`, ...); a band holds `funded`, `supply`, `capital`,
-  `outputs.unspent_count`, `activity.transfer_volume` and `realized.{profit, loss}`
+  `utxos.count`, `activity.transfer_volume` and `realized.{profit, loss}` (the 0-sat band, `funded` and `utxos.count`
+  only: `addrs_0sats_realized_profit`, ... are gone)
 - Address ids spell `address` out and say what they count: `funded_address_count` (was `addr_count`),
   `empty_address_count`, `total_address_count`, `new_address_count`, `sending_address_count` (was `sending_addrs`),
   ..., `avg_address_balance` (was `avg_addr_amount`), `funded_reused_address_count` (was `reused_addr_count`) beside
@@ -298,20 +313,23 @@ has to be deleted by hand.
   `*_supply_share`; were `cohorts.supply.dominance.<family>.<member>`, ids `*_supply_dominance`)
 - OP_RETURN is member-first: `op_return.protocols.<protocol>.*` and `op_return.policies.<policy>.*` (were
   `by_kind.<metric>.<kind>` and `policy.<metric>.<policy>`), with the totals at the root (were under `total`). Shares
-  are `data_bytes.chain_share` and `fees.chain_share` (of the chain's block bytes and fees): ids
-  `op_return_runes_data_bytes_chain_share_cumulative`, `op_return_runes_fee_chain_share_cumulative` (were
-  `op_return_runes_chain_share`, `op_return_runes_fee_share`) and, for the totals, which sat beside their quantity,
+  are `data_bytes.chain_share` and `fees.chain_share` (of the chain's block bytes and fees), each since the start and
+  over each window: ids `op_return_runes_data_bytes_chain_share_cumulative`,
+  `op_return_runes_fee_chain_share_cumulative`, `op_return_runes_fee_chain_share_1m`, ... (were
+  `op_return_runes_chain_share`, `op_return_runes_fee_share`, `op_return_runes_fee_share_1m`, ...; the data share's
+  windows are new) and, for the totals, which sat beside their quantity,
   `op_return_data_bytes_chain_share_cumulative`, `op_return_fee_chain_share_cumulative` (were `op_return_chain_share`,
   `op_return_fee_share`). Fees are BTC and USD (were sats). The totals gain `output_count` (id
   `op_return_output_count`, shared with outputs). Policy ids drop `policy_` (`op_return_oversized_tx_count`, was
   `op_return_policy_oversized_tx_count`)
 - Pools have one shape at `pools.<slug>` (were `pools.major.<slug>` for 22 pools with rewards and `pools.minor.<slug>`
-  for the rest): `blocks_mined` (cumulative and window sums; the per-block 0/1 and the major pools' per-block
+  for the rest), ids `pool_<slug>_...` (`pool_foundryusa_share_1m`; were `foundryusa_...`): `blocks_mined`
+  (cumulative and window sums; the per-block 0/1 and the major pools' per-block
   `<slug>_rewards` are gone), `share` (all time and per window; was `dominance`), `rewards` (BTC and USD, cumulative and
   window sums), `fees_per_block` (fees of the pool's blocks per block it mined, per window, BTC and USD; empty when it
   mined none) and `hashrate` (its window share of blocks times the network hash-rate estimate). All are read from
-  in-memory per-pool running totals: the pools plugin stores only the per-block attribution (`pool`). `GET
-  /api/v1/mining/pool/{slug}` reports `totalReward` for every pool
+  in-memory per-pool running totals: the pools plugin stores only the per-block attribution (`pools.block_pool`, id
+  `block_pool`; was `pool`). `GET /api/v1/mining/pool/{slug}` reports `totalReward` for every pool
 - Cointime and Coinflow are member-first. Their cohorts sit under `cohorts`: `all`, `sth` and `lth` (were
   `cointime.{awake, dormant}`, `cointime.{sth, lth}.{awake, dormant}`, `coinflow.{supply, cap, price}` and
   `coinflow.{sth, lth}.*`) and the new age cutoffs `under_4m`, `under_6m`, `over_4m` and `over_6m`.
@@ -873,8 +891,9 @@ has to be deleted by hand.
   `merge`, `SeriesLeafWithSchema` exposes its fields (its getters are gone), and `TreeNode::for_each_leaf` visits a
   subtree's leaves in order. A catalog key that is both a series and a group panics when the catalog is built (was
   silently filed under `raw`)
-- `#[derive(Traversable)]` keeps one struct attribute, `merge` (`transparent`, `hidden` and `wrap` are gone), and
-  fields can no longer be `Option`s; `#[traversable(flatten, rename = "...")]` names a flattened leaf, and a struct
+- `#[derive(Traversable)]` keeps one struct attribute, `merge` (`transparent`, `hidden` and `wrap` are gone), and an
+  `Option` field is plain `Traversable` (a `None` is an empty branch: flattened, nothing; else an empty node under its
+  key, was left out); `#[traversable(flatten, rename = "...")]` names a flattened leaf, and a struct
   whose only visible field is a flattened view is that view, a single-unit leaf included (both were keyed by the field
   name)
 - `bitview_cohort` collections build with `from_fn`/`try_from_fn` over their member id (were `new`/`try_new` over a

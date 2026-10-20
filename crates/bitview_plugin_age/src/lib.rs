@@ -12,7 +12,7 @@ pub use dependencies::Dependencies;
 pub use has::HasAge;
 pub use metrics::RangeVecs;
 
-use bitview_cohort::{AgeRange, ByEpoch, Class};
+use bitview_cohort::{AgeRange, ByHalvingEpoch, Vintage};
 use bitview_distribution::metrics::CreationCohort;
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::CoinBlocks;
@@ -40,10 +40,12 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(hidden)]
     all_capital: CachedSeries<Height, Cents, M>,
     pub ranges: Box<AgeRange<RangeVecs<M>>>,
-    epochs: Box<ByEpoch<CreationCohort<M>>>,
-    classes: Box<Class<CreationCohort<M>>>,
+    halving_epochs: Box<ByHalvingEpoch<CreationCohort<M>>>,
+    vintages: Box<Vintage<CreationCohort<M>>>,
     /// Coinblocks destroyed by each block: each spent output's BTC value
-    /// multiplied by the blocks it stayed unspent.
+    /// multiplied by the blocks it stayed unspent. Published by cointime, beside the coinblocks
+    /// created and stored.
+    #[traversable(hidden)]
     pub coinblocks_destroyed: PerBlockCumulativeRolling<CoinBlocks, M>,
 }
 

@@ -1,24 +1,32 @@
-use bitview_cohort::{CohortContext, CohortId};
+use bitview_cohort::{AmountRangeId, CohortContext, CohortId};
 use bitview_distribution::{
     families::{CumulativeFiat, CumulativeValue},
-    metrics::{CohortCapital, CohortCostBasis, CohortSupply, ShareTotals, StoredOutputs},
+    metrics::{CohortCapital, CohortCostBasis, CohortSupply, ShareTotals, StoredUtxos},
     state::{CohortState, MinimalRealizedState},
 };
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
-use brk_types::{Cents, Height, Version};
-use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
+use brk_types::{Cents, Height, Sats, Version};
+use vecdb::{Database, ReadableBoxedVec, ReadableVec, Rw, StorageMode};
 
 type State = CohortState<MinimalRealizedState, ()>;
 
 /// One UTXO cohort: an amount range or a spendable output type.
 #[derive(Traversable)]
 pub struct CohortVecs<M: StorageMode = Rw> {
+    // Its amounts and values: none for zero-value outputs, whose amounts are all zero.
+    #[traversable(flatten)]
+    pub values: Option<ValueVecs<M>>,
+    pub utxos: StoredUtxos<M>,
+}
+
+/// A cohort's amounts and what they're worth.
+#[derive(Traversable)]
+pub struct ValueVecs<M: StorageMode = Rw> {
     pub supply: CohortSupply<M>,
     pub capital: CohortCapital<M>,
-    pub outputs: StoredOutputs<M>,
     pub activity: ActivityVecs<M>,
     pub realized: RealizedVecs<M>,
     pub cost_basis: CohortCostBasis<M>,
@@ -54,59 +62,89 @@ impl CohortVecs {
     ) -> Result<Self> {
         let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
         let flow_version = version + Version::ONE;
+        let values = (cohort != CohortId::Amount(AmountRangeId::Zero))
+            .then(|| -> Result<_> {
+                Ok(ValueVecs {
+                    supply: CohortSupply::import(
+                        db,
+                        &name("supply"),
+                        version,
+                        mappings,
+                        windows,
+                        spot,
+                        totals.supply,
+                    )?,
+                    capital: CohortCapital::import(
+                        db,
+                        name,
+                        version,
+                        mappings,
+                        windows,
+                        totals.capital,
+                    )?,
+                    activity: ActivityVecs {
+                        transfer_volume: CumulativeValue::import(
+                            db,
+                            &name("transfer_volume"),
+                            flow_version,
+                            mappings,
+                            windows,
+                        )?,
+                    },
+                    realized: RealizedVecs {
+                        profit: CumulativeFiat::import(
+                            db,
+                            &name("realized_profit"),
+                            flow_version,
+                            mappings,
+                            windows,
+                        )?,
+                        loss: CumulativeFiat::import(
+                            db,
+                            &name("realized_loss"),
+                            flow_version,
+                            mappings,
+                            windows,
+                        )?,
+                    },
+                    cost_basis: CohortCostBasis::import(
+                        db,
+                        name,
+                        version + Version::ONE,
+                        mappings,
+                    )?,
+                })
+            })
+            .transpose()?;
         Ok(Self {
-            supply: CohortSupply::import(
-                db,
-                &name("supply"),
-                version,
-                mappings,
-                windows,
-                spot,
-                totals.supply,
-            )?,
-            capital: CohortCapital::import(db, name, version, mappings, windows, totals.capital)?,
-            outputs: StoredOutputs::import(db, name, version, mappings, windows)?,
-            activity: ActivityVecs {
-                transfer_volume: CumulativeValue::import(
-                    db,
-                    &name("transfer_volume"),
-                    flow_version,
-                    mappings,
-                    windows,
-                )?,
-            },
-            realized: RealizedVecs {
-                profit: CumulativeFiat::import(
-                    db,
-                    &name("realized_profit"),
-                    flow_version,
-                    mappings,
-                    windows,
-                )?,
-                loss: CumulativeFiat::import(
-                    db,
-                    &name("realized_loss"),
-                    flow_version,
-                    mappings,
-                    windows,
-                )?,
-            },
-            cost_basis: CohortCostBasis::import(db, name, version + Version::ONE, mappings)?,
+            values,
+            utxos: StoredUtxos::import(db, name, version, mappings, windows)?,
         })
     }
 
     #[inline(always)]
     pub fn push(&mut self, state: &State, price: Cents) {
-        self.supply.total.push(state.supply.value);
-        self.outputs.push(state.output_counts());
+        self.utxos.push(state.output_counts());
+        let Some(values) = &mut self.values else {
+            return;
+        };
+        values.supply.total.push(state.supply.value);
         let sent = state.sent;
-        self.activity
+        values
+            .activity
             .transfer_volume
             .push_block(sent, sent.value_at(price));
         let realized = state.realized_block_data();
-        self.capital.push(realized.cap);
-        self.realized.profit.push_block(realized.profit);
-        self.realized.loss.push_block(realized.loss);
-        self.cost_basis.push(realized.price());
+        values.capital.push(realized.cap);
+        values.realized.profit.push_block(realized.profit);
+        values.realized.loss.push_block(realized.loss);
+        values.cost_basis.push(realized.price());
+    }
+
+    /// The cohort's supply at `height`: zero without values.
+    pub fn supply_at(&self, height: Height) -> Option<Sats> {
+        self.values.as_ref().map_or(Some(Sats::ZERO), |values| {
+            values.supply.total.stored.collect_one(height)
+        })
     }
 }
