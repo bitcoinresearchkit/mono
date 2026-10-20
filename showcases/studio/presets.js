@@ -212,6 +212,20 @@ export function studioPresets(client) {
     return charts;
   };
   /**
+   * A kind of transaction (a feature, a version, a pattern…): its count over windows, its share of all transactions
+   * below, and since the start at the bottom. @param {any} node @param {string} name @param {string} title
+   */
+  const txKind = (node, name, title) =>
+    chart(name, title, [...windows(node.sum, ""), ...sharesOf(node.share, "Share", { pane: 2 }), series(node.cumulative, "All time", { pane: 3, color: "gray" })]);
+  /**
+   * Kinds of transactions that overlap: their shares of all transactions compared, then each one's chart.
+   * @param {[string, any][]} list @param {(key: string) => string} name @param {(key: string) => string} title @param {string} compared
+   */
+  const txKinds = (list, name, title, compared) => [
+    chart("Compare", `${compared}, 1 month`, list.map(([key, node], i) => series(node.share._1m, name(key), { color: ramp(list.length)[i] }))),
+    ...list.map(([key, node]) => txKind(node, name(key), title(key))),
+  ];
+  /**
    * A change over windows (`absolute` and `rate`): the amount (its windows) and, below, the rate.
    * @param {any} delta @param {string} name @param {string} title
    */
@@ -257,7 +271,7 @@ export function studioPresets(client) {
         ...change(capital.delta, "Change", of("Capital change")),
       ]),
       utxos && section("UTXOs", [
-        utxos.count && chart("Count", of("UTXO count"), [series(own(utxos.count), "UTXOs", { color: "sky" })]),
+        utxos.count && chart("Count", of("UTXO count"), [series(own(utxos.count), "UTXOs", { color: "sky" })], { log: [1] }),
         ...change(utxos.count?.delta, "Change", of("UTXO count change")),
         ...flow(utxos.spentCount, "Spent", of("UTXOs spent")),
       ]),
@@ -343,15 +357,13 @@ export function studioPresets(client) {
     const median = [node.medianRealizedPrice, node.medianCapitalizedPrice].find(isLeaf);
     return [chart(name, title, [price(), ...list.map(([key, value], i) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color: colors[i], width: key === "median" ? 2 : 1 })), ...more], options)];
   };
-  /** Whether a rarity meter node is a component (its percentiles' bands), not a group of them. @param {any} node */
-  const isComponent = (node) => entries(node).some(([k]) => Number.isFinite(percentile(k)));
   /**
    * A rarity meter component's charts: its price bands over the price (with its reference price, a median's), and its
-   * ratio percentiles (with the price's ratio to it). `who` its cohort in titles, none on its own.
+   * ratio percentiles (with the price's ratio to it). `who` its cohort in titles.
    * @param {any} node @param {string} label @param {string} who
    */
   const component = (node, label, who) => {
-    const bands = entries(node).filter(([k]) => Number.isFinite(percentile(k))), titled = (/** @type {string} */ what) => (who ? `${label} ${what}: ${who}` : `${label}: ${what}`);
+    const bands = entries(node).filter(([k]) => Number.isFinite(percentile(k))), titled = (/** @type {string} */ what) => `${label} ${what}: ${who}`;
     return section(label, [
       chart("Bands", titled("rarity bands"), [price(), ...(own(node) ? [series(own(node), label, { color: "orange" })] : []), ...bands.map(([k, v], i) => series(v.band, percentileLabel(percentile(k)), { color: ramp(bands.length, 140, 360)[i] }))]),
       chart("Ratios", titled("rarity ratios"), [...(node.ratio ? [series(node.ratio, "Price to it", around(1))] : []), ...bands.map(([k, v], i) => series(v.ratio, percentileLabel(percentile(k)), { color: ramp(bands.length, 140, 360)[i] }))], { log: [1] }),
@@ -492,8 +504,8 @@ export function studioPresets(client) {
           chart("Bands", `Rarity meter bands, ${key}`, [price(), ...entries(node).filter(([k]) => Number.isFinite(percentile(k))).map(([k, value], i, all) => series(value, percentileLabel(percentile(k)), { color: ramp(all.length, 140, 360)[i], width: k === "median" ? 2 : 1 }))]),
           chart("Level and score", `Rarity meter level and score, ${key}`, [series(node.level, "Level", { ...baseline, type: "histogram" }), series(node.score, "Score", { pane: 2, ...baseline })]),
         ])),
-        // (Each component by its cohort, else on its own: a reference price's bands and ratios.)
-        section("Components", entries(t.rarityMeter.components).map(([key, node]) => (isComponent(node) ? component(node, words(key), "") : section(COMPONENT_GROUPS[key] ?? words(key), entries(node).map(([k, v]) => component(v, words(k), COMPONENT_GROUPS[key] ?? words(key))))))),
+        // (Each component by its cohort: a reference price's bands and ratios.)
+        section("Components", entries(t.rarityMeter.components).map(([key, node]) => section(COMPONENT_GROUPS[key], entries(node).map(([k, v]) => component(v, words(k), COMPONENT_GROUPS[key]))))),
         section("Extremes", entries(t.rarityMeter.extremes).map(([key, node]) => {
           const label = EXTREMES[/** @type {keyof typeof EXTREMES} */ (key)] ?? words(key);
           return chart(label, `Rarity meter extremes: ${label}`, [...entries(node.thresholds).map(([k, v], i) => series(v, `Tail ${k.replace("tail", "").replace(/^0/, "0.")}%`, { color: ["red", "orange", "amber"][i] })), series(node.tailShare, "Tail share", { pane: 2, color: "sky" })]);
@@ -501,11 +513,10 @@ export function studioPresets(client) {
       ]),
     ]),
     section("Supply", [
-      chart("Circulating", "Circulating supply", [series(sup.circulating, "Circulating supply", { color: "orange" })]),
+      chart("Circulating", "Circulating supply", [series(sup.circulating, "Supply", { color: "orange" }), series(sup.marketCap.block, "Market cap", { color: "green", pane: 2 })], { log: [2] }),
       chart("Inflation", "Inflation rate", [series(sup.inflationRate, "Inflation rate", { color: "orange" }), series(ct.adjusted.inflationRate, "Cointime-adjusted", { color: "violet" })], { log: [1] }),
       ...flow(sup.burned, "Burned", "Bitcoin burned"),
       chart("Velocity", "Velocity", [series(sup.velocity.btc, "In bitcoin", { color: "orange" }), series(sup.velocity.usd, "In dollars", { color: "green" }), series(ct.adjusted.velocity.btc, "Cointime-adjusted, in bitcoin", { color: "violet", hidden: true }), series(ct.adjusted.velocity.usd, "Cointime-adjusted, in dollars", { color: "sky", hidden: true })]),
-      chart("Market cap", "Market cap", [series(sup.marketCap.block, "Market cap", { color: "green" })], { log: [1] }),
       ...change(sup.marketCap.delta, "Market cap change", "Market cap change"),
     ]),
     section("Holders", [
@@ -573,15 +584,19 @@ export function studioPresets(client) {
         chart("Size", "Transaction size", percentileStats(tx.vsize), { log: [1] }),
         chart("Fee", "Transaction fee", percentileStats(tx.fees.fee), { log: [1] }),
         chart("Fee rate", "Transaction fee rate", percentileStats(tx.fees.effectiveFeeRate), { log: [1] }),
-        section("Features", entries(tx.features).flatMap(([key, node]) => flow(node, featureName(key), `Transactions ${featureTitle(key)}`))),
+        section("Features", [
+          section("Scripts", txKinds(entries(tx.features.scripts), featureName, featureTx, "Share of transactions by script")),
+          section("Signatures", txKinds(entries(tx.features.signatures), featureName, featureTx, "Share of transactions by signature feature")),
+          ...txKinds(entries(tx.features).filter(([, node]) => node.share), featureName, featureTx, "Share of transactions by feature"),
+        ]),
         section("Versions", [
           chart("Compare", "Transactions by version, 1 month", entries(tx.versions).map(([key, node], i, all) => series(node.sum._1m, key === "other" ? "Other" : `Version ${key.slice(1)}`, { color: ramp(all.length)[i], type: "area" })), { stack: { 1: "percent" } }),
-          ...entries(tx.versions).flatMap(([key, node]) => flow(node, key === "other" ? "Other" : `Version ${key.slice(1)}`, key === "other" ? "Transactions of other versions" : `Version ${key.slice(1)} transactions`)),
+          ...entries(tx.versions).map(([key, node]) => txKind(node, key === "other" ? "Other" : `Version ${key.slice(1)}`, key === "other" ? "Transactions of other versions" : `Version ${key.slice(1)} transactions`)),
         ]),
-        section("Patterns", entries(tx.patterns).flatMap(([key, node]) => flow(node, words(key), `${words(key)} transactions`))),
-        section("CPFP", [...flow(tx.fees.cpfpParent, "Parents", "CPFP parent transactions"), ...flow(tx.fees.cpfpChild, "Children", "CPFP child transactions")]),
-        section("Inscriptions", [...flow(tx.inscription.count, "Count", "Inscription transactions"), ...flow(tx.inscription.fees, "Fees", "Inscription fees"), chart("Fee share", "Inscriptions' share of fees", sharesOf(tx.inscription.fees.chainShare, "Share"))]),
-        ...flow(tx.nonstandard, "Nonstandard", "Nonstandard transactions"),
+        section("Patterns", txKinds(entries(tx.patterns), words, (key) => `${words(key)} transactions`, "Share of transactions by pattern")),
+        section("CPFP", [txKind(tx.fees.cpfpParent, "Parents", "CPFP parent transactions"), txKind(tx.fees.cpfpChild, "Children", "CPFP child transactions")]),
+        section("Inscriptions", [txKind(tx.inscription, "Count", "Inscription transactions"), ...flow(tx.inscription.fees, "Fees", "Inscription fees"), chart("Fee share", "Inscriptions' share of fees", sharesOf(tx.inscription.fees.chainShare, "Share"))]),
+        txKind(tx.nonstandard, "Nonstandard", "Nonstandard transactions"),
         ...flow(tx.sigopCost, "Signature operations", "Signature operation cost"),
       ]),
       section("Inputs", [
@@ -650,12 +665,12 @@ export function studioPresets(client) {
   function featureName(key) {
     return client.SPENDABLE_TYPE_NAMES[key]?.short ?? FEATURES[/** @type {keyof typeof FEATURES} */ (key)] ?? words(key);
   }
-  /** "Transactions with" it ("with P2TR", "with unknown scripts", "with a Taproot annex"). @param {string} key */
-  function featureTitle(key) {
+  /** A feature's transactions ("Transactions with P2TR", "with unknown scripts", "with a Taproot annex"). @param {string} key */
+  function featureTx(key) {
     const type = client.SPENDABLE_TYPE_NAMES[key]?.short;
-    if (type) return `with ${inSentence(type)}${inSentence(type) === type ? "" : " scripts"}`;
+    if (type) return `Transactions with ${inSentence(type)}${inSentence(type) === type ? "" : " scripts"}`;
     const feature = /** @type {keyof typeof FEATURE_PHRASES} */ (key);
-    return `with ${FEATURE_PHRASES[feature] ?? FEATURES[/** @type {keyof typeof FEATURES} */ (key)] ?? words(key).toLowerCase()}`;
+    return `Transactions with ${FEATURE_PHRASES[feature] ?? FEATURES[/** @type {keyof typeof FEATURES} */ (key)] ?? words(key).toLowerCase()}`;
   }
   /** An OP_RETURN protocol's name ("OpenTimestamps"), else its key's words. @param {string} key */
   function protocolName(key) {
