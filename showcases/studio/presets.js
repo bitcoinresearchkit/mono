@@ -315,13 +315,13 @@ export function studioPresets(client) {
           ...(cost.perCoin.medianRealizedPrice ? [series(cost.perCoin.medianRealizedPrice, "Median realized price", { color: "yellow", hidden: true })] : []),
           ...(cost.min ? [series(cost.min, "Lowest", { color: "red", dash: 3, hidden: true }), series(cost.max, "Highest", { color: "green", dash: 3, hidden: true })] : []),
           ...(cost.perCoin.avg?.mvrv ? [series(cost.perCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1) })] : []),
-        ]),
+        ], { log: [2] }),
         ...percentiles(cost.perCoin, "Distribution", of("Cost basis distribution, by coin")),
         ...(cost.perDollar ? [
           ...percentiles(cost.perDollar, "Distribution by dollar", of("Cost basis distribution, by dollar"), [
             series(cost.perDollar.capitalizedPrice, "Capitalized price", { color: "orange" }),
             series(cost.perDollar.avg.ratio, "Price to capitalized price", { pane: 2, ...around(1) }),
-          ]),
+          ], { log: [2] }),
         ] : []),
         cost.supplyDensity && chart("Density", of("Supply and capital near the price"), [
           series(cost.supplyDensity.total, "Supply", { color: "orange" }), series(cost.supplyDensity.inProfit, "Supply in profit", { color: "green", hidden: true }), series(cost.supplyDensity.inLoss, "Supply in loss", { color: "red", hidden: true }),
@@ -333,15 +333,15 @@ export function studioPresets(client) {
   /**
    * Percentiles of a price (`pct5`… keys) over the price, as a fan: each its own line, the median solid, colored from
    * low to high; with `more` layers after them. None, no chart.
-   * @param {any} node @param {string} name @param {string} title @param {Layer[]} [more]
+   * @param {any} node @param {string} name @param {string} title @param {Layer[]} [more] @param {{ log?: number[] }} [options]
    */
-  const percentiles = (node, name, title, more = []) => {
+  const percentiles = (node, name, title, more = [], options = {}) => {
     const list = entries(node).filter(([key, value]) => isLeaf(value) && Number.isFinite(percentile(key))).sort(([a], [b]) => percentile(a) - percentile(b));
     if (!list.length) return [];
     const colors = ramp(list.length, 25, 160);
     // (The median by its well-known name where it has one: a cohort's median realized or capitalized price.)
     const median = [node.medianRealizedPrice, node.medianCapitalizedPrice].find(isLeaf);
-    return [chart(name, title, [price(), ...list.map(([key, value], i) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color: colors[i], width: key === "median" ? 2 : 1 })), ...more])];
+    return [chart(name, title, [price(), ...list.map(([key, value], i) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color: colors[i], width: key === "median" ? 2 : 1 })), ...more], options)];
   };
   /** Whether a rarity meter node is a component (its percentiles' bands), not a group of them. @param {any} node */
   const isComponent = (node) => entries(node).some(([k]) => Number.isFinite(percentile(k)));
@@ -400,7 +400,7 @@ export function studioPresets(client) {
       !options.disjoint && compare("Share of all coins", (c) => c.supply?.share, { reference: true }),
       !options.disjoint && compare("Share of all capital", (c) => c.capital?.share, { reference: true }),
       compare("Realized price", (c) => c.costBasis?.perCoin?.realizedPrice, { price: true }),
-      compare("MVRV", (c) => c.costBasis?.perCoin?.avg?.mvrv, { level: 1 }),
+      compare("MVRV", (c) => c.costBasis?.perCoin?.avg?.mvrv, { level: 1, log: true }),
       compare("Share in profit", (c) => c.supply?.inProfit?.share),
       compare("NUPL", (c) => c.unrealized?.nupl, { level: 0 }),
       compare("UTXO count", (c) => own(c.utxos?.count), { log: true, additive: true }),
@@ -477,7 +477,7 @@ export function studioPresets(client) {
       section("Cointime prices", [
         chart("Compare", "Cointime prices", [price(), ...[["vaulted", "Vaulted price"], ["active", "Active price"], ["cointime", "Cointime price"]].map(([key, label], i) => series(ct.prices[key].block, label, { color: ["green", "red", "violet"][i] })), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" })]),
         ...[["vaulted", "Vaulted price"], ["active", "Active price"], ["cointime", "Cointime price"]].map(([key, label]) => chart(label, label, [price(), series(ct.prices[key].block, label, { color: "sky" }), series(ct.prices[key].mvrv, "MVRV", { pane: 2, ...around(1) })], { log: [2] })),
-        chart("True market mean", "True market mean and AVIV", [price(), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" }), series(ct.prices.trueMarketMean.aviv, "AVIV", { pane: 2, ...around(1) }), series(ct.prices.trueMarketMean.avivNupl, "AVIV NUPL", { pane: 3, ...baseline })]),
+        chart("True market mean", "True market mean and AVIV", [price(), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" }), series(ct.prices.trueMarketMean.aviv, "AVIV", { pane: 2, ...around(1) }), series(ct.prices.trueMarketMean.avivNupl, "AVIV NUPL", { pane: 3, ...baseline })], { log: [2] }),
       ]),
       chart("Cointime caps", "Cointime capitalizations", [...[["thermo", "Thermo cap"], ["investor", "Investor cap"], ["active", "Active cap"], ["vaulted", "Vaulted cap"], ["cointime", "Cointime cap"]].map(([key, label], i) => series(ct.caps[key], label, { color: ["orange", "green", "red", "sky", "violet"][i] })), series(ct.caps.investorness, "Investorness", { pane: 2, color: "green" }), series(ct.caps.producerness, "Producerness", { pane: 2, color: "orange" })], { log: [1] }),
       chart("Reserve risk", "Reserve risk", [price(), series(ct.reserveRisk.block, "Reserve risk", { pane: 2, color: "orange" }), series(ct.reserveRisk.hodlBank, "HODL bank", { pane: 3, color: "sky" })], { log: [2, 3] }),
@@ -527,7 +527,7 @@ export function studioPresets(client) {
       ...addressCharts(t.addresses, "All addresses"),
       section("By type", [
         section("Compare", [
-          ...[["Funded", (/** @type {any} */ a) => own(a.funded)], ["Total", (/** @type {any} */ a) => a.total], ["New, 1 month", (/** @type {any} */ a) => a.new.sum._1m], ["Active, 1 month", (/** @type {any} */ a) => a.activity.active.avg._1m]].map(([name, pick]) => chart(/** @type {string} */ (name), `Addresses by type: ${String(name).toLowerCase()}`, entries(t.addresses.types).map(([key, a], i, all) => series(/** @type {(a: any) => any} */ (pick)(a), client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, { color: ramp(all.length)[i] })), { log: [1] })),
+          ...[["Funded", (/** @type {any} */ a) => own(a.funded)], ["Total", (/** @type {any} */ a) => a.total], ["New, 1 month", (/** @type {any} */ a) => a.new.sum._1m], ["Active, 1 month", (/** @type {any} */ a) => a.activity.active.avg._1m]].map(([name, pick]) => chart(/** @type {string} */ (name), String(name).replace(/^(\w+)(.*)$/, "$1 addresses by type$2"), entries(t.addresses.types).map(([key, a], i, all) => series(/** @type {(a: any) => any} */ (pick)(a), client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, { color: ramp(all.length)[i] })), { log: [1] })),
         ]),
         ...entries(t.addresses.types).map(([key, a]) => section(client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, addressCharts(a, `${client.SPENDABLE_TYPE_NAMES[key]?.short ?? key} addresses`))),
       ]),

@@ -9561,7 +9561,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const FORMATS = [
         ["auto", "Automatic"],
         ["usd", "US dollars"], ["btc", "Bitcoin"], ["sats", "Satoshis"],
-        ["percent", "Percent"], ["ratio", "Ratio ×"], ["count", "Count"], ["number", "Number"],
+        ["percent", "Percent"], ["ratio", "Multiple ×"], ["count", "Count"], ["number", "Number"],
         ["days", "Days"], ["seconds", "Seconds"], ["persecond", "Per second"], ["perday", "Per day"],
         ["bytes", "Bytes"], ["vbytes", "Virtual bytes"], ["weight", "Weight units"], ["sigops", "Signature operations"],
         ["hashrate", "Hash rate"], ["difficulty", "Difficulty"], ["feerate", "Fee rate"], ["hashprice", "Hash price"], ["hashvalue", "Hash value"],
@@ -9592,7 +9592,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const fieldUnit = (/** @type {string} */ unit) => ((sign) => (unit === "ratio" || sign.length > 6 ? "" : sign))(UNIT_SIGNS[/** @type {keyof typeof UNIT_SIGNS} */ (unit)] ?? "");
       /** Each unit's name (its format's, where it has one, as the menu says it). */
-      const UNIT_NAMES = { ...Object.fromEntries(FORMATS.slice(1)), ratio: "Ratio" };
+      const UNIT_NAMES = { ...Object.fromEntries(FORMATS.slice(1)), ratio: "Multiple" };
       /**
        * Formulas made from a layer in one click (X its letter): those that read on its scale (`over`: an average, a
        * band) in its pane and on its axis, the others in a pane of their own. A band is two layers. Each is a formula
@@ -9654,7 +9654,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** Each value type Bitview has, by the unit it's in (a type not here, or a bare number, a plain number). */
       const TYPE_UNITS = {
-        Dollars: "usd", OHLCDollars: "usd", Bitcoin: "btc", Sats: "sats", Percent: "percent", Ratio: "ratio", Ratio64: "ratio",
+        Dollars: "usd", OHLCDollars: "usd", Bitcoin: "btc", Sats: "sats", Percent: "percent", Multiple: "ratio",
         Count: "count", CountFract: "count", CountSigned: "count", Height: "count", Epoch: "count", Halving: "count",
         Days: "days", Seconds: "seconds", SecondsFract: "seconds", PerSecond: "persecond", PerDay: "perday",
         Bytes: "bytes", BytesFract: "bytes", VSize: "vbytes", Weight: "weight", WeightFract: "weight", SigOps: "sigops",
