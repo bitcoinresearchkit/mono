@@ -134,14 +134,21 @@ impl Vecs {
                     .map_or_else(|| TxOutIndex::from(output_len), Index40::get);
                 let coinbase_tag = coinbase_tags.get_at(min + offset);
 
-                (*out_start..*out_end)
+                // mempool.space's order: the first pool in the list that matches, by one of the
+                // coinbase's addresses or by its tag.
+                let by_addr = (*out_start..*out_end)
                     .map(TxOutIndex::from)
-                    .find_map(|txout_index| {
+                    .filter_map(|txout_index| {
                         addr_readers
                             .get(output_type.get(txout_index), type_index.get(txout_index))
                             .and_then(|addr| self.pools.find_from_addr(&addr))
                     })
-                    .or_else(|| self.pools.find_from_coinbase_tag(&coinbase_tag.to_string()))
+                    .min_by_key(|pool| pool.slug);
+                let by_tag = self.pools.find_from_coinbase_tag(&coinbase_tag.to_string());
+                by_addr
+                    .into_iter()
+                    .chain(by_tag)
+                    .min_by_key(|pool| pool.slug)
                     .unwrap_or(unknown)
                     .slug
             })
