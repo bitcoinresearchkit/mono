@@ -99,12 +99,12 @@ has to be deleted by hand.
 - Rarity meter components sit by cohort: `rarity_meter.components.{all, sth}.{realized_price, capitalized_price,
   median_realized_price, median_capitalized_price}`, `under_6m.{realized_price, capitalized_price}`,
   `awake.realized_price`, `mobile.{realized_price, median_realized_price, median_capitalized_price}`, `vaulted_price`
-  and `true_market_mean` (were `coinflow_price`, `true_market_mean_price`, `under_6m_realized_price`, ...). Each
-  percentile's price is its `band` (`<component>.<pct>.band`, ids `rarity_meter_<cohort><price>_band_<pct>`, as
-  `rarity_meter_sth_median_realized_price_band_pct1`; were `<component>.<pct>.price`, ids `<component>_<pct>`) and its
-  ratio `<component>.<pct>.ratio` (ids `rarity_meter_<cohort><price>_ratio_<pct>`; were `<component>_ratio_<pct>`),
-  `<cohort>` the source's prefix (none for all coins, `sth_`, `utxos_under_6m_old_`, `awake_`, `mobile_`), and a
-  median component's price and spot ratio share their source's ids (`sth_cost_basis_per_coin_median`, `..._ratio`).
+  and `true_market_mean` (were `coinflow_price`, `true_market_mean_price`, `under_6m_realized_price`, ...). A
+  component's ids follow its price's: each percentile's price is its `band` (`<component>.<pct>.band`, ids
+  `<price>_rarity_<pct>`, as `sth_median_realized_price_rarity_pct1`; were `<component>.<pct>.price`, ids
+  `<component>_<pct>`) and its ratio `<component>.<pct>.ratio` (ids `<price>_rarity_ratio_<pct>`; were
+  `<component>_ratio_<pct>`), and a median component's price and spot ratio are `sth_median_realized_price`,
+  `sth_median_realized_price_ratio`, `median_capitalized_price`, ...
   Extremes are named by their input, `supply_in_loss`, `realized_profit_24h`, `realized_loss_24h`,
   `realized_peak_regret_24h`, `sell_side_risk_ratio_24h` (were `coins_in_loss`, `profit_taking`, `capitulation`,
   `peak_regret`, `seller_exhaustion`), with `thresholds.{tail0_1, tail0_05, tail0_025}` and `tail_share` (were
@@ -417,9 +417,10 @@ has to be deleted by hand.
 - Mean creation prices sit with the other creation-price statistics, each name analysts use beside its descriptive
   series, in holders, entry, age cohorts, UTXO cohorts, Cointime and Coinflow: `cost_basis.per_coin.avg` with its
   jargon `realized_price` and, where they exist, `avg.{ratio, mvrv}` and `median_realized_price` beside the percentiles;
-  `cost_basis.per_dollar.avg.{block, ratio}` with `capitalized_price`. Ids: `sth_cost_basis_per_coin_avg[_ratio]`,
-  `sth_cost_basis_per_dollar_avg[_ratio]` and the jargon `sth_realized_price`, `sth_mvrv`, `sth_capitalized_price` and
-  `sth_median_realized_price` (a second id for `cost_basis.per_coin.median`). They were `realized.{price, mvrv,
+  `cost_basis.per_dollar.avg.{block, ratio}` with `capitalized_price` and `median_capitalized_price`. Ids:
+  `sth_cost_basis_per_coin_avg[_ratio]`, `sth_cost_basis_per_dollar_avg[_ratio]` and the jargon `sth_realized_price`,
+  `sth_mvrv`, `sth_capitalized_price`, `sth_median_realized_price` and `sth_median_capitalized_price` (second ids for
+  `cost_basis.per_coin.median` and `cost_basis.per_dollar.median`). They were `realized.{price, mvrv,
   capitalized_price}` (holders) and `realized.price` (entry, age cohorts, UTXO cohorts); the holders'
   `*_realized_price_ratio` and `*_capitalized_price_ratio` ids are `*_cost_basis_per_{coin,dollar}_avg_ratio`, the
   other cohorts' realized price ratios are gone with their MVRV (`utxos_1d_to_1w_old_realized_price_ratio`,

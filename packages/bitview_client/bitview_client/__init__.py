@@ -2786,73 +2786,73 @@ class Extremes(_Node):
 
 
 class TrueMarketMeanMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rarity_meter_true_market_mean_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rarity_meter_true_market_mean_band_*')
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'true_market_mean_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'true_market_mean_rarity_*')
 
 
 class VaultedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rarity_meter_vaulted_price_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rarity_meter_vaulted_price_band_*')
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'vaulted_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'vaulted_price_rarity_*')
 
 
 class MobileMedianCapitalizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rarity_meter_mobile_median_capitalized_price_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rarity_meter_mobile_median_capitalized_price_band_*')
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'mobile_median_capitalized_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'mobile_median_capitalized_price_rarity_*')
 
 
 class MobileMedianRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rarity_meter_mobile_median_realized_price_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rarity_meter_mobile_median_realized_price_band_*')
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'mobile_median_realized_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'mobile_median_realized_price_rarity_*')
 
 
 class MobileRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rarity_meter_mobile_realized_price_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rarity_meter_mobile_realized_price_band_*')
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'mobile_realized_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'mobile_realized_price_rarity_*')
 
 
 class AwakeRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rarity_meter_awake_realized_price_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rarity_meter_awake_realized_price_band_*')
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'awake_realized_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'awake_realized_price_rarity_*')
 
 
 class Under6mCapitalizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rarity_meter_utxos_under_6m_old_capitalized_price_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rarity_meter_utxos_under_6m_old_capitalized_price_band_*')
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'utxos_under_6m_old_capitalized_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'utxos_under_6m_old_capitalized_price_rarity_*')
 
 
 class Under6mRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rarity_meter_utxos_under_6m_old_realized_price_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rarity_meter_utxos_under_6m_old_realized_price_band_*')
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'utxos_under_6m_old_realized_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'utxos_under_6m_old_realized_price_rarity_*')
 
 
 class SthMedianCapitalizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rarity_meter_sth_median_capitalized_price_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rarity_meter_sth_median_capitalized_price_band_*')
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'sth_median_capitalized_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sth_median_capitalized_price_rarity_*')
 
 
 class SthMedianRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rarity_meter_sth_median_realized_price_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rarity_meter_sth_median_realized_price_band_*')
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'sth_median_realized_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sth_median_realized_price_rarity_*')
 
 
 class SthCapitalizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rarity_meter_sth_capitalized_price_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rarity_meter_sth_capitalized_price_band_*')
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'sth_capitalized_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sth_capitalized_price_rarity_*')
 
 
 class SthRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rarity_meter_sth_realized_price_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rarity_meter_sth_realized_price_band_*')
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'sth_realized_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sth_realized_price_rarity_*')
 
 
 class AllMedianCapitalizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rarity_meter_median_capitalized_price_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rarity_meter_median_capitalized_price_band_*')
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'median_capitalized_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'median_capitalized_price_rarity_*')
 
 
 class AllMedianRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rarity_meter_median_realized_price_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rarity_meter_median_realized_price_band_*')
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'median_realized_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'median_realized_price_rarity_*')
 
 
 class MedianCapitalizedPrice(_Node, Generic[A]):
@@ -2880,13 +2880,13 @@ class MedianCapitalizedPrice(_Node, Generic[A]):
 
 
 class AllCapitalizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rarity_meter_capitalized_price_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rarity_meter_capitalized_price_band_*')
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'capitalized_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'capitalized_price_rarity_*')
 
 
 class AllRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'rarity_meter_realized_price_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'rarity_meter_realized_price_band_*')
+    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'realized_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'realized_price_rarity_*')
 
 
 class ComponentsTrueMarketMean(_Node, Generic[A]):
@@ -2913,8 +2913,8 @@ class ComponentsTrueMarketMean(_Node, Generic[A]):
 
 class ComponentsMobile(_Node):
     realized_price: ComponentsTrueMarketMean[MobileRealizedPriceMedian] = _at((ComponentsTrueMarketMean, MobileRealizedPriceMedian), 'pct99')
-    median_realized_price: MedianCapitalizedPrice[MobileMedianRealizedPriceMedian] = _at((MedianCapitalizedPrice, MobileMedianRealizedPriceMedian), '*_coin_median')
-    median_capitalized_price: MedianCapitalizedPrice[MobileMedianCapitalizedPriceMedian] = _at((MedianCapitalizedPrice, MobileMedianCapitalizedPriceMedian), '*_dollar_median')
+    median_realized_price: MedianCapitalizedPrice[MobileMedianRealizedPriceMedian] = _at((MedianCapitalizedPrice, MobileMedianRealizedPriceMedian), '*_realized_price')
+    median_capitalized_price: MedianCapitalizedPrice[MobileMedianCapitalizedPriceMedian] = _at((MedianCapitalizedPrice, MobileMedianCapitalizedPriceMedian), '*_capitalized_price')
 
 
 class ComponentsAwake(_Node):
@@ -2929,16 +2929,16 @@ class Under6m(_Node):
 class ComponentsAll(_Node, Generic[A, B, C, D]):
     realized_price: ComponentsTrueMarketMean[A] = _at((ComponentsTrueMarketMean, 0), 'pct99')
     capitalized_price: ComponentsTrueMarketMean[B] = _at((ComponentsTrueMarketMean, 1), 'pct99')
-    median_realized_price: MedianCapitalizedPrice[C] = _at((MedianCapitalizedPrice, 2), '*_coin_median')
-    median_capitalized_price: MedianCapitalizedPrice[D] = _at((MedianCapitalizedPrice, 3), '*_dollar_median')
+    median_realized_price: MedianCapitalizedPrice[C] = _at((MedianCapitalizedPrice, 2), '*_realized_price')
+    median_capitalized_price: MedianCapitalizedPrice[D] = _at((MedianCapitalizedPrice, 3), '*_capitalized_price')
 
 
 class Components(_Node):
-    all: ComponentsAll[AllRealizedPriceMedian, AllCapitalizedPriceMedian, AllMedianRealizedPriceMedian, AllMedianCapitalizedPriceMedian] = _at((ComponentsAll, AllRealizedPriceMedian, AllCapitalizedPriceMedian, AllMedianRealizedPriceMedian, AllMedianCapitalizedPriceMedian), 'cost_basis_per')
-    sth: ComponentsAll[SthRealizedPriceMedian, SthCapitalizedPriceMedian, SthMedianRealizedPriceMedian, SthMedianCapitalizedPriceMedian] = _at((ComponentsAll, SthRealizedPriceMedian, SthCapitalizedPriceMedian, SthMedianRealizedPriceMedian, SthMedianCapitalizedPriceMedian), 'sth_cost_basis_per')
+    all: ComponentsAll[AllRealizedPriceMedian, AllCapitalizedPriceMedian, AllMedianRealizedPriceMedian, AllMedianCapitalizedPriceMedian] = _at((ComponentsAll, AllRealizedPriceMedian, AllCapitalizedPriceMedian, AllMedianRealizedPriceMedian, AllMedianCapitalizedPriceMedian), 'median')
+    sth: ComponentsAll[SthRealizedPriceMedian, SthCapitalizedPriceMedian, SthMedianRealizedPriceMedian, SthMedianCapitalizedPriceMedian] = _at((ComponentsAll, SthRealizedPriceMedian, SthCapitalizedPriceMedian, SthMedianRealizedPriceMedian, SthMedianCapitalizedPriceMedian), 'sth_median')
     under_6m: Under6m = _at(Under6m, '*')
     awake: ComponentsAwake = _at(ComponentsAwake, '*')
-    mobile: ComponentsMobile = _at(ComponentsMobile, 'mobile_cost_basis_per')
+    mobile: ComponentsMobile = _at(ComponentsMobile, 'mobile_median')
     vaulted_price: ComponentsTrueMarketMean[VaultedPriceMedian] = _at((ComponentsTrueMarketMean, VaultedPriceMedian), '*')
     true_market_mean: ComponentsTrueMarketMean[TrueMarketMeanMedian] = _at((ComponentsTrueMarketMean, TrueMarketMeanMedian), '*')
 
@@ -3174,6 +3174,7 @@ class PerDollar(_Node):
     pct85: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct85')
     pct90: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct90')
     pct95: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct95')
+    median_capitalized_price: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_median_capitalized_price')
 
 
 class MobileCostBasis(_Node):

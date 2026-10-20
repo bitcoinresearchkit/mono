@@ -2560,8 +2560,8 @@ const _Extremes = _s({
  * }} TrueMarketMeanMedian
  */
 const _TrueMarketMeanMedian = _s({
-  ratio: [_i1, 'rarity_meter_true_market_mean_ratio_*'],
-  band: [_i1, 'rarity_meter_true_market_mean_band_*'],
+  ratio: [_i1, 'true_market_mean_rarity_ratio_*'],
+  band: [_i1, 'true_market_mean_rarity_*'],
 });
 
 /**
@@ -2571,8 +2571,8 @@ const _TrueMarketMeanMedian = _s({
  * }} VaultedPriceMedian
  */
 const _VaultedPriceMedian = _s({
-  ratio: [_i1, 'rarity_meter_vaulted_price_ratio_*'],
-  band: [_i1, 'rarity_meter_vaulted_price_band_*'],
+  ratio: [_i1, 'vaulted_price_rarity_ratio_*'],
+  band: [_i1, 'vaulted_price_rarity_*'],
 });
 
 /**
@@ -2582,8 +2582,8 @@ const _VaultedPriceMedian = _s({
  * }} MobileMedianCapitalizedPriceMedian
  */
 const _MobileMedianCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'rarity_meter_mobile_median_capitalized_price_ratio_*'],
-  band: [_i1, 'rarity_meter_mobile_median_capitalized_price_band_*'],
+  ratio: [_i1, 'mobile_median_capitalized_price_rarity_ratio_*'],
+  band: [_i1, 'mobile_median_capitalized_price_rarity_*'],
 });
 
 /**
@@ -2593,8 +2593,8 @@ const _MobileMedianCapitalizedPriceMedian = _s({
  * }} MobileMedianRealizedPriceMedian
  */
 const _MobileMedianRealizedPriceMedian = _s({
-  ratio: [_i1, 'rarity_meter_mobile_median_realized_price_ratio_*'],
-  band: [_i1, 'rarity_meter_mobile_median_realized_price_band_*'],
+  ratio: [_i1, 'mobile_median_realized_price_rarity_ratio_*'],
+  band: [_i1, 'mobile_median_realized_price_rarity_*'],
 });
 
 /**
@@ -2604,8 +2604,8 @@ const _MobileMedianRealizedPriceMedian = _s({
  * }} MobileRealizedPriceMedian
  */
 const _MobileRealizedPriceMedian = _s({
-  ratio: [_i1, 'rarity_meter_mobile_realized_price_ratio_*'],
-  band: [_i1, 'rarity_meter_mobile_realized_price_band_*'],
+  ratio: [_i1, 'mobile_realized_price_rarity_ratio_*'],
+  band: [_i1, 'mobile_realized_price_rarity_*'],
 });
 
 /**
@@ -2615,8 +2615,8 @@ const _MobileRealizedPriceMedian = _s({
  * }} AwakeRealizedPriceMedian
  */
 const _AwakeRealizedPriceMedian = _s({
-  ratio: [_i1, 'rarity_meter_awake_realized_price_ratio_*'],
-  band: [_i1, 'rarity_meter_awake_realized_price_band_*'],
+  ratio: [_i1, 'awake_realized_price_rarity_ratio_*'],
+  band: [_i1, 'awake_realized_price_rarity_*'],
 });
 
 /**
@@ -2626,8 +2626,8 @@ const _AwakeRealizedPriceMedian = _s({
  * }} Under6mCapitalizedPriceMedian
  */
 const _Under6mCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'rarity_meter_utxos_under_6m_old_capitalized_price_ratio_*'],
-  band: [_i1, 'rarity_meter_utxos_under_6m_old_capitalized_price_band_*'],
+  ratio: [_i1, 'utxos_under_6m_old_capitalized_price_rarity_ratio_*'],
+  band: [_i1, 'utxos_under_6m_old_capitalized_price_rarity_*'],
 });
 
 /**
@@ -2637,8 +2637,8 @@ const _Under6mCapitalizedPriceMedian = _s({
  * }} Under6mRealizedPriceMedian
  */
 const _Under6mRealizedPriceMedian = _s({
-  ratio: [_i1, 'rarity_meter_utxos_under_6m_old_realized_price_ratio_*'],
-  band: [_i1, 'rarity_meter_utxos_under_6m_old_realized_price_band_*'],
+  ratio: [_i1, 'utxos_under_6m_old_realized_price_rarity_ratio_*'],
+  band: [_i1, 'utxos_under_6m_old_realized_price_rarity_*'],
 });
 
 /**
@@ -2648,8 +2648,8 @@ const _Under6mRealizedPriceMedian = _s({
  * }} SthMedianCapitalizedPriceMedian
  */
 const _SthMedianCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'rarity_meter_sth_median_capitalized_price_ratio_*'],
-  band: [_i1, 'rarity_meter_sth_median_capitalized_price_band_*'],
+  ratio: [_i1, 'sth_median_capitalized_price_rarity_ratio_*'],
+  band: [_i1, 'sth_median_capitalized_price_rarity_*'],
 });
 
 /**
@@ -2659,8 +2659,8 @@ const _SthMedianCapitalizedPriceMedian = _s({
  * }} SthMedianRealizedPriceMedian
  */
 const _SthMedianRealizedPriceMedian = _s({
-  ratio: [_i1, 'rarity_meter_sth_median_realized_price_ratio_*'],
-  band: [_i1, 'rarity_meter_sth_median_realized_price_band_*'],
+  ratio: [_i1, 'sth_median_realized_price_rarity_ratio_*'],
+  band: [_i1, 'sth_median_realized_price_rarity_*'],
 });
 
 /**
@@ -2670,8 +2670,8 @@ const _SthMedianRealizedPriceMedian = _s({
  * }} SthCapitalizedPriceMedian
  */
 const _SthCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'rarity_meter_sth_capitalized_price_ratio_*'],
-  band: [_i1, 'rarity_meter_sth_capitalized_price_band_*'],
+  ratio: [_i1, 'sth_capitalized_price_rarity_ratio_*'],
+  band: [_i1, 'sth_capitalized_price_rarity_*'],
 });
 
 /**
@@ -2681,8 +2681,8 @@ const _SthCapitalizedPriceMedian = _s({
  * }} SthRealizedPriceMedian
  */
 const _SthRealizedPriceMedian = _s({
-  ratio: [_i1, 'rarity_meter_sth_realized_price_ratio_*'],
-  band: [_i1, 'rarity_meter_sth_realized_price_band_*'],
+  ratio: [_i1, 'sth_realized_price_rarity_ratio_*'],
+  band: [_i1, 'sth_realized_price_rarity_*'],
 });
 
 /**
@@ -2692,8 +2692,8 @@ const _SthRealizedPriceMedian = _s({
  * }} AllMedianCapitalizedPriceMedian
  */
 const _AllMedianCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'rarity_meter_median_capitalized_price_ratio_*'],
-  band: [_i1, 'rarity_meter_median_capitalized_price_band_*'],
+  ratio: [_i1, 'median_capitalized_price_rarity_ratio_*'],
+  band: [_i1, 'median_capitalized_price_rarity_*'],
 });
 
 /**
@@ -2703,8 +2703,8 @@ const _AllMedianCapitalizedPriceMedian = _s({
  * }} AllMedianRealizedPriceMedian
  */
 const _AllMedianRealizedPriceMedian = _s({
-  ratio: [_i1, 'rarity_meter_median_realized_price_ratio_*'],
-  band: [_i1, 'rarity_meter_median_realized_price_band_*'],
+  ratio: [_i1, 'median_realized_price_rarity_ratio_*'],
+  band: [_i1, 'median_realized_price_rarity_*'],
 });
 
 /**
@@ -2765,8 +2765,8 @@ const _MedianCapitalizedPrice = (c, b, f0) => _n(c, b, {
  * }} AllCapitalizedPriceMedian
  */
 const _AllCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'rarity_meter_capitalized_price_ratio_*'],
-  band: [_i1, 'rarity_meter_capitalized_price_band_*'],
+  ratio: [_i1, 'capitalized_price_rarity_ratio_*'],
+  band: [_i1, 'capitalized_price_rarity_*'],
 });
 
 /**
@@ -2776,8 +2776,8 @@ const _AllCapitalizedPriceMedian = _s({
  * }} AllRealizedPriceMedian
  */
 const _AllRealizedPriceMedian = _s({
-  ratio: [_i1, 'rarity_meter_realized_price_ratio_*'],
-  band: [_i1, 'rarity_meter_realized_price_band_*'],
+  ratio: [_i1, 'realized_price_rarity_ratio_*'],
+  band: [_i1, 'realized_price_rarity_*'],
 });
 
 /**
@@ -2836,8 +2836,8 @@ const _ComponentsTrueMarketMean = (c, b, f0) => _n(c, b, {
  */
 const _ComponentsMobile = _s({
   realizedPrice: [(c, b) => _ComponentsTrueMarketMean(c, b, _MobileRealizedPriceMedian), 'pct99'],
-  medianRealizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, _MobileMedianRealizedPriceMedian), '*_coin_median'],
-  medianCapitalizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, _MobileMedianCapitalizedPriceMedian), '*_dollar_median'],
+  medianRealizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, _MobileMedianRealizedPriceMedian), '*_realized_price'],
+  medianCapitalizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, _MobileMedianCapitalizedPriceMedian), '*_capitalized_price'],
 });
 
 /**
@@ -2873,8 +2873,8 @@ const _Under6m = _s({
 const _ComponentsAll = (c, b, f0, f1, f2, f3) => _n(c, b, {
   realizedPrice: [(c, b) => _ComponentsTrueMarketMean(c, b, f0), 'pct99'],
   capitalizedPrice: [(c, b) => _ComponentsTrueMarketMean(c, b, f1), 'pct99'],
-  medianRealizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, f2), '*_coin_median'],
-  medianCapitalizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, f3), '*_dollar_median'],
+  medianRealizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, f2), '*_realized_price'],
+  medianCapitalizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, f3), '*_capitalized_price'],
 });
 
 /**
@@ -2889,11 +2889,11 @@ const _ComponentsAll = (c, b, f0, f1, f2, f3) => _n(c, b, {
  * }} Components
  */
 const _Components = _s({
-  all: [(c, b) => _ComponentsAll(c, b, _AllRealizedPriceMedian, _AllCapitalizedPriceMedian, _AllMedianRealizedPriceMedian, _AllMedianCapitalizedPriceMedian), 'cost_basis_per'],
-  sth: [(c, b) => _ComponentsAll(c, b, _SthRealizedPriceMedian, _SthCapitalizedPriceMedian, _SthMedianRealizedPriceMedian, _SthMedianCapitalizedPriceMedian), 'sth_cost_basis_per'],
+  all: [(c, b) => _ComponentsAll(c, b, _AllRealizedPriceMedian, _AllCapitalizedPriceMedian, _AllMedianRealizedPriceMedian, _AllMedianCapitalizedPriceMedian), 'median'],
+  sth: [(c, b) => _ComponentsAll(c, b, _SthRealizedPriceMedian, _SthCapitalizedPriceMedian, _SthMedianRealizedPriceMedian, _SthMedianCapitalizedPriceMedian), 'sth_median'],
   under6m: [_Under6m, '*'],
   awake: [_ComponentsAwake, '*'],
-  mobile: [_ComponentsMobile, 'mobile_cost_basis_per'],
+  mobile: [_ComponentsMobile, 'mobile_median'],
   vaultedPrice: [(c, b) => _ComponentsTrueMarketMean(c, b, _VaultedPriceMedian), '*'],
   trueMarketMean: [(c, b) => _ComponentsTrueMarketMean(c, b, _TrueMarketMeanMedian), '*'],
 });
@@ -3371,6 +3371,7 @@ const _Ema13d = _s({
  *   pct85: SeriesPattern1<?Dollars>,
  *   pct90: SeriesPattern1<?Dollars>,
  *   pct95: SeriesPattern1<?Dollars>,
+ *   medianCapitalizedPrice: SeriesPattern1<?Dollars>,
  * }} PerDollar
  */
 const _PerDollar = _s({
@@ -3395,6 +3396,7 @@ const _PerDollar = _s({
   pct85: [_i1, '*_cost_basis_per_dollar_pct85'],
   pct90: [_i1, '*_cost_basis_per_dollar_pct90'],
   pct95: [_i1, '*_cost_basis_per_dollar_pct95'],
+  medianCapitalizedPrice: [_i1, '*_median_capitalized_price'],
 });
 
 /**

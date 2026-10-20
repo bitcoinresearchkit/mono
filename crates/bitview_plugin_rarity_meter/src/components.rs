@@ -13,9 +13,9 @@ use vecdb::{Database, ReadableVec, Rw, StorageMode};
 use super::{Component, median_component::MedianComponent};
 
 /// The reference prices whose spot ratios the meter ranks, by the cohort they come from. Each
-/// component's own series are `rarity_meter_` and its source's id stem (`rarity_meter_sth_realized_price_band_pct1`,
-/// `rarity_meter_utxos_under_6m_old_capitalized_price_ratio_pct99`); a median's price and spot ratio, which it
-/// publishes too, keep their source's ids.
+/// component's series follow its price's id: its bands `<price>_rarity_<pct>`
+/// (`sth_median_realized_price_rarity_pct1`), their ratios `<price>_rarity_ratio_<pct>`; a median
+/// also publishes its price and spot ratio (`sth_median_realized_price`, `..._ratio`).
 #[derive(Traversable)]
 pub struct Components<M: StorageMode = Rw> {
     /// All unspent outputs.
@@ -87,13 +87,13 @@ impl Components {
         cointime: &CointimeVecs,
         coinflow: &CoinflowVecs,
     ) -> Result<Self> {
-        // A mean's bands over its reference price; a median's price (its source's id), spot ratio
-        // and bands over its cost basis' median.
+        // A mean's bands over its reference price; a median's price, spot ratio and bands over its
+        // cost basis' median. Each named by its price's id.
         macro_rules! mean {
-            ($name:literal, $reference:expr) => {
+            ($price:literal, $reference:expr) => {
                 Component::import(
                     db,
-                    concat!("rarity_meter_", $name),
+                    concat!($price, "_rarity"),
                     version,
                     mappings,
                     &$reference.cents.height,
@@ -101,11 +101,11 @@ impl Components {
             };
         }
         macro_rules! median {
-            ($price:literal, $name:literal, $cost_basis:expr) => {
+            ($price:literal, $cost_basis:expr) => {
                 MedianComponent::import(
                     db,
                     $price,
-                    concat!("rarity_meter_", $name),
+                    concat!($price, "_rarity"),
                     version,
                     mappings,
                     &$cost_basis.percentiles.median.cents.height,
@@ -123,12 +123,10 @@ impl Components {
                     cohorts.all.cost_basis.per_dollar.avg
                 ),
                 median_realized_price: median!(
-                    "cost_basis_per_coin_median",
                     "median_realized_price",
                     cohorts.all.cost_basis.per_coin
                 ),
                 median_capitalized_price: median!(
-                    "cost_basis_per_dollar_median",
                     "median_capitalized_price",
                     cohorts.all.cost_basis.per_dollar
                 ),
@@ -140,12 +138,10 @@ impl Components {
                     cohorts.sth.cost_basis.per_dollar.avg
                 ),
                 median_realized_price: median!(
-                    "sth_cost_basis_per_coin_median",
                     "sth_median_realized_price",
                     cohorts.sth.cost_basis.per_coin
                 ),
                 median_capitalized_price: median!(
-                    "sth_cost_basis_per_dollar_median",
                     "sth_median_capitalized_price",
                     cohorts.sth.cost_basis.per_dollar
                 ),
@@ -166,12 +162,10 @@ impl Components {
             mobile: MobileComponents {
                 realized_price: mean!("mobile_realized_price", mobile.cost_basis.per_coin.avg),
                 median_realized_price: median!(
-                    "mobile_cost_basis_per_coin_median",
                     "mobile_median_realized_price",
                     mobile.cost_basis.per_coin
                 ),
                 median_capitalized_price: median!(
-                    "mobile_cost_basis_per_dollar_median",
                     "mobile_median_capitalized_price",
                     mobile.cost_basis.per_dollar
                 ),

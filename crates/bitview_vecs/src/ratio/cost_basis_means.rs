@@ -46,12 +46,16 @@ pub struct CostBasisPerDollar<M: StorageMode = Rw> {
     /// (null) while the cohort's capital is zero.
     #[traversable(flatten)]
     pub percentiles: ByPercentile<Price<LazyPerBlock<Cents>>>,
+    /// Median capitalized price: the weighted median, on the price grid: creation prices rounded to four significant digits of the price in
+    /// cents (exact cents under $100, then steps of at most 0.1% up to $100,000,000). Undefined
+    /// (null) while the cohort's capital is zero.
+    median_capitalized_price: Price<LazyPerBlock<Cents>>,
 }
 
 impl CostBasisMeans {
     /// `name` gives each id from its metric (`cost_basis_per_coin_avg` ->
     /// `sth_cost_basis_per_coin_avg`). The means are lazy over `realized_price` and
-    /// `capitalized_price`, with stored spot ratios; the median alias takes `percentile_version`,
+    /// `capitalized_price`, with stored spot ratios; the median aliases take `percentile_version`,
     /// the version of the percentiles' owner.
     #[allow(clippy::too_many_arguments)]
     pub fn import(
@@ -103,6 +107,11 @@ impl CostBasisMeans {
                     indexes,
                 ),
                 percentiles: per_dollar.prices.clone(),
+                median_capitalized_price: Price::from_lazy_cents_source(
+                    &name("median_capitalized_price"),
+                    percentile_version,
+                    &per_dollar.median.cents,
+                ),
             },
         })
     }
