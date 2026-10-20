@@ -12,7 +12,7 @@ curl -fL \
 python3 - <<'PY'
 import json, re, urllib.request
 
-ASSETS = "../../showcases/pools"
+ASSETS = "../../showcases/assets/pools"
 BASE = "https://mempool.space/resources/mining-pools"
 
 def fetch(name):

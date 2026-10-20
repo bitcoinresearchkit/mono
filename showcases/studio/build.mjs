@@ -15,7 +15,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 
-const SERVER = "https://local.bitview.space";
+const SERVER = "https://next.bitview.space";
 const CLIENT = "/modules/bitview-client/index.js";
 const HERE = dirname(fileURLToPath(import.meta.url)), SHOWCASES = join(HERE, "..");
 const out = process.argv[2] ?? join(HERE, "dist", "index.html");
@@ -76,8 +76,10 @@ function sandboxed(script, readable) {
 }
 const inlined = (path) => dataUrl("text/javascript", input(join(SHOWCASES, path)));
 
+// Its brand, Bitview's home: the root of the server that serves it, here a site of its own.
+replaceOnce(`<a class="brand" href="/"`, `<a class="brand" href="https://bitview.space"`);
 // The fonts.
-for (const font of ["InterVariable.woff2", "Lilex.woff2"]) replaceOnce(`url("../fonts/${font}")`, `url("${dataUrl("font/woff2", input(join(SHOWCASES, "fonts", font)))}")`);
+for (const font of ["InterVariable.woff2", "Lilex.woff2"]) replaceOnce(`url("../assets/fonts/${font}")`, `url("${dataUrl("font/woff2", input(join(SHOWCASES, "assets", "fonts", font)))}")`);
 
 // The modules the server doesn't serve, or serves older; the search's worker takes the same one.
 const quickmatch = inlined("modules/quickmatch-js/src/index.js");
@@ -115,7 +117,7 @@ replaceOnce(`import { BitviewClient } from "../modules/bitview-client/index.js";
   `        throw error;`,
   `      });`,
 ].join("\n")}\n`);
-replaceOnce(/new BitviewClient\(\{ baseUrl: "[^"]*"/, `new BitviewClient({ baseUrl: "${SERVER}"`);
+replaceOnce("new BitviewClient({ baseUrl: location.origin", `new BitviewClient({ baseUrl: "${SERVER}"`);
 // Asked for at once (the page's head, not after its 2 MB are read): its server's connection, and its client.
 replaceOnce(`    <title>Bitview Studio: charts of Bitcoin's on-chain data</title>`, `    <link rel="preconnect" href="${SERVER}" crossorigin />\n    <link rel="modulepreload" href="${SERVER}${CLIENT}" crossorigin />\n    <title>Bitview Studio: charts of Bitcoin's on-chain data</title>`);
 
@@ -211,7 +213,7 @@ let presetList = [];
   const [, day, month, year, time] = new Date().toUTCString().split(" ");
   replaceOnce(`const BUILD = "here, from the repo";`, `const BUILD = ${JSON.stringify(`${Number(day)} ${month} ${year}, ${time.slice(0, 5)} UTC (${commit}${changed})`)};`);
 }
-const left = html.match(/["'(]\.\.\/(?:modules|fonts)\/[^"')]*/g);
+const left = html.match(/["'(]\.\.\/(?:modules|assets)\/[^"')]*/g);
 if (left?.length) throw new Error(`Still relative: ${left.join(", ")}`);
 // Each of the page's scripts as it's written now, parsed (what the build put in can't break it: a name declared twice
 // fails here, not in a browser).

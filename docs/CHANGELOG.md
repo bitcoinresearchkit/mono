@@ -613,6 +613,7 @@ has to be deleted by hand.
 
 #### Crates and features
 
+- `importmap` is gone: the website, its only user, is gone
 - `bitview_plugin_distribution` (plugin `distribution`) is split into plugins whose crate, id and series root are one
   word: `bitview_plugin_age` (`age`), `utxos`, `holders`, `entry`, `addresses` and `profitability`, sharing the new
   `bitview_distribution` library; `HasDistribution` (`.distribution()`) and `bitview_query`'s `SupportsDistribution`
@@ -968,9 +969,20 @@ has to be deleted by hand.
   durability after `flush()`), so kernel panics, power loss and storage removal are not supported
 - The website is gone (Bitview Studio, a separate app, has its charts and search): the server serves the showcases
   instead, their gallery at `/` and each one at `/<name>/`, embedded or, in debug builds, from `./showcases`.
-  `--website` serves them (`true`), nothing (`false`) or a directory. The website's block, transaction and address
-  pages have no replacement yet. `/api` stays the interactive API documentation (the API showcase is served on its
-  own), and a browser holding the website's service worker drops it, with its caches, on its next visit
+  `--website` serves them (`true`), nothing (`false`) or a directory. The website's block, transaction and address pages
+  have no replacement yet. `/api` is the API showcase: Scalar 1.75.1 from `modules/` (was 1.49.8, built into the server
+  with its own `/scalar.js` route), so `--website false` serves no API page either and `/` redirects to `/openapi.json`
+  there (was `/api`). Showcases read their data from the server that serves them (were bitview.space), so a node's own
+  showcases show its data; `/assets` holds the brand (favicons, app icons and the logo, Studio's cube), the fonts and
+  the pool logos (were `/fonts` and `/pools`), and the planet page is the globe (`/globe`). The API's title is Bitview
+  (was Bitcoin Research Kit), as are the llms files' headings. A browser holding the website's service worker drops it,
+  with its caches, on its next visit
+- Showcases whose charts Bitview Studio now draws are gone: Bedrock (its landscape, colored, beside each mode's floors),
+  rarity meter (Studio's), extreme events (marked on the price in Studio's "Events"), regime (Studio's cost-basis
+  distributions), HODL wave (with dormant and immobile supply waves; capital by wakefulness or mobility has no series),
+  supply density (Studio's supply and capital density charts), clouds (Studio's "Clouds"), middle (Studio's "Time
+  above") and the series explorer (Studio's search); so are the height page, the "Finding the floor" essay and capital
+  sentiment, whose series went with its plugin
 
 ### New Features
 
@@ -1086,8 +1098,8 @@ has to be deleted by hand.
 
 - `crates/bitview_primitives/pools.sh` (was `crates/brk_types/pools.sh`, the pool list only) also refreshes the
   showcases' pool logos from mempool.space; DMND and Noderunners have logos
-- `/` serves `index.html` and `/<path>` the file it names, else that folder's own `index.html` (`/chain`,
-  `/chain/`; was the root `index.html`), dotted folder names included (they answered 404); anything else answers 404
+- `/` serves `index.html` and `/<path>` the file it names, else that folder's own `index.html` (`/globe`,
+  `/globe/`; was the root `index.html`), dotted folder names included (they answered 404); anything else answers 404
   (unknown paths without an extension served the root page)
 
 #### Rust APIs
@@ -1418,9 +1430,6 @@ has to be deleted by hand.
   Accept-Encoding` and omit `Content-Length` on 304 (v0.12.2 compared the whole `If-None-Match` header with the index
   page's ETag, so a CDN weakening tags got full bodies)
 - Website: filesystem mode is limited to 2 concurrent responses and gets the request deadline
-- importmap: stylesheet links between the markers keep all their attributes and external links, and those inside HTML
-  comments stay out; `<link>` tags are recognised in any case, multiline tags work, and markers inline with other
-  markup no longer prefix the map
 - pco decodes valid short dictionary pages and conv1 pages shorter than their order, no longer panics on a conv1 final
   batch shorter than its order, and rejects a malformed page whose secondary stream has neither delta nor bins (it
   decoded zeros)

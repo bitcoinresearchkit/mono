@@ -14,11 +14,11 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Studio on the new server
 
-Built against local.bitview.space; deployed to studio-next only, never studio.bitview.space until you say.
+Built against next.bitview.space; deployed to studio-next only, never studio.bitview.space until you say.
 
 - Release together: the built Studio imports `/modules/bitview-client/index.js`, which only the new server serves, and
   the old Studio reads the website's import map, which the new server lacks. Upgrade the server and redeploy Studio at
-  once. Deploy the MCP page only once `main` has `showcases/fonts` (its fonts load from there through jsDelivr).
+  once. Deploy the MCP page only once `main` has `showcases/assets/fonts` (its fonts load from there through jsDelivr).
 
 - Before going live, decide what happens to presets people edited on the old tree: their places are gone, so the edits match no preset (kept in the browser, shown nowhere, only in Download all), and old `/chart/…` addresses open the Charts page.
 - Going to a date while an Auto switch is still loading (a ~130 ms window), at the interval still on screen, leaves the view where it was (`goToDate`'s Auto branch when the interval it asks for is the one drawn).
@@ -27,9 +27,14 @@ Built against local.bitview.space; deployed to studio-next only, never studio.bi
 
 The website is gone: the server serves the showcases, their gallery (`showcases/index.html`) at `/`.
 
-- Rework the gallery page and decide which showcases stay.
-- Fix each showcase for the new server. Cohort ids are `age_<band>` and `amount_<band>` (were `utxos_<band>_old`, `utxos_<band>`) and URPD cohorts `age_under_4m`, `age_2y_to_3y` (Wave builds `utxos_${id}_old_*`, Trail's age filters send `utxos_*_old`). URPD weights are `none`, `wakefulness`, `mobility` (were `raw`, `cointime`, `coinflow`: Floor, Trail, the API page's default); Bedrock builds `bedrock_coinflow_floor_*` (now `bedrock_mobile_*`). Floor, for one, still reads the old series tree (`all.realized.price`…, `rarity.components.realizedPrice`, now `components.all.realizedPrice`), and most point at bitview.space. City, planet and calendar read the per-block pool as `pool` (now `block_pool`) and calendar a pool's blocks as `<slug>_blocks_mined_cumulative` (now `pool_<slug>_block_count_cumulative`).
-- Add showcases for what only the website had.
+- Rework the gallery page (`showcases/index.html`): what it says and links.
+- Each showcase's production is standalone at `<name>.DOMAIN`: one build, like Studio's, that inlines the shared
+  modules, fonts and pool logos into each page; the server keeps serving the sources.
+- Fix each showcase for the new server. Cohort ids are `age_<band>` and `amount_<band>` (were `utxos_<band>_old`,
+  `utxos_<band>`) and URPD cohorts `age_under_4m`, `age_2y_to_3y` (Trail's age filters send `utxos_*_old`). URPD weights
+  are `none`, `wakefulness`, `mobility` (were `raw`, `cointime`, `coinflow`: Trail, the API page's default). City, globe and calendar read the per-block pool as `pool` (now `block_pool`) and calendar a
+  pool's blocks as `<slug>_blocks_mined_cumulative` (now `pool_<slug>_block_count_cumulative`).
+- A home for what only the website had: block, transaction and address pages.
 
 ## Back end
 

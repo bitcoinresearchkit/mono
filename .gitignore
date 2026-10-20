@@ -13,6 +13,7 @@ rust_out
 
 # Ignored
 _*
+!showcases/_*
 !__*.py
 /*.md
 !/TODO.md

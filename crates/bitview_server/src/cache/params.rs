@@ -83,7 +83,7 @@ impl CacheParams {
         Self::live(format!("a{version}-{:x}", *prefix))
     }
 
-    /// Release-bound response (validate-address, version, scalar bundle): `d`, after the release
+    /// Release-bound response (validate-address, version): `d`, after the release
     /// prefix every tag starts with.
     pub fn deploy() -> Self {
         Self::revalidate("d".to_string())

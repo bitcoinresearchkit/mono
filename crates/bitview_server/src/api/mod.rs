@@ -4,21 +4,11 @@ use aide::{
     axum::{ApiRouter, routing::get_with},
     transform::TransformOperation,
 };
-use axum::{
-    Extension,
-    body::Bytes,
-    http::HeaderMap,
-    response::{Html, Redirect, Response},
-    routing::get,
-};
+use axum::{Extension, http::HeaderMap, response::Redirect, routing::get};
 use serde_json::Value;
 
 use super::AppState;
-use crate::{
-    CacheParams, Error,
-    extended::{ResponseExtended, TransformResponseExtended},
-    params::Empty,
-};
+use crate::{Error, extended::TransformResponseExtended, params::Empty};
 
 #[cfg(feature = "chain")]
 mod addrs;
@@ -122,16 +112,6 @@ impl ApiRoutes for ApiRouter<AppState> {
                     },
                 ),
             )
-            .route("/api", get(Html::from(include_str!("./scalar.html"))))
-            // Encoded per request as the client accepts, by the compression layer.
-            .route("/scalar.js", get(|headers: HeaderMap| async move {
-                Response::cached_bytes(
-                    &headers,
-                    &CacheParams::deploy(),
-                    "application/javascript",
-                    || Bytes::from_static(include_bytes!("./scalar.js")),
-                )
-            }))
             .route(
                 "/.well-known/openapi.json",
                 get(|| async { Redirect::permanent("/openapi.json") }),

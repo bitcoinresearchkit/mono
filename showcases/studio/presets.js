@@ -92,6 +92,10 @@ const FEATURE_PHRASES = { emptyScript: "empty scripts", unknownScript: "unknown 
 
 // ── Colors ─────────────────────────────────────────────────────────────────
 
+/** Bedrock's landscape colors, top to bottom: the sky over the all-time high, then water, soil and bedrock, as the
+ * Bedrock model first drew them. */
+const SKY = "#58bbc4";
+const LANDSCAPE = ["#3da8b4", "#25879d", "#176b8b", "#105272", "#093a5b", "#c9a54b", "#b68134", "#965a2f", "#714331", "#4b342e", "#83878a", "#666a6e", "#4b4f53", "#303438", "#181b1e"];
 /** The windows' colors, short to long: cool to warm around the wheel, the usual four (24 hours to 1 year) in blues. */
 const WINDOW_COLORS = ["cyan", "sky", "blue", "indigo", "violet", "purple", "fuchsia", "pink", "rose", "red", "orange", "amber", "yellow"];
 /** A family's members' colors, in their order: hues around the wheel, evenly, as many as there are. */
@@ -125,6 +129,8 @@ export function studioPresets(client) {
     // (A line unless said: a layer without a type would take the look other presets give its series.)
     return { series: node.name, label, type: "line", ...extra };
   };
+  /** A chart's letter for its `i`th layer (fewer than 26). */
+  const letter = (/** @type {number} */ i) => String.fromCharCode(65 + i);
   /** The price, as its candles. @returns {Layer} */
   const price = () => ({ series: t.price.ohlc.name, label: "Price", type: "candles", color: "ink", priceLine: true });
   /**
@@ -331,9 +337,11 @@ export function studioPresets(client) {
             series(cost.perDollar.avg.ratio, "Price to capitalized price", { pane: 2, ...around(1) }),
           ], { log: [2] }),
         ] : []),
-        cost.supplyDensity && chart("Density", of("Supply and capital near the price"), [
-          series(cost.supplyDensity.total, "Supply", { color: "orange" }), series(cost.supplyDensity.inProfit, "Supply in profit", { color: "green", hidden: true }), series(cost.supplyDensity.inLoss, "Supply in loss", { color: "red", hidden: true }),
-          series(cost.capitalDensity.total, "Capital", { color: "sky", pane: 2 }), series(cost.capitalDensity.inProfit, "Capital in profit", { color: "green", pane: 2, hidden: true }), series(cost.capitalDensity.inLoss, "Capital in loss", { color: "red", pane: 2, hidden: true }),
+        cost.supplyDensity && chart("Supply density", of("Supply near the price"), [
+          series(cost.supplyDensity.total, "Supply", { color: "orange" }), series(cost.supplyDensity.inProfit, "In profit", { color: "green", hidden: true }), series(cost.supplyDensity.inLoss, "In loss", { color: "red", hidden: true }),
+        ]),
+        cost.capitalDensity && chart("Capital density", of("Capital near the price"), [
+          series(cost.capitalDensity.total, "Capital", { color: "sky" }), series(cost.capitalDensity.inProfit, "In profit", { color: "green", hidden: true }), series(cost.capitalDensity.inLoss, "In loss", { color: "red", hidden: true }),
         ]),
       ]),
     ].filter(Boolean).map((item) => lift(/** @type {SectionNode} */ (item)));
@@ -486,18 +494,34 @@ export function studioPresets(client) {
       chart("MVRV", "Market value to realized value (MVRV)", [price(), series(t.holders.all.costBasis.perCoin.realizedPrice, "Realized price", { color: "orange" }), series(t.holders.all.costBasis.perCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1), levels: [{ value: 3.5, color: "red", dash: 3 }] })], { log: [2] }),
       chart("NUPL", "Net unrealized profit and loss (NUPL)", [price(), series(t.holders.all.unrealized.nupl, "NUPL", { pane: 2, ...baseline, levels: [0.25, 0.5, 0.75].map((value) => ({ value, color: "gray", dash: 3 })) })]),
       chart("Value anchors", "Price and its on-chain anchors", [price(), series(t.holders.all.costBasis.perCoin.realizedPrice, "Realized price", { color: "orange" }), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" }), series(ct.prices.cointime.block, "Cointime price", { color: "violet" }), series(t.holders.all.costBasis.perDollar.capitalizedPrice, "Capitalized price", { color: "green" })]),
+      cloudsChart(),
       section("Cointime prices", [
         chart("Compare", "Cointime prices", [price(), ...[["vaulted", "Vaulted price"], ["active", "Active price"], ["cointime", "Cointime price"]].map(([key, label], i) => series(ct.prices[key].block, label, { color: ["green", "red", "violet"][i] })), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" })]),
         ...[["vaulted", "Vaulted price"], ["active", "Active price"], ["cointime", "Cointime price"]].map(([key, label]) => chart(label, label, [price(), series(ct.prices[key].block, label, { color: "sky" }), series(ct.prices[key].mvrv, "MVRV", { pane: 2, ...around(1) })], { log: [2] })),
+        timeAboveChart(),
         chart("True market mean", "True market mean and AVIV", [price(), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" }), series(ct.prices.trueMarketMean.aviv, "AVIV", { pane: 2, ...around(1) }), series(ct.prices.trueMarketMean.avivNupl, "AVIV NUPL", { pane: 3, ...baseline })], { log: [2] }),
       ]),
       chart("Cointime caps", "Cointime capitalizations", [...[["thermo", "Thermo cap"], ["investor", "Investor cap"], ["active", "Active cap"], ["vaulted", "Vaulted cap"], ["cointime", "Cointime cap"]].map(([key, label], i) => series(ct.caps[key], label, { color: ["orange", "green", "red", "sky", "violet"][i] })), series(ct.caps.investorness, "Investorness", { pane: 2, color: "green" }), series(ct.caps.producerness, "Producerness", { pane: 2, color: "orange" })], { log: [1] }),
       chart("Reserve risk", "Reserve risk", [price(), series(ct.reserveRisk.block, "Reserve risk", { pane: 2, color: "orange" }), series(ct.reserveRisk.hodlBank, "HODL bank", { pane: 3, color: "sky" })], { log: [2, 3] }),
       ...flow(ct.reserveRisk.vocdd, "Value of coin days destroyed", "Value of coin days destroyed (VOCDD)"),
       section("Bedrock", entries(t.bedrock).map(([mode, node]) => {
+        // The Bedrock landscape, top to bottom: sky over the all-time high, water from it to the median cost basis above
+        // the floor, soil down to the first floor, bedrock through the floors, the deepest down to the bottom.
+        const edges = [
+          [m.ath.high, "All-time high"],
+          ...entries(node.costBasisAboveFloor).reverse().map(([key, value]) => [value, `${percentileLabel(percentile(key))} cost basis`]),
+          ...entries(node.floor).map(([key, value]) => [value, `${percentileLabel(percentile(key))} floor`]),
+        ];
         const bands = entries(node.floorSupply), colors = ramp(bands.length, 140, 200);
         return section(sentence(mode[0].toUpperCase() + mode.slice(1)), [
           chart("Floors", `Bedrock floors, ${mode}`, [price(), ...entries(node.floor).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 140, 200)[i] }))]),
+          // (The price first: in front.)
+          chart("Floors, colored", `Bedrock landscape, ${mode}`, [
+            price(),
+            ...edges.map(([value, label], i) => series(value, label, { color: LANDSCAPE[i], width: 1 })),
+            { cloud: [letter(1), "top"], label: "Above the all-time high", color: SKY, opacity: 1 },
+            ...edges.map(([, label], i) => ({ cloud: [letter(i + 1), i + 1 < edges.length ? letter(i + 2) : "bottom"], label: i + 1 < edges.length ? `${label} to ${edges[i + 1][1].toLowerCase()}` : `Below the ${label.toLowerCase()}`, color: LANDSCAPE[i], opacity: 1 })),
+          ]),
           chart("Supply between floors", `Supply created between Bedrock floors, ${mode}`, [
             ...bands.map(([key, value], i) => series(value.btc, floorBandLabel(key), { color: colors[i], type: "area" })),
             ...bands.map(([key, value], i) => series(value.usd, `${floorBandLabel(key)}, value`, { color: colors[i], type: "area", pane: 2 })),
@@ -514,10 +538,10 @@ export function studioPresets(client) {
         ])),
         // (Each component by its cohort: a reference price's bands and ratios.)
         section("Components", entries(t.rarityMeter.components).map(([key, node]) => section(holderName(key).name, entries(node).map(([k, v]) => component(v, words(k), holderName(key).name))))),
-        section("Extremes", entries(t.rarityMeter.extremes).map(([key, node]) => {
+        section("Extremes", [eventsChart(), ...entries(t.rarityMeter.extremes).map(([key, node]) => {
           const label = words(key);
           return chart(label, `Rarity meter extremes: ${label}`, [series(own(node), label, { color: "orange", width: 2 }), ...bandLines(node, (v) => v)], { log: [1] });
-        })),
+        })]),
       ]),
     ]),
     section("Supply", [
@@ -709,6 +733,46 @@ export function studioPresets(client) {
       ])),
     ];
   }
+  /** Bitcoin clouds: each holder group's awake and mobile realized and capitalized prices (its cohorts' together), a
+   * cloud from the lowest to the highest. */
+  function cloudsChart() {
+    const groups = /** @type {[string, string[], string][]} */ ([["Short-term holders", ["under4m", "sth", "under6m"], "#e19b00"], ["All holders", ["all"], "#f2660f"], ["Long-term holders", ["over4m", "lth", "over6m"], "#d50ced"]]);
+    return chart("Clouds", "Bitcoin clouds", [
+      price(),
+      ...groups.flatMap(([label, keys, color]) => {
+        const names = keys.flatMap((key) => [ct.cohorts[key].awake, cf.cohorts[key].mobile]).flatMap((cohort) => [cohort.costBasis.perCoin.realizedPrice.name, cohort.costBasis.perDollar.capitalizedPrice.name]);
+        const fold = (/** @type {string} */ fn) => names.reduce((all, name) => `${fn}(${all}, ${name})`);
+        return [{ formula: fold("min"), label: `${label}, lowest`, format: "usd", color, width: 1 }, { formula: fold("max"), label: `${label}, highest`, format: "usd", color, width: 1 }];
+      }),
+      ...groups.map(([label, , color], i) => ({ cloud: [letter(1 + 2 * i), letter(2 + 2 * i)], label, color, opacity: 0.3 })),
+    ]);
+  }
+  /** Extreme events: the days each extreme's input crossed into its historical 0.1% tail (its 0.1st percentile for the
+   * sell-side risk ratio, whose rare side is low), marked on the price. */
+  function eventsChart() {
+    const ex = t.rarityMeter.extremes;
+    const events = /** @type {[any, "pct999" | "pct01", string, string, string][]} */ ([
+      [ex.realizedProfit24h, "pct999", "Profit taking", "green", "above"],
+      [ex.realizedLoss24h, "pct999", "Capitulation", "red", "below"],
+      [ex.realizedPeakRegret24h, "pct999", "Peak regret", "pink", "below"],
+      [ex.sellSideRiskRatio24h, "pct01", "Seller exhaustion", "yellow", "above"],
+      [ex.supplyInLoss, "pct999", "Supply in loss", "orange", "below"],
+    ]);
+    return chart("Events", "Rarity meter extreme events", [
+      price(),
+      ...events.map(([node, band, label, color, place]) => ({ formula: `${own(node).name} ${band === "pct01" ? "<=" : ">="} ${node[band].name}`, type: "signal", label, color, place })),
+    ]);
+  }
+  /** The price against the awake capitalized price and the true market mean, and the share of days it closed at or
+   * above each. */
+  function timeAboveChart() {
+    const lines = /** @type {[any, string, string][]} */ ([[ct.cohorts.all.awake.costBasis.perDollar.capitalizedPrice, "Awake capitalized price", "orange"], [ct.prices.trueMarketMean.block, "True market mean", "sky"]]);
+    return chart("Time above", "Time above the awake capitalized price and true market mean", [
+      price(),
+      ...lines.map(([node, label, color]) => series(node, label, { color })),
+      ...lines.map(([node, label, color]) => ({ formula: `100 * sma(${t.price.close.name} >= ${node.name})`, label: `Share of time at or above the ${label.toLowerCase()}`, format: "percent", color, pane: 2 })),
+    ]);
+  }
   /**
    * OP_RETURN's charts (all of them, a protocol's, a policy's), each titled by `titled` from what it shows ("outputs"
    * as "Runes OP_RETURN outputs", "OP_RETURN outputs: Oversized").
@@ -792,6 +856,7 @@ export function studioPresets(client) {
       section("Compare", [
         chart("Wakefulness", "Wakefulness by age band", list.map(([key, node], i) => series(node.wakefulness, name(key), { color: colors[i] }))),
         chart("Awake supply", "Awake supply by age band", list.map(([key, node], i) => series(node.awake.supply.btc, name(key), { color: colors[i], type: "area" })), { stack: { 1: "percent" } }),
+        chart("Dormant supply", "Dormant supply by age band", list.map(([key, node], i) => series(node.dormant.supply.btc, name(key), { color: colors[i], type: "area" })), { stack: { 1: "percent" } }),
       ]),
       ...list.map(([key, node]) => section(name(key), [
         ...flow(node.coindaysConsumed, "Coin days consumed", `Coin days consumed: UTXOs ${name(key).toLowerCase()} old`),
@@ -808,6 +873,7 @@ export function studioPresets(client) {
         chart("Spending rate", "Spending rate by age band", list.map(([key, node], i) => series(node.spendingRate, name(key), { color: colors[i] })), { log: [1] }),
         chart("Mobility", "Mobility by age band", list.map(([key, node], i) => series(node.mobility, name(key), { color: colors[i] }))),
         chart("Mobile supply", "Mobile supply by age band", list.map(([key, node], i) => series(node.mobile.supply.btc, name(key), { color: colors[i], type: "area" })), { stack: { 1: "percent" } }),
+        chart("Immobile supply", "Immobile supply by age band", list.map(([key, node], i) => series(node.immobile.supply.btc, name(key), { color: colors[i], type: "area" })), { stack: { 1: "percent" } }),
       ]),
       ...list.map(([key, node]) => section(name(key), [
         chart("Spending", `Spending rate and exposure: UTXOs ${name(key).toLowerCase()} old`, [series(node.spendingRate, "Spending rate", { color: "orange" }), series(node.spendingExposure, "Spending exposure", { color: "sky", pane: 2 }), series(node.mobility, "Mobility", { color: "violet", pane: 3 })]),

@@ -6,7 +6,6 @@
     <meta name="description" content="A Bitcoin mining calendar. Every block, every day, and the miners behind them. Powered by the Bitview API." />
     <meta name="theme-color" content="#fff" />
     <title>Miner calendar · Bitview</title>
-    <link rel="preconnect" href="https://bitview.space" crossorigin />
     <style>
       :root {
         color-scheme: light;
@@ -120,7 +119,7 @@
     <main class="shell">
       <header class="calendar-header">
         <div class="header-top">
-          <a class="brand" href="https://bitview.space" aria-label="Bitview">
+          <a class="brand" href="/" aria-label="Bitview">
             <svg viewBox="0 0 173.2 200" aria-hidden="true" focusable="false">
               <defs><clipPath id="bitview-cube"><polygon points="86.6,0 173.2,50 173.2,150 86.6,200 0,150 0,50" /></clipPath></defs>
               <g fill-opacity=".4">
@@ -167,7 +166,8 @@
     </main>
     <script id="calendar-data">
       // @ts-check
-      const ORIGIN = "https://bitview.space";
+      // The server that serves the page.
+      const ORIGIN = location.origin;
       const clientReady = import("../modules/bitview-client/index.js").then(
         ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 }),
       );
@@ -315,8 +315,8 @@
         const img = element("img");
         img.alt = "";
         img.loading = "lazy";
-        img.src = `../pools/${slug}${lightLogos.has(slug) ? ".light" : ""}.svg`;
-        img.addEventListener("error", () => { img.src = "../pools/default.light.svg"; }, { once: true });
+        img.src = `../assets/pools/${slug}${lightLogos.has(slug) ? ".light" : ""}.svg`;
+        img.addEventListener("error", () => { img.src = "../assets/pools/default.light.svg"; }, { once: true });
         node.append(img);
         return node;
       }
@@ -501,13 +501,13 @@
         const dayLabel = state.date === todayUTC() ? "today" : "that day";
         for (const block of blocks) {
           const cell = element("a", "cell block");
-          cell.href = `https://bitview.space/block/${block.height}`;
+          cell.href = `../_chain/#${block.height}`;
           cell.target = "_blank";
           cell.rel = "noopener";
           const time = new Date(block.timestamp * 1000).toISOString().slice(11, 19);
           const name = block.pool === "unknown" ? "Unattributed" : poolName(block.pool);
           describe(cell, `${name} · ${ordinal(block.poolDayIndex)} ${dayLabel} · ${ordinal(block.poolTotal)} overall`, `Block ${number(block.height)} · ${time} UTC`);
-          cell.setAttribute("aria-label", `${cell.getAttribute("aria-label")}. Open block in Bitview.`);
+          cell.setAttribute("aria-label", `${cell.getAttribute("aria-label")}. Open block in Chain.`);
           cell.append(mark(block.pool));
           grid.append(cell);
         }

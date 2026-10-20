@@ -3,11 +3,6 @@
 # bitview_cohort, bitview_primitives, brk_types) and vendored forks are external boundaries (excluded in the cargo alias).
 
 [[production]]
-package = "importmap"
-bin = "importmap"
-reason = "workspace binary"
-
-[[production]]
 package = "bitview_cli"
 bin = "bitview-cli"
 reason = "workspace binary"

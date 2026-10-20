@@ -7,12 +7,11 @@
       name="description"
       content="A moving 2.5D terrain view of Bitcoin's UTXO realized price distribution."
     />
-    <link rel="preconnect" href="https://bitview.space" crossorigin />
     <title>The Satoshi Trail</title>
     <style>
       @font-face {
         font-family: "Lilex";
-        src: url("../fonts/Lilex.woff2")
+        src: url("../assets/fonts/Lilex.woff2")
           format("woff2-variations");
         font-style: normal;
         font-weight: 100 700;
@@ -21,7 +20,7 @@
 
       @font-face {
         font-family: "Instrument";
-        src: url("../fonts/InstrumentSerif-Regular.woff2")
+        src: url("../assets/fonts/InstrumentSerif-Regular.woff2")
           format("woff2");
         font-style: normal;
         font-weight: 400;
@@ -592,7 +591,8 @@
       (() => {
         "use strict";
 
-        const ORIGIN = "https://bitview.space";
+        // The server that serves the page.
+        const ORIGIN = location.origin;
         const clientReady = import("../modules/bitview-client/index.js").then(
           ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000, browserCache: false, memCache: false }),
         );

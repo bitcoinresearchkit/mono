@@ -31,7 +31,7 @@
       // Its manifest, made here (the page is one file): its name, its icons, opening where it's served, as an app.
       {
         // (Studio's own, wherever it's opened from (a preset's address, a section's): the app is the studio, from its start.)
-        const here = /(^|\.)bitview\.space$/.test(location.hostname) ? `${location.origin}/` : location.href.replace(/[?#].*$/, ""), icon = (/** @type {string} */ rel) => /** @type {HTMLLinkElement | null} */ (document.querySelector(`link[rel="${rel}"]`))?.href;
+        const here = /^studio(?:-next)?\.bitview\.space$/.test(location.hostname) ? `${location.origin}/` : location.href.replace(/[?#].*$/, ""), icon = (/** @type {string} */ rel) => /** @type {HTMLLinkElement | null} */ (document.querySelector(`link[rel="${rel}"]`))?.href;
         // (Its launch screen in the theme it opens in: dark unless light is chosen, or the system's.)
         const theme = (() => { try { return JSON.parse(localStorage.getItem("bitview-studio:prefs") ?? "{}").theme; } catch { return undefined; } })();
         const ground = theme === "light" || (theme === "system" && matchMedia("(prefers-color-scheme: light)").matches) ? "#f6f6f7" : "#08090a";
@@ -56,7 +56,7 @@
     <style>
       @font-face {
         font-family: Inter;
-        src: url("../fonts/InterVariable.woff2") format("woff2");
+        src: url("../assets/fonts/InterVariable.woff2") format("woff2");
         font-weight: 100 900;
         font-display: swap;
       }
@@ -64,7 +64,7 @@
       /* Lilex starts at 500 so mono keeps up with Inter (lighter weights clamp there). */
       @font-face {
         font-family: Lilex;
-        src: url("../fonts/Lilex.woff2") format("woff2");
+        src: url("../assets/fonts/Lilex.woff2") format("woff2");
         font-weight: 500 700;
         font-display: swap;
       }
@@ -893,6 +893,8 @@
       .chart-list {
         /* (Its rows' gap, the same open and on the rail: room there for an open folder's surface, see the rail.) */
         --row-gap: 4px;
+        /* (A row scrolled to clear of its edges' fade.) */
+        scroll-padding-block: 28px;
         display: flex;
         flex: 0 1 auto;
         flex-direction: column;
@@ -1089,8 +1091,24 @@
           background: var(--hover);
         }
 
+        /* (Closed over the open chart: a dot after its name, the logo's orange, the way back to it; its name only as wide as
+           it is, the dot clear of what an ellipsis cuts.) */
         &.holds .folder-item {
           color: var(--ink);
+
+          .label {
+            flex: 0 1 auto;
+          }
+
+          &::after {
+            content: "";
+            flex: none;
+            width: 5px;
+            height: 5px;
+            margin-left: -3px;
+            border-radius: 50%;
+            background: oklch(64.34% 0.191 44.41);
+          }
         }
 
         /* (Its page open: lit, as the open chart's row is.) */
@@ -1645,7 +1663,8 @@
           }
 
           .chart-more,
-          .nav-item kbd {
+          .nav-item kbd,
+          .folder-row.holds .folder-item::after {
             visibility: hidden;
           }
 
@@ -1950,10 +1969,68 @@
       }
 
       .head-title {
+        container: title / inline-size;
         display: flex;
         grid-area: title;
         align-items: center;
         min-width: 0;
+      }
+
+      /* A path's steps (a page's way up, the open chart's place): each a button to its page, "›" between. */
+      .crumbs {
+        > button:where(:not(.cap)) {
+          border: 0;
+          border-radius: var(--radius-sm);
+          min-width: 0;
+          overflow: hidden;
+          padding: 2px 4px;
+          color: var(--soft);
+          background: none;
+          font: inherit;
+          letter-spacing: inherit;
+          text-overflow: ellipsis;
+
+          &:hover:where(.can-hover *) {
+            color: var(--ink);
+          }
+        }
+
+        .sep {
+          flex: none;
+        }
+      }
+
+      /* Where the chart is, before its name: the section or folder it's in, whole (the name gives way, down to its least;
+         then it too), its menu; where the name's room runs short, the name alone. As the name is set and boxed (its text
+         where the name's would be, one baseline), quieter. */
+      .chart-path {
+        display: flex;
+        flex: none;
+        max-width: calc(100% - 7rem);
+        align-items: center;
+        color: var(--muted);
+        font-size: 17px;
+        letter-spacing: -0.015em;
+        line-height: 30px;
+        white-space: nowrap;
+
+        &[hidden] {
+          display: none;
+        }
+
+        > button {
+          height: 30px;
+          border-radius: var(--radius-md);
+          padding: 0 6px;
+
+          &:is(:hover:where(.can-hover *), [aria-expanded="true"]) {
+            background: var(--hover);
+          }
+        }
+
+        @container title (max-width: 30rem) {
+          display: none;
+        }
       }
 
       .title {
@@ -6205,22 +6282,6 @@
         color: var(--muted);
         font-size: 13px;
 
-        > button:not(.cap) {
-          border: 0;
-          border-radius: var(--radius-sm);
-          min-width: 0;
-          overflow: hidden;
-          padding: 2px 4px;
-          color: var(--soft);
-          background: none;
-          font: inherit;
-          text-overflow: ellipsis;
-
-          &:hover:where(.can-hover *) {
-            color: var(--ink);
-          }
-        }
-
         > .cap {
           flex: none;
           margin: 0 2px 0 -6px;
@@ -7161,9 +7222,13 @@
           padding: calc(4px + env(safe-area-inset-top)) 12px 4px;
         }
 
+        /* (Its text on the header's edge: the place's, else the name's.) */
+        .head-title {
+          margin-left: -6px;
+        }
+
         .title {
           flex: 1;
-          margin-left: -6px;
           /* (Room left for the header's actions on the narrowest phone: the title truncates first.) */
           min-width: 4rem;
           max-width: none;
@@ -8558,11 +8623,11 @@
   <body class="boot">
     <!-- The first stop by keys: past the guide (for scripts, at the start of the page's main) to the chart, or the grid. -->
     <a class="skip" href="#main" onclick="event.preventDefault(); const keys = document.getElementById('plot-keys'); (document.body.hasAttribute('data-home') ? document.getElementById('home-filter') : keys && !keys.hidden ? keys : document.getElementById('title'))?.focus()">Skip to the chart</a>
-    <!-- Bitview's client didn't load (the built page takes it from bitview.space): said, plainly. -->
-    <div class="booting" role="status"><p>Connecting to bitview.space…</p><a class="btn" href="" onclick="location.reload(); return false">Reload</a></div>
+    <!-- Bitview's client didn't load (the built page takes it from its server): said, plainly. -->
+    <div class="booting" role="status"><p>Connecting…</p><a class="btn" href="" onclick="location.reload(); return false">Reload</a></div>
     <div id="offline" class="offline" role="alert">
       <h1>Bitview can't be reached</h1>
-      <p>Studio draws its charts from bitview.space, and couldn't load from it just now. Your Library is kept in this browser.</p>
+      <p>Studio draws its charts from its server, and couldn't load from it just now. Your Library is kept in this browser.</p>
       <button type="button" class="btn" onclick="location.reload()">Try again</button>
     </div>
     <script>
@@ -8581,13 +8646,13 @@
         // (The Charts page where start() opens it: as the history or the last visit says; nothing kept yet, a first visit.)
         const kept = /"charts":\[\{/.test(localStorage.getItem("bitview-studio:v2") ?? "") || localStorage.getItem("bitview-studio:preview") !== null;
         // (An address of the presets': a preset's, its chart; their page's or a section's, the page.)
-        const routed = !/(^|\.)bitview\.space$/.test(location.hostname) ? null : /^\/chart\//.test(location.pathname) ? false : /^\/presets(?:\/|$)/.test(location.pathname) ? true : null;
+        const routed = !/^studio(?:-next)?\.bitview\.space$/.test(location.hostname) ? null : /^\/chart\//.test(location.pathname) ? false : /^\/presets(?:\/|$)/.test(location.pathname) ? true : null;
         if (!/[#&](?:chart|image|c)=/.test(location.hash) && (there ? there.home : routed ?? (!kept || (prefs.home ?? true)))) document.body.toggleAttribute("data-home", true);
       } catch {}
     </script>
     <div class="app">
       <aside class="sidebar" id="sidebar" aria-label="Charts">
-        <a class="brand" href="https://bitview.space" target="_blank" rel="noopener" data-tip="Bitview, in a new tab" style="--i: 0">
+        <a class="brand" href="/" target="_blank" rel="noopener" data-tip="Bitview, in a new tab" style="--i: 0">
           <span class="logo"><svg viewBox="-0.63 -0.7311 1.26 1.4622" aria-hidden="true"><path fill="oklch(64.34% 0.191 44.41)" fill-rule="evenodd" d="M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z"/></svg></span>
           <span class="brand-name"><b>Bitview</b> Studio</span>
         </a>
@@ -8686,6 +8751,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         <div id="picture" class="picture"><p id="picture-note">Drawing the chart…</p><button id="picture-leave" class="btn small" type="button" hidden>Open Studio</button><a id="picture-open" class="picture-open" data-tip="Open the chart" hidden><img id="picture-img" alt="" /></a></div>
         <header class="card-head">
           <div class="head-title">
+            <nav id="chart-path" class="crumbs chart-path" aria-label="Where it is" hidden></nav>
             <input id="title" class="title" aria-label="Chart title" enterkeyhint="done" placeholder="Untitled chart" maxlength="120" spellcheck="false" autocomplete="off" />
           </div>
           <div class="head-actions">
@@ -8785,7 +8851,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <div class="home-scroll">
             <div class="home-inner">
               <!-- (Above its name: the way up, each level a step to; the page itself only named once, by its name.) -->
-              <nav id="gallery-path" class="gallery-path" aria-label="Where it is" hidden></nav>
+              <nav id="gallery-path" class="crumbs gallery-path" aria-label="Where it is" hidden></nav>
               <div class="home-head">
                 <h1 id="home-title" tabindex="-1">Charts</h1>
                 <button id="home-title-more" class="cap small" type="button" aria-haspopup="menu" data-icon="more" hidden></button>
@@ -9006,7 +9072,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { QuickMatch, QuickMatchConfig } from "../modules/quickmatch-js/src/index.js";
 
       // Responses are kept here alone, as the page uses them (the client's copies, in memory and on disk, would be more).
-      const client = new BitviewClient({ baseUrl: "https://local.bitview.space", timeout: 30_000, memCache: false, browserCache: false });
+      // (The server that serves the page; the page built on its own names its server.)
+      const client = new BitviewClient({ baseUrl: location.origin, timeout: 30_000, memCache: false, browserCache: false });
       /** The server the page draws from, as its words name it: its host, as written (a prefix too, if it has one). */
       const SERVER_HOST = new URL(client.baseUrl).host;
       for (const element of document.querySelectorAll(".server-host")) element.textContent = SERVER_HOST;
@@ -11089,7 +11156,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           /** The presets' sections open in the sidebar (their paths, as kept). */
           /** Where the Charts page was last (see Place): Charts, from a chart, after a reload too, comes back there. */
           at: /** @type {any} */ (stored.at && typeof stored.at === "object" ? stored.at : null),
-          presetsOpen: /** @type {string[]} */ (Array.isArray(stored.presetsOpen) ? stored.presetsOpen.filter((/** @type {any} */ key) => typeof key === "string").slice(0, 500) : []),
+          presetsOpen: /** @type {string[]} */ (Array.isArray(stored.presetsOpen) ? stored.presetsOpen.filter((/** @type {any} */ key) => typeof key === "string").slice(-500) : []),
           /** The sidebar's groups closed there (see GROUPS). */
           groupsClosed: /** @type {Group[]} */ (Array.isArray(stored.groupsClosed) ? GROUPS.filter((group) => stored.groupsClosed.includes(group)) : []),
           /** Single-key shortcuts (a letter, a digit, a sign alone): on unless turned off. */
@@ -18074,14 +18141,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const more = $("home-title-more");
         more.hidden = !folder;
         if (folder) Object.assign(more.dataset, { folderMenu: folder.id }), more.setAttribute("aria-label", `More for ${folder.name}`);
-        const charts = { name: "Charts", at: /** @type {Place} */ ({ top: true }) };
-        /** @type {{ name: string, at: Place }[]} */
-        const ups = yours ? [charts, ...(folder ? [{ name: "Library", at: { folder: "" } }, ...foldersAbove(folder).map((above) => ({ name: above.name, at: { folder: above.id } }))] : [])]
-          : path ? [charts, ...(path.length ? [{ name: "Presets", at: { path: [] } }, ...path.slice(0, -1).map((step, k) => ({ name: step, at: { path: path.slice(0, k + 1) } }))] : [])]
-          : "previews" in homeAt ? [charts] : [];
-        const where = $("gallery-path"), top = "top" in homeAt;
+        const top = "top" in homeAt, ups = top ? [] : [{ name: "Charts", at: /** @type {Place} */ ({ top: true }) }, ...stepsTo(homeAt).slice(0, -1)];
+        const where = $("gallery-path");
         where.hidden = top;
-        where.innerHTML = top ? "" : `<button type="button" class="cap small" data-place="${escape(JSON.stringify(/** @type {{ name: string, at: Place }} */ (ups[ups.length - 1]).at))}" aria-label="Up a level" data-tip="Up a level">${ICONS.back}</button>${ups.map((up) => `<button type="button" dir="auto" data-place="${escape(JSON.stringify(up.at))}">${escape(up.name)}</button>`).join('<span class="sep" aria-hidden="true">›</span>')}`;
+        where.innerHTML = top ? "" : `<button type="button" class="cap small" data-place="${escape(JSON.stringify(/** @type {{ name: string, at: Place }} */ (ups[ups.length - 1]).at))}" aria-label="Up a level" data-tip="Up a level">${ICONS.back}</button>${crumbsHtml(ups)}`;
         const field = /** @type {HTMLInputElement} */ ($("home-filter"));
         field.placeholder = top ? "Search your Library and the presets" : `Search in ${name}`;
         field.setAttribute("aria-label", field.placeholder);
@@ -18090,6 +18153,65 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("home-foot").hidden = !yours || Boolean(folder) || !anythingKept();
         renderSideNav();
       }
+      /** @typedef {{ name: string, at: Place }} Step */
+      /** A path's steps as crumbs (see .crumbs): each a button to its place, "›" between. @param {Step[]} steps */
+      function crumbsHtml(steps) {
+        return steps.map((step) => `<button type="button" dir="auto" data-place="${escape(JSON.stringify(step.at))}">${escape(step.name)}</button>`).join('<span class="sep" aria-hidden="true">›</span>');
+      }
+      /**
+       * The way to a place, the place last, from its group (none for the top): a section's, the Presets and the sections
+       * it's in; a folder's, the Library and the folders it's in (one gone, the Library's).
+       * @param {Place} place @returns {Step[]}
+       */
+      function stepsTo(place) {
+        const group = (/** @type {Group} */ name) => ({ name: GROUP_OF[name][0], at: GROUP_OF[name][1] });
+        if ("previews" in place) return [group("previews")];
+        if ("path" in place) return [group("presets"), ...place.path.map((name, k) => ({ name, at: { path: place.path.slice(0, k + 1) } }))];
+        if (!("folder" in place)) return [];
+        const folder = folderById(place.folder);
+        return [group("library"), ...(folder ? [...foldersAbove(folder), folder] : []).map((step) => ({ name: step.name, at: { folder: step.id } }))];
+      }
+      /** Where the open chart is: a preset's section, your folder (or the Library's top), the previews; a new chart, not yet anywhere, nowhere. @returns {Place | null} */
+      function chartPlace() {
+        const i = presetIndex(chart);
+        return i >= 0 ? { path: /** @type {Preset[]} */ (presets)[i].p.slice(0, -1) }
+          : isPreview(chart) && !drafts.has(chart) ? { previews: true }
+          : library.charts.includes(chart) ? { folder: chart.folder ?? "" }
+          : null;
+      }
+      /** The step last drawn before the open chart's name (drawn again only changed: it keeps its focus). */
+      let chartPathDrawn = "";
+      /** Where the open chart is, before its name (see .chart-path): the section, folder or group it's in, its menu's anchor (see chartPathRows). */
+      function renderChartPath() {
+        const place = chartPlace(), steps = place ? stepsTo(place) : [], parent = steps.at(-1);
+        const html = parent ? `<button type="button" id="chart-place" dir="auto" aria-haspopup="menu" aria-label="In ${escape(steps.map((step) => step.name).join(", "))}">${escape(parent.name)}</button><span class="sep" aria-hidden="true">›</span>` : "";
+        $("chart-path").hidden = !html;
+        if (html !== chartPathDrawn) $("chart-path").innerHTML = chartPathDrawn = html;
+      }
+      /**
+       * The open chart's place as a menu: the way there, each a step to its page; then, apart, what's in it as the sidebar
+       * has it, a section or folder a step to its page, a chart opened, the open one ticked.
+       * @returns {Action[]}
+       */
+      function chartPathRows() {
+        const place = chartPlace();
+        if (!place) return [];
+        const steps = stepsTo(place), at = /** @type {Step} */ (steps.at(-1)).name;
+        const page = (/** @type {Step} */ step, icon = ICONS.folder) => ({ icon, label: step.name, run: () => goTo(step.at) });
+        const doc = (/** @type {Chart} */ item) => ({ group: at, label: titleOf(item), current: item === chart, run: () => go(chartById(item.id)) });
+        /** @type {Action[]} */
+        const inside = "path" in place
+          ? (presetNodeAt(place.path)?.items ?? []).map((item) => (typeof item === "number"
+            ? { group: at, label: ((edited) => (edited ? titleOf(edited) : /** @type {Preset[]} */ (presets)[item].t))(editedPreset(item)), current: item === presetIndex(chart), run: () => pickPreset(item) }
+            : { group: at, ...page({ name: /** @type {string} */ (item.path.at(-1)), at: { path: item.path } }) }))
+          : "folder" in place ? childrenOf(place.folder || undefined).map((item) => ("layers" in item ? doc(item) : { group: at, ...page({ name: item.name, at: { folder: item.id } }) }))
+          : listedPreviews().map(doc);
+        return [...steps.map((step) => page(step, ICONS.folderOpen)), ...inside];
+      }
+      $("chart-path").addEventListener("click", (/** @type {MouseEvent} */ event) => {
+        const anchor = closest(event, "button");
+        if (anchor) menuOf(anchor, chartPathRows());
+      });
       /** The folders a folder's in, the outermost first. @param {Folder} folder */
       function foldersAbove(folder) {
         const above = [];
@@ -18664,11 +18786,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       /** The open chart, deleted on a phone: the Charts page comes back without it, another under it (see deleteChart). */
       let deletedOpen = "";
+      /** Whether the focus is on the open chart (its page, not the grid over it), or in a menu (or its submenu) it opened. */
+      const onChart = () => {
+        const active = document.activeElement, at = active?.closest("#menu, #submenu") ? ownerNow() ?? closedOwner : active;
+        return Boolean(at?.closest("#main") && !at.closest("#home"));
+      };
       function showHome(push = true, /** @type {{ top: number, rows: Record<string, number> } | null} */ place = null) {
         stopCarrying();
         delete document.body.dataset.sheet;
         if (home) return;
         navigations++;
+        // (A focus on the chart or a menu over it, before leaving lets it go: see below.)
+        const focusLeaves = onChart();
         // (A toast of the chart's edit stays with it: its Undo isn't the page's.)
         if (toastStep) hideToast();
         // (Full screen is the chart's: the grid, as ever.)
@@ -18708,9 +18837,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (place) placeGallery(place);
           else card?.scrollIntoView({ block: "nearest" });
           // (Its card in sight where the page came back to: the chart shrinks into it, the focus on it; else neither,
-          // the page as it was left.)
+          // the page as it was left, a focus gone with the chart (or a menu over it) starting it: its name.)
           const box = card?.getBoundingClientRect(), view = homeScroll().getBoundingClientRect(), seen = Boolean(box && box.bottom > view.top && box.top < view.bottom);
           if (seen) tileOpen(chart.id)?.focus({ preventScroll: true });
+          else if (focusLeaves && (document.activeElement === document.body || onChart())) $("home-title").focus({ preventScroll: true });
           return draft || !seen ? null : card;
         });
       }
@@ -19339,6 +19469,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const openedPreset = current?.preset !== undefined ? presetIndex(current) : -1;
         for (const button of all$("[data-open-chart], [data-open-preset]", $("chart-list"))) {
           const on = button.dataset.openChart !== undefined ? button.dataset.openChart === current?.id : Number(button.dataset.openPreset) === openedPreset;
+          if (on && Number(button.dataset.openPreset) === presetToReveal) (presetToReveal = -1), button.scrollIntoView({ block: "nearest" });
           if (on === button.hasAttribute("aria-current")) continue;
           button.closest(".chart-row")?.classList.toggle("active", on);
           if (on) button.setAttribute("aria-current", "page");
@@ -19349,6 +19480,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("preview-note").hidden = !isPreview(chart) || !chart.layers.length;
         // (A preset's: what can be done with it beside it, Reset once it's edited.)
         $("preset-note").hidden = chart.preset === undefined || presetIndex(chart) < 0;
+        renderChartPath();
         $("preset-reset").hidden = $("preset-note").hidden || !presetEdited(chart);
         $("chart-more").hidden = !home && isPreview(chart) && !chart.layers.length;
         // The phone bar's Add, in the grid, makes a chart (there's none open to add to).
@@ -19400,6 +19532,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @typedef {{ path: string[], key: string, items: (PresetNode | number)[], count: number }} PresetNode
        */
       let presetRoot = /** @type {{ for: Preset[] | null, node: PresetNode | null }} */ ({ for: null, node: null });
+      /** The keys of the sections preset `i` is in, outermost first (as `presetTree` keys them). */
+      function sectionKeys(/** @type {number} */ i) {
+        const path = /** @type {Preset[]} */ (presets)[i].p;
+        return path.slice(0, -1).map((_, depth) => JSON.stringify(path.slice(0, depth + 1)));
+      }
       function presetTree() {
         if (!presets) return null;
         if (presetRoot.for === presets) return presetRoot.node;
@@ -19422,6 +19559,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
         presetRoot = { for: presets, node: root };
         return root;
+      }
+      /** A section of the presets as the sidebar has it (see presetTree), by its path; none, gone. */
+      function presetNodeAt(/** @type {string[]} */ path) {
+        let node = presetTree() ?? undefined;
+        for (const name of path) node = /** @type {PresetNode | undefined} */ (node?.items.find((item) => typeof item !== "number" && item.path.at(-1) === name));
+        return node;
       }
       /** The presets' marks in the sidebar, as drawn (this visit's: made as their rows come into sight), by what each is of. @type {Map<string, any[]>} */
       const presetMarks = new Map();
@@ -19461,6 +19604,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const root = presetTree();
         if (!root || !presets) return [];
         const open = new Set(prefs.presetsOpen);
+        // (The sections the open preset is in: one closed holds it, marked as a folder holding the open chart is.)
+        const at = !home && chart.preset !== undefined ? presetIndex(chart) : -1, holding = new Set(at < 0 ? [] : sectionKeys(at));
         /** @type {[string, string][]} */
         const parts = [sideHead("presets", presets.length, !home && chart.preset !== undefined)];
         if (groupShut("presets")) return parts;
@@ -19473,7 +19618,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               continue;
             }
             const section = item, shown = open.has(section.key), name = /** @type {string} */ (section.path.at(-1)), key = escape(section.key);
-            parts.push([`section:${section.key}`, `<div class="folder-row section-row ${depth ? "in-folder" : ""} ${shown ? "" : "closed"}" data-section-row="${key}" style="--depth: ${depth}">
+            parts.push([`section:${section.key}`, `<div class="folder-row section-row ${depth ? "in-folder" : ""} ${shown ? "" : "closed"} ${!shown && holding.has(section.key) ? "holds" : ""}" data-section-row="${key}" style="--depth: ${depth}">
               <button type="button" class="nav-item folder-item" data-section-item="${key}" aria-expanded="${shown}" data-tip="${escape(name)}"><span class="chart-mark folder-glyph">${shown ? ICONS.folderOpen : ICONS.folder}</span><span class="label">${escape(name)}</span><span class="folder-count">${shortCount(section.count)}</span></button>
               <button type="button" class="cap small chart-more" data-section-menu="${key}" aria-haspopup="menu" aria-label="More for ${escape(name)}">${ICONS.more}</button>
             </div>`]);
@@ -20815,7 +20960,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /* /addresses */
       /** Whether the page is Studio's own, served at its root (which serves the page at every address): an address of the presets' read as it starts; elsewhere (a file, another server, a page in a folder), none. */
-      const ROUTED = location.protocol === "https:" && /(^|\.)bitview\.space$/.test(location.hostname) && /^\/(?:$|presets(?:\/|$)|chart\/)/.test(location.pathname);
+      const ROUTED = location.protocol === "https:" && /^studio(?:-next)?\.bitview\.space$/.test(location.hostname) && /^\/(?:$|presets(?:\/|$)|chart\/)/.test(location.pathname);
       /** The presets' addresses, made once they're read. */
       let addressBook = /** @type {{ for: Preset[] | null, book: ReturnType<typeof addressesOf> | null }} */ ({ for: null, book: null });
       const addresses = () => (!presets ? null : addressBook.for === presets ? addressBook.book : (addressBook = { for: presets, book: addressesOf(presets) }).book);
@@ -20938,8 +21083,30 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         delete document.body.dataset.sheet;
         go(presetChart(i));
       }
-      /** A preset picked (its tile, its row, ⌘K's, the empty chart's cards): opened, as itself, whatever's open. */
-      const pickPreset = (/** @type {number} */ i) => openPreset(i);
+      /**
+       * A preset picked (its tile, its row, ⌘K's, the empty chart's cards): opened, as itself, whatever's open, and where
+       * it is in the sidebar in sight: the presets and the sections it's in opened, its row (marked, as the open one's is)
+       * scrolled to.
+       */
+      function pickPreset(/** @type {number} */ i) {
+        if (!presets?.[i]) return;
+        // (Opened before it opens, so its own drawing of the list shows it, scrolled to as it's marked. A phone has no
+        // sidebar to show it in.)
+        if (!phone.matches) {
+          const closed = sectionKeys(i).filter((key) => !prefs.presetsOpen.includes(key)), shut = groupShut("presets");
+          if (closed.length || shut) {
+            prefs.presetsOpen = [...prefs.presetsOpen, ...closed];
+            if (shut) prefs.groupsClosed = prefs.groupsClosed.filter((group) => group !== "presets");
+            savePrefs();
+          }
+          presetToReveal = i;
+        }
+        openPreset(i);
+        // (The open one again, off the grid: nothing drawn the list, so it's drawn here.)
+        if (!home && presetToReveal === i) renderCharts();
+      }
+      /** The preset whose row is scrolled to the next time the list marks it open (see pickPreset); -1, none. */
+      let presetToReveal = -1;
       /**
        * The presets opened and left as they were, let go of (all but `keep`): nothing of theirs is kept. (Nothing to record:
        * another tab's copy back is as it was, and goes the same way.)
@@ -26286,6 +26453,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       // ── Menus and toolbar ─────────────────────────────────────────────────────
 
+      /** What opened the menu shown, if one is. @type {HTMLElement | null} */
       let menuOwner = null;
       /** The menu a page of a menu came from (a phone's: its ‹, and Back), else null. @type {(() => void) | null} */
       let menuBack = null;
@@ -26799,7 +26967,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         menuModal(false);
         $("menu").hidden = true;
         unexpand(ownerNow());
-        (closedOwner = ownerNow()), (closedAt = performance.now());
+        // (Only a menu that was open: closing again keeps who opened the last.)
+        if (menuOwner) (closedOwner = ownerNow()), (closedAt = performance.now());
         menuOwner = null;
       }
       /** The last menu's opener, and when it closed: a field opened by one of its rows (Rename) goes back to it. */
@@ -28055,9 +28224,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // A newer Studio served (its build beside the page, version.txt, not this one's): said as it's come back to, and
       // every half hour it's open, Reload a tap away; never reloaded on its own (everything's kept as it's done). Said
       // once a version (kept: a reload that still finds the old page, an edge slow to let it go, isn't told again), and
-      // only while nothing else is said (a toast's Undo never taken); not over a link's picture. Only where it's served
-      // (bitview.space), a file of its own there: a page that isn't (a 404's), nothing said.
-      if (location.protocol === "https:" && /(^|\.)bitview\.space$/.test(location.hostname) && !document.body.hasAttribute("data-picture")) {
+      // only while nothing else is said (a toast's Undo never taken); not over a link's picture. Only where it's deployed
+      // on its own (studio.bitview.space), a file of its own there: a page that isn't (a 404's), nothing said.
+      if (location.protocol === "https:" && /^studio(?:-next)?\.bitview\.space$/.test(location.hostname) && !document.body.hasAttribute("data-picture")) {
         const newer = async () => {
           if (document.hidden || !navigator.onLine || $("toast").classList.contains("visible")) return;
           try {
@@ -28267,6 +28436,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const wake of [...drawnWaiters]) wake();
         clearLink();
         if (document.activeElement !== $("title")) $("title").value = chart.title;
+        renderChartPath();
         // (Untitled, what it's called meanwhile: in the field, the one it'd be named.)
         $("title").placeholder = derivedTitle(chart);
         syncUndo();

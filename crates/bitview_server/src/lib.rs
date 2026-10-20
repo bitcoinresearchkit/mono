@@ -198,7 +198,7 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
     let website_router = WebsiteRouter(state.website.clone());
     let mut router = ApiRouter::new().add_api_routes();
     if !state.website.is_enabled() {
-        router = router.route("/", get(Redirect::temporary("/api")));
+        router = router.route("/", get(Redirect::temporary("/openapi.json")));
     }
     let router = router
         .with_state(state)

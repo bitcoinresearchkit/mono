@@ -1,8 +1,4 @@
 // https://docs.rs/schemars/latest/schemars/derive.JsonSchema.html
-//
-// Scalar:
-// - Documentation: https://guides.scalar.com/scalar/scalar-api-references
-// - Configuration: https://guides.scalar.com/scalar/scalar-api-references/configuration
 
 mod compact;
 
@@ -142,7 +138,7 @@ const TAGS: [(&str, &str); 12] = [
 
 pub fn create_openapi() -> OpenApi {
     let info = Info {
-        title: "Bitcoin Research Kit".to_string(),
+        title: "Bitview".to_string(),
         description: Some(
             r#"API for querying Bitcoin blockchain data, mempool state, and on-chain series.
 
@@ -191,7 +187,7 @@ Errors use `application/problem+json`:
 ### Links
 
 - [GitHub](https://github.com/bitcoinresearchkit/brk)
-- [Bitview](https://bitview.space) - Web app built on this API"#
+- [Bitview Studio](https://studio.bitview.space) - Charts of any series, built on this API"#
                 .to_string(),
         ),
         version: format!("v{VERSION}"),
