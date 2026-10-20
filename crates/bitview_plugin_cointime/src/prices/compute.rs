@@ -24,15 +24,17 @@ impl Vecs {
         self.vaulted_cents.compute_transform2(
             from,
             realized_price,
-            &activity.vaultedness.height,
-            |(_, price, vaultedness, ..)| Cents::from(f64::from(price) / f64::from(vaultedness)),
+            &activity.liveliness_source.height,
+            |(_, price, liveliness, ..)| {
+                Cents::from(f64::from(price) / f64::from(liveliness.complement()))
+            },
             exit,
         )?;
 
         self.active_cents.compute_transform2(
             from,
             realized_price,
-            &activity.liveliness.height,
+            &activity.liveliness_source.height,
             |(_, price, liveliness, ..)| Cents::from(f64::from(price) / f64::from(liveliness)),
             exit,
         )?;

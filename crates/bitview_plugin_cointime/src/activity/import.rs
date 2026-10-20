@@ -33,12 +33,11 @@ impl DerivedVecs {
             version + Version::ONE,
             &liveliness_source,
         );
-
         Ok(Self {
-            liveliness_source,
             liveliness,
             vaultedness,
             liveliness_to_vaultedness,
+            liveliness_source,
         })
     }
 }

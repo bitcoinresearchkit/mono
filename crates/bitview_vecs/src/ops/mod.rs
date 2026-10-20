@@ -9,5 +9,5 @@ pub use arithmetic::{BlocksToDays, DifficultyToHashrate, OneMinusPpm};
 pub use currency::CentsToSatsPerDollar;
 pub(crate) use ratio::FixedToRatio;
 pub use ratio::{
-    BoundedOdds, BoundedToRatio, FixedToPercent, PriceTimesRatio, Quotient, RelativeChange,
+    BoundedOdds, BoundedToRatio, FixedToPercent, Narrow, PriceTimesRatio, Quotient, RelativeChange,
 };

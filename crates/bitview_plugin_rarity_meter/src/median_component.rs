@@ -42,6 +42,6 @@ impl MedianComponent {
         self.price
             .compute_ratio(starting_lengths.height, spot, exit)?;
         self.component
-            .compute(starting_lengths, &self.price.relative.ratio.height, exit)
+            .compute(starting_lengths, &self.price.relative.fixed.height, exit)
     }
 }

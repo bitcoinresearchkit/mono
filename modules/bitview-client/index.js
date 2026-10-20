@@ -566,9 +566,9 @@ mainnet, as mempool.space
  * @typedef {number} FeeRate
  */
 /**
- * A 64-bit floating-point value without a specific unit.
+ * A floating-point value without a specific unit.
  *
- * @typedef {number} Float64
+ * @typedef {number} Float
  */
 /** @typedef {("json"|"csv")} Format */
 /**
@@ -747,6 +747,12 @@ a bin closing at the first fee rate change past 50,000 vB
  * Index of a half-year (6 months).
  *
  * @typedef {number} Month6
+ */
+/**
+ * A multiple: one value over another of its kind, 1 at parity (MVRV, SOPR, a price over its
+ * average).
+ *
+ * @typedef {number} Multiple
  */
 /**
  * Content hash of the projected next block (block 0 of the mempool
@@ -1020,14 +1026,9 @@ it; `minimumFee` when no third projected block exists
  * @typedef {(number|string|string)} RangeIndex
  */
 /**
- * A dimensionless ratio: a quotient, share or multiple.
+ * A dimensionless ratio: a quotient or share, read as a plain number.
  *
  * @typedef {number} Ratio
- */
-/**
- * A dimensionless ratio at double precision.
- *
- * @typedef {number} Ratio64
  */
 /**
  * Transaction locktime. Values below 500,000,000 are interpreted as block heights; values at or above are Unix timestamps.
@@ -2555,7 +2556,7 @@ const _Extremes = _s({
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
  * }} TrueMarketMeanMedian
  */
@@ -2566,7 +2567,7 @@ const _TrueMarketMeanMedian = _s({
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
  * }} VaultedPriceMedian
  */
@@ -2577,7 +2578,7 @@ const _VaultedPriceMedian = _s({
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
  * }} MobileMedianCapitalizedPriceMedian
  */
@@ -2588,7 +2589,7 @@ const _MobileMedianCapitalizedPriceMedian = _s({
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
  * }} MobileMedianRealizedPriceMedian
  */
@@ -2599,7 +2600,7 @@ const _MobileMedianRealizedPriceMedian = _s({
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
  * }} MobileRealizedPriceMedian
  */
@@ -2610,7 +2611,7 @@ const _MobileRealizedPriceMedian = _s({
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
  * }} AwakeRealizedPriceMedian
  */
@@ -2621,7 +2622,7 @@ const _AwakeRealizedPriceMedian = _s({
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
  * }} Under6mCapitalizedPriceMedian
  */
@@ -2632,7 +2633,7 @@ const _Under6mCapitalizedPriceMedian = _s({
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
  * }} Under6mRealizedPriceMedian
  */
@@ -2643,7 +2644,7 @@ const _Under6mRealizedPriceMedian = _s({
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
  * }} SthMedianCapitalizedPriceMedian
  */
@@ -2654,7 +2655,7 @@ const _SthMedianCapitalizedPriceMedian = _s({
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
  * }} SthMedianRealizedPriceMedian
  */
@@ -2665,7 +2666,7 @@ const _SthMedianRealizedPriceMedian = _s({
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
  * }} SthCapitalizedPriceMedian
  */
@@ -2676,7 +2677,7 @@ const _SthCapitalizedPriceMedian = _s({
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
  * }} SthRealizedPriceMedian
  */
@@ -2687,7 +2688,7 @@ const _SthRealizedPriceMedian = _s({
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
  * }} AllMedianCapitalizedPriceMedian
  */
@@ -2698,7 +2699,7 @@ const _AllMedianCapitalizedPriceMedian = _s({
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
  * }} AllMedianRealizedPriceMedian
  */
@@ -2711,7 +2712,7 @@ const _AllMedianRealizedPriceMedian = _s({
  * @template A
  * @typedef {{
  *   block: SeriesPattern1<?Dollars>,
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   pct01: A,
  *   pct05: A,
  *   pct1: A,
@@ -2760,7 +2761,7 @@ const _MedianCapitalizedPrice = (c, b, f0) => _n(c, b, {
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
  * }} AllCapitalizedPriceMedian
  */
@@ -2771,7 +2772,7 @@ const _AllCapitalizedPriceMedian = _s({
 
 /**
  * @typedef {{
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
  * }} AllRealizedPriceMedian
  */
@@ -2987,8 +2988,8 @@ const _Bedrock = _s({
 /**
  * @typedef {{
  *   block: SeriesPattern1<?Dollars>,
- *   ratio: SeriesPattern1<?Ratio>,
- *   aviv: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
+ *   aviv: SeriesPattern1<?Multiple>,
  *   avivNupl: SeriesPattern1<?Ratio>,
  * }} PricesTrueMarketMean
  */
@@ -3002,8 +3003,8 @@ const _PricesTrueMarketMean = _s({
 /**
  * @typedef {{
  *   block: SeriesPattern1<?Dollars>,
- *   ratio: SeriesPattern1<?Ratio>,
- *   mvrv: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
+ *   mvrv: SeriesPattern1<?Multiple>,
  * }} PricesActive
  */
 const _PricesActive = _s({
@@ -3070,8 +3071,8 @@ const _SupplyInLoss = _s({
 
 /**
  * @typedef {{
- *   btc: SeriesPattern1<?Ratio64>,
- *   usd: SeriesPattern1<?Ratio64>,
+ *   btc: SeriesPattern1<?Ratio>,
+ *   usd: SeriesPattern1<?Ratio>,
  * }} Velocity
  */
 const _Velocity = _s({
@@ -3119,8 +3120,8 @@ const _CapitalDensity = _s({
 /**
  * @typedef {{
  *   block: SeriesPattern1<?Dollars>,
- *   ratio: SeriesPattern1<?Ratio>,
- *   mvrv: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
+ *   mvrv: SeriesPattern1<?Multiple>,
  * }} Avg
  */
 const _Avg = _s({
@@ -3327,8 +3328,8 @@ const _DeltaRate = _s({
 /**
  * @typedef {{
  *   block: SeriesPattern1<?Dollars>,
- *   ratio: SeriesPattern1<?Ratio>,
- *   mayerMultiple: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
+ *   mayerMultiple: SeriesPattern1<?Multiple>,
  * }} Sma200d
  */
 const _Sma200d = _s({
@@ -3340,7 +3341,7 @@ const _Sma200d = _s({
 /**
  * @typedef {{
  *   block: SeriesPattern1<?Dollars>,
- *   ratio: SeriesPattern1<?Ratio>,
+ *   ratio: SeriesPattern1<?Multiple>,
  * }} Ema13d
  */
 const _Ema13d = _s({
@@ -3759,8 +3760,8 @@ const _CoinflowCohortsAll = _s({
 /**
  * @typedef {{
  *   spendingRate: SeriesPattern1<?PerDay>,
- *   spendingExposure: SeriesPattern1<?Float64>,
- *   mobility: SeriesPattern1<?Ratio64>,
+ *   spendingExposure: SeriesPattern1<?Float>,
+ *   mobility: SeriesPattern1<?Ratio>,
  *   mobile: Immobile,
  *   immobile: Immobile,
  * }} CoinflowAgeRanges10yTo12y
@@ -4831,8 +4832,8 @@ const _BlocksCount = _s({
 
 /**
  * @typedef {{
- *   block: SeriesPattern1<?Float64>,
- *   hodlBank: SeriesPattern1<?Float64>,
+ *   block: SeriesPattern1<?Float>,
+ *   hodlBank: SeriesPattern1<?Float>,
  *   vocdd: BlocksCount<?DollarDaysPerCoin>,
  * }} ReserveRisk
  */
@@ -4859,8 +4860,8 @@ const _Value = _s({
  * @typedef {{
  *   coindaysCreated: BlocksCount<?CoinDays>,
  *   coindaysConsumed: BlocksCount<?CoinDays>,
- *   wakefulness: SeriesPattern1<?Ratio64>,
- *   awakeToDormant: SeriesPattern1<?Ratio64>,
+ *   wakefulness: SeriesPattern1<?Ratio>,
+ *   awakeToDormant: SeriesPattern1<?Multiple>,
  *   awake: Immobile,
  *   dormant: Immobile,
  * }} CointimeAgeRanges10yTo12y
@@ -4879,9 +4880,9 @@ const _CointimeAgeRanges10yTo12y = _s({
  *   coinblocksCreated: BlocksCount<?CoinBlocks>,
  *   coinblocksDestroyed: BlocksCount<?CoinBlocks>,
  *   coinblocksStored: BlocksCount<?CoinBlocks>,
- *   liveliness: SeriesPattern1<?Ratio64>,
- *   vaultedness: SeriesPattern1<?Ratio64>,
- *   livelinessToVaultedness: SeriesPattern1<?Ratio64>,
+ *   liveliness: SeriesPattern1<?Ratio>,
+ *   vaultedness: SeriesPattern1<?Ratio>,
+ *   livelinessToVaultedness: SeriesPattern1<?Multiple>,
  *   concurrentLiveliness: InputsPerSecond<?Ratio>,
  * }} CointimeActivity
  */
@@ -4897,10 +4898,10 @@ const _CointimeActivity = _s({
 
 /**
  * @typedef {{
- *   _24h: SeriesPattern1<?Ratio>,
- *   _1w: SeriesPattern1<?Ratio>,
- *   _1m: SeriesPattern1<?Ratio>,
- *   _1y: SeriesPattern1<?Ratio>,
+ *   _24h: SeriesPattern1<?Multiple>,
+ *   _1w: SeriesPattern1<?Multiple>,
+ *   _1m: SeriesPattern1<?Multiple>,
+ *   _1y: SeriesPattern1<?Multiple>,
  *   valueCreated: BlocksCount<?Dollars>,
  *   valueDestroyed: BlocksCount<?Dollars>,
  * }} AdjustedSopr
@@ -4920,10 +4921,10 @@ const _AdjustedSopr = _s({
  *   loss: BlocksCount<?Dollars>,
  *   netPnl: BlocksCount<?Dollars>,
  *   grossPnl: BlocksCount<?Dollars>,
- *   profitToLoss: InputsPerSecond<?Ratio>,
+ *   profitToLoss: InputsPerSecond<?Multiple>,
  *   valueDestroyed: BlocksCount<?Dollars>,
  *   peakRegret: BlocksCount<?Dollars>,
- *   sopr: InputsPerSecond<?Ratio>,
+ *   sopr: InputsPerSecond<?Multiple>,
  *   adjustedSopr: AdjustedSopr,
  *   sellSideRiskRatio: InputsPerSecond<?Ratio>,
  * }} AllRealized
@@ -5534,9 +5535,9 @@ const _Age = _s({
  *   txCount: BlocksCount<Count>,
  *   txVsize: BlocksCount<VSize>,
  *   fees: OpReturnFees,
- * }} Multiple
+ * }} PoliciesMultiple
  */
-const _Multiple = _s({
+const _PoliciesMultiple = _s({
   outputCount: [_BlocksCount, '*_output_count'],
   dataBytes: [_DataBytes, '*_data_bytes'],
   txCount: [_BlocksCount, '*_tx_count'],
@@ -5546,72 +5547,72 @@ const _Multiple = _s({
 
 /**
  * @typedef {{
- *   preV30Standard: Multiple,
- *   preV30Nonstandard: Multiple,
- *   oversized: Multiple,
- *   multiple: Multiple,
+ *   preV30Standard: PoliciesMultiple,
+ *   preV30Nonstandard: PoliciesMultiple,
+ *   oversized: PoliciesMultiple,
+ *   multiple: PoliciesMultiple,
  * }} Policies
  */
 const _Policies = _s({
-  preV30Standard: [_Multiple, '*_pre_v30_standard'],
-  preV30Nonstandard: [_Multiple, '*_pre_v30_nonstandard'],
-  oversized: [_Multiple, '*_oversized'],
-  multiple: [_Multiple, '*_multiple'],
+  preV30Standard: [_PoliciesMultiple, '*_pre_v30_standard'],
+  preV30Nonstandard: [_PoliciesMultiple, '*_pre_v30_nonstandard'],
+  oversized: [_PoliciesMultiple, '*_oversized'],
+  multiple: [_PoliciesMultiple, '*_multiple'],
 });
 
 /**
  * @typedef {{
- *   runes: Multiple,
- *   witnessCommitment: Multiple,
- *   veriBlock: Multiple,
- *   omni: Multiple,
- *   stacks: Multiple,
- *   blockstack: Multiple,
- *   colu: Multiple,
- *   openAssets: Multiple,
- *   komodo: Multiple,
- *   coinSpark: Multiple,
- *   poet: Multiple,
- *   docproof: Multiple,
- *   openTimestamps: Multiple,
- *   factom: Multiple,
- *   eternityWall: Multiple,
- *   memo: Multiple,
- *   bitproof: Multiple,
- *   ascribe: Multiple,
- *   stampery: Multiple,
- *   epobc: Multiple,
- *   bareHash: Multiple,
- *   text: Multiple,
- *   empty: Multiple,
- *   unknown: Multiple,
+ *   runes: PoliciesMultiple,
+ *   witnessCommitment: PoliciesMultiple,
+ *   veriBlock: PoliciesMultiple,
+ *   omni: PoliciesMultiple,
+ *   stacks: PoliciesMultiple,
+ *   blockstack: PoliciesMultiple,
+ *   colu: PoliciesMultiple,
+ *   openAssets: PoliciesMultiple,
+ *   komodo: PoliciesMultiple,
+ *   coinSpark: PoliciesMultiple,
+ *   poet: PoliciesMultiple,
+ *   docproof: PoliciesMultiple,
+ *   openTimestamps: PoliciesMultiple,
+ *   factom: PoliciesMultiple,
+ *   eternityWall: PoliciesMultiple,
+ *   memo: PoliciesMultiple,
+ *   bitproof: PoliciesMultiple,
+ *   ascribe: PoliciesMultiple,
+ *   stampery: PoliciesMultiple,
+ *   epobc: PoliciesMultiple,
+ *   bareHash: PoliciesMultiple,
+ *   text: PoliciesMultiple,
+ *   empty: PoliciesMultiple,
+ *   unknown: PoliciesMultiple,
  * }} Protocols
  */
 const _Protocols = _s({
-  runes: [_Multiple, '*_runes'],
-  witnessCommitment: [_Multiple, '*_witness_commitment'],
-  veriBlock: [_Multiple, '*_veri_block'],
-  omni: [_Multiple, '*_omni'],
-  stacks: [_Multiple, '*_stacks'],
-  blockstack: [_Multiple, '*_blockstack'],
-  colu: [_Multiple, '*_colu'],
-  openAssets: [_Multiple, '*_open_assets'],
-  komodo: [_Multiple, '*_komodo'],
-  coinSpark: [_Multiple, '*_coin_spark'],
-  poet: [_Multiple, '*_poet'],
-  docproof: [_Multiple, '*_docproof'],
-  openTimestamps: [_Multiple, '*_open_timestamps'],
-  factom: [_Multiple, '*_factom'],
-  eternityWall: [_Multiple, '*_eternity_wall'],
-  memo: [_Multiple, '*_memo'],
-  bitproof: [_Multiple, '*_bitproof'],
-  ascribe: [_Multiple, '*_ascribe'],
-  stampery: [_Multiple, '*_stampery'],
-  epobc: [_Multiple, '*_epobc'],
-  bareHash: [_Multiple, '*_bare_hash'],
-  text: [_Multiple, '*_text'],
-  empty: [_Multiple, '*_empty'],
-  unknown: [_Multiple, '*_unknown'],
+  runes: [_PoliciesMultiple, '*_runes'],
+  witnessCommitment: [_PoliciesMultiple, '*_witness_commitment'],
+  veriBlock: [_PoliciesMultiple, '*_veri_block'],
+  omni: [_PoliciesMultiple, '*_omni'],
+  stacks: [_PoliciesMultiple, '*_stacks'],
+  blockstack: [_PoliciesMultiple, '*_blockstack'],
+  colu: [_PoliciesMultiple, '*_colu'],
+  openAssets: [_PoliciesMultiple, '*_open_assets'],
+  komodo: [_PoliciesMultiple, '*_komodo'],
+  coinSpark: [_PoliciesMultiple, '*_coin_spark'],
+  poet: [_PoliciesMultiple, '*_poet'],
+  docproof: [_PoliciesMultiple, '*_docproof'],
+  openTimestamps: [_PoliciesMultiple, '*_open_timestamps'],
+  factom: [_PoliciesMultiple, '*_factom'],
+  eternityWall: [_PoliciesMultiple, '*_eternity_wall'],
+  memo: [_PoliciesMultiple, '*_memo'],
+  bitproof: [_PoliciesMultiple, '*_bitproof'],
+  ascribe: [_PoliciesMultiple, '*_ascribe'],
+  stampery: [_PoliciesMultiple, '*_stampery'],
+  epobc: [_PoliciesMultiple, '*_epobc'],
+  bareHash: [_PoliciesMultiple, '*_bare_hash'],
+  text: [_PoliciesMultiple, '*_text'],
+  empty: [_PoliciesMultiple, '*_empty'],
+  unknown: [_PoliciesMultiple, '*_unknown'],
 });
 
 /**

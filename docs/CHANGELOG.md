@@ -57,11 +57,15 @@ has to be deleted by hand.
   lookup; the v0.12.2 Rust client fails to parse them
 - Typed every series value by what it measures, replacing the representation-named `Stored*` types (`StoredBool`,
   `StoredU8`...`StoredU64`, `StoredI8`, `StoredI64`, `StoredF32`, `StoredF64`) and `Weight64`: `Boolean`, `Score`,
-  `Count`/`CountSigned`, `Seconds`, `Ratio`/`Ratio64`, `Percent`, mean types (`CountFract`, `BytesFract`,
-  `WeightFract`, `SecondsFract`), `CoinDays`, `CoinBlocks`, `DollarBlocks`, `DollarDaysPerCoin`, `Days`, `Hashrate`,
-  `Difficulty`, `HashPrice`, `HashValue`, `PerDay`, `PerSecond` and the generic `Float64`. `Bytes`, `VSize`, `Weight`
-  and `SigOps` keep their names and now type every series of their quantity. Values keep their JSON form (numbers;
-  `Boolean` stays a boolean); the client type names and the series body's `type` change
+  `Count`/`CountSigned`, `Seconds`, `Ratio` (a plain quotient or share: NUPL, sell-side risk, liveliness, velocity),
+  `Multiple` (read as "times", 1 at parity: MVRV, SOPR, profit to loss, awake to dormant, the Mayer multiple, AVIV,
+  every price over a reference), `Percent`, mean types (`CountFract`, `BytesFract`, `WeightFract`, `SecondsFract`),
+  `CoinDays`, `CoinBlocks`, `DollarBlocks`, `DollarDaysPerCoin`, `Days`, `Hashrate`, `Difficulty`, `HashPrice`,
+  `HashValue`, `PerDay`, `PerSecond` and the generic `Float` (HODL bank, Reserve Risk, spending exposure). No
+  published type names a storage size: values stored or computed at higher precision publish as `Ratio`, `Multiple` or
+  `Float`. `Bytes`, `VSize`, `Weight` and `SigOps` keep their names and now type every series of their quantity.
+  Values keep their JSON form (numbers; `Boolean` stays a boolean); the client type names and the series body's `type`
+  change
 - Block weight is `Weight` in `block`, `cumulative`, `sum` and the distribution statistics alike (were `Weight` per
   block and `Weight64` for the rest); block interval is `Seconds` (was `Timestamp`), its averages `SecondsFract` (were
   `StoredF32`)

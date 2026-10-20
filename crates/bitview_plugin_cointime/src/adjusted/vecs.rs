@@ -1,4 +1,4 @@
-use bitview_primitives::{PartsPerMillionSigned32, Ratio64};
+use bitview_primitives::{PartsPerMillionSigned32, Ratio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{PerBlock, PercentPerBlock};
 use vecdb::{Rw, StorageMode};
@@ -18,7 +18,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 #[derive(Traversable)]
 pub struct Velocity<M: StorageMode = Rw> {
     /// Trailing 365-day transfer volume in BTC over the active supply.
-    pub btc: PerBlock<Ratio64, M>,
+    pub btc: PerBlock<Ratio, M>,
     /// Trailing 365-day transfer volume in USD over the active capitalization.
-    pub usd: PerBlock<Ratio64, M>,
+    pub usd: PerBlock<Ratio, M>,
 }

@@ -1,5 +1,5 @@
 use bitview_cohort::AgeRange;
-use bitview_primitives::{BoundedRatio, CoinDays, Ratio64};
+use bitview_primitives::{BoundedRatio, CoinDays, Multiple, Ratio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     CachedSeries, LazyPerBlock, LazyPerBlockCumulativeRolling, PerBlockCumulativeRolling,
@@ -33,11 +33,11 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     /// cumulative coin days created in it. Higher values mean more of the
     /// holding time accumulated in the range has been consumed by spending.
     /// Undefined (null) while the range has no coin days created, its coins
-    /// then counting as dormant. Precise to about one part in four billion.
-    pub wakefulness: LazyPerBlock<Ratio64, BoundedRatio>,
+    /// then counting as dormant.
+    pub wakefulness: LazyPerBlock<Ratio, BoundedRatio>,
     /// Awake supply divided by dormant supply, `wakefulness / (1 - wakefulness)`:
     /// above one, more of the range's holding time was consumed than stored.
-    pub awake_to_dormant: LazyPerBlock<Ratio64, BoundedRatio>,
+    pub awake_to_dormant: LazyPerBlock<Multiple, BoundedRatio>,
     /// The range weighted by its wakefulness.
     pub awake: SideVecs,
     /// The range weighted by one minus its wakefulness.
@@ -48,8 +48,8 @@ pub struct RangeVecs<M: StorageMode = Rw> {
 
 impl<M: StorageMode> Vecs<M> {
     /// Wakefulness by height for each age range: the cointime URPD weight source.
-    pub fn urpd_weight_sources(&self) -> AgeRange<&impl ReadableVec<Height, Ratio64>> {
-        AgeRange::from_fn(|id| &id.select(&self.ranges).wakefulness.height)
+    pub fn urpd_weight_sources(&self) -> AgeRange<&impl ReadableVec<Height, BoundedRatio>> {
+        AgeRange::from_fn(|id| &id.select(&self.ranges).wakefulness_source)
     }
 
     pub(crate) fn wakefulness_sources(&self) -> AgeRange<&CachedSeries<Height, BoundedRatio, M>> {

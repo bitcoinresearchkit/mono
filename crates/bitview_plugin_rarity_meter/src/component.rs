@@ -1,6 +1,6 @@
 use bitview_compute::{prepare_computed, write_chunks, write_locked};
 use bitview_primitives::{
-    Lengths, PartsPerMillion32, RARITY_PERCENTILES, RARITY_PERCENTILES_LEN, Ratio,
+    Lengths, PartsPerMillion32, PriceRatio, RARITY_PERCENTILES, RARITY_PERCENTILES_LEN,
 };
 use bitview_traversable::Traversable;
 use bitview_vecs::{
@@ -39,7 +39,7 @@ pub struct Component<M: StorageMode = Rw> {
     block_decay_pct: M::WriteOnly<BlockDecayPercentiles>,
 }
 
-const VERSION: Version = Version::new(14);
+const VERSION: Version = Version::new(15);
 
 impl Component {
     pub(crate) fn import(
@@ -82,7 +82,7 @@ impl Component {
     pub(crate) fn compute(
         &mut self,
         starting_lengths: &Lengths,
-        ratio_source: &impl ReadableVec<Height, Ratio>,
+        ratio_source: &impl ReadableVec<Height, PriceRatio>,
         exit: &Exit,
     ) -> Result<()> {
         let source_end = ratio_source.len();
@@ -116,7 +116,7 @@ impl Component {
             }
             let mut height = observed;
             ratio_source.for_each_range_at(observed, chunk.end, |ratio| {
-                block_decay_pct.add(height, *ratio);
+                block_decay_pct.add(height, f64::from(ratio));
                 height += 1;
                 block_decay_pct.quantiles(&RARITY_PERCENTILES, &mut out);
                 for (target, value) in ratios.iter_mut().zip(out) {
@@ -132,7 +132,7 @@ impl Component {
     pub fn needs_compute(
         &self,
         starting_height: Height,
-        ratio_source: &impl ReadableVec<Height, Ratio>,
+        ratio_source: &impl ReadableVec<Height, PriceRatio>,
     ) -> bool {
         self.ratios.iter().any(|v| {
             v.len() != ratio_source.len()

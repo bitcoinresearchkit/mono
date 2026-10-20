@@ -2,12 +2,12 @@ use std::{array, iter};
 
 use bitview_cohort::{AgeAggregate, AgeAggregateId, AgeRange};
 use bitview_compute::{Inputs, WRITE_INTERVAL, collect_cohort_weights, write_locked};
-use bitview_primitives::{CostBasisByPercentile, Ratio64};
+use bitview_primitives::CostBasisByPercentile;
 use bitview_vecs::Density;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{AnyStoredVec, AnyVec, ReadableVec};
+use vecdb::{AnyStoredVec, AnyVec, ReadableVec, VecValue};
 
 use super::{
     CostBasisVecs,
@@ -20,17 +20,20 @@ const COHORTS: usize = AgeAggregateId::ALL.len();
 /// Replays the weighted URPD over `recompute_from..` and pushes every cohort's cost basis,
 /// `cohorts` in `AgeAggregateId::ALL` order, then stores `spot` divided by each mean price.
 #[allow(clippy::too_many_arguments)]
-pub fn compute_cost_basis(
+pub fn compute_cost_basis<W: VecValue>(
     replay: &mut Replay,
     mut cohorts: [&mut CostBasisVecs; COHORTS],
     version: Version,
     recompute_from: usize,
     inputs: ReplayInputs<'_>,
-    weights: &AgeRange<&(impl ReadableVec<Height, Ratio64> + Sync)>,
+    weights: &AgeRange<&(impl ReadableVec<Height, W> + Sync)>,
     supplies: &AgeRange<&(impl ReadableVec<Height, Sats> + Sync)>,
     spot: &impl ReadableVec<Height, Cents>,
     exit: &Exit,
-) -> Result<()> {
+) -> Result<()>
+where
+    f64: From<W>,
+{
     let rows = Inputs::new(
         version + COMPUTE_VERSION,
         iter::once(inputs.prices as &dyn AnyVec)

@@ -14,7 +14,7 @@ impl Vecs {
             version + Version::new(3),
             mappings,
         )?;
-        let version = version + Version::ONE;
+        let version = version + Version::new(4);
         Ok(Vecs {
             inflation_rate,
             velocity: Velocity {

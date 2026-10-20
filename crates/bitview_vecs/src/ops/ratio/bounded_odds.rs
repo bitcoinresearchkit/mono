@@ -1,16 +1,17 @@
-use bitview_primitives::{BoundedRatio, Ratio64};
+use bitview_primitives::BoundedRatio;
 use vecdb::{UnaryTransform, unlikely};
 
-/// Odds of a bounded probability; the shared fixed-point scale cancels.
+/// Odds of a bounded probability; the shared fixed-point scale cancels. As a ratio at either
+/// precision (`Ratio` to publish, `Ratio64` to compute with).
 pub struct BoundedOdds;
 
-impl UnaryTransform<BoundedRatio, Ratio64> for BoundedOdds {
+impl<O: From<f64>> UnaryTransform<BoundedRatio, O> for BoundedOdds {
     #[inline]
-    fn apply(value: BoundedRatio) -> Ratio64 {
+    fn apply(value: BoundedRatio) -> O {
         if unlikely(value.is_nan()) {
-            Ratio64::new(f64::NAN)
+            O::from(f64::NAN)
         } else {
-            Ratio64::new(value.inner() as f64 / (BoundedRatio::SCALE - value.inner()) as f64)
+            O::from(value.inner() as f64 / (BoundedRatio::SCALE - value.inner()) as f64)
         }
     }
 }

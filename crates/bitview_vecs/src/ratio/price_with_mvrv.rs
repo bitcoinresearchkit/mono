@@ -1,4 +1,4 @@
-use bitview_primitives::{PriceRatio, Ratio};
+use bitview_primitives::{Multiple, PriceRatio};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_types::{Cents, Height, Version};
@@ -17,7 +17,7 @@ pub struct PriceWithMvrv<M: StorageMode = Rw> {
     /// MVRV (market value to realized value): spot divided by the price, the same series as the
     /// ratio, computed from cent-precision prices: null while the price rounds to zero (2010),
     /// approximate while prices are a few cents.
-    mvrv: LazyPerBlock<Ratio>,
+    mvrv: LazyPerBlock<Multiple>,
 }
 
 impl PriceWithMvrv {

@@ -1,6 +1,6 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_primitives::Ratio;
+use bitview_primitives::Multiple;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFiatPerBlockCumulativeWithSums, LazyWindowStartVec, RollingWindows, ops::Quotient,
@@ -17,7 +17,7 @@ use crate::columns::Columns;
 pub struct AdjustedSopr<M: StorageMode = Rw> {
     /// Undefined (null) when the window's adjusted value destroyed is zero.
     #[traversable(flatten)]
-    pub ratio: RollingWindows<Ratio, M>,
+    pub ratio: RollingWindows<Multiple, M>,
     /// Spend-time value of the outputs it keeps (spent an hour or more after creation).
     pub value_created: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Creation-time value of the outputs it keeps (spent an hour or more after creation).
@@ -58,7 +58,7 @@ impl AdjustedSopr {
             .zip(self.value_created.sum.as_array())
             .zip(self.value_destroyed.sum.as_array())
         {
-            target.height.compute_binary::<_, _, Quotient<Ratio>>(
+            target.height.compute_binary::<_, _, Quotient<Multiple>>(
                 from,
                 &created.cents.height,
                 &destroyed.cents.height,

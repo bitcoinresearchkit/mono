@@ -1,4 +1,4 @@
-use bitview_primitives::{PartsPerMillionSigned32, Ratio};
+use bitview_primitives::{Multiple, PartsPerMillionSigned32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{CachedSeries, LazyPerBlock, LazyRatioPerBlock, PriceWithMvrv, PriceWithRatio};
 use brk_types::{Cents, Height};
@@ -27,7 +27,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// `true_market_mean.ratio`). Undefined (null) while True Market Mean is
     /// null or rounds to zero cents.
     #[traversable(wrap = "true_market_mean", rename = "aviv")]
-    pub(super) aviv: LazyPerBlock<Ratio, Ratio>,
+    pub(super) aviv: LazyPerBlock<Multiple>,
     /// AVIV NUPL: active capitalization minus investor capitalization, divided by
     /// active capitalization (one minus one over AVIV where AVIV is defined). It
     /// exceeds one while investor capitalization is negative, including periods

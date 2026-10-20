@@ -1,7 +1,7 @@
 use bitview_distribution::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_transactions::Vecs as TransactionsVecs;
-use bitview_primitives::Ratio64;
+use bitview_primitives::Ratio;
 use bitview_vecs::{LazyIndexedVec, LazyPerBlock, ops::Quotient};
 use brk_types::{Cents, Version};
 use vecdb::{BinaryTransform, Ident};
@@ -21,14 +21,14 @@ impl Vecs {
             version,
             &volume.sats.height,
             &all_chain.supply,
-            |_, volume, supply| Quotient::<Ratio64>::apply(volume, supply),
+            |_, volume, supply| Quotient::<Ratio>::apply(volume, supply),
         );
         let usd_source = LazyIndexedVec::new(
             "velocity_usd_source",
             version,
             &volume.cents.height,
             &all_chain.market_cap,
-            |_, volume: Cents, market_cap| Quotient::<Ratio64>::apply(volume, market_cap),
+            |_, volume: Cents, market_cap| Quotient::<Ratio>::apply(volume, market_cap),
         );
 
         Self {

@@ -62,7 +62,7 @@ impl Vecs {
         // otherwise count the time between them twice.
         let timestamps = &mappings.timestamp.monotonic;
         let mut state = None;
-        self.hodl_bank.height.compute_transform3(
+        self.hodl_bank_sum.height.compute_transform3(
             starting_height,
             &prices.spot.usd.height,
             &self.vocdd_median_1m,

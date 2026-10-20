@@ -178,7 +178,7 @@ impl DefaultPlugins {
                 let pools = scope.spawn(move || {
                     timed_compute(pools, PoolsDependencies { indexer, mining }, context)
                 });
-                Ok((mining, [op_return, pools]))
+                Ok((mining, transactions, [op_return, pools]))
             });
 
             timed_compute(
@@ -195,7 +195,7 @@ impl DefaultPlugins {
             // Supply reads Outputs, Mining and Price: it runs beside the history chain.
             let supply = &mut *self.supply;
             let supply = scope.spawn(move || -> Result<_> {
-                let (mining, mining_tail) = mining.join().unwrap()?;
+                let (mining, transactions, mining_tail) = mining.join().unwrap()?;
                 timed_compute(
                     &mut *supply,
                     SupplyDependencies {
@@ -206,7 +206,7 @@ impl DefaultPlugins {
                     },
                     context,
                 )?;
-                Ok((&*supply, mining_tail))
+                Ok((&*supply, transactions, mining_tail))
             });
 
             let inputs = inputs.join().unwrap()?;
@@ -308,7 +308,7 @@ impl DefaultPlugins {
                     )
                 });
 
-                let (supply, mining_tail) = supply.join().unwrap()?;
+                let (supply, transactions, mining_tail) = supply.join().unwrap()?;
                 timed_compute(
                     &mut *self.cointime,
                     CointimeDependencies {
@@ -317,8 +317,7 @@ impl DefaultPlugins {
                         mappings,
                         price,
                         inflation_rate: &supply.inflation_rate,
-                        velocity_btc: &supply.velocity.btc,
-                        velocity_usd: &supply.velocity.usd,
+                        volume_1y: &transactions.volume.sum._1y,
                         age,
                         holders,
                     },

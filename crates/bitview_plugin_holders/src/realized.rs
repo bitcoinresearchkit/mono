@@ -1,6 +1,6 @@
 use bitview_cohort::AgeAggregateId;
 use bitview_plugin_mappings::Vecs as Mappings;
-use bitview_primitives::{PartsPerMillion32, Ratio};
+use bitview_primitives::{Multiple, PartsPerMillion32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyFiatPerBlockCumulativeWithSums, LazyWindowStartVec, RatioRollingWindows, RollingWindows,
@@ -28,7 +28,7 @@ pub struct Realized<M: StorageMode = Rw> {
     pub gross_pnl: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Realized profit divided by realized loss over the window; undefined (null) when that
     /// realized loss is zero.
-    pub profit_to_loss: RollingWindows<Ratio, M>,
+    pub profit_to_loss: RollingWindows<Multiple, M>,
     /// Creation-time value of the outputs spent.
     pub value_destroyed: LazyFiatPerBlockCumulativeWithSums<Cents>,
     /// Peak regret: the value sellers forgo relative to each spent output's
@@ -37,7 +37,7 @@ pub struct Realized<M: StorageMode = Rw> {
     /// Spent output profit ratio (SOPR): spend-time value of the outputs spent over the
     /// window divided by their creation-time value (value destroyed); undefined (null) when
     /// that value is zero.
-    pub sopr: RollingWindows<Ratio, M>,
+    pub sopr: RollingWindows<Multiple, M>,
     /// Adjusted SOPR (aSOPR): SOPR without the outputs spent within an hour of their creation.
     pub adjusted_sopr: AdjustedSopr<M>,
     /// Gross realized profit and loss over the window divided by the realized cap.
@@ -104,7 +104,7 @@ impl Realized {
             .zip(self.profit.sum.as_array())
             .zip(self.loss.sum.as_array())
         {
-            target.height.compute_binary::<_, _, Quotient<Ratio>>(
+            target.height.compute_binary::<_, _, Quotient<Multiple>>(
                 from,
                 &profit.cents.height,
                 &loss.cents.height,
@@ -118,7 +118,7 @@ impl Realized {
             .zip(activity.transfer_volume.sum.0.as_array())
             .zip(self.value_destroyed.sum.as_array())
         {
-            target.height.compute_binary::<_, _, Quotient<Ratio>>(
+            target.height.compute_binary::<_, _, Quotient<Multiple>>(
                 from,
                 &created.cents.height,
                 &destroyed.cents.height,

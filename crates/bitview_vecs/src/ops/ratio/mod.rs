@@ -4,6 +4,8 @@ mod bounded_to_ratio;
 pub use bounded_to_ratio::BoundedToRatio;
 mod fixed_to_ratio;
 pub(crate) use fixed_to_ratio::FixedToRatio;
+mod narrow;
+pub use narrow::Narrow;
 mod fixed_to_percent;
 pub use fixed_to_percent::FixedToPercent;
 mod price_times;

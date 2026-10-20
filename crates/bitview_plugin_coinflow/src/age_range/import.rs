@@ -28,7 +28,7 @@ impl Vecs {
                 spending_exposure: PerBlock::import(
                     db,
                     &name("spending_exposure"),
-                    version,
+                    version + Version::ONE,
                     mappings,
                 )?,
                 mobility: LazyPerBlock::from_height_source::<BoundedToRatio>(

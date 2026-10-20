@@ -1,4 +1,4 @@
-use bitview_primitives::PriceRatio;
+use bitview_primitives::{Multiple, PriceRatio};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -18,7 +18,7 @@ pub struct PriceWithRatio<M: StorageMode = Rw> {
     /// Spot divided by the price, computed from cent-precision prices: null while the price
     /// rounds to zero (2010), approximate while prices are a few cents.
     #[traversable(flatten, rename = "ratio")]
-    pub relative: RatioPerBlock<PriceRatio, M>,
+    pub relative: RatioPerBlock<PriceRatio, M, Multiple>,
 }
 
 impl PriceWithRatio {

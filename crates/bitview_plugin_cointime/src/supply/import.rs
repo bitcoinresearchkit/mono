@@ -1,5 +1,6 @@
 use bitview_distribution::AllChainSources;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_primitives::Ratio64;
 use bitview_vecs::{LazyIndexedVec, LazySpotValuePerBlock};
 use brk_types::{Cents, Height, Version};
 use vecdb::ReadableBoxedVec;
@@ -17,16 +18,16 @@ impl Vecs {
         let vaulted = LazyIndexedVec::new(
             "vaulted_supply_sats_source",
             Version::ZERO,
-            &activity.vaultedness.height,
+            &activity.liveliness_source.height,
             &all_chain.supply,
-            |_, vaultedness, supply| supply * vaultedness,
+            |_, liveliness, supply| supply * Ratio64::new(f64::from(liveliness.complement())),
         );
         let active = LazyIndexedVec::new(
             "active_supply_sats_source",
             Version::ZERO,
-            &activity.liveliness.height,
+            &activity.liveliness_source.height,
             &all_chain.supply,
-            |_, liveliness, supply| supply * liveliness,
+            |_, liveliness, supply| supply * Ratio64::new(f64::from(liveliness)),
         );
 
         let vaulted = LazySpotValuePerBlock::from_sats_source(

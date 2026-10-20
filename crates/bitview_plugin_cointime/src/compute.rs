@@ -20,14 +20,12 @@ impl Vecs {
             mappings,
             price: prices,
             inflation_rate,
-            velocity_btc,
-            velocity_usd,
+            volume_1y,
             age,
             holders,
         } = dependencies;
         let inflation_rate = &inflation_rate.fixed.height;
-        let velocity_btc = &velocity_btc.height;
-        let velocity_usd = &velocity_usd.height;
+        let all_chain = holders.all_chain_sources();
         let exit = context.exit();
 
         // Reserve risk reads only dependencies: it runs beside the whole chain below.
@@ -51,8 +49,8 @@ impl Vecs {
                                 self.adjusted.compute(
                                     indexer,
                                     inflation_rate,
-                                    velocity_btc,
-                                    velocity_usd,
+                                    volume_1y,
+                                    &all_chain,
                                     &self.activity,
                                     exit,
                                 )

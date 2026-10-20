@@ -111,9 +111,7 @@ SatsSigned = int
 Sats = int
 # Transaction locktime. Values below 500,000,000 are interpreted as block heights; values at or above are Unix timestamps.
 RawLockTime = int
-# A dimensionless ratio at double precision.
-Ratio64 = float
-# A dimensionless ratio: a quotient, share or multiple.
+# A dimensionless ratio: a quotient or share, read as a plain number.
 Ratio = float
 # A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.
 RangeIndex = Union[int, str, str]
@@ -153,6 +151,9 @@ OpReturnKind = Literal["runes", "witness_commitment", "veri_block", "omni", "sta
 # to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
 # A decimal string, since JavaScript numbers can't hold every 64-bit value.
 NextBlockHash = str
+# A multiple: one value over another of its kind, 1 at parity (MVRV, SOPR, a price over its
+# average).
+Multiple = float
 # Index of a half-year (6 months).
 Month6 = int
 # Index of a quarter (3 months).
@@ -188,8 +189,8 @@ HashPrice = float
 # Index of a halving epoch (210,000 blocks).
 Halving = int
 Format = Literal["json", "csv"]
-# A 64-bit floating-point value without a specific unit.
-Float64 = float
+# A floating-point value without a specific unit.
+Float = float
 # Fee rate stored in milli-sat/vB and exposed as sat/vB.
 FeeRate = float
 # Always empty: prices are quoted in USD only.
@@ -2786,78 +2787,78 @@ class Extremes(_Node):
 
 
 class TrueMarketMeanMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'true_market_mean_rarity_ratio_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'true_market_mean_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'true_market_mean_rarity_*')
 
 
 class VaultedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'vaulted_price_rarity_ratio_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'vaulted_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'vaulted_price_rarity_*')
 
 
 class MobileMedianCapitalizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'mobile_median_capitalized_price_rarity_ratio_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'mobile_median_capitalized_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'mobile_median_capitalized_price_rarity_*')
 
 
 class MobileMedianRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'mobile_median_realized_price_rarity_ratio_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'mobile_median_realized_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'mobile_median_realized_price_rarity_*')
 
 
 class MobileRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'mobile_realized_price_rarity_ratio_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'mobile_realized_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'mobile_realized_price_rarity_*')
 
 
 class AwakeRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'awake_realized_price_rarity_ratio_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'awake_realized_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'awake_realized_price_rarity_*')
 
 
 class Under6mCapitalizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'utxos_under_6m_old_capitalized_price_rarity_ratio_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'utxos_under_6m_old_capitalized_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'utxos_under_6m_old_capitalized_price_rarity_*')
 
 
 class Under6mRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'utxos_under_6m_old_realized_price_rarity_ratio_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'utxos_under_6m_old_realized_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'utxos_under_6m_old_realized_price_rarity_*')
 
 
 class SthMedianCapitalizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'sth_median_capitalized_price_rarity_ratio_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'sth_median_capitalized_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sth_median_capitalized_price_rarity_*')
 
 
 class SthMedianRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'sth_median_realized_price_rarity_ratio_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'sth_median_realized_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sth_median_realized_price_rarity_*')
 
 
 class SthCapitalizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'sth_capitalized_price_rarity_ratio_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'sth_capitalized_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sth_capitalized_price_rarity_*')
 
 
 class SthRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'sth_realized_price_rarity_ratio_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'sth_realized_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sth_realized_price_rarity_*')
 
 
 class AllMedianCapitalizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'median_capitalized_price_rarity_ratio_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'median_capitalized_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'median_capitalized_price_rarity_*')
 
 
 class AllMedianRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'median_realized_price_rarity_ratio_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'median_realized_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'median_realized_price_rarity_*')
 
 
 class MedianCapitalizedPrice(_Node, Generic[A]):
     block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_ratio')
     pct0_1: A = _at(0, 'pct0_1')
     pct0_5: A = _at(0, 'pct0_5')
     pct1: A = _at(0, 'pct1')
@@ -2880,12 +2881,12 @@ class MedianCapitalizedPrice(_Node, Generic[A]):
 
 
 class AllCapitalizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'capitalized_price_rarity_ratio_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'capitalized_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'capitalized_price_rarity_*')
 
 
 class AllRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'realized_price_rarity_ratio_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'realized_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'realized_price_rarity_*')
 
 
@@ -2985,15 +2986,15 @@ class Bedrock(_Node):
 
 class PricesTrueMarketMean(_Node):
     block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio')
-    aviv: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'aviv')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_ratio')
+    aviv: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'aviv')
     aviv_nupl: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'aviv_nupl')
 
 
 class PricesActive(_Node):
     block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_price')
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_price_ratio')
-    mvrv: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_mvrv')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_price_ratio')
+    mvrv: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_mvrv')
 
 
 class Prices(_Node):
@@ -3023,8 +3024,8 @@ class SupplyInLoss(_Node):
 
 
 class Velocity(_Node):
-    btc: SeriesPattern1[Optional[Ratio64]] = _at(SeriesPattern1, '*_btc')
-    usd: SeriesPattern1[Optional[Ratio64]] = _at(SeriesPattern1, '*_usd')
+    btc: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_btc')
+    usd: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_usd')
 
 
 class Adjusted(_Node):
@@ -3046,8 +3047,8 @@ class CapitalDensity(_Node):
 
 class Avg(_Node):
     block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_avg')
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_cost_basis_per_coin_avg_ratio')
-    mvrv: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_mvrv')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_cost_basis_per_coin_avg_ratio')
+    mvrv: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_mvrv')
 
 
 class AllCostBasisPerCoin(_Node):
@@ -3143,13 +3144,13 @@ class DeltaRate(_Node):
 
 class Sma200d(_Node):
     block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio')
-    mayer_multiple: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'mayer_multiple')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_ratio')
+    mayer_multiple: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'mayer_multiple')
 
 
 class Ema13d(_Node):
     block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
-    ratio: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_ratio')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_ratio')
 
 
 class PerDollar(_Node):
@@ -3346,8 +3347,8 @@ class CoinflowCohortsAll(_Node):
 
 class CoinflowAgeRanges10yTo12y(_Node):
     spending_rate: SeriesPattern1[Optional[PerDay]] = _at(SeriesPattern1, '*_spending_rate')
-    spending_exposure: SeriesPattern1[Optional[Float64]] = _at(SeriesPattern1, '*_spending_exposure')
-    mobility: SeriesPattern1[Optional[Ratio64]] = _at(SeriesPattern1, '*_mobility')
+    spending_exposure: SeriesPattern1[Optional[Float]] = _at(SeriesPattern1, '*_spending_exposure')
+    mobility: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_mobility')
     mobile: Immobile = _at(Immobile, '*_mobile_supply')
     immobile: Immobile = _at(Immobile, '*_immobile_supply')
 
@@ -3855,8 +3856,8 @@ class BlocksCount(_Node, Generic[A]):
 
 
 class ReserveRisk(_Node):
-    block: SeriesPattern1[Optional[Float64]] = _at(SeriesPattern1, '*')
-    hodl_bank: SeriesPattern1[Optional[Float64]] = _at(SeriesPattern1, 'hodl_bank')
+    block: SeriesPattern1[Optional[Float]] = _at(SeriesPattern1, '*')
+    hodl_bank: SeriesPattern1[Optional[Float]] = _at(SeriesPattern1, 'hodl_bank')
     vocdd: BlocksCount[Optional[DollarDaysPerCoin]] = _at(BlocksCount, 'vocdd')
 
 
@@ -3869,8 +3870,8 @@ class Value(_Node):
 class CointimeAgeRanges10yTo12y(_Node):
     coindays_created: BlocksCount[Optional[CoinDays]] = _at(BlocksCount, '*_coindays_created')
     coindays_consumed: BlocksCount[Optional[CoinDays]] = _at(BlocksCount, '*_coindays_consumed')
-    wakefulness: SeriesPattern1[Optional[Ratio64]] = _at(SeriesPattern1, '*_wakefulness')
-    awake_to_dormant: SeriesPattern1[Optional[Ratio64]] = _at(SeriesPattern1, '*_awake_to_dormant')
+    wakefulness: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_wakefulness')
+    awake_to_dormant: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_awake_to_dormant')
     awake: Immobile = _at(Immobile, '*_awake_supply')
     dormant: Immobile = _at(Immobile, '*_dormant_supply')
 
@@ -3879,17 +3880,17 @@ class CointimeActivity(_Node):
     coinblocks_created: BlocksCount[Optional[CoinBlocks]] = _at(BlocksCount, '*_created')
     coinblocks_destroyed: BlocksCount[Optional[CoinBlocks]] = _at(BlocksCount, '*_destroyed')
     coinblocks_stored: BlocksCount[Optional[CoinBlocks]] = _at(BlocksCount, '*_stored')
-    liveliness: SeriesPattern1[Optional[Ratio64]] = _at(SeriesPattern1, 'liveliness')
-    vaultedness: SeriesPattern1[Optional[Ratio64]] = _at(SeriesPattern1, 'vaultedness')
-    liveliness_to_vaultedness: SeriesPattern1[Optional[Ratio64]] = _at(SeriesPattern1, 'liveliness_to_vaultedness')
+    liveliness: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'liveliness')
+    vaultedness: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'vaultedness')
+    liveliness_to_vaultedness: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'liveliness_to_vaultedness')
     concurrent_liveliness: InputsPerSecond[Optional[Ratio]] = _at(InputsPerSecond, 'concurrent_liveliness')
 
 
 class AdjustedSopr(_Node):
-    _24h: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_sopr_24h')
-    _1w: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_sopr_1w')
-    _1m: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_sopr_1m')
-    _1y: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_sopr_1y')
+    _24h: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_sopr_24h')
+    _1w: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_sopr_1w')
+    _1m: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_sopr_1m')
+    _1y: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_sopr_1y')
     value_created: BlocksCount[Optional[Dollars]] = _at(BlocksCount, '*_value_created')
     value_destroyed: BlocksCount[Optional[Dollars]] = _at(BlocksCount, '*_value_destroyed')
 
@@ -3899,10 +3900,10 @@ class AllRealized(_Node):
     loss: BlocksCount[Optional[Dollars]] = _at(BlocksCount, '*_realized_loss')
     net_pnl: BlocksCount[Optional[Dollars]] = _at(BlocksCount, '*_net_realized_pnl')
     gross_pnl: BlocksCount[Optional[Dollars]] = _at(BlocksCount, '*_gross_realized_pnl')
-    profit_to_loss: InputsPerSecond[Optional[Ratio]] = _at(InputsPerSecond, '*_realized_profit_to_loss')
+    profit_to_loss: InputsPerSecond[Optional[Multiple]] = _at(InputsPerSecond, '*_realized_profit_to_loss')
     value_destroyed: BlocksCount[Optional[Dollars]] = _at(BlocksCount, '*_value_destroyed')
     peak_regret: BlocksCount[Optional[Dollars]] = _at(BlocksCount, '*_realized_peak_regret')
-    sopr: InputsPerSecond[Optional[Ratio]] = _at(InputsPerSecond, '*_sopr')
+    sopr: InputsPerSecond[Optional[Multiple]] = _at(InputsPerSecond, '*_sopr')
     adjusted_sopr: AdjustedSopr = _at(AdjustedSopr, '*_adjusted')
     sell_side_risk_ratio: InputsPerSecond[Optional[Ratio]] = _at(InputsPerSecond, '*_sell_side_risk_ratio')
 
@@ -4180,7 +4181,7 @@ class Age(_Node):
     vintages: Vintages = _at(Vintages, 'vintage')
 
 
-class Multiple(_Node):
+class PoliciesMultiple(_Node):
     output_count: BlocksCount[Count] = _at(BlocksCount, '*_output_count')
     data_bytes: DataBytes = _at(DataBytes, '*_data_bytes')
     tx_count: BlocksCount[Count] = _at(BlocksCount, '*_tx_count')
@@ -4189,37 +4190,37 @@ class Multiple(_Node):
 
 
 class Policies(_Node):
-    pre_v30_standard: Multiple = _at(Multiple, '*_pre_v30_standard')
-    pre_v30_nonstandard: Multiple = _at(Multiple, '*_pre_v30_nonstandard')
-    oversized: Multiple = _at(Multiple, '*_oversized')
-    multiple: Multiple = _at(Multiple, '*_multiple')
+    pre_v30_standard: PoliciesMultiple = _at(PoliciesMultiple, '*_pre_v30_standard')
+    pre_v30_nonstandard: PoliciesMultiple = _at(PoliciesMultiple, '*_pre_v30_nonstandard')
+    oversized: PoliciesMultiple = _at(PoliciesMultiple, '*_oversized')
+    multiple: PoliciesMultiple = _at(PoliciesMultiple, '*_multiple')
 
 
 class Protocols(_Node):
-    runes: Multiple = _at(Multiple, '*_runes')
-    witness_commitment: Multiple = _at(Multiple, '*_witness_commitment')
-    veri_block: Multiple = _at(Multiple, '*_veri_block')
-    omni: Multiple = _at(Multiple, '*_omni')
-    stacks: Multiple = _at(Multiple, '*_stacks')
-    blockstack: Multiple = _at(Multiple, '*_blockstack')
-    colu: Multiple = _at(Multiple, '*_colu')
-    open_assets: Multiple = _at(Multiple, '*_open_assets')
-    komodo: Multiple = _at(Multiple, '*_komodo')
-    coin_spark: Multiple = _at(Multiple, '*_coin_spark')
-    poet: Multiple = _at(Multiple, '*_poet')
-    docproof: Multiple = _at(Multiple, '*_docproof')
-    open_timestamps: Multiple = _at(Multiple, '*_open_timestamps')
-    factom: Multiple = _at(Multiple, '*_factom')
-    eternity_wall: Multiple = _at(Multiple, '*_eternity_wall')
-    memo: Multiple = _at(Multiple, '*_memo')
-    bitproof: Multiple = _at(Multiple, '*_bitproof')
-    ascribe: Multiple = _at(Multiple, '*_ascribe')
-    stampery: Multiple = _at(Multiple, '*_stampery')
-    epobc: Multiple = _at(Multiple, '*_epobc')
-    bare_hash: Multiple = _at(Multiple, '*_bare_hash')
-    text: Multiple = _at(Multiple, '*_text')
-    empty: Multiple = _at(Multiple, '*_empty')
-    unknown: Multiple = _at(Multiple, '*_unknown')
+    runes: PoliciesMultiple = _at(PoliciesMultiple, '*_runes')
+    witness_commitment: PoliciesMultiple = _at(PoliciesMultiple, '*_witness_commitment')
+    veri_block: PoliciesMultiple = _at(PoliciesMultiple, '*_veri_block')
+    omni: PoliciesMultiple = _at(PoliciesMultiple, '*_omni')
+    stacks: PoliciesMultiple = _at(PoliciesMultiple, '*_stacks')
+    blockstack: PoliciesMultiple = _at(PoliciesMultiple, '*_blockstack')
+    colu: PoliciesMultiple = _at(PoliciesMultiple, '*_colu')
+    open_assets: PoliciesMultiple = _at(PoliciesMultiple, '*_open_assets')
+    komodo: PoliciesMultiple = _at(PoliciesMultiple, '*_komodo')
+    coin_spark: PoliciesMultiple = _at(PoliciesMultiple, '*_coin_spark')
+    poet: PoliciesMultiple = _at(PoliciesMultiple, '*_poet')
+    docproof: PoliciesMultiple = _at(PoliciesMultiple, '*_docproof')
+    open_timestamps: PoliciesMultiple = _at(PoliciesMultiple, '*_open_timestamps')
+    factom: PoliciesMultiple = _at(PoliciesMultiple, '*_factom')
+    eternity_wall: PoliciesMultiple = _at(PoliciesMultiple, '*_eternity_wall')
+    memo: PoliciesMultiple = _at(PoliciesMultiple, '*_memo')
+    bitproof: PoliciesMultiple = _at(PoliciesMultiple, '*_bitproof')
+    ascribe: PoliciesMultiple = _at(PoliciesMultiple, '*_ascribe')
+    stampery: PoliciesMultiple = _at(PoliciesMultiple, '*_stampery')
+    epobc: PoliciesMultiple = _at(PoliciesMultiple, '*_epobc')
+    bare_hash: PoliciesMultiple = _at(PoliciesMultiple, '*_bare_hash')
+    text: PoliciesMultiple = _at(PoliciesMultiple, '*_text')
+    empty: PoliciesMultiple = _at(PoliciesMultiple, '*_empty')
+    unknown: PoliciesMultiple = _at(PoliciesMultiple, '*_unknown')
 
 
 class OpReturn(_Node):

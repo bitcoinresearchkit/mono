@@ -1,5 +1,5 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{PriceRatio, Ratio};
+use bitview_primitives::{Multiple, PriceRatio};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, PriceWithRatio};
 use brk_error::Result;
@@ -45,7 +45,7 @@ pub struct SmaVecs<M: StorageMode = Rw> {
     /// average, computed from cent-precision prices; null before the first exchange
     /// price (block 74,641), approximate while prices are a few cents.
     #[traversable(wrap = "200d", rename = "mayer_multiple")]
-    pub mayer_multiple: LazyPerBlock<Ratio, Ratio>,
+    pub mayer_multiple: LazyPerBlock<Multiple>,
 }
 
 const VERSION: Version = Version::TWO;

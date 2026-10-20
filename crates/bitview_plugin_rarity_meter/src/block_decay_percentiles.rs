@@ -1,5 +1,5 @@
 use bitview_compute::FenwickTree;
-use bitview_primitives::Ratio;
+use bitview_primitives::PriceRatio;
 
 pub const START_HEIGHT: usize = 210_000;
 const HALF_LIFE_BLOCKS: usize = 210_000;
@@ -35,8 +35,8 @@ impl BlockDecayPercentiles {
     }
 
     #[inline]
-    fn to_bucket(value: f32) -> usize {
-        (value as f64 / BUCKET_WIDTH)
+    fn to_bucket(value: f64) -> usize {
+        (value / BUCKET_WIDTH)
             .round()
             .clamp(0.0, (TREE_SIZE - 1) as f64) as usize
     }
@@ -46,10 +46,10 @@ impl BlockDecayPercentiles {
         2.0_f64.powf((height - START_HEIGHT) as f64 / HALF_LIFE_BLOCKS as f64)
     }
 
-    pub fn add_bulk(&mut self, start_height: usize, values: &[Ratio]) {
+    pub fn add_bulk(&mut self, start_height: usize, values: &[PriceRatio]) {
         for (offset, &value) in values.iter().enumerate() {
             self.len += 1;
-            let value = *value;
+            let value = f64::from(value);
             if value.is_nan() {
                 continue;
             }
@@ -61,7 +61,7 @@ impl BlockDecayPercentiles {
     }
 
     #[inline]
-    pub fn add(&mut self, height: usize, value: f32) {
+    pub fn add(&mut self, height: usize, value: f64) {
         self.len += 1;
         if value.is_nan() {
             return;

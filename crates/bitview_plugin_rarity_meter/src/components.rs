@@ -212,19 +212,19 @@ impl Components {
         let jobs = [
             (
                 &mut all.realized_price,
-                &cohorts.all.cost_basis.per_coin.avg.relative.ratio.height,
+                &cohorts.all.cost_basis.per_coin.avg.relative.fixed.height,
             ),
             (
                 &mut all.capitalized_price,
-                &cohorts.all.cost_basis.per_dollar.avg.relative.ratio.height,
+                &cohorts.all.cost_basis.per_dollar.avg.relative.fixed.height,
             ),
             (
                 &mut sth.realized_price,
-                &cohorts.sth.cost_basis.per_coin.avg.relative.ratio.height,
+                &cohorts.sth.cost_basis.per_coin.avg.relative.fixed.height,
             ),
             (
                 &mut sth.capitalized_price,
-                &cohorts.sth.cost_basis.per_dollar.avg.relative.ratio.height,
+                &cohorts.sth.cost_basis.per_dollar.avg.relative.fixed.height,
             ),
             (
                 &mut under_6m.realized_price,
@@ -234,7 +234,7 @@ impl Components {
                     .per_coin
                     .avg
                     .relative
-                    .ratio
+                    .fixed
                     .height,
             ),
             (
@@ -245,24 +245,24 @@ impl Components {
                     .per_dollar
                     .avg
                     .relative
-                    .ratio
+                    .fixed
                     .height,
             ),
             (
                 &mut awake.realized_price,
-                &awake_cohort.cost_basis.per_coin.avg.relative.ratio.height,
+                &awake_cohort.cost_basis.per_coin.avg.relative.fixed.height,
             ),
             (
                 &mut mobile.realized_price,
-                &mobile_cohort.cost_basis.per_coin.avg.relative.ratio.height,
+                &mobile_cohort.cost_basis.per_coin.avg.relative.fixed.height,
             ),
             (
                 vaulted_price,
-                &cointime.prices.vaulted.relative.ratio.height,
+                &cointime.prices.vaulted.relative.fixed.height,
             ),
             (
                 true_market_mean,
-                &cointime.prices.true_market_mean.relative.ratio.height,
+                &cointime.prices.true_market_mean.relative.fixed.height,
             ),
         ];
         let has_work = jobs
