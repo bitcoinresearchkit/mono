@@ -1,7 +1,8 @@
+use bitview_primitives::Count;
 use bitview_vecs::{IndexSources, LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
-use brk_types::Version;
-use vecdb::{Database, ImportableVec, PcoVec};
+use brk_types::{Height, Version};
+use vecdb::{Database, ImportableVec, PcoVec, ReadableCloneableVec};
 
 use super::Vecs;
 use crate::{distribution::PerTxDistribution, flagged::Classified};
@@ -17,16 +18,18 @@ impl Vecs {
         version: Version,
         mappings: &IndexSources,
         window_starts: &Windows<&LazyWindowStartVec>,
+        all_txs: &impl ReadableCloneableVec<Height, Count>,
     ) -> Result<Self> {
         let fee_version = version + VERSION;
-        let cpfp_role = |flag, count| {
+        let cpfp_role = |flag, kind| {
             Classified::import(
                 db,
                 flag,
-                count,
+                kind,
                 version + CHUNK_VERSION,
                 mappings,
                 window_starts,
+                all_txs,
             )
         };
 
@@ -42,8 +45,8 @@ impl Vecs {
                 fee_version + CHUNK_VERSION,
                 mappings,
             )?,
-            cpfp_parent: cpfp_role("is_cpfp_parent", "cpfp_parent_tx_count")?,
-            cpfp_child: cpfp_role("is_cpfp_child", "cpfp_child_tx_count")?,
+            cpfp_parent: cpfp_role("is_cpfp_parent", "cpfp_parent_tx")?,
+            cpfp_child: cpfp_role("is_cpfp_child", "cpfp_child_tx")?,
         })
     }
 }

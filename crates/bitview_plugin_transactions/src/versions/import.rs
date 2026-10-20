@@ -1,10 +1,12 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling, shapes::Windows};
+use bitview_primitives::Count;
+use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
-use brk_types::Version;
-use vecdb::Database;
+use brk_types::{Height, Version};
+use vecdb::{Database, ReadableCloneableVec};
 
 use super::Vecs;
+use crate::flagged::TxCount;
 
 impl Vecs {
     pub(crate) fn import(
@@ -12,21 +14,23 @@ impl Vecs {
         version: Version,
         mappings: &MappingsVecs,
         window_starts: &Windows<&LazyWindowStartVec>,
+        all_txs: &impl ReadableCloneableVec<Height, Count>,
     ) -> Result<Self> {
-        let import = |name| {
-            PerBlockCumulativeRolling::import(
+        let import = |kind| {
+            TxCount::import(
                 db,
-                name,
+                kind,
                 version + Version::ONE,
                 mappings,
                 window_starts,
+                all_txs,
             )
         };
         Ok(Vecs {
-            v1: import("v1_tx_count")?,
-            v2: import("v2_tx_count")?,
-            v3: import("v3_tx_count")?,
-            other: import("other_version_tx_count")?,
+            v1: import("v1_tx")?,
+            v2: import("v2_tx")?,
+            v3: import("v3_tx")?,
+            other: import("other_version_tx")?,
         })
     }
 }

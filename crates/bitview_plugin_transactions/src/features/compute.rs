@@ -16,14 +16,25 @@ impl Vecs {
             exit,
         )?;
         macro_rules! compute {
-            ($($feature:ident),*) => {$(
-                self.$feature.count.compute_cumulative_transformed(
+            ($($count:expr, $feature:ident);*) => {$(
+                $count.compute_cumulative_transformed(
                     start,
                     &*source.$feature.block,
                     Count::from,
                     exit,
                 )?;
             )*};
+            (
+                scripts: [$($script:ident),*],
+                signatures: [$($signature:ident),*],
+                others: [$($other:ident),*]
+            ) => {
+                compute!(
+                    $(self.scripts.$script.count, $script);*;
+                    $(self.signatures.$signature.count, $signature);*;
+                    $(self.$other.count, $other);*
+                )
+            };
         }
         with_flagged_features!(compute);
         for (count, source) in [

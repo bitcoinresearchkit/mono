@@ -2558,28 +2558,6 @@ const _Extremes = _s({
  * @typedef {{
  *   ratio: SeriesPattern1<?Multiple>,
  *   band: SeriesPattern1<?Dollars>,
- * }} TrueMarketMeanMedian
- */
-const _TrueMarketMeanMedian = _s({
-  ratio: [_i1, 'true_market_mean_rarity_ratio_*'],
-  band: [_i1, 'true_market_mean_rarity_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
- * }} VaultedPriceMedian
- */
-const _VaultedPriceMedian = _s({
-  ratio: [_i1, 'vaulted_price_rarity_ratio_*'],
-  band: [_i1, 'vaulted_price_rarity_*'],
-});
-
-/**
- * @typedef {{
- *   ratio: SeriesPattern1<?Multiple>,
- *   band: SeriesPattern1<?Dollars>,
  * }} MobileMedianCapitalizedPriceMedian
  */
 const _MobileMedianCapitalizedPriceMedian = _s({
@@ -2684,6 +2662,28 @@ const _SthCapitalizedPriceMedian = _s({
 const _SthRealizedPriceMedian = _s({
   ratio: [_i1, 'sth_realized_price_rarity_ratio_*'],
   band: [_i1, 'sth_realized_price_rarity_*'],
+});
+
+/**
+ * @typedef {{
+ *   ratio: SeriesPattern1<?Multiple>,
+ *   band: SeriesPattern1<?Dollars>,
+ * }} TrueMarketMeanMedian
+ */
+const _TrueMarketMeanMedian = _s({
+  ratio: [_i1, 'true_market_mean_rarity_ratio_*'],
+  band: [_i1, 'true_market_mean_rarity_*'],
+});
+
+/**
+ * @typedef {{
+ *   ratio: SeriesPattern1<?Multiple>,
+ *   band: SeriesPattern1<?Dollars>,
+ * }} VaultedPriceMedian
+ */
+const _VaultedPriceMedian = _s({
+  ratio: [_i1, 'vaulted_price_rarity_ratio_*'],
+  band: [_i1, 'vaulted_price_rarity_*'],
 });
 
 /**
@@ -2803,10 +2803,10 @@ const _AllRealizedPriceMedian = _s({
  *   pct99: A,
  *   pct995: A,
  *   pct999: A,
- * }} ComponentsTrueMarketMean
+ * }} CapitalizedPrice
  */
 /** @type {_Make} */
-const _ComponentsTrueMarketMean = (c, b, f0) => _n(c, b, {
+const _CapitalizedPrice = (c, b, f0) => _n(c, b, {
   pct01: [f0, 'pct0_1'],
   pct05: [f0, 'pct0_5'],
   pct1: [f0, 'pct1'],
@@ -2830,73 +2830,86 @@ const _ComponentsTrueMarketMean = (c, b, f0) => _n(c, b, {
 
 /**
  * @typedef {{
- *   realizedPrice: ComponentsTrueMarketMean<MobileRealizedPriceMedian>,
+ *   realizedPrice: CapitalizedPrice<MobileRealizedPriceMedian>,
  *   medianRealizedPrice: MedianCapitalizedPrice<MobileMedianRealizedPriceMedian>,
  *   medianCapitalizedPrice: MedianCapitalizedPrice<MobileMedianCapitalizedPriceMedian>,
  * }} ComponentsMobile
  */
 const _ComponentsMobile = _s({
-  realizedPrice: [(c, b) => _ComponentsTrueMarketMean(c, b, _MobileRealizedPriceMedian), 'pct99'],
+  realizedPrice: [(c, b) => _CapitalizedPrice(c, b, _MobileRealizedPriceMedian), 'pct99'],
   medianRealizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, _MobileMedianRealizedPriceMedian), '*_realized_price'],
   medianCapitalizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, _MobileMedianCapitalizedPriceMedian), '*_capitalized_price'],
 });
 
 /**
  * @typedef {{
- *   realizedPrice: ComponentsTrueMarketMean<AwakeRealizedPriceMedian>,
+ *   realizedPrice: CapitalizedPrice<AwakeRealizedPriceMedian>,
  * }} ComponentsAwake
  */
 const _ComponentsAwake = _s({
-  realizedPrice: [(c, b) => _ComponentsTrueMarketMean(c, b, _AwakeRealizedPriceMedian), '*'],
+  realizedPrice: [(c, b) => _CapitalizedPrice(c, b, _AwakeRealizedPriceMedian), '*'],
 });
 
 /**
  * @typedef {{
- *   realizedPrice: ComponentsTrueMarketMean<Under6mRealizedPriceMedian>,
- *   capitalizedPrice: ComponentsTrueMarketMean<Under6mCapitalizedPriceMedian>,
+ *   realizedPrice: CapitalizedPrice<Under6mRealizedPriceMedian>,
+ *   capitalizedPrice: CapitalizedPrice<Under6mCapitalizedPriceMedian>,
  * }} Under6m
  */
 const _Under6m = _s({
-  realizedPrice: [(c, b) => _ComponentsTrueMarketMean(c, b, _Under6mRealizedPriceMedian), '*'],
-  capitalizedPrice: [(c, b) => _ComponentsTrueMarketMean(c, b, _Under6mCapitalizedPriceMedian), '*'],
+  realizedPrice: [(c, b) => _CapitalizedPrice(c, b, _Under6mRealizedPriceMedian), '*'],
+  capitalizedPrice: [(c, b) => _CapitalizedPrice(c, b, _Under6mCapitalizedPriceMedian), '*'],
 });
 
 /**
- * @template A, B, C, D
  * @typedef {{
- *   realizedPrice: ComponentsTrueMarketMean<A>,
- *   capitalizedPrice: ComponentsTrueMarketMean<B>,
- *   medianRealizedPrice: MedianCapitalizedPrice<C>,
- *   medianCapitalizedPrice: MedianCapitalizedPrice<D>,
+ *   realizedPrice: CapitalizedPrice<SthRealizedPriceMedian>,
+ *   capitalizedPrice: CapitalizedPrice<SthCapitalizedPriceMedian>,
+ *   medianRealizedPrice: MedianCapitalizedPrice<SthMedianRealizedPriceMedian>,
+ *   medianCapitalizedPrice: MedianCapitalizedPrice<SthMedianCapitalizedPriceMedian>,
+ * }} Sth
+ */
+const _Sth = _s({
+  realizedPrice: [(c, b) => _CapitalizedPrice(c, b, _SthRealizedPriceMedian), '*'],
+  capitalizedPrice: [(c, b) => _CapitalizedPrice(c, b, _SthCapitalizedPriceMedian), '*'],
+  medianRealizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, _SthMedianRealizedPriceMedian), 'sth_median_realized_price'],
+  medianCapitalizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, _SthMedianCapitalizedPriceMedian), 'sth_median_capitalized_price'],
+});
+
+/**
+ * @typedef {{
+ *   realizedPrice: CapitalizedPrice<AllRealizedPriceMedian>,
+ *   capitalizedPrice: CapitalizedPrice<AllCapitalizedPriceMedian>,
+ *   medianRealizedPrice: MedianCapitalizedPrice<AllMedianRealizedPriceMedian>,
+ *   medianCapitalizedPrice: MedianCapitalizedPrice<AllMedianCapitalizedPriceMedian>,
+ *   vaultedPrice: CapitalizedPrice<VaultedPriceMedian>,
+ *   trueMarketMean: CapitalizedPrice<TrueMarketMeanMedian>,
  * }} ComponentsAll
  */
-/** @type {_Make} */
-const _ComponentsAll = (c, b, f0, f1, f2, f3) => _n(c, b, {
-  realizedPrice: [(c, b) => _ComponentsTrueMarketMean(c, b, f0), 'pct99'],
-  capitalizedPrice: [(c, b) => _ComponentsTrueMarketMean(c, b, f1), 'pct99'],
-  medianRealizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, f2), '*_realized_price'],
-  medianCapitalizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, f3), '*_capitalized_price'],
+const _ComponentsAll = _s({
+  realizedPrice: [(c, b) => _CapitalizedPrice(c, b, _AllRealizedPriceMedian), '*'],
+  capitalizedPrice: [(c, b) => _CapitalizedPrice(c, b, _AllCapitalizedPriceMedian), '*'],
+  medianRealizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, _AllMedianRealizedPriceMedian), 'median_realized_price'],
+  medianCapitalizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, _AllMedianCapitalizedPriceMedian), 'median_capitalized_price'],
+  vaultedPrice: [(c, b) => _CapitalizedPrice(c, b, _VaultedPriceMedian), '*'],
+  trueMarketMean: [(c, b) => _CapitalizedPrice(c, b, _TrueMarketMeanMedian), '*'],
 });
 
 /**
  * @typedef {{
- *   all: ComponentsAll<AllRealizedPriceMedian, AllCapitalizedPriceMedian, AllMedianRealizedPriceMedian, AllMedianCapitalizedPriceMedian>,
- *   sth: ComponentsAll<SthRealizedPriceMedian, SthCapitalizedPriceMedian, SthMedianRealizedPriceMedian, SthMedianCapitalizedPriceMedian>,
+ *   all: ComponentsAll,
+ *   sth: Sth,
  *   under6m: Under6m,
  *   awake: ComponentsAwake,
  *   mobile: ComponentsMobile,
- *   vaultedPrice: ComponentsTrueMarketMean<VaultedPriceMedian>,
- *   trueMarketMean: ComponentsTrueMarketMean<TrueMarketMeanMedian>,
  * }} Components
  */
 const _Components = _s({
-  all: [(c, b) => _ComponentsAll(c, b, _AllRealizedPriceMedian, _AllCapitalizedPriceMedian, _AllMedianRealizedPriceMedian, _AllMedianCapitalizedPriceMedian), 'median'],
-  sth: [(c, b) => _ComponentsAll(c, b, _SthRealizedPriceMedian, _SthCapitalizedPriceMedian, _SthMedianRealizedPriceMedian, _SthMedianCapitalizedPriceMedian), 'sth_median'],
+  all: [_ComponentsAll, '*'],
+  sth: [_Sth, '*'],
   under6m: [_Under6m, '*'],
   awake: [_ComponentsAwake, '*'],
   mobile: [_ComponentsMobile, 'mobile_median'],
-  vaultedPrice: [(c, b) => _ComponentsTrueMarketMean(c, b, _VaultedPriceMedian), '*'],
-  trueMarketMean: [(c, b) => _ComponentsTrueMarketMean(c, b, _TrueMarketMeanMedian), '*'],
 });
 
 /**
@@ -2991,9 +3004,9 @@ const _Bedrock = _s({
  *   ratio: SeriesPattern1<?Multiple>,
  *   aviv: SeriesPattern1<?Multiple>,
  *   avivNupl: SeriesPattern1<?Ratio>,
- * }} PricesTrueMarketMean
+ * }} TrueMarketMean
  */
-const _PricesTrueMarketMean = _s({
+const _TrueMarketMean = _s({
   block: [_i1, '*'],
   ratio: [_i1, '*_ratio'],
   aviv: [_i1, 'aviv'],
@@ -3017,14 +3030,14 @@ const _PricesActive = _s({
  * @typedef {{
  *   vaulted: PricesActive,
  *   active: PricesActive,
- *   trueMarketMean: PricesTrueMarketMean,
+ *   trueMarketMean: TrueMarketMean,
  *   cointime: PricesActive,
  * }} Prices
  */
 const _Prices = _s({
   vaulted: [_PricesActive, '*'],
   active: [_PricesActive, 'active'],
-  trueMarketMean: [_PricesTrueMarketMean, 'true_market_mean'],
+  trueMarketMean: [_TrueMarketMean, 'true_market_mean'],
   cointime: [_PricesActive, 'cointime'],
 });
 
@@ -4703,6 +4716,26 @@ const _DataBytes = _s({
  *   block: SeriesPattern18<Count>,
  *   cumulative: SeriesPattern1<Count>,
  *   sum: InputsPerSecond<Count>,
+ *   share: ChainShare,
+ *   fees: OpReturnFees,
+ * }} Inscription
+ */
+const _Inscription = _s({
+  flag: [_i19, 'has_*'],
+  block: [_i18, '*_tx_count'],
+  cumulative: [_i1, '*_tx_count_cumulative'],
+  sum: [_InputsPerSecond, '*_tx_count_sum'],
+  share: [_ChainShare, '*_tx_share'],
+  fees: [_OpReturnFees, '*'],
+});
+
+/**
+ * @typedef {{
+ *   flag: SeriesPattern19<Boolean>,
+ *   block: SeriesPattern18<Count>,
+ *   cumulative: SeriesPattern1<Count>,
+ *   sum: InputsPerSecond<Count>,
+ *   share: ChainShare,
  * }} Nonstandard
  */
 const _Nonstandard = _s({
@@ -4710,6 +4743,7 @@ const _Nonstandard = _s({
   block: [_i18, '*_tx_count'],
   cumulative: [_i1, '*_tx_count_cumulative'],
   sum: [_InputsPerSecond, '*_tx_count_sum'],
+  share: [_ChainShare, '*_tx_share'],
 });
 
 /**
@@ -4744,17 +4778,105 @@ const _TransactionsFees = _s({
 
 /**
  * @typedef {{
+ *   block: SeriesPattern18<Count>,
+ *   cumulative: SeriesPattern1<Count>,
+ *   sum: InputsPerSecond<Count>,
+ *   share: ChainShare,
+ * }} TransactionsFeaturesOneInput
+ */
+const _TransactionsFeaturesOneInput = _s({
+  block: [_i18, '*_count'],
+  cumulative: [_i1, '*_count_cumulative'],
+  sum: [_InputsPerSecond, '*_count_sum'],
+  share: [_ChainShare, '*_share'],
+});
+
+/**
+ * @typedef {{
  *   flag: SeriesPattern19<Boolean>,
  *   block: SeriesPattern18<Count>,
  *   cumulative: SeriesPattern1<Count>,
  *   sum: InputsPerSecond<Count>,
- * }} TransactionsFeaturesAnnex
+ *   share: ChainShare,
+ * }} DustOutput
  */
-const _TransactionsFeaturesAnnex = _s({
+const _DustOutput = _s({
   flag: [_i19, 'has_*'],
   block: [_i18, '*_tx_count'],
   cumulative: [_i1, '*_tx_count_cumulative'],
   sum: [_InputsPerSecond, '*_tx_count_sum'],
+  share: [_ChainShare, '*_tx_share'],
+});
+
+/**
+ * @typedef {{
+ *   annex: DustOutput,
+ *   sighashAll: DustOutput,
+ *   sighashNone: DustOutput,
+ *   sighashSingle: DustOutput,
+ *   sighashDefault: DustOutput,
+ *   sighashAnyoneCanPay: DustOutput,
+ * }} Signatures
+ */
+const _Signatures = _s({
+  annex: [_DustOutput, 'annex'],
+  sighashAll: [_DustOutput, '*_all'],
+  sighashNone: [_DustOutput, '*_none'],
+  sighashSingle: [_DustOutput, '*_single'],
+  sighashDefault: [_DustOutput, '*_default'],
+  sighashAnyoneCanPay: [_DustOutput, '*_anyone_can_pay'],
+});
+
+/**
+ * @typedef {{
+ *   p2pk: DustOutput,
+ *   p2ms: DustOutput,
+ *   p2pkh: DustOutput,
+ *   p2sh: DustOutput,
+ *   p2wpkh: DustOutput,
+ *   p2wsh: DustOutput,
+ *   p2tr: DustOutput,
+ *   p2a: DustOutput,
+ *   emptyScript: DustOutput,
+ *   unknownScript: DustOutput,
+ *   fakePubkey: DustOutput,
+ *   fakeScripthash: DustOutput,
+ * }} FeaturesScripts
+ */
+const _FeaturesScripts = _s({
+  p2pk: [_DustOutput, 'p2pk'],
+  p2ms: [_DustOutput, 'p2ms'],
+  p2pkh: [_DustOutput, 'p2pkh'],
+  p2sh: [_DustOutput, 'p2sh'],
+  p2wpkh: [_DustOutput, 'p2wpkh'],
+  p2wsh: [_DustOutput, 'p2wsh'],
+  p2tr: [_DustOutput, 'p2tr'],
+  p2a: [_DustOutput, 'p2a'],
+  emptyScript: [_DustOutput, 'empty_*'],
+  unknownScript: [_DustOutput, 'unknown_*'],
+  fakePubkey: [_DustOutput, 'fake_pubkey'],
+  fakeScripthash: [_DustOutput, 'fake_scripthash'],
+});
+
+/**
+ * @typedef {{
+ *   scripts: FeaturesScripts,
+ *   signatures: Signatures,
+ *   segwit: TransactionsFeaturesOneInput,
+ *   explicitlyRbf: Nonstandard,
+ *   dustOutput: DustOutput,
+ *   oneInput: TransactionsFeaturesOneInput,
+ *   oneOutput: TransactionsFeaturesOneInput,
+ * }} TransactionsFeatures
+ */
+const _TransactionsFeatures = _s({
+  scripts: [_FeaturesScripts, 'script'],
+  signatures: [_Signatures, 'sighash'],
+  segwit: [_TransactionsFeaturesOneInput, 'segwit_*'],
+  explicitlyRbf: [_Nonstandard, 'explicitly_rbf'],
+  dustOutput: [_DustOutput, 'dust_output'],
+  oneInput: [_TransactionsFeaturesOneInput, 'one_input_*'],
+  oneOutput: [_TransactionsFeaturesOneInput, 'one_output_*'],
 });
 
 /**
@@ -5640,72 +5762,6 @@ const _OpReturn = _s({
 
 /**
  * @typedef {{
- *   flag: SeriesPattern19<Boolean>,
- *   count: BlocksCount<Count>,
- *   fees: OpReturnFees,
- * }} Inscription
- */
-const _Inscription = _s({
-  flag: [_i19, 'has_*'],
-  count: [_BlocksCount, '*_tx_count'],
-  fees: [_OpReturnFees, '*'],
-});
-
-/**
- * @typedef {{
- *   p2pk: TransactionsFeaturesAnnex,
- *   p2ms: TransactionsFeaturesAnnex,
- *   p2pkh: TransactionsFeaturesAnnex,
- *   p2sh: TransactionsFeaturesAnnex,
- *   p2wpkh: TransactionsFeaturesAnnex,
- *   p2wsh: TransactionsFeaturesAnnex,
- *   p2tr: TransactionsFeaturesAnnex,
- *   p2a: TransactionsFeaturesAnnex,
- *   emptyScript: TransactionsFeaturesAnnex,
- *   unknownScript: TransactionsFeaturesAnnex,
- *   fakePubkey: TransactionsFeaturesAnnex,
- *   fakeScripthash: TransactionsFeaturesAnnex,
- *   segwit: BlocksCount<Count>,
- *   annex: TransactionsFeaturesAnnex,
- *   sighashAll: TransactionsFeaturesAnnex,
- *   sighashNone: TransactionsFeaturesAnnex,
- *   sighashSingle: TransactionsFeaturesAnnex,
- *   sighashDefault: TransactionsFeaturesAnnex,
- *   sighashAnyoneCanPay: TransactionsFeaturesAnnex,
- *   explicitlyRbf: Nonstandard,
- *   dustOutput: TransactionsFeaturesAnnex,
- *   oneInput: BlocksCount<Count>,
- *   oneOutput: BlocksCount<Count>,
- * }} TransactionsFeatures
- */
-const _TransactionsFeatures = _s({
-  p2pk: [_TransactionsFeaturesAnnex, 'p2pk'],
-  p2ms: [_TransactionsFeaturesAnnex, 'p2ms'],
-  p2pkh: [_TransactionsFeaturesAnnex, 'p2pkh'],
-  p2sh: [_TransactionsFeaturesAnnex, 'p2sh'],
-  p2wpkh: [_TransactionsFeaturesAnnex, 'p2wpkh'],
-  p2wsh: [_TransactionsFeaturesAnnex, 'p2wsh'],
-  p2tr: [_TransactionsFeaturesAnnex, 'p2tr'],
-  p2a: [_TransactionsFeaturesAnnex, 'p2a'],
-  emptyScript: [_TransactionsFeaturesAnnex, 'empty_script'],
-  unknownScript: [_TransactionsFeaturesAnnex, 'unknown_script'],
-  fakePubkey: [_TransactionsFeaturesAnnex, 'fake_pubkey'],
-  fakeScripthash: [_TransactionsFeaturesAnnex, 'fake_scripthash'],
-  segwit: [_BlocksCount, 'segwit_tx_count'],
-  annex: [_TransactionsFeaturesAnnex, 'annex'],
-  sighashAll: [_TransactionsFeaturesAnnex, '*_all'],
-  sighashNone: [_TransactionsFeaturesAnnex, '*_none'],
-  sighashSingle: [_TransactionsFeaturesAnnex, '*_single'],
-  sighashDefault: [_TransactionsFeaturesAnnex, '*_default'],
-  sighashAnyoneCanPay: [_TransactionsFeaturesAnnex, '*_anyone_can_pay'],
-  explicitlyRbf: [_Nonstandard, 'explicitly_rbf'],
-  dustOutput: [_TransactionsFeaturesAnnex, 'dust_output'],
-  oneInput: [_BlocksCount, 'one_input_tx_count'],
-  oneOutput: [_BlocksCount, 'one_output_tx_count'],
-});
-
-/**
- * @typedef {{
  *   count: BlocksCount<Count>,
  *   share: ChainShare,
  *   txCount: BlocksCount<Count>,
@@ -6349,9 +6405,9 @@ const _ScriptsEmpty = _s({
  *   empty: ScriptsEmpty,
  *   p2ms: ScriptsP2ms,
  *   unknown: ScriptsUnknown,
- * }} Scripts
+ * }} IndexerScripts
  */
-const _Scripts = _s({
+const _IndexerScripts = _s({
   empty: [_ScriptsEmpty, '*'],
   p2ms: [_ScriptsP2ms, 'p2ms'],
   unknown: [_ScriptsUnknown, 'unknown'],
@@ -6507,9 +6563,9 @@ const _IndexerInputs = _s({
 /**
  * @typedef {{
  *   block: SeriesPattern18<Count>,
- * }} OneInput
+ * }} IndexerTransactionsFeaturesOneInput
  */
-const _OneInput = _s({
+const _IndexerTransactionsFeaturesOneInput = _s({
   block: [_i18, '*'],
 });
 
@@ -6540,21 +6596,21 @@ const _Versions = (c, b, f0) => _n(c, b, {
  *   patterns: Patterns,
  *   nonstandard: Nonstandard,
  *   sigopCost: BlocksCount<SigOps>,
- *   versions: Versions<BlocksCount<Count>>,
+ *   versions: Versions<TransactionsFeaturesOneInput>,
  *   volume: OpReturnValue,
  *   perSecond: InputsPerSecond<?PerSecond>,
  * }} Transactions
  */
 const _Transactions = _s({
   count: [_Size, '*_count'],
-  features: [_TransactionsFeatures, 'sighash'],
+  features: [_TransactionsFeatures, '*'],
   vsize: [_Vsize, '*_vsize'],
   fees: [_TransactionsFees, 'fee'],
   inscription: [_Inscription, 'inscription'],
   patterns: [_Patterns, 'coinjoin'],
   nonstandard: [_Nonstandard, 'nonstandard'],
   sigopCost: [_BlocksCount, 'block_sigop_cost'],
-  versions: [(c, b) => _Versions(c, b, _BlocksCount), '*_count'],
+  versions: [(c, b) => _Versions(c, b, _TransactionsFeaturesOneInput), '*'],
   volume: [_OpReturnValue, '*_volume'],
   perSecond: [_InputsPerSecond, '*_per_second'],
 });
@@ -6574,66 +6630,66 @@ const _ExplicitlyRbf = _s({
  * @typedef {{
  *   flag: SeriesPattern19<Boolean>,
  *   block: SeriesPattern18<Count>,
- * }} IndexerTransactionsFeaturesAnnex
+ * }} Annex
  */
-const _IndexerTransactionsFeaturesAnnex = _s({
+const _Annex = _s({
   flag: [_i19, 'has_*'],
   block: [_i18, '*_tx_count'],
 });
 
 /**
  * @typedef {{
- *   p2pk: IndexerTransactionsFeaturesAnnex,
- *   p2ms: IndexerTransactionsFeaturesAnnex,
- *   p2pkh: IndexerTransactionsFeaturesAnnex,
- *   p2sh: IndexerTransactionsFeaturesAnnex,
- *   p2wpkh: IndexerTransactionsFeaturesAnnex,
- *   p2wsh: IndexerTransactionsFeaturesAnnex,
- *   p2tr: IndexerTransactionsFeaturesAnnex,
- *   p2a: IndexerTransactionsFeaturesAnnex,
- *   opReturn: IndexerTransactionsFeaturesAnnex,
- *   emptyScript: IndexerTransactionsFeaturesAnnex,
- *   unknownScript: IndexerTransactionsFeaturesAnnex,
- *   fakePubkey: IndexerTransactionsFeaturesAnnex,
- *   fakeScripthash: IndexerTransactionsFeaturesAnnex,
- *   inscription: IndexerTransactionsFeaturesAnnex,
- *   annex: IndexerTransactionsFeaturesAnnex,
- *   sighashAll: IndexerTransactionsFeaturesAnnex,
- *   sighashNone: IndexerTransactionsFeaturesAnnex,
- *   sighashSingle: IndexerTransactionsFeaturesAnnex,
- *   sighashDefault: IndexerTransactionsFeaturesAnnex,
- *   sighashAnyoneCanPay: IndexerTransactionsFeaturesAnnex,
+ *   p2pk: Annex,
+ *   p2ms: Annex,
+ *   p2pkh: Annex,
+ *   p2sh: Annex,
+ *   p2wpkh: Annex,
+ *   p2wsh: Annex,
+ *   p2tr: Annex,
+ *   p2a: Annex,
+ *   opReturn: Annex,
+ *   emptyScript: Annex,
+ *   unknownScript: Annex,
+ *   fakePubkey: Annex,
+ *   fakeScripthash: Annex,
+ *   inscription: Annex,
+ *   annex: Annex,
+ *   sighashAll: Annex,
+ *   sighashNone: Annex,
+ *   sighashSingle: Annex,
+ *   sighashDefault: Annex,
+ *   sighashAnyoneCanPay: Annex,
  *   explicitlyRbf: ExplicitlyRbf,
- *   dustOutput: IndexerTransactionsFeaturesAnnex,
- *   oneInput: OneInput,
- *   oneOutput: OneInput,
+ *   dustOutput: Annex,
+ *   oneInput: IndexerTransactionsFeaturesOneInput,
+ *   oneOutput: IndexerTransactionsFeaturesOneInput,
  * }} IndexerTransactionsFeatures
  */
 const _IndexerTransactionsFeatures = _s({
-  p2pk: [_IndexerTransactionsFeaturesAnnex, 'p2pk'],
-  p2ms: [_IndexerTransactionsFeaturesAnnex, 'p2ms'],
-  p2pkh: [_IndexerTransactionsFeaturesAnnex, 'p2pkh'],
-  p2sh: [_IndexerTransactionsFeaturesAnnex, 'p2sh'],
-  p2wpkh: [_IndexerTransactionsFeaturesAnnex, 'p2wpkh'],
-  p2wsh: [_IndexerTransactionsFeaturesAnnex, 'p2wsh'],
-  p2tr: [_IndexerTransactionsFeaturesAnnex, 'p2tr'],
-  p2a: [_IndexerTransactionsFeaturesAnnex, 'p2a'],
-  opReturn: [_IndexerTransactionsFeaturesAnnex, 'op_return'],
-  emptyScript: [_IndexerTransactionsFeaturesAnnex, 'empty_script'],
-  unknownScript: [_IndexerTransactionsFeaturesAnnex, 'unknown_script'],
-  fakePubkey: [_IndexerTransactionsFeaturesAnnex, 'fake_pubkey'],
-  fakeScripthash: [_IndexerTransactionsFeaturesAnnex, 'fake_scripthash'],
-  inscription: [_IndexerTransactionsFeaturesAnnex, 'inscription'],
-  annex: [_IndexerTransactionsFeaturesAnnex, 'annex'],
-  sighashAll: [_IndexerTransactionsFeaturesAnnex, '*_all'],
-  sighashNone: [_IndexerTransactionsFeaturesAnnex, '*_none'],
-  sighashSingle: [_IndexerTransactionsFeaturesAnnex, '*_single'],
-  sighashDefault: [_IndexerTransactionsFeaturesAnnex, '*_default'],
-  sighashAnyoneCanPay: [_IndexerTransactionsFeaturesAnnex, '*_anyone_can_pay'],
+  p2pk: [_Annex, 'p2pk'],
+  p2ms: [_Annex, 'p2ms'],
+  p2pkh: [_Annex, 'p2pkh'],
+  p2sh: [_Annex, 'p2sh'],
+  p2wpkh: [_Annex, 'p2wpkh'],
+  p2wsh: [_Annex, 'p2wsh'],
+  p2tr: [_Annex, 'p2tr'],
+  p2a: [_Annex, 'p2a'],
+  opReturn: [_Annex, 'op_return'],
+  emptyScript: [_Annex, 'empty_script'],
+  unknownScript: [_Annex, 'unknown_script'],
+  fakePubkey: [_Annex, 'fake_pubkey'],
+  fakeScripthash: [_Annex, 'fake_scripthash'],
+  inscription: [_Annex, 'inscription'],
+  annex: [_Annex, 'annex'],
+  sighashAll: [_Annex, '*_all'],
+  sighashNone: [_Annex, '*_none'],
+  sighashSingle: [_Annex, '*_single'],
+  sighashDefault: [_Annex, '*_default'],
+  sighashAnyoneCanPay: [_Annex, '*_anyone_can_pay'],
   explicitlyRbf: [_ExplicitlyRbf, 'explicitly_rbf'],
-  dustOutput: [_IndexerTransactionsFeaturesAnnex, 'dust_output'],
-  oneInput: [_OneInput, 'one_input_tx_count'],
-  oneOutput: [_OneInput, 'one_output_tx_count'],
+  dustOutput: [_Annex, 'dust_output'],
+  oneInput: [_IndexerTransactionsFeaturesOneInput, 'one_input_tx_count'],
+  oneOutput: [_IndexerTransactionsFeaturesOneInput, 'one_output_tx_count'],
 });
 
 /**
@@ -6648,7 +6704,7 @@ const _IndexerTransactionsFeatures = _s({
  *   firstTxinIndex: SeriesPattern19<TxInIndex>,
  *   firstTxoutIndex: SeriesPattern19<TxOutIndex>,
  *   features: IndexerTransactionsFeatures,
- *   versions: Versions<OneInput>,
+ *   versions: Versions<IndexerTransactionsFeaturesOneInput>,
  * }} IndexerTransactions
  */
 const _IndexerTransactions = _s({
@@ -6662,7 +6718,7 @@ const _IndexerTransactions = _s({
   firstTxinIndex: [_i19, 'first_txin_index'],
   firstTxoutIndex: [_i19, 'first_txout_index'],
   features: [_IndexerTransactionsFeatures, 'sighash'],
-  versions: [(c, b) => _Versions(c, b, _OneInput), '*_count'],
+  versions: [(c, b) => _Versions(c, b, _IndexerTransactionsFeaturesOneInput), '*_count'],
 });
 
 /**
@@ -6697,7 +6753,7 @@ const _IndexerBlocks = _s({
  *   inputs: IndexerInputs,
  *   outputs: IndexerOutputs,
  *   addresses: IndexerAddresses,
- *   scripts: Scripts,
+ *   scripts: IndexerScripts,
  *   opReturn: IndexerOpReturn,
  * }} Indexer
  */
@@ -6707,7 +6763,7 @@ const _Indexer = _s({
   inputs: [_IndexerInputs, 'index'],
   outputs: [_IndexerOutputs, 'output'],
   addresses: [_IndexerAddresses, 'p2pk65'],
-  scripts: [_Scripts, 'empty_output'],
+  scripts: [_IndexerScripts, 'empty_output'],
   opReturn: [_IndexerOpReturn, 'op_return'],
 });
 

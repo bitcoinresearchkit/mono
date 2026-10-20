@@ -450,14 +450,6 @@ pub mod tree {
         realized_peak_regret_24h: RealizedLoss24h<Option<Dollars>> = "*_realized_peak_regret_24h",
         sell_side_risk_ratio_24h: RealizedLoss24h<Option<Ratio>> = "*_sell_side_risk_ratio_24h",
     } }
-    shape! { TrueMarketMeanMedian at "series().rarity_meter.components.true_market_mean.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "true_market_mean_rarity_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "true_market_mean_rarity_*",
-    } }
-    shape! { VaultedPriceMedian at "series().rarity_meter.components.vaulted_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "vaulted_price_rarity_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "vaulted_price_rarity_*",
-    } }
     shape! { MobileMedianCapitalizedPriceMedian at "series().rarity_meter.components.mobile.median_capitalized_price.median" {
         ratio: SeriesPattern1<Option<Multiple>> = "mobile_median_capitalized_price_rarity_ratio_*",
         band: SeriesPattern1<Option<Dollars>> = "mobile_median_capitalized_price_rarity_*",
@@ -498,6 +490,14 @@ pub mod tree {
         ratio: SeriesPattern1<Option<Multiple>> = "sth_realized_price_rarity_ratio_*",
         band: SeriesPattern1<Option<Dollars>> = "sth_realized_price_rarity_*",
     } }
+    shape! { TrueMarketMeanMedian at "series().rarity_meter.components.all.true_market_mean.median" {
+        ratio: SeriesPattern1<Option<Multiple>> = "true_market_mean_rarity_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "true_market_mean_rarity_*",
+    } }
+    shape! { VaultedPriceMedian at "series().rarity_meter.components.all.vaulted_price.median" {
+        ratio: SeriesPattern1<Option<Multiple>> = "vaulted_price_rarity_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "vaulted_price_rarity_*",
+    } }
     shape! { AllMedianCapitalizedPriceMedian at "series().rarity_meter.components.all.median_capitalized_price.median" {
         ratio: SeriesPattern1<Option<Multiple>> = "median_capitalized_price_rarity_ratio_*",
         band: SeriesPattern1<Option<Dollars>> = "median_capitalized_price_rarity_*",
@@ -537,7 +537,7 @@ pub mod tree {
         ratio: SeriesPattern1<Option<Multiple>> = "realized_price_rarity_ratio_*",
         band: SeriesPattern1<Option<Dollars>> = "realized_price_rarity_*",
     } }
-    shape! { ComponentsTrueMarketMean<A> at "series().rarity_meter.components.true_market_mean" {
+    shape! { CapitalizedPrice<A> at "series().rarity_meter.components.all.capitalized_price" {
         pct0_1: A = "pct0_1",
         pct0_5: A = "pct0_5",
         pct1: A = "pct1",
@@ -559,31 +559,37 @@ pub mod tree {
         pct99_9: A = "*_9",
     } }
     shape! { ComponentsMobile at "series().rarity_meter.components.mobile" {
-        realized_price: ComponentsTrueMarketMean<MobileRealizedPriceMedian> = "pct99",
+        realized_price: CapitalizedPrice<MobileRealizedPriceMedian> = "pct99",
         median_realized_price: MedianCapitalizedPrice<MobileMedianRealizedPriceMedian> = "*_realized_price",
         median_capitalized_price: MedianCapitalizedPrice<MobileMedianCapitalizedPriceMedian> = "*_capitalized_price",
     } }
     shape! { ComponentsAwake at "series().rarity_meter.components.awake" {
-        realized_price: ComponentsTrueMarketMean<AwakeRealizedPriceMedian> = "*",
+        realized_price: CapitalizedPrice<AwakeRealizedPriceMedian> = "*",
     } }
     shape! { Under6m at "series().rarity_meter.components.under_6m" {
-        realized_price: ComponentsTrueMarketMean<Under6mRealizedPriceMedian> = "*",
-        capitalized_price: ComponentsTrueMarketMean<Under6mCapitalizedPriceMedian> = "*",
+        realized_price: CapitalizedPrice<Under6mRealizedPriceMedian> = "*",
+        capitalized_price: CapitalizedPrice<Under6mCapitalizedPriceMedian> = "*",
     } }
-    shape! { ComponentsAll<A, B, C, D> at "series().rarity_meter.components.all" {
-        realized_price: ComponentsTrueMarketMean<A> = "pct99",
-        capitalized_price: ComponentsTrueMarketMean<B> = "pct99",
-        median_realized_price: MedianCapitalizedPrice<C> = "*_realized_price",
-        median_capitalized_price: MedianCapitalizedPrice<D> = "*_capitalized_price",
+    shape! { Sth at "series().rarity_meter.components.sth" {
+        realized_price: CapitalizedPrice<SthRealizedPriceMedian> = "*",
+        capitalized_price: CapitalizedPrice<SthCapitalizedPriceMedian> = "*",
+        median_realized_price: MedianCapitalizedPrice<SthMedianRealizedPriceMedian> = "sth_median_realized_price",
+        median_capitalized_price: MedianCapitalizedPrice<SthMedianCapitalizedPriceMedian> = "sth_median_capitalized_price",
+    } }
+    shape! { ComponentsAll at "series().rarity_meter.components.all" {
+        realized_price: CapitalizedPrice<AllRealizedPriceMedian> = "*",
+        capitalized_price: CapitalizedPrice<AllCapitalizedPriceMedian> = "*",
+        median_realized_price: MedianCapitalizedPrice<AllMedianRealizedPriceMedian> = "median_realized_price",
+        median_capitalized_price: MedianCapitalizedPrice<AllMedianCapitalizedPriceMedian> = "median_capitalized_price",
+        vaulted_price: CapitalizedPrice<VaultedPriceMedian> = "*",
+        true_market_mean: CapitalizedPrice<TrueMarketMeanMedian> = "*",
     } }
     shape! { Components at "series().rarity_meter.components" {
-        all: ComponentsAll<AllRealizedPriceMedian, AllCapitalizedPriceMedian, AllMedianRealizedPriceMedian, AllMedianCapitalizedPriceMedian> = "median",
-        sth: ComponentsAll<SthRealizedPriceMedian, SthCapitalizedPriceMedian, SthMedianRealizedPriceMedian, SthMedianCapitalizedPriceMedian> = "sth_median",
+        all: ComponentsAll = "*",
+        sth: Sth = "*",
         under_6m: Under6m = "*",
         awake: ComponentsAwake = "*",
         mobile: ComponentsMobile = "mobile_median",
-        vaulted_price: ComponentsTrueMarketMean<VaultedPriceMedian> = "*",
-        true_market_mean: ComponentsTrueMarketMean<TrueMarketMeanMedian> = "*",
     } }
     shape! { RarityMeter at "series().rarity_meter" {
         components: Components = "pct99",
@@ -620,7 +626,7 @@ pub mod tree {
         awake: BedrockAwake = "*_awake",
         mobile: BedrockAwake = "*_mobile",
     } }
-    shape! { PricesTrueMarketMean at "series().cointime.prices.true_market_mean" {
+    shape! { TrueMarketMean at "series().cointime.prices.true_market_mean" {
         block: SeriesPattern1<Option<Dollars>> = "*",
         ratio: SeriesPattern1<Option<Multiple>> = "*_ratio",
         aviv: SeriesPattern1<Option<Multiple>> = "aviv",
@@ -634,7 +640,7 @@ pub mod tree {
     shape! { Prices at "series().cointime.prices" {
         vaulted: PricesActive = "*",
         active: PricesActive = "active",
-        true_market_mean: PricesTrueMarketMean = "true_market_mean",
+        true_market_mean: TrueMarketMean = "true_market_mean",
         cointime: PricesActive = "cointime",
     } }
     shape! { Caps at "series().cointime.caps" {
@@ -1343,11 +1349,20 @@ pub mod tree {
         sum: InputsPerSecond<Bytes> = "*_sum",
         chain_share: ChainShare = "*_chain_share",
     } }
+    shape! { Inscription at "series().transactions.inscription" {
+        flag: SeriesPattern19<Boolean> = "has_*",
+        block: SeriesPattern18<Count> = "*_tx_count",
+        cumulative: SeriesPattern1<Count> = "*_tx_count_cumulative",
+        sum: InputsPerSecond<Count> = "*_tx_count_sum",
+        share: ChainShare = "*_tx_share",
+        fees: OpReturnFees = "*",
+    } }
     shape! { Nonstandard at "series().transactions.nonstandard" {
         flag: SeriesPattern19<Boolean> = "is_*",
         block: SeriesPattern18<Count> = "*_tx_count",
         cumulative: SeriesPattern1<Count> = "*_tx_count_cumulative",
         sum: InputsPerSecond<Count> = "*_tx_count_sum",
+        share: ChainShare = "*_tx_share",
     } }
     shape! { Patterns at "series().transactions.patterns" {
         coinjoin: Nonstandard = "*",
@@ -1361,11 +1376,49 @@ pub mod tree {
         cpfp_parent: Nonstandard = "cpfp_parent",
         cpfp_child: Nonstandard = "cpfp_child",
     } }
-    shape! { TransactionsFeaturesAnnex at "series().transactions.features.annex" {
+    shape! { TransactionsFeaturesOneInput at "series().transactions.features.one_input" {
+        block: SeriesPattern18<Count> = "*_count",
+        cumulative: SeriesPattern1<Count> = "*_count_cumulative",
+        sum: InputsPerSecond<Count> = "*_count_sum",
+        share: ChainShare = "*_share",
+    } }
+    shape! { DustOutput at "series().transactions.features.dust_output" {
         flag: SeriesPattern19<Boolean> = "has_*",
         block: SeriesPattern18<Count> = "*_tx_count",
         cumulative: SeriesPattern1<Count> = "*_tx_count_cumulative",
         sum: InputsPerSecond<Count> = "*_tx_count_sum",
+        share: ChainShare = "*_tx_share",
+    } }
+    shape! { Signatures at "series().transactions.features.signatures" {
+        annex: DustOutput = "annex",
+        sighash_all: DustOutput = "*_all",
+        sighash_none: DustOutput = "*_none",
+        sighash_single: DustOutput = "*_single",
+        sighash_default: DustOutput = "*_default",
+        sighash_anyone_can_pay: DustOutput = "*_anyone_can_pay",
+    } }
+    shape! { FeaturesScripts at "series().transactions.features.scripts" {
+        p2pk: DustOutput = "p2pk",
+        p2ms: DustOutput = "p2ms",
+        p2pkh: DustOutput = "p2pkh",
+        p2sh: DustOutput = "p2sh",
+        p2wpkh: DustOutput = "p2wpkh",
+        p2wsh: DustOutput = "p2wsh",
+        p2tr: DustOutput = "p2tr",
+        p2a: DustOutput = "p2a",
+        empty_script: DustOutput = "empty_*",
+        unknown_script: DustOutput = "unknown_*",
+        fake_pubkey: DustOutput = "fake_pubkey",
+        fake_scripthash: DustOutput = "fake_scripthash",
+    } }
+    shape! { TransactionsFeatures at "series().transactions.features" {
+        scripts: FeaturesScripts = "script",
+        signatures: Signatures = "sighash",
+        segwit: TransactionsFeaturesOneInput = "segwit_*",
+        explicitly_rbf: Nonstandard = "explicitly_rbf",
+        dust_output: DustOutput = "dust_output",
+        one_input: TransactionsFeaturesOneInput = "one_input_*",
+        one_output: TransactionsFeaturesOneInput = "one_output_*",
     } }
     shape! { Size<A, B> at "series().blocks.size" {
         block: SeriesPattern18<A> = "*",
@@ -1735,36 +1788,6 @@ pub mod tree {
         protocols: Protocols = "*",
         policies: Policies = "*",
     } }
-    shape! { Inscription at "series().transactions.inscription" {
-        flag: SeriesPattern19<Boolean> = "has_*",
-        count: BlocksCount<Count> = "*_tx_count",
-        fees: OpReturnFees = "*",
-    } }
-    shape! { TransactionsFeatures at "series().transactions.features" {
-        p2pk: TransactionsFeaturesAnnex = "p2pk",
-        p2ms: TransactionsFeaturesAnnex = "p2ms",
-        p2pkh: TransactionsFeaturesAnnex = "p2pkh",
-        p2sh: TransactionsFeaturesAnnex = "p2sh",
-        p2wpkh: TransactionsFeaturesAnnex = "p2wpkh",
-        p2wsh: TransactionsFeaturesAnnex = "p2wsh",
-        p2tr: TransactionsFeaturesAnnex = "p2tr",
-        p2a: TransactionsFeaturesAnnex = "p2a",
-        empty_script: TransactionsFeaturesAnnex = "empty_script",
-        unknown_script: TransactionsFeaturesAnnex = "unknown_script",
-        fake_pubkey: TransactionsFeaturesAnnex = "fake_pubkey",
-        fake_scripthash: TransactionsFeaturesAnnex = "fake_scripthash",
-        segwit: BlocksCount<Count> = "segwit_tx_count",
-        annex: TransactionsFeaturesAnnex = "annex",
-        sighash_all: TransactionsFeaturesAnnex = "*_all",
-        sighash_none: TransactionsFeaturesAnnex = "*_none",
-        sighash_single: TransactionsFeaturesAnnex = "*_single",
-        sighash_default: TransactionsFeaturesAnnex = "*_default",
-        sighash_anyone_can_pay: TransactionsFeaturesAnnex = "*_anyone_can_pay",
-        explicitly_rbf: Nonstandard = "explicitly_rbf",
-        dust_output: TransactionsFeaturesAnnex = "dust_output",
-        one_input: BlocksCount<Count> = "one_input_tx_count",
-        one_output: BlocksCount<Count> = "one_output_tx_count",
-    } }
     shape! { TypesEmpty at "series().inputs.types.empty" {
         count: BlocksCount<Count> = "*_count",
         share: ChainShare = "*_share",
@@ -2016,7 +2039,7 @@ pub mod tree {
         first_index: SeriesPattern18<EmptyOutputIndex> = "first_*_index",
         tx_index: SeriesPattern24<TxIndex> = "*_tx_index",
     } }
-    shape! { Scripts at "series().indexer.scripts" {
+    shape! { IndexerScripts at "series().indexer.scripts" {
         empty: ScriptsEmpty = "*",
         p2ms: ScriptsP2ms = "p2ms",
         unknown: ScriptsUnknown = "unknown",
@@ -2078,7 +2101,7 @@ pub mod tree {
         type_index: SeriesPattern21<TypeIndex> = "type_*",
         value: SeriesPattern20<Sats> = "input_value",
     } }
-    shape! { OneInput at "series().indexer.transactions.features.one_input" {
+    shape! { IndexerTransactionsFeaturesOneInput at "series().indexer.transactions.features.one_input" {
         block: SeriesPattern18<Count> = "*",
     } }
     shape! { Versions<A> at "series().transactions.versions" {
@@ -2089,14 +2112,14 @@ pub mod tree {
     } }
     shape! { Transactions at "series().transactions" {
         count: Size<Count, Option<CountFract>> = "*_count",
-        features: TransactionsFeatures = "sighash",
+        features: TransactionsFeatures = "*",
         vsize: Vsize<VSize> = "*_vsize",
         fees: TransactionsFees = "fee",
         inscription: Inscription = "inscription",
         patterns: Patterns = "coinjoin",
         nonstandard: Nonstandard = "nonstandard",
         sigop_cost: BlocksCount<SigOps> = "block_sigop_cost",
-        versions: Versions<BlocksCount<Count>> = "*_count",
+        versions: Versions<TransactionsFeaturesOneInput> = "*",
         volume: OpReturnValue = "*_volume",
         per_second: InputsPerSecond<Option<PerSecond>> = "*_per_second",
     } }
@@ -2104,35 +2127,35 @@ pub mod tree {
         flag: SeriesPattern19<Boolean> = "is_*",
         block: SeriesPattern18<Count> = "*_tx_count",
     } }
-    shape! { IndexerTransactionsFeaturesAnnex at "series().indexer.transactions.features.annex" {
+    shape! { Annex at "series().indexer.transactions.features.annex" {
         flag: SeriesPattern19<Boolean> = "has_*",
         block: SeriesPattern18<Count> = "*_tx_count",
     } }
     shape! { IndexerTransactionsFeatures at "series().indexer.transactions.features" {
-        p2pk: IndexerTransactionsFeaturesAnnex = "p2pk",
-        p2ms: IndexerTransactionsFeaturesAnnex = "p2ms",
-        p2pkh: IndexerTransactionsFeaturesAnnex = "p2pkh",
-        p2sh: IndexerTransactionsFeaturesAnnex = "p2sh",
-        p2wpkh: IndexerTransactionsFeaturesAnnex = "p2wpkh",
-        p2wsh: IndexerTransactionsFeaturesAnnex = "p2wsh",
-        p2tr: IndexerTransactionsFeaturesAnnex = "p2tr",
-        p2a: IndexerTransactionsFeaturesAnnex = "p2a",
-        op_return: IndexerTransactionsFeaturesAnnex = "op_return",
-        empty_script: IndexerTransactionsFeaturesAnnex = "empty_script",
-        unknown_script: IndexerTransactionsFeaturesAnnex = "unknown_script",
-        fake_pubkey: IndexerTransactionsFeaturesAnnex = "fake_pubkey",
-        fake_scripthash: IndexerTransactionsFeaturesAnnex = "fake_scripthash",
-        inscription: IndexerTransactionsFeaturesAnnex = "inscription",
-        annex: IndexerTransactionsFeaturesAnnex = "annex",
-        sighash_all: IndexerTransactionsFeaturesAnnex = "*_all",
-        sighash_none: IndexerTransactionsFeaturesAnnex = "*_none",
-        sighash_single: IndexerTransactionsFeaturesAnnex = "*_single",
-        sighash_default: IndexerTransactionsFeaturesAnnex = "*_default",
-        sighash_anyone_can_pay: IndexerTransactionsFeaturesAnnex = "*_anyone_can_pay",
+        p2pk: Annex = "p2pk",
+        p2ms: Annex = "p2ms",
+        p2pkh: Annex = "p2pkh",
+        p2sh: Annex = "p2sh",
+        p2wpkh: Annex = "p2wpkh",
+        p2wsh: Annex = "p2wsh",
+        p2tr: Annex = "p2tr",
+        p2a: Annex = "p2a",
+        op_return: Annex = "op_return",
+        empty_script: Annex = "empty_script",
+        unknown_script: Annex = "unknown_script",
+        fake_pubkey: Annex = "fake_pubkey",
+        fake_scripthash: Annex = "fake_scripthash",
+        inscription: Annex = "inscription",
+        annex: Annex = "annex",
+        sighash_all: Annex = "*_all",
+        sighash_none: Annex = "*_none",
+        sighash_single: Annex = "*_single",
+        sighash_default: Annex = "*_default",
+        sighash_anyone_can_pay: Annex = "*_anyone_can_pay",
         explicitly_rbf: ExplicitlyRbf = "explicitly_rbf",
-        dust_output: IndexerTransactionsFeaturesAnnex = "dust_output",
-        one_input: OneInput = "one_input_tx_count",
-        one_output: OneInput = "one_output_tx_count",
+        dust_output: Annex = "dust_output",
+        one_input: IndexerTransactionsFeaturesOneInput = "one_input_tx_count",
+        one_output: IndexerTransactionsFeaturesOneInput = "one_output_tx_count",
     } }
     shape! { IndexerTransactions at "series().indexer.transactions" {
         first_tx_index: SeriesPattern18<TxIndex> = "first_*_index",
@@ -2145,7 +2168,7 @@ pub mod tree {
         first_txin_index: SeriesPattern19<TxInIndex> = "first_txin_index",
         first_txout_index: SeriesPattern19<TxOutIndex> = "first_txout_index",
         features: IndexerTransactionsFeatures = "sighash",
-        versions: Versions<OneInput> = "*_count",
+        versions: Versions<IndexerTransactionsFeaturesOneInput> = "*_count",
     } }
     shape! { IndexerBlocks at "series().indexer.blocks" {
         blockhash: SeriesPattern18<BlockHash> = "blockhash",
@@ -2164,7 +2187,7 @@ pub mod tree {
         inputs: IndexerInputs = "index",
         outputs: IndexerOutputs = "output",
         addresses: IndexerAddresses = "p2pk65",
-        scripts: Scripts = "empty_output",
+        scripts: IndexerScripts = "empty_output",
         op_return: IndexerOpReturn = "op_return",
     } }
     shape! { SeriesTree at "series()" {

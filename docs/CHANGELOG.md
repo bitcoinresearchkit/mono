@@ -101,10 +101,10 @@ has to be deleted by hand.
   changes over a window (were `.btc`). About 26,100 v0.12.2 ids were such copies
 - Renamed the rarity meter `*_index` series to `*_level` (`rarity_meter.full.level`, ...)
 - Rarity meter components sit by cohort: `rarity_meter.components.{all, sth}.{realized_price, capitalized_price,
-  median_realized_price, median_capitalized_price}`, `under_6m.{realized_price, capitalized_price}`,
-  `awake.realized_price`, `mobile.{realized_price, median_realized_price, median_capitalized_price}`, `vaulted_price`
-  and `true_market_mean` (were `coinflow_price`, `true_market_mean_price`, `under_6m_realized_price`, ...). A
-  component's ids follow its price's: each percentile's price is its `band` (`<component>.<pct>.band`, ids
+  median_realized_price, median_capitalized_price}`, with the whole network's cointime prices in `all` too
+  (`all.vaulted_price`, `all.true_market_mean`), `under_6m.{realized_price, capitalized_price}`,
+  `awake.realized_price` and `mobile.{realized_price, median_realized_price, median_capitalized_price}` (were
+  `coinflow_price`, `true_market_mean_price`, `under_6m_realized_price`, ...). A component's ids follow its price's: each percentile's price is its `band` (`<component>.<pct>.band`, ids
   `<price>_rarity_<pct>`, as `sth_median_realized_price_rarity_pct1`; were `<component>.<pct>.price`, ids
   `<component>_<pct>`) and its ratio `<component>.<pct>.ratio` (ids `<price>_rarity_ratio_<pct>`; were
   `<component>_ratio_<pct>`), and a median component's price and spot ratio are `sth_median_realized_price`,
@@ -174,8 +174,9 @@ has to be deleted by hand.
   `other_version_tx_count`, `annex_tx_count`, `dust_output_tx_count`, `coinjoin_tx_count`, `nonstandard_tx_count`,
   `cpfp_parent_tx_count`, `inscription_tx_count` (were `tx_v1`, `tx_other_version`, `tx_count_annex`,
   `tx_count_dust_output`, `coinjoin_count`, `nonstandard_count`, `cpfp_parent_count`, `tx_count_inscription`), and
-  features sit at `transactions.features.<feature>` (were under `features.count`; inscriptions at
-  `transactions.inscription.count`)
+  features sit at `transactions.features.scripts.<feature>`, `transactions.features.signatures.<feature>` or, for
+  SegWit, opt-in RBF, dust outputs and single-input and single-output transactions, `transactions.features.<feature>`
+  (were under `features.count`), and inscription transactions at `transactions.inscription`
 - Blocks: difficulty is `blocks.difficulty.block` (was `.value`); `blocks.count` holds `block`, `cumulative` and the
   window sums directly (were under `total`) and the constant `blocks.count.target.<window>` series are gone;
   `blocks.lookback` (window-start heights, `height_<window>_ago`) leaves the tree
@@ -222,15 +223,19 @@ has to be deleted by hand.
   windowed series reads "Value for the represented block." (some had no per-block wording); undefined values are
   described as null; absolute deltas no longer mention a relative change
 - Transaction features, patterns, policy and CPFP roles are member-first: each is one node holding its per-transaction
-  `flag` beside its per-block count: `transactions.features.p2tr.{flag, block, cumulative, sum}` (were
+  `flag` beside its per-block count: `transactions.features.scripts.p2tr.{flag, block, cumulative, sum}` (were
   `transactions.features.has_p2tr` and `transactions.features.count.p2tr`), `transactions.patterns.coinjoin.{flag,
   block, cumulative, sum}` (were `patterns.is_coinjoin` and `patterns.count.coinjoin`), `transactions.nonstandard`
   (were `transactions.policy.{is_nonstandard, count.nonstandard}`), `transactions.fees.cpfp_parent`/`cpfp_child` (were
   `fees.is_cpfp_*` and `fees.count.cpfp_*`), `transactions.inscription.flag` and `op_return.flag` (`has_inscription`,
   `has_op_return`; were under `transactions.features`). SegWit, single-input and single-output transactions have
-  counts without a flag (`transactions.features.segwit`, `one_input`, `one_output`). The indexer's columns take the
-  same shape:
-  `indexer.transactions.features.<feature>.{flag, block}`, `is_explicitly_rbf` at
+  counts without a flag (`transactions.features.segwit`, `one_input`, `one_output`). Features are grouped: the
+  locking-script ones under `transactions.features.scripts` (`scripts.p2tr`, ..., `scripts.fake_scripthash`), the
+  signature ones under `transactions.features.signatures` (`signatures.sighash_all`, ..., `signatures.annex`), and
+  SegWit, opt-in RBF, dust outputs and single-input and single-output transactions directly under
+  `transactions.features`; ids are unchanged. Inscription transactions take the same shape:
+  `transactions.inscription.{flag, block, cumulative, sum}` (were `inscription.count.{block, ...}`). The indexer's
+  columns take the same shape: `indexer.transactions.features.<feature>.{flag, block}`, `is_explicitly_rbf` at
   `indexer.transactions.features.explicitly_rbf.flag` (was `transactions.raw.is_explicitly_rbf`) and the version
   counts at `indexer.transactions.versions.<version>.block` (were `transactions.features.count.{v1, ...,
   other_version}`). Flag ids are unchanged but for `has_empty_script` and `has_unknown_script` (were `has_empty`,
@@ -963,6 +968,11 @@ has to be deleted by hand.
   destroyed over created within each window, `concurrent_liveliness_24h`...`_1y`; a single block's ratio is too noisy
   to serve). The active, vaulted and Cointime prices' spot ratios also have MVRV ids (`active_mvrv`, `vaulted_mvrv`,
   `cointime_mvrv`, the values of `active_price_ratio`, ...)
+- Every kind of transaction counted (features, versions, patterns, CPFP roles, nonstandard and inscription
+  transactions) publishes its share of all transactions, coinbase included, all time and over each window:
+  `transactions.features.scripts.p2tr.share.{cumulative, 24h, 1w, 1m, 1y}` (ids `p2tr_tx_share_cumulative`,
+  `p2tr_tx_share_<window>`), `segwit_tx_share_1m`, `v2_tx_share_1m`, `coinjoin_tx_share_1m`,
+  `cpfp_parent_tx_share_1m`, `nonstandard_tx_share_1m`, `inscription_tx_share_1m`, ...
 - Inscription fees per block in BTC and USD (`transactions.inscription.fees`, ids `inscription_fees`,
   `inscription_fees_usd`, with cumulative and window sums) and their chain share,
   `transactions.inscription.fees.chain_share.{cumulative, 24h, 1w, 1m, 1y}` like OP_RETURN's (ids

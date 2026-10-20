@@ -1,17 +1,40 @@
 use bitview_plugin_indexer::FlagView;
-use bitview_primitives::Count;
 use bitview_traversable::Traversable;
-use bitview_vecs::PerBlockCumulativeRolling;
 use vecdb::{Rw, StorageMode};
 
-use crate::flagged::Flagged;
+use crate::flagged::{Flagged, TxCount};
 
-type Windowed<M> = PerBlockCumulativeRolling<Count, M>;
+type Windowed<M> = TxCount<M>;
 
 /// Transaction features: each one's per-transaction flag beside its per-block count, with its
-/// cumulative and window sums.
+/// cumulative and window sums and its share of all transactions.
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
+    // By the locking scripts transactions create or spend.
+    pub scripts: Scripts<M>,
+    // By their signatures' hash types, and the Taproot annex.
+    pub signatures: Signatures<M>,
+    /// Non-coinbase transactions using SegWit serialization.
+    pub segwit: Windowed<M>,
+    /// Transactions with at least one input sequence number below `0xfffffffe`, the explicit opt-in RBF signal
+    /// defined by BIP 125. This is a mechanical sequence signal: it does not prove the transaction was replaceable or
+    /// replaced, does not include inherited signaling, and does not account for full-RBF policy. Coinbase
+    /// transactions are evaluated by the same sequence rule.
+    pub explicitly_rbf: Flagged<FlagView, Windowed<M>>,
+    /// Non-coinbase transactions with at least one output below the type-specific dust threshold: 672 sats for
+    /// P2PK65, 576 for P2PK33, 546 for P2PKH, 540 for P2SH, 294 for P2WPKH, 330 for P2WSH or P2TR, 240 for P2A, and
+    /// 471 for an empty script. P2MS and unknown scripts use their computed minimal non-dust value; OP_RETURN is
+    /// excluded.
+    pub dust_output: Flagged<FlagView, Windowed<M>>,
+    /// Transactions with exactly one input, including the coinbase transaction.
+    pub one_input: Windowed<M>,
+    /// Transactions with exactly one output, including the coinbase transaction.
+    pub one_output: Windowed<M>,
+}
+
+/// Features of the locking scripts a transaction creates or spends.
+#[derive(Traversable)]
+pub struct Scripts<M: StorageMode = Rw> {
     /// Transactions that create or, outside coinbase, spend at least one P2PK-shaped output with a 33- or 65-byte key
     /// field.
     pub p2pk: Flagged<FlagView, Windowed<M>>,
@@ -43,8 +66,11 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Transactions containing a consecutive run of P2WSH outputs whose 32-byte programs encode a big-endian two-byte
     /// payload length and the required zero padding in the final program.
     pub fake_scripthash: Flagged<FlagView, Windowed<M>>,
-    /// Non-coinbase transactions using SegWit serialization.
-    pub segwit: Windowed<M>,
+}
+
+/// Features of a transaction's signatures and witnesses.
+#[derive(Traversable)]
+pub struct Signatures<M: StorageMode = Rw> {
     /// Transactions where at least one Taproot input with more than one witness element ends in an annex whose first
     /// byte is `0x50`.
     pub annex: Flagged<FlagView, Windowed<M>>,
@@ -65,18 +91,4 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// modifier, which commits only to the signing input rather than every input. This is independent of ALL, NONE,
     /// and SINGLE.
     pub sighash_anyone_can_pay: Flagged<FlagView, Windowed<M>>,
-    /// Transactions with at least one input sequence number below `0xfffffffe`, the explicit opt-in RBF signal
-    /// defined by BIP 125. This is a mechanical sequence signal: it does not prove the transaction was replaceable or
-    /// replaced, does not include inherited signaling, and does not account for full-RBF policy. Coinbase
-    /// transactions are evaluated by the same sequence rule.
-    pub explicitly_rbf: Flagged<FlagView, Windowed<M>>,
-    /// Non-coinbase transactions with at least one output below the type-specific dust threshold: 672 sats for
-    /// P2PK65, 576 for P2PK33, 546 for P2PKH, 540 for P2SH, 294 for P2WPKH, 330 for P2WSH or P2TR, 240 for P2A, and
-    /// 471 for an empty script. P2MS and unknown scripts use their computed minimal non-dust value; OP_RETURN is
-    /// excluded.
-    pub dust_output: Flagged<FlagView, Windowed<M>>,
-    /// Transactions with exactly one input, including the coinbase transaction.
-    pub one_input: Windowed<M>,
-    /// Transactions with exactly one output, including the coinbase transaction.
-    pub one_output: Windowed<M>,
 }

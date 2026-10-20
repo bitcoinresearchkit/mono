@@ -19,7 +19,7 @@ use super::{Component, median_component::MedianComponent};
 #[derive(Traversable)]
 pub struct Components<M: StorageMode = Rw> {
     /// All unspent outputs.
-    pub all: CohortComponents<M>,
+    pub all: AllComponents<M>,
     /// Short-term holders: UTXOs younger than 150 days.
     pub sth: CohortComponents<M>,
     /// UTXOs less than 180 days old.
@@ -28,6 +28,13 @@ pub struct Components<M: StorageMode = Rw> {
     pub awake: AwakeComponents<M>,
     /// The mobile supply.
     pub mobile: MobileComponents<M>,
+}
+
+/// All coins' means and medians, and the cointime prices.
+#[derive(Traversable)]
+pub struct AllComponents<M: StorageMode = Rw> {
+    #[traversable(flatten)]
+    pub cohort: CohortComponents<M>,
     /// Cointime vaulted price: realized price divided by one minus liveliness,
     /// where liveliness is cumulative coinblocks destroyed divided by
     /// cumulative coinblocks created.
@@ -116,20 +123,24 @@ impl Components {
         let awake = &cointime.aggregate.cohorts.all.awake;
         let mobile = &coinflow.aggregate.cohorts.all.mobile;
         Ok(Self {
-            all: CohortComponents {
-                realized_price: mean!("realized_price", cohorts.all.cost_basis.per_coin.avg),
-                capitalized_price: mean!(
-                    "capitalized_price",
-                    cohorts.all.cost_basis.per_dollar.avg
-                ),
-                median_realized_price: median!(
-                    "median_realized_price",
-                    cohorts.all.cost_basis.per_coin
-                ),
-                median_capitalized_price: median!(
-                    "median_capitalized_price",
-                    cohorts.all.cost_basis.per_dollar
-                ),
+            all: AllComponents {
+                cohort: CohortComponents {
+                    realized_price: mean!("realized_price", cohorts.all.cost_basis.per_coin.avg),
+                    capitalized_price: mean!(
+                        "capitalized_price",
+                        cohorts.all.cost_basis.per_dollar.avg
+                    ),
+                    median_realized_price: median!(
+                        "median_realized_price",
+                        cohorts.all.cost_basis.per_coin
+                    ),
+                    median_capitalized_price: median!(
+                        "median_capitalized_price",
+                        cohorts.all.cost_basis.per_dollar
+                    ),
+                },
+                vaulted_price: mean!("vaulted_price", cointime.prices.vaulted),
+                true_market_mean: mean!("true_market_mean", cointime.prices.true_market_mean),
             },
             sth: CohortComponents {
                 realized_price: mean!("sth_realized_price", cohorts.sth.cost_basis.per_coin.avg),
@@ -170,8 +181,6 @@ impl Components {
                     mobile.cost_basis.per_dollar
                 ),
             },
-            vaulted_price: mean!("vaulted_price", cointime.prices.vaulted),
-            true_market_mean: mean!("true_market_mean", cointime.prices.true_market_mean),
         })
     }
 
@@ -191,9 +200,12 @@ impl Components {
             under_6m,
             awake,
             mobile,
+        } = self;
+        let AllComponents {
+            cohort: all,
             vaulted_price,
             true_market_mean,
-        } = self;
+        } = all;
 
         [
             &mut all.median_realized_price,
@@ -291,14 +303,14 @@ impl Components {
 
     pub(crate) fn cycle(&self) -> [&Component; 10] {
         [
-            &self.all.realized_price,
-            &self.all.capitalized_price,
-            &self.all.median_realized_price.component,
-            &self.all.median_capitalized_price.component,
+            &self.all.cohort.realized_price,
+            &self.all.cohort.capitalized_price,
+            &self.all.cohort.median_realized_price.component,
+            &self.all.cohort.median_capitalized_price.component,
             &self.mobile.median_realized_price.component,
             &self.mobile.median_capitalized_price.component,
-            &self.vaulted_price,
-            &self.true_market_mean,
+            &self.all.vaulted_price,
+            &self.all.true_market_mean,
             &self.awake.realized_price,
             &self.mobile.realized_price,
         ]

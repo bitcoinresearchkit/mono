@@ -29,9 +29,11 @@ impl Vecs {
             mappings,
             window_starts,
         )?;
-        let features = features::Vecs::import(&db, version, indexer, mappings, window_starts)?;
+        let all_txs = &mappings.transaction_count_source();
+        let features =
+            features::Vecs::import(&db, version, indexer, mappings, window_starts, all_txs)?;
         let vsize = vsize::Vecs::import(&db, version, indexer, mappings)?;
-        let fees = fees::Vecs::import(&db, version, mappings, window_starts)?;
+        let fees = fees::Vecs::import(&db, version, mappings, window_starts, all_txs)?;
         let inscription = inscription::Vecs::import(
             &db,
             version,
@@ -39,15 +41,17 @@ impl Vecs {
             mappings,
             window_starts,
             &fees.total_cumulative,
+            all_txs,
         )?;
-        let patterns = patterns::Vecs::import(&db, version, mappings, window_starts)?;
+        let patterns = patterns::Vecs::import(&db, version, mappings, window_starts, all_txs)?;
         let nonstandard = Classified::import(
             &db,
             "is_nonstandard",
-            "nonstandard_tx_count",
+            "nonstandard_tx",
             version + Version::ONE,
             mappings,
             window_starts,
+            all_txs,
         )?;
         let sigop_cost = PerBlockCumulativeRolling::import(
             &db,
@@ -56,7 +60,7 @@ impl Vecs {
             mappings,
             window_starts,
         )?;
-        let versions = versions::Vecs::import(&db, version, mappings, window_starts)?;
+        let versions = versions::Vecs::import(&db, version, mappings, window_starts, all_txs)?;
         let volume = ValuePerBlockCumulativeRolling::import(
             &db,
             "tx_volume",

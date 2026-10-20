@@ -1,14 +1,15 @@
 use bitview_plugin_indexer::Indexer;
-use bitview_primitives::PartsPerMillion32;
+use bitview_primitives::{Count, PartsPerMillion32};
 use bitview_vecs::{
-    IndexSources, LazyPercentCumulativeRolling, PerBlockCumulativeRolling,
-    ValuePerBlockCumulativeRolling, ops::Quotient, shapes::Windows,
+    IndexSources, LazyPercentCumulativeRolling, LazyWindowStartVec, ValuePerBlockCumulativeRolling,
+    ops::Quotient, shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::{Height, Sats, Version};
 use vecdb::{Database, ReadableCloneableVec};
 
 use super::Vecs;
+use crate::flagged::TxCount;
 
 impl Vecs {
     pub(crate) fn import(
@@ -16,8 +17,9 @@ impl Vecs {
         version: Version,
         indexer: &Indexer,
         indexes: &IndexSources,
-        window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
+        window_starts: &Windows<&LazyWindowStartVec>,
         chain_fees: &impl ReadableCloneableVec<Height, Sats>,
+        all_txs: &impl ReadableCloneableVec<Height, Count>,
     ) -> Result<Self> {
         let version = version + Version::ONE;
         let fees = ValuePerBlockCumulativeRolling::import(
@@ -41,12 +43,13 @@ impl Vecs {
         );
         Ok(Vecs {
             flag: indexer.vecs().transactions.features.inscription.flag_view(),
-            count: PerBlockCumulativeRolling::import(
+            count: TxCount::import(
                 db,
-                "inscription_tx_count",
+                "inscription_tx",
                 version,
                 indexes,
                 window_starts,
+                all_txs,
             )?,
             fees,
             chain_share,

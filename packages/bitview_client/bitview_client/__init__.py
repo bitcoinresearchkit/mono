@@ -2786,16 +2786,6 @@ class Extremes(_Node):
     sell_side_risk_ratio_24h: RealizedLoss24h[Optional[Ratio]] = _at(RealizedLoss24h, '*_sell_side_risk_ratio_24h')
 
 
-class TrueMarketMeanMedian(_Node):
-    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'true_market_mean_rarity_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'true_market_mean_rarity_*')
-
-
-class VaultedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'vaulted_price_rarity_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'vaulted_price_rarity_*')
-
-
 class MobileMedianCapitalizedPriceMedian(_Node):
     ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'mobile_median_capitalized_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'mobile_median_capitalized_price_rarity_*')
@@ -2846,6 +2836,16 @@ class SthRealizedPriceMedian(_Node):
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'sth_realized_price_rarity_*')
 
 
+class TrueMarketMeanMedian(_Node):
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'true_market_mean_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'true_market_mean_rarity_*')
+
+
+class VaultedPriceMedian(_Node):
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'vaulted_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'vaulted_price_rarity_*')
+
+
 class AllMedianCapitalizedPriceMedian(_Node):
     ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'median_capitalized_price_rarity_ratio_*')
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'median_capitalized_price_rarity_*')
@@ -2890,7 +2890,7 @@ class AllRealizedPriceMedian(_Node):
     band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'realized_price_rarity_*')
 
 
-class ComponentsTrueMarketMean(_Node, Generic[A]):
+class CapitalizedPrice(_Node, Generic[A]):
     pct0_1: A = _at(0, 'pct0_1')
     pct0_5: A = _at(0, 'pct0_5')
     pct1: A = _at(0, 'pct1')
@@ -2913,35 +2913,42 @@ class ComponentsTrueMarketMean(_Node, Generic[A]):
 
 
 class ComponentsMobile(_Node):
-    realized_price: ComponentsTrueMarketMean[MobileRealizedPriceMedian] = _at((ComponentsTrueMarketMean, MobileRealizedPriceMedian), 'pct99')
+    realized_price: CapitalizedPrice[MobileRealizedPriceMedian] = _at((CapitalizedPrice, MobileRealizedPriceMedian), 'pct99')
     median_realized_price: MedianCapitalizedPrice[MobileMedianRealizedPriceMedian] = _at((MedianCapitalizedPrice, MobileMedianRealizedPriceMedian), '*_realized_price')
     median_capitalized_price: MedianCapitalizedPrice[MobileMedianCapitalizedPriceMedian] = _at((MedianCapitalizedPrice, MobileMedianCapitalizedPriceMedian), '*_capitalized_price')
 
 
 class ComponentsAwake(_Node):
-    realized_price: ComponentsTrueMarketMean[AwakeRealizedPriceMedian] = _at((ComponentsTrueMarketMean, AwakeRealizedPriceMedian), '*')
+    realized_price: CapitalizedPrice[AwakeRealizedPriceMedian] = _at((CapitalizedPrice, AwakeRealizedPriceMedian), '*')
 
 
 class Under6m(_Node):
-    realized_price: ComponentsTrueMarketMean[Under6mRealizedPriceMedian] = _at((ComponentsTrueMarketMean, Under6mRealizedPriceMedian), '*')
-    capitalized_price: ComponentsTrueMarketMean[Under6mCapitalizedPriceMedian] = _at((ComponentsTrueMarketMean, Under6mCapitalizedPriceMedian), '*')
+    realized_price: CapitalizedPrice[Under6mRealizedPriceMedian] = _at((CapitalizedPrice, Under6mRealizedPriceMedian), '*')
+    capitalized_price: CapitalizedPrice[Under6mCapitalizedPriceMedian] = _at((CapitalizedPrice, Under6mCapitalizedPriceMedian), '*')
 
 
-class ComponentsAll(_Node, Generic[A, B, C, D]):
-    realized_price: ComponentsTrueMarketMean[A] = _at((ComponentsTrueMarketMean, 0), 'pct99')
-    capitalized_price: ComponentsTrueMarketMean[B] = _at((ComponentsTrueMarketMean, 1), 'pct99')
-    median_realized_price: MedianCapitalizedPrice[C] = _at((MedianCapitalizedPrice, 2), '*_realized_price')
-    median_capitalized_price: MedianCapitalizedPrice[D] = _at((MedianCapitalizedPrice, 3), '*_capitalized_price')
+class Sth(_Node):
+    realized_price: CapitalizedPrice[SthRealizedPriceMedian] = _at((CapitalizedPrice, SthRealizedPriceMedian), '*')
+    capitalized_price: CapitalizedPrice[SthCapitalizedPriceMedian] = _at((CapitalizedPrice, SthCapitalizedPriceMedian), '*')
+    median_realized_price: MedianCapitalizedPrice[SthMedianRealizedPriceMedian] = _at((MedianCapitalizedPrice, SthMedianRealizedPriceMedian), 'sth_median_realized_price')
+    median_capitalized_price: MedianCapitalizedPrice[SthMedianCapitalizedPriceMedian] = _at((MedianCapitalizedPrice, SthMedianCapitalizedPriceMedian), 'sth_median_capitalized_price')
+
+
+class ComponentsAll(_Node):
+    realized_price: CapitalizedPrice[AllRealizedPriceMedian] = _at((CapitalizedPrice, AllRealizedPriceMedian), '*')
+    capitalized_price: CapitalizedPrice[AllCapitalizedPriceMedian] = _at((CapitalizedPrice, AllCapitalizedPriceMedian), '*')
+    median_realized_price: MedianCapitalizedPrice[AllMedianRealizedPriceMedian] = _at((MedianCapitalizedPrice, AllMedianRealizedPriceMedian), 'median_realized_price')
+    median_capitalized_price: MedianCapitalizedPrice[AllMedianCapitalizedPriceMedian] = _at((MedianCapitalizedPrice, AllMedianCapitalizedPriceMedian), 'median_capitalized_price')
+    vaulted_price: CapitalizedPrice[VaultedPriceMedian] = _at((CapitalizedPrice, VaultedPriceMedian), '*')
+    true_market_mean: CapitalizedPrice[TrueMarketMeanMedian] = _at((CapitalizedPrice, TrueMarketMeanMedian), '*')
 
 
 class Components(_Node):
-    all: ComponentsAll[AllRealizedPriceMedian, AllCapitalizedPriceMedian, AllMedianRealizedPriceMedian, AllMedianCapitalizedPriceMedian] = _at((ComponentsAll, AllRealizedPriceMedian, AllCapitalizedPriceMedian, AllMedianRealizedPriceMedian, AllMedianCapitalizedPriceMedian), 'median')
-    sth: ComponentsAll[SthRealizedPriceMedian, SthCapitalizedPriceMedian, SthMedianRealizedPriceMedian, SthMedianCapitalizedPriceMedian] = _at((ComponentsAll, SthRealizedPriceMedian, SthCapitalizedPriceMedian, SthMedianRealizedPriceMedian, SthMedianCapitalizedPriceMedian), 'sth_median')
+    all: ComponentsAll = _at(ComponentsAll, '*')
+    sth: Sth = _at(Sth, '*')
     under_6m: Under6m = _at(Under6m, '*')
     awake: ComponentsAwake = _at(ComponentsAwake, '*')
     mobile: ComponentsMobile = _at(ComponentsMobile, 'mobile_median')
-    vaulted_price: ComponentsTrueMarketMean[VaultedPriceMedian] = _at((ComponentsTrueMarketMean, VaultedPriceMedian), '*')
-    true_market_mean: ComponentsTrueMarketMean[TrueMarketMeanMedian] = _at((ComponentsTrueMarketMean, TrueMarketMeanMedian), '*')
 
 
 class RarityMeter(_Node):
@@ -2984,7 +2991,7 @@ class Bedrock(_Node):
     mobile: BedrockAwake = _at(BedrockAwake, '*_mobile')
 
 
-class PricesTrueMarketMean(_Node):
+class TrueMarketMean(_Node):
     block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
     ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_ratio')
     aviv: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'aviv')
@@ -3000,7 +3007,7 @@ class PricesActive(_Node):
 class Prices(_Node):
     vaulted: PricesActive = _at(PricesActive, '*')
     active: PricesActive = _at(PricesActive, 'active')
-    true_market_mean: PricesTrueMarketMean = _at(PricesTrueMarketMean, 'true_market_mean')
+    true_market_mean: TrueMarketMean = _at(TrueMarketMean, 'true_market_mean')
     cointime: PricesActive = _at(PricesActive, 'cointime')
 
 
@@ -3794,11 +3801,21 @@ class DataBytes(_Node):
     chain_share: ChainShare = _at(ChainShare, '*_chain_share')
 
 
+class Inscription(_Node):
+    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
+    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
+    cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
+    sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_tx_count_sum')
+    share: ChainShare = _at(ChainShare, '*_tx_share')
+    fees: OpReturnFees = _at(OpReturnFees, '*')
+
+
 class Nonstandard(_Node):
     flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'is_*')
     block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
     sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_tx_count_sum')
+    share: ChainShare = _at(ChainShare, '*_tx_share')
 
 
 class Patterns(_Node):
@@ -3815,11 +3832,53 @@ class TransactionsFees(_Node):
     cpfp_child: Nonstandard = _at(Nonstandard, 'cpfp_child')
 
 
-class TransactionsFeaturesAnnex(_Node):
+class TransactionsFeaturesOneInput(_Node):
+    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_count')
+    cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_count_cumulative')
+    sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_count_sum')
+    share: ChainShare = _at(ChainShare, '*_share')
+
+
+class DustOutput(_Node):
     flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
     block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
     sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_tx_count_sum')
+    share: ChainShare = _at(ChainShare, '*_tx_share')
+
+
+class Signatures(_Node):
+    annex: DustOutput = _at(DustOutput, 'annex')
+    sighash_all: DustOutput = _at(DustOutput, '*_all')
+    sighash_none: DustOutput = _at(DustOutput, '*_none')
+    sighash_single: DustOutput = _at(DustOutput, '*_single')
+    sighash_default: DustOutput = _at(DustOutput, '*_default')
+    sighash_anyone_can_pay: DustOutput = _at(DustOutput, '*_anyone_can_pay')
+
+
+class FeaturesScripts(_Node):
+    p2pk: DustOutput = _at(DustOutput, 'p2pk')
+    p2ms: DustOutput = _at(DustOutput, 'p2ms')
+    p2pkh: DustOutput = _at(DustOutput, 'p2pkh')
+    p2sh: DustOutput = _at(DustOutput, 'p2sh')
+    p2wpkh: DustOutput = _at(DustOutput, 'p2wpkh')
+    p2wsh: DustOutput = _at(DustOutput, 'p2wsh')
+    p2tr: DustOutput = _at(DustOutput, 'p2tr')
+    p2a: DustOutput = _at(DustOutput, 'p2a')
+    empty_script: DustOutput = _at(DustOutput, 'empty_*')
+    unknown_script: DustOutput = _at(DustOutput, 'unknown_*')
+    fake_pubkey: DustOutput = _at(DustOutput, 'fake_pubkey')
+    fake_scripthash: DustOutput = _at(DustOutput, 'fake_scripthash')
+
+
+class TransactionsFeatures(_Node):
+    scripts: FeaturesScripts = _at(FeaturesScripts, 'script')
+    signatures: Signatures = _at(Signatures, 'sighash')
+    segwit: TransactionsFeaturesOneInput = _at(TransactionsFeaturesOneInput, 'segwit_*')
+    explicitly_rbf: Nonstandard = _at(Nonstandard, 'explicitly_rbf')
+    dust_output: DustOutput = _at(DustOutput, 'dust_output')
+    one_input: TransactionsFeaturesOneInput = _at(TransactionsFeaturesOneInput, 'one_input_*')
+    one_output: TransactionsFeaturesOneInput = _at(TransactionsFeaturesOneInput, 'one_output_*')
 
 
 class Size(_Node, Generic[A, B]):
@@ -4234,38 +4293,6 @@ class OpReturn(_Node):
     policies: Policies = _at(Policies, '*')
 
 
-class Inscription(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
-    count: BlocksCount[Count] = _at(BlocksCount, '*_tx_count')
-    fees: OpReturnFees = _at(OpReturnFees, '*')
-
-
-class TransactionsFeatures(_Node):
-    p2pk: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, 'p2pk')
-    p2ms: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, 'p2ms')
-    p2pkh: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, 'p2pkh')
-    p2sh: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, 'p2sh')
-    p2wpkh: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, 'p2wpkh')
-    p2wsh: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, 'p2wsh')
-    p2tr: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, 'p2tr')
-    p2a: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, 'p2a')
-    empty_script: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, 'empty_script')
-    unknown_script: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, 'unknown_script')
-    fake_pubkey: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, 'fake_pubkey')
-    fake_scripthash: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, 'fake_scripthash')
-    segwit: BlocksCount[Count] = _at(BlocksCount, 'segwit_tx_count')
-    annex: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, 'annex')
-    sighash_all: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, '*_all')
-    sighash_none: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, '*_none')
-    sighash_single: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, '*_single')
-    sighash_default: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, '*_default')
-    sighash_anyone_can_pay: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, '*_anyone_can_pay')
-    explicitly_rbf: Nonstandard = _at(Nonstandard, 'explicitly_rbf')
-    dust_output: TransactionsFeaturesAnnex = _at(TransactionsFeaturesAnnex, 'dust_output')
-    one_input: BlocksCount[Count] = _at(BlocksCount, 'one_input_tx_count')
-    one_output: BlocksCount[Count] = _at(BlocksCount, 'one_output_tx_count')
-
-
 class TypesEmpty(_Node):
     count: BlocksCount[Count] = _at(BlocksCount, '*_count')
     share: ChainShare = _at(ChainShare, '*_share')
@@ -4563,7 +4590,7 @@ class ScriptsEmpty(_Node):
     tx_index: SeriesPattern24[TxIndex] = _at(SeriesPattern24, '*_tx_index')
 
 
-class Scripts(_Node):
+class IndexerScripts(_Node):
     empty: ScriptsEmpty = _at(ScriptsEmpty, '*')
     p2ms: ScriptsP2ms = _at(ScriptsP2ms, 'p2ms')
     unknown: ScriptsUnknown = _at(ScriptsUnknown, 'unknown')
@@ -4637,7 +4664,7 @@ class IndexerInputs(_Node):
     value: SeriesPattern20[Sats] = _at(SeriesPattern20, 'input_value')
 
 
-class OneInput(_Node):
+class IndexerTransactionsFeaturesOneInput(_Node):
     block: SeriesPattern18[Count] = _at(SeriesPattern18, '*')
 
 
@@ -4650,14 +4677,14 @@ class Versions(_Node, Generic[A]):
 
 class Transactions(_Node):
     count: Size[Count, Optional[CountFract]] = _at(Size, '*_count')
-    features: TransactionsFeatures = _at(TransactionsFeatures, 'sighash')
+    features: TransactionsFeatures = _at(TransactionsFeatures, '*')
     vsize: Vsize[VSize] = _at(Vsize, '*_vsize')
     fees: TransactionsFees = _at(TransactionsFees, 'fee')
     inscription: Inscription = _at(Inscription, 'inscription')
     patterns: Patterns = _at(Patterns, 'coinjoin')
     nonstandard: Nonstandard = _at(Nonstandard, 'nonstandard')
     sigop_cost: BlocksCount[SigOps] = _at(BlocksCount, 'block_sigop_cost')
-    versions: Versions[BlocksCount[Count]] = _at((Versions, BlocksCount), '*_count')
+    versions: Versions[TransactionsFeaturesOneInput] = _at((Versions, TransactionsFeaturesOneInput), '*')
     volume: OpReturnValue = _at(OpReturnValue, '*_volume')
     per_second: InputsPerSecond[Optional[PerSecond]] = _at(InputsPerSecond, '*_per_second')
 
@@ -4667,36 +4694,36 @@ class ExplicitlyRbf(_Node):
     block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
 
 
-class IndexerTransactionsFeaturesAnnex(_Node):
+class Annex(_Node):
     flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
     block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
 
 
 class IndexerTransactionsFeatures(_Node):
-    p2pk: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, 'p2pk')
-    p2ms: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, 'p2ms')
-    p2pkh: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, 'p2pkh')
-    p2sh: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, 'p2sh')
-    p2wpkh: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, 'p2wpkh')
-    p2wsh: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, 'p2wsh')
-    p2tr: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, 'p2tr')
-    p2a: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, 'p2a')
-    op_return: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, 'op_return')
-    empty_script: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, 'empty_script')
-    unknown_script: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, 'unknown_script')
-    fake_pubkey: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, 'fake_pubkey')
-    fake_scripthash: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, 'fake_scripthash')
-    inscription: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, 'inscription')
-    annex: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, 'annex')
-    sighash_all: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, '*_all')
-    sighash_none: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, '*_none')
-    sighash_single: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, '*_single')
-    sighash_default: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, '*_default')
-    sighash_anyone_can_pay: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, '*_anyone_can_pay')
+    p2pk: Annex = _at(Annex, 'p2pk')
+    p2ms: Annex = _at(Annex, 'p2ms')
+    p2pkh: Annex = _at(Annex, 'p2pkh')
+    p2sh: Annex = _at(Annex, 'p2sh')
+    p2wpkh: Annex = _at(Annex, 'p2wpkh')
+    p2wsh: Annex = _at(Annex, 'p2wsh')
+    p2tr: Annex = _at(Annex, 'p2tr')
+    p2a: Annex = _at(Annex, 'p2a')
+    op_return: Annex = _at(Annex, 'op_return')
+    empty_script: Annex = _at(Annex, 'empty_script')
+    unknown_script: Annex = _at(Annex, 'unknown_script')
+    fake_pubkey: Annex = _at(Annex, 'fake_pubkey')
+    fake_scripthash: Annex = _at(Annex, 'fake_scripthash')
+    inscription: Annex = _at(Annex, 'inscription')
+    annex: Annex = _at(Annex, 'annex')
+    sighash_all: Annex = _at(Annex, '*_all')
+    sighash_none: Annex = _at(Annex, '*_none')
+    sighash_single: Annex = _at(Annex, '*_single')
+    sighash_default: Annex = _at(Annex, '*_default')
+    sighash_anyone_can_pay: Annex = _at(Annex, '*_anyone_can_pay')
     explicitly_rbf: ExplicitlyRbf = _at(ExplicitlyRbf, 'explicitly_rbf')
-    dust_output: IndexerTransactionsFeaturesAnnex = _at(IndexerTransactionsFeaturesAnnex, 'dust_output')
-    one_input: OneInput = _at(OneInput, 'one_input_tx_count')
-    one_output: OneInput = _at(OneInput, 'one_output_tx_count')
+    dust_output: Annex = _at(Annex, 'dust_output')
+    one_input: IndexerTransactionsFeaturesOneInput = _at(IndexerTransactionsFeaturesOneInput, 'one_input_tx_count')
+    one_output: IndexerTransactionsFeaturesOneInput = _at(IndexerTransactionsFeaturesOneInput, 'one_output_tx_count')
 
 
 class IndexerTransactions(_Node):
@@ -4710,7 +4737,7 @@ class IndexerTransactions(_Node):
     first_txin_index: SeriesPattern19[TxInIndex] = _at(SeriesPattern19, 'first_txin_index')
     first_txout_index: SeriesPattern19[TxOutIndex] = _at(SeriesPattern19, 'first_txout_index')
     features: IndexerTransactionsFeatures = _at(IndexerTransactionsFeatures, 'sighash')
-    versions: Versions[OneInput] = _at((Versions, OneInput), '*_count')
+    versions: Versions[IndexerTransactionsFeaturesOneInput] = _at((Versions, IndexerTransactionsFeaturesOneInput), '*_count')
 
 
 class IndexerBlocks(_Node):
@@ -4731,7 +4758,7 @@ class Indexer(_Node):
     inputs: IndexerInputs = _at(IndexerInputs, 'index')
     outputs: IndexerOutputs = _at(IndexerOutputs, 'output')
     addresses: IndexerAddresses = _at(IndexerAddresses, 'p2pk65')
-    scripts: Scripts = _at(Scripts, 'empty_output')
+    scripts: IndexerScripts = _at(IndexerScripts, 'empty_output')
     op_return: IndexerOpReturn = _at(IndexerOpReturn, 'op_return')
 
 
