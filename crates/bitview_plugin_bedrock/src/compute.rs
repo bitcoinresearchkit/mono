@@ -7,12 +7,13 @@ use bitview_cohort::AgeRange;
 use bitview_compute::{Inputs, WRITE_INTERVAL, collect_cohort_weights, write_locked};
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use bitview_traversable::Traversable;
-use bitview_urpd::COMPUTE_VERSION as URPD_COMPUTE_VERSION;
+use bitview_urpd::{COMPUTE_VERSION as URPD_COMPUTE_VERSION, ReplayInputs};
 use brk_error::Result;
+use brk_types::Version;
 use log::info;
 use vecdb::{AnyVec, ReadableVec};
 
-use crate::{BlockResult, Calibration, CumulativeBucket, Dependencies, Vecs};
+use crate::{BlockResult, Calibration, CumulativeBucket, Dependencies, ModeVecs, Vecs};
 
 impl ComputePlugin for Vecs {
     compute_items!(Dependencies, db);
@@ -54,7 +55,10 @@ impl ComputePlugin for Vecs {
         inputs.len = inputs.len.min(urpd.timestamps.len());
         let source_version = inputs.version;
         let range = inputs.prepare(
-            self.modes.iter_any_stored_mut().collect::<Vec<_>>(),
+            self.modes
+                .iter_mut()
+                .flat_map(ModeVecs::replay_stored_mut)
+                .collect::<Vec<_>>(),
             usize::from(indexer.compute_start().height),
             context.exit(),
         )?;
@@ -158,13 +162,49 @@ impl ComputePlugin for Vecs {
                     last_progress = Instant::now();
                 }
                 if end_block.is_multiple_of(WRITE_INTERVAL) || end_block == end {
-                    write_locked(self.modes.iter_any_stored_mut(), context.exit())?;
+                    write_locked(
+                        self.modes.iter_mut().flat_map(ModeVecs::replay_stored_mut),
+                        context.exit(),
+                    )?;
                 }
                 Ok(())
             },
         )?;
         self.calibration = Some(calibration);
         self.replay = replay;
+        self.compute_floor_supply(start, urpd, context)
+    }
+}
+
+impl Vecs {
+    /// The floor bands' holdings, from the floors the replay stored: their own group, so each
+    /// resumes from where it was written.
+    fn compute_floor_supply(
+        &mut self,
+        max_from: usize,
+        urpd: ReplayInputs<'_>,
+        context: UpdateContext<'_>,
+    ) -> Result<()> {
+        let floors = Inputs::new(
+            Version::ZERO,
+            self.modes
+                .iter()
+                .flat_map(|vecs| vecs.prices_stored.floor.iter())
+                .map(|vec| vec as &dyn AnyVec)
+                .chain([urpd.prices as &dyn AnyVec]),
+        );
+        let range = floors.prepare(
+            self.modes
+                .iter_mut()
+                .flat_map(|vecs| vecs.floor.iter_any_stored_mut())
+                .collect::<Vec<_>>(),
+            max_from,
+            context.exit(),
+        )?;
+        let mut floor_supply = mem::take(&mut self.floor_supply);
+        floor_supply.resume(&range, &self.modes, urpd)?;
+        floor_supply.compute(range, urpd.history, &mut self.modes, context.exit())?;
+        self.floor_supply = floor_supply;
         Ok(())
     }
 }

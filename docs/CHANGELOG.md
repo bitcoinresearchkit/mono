@@ -944,6 +944,8 @@ has to be deleted by hand.
   and `realized_cap` views: `new` takes the all-chain realized cap too, and `with_supply` and `with_market_cap` are
   gone. Coinflow's `Dependencies` take `urpd`, `price` and `age` (was `distribution`), and
   `bitview_plugin_supply::Vecs::import` no longer takes Cointime
+- `bitview_plugin_bedrock::Vecs::import` takes the spot price (`import(context, &mappings, &spot_price)`, for the floor
+  supply's dollar value)
 - The address state is private to the addresses plugin (was the public `bitview_plugin_distribution::Vecs::addr_state`):
   reads go through `Vecs::read_state()` (`AddrStateRead`, holding the state's lock: `written()`,
   `addr_data(type, index)`), publication through `Vecs::publish_state_with`; no traversal or export reaches its vectors
@@ -968,6 +970,12 @@ has to be deleted by hand.
 
 - `GET /api/series/{name}` returns `unit`, what the value type measures (e.g. "A duration in days."), and `nullable`,
   the indexes whose values can be `null`; the catalog carries `nullable` too. Every series value type has a description
+- Bedrock floor supply and capital, `bedrock.<mode>.{floor_supply, floor_capital}.{pct95_to_pct98, pct98_to_pct99,
+  pct99_to_pct99_5, pct99_5_to_pct99_9, below_pct99_9}` (ids `bedrock_awake_floor_supply_pct95_to_pct98`, ..., in BTC
+  and `_usd`, and `bedrock_awake_floor_capital_pct95_to_pct98`, ..., in USD): the supply created while spot sat in each
+  band of the mode's floors at its creation block, less what has been spent since, and its capital (each unspent
+  output at its creation price), counted from the second halving (block 420,000), before which calibration dominates
+  the floors
 - Median time past, `indexer.blocks.median_time` (id `median_time`, height index): the median of each block's header
   timestamp and up to ten predecessors, which the next block's timestamp must exceed
 - Cointime's awake and Coinflow's mobile cohorts publish their creation-price statistics as series, in `all`, `sth`,

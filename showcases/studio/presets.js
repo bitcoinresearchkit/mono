@@ -56,6 +56,11 @@ function percentileLabel(/** @type {number} */ p) {
   const text = String(p), last = text.at(-1), teen = /(^|\D)1\d$/.test(text);
   return `${text}${teen ? "th" : last === "1" ? "st" : last === "2" ? "nd" : last === "3" ? "rd" : "th"}`;
 }
+/** A Bedrock floor band's label from its key: "pct95ToPct98" is "95th–98th", "belowPct999" "Below 99.9th". */
+function floorBandLabel(/** @type {string} */ key) {
+  const [high, low] = (key.match(/pct\d+/gi) ?? []).map((p) => percentileLabel(percentile(p.toLowerCase())));
+  return low ? `${high}–${low}` : `Below ${high}`;
+}
 /** A name as written in the client's tables ("1 to 2 Months Old", "100K-1M Sats") in sentence case, ranges with en dashes. */
 function sentence(/** @type {string} */ text) {
   return text
@@ -424,14 +429,14 @@ export function studioPresets(client) {
   };
   /** The client's name for a member (its table's `long`), in sentence case. @param {Record<string, { long: string }>} table @param {string} key */
   const named = (table, key) => sentence(table[key]?.long ?? key);
-  /** A holder group's (or weighted cohort's) name and title. */
-  const HOLDERS = /** @type {Record<string, [string, string]>} */ ({
-    all: ["All coins", "All coins"], sth: ["Short-term holders", "Short-term holders"], lth: ["Long-term holders", "Long-term holders"],
-    under4m: ["Under 4 months old", "Coins under 4 months old"], under6m: ["Under 6 months old", "Coins under 6 months old"],
-    over4m: ["Over 4 months old", "Coins over 4 months old"], over6m: ["Over 6 months old", "Coins over 6 months old"],
-    awake: ["Awake coins", "Awake coins"], mobile: ["Mobile coins", "Mobile coins"],
+  /** A holder group's (or weighted cohort's) name, title, and what it adds to some coins ("Awake coins under 4 months old"). */
+  const HOLDERS = /** @type {Record<string, [string, string, string]>} */ ({
+    all: ["All coins", "All coins", ""], sth: ["Short-term holders", "Short-term holders", " of short-term holders"], lth: ["Long-term holders", "Long-term holders", " of long-term holders"],
+    under4m: ["Under 4 months old", "Coins under 4 months old", " under 4 months old"], under6m: ["Under 6 months old", "Coins under 6 months old", " under 6 months old"],
+    over4m: ["Over 4 months old", "Coins over 4 months old", " over 4 months old"], over6m: ["Over 6 months old", "Coins over 6 months old", " over 6 months old"],
+    awake: ["Awake coins", "Awake coins", ""], mobile: ["Mobile coins", "Mobile coins", ""],
   });
-  const holderName = (/** @type {string} */ key) => ({ name: HOLDERS[key]?.[0] ?? key, who: HOLDERS[key]?.[1] ?? key });
+  const holderName = (/** @type {string} */ key) => ({ name: HOLDERS[key]?.[0] ?? key, who: HOLDERS[key]?.[1] ?? key, of: (/** @type {string} */ coins) => `${coins}${HOLDERS[key]?.[2] ?? `, ${key}`}` });
 
   // ── The tree ──────────────────────────────────────────────────────────────
 
@@ -489,11 +494,19 @@ export function studioPresets(client) {
       chart("Cointime caps", "Cointime capitalizations", [...[["thermo", "Thermo cap"], ["investor", "Investor cap"], ["active", "Active cap"], ["vaulted", "Vaulted cap"], ["cointime", "Cointime cap"]].map(([key, label], i) => series(ct.caps[key], label, { color: ["orange", "green", "red", "sky", "violet"][i] })), series(ct.caps.investorness, "Investorness", { pane: 2, color: "green" }), series(ct.caps.producerness, "Producerness", { pane: 2, color: "orange" })], { log: [1] }),
       chart("Reserve risk", "Reserve risk", [price(), series(ct.reserveRisk.block, "Reserve risk", { pane: 2, color: "orange" }), series(ct.reserveRisk.hodlBank, "HODL bank", { pane: 3, color: "sky" })], { log: [2, 3] }),
       ...flow(ct.reserveRisk.vocdd, "Value of coin days destroyed", "Value of coin days destroyed (VOCDD)"),
-      section("Bedrock", entries(t.bedrock).map(([mode, node]) => section(sentence(mode[0].toUpperCase() + mode.slice(1)), [
-        chart("Floors", `Bedrock floors, ${mode}`, [price(), ...entries(node.floor).map(([key, value], i, all) => series(value, `${percentileLabel(percentile(key))}`, { color: ramp(all.length, 140, 200)[i] }))]),
-        chart("Cost basis above the floor", `Cost basis above the Bedrock floor, ${mode}`, [price(), ...entries(node.costBasisAboveFloor).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 25, 160)[i], width: key === "median" ? 2 : 1 }))]),
-        chart("Supply-in-loss thresholds", `Bedrock's supply-in-loss thresholds, ${mode}`, entries(node.supplyInLossShareThreshold).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 25, 100)[i] }))),
-      ]))),
+      section("Bedrock", entries(t.bedrock).map(([mode, node]) => {
+        const bands = entries(node.floorSupply), colors = ramp(bands.length, 140, 200);
+        return section(sentence(mode[0].toUpperCase() + mode.slice(1)), [
+          chart("Floors", `Bedrock floors, ${mode}`, [price(), ...entries(node.floor).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 140, 200)[i] }))]),
+          chart("Supply between floors", `Supply created between Bedrock floors, ${mode}`, [
+            ...bands.map(([key, value], i) => series(value.btc, floorBandLabel(key), { color: colors[i], type: "area" })),
+            ...bands.map(([key, value], i) => series(value.usd, `${floorBandLabel(key)}, value`, { color: colors[i], type: "area", pane: 2 })),
+          ], { stack: { 1: "stack", 2: "stack" } }),
+          chart("Capital between floors", `Capital of the supply created between Bedrock floors, ${mode}`, entries(node.floorCapital).map(([key, value], i) => series(value, floorBandLabel(key), { color: colors[i], type: "area" })), { stack: { 1: "stack" } }),
+          chart("Cost basis above the floor", `Cost basis above the Bedrock floor, ${mode}`, [price(), ...entries(node.costBasisAboveFloor).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 25, 160)[i], width: key === "median" ? 2 : 1 }))]),
+          chart("Supply-in-loss thresholds", `Bedrock's supply-in-loss thresholds, ${mode}`, entries(node.supplyInLossShareThreshold).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 25, 100)[i] }))),
+        ]);
+      })),
       section("Rarity meter", [
         ...entries(t.rarityMeter).filter(([key]) => ["full", "local", "cycle"].includes(key)).map(([key, node]) => section(`${key[0].toUpperCase()}${key.slice(1)}`, [
           chart("Bands", `Rarity meter bands, ${key}`, [price(), ...entries(node).filter(([k]) => Number.isFinite(percentile(k))).map(([k, value], i, all) => series(value, percentileLabel(percentile(k)), { color: ramp(all.length, 140, 360)[i], width: k === "median" ? 2 : 1 }))]),
@@ -629,11 +642,11 @@ export function studioPresets(client) {
       chart("Supply", "Vaulted, active and lost supply", [...[["vaulted", "Vaulted"], ["active", "Active"], ["hodledOrLost", "HODLed or lost"]].flatMap(([key, label], i) => [series(ct.supply[key].btc, label, { color: ["green", "red", "gray"][i] }), series(ct.supply[key].usd, `${label}, value`, { color: ["green", "red", "gray"][i], pane: 2 })])]),
       section("Value", entries(ct.value).flatMap(([key, node]) => flow(node, `Value ${key}`, `Cointime value ${key}`))),
       section("Age bands", cointimeBands(ct.ageRanges)),
-      section(holderName("awake").name, entries(ct.cohorts).map(([key, c]) => section(holderName(key).name, weighted(c.awake, c.dormant, `${holderName("awake").name}, ${holderName(key).who.toLowerCase()}`, "Awake", "Dormant")))),
+      section(holderName("awake").name, entries(ct.cohorts).map(([key, c]) => section(holderName(key).name, weighted(c.awake, c.dormant, holderName(key).of(holderName("awake").name), "Awake", "Dormant")))),
     ]),
     section("Coinflow", [
       section("Age bands", coinflowBands(cf.ageRanges)),
-      section(holderName("mobile").name, entries(cf.cohorts).map(([key, c]) => section(holderName(key).name, weighted(c.mobile, c.immobile, `${holderName("mobile").name}, ${holderName(key).who.toLowerCase()}`, "Mobile", "Immobile")))),
+      section(holderName("mobile").name, entries(cf.cohorts).map(([key, c]) => section(holderName(key).name, weighted(c.mobile, c.immobile, holderName(key).of(holderName("mobile").name), "Mobile", "Immobile")))),
     ]),
   ];
 

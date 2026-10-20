@@ -611,6 +611,13 @@ pub mod tree {
         local: Meter = "local_*",
         cycle: Meter = "cycle_*",
     } }
+    shape! { FloorBands at "series().bedrock.awake.floor_capital" {
+        pct95_to_pct98: SeriesPattern1<Option<Dollars>> = "*_pct95_to_pct98",
+        pct98_to_pct99: SeriesPattern1<Option<Dollars>> = "*_pct98_to_pct99",
+        pct99_to_pct99_5: SeriesPattern1<Option<Dollars>> = "*_pct99_to_pct99_5",
+        pct99_5_to_pct99_9: SeriesPattern1<Option<Dollars>> = "*_pct99_5_to_pct99_9",
+        below_pct99_9: SeriesPattern1<Option<Dollars>> = "*_below_pct99_9",
+    } }
     shape! { Levels at "series().bedrock.awake.cost_basis_above_floor" {
         pct10: SeriesPattern1<Option<Dollars>> = "*_pct10",
         pct20: SeriesPattern1<Option<Dollars>> = "*_pct20",
@@ -628,16 +635,6 @@ pub mod tree {
         pct99: SeriesPattern1<A> = "*_pct99",
         pct99_5: SeriesPattern1<A> = "*_pct99_5",
         pct99_9: SeriesPattern1<A> = "*_pct99_9",
-    } }
-    shape! { Mode at "series().bedrock.awake" {
-        supply_in_loss_share_threshold: Percentiles<Option<Percent>> = "*_supply_in_loss_share_threshold",
-        floor: Percentiles<Option<Dollars>> = "*_floor",
-        cost_basis_above_floor: Levels = "*_cost_basis_above_floor",
-    } }
-    shape! { Bedrock at "series().bedrock" {
-        awake: Mode = "*_awake",
-        mobile: Mode = "*_mobile",
-        unweighted: Mode = "*_unweighted",
     } }
     shape! { CointimePriceWithRatio at "series().cointime.prices.true_market_mean" {
         block: SeriesPattern1<Option<Dollars>> = "*",
@@ -930,6 +927,25 @@ pub mod tree {
     shape! { Value at "series().addresses.avg_balance" {
         btc: SeriesPattern1<Option<Bitcoin>> = "*",
         usd: SeriesPattern1<Option<Dollars>> = "*_usd",
+    } }
+    shape! { BedrockFloorBands at "series().bedrock.awake.floor_supply" {
+        pct95_to_pct98: Value = "*_pct95_to_pct98",
+        pct98_to_pct99: Value = "*_pct98_to_pct99",
+        pct99_to_pct99_5: Value = "*_pct99_to_pct99_5",
+        pct99_5_to_pct99_9: Value = "*_pct99_5_to_pct99_9",
+        below_pct99_9: Value = "*_below_pct99_9",
+    } }
+    shape! { Mode at "series().bedrock.awake" {
+        supply_in_loss_share_threshold: Percentiles<Option<Percent>> = "*_supply_in_loss_share_threshold",
+        floor: Percentiles<Option<Dollars>> = "*_floor",
+        cost_basis_above_floor: Levels = "*_cost_basis_above_floor",
+        floor_supply: BedrockFloorBands = "*_floor_supply",
+        floor_capital: FloorBands = "*_floor_capital",
+    } }
+    shape! { Bedrock at "series().bedrock" {
+        awake: Mode = "*_awake",
+        mobile: Mode = "*_mobile",
+        unweighted: Mode = "*_unweighted",
     } }
     shape! { CointimeSupply at "series().cointime.supply" {
         vaulted: Value = "vaulted_*",

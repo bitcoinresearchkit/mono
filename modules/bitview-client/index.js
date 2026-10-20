@@ -2956,6 +2956,23 @@ const _RarityMeter = _s({
 
 /**
  * @typedef {{
+ *   pct95ToPct98: SeriesPattern1<?Dollars>,
+ *   pct98ToPct99: SeriesPattern1<?Dollars>,
+ *   pct99ToPct995: SeriesPattern1<?Dollars>,
+ *   pct995ToPct999: SeriesPattern1<?Dollars>,
+ *   belowPct999: SeriesPattern1<?Dollars>,
+ * }} FloorBands
+ */
+const _FloorBands = _s({
+  pct95ToPct98: [_i1, '*_pct95_to_pct98'],
+  pct98ToPct99: [_i1, '*_pct98_to_pct99'],
+  pct99ToPct995: [_i1, '*_pct99_to_pct99_5'],
+  pct995ToPct999: [_i1, '*_pct99_5_to_pct99_9'],
+  belowPct999: [_i1, '*_below_pct99_9'],
+});
+
+/**
+ * @typedef {{
  *   pct10: SeriesPattern1<?Dollars>,
  *   pct20: SeriesPattern1<?Dollars>,
  *   pct30: SeriesPattern1<?Dollars>,
@@ -2995,32 +3012,6 @@ const _Percentiles = _s({
   pct99: [_i1, '*_pct99'],
   pct995: [_i1, '*_pct99_5'],
   pct999: [_i1, '*_pct99_9'],
-});
-
-/**
- * @typedef {{
- *   supplyInLossShareThreshold: Percentiles<?Percent>,
- *   floor: Percentiles<?Dollars>,
- *   costBasisAboveFloor: Levels,
- * }} Mode
- */
-const _Mode = _s({
-  supplyInLossShareThreshold: [_Percentiles, '*_supply_in_loss_share_threshold'],
-  floor: [_Percentiles, '*_floor'],
-  costBasisAboveFloor: [_Levels, '*_cost_basis_above_floor'],
-});
-
-/**
- * @typedef {{
- *   awake: Mode,
- *   mobile: Mode,
- *   unweighted: Mode,
- * }} Bedrock
- */
-const _Bedrock = _s({
-  awake: [_Mode, '*_awake'],
-  mobile: [_Mode, '*_mobile'],
-  unweighted: [_Mode, '*_unweighted'],
 });
 
 /**
@@ -3736,6 +3727,53 @@ const _PerTxDistribution = _s({
 const _Value = _s({
   btc: [_i1, '*'],
   usd: [_i1, '*_usd'],
+});
+
+/**
+ * @typedef {{
+ *   pct95ToPct98: Value,
+ *   pct98ToPct99: Value,
+ *   pct99ToPct995: Value,
+ *   pct995ToPct999: Value,
+ *   belowPct999: Value,
+ * }} BedrockFloorBands
+ */
+const _BedrockFloorBands = _s({
+  pct95ToPct98: [_Value, '*_pct95_to_pct98'],
+  pct98ToPct99: [_Value, '*_pct98_to_pct99'],
+  pct99ToPct995: [_Value, '*_pct99_to_pct99_5'],
+  pct995ToPct999: [_Value, '*_pct99_5_to_pct99_9'],
+  belowPct999: [_Value, '*_below_pct99_9'],
+});
+
+/**
+ * @typedef {{
+ *   supplyInLossShareThreshold: Percentiles<?Percent>,
+ *   floor: Percentiles<?Dollars>,
+ *   costBasisAboveFloor: Levels,
+ *   floorSupply: BedrockFloorBands,
+ *   floorCapital: FloorBands,
+ * }} Mode
+ */
+const _Mode = _s({
+  supplyInLossShareThreshold: [_Percentiles, '*_supply_in_loss_share_threshold'],
+  floor: [_Percentiles, '*_floor'],
+  costBasisAboveFloor: [_Levels, '*_cost_basis_above_floor'],
+  floorSupply: [_BedrockFloorBands, '*_floor_supply'],
+  floorCapital: [_FloorBands, '*_floor_capital'],
+});
+
+/**
+ * @typedef {{
+ *   awake: Mode,
+ *   mobile: Mode,
+ *   unweighted: Mode,
+ * }} Bedrock
+ */
+const _Bedrock = _s({
+  awake: [_Mode, '*_awake'],
+  mobile: [_Mode, '*_mobile'],
+  unweighted: [_Mode, '*_unweighted'],
 });
 
 /**

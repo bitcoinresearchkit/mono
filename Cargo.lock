@@ -627,8 +627,11 @@ dependencies = [
  "bitview_urpd",
  "bitview_vecs",
  "brk_error",
+ "brk_exit",
  "brk_types",
  "log",
+ "rayon",
+ "statedb",
  "vecdb",
 ]
 

@@ -2974,6 +2974,14 @@ class RarityMeter(_Node):
     cycle: Meter = _at(Meter, 'cycle_*')
 
 
+class FloorBands(_Node):
+    pct95_to_pct98: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct95_to_pct98')
+    pct98_to_pct99: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct98_to_pct99')
+    pct99_to_pct99_5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct99_to_pct99_5')
+    pct99_5_to_pct99_9: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct99_5_to_pct99_9')
+    below_pct99_9: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_below_pct99_9')
+
+
 class Levels(_Node):
     pct10: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct10')
     pct20: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct20')
@@ -2992,18 +3000,6 @@ class Percentiles(_Node, Generic[A]):
     pct99: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct99')
     pct99_5: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct99_5')
     pct99_9: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct99_9')
-
-
-class Mode(_Node):
-    supply_in_loss_share_threshold: Percentiles[Optional[Percent]] = _at(Percentiles, '*_supply_in_loss_share_threshold')
-    floor: Percentiles[Optional[Dollars]] = _at(Percentiles, '*_floor')
-    cost_basis_above_floor: Levels = _at(Levels, '*_cost_basis_above_floor')
-
-
-class Bedrock(_Node):
-    awake: Mode = _at(Mode, '*_awake')
-    mobile: Mode = _at(Mode, '*_mobile')
-    unweighted: Mode = _at(Mode, '*_unweighted')
 
 
 class CointimePriceWithRatio(_Node):
@@ -3339,6 +3335,28 @@ class PerTxDistribution(_Node, Generic[A]):
 class Value(_Node):
     btc: SeriesPattern1[Optional[Bitcoin]] = _at(SeriesPattern1, '*')
     usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_usd')
+
+
+class BedrockFloorBands(_Node):
+    pct95_to_pct98: Value = _at(Value, '*_pct95_to_pct98')
+    pct98_to_pct99: Value = _at(Value, '*_pct98_to_pct99')
+    pct99_to_pct99_5: Value = _at(Value, '*_pct99_to_pct99_5')
+    pct99_5_to_pct99_9: Value = _at(Value, '*_pct99_5_to_pct99_9')
+    below_pct99_9: Value = _at(Value, '*_below_pct99_9')
+
+
+class Mode(_Node):
+    supply_in_loss_share_threshold: Percentiles[Optional[Percent]] = _at(Percentiles, '*_supply_in_loss_share_threshold')
+    floor: Percentiles[Optional[Dollars]] = _at(Percentiles, '*_floor')
+    cost_basis_above_floor: Levels = _at(Levels, '*_cost_basis_above_floor')
+    floor_supply: BedrockFloorBands = _at(BedrockFloorBands, '*_floor_supply')
+    floor_capital: FloorBands = _at(FloorBands, '*_floor_capital')
+
+
+class Bedrock(_Node):
+    awake: Mode = _at(Mode, '*_awake')
+    mobile: Mode = _at(Mode, '*_mobile')
+    unweighted: Mode = _at(Mode, '*_unweighted')
 
 
 class CointimeSupply(_Node):

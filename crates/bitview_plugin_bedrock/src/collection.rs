@@ -1,5 +1,5 @@
-/// Defines `$id`, one variant per field of `$collection` (named after the field), and the
-/// collection's constructors, selectors and iterators, all in field order.
+/// Defines `$id`, one variant per field of `$collection` (named after the field, listed in `ALL`),
+/// and the collection's constructors, selectors and iterators, all in field order.
 macro_rules! collection {
     (
         $(#[$meta:meta])*
@@ -12,6 +12,8 @@ macro_rules! collection {
         }
 
         impl $id {
+            pub const ALL: &'static [Self] = &[$(Self::$variant),+];
+
             pub const fn name(self) -> &'static str {
                 match self {
                     $(Self::$variant => stringify!($field)),+
@@ -35,6 +37,12 @@ macro_rules! collection {
             pub fn select(&self, id: $id) -> &T {
                 match id {
                     $($id::$variant => &self.$field),+
+                }
+            }
+
+            pub fn select_mut(&mut self, id: $id) -> &mut T {
+                match id {
+                    $($id::$variant => &mut self.$field),+
                 }
             }
 

@@ -6,6 +6,9 @@ mod calibration;
 mod compute;
 mod cumulative_bucket;
 mod dependencies;
+mod floor_bands;
+mod floor_supply;
+mod floor_vecs;
 mod import;
 mod levels;
 mod mode_result;
@@ -26,10 +29,13 @@ use vecdb::{Database, Rw, StorageMode};
 use block_result::BlockResult;
 use calibration::Calibration;
 use cumulative_bucket::CumulativeBucket;
+use floor_bands::{FloorBandId, FloorBands};
+use floor_supply::{FloorSupply, Holding};
+use floor_vecs::FloorVecs;
 use levels::{LevelId, Levels};
 use mode_result::ModeResult;
 use mode_vecs::ModeVecs;
-use modes::{MODE_COUNT, Modes, Thresholds};
+use modes::{MODE_COUNT, ModeId, Modes, Thresholds};
 use percentiles::{LossPercentileId, Percentiles};
 use price_band_id::PriceBandId;
 use price_bands::PriceBands;
@@ -44,6 +50,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     db: Database,
     calibration: M::WriteOnly<Option<Calibration>>,
     replay: M::WriteOnly<Replay>,
+    floor_supply: M::WriteOnly<FloorSupply>,
 
     #[traversable(flatten)]
     modes: Modes<ModeVecs<M>>,

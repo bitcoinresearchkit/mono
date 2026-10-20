@@ -189,7 +189,13 @@ impl DefaultPlugins {
                     })
                 })?;
                 let bedrock = large_stack_thread().spawn_scoped(scope, || {
-                    timed_import(BEDROCK_ID, || Bedrock::import(context, &mappings))
+                    timed_import(BEDROCK_ID, || {
+                        Bedrock::import(
+                            context,
+                            &mappings,
+                            &price.spot.cents.height.read_only_boxed_clone(),
+                        )
+                    })
                 })?;
                 let entry = large_stack_thread().spawn_scoped(scope, || {
                     timed_import(ENTRY_ID, || {

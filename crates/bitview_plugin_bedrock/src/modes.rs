@@ -2,7 +2,7 @@ use bitview_traversable::Traversable;
 
 use super::Percentiles;
 
-#[derive(Traversable)]
+#[derive(Clone, Copy, Default, Traversable)]
 pub struct Modes<T> {
     /// Bedrock's awake mode weights each UTXO age range by wakefulness—the
     /// share of its accumulated coin days that has been consumed—and
@@ -27,10 +27,6 @@ collection!(
         Unweighted => unweighted,
     }
 );
-
-impl ModeId {
-    pub const ALL: [Self; 3] = [Self::Awake, Self::Mobile, Self::Unweighted];
-}
 
 pub const MODE_COUNT: usize = ModeId::ALL.len();
 
