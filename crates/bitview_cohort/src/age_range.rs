@@ -5,7 +5,7 @@ use bitview_traversable::Traversable;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use super::{Age, CohortContext, CohortId, CohortName, Term};
+use super::{Age, CohortId, CohortName, Term};
 
 const HOURS_1H: usize = 1;
 const HOURS_1D: usize = 24;
@@ -43,8 +43,13 @@ impl AgeRangeId {
         CohortId::Age(self)
     }
 
-    pub fn from_cohort_name(context: CohortContext, name: &str) -> Option<Self> {
-        let name = name.strip_prefix(context.prefix())?.strip_prefix('_')?;
+    /// The band's cohort name, its series' prefix (`age_2y_to_3y`).
+    pub fn full_name(self) -> String {
+        format!("age_{}", self.name().id)
+    }
+
+    pub fn from_full_name(name: &str) -> Option<Self> {
+        let name = name.strip_prefix("age_")?;
         Self::ALL.iter().copied().find(|id| id.name().id == name)
     }
 
@@ -132,29 +137,29 @@ const AGE_RANGE_BOUNDS: [Range<usize>; AGE_RANGE_COUNT] = {
 };
 
 pub const AGE_RANGE_NAMES: AgeRange<CohortName> = AgeRange {
-    under_1h: CohortName::new("under_1h_old", "<1h", "Under 1 Hour Old"),
-    _1h_to_1d: CohortName::new("1h_to_1d_old", "1h-1d", "1 Hour to 1 Day Old"),
-    _1d_to_1w: CohortName::new("1d_to_1w_old", "1d-1w", "1 Day to 1 Week Old"),
-    _1w_to_1m: CohortName::new("1w_to_1m_old", "1w-1m", "1 Week to 1 Month Old"),
-    _1m_to_2m: CohortName::new("1m_to_2m_old", "1m-2m", "1 to 2 Months Old"),
-    _2m_to_3m: CohortName::new("2m_to_3m_old", "2m-3m", "2 to 3 Months Old"),
-    _3m_to_4m: CohortName::new("3m_to_4m_old", "3m-4m", "3 to 4 Months Old"),
-    _4m_to_5m: CohortName::new("4m_to_5m_old", "4m-5m", "4 to 5 Months Old"),
-    _5m_to_6m: CohortName::new("5m_to_6m_old", "5m-6m", "5 to 6 Months Old"),
-    _6m_to_9m: CohortName::new("6m_to_9m_old", "6m-9m", "6 to 9 Months Old"),
-    _9m_to_1y: CohortName::new("9m_to_1y_old", "9m-1y", "9 Months to 1 Year Old"),
-    _1y_to_18m: CohortName::new("1y_to_18m_old", "1y-18m", "1 Year to 18 Months Old"),
-    _18m_to_2y: CohortName::new("18m_to_2y_old", "18m-2y", "18 Months to 2 Years Old"),
-    _2y_to_3y: CohortName::new("2y_to_3y_old", "2y-3y", "2 to 3 Years Old"),
-    _3y_to_4y: CohortName::new("3y_to_4y_old", "3y-4y", "3 to 4 Years Old"),
-    _4y_to_5y: CohortName::new("4y_to_5y_old", "4y-5y", "4 to 5 Years Old"),
-    _5y_to_6y: CohortName::new("5y_to_6y_old", "5y-6y", "5 to 6 Years Old"),
-    _6y_to_7y: CohortName::new("6y_to_7y_old", "6y-7y", "6 to 7 Years Old"),
-    _7y_to_8y: CohortName::new("7y_to_8y_old", "7y-8y", "7 to 8 Years Old"),
-    _8y_to_10y: CohortName::new("8y_to_10y_old", "8y-10y", "8 to 10 Years Old"),
-    _10y_to_12y: CohortName::new("10y_to_12y_old", "10y-12y", "10 to 12 Years Old"),
-    _12y_to_15y: CohortName::new("12y_to_15y_old", "12y-15y", "12 to 15 Years Old"),
-    over_15y: CohortName::new("over_15y_old", "15y+", "15+ Years Old"),
+    under_1h: CohortName::new("under_1h", "<1h", "Under 1 Hour Old"),
+    _1h_to_1d: CohortName::new("1h_to_1d", "1h-1d", "1 Hour to 1 Day Old"),
+    _1d_to_1w: CohortName::new("1d_to_1w", "1d-1w", "1 Day to 1 Week Old"),
+    _1w_to_1m: CohortName::new("1w_to_1m", "1w-1m", "1 Week to 1 Month Old"),
+    _1m_to_2m: CohortName::new("1m_to_2m", "1m-2m", "1 to 2 Months Old"),
+    _2m_to_3m: CohortName::new("2m_to_3m", "2m-3m", "2 to 3 Months Old"),
+    _3m_to_4m: CohortName::new("3m_to_4m", "3m-4m", "3 to 4 Months Old"),
+    _4m_to_5m: CohortName::new("4m_to_5m", "4m-5m", "4 to 5 Months Old"),
+    _5m_to_6m: CohortName::new("5m_to_6m", "5m-6m", "5 to 6 Months Old"),
+    _6m_to_9m: CohortName::new("6m_to_9m", "6m-9m", "6 to 9 Months Old"),
+    _9m_to_1y: CohortName::new("9m_to_1y", "9m-1y", "9 Months to 1 Year Old"),
+    _1y_to_18m: CohortName::new("1y_to_18m", "1y-18m", "1 Year to 18 Months Old"),
+    _18m_to_2y: CohortName::new("18m_to_2y", "18m-2y", "18 Months to 2 Years Old"),
+    _2y_to_3y: CohortName::new("2y_to_3y", "2y-3y", "2 to 3 Years Old"),
+    _3y_to_4y: CohortName::new("3y_to_4y", "3y-4y", "3 to 4 Years Old"),
+    _4y_to_5y: CohortName::new("4y_to_5y", "4y-5y", "4 to 5 Years Old"),
+    _5y_to_6y: CohortName::new("5y_to_6y", "5y-6y", "5 to 6 Years Old"),
+    _6y_to_7y: CohortName::new("6y_to_7y", "6y-7y", "6 to 7 Years Old"),
+    _7y_to_8y: CohortName::new("7y_to_8y", "7y-8y", "7 to 8 Years Old"),
+    _8y_to_10y: CohortName::new("8y_to_10y", "8y-10y", "8 to 10 Years Old"),
+    _10y_to_12y: CohortName::new("10y_to_12y", "10y-12y", "10 to 12 Years Old"),
+    _12y_to_15y: CohortName::new("12y_to_15y", "12y-15y", "12 to 15 Years Old"),
+    over_15y: CohortName::new("over_15y", "15y+", "15+ Years Old"),
 };
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]

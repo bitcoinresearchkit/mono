@@ -6,7 +6,7 @@ use brk_types::{Cents, Height, Version};
 use vecdb::{Database, Rw, StorageMode, WritableVec};
 
 /// A cohort's mean creation price; `name` gives each series name from its metric
-/// (`cost_basis_per_coin_avg` -> `utxos_1d_to_1w_old_cost_basis_per_coin_avg`).
+/// (`cost_basis_per_coin_avg` -> `age_1d_to_1w_cost_basis_per_coin_avg`).
 #[derive(Traversable)]
 pub struct CohortCostBasis<M: StorageMode = Rw> {
     /// Creation prices (spot when each output was created) of the cohort's unspent outputs,

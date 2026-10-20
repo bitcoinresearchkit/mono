@@ -65,19 +65,26 @@ impl AgeAggregateId {
         }
     }
 
-    pub fn from_name(name: &str) -> Option<Self> {
-        Self::ALL.iter().copied().find(|id| id.name() == name)
+    /// The cohort's name, its series' prefix: bare for `all` and the terms (`sth`), and the age
+    /// bands' `age_` frame for the cutoffs (`age_under_4m`).
+    pub fn full_name(self) -> String {
+        match self {
+            Self::All | Self::Sth | Self::Lth => self.name().to_owned(),
+            Self::Under4M | Self::Under6M | Self::Over4M | Self::Over6M => {
+                format!("age_{}", self.name())
+            }
+        }
     }
 
-    /// The cohort's id for `metric`: bare for `all`, `sth_`/`lth_` for the terms, and the age
-    /// ranges' `utxos_<age>_old_` frame for the cutoffs (`utxos_under_4m_old_supply`).
+    pub fn from_full_name(name: &str) -> Option<Self> {
+        Self::ALL.iter().copied().find(|id| id.full_name() == name)
+    }
+
+    /// The cohort's id for `metric`: bare for `all`, else its name's (`age_under_4m_supply`).
     pub fn metric_name(self, metric: &str) -> String {
         match self {
             Self::All => metric.to_owned(),
-            Self::Sth | Self::Lth => format!("{}_{metric}", self.name()),
-            Self::Under4M | Self::Under6M | Self::Over4M | Self::Over6M => {
-                format!("utxos_{}_old_{metric}", self.name())
-            }
+            _ => format!("{}_{metric}", self.full_name()),
         }
     }
 }

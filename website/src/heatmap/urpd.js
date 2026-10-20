@@ -90,7 +90,7 @@ const METRICS = [
 /** @type {UrpdCohortFolder[]} */
 const AGE_BANDS = Object.values(bitview.AGE_RANGE_NAMES).map(({ id, short }) => ({
   name: short,
-  cohort: `utxos_${id}`,
+  cohort: `age_${id}`,
 }));
 
 export const rawUrpdHeatmapTree = createUrpdHeatmapTree();

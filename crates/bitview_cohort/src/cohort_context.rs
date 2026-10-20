@@ -2,29 +2,21 @@ use super::CohortId;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CohortContext {
-    /// UTXO-based cohorts: uses "utxos_" prefix for age/amount cohorts.
+    /// UTXO cohorts: ages as `age_<band>`, amounts as `amount_<band>`.
     Utxo,
-    /// Address balance cohorts: uses "balance_" prefix for amount cohorts.
+    /// Address cohorts: balances as `balance_<band>`.
     Balance,
 }
 
 impl CohortContext {
-    pub(crate) fn prefix(&self) -> &'static str {
-        match self {
-            CohortContext::Utxo => "utxos",
-            CohortContext::Balance => "balance",
-        }
-    }
-
-    pub fn prefixed(&self, name: &str) -> String {
-        format!("{}_{}", self.prefix(), name)
-    }
-
-    /// The canonical name: `Age` and `Amount` cohorts get the context prefix, others use their bare
-    /// names.
+    /// The canonical name: a cohort whose value names itself (`sth`, `p2tr`, `veteran`) bare,
+    /// otherwise its attribute and its value (`age_2y_to_3y`, `amount_1k_to_10k_sats`,
+    /// `balance_1k_to_10k_sats`).
     pub fn full_name(&self, id: CohortId) -> String {
-        match id {
-            CohortId::Age(_) | CohortId::Amount(_) => self.prefixed(id.name()),
+        match (self, id) {
+            (_, CohortId::Age(age)) => age.full_name(),
+            (CohortContext::Utxo, CohortId::Amount(_)) => format!("amount_{}", id.name()),
+            (CohortContext::Balance, CohortId::Amount(_)) => format!("balance_{}", id.name()),
             _ => id.name().to_owned(),
         }
     }

@@ -2807,13 +2807,13 @@ class AwakeRealizedPriceMedian(_Node):
 
 
 class Under6mCapitalizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'utxos_under_6m_old_capitalized_price_rarity_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'utxos_under_6m_old_capitalized_price_rarity_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'age_under_6m_capitalized_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'age_under_6m_capitalized_price_rarity_*')
 
 
 class Under6mRealizedPriceMedian(_Node):
-    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'utxos_under_6m_old_realized_price_rarity_ratio_*')
-    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'utxos_under_6m_old_realized_price_rarity_*')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'age_under_6m_realized_price_rarity_ratio_*')
+    band: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'age_under_6m_realized_price_rarity_*')
 
 
 class SthMedianCapitalizedPriceMedian(_Node):
@@ -3432,7 +3432,7 @@ class OpReturnValue(_Node):
     sum: Sum = _at(Sum, '*_sum')
 
 
-class Balances100btcTo1kBtcActivity(_Node):
+class Balances100To1kBtcActivity(_Node):
     transfer_volume: OpReturnValue = _at(OpReturnValue, '*')
 
 
@@ -3584,13 +3584,13 @@ class Supply(_Node):
     market_cap: Funded[Optional[Dollars], Optional[Dollars]] = _at(Funded, 'market_cap')
 
 
-class Balances0satsUtxos(_Node):
+class Balances0SatsUtxos(_Node):
     count: Funded[Count, CountSigned] = _at(Funded, '*')
 
 
-class Balances0sats(_Node):
+class Balances0Sats(_Node):
     funded: Funded[Count, CountSigned] = _at(Funded, '*_address_count')
-    utxos: Balances0satsUtxos = _at(Balances0satsUtxos, '*_utxo_count')
+    utxos: Balances0SatsUtxos = _at(Balances0SatsUtxos, '*_utxo_count')
 
 
 class RookieCapital(_Node):
@@ -4024,18 +4024,18 @@ class AddressesTypes(_Node):
     p2tr: P2pk = _at(P2pk, 'p2tr')
 
 
-class Balances100btcTo1kBtcRealized(_Node):
+class Balances100To1kBtcRealized(_Node):
     profit: BlocksCount[Optional[Dollars]] = _at(BlocksCount, '*_profit')
     loss: BlocksCount[Optional[Dollars]] = _at(BlocksCount, '*_loss')
 
 
-class Balances100btcTo1kBtc(_Node):
+class Balances100To1kBtc(_Node):
     funded: Funded[Count, CountSigned] = _at(Funded, '*_address_count')
     supply: AddressesSupply = _at(AddressesSupply, '*_supply')
     capital: AddressesCapital = _at(AddressesCapital, '*')
-    utxos: Balances0satsUtxos = _at(Balances0satsUtxos, '*_utxo_count')
-    activity: Balances100btcTo1kBtcActivity = _at(Balances100btcTo1kBtcActivity, '*_transfer_volume')
-    realized: Balances100btcTo1kBtcRealized = _at(Balances100btcTo1kBtcRealized, '*_realized')
+    utxos: Balances0SatsUtxos = _at(Balances0SatsUtxos, '*_utxo_count')
+    activity: Balances100To1kBtcActivity = _at(Balances100To1kBtcActivity, '*_transfer_volume')
+    realized: Balances100To1kBtcRealized = _at(Balances100To1kBtcRealized, '*_realized')
 
 
 class RookieActivity(_Node):
@@ -4061,47 +4061,47 @@ class RookieUtxos(_Node):
     spent_count: BlocksCount[Count] = _at(BlocksCount, '*_spent_utxo_count')
 
 
-class Amounts100btcTo1kBtc(_Node):
+class Amounts100To1kBtc(_Node):
     supply: AddressesSupply = _at(AddressesSupply, '*_supply')
     capital: AddressesCapital = _at(AddressesCapital, '*')
     utxos: RookieUtxos = _at(RookieUtxos, '*')
-    activity: Balances100btcTo1kBtcActivity = _at(Balances100btcTo1kBtcActivity, '*_transfer_volume')
-    realized: Balances100btcTo1kBtcRealized = _at(Balances100btcTo1kBtcRealized, '*_realized')
+    activity: Balances100To1kBtcActivity = _at(Balances100To1kBtcActivity, '*_transfer_volume')
+    realized: Balances100To1kBtcRealized = _at(Balances100To1kBtcRealized, '*_realized')
     cost_basis: RookieCostBasis = _at(RookieCostBasis, '*')
 
 
 class UtxosTypes(_Node):
-    p2pk: Amounts100btcTo1kBtc = _at(Amounts100btcTo1kBtc, 'p2pk')
-    p2pkh: Amounts100btcTo1kBtc = _at(Amounts100btcTo1kBtc, 'p2pkh')
-    p2ms: Amounts100btcTo1kBtc = _at(Amounts100btcTo1kBtc, 'p2ms')
-    p2sh: Amounts100btcTo1kBtc = _at(Amounts100btcTo1kBtc, 'p2sh')
-    p2wpkh: Amounts100btcTo1kBtc = _at(Amounts100btcTo1kBtc, 'p2wpkh')
-    p2wsh: Amounts100btcTo1kBtc = _at(Amounts100btcTo1kBtc, 'p2wsh')
-    p2tr: Amounts100btcTo1kBtc = _at(Amounts100btcTo1kBtc, 'p2tr')
-    p2a: Amounts100btcTo1kBtc = _at(Amounts100btcTo1kBtc, 'p2a')
-    unknown: Amounts100btcTo1kBtc = _at(Amounts100btcTo1kBtc, 'unknown_*')
-    empty: Amounts100btcTo1kBtc = _at(Amounts100btcTo1kBtc, 'empty_*')
+    p2pk: Amounts100To1kBtc = _at(Amounts100To1kBtc, 'p2pk')
+    p2pkh: Amounts100To1kBtc = _at(Amounts100To1kBtc, 'p2pkh')
+    p2ms: Amounts100To1kBtc = _at(Amounts100To1kBtc, 'p2ms')
+    p2sh: Amounts100To1kBtc = _at(Amounts100To1kBtc, 'p2sh')
+    p2wpkh: Amounts100To1kBtc = _at(Amounts100To1kBtc, 'p2wpkh')
+    p2wsh: Amounts100To1kBtc = _at(Amounts100To1kBtc, 'p2wsh')
+    p2tr: Amounts100To1kBtc = _at(Amounts100To1kBtc, 'p2tr')
+    p2a: Amounts100To1kBtc = _at(Amounts100To1kBtc, 'p2a')
+    unknown: Amounts100To1kBtc = _at(Amounts100To1kBtc, 'unknown_*')
+    empty: Amounts100To1kBtc = _at(Amounts100To1kBtc, 'empty_*')
 
 
-class Amounts0sats(_Node):
+class Amounts0Sats(_Node):
     utxos: RookieUtxos = _at(RookieUtxos, '*')
 
 
 class Balances(_Node, Generic[A, B]):
-    _0sats: A = _at(0, '*_0sats')
-    _1sat_to_10sats: B = _at(1, '*_1sat_to_10sats')
-    _10sats_to_100sats: B = _at(1, '*_10sats_to_100sats')
-    _100sats_to_1k_sats: B = _at(1, '*_100sats_to_1k_sats')
-    _1k_sats_to_10k_sats: B = _at(1, '*_1k_sats_to_10k_sats')
-    _10k_sats_to_100k_sats: B = _at(1, '*_10k_sats_to_100k_sats')
-    _100k_sats_to_1m_sats: B = _at(1, '*_100k_sats_to_1m_sats')
-    _1m_sats_to_10m_sats: B = _at(1, '*_1m_sats_to_10m_sats')
-    _10m_sats_to_1btc: B = _at(1, '*_10m_sats_to_1btc')
-    _1btc_to_10btc: B = _at(1, '*_1btc_to_10btc')
-    _10btc_to_100btc: B = _at(1, '*_10btc_to_100btc')
-    _100btc_to_1k_btc: B = _at(1, '*_100btc_to_1k_btc')
-    _1k_btc_to_10k_btc: B = _at(1, '*_1k_btc_to_10k_btc')
-    _10k_btc_to_100k_btc: B = _at(1, '*_10k_btc_to_100k_btc')
+    _0_sats: A = _at(0, '*_0_sats')
+    _1_to_10_sats: B = _at(1, '*_1_to_10_sats')
+    _10_to_100_sats: B = _at(1, '*_10_to_100_sats')
+    _100_to_1k_sats: B = _at(1, '*_100_to_1k_sats')
+    _1k_to_10k_sats: B = _at(1, '*_1k_to_10k_sats')
+    _10k_to_100k_sats: B = _at(1, '*_10k_to_100k_sats')
+    _100k_to_1m_sats: B = _at(1, '*_100k_to_1m_sats')
+    _1m_to_10m_sats: B = _at(1, '*_1m_to_10m_sats')
+    _10m_to_100m_sats: B = _at(1, '*_10m_to_100m_sats')
+    _1_to_10_btc: B = _at(1, '*_1_to_10_btc')
+    _10_to_100_btc: B = _at(1, '*_10_to_100_btc')
+    _100_to_1k_btc: B = _at(1, '*_100_to_1k_btc')
+    _1k_to_10k_btc: B = _at(1, '*_1k_to_10k_btc')
+    _10k_to_100k_btc: B = _at(1, '*_10k_to_100k_btc')
     over_100k_btc: B = _at(1, '*_over_100k_btc')
 
 
@@ -4118,11 +4118,11 @@ class Addresses(_Node):
     supply: AddressesSupply = _at(AddressesSupply, '*_supply')
     capital: AddressesCapital = _at(AddressesCapital, '*')
     types: AddressesTypes = _at(AddressesTypes, 'p2pk')
-    balances: Balances[Balances0sats, Balances100btcTo1kBtc] = _at((Balances, Balances0sats, Balances100btcTo1kBtc), 'balance')
+    balances: Balances[Balances0Sats, Balances100To1kBtc] = _at((Balances, Balances0Sats, Balances100To1kBtc), 'balance')
 
 
 class Utxos(_Node):
-    amounts: Balances[Amounts0sats, Amounts100btcTo1kBtc] = _at((Balances, Amounts0sats, Amounts100btcTo1kBtc), '*')
+    amounts: Balances[Amounts0Sats, Amounts100To1kBtc] = _at((Balances, Amounts0Sats, Amounts100To1kBtc), '*')
     types: UtxosTypes = _at(UtxosTypes, 'output')
 
 
@@ -4145,10 +4145,10 @@ class Holders(_Node, Generic[A, B]):
     all: A = _at(0, '')
     sth: B = _at(1, 'sth')
     lth: B = _at(1, 'lth')
-    under_4m: B = _at(1, '*_under_4m_old')
-    under_6m: B = _at(1, '*_under_6m_old')
-    over_4m: B = _at(1, '*_over_4m_old')
-    over_6m: B = _at(1, '*_over_6m_old')
+    under_4m: B = _at(1, '*_under_4m')
+    under_6m: B = _at(1, '*_under_6m')
+    over_4m: B = _at(1, '*_over_4m')
+    over_6m: B = _at(1, '*_over_6m')
 
 
 class Vintages(_Node):
@@ -4193,29 +4193,29 @@ class Ranges10yTo12y(_Node):
 
 
 class Ranges(_Node, Generic[A]):
-    under_1h: A = _at(0, '*_under_1h_old')
-    _1h_to_1d: A = _at(0, '*_1h_to_1d_old')
-    _1d_to_1w: A = _at(0, '*_1d_to_1w_old')
-    _1w_to_1m: A = _at(0, '*_1w_to_1m_old')
-    _1m_to_2m: A = _at(0, '*_1m_to_2m_old')
-    _2m_to_3m: A = _at(0, '*_2m_to_3m_old')
-    _3m_to_4m: A = _at(0, '*_3m_to_4m_old')
-    _4m_to_5m: A = _at(0, '*_4m_to_5m_old')
-    _5m_to_6m: A = _at(0, '*_5m_to_6m_old')
-    _6m_to_9m: A = _at(0, '*_6m_to_9m_old')
-    _9m_to_1y: A = _at(0, '*_9m_to_1y_old')
-    _1y_to_18m: A = _at(0, '*_1y_to_18m_old')
-    _18m_to_2y: A = _at(0, '*_18m_to_2y_old')
-    _2y_to_3y: A = _at(0, '*_2y_to_3y_old')
-    _3y_to_4y: A = _at(0, '*_3y_to_4y_old')
-    _4y_to_5y: A = _at(0, '*_4y_to_5y_old')
-    _5y_to_6y: A = _at(0, '*_5y_to_6y_old')
-    _6y_to_7y: A = _at(0, '*_6y_to_7y_old')
-    _7y_to_8y: A = _at(0, '*_7y_to_8y_old')
-    _8y_to_10y: A = _at(0, '*_8y_to_10y_old')
-    _10y_to_12y: A = _at(0, '*_10y_to_12y_old')
-    _12y_to_15y: A = _at(0, '*_12y_to_15y_old')
-    over_15y: A = _at(0, '*_over_15y_old')
+    under_1h: A = _at(0, '*_under_1h')
+    _1h_to_1d: A = _at(0, '*_1h_to_1d')
+    _1d_to_1w: A = _at(0, '*_1d_to_1w')
+    _1w_to_1m: A = _at(0, '*_1w_to_1m')
+    _1m_to_2m: A = _at(0, '*_1m_to_2m')
+    _2m_to_3m: A = _at(0, '*_2m_to_3m')
+    _3m_to_4m: A = _at(0, '*_3m_to_4m')
+    _4m_to_5m: A = _at(0, '*_4m_to_5m')
+    _5m_to_6m: A = _at(0, '*_5m_to_6m')
+    _6m_to_9m: A = _at(0, '*_6m_to_9m')
+    _9m_to_1y: A = _at(0, '*_9m_to_1y')
+    _1y_to_18m: A = _at(0, '*_1y_to_18m')
+    _18m_to_2y: A = _at(0, '*_18m_to_2y')
+    _2y_to_3y: A = _at(0, '*_2y_to_3y')
+    _3y_to_4y: A = _at(0, '*_3y_to_4y')
+    _4y_to_5y: A = _at(0, '*_4y_to_5y')
+    _5y_to_6y: A = _at(0, '*_5y_to_6y')
+    _6y_to_7y: A = _at(0, '*_6y_to_7y')
+    _7y_to_8y: A = _at(0, '*_7y_to_8y')
+    _8y_to_10y: A = _at(0, '*_8y_to_10y')
+    _10y_to_12y: A = _at(0, '*_10y_to_12y')
+    _12y_to_15y: A = _at(0, '*_12y_to_15y')
+    over_15y: A = _at(0, '*_over_15y')
 
 
 class Coinflow(_Node):
@@ -4777,15 +4777,15 @@ class SeriesTree(_Node):
     pools: Pools = _at(Pools, 'pool')
     utxo_set: UtxoSet2 = _at(UtxoSet2, 'circulating_supply')
     market: Market = _at(Market, 'price')
-    age: Age = _at(Age, 'utxos')
-    utxos: Utxos = _at(Utxos, 'utxos')
+    age: Age = _at(Age, 'age')
+    utxos: Utxos = _at(Utxos, 'amount')
     addresses: Addresses = _at(Addresses, 'address')
-    holders: Holders[Rookie[AllSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis], Rookie[LthSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis]] = _at((Holders, (Rookie, AllSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis), (Rookie, LthSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis)), 'utxos')
+    holders: Holders[Rookie[AllSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis], Rookie[LthSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis]] = _at((Holders, (Rookie, AllSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis), (Rookie, LthSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis)), 'age')
     entry: Entry = _at(Entry, 'veteran')
     profitability: Profitability = _at(Profitability, 'sth')
     supply: Supply = _at(Supply, 'circulating_supply')
-    cointime: Cointime = _at(Cointime, 'utxos')
-    coinflow: Coinflow = _at(Coinflow, 'utxos')
+    cointime: Cointime = _at(Cointime, 'age')
+    coinflow: Coinflow = _at(Coinflow, 'age')
     bedrock: Bedrock = _at(Bedrock, 'bedrock')
     rarity_meter: RarityMeter = _at(RarityMeter, 'rarity_meter')
 
@@ -5210,190 +5210,190 @@ class BitviewClient(BitviewClientBase):
 
     AGE_RANGE_NAMES = {
       "under_1h": {
-        "id": "under_1h_old",
+        "id": "under_1h",
         "short": "<1h",
         "long": "Under 1 Hour Old"
       },
       "_1h_to_1d": {
-        "id": "1h_to_1d_old",
+        "id": "1h_to_1d",
         "short": "1h-1d",
         "long": "1 Hour to 1 Day Old"
       },
       "_1d_to_1w": {
-        "id": "1d_to_1w_old",
+        "id": "1d_to_1w",
         "short": "1d-1w",
         "long": "1 Day to 1 Week Old"
       },
       "_1w_to_1m": {
-        "id": "1w_to_1m_old",
+        "id": "1w_to_1m",
         "short": "1w-1m",
         "long": "1 Week to 1 Month Old"
       },
       "_1m_to_2m": {
-        "id": "1m_to_2m_old",
+        "id": "1m_to_2m",
         "short": "1m-2m",
         "long": "1 to 2 Months Old"
       },
       "_2m_to_3m": {
-        "id": "2m_to_3m_old",
+        "id": "2m_to_3m",
         "short": "2m-3m",
         "long": "2 to 3 Months Old"
       },
       "_3m_to_4m": {
-        "id": "3m_to_4m_old",
+        "id": "3m_to_4m",
         "short": "3m-4m",
         "long": "3 to 4 Months Old"
       },
       "_4m_to_5m": {
-        "id": "4m_to_5m_old",
+        "id": "4m_to_5m",
         "short": "4m-5m",
         "long": "4 to 5 Months Old"
       },
       "_5m_to_6m": {
-        "id": "5m_to_6m_old",
+        "id": "5m_to_6m",
         "short": "5m-6m",
         "long": "5 to 6 Months Old"
       },
       "_6m_to_9m": {
-        "id": "6m_to_9m_old",
+        "id": "6m_to_9m",
         "short": "6m-9m",
         "long": "6 to 9 Months Old"
       },
       "_9m_to_1y": {
-        "id": "9m_to_1y_old",
+        "id": "9m_to_1y",
         "short": "9m-1y",
         "long": "9 Months to 1 Year Old"
       },
       "_1y_to_18m": {
-        "id": "1y_to_18m_old",
+        "id": "1y_to_18m",
         "short": "1y-18m",
         "long": "1 Year to 18 Months Old"
       },
       "_18m_to_2y": {
-        "id": "18m_to_2y_old",
+        "id": "18m_to_2y",
         "short": "18m-2y",
         "long": "18 Months to 2 Years Old"
       },
       "_2y_to_3y": {
-        "id": "2y_to_3y_old",
+        "id": "2y_to_3y",
         "short": "2y-3y",
         "long": "2 to 3 Years Old"
       },
       "_3y_to_4y": {
-        "id": "3y_to_4y_old",
+        "id": "3y_to_4y",
         "short": "3y-4y",
         "long": "3 to 4 Years Old"
       },
       "_4y_to_5y": {
-        "id": "4y_to_5y_old",
+        "id": "4y_to_5y",
         "short": "4y-5y",
         "long": "4 to 5 Years Old"
       },
       "_5y_to_6y": {
-        "id": "5y_to_6y_old",
+        "id": "5y_to_6y",
         "short": "5y-6y",
         "long": "5 to 6 Years Old"
       },
       "_6y_to_7y": {
-        "id": "6y_to_7y_old",
+        "id": "6y_to_7y",
         "short": "6y-7y",
         "long": "6 to 7 Years Old"
       },
       "_7y_to_8y": {
-        "id": "7y_to_8y_old",
+        "id": "7y_to_8y",
         "short": "7y-8y",
         "long": "7 to 8 Years Old"
       },
       "_8y_to_10y": {
-        "id": "8y_to_10y_old",
+        "id": "8y_to_10y",
         "short": "8y-10y",
         "long": "8 to 10 Years Old"
       },
       "_10y_to_12y": {
-        "id": "10y_to_12y_old",
+        "id": "10y_to_12y",
         "short": "10y-12y",
         "long": "10 to 12 Years Old"
       },
       "_12y_to_15y": {
-        "id": "12y_to_15y_old",
+        "id": "12y_to_15y",
         "short": "12y-15y",
         "long": "12 to 15 Years Old"
       },
       "over_15y": {
-        "id": "over_15y_old",
+        "id": "over_15y",
         "short": "15y+",
         "long": "15+ Years Old"
       }
     }
 
     AMOUNT_RANGE_NAMES = {
-      "_0sats": {
-        "id": "0sats",
+      "_0_sats": {
+        "id": "0_sats",
         "short": "0 sats",
         "long": "0 Sats"
       },
-      "_1sat_to_10sats": {
-        "id": "1sat_to_10sats",
+      "_1_to_10_sats": {
+        "id": "1_to_10_sats",
         "short": "1-10 sats",
         "long": "1-10 Sats"
       },
-      "_10sats_to_100sats": {
-        "id": "10sats_to_100sats",
+      "_10_to_100_sats": {
+        "id": "10_to_100_sats",
         "short": "10-100 sats",
         "long": "10-100 Sats"
       },
-      "_100sats_to_1k_sats": {
-        "id": "100sats_to_1k_sats",
+      "_100_to_1k_sats": {
+        "id": "100_to_1k_sats",
         "short": "100-1k sats",
         "long": "100-1K Sats"
       },
-      "_1k_sats_to_10k_sats": {
-        "id": "1k_sats_to_10k_sats",
+      "_1k_to_10k_sats": {
+        "id": "1k_to_10k_sats",
         "short": "1k-10k sats",
         "long": "1K-10K Sats"
       },
-      "_10k_sats_to_100k_sats": {
-        "id": "10k_sats_to_100k_sats",
+      "_10k_to_100k_sats": {
+        "id": "10k_to_100k_sats",
         "short": "10k-100k sats",
         "long": "10K-100K Sats"
       },
-      "_100k_sats_to_1m_sats": {
-        "id": "100k_sats_to_1m_sats",
+      "_100k_to_1m_sats": {
+        "id": "100k_to_1m_sats",
         "short": "100k-1M sats",
         "long": "100K-1M Sats"
       },
-      "_1m_sats_to_10m_sats": {
-        "id": "1m_sats_to_10m_sats",
+      "_1m_to_10m_sats": {
+        "id": "1m_to_10m_sats",
         "short": "1M-10M sats",
         "long": "1M-10M Sats"
       },
-      "_10m_sats_to_1btc": {
-        "id": "10m_sats_to_1btc",
+      "_10m_to_100m_sats": {
+        "id": "10m_to_100m_sats",
         "short": "0.1-1 BTC",
         "long": "0.1-1 BTC"
       },
-      "_1btc_to_10btc": {
-        "id": "1btc_to_10btc",
+      "_1_to_10_btc": {
+        "id": "1_to_10_btc",
         "short": "1-10 BTC",
         "long": "1-10 BTC"
       },
-      "_10btc_to_100btc": {
-        "id": "10btc_to_100btc",
+      "_10_to_100_btc": {
+        "id": "10_to_100_btc",
         "short": "10-100 BTC",
         "long": "10-100 BTC"
       },
-      "_100btc_to_1k_btc": {
-        "id": "100btc_to_1k_btc",
+      "_100_to_1k_btc": {
+        "id": "100_to_1k_btc",
         "short": "100-1k BTC",
         "long": "100-1K BTC"
       },
-      "_1k_btc_to_10k_btc": {
-        "id": "1k_btc_to_10k_btc",
+      "_1k_to_10k_btc": {
+        "id": "1k_to_10k_btc",
         "short": "1k-10k BTC",
         "long": "1K-10K BTC"
       },
-      "_10k_btc_to_100k_btc": {
-        "id": "10k_btc_to_100k_btc",
+      "_10k_to_100k_btc": {
+        "id": "10k_to_100k_btc",
         "short": "10k-100k BTC",
         "long": "10K-100K BTC"
       },
@@ -5732,7 +5732,7 @@ class BitviewClient(BitviewClientBase):
     def list_urpd_cohorts(self) -> List[Cohort]:
         """Available URPD cohorts.
 
-        Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `under_4m`, `under_6m`, `over_4m`, `over_6m`, `utxos_under_1h_old`.
+        Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `age_under_4m`, `age_under_6m`, `age_over_4m`, `age_over_6m`, `age_under_1h`.
 
         Endpoint: `GET /api/urpd`"""
         return self.get_json('/api/urpd')

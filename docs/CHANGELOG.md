@@ -35,6 +35,14 @@ has to be deleted by hand.
 
 #### API: series and responses
 
+- Cohort ids follow one rule: a cohort whose value names itself is bare (`sth`, `p2tr`, `veteran`, `awake`), any
+  other is its attribute and its value. Age bands and the age cutoffs are `age_<band>` (`age_2y_to_3y_supply`,
+  `age_under_1h_supply`, `age_under_4m_mvrv`; were `utxos_2y_to_3y_old_supply`, `utxos_under_4m_old_mvrv`), UTXO
+  amount bands `amount_<band>` (`amount_1k_to_10k_sats_supply`; was `utxos_1k_sats_to_10k_sats_supply`), and
+  address balance bands keep `balance_`. Durations keep their unit on both ends (`2y_to_3y`, `1y_to_18m`); amounts
+  write theirs once (`0_sats`, `1_to_10_sats`, ..., `1m_to_10m_sats`, `10m_to_100m_sats` for 0.1 to 1 BTC,
+  `1_to_10_btc`, ..., `10k_to_100k_btc`, `over_100k_btc`), and the tree's keys follow (`utxos.amounts._1kTo10kSats`).
+  URPD cohorts take the same names (`age_2y_to_3y`, was `utxos_2y_to_3y_old`; the age cutoffs, new, as `age_under_4m`)
 - A URPD (`GET /api/urpd/{cohort}` and `/api/urpd/{cohort}/{point}`) says its block as the UTXO set does and holds its
   buckets in columns as the set's origins: `{ height, hash, date, cohort, weight, aggregation, close, supply,
   buckets: { price, supply, realized_cap, unrealized_pnl } }`, one entry per bucket in ascending price. It gains the
@@ -283,7 +291,7 @@ has to be deleted by hand.
   `veteran_transfer_volume_in_profit*`, ...; the age ranges and holders keep the split). Ids are unchanged, but for
   `supply.share`, `cost_basis` and `capital` (below) and the halving epochs' and years' prefixes:
   `halving_epoch_0_supply`, `vintage_2009_supply`, ... (were `epoch_0_supply`, `class_2009_supply`). The 0-sat band
-  (`utxos.amounts.0sats`) holds its counts only: its amounts, values and cost basis, zero or null by definition, are
+  (`utxos.amounts._0_sats`) holds its counts only: its amounts, values and cost basis, zero or null by definition, are
   gone (`utxos_0sats_realized_price`, `utxos_0sats_realized_profit`, ...). Age's `coinblocks_destroyed` is published at
   `cointime.activity.coinblocks_destroyed` only
 - The open-ended cohorts are gone, all but the 4- and 6-month age cutoffs (now in `holders`): every age over and
@@ -309,8 +317,8 @@ has to be deleted by hand.
   ..., `avg_address_balance` (was `avg_addr_amount`), `funded_reused_address_count` (was `reused_addr_count`) beside
   `total_reused_address_count` (likewise respent and exposed), `reused_address_supply`,
   `output_to_reused_address_count`, ...; the funded count's window change is `funded_address_count_delta_24h` (was
-  `addr_count_24h`); balance bands' ids start with `balance_` (`balance_1btc_to_10btc_supply`,
-  `balance_1btc_to_10btc_address_count`; were `addrs_1btc_to_10btc_supply`, `addrs_1btc_to_10btc_addr_count`)
+  `addr_count_24h`); balance bands' ids start with `balance_` (`balance_1_to_10_btc_supply`,
+  `balance_1_to_10_btc_address_count`; were `addrs_1btc_to_10btc_supply`, `addrs_1btc_to_10btc_addr_count`)
 - All addresses divide by what addresses hold, like each address type already did: the root's reused, respent and
   exposed supply shares and average balance use the supply all addresses hold (were circulating supply, which
   includes outputs without an address), its output and input event shares the outputs and inputs of its addresses
@@ -960,7 +968,7 @@ has to be deleted by hand.
   `lth` and the new `under_4m`, `under_6m`, `over_4m` and `over_6m` cohorts: mean per coin and per dollar with
   `realized_price`, `capitalized_price` and MVRV, URPD percentiles and median, `median_realized_price`, and supply and
   capital density (`awake_cost_basis_per_coin_median`, `sth_mobile_cost_basis_per_dollar_pct5`, `awake_mvrv`,
-  `utxos_under_4m_old_mobile_realized_price`, ...); v0.12.2 had the weighted distributions only at `/api/urpd`.
+  `age_under_4m_mobile_realized_price`, ...); v0.12.2 had the weighted distributions only at `/api/urpd`.
   Coinflow, Cointime and Bedrock replay their per-block distribution in parallel 5,000-block segments, each from its
   nearest UTXO history snapshot
 - Capital density beside supply density in holders, Cointime and Coinflow, and both split at spot: the share of a

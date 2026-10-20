@@ -14,14 +14,14 @@ These are endpoint resource limits, not a total process-memory limit.
 
 ## Age filters
 
-The aggregate filters are `all`, `sth`, `lth`, `under_4m`, `under_6m`,
-`over_4m`, and `over_6m`. The boundaries are 120, 150 and 180 days;
+The aggregate filters are `all`, `sth`, `lth`, `age_under_4m`, `age_under_6m`,
+`age_over_4m`, and `age_over_6m`. The boundaries are 120, 150 and 180 days;
 `under` is strict and `over` includes the boundary. Individual disjoint age
-ranges remain available under names such as `utxos_4m_to_5m_old`.
+ranges remain available under names such as `age_4m_to_5m`.
 All filters support raw, Cointime and Coinflow weights through the same history
 reconstruction. For example:
 
-`/api/urpd/under_4m/900000?weight=cointime&agg=raw`
+`/api/urpd/age_under_4m/900000?weight=cointime&agg=raw`
 
 Cointime and Coinflow expose the same per-block URPD metric layout for each
 aggregate: cost-basis percentiles per coin/per dollar, capitalized price and

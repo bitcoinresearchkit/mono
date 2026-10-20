@@ -1,4 +1,4 @@
-use bitview_cohort::{AgeAggregateId, AgeRange, AgeRangeId, CohortContext};
+use bitview_cohort::{AgeAggregateId, AgeRange, AgeRangeId};
 use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::{Date, Day1};
 use bitview_types::{Cohort, Urpd, UrpdAggregation, UrpdWeight};
@@ -53,11 +53,11 @@ impl Query {
         }
         let mut cohorts: Vec<_> = AgeRangeId::ALL
             .iter()
-            .filter_map(|id| Cohort::new(CohortContext::Utxo.prefixed(id.name().id)))
+            .filter_map(|id| Cohort::new(id.full_name()))
             .chain(
                 AgeAggregateId::ALL
                     .iter()
-                    .filter_map(|id| Cohort::new(id.name())),
+                    .filter_map(|id| Cohort::new(id.full_name())),
             )
             .collect();
         cohorts.sort_unstable();
@@ -106,10 +106,10 @@ impl Query {
     }
 
     fn urpd_ages(cohort: &Cohort) -> Result<&'static [AgeRangeId]> {
-        if let Some(age) = AgeRangeId::from_cohort_name(CohortContext::Utxo, cohort) {
+        if let Some(age) = AgeRangeId::from_full_name(cohort) {
             return Ok(&AgeRangeId::ALL[age.index()..age.index() + 1]);
         }
-        AgeAggregateId::from_name(cohort)
+        AgeAggregateId::from_full_name(cohort)
             .map(AgeAggregateId::age_range_ids)
             .ok_or_else(|| Error::NotFound(format!("Unknown URPD cohort '{cohort}'")))
     }

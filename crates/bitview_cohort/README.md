@@ -17,7 +17,7 @@ Each collection holds one value per member and is built from its identifier with
 | `AgeRange` | `AgeRangeId` | 23 disjoint age buckets, `under_1h` to `over_15y` |
 | `AgeAggregate` | `AgeAggregateId` | overlapping age filters built from those buckets: all, STH, LTH, under/over 4 and 6 months |
 | `ByTerm` | `Term` | short-term and long-term holders |
-| `AmountRange` | `AmountRangeId` | 15 disjoint amount buckets, `0sats` to `over_100k_btc` |
+| `AmountRange` | `AmountRangeId` | 15 disjoint amount buckets, `0_sats` to `over_100k_btc` |
 | `ByHalvingEpoch` | `HalvingEpochId` | halving epochs |
 | `Vintage` | `VintageId` | creation years (vintages) |
 | `ByEntry` | `EntryPrice` | entry-price class: veteran (bought at a discount) or rookie |
@@ -34,17 +34,19 @@ and include P2A, are `bitview_primitives::ByAddrType`/`AddrTypeId`.
 `CohortId` identifies a supported cohort and supplies its canonical name. It composes the same selectors the
 collections use; there is no separate filter representation or caller-supplied cohort name.
 
-`CohortContext` names series: `Utxo` prefixes age and amount cohorts with `utxos_`, `Balance` prefixes them with
-`balance_` (address balance cohorts use `AmountRange` in this context); every other cohort is unprefixed, and
-`All` adds nothing.
+`CohortContext` names series. A cohort whose value names itself is bare (`sth`, `p2tr`, `veteran`); any other is its
+attribute and its value: age bands and cutoffs `age_<band>` (`age_2y_to_3y`, `age_under_4m`), `Utxo` amounts
+`amount_<band>` (`amount_1k_to_10k_sats`), `Balance` amounts `balance_<band>` (address balance cohorts use
+`AmountRange` in this context). Durations keep their unit on both ends; amounts write theirs once. `All` adds
+nothing.
 
 ```rust,ignore
 use bitview_cohort::{AgeRange, AgeRangeId, CohortContext};
 
 let age = AgeRangeId::From9MTo1Y;
 let names = AgeRange::from_fn(|id| CohortContext::Utxo.metric_name(id.cohort(), "supply"));
-assert_eq!(age.select(&names), "utxos_9m_to_1y_old_supply");
-assert_eq!(CohortContext::Utxo.full_name(age.cohort()), "utxos_9m_to_1y_old");
+assert_eq!(age.select(&names), "age_9m_to_1y_supply");
+assert_eq!(CohortContext::Utxo.full_name(age.cohort()), "age_9m_to_1y");
 ```
 
 Selection never reconstructs a series from other series. Rebuild threshold cohorts from their disjoint inputs

@@ -14,7 +14,7 @@ use crate::families::import_stored;
 
 /// A cohort's capital views over its stored cents: the capital, its realized-cap alias, its change
 /// over each window and its share of all capital. `name` gives each series name from its metric
-/// (`capital` -> `utxos_1d_to_1w_old_capital`).
+/// (`capital` -> `age_1d_to_1w_capital`).
 #[derive(Clone, Traversable)]
 pub struct CapitalViews {
     /// Capital: the cohort's unspent outputs valued at Bitcoin's spot price when each was

@@ -13617,7 +13617,7 @@
       "tool": {
         "name": "list_urpd_cohorts",
         "title": "Available URPD cohorts",
-        "description": "Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `under_4m`, `under_6m`, `over_4m`, `over_6m`, `utxos_under_1h_old`.\n\nREST operation: `GET /api/urpd`.",
+        "description": "Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `age_under_4m`, `age_under_6m`, `age_over_4m`, `age_over_6m`, `age_under_1h`.\n\nREST operation: `GET /api/urpd`.",
         "inputSchema": {
           "type": "object",
           "properties": {},

@@ -11,7 +11,7 @@ use vecdb::{Database, ReadableCloneableVec, Rw};
 use crate::families::{CountWithDeltas, CumulativeQuantity};
 
 /// A cohort's output counts; `name` gives each series name from its metric (`utxo_count` ->
-/// `utxos_1d_to_1w_old_utxo_count`).
+/// `age_1d_to_1w_utxo_count`).
 #[derive(Clone, Traversable)]
 pub struct CohortUtxos<U, S> {
     /// Number of transaction outputs that are unspent at the represented block.

@@ -1241,7 +1241,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/urpd",
         summary: "Available URPD cohorts",
-        description: "Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `under_4m`, `under_6m`, `over_4m`, `over_6m`, `utxos_under_1h_old`.",
+        description: "Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `age_under_4m`, `age_under_6m`, `age_over_4m`, `age_over_6m`, `age_under_1h`.",
         path_parameters: &[
         ],
         query_parameters: &[

@@ -467,12 +467,12 @@ pub mod tree {
         band: SeriesPattern1<Option<Dollars>> = "awake_realized_price_rarity_*",
     } }
     shape! { Under6mCapitalizedPriceMedian at "series().rarity_meter.components.under_6m.capitalized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "utxos_under_6m_old_capitalized_price_rarity_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "utxos_under_6m_old_capitalized_price_rarity_*",
+        ratio: SeriesPattern1<Option<Multiple>> = "age_under_6m_capitalized_price_rarity_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "age_under_6m_capitalized_price_rarity_*",
     } }
     shape! { Under6mRealizedPriceMedian at "series().rarity_meter.components.under_6m.realized_price.median" {
-        ratio: SeriesPattern1<Option<Multiple>> = "utxos_under_6m_old_realized_price_rarity_ratio_*",
-        band: SeriesPattern1<Option<Dollars>> = "utxos_under_6m_old_realized_price_rarity_*",
+        ratio: SeriesPattern1<Option<Multiple>> = "age_under_6m_realized_price_rarity_ratio_*",
+        band: SeriesPattern1<Option<Dollars>> = "age_under_6m_realized_price_rarity_*",
     } }
     shape! { SthMedianCapitalizedPriceMedian at "series().rarity_meter.components.sth.median_capitalized_price.median" {
         ratio: SeriesPattern1<Option<Multiple>> = "sth_median_capitalized_price_rarity_ratio_*",
@@ -1009,7 +1009,7 @@ pub mod tree {
         cumulative: AvgBalance = "*_cumulative",
         sum: Sum = "*_sum",
     } }
-    shape! { Balances100btcTo1kBtcActivity at "series().addresses.balances._100btc_to_1k_btc.activity" {
+    shape! { Balances100To1kBtcActivity at "series().addresses.balances._100_to_1k_btc.activity" {
         transfer_volume: OpReturnValue = "*",
     } }
     shape! { TransferVolume at "series().holders.all.activity.transfer_volume" {
@@ -1140,12 +1140,12 @@ pub mod tree {
         velocity: Velocity = "velocity",
         market_cap: Funded<Option<Dollars>, Option<Dollars>> = "market_cap",
     } }
-    shape! { Balances0satsUtxos at "series().addresses.balances._0sats.utxos" {
+    shape! { Balances0SatsUtxos at "series().addresses.balances._0_sats.utxos" {
         count: Funded<Count, CountSigned> = "*",
     } }
-    shape! { Balances0sats at "series().addresses.balances._0sats" {
+    shape! { Balances0Sats at "series().addresses.balances._0_sats" {
         funded: Funded<Count, CountSigned> = "*_address_count",
-        utxos: Balances0satsUtxos = "*_utxo_count",
+        utxos: Balances0SatsUtxos = "*_utxo_count",
     } }
     shape! { RookieCapital at "series().entry.rookie.capital" {
         total: SeriesPattern1<Option<Dollars>> = "*_capital",
@@ -1545,17 +1545,17 @@ pub mod tree {
         p2wsh: P2pk = "p2wsh",
         p2tr: P2pk = "p2tr",
     } }
-    shape! { Balances100btcTo1kBtcRealized at "series().addresses.balances._100btc_to_1k_btc.realized" {
+    shape! { Balances100To1kBtcRealized at "series().addresses.balances._100_to_1k_btc.realized" {
         profit: BlocksCount<Option<Dollars>> = "*_profit",
         loss: BlocksCount<Option<Dollars>> = "*_loss",
     } }
-    shape! { Balances100btcTo1kBtc at "series().addresses.balances._100btc_to_1k_btc" {
+    shape! { Balances100To1kBtc at "series().addresses.balances._100_to_1k_btc" {
         funded: Funded<Count, CountSigned> = "*_address_count",
         supply: AddressesSupply = "*_supply",
         capital: AddressesCapital = "*",
-        utxos: Balances0satsUtxos = "*_utxo_count",
-        activity: Balances100btcTo1kBtcActivity = "*_transfer_volume",
-        realized: Balances100btcTo1kBtcRealized = "*_realized",
+        utxos: Balances0SatsUtxos = "*_utxo_count",
+        activity: Balances100To1kBtcActivity = "*_transfer_volume",
+        realized: Balances100To1kBtcRealized = "*_realized",
     } }
     shape! { RookieActivity at "series().entry.rookie.activity" {
         transfer_volume: OpReturnValue = "*_transfer_volume",
@@ -1576,44 +1576,44 @@ pub mod tree {
         count: Funded<Count, CountSigned> = "*_utxo_count",
         spent_count: BlocksCount<Count> = "*_spent_utxo_count",
     } }
-    shape! { Amounts100btcTo1kBtc at "series().utxos.amounts._100btc_to_1k_btc" {
+    shape! { Amounts100To1kBtc at "series().utxos.amounts._100_to_1k_btc" {
         supply: AddressesSupply = "*_supply",
         capital: AddressesCapital = "*",
         utxos: RookieUtxos = "*",
-        activity: Balances100btcTo1kBtcActivity = "*_transfer_volume",
-        realized: Balances100btcTo1kBtcRealized = "*_realized",
+        activity: Balances100To1kBtcActivity = "*_transfer_volume",
+        realized: Balances100To1kBtcRealized = "*_realized",
         cost_basis: RookieCostBasis = "*",
     } }
     shape! { UtxosTypes at "series().utxos.types" {
-        p2pk: Amounts100btcTo1kBtc = "p2pk",
-        p2pkh: Amounts100btcTo1kBtc = "p2pkh",
-        p2ms: Amounts100btcTo1kBtc = "p2ms",
-        p2sh: Amounts100btcTo1kBtc = "p2sh",
-        p2wpkh: Amounts100btcTo1kBtc = "p2wpkh",
-        p2wsh: Amounts100btcTo1kBtc = "p2wsh",
-        p2tr: Amounts100btcTo1kBtc = "p2tr",
-        p2a: Amounts100btcTo1kBtc = "p2a",
-        unknown: Amounts100btcTo1kBtc = "unknown_*",
-        empty: Amounts100btcTo1kBtc = "empty_*",
+        p2pk: Amounts100To1kBtc = "p2pk",
+        p2pkh: Amounts100To1kBtc = "p2pkh",
+        p2ms: Amounts100To1kBtc = "p2ms",
+        p2sh: Amounts100To1kBtc = "p2sh",
+        p2wpkh: Amounts100To1kBtc = "p2wpkh",
+        p2wsh: Amounts100To1kBtc = "p2wsh",
+        p2tr: Amounts100To1kBtc = "p2tr",
+        p2a: Amounts100To1kBtc = "p2a",
+        unknown: Amounts100To1kBtc = "unknown_*",
+        empty: Amounts100To1kBtc = "empty_*",
     } }
-    shape! { Amounts0sats at "series().utxos.amounts._0sats" {
+    shape! { Amounts0Sats at "series().utxos.amounts._0_sats" {
         utxos: RookieUtxos = "*",
     } }
     shape! { Balances<A, B> at "series().addresses.balances" {
-        _0sats: A = "*_0sats",
-        _1sat_to_10sats: B = "*_1sat_to_10sats",
-        _10sats_to_100sats: B = "*_10sats_to_100sats",
-        _100sats_to_1k_sats: B = "*_100sats_to_1k_sats",
-        _1k_sats_to_10k_sats: B = "*_1k_sats_to_10k_sats",
-        _10k_sats_to_100k_sats: B = "*_10k_sats_to_100k_sats",
-        _100k_sats_to_1m_sats: B = "*_100k_sats_to_1m_sats",
-        _1m_sats_to_10m_sats: B = "*_1m_sats_to_10m_sats",
-        _10m_sats_to_1btc: B = "*_10m_sats_to_1btc",
-        _1btc_to_10btc: B = "*_1btc_to_10btc",
-        _10btc_to_100btc: B = "*_10btc_to_100btc",
-        _100btc_to_1k_btc: B = "*_100btc_to_1k_btc",
-        _1k_btc_to_10k_btc: B = "*_1k_btc_to_10k_btc",
-        _10k_btc_to_100k_btc: B = "*_10k_btc_to_100k_btc",
+        _0_sats: A = "*_0_sats",
+        _1_to_10_sats: B = "*_1_to_10_sats",
+        _10_to_100_sats: B = "*_10_to_100_sats",
+        _100_to_1k_sats: B = "*_100_to_1k_sats",
+        _1k_to_10k_sats: B = "*_1k_to_10k_sats",
+        _10k_to_100k_sats: B = "*_10k_to_100k_sats",
+        _100k_to_1m_sats: B = "*_100k_to_1m_sats",
+        _1m_to_10m_sats: B = "*_1m_to_10m_sats",
+        _10m_to_100m_sats: B = "*_10m_to_100m_sats",
+        _1_to_10_btc: B = "*_1_to_10_btc",
+        _10_to_100_btc: B = "*_10_to_100_btc",
+        _100_to_1k_btc: B = "*_100_to_1k_btc",
+        _1k_to_10k_btc: B = "*_1k_to_10k_btc",
+        _10k_to_100k_btc: B = "*_10k_to_100k_btc",
         over_100k_btc: B = "*_over_100k_btc",
     } }
     shape! { Addresses at "series().addresses" {
@@ -1629,10 +1629,10 @@ pub mod tree {
         supply: AddressesSupply = "*_supply",
         capital: AddressesCapital = "*",
         types: AddressesTypes = "p2pk",
-        balances: Balances<Balances0sats, Balances100btcTo1kBtc> = "balance",
+        balances: Balances<Balances0Sats, Balances100To1kBtc> = "balance",
     } }
     shape! { Utxos at "series().utxos" {
-        amounts: Balances<Amounts0sats, Amounts100btcTo1kBtc> = "*",
+        amounts: Balances<Amounts0Sats, Amounts100To1kBtc> = "*",
         types: UtxosTypes = "output",
     } }
     shape! { Rookie<A, B, C, D, E, F> at "series().entry.rookie" {
@@ -1652,10 +1652,10 @@ pub mod tree {
         all: A = "",
         sth: B = "sth",
         lth: B = "lth",
-        under_4m: B = "*_under_4m_old",
-        under_6m: B = "*_under_6m_old",
-        over_4m: B = "*_over_4m_old",
-        over_6m: B = "*_over_6m_old",
+        under_4m: B = "*_under_4m",
+        under_6m: B = "*_under_6m",
+        over_4m: B = "*_over_4m",
+        over_6m: B = "*_over_6m",
     } }
     shape! { Vintages at "series().age.vintages" {
         _2009: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis> = "*_2009",
@@ -1696,29 +1696,29 @@ pub mod tree {
         cost_basis: RookieCostBasis = "*",
     } }
     shape! { Ranges<A> at "series().age.ranges" {
-        under_1h: A = "*_under_1h_old",
-        _1h_to_1d: A = "*_1h_to_1d_old",
-        _1d_to_1w: A = "*_1d_to_1w_old",
-        _1w_to_1m: A = "*_1w_to_1m_old",
-        _1m_to_2m: A = "*_1m_to_2m_old",
-        _2m_to_3m: A = "*_2m_to_3m_old",
-        _3m_to_4m: A = "*_3m_to_4m_old",
-        _4m_to_5m: A = "*_4m_to_5m_old",
-        _5m_to_6m: A = "*_5m_to_6m_old",
-        _6m_to_9m: A = "*_6m_to_9m_old",
-        _9m_to_1y: A = "*_9m_to_1y_old",
-        _1y_to_18m: A = "*_1y_to_18m_old",
-        _18m_to_2y: A = "*_18m_to_2y_old",
-        _2y_to_3y: A = "*_2y_to_3y_old",
-        _3y_to_4y: A = "*_3y_to_4y_old",
-        _4y_to_5y: A = "*_4y_to_5y_old",
-        _5y_to_6y: A = "*_5y_to_6y_old",
-        _6y_to_7y: A = "*_6y_to_7y_old",
-        _7y_to_8y: A = "*_7y_to_8y_old",
-        _8y_to_10y: A = "*_8y_to_10y_old",
-        _10y_to_12y: A = "*_10y_to_12y_old",
-        _12y_to_15y: A = "*_12y_to_15y_old",
-        over_15y: A = "*_over_15y_old",
+        under_1h: A = "*_under_1h",
+        _1h_to_1d: A = "*_1h_to_1d",
+        _1d_to_1w: A = "*_1d_to_1w",
+        _1w_to_1m: A = "*_1w_to_1m",
+        _1m_to_2m: A = "*_1m_to_2m",
+        _2m_to_3m: A = "*_2m_to_3m",
+        _3m_to_4m: A = "*_3m_to_4m",
+        _4m_to_5m: A = "*_4m_to_5m",
+        _5m_to_6m: A = "*_5m_to_6m",
+        _6m_to_9m: A = "*_6m_to_9m",
+        _9m_to_1y: A = "*_9m_to_1y",
+        _1y_to_18m: A = "*_1y_to_18m",
+        _18m_to_2y: A = "*_18m_to_2y",
+        _2y_to_3y: A = "*_2y_to_3y",
+        _3y_to_4y: A = "*_3y_to_4y",
+        _4y_to_5y: A = "*_4y_to_5y",
+        _5y_to_6y: A = "*_5y_to_6y",
+        _6y_to_7y: A = "*_6y_to_7y",
+        _7y_to_8y: A = "*_7y_to_8y",
+        _8y_to_10y: A = "*_8y_to_10y",
+        _10y_to_12y: A = "*_10y_to_12y",
+        _12y_to_15y: A = "*_12y_to_15y",
+        over_15y: A = "*_over_15y",
     } }
     shape! { Coinflow at "series().coinflow" {
         age_ranges: Ranges<CoinflowAgeRanges10yTo12y> = "*",
@@ -2205,15 +2205,15 @@ pub mod tree {
         pools: Pools = "pool",
         utxo_set: UtxoSet2 = "circulating_supply",
         market: Market = "price",
-        age: Age = "utxos",
-        utxos: Utxos = "utxos",
+        age: Age = "age",
+        utxos: Utxos = "amount",
         addresses: Addresses = "address",
-        holders: Holders<Rookie<AllSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis>, Rookie<LthSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis>> = "utxos",
+        holders: Holders<Rookie<AllSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis>, Rookie<LthSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis>> = "age",
         entry: Entry = "veteran",
         profitability: Profitability = "sth",
         supply: Supply = "circulating_supply",
-        cointime: Cointime = "utxos",
-        coinflow: Coinflow = "utxos",
+        cointime: Cointime = "age",
+        coinflow: Coinflow = "age",
         bedrock: Bedrock = "bedrock",
         rarity_meter: RarityMeter = "rarity_meter",
     } }
@@ -2585,7 +2585,7 @@ impl BitviewClient {
 
     /// Available URPD cohorts
     ///
-    /// Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `under_4m`, `under_6m`, `over_4m`, `over_6m`, `utxos_under_1h_old`.
+    /// Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `age_under_4m`, `age_under_6m`, `age_over_4m`, `age_over_6m`, `age_under_1h`.
     ///
     /// Endpoint: `GET /api/urpd`
     pub fn list_urpd_cohorts(&self) -> Result<Vec<Cohort>> {

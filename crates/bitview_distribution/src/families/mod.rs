@@ -1,5 +1,5 @@
 //! One cohort's stored series and their public views, shared by the cohort plugins. Each takes
-//! the cohort's series name (`utxos_1d_to_1w_old_supply`, `balance_1btc_to_10btc_supply`); its
+//! the cohort's series name (`age_1d_to_1w_supply`, `balance_1_to_10_btc_supply`); its
 //! stored series add a suffix (`_sats`, `_cumulative`).
 
 mod count_with_deltas;

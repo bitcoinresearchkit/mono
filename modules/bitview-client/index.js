@@ -2605,8 +2605,8 @@ const _AwakeRealizedPriceMedian = _s({
  * }} Under6mCapitalizedPriceMedian
  */
 const _Under6mCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'utxos_under_6m_old_capitalized_price_rarity_ratio_*'],
-  band: [_i1, 'utxos_under_6m_old_capitalized_price_rarity_*'],
+  ratio: [_i1, 'age_under_6m_capitalized_price_rarity_ratio_*'],
+  band: [_i1, 'age_under_6m_capitalized_price_rarity_*'],
 });
 
 /**
@@ -2616,8 +2616,8 @@ const _Under6mCapitalizedPriceMedian = _s({
  * }} Under6mRealizedPriceMedian
  */
 const _Under6mRealizedPriceMedian = _s({
-  ratio: [_i1, 'utxos_under_6m_old_realized_price_rarity_ratio_*'],
-  band: [_i1, 'utxos_under_6m_old_realized_price_rarity_*'],
+  ratio: [_i1, 'age_under_6m_realized_price_rarity_ratio_*'],
+  band: [_i1, 'age_under_6m_realized_price_rarity_*'],
 });
 
 /**
@@ -3943,9 +3943,9 @@ const _OpReturnValue = _s({
 /**
  * @typedef {{
  *   transferVolume: OpReturnValue,
- * }} Balances100btcTo1kBtcActivity
+ * }} Balances100To1kBtcActivity
  */
-const _Balances100btcTo1kBtcActivity = _s({
+const _Balances100To1kBtcActivity = _s({
   transferVolume: [_OpReturnValue, '*'],
 });
 
@@ -4271,21 +4271,21 @@ const _Supply = _s({
 /**
  * @typedef {{
  *   count: Funded<Count, CountSigned>,
- * }} Balances0satsUtxos
+ * }} Balances0SatsUtxos
  */
-const _Balances0satsUtxos = _s({
+const _Balances0SatsUtxos = _s({
   count: [_Funded, '*'],
 });
 
 /**
  * @typedef {{
  *   funded: Funded<Count, CountSigned>,
- *   utxos: Balances0satsUtxos,
- * }} Balances0sats
+ *   utxos: Balances0SatsUtxos,
+ * }} Balances0Sats
  */
-const _Balances0sats = _s({
+const _Balances0Sats = _s({
   funded: [_Funded, '*_address_count'],
-  utxos: [_Balances0satsUtxos, '*_utxo_count'],
+  utxos: [_Balances0SatsUtxos, '*_utxo_count'],
 });
 
 /**
@@ -5192,9 +5192,9 @@ const _AddressesTypes = _s({
  * @typedef {{
  *   profit: BlocksCount<?Dollars>,
  *   loss: BlocksCount<?Dollars>,
- * }} Balances100btcTo1kBtcRealized
+ * }} Balances100To1kBtcRealized
  */
-const _Balances100btcTo1kBtcRealized = _s({
+const _Balances100To1kBtcRealized = _s({
   profit: [_BlocksCount, '*_profit'],
   loss: [_BlocksCount, '*_loss'],
 });
@@ -5204,18 +5204,18 @@ const _Balances100btcTo1kBtcRealized = _s({
  *   funded: Funded<Count, CountSigned>,
  *   supply: AddressesSupply,
  *   capital: AddressesCapital,
- *   utxos: Balances0satsUtxos,
- *   activity: Balances100btcTo1kBtcActivity,
- *   realized: Balances100btcTo1kBtcRealized,
- * }} Balances100btcTo1kBtc
+ *   utxos: Balances0SatsUtxos,
+ *   activity: Balances100To1kBtcActivity,
+ *   realized: Balances100To1kBtcRealized,
+ * }} Balances100To1kBtc
  */
-const _Balances100btcTo1kBtc = _s({
+const _Balances100To1kBtc = _s({
   funded: [_Funded, '*_address_count'],
   supply: [_AddressesSupply, '*_supply'],
   capital: [_AddressesCapital, '*'],
-  utxos: [_Balances0satsUtxos, '*_utxo_count'],
-  activity: [_Balances100btcTo1kBtcActivity, '*_transfer_volume'],
-  realized: [_Balances100btcTo1kBtcRealized, '*_realized'],
+  utxos: [_Balances0SatsUtxos, '*_utxo_count'],
+  activity: [_Balances100To1kBtcActivity, '*_transfer_volume'],
+  realized: [_Balances100To1kBtcRealized, '*_realized'],
 });
 
 /**
@@ -5273,92 +5273,92 @@ const _RookieUtxos = _s({
  *   supply: AddressesSupply,
  *   capital: AddressesCapital,
  *   utxos: RookieUtxos,
- *   activity: Balances100btcTo1kBtcActivity,
- *   realized: Balances100btcTo1kBtcRealized,
+ *   activity: Balances100To1kBtcActivity,
+ *   realized: Balances100To1kBtcRealized,
  *   costBasis: RookieCostBasis,
- * }} Amounts100btcTo1kBtc
+ * }} Amounts100To1kBtc
  */
-const _Amounts100btcTo1kBtc = _s({
+const _Amounts100To1kBtc = _s({
   supply: [_AddressesSupply, '*_supply'],
   capital: [_AddressesCapital, '*'],
   utxos: [_RookieUtxos, '*'],
-  activity: [_Balances100btcTo1kBtcActivity, '*_transfer_volume'],
-  realized: [_Balances100btcTo1kBtcRealized, '*_realized'],
+  activity: [_Balances100To1kBtcActivity, '*_transfer_volume'],
+  realized: [_Balances100To1kBtcRealized, '*_realized'],
   costBasis: [_RookieCostBasis, '*'],
 });
 
 /**
  * @typedef {{
- *   p2pk: Amounts100btcTo1kBtc,
- *   p2pkh: Amounts100btcTo1kBtc,
- *   p2ms: Amounts100btcTo1kBtc,
- *   p2sh: Amounts100btcTo1kBtc,
- *   p2wpkh: Amounts100btcTo1kBtc,
- *   p2wsh: Amounts100btcTo1kBtc,
- *   p2tr: Amounts100btcTo1kBtc,
- *   p2a: Amounts100btcTo1kBtc,
- *   unknown: Amounts100btcTo1kBtc,
- *   empty: Amounts100btcTo1kBtc,
+ *   p2pk: Amounts100To1kBtc,
+ *   p2pkh: Amounts100To1kBtc,
+ *   p2ms: Amounts100To1kBtc,
+ *   p2sh: Amounts100To1kBtc,
+ *   p2wpkh: Amounts100To1kBtc,
+ *   p2wsh: Amounts100To1kBtc,
+ *   p2tr: Amounts100To1kBtc,
+ *   p2a: Amounts100To1kBtc,
+ *   unknown: Amounts100To1kBtc,
+ *   empty: Amounts100To1kBtc,
  * }} UtxosTypes
  */
 const _UtxosTypes = _s({
-  p2pk: [_Amounts100btcTo1kBtc, 'p2pk'],
-  p2pkh: [_Amounts100btcTo1kBtc, 'p2pkh'],
-  p2ms: [_Amounts100btcTo1kBtc, 'p2ms'],
-  p2sh: [_Amounts100btcTo1kBtc, 'p2sh'],
-  p2wpkh: [_Amounts100btcTo1kBtc, 'p2wpkh'],
-  p2wsh: [_Amounts100btcTo1kBtc, 'p2wsh'],
-  p2tr: [_Amounts100btcTo1kBtc, 'p2tr'],
-  p2a: [_Amounts100btcTo1kBtc, 'p2a'],
-  unknown: [_Amounts100btcTo1kBtc, 'unknown_*'],
-  empty: [_Amounts100btcTo1kBtc, 'empty_*'],
+  p2pk: [_Amounts100To1kBtc, 'p2pk'],
+  p2pkh: [_Amounts100To1kBtc, 'p2pkh'],
+  p2ms: [_Amounts100To1kBtc, 'p2ms'],
+  p2sh: [_Amounts100To1kBtc, 'p2sh'],
+  p2wpkh: [_Amounts100To1kBtc, 'p2wpkh'],
+  p2wsh: [_Amounts100To1kBtc, 'p2wsh'],
+  p2tr: [_Amounts100To1kBtc, 'p2tr'],
+  p2a: [_Amounts100To1kBtc, 'p2a'],
+  unknown: [_Amounts100To1kBtc, 'unknown_*'],
+  empty: [_Amounts100To1kBtc, 'empty_*'],
 });
 
 /**
  * @typedef {{
  *   utxos: RookieUtxos,
- * }} Amounts0sats
+ * }} Amounts0Sats
  */
-const _Amounts0sats = _s({
+const _Amounts0Sats = _s({
   utxos: [_RookieUtxos, '*'],
 });
 
 /**
  * @template A, B
  * @typedef {{
- *   _0sats: A,
- *   _1satTo10sats: B,
- *   _10satsTo100sats: B,
- *   _100satsTo1kSats: B,
- *   _1kSatsTo10kSats: B,
- *   _10kSatsTo100kSats: B,
- *   _100kSatsTo1mSats: B,
- *   _1mSatsTo10mSats: B,
- *   _10mSatsTo1btc: B,
- *   _1btcTo10btc: B,
- *   _10btcTo100btc: B,
- *   _100btcTo1kBtc: B,
- *   _1kBtcTo10kBtc: B,
- *   _10kBtcTo100kBtc: B,
+ *   _0Sats: A,
+ *   _1To10Sats: B,
+ *   _10To100Sats: B,
+ *   _100To1kSats: B,
+ *   _1kTo10kSats: B,
+ *   _10kTo100kSats: B,
+ *   _100kTo1mSats: B,
+ *   _1mTo10mSats: B,
+ *   _10mTo100mSats: B,
+ *   _1To10Btc: B,
+ *   _10To100Btc: B,
+ *   _100To1kBtc: B,
+ *   _1kTo10kBtc: B,
+ *   _10kTo100kBtc: B,
  *   over100kBtc: B,
  * }} Balances
  */
 /** @type {_Make} */
 const _Balances = (c, b, f0, f1) => _n(c, b, {
-  _0sats: [f0, '*_0sats'],
-  _1satTo10sats: [f1, '*_1sat_to_10sats'],
-  _10satsTo100sats: [f1, '*_10sats_to_100sats'],
-  _100satsTo1kSats: [f1, '*_100sats_to_1k_sats'],
-  _1kSatsTo10kSats: [f1, '*_1k_sats_to_10k_sats'],
-  _10kSatsTo100kSats: [f1, '*_10k_sats_to_100k_sats'],
-  _100kSatsTo1mSats: [f1, '*_100k_sats_to_1m_sats'],
-  _1mSatsTo10mSats: [f1, '*_1m_sats_to_10m_sats'],
-  _10mSatsTo1btc: [f1, '*_10m_sats_to_1btc'],
-  _1btcTo10btc: [f1, '*_1btc_to_10btc'],
-  _10btcTo100btc: [f1, '*_10btc_to_100btc'],
-  _100btcTo1kBtc: [f1, '*_100btc_to_1k_btc'],
-  _1kBtcTo10kBtc: [f1, '*_1k_btc_to_10k_btc'],
-  _10kBtcTo100kBtc: [f1, '*_10k_btc_to_100k_btc'],
+  _0Sats: [f0, '*_0_sats'],
+  _1To10Sats: [f1, '*_1_to_10_sats'],
+  _10To100Sats: [f1, '*_10_to_100_sats'],
+  _100To1kSats: [f1, '*_100_to_1k_sats'],
+  _1kTo10kSats: [f1, '*_1k_to_10k_sats'],
+  _10kTo100kSats: [f1, '*_10k_to_100k_sats'],
+  _100kTo1mSats: [f1, '*_100k_to_1m_sats'],
+  _1mTo10mSats: [f1, '*_1m_to_10m_sats'],
+  _10mTo100mSats: [f1, '*_10m_to_100m_sats'],
+  _1To10Btc: [f1, '*_1_to_10_btc'],
+  _10To100Btc: [f1, '*_10_to_100_btc'],
+  _100To1kBtc: [f1, '*_100_to_1k_btc'],
+  _1kTo10kBtc: [f1, '*_1k_to_10k_btc'],
+  _10kTo100kBtc: [f1, '*_10k_to_100k_btc'],
   over100kBtc: [f1, '*_over_100k_btc'],
 });
 
@@ -5376,7 +5376,7 @@ const _Balances = (c, b, f0, f1) => _n(c, b, {
  *   supply: AddressesSupply,
  *   capital: AddressesCapital,
  *   types: AddressesTypes,
- *   balances: Balances<Balances0sats, Balances100btcTo1kBtc>,
+ *   balances: Balances<Balances0Sats, Balances100To1kBtc>,
  * }} Addresses
  */
 const _Addresses = _s({
@@ -5392,17 +5392,17 @@ const _Addresses = _s({
   supply: [_AddressesSupply, '*_supply'],
   capital: [_AddressesCapital, '*'],
   types: [_AddressesTypes, 'p2pk'],
-  balances: [(c, b) => _Balances(c, b, _Balances0sats, _Balances100btcTo1kBtc), 'balance'],
+  balances: [(c, b) => _Balances(c, b, _Balances0Sats, _Balances100To1kBtc), 'balance'],
 });
 
 /**
  * @typedef {{
- *   amounts: Balances<Amounts0sats, Amounts100btcTo1kBtc>,
+ *   amounts: Balances<Amounts0Sats, Amounts100To1kBtc>,
  *   types: UtxosTypes,
  * }} Utxos
  */
 const _Utxos = _s({
-  amounts: [(c, b) => _Balances(c, b, _Amounts0sats, _Amounts100btcTo1kBtc), '*'],
+  amounts: [(c, b) => _Balances(c, b, _Amounts0Sats, _Amounts100To1kBtc), '*'],
   types: [_UtxosTypes, 'output'],
 });
 
@@ -5457,10 +5457,10 @@ const _Holders = (c, b, f0, f1) => _n(c, b, {
   all: [f0, ''],
   sth: [f1, 'sth'],
   lth: [f1, 'lth'],
-  under4m: [f1, '*_under_4m_old'],
-  under6m: [f1, '*_under_6m_old'],
-  over4m: [f1, '*_over_4m_old'],
-  over6m: [f1, '*_over_6m_old'],
+  under4m: [f1, '*_under_4m'],
+  under6m: [f1, '*_under_6m'],
+  over4m: [f1, '*_over_4m'],
+  over6m: [f1, '*_over_6m'],
 });
 
 /**
@@ -5578,29 +5578,29 @@ const _Ranges10yTo12y = _s({
  */
 /** @type {_Make} */
 const _Ranges = (c, b, f0) => _n(c, b, {
-  under1h: [f0, '*_under_1h_old'],
-  _1hTo1d: [f0, '*_1h_to_1d_old'],
-  _1dTo1w: [f0, '*_1d_to_1w_old'],
-  _1wTo1m: [f0, '*_1w_to_1m_old'],
-  _1mTo2m: [f0, '*_1m_to_2m_old'],
-  _2mTo3m: [f0, '*_2m_to_3m_old'],
-  _3mTo4m: [f0, '*_3m_to_4m_old'],
-  _4mTo5m: [f0, '*_4m_to_5m_old'],
-  _5mTo6m: [f0, '*_5m_to_6m_old'],
-  _6mTo9m: [f0, '*_6m_to_9m_old'],
-  _9mTo1y: [f0, '*_9m_to_1y_old'],
-  _1yTo18m: [f0, '*_1y_to_18m_old'],
-  _18mTo2y: [f0, '*_18m_to_2y_old'],
-  _2yTo3y: [f0, '*_2y_to_3y_old'],
-  _3yTo4y: [f0, '*_3y_to_4y_old'],
-  _4yTo5y: [f0, '*_4y_to_5y_old'],
-  _5yTo6y: [f0, '*_5y_to_6y_old'],
-  _6yTo7y: [f0, '*_6y_to_7y_old'],
-  _7yTo8y: [f0, '*_7y_to_8y_old'],
-  _8yTo10y: [f0, '*_8y_to_10y_old'],
-  _10yTo12y: [f0, '*_10y_to_12y_old'],
-  _12yTo15y: [f0, '*_12y_to_15y_old'],
-  over15y: [f0, '*_over_15y_old'],
+  under1h: [f0, '*_under_1h'],
+  _1hTo1d: [f0, '*_1h_to_1d'],
+  _1dTo1w: [f0, '*_1d_to_1w'],
+  _1wTo1m: [f0, '*_1w_to_1m'],
+  _1mTo2m: [f0, '*_1m_to_2m'],
+  _2mTo3m: [f0, '*_2m_to_3m'],
+  _3mTo4m: [f0, '*_3m_to_4m'],
+  _4mTo5m: [f0, '*_4m_to_5m'],
+  _5mTo6m: [f0, '*_5m_to_6m'],
+  _6mTo9m: [f0, '*_6m_to_9m'],
+  _9mTo1y: [f0, '*_9m_to_1y'],
+  _1yTo18m: [f0, '*_1y_to_18m'],
+  _18mTo2y: [f0, '*_18m_to_2y'],
+  _2yTo3y: [f0, '*_2y_to_3y'],
+  _3yTo4y: [f0, '*_3y_to_4y'],
+  _4yTo5y: [f0, '*_4y_to_5y'],
+  _5yTo6y: [f0, '*_5y_to_6y'],
+  _6yTo7y: [f0, '*_6y_to_7y'],
+  _7yTo8y: [f0, '*_7y_to_8y'],
+  _8yTo10y: [f0, '*_8y_to_10y'],
+  _10yTo12y: [f0, '*_10y_to_12y'],
+  _12yTo15y: [f0, '*_12y_to_15y'],
+  over15y: [f0, '*_over_15y'],
 });
 
 /**
@@ -6811,15 +6811,15 @@ const _SeriesTree = _s({
   pools: [_Pools, 'pool'],
   utxoSet: [_UtxoSet2, 'circulating_supply'],
   market: [_Market, 'price'],
-  age: [_Age, 'utxos'],
-  utxos: [_Utxos, 'utxos'],
+  age: [_Age, 'age'],
+  utxos: [_Utxos, 'amount'],
   addresses: [_Addresses, 'address'],
-  holders: [(c, b) => _Holders(c, b, (c, b) => _Rookie(c, b, _AllSupply, _AllCapital, _AllActivity, _AllRealized, _AllUnrealized, _AllCostBasis), (c, b) => _Rookie(c, b, _LthSupply, _AllCapital, _AllActivity, _AllRealized, _AllUnrealized, _AllCostBasis)), 'utxos'],
+  holders: [(c, b) => _Holders(c, b, (c, b) => _Rookie(c, b, _AllSupply, _AllCapital, _AllActivity, _AllRealized, _AllUnrealized, _AllCostBasis), (c, b) => _Rookie(c, b, _LthSupply, _AllCapital, _AllActivity, _AllRealized, _AllUnrealized, _AllCostBasis)), 'age'],
   entry: [_Entry, 'veteran'],
   profitability: [_Profitability, 'sth'],
   supply: [_Supply, 'circulating_supply'],
-  cointime: [_Cointime, 'utxos'],
-  coinflow: [_Coinflow, 'utxos'],
+  cointime: [_Cointime, 'age'],
+  coinflow: [_Coinflow, 'age'],
   bedrock: [_Bedrock, 'bedrock'],
   rarityMeter: [_RarityMeter, 'rarity_meter'],
 });
@@ -7246,190 +7246,190 @@ class BitviewClient extends BitviewClientBase {
 
   AGE_RANGE_NAMES = /** @type {const} */ ({
     "under1h": {
-      "id": "under_1h_old",
+      "id": "under_1h",
       "short": "<1h",
       "long": "Under 1 Hour Old"
     },
     "_1hTo1d": {
-      "id": "1h_to_1d_old",
+      "id": "1h_to_1d",
       "short": "1h-1d",
       "long": "1 Hour to 1 Day Old"
     },
     "_1dTo1w": {
-      "id": "1d_to_1w_old",
+      "id": "1d_to_1w",
       "short": "1d-1w",
       "long": "1 Day to 1 Week Old"
     },
     "_1wTo1m": {
-      "id": "1w_to_1m_old",
+      "id": "1w_to_1m",
       "short": "1w-1m",
       "long": "1 Week to 1 Month Old"
     },
     "_1mTo2m": {
-      "id": "1m_to_2m_old",
+      "id": "1m_to_2m",
       "short": "1m-2m",
       "long": "1 to 2 Months Old"
     },
     "_2mTo3m": {
-      "id": "2m_to_3m_old",
+      "id": "2m_to_3m",
       "short": "2m-3m",
       "long": "2 to 3 Months Old"
     },
     "_3mTo4m": {
-      "id": "3m_to_4m_old",
+      "id": "3m_to_4m",
       "short": "3m-4m",
       "long": "3 to 4 Months Old"
     },
     "_4mTo5m": {
-      "id": "4m_to_5m_old",
+      "id": "4m_to_5m",
       "short": "4m-5m",
       "long": "4 to 5 Months Old"
     },
     "_5mTo6m": {
-      "id": "5m_to_6m_old",
+      "id": "5m_to_6m",
       "short": "5m-6m",
       "long": "5 to 6 Months Old"
     },
     "_6mTo9m": {
-      "id": "6m_to_9m_old",
+      "id": "6m_to_9m",
       "short": "6m-9m",
       "long": "6 to 9 Months Old"
     },
     "_9mTo1y": {
-      "id": "9m_to_1y_old",
+      "id": "9m_to_1y",
       "short": "9m-1y",
       "long": "9 Months to 1 Year Old"
     },
     "_1yTo18m": {
-      "id": "1y_to_18m_old",
+      "id": "1y_to_18m",
       "short": "1y-18m",
       "long": "1 Year to 18 Months Old"
     },
     "_18mTo2y": {
-      "id": "18m_to_2y_old",
+      "id": "18m_to_2y",
       "short": "18m-2y",
       "long": "18 Months to 2 Years Old"
     },
     "_2yTo3y": {
-      "id": "2y_to_3y_old",
+      "id": "2y_to_3y",
       "short": "2y-3y",
       "long": "2 to 3 Years Old"
     },
     "_3yTo4y": {
-      "id": "3y_to_4y_old",
+      "id": "3y_to_4y",
       "short": "3y-4y",
       "long": "3 to 4 Years Old"
     },
     "_4yTo5y": {
-      "id": "4y_to_5y_old",
+      "id": "4y_to_5y",
       "short": "4y-5y",
       "long": "4 to 5 Years Old"
     },
     "_5yTo6y": {
-      "id": "5y_to_6y_old",
+      "id": "5y_to_6y",
       "short": "5y-6y",
       "long": "5 to 6 Years Old"
     },
     "_6yTo7y": {
-      "id": "6y_to_7y_old",
+      "id": "6y_to_7y",
       "short": "6y-7y",
       "long": "6 to 7 Years Old"
     },
     "_7yTo8y": {
-      "id": "7y_to_8y_old",
+      "id": "7y_to_8y",
       "short": "7y-8y",
       "long": "7 to 8 Years Old"
     },
     "_8yTo10y": {
-      "id": "8y_to_10y_old",
+      "id": "8y_to_10y",
       "short": "8y-10y",
       "long": "8 to 10 Years Old"
     },
     "_10yTo12y": {
-      "id": "10y_to_12y_old",
+      "id": "10y_to_12y",
       "short": "10y-12y",
       "long": "10 to 12 Years Old"
     },
     "_12yTo15y": {
-      "id": "12y_to_15y_old",
+      "id": "12y_to_15y",
       "short": "12y-15y",
       "long": "12 to 15 Years Old"
     },
     "over15y": {
-      "id": "over_15y_old",
+      "id": "over_15y",
       "short": "15y+",
       "long": "15+ Years Old"
     }
   });
 
   AMOUNT_RANGE_NAMES = /** @type {const} */ ({
-    "_0sats": {
-      "id": "0sats",
+    "_0Sats": {
+      "id": "0_sats",
       "short": "0 sats",
       "long": "0 Sats"
     },
-    "_1satTo10sats": {
-      "id": "1sat_to_10sats",
+    "_1To10Sats": {
+      "id": "1_to_10_sats",
       "short": "1-10 sats",
       "long": "1-10 Sats"
     },
-    "_10satsTo100sats": {
-      "id": "10sats_to_100sats",
+    "_10To100Sats": {
+      "id": "10_to_100_sats",
       "short": "10-100 sats",
       "long": "10-100 Sats"
     },
-    "_100satsTo1kSats": {
-      "id": "100sats_to_1k_sats",
+    "_100To1kSats": {
+      "id": "100_to_1k_sats",
       "short": "100-1k sats",
       "long": "100-1K Sats"
     },
-    "_1kSatsTo10kSats": {
-      "id": "1k_sats_to_10k_sats",
+    "_1kTo10kSats": {
+      "id": "1k_to_10k_sats",
       "short": "1k-10k sats",
       "long": "1K-10K Sats"
     },
-    "_10kSatsTo100kSats": {
-      "id": "10k_sats_to_100k_sats",
+    "_10kTo100kSats": {
+      "id": "10k_to_100k_sats",
       "short": "10k-100k sats",
       "long": "10K-100K Sats"
     },
-    "_100kSatsTo1mSats": {
-      "id": "100k_sats_to_1m_sats",
+    "_100kTo1mSats": {
+      "id": "100k_to_1m_sats",
       "short": "100k-1M sats",
       "long": "100K-1M Sats"
     },
-    "_1mSatsTo10mSats": {
-      "id": "1m_sats_to_10m_sats",
+    "_1mTo10mSats": {
+      "id": "1m_to_10m_sats",
       "short": "1M-10M sats",
       "long": "1M-10M Sats"
     },
-    "_10mSatsTo1btc": {
-      "id": "10m_sats_to_1btc",
+    "_10mTo100mSats": {
+      "id": "10m_to_100m_sats",
       "short": "0.1-1 BTC",
       "long": "0.1-1 BTC"
     },
-    "_1btcTo10btc": {
-      "id": "1btc_to_10btc",
+    "_1To10Btc": {
+      "id": "1_to_10_btc",
       "short": "1-10 BTC",
       "long": "1-10 BTC"
     },
-    "_10btcTo100btc": {
-      "id": "10btc_to_100btc",
+    "_10To100Btc": {
+      "id": "10_to_100_btc",
       "short": "10-100 BTC",
       "long": "10-100 BTC"
     },
-    "_100btcTo1kBtc": {
-      "id": "100btc_to_1k_btc",
+    "_100To1kBtc": {
+      "id": "100_to_1k_btc",
       "short": "100-1k BTC",
       "long": "100-1K BTC"
     },
-    "_1kBtcTo10kBtc": {
-      "id": "1k_btc_to_10k_btc",
+    "_1kTo10kBtc": {
+      "id": "1k_to_10k_btc",
       "short": "1k-10k BTC",
       "long": "1K-10K BTC"
     },
-    "_10kBtcTo100kBtc": {
-      "id": "10k_btc_to_100k_btc",
+    "_10kTo100kBtc": {
+      "id": "10k_to_100k_btc",
       "short": "10k-100k BTC",
       "long": "10K-100K BTC"
     },
@@ -7921,7 +7921,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Available URPD cohorts
    *
-   * Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `under_4m`, `under_6m`, `over_4m`, `over_6m`, `utxos_under_1h_old`.
+   * Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `age_under_4m`, `age_under_6m`, `age_over_4m`, `age_over_6m`, `age_under_1h`.
    *
    * Endpoint: `GET /api/urpd`
    * @param {{ signal?: AbortSignal, onValue?: (value: Cohort[]) => void, cache?: boolean, memCache?: boolean }} [options]

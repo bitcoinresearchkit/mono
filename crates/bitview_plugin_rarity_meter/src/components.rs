@@ -159,11 +159,11 @@ impl Components {
             },
             under_6m: MeanComponents {
                 realized_price: mean!(
-                    "utxos_under_6m_old_realized_price",
+                    "age_under_6m_realized_price",
                     cohorts.under_6m.cost_basis.per_coin.avg
                 ),
                 capitalized_price: mean!(
-                    "utxos_under_6m_old_capitalized_price",
+                    "age_under_6m_capitalized_price",
                     cohorts.under_6m.cost_basis.per_dollar.avg
                 ),
             },

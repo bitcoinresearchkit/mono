@@ -9,7 +9,7 @@ use super::SupplyChange;
 use crate::families::Supply;
 
 /// A cohort's supply, its change over each window and its share of all supply; `name` is its
-/// supply series name (`utxos_1d_to_1w_old_supply`).
+/// supply series name (`age_1d_to_1w_supply`).
 #[derive(Traversable)]
 pub struct CohortSupply<M: StorageMode = Rw> {
     /// Supply: amount of bitcoin held in the cohort's unspent transaction outputs.
