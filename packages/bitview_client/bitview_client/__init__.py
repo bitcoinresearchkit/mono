@@ -2974,7 +2974,7 @@ class RarityMeter(_Node):
     cycle: Meter = _at(Meter, 'cycle_*')
 
 
-class FloorBands(_Node):
+class FloorCapital(_Node):
     pct95_to_pct98: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct95_to_pct98')
     pct98_to_pct99: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct98_to_pct99')
     pct99_to_pct99_5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct99_to_pct99_5')
@@ -3279,7 +3279,7 @@ class Ath(_Node):
     high: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_ath')
     drawdown: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_drawdown')
     days_since: SeriesPattern1[Optional[Days]] = _at(SeriesPattern1, 'days_since_*_ath')
-    max_days_between: SeriesPattern1[Optional[Days]] = _at(SeriesPattern1, 'max_days_between_*_ath')
+    days_between_max: SeriesPattern1[Optional[Days]] = _at(SeriesPattern1, 'days_between_*_ath_max')
 
 
 class Market(_Node):
@@ -3337,7 +3337,7 @@ class Value(_Node):
     usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_usd')
 
 
-class BedrockFloorBands(_Node):
+class FloorSupply(_Node):
     pct95_to_pct98: Value = _at(Value, '*_pct95_to_pct98')
     pct98_to_pct99: Value = _at(Value, '*_pct98_to_pct99')
     pct99_to_pct99_5: Value = _at(Value, '*_pct99_to_pct99_5')
@@ -3349,8 +3349,8 @@ class Mode(_Node):
     supply_in_loss_share_threshold: Percentiles[Optional[Percent]] = _at(Percentiles, '*_supply_in_loss_share_threshold')
     floor: Percentiles[Optional[Dollars]] = _at(Percentiles, '*_floor')
     cost_basis_above_floor: Levels = _at(Levels, '*_cost_basis_above_floor')
-    floor_supply: BedrockFloorBands = _at(BedrockFloorBands, '*_floor_supply')
-    floor_capital: FloorBands = _at(FloorBands, '*_floor_capital')
+    floor_supply: FloorSupply = _at(FloorSupply, '*_floor_supply')
+    floor_capital: FloorCapital = _at(FloorCapital, '*_floor_capital')
 
 
 class Bedrock(_Node):
@@ -4018,7 +4018,7 @@ class ReuseEvents(_Node):
     active: EventCount[Averaged[Count, Optional[CountFract]]] = _at((EventCount, Averaged), '*_active_respent_address')
 
 
-class Reuse(_Node):
+class Respent(_Node):
     count: RespentCount = _at(RespentCount, '*')
     supply: PredicateSupply = _at(PredicateSupply, '*_respent_address_supply')
     events: ReuseEvents = _at(ReuseEvents, '*')
@@ -4030,7 +4030,7 @@ class AddressesReuseEvents(_Node):
     active: EventCount[Averaged[Count, Optional[CountFract]]] = _at((EventCount, Averaged), '*_active_reused_address')
 
 
-class AddressesReuse(_Node):
+class Reused(_Node):
     count: ReusedCount = _at(ReusedCount, '*')
     supply: PredicateSupply = _at(PredicateSupply, '*_reused_address_supply')
     events: AddressesReuseEvents = _at(AddressesReuseEvents, '*')
@@ -4043,8 +4043,8 @@ class AddressSeries(_Node):
     new: NewAddressCount = _at(NewAddressCount, '*_new_address_count')
     activity: AddressesActivity = _at(AddressesActivity, '*')
     avg_balance: Value = _at(Value, '*_address_balance_avg')
-    reused: AddressesReuse = _at(AddressesReuse, '*')
-    respent: Reuse = _at(Reuse, '*')
+    reused: Reused = _at(Reused, '*')
+    respent: Respent = _at(Respent, '*')
     exposed: Exposed = _at(Exposed, '*')
 
 
@@ -4145,8 +4145,8 @@ class Addresses(_Node):
     new: NewAddressCount = _at(NewAddressCount, 'new_*_count')
     activity: AddressesActivity = _at(AddressesActivity, '')
     avg_balance: Value = _at(Value, '*_balance_avg')
-    reused: AddressesReuse = _at(AddressesReuse, '')
-    respent: Reuse = _at(Reuse, '')
+    reused: Reused = _at(Reused, '')
+    respent: Respent = _at(Respent, '')
     exposed: Exposed = _at(Exposed, '')
     supply: CohortSupply = _at(CohortSupply, '*_supply')
     capital: CapitalViews = _at(CapitalViews, '*')
@@ -4405,7 +4405,7 @@ class TxoutIndex(_Node):
     identity: SeriesPattern22[TxOutIndex] = _at(SeriesPattern22, '*')
 
 
-class Identity(_Node):
+class TxinIndex(_Node):
     identity: SeriesPattern20[TxInIndex] = _at(SeriesPattern20, '*')
 
 
@@ -4450,7 +4450,7 @@ class MappingsDay3(_Node):
     first_height: SeriesPattern9[Height] = _at(SeriesPattern9, 'first_height')
 
 
-class DatedResolution(_Node):
+class MappingsDay1(_Node):
     date: SeriesPattern8[Date] = _at(SeriesPattern8, '*')
     first_height: SeriesPattern8[Height] = _at(SeriesPattern8, 'first_height')
 
@@ -4479,7 +4479,7 @@ class MappingsHalving(_Node):
     first_height: SeriesPattern16[Height] = _at(SeriesPattern16, '*')
 
 
-class Resolution(_Node):
+class MappingsEpoch(_Node):
     first_height: SeriesPattern17[Height] = _at(SeriesPattern17, '*')
 
 
@@ -4501,11 +4501,11 @@ class MappingsHeight(_Node):
     year10: SeriesPattern18[Year10] = _at(SeriesPattern18, '*_year10')
 
 
-class OutputsOpReturn(_Node):
+class MappingsOpReturn(_Node):
     identity: SeriesPattern25[OpReturnIndex] = _at(SeriesPattern25, '*')
 
 
-class Unknown(_Node):
+class MappingsUnknown(_Node):
     identity: SeriesPattern35[UnknownOutputIndex] = _at(SeriesPattern35, '*')
 
 
@@ -4513,80 +4513,80 @@ class Empty(_Node):
     identity: SeriesPattern24[EmptyOutputIndex] = _at(SeriesPattern24, '*')
 
 
-class P2ms(_Node):
+class MappingsP2ms(_Node):
     identity: SeriesPattern27[P2MSOutputIndex] = _at(SeriesPattern27, '*')
 
 
 class Output(_Node):
-    p2ms: P2ms = _at(P2ms, 'p2ms_output_*')
+    p2ms: MappingsP2ms = _at(MappingsP2ms, 'p2ms_output_*')
     empty: Empty = _at(Empty, 'empty_output_*')
-    unknown: Unknown = _at(Unknown, 'unknown_output_*')
-    op_return: OutputsOpReturn = _at(OutputsOpReturn, 'op_return_*')
+    unknown: MappingsUnknown = _at(MappingsUnknown, 'unknown_output_*')
+    op_return: MappingsOpReturn = _at(MappingsOpReturn, 'op_return_*')
 
 
-class P2a(_Node):
+class MappingsP2a(_Node):
     identity: SeriesPattern26[P2AAddressIndex] = _at(SeriesPattern26, '*_index')
     address: SeriesPattern26[Address] = _at(SeriesPattern26, '*')
 
 
-class MappingsAddressesP2wsh(_Node):
+class MappingsP2wsh(_Node):
     identity: SeriesPattern34[P2WSHAddressIndex] = _at(SeriesPattern34, '*_index')
     address: SeriesPattern34[Address] = _at(SeriesPattern34, '*')
 
 
-class MappingsAddressesP2wpkh(_Node):
+class MappingsP2wpkh(_Node):
     identity: SeriesPattern33[P2WPKHAddressIndex] = _at(SeriesPattern33, '*_index')
     address: SeriesPattern33[Address] = _at(SeriesPattern33, '*')
 
 
-class MappingsAddressesP2tr(_Node):
+class MappingsP2tr(_Node):
     identity: SeriesPattern32[P2TRAddressIndex] = _at(SeriesPattern32, '*_index')
     address: SeriesPattern32[Address] = _at(SeriesPattern32, '*')
 
 
-class MappingsAddressesP2sh(_Node):
+class MappingsP2sh(_Node):
     identity: SeriesPattern31[P2SHAddressIndex] = _at(SeriesPattern31, '*_index')
     address: SeriesPattern31[Address] = _at(SeriesPattern31, '*')
 
 
-class MappingsAddressesP2pkh(_Node):
+class MappingsP2pkh(_Node):
     identity: SeriesPattern30[P2PKHAddressIndex] = _at(SeriesPattern30, '*_index')
     address: SeriesPattern30[Address] = _at(SeriesPattern30, '*')
 
 
-class MappingsAddressesP2pk65(_Node):
+class MappingsP2pk65(_Node):
     identity: SeriesPattern29[P2PK65AddressIndex] = _at(SeriesPattern29, '*_index')
     address: SeriesPattern29[Address] = _at(SeriesPattern29, '*')
 
 
-class MappingsAddressesP2pk33(_Node):
+class MappingsP2pk33(_Node):
     identity: SeriesPattern28[P2PK33AddressIndex] = _at(SeriesPattern28, '*_index')
     address: SeriesPattern28[Address] = _at(SeriesPattern28, '*')
 
 
 class MappingsAddresses(_Node):
-    p2pk33: MappingsAddressesP2pk33 = _at(MappingsAddressesP2pk33, 'p2pk33_*')
-    p2pk65: MappingsAddressesP2pk65 = _at(MappingsAddressesP2pk65, 'p2pk65_*')
-    p2pkh: MappingsAddressesP2pkh = _at(MappingsAddressesP2pkh, 'p2pkh_*')
-    p2sh: MappingsAddressesP2sh = _at(MappingsAddressesP2sh, 'p2sh_*')
-    p2tr: MappingsAddressesP2tr = _at(MappingsAddressesP2tr, 'p2tr_*')
-    p2wpkh: MappingsAddressesP2wpkh = _at(MappingsAddressesP2wpkh, 'p2wpkh_*')
-    p2wsh: MappingsAddressesP2wsh = _at(MappingsAddressesP2wsh, 'p2wsh_*')
-    p2a: P2a = _at(P2a, 'p2a_*')
+    p2pk33: MappingsP2pk33 = _at(MappingsP2pk33, 'p2pk33_*')
+    p2pk65: MappingsP2pk65 = _at(MappingsP2pk65, 'p2pk65_*')
+    p2pkh: MappingsP2pkh = _at(MappingsP2pkh, 'p2pkh_*')
+    p2sh: MappingsP2sh = _at(MappingsP2sh, 'p2sh_*')
+    p2tr: MappingsP2tr = _at(MappingsP2tr, 'p2tr_*')
+    p2wpkh: MappingsP2wpkh = _at(MappingsP2wpkh, 'p2wpkh_*')
+    p2wsh: MappingsP2wsh = _at(MappingsP2wsh, 'p2wsh_*')
+    p2a: MappingsP2a = _at(MappingsP2a, 'p2a_*')
 
 
 class Mappings(_Node):
     addresses: MappingsAddresses = _at(MappingsAddresses, 'address')
     outputs: Output = _at(Output, 'index')
     height: MappingsHeight = _at(MappingsHeight, 'block')
-    epoch: Resolution = _at(Resolution, 'first_height')
+    epoch: MappingsEpoch = _at(MappingsEpoch, 'first_height')
     halving: MappingsHalving = _at(MappingsHalving, 'first_height')
     minute10: MappingsMinute10 = _at(MappingsMinute10, 'first_height')
     minute30: MappingsMinute30 = _at(MappingsMinute30, 'first_height')
     hour1: MappingsHour1 = _at(MappingsHour1, 'first_height')
     hour4: MappingsHour4 = _at(MappingsHour4, 'first_height')
     hour12: MappingsHour12 = _at(MappingsHour12, 'first_height')
-    day1: DatedResolution = _at(DatedResolution, '*')
+    day1: MappingsDay1 = _at(MappingsDay1, '*')
     day3: MappingsDay3 = _at(MappingsDay3, '*')
     week1: MappingsWeek1 = _at(MappingsWeek1, '*')
     month1: MappingsMonth1 = _at(MappingsMonth1, '*')
@@ -4595,7 +4595,7 @@ class Mappings(_Node):
     year1: MappingsYear1 = _at(MappingsYear1, '*')
     year10: MappingsYear10 = _at(MappingsYear10, '*')
     tx_index: MappingsTxIndex = _at(MappingsTxIndex, 'tx')
-    txin_index: Identity = _at(Identity, 'txin_index')
+    txin_index: TxinIndex = _at(TxinIndex, 'txin_index')
     txout_index: TxoutIndex = _at(TxoutIndex, 'txout_index')
     timestamp: Timestamps = _at(Timestamps, 'timestamp')
 
@@ -4607,13 +4607,13 @@ class IndexerOpReturn(_Node):
     post_op_return_bytes: SeriesPattern25[Bytes] = _at(SeriesPattern25, 'post_*_bytes')
 
 
-class IndexerScriptTypeWithSigOps(_Node):
+class IndexerUnknown(_Node):
     first_index: SeriesPattern18[UnknownOutputIndex] = _at(SeriesPattern18, 'first_*_output_index')
     tx_index: SeriesPattern35[TxIndex] = _at(SeriesPattern35, '*_output_tx_index')
     legacy_sigop_cost: SeriesPattern35[SigOps] = _at(SeriesPattern35, '*_legacy_sigop_cost')
 
 
-class ScriptTypeWithSigOps(_Node):
+class IndexerP2ms(_Node):
     first_index: SeriesPattern18[P2MSOutputIndex] = _at(SeriesPattern18, 'first_*_output_index')
     tx_index: SeriesPattern27[TxIndex] = _at(SeriesPattern27, '*_output_tx_index')
     legacy_sigop_cost: SeriesPattern27[SigOps] = _at(SeriesPattern27, '*_legacy_sigop_cost')
@@ -4626,59 +4626,59 @@ class ScriptType(_Node):
 
 class Scripts(_Node):
     empty: ScriptType = _at(ScriptType, '*')
-    p2ms: ScriptTypeWithSigOps = _at(ScriptTypeWithSigOps, 'p2ms')
-    unknown: IndexerScriptTypeWithSigOps = _at(IndexerScriptTypeWithSigOps, 'unknown')
+    p2ms: IndexerP2ms = _at(IndexerP2ms, 'p2ms')
+    unknown: IndexerUnknown = _at(IndexerUnknown, 'unknown')
 
 
-class AddrType(_Node):
+class IndexerP2a(_Node):
     first_index: SeriesPattern18[P2AAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
     bytes: SeriesPattern26[P2ABytes] = _at(SeriesPattern26, '*_bytes')
 
 
-class IndexerAddressesP2tr(_Node):
+class IndexerP2tr(_Node):
     first_index: SeriesPattern18[P2TRAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
     bytes: SeriesPattern32[P2TRBytes] = _at(SeriesPattern32, '*_bytes')
 
 
-class IndexerAddressesP2wsh(_Node):
+class IndexerP2wsh(_Node):
     first_index: SeriesPattern18[P2WSHAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
     bytes: SeriesPattern34[P2WSHBytes] = _at(SeriesPattern34, '*_bytes')
 
 
-class IndexerAddressesP2wpkh(_Node):
+class IndexerP2wpkh(_Node):
     first_index: SeriesPattern18[P2WPKHAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
     bytes: SeriesPattern33[P2WPKHBytes] = _at(SeriesPattern33, '*_bytes')
 
 
-class IndexerAddressesP2sh(_Node):
+class IndexerP2sh(_Node):
     first_index: SeriesPattern18[P2SHAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
     bytes: SeriesPattern31[P2SHBytes] = _at(SeriesPattern31, '*_bytes')
 
 
-class IndexerAddressesP2pkh(_Node):
+class IndexerP2pkh(_Node):
     first_index: SeriesPattern18[P2PKHAddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
     bytes: SeriesPattern30[P2PKHBytes] = _at(SeriesPattern30, '*_bytes')
 
 
-class IndexerAddressesP2pk33(_Node):
+class IndexerP2pk33(_Node):
     first_index: SeriesPattern18[P2PK33AddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
     bytes: SeriesPattern28[P2PK33Bytes] = _at(SeriesPattern28, '*_bytes')
 
 
-class IndexerAddressesP2pk65(_Node):
+class IndexerP2pk65(_Node):
     first_index: SeriesPattern18[P2PK65AddressIndex] = _at(SeriesPattern18, 'first_*_address_index')
     bytes: SeriesPattern29[P2PK65Bytes] = _at(SeriesPattern29, '*_bytes')
 
 
 class Addrs(_Node):
-    p2pk65: IndexerAddressesP2pk65 = _at(IndexerAddressesP2pk65, '*')
-    p2pk33: IndexerAddressesP2pk33 = _at(IndexerAddressesP2pk33, 'p2pk33')
-    p2pkh: IndexerAddressesP2pkh = _at(IndexerAddressesP2pkh, 'p2pkh')
-    p2sh: IndexerAddressesP2sh = _at(IndexerAddressesP2sh, 'p2sh')
-    p2wpkh: IndexerAddressesP2wpkh = _at(IndexerAddressesP2wpkh, 'p2wpkh')
-    p2wsh: IndexerAddressesP2wsh = _at(IndexerAddressesP2wsh, 'p2wsh')
-    p2tr: IndexerAddressesP2tr = _at(IndexerAddressesP2tr, 'p2tr')
-    p2a: AddrType = _at(AddrType, 'p2a')
+    p2pk65: IndexerP2pk65 = _at(IndexerP2pk65, '*')
+    p2pk33: IndexerP2pk33 = _at(IndexerP2pk33, 'p2pk33')
+    p2pkh: IndexerP2pkh = _at(IndexerP2pkh, 'p2pkh')
+    p2sh: IndexerP2sh = _at(IndexerP2sh, 'p2sh')
+    p2wpkh: IndexerP2wpkh = _at(IndexerP2wpkh, 'p2wpkh')
+    p2wsh: IndexerP2wsh = _at(IndexerP2wsh, 'p2wsh')
+    p2tr: IndexerP2tr = _at(IndexerP2tr, 'p2tr')
+    p2a: IndexerP2a = _at(IndexerP2a, 'p2a')
 
 
 class IndexerOutputs(_Node):

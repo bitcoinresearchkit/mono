@@ -39,8 +39,8 @@ impl Vecs {
             exit,
         )?;
 
-        compute_max_days_between(
-            &mut self.max_days_between.height,
+        compute_days_between_max(
+            &mut self.days_between_max.height,
             starting_height,
             &self.seconds_since.height,
             &mappings.timestamp.monotonic,
@@ -92,8 +92,8 @@ fn compute_seconds_since(
 /// Running maximum of the time elapsed since the previous ATH, measured before an ATH resets
 /// it: a completed interval counts at the block that ends it. Null before the first price, the
 /// first ATH.
-fn compute_max_days_between(
-    max_days_between: &mut CachedSeries<Height, Days>,
+fn compute_days_between_max(
+    days_between_max: &mut CachedSeries<Height, Days>,
     starting_height: Height,
     seconds_since: &impl ReadableVec<Height, Seconds>,
     timestamps: &impl ReadableVec<Height, Timestamp>,
@@ -102,7 +102,7 @@ fn compute_max_days_between(
     // The previous block's running maximum, seconds since its ATH and timestamp; `None` before
     // the first price.
     let mut prev: Option<Option<(Days, Seconds, Timestamp)>> = None;
-    max_days_between.compute_transform2(
+    days_between_max.compute_transform2(
         starting_height,
         seconds_since,
         timestamps,

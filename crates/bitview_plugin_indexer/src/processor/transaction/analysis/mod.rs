@@ -21,11 +21,15 @@ pub struct TransactionAnalysis {
 
 /// EPOBC tags the first input's sequence number: tag bits 0 to 5 (51 transfer, 37 genesis),
 /// padding code bits 6 to 11, the rest zero. Version 1 only, before BIP68 gave those bits a
-/// meaning.
+/// meaning; never a Taproot spend, which no EPOBC wallet made, where small sequence numbers
+/// carry the tag by chance.
 #[inline(always)]
-fn record_epobc_tag(flags: &mut TxFeatureFlags, tx: &bitcoin::Transaction) {
+fn record_epobc_tag(flags: &mut TxFeatureFlags, tx: &bitcoin::Transaction, first: OutputType) {
     let sequence = tx.input[0].sequence.0;
-    let tagged = tx.version.0 == 1 && sequence < 1 << 12 && matches!(sequence & 0x3f, 37 | 51);
+    let tagged = tx.version.0 == 1
+        && first != OutputType::P2TR
+        && sequence < 1 << 12
+        && matches!(sequence & 0x3f, 37 | 51);
     flags.insert(TxFeatureFlags::EPOBC * u32::from(tagged));
 }
 
@@ -62,7 +66,11 @@ impl BlockProcessor<'_> {
                 record_explicit_rbf_signal(&mut flags, input.sequence);
                 sigops.scan_coinbase_input(input);
             } else {
-                record_epobc_tag(&mut flags, tx.tx);
+                record_epobc_tag(
+                    &mut flags,
+                    tx.tx,
+                    resolved_output_facts(&tx_inputs[0], txouts).0,
+                );
                 for (input, source) in tx.tx.input.iter().zip(tx_inputs) {
                     record_explicit_rbf_signal(&mut flags, input.sequence);
                     let (output_type, legacy_sigop_cost) = resolved_output_facts(source, txouts);

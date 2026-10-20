@@ -157,7 +157,8 @@ has to be deleted by hand.
   `block` (was `usd`): `market.sma.200d.block`, `holders.sth.capital.in_profit.block`, `supply.market_cap.block`
 - Market: moving averages sit at the root (`market.sma.200d`, `market.ema.200d`; were under `moving_average`), price
   returns at `market.returns.<window>` (were under `periods`; ids `price_return_<window>` unchanged); the all-time
-  high's years copies are gone (`days_since`, `max_days_between` stay); `mayer_multiple` names the 200-day SMA ratio
+  high's years copies are gone (`days_since` stays; `days_between_max`, id `days_between_price_ath_max`, was
+  `max_days_between`, id `max_days_between_price_ath`); `mayer_multiple` names the 200-day SMA ratio
 - Market indicators that are standard chart formulas over published prices are gone (Bitview Studio rebuilds them):
   RSI and stochastic RSI (which smoothed overlapping 24-hour returns, not bar closes), MACD with its 12- and 26-day
   EMAs, volatility, the 24-hour return's window averages and deviations, CAGR, the lookback prices
@@ -573,14 +574,16 @@ has to be deleted by hand.
 
 #### `bitview-client` (JS), `bitview_client` (Python and Rust)
 
-- Generated all three series trees from one composition model. Typed series paths follow the series tree (see "One
-  unit per quantity": `client.series().price.close.by.day1()`), and type names change: each repeated structure is one
-  generic type named after the type that defines it (`Pool` for every pool, `Flow<A>`, `Share`, `Windows<A>`, `Band`,
-  `CreationCohort`) and each top-level section after itself (`Holders`, `Bedrock`), with the tree section prefixed
-  where two structures would share a name (`HoldersActivity`), `Series` after a name the API already uses
-  (`CohortSeries`, `UtxoSetSeries`) and the path's name where no type defines one; Rust types live in
-  `bitview_client::tree` (were `SeriesTree_Blocks` or `_1m1w1y24hPattern6`). Clients shrink from 1.26 MB to 313 KB
-  (JS), 1.05 MB to 274 KB (Python) and 1.95 MB to 157 KB (Rust), with a third of v0.12.2's series paths
+- Generated all three series trees from one composition model. Typed series paths follow the series tree (see "One unit
+  per quantity": `client.series().price.close.by.day1()`), and type names change: each repeated structure is one generic
+  type named after the type that defines it (`Pool` for every pool, `Flow<A>`, `Share`, `Windows<A>`, `Band`,
+  `CreationCohort`) and each top-level section after itself (`Holders`, `Bedrock`), with the tree section prefixed where
+  two structures would share a name (`HoldersActivity`), or, among structures in one section that each always sit under
+  their own field, after that field (`FloorSupply`, `FloorCapital`; `MappingsDay1` where the field's name is taken),
+  `Series` after a name the API already uses (`CohortSeries`, `UtxoSetSeries`) and the path's name where no type defines
+  one; Rust types live in `bitview_client::tree` (were `SeriesTree_Blocks` or `_1m1w1y24hPattern6`). Clients shrink from
+  1.26 MB to 313 KB (JS), 1.05 MB to 274 KB (Python) and 1.95 MB to 157 KB (Rust), with a third of v0.12.2's series
+  paths
 - The raw `getSeries`/`get_series` methods return the same helper objects as typed endpoints (Python: a dataclass,
   read `.data` instead of `['data']`)
 - `BitviewError` carries the HTTP `status`, the server's `code` (`ErrorCode`) and the server's message in all three
@@ -1001,7 +1004,8 @@ has to be deleted by hand.
   `cpfp_parent_tx_share_1m`, `nonstandard_tx_share_1m`, `inscription_tx_share_1m`, ...
 - EPOBC colored-coin transactions as a transaction feature, `transactions.features.epobc` (`is_epobc`,
   `epobc_tx_count`, `epobc_tx_share_<window>`): version-1 transactions whose first input's sequence number carries
-  an EPOBC transfer (51) or genesis (37) tag in its low six bits, the bits above 11 zero
+  an EPOBC transfer (51) or genesis (37) tag in its low six bits, the bits above 11 zero, and whose first input is not
+  a Taproot spend (where small sequence numbers carry the tag by chance)
 - OP_RETURN transactions' share of all transactions (coinbase included), in total and per protocol and policy:
   `op_return.tx_share.{cumulative, 24h, 1w, 1m, 1y}` (ids `op_return_tx_share_cumulative`,
   `op_return_tx_share_<window>`), `op_return_runes_tx_share_1m`, `op_return_pre_v30_nonstandard_tx_share_1m`, ...
@@ -1205,7 +1209,7 @@ has to be deleted by hand.
   before it, or 20 after any other opcode, a signature opcode included (an earlier `OP_n` was carried across it). A
   Taproot script-path spend is searched for signatures and inscriptions only when its control block names a tapscript
   leaf (any leaf version was searched)
-- `market.ath.max_days_between` counts each interval between all-time highs in full at the high that ends it (it
+- `market.ath.days_between_max` counts each interval between all-time highs in full at the high that ends it (it
   read the elapsed time after the new high reset it, missing the interval's last block)
 - Price averages and extremes start at the first exchange price (block 74,641, 16 August 2010): SMAs, EMAs (seeded
   with that price), the 1w/1m/1y min/max and their ratios (Mayer Multiple included) are null before it (zeros
@@ -1236,7 +1240,7 @@ has to be deleted by hand.
   weighted supplies, 0 when the floor reached zero). Holders' capital in profit and in loss shares divide by the two
   sides' total, so neither exceeds 100%. URPD bucket P&L rounds the exact difference once (it subtracted two truncated
   values)
-- `market.ath.days_since` and `max_days_between` are null before the first price (were 0) and count from it. Price
+- `market.ath.days_since` and `days_between_max` are null before the first price (were 0) and count from it. Price
   candles, `open` and `low` skip the zeros before the first price (August 2010's monthly candle opened and bottomed at
   $0)
 - The rarity meter's bands stay ordered: where its models disagree (early 2013, one model's 5% boundary above

@@ -75,7 +75,9 @@ macro_rules! with_transaction_features {
                 /// Version-1 transactions tagged as EPOBC colored-coin transfers or issuances: the first
                 /// input's sequence number is below 4,096 (bits 12 to 31 zero) and its low six bits are
                 /// 51 (transfer) or 37 (genesis), the remaining bits giving the padding, as ChromaWay's
-                /// reference implementation writes them. EPOBC carries no `OP_RETURN` payload.
+                /// reference implementation writes them, and the first input is not a Taproot spend (no EPOBC
+                /// wallet made one; small sequence numbers there carry the tag by chance). EPOBC carries no
+                /// `OP_RETURN` payload.
                 epobc: is_epobc, EPOBC = 23;
             }
             flags {

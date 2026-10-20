@@ -2961,9 +2961,9 @@ const _RarityMeter = _s({
  *   pct99ToPct995: SeriesPattern1<?Dollars>,
  *   pct995ToPct999: SeriesPattern1<?Dollars>,
  *   belowPct999: SeriesPattern1<?Dollars>,
- * }} FloorBands
+ * }} FloorCapital
  */
-const _FloorBands = _s({
+const _FloorCapital = _s({
   pct95ToPct98: [_i1, '*_pct95_to_pct98'],
   pct98ToPct99: [_i1, '*_pct98_to_pct99'],
   pct99ToPct995: [_i1, '*_pct99_to_pct99_5'],
@@ -3599,14 +3599,14 @@ const _ByLookbackPeriod = _s({
  *   high: SeriesPattern1<?Dollars>,
  *   drawdown: SeriesPattern1<?Percent>,
  *   daysSince: SeriesPattern1<?Days>,
- *   maxDaysBetween: SeriesPattern1<?Days>,
+ *   daysBetweenMax: SeriesPattern1<?Days>,
  * }} Ath
  */
 const _Ath = _s({
   high: [_i1, '*_ath'],
   drawdown: [_i1, '*_drawdown'],
   daysSince: [_i1, 'days_since_*_ath'],
-  maxDaysBetween: [_i1, 'max_days_between_*_ath'],
+  daysBetweenMax: [_i1, 'days_between_*_ath_max'],
 });
 
 /**
@@ -3736,9 +3736,9 @@ const _Value = _s({
  *   pct99ToPct995: Value,
  *   pct995ToPct999: Value,
  *   belowPct999: Value,
- * }} BedrockFloorBands
+ * }} FloorSupply
  */
-const _BedrockFloorBands = _s({
+const _FloorSupply = _s({
   pct95ToPct98: [_Value, '*_pct95_to_pct98'],
   pct98ToPct99: [_Value, '*_pct98_to_pct99'],
   pct99ToPct995: [_Value, '*_pct99_to_pct99_5'],
@@ -3751,16 +3751,16 @@ const _BedrockFloorBands = _s({
  *   supplyInLossShareThreshold: Percentiles<?Percent>,
  *   floor: Percentiles<?Dollars>,
  *   costBasisAboveFloor: Levels,
- *   floorSupply: BedrockFloorBands,
- *   floorCapital: FloorBands,
+ *   floorSupply: FloorSupply,
+ *   floorCapital: FloorCapital,
  * }} Mode
  */
 const _Mode = _s({
   supplyInLossShareThreshold: [_Percentiles, '*_supply_in_loss_share_threshold'],
   floor: [_Percentiles, '*_floor'],
   costBasisAboveFloor: [_Levels, '*_cost_basis_above_floor'],
-  floorSupply: [_BedrockFloorBands, '*_floor_supply'],
-  floorCapital: [_FloorBands, '*_floor_capital'],
+  floorSupply: [_FloorSupply, '*_floor_supply'],
+  floorCapital: [_FloorCapital, '*_floor_capital'],
 });
 
 /**
@@ -5173,9 +5173,9 @@ const _ReuseEvents = _s({
  *   count: RespentCount,
  *   supply: PredicateSupply,
  *   events: ReuseEvents,
- * }} Reuse
+ * }} Respent
  */
-const _Reuse = _s({
+const _Respent = _s({
   count: [_RespentCount, '*'],
   supply: [_PredicateSupply, '*_respent_address_supply'],
   events: [_ReuseEvents, '*'],
@@ -5199,9 +5199,9 @@ const _AddressesReuseEvents = _s({
  *   count: ReusedCount,
  *   supply: PredicateSupply,
  *   events: AddressesReuseEvents,
- * }} AddressesReuse
+ * }} Reused
  */
-const _AddressesReuse = _s({
+const _Reused = _s({
   count: [_ReusedCount, '*'],
   supply: [_PredicateSupply, '*_reused_address_supply'],
   events: [_AddressesReuseEvents, '*'],
@@ -5215,8 +5215,8 @@ const _AddressesReuse = _s({
  *   new: NewAddressCount,
  *   activity: AddressesActivity,
  *   avgBalance: Value,
- *   reused: AddressesReuse,
- *   respent: Reuse,
+ *   reused: Reused,
+ *   respent: Respent,
  *   exposed: Exposed,
  * }} AddressSeries
  */
@@ -5227,8 +5227,8 @@ const _AddressSeries = _s({
   new: [_NewAddressCount, '*_new_address_count'],
   activity: [_AddressesActivity, '*'],
   avgBalance: [_Value, '*_address_balance_avg'],
-  reused: [_AddressesReuse, '*'],
-  respent: [_Reuse, '*'],
+  reused: [_Reused, '*'],
+  respent: [_Respent, '*'],
   exposed: [_Exposed, '*'],
 });
 
@@ -5433,8 +5433,8 @@ const _AmountRange = (c, b, f0, f1) => _n(c, b, {
  *   new: NewAddressCount,
  *   activity: AddressesActivity,
  *   avgBalance: Value,
- *   reused: AddressesReuse,
- *   respent: Reuse,
+ *   reused: Reused,
+ *   respent: Respent,
  *   exposed: Exposed,
  *   supply: CohortSupply,
  *   capital: CapitalViews,
@@ -5449,8 +5449,8 @@ const _Addresses = _s({
   new: [_NewAddressCount, 'new_*_count'],
   activity: [_AddressesActivity, ''],
   avgBalance: [_Value, '*_balance_avg'],
-  reused: [_AddressesReuse, ''],
-  respent: [_Reuse, ''],
+  reused: [_Reused, ''],
+  respent: [_Respent, ''],
   exposed: [_Exposed, ''],
   supply: [_CohortSupply, '*_supply'],
   capital: [_CapitalViews, '*'],
@@ -5993,9 +5993,9 @@ const _TxoutIndex = _s({
 /**
  * @typedef {{
  *   identity: SeriesPattern20<TxInIndex>,
- * }} Identity
+ * }} TxinIndex
  */
-const _Identity = _s({
+const _TxinIndex = _s({
   identity: [_i20, '*'],
 });
 
@@ -6093,9 +6093,9 @@ const _MappingsDay3 = _s({
  * @typedef {{
  *   date: SeriesPattern8<Date>,
  *   firstHeight: SeriesPattern8<Height>,
- * }} DatedResolution
+ * }} MappingsDay1
  */
-const _DatedResolution = _s({
+const _MappingsDay1 = _s({
   date: [_i8, '*'],
   firstHeight: [_i8, 'first_height'],
 });
@@ -6157,9 +6157,9 @@ const _MappingsHalving = _s({
 /**
  * @typedef {{
  *   firstHeight: SeriesPattern17<Height>,
- * }} Resolution
+ * }} MappingsEpoch
  */
-const _Resolution = _s({
+const _MappingsEpoch = _s({
   firstHeight: [_i17, '*'],
 });
 
@@ -6203,18 +6203,18 @@ const _MappingsHeight = _s({
 /**
  * @typedef {{
  *   identity: SeriesPattern25<OpReturnIndex>,
- * }} OutputsOpReturn
+ * }} MappingsOpReturn
  */
-const _OutputsOpReturn = _s({
+const _MappingsOpReturn = _s({
   identity: [_i25, '*'],
 });
 
 /**
  * @typedef {{
  *   identity: SeriesPattern35<UnknownOutputIndex>,
- * }} Unknown
+ * }} MappingsUnknown
  */
-const _Unknown = _s({
+const _MappingsUnknown = _s({
   identity: [_i35, '*'],
 });
 
@@ -6230,34 +6230,34 @@ const _Empty = _s({
 /**
  * @typedef {{
  *   identity: SeriesPattern27<P2MSOutputIndex>,
- * }} P2ms
+ * }} MappingsP2ms
  */
-const _P2ms = _s({
+const _MappingsP2ms = _s({
   identity: [_i27, '*'],
 });
 
 /**
  * @typedef {{
- *   p2ms: P2ms,
+ *   p2ms: MappingsP2ms,
  *   empty: Empty,
- *   unknown: Unknown,
- *   opReturn: OutputsOpReturn,
+ *   unknown: MappingsUnknown,
+ *   opReturn: MappingsOpReturn,
  * }} Output
  */
 const _Output = _s({
-  p2ms: [_P2ms, 'p2ms_output_*'],
+  p2ms: [_MappingsP2ms, 'p2ms_output_*'],
   empty: [_Empty, 'empty_output_*'],
-  unknown: [_Unknown, 'unknown_output_*'],
-  opReturn: [_OutputsOpReturn, 'op_return_*'],
+  unknown: [_MappingsUnknown, 'unknown_output_*'],
+  opReturn: [_MappingsOpReturn, 'op_return_*'],
 });
 
 /**
  * @typedef {{
  *   identity: SeriesPattern26<P2AAddressIndex>,
  *   address: SeriesPattern26<Address>,
- * }} P2a
+ * }} MappingsP2a
  */
-const _P2a = _s({
+const _MappingsP2a = _s({
   identity: [_i26, '*_index'],
   address: [_i26, '*'],
 });
@@ -6266,9 +6266,9 @@ const _P2a = _s({
  * @typedef {{
  *   identity: SeriesPattern34<P2WSHAddressIndex>,
  *   address: SeriesPattern34<Address>,
- * }} MappingsAddressesP2wsh
+ * }} MappingsP2wsh
  */
-const _MappingsAddressesP2wsh = _s({
+const _MappingsP2wsh = _s({
   identity: [_i34, '*_index'],
   address: [_i34, '*'],
 });
@@ -6277,9 +6277,9 @@ const _MappingsAddressesP2wsh = _s({
  * @typedef {{
  *   identity: SeriesPattern33<P2WPKHAddressIndex>,
  *   address: SeriesPattern33<Address>,
- * }} MappingsAddressesP2wpkh
+ * }} MappingsP2wpkh
  */
-const _MappingsAddressesP2wpkh = _s({
+const _MappingsP2wpkh = _s({
   identity: [_i33, '*_index'],
   address: [_i33, '*'],
 });
@@ -6288,9 +6288,9 @@ const _MappingsAddressesP2wpkh = _s({
  * @typedef {{
  *   identity: SeriesPattern32<P2TRAddressIndex>,
  *   address: SeriesPattern32<Address>,
- * }} MappingsAddressesP2tr
+ * }} MappingsP2tr
  */
-const _MappingsAddressesP2tr = _s({
+const _MappingsP2tr = _s({
   identity: [_i32, '*_index'],
   address: [_i32, '*'],
 });
@@ -6299,9 +6299,9 @@ const _MappingsAddressesP2tr = _s({
  * @typedef {{
  *   identity: SeriesPattern31<P2SHAddressIndex>,
  *   address: SeriesPattern31<Address>,
- * }} MappingsAddressesP2sh
+ * }} MappingsP2sh
  */
-const _MappingsAddressesP2sh = _s({
+const _MappingsP2sh = _s({
   identity: [_i31, '*_index'],
   address: [_i31, '*'],
 });
@@ -6310,9 +6310,9 @@ const _MappingsAddressesP2sh = _s({
  * @typedef {{
  *   identity: SeriesPattern30<P2PKHAddressIndex>,
  *   address: SeriesPattern30<Address>,
- * }} MappingsAddressesP2pkh
+ * }} MappingsP2pkh
  */
-const _MappingsAddressesP2pkh = _s({
+const _MappingsP2pkh = _s({
   identity: [_i30, '*_index'],
   address: [_i30, '*'],
 });
@@ -6321,9 +6321,9 @@ const _MappingsAddressesP2pkh = _s({
  * @typedef {{
  *   identity: SeriesPattern29<P2PK65AddressIndex>,
  *   address: SeriesPattern29<Address>,
- * }} MappingsAddressesP2pk65
+ * }} MappingsP2pk65
  */
-const _MappingsAddressesP2pk65 = _s({
+const _MappingsP2pk65 = _s({
   identity: [_i29, '*_index'],
   address: [_i29, '*'],
 });
@@ -6332,34 +6332,34 @@ const _MappingsAddressesP2pk65 = _s({
  * @typedef {{
  *   identity: SeriesPattern28<P2PK33AddressIndex>,
  *   address: SeriesPattern28<Address>,
- * }} MappingsAddressesP2pk33
+ * }} MappingsP2pk33
  */
-const _MappingsAddressesP2pk33 = _s({
+const _MappingsP2pk33 = _s({
   identity: [_i28, '*_index'],
   address: [_i28, '*'],
 });
 
 /**
  * @typedef {{
- *   p2pk33: MappingsAddressesP2pk33,
- *   p2pk65: MappingsAddressesP2pk65,
- *   p2pkh: MappingsAddressesP2pkh,
- *   p2sh: MappingsAddressesP2sh,
- *   p2tr: MappingsAddressesP2tr,
- *   p2wpkh: MappingsAddressesP2wpkh,
- *   p2wsh: MappingsAddressesP2wsh,
- *   p2a: P2a,
+ *   p2pk33: MappingsP2pk33,
+ *   p2pk65: MappingsP2pk65,
+ *   p2pkh: MappingsP2pkh,
+ *   p2sh: MappingsP2sh,
+ *   p2tr: MappingsP2tr,
+ *   p2wpkh: MappingsP2wpkh,
+ *   p2wsh: MappingsP2wsh,
+ *   p2a: MappingsP2a,
  * }} MappingsAddresses
  */
 const _MappingsAddresses = _s({
-  p2pk33: [_MappingsAddressesP2pk33, 'p2pk33_*'],
-  p2pk65: [_MappingsAddressesP2pk65, 'p2pk65_*'],
-  p2pkh: [_MappingsAddressesP2pkh, 'p2pkh_*'],
-  p2sh: [_MappingsAddressesP2sh, 'p2sh_*'],
-  p2tr: [_MappingsAddressesP2tr, 'p2tr_*'],
-  p2wpkh: [_MappingsAddressesP2wpkh, 'p2wpkh_*'],
-  p2wsh: [_MappingsAddressesP2wsh, 'p2wsh_*'],
-  p2a: [_P2a, 'p2a_*'],
+  p2pk33: [_MappingsP2pk33, 'p2pk33_*'],
+  p2pk65: [_MappingsP2pk65, 'p2pk65_*'],
+  p2pkh: [_MappingsP2pkh, 'p2pkh_*'],
+  p2sh: [_MappingsP2sh, 'p2sh_*'],
+  p2tr: [_MappingsP2tr, 'p2tr_*'],
+  p2wpkh: [_MappingsP2wpkh, 'p2wpkh_*'],
+  p2wsh: [_MappingsP2wsh, 'p2wsh_*'],
+  p2a: [_MappingsP2a, 'p2a_*'],
 });
 
 /**
@@ -6367,14 +6367,14 @@ const _MappingsAddresses = _s({
  *   addresses: MappingsAddresses,
  *   outputs: Output,
  *   height: MappingsHeight,
- *   epoch: Resolution,
+ *   epoch: MappingsEpoch,
  *   halving: MappingsHalving,
  *   minute10: MappingsMinute10,
  *   minute30: MappingsMinute30,
  *   hour1: MappingsHour1,
  *   hour4: MappingsHour4,
  *   hour12: MappingsHour12,
- *   day1: DatedResolution,
+ *   day1: MappingsDay1,
  *   day3: MappingsDay3,
  *   week1: MappingsWeek1,
  *   month1: MappingsMonth1,
@@ -6383,7 +6383,7 @@ const _MappingsAddresses = _s({
  *   year1: MappingsYear1,
  *   year10: MappingsYear10,
  *   txIndex: MappingsTxIndex,
- *   txinIndex: Identity,
+ *   txinIndex: TxinIndex,
  *   txoutIndex: TxoutIndex,
  *   timestamp: Timestamps,
  * }} Mappings
@@ -6392,14 +6392,14 @@ const _Mappings = _s({
   addresses: [_MappingsAddresses, 'address'],
   outputs: [_Output, 'index'],
   height: [_MappingsHeight, 'block'],
-  epoch: [_Resolution, 'first_height'],
+  epoch: [_MappingsEpoch, 'first_height'],
   halving: [_MappingsHalving, 'first_height'],
   minute10: [_MappingsMinute10, 'first_height'],
   minute30: [_MappingsMinute30, 'first_height'],
   hour1: [_MappingsHour1, 'first_height'],
   hour4: [_MappingsHour4, 'first_height'],
   hour12: [_MappingsHour12, 'first_height'],
-  day1: [_DatedResolution, '*'],
+  day1: [_MappingsDay1, '*'],
   day3: [_MappingsDay3, '*'],
   week1: [_MappingsWeek1, '*'],
   month1: [_MappingsMonth1, '*'],
@@ -6408,7 +6408,7 @@ const _Mappings = _s({
   year1: [_MappingsYear1, '*'],
   year10: [_MappingsYear10, '*'],
   txIndex: [_MappingsTxIndex, 'tx'],
-  txinIndex: [_Identity, 'txin_index'],
+  txinIndex: [_TxinIndex, 'txin_index'],
   txoutIndex: [_TxoutIndex, 'txout_index'],
   timestamp: [_Timestamps, 'timestamp'],
 });
@@ -6433,9 +6433,9 @@ const _IndexerOpReturn = _s({
  *   firstIndex: SeriesPattern18<UnknownOutputIndex>,
  *   txIndex: SeriesPattern35<TxIndex>,
  *   legacySigopCost: SeriesPattern35<SigOps>,
- * }} IndexerScriptTypeWithSigOps
+ * }} IndexerUnknown
  */
-const _IndexerScriptTypeWithSigOps = _s({
+const _IndexerUnknown = _s({
   firstIndex: [_i18, 'first_*_output_index'],
   txIndex: [_i35, '*_output_tx_index'],
   legacySigopCost: [_i35, '*_legacy_sigop_cost'],
@@ -6446,9 +6446,9 @@ const _IndexerScriptTypeWithSigOps = _s({
  *   firstIndex: SeriesPattern18<P2MSOutputIndex>,
  *   txIndex: SeriesPattern27<TxIndex>,
  *   legacySigopCost: SeriesPattern27<SigOps>,
- * }} ScriptTypeWithSigOps
+ * }} IndexerP2ms
  */
-const _ScriptTypeWithSigOps = _s({
+const _IndexerP2ms = _s({
   firstIndex: [_i18, 'first_*_output_index'],
   txIndex: [_i27, '*_output_tx_index'],
   legacySigopCost: [_i27, '*_legacy_sigop_cost'],
@@ -6468,23 +6468,23 @@ const _ScriptType = _s({
 /**
  * @typedef {{
  *   empty: ScriptType,
- *   p2ms: ScriptTypeWithSigOps,
- *   unknown: IndexerScriptTypeWithSigOps,
+ *   p2ms: IndexerP2ms,
+ *   unknown: IndexerUnknown,
  * }} Scripts
  */
 const _Scripts = _s({
   empty: [_ScriptType, '*'],
-  p2ms: [_ScriptTypeWithSigOps, 'p2ms'],
-  unknown: [_IndexerScriptTypeWithSigOps, 'unknown'],
+  p2ms: [_IndexerP2ms, 'p2ms'],
+  unknown: [_IndexerUnknown, 'unknown'],
 });
 
 /**
  * @typedef {{
  *   firstIndex: SeriesPattern18<P2AAddressIndex>,
  *   bytes: SeriesPattern26<P2ABytes>,
- * }} AddrType
+ * }} IndexerP2a
  */
-const _AddrType = _s({
+const _IndexerP2a = _s({
   firstIndex: [_i18, 'first_*_address_index'],
   bytes: [_i26, '*_bytes'],
 });
@@ -6493,9 +6493,9 @@ const _AddrType = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern18<P2TRAddressIndex>,
  *   bytes: SeriesPattern32<P2TRBytes>,
- * }} IndexerAddressesP2tr
+ * }} IndexerP2tr
  */
-const _IndexerAddressesP2tr = _s({
+const _IndexerP2tr = _s({
   firstIndex: [_i18, 'first_*_address_index'],
   bytes: [_i32, '*_bytes'],
 });
@@ -6504,9 +6504,9 @@ const _IndexerAddressesP2tr = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern18<P2WSHAddressIndex>,
  *   bytes: SeriesPattern34<P2WSHBytes>,
- * }} IndexerAddressesP2wsh
+ * }} IndexerP2wsh
  */
-const _IndexerAddressesP2wsh = _s({
+const _IndexerP2wsh = _s({
   firstIndex: [_i18, 'first_*_address_index'],
   bytes: [_i34, '*_bytes'],
 });
@@ -6515,9 +6515,9 @@ const _IndexerAddressesP2wsh = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern18<P2WPKHAddressIndex>,
  *   bytes: SeriesPattern33<P2WPKHBytes>,
- * }} IndexerAddressesP2wpkh
+ * }} IndexerP2wpkh
  */
-const _IndexerAddressesP2wpkh = _s({
+const _IndexerP2wpkh = _s({
   firstIndex: [_i18, 'first_*_address_index'],
   bytes: [_i33, '*_bytes'],
 });
@@ -6526,9 +6526,9 @@ const _IndexerAddressesP2wpkh = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern18<P2SHAddressIndex>,
  *   bytes: SeriesPattern31<P2SHBytes>,
- * }} IndexerAddressesP2sh
+ * }} IndexerP2sh
  */
-const _IndexerAddressesP2sh = _s({
+const _IndexerP2sh = _s({
   firstIndex: [_i18, 'first_*_address_index'],
   bytes: [_i31, '*_bytes'],
 });
@@ -6537,9 +6537,9 @@ const _IndexerAddressesP2sh = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern18<P2PKHAddressIndex>,
  *   bytes: SeriesPattern30<P2PKHBytes>,
- * }} IndexerAddressesP2pkh
+ * }} IndexerP2pkh
  */
-const _IndexerAddressesP2pkh = _s({
+const _IndexerP2pkh = _s({
   firstIndex: [_i18, 'first_*_address_index'],
   bytes: [_i30, '*_bytes'],
 });
@@ -6548,9 +6548,9 @@ const _IndexerAddressesP2pkh = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern18<P2PK33AddressIndex>,
  *   bytes: SeriesPattern28<P2PK33Bytes>,
- * }} IndexerAddressesP2pk33
+ * }} IndexerP2pk33
  */
-const _IndexerAddressesP2pk33 = _s({
+const _IndexerP2pk33 = _s({
   firstIndex: [_i18, 'first_*_address_index'],
   bytes: [_i28, '*_bytes'],
 });
@@ -6559,34 +6559,34 @@ const _IndexerAddressesP2pk33 = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern18<P2PK65AddressIndex>,
  *   bytes: SeriesPattern29<P2PK65Bytes>,
- * }} IndexerAddressesP2pk65
+ * }} IndexerP2pk65
  */
-const _IndexerAddressesP2pk65 = _s({
+const _IndexerP2pk65 = _s({
   firstIndex: [_i18, 'first_*_address_index'],
   bytes: [_i29, '*_bytes'],
 });
 
 /**
  * @typedef {{
- *   p2pk65: IndexerAddressesP2pk65,
- *   p2pk33: IndexerAddressesP2pk33,
- *   p2pkh: IndexerAddressesP2pkh,
- *   p2sh: IndexerAddressesP2sh,
- *   p2wpkh: IndexerAddressesP2wpkh,
- *   p2wsh: IndexerAddressesP2wsh,
- *   p2tr: IndexerAddressesP2tr,
- *   p2a: AddrType,
+ *   p2pk65: IndexerP2pk65,
+ *   p2pk33: IndexerP2pk33,
+ *   p2pkh: IndexerP2pkh,
+ *   p2sh: IndexerP2sh,
+ *   p2wpkh: IndexerP2wpkh,
+ *   p2wsh: IndexerP2wsh,
+ *   p2tr: IndexerP2tr,
+ *   p2a: IndexerP2a,
  * }} Addrs
  */
 const _Addrs = _s({
-  p2pk65: [_IndexerAddressesP2pk65, '*'],
-  p2pk33: [_IndexerAddressesP2pk33, 'p2pk33'],
-  p2pkh: [_IndexerAddressesP2pkh, 'p2pkh'],
-  p2sh: [_IndexerAddressesP2sh, 'p2sh'],
-  p2wpkh: [_IndexerAddressesP2wpkh, 'p2wpkh'],
-  p2wsh: [_IndexerAddressesP2wsh, 'p2wsh'],
-  p2tr: [_IndexerAddressesP2tr, 'p2tr'],
-  p2a: [_AddrType, 'p2a'],
+  p2pk65: [_IndexerP2pk65, '*'],
+  p2pk33: [_IndexerP2pk33, 'p2pk33'],
+  p2pkh: [_IndexerP2pkh, 'p2pkh'],
+  p2sh: [_IndexerP2sh, 'p2sh'],
+  p2wpkh: [_IndexerP2wpkh, 'p2wpkh'],
+  p2wsh: [_IndexerP2wsh, 'p2wsh'],
+  p2tr: [_IndexerP2tr, 'p2tr'],
+  p2a: [_IndexerP2a, 'p2a'],
 });
 
 /**

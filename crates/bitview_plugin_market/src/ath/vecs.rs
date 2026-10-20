@@ -24,5 +24,5 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// all-time highs through the represented block, including the ongoing
     /// interval since the latest one. Null before the first price, the first
     /// all-time high.
-    pub max_days_between: PerBlock<Days, M>,
+    pub days_between_max: PerBlock<Days, M>,
 }

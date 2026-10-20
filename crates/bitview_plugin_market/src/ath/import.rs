@@ -22,8 +22,8 @@ impl Vecs {
 
         let high = Price::import(db, "price_ath", v, mappings)?;
 
-        let max_days_between =
-            PerBlock::import(db, "max_days_between_price_ath", v + Version::TWO, mappings)?;
+        let days_between_max =
+            PerBlock::import(db, "days_between_price_ath_max", v + Version::TWO, mappings)?;
 
         let seconds_since =
             PerBlock::import(db, "seconds_since_price_ath", v + Version::ONE, mappings)?;
@@ -52,7 +52,7 @@ impl Vecs {
             drawdown,
             seconds_since,
             days_since,
-            max_days_between,
+            days_between_max,
         })
     }
 }

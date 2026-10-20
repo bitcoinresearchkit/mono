@@ -407,6 +407,28 @@ impl Model {
         paths.into_iter().map(Option::unwrap).collect()
     }
 
+    /// Each shape's field: the key all its instances sit under, when they share one.
+    fn shape_fields(&self) -> Vec<Option<String>> {
+        // Unseen, then the shared key, or `None` once two instances disagree.
+        let mut fields: Vec<Option<Option<String>>> = vec![None; self.shapes.len()];
+        let mut stack = vec![(self.root, None::<&String>)];
+        while let Some((id, key)) = stack.pop() {
+            let Body::Branch { shape, children } = &self.nodes[id].body else {
+                continue;
+            };
+            let field = &mut fields[*shape];
+            match field {
+                None => *field = Some(key.cloned()),
+                Some(known) if known.as_ref() != key => *known = None,
+                Some(_) => {}
+            }
+            for ((key, _), &child) in self.shapes[*shape].signature.0.iter().zip(children) {
+                stack.push((child, Some(key)));
+            }
+        }
+        fields.into_iter().map(Option::flatten).collect()
+    }
+
     /// Each shape's type name: `SeriesTree` for the root; else its [`Self::type_names`] name;
     /// otherwise the PascalCase tail of the shape's shallowest (then smallest) path, with as many
     /// trailing keys as it takes to be unique, stay clear of `reserved` and the type-parameter
@@ -423,7 +445,7 @@ impl Model {
             Body::Branch { shape, .. } => *shape,
             Body::Leaf => unreachable!("the catalog root is a branch"),
         };
-        let typed = self.type_names(&reserved, &paths, root);
+        let typed = self.type_names(&reserved, &paths, &self.shape_fields(), root);
         reserved.extend(typed.iter().flatten().cloned());
         let tail = |shape: usize, depth: usize| {
             let path = &paths[shape];
@@ -491,16 +513,20 @@ impl Model {
         names
     }
 
-    /// Each shape's name, by three rules: a section (a root child) is named after its key, any other
-    /// shape after the client name most of its instances' types give it (`Pool`); a name the API or a language already uses gets `Series` (`UtxoSetSeries`, beside
-    /// the API's `UtxoSet`); and of shapes sharing a name, one keeps it (a section, else the most
-    /// used, then the shallowest) while the others take their section as a prefix
-    /// (`HoldersActivity`). A name still shared or not an identifier is left to the path rule, as
-    /// are the root and shapes no type names.
+    /// Each shape's name, by three rules: a section (a root child) is named after its key, any
+    /// other shape after the client name most of its instances' types give it (`Pool`); a name the
+    /// API or a language already uses gets `Series` (`UtxoSetSeries`, beside the API's `UtxoSet`);
+    /// and of shapes sharing a name, one keeps it (a section, else the most used, then the
+    /// shallowest) while the others take their section as a prefix (`HoldersActivity`), except that
+    /// clashing shapes of one section that each always sit under their own field are named after it
+    /// (`FloorSupply`, `FloorCapital`; with the section when that name is taken: `MappingsDay1`). A
+    /// name still shared or not an identifier is left to the path rule, as are the root and shapes
+    /// no type names.
     fn type_names(
         &self,
         reserved: &BTreeSet<String>,
         paths: &[Vec<String>],
+        fields: &[Option<String>],
         root: usize,
     ) -> Vec<Option<String>> {
         let mut votes: Vec<BTreeMap<&str, usize>> = vec![BTreeMap::new(); self.shapes.len()];
@@ -546,17 +572,60 @@ impl Model {
                 groups.entry(name).or_default().push(shape);
             }
         }
+        // A section prefix can't tell apart clashing shapes in one section: when each of them
+        // always sits under its own field, each is named after that field instead (with its section
+        // when another shape wants the field's name too, or the name is reserved).
+        let mut by_field = BTreeMap::new();
+        for shapes in groups.values().filter(|shapes| shapes.len() > 1) {
+            for &shape in shapes {
+                let neighbors = shapes
+                    .iter()
+                    .filter(|&&other| !is_section(other) && paths[other][0] == paths[shape][0])
+                    .map(|&other| fields[other].as_deref())
+                    .collect::<Vec<_>>();
+                let distinct = neighbors.iter().collect::<BTreeSet<_>>().len() == neighbors.len();
+                if let Some(field) = &fields[shape]
+                    && !is_section(shape)
+                    && neighbors.len() > 1
+                    && distinct
+                    && neighbors.iter().all(Option::is_some)
+                {
+                    by_field.insert(shape, to_pascal_case(field));
+                }
+            }
+        }
+        let mut field_counts: HashMap<&str, usize> = HashMap::new();
+        for field in by_field.values() {
+            *field_counts.entry(field).or_default() += 1;
+        }
         let mut names = wanted.clone();
         for (name, shapes) in groups.iter().filter(|(_, shapes)| shapes.len() > 1) {
-            let keeper = shapes.iter().copied().max_by(|&a, &b| {
-                is_section(a)
-                    .cmp(&is_section(b))
-                    .then_with(|| instances[a].cmp(&instances[b]))
-                    .then_with(|| paths[b].len().cmp(&paths[a].len()))
-                    .then_with(|| paths[b].cmp(&paths[a]))
-            });
-            for &shape in shapes.iter().filter(|&&s| Some(s) != keeper) {
-                names[shape] = Some(unreserved(format!("{}{name}", section(shape))));
+            let keeper = shapes
+                .iter()
+                .copied()
+                .filter(|shape| !by_field.contains_key(shape))
+                .max_by(|&a, &b| {
+                    is_section(a)
+                        .cmp(&is_section(b))
+                        .then_with(|| instances[a].cmp(&instances[b]))
+                        .then_with(|| paths[b].len().cmp(&paths[a].len()))
+                        .then_with(|| paths[b].cmp(&paths[a]))
+                });
+            for &shape in shapes {
+                names[shape] = match by_field.get(&shape) {
+                    Some(field)
+                        if field_counts[field.as_str()] == 1
+                            && !groups.contains_key(field.as_str())
+                            && !reserved.contains(field) =>
+                    {
+                        Some(field.clone())
+                    }
+                    Some(field) => Some(unreserved(format!("{}{field}", section(shape)))),
+                    None if Some(shape) != keeper => {
+                        Some(unreserved(format!("{}{name}", section(shape))))
+                    }
+                    None => continue,
+                };
             }
         }
 

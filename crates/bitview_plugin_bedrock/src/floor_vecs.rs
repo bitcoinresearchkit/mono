@@ -14,8 +14,9 @@ pub struct FloorVecs<M: StorageMode = Rw> {
     /// Supply created since the second halving (block 420,000) while spot sat in this band of
     /// the mode's floors at its creation block, less what has been spent since.
     pub floor_supply: FloorBands<LazySpotValuePerBlock>,
-    /// The capital of that supply: each unspent output at its creation price (the band's
-    /// realized cap).
+    /// Capital of the supply created since the second halving (block 420,000) while spot sat in
+    /// this band of the mode's floors at its creation block and not spent since: each unspent
+    /// output at its creation price (the band's realized cap).
     pub floor_capital: FloorBands<LazyFiatPerBlock<Cents>>,
     #[traversable(hidden)]
     supply_stored: FloorBands<CachedSeries<Height, Sats, M>>,
