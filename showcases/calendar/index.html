@@ -3,588 +3,1293 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="A Bitcoin mining calendar. Every block, every day, and the miners behind them. Powered by the Bitview API." />
-    <meta name="theme-color" content="#fff" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3ede2" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#14120f" />
     <title>Calendar · Bitview</title>
+    <meta name="description" content="Every day of every year since 2009, the mining pool that found the most Bitcoin blocks, and every block of any day." />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png" />
     <style>
+      @font-face {
+        font-family: Inter;
+        src: url("/assets/fonts/InterVariable.woff2") format("woff2");
+        font-weight: 100 900;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.woff2") format("woff2");
+        font-weight: 500 700;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: Instrument;
+        src: url("/assets/fonts/InstrumentSerif-Regular.woff2") format("woff2");
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: Instrument;
+        src: url("/assets/fonts/InstrumentSerif-Italic.woff2") format("woff2");
+        font-style: italic;
+        font-display: swap;
+      }
+
+      /* An almanac: a printed year on warm paper, or its ink by night; a red letter for today and what's picked. */
       :root {
-        color-scheme: light;
-        font: 400 11px/1.5 var(--mono);
-        color: var(--ink);
-        background: #fff;
-        --ink: #33353a;
-        --secondary: #676d76;
-        --muted: #858c96;
-        --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        --serif: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-        --mark: 18px;
+        color-scheme: light dark;
+        --app: light-dark(#f3ede2, #14120f);
+        --card: light-dark(#fbf8f2, #1c1915);
+        --well: light-dark(#ebe4d6, #221f1a);
+        --ink: light-dark(#1f1a14, #f0e8db);
+        --text: light-dark(#3a332a, #d8cfc1);
+        --soft: light-dark(#6c6254, #a89d8c);
+        --muted: light-dark(#6f6557, #9a8f7e);
+        --faint: light-dark(#c9bfae, #4a443a);
+        --line: light-dark(rgb(70 50 20 / 0.14), rgb(240 225 200 / 0.1));
+        --line-strong: light-dark(rgb(70 50 20 / 0.24), rgb(240 225 200 / 0.18));
+        --hover: light-dark(rgb(70 50 20 / 0.06), rgb(240 225 200 / 0.06));
+        --focus: light-dark(rgb(70 50 20 / 0.6), rgb(240 225 200 / 0.6));
+        --brand: light-dark(#b3261e, #e0584b);
+        --sheen: none;
+        --pop: 0 0 0 1px var(--line-strong), 0 16px 40px -12px light-dark(rgb(60 40 10 / 0.2), rgb(0 0 0 / 0.7));
+        --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+        --serif: Instrument, Georgia, "Times New Roman", serif;
+        --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
+        --radius: 12px;
+        --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
       }
-      * { box-sizing: border-box; }
-      body { margin: 0; }
-      button { font: inherit; color: inherit; cursor: pointer; }
-      button, a { -webkit-tap-highlight-color: transparent; }
-      button { border: 0; background: none; }
-      a { color: inherit; text-decoration: none; }
-      button:disabled { cursor: default; }
-      :focus-visible { outline: 1px solid #aeb3be; outline-offset: 4px; }
-      [hidden] { display: none !important; }
-      .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-      .shell { width: min(640px, calc(100% - 56px)); margin: 0 auto 40px; }
-      .calendar-header { padding: 24px 0 18px; }
-      .header-top { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); row-gap: 5px; align-items: center; }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background: var(--app);
+        font: 15px/1.55 var(--sans);
+        font-feature-settings: "cv11", "ss01";
+        -webkit-font-smoothing: antialiased;
+
+        /* (The paper's grain, over everything, touching nothing.) */
+        &::after {
+          content: "";
+          position: fixed;
+          inset: 0;
+          z-index: 20;
+          background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+          opacity: 0.07;
+          mix-blend-mode: multiply;
+          pointer-events: none;
+
+          @media (prefers-color-scheme: dark) {
+            opacity: 0.06;
+            mix-blend-mode: screen;
+          }
+        }
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button {
+        font: inherit;
+        color: inherit;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      .num {
+        font-family: var(--mono);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .page {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 16px 64px;
+
+        @media (min-width: 720px) {
+          padding: 0 32px 88px;
+        }
+      }
+
+      /* ── Header: the brand and the page's name; the year, a step either way ── */
+
+      .top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 64px;
+      }
+
       .brand {
-        display: inline-flex; align-items: center; gap: 7px; justify-self: start; color: var(--secondary); transition: color .18s ease;
-        --logo-top: oklch(26.6% 0 0); --logo-left: oklch(23.3% 0 0); --logo-right: oklch(20% 0 0); --logo-bottom: oklch(10.1% 0 0);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--ink);
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+
+        img {
+          width: 22px;
+          height: 25.5px;
+        }
       }
-      .brand:hover { color: var(--ink); }
-      .brand:active {
-        color: oklch(67.64% 0.191 44.41); transition: none;
-        --logo-top: oklch(67.64% 0.191 44.41); --logo-left: oklch(64.34% 0.191 44.41); --logo-right: oklch(61.04% 0.191 44.41); --logo-bottom: oklch(57.74% 0.191 44.41);
+
+      .crumb {
+        color: var(--faint);
+
+        & + span {
+          margin-right: auto;
+          color: var(--soft);
+          font-size: 15px;
+        }
       }
-      .brand svg { display: block; width: 22px; height: 26px; flex-shrink: 0; }
-      .calendar-title { grid-column: 2; margin: 0; text-align: center; font: inherit; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
-      .year-heading { grid-column: 2; display: grid; grid-template-columns: 48px auto 48px; gap: 17px; align-items: baseline; font-family: var(--serif); }
-      .date-nav, .context { display: flex; align-items: center; }
-      #year-home { padding: 0; font-size: 44px; line-height: 1.1; letter-spacing: -1.8px; }
-      #year-home:not(:disabled):hover { color: var(--secondary); }
-      .neighbor-year { padding: 8px 0; color: #b5b9c0; font-size: 19px; line-height: 1.2; letter-spacing: -.5px; transition: color .18s ease; }
-      .neighbor-year:disabled { color: #e3e5e9; }
-      .neighbor-year:hover:not(:disabled) { color: var(--secondary); }
-      .date-nav { justify-content: center; gap: 10px; margin-top: 7px; }
-      .arrow { display: grid; place-items: center; width: 28px; height: 36px; padding: 0; color: var(--muted); }
-      .arrow svg { display: block; width: 16px; height: 16px; }
-      .arrow:disabled { opacity: .22; }
-      .arrow:hover:not(:disabled) { color: var(--ink); }
-      .context { justify-content: space-between; gap: 16px; height: 34px; margin-top: 7px; }
-      #day-heading { margin: 0; min-width: 85px; text-align: center; font: 400 32px/1.1 var(--serif); letter-spacing: -.8px; white-space: nowrap; color: var(--secondary); }
-      .inspection { min-width: 0; margin-left: auto; display: grid; gap: 2px; text-align: right; line-height: 16px; }
-      .context .inspection { margin-inline: auto; text-align: center; }
-      .inspection > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .inspect-title { color: var(--ink); }
-      .inspect-detail { color: var(--muted); }
-      #calendar { min-height: 150px; }
-      .leaders { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px 24px; margin: 0 0 30px; padding: 0; list-style: none; }
-      .leaders li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 0 8px; align-items: center; padding: 6px 4px; border-radius: 6px; cursor: default; }
-      .leaders li:is(:hover, :focus-visible) { background: #f3f4f6; }
-      .leaders .pool-mark { --mark: 16px; grid-row: span 2; }
-      .leaders b { overflow: hidden; color: var(--ink); font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
-      .leaders small { grid-column: 2 / -1; color: var(--muted); font-size: inherit; }
-      .leaders span { color: var(--secondary); font-variant-numeric: tabular-nums; }
-      .leaders i { grid-column: 2 / -1; height: 2px; border-radius: 1px; background: linear-gradient(90deg, var(--ink) var(--share), #eceef1 0); }
-      #calendar[data-focus] .day:not(.lead) .pool-mark { opacity: .12; }
-      #calendar[data-focus] .day.lead .pool-mark { transform: scale(1.12); }
-      .year-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 30px 32px; }
-      .month-header { display: flex; align-items: center; gap: 8px; height: 32px; margin: 0 0 8px 5px; }
-      .month-title { flex-shrink: 0; margin: 0; font: inherit; letter-spacing: .1em; text-transform: uppercase; color: var(--secondary); }
-      .calendar-grid { display: grid; }
-      .month-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); grid-template-rows: repeat(6, minmax(0, 1fr)); aspect-ratio: 7 / 6; }
-      .day-grid { --mark: 28px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
-      .day-grid > * { aspect-ratio: 1; }
-      .cell { position: relative; min-width: 0; padding: 0; display: grid; place-items: center; border-radius: 50%; }
-      .pool-mark { display: inline-grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; width: var(--mark); height: var(--mark); transition: transform .18s ease; }
-      .pool-mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
-      .cell:is(:hover, :focus-visible) .pool-mark { transform: scale(1.18); }
-      .today::after { content: ""; position: absolute; bottom: 0; width: 2px; height: 2px; border-radius: 50%; background: #a2a6ae; }
-      .empty-mark, .skeleton::after, .month-gap::after { width: 3px; height: 3px; background: #d8dae0; border-radius: 50%; }
-      .future .empty-mark { background: #e9eaed; }
-      .skeleton, .month-gap { display: grid; place-items: center; }
-      .skeleton::after, .month-gap::after { content: ""; }
-      .month-gap::after { background: #e3e5e9; }
-      #status[data-state="error"] { margin: 20px 0 0; text-align: center; color: #8b7060; }
-      .message { padding: 40px 12px; text-align: center; line-height: 1.7; color: var(--secondary); }
-      .message button { padding: 7px 12px; text-decoration: underline; text-underline-offset: 3px; }
-      @media (min-width: 800px) {
-        .shell { width: min(880px, calc(100% - 56px)); margin-bottom: 20px; }
-        .year-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 22px 32px; }
-        .month-header { height: 24px; margin-bottom: 6px; }
-        .day-grid { grid-template-columns: repeat(16, minmax(0, 1fr)); }
+
+      .stepper {
+        display: flex;
+        align-items: center;
+        border-radius: 8px;
+        background: var(--card);
+        box-shadow: var(--sheen), 0 0 0 1px var(--line-strong);
+
+        button {
+          display: grid;
+          place-items: center;
+          min-width: 40px;
+          height: 38px;
+          border: 0;
+          border-radius: 7px;
+          padding: 0 10px;
+          background: none;
+          cursor: pointer;
+
+          &:hover:not(:disabled) {
+            background: var(--hover);
+          }
+
+          &:disabled {
+            color: var(--faint);
+            cursor: default;
+          }
+        }
+
+        /* (The year where we are: its name, a way back to it from a day.) */
+        .current,
+        .current:disabled {
+          color: var(--ink);
+          font-weight: 600;
+        }
       }
-      @media (max-width: 540px) {
-        :root { --mark: 16px; }
-        .shell { width: calc(100% - 40px); }
-        .calendar-header { padding: 23px 0 20px; }
-        .brand span { display: none; }
-        #year-home { font-size: 39px; }
-        #day-heading { font-size: 28px; }
-        .context { height: auto; min-height: 66px; }
-        .context .inspection > span { white-space: normal; text-wrap: balance; }
-        .year-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 24px; }
-        .leaders { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2px 16px; }
-        .day-grid { --mark: 24px; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+
+      /* ── The year or the day: its name, what it adds up to ── */
+
+      .head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px 32px;
+        padding: 40px 0 24px;
+
+        @media (min-width: 960px) {
+          padding: 64px 0 32px;
+        }
       }
-      @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+      h1 {
+        margin: 0;
+        color: var(--ink);
+        font: italic 400 clamp(72px, 14vw, 168px) / 0.9 var(--serif);
+        letter-spacing: -0.02em;
+
+        /* (A day's name, longer: smaller.) */
+        &.long {
+          font-size: clamp(40px, 7vw, 80px);
+          line-height: 1;
+        }
+      }
+
+      .lede {
+        margin: 14px 0 0;
+        color: var(--soft);
+        font: italic 400 clamp(18px, 2.4vw, 22px) / 1.3 var(--serif);
+      }
+
+      .totals {
+        display: flex;
+        gap: 28px;
+        margin: 0;
+
+        dt {
+          color: var(--muted);
+          font-size: 12px;
+        }
+
+        dd {
+          margin: 2px 0 0;
+          color: var(--ink);
+          font: 400 34px / 1 var(--serif);
+        }
+      }
+
+      /* ── The pools that led: each one's days, its share; pointed at or picked, its days lit ── */
+
+      .leaders {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+        gap: 0 40px;
+        margin: 0 0 8px;
+        border-top: 1px solid var(--line-strong);
+        padding: 0;
+        list-style: none;
+
+        button {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+          border: 0;
+          border-bottom: 1px solid var(--line);
+          padding: 10px 2px;
+          text-align: left;
+          background: none;
+          cursor: pointer;
+
+          &:hover b {
+            color: var(--brand);
+          }
+
+          &[aria-pressed="true"] b {
+            color: var(--brand);
+            text-decoration: underline 1px;
+            text-underline-offset: 4px;
+          }
+
+          .logo {
+            flex: none;
+            width: 24px;
+            height: 24px;
+          }
+
+          b {
+            color: var(--ink);
+            font: 400 21px / 1.1 var(--serif);
+            white-space: nowrap;
+          }
+
+          /* (A printed leader, dots to the days.) */
+          i {
+            flex: 1;
+            min-width: 12px;
+            align-self: end;
+            margin-bottom: 6px;
+            border-bottom: 1px dotted var(--faint);
+          }
+
+          small {
+            color: var(--soft);
+            font-size: 12px;
+            white-space: nowrap;
+          }
+        }
+      }
+
+      /* ── The year: a card a month, a week a row from Monday, a day a tile with its leader's logo ── */
+
+      .months {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 216px), 1fr));
+        gap: 8px 32px;
+        margin-top: 8px;
+      }
+
+      /* A month as printed: its name in the serif, a rule, the days under it. */
+      .month {
+        padding: 18px 4px 8px;
+
+        h2 {
+          margin: 0 0 10px 2px;
+          border-bottom: 1px solid var(--line-strong);
+          padding-bottom: 6px;
+          color: var(--ink);
+          font: italic 400 26px / 1.1 var(--serif);
+        }
+      }
+
+      .week,
+      .days {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        gap: 4px;
+      }
+
+      .week {
+        margin-bottom: 4px;
+        color: var(--muted);
+        font-size: 11px;
+        text-align: center;
+      }
+
+      .day {
+        display: grid;
+        place-items: center;
+        aspect-ratio: 1;
+        border: 0;
+        border-radius: 50%;
+        padding: 0;
+        color: var(--muted);
+        background: none;
+        font: 400 15px / 1 var(--serif);
+        cursor: pointer;
+        transition: opacity 0.2s, background 0.15s;
+
+        &:hover:not(:disabled) {
+          background: var(--hover);
+          box-shadow: 0 0 0 1px var(--line-strong);
+        }
+
+        .logo {
+          width: 62%;
+          height: 62%;
+          min-width: 0;
+          min-height: 0;
+        }
+
+        &.today {
+          box-shadow: 0 0 0 2px var(--brand);
+        }
+
+        /* (A day still to come, or before the chain: printed, faintly, not to be opened.) */
+        &:disabled {
+          color: var(--faint);
+          cursor: default;
+        }
+
+        /* (A tie: its first two pools, side by side.) */
+        &.tied {
+          display: flex;
+          justify-content: center;
+          gap: 2px;
+
+          .logo {
+            width: 40%;
+            height: 40%;
+          }
+        }
+
+        /* (One pool's days lit: the others' logos faded; their printed dates and focus ring stay as they are.) */
+        .lit &:not(.led) .logo {
+          opacity: 0.18;
+        }
+      }
+
+      .gap {
+        aspect-ratio: 1;
+      }
+
+      .logo {
+        display: block;
+
+        /* (A pool with no logo: its initials, set in the serif.) */
+        &.initials {
+          display: grid;
+          place-items: center;
+          border-radius: 50%;
+          color: var(--ink);
+          background: var(--well);
+          box-shadow: inset 0 0 0 1px var(--line-strong);
+          font: italic 400 13px / 1 var(--serif);
+        }
+
+        img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+        }
+      }
+
+      /* ── The day: every block, in height order ── */
+
+      .shares {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 16px;
+        padding: 0;
+        list-style: none;
+
+        li {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          border-radius: 16px;
+          padding: 4px 12px 4px 6px;
+          background: var(--card);
+          box-shadow: inset 3px 0 0 var(--pool, transparent), 0 0 0 1px var(--line);
+          font-size: 13px;
+
+          .logo {
+            width: 20px;
+            height: 20px;
+          }
+
+          b {
+            color: var(--ink);
+            font-weight: 500;
+          }
+
+          span {
+            color: var(--muted);
+          }
+        }
+      }
+
+      .blocks {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+        gap: 6px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .block {
+        display: grid;
+        justify-items: center;
+        gap: 6px;
+        border-radius: 10px;
+        padding: 10px 4px 8px;
+        background: var(--card);
+        box-shadow: inset 0 -3px 0 var(--pool, transparent), 0 0 0 1px var(--line);
+        cursor: default;
+
+        &:hover,
+        &:focus-visible {
+          box-shadow: var(--sheen), 0 0 0 1px var(--line-strong);
+        }
+
+        .logo {
+          width: 28px;
+          height: 28px;
+        }
+
+        span {
+          color: var(--muted);
+          font-size: 11px;
+        }
+      }
+
+      /* ── The sheet: the year (or day), its notes in the margin beside it (under it, on a phone) ── */
+
+      .sheet {
+        display: grid;
+        gap: 24px 40px;
+
+        @media (min-width: 1100px) {
+          grid-template-columns: minmax(0, 1fr) 260px;
+        }
+      }
+
+      .notes {
+        align-self: start;
+        border-top: 1px solid var(--line-strong);
+        padding-top: 12px;
+
+        /* (Narrower: the notes first, before a year of tiles or a day's blocks.) */
+        @media (max-width: 1099px) {
+          order: -1;
+        }
+
+        @media (min-width: 1100px) {
+          position: sticky;
+          top: 24px;
+        }
+
+        &[hidden] {
+          display: none;
+        }
+
+        h2 {
+          margin: 0 0 6px;
+          color: var(--ink);
+          font: italic 400 26px / 1.1 var(--serif);
+        }
+
+        ol {
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+
+        li {
+          border-bottom: 1px solid var(--line);
+        }
+
+        li > *,
+        button {
+          display: grid;
+          grid-template-columns: 4.2em minmax(0, 1fr);
+          gap: 10px;
+          width: 100%;
+          border: 0;
+          padding: 10px 0;
+          text-align: left;
+          background: none;
+          font-size: 14px;
+        }
+
+        button {
+          cursor: pointer;
+
+          &:hover span {
+            color: var(--brand);
+          }
+        }
+
+        time {
+          color: var(--brand);
+          font: italic 400 18px / 1.2 var(--serif);
+        }
+      }
+
+      /* (A day with a note: a red mark at its corner.) */
+      .day.noted {
+        position: relative;
+
+        &::after {
+          content: "";
+          position: absolute;
+          top: 8%;
+          right: 8%;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--brand);
+        }
+      }
+
+      /* ── The day's dial: 24 hours, midnight at the top, a tick a block ── */
+
+      .dial {
+        max-width: 460px;
+        margin: 0 auto 24px;
+
+        svg {
+          display: block;
+          width: 100%;
+          height: auto;
+          overflow: visible;
+        }
+
+        .face {
+          fill: var(--card);
+          stroke: var(--line-strong);
+        }
+
+        .hour {
+          stroke: var(--faint);
+          stroke-width: 1.5;
+        }
+
+        text {
+          fill: var(--muted);
+          font: 400 13px var(--mono);
+          text-anchor: middle;
+        }
+
+        .count {
+          fill: var(--ink);
+          font: italic 400 72px var(--serif);
+        }
+
+        .unit {
+          font: italic 400 20px var(--serif);
+        }
+
+        .wait {
+          fill: none;
+          stroke: var(--brand);
+          stroke-width: 3;
+          stroke-linecap: round;
+        }
+
+        .tick {
+          stroke-width: 3;
+          stroke-linecap: round;
+        }
+
+        /* (A tick's reach, wider than it: easier to point at.) */
+        .hit {
+          stroke: transparent;
+          stroke-width: 12;
+        }
+
+        g:hover .tick {
+          stroke-width: 5;
+        }
+      }
+
+      /* ── What a tile says, beside it ── */
+
+      .tip {
+        position: fixed;
+        z-index: 10;
+        max-width: 280px;
+        border-radius: 10px;
+        padding: 10px 12px;
+        color: var(--text);
+        background: var(--card);
+        box-shadow: var(--pop);
+        font-size: 13px;
+        pointer-events: none;
+
+        &[hidden] {
+          display: none;
+        }
+
+        b {
+          display: block;
+          color: var(--ink);
+          font-weight: 600;
+        }
+      }
+
+      .message {
+        display: grid;
+        place-items: center;
+        gap: 12px;
+        min-height: 240px;
+        color: var(--soft);
+        text-align: center;
+
+        button {
+          border: 0;
+          border-radius: 8px;
+          padding: 8px 14px;
+          background: var(--card);
+          box-shadow: var(--sheen), 0 0 0 1px var(--line-strong);
+          cursor: pointer;
+        }
+      }
+
+      .loading .day,
+      .loading .block {
+        animation: breathe 1.4s var(--ease) infinite alternate;
+      }
+
+      @keyframes breathe {
+        to {
+          opacity: 0.45;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
     </style>
   </head>
   <body>
-    <main class="shell">
-      <header class="calendar-header">
-        <div class="header-top">
-          <a class="brand" href="/" aria-label="Bitview">
-            <svg viewBox="0 0 173.2 200" aria-hidden="true" focusable="false">
-              <defs><clipPath id="bitview-cube"><polygon points="86.6,0 173.2,50 173.2,150 86.6,200 0,150 0,50" /></clipPath></defs>
-              <g fill-opacity=".4">
-                <polygon fill="var(--logo-bottom)" points="86.6,100 173.2,150 86.6,200 0,150" />
-                <polygon fill="var(--logo-top)" points="86.6,100 0,150 0,50 86.6,0" />
-                <polygon fill="var(--logo-left)" points="86.6,100 173.2,150 173.2,50 86.6,0" />
-              </g>
-              <g clip-path="url(#bitview-cube)">
-                <g transform="translate(0 50)">
-                  <polygon fill="var(--logo-top)" points="86.6,0 173.2,50 86.6,100 0,50" />
-                  <polygon fill="var(--logo-right)" points="173.2,50 173.2,150 86.6,200 86.6,100" />
-                  <polygon fill="var(--logo-left)" points="0,50 0,150 86.6,200 86.6,100" />
-                </g>
-              </g>
-              <g fill-opacity=".4">
-                <polygon fill="var(--logo-top)" points="0,50 86.6,0 173.2,50 86.6,100" />
-                <polygon fill="var(--logo-right)" points="173.2,50 173.2,150 86.6,200 86.6,100" />
-                <polygon fill="var(--logo-left)" points="0,50 0,150 86.6,200 86.6,100" />
-              </g>
-            </svg>
-            <span>bitview</span>
-          </a>
-          <h1 class="calendar-title">Calendar</h1>
-          <nav class="year-heading" aria-label="Year navigation">
-            <button id="previous-year" class="neighbor-year" aria-label="Previous year"></button>
-            <button id="year-home" aria-label="Year overview"></button>
-            <button id="next-year" class="neighbor-year" aria-label="Next year"></button>
-          </nav>
-        </div>
-        <nav id="date-nav" class="date-nav" aria-label="Day navigation" hidden>
-          <button id="previous-day" class="arrow" aria-label="Previous day"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="m12 5-5 5 5 5" /></svg></button>
-          <h2 id="day-heading"></h2>
-          <button id="next-day" class="arrow" aria-label="Next day"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="m8 5 5 5-5 5" /></svg></button>
+    <div class="page">
+      <header class="top">
+        <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+        <span class="crumb" aria-hidden="true">/</span>
+        <span>Calendar</span>
+        <nav class="stepper" aria-label="Year or day">
+          <button type="button" id="back" class="num"></button>
+          <button type="button" id="current" class="current num"></button>
+          <button type="button" id="forward" class="num"></button>
         </nav>
-        <div id="day-context" class="context" hidden>
-          <div id="inspection" class="inspection" aria-hidden="true"></div>
-        </div>
       </header>
-      <ol id="leaders" class="leaders" aria-label="Pools by days led" hidden></ol>
-      <p id="period-note" class="sr-only"></p>
-      <div id="calendar" aria-label="Mining calendar" aria-describedby="period-note" aria-busy="true"></div>
-      <p id="status" class="sr-only" role="status" aria-live="polite"></p>
-      <noscript><p>This calendar needs JavaScript to load block data from Bitview.</p></noscript>
-    </main>
-    <script id="calendar-data">
+
+      <main>
+        <div class="head">
+          <div>
+            <h1 id="title"></h1>
+            <p class="lede" id="lede"></p>
+          </div>
+          <dl class="totals" id="totals"></dl>
+        </div>
+        <ul class="leaders" id="leaders" aria-label="Pools by days led"></ul>
+        <div class="sheet">
+          <div id="view" aria-busy="true"></div>
+          <aside class="notes" id="notes" aria-labelledby="notes-title" hidden>
+            <h2 id="notes-title">Notes</h2>
+            <ol id="note-list"></ol>
+          </aside>
+        </div>
+      </main>
+    </div>
+    <div class="tip" id="tip" hidden aria-hidden="true"></div>
+
+    <script type="module">
       // @ts-check
-      // The server that serves the page.
-      const ORIGIN = location.origin;
-      const clientReady = import("../modules/bitview-client/index.js").then(
-        ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 }),
-      );
-      const DAY = 86400000;
-      const GENESIS = "2009-01-03";
-      const isoDay = value => new Date(value).toISOString().slice(0, 10);
-      const utcDate = value => new Date(`${value}T00:00:00Z`);
-      const addDays = (value, count) => isoDay(utcDate(value).getTime() + count * DAY);
-      const todayUTC = () => isoDay(Date.now());
-      const number = value => value.toLocaleString("en-US");
+      // Every day of a year, the pool that found the most blocks (its logo on the day); a day, every block in height
+      // order. All from the server that serves the page: the blocks' times and pools by height, the pools' names, and,
+      // for a day, each pool's count so far (its nth block ever).
+      const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
+      const DAY = 86_400_000, GENESIS = "2009-01-03";
+      const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+      // (Logos drawn for one ground: these have their own for the light.)
+      const LIGHT_LOGOS = new Set(["foundryusa", "ultimuspool", "unknown", "whitepool"]);
+      const grouped = (/** @type {number} */ n) => n.toLocaleString("en-US");
+      const iso = (/** @type {number} */ time) => new Date(time).toISOString().slice(0, 10);
+      const today = () => iso(Date.now());
+      const utc = (/** @type {string} */ date) => new Date(`${date}T00:00:00Z`);
+      const shift = (/** @type {string} */ date, /** @type {number} */ days) => iso(utc(date).getTime() + days * DAY);
+      const longDate = (/** @type {string} */ date) => {
+        const at = utc(date);
+        return `${WEEKDAYS[(at.getUTCDay() + 6) % 7]}, ${at.getUTCDate()} ${MONTHS[at.getUTCMonth()]} ${at.getUTCFullYear()}`;
+      };
+      const ordinal = (/** @type {number} */ n) => `${grouped(n)}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" })[/** @type {1 | 2 | 3} */ (n % 10)] ?? "th"}`;
 
-      function ordinal(value) {
-        const lastTwo = value % 100;
-        const suffix = lastTwo >= 11 && lastTwo <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" }[value % 10] || "th");
-        return `${number(value)}${suffix}`;
+      /** A block: its height, its UTC day and second on the chain's clock (monotonic: it never goes back), its pool; with
+       * times, what its miner wrote; in a day, its pool's count that day and ever.
+       * @typedef {{ height: number, day: string, at: number, pool: string, time?: number, nth?: number, ever?: number }} Block */
+
+      const names = new Map([["unknown", "Unknown"]]);
+      const name = (/** @type {string} */ slug) => names.get(slug) ?? slug;
+      /** A pool's logo, the one drawn for the ground in use (a pool without one: its initials). */
+      function logo(/** @type {string} */ slug) {
+        const picture = Object.assign(document.createElement("picture"), { className: "logo" }), img = document.createElement("img");
+        const of = (/** @type {string} */ id) => (LIGHT_LOGOS.has(id) ? [`/assets/pools/${id}.svg`, `/assets/pools/${id}.light.svg`] : [`/assets/pools/${id}.svg`, `/assets/pools/${id}.svg`]);
+        const [dark, light] = of(slug);
+        const source = Object.assign(document.createElement("source"), { srcset: dark, media: "(prefers-color-scheme: dark)" });
+        Object.assign(img, { src: light, alt: "", decoding: "async" });
+        // (A pool with no logo of its own: its initials, so two such pools still look apart.)
+        img.addEventListener("error", () => {
+          // (Two words, or a word's two humps, their first letters: BTC Guild BG, BitMinter BM, BWPool BW; one, its first
+          // letter and its next consonant: Bixin BX.)
+          const words = name(slug).replace(/[^A-Za-z0-9 ]/g, "").replace(/([a-z])([A-Z])/g, "$1 $2").split(/\s+/).filter(Boolean);
+          const one = words[0] ?? "?", initials = (words.length > 1 ? words.map((word) => word[0]).join("") : one[0] + (one.slice(1).match(/[^aeiouAEIOU]/)?.[0] ?? "")).slice(0, 2).toUpperCase();
+          const mark = Object.assign(document.createElement("span"), { className: "logo initials", textContent: initials });
+          mark.setAttribute("aria-hidden", "true");
+          picture.replaceWith(mark);
+        }, { once: true });
+        picture.append(source, img);
+        return picture;
       }
 
-      function addPoolOrdinals(blocks, pools, series) {
-        if (!blocks.length) return [];
-        const start = blocks[0].height;
-        const end = blocks.at(-1).height + 1;
-        const represented = new Set(blocks.map(block => block.pool));
-        const invalid = () => { throw new Error("Pool block counts are still synchronizing. Please refresh in a moment."); };
-        if (!Array.isArray(series) || series.length !== pools.length || new Set(pools).size !== represented.size ||
-          pools.length !== represented.size || pools.some(pool => !represented.has(pool)) ||
-          blocks.some((block, i) => block.height !== start + i)) invalid();
-        const counters = new Map();
-        for (let p = 0; p < pools.length; p++) {
-          const values = series[p];
-          if (!values || values.index !== "height" || values.start !== start || values.end !== end ||
-            !Array.isArray(values.data) || values.data.length !== blocks.length ||
-            values.data.some((value, i) => !Number.isSafeInteger(value) || value < 0 ||
-              (i && value - values.data[i - 1] !== Number(blocks[i].pool === pools[p])))) invalid();
-          counters.set(pools[p], values.data);
-        }
-        const counts = new Map();
-        let day;
-        return blocks.map((block, i) => {
-          if (block.day !== day) { counts.clear(); day = block.day; }
-          const poolDayIndex = (counts.get(block.pool) || 0) + 1;
-          counts.set(block.pool, poolDayIndex);
-          const poolTotal = counters.get(block.pool)[i];
-          if (poolTotal < poolDayIndex) invalid();
-          return { ...block, poolDayIndex, poolTotal };
-        });
+      const json = (/** @type {string} */ path, /** @type {AbortSignal} */ signal) =>
+        fetch(path, { signal }).then((response) => (response.ok ? response.json() : response.json().then((body) => Promise.reject(new Error(body?.error?.message ?? `The server answered ${response.status}.`)), () => Promise.reject(new Error(`The server answered ${response.status}.`)))));
+      /** Series by height, as of a range of days (an open end: up to the latest block). */
+      async function byHeight(/** @type {string[]} */ series, /** @type {string} */ from, /** @type {string | null} */ to, /** @type {AbortSignal} */ signal) {
+        const query = new URLSearchParams({ series: series.join(","), index: "height", start: from, ...(to ? { end: to } : {}) });
+        return /** @type {{ start: number, end: number, data: any[] }[]} */ (await json(`/api/series/bulk?${query}`, signal));
       }
-
-      function rankPools(blocks) {
-        const counts = new Map();
-        for (const block of blocks) counts.set(block.pool, (counts.get(block.pool) || 0) + 1);
-        const ranked = [...counts].map(([pool, count]) => ({ pool, count }));
-        return ranked.sort((a, b) => b.count - a.count || (a.pool < b.pool ? -1 : a.pool > b.pool ? 1 : 0));
-      }
-
-      function decodeBlocks(series) {
-        if (!Array.isArray(series) || series.length !== 3) throw new Error("Incomplete block data from Bitview.");
-        const [timestamps, calendar, pools] = series;
-        const { start, end } = timestamps;
-        if (!Number.isInteger(start) || !Number.isInteger(end) || end < start ||
-          !series.every(item => item.index === "height" && item.start === start && item.end === end &&
-            Array.isArray(item.data) && item.data.length === end - start)) {
-          throw new Error("Block data is still synchronizing. Please refresh in a moment.");
-        }
-        return pools.data.map((pool, i) => {
-          if (typeof pool !== "string" || !/^[a-z0-9]+$/.test(pool) ||
-            !Number.isFinite(timestamps.data[i]) || !Number.isFinite(calendar.data[i])) {
-            throw new Error("Bitview returned an incomplete block.");
-          }
-          return { height: start + i, pool, timestamp: timestamps.data[i], day: isoDay(calendar.data[i] * 1000) };
-        });
-      }
-
-      function groupDays(blocks) {
-        const days = new Map();
-        for (const block of blocks) {
-          if (!days.has(block.day)) days.set(block.day, []);
-          days.get(block.day).push(block);
-        }
-        return days;
-      }
-
-      // Quarter-sized ranges keep each request below the API's response-weight
-      // limit, even in fast-block years. An open end includes the latest indexed block.
-      function requestRanges(from, to, today) {
+      /** Quarters already read that are over, by their bounds. @type {Map<string, Promise<{ start: number, end: number, data: any[] }[]>>} */
+      const quarters = new Map();
+      /** A span of days' blocks, a quarter at a time (each answer kept under the server's size limit). */
+      async function blocksOf(/** @type {string} */ from, /** @type {string} */ to, /** @type {AbortSignal} */ signal, withTimes = false) {
         const ranges = [];
-        let start = from < GENESIS ? GENESIS : from;
-        while (start < to && start <= today) {
-          const date = utcDate(start);
-          const quarterEnd = isoDay(Date.UTC(date.getUTCFullYear(), Math.floor(date.getUTCMonth() / 3) * 3 + 3, 1));
-          const end = quarterEnd < to ? quarterEnd : to;
-          ranges.push({ start, ...(end <= today ? { end } : {}) });
+        for (let start = from < GENESIS ? GENESIS : from; start < to && start <= today(); ) {
+          const at = utc(start), quarter = iso(Date.UTC(at.getUTCFullYear(), Math.floor(at.getUTCMonth() / 3) * 3 + 3, 1));
+          const end = quarter < to ? quarter : to;
+          ranges.push([start, end > today() ? null : end]);
           start = end;
         }
-        return ranges;
+        const parts = await Promise.all(ranges.map(([start, end]) => {
+          const key = `${start}/${end}/${withTimes}`, known = quarters.get(key);
+          if (known) return known;
+          const series = ["timestamp_monotonic", "block_pool", ...(withTimes ? ["timestamp"] : [])];
+          // (Over a day before today, it won't change (a block just past midnight can still fall on the day before):
+          // read on its own, no view's abort ending it, and kept.)
+          if (!(end && end <= shift(today(), -1))) return byHeight(series, /** @type {string} */ (start), end, signal);
+          const part = byHeight(series, /** @type {string} */ (start), end, new AbortController().signal);
+          quarters.set(key, part.catch((error) => (quarters.delete(key), Promise.reject(error))));
+          return part;
+        }));
+        return parts.flatMap(([days, pools, times]) =>
+          days.data.map((time, i) => /** @type {Block} */ ({ height: days.start + i, day: iso(time * 1000), at: time, pool: pools.data[i], ...(times ? { time: times.data[i] } : {}) })),
+        ).filter((block) => block.day >= from && block.day < to);
       }
-    </script>
-    <script>
-      // @ts-check
-      /** @type {(id: string) => any} */
-      const $ = id => document.getElementById(id);
-      const monthNames = Array.from({ length: 12 }, (_, i) => new Date(Date.UTC(2024, i)).toLocaleDateString("en-US", { month: "long", timeZone: "UTC" }));
-      const lightLogos = new Set(["foundryusa", "unknown", "ultimuspool", "whitepool"]);
-      const poolNames = new Map([["unknown", "Unknown"]]);
-      const cache = new Map();
-      let poolRequest;
-      let request;
-      let generation = 0;
-      let loaded;
-      let animations = [];
-      let state = readLocation();
-      let inspection = $("inspection");
-
-      function readLocation() {
-        const params = new URLSearchParams(location.search);
-        const candidate = params.get("date") || todayUTC();
-        const valid = /^\d{4}-\d{2}-\d{2}$/.test(candidate) && Number.isFinite(utcDate(candidate).getTime()) && isoDay(utcDate(candidate)) === candidate;
-        return { date: valid ? (candidate < GENESIS ? GENESIS : candidate > todayUTC() ? todayUTC() : candidate) : todayUTC(), view: params.get("view") === "day" ? "day" : "year" };
+      /** A day's leaders: the known pools that found the most of its blocks, every one tied for first (Unknown isn't a pool). */
+      function leadersOf(/** @type {Block[]} */ blocks) {
+        const known = ranked(blocks.filter((block) => block.pool !== "unknown")), count = known[0]?.count ?? 0;
+        return { pools: known.filter((pool) => pool.count === count).map((pool) => pool.pool).sort((a, b) => name(a).localeCompare(name(b))), count };
       }
-
-      function element(tag, className, text) {
-        const node = document.createElement(tag);
-        if (className) node.className = className;
-        if (text !== undefined) node.textContent = text;
-        return node;
+      /** Pools by blocks found, the most first (a tie, by name). */
+      function ranked(/** @type {Block[]} */ blocks) {
+        const counts = new Map();
+        for (const block of blocks) counts.set(block.pool, (counts.get(block.pool) ?? 0) + 1);
+        return [...counts].map(([pool, count]) => ({ pool, count })).sort((a, b) => b.count - a.count || name(a.pool).localeCompare(name(b.pool)));
       }
 
-      function describe(cell, title, detail = "") {
-        cell.dataset.title = title;
-        cell.dataset.detail = detail;
-        cell.setAttribute("aria-label", `${title}. ${detail}`);
+      // ── Where we are: a year, or a day (in the address, for links and Back) ──
+      /** @type {{ view: "year" | "day", date: string }} */
+      let at = read();
+      function read() {
+        const params = new URLSearchParams(location.search), date = params.get("date") ?? "";
+        const time = Date.parse(`${date}T00:00:00Z`), valid = /^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(time) && iso(time) === date;
+        const clamped = !valid ? today() : date < GENESIS ? GENESIS : date > today() ? today() : date;
+        return { view: params.get("view") === "day" ? "day" : "year", date: clamped };
       }
-
-      function inspect(cell) {
-        inspection.replaceChildren();
-        if (!cell) return;
-        inspection = cell.closest(".month")?.querySelector(".inspection") || $("inspection");
-        inspection.replaceChildren(element("span", "inspect-title", cell.dataset.title));
-        if (cell.dataset.detail) inspection.append(element("span", "inspect-detail", cell.dataset.detail));
+      function go(/** @type {{ view: "year" | "day", date: string }} */ to) {
+        at = to;
+        history.pushState(null, "", `?${new URLSearchParams(to)}`);
+        load();
+        scrollTo({ top: 0 });
       }
+      addEventListener("popstate", () => ((at = read()), load()));
 
-      function poolName(slug) { return poolNames.get(slug) || slug; }
-      function mark(slug) {
-        const node = element("span", "pool-mark");
-        node.setAttribute("aria-hidden", "true");
-        const img = element("img");
-        img.alt = "";
-        img.loading = "lazy";
-        img.src = `../assets/pools/${slug}${lightLogos.has(slug) ? ".light" : ""}.svg`;
-        img.addEventListener("error", () => { img.src = "../assets/pools/default.light.svg"; }, { once: true });
-        node.append(img);
-        return node;
+      const year = () => Number(at.date.slice(0, 4));
+      $("back").addEventListener("click", () => go(at.view === "year" ? { view: "year", date: `${year() - 1}-12-31` } : { view: "day", date: shift(at.date, -1) }));
+      $("forward").addEventListener("click", () => go(at.view === "year" ? { view: "year", date: `${year() + 1}-01-01` } : { view: "day", date: shift(at.date, 1) }));
+      $("current").addEventListener("click", () => at.view === "day" && go({ view: "year", date: at.date }));
+
+      // ── The grid by keys: one tab stop, ← → a day, ↑ ↓ a week (across months), Home and End the month's ends ──
+      $("view").addEventListener("keydown", (event) => {
+        const tile = /** @type {HTMLElement | null} */ (/** @type {Element} */ (event.target).closest?.(".day"));
+        if (!tile?.dataset.date) return blockKeys(event);
+        const date = tile.dataset.date, month = [...(tile.closest(".days")?.querySelectorAll(".day:not(:disabled)") ?? [])];
+        const to = { ArrowLeft: shift(date, -1), ArrowRight: shift(date, 1), ArrowUp: shift(date, -7), ArrowDown: shift(date, 7) }[event.key];
+        const target = /** @type {HTMLButtonElement | null | undefined} */ (
+          event.key === "Home" ? month[0] : event.key === "End" ? month.at(-1) : to ? $("view").querySelector(`.day[data-date="${to}"]:not(:disabled)`) : undefined
+        );
+        if (target === undefined) return;
+        event.preventDefault();
+        if (!target) return;
+        move(target);
+      });
+      /** The focus to another tile, scrolled to first (the tip goes where it ends up). */
+      function move(/** @type {HTMLElement} */ to) {
+        to.scrollIntoView({ block: "nearest", behavior: "instant" });
+        to.focus({ preventScroll: true });
       }
-
-      async function fetchHeightSeries(names, start, end, signal) {
-        const client = await clientReady;
-        return Promise.all(names.map(name => client.seriesEndpoint(name, "height").slice(start, end).fetch({ signal })));
+      // (A day or a block focused, by keys, a tap or put back after a refresh: the tab stop of its kind.)
+      $("view").addEventListener("focusin", (event) => {
+        const tile = /** @type {HTMLElement | null} */ (/** @type {Element} */ (event.target).closest?.(".day, .block"));
+        if (!tile || tile.tabIndex === 0) return;
+        for (const other of $("view").querySelectorAll(tile.classList.contains("day") ? ".day" : ".block")) /** @type {HTMLElement} */ (other).tabIndex = -1;
+        tile.tabIndex = 0;
+      });
+      // (The day's blocks: one tab stop, ← → a block, ↑ ↓ a row, Home and End the first and last.)
+      function blockKeys(/** @type {KeyboardEvent} */ event) {
+        const tile = /** @type {HTMLElement | null} */ (/** @type {Element} */ (event.target).closest?.(".block"));
+        if (!tile) return;
+        const tiles = /** @type {HTMLElement[]} */ ([...$("view").querySelectorAll(".block")]), i = tiles.indexOf(tile);
+        const across = tiles.filter((other) => other.offsetTop === tiles[0].offsetTop).length;
+        const to = { ArrowLeft: i - 1, ArrowRight: i + 1, ArrowUp: i - across, ArrowDown: i + across, Home: 0, End: tiles.length - 1 }[event.key];
+        if (to === undefined) return;
+        event.preventDefault();
+        if (tiles[to]) move(tiles[to]);
       }
+      // (A block tapped or clicked: focused, so its tip shows, on a phone too.)
+      $("view").addEventListener("click", (event) => /** @type {HTMLElement | null} */ (/** @type {Element} */ (event.target).closest?.(".block"))?.focus({ preventScroll: true }));
 
-      async function loadPools() {
-        if (!poolRequest) {
-          poolRequest = clientReady.then(client => client.getPools({ signal: AbortSignal.timeout(25000) })).then(pools => {
-            if (!Array.isArray(pools)) throw new Error("The mining pool directory is unavailable.");
-            for (const pool of pools) poolNames.set(pool.slug, pool.name);
-          }).catch(error => { poolRequest = undefined; throw error; });
+      // ── What a tile says, beside it (pointed at or focused) ──
+      const tip = $("tip");
+      let tipByPointer = false, tipTile = /** @type {HTMLElement | null} */ (null);
+      function showTip(/** @type {HTMLElement | null} */ tile, byPointer = false) {
+        tipByPointer = byPointer;
+        tipTile = tile;
+        if (!tile?.dataset.tip) return void (tip.hidden = true);
+        const [title, ...lines] = tile.dataset.tip.split("\n");
+        tip.replaceChildren(Object.assign(document.createElement("b"), { textContent: title }), ...lines.map((line) => Object.assign(document.createElement("div"), { textContent: line })));
+        tip.hidden = false;
+        const box = tile.getBoundingClientRect(), width = tip.offsetWidth, height = tip.offsetHeight;
+        const below = box.bottom + 8 + height < innerHeight;
+        tip.style.left = `${Math.max(8, Math.min(innerWidth - width - 8, box.left + box.width / 2 - width / 2))}px`;
+        tip.style.top = `${below ? box.bottom + 8 : box.top - 8 - height}px`;
+      }
+      const tileOf = (/** @type {Event} */ event) => /** @type {HTMLElement | null} */ (/** @type {Element} */ (event.target).closest?.("[data-tip]"));
+      $("view").addEventListener("pointerover", (event) => /** @type {PointerEvent} */ (event).pointerType === "mouse" && showTip(tileOf(event), true));
+      $("view").addEventListener("pointerleave", () => showTip(null));
+      // (A tile's tip put away by Escape stays away while it's the focused one, put back after a refresh too.)
+      let dismissed = "";
+      const tileKey = (/** @type {HTMLElement | null} */ tile) => tile?.dataset.date ?? tile?.dataset.height ?? "";
+      $("view").addEventListener("focusin", (event) => {
+        const tile = tileOf(event);
+        if (tile && dismissed && tileKey(tile) === dismissed) return;
+        dismissed = "";
+        showTip(tile);
+      });
+      $("view").addEventListener("focusout", () => showTip(null));
+      // (Scrolled: a pointer's tip goes, a focused tile's follows it.)
+      addEventListener("scroll", () => !tip.hidden && showTip(tipByPointer ? null : tipTile), { passive: true });
+      addEventListener("keydown", (event) => {
+        if (event.key !== "Escape" || tip.hidden) return;
+        // (The focused tile's tip stays away, whether it or a pointer showed the one put away.)
+        const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest?.("[data-tip]") ?? null);
+        if (focused) dismissed = tileKey(focused);
+        showTip(null);
+      });
+
+      // ── Loading: one at a time (a newer one stops the last), kept a minute ──
+      // (When what's shown was read: until that's after its day or year has settled, it's read again. Nothing shown,
+      // nothing read again: a view that failed waits for its "Try again".)
+      let loading = new AbortController(), loaded = "", readAt = Infinity;
+      /** @type {Map<string, { at: number, blocks: Block[] }>} */
+      const kept = new Map();
+      async function load(again = false) {
+        loading.abort();
+        loading = new AbortController();
+        const signal = loading.signal, key = at.view === "year" ? String(year()) : at.date;
+        if (!again) readAt = Infinity;
+        // (A new view: no tip, and no tile's tip put away.)
+        if (!again) {
+          showTip(null);
+          dismissed = "";
         }
-        return poolRequest;
-      }
-
-      function period() {
-        const year = Number(state.date.slice(0, 4));
-        return state.view === "year" ? { from: `${year}-01-01`, to: `${year + 1}-01-01` } : { from: state.date, to: addDays(state.date, 1) };
-      }
-
-      function updateControls() {
-        const year = Number(state.date.slice(0, 4));
-        const isDay = state.view === "day";
-        $("year-home").textContent = String(year);
-        $("year-home").disabled = !isDay;
-        $("year-home").setAttribute("aria-label", isDay ? `Back to ${year}` : `${year} calendar`);
-        $("date-nav").hidden = !isDay;
-        $("day-context").hidden = !isDay;
-        $("day-heading").textContent = utcDate(state.date).toLocaleDateString("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
-        $("previous-year").textContent = String(year - 1);
-        $("next-year").textContent = String(year + 1);
-        $("previous-year").disabled = year <= 2009;
-        $("next-year").disabled = year >= Number(todayUTC().slice(0, 4));
-        $("previous-year").setAttribute("aria-label", `Previous year, ${year - 1}`);
-        $("next-year").setAttribute("aria-label", `Next year, ${year + 1}`);
-        $("previous-day").disabled = state.date <= GENESIS;
-        $("next-day").disabled = state.date >= todayUTC();
-        $("period-note").textContent = isDay ? "Every block in height order. Dates follow Bitview’s UTC chain calendar; block times are miner-reported. Select the year heading to return to the year." : "The top miner for each UTC day, grouped by month with weeks starting on Monday. Select a day to explore its blocks. Ties are ordered by pool identifier.";
-        document.title = `${isDay ? state.date : year} · Calendar · Bitview`;
-      }
-
-      function navigate(changes, replace = false) {
-        const previousYear = Number(state.date.slice(0, 4));
-        state = { ...state, ...changes };
-        const url = new URL(location.href);
-        url.search = new URLSearchParams({ view: state.view, date: state.date }).toString();
-        history[replace ? "replaceState" : "pushState"](null, "", url);
-        load(false, Math.sign(Number(state.date.slice(0, 4)) - previousYear));
-      }
-
-      function animateYearChange(node, direction) {
-        if (!direction || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-        animations.push(node.animate([
-          { opacity: 0, transform: `translateX(${direction * 14}px)` },
-          { opacity: 1, transform: "translateX(0)" },
-        ], { duration: 320, easing: "cubic-bezier(.22, 1, .36, 1)" }));
-      }
-
-      function setStatus(text, status) {
-        $("status").textContent = text;
-        $("status").dataset.state = status;
-        $("status").classList.toggle("sr-only", status !== "error");
-      }
-
-      async function load(force = false, direction = 0) {
-        for (const animation of animations) animation.cancel();
-        animations = [];
-        updateControls();
-        animateYearChange(document.querySelector(".year-heading"), direction);
-        const id = ++generation;
-        request?.abort();
-        request = new AbortController();
-        const signal = AbortSignal.any([request.signal, AbortSignal.timeout(30000)]);
-        const { from, to } = period();
-        const isDay = state.view === "day";
-        const key = `${from}/${to}`;
-        const refreshing = force && loaded?.from === from && loaded?.to === to;
-        if (!refreshing) loaded = undefined;
-        $("calendar").setAttribute("aria-busy", "true");
-        setStatus("Loading blocks from Bitview", "loading");
-        inspect();
-        if (!refreshing) {
-          const skeleton = state.view === "year" ? createYearGrid(() => element("div", "skeleton")) : element("div", "calendar-grid day-grid");
-          skeleton.setAttribute("aria-hidden", "true");
-          if (state.view === "day") for (let i = 0; i < 144; i++) skeleton.append(element("div", "skeleton"));
-          $("calendar").replaceChildren(skeleton);
-        }
+        frame();
+        if (!again || loaded !== key) placeholder();
         try {
-          const cached = !force && [cache.get(key), ...cache.values()].find(item => item && item.from <= from && item.to >= to && Date.now() - item.fetched < 60000);
-          let blocks;
-          if (cached) {
-            blocks = cached.blocks.filter(block => block.day >= from && block.day < to);
-          } else {
-            const [responses] = await Promise.all([
-              Promise.all(requestRanges(from, to, todayUTC()).map(range =>
-                fetchHeightSeries(["timestamp", "timestamp_monotonic", "block_pool"], range.start, range.end, signal))),
-              loadPools(),
-            ]);
-            blocks = responses.flatMap(decodeBlocks).filter(block => block.day >= from && block.day < to);
-            if (blocks.some((block, i) => i && block.height !== blocks[i - 1].height + 1)) {
-              throw new Error("Block history is updating. Please refresh in a moment.");
-            }
+          const [{ blocks, at: asked }] = await Promise.all([fetchBlocks(key, signal, again), poolNames()]);
+          if (signal.aborted) return;
+          const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest("[data-date], [data-leader], [data-note], [data-height]") ?? null);
+          if (at.view === "year") drawYear(blocks);
+          else drawDay(blocks);
+          loaded = key;
+          readAt = asked;
+          if (focused && !focused.isConnected) {
+            const { date, leader, note, height } = focused.dataset;
+            const again = /** @type {HTMLElement | null} */ (document.querySelector(date ? `.day[data-date="${date}"]` : leader ? `[data-leader="${leader}"]` : height ? `.block[data-height="${height}"]` : `[data-note="${note}"]`));
+            again?.focus({ preventScroll: true });
           }
-          if (id !== generation) return;
-          if (isDay && blocks.length && blocks.some(block => block.poolTotal === undefined)) {
-            const pools = [...new Set(blocks.map(block => block.pool))];
-            const names = pools.map(pool => `pool_${pool}_block_count_cumulative`);
-            const series = await fetchHeightSeries(names, blocks[0].height, blocks.at(-1).height + 1, signal);
-            blocks = addPoolOrdinals(blocks, pools, series);
-          }
-          if (id !== generation) return;
-          loaded = { from, to, blocks, fetched: cached?.fetched ?? Date.now() };
-          cache.set(key, loaded);
-          if (cache.size > 4) cache.delete(cache.keys().next().value);
-          render();
-          animateYearChange($("calendar"), direction);
-          setStatus("Calendar loaded", "ready");
         } catch (error) {
-          if (id !== generation) return;
-          if (refreshing) {
-            setStatus("Refresh failed · Showing previous data", "error");
-            return;
-          }
-          const message = element("div", "message");
-          message.append(element("p", "", error.name === "TimeoutError" ? "Bitview took too long to respond. Try again in a moment." : error.message || "Unable to reach Bitview. Check your connection and try again."));
-          const retry = element("button", "", "Try again");
-          retry.addEventListener("click", () => load(true));
-          message.append(retry);
-          $("calendar").replaceChildren(message);
-          setStatus("Data unavailable", "unavailable");
+          if (signal.aborted || (again && loaded === key)) return;
+          const message = Object.assign(document.createElement("div"), { className: "message" });
+          const retry = Object.assign(document.createElement("button"), { type: "button", textContent: "Try again" });
+          retry.addEventListener("click", () => load());
+          // (A fetch that never reached the server fails as a TypeError, in the browser's words: said in the page's.)
+          message.append(Object.assign(document.createElement("p"), { textContent: error instanceof TypeError ? "This server couldn't be reached." : /** @type {Error} */ (error).message }), retry);
+          $("view").replaceChildren(message);
+          $("leaders").replaceChildren();
+          drawNotes([]);
         } finally {
-          if (id === generation) $("calendar").setAttribute("aria-busy", "false");
+          if (!signal.aborted) $("view").setAttribute("aria-busy", "false");
+        }
+      }
+      async function fetchBlocks(/** @type {string} */ key, /** @type {AbortSignal} */ signal, /** @type {boolean} */ again) {
+        const known = kept.get(key);
+        if (known && !again && Date.now() - known.at < 60_000) return known;
+        const asked = Date.now(), blocks = at.view === "year" ? await blocksOf(`${key}-01-01`, `${Number(key) + 1}-01-01`, signal) : await ordinals(await blocksOf(key, shift(key, 1), signal, true), signal);
+        const read = { at: asked, blocks };
+        kept.set(key, read);
+        if (kept.size > 6) kept.delete(/** @type {string} */ (kept.keys().next().value));
+        return read;
+      }
+      /** A day's blocks, each with its pool's count that day and ever (from the pools' running counts). */
+      async function ordinals(/** @type {Block[]} */ blocks, /** @type {AbortSignal} */ signal) {
+        if (!blocks.length) return blocks;
+        const pools = [...new Set(blocks.map((block) => block.pool))], first = blocks[0].height, chunks = [];
+        for (let i = 0; i < pools.length; i += 30) chunks.push(pools.slice(i, i + 30));
+        const answers = await Promise.all(chunks.map((chunk) => json(`/api/series/bulk?${new URLSearchParams({ series: chunk.map((pool) => `pool_${pool}_block_count_cumulative`).join(","), index: "height", start: String(first), end: String(first + blocks.length) })}`, signal)));
+        const counts = answers.flat(), ever = new Map(pools.map((pool, i) => [pool, /** @type {{ data: number[] }} */ (counts[i]).data]));
+        const thatDay = new Map();
+        return blocks.map((block, i) => {
+          thatDay.set(block.pool, (thatDay.get(block.pool) ?? 0) + 1);
+          return { ...block, nth: thatDay.get(block.pool), ever: /** @type {number[]} */ (ever.get(block.pool))[i] };
+        });
+      }
+      let namesLoaded = /** @type {Promise<void> | null} */ (null);
+      function poolNames() {
+        namesLoaded ??= json("/api/v1/mining/pools", new AbortController().signal).then((pools) => {
+          for (const pool of pools) names.set(pool.slug, pool.name);
+        }, (error) => {
+          namesLoaded = null;
+          throw error;
+        });
+        return namesLoaded;
+      }
+      // (The year that's still going, or today: again every minute, unless a tile's pointed at, until it's read an hour
+      // after it ends: a block's time can fall a little before it's found, and the tab may have been away.)
+      const settles = () => (at.view === "year" ? Date.UTC(year() + 1, 0, 1) : Date.parse(`${shift(at.date, 1)}T00:00:00Z`)) + 3_600_000;
+      setInterval(() => {
+        if (readAt < settles() && !document.hidden && !(tipByPointer && !tip.hidden)) load(true);
+      }, 60_000);
+
+      // ── Drawing ──
+      /** The header and the head, for where we are. */
+      function frame() {
+        const y = year(), day = at.view === "day";
+        $("back").textContent = "‹";
+        $("forward").textContent = "›";
+        $("current").textContent = String(y);
+        $("back").setAttribute("aria-label", day ? "The day before" : `${y - 1}`);
+        $("forward").setAttribute("aria-label", day ? "The day after" : `${y + 1}`);
+        $("current").setAttribute("aria-label", day ? `Back to ${y}` : `${y}`);
+        /** @type {HTMLButtonElement} */ ($("back")).disabled = day ? at.date <= GENESIS : y <= 2009;
+        /** @type {HTMLButtonElement} */ ($("forward")).disabled = day ? at.date >= today() : y >= Number(today().slice(0, 4));
+        /** @type {HTMLButtonElement} */ ($("current")).disabled = !day;
+        $("title").textContent = day ? longDate(at.date) : String(y);
+        $("title").classList.toggle("long", day);
+        $("lede").textContent = day ? "Every block of the day, where it fell in its 24 hours." : "Every day, the pool that found the most blocks.";
+        document.title = `${day ? at.date : y} · Calendar · Bitview`;
+      }
+      function totals(/** @type {[string, string][]} */ pairs) {
+        $("totals").replaceChildren(...pairs.map(([label, value]) => {
+          const row = document.createElement("div");
+          row.append(Object.assign(document.createElement("dt"), { textContent: label }), Object.assign(document.createElement("dd"), { className: "num", textContent: value }));
+          return row;
+        }));
+      }
+      function placeholder() {
+        $("view").setAttribute("aria-busy", "true");
+        $("totals").replaceChildren();
+        $("leaders").replaceChildren();
+        drawNotes([]);
+        if (at.view === "year") drawYear(null);
+        else {
+          const list = Object.assign(document.createElement("ul"), { className: "blocks loading" });
+          for (let i = 0; i < 144; i++) list.append(Object.assign(document.createElement("li"), { className: "block" }));
+          $("view").replaceChildren(list);
         }
       }
 
-      function render() {
-        if (!loaded) return;
-        const blocks = loaded.blocks;
-        if (state.view === "day") renderDay(blocks);
-        else renderYear(groupDays(blocks));
-        inspect();
-      }
-
-      /** The year's pools, ranked by days led; hovering one lights up its days. */
-      function renderLeaders(days, blocks) {
+      /** The year: its months, each day its leader; null, its frame (loading). */
+      function drawYear(/** @type {Block[] | null} */ blocks) {
+        const y = year(), now = today(), byDay = new Map();
+        for (const block of blocks ?? []) (byDay.get(block.day) ?? byDay.set(block.day, []).get(block.day)).push(block);
+        const months = Object.assign(document.createElement("div"), { className: `months${blocks ? "" : " loading"}` });
+        /** @type {Map<string, number>} */
         const led = new Map();
-        for (const dayBlocks of days.values()) {
-          const [leader] = rankPools(dayBlocks);
-          if (leader) led.set(leader.pool, (led.get(leader.pool) || 0) + 1);
+        /** @type {Map<string, string[]>} */
+        const leaderOf = new Map();
+        for (let month = 0; month < 12; month++) {
+          const card = document.createElement("section"), days = Object.assign(document.createElement("div"), { className: "days" });
+          card.className = "month";
+          card.setAttribute("aria-label", `${MONTHS[month]} ${y}`);
+          const week = Object.assign(document.createElement("div"), { className: "week" });
+          week.setAttribute("aria-hidden", "true");
+          for (const weekday of WEEKDAYS) week.append(Object.assign(document.createElement("span"), { textContent: weekday[0] }));
+          const length = new Date(Date.UTC(y, month + 1, 0)).getUTCDate(), offset = (new Date(Date.UTC(y, month, 1)).getUTCDay() + 6) % 7;
+          for (let i = 0; i < offset; i++) days.append(Object.assign(document.createElement("span"), { className: "gap" }));
+          for (let d = 1; d <= length; d++) {
+            const date = iso(Date.UTC(y, month, d)), dayBlocks = byDay.get(date) ?? [], outside = date > now || date < GENESIS;
+            const lead = leadersOf(dayBlocks);
+            const tile = Object.assign(document.createElement("button"), { type: "button", className: `day${date === now ? " today" : ""}`, disabled: outside || !blocks, tabIndex: -1 });
+            tile.dataset.date = date;
+            const when = `${WEEKDAYS[(utc(date).getUTCDay() + 6) % 7]} ${d} ${MONTHS[month]}`;
+            if (lead.pools.length) {
+              // (A tie: every pool in it led the day, each counted; the tile shows the first two.)
+              for (const pool of lead.pools) led.set(pool, (led.get(pool) ?? 0) + 1);
+              leaderOf.set(date, lead.pools);
+              tile.dataset.pool = lead.pools.join(" ");
+              tile.dataset.tip = `${when}${date === now ? " (so far)" : ""}\n${lead.pools.map(name).join(" and ")}: ${lead.count} of ${dayBlocks.length} blocks${lead.pools.length > 1 ? " each, tied" : ""}`;
+              tile.classList.toggle("tied", lead.pools.length > 1);
+              tile.append(...lead.pools.slice(0, 2).map(logo));
+            } else {
+              // (A day no known pool led, as printed: its date.)
+              tile.textContent = String(d);
+              if (blocks && !outside) tile.dataset.tip = `${when}\n${dayBlocks.length ? `No known pool: ${plural(dayBlocks.length, "block")}` : "No blocks"}`;
+            }
+            tile.setAttribute("aria-label", `${when}${tile.dataset.tip ? `: ${tile.dataset.tip.split("\n")[1]}` : ""}`);
+            tile.addEventListener("click", () => go({ view: "day", date }));
+            days.append(tile);
+          }
+          card.append(Object.assign(document.createElement("h2"), { textContent: MONTHS[month] }), week, days);
+          months.append(card);
         }
-        const mined = new Map(rankPools(blocks).map(({ pool, count }) => [pool, count]));
-        const ranked = [...led].sort((a, b) => b[1] - a[1] || (mined.get(b[0]) || 0) - (mined.get(a[0]) || 0)).slice(0, 8);
-        const most = ranked[0]?.[1] || 1;
-        $("leaders").replaceChildren(...ranked.map(([pool, count]) => {
-          const item = element("li");
-          item.tabIndex = 0;
-          item.style.setProperty("--share", `${(count / most) * 100}%`);
-          const share = blocks.length ? Math.round(((mined.get(pool) || 0) / blocks.length) * 100) : 0;
-          item.append(mark(pool), element("b", "", poolName(pool)), element("span", "", `${count}d`), element("i"), element("small", "", `${share}% of blocks`));
-          item.setAttribute("aria-label", `${poolName(pool)}: led ${count} days, mined ${share}% of blocks`);
-          const focus = on => {
-            if (on) $("calendar").dataset.focus = pool;
-            else delete $("calendar").dataset.focus;
-            for (const cell of $("calendar").querySelectorAll(".day")) cell.classList.toggle("lead", on && cell.dataset.pool === pool);
-          };
-          item.addEventListener("pointerenter", () => focus(true));
-          item.addEventListener("pointerleave", () => focus(false));
-          item.addEventListener("focus", () => focus(true));
-          item.addEventListener("blur", () => focus(false));
+        // (One tab stop for the grid: where it was, else today, else the first day; arrows from there.)
+        const stop = /** @type {HTMLElement | null} */ ($("view").querySelector('.day[tabindex="0"]'))?.dataset.date;
+        (months.querySelector(`.day[data-date="${stop}"]:not(:disabled)`) ?? months.querySelector(".day.today:not(:disabled)") ?? months.querySelector(".day:not(:disabled)"))?.setAttribute("tabindex", "0");
+        $("view").replaceChildren(months);
+        if (!blocks) return drawNotes([]);
+        const notes = yearNotes(blocks, byDay, leaderOf);
+        drawNotes(notes.map((note) => ({ ...note, when: shortDate(note.date), open: note.date })));
+        const noted = new Set(notes.map((note) => note.date));
+        for (const tile of months.querySelectorAll(".day")) {
+          const date = /** @type {HTMLElement} */ (tile).dataset.date ?? "";
+          tile.classList.toggle("noted", noted.has(date));
+        }
+        const pools = ranked(blocks), share = new Map(pools.map(({ pool, count }) => [pool, count / blocks.length]));
+        totals([["Blocks", grouped(blocks.length)], ["Pools that led a day", grouped(led.size)]]);
+        drawLeaders([...led].sort((a, b) => b[1] - a[1] || (share.get(b[0]) ?? 0) - (share.get(a[0]) ?? 0)).slice(0, 10).map(([pool, days]) => ({ pool, label: `${days} ${days === 1 ? "day" : "days"} · ${((share.get(pool) ?? 0) * 100).toFixed(1)}% of blocks` })));
+      }
+
+      const plural = (/** @type {number} */ n, /** @type {string} */ word) => `${grouped(n)} ${word}${n === 1 ? "" : "s"}`;
+      const shortDate = (/** @type {string} */ date) => `${Number(date.slice(8, 10))} ${MONTHS[Number(date.slice(5, 7)) - 1].slice(0, 3)}`;
+      /**
+       * What an almanac would note of a year: its halvings (the blocks themselves), its busiest and quietest whole days,
+       * the longest run of days one pool led, and the most blocks one pool found in a day.
+       * @param {Block[]} blocks @param {Map<string, Block[]>} byDay @param {Map<string, string[]>} leaderOf
+       * @returns {{ key: string, date: string, text: string }[]}
+       */
+      function yearNotes(blocks, byDay, leaderOf) {
+        const notes = [], y = year();
+        for (const block of blocks) {
+          if (!block.height || block.height % 210_000) continue;
+          const n = block.height / 210_000;
+          notes.push({ key: `halving-${n}`, date: block.day, text: `The ${ordinal(n)} halving, at block ${grouped(block.height)}: the reward falls to ₿${50 / 2 ** n}` });
+        }
+        // (The whole days so far, an empty one too: from the year's first, or the chain's, to yesterday.)
+        const whole = [];
+        for (let date = `${y}-01-01` < GENESIS ? GENESIS : `${y}-01-01`; date < today() && date < `${y + 1}-01-01`; date = shift(date, 1)) whole.push([date, byDay.get(date)?.length ?? 0]);
+        if (whole.length > 1) {
+          const busiest = whole.reduce((a, b) => (b[1] > a[1] ? b : a)), quietest = whole.reduce((a, b) => (b[1] < a[1] ? b : a));
+          notes.push({ key: "busiest", date: busiest[0], text: `The busiest day: ${plural(busiest[1], "block")}` }, { key: "quietest", date: quietest[0], text: `The quietest day: ${quietest[1] ? plural(quietest[1], "block") : "no blocks"}` });
+        }
+        // (The longest run of days one pool led, a tie counting for each in it.)
+        /** @type {Map<string, { pool: string, start: string, end: string, days: number }>} */
+        let runs = new Map();
+        /** @type {{ pool: string, start: string, end: string, days: number } | null} */
+        let best = null;
+        for (const date of [...leaderOf.keys()].sort()) {
+          const next = new Map();
+          for (const pool of /** @type {string[]} */ (leaderOf.get(date))) {
+            const run = runs.get(pool), now = run && shift(run.end, 1) === date ? { ...run, end: date, days: run.days + 1 } : { pool, start: date, end: date, days: 1 };
+            next.set(pool, now);
+            if (!best || now.days > best.days) best = now;
+          }
+          runs = next;
+        }
+        // (A run at the year's edge may go on beyond it, unseen: said as the year's first or last days.)
+        if (best && best.days > 1) {
+          const first = best.start === `${y}-01-01` && y > 2009, last = best.end === `${y}-12-31`;
+          const text = first && last ? "led every day of the year" : first ? `led the year's first ${best.days} days, to ${shortDate(best.end)}` : last ? `led the year's last ${best.days} days` : `led ${best.days} days in a row, to ${shortDate(best.end)}`;
+          notes.push({ key: "run", date: best.start, text: `${name(best.pool)} ${text}` });
+        }
+        let biggest = { date: "", pools: /** @type {string[]} */ ([]), count: 0, total: 0 };
+        for (const [date, dayBlocks] of byDay) {
+          const lead = leadersOf(dayBlocks);
+          if (lead.count > biggest.count) biggest = { date, pools: lead.pools, count: lead.count, total: dayBlocks.length };
+        }
+        if (biggest.count) notes.push({ key: "most", date: biggest.date, text: `The most one pool found in a day: ${biggest.count} of ${biggest.total}, ${biggest.pools.map(name).join(" and ")}` });
+        return notes.sort((a, b) => a.date.localeCompare(b.date));
+      }
+      /** The margin's notes: when, what; a note of a day opens it (and keeps the focus by its key). @param {{ when: string, text: string, open?: string, key?: string }[]} notes */
+      function drawNotes(notes) {
+        $("notes").hidden = !notes.length;
+        $("note-list").replaceChildren(...notes.map(({ when, text, open, key }) => {
+          const item = document.createElement("li"), body = [Object.assign(document.createElement("time"), { textContent: when }), Object.assign(document.createElement("span"), { textContent: text })];
+          if (!open) {
+            const note = Object.assign(document.createElement("div"), { className: "note" });
+            note.append(...body);
+            item.append(note);
+            return item;
+          }
+          const button = Object.assign(document.createElement("button"), { type: "button" });
+          button.dataset.note = key ?? text;
+          button.append(...body);
+          button.addEventListener("click", () => go({ view: "day", date: open }));
+          item.append(button);
           return item;
         }));
-        $("leaders").hidden = !ranked.length;
       }
 
-      function renderDay(blocks) {
-        $("leaders").hidden = true;
-        const grid = element("div", "calendar-grid day-grid");
-        const dayLabel = state.date === todayUTC() ? "today" : "that day";
-        for (const block of blocks) {
-          const cell = element("a", "cell block");
-          cell.href = `../_chain/#${block.height}`;
-          cell.target = "_blank";
-          cell.rel = "noopener";
-          const time = new Date(block.timestamp * 1000).toISOString().slice(11, 19);
-          const name = block.pool === "unknown" ? "Unattributed" : poolName(block.pool);
-          describe(cell, `${name} · ${ordinal(block.poolDayIndex)} ${dayLabel} · ${ordinal(block.poolTotal)} overall`, `Block ${number(block.height)} · ${time} UTC`);
-          cell.setAttribute("aria-label", `${cell.getAttribute("aria-label")}. Open block in Chain.`);
-          cell.append(mark(block.pool));
-          grid.append(cell);
-        }
+      /** The pools that led, most days first: pointed at, their days lit; picked, kept lit (picked again, let go). */
+      let picked = "";
+      function drawLeaders(/** @type {{ pool: string, label: string }[]} */ leaders) {
+        const light = (/** @type {string} */ pool) => {
+          const months = $("view").querySelector(".months");
+          months?.classList.toggle("lit", Boolean(pool));
+          for (const day of $("view").querySelectorAll(".day")) day.classList.toggle("led", Boolean(pool) && (/** @type {HTMLElement} */ (day).dataset.pool ?? "").split(" ").includes(pool));
+        };
+        if (!leaders.some(({ pool }) => pool === picked)) picked = "";
+        $("leaders").replaceChildren(...leaders.map(({ pool, label }) => {
+          const item = document.createElement("li"), button = Object.assign(document.createElement("button"), { type: "button" });
+          button.dataset.leader = pool;
+          button.setAttribute("aria-pressed", String(pool === picked));
+          button.append(logo(pool), Object.assign(document.createElement("b"), { textContent: name(pool) }), document.createElement("i"), Object.assign(document.createElement("small"), { textContent: label }));
+          button.addEventListener("pointerenter", (event) => event.pointerType === "mouse" && light(pool));
+          button.addEventListener("pointerleave", (event) => event.pointerType === "mouse" && light(picked));
+          button.addEventListener("click", () => {
+            picked = picked === pool ? "" : pool;
+            for (const other of $("leaders").querySelectorAll("button")) other.setAttribute("aria-pressed", String(other === button && Boolean(picked)));
+            light(picked);
+          });
+          item.append(button);
+          return item;
+        }));
+        light(picked);
+      }
+
+      /** Printing inks for a day's pools, the most blocks first (the rest in the page's grey): each a pair, for the paper and the night. */
+      const INKS = [["#b3261e", "#ff7a6b"], ["#1f5f8b", "#6cb4ee"], ["#2f6f3b", "#6fd187"], ["#94600a", "#f2b552"], ["#6b4592", "#c19ae8"], ["#7a4a2e", "#e0a47c"]].map(([paper, night]) => `light-dark(${paper}, ${night})`);
+      const escape = (/** @type {string} */ text) => text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[/** @type {"&"} */ (c)]);
+      const span = (/** @type {number} */ seconds) => {
+        const minutes = Math.round(seconds / 60);
+        return minutes < 1 ? `${Math.round(seconds)} s` : minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, "0")}`;
+      };
+      const clock = (/** @type {number} */ seconds) => new Date(seconds * 1000).toISOString().slice(11, 16);
+
+      /** The day: a dial of its 24 hours with every block where it fell, its notes beside it; its pools; every block. */
+      function drawDay(/** @type {Block[]} */ blocks) {
+        $("leaders").replaceChildren();
         if (!blocks.length) {
-          const empty = element("div", "message", state.date === todayUTC() ? "No blocks indexed for today yet. The calendar refreshes every minute." : "No indexed blocks for this UTC calendar day.");
-          $("calendar").replaceChildren(empty);
-        } else $("calendar").replaceChildren(grid);
-      }
-
-      function createYearGrid(createCell) {
-        const year = Number(state.date.slice(0, 4));
-        const overview = element("div", "year-grid");
-        for (let month = 0; month < 12; month++) {
-          const section = element("section", "month");
-          const heading = element("h2", "month-title", monthNames[month]);
-          heading.id = `month-${month}`;
-          section.setAttribute("aria-labelledby", heading.id);
-          const header = element("div", "month-header");
-          const legend = element("div", "inspection");
-          legend.setAttribute("aria-hidden", "true");
-          header.append(heading, legend);
-          const grid = element("div", "calendar-grid month-grid");
-          const length = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-          const offset = (new Date(Date.UTC(year, month, 1)).getUTCDay() + 6) % 7;
-          for (let slot = 0; slot < 42; slot++) {
-            const day = slot - offset + 1;
-            if (day < 1 || day > length) {
-              const gap = element("span", "month-gap");
-              gap.setAttribute("aria-hidden", "true");
-              grid.append(gap);
-            } else grid.append(createCell(isoDay(Date.UTC(year, month, day)), month, day));
-          }
-          section.append(header, grid);
-          overview.append(section);
+          totals([]);
+          drawNotes([]);
+          $("view").replaceChildren(Object.assign(document.createElement("div"), { className: "message", textContent: at.date === today() ? "No block yet today." : "No blocks this day." }));
+          return;
         }
-        return overview;
+        const pools = ranked(blocks), inkOf = new Map(pools.slice(0, INKS.length).map(({ pool }, i) => [pool, INKS[i]]));
+        const ink = (/** @type {string} */ pool) => inkOf.get(pool) ?? "var(--muted)";
+        totals([["Blocks", grouped(blocks.length)], ["Pools", grouped(pools.filter(({ pool }) => pool !== "unknown").length)]]);
+        // Its notes: the longest wait, the quickest pair, the busiest hour.
+        const gaps = blocks.slice(1).map((block, i) => ({ after: blocks[i], block, gap: block.at - blocks[i].at }));
+        // (The quickest among real gaps: the chain's clock never runs back, so blocks whose miners' clocks did share a second.)
+        const apart = gaps.filter(({ gap }) => gap > 0);
+        const longest = gaps.reduce((a, b) => (b.gap > a.gap ? b : a), gaps[0]), quickest = apart.reduce((a, b) => (b.gap < a.gap ? b : a), apart[0]);
+        const hours = new Array(24).fill(0);
+        for (const block of blocks) hours[Math.floor((block.at % 86_400) / 3600)]++;
+        const busiest = hours.indexOf(Math.max(...hours));
+        drawNotes([
+          ...blocks.filter((block) => block.height && block.height % 210_000 === 0).map((block) => ({ when: clock(block.at), text: `The ${ordinal(block.height / 210_000)} halving, at block ${grouped(block.height)}: the reward falls to ₿${50 / 2 ** (block.height / 210_000)}` })),
+          ...(longest ? [{ when: clock(longest.after.at), text: `The longest wait: ${span(longest.gap)}, after block ${grouped(longest.after.height)}` }] : []),
+          ...(quickest ? [{ when: clock(quickest.after.at), text: `The quickest: ${span(quickest.gap)} between blocks ${grouped(quickest.after.height)} and ${grouped(quickest.block.height)}` }] : []),
+          { when: `${String(busiest).padStart(2, "0")}:00`, text: `The busiest hour: ${hours[busiest]} ${hours[busiest] === 1 ? "block" : "blocks"}` },
+        ].sort((a, b) => a.when.localeCompare(b.when)));
+        // The dial: noon at the bottom, midnight at the top; a tick a block, in its pool's ink; the longest wait, an arc.
+        const C = 200, inner = 132, outer = 168, start = Date.parse(`${at.date}T00:00:00Z`) / 1000;
+        const angle = (/** @type {number} */ time) => ((time - start) / 86_400) * Math.PI * 2 - Math.PI / 2;
+        const point = (/** @type {number} */ time, /** @type {number} */ r) => `${(C + r * Math.cos(angle(time))).toFixed(1)},${(C + r * Math.sin(angle(time))).toFixed(1)}`;
+        const hourTicks = Array.from({ length: 24 }, (_, h) => `<line class="hour" x1="${point(start + h * 3600, outer + 8).split(",")[0]}" y1="${point(start + h * 3600, outer + 8).split(",")[1]}" x2="${point(start + h * 3600, outer + (h % 6 ? 12 : 16)).split(",")[0]}" y2="${point(start + h * 3600, outer + (h % 6 ? 12 : 16)).split(",")[1]}"/>`).join("");
+        const hourLabels = [0, 6, 12, 18].map((h) => {
+          const [x, y] = point(start + h * 3600, outer + 30).split(",");
+          return `<text x="${x}" y="${y}" dy="0.35em">${String(h).padStart(2, "0")}:00</text>`;
+        }).join("");
+        const arc = longest ? `<path class="wait" d="M${point(longest.after.at, inner - 12)} A${inner - 12},${inner - 12} 0 ${longest.gap > 43_200 ? 1 : 0} 1 ${point(longest.block.at, inner - 12)}"/>` : "";
+        const ticks = blocks.map((block) => {
+          const [x1, y1] = point(block.at, inner).split(","), [x2, y2] = point(block.at, outer).split(",");
+          const tip = `Block ${grouped(block.height)}\n${name(block.pool)}, its ${ordinal(/** @type {number} */ (block.nth))} that day and ${ordinal(/** @type {number} */ (block.ever))} ever\nOn the chain at ${clock(block.at)} UTC`;
+          return `<g data-tip="${escape(tip)}"><line class="hit" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/><line class="tick" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" style="stroke: ${ink(block.pool)}"/></g>`;
+        }).join("");
+        const dial = Object.assign(document.createElement("div"), { className: "dial" });
+        dial.innerHTML = `<svg viewBox="-10 -10 420 420" role="img" aria-label="The day's ${blocks.length} blocks on a 24-hour dial, midnight at the top"><circle class="face" cx="${C}" cy="${C}" r="${outer + 4}"/>${hourTicks}${hourLabels}${arc}${ticks}<text class="count" x="${C}" y="${C - 6}">${blocks.length}</text><text class="unit" x="${C}" y="${C + 26}">blocks</text></svg>`;
+        // Its pools, each in its ink.
+        const shares = Object.assign(document.createElement("ul"), { className: "shares" });
+        shares.setAttribute("aria-label", "Blocks by pool");
+        shares.append(...pools.map(({ pool, count }) => {
+          const item = document.createElement("li");
+          item.style.setProperty("--pool", ink(pool));
+          item.append(logo(pool), Object.assign(document.createElement("b"), { textContent: name(pool) }), Object.assign(document.createElement("span"), { className: "num", textContent: String(count) }));
+          return item;
+        }));
+        const list = Object.assign(document.createElement("ul"), { className: "blocks" });
+        list.setAttribute("aria-label", "Blocks in height order");
+        // (One tab stop: where it was, else the first block; arrows from there.)
+        const stop = /** @type {HTMLElement | null} */ ($("view").querySelector('.block[tabindex="0"]'))?.dataset.height;
+        const stopAt = Math.max(0, blocks.findIndex((block) => String(block.height) === stop));
+        list.append(...blocks.map((block, i) => {
+          const time = clock(block.at);
+          const tile = Object.assign(document.createElement("li"), { className: "block", tabIndex: i === stopAt ? 0 : -1 });
+          tile.style.setProperty("--pool", ink(block.pool));
+          tile.dataset.height = String(block.height);
+          tile.dataset.tip = `Block ${grouped(block.height)}\n${name(block.pool)}, its ${ordinal(/** @type {number} */ (block.nth))} that day and ${ordinal(/** @type {number} */ (block.ever))} ever\nOn the chain at ${time} UTC; its miner wrote ${clock(/** @type {number} */ (block.time))}`;
+          tile.setAttribute("aria-label", tile.dataset.tip.replaceAll("\n", ". "));
+          tile.append(logo(block.pool), Object.assign(document.createElement("span"), { className: "num", textContent: time }));
+          return tile;
+        }));
+        $("view").replaceChildren(dial, shares, list);
       }
 
-      function renderYear(days) {
-        const today = todayUTC();
-        const grid = createYearGrid((date, month, day) => {
-          const blocks = days.get(date) || [];
-          const future = date > today || date < GENESIS;
-          const cell = element("button", `cell block day${date === today ? " today" : ""}${future ? " future" : ""}${!blocks.length ? " empty" : ""}`);
-          cell.dataset.date = date;
-          cell.disabled = future;
-          const [leader, runnerUp] = rankPools(blocks);
-          const tied = !!runnerUp && runnerUp.count === leader.count;
-          if (leader) cell.dataset.pool = leader.pool;
-          describe(cell, future ? "" : leader ? `${leader.count} · ${poolName(leader.pool)}` : "0 · No blocks");
-          const description = leader ? `${poolName(leader.pool)} · ${leader.count} of ${blocks.length} blocks${tied ? " · Tied for first" : ""}` : "No indexed blocks";
-          cell.setAttribute("aria-label", `${monthNames[month]} ${day}${date === today ? " · So far" : ""}. ${future ? "Outside available dates" : description}`);
-          cell.append(leader ? mark(leader.pool) : element("span", "empty-mark"));
-          cell.addEventListener("click", () => { navigate({ view: "day", date }); window.scrollTo({ top: 0 }); });
-          return cell;
-        });
-        $("calendar").replaceChildren(grid);
-        renderLeaders(days, loaded.blocks);
-      }
-
-      $("year-home").addEventListener("click", () => { navigate({ view: "year" }); window.scrollTo({ top: 0 }); });
-      for (const [name, direction] of /** @type {[string, number][]} */ ([["previous", -1], ["next", 1]])) {
-        $(`${name}-year`).addEventListener("click", () => navigate({ view: "year", date: `${Number(state.date.slice(0, 4)) + direction}-01-03` }));
-        $(`${name}-day`).addEventListener("click", () => navigate({ view: "day", date: addDays(state.date, direction) }));
-      }
-      $("calendar").addEventListener("pointerover", event => {
-        const cell = /** @type {Element} */ (event.target).closest(".cell");
-        inspect(cell);
-      });
-      $("calendar").addEventListener("pointerleave", () => inspect(document.activeElement.closest(".cell")));
-      $("calendar").addEventListener("focusin", event => inspect(/** @type {Element} */ (event.target).closest(".cell")));
-      $("calendar").addEventListener("focusout", event => inspect(/** @type {Element | null} */ (event.relatedTarget)?.closest(".cell")));
-      window.addEventListener("keydown", event => { if (event.key === "Escape") inspect(); });
-      window.addEventListener("popstate", () => { state = readLocation(); load(); });
-      setInterval(() => {
-        if (!document.hidden && !$("calendar").contains(document.activeElement) && !$("calendar").querySelector(".cell:hover") && $("calendar").getAttribute("aria-busy") !== "true" && period().to > todayUTC()) load(true);
-      }, 60000);
       load();
     </script>
   </body>

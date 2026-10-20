@@ -9,7 +9,8 @@ services:
     container_name: bitview
     restart: unless-stopped
     ports:
-      - 7070:3110
+      # (This machine only; drop `127.0.0.1:` to serve its network.)
+      - 127.0.0.1:7070:3110
     volumes:
       - ${BITCOIN_DATA_DIR:-/path/to/bitcoin}:/bitcoin:ro
       - ${BITVIEW_DATA_VOLUME:-bitview-data}:/home/bitview/.bitview

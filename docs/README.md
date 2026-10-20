@@ -69,8 +69,8 @@ bitviewd
 The default composition needs Linux or macOS, a mainnet Bitcoin Core node with
 RPC and complete `blk*.dat` files from genesis, about 290 GiB for Bitview plus
 Bitcoin Core storage and growth headroom, and 16 GB of RAM recommended for a
-full sync. The showcases and API listen on `0.0.0.0:3110`
-([localhost:3110](http://localhost:3110) locally).
+full sync. The showcases and API are served at [localhost:3110](http://localhost:3110),
+to this machine only unless `serverbind` says otherwise.
 
 See the [`bitviewd` guide](../crates/bitviewd) for requirements, disk usage,
 installation, configuration, initial sync, and custom compositions.

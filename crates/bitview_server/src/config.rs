@@ -17,8 +17,8 @@ pub const DEFAULT_MAX_WEIGHT: usize = 10_000 * size_of::<OHLCCents>();
 /// Bounds worst-case work and response size, prevents heavy-address DDoS.
 pub const DEFAULT_MAX_UTXOS: usize = 1000;
 
-/// Default HTTP bind address. Accepts connections on every IPv4 interface.
-pub const DEFAULT_BIND: IpAddr = IpAddr::V4(Ipv4Addr::UNSPECIFIED);
+/// Default HTTP bind address: this machine only (the server has no authentication); `0.0.0.0` serves its network.
+pub const DEFAULT_BIND: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);
 
 #[derive(Debug, Clone)]
 pub struct ServerConfig {

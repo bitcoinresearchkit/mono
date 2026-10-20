@@ -30,4 +30,5 @@ EXPOSE 3110
 
 WORKDIR /home/bitview
 
-ENTRYPOINT ["bitviewd"]
+# (Every interface inside the container, for a published port to reach it; the host decides who can.)
+ENTRYPOINT ["bitviewd", "--serverbind", "0.0.0.0"]

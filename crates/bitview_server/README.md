@@ -114,5 +114,5 @@ unindexable date, an updating state) and a transaction the node rejects (400).
 
 ## Configuration
 
-Binds exactly to `0.0.0.0:3110` by default. Set `ServerConfig::bind` and
-`ServerConfig::port` to use another listener.
+Binds exactly to `127.0.0.1:3110` by default: this machine only, since the server has no authentication. Set
+`ServerConfig::bind` (`0.0.0.0` to serve the network) and `ServerConfig::port` to use another listener.

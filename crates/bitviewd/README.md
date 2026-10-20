@@ -54,8 +54,10 @@ resynced automatically on the next run.
 bitviewd
 ```
 
-Bitview indexes the blockchain, computes datasets, starts the server (listening
-on `0.0.0.0:3110`, so locally at `http://localhost:3110`), and waits for new blocks.
+Bitview indexes the blockchain, computes datasets, starts the server (at
+`http://localhost:3110`, this machine only: set `serverbind = "0.0.0.0"` to serve
+your network, behind access control, since it has no authentication), and waits for
+new blocks.
 
 ## Generating clients during development
 

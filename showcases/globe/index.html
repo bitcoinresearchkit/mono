@@ -2,49 +2,73 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta
-      name="description"
-      content="Where Bitcoin blocks are mined: every block attributed to its mining pool's home country, live on a rotating globe."
-    />
-    <meta name="theme-color" content="#07080a" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#04060b" />
     <title>Globe · Bitview</title>
+    <meta name="description" content="Where Bitcoin's blocks are mined: every block by its mining pool's home country, live on a globe, and how that map has moved since 2011." />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png" />
     <style>
+      @font-face {
+        font-family: Inter;
+        src: url("/assets/fonts/InterVariable.woff2") format("woff2");
+        font-weight: 100 900;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.woff2") format("woff2");
+        font-weight: 500 700;
+        font-display: swap;
+      }
+
+      /* Earth from orbit: one night sky, always; the planet's own blues; readouts as an instrument's. */
       :root {
         color-scheme: dark;
-        --bg: #07080a;
-        --ink: #eceae6;
-        --muted: #8b8f98;
-        --faint: #4a4e57;
-        --line: #1c1f25;
-        --panel: rgb(12 13 16 / 0.72);
-        --accent: #f7931a;
-        --live: #3fb26b;
-        --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
-          "Segoe UI", sans-serif;
-        --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-family: var(--sans);
-        background: var(--bg);
-        color: var(--ink);
+        --app: #04060b;
+        --card: rgb(13 19 33 / 0.62);
+        --well: rgb(255 255 255 / 0.04);
+        --ink: #eef3ff;
+        --text: #c6d0e4;
+        --soft: #8d99b3;
+        --muted: #7d89a3;
+        --faint: #5d6984;
+        --line: rgb(140 170 255 / 0.1);
+        --line-strong: rgb(140 170 255 / 0.18);
+        --hover: rgb(140 170 255 / 0.07);
+        --focus: rgb(180 200 255 / 0.6);
+        --live: #3ccf7c;
+        --sheen: inset 0 1px 0 rgb(255 255 255 / 0.05);
+        --pop: 0 0 0 1px var(--line-strong), 0 16px 40px -12px rgb(0 0 0 / 0.8);
+        --ocean: #0a1426;
+        --land: #1c2740;
+        --border: rgb(4 6 11 / 0.85);
+        --grid: rgb(120 160 255 / 0.07);
+        --glow: rgb(70 130 255 / 0.35);
+        --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+        --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
+        --radius: 14px;
       }
 
       * {
         box-sizing: border-box;
       }
 
-      html,
       body {
         margin: 0;
-        min-height: 100%;
-        background: var(--bg);
-      }
-
-      body {
-        overflow: hidden;
+        color: var(--text);
+        background: radial-gradient(1200px 700px at 30% 30%, rgb(40 70 150 / 0.18), transparent 70%), var(--app);
+        background-attachment: fixed;
+        font: 15px/1.55 var(--sans);
+        font-feature-settings: "cv11", "ss01";
+        -webkit-font-smoothing: antialiased;
       }
 
       a {
         color: inherit;
+        text-decoration: none;
       }
 
       button {
@@ -52,678 +76,721 @@
         color: inherit;
       }
 
-      .stage {
-        position: fixed;
-        inset: 0;
+      :focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
       }
 
-      canvas {
-        display: block;
-        width: 100%;
-        height: 100%;
-        cursor: grab;
-        touch-action: none;
-        outline: none;
-      }
-
-      canvas[data-dragging] {
-        cursor: grabbing;
-      }
-
-      canvas[data-pointing] {
-        cursor: pointer;
-      }
-
-      .label {
+      .num {
         font-family: var(--mono);
-        font-size: 0.68rem;
-        font-weight: 650;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .page {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 16px 64px;
+
+        @media (min-width: 720px) {
+          padding: 0 32px 88px;
+        }
+      }
+
+      /* ── Header: the brand and the page's name; the latest block, live ── */
+
+      .top {
+        grid-area: top;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 64px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--ink);
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+
+        img {
+          width: 22px;
+          height: 25.5px;
+        }
+      }
+
+      .crumb {
+        color: var(--faint);
+
+        & + span {
+          margin-right: auto;
+          color: var(--soft);
+        }
+      }
+
+      .tip-height {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 28px;
+        border-radius: 14px;
+        padding: 0 12px;
+        color: var(--soft);
+        box-shadow: inset 0 0 0 1px var(--line-strong);
+        font-size: 13px;
+
+        &[hidden] {
+          display: none;
+        }
+
+        &::before {
+          content: "";
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--live);
+          box-shadow: 0 0 0 3px color-mix(in oklab, var(--live), transparent 80%);
+        }
+
+        b {
+          color: var(--ink);
+          font-weight: 500;
+        }
+      }
+
+      h1 {
+        margin: 0;
+        color: var(--ink);
+        font-size: clamp(36px, 5.6vw, 72px);
+        font-weight: 300;
+        line-height: 1.02;
+        letter-spacing: -0.035em;
+      }
+
+      .lede {
+        max-width: 30em;
+        margin: 12px 0 0;
+        color: var(--soft);
+        font-size: clamp(15px, 1.6vw, 17px);
+        text-wrap: pretty;
+      }
+
+      .surface {
+        border-radius: var(--radius);
+        background: var(--card);
+        box-shadow: var(--sheen), 0 0 0 1px var(--line);
+        backdrop-filter: blur(14px);
+      }
+
+      /* ── The hero: the planet across the whole first screen; over it the name, the countries, the latest blocks.
+         A phone: one after another, the planet square. ── */
+
+      .hero {
+        position: relative;
+        display: grid;
+        grid-template: "top" "text" "globe" "board" "ticker" / minmax(0, 1fr);
+        gap: 16px;
+        padding: 0 16px 24px;
+
+        .hero-text {
+          grid-area: text;
+        }
+
+        .board {
+          grid-area: board;
+        }
+
+        .ticker {
+          grid-area: ticker;
+        }
+
+        > canvas {
+          grid-area: globe;
+          display: block;
+          width: 100%;
+          aspect-ratio: 1;
+          cursor: grab;
+          touch-action: pan-y;
+
+          &.dragging {
+            cursor: grabbing;
+          }
+        }
+
+        @media (min-width: 1024px) {
+          height: max(680px, 100svh);
+          grid-template: "top top" 64px "text board" auto ". board" minmax(0, 1fr) "ticker ticker" auto / minmax(0, 1fr) 360px;
+          gap: 0 32px;
+          padding: 0 32px 24px;
+
+          > canvas {
+            position: absolute;
+            inset: 0;
+            grid-area: auto;
+            height: 100%;
+            aspect-ratio: auto;
+          }
+
+          /* (Over the planet: the words let a drag through; the countries and blocks don't.) */
+          > :not(canvas) {
+            position: relative;
+          }
+
+          .hero-text {
+            align-self: start;
+            max-width: 30rem;
+            padding-top: 40px;
+            pointer-events: none;
+            /* (Where the words cross the planet, a halo of the night keeps them read.) */
+            text-shadow: 0 0 2px var(--app), 0 0 12px var(--app), 0 0 24px var(--app);
+          }
+
+          .board {
+            align-self: start;
+            max-height: 100%;
+            margin-top: 24px;
+            overflow-y: auto;
+          }
+
+        }
+      }
+
+      .board {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        padding: 16px;
+      }
+
+      .board-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 8px 16px;
+      }
+
+      /* (An instrument's readouts: small, spaced capitals.) */
+      .when,
+      .kicker {
+        color: var(--soft);
+        font-family: var(--mono);
+        font-size: 12px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
       }
 
-      header {
-        position: fixed;
-        z-index: 4;
-        top: 0;
-        right: 0;
-        left: 0;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        padding: clamp(1rem, 2.4vw, 1.6rem) clamp(1rem, 3vw, 2rem);
-        pointer-events: none;
-      }
-
-      header > * {
-        pointer-events: auto;
-      }
-
-      header a {
-        padding-block: 0.4rem;
-        text-decoration: none;
-      }
-
-      header a:hover {
-        text-decoration: underline;
-        text-underline-offset: 0.25rem;
-      }
-
-      .controls {
-        display: flex;
-        align-items: center;
-        gap: 1.1rem;
-      }
-
-      .sound {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-        padding: 0.4rem 0.6rem;
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        background: var(--panel);
-        cursor: pointer;
-        color: var(--muted);
-      }
-
-      .sound:hover,
-      .sound[aria-pressed="true"] {
-        color: var(--ink);
-      }
-
-      .sound svg {
-        width: 0.95rem;
-        height: 0.95rem;
-      }
-
-      .sound .on,
-      .sound[aria-pressed="true"] .off {
-        display: none;
-      }
-
-      .sound[aria-pressed="true"] .on {
-        display: block;
-      }
-
-      .status {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: var(--muted);
-      }
-
-      .status::before {
-        width: 0.48rem;
-        height: 0.48rem;
-        border: 1px solid currentColor;
-        border-radius: 50%;
-        content: "";
-      }
-
-      .status[data-live] {
-        color: var(--ink);
-      }
-
-      .status[data-live]::before {
-        border-color: var(--live);
-        background: var(--live);
-        box-shadow: 0 0 0.8rem rgb(63 178 107 / 0.6);
-      }
-
-      .panel {
-        position: fixed;
-        z-index: 3;
-        top: 50%;
-        width: min(20rem, 26vw);
-        max-height: calc(100vh - 11rem);
-        transform: translateY(-50%);
-        display: flex;
-        flex-direction: column;
-      }
-
-      .panels {
-        display: contents;
-      }
-
-      .board {
-        left: clamp(1rem, 3vw, 2rem);
-      }
-
-      .feed {
-        right: clamp(1rem, 3vw, 2rem);
-      }
-
-      .kicker {
-        color: var(--muted);
-      }
-
       .total {
-        margin: 0.6rem 0 0.15rem;
-        font-family: var(--mono);
-        font-size: clamp(2.4rem, 4.2vw, 3.6rem);
-        font-variant-numeric: tabular-nums;
-        font-weight: 540;
-        line-height: 0.9;
-        letter-spacing: -0.06em;
-      }
-
-      .total-sub {
-        margin: 0 0 1rem;
         color: var(--muted);
-        font-size: 0.9rem;
+        font-size: 13px;
       }
 
       .periods {
         display: flex;
-        gap: 0.2rem;
-        margin-bottom: 0.9rem;
-        padding: 0.2rem;
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        background: var(--panel);
-        align-self: flex-start;
+        gap: 2px;
+        margin: 12px 0 8px;
+        border-radius: 8px;
+        padding: 2px;
+        background: var(--well);
+        box-shadow: inset 0 0 0 1px var(--line);
+
+        button {
+          flex: 1;
+          border: 0;
+          border-radius: 6px;
+          padding: 5px 0;
+          color: var(--soft);
+          background: none;
+          font-size: 13px;
+          cursor: pointer;
+
+          &:hover {
+            color: var(--ink);
+          }
+
+          &[aria-pressed="true"] {
+            color: var(--ink);
+            background: var(--card);
+            box-shadow: 0 0 0 1px var(--line-strong), 0 1px 2px rgb(0 0 0 / 0.3);
+          }
+        }
       }
 
-      .periods button {
-        min-width: 2.6rem;
-        padding: 0.35rem 0.6rem;
-        border: 0;
-        border-radius: 999px;
-        background: none;
-        color: var(--muted);
-        cursor: pointer;
-      }
-
-      .periods button:hover {
-        color: var(--ink);
-      }
-
-      .periods button[aria-pressed="true"] {
-        background: var(--ink);
-        color: var(--bg);
-      }
-
-      .list {
-        min-height: 0;
+      .countries {
         margin: 0;
         padding: 0;
-        overflow-y: auto;
         list-style: none;
-        scrollbar-width: thin;
-        scrollbar-color: var(--faint) transparent;
-        mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5rem), transparent);
       }
 
-      .row {
-        display: grid;
-        width: 100%;
-        padding: 0.5rem 0.55rem 0.55rem;
-        border: 0;
-        border-radius: 0.6rem;
-        background: none;
-        text-align: left;
-        cursor: pointer;
-        grid-template-columns: 1.3rem 1.3rem 1fr auto;
-        align-items: center;
-        column-gap: 0.55rem;
-        row-gap: 0.4rem;
-        transition: background-color 0.2s;
-      }
-
-      .row:hover,
-      .row[data-active] {
-        background: rgb(255 255 255 / 0.06);
-      }
-
-      .row:focus-visible {
-        outline: 1px solid var(--muted);
-      }
-
-      .row[data-bump] {
-        animation: bump 2.4s ease-out;
-      }
-
-      @keyframes bump {
-        0% {
-          background: rgb(247 147 26 / 0.32);
-        }
-      }
-
-      .rank {
-        color: var(--faint);
-        font-family: var(--mono);
-        font-size: 0.72rem;
-        font-variant-numeric: tabular-nums;
-      }
-
-      .flag {
-        display: block;
-        width: 1.3rem;
-        height: 0.95rem;
-        border-radius: 2px;
-        object-fit: cover;
-        background: var(--line);
-        box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
-      }
-
-      .moon-icon {
-        display: block;
-        width: 0.95rem;
-        height: 0.95rem;
-        margin-inline: auto;
-        border-radius: 50%;
-        background: radial-gradient(circle at 35% 30%, #4a4e57, #26292f 75%);
-        box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.09);
-      }
-
-      .name {
-        overflow: hidden;
-        font-size: 0.92rem;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .count {
-        font-family: var(--mono);
-        font-size: 0.82rem;
-        font-variant-numeric: tabular-nums;
-      }
-
-      .count small {
-        margin-left: 0.4rem;
-        color: var(--muted);
-        font-size: 0.72rem;
-      }
-
-      .bar {
-        height: 2px;
-        border-radius: 2px;
-        background: var(--line);
-        grid-column: 3 / -1;
-      }
-
-      .bar i {
-        display: block;
-        height: 100%;
-        border-radius: inherit;
-        background: var(--accent);
-        transition: width 0.6s ease;
-      }
-
-      .row.moon .bar i {
-        background: #8b8f98;
-      }
-
-      .feed h2 {
-        margin: 0 0 0.7rem;
-        color: var(--muted);
-      }
-
-      .feed .list {
-        display: grid;
-        gap: 0.1rem;
-      }
-
-      .block {
-        grid-template-columns: 1.3rem 1fr auto;
-        row-gap: 0.15rem;
-      }
-
-      .block .meta {
-        color: var(--muted);
-        font-family: var(--mono);
-        font-size: 0.72rem;
-        font-variant-numeric: tabular-nums;
-        grid-column: 2 / -1;
-      }
-
-      .block[data-new] {
-        animation: bump 3s ease-out;
-      }
-
-      .note {
-        position: fixed;
-        z-index: 3;
-        right: 0;
-        bottom: 0;
-        left: 0;
-        margin: 0;
-        padding: 0 clamp(1rem, 3vw, 2rem) clamp(1rem, 2.4vw, 1.5rem);
-        color: var(--faint);
-        font-size: 0.78rem;
-        text-align: center;
-        pointer-events: none;
-      }
-
-      .toast {
-        position: fixed;
-        z-index: 5;
-        top: clamp(0.8rem, 2vw, 1.25rem);
-        left: 50%;
-        display: flex;
-        align-items: center;
-        max-width: calc(100vw - 2rem);
-        padding: 0.45rem 0.95rem;
-        border: 1px solid rgb(247 147 26 / 0.45);
-        border-radius: 999px;
-        white-space: nowrap;
-        background: rgb(12 13 16 / 0.86);
-        box-shadow: 0 0 2.5rem rgb(247 147 26 / 0.18);
-        text-align: center;
-        opacity: 0;
-        transform: translate(-50%, -0.6rem);
-        transition:
-          opacity 0.4s,
-          transform 0.4s;
-        pointer-events: none;
-        gap: 0.75rem;
-        backdrop-filter: blur(8px);
-      }
-
-      .toast[data-show] {
-        opacity: 1;
-        transform: translate(-50%, 0);
-      }
-
-      .toast .label {
-        color: var(--accent);
-      }
-
-      .toast strong {
-        font-family: var(--mono);
-        font-size: 1rem;
-        font-variant-numeric: tabular-nums;
-        font-weight: 560;
-        letter-spacing: -0.03em;
-      }
-
-      .toast span:last-child {
-        display: inline-flex;
-        align-items: center;
-        min-width: 0;
-        overflow: hidden;
-        gap: 0.45rem;
-        color: var(--muted);
-        font-size: 0.85rem;
-        text-overflow: ellipsis;
-      }
-
-      .toast .flag {
-        width: 1.1rem;
-        height: 0.8rem;
-      }
-
-      .tip {
-        position: fixed;
-        z-index: 6;
-        top: 0;
-        left: 0;
-        width: max-content;
-        max-width: 16.5rem;
-        padding: 0.75rem 0.85rem;
-        border: 1px solid var(--line);
-        border-radius: 0.8rem;
-        background: rgb(14 15 18 / 0.92);
-        box-shadow: 0 0.8rem 2rem rgb(0 0 0 / 0.45);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.15s;
-        backdrop-filter: blur(8px);
-      }
-
-      .tip[data-show] {
-        opacity: 1;
-      }
-
-      .tip-head {
-        display: flex;
-        align-items: center;
-        gap: 0.55rem;
-        font-weight: 600;
-      }
-
-      .tip-head .moon-icon {
-        margin: 0;
-      }
-
-      .tip-head .flag {
-        width: 1.6rem;
-        height: 1.15rem;
-      }
-
-      .tip-num {
-        margin-top: 0.55rem;
-        font-family: var(--mono);
-        font-size: 1.5rem;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: -0.04em;
-      }
-
-      .tip-sub {
-        color: var(--muted);
-        font-size: 0.8rem;
-      }
-
-      .tip ul {
-        display: grid;
-        margin: 0.6rem 0 0;
-        padding: 0.55rem 0 0;
+      .country {
         border-top: 1px solid var(--line);
-        list-style: none;
-        gap: 0.2rem;
-        font-size: 0.8rem;
-      }
 
-      .tip li {
-        display: flex;
-        justify-content: space-between;
-        gap: 1.2rem;
-      }
-
-      .tip li span:last-child {
-        color: var(--muted);
-        font-family: var(--mono);
-        font-variant-numeric: tabular-nums;
-      }
-
-      .tip p {
-        margin: 0.55rem 0 0;
-        color: var(--muted);
-        font-size: 0.75rem;
-        line-height: 1.4;
-      }
-
-      .error {
-        position: fixed;
-        z-index: 7;
-        inset: 0;
-        display: none;
-        place-content: center;
-        gap: 0.4rem;
-        color: var(--muted);
-        text-align: center;
-        background: rgb(7 8 10 / 0.88);
-      }
-
-      .error[data-show] {
-        display: grid;
-      }
-
-      .error strong {
-        color: var(--ink);
-      }
-
-      /* Narrow screens: globe on top, panels flow underneath. */
-      @media (max-width: 1100px) {
-        body {
-          overflow: auto;
+        &:first-child {
+          border-top: 0;
         }
 
-        .stage {
-          position: relative;
-          height: min(92vw, 70svh);
-          margin-top: 3.4rem;
-        }
-
-        .panels {
+        > button {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
-          gap: 1rem 2rem;
-          padding: 0.5rem 1rem 1.5rem;
+          grid-template-columns: 10px minmax(0, 1fr) auto auto;
+          gap: 2px 10px;
+          align-items: center;
+          width: 100%;
+          border: 0;
+          border-radius: 8px;
+          padding: 9px 6px;
+          text-align: left;
+          background: none;
+          cursor: pointer;
+
+          &:hover {
+            background: var(--hover);
+          }
         }
 
-        canvas {
-          touch-action: pan-y;
+        &.active > button {
+          background: var(--hover);
+          box-shadow: inset 0 0 0 1px var(--line-strong);
         }
 
-        .panel {
-          position: static;
-          width: auto;
-          max-height: none;
-          margin: 0;
-          transform: none;
+        .swatch {
+          width: 10px;
+          height: 10px;
+          border-radius: 3px;
+          background: var(--color);
         }
 
-        .feed .list {
-          max-height: 22rem;
-        }
-
-        .note {
-          position: static;
-          padding-bottom: 2rem;
-        }
-
-        header {
-          position: absolute;
-        }
-
-        .toast {
-          top: 3.6rem;
-          display: grid;
-          justify-items: center;
-          gap: 0.15rem;
-          padding: 0.55rem 1rem;
-          border-radius: 1rem;
-        }
-      }
-
-      /* Thumbnail previews: just the globe. */
-      @media (max-width: 520px) and (max-height: 520px), (max-height: 300px) {
-        body {
+        .name {
           overflow: hidden;
+          color: var(--ink);
+          font-weight: 500;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
-        .stage {
-          position: fixed;
-          height: auto;
-          margin: 0;
+        .count {
+          color: var(--muted);
+          font-size: 13px;
         }
 
-        header,
-        .panels,
-        .note,
-        .toast {
+        /* (Its hashrate, as its share of the network's says.) */
+        .rate {
+          margin-left: 8px;
+          color: var(--muted);
+          font-size: 11px;
+          font-weight: 400;
+        }
+
+        .share {
+          min-width: 4.5ch;
+          color: var(--ink);
+          font-size: 13px;
+          text-align: right;
+        }
+
+        .bar {
+          grid-column: 2 / -1;
+          height: 3px;
+          border-radius: 2px;
+          background: linear-gradient(90deg, var(--color) var(--share), var(--line) var(--share));
+        }
+
+        .pools {
+          margin: 0 0 8px 26px;
+          padding: 0;
+          color: var(--soft);
+          font-size: 13px;
+          list-style: none;
+
+          li {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 2px 6px 2px 0;
+          }
+        }
+      }
+
+      /* ── History: each country's share by month, a cursor to read one ── */
+
+      .page > section {
+        padding: 40px 0 0;
+      }
+
+      /* The history's notes: a word above the month each happened, a line down to it (on two rows, so near ones don't meet). */
+      /* (Each label on a row, and to a side of its line: --anchor 0 starts at it, 0.5 centers on it, 1 ends at it.) */
+      .events {
+        position: relative;
+        height: calc(26px + var(--top, 1) * 18px);
+        margin-top: 12px;
+        color: var(--soft);
+        font-size: 11px;
+
+        span {
+          position: absolute;
+          bottom: calc(6px + var(--row, 0) * 18px);
+          translate: calc(var(--anchor, 0.5) * -100%) 0;
+          white-space: nowrap;
+
+          &::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: calc(var(--anchor, 0.5) * 100%);
+            height: calc(6px + var(--row, 0) * 18px);
+            border-left: 1px dashed var(--soft);
+          }
+        }
+      }
+
+      h2 {
+        margin: 0;
+        color: var(--ink);
+        font-size: clamp(24px, 3.4vw, 34px);
+        font-weight: 300;
+        letter-spacing: -0.025em;
+      }
+
+      .kicker {
+        margin: 0 0 8px;
+      }
+
+      .section-lede {
+        max-width: 40em;
+        margin: 6px 0 0;
+        color: var(--soft);
+        text-wrap: pretty;
+      }
+
+      .history {
+        margin-top: 20px;
+        padding: 16px 18px 12px;
+      }
+
+      .history-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px 16px;
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 14px;
+        margin: 0;
+        padding: 0;
+        color: var(--soft);
+        font-size: 12px;
+        list-style: none;
+
+        li {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+
+          &::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            background: var(--color);
+          }
+        }
+      }
+
+      .play {
+        border: 0;
+        border-radius: 8px;
+        padding: 5px 12px;
+        background: var(--well);
+        box-shadow: inset 0 0 0 1px var(--line-strong);
+        font-size: 13px;
+        cursor: pointer;
+
+        &:hover:not(:disabled) {
+          background: var(--hover);
+        }
+
+        /* (Nothing to play yet.) */
+        &:disabled {
+          opacity: 0.45;
+          cursor: default;
+        }
+      }
+
+      .area {
+        position: relative;
+        aspect-ratio: 4;
+        margin-top: 14px;
+        touch-action: pan-y;
+        cursor: crosshair;
+
+        @media (max-width: 600px) {
+          aspect-ratio: 2;
+        }
+
+        svg {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          border-radius: 6px;
+        }
+
+        .cursor {
+          position: absolute;
+          top: -4px;
+          bottom: -4px;
+          border-left: 2px solid var(--ink);
+          pointer-events: none;
+
+          &[hidden] {
+            display: none;
+          }
+        }
+      }
+
+      .years {
+        position: relative;
+        height: 18px;
+        margin-top: 6px;
+        color: var(--muted);
+        font-size: 11px;
+
+        span {
+          position: absolute;
+          translate: -50% 0;
+        }
+      }
+
+      /* ── The latest blocks ── */
+
+      /* The latest blocks: a strip along the planet's foot (two rows of two, on a phone). */
+      .ticker {
+        display: grid;
+        gap: 8px;
+      }
+
+      .latest {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+
+        /* (Four, two by two on a phone, a row on a wide page; six where there's room.) */
+        @media (max-width: 1439px) {
+          li:nth-child(n + 5) {
+            display: none;
+          }
+        }
+
+        @media (min-width: 1024px) {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        @media (min-width: 1440px) {
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+
+        li {
+          display: grid;
+          grid-template-columns: 10px minmax(0, 1fr);
+          gap: 2px 10px;
+          align-items: center;
+          border-radius: 10px;
+          padding: 10px 12px;
+          background: var(--card);
+          box-shadow: var(--sheen), 0 0 0 1px var(--line);
+          backdrop-filter: blur(14px);
+          font-size: 13px;
+
+          /* (A block new to the list, arriving.) */
+          &.new {
+            animation: arrive 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+          }
+        }
+
+        .swatch {
+          width: 10px;
+          height: 10px;
+          border-radius: 3px;
+          background: var(--color);
+        }
+
+        b {
+          overflow: hidden;
+          color: var(--ink);
+          font-weight: 500;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .meta {
+          grid-column: 2;
+          overflow: hidden;
+          color: var(--muted);
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        /* (The height and the age: one line, or two where a card is narrow.) */
+        .stamp {
+          display: flex;
+          flex-wrap: wrap;
+          column-gap: 10px;
+          white-space: normal;
+        }
+      }
+
+      /* (What's said of new blocks: to a screen reader only.) */
+      .said {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      @keyframes arrive {
+        from {
+          opacity: 0;
+          translate: 0 6px;
+        }
+      }
+
+      .float {
+        position: fixed;
+        z-index: 10;
+        max-width: 260px;
+        border-radius: 10px;
+        padding: 10px 12px;
+        background: var(--card);
+        box-shadow: var(--pop);
+        font-size: 13px;
+        pointer-events: none;
+
+        &[hidden] {
           display: none;
         }
+
+        b {
+          display: block;
+          color: var(--ink);
+          font-weight: 600;
+        }
       }
 
-      @media (prefers-reduced-motion: no-preference) {
-        .status[data-live]::before {
-          animation: breathe 2.4s ease-in-out infinite;
-        }
+      .message {
+        padding: 48px 16px;
+        color: var(--soft);
+        text-align: center;
+      }
 
-        @keyframes breathe {
-          50% {
-            box-shadow: 0 0 1.4rem rgb(63 178 107 / 0.9);
-          }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
         }
       }
     </style>
   </head>
   <body>
-    <header class="label">
-      <a href="/">← Bitview</a>
-      <div class="controls">
-        <button class="sound label" id="sound" type="button" aria-pressed="false" title="Play a chime for each new block">
-          <svg class="off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="m22 9-6 6M16 9l6 6"/></svg>
-          <svg class="on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>
-          <span>Sound</span>
-        </button>
-        <span class="status" id="status">Connecting</span>
+    <main>
+      <!-- The planet: the whole first screen; over it, the page's name, the countries, the latest blocks. -->
+      <section class="hero" aria-labelledby="title">
+        <canvas id="globe" role="img" aria-label="A globe, each country shaded by its share of the blocks; the list of countries has the same."></canvas>
+        <header class="top">
+          <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+          <span class="crumb" aria-hidden="true">/</span>
+          <span>Globe</span>
+          <span class="tip-height" id="tip" hidden>Block <b class="num" id="tip-height"></b></span>
+        </header>
+        <div class="hero-text">
+          <p class="kicker">Bitcoin, from orbit</p>
+          <h1 id="title">Where blocks are mined</h1>
+          <p class="lede">
+            Every block by where its mining pool is based: the pool's home, not where its machines run, which no one can
+            see from the chain.
+          </p>
+        </div>
+        <div class="board surface">
+          <div class="board-head">
+            <span class="when" id="when"></span>
+            <span class="total num" id="total"></span>
+          </div>
+          <div class="periods" role="group" aria-label="Over" id="periods"></div>
+          <ol class="countries" id="countries" aria-label="Countries by blocks"></ol>
+        </div>
+        <div class="ticker">
+          <span class="kicker" id="latest-title">Latest blocks</span>
+          <ol class="latest" id="latest" aria-labelledby="latest-title"></ol>
+          <p class="said" id="said" role="status"></p>
+        </div>
+      </section>
+
+      <div class="page">
+        <section aria-labelledby="history-title">
+          <p class="kicker">Since 2011</p>
+          <h2 id="history-title">How it moved</h2>
+          <p class="section-lede">Each country's share of the blocks, month by month. Point at a month, or drag along it, to see it on the globe; play it to watch it move.</p>
+          <div class="history surface">
+            <div class="history-head">
+              <ul class="legend" id="legend"></ul>
+              <button type="button" class="play" id="play" disabled>Play</button>
+            </div>
+            <div class="events" id="events" aria-hidden="true"></div>
+            <div class="message" id="history-message">Loading…</div>
+            <div class="area" id="area" hidden></div>
+            <div class="years" id="years" aria-hidden="true"></div>
+          </div>
+        </section>
       </div>
-    </header>
-
-    <div class="stage">
-      <canvas id="globe" tabindex="-1" aria-label="Rotating globe showing where Bitcoin blocks were mined. The country list holds the same data."></canvas>
-    </div>
-
-    <div class="panels">
-    <section class="panel board" aria-labelledby="board-title">
-      <span class="label kicker" id="board-title">Blocks mined by country</span>
-      <p class="total" id="total">—</p>
-      <p class="total-sub" id="total-sub">Loading…</p>
-      <div class="periods label" id="periods" role="group" aria-label="Time period"></div>
-      <ol class="list" id="board"></ol>
-    </section>
-
-    <section class="panel feed" aria-labelledby="feed-title">
-      <h2 class="label" id="feed-title">Latest blocks · tap to replay</h2>
-      <ol class="list" id="feed"></ol>
-    </section>
-    </div>
-
-    <p class="note">
-      Countries are where each mining pool is headquartered, not where its machines run. Blocks
-      without a known home orbit as the moon.
-    </p>
-
-    <div class="toast" id="toast" aria-live="polite"></div>
-    <div class="tip" id="tip" role="tooltip"></div>
-    <div class="error" id="error" role="alert"><strong>Can’t reach Bitview right now.</strong><span id="error-text"></span></div>
-
+    </main>
+    <div class="float" id="float" hidden aria-hidden="true"></div>
     <script type="module">
       // @ts-check
-
-      // The server that serves the page.
-      const BASE = location.origin;
-      const ATLAS = "../modules/world-atlas/2.0.2/countries-110m.json";
-      const POLL_MS = 10_000;
-
-      const PERIODS = [
-        ["24h", "24h", "in the past 24 hours"],
-        ["1w", "1W", "in the past week"],
-        ["1m", "1M", "in the past month"],
-        ["1y", "1Y", "in the past year"],
-        ["all", "All", "since the genesis block"],
-      ];
+      // Where blocks are mined: each pool's home country (researched below), every block counted there; over a period, or
+      // month by month since 2011; live as blocks are found. All from the server that serves the page, but the map
+      // (world-atlas, kept beside the page).
+      const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+      const grouped = (/** @type {number} */ n) => n.toLocaleString("en-US");
+      const percent = (/** @type {number} */ share) => (share > 0 && share < 0.001 ? "<0.1%" : `${(share * 100).toFixed(share >= 0.1 ? 0 : 1)}%`);
+      const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+      const canvas = /** @type {HTMLCanvasElement} */ ($("globe"));
+      const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
 
       // Countries that host at least one known pool. `at` is [lon, lat] of the
       // marker; `id` is the ISO 3166-1 numeric code used by world-atlas.
       const COUNTRIES = {
-        US: { id: "840", name: "United States", at: [-98.5, 39.5], color: "#3c3b6e" },
-        CN: { id: "156", name: "China", at: [104, 35], color: "#de2910" },
-        CA: { id: "124", name: "Canada", at: [-106, 56], color: "#d52b1e" },
-        JP: { id: "392", name: "Japan", at: [138.3, 36.2], color: "#bc002d" },
-        IN: { id: "356", name: "India", at: [79, 22], color: "#ff9933" },
-        NO: { id: "578", name: "Norway", at: [9, 61], color: "#ba0c2f" },
-        RU: { id: "643", name: "Russia", at: [90, 60], color: "#0039a6" },
-        AU: { id: "036", name: "Australia", at: [134, -25], color: "#012169" },
-        GB: { id: "826", name: "United Kingdom", at: [-2, 54], color: "#012169" },
-        PL: { id: "616", name: "Poland", at: [19.4, 52], color: "#dc143c" },
-        SE: { id: "752", name: "Sweden", at: [15, 62], color: "#006aa7" },
-        DE: { id: "276", name: "Germany", at: [10.4, 51.1], color: "#dd0000" },
-        CZ: { id: "203", name: "Czechia", at: [15.5, 49.8], color: "#11457e" },
-        SI: { id: "705", name: "Slovenia", at: [14.8, 46.1], color: "#005da4" },
-        NL: { id: "528", name: "Netherlands", at: [5.3, 52.2], color: "#ae1c28" },
-        UA: { id: "804", name: "Ukraine", at: [31, 49], color: "#0057b7" },
-        AE: { id: "784", name: "United Arab Emirates", at: [54, 24], color: "#00732f" },
-        SG: { id: "702", name: "Singapore", at: [103.82, 1.35], color: "#ee2536", tiny: true },
-        SC: { id: "690", name: "Seychelles", at: [55.49, -4.68], color: "#003f87", tiny: true },
-        HK: { id: "344", name: "Hong Kong", at: [114.17, 22.32], color: "#de2910", tiny: true },
-        LT: { id: "440", name: "Lithuania", at: [23.9, 55.3], color: "#006a44" },
-        NZ: { id: "554", name: "New Zealand", at: [172.5, -41.5], color: "#012169" },
+        US: { id: "840", name: "United States", at: [-98.5, 39.5] },
+        CN: { id: "156", name: "China", at: [104, 35] },
+        CA: { id: "124", name: "Canada", at: [-106, 56] },
+        JP: { id: "392", name: "Japan", at: [138.3, 36.2] },
+        IN: { id: "356", name: "India", at: [79, 22] },
+        NO: { id: "578", name: "Norway", at: [9, 61] },
+        RU: { id: "643", name: "Russia", at: [90, 60] },
+        AU: { id: "036", name: "Australia", at: [134, -25] },
+        GB: { id: "826", name: "United Kingdom", at: [-2, 54] },
+        PL: { id: "616", name: "Poland", at: [19.4, 52] },
+        SE: { id: "752", name: "Sweden", at: [15, 62] },
+        DE: { id: "276", name: "Germany", at: [10.4, 51.1] },
+        CZ: { id: "203", name: "Czechia", at: [15.5, 49.8] },
+        SI: { id: "705", name: "Slovenia", at: [14.8, 46.1] },
+        NL: { id: "528", name: "Netherlands", at: [5.3, 52.2] },
+        UA: { id: "804", name: "Ukraine", at: [31, 49] },
+        AE: { id: "784", name: "United Arab Emirates", at: [54, 24] },
+        SG: { id: "702", name: "Singapore", at: [103.82, 1.35] },
+        SC: { id: "690", name: "Seychelles", at: [55.49, -4.68] },
+        HK: { id: "344", name: "Hong Kong", at: [114.17, 22.32] },
+        LT: { id: "440", name: "Lithuania", at: [23.9, 55.3] },
+        NZ: { id: "554", name: "New Zealand", at: [172.5, -41.5] },
       };
 
       // Where each pool is run from, by Bitview pool slug. That's the operating
@@ -773,213 +840,6 @@
       );
       const CC_BY_ID = new Map(Object.entries(COUNTRIES).map(([cc, c]) => [c.id, cc]));
 
-      /** @type {(id: string) => any} */
-      const $ = (id) => document.getElementById(id);
-      const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const number = new Intl.NumberFormat("en-US");
-      const percent = new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 1 });
-      // Minimal flags, drawn here: recognizable as icons and as a fill on the globe (30×20).
-      const star = (x, y, r, turn = 0) =>
-        `<polygon points="${Array.from({ length: 10 }, (_, i) => {
-          const a = turn + (i * Math.PI) / 5 - Math.PI / 2;
-          const d = i % 2 ? r * 0.4 : r;
-          return `${(x + d * Math.cos(a)).toFixed(2)},${(y + d * Math.sin(a)).toFixed(2)}`;
-        }).join(" ")}"/>`;
-      const bands = (colors, vertical = false) =>
-        colors.map((color, i) => {
-          const size = (vertical ? 30 : 20) / colors.length;
-          return vertical
-            ? `<rect x="${size * i}" width="${size + 0.05}" height="20" fill="${color}"/>`
-            : `<rect y="${size * i}" width="30" height="${size + 0.05}" fill="${color}"/>`;
-        }).join("");
-      const nordic = (field, cross, inner) =>
-        `<rect width="30" height="20" fill="${field}"/><path d="M8 0h4v20H8zM0 8h30v4H0z" fill="${cross}"/>` +
-        (inner ? `<path d="M9 0h2v20H9zM0 9h30v2H0z" fill="${inner}"/>` : "");
-      const UNION =
-        `<rect width="30" height="20" fill="#012169"/><path d="M0 0L30 20M30 0L0 20" stroke="#fff" stroke-width="4"/>` +
-        `<path d="M0 0L30 20M30 0L0 20" stroke="#c8102e" stroke-width="1.4"/><path d="M15 0v20M0 10h30" stroke="#fff" stroke-width="6"/>` +
-        `<path d="M15 0v20M0 10h30" stroke="#c8102e" stroke-width="3.6"/>`;
-      const CANTON = `<svg width="15" height="10" viewBox="0 0 30 20">${UNION}</svg>`;
-      const FLAGS = {
-        US: `<rect width="30" height="20" fill="#fff"/><path d="${Array.from({ length: 7 }, (_, i) => `M0 ${(i * 40) / 13}h30v${20 / 13}H0z`).join("")}" fill="#b22234"/><rect width="12" height="${140 / 13}" fill="#3c3b6e"/><g fill="#fff">${Array.from({ length: 20 }, (_, i) => `<circle cx="${1.5 + (i % 5) * 2.25}" cy="${1.4 + Math.floor(i / 5) * 2.6}" r=".5"/>`).join("")}</g>`,
-        CN: `<rect width="30" height="20" fill="#ee1c25"/><g fill="#ffde00">${star(5, 5, 3)}${star(10, 2, 1, 0.5)}${star(12, 4, 1, 0.9)}${star(12, 7, 1, 0)}${star(10, 9, 1, 0.5)}</g>`,
-        CA: `${bands(["#d52b1e", "#fff", "#fff", "#d52b1e"], true)}<path d="M15 4.4l1.1 2.2 1.3-.6-.5 3.2 1.9-2 .4 1.1 2-.4-.7 2 .9.4-3.2 2.6.3 1.1-3-.4V17h-1v-3.4l-3 .4.3-1.1-3.2-2.6.9-.4-.7-2 2 .4.4-1.1 1.9 2-.5-3.2 1.3.6z" fill="#d52b1e"/>`,
-        JP: `<rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="6" fill="#bc002d"/>`,
-        IN: `${bands(["#ff9933", "#fff", "#138808"])}<circle cx="15" cy="10" r="2.4" fill="none" stroke="#000080" stroke-width=".6"/><circle cx="15" cy="10" r=".6" fill="#000080"/>`,
-        NO: nordic("#ba0c2f", "#fff", "#00205b"),
-        RU: bands(["#fff", "#0039a6", "#d52b1e"]),
-        AU: `<rect width="30" height="20" fill="#012169"/>${CANTON}<g fill="#fff">${star(7.5, 15, 2.2)}${star(22.5, 15.5, 1.2)}${star(19.5, 9, 1.1)}${star(25.5, 8, 1.1)}${star(22.5, 3.8, 1.1)}</g>`,
-        GB: UNION,
-        PL: bands(["#fff", "#dc143c"]),
-        SE: nordic("#006aa7", "#fecc00"),
-        DE: bands(["#000", "#dd0000", "#ffce00"]),
-        CZ: `${bands(["#fff", "#d7141a"])}<path d="M0 0l15 10L0 20z" fill="#11457e"/>`,
-        SI: `${bands(["#fff", "#005da4", "#ed1c24"])}<path d="M6 3.4h5v3.4c0 2-2.5 3-2.5 3S6 8.8 6 6.8z" fill="#005da4" stroke="#ed1c24" stroke-width=".4"/><path d="M6.7 7.3l1.8-2.2 1.8 2.2z" fill="#fff"/>`,
-        NL: bands(["#ae1c28", "#fff", "#21468b"]),
-        UA: bands(["#0057b7", "#ffd700"]),
-        AE: `${bands(["#00732f", "#fff", "#000"])}<rect width="7.5" height="20" fill="#ff0000"/>`,
-        SG: `${bands(["#ef3340", "#fff"])}<circle cx="6.5" cy="5" r="3.2" fill="#fff"/><circle cx="7.8" cy="5" r="3" fill="#ef3340"/><g fill="#fff">${[0, 1, 2, 3, 4].map((i) => star(10.2 + 1.6 * Math.cos(-Math.PI / 2 + (i * 2 * Math.PI) / 5), 5 + 1.6 * Math.sin(-Math.PI / 2 + (i * 2 * Math.PI) / 5), 0.55)).join("")}</g>`,
-        SC: `<path d="M0 20V0h10z" fill="#003f87"/><path d="M0 20L10 0h10z" fill="#fcd856"/><path d="M0 20L20 0h10v6.7z" fill="#d62828"/><path d="M0 20l30-13.3v6.6z" fill="#fff"/><path d="M0 20l30-6.7V20z" fill="#007a3d"/>`,
-        HK: `<rect width="30" height="20" fill="#de2910"/><g fill="#fff">${[0, 1, 2, 3, 4].map((i) => `<ellipse cx="15" cy="6.6" rx="1.5" ry="3.3" transform="rotate(${i * 72 + 18} 15 10)"/>`).join("")}</g>`,
-        LT: bands(["#fdb913", "#006a44", "#c1272d"]),
-        NZ: `<rect width="30" height="20" fill="#012169"/>${CANTON}<g fill="#c8102e" stroke="#fff" stroke-width=".4">${star(22.5, 15.5, 1.5)}${star(19.5, 8.5, 1.2)}${star(25.5, 7.5, 1.1)}${star(22.5, 3.6, 1.1)}</g>`,
-      };
-      const flagUrl = (cc) =>
-        `data:image/svg+xml;charset=utf-8,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 20" width="300" height="200">${FLAGS[cc] ?? ""}</svg>`)}`;
-
-      function el(tag, className, text) {
-        const node = document.createElement(tag);
-        if (className) node.className = className;
-        if (text !== undefined) node.textContent = text;
-        return node;
-      }
-
-      function flagImg(cc) {
-        const img = el("img", "flag");
-        img.src = flagUrl(cc);
-        img.alt = "";
-        img.loading = "lazy";
-        return img;
-      }
-
-      function ago(timestamp) {
-        const s = Math.max(0, Date.now() / 1000 - timestamp);
-        if (s < 60) return "just now";
-        if (s < 3600) return `${Math.floor(s / 60)} min ago`;
-        if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
-        return `${Math.floor(s / 86400)} d ago`;
-      }
-
-      // ── Client ────────────────────────────────────────────────────────────
-
-      async function loadClient() {
-        const { BitviewClient } = await import("../modules/bitview-client/index.js");
-        return new BitviewClient({ baseUrl: BASE, timeout: 25_000 });
-      }
-
-      async function loadAtlas() {
-        const response = await fetch(ATLAS, { signal: AbortSignal.timeout(30_000) });
-        if (!response.ok) throw new Error(`Map download failed (HTTP ${response.status}).`);
-        return response.json();
-      }
-
-      // ── Stats ─────────────────────────────────────────────────────────────
-
-      function emptyStats() {
-        return { total: 0, countries: new Map(), moon: { count: 0, unidentified: 0, pools: [] } };
-      }
-
-      function tally(pools) {
-        const stats = emptyStats();
-        for (const { slug, name, blockCount } of pools) if (blockCount) addBlocks(stats, slug, name, blockCount);
-        return stats;
-      }
-
-      function addBlocks(stats, slug, name, n = 1) {
-        stats.total += n;
-        const cc = POOL_COUNTRY.get(slug);
-        let bucket;
-        if (cc) {
-          bucket = stats.countries.get(cc);
-          if (!bucket) stats.countries.set(cc, (bucket = { cc, count: 0, pools: [] }));
-        } else {
-          bucket = stats.moon;
-          if (slug === "unknown") {
-            bucket.count += n;
-            bucket.unidentified += n;
-            return;
-          }
-        }
-        bucket.count += n;
-        const pool = bucket.pools.find((p) => p.slug === slug);
-        if (pool) pool.count += n;
-        else bucket.pools.push({ slug, name, count: n });
-        bucket.pools.sort((a, b) => b.count - a.count);
-      }
-
-      function ranked(stats) {
-        return [...stats.countries.values()].sort((a, b) => b.count - a.count);
-      }
-
-      // ── Sound ─────────────────────────────────────────────────────────────
-
-      let audio;
-      let soundOn = false;
-      try {
-        soundOn = localStorage.getItem("globe:sound") === "on";
-      } catch {}
-
-      function ensureAudio() {
-        audio ??= new AudioContext();
-        if (audio.state === "suspended") audio.resume();
-        return audio;
-      }
-
-      // A soft low thump followed by a two-note bell. The note depends on the
-      // country so the same place always sounds the same.
-      function chime(cc) {
-        if (!soundOn || !audio) return;
-        const ctx = audio;
-        const t = ctx.currentTime + 0.02;
-        const out = ctx.createGain();
-        out.gain.value = 0.5;
-        out.connect(ctx.destination);
-
-        const thump = ctx.createOscillator();
-        const thumpGain = ctx.createGain();
-        thump.frequency.setValueAtTime(110, t);
-        thump.frequency.exponentialRampToValueAtTime(42, t + 0.35);
-        thumpGain.gain.setValueAtTime(0.0001, t);
-        thumpGain.gain.exponentialRampToValueAtTime(0.5, t + 0.01);
-        thumpGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
-        thump.connect(thumpGain).connect(out);
-        thump.start(t);
-        thump.stop(t + 0.65);
-
-        const scale = [523.25, 587.33, 659.25, 783.99, 880, 1046.5];
-        const index = cc ? [...cc].reduce((s, c) => s + c.charCodeAt(0), 0) % scale.length : 0;
-        const base = cc ? scale[index] : 392;
-        [base, base * 1.5].forEach((f, i) => {
-          const start = t + 0.08 + i * 0.11;
-          for (const [ratio, level, decay] of [
-            [1, 0.22, 2.2],
-            [2.01, 0.07, 1.2],
-            [3.0, 0.03, 0.7],
-          ]) {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = "sine";
-            osc.frequency.value = f * ratio;
-            gain.gain.setValueAtTime(0.0001, start);
-            gain.gain.exponentialRampToValueAtTime(level, start + 0.008);
-            gain.gain.exponentialRampToValueAtTime(0.0001, start + decay);
-            osc.connect(gain).connect(out);
-            osc.start(start);
-            osc.stop(start + decay + 0.05);
-          }
-        });
-      }
-
-      const soundButton = $("sound");
-      soundButton.setAttribute("aria-pressed", String(soundOn));
-      soundButton.addEventListener("click", () => {
-        soundOn = !soundOn;
-        soundButton.setAttribute("aria-pressed", String(soundOn));
-        try {
-          localStorage.setItem("globe:sound", soundOn ? "on" : "off");
-        } catch {}
-        if (soundOn) {
-          ensureAudio();
-          chime("US");
-        }
-      });
-      // Browsers only start audio after a gesture; arm it on the first one.
-      addEventListener("pointerdown", () => soundOn && ensureAudio(), { once: true });
-
-      // ── Globe ─────────────────────────────────────────────────────────────
-
-      const canvas = $("globe");
-      const ctx = canvas.getContext("2d");
       // An orthographic globe, written out: just the geometry this page needs. -----------
       // Points are [lon, lat] degrees; `view` turns them into unit vectors in view space,
       // [right, up, toward the viewer], after spinning by rot[0] and tilting by rot[1].
@@ -1010,13 +870,6 @@
         const lon = Math.atan2(x, z * Math.cos(tilt) + y * Math.sin(tilt)) / RAD - rot[0];
         const lat = Math.asin(Math.max(-1, Math.min(1, y * Math.cos(tilt) - z * Math.sin(tilt)))) / RAD;
         return [((lon + 540) % 360) - 180, lat];
-      }
-
-      /** Angle between two points, in radians. @param {number[]} a @param {number[]} b */
-      function distance([lon1, lat1], [lon2, lat2]) {
-        const [a, b] = [lat1 * RAD, lat2 * RAD];
-        const h = Math.sin((b - a) / 2) ** 2 + Math.cos(a) * Math.cos(b) * Math.sin(((lon2 - lon1) * RAD) / 2) ** 2;
-        return 2 * Math.asin(Math.min(1, Math.sqrt(h)));
       }
 
       /** A circle of `radius` degrees around `center`, clockwise (interior on the right) like the atlas. @param {number[]} center */
@@ -1142,18 +995,7 @@
         else if (geometry.type === "MultiLineString") for (const line of geometry.coordinates) trace(clipLine(line), false);
       }
 
-      /** Screen bounds of a polygon's visible part. */
-      function bounds(geometry) {
-        const polygons = geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates;
-        const points = polygons.flatMap((polygon) => clipPolygon(polygon).flat()).map(toScreen);
-        const xs = points.map(([x]) => x);
-        const ys = points.map(([, y]) => y);
-        return [[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]];
-      }
-
       const polygonsOf = (geometry) => (geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates);
-      /** Planar area of a polygon's outer ring, in square degrees: enough to rank a country's parts. */
-      const ringArea = (ring) => Math.abs(ring.reduce((sum, [x, y], i) => sum + x * ring[(i + 1) % ring.length][1] - ring[(i + 1) % ring.length][0] * y, 0)) / 2;
 
       /** Whether [lon, lat] lies inside a geometry (the atlas is cut at the antimeridian). @param {number[]} point */
       function contains(geometry, point) {
@@ -1167,18 +1009,6 @@
           }
         }
         return inside;
-      }
-
-      /** Center of a geometry's largest part: the mean direction of its outer ring. */
-      function centroid(geometry) {
-        const ring = polygonsOf(geometry).reduce((a, b) => (ringArea(b[0]) > ringArea(a[0]) ? b : a))[0];
-        let [x, y, z] = [0, 0, 0];
-        for (const [lon, lat] of ring) {
-          x += Math.cos(lat * RAD) * Math.cos(lon * RAD);
-          y += Math.cos(lat * RAD) * Math.sin(lon * RAD);
-          z += Math.sin(lat * RAD);
-        }
-        return [Math.atan2(y, x) / RAD, Math.atan2(z, Math.hypot(x, y)) / RAD];
       }
 
       /** TopoJSON → plain geometries: decode the quantized arcs and stitch them into rings. */
@@ -1212,1050 +1042,803 @@
         return { geometries, shared };
       }
 
-      const HALO = 1.2; // atmosphere radius, in globe radii
-      let shades;
-      let W = 0;
-      let H = 0;
-      let R = 100;
-      let cx = 0;
-      let cy = 0;
-      let land = [];
-      let borders = { type: "MultiLineString", coordinates: [] };
+      // ── State ──
+      const HALO = 1.14; // the atmosphere's reach, in globe radii
+      let W = 0, H = 0, R = 100, cx = 0, cy = 0;
+      const rot = [-20, -28, 0];
+      /** @type {{ geometry: any, cc: string | undefined }[]} */
       let features = [];
-      const featureById = new Map();
-      const mainland = new Map(); // id -> largest polygon, to fit the flag
+      let borders = { type: "MultiLineString", coordinates: [] };
+      /** Pools' names by slug. */
+      const names = new Map([["unknown", "Unknown"]]);
+      /** Each country's color: the most blocks ever, a color of its own; the rest, one between them. */
+      const colors = new Map();
+      const PALETTE = ["#e5484d", "#3e8ef7", "#f5a524", "#30a46c", "#a463f2", "#e93d82", "#12a594", "#84cc16"];
+      const OTHER = "#8a8f98";
+      const colorOf = (/** @type {string | null} */ cc) => (cc ? colors.get(cc) ?? OTHER : "var(--faint)");
 
-      function largestPolygon(f) {
-        if (f.type !== "MultiPolygon") return f;
-        const coordinates = f.coordinates.reduce((a, b) => (ringArea(b[0]) > ringArea(a[0]) ? b : a));
-        return { type: "Polygon", coordinates };
+      /** @typedef {{ cc: string | null, count: number, pools: { slug: string, count: number }[] }} Row */
+      /** A period's or a month's blocks by country; a period's, the network's hashrate too. @typedef {{ label: string, total: number, rows: Row[], hashrate?: number }} Snapshot */
+      /** @type {Snapshot | null} */
+      let snapshot = null;
+      /** What the globe and list show: a period (as the API names it), or a month of the history. */
+      let period = "1w";
+      /** @type {number | null} */
+      let month = null;
+      /** The row opened: a country's code, `UNKNOWN` for the blocks without a known home; none, null. */
+      const UNKNOWN = "unknown";
+      /** @type {string | null} */
+      let selected = null;
+      const keyOf = (/** @type {Row} */ row) => row.cc ?? UNKNOWN;
+      /** @type {{ months: string[], total: number[], pools: Map<string, number[]> } | null} */
+      let history = null;
+      /** New blocks landing: [lon, lat], when, color. @type {{ at: number[], t0: number, color: string }[]} */
+      const pulses = [];
+
+      const PERIODS = /** @type {[string, string, string][]} */ ([
+        ["24h", "24h", "Past 24 hours"],
+        ["1w", "Week", "Past week"],
+        ["1m", "Month", "Past month"],
+        ["1y", "Year", "Past year"],
+        ["all", "All", "All time"],
+      ]);
+      /** What moved the map, by month: the halvings, and China's ban on mining. */
+      const EVENTS = /** @type {[string, string][]} */ ([
+        ["2012-11-01", "1st halving"],
+        ["2016-07-01", "2nd halving"],
+        ["2020-05-01", "3rd halving"],
+        ["2021-05-01", "China bans mining"],
+        ["2024-04-01", "4th halving"],
+      ]);
+      /** A hashrate as an instrument reads it: three digits and its unit. */
+      const rate = (/** @type {number} */ hashes) => {
+        const units = ["H/s", "kH/s", "MH/s", "GH/s", "TH/s", "PH/s", "EH/s", "ZH/s"];
+        const k = Math.min(units.length - 1, Math.max(0, Math.floor(Math.log10(hashes) / 3)));
+        return `${Number((hashes / 1000 ** k).toPrecision(3))} ${units[k]}`;
+      };
+
+      /** Rows by country, the most first, the blocks without a known home last. */
+      function tally(/** @type {{ slug: string, count: number }[]} */ list, /** @type {number} */ total) {
+        /** @type {Map<string | null, Row>} */
+        const rows = new Map();
+        let known = 0;
+        for (const { slug, count } of list) {
+          if (!count) continue;
+          const cc = POOL_COUNTRY.get(slug) ?? null;
+          const row = rows.get(cc) ?? rows.set(cc, { cc, count: 0, pools: [] }).get(cc);
+          row.count += count;
+          row.pools.push({ slug, count });
+          if (cc) known += count;
+        }
+        const unknown = rows.get(null) ?? { cc: null, count: 0, pools: [] };
+        unknown.count = Math.max(0, total - known);
+        for (const row of rows.values()) row.pools.sort((a, b) => b.count - a.count);
+        return [...rows.values()].filter((row) => row.cc).sort((a, b) => b.count - a.count).concat(unknown.count ? [unknown] : []);
       }
 
-      const rot = [-20, -25, 0];
-      let spin = null; // { from, to, t0, dur, resolve }
-      let holdUntil = 0;
-      let moonAngle = 0.6;
-      let moonFlashAt = -1e9;
-      let moonGlide = null; // { from, to, t0, dur, resolve }
-      const rings = [];
-      const flashes = new Map(); // id -> t0
-      const flags = new Map(); // cc -> Image
+      // ── Data, from the server that serves the page ──
+      const json = (/** @type {string} */ path, /** @type {AbortSignal | undefined} */ signal = undefined) =>
+        fetch(path, { signal }).then((response) => (response.ok ? response.json() : Promise.reject(new Error(`The server answered ${response.status}.`))));
+      /** Each period's counts, as asked for (the latest ask stands: one forgotten is stopped). @type {Map<string, { asked: Promise<Snapshot>, stop: AbortController }>} */
+      const periods = new Map();
+      function loadPeriod(/** @type {string} */ p) {
+        const known = periods.get(p);
+        if (known) return known.asked;
+        const stop = new AbortController(), asked = fetchPeriod(p, stop.signal);
+        periods.set(p, { asked, stop });
+        asked.catch(() => periods.get(p)?.asked === asked && periods.delete(p));
+        return asked;
+      }
+      /** Every period's counts forgotten (a new block makes them old), those still on their way stopped. */
+      function forgetPeriods() {
+        for (const { stop } of periods.values()) stop.abort();
+        periods.clear();
+      }
+      async function fetchPeriod(/** @type {string} */ p, /** @type {AbortSignal} */ signal) {
+        const answer = await json(`/api/v1/mining/pools/${p}`, signal);
+        for (const pool of answer.pools) names.set(pool.slug, pool.name);
+        const label = /** @type {string} */ (PERIODS.find(([id]) => id === p)?.[2]);
+        // (The network's hashrate for a day's or a week's blocks; for longer, none matches: no implied hashrates.)
+        const hashrate = { "24h": answer.lastEstimatedHashrate, "1w": answer.lastEstimatedHashrate1w }[p];
+        const result = { label, total: answer.blockCount, hashrate, rows: tally(answer.pools.map((pool) => ({ slug: pool.slug, count: pool.blockCount })), answer.blockCount) };
+        return result;
+      }
+      /** Every month's blocks, by pool with a known home (their running counts, 30 to a request, as the API allows). */
+      async function loadHistory(/** @type {{ slug: string, blockCount: number }[]} */ allTime) {
+        const slugs = allTime.filter((pool) => pool.blockCount && POOL_COUNTRY.has(pool.slug)).map((pool) => pool.slug);
+        const chunks = [];
+        for (let i = 0; i < slugs.length; i += 30) chunks.push(slugs.slice(i, i + 30));
+        const answers = await Promise.all(chunks.map((chunk, i) => json(`/api/series/bulk?${new URLSearchParams({ series: [...(i ? [] : ["date", "block_count_cumulative"]), ...chunk.map((slug) => `pool_${slug}_block_count_cumulative`)].join(","), index: "month1" })}`)));
+        const monthly = (/** @type {number[]} */ running) => running.map((value, k) => (value ?? 0) - (k ? running[k - 1] ?? 0 : 0));
+        const [dates, total] = answers[0];
+        const pools = new Map();
+        answers.forEach((answer, i) => answer.slice(i ? 0 : 2).forEach((series, j) => pools.set(chunks[i][j], monthly(series.data))));
+        // (From 2011: before, too few blocks had a known pool to say much.)
+        const from = dates.data.indexOf("2011-01-01");
+        return { months: dates.data.slice(from), total: monthly(total.data).slice(from), pools: new Map([...pools].map(([slug, values]) => [slug, values.slice(from)])) };
+      }
+      /** A month of the history by name: "March 2021". */
+      function monthLabel(/** @type {number} */ k) {
+        const [year, m] = /** @type {NonNullable<typeof history>} */ (history).months[k].split("-").map(Number);
+        return `${MONTHS[m - 1]} ${year}`;
+      }
+      function monthSnapshot(/** @type {number} */ k) {
+        const h = /** @type {NonNullable<typeof history>} */ (history);
+        return { label: monthLabel(k), total: h.total[k], rows: tally([...h.pools].map(([slug, values]) => ({ slug, count: values[k] })), h.total[k]) };
+      }
 
-      let stats = emptyStats();
-      let period = "1w";
-      let hover = null; // "moon" | atlas id
-      let pinned = null;
-      let focus = null; // key highlighted by a block event
-      let pointer = null; // { x, y, mouse }
-      let drag = null;
+      // ── The board: the period or month, its countries ──
+      $("periods").append(...PERIODS.map(([id, short, label]) => {
+        const button = Object.assign(document.createElement("button"), { type: "button", textContent: short });
+        button.dataset.period = id;
+        button.title = label;
+        button.addEventListener("click", () => setPeriod(id));
+        return button;
+      }));
+      function drawBoard() {
+        if (!snapshot) return;
+        const shown = snapshot;
+        // (The row that had the focus keeps it, drawn again.)
+        const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest(".country") ?? null)?.dataset.key;
+        $("when").textContent = shown.label;
+        $("total").textContent = `${grouped(shown.total)} blocks`;
+        pressPeriods();
+        $("countries").replaceChildren(...shown.rows.map((row) => {
+          const key = keyOf(row), open = key === selected, share = shown.total ? row.count / shown.total : 0;
+          const item = Object.assign(document.createElement("li"), { className: `country${open ? " active" : ""}` });
+          item.dataset.key = key;
+          const button = Object.assign(document.createElement("button"), { type: "button" });
+          button.style.setProperty("--color", colorOf(row.cc));
+          button.style.setProperty("--share", `${(share * 100).toFixed(2)}%`);
+          if (row.pools.length) button.setAttribute("aria-expanded", String(open));
+          const label = Object.assign(document.createElement("span"), { className: "name", textContent: row.cc ? COUNTRIES[row.cc].name : "No known home" });
+          // (A period's: its hashrate, as the share of the network's that its blocks say.)
+          if (shown.hashrate && share) label.append(Object.assign(document.createElement("small"), { className: "rate num", textContent: `≈ ${rate(shown.hashrate * share)}` }));
+          button.append(
+            Object.assign(document.createElement("span"), { className: "swatch" }),
+            label,
+            Object.assign(document.createElement("span"), { className: "count num", textContent: grouped(row.count) }),
+            Object.assign(document.createElement("span"), { className: "share num", textContent: percent(share) }),
+            Object.assign(document.createElement("span"), { className: "bar" }),
+          );
+          button.addEventListener("click", () => select(open ? null : key));
+          item.append(button);
+          if (open && row.pools.length) {
+            const pools = Object.assign(document.createElement("ul"), { className: "pools" });
+            pools.append(...row.pools.slice(0, 6).map(({ slug, count }) => {
+              const pool = document.createElement("li");
+              pool.append(Object.assign(document.createElement("span"), { textContent: names.get(slug) ?? slug }), Object.assign(document.createElement("span"), { className: "num", textContent: grouped(count) }));
+              return pool;
+            }));
+            if (row.pools.length > 6) pools.append(Object.assign(document.createElement("li"), { textContent: `And ${row.pools.length - 6} more` }));
+            item.append(pools);
+          }
+          return item;
+        }));
+        if (focused) /** @type {HTMLElement | null} */ ($("countries").querySelector(`[data-key="${focused}"] > button`))?.focus({ preventScroll: true });
+        invalidate();
+      }
+      function select(/** @type {string | null} */ key) {
+        selected = key;
+        // (The moon picked: round to the front, where it's seen.)
+        if (key === UNKNOWN) moonAngle = Math.PI / 4;
+        drawBoard();
+        if (key && COUNTRIES[key]) flyTo(COUNTRIES[key].at);
+      }
+      /** The period shown pressed (none while a month is). */
+      function pressPeriods() {
+        for (const button of $("periods").querySelectorAll("button")) button.setAttribute("aria-pressed", String(month === null && /** @type {HTMLElement} */ (button).dataset.period === period));
+      }
+      async function setPeriod(/** @type {string} */ p) {
+        stopPlaying();
+        period = p;
+        month = pinned = null;
+        pressPeriods();
+        drawCursor();
+        const asked = loadPeriod(p);
+        try {
+          const shown = await asked;
+          if (period !== p || month !== null || periods.get(p)?.asked !== asked) return;
+          snapshot = shown;
+          drawBoard();
+        } catch (error) {
+          // (Said if it's still the period shown and no other ask for it came since: a failed one's forgotten, a stopped
+          // one replaced.)
+          if (period === p && month === null && /** @type {Error} */ (error).name !== "AbortError" && (periods.get(p)?.asked ?? asked) === asked) {
+            $("countries").replaceChildren(failure(/** @type {Error} */ (error), () => setPeriod(p)));
+          }
+        }
+      }
+      /** What failed, in the page's words (a fetch that never reached the server fails as a TypeError), and a way to try again. */
+      function failure(/** @type {Error} */ error, /** @type {() => void} */ again) {
+        const message = Object.assign(document.createElement("li"), { className: "message" }), retry = Object.assign(document.createElement("button"), { type: "button", className: "play", textContent: "Try again" });
+        retry.addEventListener("click", again);
+        message.append(Object.assign(document.createElement("p"), { textContent: error instanceof TypeError ? "This server couldn't be reached." : error.message }), retry);
+        return message;
+      }
+      function setMonth(/** @type {number | null} */ k) {
+        if (k === null) return setPeriod(period);
+        if (k === month) return;
+        month = k;
+        snapshot = monthSnapshot(k);
+        drawBoard();
+        drawCursor();
+      }
 
+      // ── The globe ──
+      /** The page's inks as the canvas needs them (custom properties come back unresolved: read through a probe). */
+      const ink = /** @type {Record<string, string>} */ ({});
+      let font = "";
+      function readInks() {
+        font = `600 12px ${getComputedStyle(document.body).fontFamily}`;
+        const probe = document.createElement("span");
+        document.body.append(probe);
+        for (const name of ["ocean", "land", "border", "grid", "ink", "card", "line-strong", "faint", "muted", "glow", "app"]) {
+          probe.style.color = `var(--${name})`;
+          ink[name] = getComputedStyle(probe).color;
+        }
+        probe.remove();
+      }
+
+      /** The globe's place: in the space the page leaves it (on a wide one, left of the countries). */
+      const wide = matchMedia("(min-width: 1024px)");
+      /** The width the globe has to itself (left of the countries, on a wide page): its moon and names keep inside it. */
+      let room = 0;
       function resize() {
-        const rect = canvas.getBoundingClientRect();
-        const dpr = Math.min(devicePixelRatio || 1, 2);
-        W = rect.width;
-        H = rect.height;
+        const box = canvas.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+        W = box.width;
+        H = box.height;
         canvas.width = Math.round(W * dpr);
         canvas.height = Math.round(H * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        const wide = innerWidth > 1100;
-        const preview = W <= 520 && H <= 520;
-        const usableW = wide ? W - 2 * Math.min(320, W * 0.26) - 80 : W;
-        // Leave room for the atmosphere (HALO × R) unless the page is a thumbnail.
-        const fitH = preview ? (H - 16) / 2.15 : (H - (wide ? 150 : 8)) / (2 * HALO);
-        R = Math.max(60, Math.min(usableW / 2.9, fitH));
-        cx = W / 2;
-        cy = H / 2 + (wide ? 8 : 0);
+        if (wide.matches) {
+          const free = $("countries").closest(".board")?.getBoundingClientRect().left ?? W;
+          room = free - box.left - 16;
+          cx = room * 0.56;
+          cy = H * 0.57;
+          R = Math.min(room * 0.34, H * 0.36);
+        } else {
+          room = W;
+          cx = W / 2;
+          cy = H / 2;
+          // (Room left beside it for the moon's orbit, clear of it at its sides however big it grows: 0.155 R.)
+          R = (Math.min(W, H) / 2 - 20) / 1.32;
+        }
+        // (The words over the planet, where no name is drawn.)
+        const words = document.querySelector(".hero-text")?.getBoundingClientRect();
+        keepOff = wide.matches && words ? { left: words.left - box.left - 8, top: words.top - box.top - 8, right: words.right - box.left + 8, bottom: words.bottom - box.top + 8 } : null;
+        invalidate();
+      }
+      /** Where no name is drawn (the title, on a wide page), in the canvas's coordinates. @type {{ left: number, top: number, right: number, bottom: number } | null} */
+      let keepOff = null;
+      new ResizeObserver(resize).observe(canvas);
+      // (The title's room, again in its own font.)
+      document.fonts.ready.then(resize);
 
-        const halo = ctx.createRadialGradient(cx, cy, R * 0.95, cx, cy, R * HALO);
-        halo.addColorStop(0, "rgba(210,220,240,0.10)");
-        halo.addColorStop(1, "rgba(210,220,240,0)");
-        const ocean = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.05, cx, cy, R);
-        ocean.addColorStop(0, "#1b1e24");
-        ocean.addColorStop(1, "#0b0c0f");
-        const limb = ctx.createRadialGradient(cx - R * 0.25, cy - R * 0.3, R * 0.4, cx, cy, R * 1.02);
-        limb.addColorStop(0, "rgba(0,0,0,0)");
-        limb.addColorStop(1, "rgba(0,0,0,0.55)");
-        shades = { halo, ocean, limb };
+      /** A country's share now, and the largest. */
+      function shares() {
+        const byCountry = new Map(), shown = snapshot;
+        if (!shown?.total) return { byCountry, top: 1, unknown: 0 };
+        let unknown = 0;
+        for (const row of shown.rows) {
+          if (row.cc) byCountry.set(row.cc, row.count / shown.total);
+          else unknown = row.count / shown.total;
+        }
+        return { byCountry, top: Math.max(...byCountry.values(), 0.0001), unknown };
       }
 
-      let night = { at: 0, circles: [], sun: [0, 0] };
-
-      function nightSide() {
-        if (Date.now() - night.at < 60_000) return night.circles;
-        const date = new Date();
-        const dayOfYear = (date.getTime() - Date.UTC(date.getUTCFullYear(), 0, 0)) / 864e5;
-        const declination = -23.44 * Math.cos(((2 * Math.PI) / 365) * (dayOfYear + 10));
+      /** Where the sun is overhead now ([lon, lat]: its declination by the day of the year, its longitude by the hour). */
+      function subsolar(/** @type {Date} */ date) {
+        const day = (date.getTime() - Date.UTC(date.getUTCFullYear(), 0, 0)) / 86_400_000;
         const hours = date.getUTCHours() + date.getUTCMinutes() / 60;
-        const antisolar = [180 - 15 * (hours - 12), -declination];
-        night = {
-          at: Date.now(),
-          circles: [89, 84, 79].map((r) => ({ type: "Polygon", coordinates: [circle(antisolar, r)] })),
-          sun: [antisolar[0] - 180, declination],
-        };
-        return night.circles;
+        return [-15 * (hours - 12), -23.44 * Math.cos(((2 * Math.PI) / 365) * (day + 10))];
       }
-
-      // Unit vector toward the sun in screen space: x right, y down, z at the viewer.
-      function sunVector() {
-        nightSide();
-        const [x, y, z] = view(night.sun);
-        return [x, -y, z];
-      }
-
-      function flag(cc) {
-        let img = flags.get(cc);
-        if (!img) {
-          img = new Image();
-          img.src = flagUrl(cc);
-          flags.set(cc, img);
+      /** The sun and the night: three circles about the point opposite the sun, darker toward it (the terminator the
+       * outermost, twilight inside it; none past a hemisphere, whose edge could hide while the night shows), a minute's. */
+      let night = { minute: -1, sun: [0, 0], rings: /** @type {number[][][]} */ ([]) };
+      function sunAndNight() {
+        const minute = Math.floor(Date.now() / 60_000);
+        if (night.minute !== minute) {
+          const sun = subsolar(new Date()), [lon, lat] = sun;
+          const anti = [lon > 0 ? lon - 180 : lon + 180, -lat];
+          night = { minute, sun, rings: [90, 84, 78].map((radius) => circle(anti, radius)) };
         }
-        return img.complete && img.naturalWidth ? img : null;
+        return night;
       }
 
-      function viewCenter() {
-        return [-rot[0], -rot[1]];
+      /** The moon: the blocks without a known home, on a slow orbit, as big as their share. */
+      let moonAngle = 0.5;
+      function moon(/** @type {number} */ unknown) {
+        const r = R * (0.035 + 0.12 * Math.sqrt(unknown)), orbit = Math.min(R * 1.32, Math.min(cx, room - cx) - 16 - r);
+        return { x: cx + Math.cos(moonAngle) * orbit, y: cy - R * 0.22 + Math.sin(moonAngle) * R * 0.3, r, behind: Math.sin(moonAngle) < 0 };
       }
-
-      function visibility(at) {
-        const d = distance(at, viewCenter());
-        return Math.max(0, Math.min(1, (Math.PI / 2 - d) / 0.2));
-      }
-
-      function moonGeometry(now) {
-        const a = R * 1.42;
-        const b = R * 0.3;
-        const tilt = -0.2;
-        const share = stats.total ? stats.moon.count / stats.total : 0;
-        const sin = Math.sin(moonAngle);
-        const cos = Math.cos(moonAngle);
-        const x = cx + a * cos * Math.cos(tilt) - b * sin * Math.sin(tilt);
-        const y = cy + a * cos * Math.sin(tilt) + b * sin * Math.cos(tilt);
-        const r = R * (0.045 + 0.09 * Math.sqrt(share)) * (1 + 0.12 * sin);
-        return { a, b, tilt, x, y, r, behind: sin < 0, flash: now - moonFlashAt };
-      }
-
-      function markerRadius(count) {
-        if (!stats.total || !count) return 0;
-        return Math.max(2.5, Math.sqrt(count / stats.total) * R * 0.17);
-      }
-
-      function anchorOf(key, now) {
-        if (key === "moon") {
-          const m = moonGeometry(now);
-          return { x: m.x, y: m.y - m.r, visible: !m.behind || Math.hypot(m.x - cx, m.y - cy) > R };
-        }
-        const cc = CC_BY_ID.get(key);
-        const at = cc ? COUNTRIES[cc].at : centroid(featureById.get(key));
-        const [x, y] = project(at);
-        return { x, y: y - (cc ? markerRadius(stats.countries.get(cc)?.count) : 0), visible: visibility(at) > 0.3 };
-      }
-
-      function hitTest(x, y, now) {
-        const m = moonGeometry(now);
-        if (Math.hypot(x - m.x, y - m.y) < m.r + 8 && (!m.behind || Math.hypot(m.x - cx, m.y - cy) > R)) return "moon";
-        if (Math.hypot(x - cx, y - cy) > R) return null;
-        const markerHit = (tiny) => {
-          for (const [cc, c] of Object.entries(COUNTRIES)) {
-            if (!!c.tiny !== tiny || visibility(c.at) < 0.5) continue;
-            const count = stats.countries.get(cc)?.count;
-            if (!count) continue;
-            const [px, py] = project(c.at);
-            if (Math.hypot(x - px, y - py) < markerRadius(count) + 6) return c.id;
-          }
-          return null;
-        };
-        const tiny = markerHit(true);
-        if (tiny) return tiny;
-        const lonlat = invert(x, y);
-        if (lonlat) {
-          for (const f of features) if (contains(f, lonlat)) return f.id;
-        }
-        return markerHit(false);
-      }
-
-      function draw(now) {
-        ctx.clearRect(0, 0, W, H);
-        const moon = moonGeometry(now);
-        const active = hover ?? pinned ?? focus;
-        const sun = sunVector();
-
-        // Orbit, back half, and the moon when it passes behind.
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = "rgba(255,255,255,0.07)";
+      function drawMoon(/** @type {{ x: number, y: number, r: number }} */ m, /** @type {number} */ unknown) {
+        const lit = ctx.createRadialGradient(m.x - m.r * 0.4, m.y - m.r * 0.4, m.r * 0.1, m.x, m.y, m.r);
+        lit.addColorStop(0, "#d9dde6");
+        lit.addColorStop(1, "#4b5163");
+        ctx.fillStyle = lit;
         ctx.beginPath();
-        ctx.ellipse(cx, cy, moon.a, moon.b, moon.tilt, Math.PI, Math.PI * 2);
-        ctx.stroke();
-        if (moon.behind) drawMoon(moon, active === "moon", sun);
+        ctx.arc(m.x, m.y, m.r, 0, TAU);
+        ctx.fill();
+        if (selected === UNKNOWN) {
+          ctx.strokeStyle = ink.ink;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+        label(`No known home ${percent(unknown)}`, m.x, m.y, m.r);
+      }
+      /** A name beside its mark, on whichever side it fits and clears the title (neither: none), haloed in the night's color. */
+      function label(/** @type {string} */ text, /** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ radius) {
+        const width = ctx.measureText(text).width;
+        const clear = (/** @type {number} */ left) => !keepOff || left > keepOff.right || left + width < keepOff.left || y + 6 < keepOff.top || y - 10 > keepOff.bottom;
+        const sides = [x + radius + 6, x - radius - 6 - width].filter((left) => left >= 4 && left + width <= room - 4 && clear(left));
+        if (!sides.length) return;
+        const right = sides[0] > x, tx = right ? sides[0] : sides[0] + width;
+        ctx.textAlign = right ? "left" : "right";
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = ink.app;
+        ctx.fillStyle = ink.ink;
+        ctx.strokeText(text, tx, y + 4);
+        ctx.fillText(text, tx, y + 4);
+        ctx.textAlign = "left";
+      }
 
-        // Atmosphere.
-        ctx.fillStyle = shades.halo;
-        ctx.fillRect(cx - R * HALO, cy - R * HALO, R * HALO * 2, R * HALO * 2);
-
-        // Ocean.
+      /** Stars, fixed where they are (the same sky each visit): [x, y] in the canvas's fractions, a size, a brightness. */
+      const STARS = Array.from({ length: 220 }, (_, i) => {
+        const noise = (/** @type {number} */ k) => ((Math.sin((i + 1) * 12.9898 + k * 78.233) * 43758.5453) % 1 + 1) % 1;
+        return [noise(1), noise(2), 0.4 + noise(3) * 1.1, 0.2 + noise(4) * 0.7];
+      });
+      /** Each visible country's dot: where it is on screen, how big. @type {{ cc: string, x: number, y: number, r: number }[]} */
+      let marks = [];
+      function draw(/** @type {number} */ now) {
+        ctx.clearRect(0, 0, W, H);
+        ctx.font = font;
+        const { byCountry, top, unknown } = shares(), m = unknown ? moon(unknown) : null;
+        // The sky; the moon if it's behind; the atmosphere; the sphere.
+        ctx.fillStyle = ink.ink;
+        for (const [x, y, size, light] of STARS) {
+          ctx.globalAlpha = light;
+          ctx.fillRect(x * W, y * H, size, size);
+        }
+        ctx.globalAlpha = 1;
+        if (m?.behind) drawMoon(m, unknown);
+        const halo = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * HALO);
+        halo.addColorStop(0, ink.glow);
+        halo.addColorStop(1, "transparent");
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R * HALO, 0, TAU);
+        ctx.fill();
+        ctx.fillStyle = ink.ocean;
         ctx.beginPath();
         ctx.arc(cx, cy, R, 0, TAU);
-        ctx.fillStyle = shades.ocean;
         ctx.fill();
-
+        ctx.strokeStyle = ink.grid;
+        ctx.lineWidth = 1;
         ctx.beginPath();
         traceGeometry(graticule);
-        ctx.strokeStyle = "rgba(255,255,255,0.035)";
-        ctx.lineWidth = 0.6;
         ctx.stroke();
-
+        // The land, then each country with blocks in its color, as strong as its share.
+        ctx.fillStyle = ink.land;
         ctx.beginPath();
-        for (const part of land) traceGeometry(part);
-        ctx.fillStyle = "#30343b";
+        for (const feature of features) traceGeometry(feature.geometry);
         ctx.fill();
-
-        // Highlighted countries: hovered / pinned / just mined a block.
-        const lit = new Map();
-        for (const [id, t0] of flashes) {
-          const age = now - t0;
-          if (age > 4200) flashes.delete(id);
-          else lit.set(id, Math.min(1, age / 250) * Math.min(1, (4200 - age) / 900));
-        }
-        if (active && active !== "moon") lit.set(active, 1);
-        for (const [id, alpha] of lit) drawCountry(id, alpha);
-
-        ctx.beginPath();
-        traceGeometry(borders);
-        ctx.strokeStyle = "rgba(9,10,12,0.9)";
-        ctx.lineWidth = 0.6;
-        ctx.stroke();
-
-        for (const id of lit.keys()) {
-          const f = featureById.get(id);
-          if (!f) continue;
+        for (const feature of features) {
+          const share = feature.cc ? byCountry.get(feature.cc) : undefined;
+          if (!share) continue;
+          ctx.globalAlpha = 0.3 + 0.7 * Math.sqrt(share / top);
+          ctx.fillStyle = colorOf(feature.cc ?? null);
           ctx.beginPath();
-          traceGeometry(f);
-          ctx.strokeStyle = `rgba(255,255,255,${0.55 * lit.get(id)})`;
-          ctx.lineWidth = 1;
-          ctx.stroke();
-        }
-
-        // The real night side right now, with a soft twilight edge.
-        ctx.fillStyle = "rgba(0,0,0,0.13)";
-        for (const cap of nightSide()) {
-          ctx.beginPath();
-          traceGeometry(cap);
-          ctx.fill();
-        }
-
-        // Limb shading gives the sphere some volume.
-        ctx.beginPath();
-        ctx.arc(cx, cy, R, 0, TAU);
-        ctx.fillStyle = shades.limb;
-        ctx.fill();
-        ctx.strokeStyle = "rgba(255,255,255,0.09)";
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-        drawRings(now);
-        drawMarkers(now, active);
-
-        // Orbit, front half.
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = "rgba(255,255,255,0.09)";
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, moon.a, moon.b, moon.tilt, 0, Math.PI);
-        ctx.stroke();
-        if (!moon.behind) drawMoon(moon, active === "moon", sun);
-      }
-
-      function drawCountry(id, alpha) {
-        const f = featureById.get(id);
-        if (!f) return;
-        const cc = CC_BY_ID.get(id);
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.beginPath();
-        traceGeometry(f);
-        ctx.clip();
-        const img = cc && flag(cc);
-        ctx.fillStyle = cc ? COUNTRIES[cc].color : "#5b616c";
-        ctx.fillRect(0, 0, W, H);
-        if (img) {
-          const [[x0, y0], [x1, y1]] = bounds(mainland.get(id) ?? f);
-          const scale = Math.max((x1 - x0) / img.naturalWidth, (y1 - y0) / img.naturalHeight);
-          const w = img.naturalWidth * scale;
-          const h = img.naturalHeight * scale;
-          if (Number.isFinite(w)) ctx.drawImage(img, (x0 + x1 - w) / 2, (y0 + y1 - h) / 2, w, h);
-        }
-        ctx.restore();
-      }
-
-      function drawMarkers(now, active) {
-        for (const [cc, c] of Object.entries(COUNTRIES)) {
-          const count = stats.countries.get(cc)?.count;
-          if (!count) continue;
-          const vis = visibility(c.at);
-          if (!vis) continue;
-          const [x, y] = project(c.at);
-          const r = markerRadius(count);
-          const on = active === c.id;
-          const flash = flashes.has(c.id) ? Math.max(0, 1 - (now - flashes.get(c.id)) / 1400) : 0;
-          ctx.globalAlpha = vis;
-          if (flash) {
-            const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 3 + 30);
-            glow.addColorStop(0, `rgba(255,190,110,${0.8 * flash})`);
-            glow.addColorStop(1, "rgba(247,147,26,0)");
-            ctx.fillStyle = glow;
-            ctx.beginPath();
-            ctx.arc(x, y, r * 3 + 30, 0, Math.PI * 2);
-            ctx.fill();
-          }
-          ctx.beginPath();
-          ctx.arc(x, y, r, 0, Math.PI * 2);
-          ctx.fillStyle = on ? "rgba(247,147,26,0.10)" : "rgba(247,147,26,0.20)";
-          ctx.fill();
-          ctx.lineWidth = on ? 1.6 : 1;
-          ctx.strokeStyle = on ? "rgba(255,255,255,0.9)" : "rgba(247,147,26,0.7)";
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc(x, y, 1.8, 0, Math.PI * 2);
-          ctx.fillStyle = on ? "#fff" : "#f7931a";
+          traceGeometry(feature.geometry);
           ctx.fill();
         }
         ctx.globalAlpha = 1;
-      }
-
-      function drawRings(now) {
-        for (let i = rings.length - 1; i >= 0; i--) {
-          const ring = rings[i];
-          let alive = false;
-          for (let k = 0; k < 3; k++) {
-            const p = (now - ring.t0 - k * 380) / 2400;
-            if (p >= 1) continue;
-            alive = true;
-            if (p <= 0) continue;
-            const fade = (1 - p) ** 1.6;
-            ctx.beginPath();
-            trace(clipLine(circle(ring.at, 0.5 + p * 24)), false);
-            ctx.strokeStyle = `rgba(247,147,26,${0.9 * fade})`;
-            ctx.lineWidth = 0.6 + 2.2 * fade;
-            ctx.stroke();
-          }
-          if (!alive) rings.splice(i, 1);
-        }
-      }
-
-      // Craters as [x, y, radius] in moon radii, outlined like country borders.
-      const MOON_CRATERS = [
-        [-0.3, -0.25, 0.3], [0.28, 0.12, 0.22], [-0.12, 0.5, 0.16], [0.48, -0.45, 0.12], [-0.6, 0.22, 0.1], [0.12, -0.62, 0.08],
-      ];
-
-      // The half of a sphere facing `dir` (screen-space unit vector), as seen
-      // by the viewer: a half-disc plus or minus the terminator's half-ellipse.
-      function hemisphere(x, y, r, [dx, dy, dz]) {
-        const angle = Math.hypot(dx, dy) > 1e-3 ? Math.atan2(dy, dx) : 0;
+        ctx.strokeStyle = ink.border;
+        ctx.lineWidth = 0.6;
         ctx.beginPath();
-        ctx.ellipse(x, y, r, r, angle, -Math.PI / 2, Math.PI / 2);
-        if (dz >= 0) ctx.ellipse(x, y, dz * r, r, angle, Math.PI / 2, Math.PI * 1.5);
-        else ctx.ellipse(x, y, -dz * r, r, angle, Math.PI / 2, -Math.PI / 2, true);
-      }
-
-      function drawMoon(m, on, sun) {
-        if (m.flash < 2600) {
-          const p = m.flash / 2600;
-          for (let k = 0; k < 3; k++) {
-            const q = p * 1.4 - k * 0.2;
-            if (q <= 0 || q >= 1) continue;
-            ctx.beginPath();
-            ctx.arc(m.x, m.y, m.r + q * R * 0.35, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(247,147,26,${0.8 * (1 - q) ** 1.5})`;
-            ctx.lineWidth = 2 * (1 - q) + 0.5;
-            ctx.stroke();
-          }
-          const glow = ctx.createRadialGradient(m.x, m.y, m.r * 0.5, m.x, m.y, m.r * 3);
-          glow.addColorStop(0, `rgba(247,147,26,${0.5 * (1 - p)})`);
-          glow.addColorStop(1, "rgba(247,147,26,0)");
-          ctx.fillStyle = glow;
+        traceGeometry(borders);
+        ctx.stroke();
+        if (selected && COUNTRIES[selected]) {
+          ctx.strokeStyle = ink.ink;
+          ctx.lineWidth = 1.5;
           ctx.beginPath();
-          ctx.arc(m.x, m.y, m.r * 3, 0, Math.PI * 2);
+          for (const feature of features) if (feature.cc === selected) traceGeometry(feature.geometry);
+          ctx.stroke();
+        }
+        // The night, as it is now: darker toward its middle.
+        ctx.fillStyle = "rgb(1 3 8 / 0.22)";
+        const { sun, rings } = sunAndNight();
+        for (const ring of rings) {
+          ctx.beginPath();
+          traceGeometry({ type: "Polygon", coordinates: [ring] });
           ctx.fill();
         }
-        const { x, y, r } = m;
-        ctx.save();
-        ctx.globalAlpha = m.behind ? 0.6 : 1;
-
-        // Same materials as the globe: flat land, border-like craters.
+        // Light across the sphere, from the sun (brightest where it's overhead; none with it behind); the far rim in shade.
+        const [sx, sy, sz] = view(sun), [lx, ly] = toScreen([sx, sy]);
+        const light = ctx.createRadialGradient(lx, ly, R * 0.05, cx, cy, R * 1.05);
+        light.addColorStop(0, `rgb(255 255 255 / ${(0.16 * Math.max(0, sz)).toFixed(3)})`);
+        light.addColorStop(0.7, "rgb(255 255 255 / 0)");
+        light.addColorStop(1, "rgb(0 0 0 / 0.5)");
+        ctx.fillStyle = light;
         ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.fillStyle = "#3a3e46";
+        ctx.arc(cx, cy, R, 0, TAU);
         ctx.fill();
-        ctx.clip();
-        ctx.strokeStyle = "rgba(9,10,12,0.9)";
-        ctx.lineWidth = 0.6;
-        for (const [dx, dy, s] of MOON_CRATERS) {
-          ctx.beginPath();
-          ctx.arc(x + dx * r, y + dy * r, s * r, 0, Math.PI * 2);
-          ctx.stroke();
-        }
-
-        // Night side from the real sun, shaded like the Earth's.
-        hemisphere(x, y, r, sun.map((v) => -v));
-        ctx.fillStyle = "rgba(0,0,0,0.36)";
-        ctx.fill();
-
-        const limb = ctx.createRadialGradient(x - r * 0.25, y - r * 0.3, r * 0.4, x, y, r * 1.02);
-        limb.addColorStop(0, "rgba(0,0,0,0)");
-        limb.addColorStop(1, "rgba(0,0,0,0.4)");
-        ctx.fillStyle = limb;
-        ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
-        ctx.restore();
-
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(255,255,255,0.09)";
+        ctx.strokeStyle = ink.glow;
         ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, TAU);
         ctx.stroke();
-
-        if (!on && (!m.behind || Math.hypot(x - cx, y - cy) > R + r)) {
-          ctx.font = `650 ${Math.round(Math.max(9, Math.min(11, R * 0.035)))}px ui-monospace, SFMono-Regular, Menlo, monospace`;
-          ctx.textAlign = "center";
-          ctx.textBaseline = "top";
-          ctx.fillStyle = `rgba(139,143,152,${m.behind ? 0.35 : 0.7})`;
-          ctx.fillText("UNKNOWN", x, y + r + 7);
-        }
-
-        if (on) {
+        // Each country with blocks, a dot as big as its share; the three biggest and the one picked, named.
+        marks = [];
+        [...byCountry].sort((a, b) => b[1] - a[1]).forEach(([cc, share], rank) => {
+          const v = view(COUNTRIES[cc].at);
+          if (v[2] <= 0.05) return;
+          const [x, y] = toScreen(v), radius = 2.5 + 9 * Math.sqrt(share);
+          marks.push({ cc, x, y, r: radius });
+          ctx.globalAlpha = Math.min(1, v[2] * 3);
+          ctx.fillStyle = colorOf(cc);
+          ctx.strokeStyle = ink.card;
+          ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(m.x, m.y, m.r + 3, 0, Math.PI * 2);
-          ctx.strokeStyle = "rgba(255,255,255,0.85)";
-          ctx.lineWidth = 1.4;
+          ctx.arc(x, y, radius, 0, TAU);
+          ctx.fill();
+          ctx.stroke();
+          if (rank < 3 || cc === selected) label(`${COUNTRIES[cc].name} ${percent(share)}`, x, y, radius);
+        });
+        ctx.globalAlpha = 1;
+        // Blocks landing: a ring that widens and fades.
+        for (let i = pulses.length - 1; i >= 0; i--) {
+          const pulse = pulses[i], t = (now - pulse.t0) / 1800;
+          if (t >= 1) {
+            pulses.splice(i, 1);
+            continue;
+          }
+          const v = view(pulse.at);
+          if (v[2] <= 0) continue;
+          const [x, y] = toScreen(v);
+          ctx.globalAlpha = 1 - t;
+          ctx.strokeStyle = pulse.color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(x, y, 6 + 40 * t, 0, TAU);
           ctx.stroke();
         }
+        ctx.globalAlpha = 1;
+        if (m && !m.behind) drawMoon(m, unknown);
+        moonAt = m;
       }
+      /** @type {{ x: number, y: number, r: number, behind: boolean } | null} */
+      let moonAt = null;
 
-      function revealGlobe() {
-        const rect = canvas.getBoundingClientRect();
-        if (rect.bottom < rect.height * 0.6 || rect.top > innerHeight * 0.4) {
-          scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" });
-        }
+      // ── Motion: a slow turn, the moon's orbit, a drag, a flight; drawn only while something moves, and on screen ──
+      /** @type {{ from: number[], to: number[], t0: number, dur: number } | null} */
+      let flight = null;
+      let dragging = /** @type {{ x: number, y: number, rot: number[], moved: boolean } | null} */ (null);
+      let last = 0, frameId = 0, onScreen = true;
+      const ease = (/** @type {number} */ t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+      /** Whether anything moves of itself: the turn and the orbit (unless motion's reduced or a country's picked), a flight, a ring. */
+      const moving = () => Boolean(flight || pulses.length || (!reduced.matches && !selected && !dragging));
+      function invalidate() {
+        if (!frameId && onScreen) frameId = requestAnimationFrame(frame);
       }
-
-      const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
-
-      function flyTo(at) {
-        const to = [-at[0], Math.max(-55, Math.min(55, -at[1])), 0];
-        const dLon = ((to[0] - rot[0] + 540) % 360) - 180;
-        const distance = Math.hypot(dLon, to[1] - rot[1]);
-        const dur = reducedMotion ? 0 : Math.min(2400, 700 + distance * 9);
-        return new Promise((resolve) => {
-          spin?.resolve();
-          spin = { from: [...rot], to: [rot[0] + dLon, to[1], 0], t0: performance.now(), dur, resolve };
-        });
+      function flyTo(/** @type {number[]} */ at) {
+        const to = [-at[0], Math.max(-55, Math.min(55, -at[1]))], turn = ((to[0] - rot[0] + 540) % 360) - 180;
+        flight = { from: [rot[0], rot[1]], to: [rot[0] + turn, to[1]], t0: performance.now(), dur: reduced.matches ? 0 : Math.min(2000, 600 + Math.hypot(turn, to[1] - rot[1]) * 8) };
+        invalidate();
       }
-
-      // Bring the moon round to the front right of the globe.
-      function moonToFront() {
-        const turn = Math.PI * 2;
-        const to = moonAngle + ((((0.45 - moonAngle) % turn) + turn) % turn);
-        const dur = reducedMotion ? 0 : 500 + (to - moonAngle) * 260;
-        return new Promise((resolve) => {
-          moonGlide?.resolve();
-          moonGlide = { from: moonAngle, to, t0: performance.now(), dur, resolve };
-        });
-      }
-
-      let last = performance.now();
-      let lastHitAt = 0;
-      function frame(now) {
-        const dt = Math.min(64, now - last) / 1000;
+      function frame(/** @type {number} */ now) {
+        frameId = 0;
+        const dt = Math.min(100, now - (last || now));
         last = now;
-
-        if (spin) {
-          const t = spin.dur ? Math.min(1, (now - spin.t0) / spin.dur) : 1;
-          const e = easeInOut(t);
-          rot[0] = spin.from[0] + (spin.to[0] - spin.from[0]) * e;
-          rot[1] = spin.from[1] + (spin.to[1] - spin.from[1]) * e;
-          if (t === 1) {
-            spin.resolve();
-            spin = null;
-            holdUntil = now + 6000;
-          }
-        } else if (!drag && !pinned && now > holdUntil && !reducedMotion) {
-          rot[0] += dt * 4.5;
+        if (flight) {
+          const t = flight.dur ? Math.min(1, (now - flight.t0) / flight.dur) : 1, k = ease(t);
+          rot[0] = flight.from[0] + (flight.to[0] - flight.from[0]) * k;
+          rot[1] = flight.from[1] + (flight.to[1] - flight.from[1]) * k;
+          if (t >= 1) flight = null;
+        } else if (moving()) {
+          rot[0] += dt * 0.004;
+          moonAngle += dt * 0.00012;
         }
-        if (moonGlide) {
-          const t = moonGlide.dur ? Math.min(1, (now - moonGlide.t0) / moonGlide.dur) : 1;
-          moonAngle = moonGlide.from + (moonGlide.to - moonGlide.from) * easeInOut(t);
-          if (t === 1) {
-            moonGlide.resolve();
-            moonGlide = null;
-          }
-        } else if (hover !== "moon" && pinned !== "moon" && focus !== "moon" && !reducedMotion) {
-          moonAngle += dt * 0.11;
-        }
-
-        if (pointer && !drag && (pointer.dirty || now - lastHitAt > 150)) {
-          pointer.dirty = false;
-          lastHitAt = now;
-          const key = hitTest(pointer.x, pointer.y, now);
-          if (key !== hover) setHover(key);
-          if (pointer.mouse && Math.hypot(pointer.x - cx, pointer.y - cy) < R) holdUntil = Math.max(holdUntil, now + 1200);
-        }
-
         draw(now);
-        placeTip(now);
-        if (onScreen) requestAnimationFrame(frame);
-        else running = false;
-      }
-
-      let onScreen = true;
-      let running = false;
-      function start() {
-        if (running) return;
-        running = true;
-        last = performance.now();
-        requestAnimationFrame(frame);
+        if (moving()) invalidate();
+        else last = 0;
       }
       new IntersectionObserver(([entry]) => {
         onScreen = entry.isIntersecting;
-        if (onScreen) start();
+        if (onScreen) invalidate();
       }).observe(canvas);
+      reduced.addEventListener("change", invalidate);
+      document.addEventListener("visibilitychange", () => (last = 0));
 
-      // ── Interaction ───────────────────────────────────────────────────────
-
-      function localPoint(event) {
-        const rect = canvas.getBoundingClientRect();
-        return { x: event.clientX - rect.left, y: event.clientY - rect.top };
-      }
-
+      // Drag to turn; a tap or click (no drag) picks what's under it (a dot, a country, the moon); pointing says what it holds.
       canvas.addEventListener("pointerdown", (event) => {
-        const p = localPoint(event);
-        drag = { ...p, rot: [...rot], moved: false, id: event.pointerId };
-        spin?.resolve();
-        spin = null;
+        dragging = { x: event.clientX, y: event.clientY, rot: [rot[0], rot[1]], moved: false };
+        flight = null;
       });
-
-      canvas.addEventListener("pointermove", (event) => {
-        const p = localPoint(event);
-        pointer = { ...p, mouse: event.pointerType === "mouse", dirty: true };
-        if (!drag || drag.id !== event.pointerId) {
-          canvas.toggleAttribute("data-pointing", !!hover);
-          return;
-        }
-        const dx = p.x - drag.x;
-        const dy = p.y - drag.y;
-        if (!drag.moved && Math.hypot(dx, dy) < 5) return;
-        if (!drag.moved) {
-          drag.moved = true;
-          canvas.setPointerCapture(event.pointerId);
-          canvas.setAttribute("data-dragging", "");
-          setHover(null);
-        }
-        const k = 70 / R;
-        rot[0] = drag.rot[0] + dx * k;
-        rot[1] = Math.max(-75, Math.min(75, drag.rot[1] - dy * k));
-      });
-
-      function endDrag(event) {
-        if (!drag || drag.id !== event.pointerId) return;
-        const tapped = !drag.moved && event.type === "pointerup";
-        drag = null;
-        canvas.removeAttribute("data-dragging");
-        holdUntil = performance.now() + 3500;
-        if (!tapped) return;
-        const p = localPoint(event);
-        const key = hitTest(p.x, p.y, performance.now());
-        pinned = key && key !== pinned ? key : null;
-        if (event.pointerType !== "mouse") pointer = null;
-        setHover(event.pointerType === "mouse" ? key : null);
-        renderTip();
-      }
-
-      canvas.addEventListener("pointerup", endDrag);
-      canvas.addEventListener("pointercancel", endDrag);
-      canvas.addEventListener("pointerleave", (event) => {
-        if (event.pointerType === "mouse") {
-          pointer = null;
-          setHover(null);
-        }
-      });
-      addEventListener("keydown", (event) => {
-        if (event.key === "Escape") {
-          pinned = null;
-          renderTip();
-        }
-      });
-
-      function setHover(key) {
-        if (key === hover) return;
-        hover = key;
-        canvas.toggleAttribute("data-pointing", !!key);
-        renderTip();
-      }
-
-      // ── Tooltip ───────────────────────────────────────────────────────────
-
-      const tip = $("tip");
-      let tipKey;
-
-      function periodText() {
-        return PERIODS.find(([p]) => p === period)[2];
-      }
-
-      function poolList(pools, limit = 4) {
-        const ul = el("ul");
-        for (const p of pools.slice(0, limit)) {
-          const li = el("li");
-          li.append(el("span", "", p.name), el("span", "", number.format(p.count)));
-          ul.append(li);
-        }
-        if (pools.length > limit) {
-          const rest = pools.slice(limit).reduce((s, p) => s + p.count, 0);
-          const li = el("li");
-          const more = pools.length - limit;
-          li.append(el("span", "", `${more} more pool${more === 1 ? "" : "s"}`), el("span", "", number.format(rest)));
-          ul.append(li);
-        }
-        return ul;
-      }
-
-      function renderTip() {
-        const key = hover ?? pinned;
-        tipKey = key;
-        syncActiveRow(key ?? focus);
-        if (!key) {
-          tip.removeAttribute("data-show");
-          return;
-        }
-        tip.replaceChildren();
-        const head = el("div", "tip-head");
-        if (key === "moon") {
-          const m = stats.moon;
-          head.append(el("span", "moon-icon"), el("span", "", "No known country"));
-          tip.append(head, el("div", "tip-num", number.format(m.count)));
-          tip.append(el("div", "tip-sub", `${stats.total ? percent.format(m.count / stats.total) : "0%"} of blocks ${periodText()}`));
-          const rows = [...(m.unidentified ? [{ name: "Unidentified miners", count: m.unidentified }] : []), ...m.pools];
-          if (rows.length) tip.append(poolList(rows));
-          tip.append(el("p", "", "Blocks whose miner couldn’t be identified, or from pools without a known home country."));
-        } else {
-          const cc = CC_BY_ID.get(key);
-          const f = featureById.get(key);
-          const name = cc ? COUNTRIES[cc].name : f?.properties.name ?? "Unknown";
-          if (cc) head.append(flagImg(cc));
-          head.append(el("span", "", name));
-          tip.append(head);
-          const c = cc && stats.countries.get(cc);
-          if (c?.count) {
-            const rank = ranked(stats).indexOf(c) + 1;
-            tip.append(el("div", "tip-num", number.format(c.count)));
-            tip.append(el("div", "tip-sub", `${percent.format(c.count / stats.total)} of blocks ${periodText()} · #${rank}`));
-            tip.append(poolList(c.pools));
-          } else {
-            tip.append(el("div", "tip-sub", `No blocks from pools based here ${periodText()}.`));
+      addEventListener("pointermove", (event) => {
+        if (dragging) {
+          const dx = event.clientX - dragging.x, dy = event.clientY - dragging.y;
+          if (Math.hypot(dx, dy) > 4) {
+            dragging.moved = true;
+            canvas.classList.add("dragging");
           }
+          rot[0] = dragging.rot[0] + dx * (90 / R);
+          rot[1] = Math.max(-80, Math.min(80, dragging.rot[1] - dy * (90 / R)));
+          invalidate();
+        } else if (event.target === canvas && event.pointerType === "mouse") showFloat(pickAt(event), event);
+      });
+      addEventListener("pointerup", (event) => {
+        if (dragging && !dragging.moved && event.target === canvas) {
+          const key = pickAt(event);
+          select(key && key !== selected ? key : null);
         }
-        tip.setAttribute("data-show", "");
+        dragging = null;
+        canvas.classList.remove("dragging");
+        invalidate();
+      });
+      canvas.addEventListener("pointerleave", () => showFloat(null));
+      canvas.addEventListener("pointercancel", () => ((dragging = null), canvas.classList.remove("dragging"), invalidate()));
+      /** What's under a pointer: the moon, a country's dot (the small ones have no shape on this map), or a country. */
+      function pickAt(/** @type {PointerEvent} */ event) {
+        const box = canvas.getBoundingClientRect(), x = event.clientX - box.left, y = event.clientY - box.top;
+        // (The moon where it shows: behind the planet, only off its disc.)
+        if (moonAt && Math.hypot(x - moonAt.x, y - moonAt.y) <= moonAt.r + 6 && !(moonAt.behind && Math.hypot(x - cx, y - cy) < R)) return UNKNOWN;
+        const dot = marks.find((mark) => Math.hypot(x - mark.x, y - mark.y) <= mark.r + 6);
+        if (dot) return dot.cc;
+        const at = invert(x, y), { byCountry } = shares();
+        return at ? features.find((feature) => feature.cc && byCountry.has(feature.cc) && contains(feature.geometry, at))?.cc ?? null : null;
+      }
+      function showFloat(/** @type {string | null} */ key, /** @type {PointerEvent | undefined} */ event = undefined) {
+        const float = $("float"), row = snapshot?.rows.find((r) => keyOf(r) === key);
+        if (!key || !row || !event || !snapshot) return void (float.hidden = true);
+        const lines = [`${percent(row.count / snapshot.total)} of the blocks, ${grouped(row.count)}`, row.pools.slice(0, 3).map(({ slug }) => names.get(slug) ?? slug).join(", ")];
+        float.replaceChildren(Object.assign(document.createElement("b"), { textContent: row.cc ? COUNTRIES[row.cc].name : "No known home" }), ...lines.map((line) => Object.assign(document.createElement("div"), { textContent: line })));
+        float.hidden = false;
+        float.style.left = `${Math.min(innerWidth - float.offsetWidth - 8, event.clientX + 14)}px`;
+        float.style.top = `${Math.min(innerHeight - float.offsetHeight - 8, event.clientY + 14)}px`;
       }
 
-      function placeTip(now) {
-        if (!tipKey) return;
-        const rect = canvas.getBoundingClientRect();
-        let x;
-        let y;
-        let hidden = false;
-        if (hover && pointer?.mouse && tipKey === hover) {
-          x = rect.left + pointer.x + 16;
-          y = rect.top + pointer.y + 16;
-        } else {
-          const a = anchorOf(tipKey, now);
-          hidden = !a.visible;
-          x = rect.left + a.x - tip.offsetWidth / 2;
-          y = rect.top + a.y - tip.offsetHeight - 14;
-          if (y < 8) y = rect.top + a.y + 28;
-          // Anchored to a globe that's scrolled out of view: nothing to point at.
-          if (rect.top + a.y < 0 || rect.top + a.y > innerHeight) hidden = true;
+      // ── History: a 100% stack of each country's monthly share, a cursor on a month, the events that moved it ──
+      function drawHistory() {
+        if (!history) return;
+        const h = history, n = h.months.length;
+        // (The countries with a color, most first at the bottom; the rest of the known, then the unknown, on top.)
+        const named = [...colors.keys()], series = named.map((cc) => ({ cc, color: /** @type {string} */ (colors.get(cc)), values: new Array(n).fill(0) }));
+        const other = { cc: "other", color: OTHER, values: new Array(n).fill(0) }, unknown = { cc: null, color: ink.faint, values: new Array(n).fill(0) };
+        for (const [slug, values] of h.pools) {
+          const cc = /** @type {string} */ (POOL_COUNTRY.get(slug)), target = series.find((s) => s.cc === cc) ?? other;
+          values.forEach((value, k) => (target.values[k] += value));
         }
-        x = Math.max(8, Math.min(innerWidth - tip.offsetWidth - 8, x));
-        y = Math.max(8, Math.min(innerHeight - tip.offsetHeight - 8, y));
-        tip.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
-        tip.style.visibility = hidden ? "hidden" : "visible";
-      }
-
-      // ── Board ─────────────────────────────────────────────────────────────
-
-      const board = $("board");
-      const rows = new Map();
-
-      function renderPeriods() {
-        const group = $("periods");
-        for (const [key, label] of PERIODS) {
-          const b = el("button", "", label);
-          b.type = "button";
-          b.dataset.period = key;
-          b.setAttribute("aria-pressed", String(key === period));
-          b.addEventListener("click", () => setPeriod(key));
-          group.append(b);
-        }
-      }
-
-      function renderBoard(bumped) {
-        rollTotal(stats.total, !!bumped);
-        $("total-sub").textContent = `blocks ${periodText()}`;
-        const list = ranked(stats).filter((c) => c.count);
-        const max = Math.max(1, list[0]?.count ?? 0, stats.moon.count);
-        const items = list.map((c, i) => ({ key: COUNTRIES[c.cc].id, rank: i + 1, cc: c.cc, name: COUNTRIES[c.cc].name, count: c.count }));
-        if (stats.moon.count) items.push(/** @type {any} */ ({ key: "moon", rank: "", name: "No known country", count: stats.moon.count }));
-        rows.clear();
-        board.replaceChildren(
-          ...items.map((item) => {
-            const li = el("li");
-            const b = el("button", item.key === "moon" ? "row moon" : "row");
-            b.type = "button";
-            const share = stats.total ? item.count / stats.total : 0;
-            const count = el("span", "count", number.format(item.count));
-            count.append(el("small", "", percent.format(share)));
-            const bar = el("span", "bar");
-            const fill = el("i");
-            fill.style.width = `${(item.count / max) * 100}%`;
-            bar.append(fill);
-            b.append(el("span", "rank", String(item.rank)), item.cc ? flagImg(item.cc) : el("span", "moon-icon"), el("span", "name", item.name), count, bar);
-            b.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && setHover(item.key));
-            b.addEventListener("pointerleave", (e) => e.pointerType === "mouse" && setHover(null));
-            b.addEventListener("click", () => {
-              revealGlobe();
-              pinned = item.key;
-              if (item.cc) flyTo(COUNTRIES[item.cc].at);
-              else moonToFront();
-              renderTip();
-            });
-            if (item.key === bumped) b.setAttribute("data-bump", "");
-            rows.set(item.key, b);
-            li.append(b);
-            return li;
-          }),
-        );
-        syncActiveRow(hover ?? pinned ?? focus);
-        if (tipKey) renderTip();
-      }
-
-      let shownTotal = 0;
-      function rollTotal(to, animate) {
-        const from = shownTotal;
-        shownTotal = to;
-        const node = $("total");
-        if (!animate || reducedMotion) {
-          node.textContent = number.format(to);
-          return;
-        }
-        const t0 = performance.now();
-        const step = (now) => {
-          const t = Math.min(1, (now - t0) / 700);
-          node.textContent = number.format(Math.round(from + (to - from) * easeInOut(t)));
-          if (t < 1 && shownTotal === to) requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
-      }
-
-      function syncActiveRow(key) {
-        for (const [k, b] of rows) b.toggleAttribute("data-active", k === key);
-      }
-
-      // ── Feed ──────────────────────────────────────────────────────────────
-
-      const feed = $("feed");
-      const FEED_SIZE = 144; // about a day of blocks
-      let recent = [];
-
-      function blockPlace(block) {
-        const slug = block.extras?.pool?.slug ?? "unknown";
-        const cc = POOL_COUNTRY.get(slug);
-        return {
-          slug,
-          cc,
-          pool: slug === "unknown" ? "Unidentified miner" : block.extras?.pool?.name ?? slug,
-          place: cc ? COUNTRIES[cc].name : "No known country",
-        };
-      }
-
-      function renderFeed(newHeights = new Set()) {
-        feed.replaceChildren(
-          ...recent.map((block) => {
-            const { cc, pool, place } = blockPlace(block);
-            const li = el("li");
-            const b = el("button", "row block");
-            b.type = "button";
-            b.title = `Replay block ${number.format(block.height)}`;
-            const meta = el("span", "meta", `#${number.format(block.height)} · ${place} · ${ago(block.timestamp)}`);
-            meta.dataset.ts = block.timestamp;
-            b.append(cc ? flagImg(cc) : el("span", "moon-icon"), el("span", "name", pool), el("span"), meta);
-            b.addEventListener("click", () => {
-              revealGlobe();
-              enqueue(block, { count: false, replay: true });
-            });
-            if (newHeights.has(block.height)) b.setAttribute("data-new", "");
-            li.append(b);
-            return li;
-          }),
-        );
-      }
-
-      setInterval(() => {
-        for (const meta of feed.querySelectorAll(".meta")) {
-          meta.textContent = meta.textContent.replace(/[^·]+$/, ` ${ago(Number(meta.dataset.ts))}`);
-        }
-      }, 30_000);
-
-      // ── Block events ──────────────────────────────────────────────────────
-
-      const toast = $("toast");
-      let toastTimer;
-      const queue = [];
-      let playing = false;
-
-      function showToast(block, { replay }) {
-        const { cc, pool, place } = blockPlace(block);
-        const where = el("span");
-        if (cc) where.append(flagImg(cc));
-        where.append(`${pool} · ${place}`);
-        toast.replaceChildren(
-          el("span", "label", replay ? `Replay · ${ago(block.timestamp)}` : "New block"),
-          el("strong", "", `#${number.format(block.height)}`),
-          where,
-        );
-        toast.setAttribute("data-show", "");
-        clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => toast.removeAttribute("data-show"), 6500);
-      }
-
-      // A wait that a newly queued block can cut short.
-      let wake = null;
-      function pause(ms) {
-        return new Promise((/** @type {(value?: unknown) => void} */ resolve) => {
-          const done = () => {
-            clearTimeout(timer);
-            if (wake === done) wake = null;
-            resolve();
-          };
-          const timer = setTimeout(done, ms);
-          wake = done;
+        for (let k = 0; k < n; k++) unknown.values[k] = Math.max(0, h.total[k] - series.reduce((sum, s) => sum + s.values[k], 0) - other.values[k]);
+        const layers = [...series, other, unknown], base = new Array(n).fill(0), x = (/** @type {number} */ k) => (k / (n - 1)) * 1000;
+        const paths = layers.map((layer) => {
+          const lower = base.map((value, k) => [x(k), 100 - value]);
+          layer.values.forEach((value, k) => (base[k] += h.total[k] ? (value / h.total[k]) * 100 : 0));
+          const upper = base.map((value, k) => [x(k), 100 - value]);
+          return `<path d="M${upper.map(([px, py]) => `${px.toFixed(1)},${py.toFixed(2)}`).join("L")}L${lower.reverse().map(([px, py]) => `${px.toFixed(1)},${py.toFixed(2)}`).join("L")}Z" fill="${layer.color}"/>`;
         });
+        $("area").innerHTML = `<svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">${paths.join("")}</svg><div class="cursor" id="month-cursor" hidden></div>`;
+        Object.assign($("area"), { hidden: false, tabIndex: 0 });
+        /** @type {HTMLButtonElement} */ ($("play")).disabled = false;
+        $("area").setAttribute("role", "slider");
+        $("area").setAttribute("aria-label", "Month");
+        $("history-message").hidden = true;
+        $("area").setAttribute("aria-valuemin", "0");
+        $("area").setAttribute("aria-valuemax", String(n - 1));
+        $("legend").replaceChildren(...[...named.map((cc) => [COUNTRIES[cc].name, colors.get(cc)]), ["Others", OTHER], ["No known home", "var(--faint)"]].map(([label, color]) => {
+          const item = Object.assign(document.createElement("li"), { textContent: label });
+          item.style.setProperty("--color", /** @type {string} */ (color));
+          return item;
+        }));
+        const at = (/** @type {number} */ k) => (k / (n - 1)) * 100;
+        $("years").innerHTML = h.months.flatMap((date, k) => (date.endsWith("-01-01") && Number(date.slice(0, 4)) % 2 === 0 && k > n * 0.02 && k < n * 0.98 ? [`<span class="num" style="left: ${at(k)}%">${date.slice(0, 4)}</span>`] : [])).join("");
+        $("events").innerHTML = EVENTS.flatMap(([date, text]) => {
+          const k = h.months.indexOf(date);
+          return k < 0 ? [] : [`<span style="left: ${at(k)}%">${text}</span>`];
+        }).join("");
+        placeEvents();
+        drawCursor();
       }
-
-      function enqueue(block, options) {
-        // A replay replaces any replay still waiting its turn.
-        if (options.replay) {
-          for (let i = queue.length - 1; i >= 0; i--) if (queue[i][1].replay) queue.splice(i, 1);
-        }
-        queue.push([block, options]);
-        if (playing) wake?.();
-        else play();
-      }
-
-      async function play() {
-        playing = true;
-        while (queue.length) {
-          const [block, options] = queue.shift();
-          await celebrate(block, options);
-          if (queue.length) await pause(queue[0][1].replay ? 300 : 2500);
-        }
-        playing = false;
-        if (needsRefresh) refreshStats();
-      }
-
-      async function celebrate(block, { count = true, replay = false, silent = false }) {
-        const { slug, cc, pool } = blockPlace(block);
-        const key = cc ? COUNTRIES[cc].id : "moon";
-        if (!(document.hidden && !replay)) showToast(block, { replay });
-        pinned = null;
-        focus = key;
-        renderTip();
-        await (cc ? flyTo(COUNTRIES[cc].at) : moonToFront());
-        const now = performance.now();
-        if (cc) {
-          rings.push({ at: COUNTRIES[cc].at, t0: now });
-          flashes.set(key, now);
-        } else {
-          moonFlashAt = now;
-        }
-        if (!silent) chime(cc);
-        if (count) {
-          addBlocks(stats, slug, pool);
-          renderBoard(key);
-        }
-        holdUntil = performance.now() + 6000;
-        if (!queue.length) await pause(5000);
-        if (focus === key) {
-          focus = null;
-          renderTip();
-        }
-      }
-
-      // ── Data flow ─────────────────────────────────────────────────────────
-
-      let client;
-      let lastHeight = 0;
-      let needsRefresh = false;
-      const statsCache = new Map();
-
-      async function fetchStats(p) {
-        const cached = statsCache.get(p);
-        if (cached && Date.now() - cached.at < 60_000) return cached.stats;
-        const summary = await client.getPoolStats(p, { cache: false });
-        const result = tally(summary.pools);
-        statsCache.set(p, { at: Date.now(), stats: result });
-        return result;
-      }
-
-      async function setPeriod(p) {
-        period = p;
-        for (const b of $("periods").children) b.setAttribute("aria-pressed", String(b.dataset.period === p));
-        try {
-          const next = await fetchStats(p);
-          if (period !== p) return;
-          stats = structuredClone(next);
-          renderBoard();
-        } catch (error) {
-          console.error(error);
-        }
-      }
-
-      async function refreshStats() {
-        needsRefresh = false;
-        statsCache.clear();
-        try {
-          const next = await fetchStats(period);
-          if (!playing) {
-            stats = structuredClone(next);
-            renderBoard();
+      /** The events' labels placed: each a row and a side of its line, none over another or another's line, within the
+       * chart (the first that fits, nearest the chart and centered first; none fitting, alternate rows). */
+      function placeEvents() {
+        const box = $("events"), width = box.clientWidth, labels = /** @type {HTMLElement[]} */ ([...box.children]);
+        if (!width || !labels.length) return;
+        const spans = labels.map((label) => ({ x: (parseFloat(label.style.left) / 100) * width, width: label.offsetWidth }));
+        const options = [0, 1, 2].flatMap((row) => [0.5, 0, 1].map((anchor) => ({ row, anchor })));
+        /** @type {{ row: number, anchor: number, x: number, left: number, right: number }[]} */
+        const placed = [];
+        const solve = (/** @type {number} */ i) => {
+          if (i === spans.length) return true;
+          const { x, width: w } = spans[i];
+          for (const { row, anchor } of options) {
+            const left = x - anchor * w, right = left + w;
+            if (left < 0 || right > width) continue;
+            // (Same row: apart. A label below: this line misses it. A label above: its line misses this.)
+            const clear = placed.every((p) => (p.row === row ? right + 8 < p.left || left > p.right + 8 : p.row < row ? x < p.left - 4 || x > p.right + 4 : p.x < left - 4 || p.x > right + 4));
+            if (!clear) continue;
+            placed.push({ row, anchor, x, left, right });
+            if (solve(i + 1)) return true;
+            placed.pop();
           }
+          return false;
+        };
+        const rows = solve(0) ? placed : spans.map((_, i) => ({ row: i % 2, anchor: 0.5 }));
+        labels.forEach((label, i) => {
+          label.style.setProperty("--row", String(rows[i].row));
+          label.style.setProperty("--anchor", String(rows[i].anchor));
+        });
+        box.style.setProperty("--top", String(Math.max(...rows.map(({ row }) => row))));
+      }
+      new ResizeObserver(placeEvents).observe($("events"));
+      document.fonts.ready.then(placeEvents);
+      function drawCursor() {
+        const cursor = document.getElementById("month-cursor");
+        if (!cursor || !history) return;
+        const end = history.months.length - 1;
+        cursor.hidden = month === null;
+        if (month !== null) cursor.style.left = `${(month / end) * 100}%`;
+        // (A period's shown: the slider stands at now.)
+        $("area").setAttribute("aria-valuenow", String(month ?? end));
+        const event = month === null ? undefined : EVENTS.find(([date]) => date === history?.months[month]);
+        $("area").setAttribute("aria-valuetext", month === null ? /** @type {string} */ (PERIODS.find(([id]) => id === period)?.[2]) : `${monthLabel(month)}${event ? `, ${event[1]}` : ""}`);
+      }
+      const monthAt = (/** @type {PointerEvent} */ event) => {
+        const box = $("area").getBoundingClientRect(), n = /** @type {NonNullable<typeof history>} */ (history).months.length;
+        return Math.round(Math.min(1, Math.max(0, (event.clientX - box.left) / box.width)) * (n - 1));
+      };
+      // (Pointed at, a month shows; picked (a tap, a click, a drag), it stays until another or a period's picked.)
+      let pinned = /** @type {number | null} */ (null);
+      // (A touch picks as it lifts: a scroll started on the chart leaves the month as it was. Playing, only a pick counts.)
+      $("area").addEventListener("pointermove", (event) => history && !playing && (event.pointerType === "mouse" || event.buttons) && setMonth(monthAt(event)));
+      $("area").addEventListener("pointerdown", (event) => history && event.pointerType !== "touch" && (stopPlaying(), setMonth((pinned = monthAt(event)))));
+      $("area").addEventListener("pointerup", (event) => history && (stopPlaying(), setMonth((pinned = monthAt(event)))));
+      $("area").addEventListener("pointercancel", () => history && !playing && setMonth(pinned));
+      $("area").addEventListener("pointerleave", (event) => event.pointerType === "mouse" && history && !playing && setMonth(pinned));
+      $("area").addEventListener("keydown", (event) => {
+        if (!history) return;
+        const end = history.months.length - 1, at = month ?? end;
+        const to = { ArrowLeft: at - 1, ArrowDown: at - 1, ArrowRight: at + 1, ArrowUp: at + 1, PageDown: at - 12, PageUp: at + 12, Home: 0, End: end }[event.key];
+        if (to === undefined) return;
+        event.preventDefault();
+        stopPlaying();
+        setMonth((pinned = Math.max(0, Math.min(end, to))));
+      });
+      // Play: every month in turn, from the first, about twelve seconds in all.
+      let playing = 0;
+      function stopPlaying() {
+        if (!playing) return;
+        cancelAnimationFrame(playing);
+        playing = 0;
+        $("play").textContent = "Play";
+      }
+      $("play").addEventListener("click", () => {
+        if (!history) return;
+        if (playing) return stopPlaying();
+        const n = history.months.length, t0 = performance.now(), from = month !== null && month < n - 1 ? month : 0;
+        $("play").textContent = "Pause";
+        const step = (/** @type {number} */ now) => {
+          const k = Math.min(n - 1, from + Math.floor(((now - t0) / 12_000) * n));
+          if (k !== month) setMonth((pinned = k));
+          if (k < n - 1) playing = requestAnimationFrame(step);
+          else stopPlaying();
+        };
+        playing = requestAnimationFrame(step);
+      });
+      /** The history, again if it fails (the rest of the page goes on without it). */
+      async function showHistory(/** @type {{ slug: string, blockCount: number }[]} */ allTime) {
+        $("history-message").textContent = "Loading…";
+        try {
+          history = await loadHistory(allTime);
+          drawHistory();
         } catch (error) {
-          console.error(error);
+          const retry = Object.assign(document.createElement("button"), { type: "button", className: "play", textContent: "Try again" });
+          retry.addEventListener("click", () => showHistory(allTime));
+          $("history-message").replaceChildren(Object.assign(document.createElement("p"), { textContent: /** @type {Error} */ (error).message }), retry);
         }
       }
 
-      const status = $("status");
-      function setLive(live) {
-        status.textContent = live ? "Live" : "Offline";
-        status.toggleAttribute("data-live", live);
+      // ── The latest blocks, live ──
+      let tip = 0;
+      /** @type {{ height: number, pool: string, time: number }[]} */
+      let latest = [];
+      async function blocks(/** @type {number} */ start, /** @type {number} */ end) {
+        const [pools, times] = await json(`/api/series/bulk?${new URLSearchParams({ series: "block_pool,timestamp", index: "height", start: String(start), end: String(end) })}`);
+        return pools.data.map((pool, i) => ({ height: pools.start + i, pool, time: times.data[i] }));
       }
-
-      const poolNames = new Map();
-
-      // Blocks in [start, end) by height, newest first, shaped like the
-      // `/api/v1/blocks` entries the rest of the page reads.
-      async function fetchBlocks(start, end) {
-        const [pools, times] = await client.getSeriesBulk("block_pool,timestamp", "height", start, end, undefined, undefined, {
-          cache: false,
-          memCache: false,
-        });
-        return pools.data
-          .map((slug, i) => ({
-            height: pools.start + i,
-            timestamp: times.data[i],
-            extras: { pool: { slug, name: poolNames.get(slug) ?? slug } },
-          }))
-          .reverse();
+      const ago = (/** @type {number} */ time) => {
+        const minutes = Math.max(0, Math.round((Date.now() / 1000 - time) / 60));
+        return minutes < 1 ? "just now" : minutes < 60 ? `${minutes} min ago` : `${Math.round(minutes / 60)} h ago`;
+      };
+      /** A block's height and age, each whole. */
+      function stamp(/** @type {{ height: number, time: number }} */ block) {
+        const line = Object.assign(document.createElement("span"), { className: "meta num stamp" });
+        line.append(...[`#${grouped(block.height)}`, ago(block.time)].map((text) => Object.assign(document.createElement("span"), { textContent: text })));
+        return line;
       }
-
-      let missed = null;
-
-      function showMissed() {
-        if (!missed || document.hidden) return;
-        enqueue(missed, { count: false, replay: true });
-        missed = null;
+      let shownLatest = new Set();
+      function drawLatest() {
+        const before = shownLatest;
+        shownLatest = new Set(latest.map((block) => block.height));
+        $("latest").replaceChildren(...latest.map((block) => {
+          const cc = POOL_COUNTRY.get(block.pool) ?? null, item = Object.assign(document.createElement("li"), { className: before.size && !before.has(block.height) ? "new" : "" });
+          item.style.setProperty("--color", colorOf(cc));
+          item.append(
+            Object.assign(document.createElement("span"), { className: "swatch" }),
+            Object.assign(document.createElement("b"), { textContent: names.get(block.pool) ?? block.pool }),
+            Object.assign(document.createElement("span"), { className: "meta", textContent: cc ? COUNTRIES[cc].name : "No known home" }),
+            stamp(block),
+          );
+          return item;
+        }));
       }
-
+      let polling = false;
       async function poll() {
+        if (polling) return;
+        polling = true;
         try {
-          const tip = await client.getBlockTipHeight({ cache: false, memCache: false });
-          setLive(true);
-          if (tip <= lastHeight) return;
-          const blocks = await fetchBlocks(Math.max(lastHeight + 1, tip + 1 - FEED_SIZE), tip + 1);
-          const fresh = blocks.filter((b) => b.height > lastHeight).sort((a, b) => a.height - b.height);
-          recent = [...fresh.toReversed(), ...recent].slice(0, FEED_SIZE);
-          const gap = tip - lastHeight;
-          lastHeight = Math.max(lastHeight, blocks[0]?.height ?? lastHeight);
-          renderFeed(new Set(fresh.map((b) => b.height)));
-          needsRefresh = true;
-          // In a background tab or after a long sleep, sync quietly and keep
-          // only the newest block to show when the page is seen again.
-          if (gap > 3 || document.hidden) {
-            missed = fresh.at(-1) ?? missed;
-            if (!playing) refreshStats();
-            return;
+          // (The sun and the night move on, a little each poll, whatever else does.)
+          invalidate();
+          const height = Number(await fetch("/api/blocks/tip/height").then((response) => response.text()));
+          if (!Number.isFinite(height)) return;
+          $("tip-height").textContent = grouped(height);
+          $("tip").hidden = false;
+          if (height <= tip) return drawLatest();
+          const before = tip, fresh = (await blocks(tip ? tip + 1 : height - 5, height + 1)).reverse();
+          if (!fresh.length) return;
+          // (Up to the last block the series had: one it hadn't yet is read next time.)
+          tip = fresh[0].height;
+          latest = [...fresh, ...latest.filter((block) => block.height < fresh[fresh.length - 1].height)].slice(0, 6);
+          drawLatest();
+          const arrived = before > 0;
+          if (arrived && fresh.length <= 3) {
+            for (const block of fresh) {
+              const cc = POOL_COUNTRY.get(block.pool);
+              if (cc && !reduced.matches) pulses.push({ at: COUNTRIES[cc].at, t0: performance.now(), color: colorOf(cc) });
+            }
+            // (Said once, as it arrives.)
+            $("said").textContent = fresh.map((block) => `Block ${grouped(block.height)}: ${names.get(block.pool) ?? block.pool}, ${POOL_COUNTRY.has(block.pool) ? COUNTRIES[/** @type {string} */ (POOL_COUNTRY.get(block.pool))].name : "no known home"}`).join(". ");
           }
-          for (const block of fresh) enqueue(block, { count: true });
-        } catch (error) {
-          console.error(error);
-          setLive(false);
+          invalidate();
+          if (!arrived) return;
+          // (A new block: every period's counts are old; the one shown asked for again, as a pick would: its answer or its
+          // failure said.)
+          forgetPeriods();
+          // (Not waited for: a slow answer never holds up the next poll.)
+          if (month === null) setPeriod(period);
+        } catch {
+        } finally {
+          polling = false;
         }
       }
 
-      // Load everything the page needs. Anything that fails is retried with
-      // backoff, keeping what already arrived, until the page comes up.
-      // Run a loader once; if it fails, the next call tries again.
-      function once(load) {
-        let promise;
-        return () =>
-          (promise ??= load().catch((error) => {
-            promise = null;
-            throw error;
-          }));
-      }
-
-      const readyMap = once(async () => {
-        const atlas = decodeTopology(await loadAtlas());
-        land = atlas.geometries("land");
+      // ── Start ──
+      async function start() {
+        readInks();
+        resize();
+        const [topology, allTime] = await Promise.all([json("/modules/world-atlas/2.0.2/countries-110m.json"), json("/api/v1/mining/pools/all")]);
+        const atlas = decodeTopology(topology);
+        features = atlas.geometries("countries").map((geometry) => ({ geometry, cc: CC_BY_ID.get(geometry.id) }));
         borders = atlas.shared("countries");
-        features = atlas.geometries("countries").filter((f) => f.id);
-        for (const f of features) {
-          featureById.set(f.id, f);
-          if (CC_BY_ID.has(f.id)) mainland.set(f.id, largestPolygon(f));
-        }
-      });
-      const readyClient = once(async () => {
-        client = await loadClient();
-      });
-
-      async function boot() {
-        await Promise.all([readyMap(), readyClient()]);
-
-        const [initial, pools] = await Promise.all([fetchStats(period), client.getPools()]);
-        for (const pool of pools) poolNames.set(pool.slug, pool.name);
-        const blocks = await fetchBlocks(-FEED_SIZE);
-        stats = structuredClone(initial);
-        recent = blocks;
-        lastHeight = blocks[0]?.height ?? 0;
-        renderBoard();
-        renderFeed();
-        setLive(true);
-        setInterval(poll, POLL_MS);
-        document.addEventListener("visibilitychange", () => {
-          if (document.hidden) return;
-          showMissed();
-          poll();
+        for (const pool of allTime.pools) names.set(pool.slug, pool.name);
+        // (Colors by blocks ever found: the most, the first.)
+        tally(allTime.pools.map((/** @type {any} */ pool) => ({ slug: pool.slug, count: pool.blockCount })), allTime.blockCount)
+          .filter((row) => row.cc).slice(0, PALETTE.length).forEach((row, i) => colors.set(row.cc, PALETTE[i]));
+        invalidate();
+        await setPeriod(period);
+        poll();
+        setInterval(poll, 20_000);
+        showHistory(allTime.pools);
+      }
+      /** The start, again if it fails (offered beside the message). */
+      function begin() {
+        $("countries").replaceChildren();
+        start().catch((error) => {
+          $("countries").replaceChildren(failure(error, begin));
+          $("history-message").textContent = "Shown once the page has loaded.";
         });
-
-        // Open with the most recent block so the page shows what it does.
-        setTimeout(() => {
-          if (blocks[0] && !playing) enqueue(blocks[0], { count: false, replay: true, silent: true });
-        }, 900);
       }
-
-      async function bootWithRetry(attempt = 0) {
-        try {
-          await boot();
-          $("error").removeAttribute("data-show");
-        } catch (error) {
-          console.error(error);
-          setLive(false);
-          const wait = Math.min(30, 2 ** attempt * 2);
-          $("error-text").textContent = `${(error.message || "Network error").replace(/\.$/, "")}. Retrying in ${wait}s…`;
-          $("error").setAttribute("data-show", "");
-          setTimeout(() => bootWithRetry(attempt + 1), wait * 1000);
-        }
-      }
-
-      renderPeriods();
-      addEventListener("resize", resize);
-      resize();
-      start();
-      bootWithRetry();
+      begin();
     </script>
   </body>
 </html>

@@ -967,12 +967,24 @@ has to be deleted by hand.
 - `bitview_mcp --api` must be an absolute HTTP(S) origin (a bare host was tried over HTTPS, then HTTP)
 - Data is safe across soft quits (SIGINT, SIGTERM) only: rawdb no longer syncs to the device on flush (v0.12.2 promised
   durability after `flush()`), so kernel panics, power loss and storage removal are not supported
+- The server listens on `127.0.0.1` by default (was `0.0.0.0`, every interface, with no authentication): set
+  `serverbind = "0.0.0.0"` (or `--serverbind 0.0.0.0`) to serve the network. The Docker image passes it inside the
+  container, and Docker Compose maps the host port on `127.0.0.1` (was every interface)
 - The website is gone (Bitview Studio, a separate app, has its charts and search): the server serves the showcases
   instead, Bitview's front page at `/` (what Bitview is, a live weekly chart of the price and realized price from the
   server that serves it, and the ways in: Studio, the API, MCP, running your own, the explorations and the crates) and
-  each one at `/<name>/`, embedded or, in debug builds, from `./showcases`. The self-hosting (`/dev`), Bitcoin Research
-  Kit (`/brk`) and API (`/api`) pages share its look, light and dark; the OpenAPI contact is Bitview and its license
-  link resolves (was `docs/LICENSE.md`, absent); `.jpg` files are served as `image/jpeg`.
+  each one at `/<name>/`, embedded or, in debug builds, from `./showcases`. Each page keeps a look of its own: the API page
+  (`/api`) is Scalar in the front page's type and colors, following the system's theme; the self-hosting (`/dev`) and
+  Bitcoin Research Kit (`/brk`) pages keep theirs, their facts brought up to date (Studio in place of the website's
+  pages; mainnet and complete block files required). The OpenAPI contact is Bitview and its license link resolves (was
+  `docs/LICENSE.md`, absent); `.jpg` files are served as `image/jpeg`. Calendar is rebuilt as an almanac (light and
+  dark): every day's leading pools by year (ties shown, Unknown not a pool), the pools that led most, the year's notes
+  in its margin (halvings, the busiest and quietest days, the longest run, the biggest day for one pool), and a day as
+  a 24-hour dial of its blocks (its longest wait, quickest pair, busiest hour), each with its pool's count that day and
+  ever. Globe is rebuilt as Earth from orbit, the planet the whole first screen: each country's share of the blocks
+  over a period (over a day or a week, with the hashrate it implies), the blocks without a known home as a moon,
+  tonight's night side and the sun's light, the same month by month since 2011 (a stacked chart with the halvings and
+  China's ban, driving the globe, playable), and blocks landing live.
   `--website` serves them (`true`), nothing (`false`) or a directory. The website's block, transaction and address pages
   have no replacement yet. `/api` is the API showcase: Scalar 1.75.1 from `modules/` (was 1.49.8, built into the server
   with its own `/scalar.js` route), so `--website false` serves no API page either and `/` redirects to `/openapi.json`
