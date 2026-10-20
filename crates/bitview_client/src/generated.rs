@@ -1499,9 +1499,9 @@ pub mod tree {
         funded: Funded<Count, CountSigned> = "*_address_count",
         supply: AddressesSupply = "*_supply",
         capital: AddressesCapital = "*",
+        utxos: Balances0satsUtxos = "*_utxo_count",
         activity: Balances100btcTo1kBtcActivity = "*_transfer_volume",
         realized: Balances100btcTo1kBtcRealized = "*_realized",
-        utxos: Balances0satsUtxos = "*_utxo_count",
     } }
     shape! { RookieActivity at "series().entry.rookie.activity" {
         transfer_volume: OpReturnValue = "*_transfer_volume",
@@ -1525,10 +1525,10 @@ pub mod tree {
     shape! { Amounts100btcTo1kBtc at "series().utxos.amounts._100btc_to_1k_btc" {
         supply: AddressesSupply = "*_supply",
         capital: AddressesCapital = "*",
+        utxos: RookieUtxos = "*",
         activity: Balances100btcTo1kBtcActivity = "*_transfer_volume",
         realized: Balances100btcTo1kBtcRealized = "*_realized",
         cost_basis: RookieCostBasis = "*",
-        utxos: RookieUtxos = "*",
     } }
     shape! { UtxosTypes at "series().utxos.types" {
         p2pk: Amounts100btcTo1kBtc = "p2pk",

@@ -50,9 +50,11 @@ pub const AMOUNT_RANGE_NAMES: AmountRange<CohortName> = AmountRange {
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize, JsonSchema)]
 #[cfg_attr(feature = "storage", derive(Traversable))]
-pub struct AmountRange<T> {
+/// The 15 amount bands. `Z`, the zero band's type, is the others' unless a family's zero band
+/// holds less (its values all zero).
+pub struct AmountRange<T, Z = T> {
     /// Uses zero-satoshi values.
-    _0sats: T,
+    _0sats: Z,
     /// Uses values of at least 1 and less than 10 satoshis.
     _1sat_to_10sats: T,
     /// Uses values of at least 10 and less than 100 satoshis.
@@ -114,6 +116,77 @@ impl<T> AmountRange<T> {
             .iter()
             .zip(self.iter())
             .map(|(bounds, value)| (bounds.start, value))
+    }
+}
+
+impl<T, Z> AmountRange<T, Z> {
+    /// The zero band and the 14 others, apart.
+    pub fn split(&self) -> (&Z, [&T; 14]) {
+        (
+            &self._0sats,
+            [
+                &self._1sat_to_10sats,
+                &self._10sats_to_100sats,
+                &self._100sats_to_1k_sats,
+                &self._1k_sats_to_10k_sats,
+                &self._10k_sats_to_100k_sats,
+                &self._100k_sats_to_1m_sats,
+                &self._1m_sats_to_10m_sats,
+                &self._10m_sats_to_1btc,
+                &self._1btc_to_10btc,
+                &self._10btc_to_100btc,
+                &self._100btc_to_1k_btc,
+                &self._1k_btc_to_10k_btc,
+                &self._10k_btc_to_100k_btc,
+                &self.over_100k_btc,
+            ],
+        )
+    }
+
+    pub fn split_mut(&mut self) -> (&mut Z, [&mut T; 14]) {
+        (
+            &mut self._0sats,
+            [
+                &mut self._1sat_to_10sats,
+                &mut self._10sats_to_100sats,
+                &mut self._100sats_to_1k_sats,
+                &mut self._1k_sats_to_10k_sats,
+                &mut self._10k_sats_to_100k_sats,
+                &mut self._100k_sats_to_1m_sats,
+                &mut self._1m_sats_to_10m_sats,
+                &mut self._10m_sats_to_1btc,
+                &mut self._1btc_to_10btc,
+                &mut self._10btc_to_100btc,
+                &mut self._100btc_to_1k_btc,
+                &mut self._1k_btc_to_10k_btc,
+                &mut self._10k_btc_to_100k_btc,
+                &mut self.over_100k_btc,
+            ],
+        )
+    }
+
+    /// Builds the zero band with `zero` and the others with `band`.
+    pub fn try_from_fns<E>(
+        zero: impl FnOnce(AmountRangeId) -> Result<Z, E>,
+        mut band: impl FnMut(AmountRangeId) -> Result<T, E>,
+    ) -> Result<Self, E> {
+        Ok(Self {
+            _0sats: zero(AmountRangeId::Zero)?,
+            _1sat_to_10sats: band(AmountRangeId::From1SatTo10Sats)?,
+            _10sats_to_100sats: band(AmountRangeId::From10SatsTo100Sats)?,
+            _100sats_to_1k_sats: band(AmountRangeId::From100SatsTo1KSats)?,
+            _1k_sats_to_10k_sats: band(AmountRangeId::From1KSatsTo10KSats)?,
+            _10k_sats_to_100k_sats: band(AmountRangeId::From10KSatsTo100KSats)?,
+            _100k_sats_to_1m_sats: band(AmountRangeId::From100KSatsTo1MSats)?,
+            _1m_sats_to_10m_sats: band(AmountRangeId::From1MSatsTo10MSats)?,
+            _10m_sats_to_1btc: band(AmountRangeId::From10MSatsTo1Btc)?,
+            _1btc_to_10btc: band(AmountRangeId::From1BtcTo10Btc)?,
+            _10btc_to_100btc: band(AmountRangeId::From10BtcTo100Btc)?,
+            _100btc_to_1k_btc: band(AmountRangeId::From100BtcTo1KBtc)?,
+            _1k_btc_to_10k_btc: band(AmountRangeId::From1KBtcTo10KBtc)?,
+            _10k_btc_to_100k_btc: band(AmountRangeId::From10KBtcTo100KBtc)?,
+            over_100k_btc: band(AmountRangeId::Over100kBtc)?,
+        })
     }
 }
 

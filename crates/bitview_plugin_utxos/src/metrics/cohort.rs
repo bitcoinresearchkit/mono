@@ -16,20 +16,51 @@ type State = CohortState<MinimalRealizedState, ()>;
 /// One UTXO cohort: an amount range or a spendable output type.
 #[derive(Traversable)]
 pub struct CohortVecs<M: StorageMode = Rw> {
-    // Its amounts and values: none for zero-value outputs, whose amounts are all zero.
-    #[traversable(flatten)]
-    pub values: Option<ValueVecs<M>>,
-    pub utxos: StoredUtxos<M>,
-}
-
-/// A cohort's amounts and what they're worth.
-#[derive(Traversable)]
-pub struct ValueVecs<M: StorageMode = Rw> {
     pub supply: CohortSupply<M>,
     pub capital: CohortCapital<M>,
+    pub utxos: StoredUtxos<M>,
     pub activity: ActivityVecs<M>,
     pub realized: RealizedVecs<M>,
     pub cost_basis: CohortCostBasis<M>,
+}
+
+/// The zero-value outputs' cohort: its counts alone, its amounts and values all zero.
+#[derive(Traversable)]
+pub struct ZeroVecs<M: StorageMode = Rw> {
+    pub utxos: StoredUtxos<M>,
+}
+
+impl ZeroVecs {
+    pub fn import(
+        db: &Database,
+        version: Version,
+        mappings: &MappingsVecs,
+        windows: &Windows<&LazyWindowStartVec>,
+    ) -> Result<Self> {
+        let name = |metric: &str| {
+            CohortContext::Utxo.metric_name(CohortId::Amount(AmountRangeId::Zero), metric)
+        };
+        Ok(Self {
+            utxos: StoredUtxos::import(db, name, version, mappings, windows)?,
+        })
+    }
+
+    #[inline(always)]
+    pub fn push(&mut self, state: &State) {
+        debug_assert_eq!(
+            state.supply.value,
+            Sats::ZERO,
+            "zero-value outputs hold value"
+        );
+        self.utxos.push(state.output_counts());
+    }
+
+    /// The band's state at the end of `height`, `None` without that block: no value.
+    pub fn restore(&self, state: &mut State, height: Height) -> Option<()> {
+        state.supply.value = Sats::ZERO;
+        state.supply.utxo_count = u64::from(self.utxos.count.stored.collect_one(height)?);
+        Some(())
+    }
 }
 
 #[derive(Traversable)]
@@ -62,89 +93,59 @@ impl CohortVecs {
     ) -> Result<Self> {
         let name = |metric: &str| CohortContext::Utxo.metric_name(cohort, metric);
         let flow_version = version + Version::ONE;
-        let values = (cohort != CohortId::Amount(AmountRangeId::Zero))
-            .then(|| -> Result<_> {
-                Ok(ValueVecs {
-                    supply: CohortSupply::import(
-                        db,
-                        &name("supply"),
-                        version,
-                        mappings,
-                        windows,
-                        spot,
-                        totals.supply,
-                    )?,
-                    capital: CohortCapital::import(
-                        db,
-                        name,
-                        version,
-                        mappings,
-                        windows,
-                        totals.capital,
-                    )?,
-                    activity: ActivityVecs {
-                        transfer_volume: CumulativeValue::import(
-                            db,
-                            &name("transfer_volume"),
-                            flow_version,
-                            mappings,
-                            windows,
-                        )?,
-                    },
-                    realized: RealizedVecs {
-                        profit: CumulativeFiat::import(
-                            db,
-                            &name("realized_profit"),
-                            flow_version,
-                            mappings,
-                            windows,
-                        )?,
-                        loss: CumulativeFiat::import(
-                            db,
-                            &name("realized_loss"),
-                            flow_version,
-                            mappings,
-                            windows,
-                        )?,
-                    },
-                    cost_basis: CohortCostBasis::import(
-                        db,
-                        name,
-                        version + Version::ONE,
-                        mappings,
-                    )?,
-                })
-            })
-            .transpose()?;
         Ok(Self {
-            values,
+            supply: CohortSupply::import(
+                db,
+                &name("supply"),
+                version,
+                mappings,
+                windows,
+                spot,
+                totals.supply,
+            )?,
+            capital: CohortCapital::import(db, name, version, mappings, windows, totals.capital)?,
             utxos: StoredUtxos::import(db, name, version, mappings, windows)?,
+            activity: ActivityVecs {
+                transfer_volume: CumulativeValue::import(
+                    db,
+                    &name("transfer_volume"),
+                    flow_version,
+                    mappings,
+                    windows,
+                )?,
+            },
+            realized: RealizedVecs {
+                profit: CumulativeFiat::import(
+                    db,
+                    &name("realized_profit"),
+                    flow_version,
+                    mappings,
+                    windows,
+                )?,
+                loss: CumulativeFiat::import(
+                    db,
+                    &name("realized_loss"),
+                    flow_version,
+                    mappings,
+                    windows,
+                )?,
+            },
+            cost_basis: CohortCostBasis::import(db, name, version + Version::ONE, mappings)?,
         })
     }
 
     #[inline(always)]
     pub fn push(&mut self, state: &State, price: Cents) {
+        self.supply.total.push(state.supply.value);
         self.utxos.push(state.output_counts());
-        let Some(values) = &mut self.values else {
-            return;
-        };
-        values.supply.total.push(state.supply.value);
         let sent = state.sent;
-        values
-            .activity
+        self.activity
             .transfer_volume
             .push_block(sent, sent.value_at(price));
         let realized = state.realized_block_data();
-        values.capital.push(realized.cap);
-        values.realized.profit.push_block(realized.profit);
-        values.realized.loss.push_block(realized.loss);
-        values.cost_basis.push(realized.price());
-    }
-
-    /// The cohort's supply at `height`: zero without values.
-    pub fn supply_at(&self, height: Height) -> Option<Sats> {
-        self.values.as_ref().map_or(Some(Sats::ZERO), |values| {
-            values.supply.total.stored.collect_one(height)
-        })
+        self.capital.push(realized.cap);
+        self.realized.profit.push_block(realized.profit);
+        self.realized.loss.push_block(realized.loss);
+        self.cost_basis.push(realized.price());
     }
 }

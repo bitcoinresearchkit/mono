@@ -295,37 +295,6 @@ impl<K: Display, V: Traversable> Traversable for BTreeMap<K, V> {
     }
 }
 
-/// A part some instances leave out: its own node, or an empty branch without it (as `()`), so a
-/// flattened `None` publishes nothing.
-impl<T: Traversable> Traversable for Option<T> {
-    fn to_tree_node(&self) -> TreeNode {
-        self.as_ref()
-            .map_or_else(|| TreeNode::branch(IndexMap::new()), T::to_tree_node)
-    }
-
-    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        self.iter().flat_map(T::iter_any_exportable)
-    }
-
-    fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
-        self.iter().flat_map(T::iter_any_visible)
-    }
-
-    fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.iter_mut().flat_map(T::iter_any_stored_mut)
-    }
-
-    fn collect_series_descriptions<'a>(
-        &'a self,
-        description_fragments: &mut Vec<&'static str>,
-        descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>,
-    ) {
-        if let Some(value) = self {
-            value.collect_series_descriptions(description_fragments, descriptions);
-        }
-    }
-}
-
 /// An empty branch, for generic fields instantiated as `()`.
 impl Traversable for () {
     fn to_tree_node(&self) -> TreeNode {

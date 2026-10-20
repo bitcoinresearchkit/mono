@@ -3972,9 +3972,9 @@ class Balances100btcTo1kBtc(_Node):
     funded: Funded[Count, CountSigned] = _at(Funded, '*_address_count')
     supply: AddressesSupply = _at(AddressesSupply, '*_supply')
     capital: AddressesCapital = _at(AddressesCapital, '*')
+    utxos: Balances0satsUtxos = _at(Balances0satsUtxos, '*_utxo_count')
     activity: Balances100btcTo1kBtcActivity = _at(Balances100btcTo1kBtcActivity, '*_transfer_volume')
     realized: Balances100btcTo1kBtcRealized = _at(Balances100btcTo1kBtcRealized, '*_realized')
-    utxos: Balances0satsUtxos = _at(Balances0satsUtxos, '*_utxo_count')
 
 
 class RookieActivity(_Node):
@@ -4003,10 +4003,10 @@ class RookieUtxos(_Node):
 class Amounts100btcTo1kBtc(_Node):
     supply: AddressesSupply = _at(AddressesSupply, '*_supply')
     capital: AddressesCapital = _at(AddressesCapital, '*')
+    utxos: RookieUtxos = _at(RookieUtxos, '*')
     activity: Balances100btcTo1kBtcActivity = _at(Balances100btcTo1kBtcActivity, '*_transfer_volume')
     realized: Balances100btcTo1kBtcRealized = _at(Balances100btcTo1kBtcRealized, '*_realized')
     cost_basis: RookieCostBasis = _at(RookieCostBasis, '*')
-    utxos: RookieUtxos = _at(RookieUtxos, '*')
 
 
 class UtxosTypes(_Node):

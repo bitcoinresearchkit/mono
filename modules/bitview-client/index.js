@@ -5079,18 +5079,18 @@ const _Balances100btcTo1kBtcRealized = _s({
  *   funded: Funded<Count, CountSigned>,
  *   supply: AddressesSupply,
  *   capital: AddressesCapital,
+ *   utxos: Balances0satsUtxos,
  *   activity: Balances100btcTo1kBtcActivity,
  *   realized: Balances100btcTo1kBtcRealized,
- *   utxos: Balances0satsUtxos,
  * }} Balances100btcTo1kBtc
  */
 const _Balances100btcTo1kBtc = _s({
   funded: [_Funded, '*_address_count'],
   supply: [_AddressesSupply, '*_supply'],
   capital: [_AddressesCapital, '*'],
+  utxos: [_Balances0satsUtxos, '*_utxo_count'],
   activity: [_Balances100btcTo1kBtcActivity, '*_transfer_volume'],
   realized: [_Balances100btcTo1kBtcRealized, '*_realized'],
-  utxos: [_Balances0satsUtxos, '*_utxo_count'],
 });
 
 /**
@@ -5147,19 +5147,19 @@ const _RookieUtxos = _s({
  * @typedef {{
  *   supply: AddressesSupply,
  *   capital: AddressesCapital,
+ *   utxos: RookieUtxos,
  *   activity: Balances100btcTo1kBtcActivity,
  *   realized: Balances100btcTo1kBtcRealized,
  *   costBasis: RookieCostBasis,
- *   utxos: RookieUtxos,
  * }} Amounts100btcTo1kBtc
  */
 const _Amounts100btcTo1kBtc = _s({
   supply: [_AddressesSupply, '*_supply'],
   capital: [_AddressesCapital, '*'],
+  utxos: [_RookieUtxos, '*'],
   activity: [_Balances100btcTo1kBtcActivity, '*_transfer_volume'],
   realized: [_Balances100btcTo1kBtcRealized, '*_realized'],
   costBasis: [_RookieCostBasis, '*'],
-  utxos: [_RookieUtxos, '*'],
 });
 
 /**

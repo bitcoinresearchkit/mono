@@ -23,7 +23,10 @@ impl AddrStates {
         height: Height,
     ) -> Option<()> {
         let previous_height = height.decremented()?;
-        for (state, band) in self.amount_range.iter_mut().zip(balances.bands.iter()) {
+        let (zero_state, band_states) = self.amount_range.split_mut();
+        let (zero, bands) = balances.bands.split();
+        zero.restore(zero_state, previous_height)?;
+        for (state, band) in band_states.into_iter().zip(bands) {
             band.restore(state, previous_height)?;
         }
         self.metrics = AddrMetricsState::restore(types, height)?;

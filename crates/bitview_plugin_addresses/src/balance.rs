@@ -22,17 +22,9 @@ pub struct BalanceVecs<M: StorageMode = Rw> {
     /// Funded addresses whose balance falls in the band.
     #[traversable(rename = "funded")]
     pub address_count: CountWithDeltas<M>,
-    // Its amounts and values: none for the empty band, whose amounts are all zero.
-    #[traversable(flatten)]
-    pub values: Option<BalanceValues<M>>,
-    pub utxos: BalanceUtxos<M>,
-}
-
-/// A band's amounts and what they're worth.
-#[derive(Traversable)]
-pub struct BalanceValues<M: StorageMode = Rw> {
     pub supply: CohortSupply<M>,
     pub capital: CohortCapital<M>,
+    pub utxos: BalanceUtxos<M>,
     pub activity: BalanceActivity<M>,
     pub realized: BalanceRealized<M>,
 }
@@ -41,6 +33,60 @@ pub struct BalanceValues<M: StorageMode = Rw> {
 pub struct BalanceUtxos<M: StorageMode = Rw> {
     /// Number of unspent outputs the band's addresses hold.
     pub count: CountWithDeltas<M>,
+}
+
+/// The empty band: funded addresses holding zero-value outputs, its counts alone, its amounts and
+/// values all zero.
+#[derive(Traversable)]
+pub struct ZeroBalanceVecs<M: StorageMode = Rw> {
+    /// Funded addresses whose balance falls in the band.
+    #[traversable(rename = "funded")]
+    pub address_count: CountWithDeltas<M>,
+    pub utxos: BalanceUtxos<M>,
+}
+
+impl ZeroBalanceVecs {
+    pub fn import(ctx: &ImportContext<'_>) -> Result<Self> {
+        let name = |metric: &str| {
+            CohortContext::Balance.metric_name(CohortId::Amount(AmountRangeId::Zero), metric)
+        };
+        let version = ctx.version + Version::ONE;
+        let count = |metric| {
+            CountWithDeltas::import(ctx.db, &name(metric), version, ctx.mappings, ctx.windows)
+        };
+        Ok(Self {
+            address_count: count("address_count")?,
+            utxos: BalanceUtxos {
+                count: count("utxo_count")?,
+            },
+        })
+    }
+
+    #[inline(always)]
+    pub fn push(&mut self, state: &AddrCohortState) {
+        debug_assert_eq!(
+            state.inner.supply.value,
+            Sats::ZERO,
+            "an empty balance holds value"
+        );
+        debug_assert_eq!(
+            state.inner.realized.cap_raw(),
+            CentsSats::ZERO,
+            "an empty balance holds capital"
+        );
+        self.address_count.push(Count::from(state.addr_count));
+        self.utxos
+            .count
+            .push(Count::from(state.inner.supply.utxo_count));
+    }
+
+    /// The band's state at the end of `height`, `None` without that block: no value.
+    pub fn restore(&self, state: &mut AddrCohortState, height: Height) -> Option<()> {
+        state.inner.supply.value = Sats::ZERO;
+        state.inner.supply.utxo_count = u64::from(self.utxos.count.stored.collect_one(height)?);
+        state.addr_count = u64::from(self.address_count.stored.collect_one(height)?);
+        Some(())
+    }
 }
 
 #[derive(Traversable)]
@@ -82,59 +128,53 @@ impl BalanceVecs {
                 ctx.mappings,
                 ctx.windows,
             )?,
-            values: (cohort != CohortId::Amount(AmountRangeId::Zero))
-                .then(|| -> Result<_> {
-                    Ok(BalanceValues {
-                        supply: CohortSupply::import(
-                            ctx.db,
-                            &name("supply"),
-                            version,
-                            ctx.mappings,
-                            ctx.windows,
-                            ctx.spot,
-                            totals.supply,
-                        )?,
-                        capital: CohortCapital::import(
-                            ctx.db,
-                            name,
-                            version,
-                            ctx.mappings,
-                            ctx.windows,
-                            totals.capital,
-                        )?,
-                        activity: BalanceActivity {
-                            transfer_volume: CumulativeValue::import(
-                                ctx.db,
-                                &name("transfer_volume"),
-                                flow_version,
-                                ctx.mappings,
-                                ctx.windows,
-                            )?,
-                        },
-                        realized: BalanceRealized {
-                            profit: CumulativeFiat::import(
-                                ctx.db,
-                                &name("realized_profit"),
-                                flow_version,
-                                ctx.mappings,
-                                ctx.windows,
-                            )?,
-                            loss: CumulativeFiat::import(
-                                ctx.db,
-                                &name("realized_loss"),
-                                flow_version,
-                                ctx.mappings,
-                                ctx.windows,
-                            )?,
-                        },
-                    })
-                })
-                .transpose()?,
+            supply: CohortSupply::import(
+                ctx.db,
+                &name("supply"),
+                version,
+                ctx.mappings,
+                ctx.windows,
+                ctx.spot,
+                totals.supply,
+            )?,
+            capital: CohortCapital::import(
+                ctx.db,
+                name,
+                version,
+                ctx.mappings,
+                ctx.windows,
+                totals.capital,
+            )?,
             utxos: BalanceUtxos {
                 count: CountWithDeltas::import(
                     ctx.db,
                     &name("utxo_count"),
                     version,
+                    ctx.mappings,
+                    ctx.windows,
+                )?,
+            },
+            activity: BalanceActivity {
+                transfer_volume: CumulativeValue::import(
+                    ctx.db,
+                    &name("transfer_volume"),
+                    flow_version,
+                    ctx.mappings,
+                    ctx.windows,
+                )?,
+            },
+            realized: BalanceRealized {
+                profit: CumulativeFiat::import(
+                    ctx.db,
+                    &name("realized_profit"),
+                    flow_version,
+                    ctx.mappings,
+                    ctx.windows,
+                )?,
+                loss: CumulativeFiat::import(
+                    ctx.db,
+                    &name("realized_loss"),
+                    flow_version,
                     ctx.mappings,
                     ctx.windows,
                 )?,
@@ -146,26 +186,19 @@ impl BalanceVecs {
     pub fn push(&mut self, state: &AddrCohortState, price: Cents) {
         let inner = &state.inner;
         self.address_count.push(Count::from(state.addr_count));
+        self.supply.total.push(inner.supply.value);
         self.utxos.count.push(Count::from(inner.supply.utxo_count));
-        let Some(values) = &mut self.values else {
-            return;
-        };
-        values.supply.total.push(inner.supply.value);
-        values
-            .activity
+        self.activity
             .transfer_volume
             .push_block(inner.sent, inner.sent.value_at(price));
-        values.capital.push(inner.realized.cap());
-        values.realized.profit.push_block(inner.realized.profit());
-        values.realized.loss.push_block(inner.realized.loss());
+        self.capital.push(inner.realized.cap());
+        self.realized.profit.push_block(inner.realized.profit());
+        self.realized.loss.push_block(inner.realized.loss());
     }
 
     /// The band's state at the end of `height`, `None` without that block.
     pub fn restore(&self, state: &mut AddrCohortState, height: Height) -> Option<()> {
-        state.inner.supply.value = match &self.values {
-            Some(values) => values.supply.total.stored.collect_one(height)?,
-            None => Sats::ZERO,
-        };
+        state.inner.supply.value = self.supply.total.stored.collect_one(height)?;
         state.inner.supply.utxo_count = u64::from(self.utxos.count.stored.collect_one(height)?);
         state.addr_count = u64::from(self.address_count.stored.collect_one(height)?);
         Some(())
@@ -178,7 +211,7 @@ impl BalanceVecs {
 pub struct Balances<M: StorageMode = Rw> {
     /// Address balance bands classify addresses by their aggregate balance.
     #[traversable(flatten)]
-    pub bands: AmountRange<BalanceVecs<M>>,
+    pub bands: AmountRange<BalanceVecs<M>, ZeroBalanceVecs<M>>,
     #[traversable(hidden)]
     pub capital: CachedSeries<Height, Cents, M>,
 }
@@ -200,7 +233,10 @@ impl Balances {
             capital: &address_capital,
         };
         Ok(Self {
-            bands: AmountRange::try_from_fn(|id| BalanceVecs::import(ctx, id.cohort(), totals))?,
+            bands: AmountRange::try_from_fns(
+                |_| ZeroBalanceVecs::import(ctx),
+                |id| BalanceVecs::import(ctx, id.cohort(), totals),
+            )?,
             capital,
         })
     }
@@ -209,8 +245,11 @@ impl Balances {
     /// converted to cents once.
     #[inline(always)]
     pub fn push(&mut self, states: &AmountRange<AddrCohortState>, price: Cents) {
+        let (zero, bands) = self.bands.split_mut();
+        let (zero_state, band_states) = states.split();
+        zero.push(zero_state);
         let mut capital = CentsSats::ZERO;
-        for (band, state) in self.bands.iter_mut().zip(states.iter()) {
+        for (band, state) in bands.into_iter().zip(band_states) {
             band.push(state, price);
             capital += state.inner.realized.cap_raw();
         }

@@ -270,7 +270,7 @@ has to be deleted by hand.
   `veteran_transfer_volume_in_profit*`, ...; the age ranges and holders keep the split). Ids are unchanged, but for
   `supply.share`, `cost_basis` and `capital` (below) and the halving epochs' and years' prefixes:
   `halving_epoch_0_supply`, `vintage_2009_supply`, ... (were `epoch_0_supply`, `class_2009_supply`). The 0-sat band
-  (`utxos.amounts._0sats`) holds its counts only: its amounts, values and cost basis, zero or null by definition, are
+  (`utxos.amounts.0sats`) holds its counts only: its amounts, values and cost basis, zero or null by definition, are
   gone (`utxos_0sats_realized_price`, `utxos_0sats_realized_profit`, ...). Age's `coinblocks_destroyed` is published at
   `cointime.activity.coinblocks_destroyed` only
 - The open-ended cohorts are gone, all but the 4- and 6-month age cutoffs (now in `holders`): every age over and
@@ -892,15 +892,16 @@ has to be deleted by hand.
   `merge`, `SeriesLeafWithSchema` exposes its fields (its getters are gone), and `TreeNode::for_each_leaf` visits a
   subtree's leaves in order. A catalog key that is both a series and a group panics when the catalog is built (was
   silently filed under `raw`)
-- `#[derive(Traversable)]` keeps one struct attribute, `merge` (`transparent`, `hidden` and `wrap` are gone), and an
-  `Option` field is plain `Traversable` (a `None` is an empty branch: flattened, nothing; else an empty node under its
-  key, was left out); `#[traversable(flatten, rename = "...")]` names a flattened leaf, and a struct
+- `#[derive(Traversable)]` keeps one struct attribute, `merge` (`transparent`, `hidden` and `wrap` are gone), and
+  fields can no longer be `Option`s; `#[traversable(flatten, rename = "...")]` names a flattened leaf, and a struct
   whose only visible field is a flattened view is that view, a single-unit leaf included (both were keyed by the field
   name)
 - `bitview_cohort` collections build with `from_fn`/`try_from_fn` over their member id (were `new`/`try_new` over a
   `Filter` and name); `UTXOGroups`, `UTXOGroupsWithoutAmount`, `UTXOGroupsWithoutAmountOrType` and `UTXOAllAndSth` are
   gone. `ByEntry` and `EntryPrice` name their members `veteran`/`Veteran` and `rookie`/`Rookie` (were
-  `discount`/`Discount` and `premium`/`Premium`)
+  `discount`/`Discount` and `premium`/`Premium`). `AmountRange<T, Z = T>` types its zero band apart (`Z`, for a family
+  whose zero band holds less), with `split`, `split_mut` and `try_from_fns`; `ByEpoch` and `Class` are
+  `ByHalvingEpoch` and `Vintage`
 - Analytics type families: the new `bitview_cohort::{AddressType, AddressTypeId}` are the six analytics address types;
   `SpendableTypeId::{P2PK65, P2PK33}` are `P2PK`, and `output_type()` gives way to `key()` and `cohort()`;
   `OutputTypeId` is `Spendable(SpendableTypeId)` or `OpReturn` (was one variant per output type). Cohorts are named by

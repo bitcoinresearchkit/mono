@@ -86,15 +86,16 @@ impl Vecs {
             balances,
             ..
         } = self;
+        let (zero, bands) = balances.bands.split_mut();
         rayon::iter::once(&mut **all)
             .chain(types.par_iter_mut())
             .flat_map_iter(|member| member.iter_any_stored_mut())
             .chain(
-                balances
-                    .bands
-                    .par_iter_mut()
+                bands
+                    .into_par_iter()
                     .flat_map_iter(|band| band.iter_any_stored_mut()),
             )
+            .chain(zero.iter_any_stored_mut().collect::<Vec<_>>())
             .chain(rayon::iter::once(
                 &mut balances.capital as &mut dyn AnyStoredVec,
             ))
