@@ -984,7 +984,14 @@ has to be deleted by hand.
   ever. Globe is rebuilt as Earth from orbit, the planet the whole first screen: each country's share of the blocks
   over a period (over a day or a week, with the hashrate it implies), the blocks without a known home as a moon,
   tonight's night side and the sun's light, the same month by month since 2011 (a stacked chart with the halvings and
-  China's ban, driving the globe, playable), and blocks landing live.
+  China's ban, driving the globe, playable), and blocks landing live. Trail holds a price range, dragged on the terrain
+  (a touch holds still a moment first), with its supply and its share of all, until a click on the terrain or Escape;
+  its cohorts add short- and long-term holders, and every age band, together on the selected day, each in its color
+  over the terrain of all coins (the ages amber to blue, by way of red and violet). Explorer (`/explorer`) is rebuilt
+  on the server's own client: every series, folder by folder as its client names them (columns on a wide page, one
+  folder at a time on a phone), the server's search, and each series' description, unit and intervals, its history
+  drawn at any of them (linear or log, a point read by pointer or touch), and its JSON, CSV and API address, or a
+  chart of it in Studio.
   `--website` serves them (`true`), nothing (`false`) or a directory. The website's block, transaction and address pages
   have no replacement yet. `/api` is the API showcase: Scalar 1.75.1 from `modules/` (was 1.49.8, built into the server
   with its own `/scalar.js` route), so `--website false` serves no API page either and `/` redirects to `/openapi.json`
@@ -997,7 +1004,7 @@ has to be deleted by hand.
   rarity meter (Studio's), extreme events (marked on the price in Studio's "Events"), regime (Studio's cost-basis
   distributions), HODL wave (with dormant and immobile supply waves; capital by wakefulness or mobility has no series),
   supply density (Studio's supply and capital density charts), clouds (Studio's "Clouds"), middle (Studio's "Time
-  above") and the series explorer (Studio's search); so are the height page, the "Finding the floor" essay and capital
+  above"); so are the height page, the "Finding the floor" essay and capital
   sentiment, whose series went with its plugin
 
 ### New Features

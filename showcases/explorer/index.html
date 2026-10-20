@@ -1,0 +1,1407 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Every series Bitview computes from the chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." />
+    <meta name="color-scheme" content="light dark" />
+    <title>Explorer · Bitview</title>
+    <link rel="icon" href="/assets/logo/logo.svg" type="image/svg+xml" />
+    <style>
+      @font-face {
+        font-family: Inter;
+        src: url("/assets/fonts/InterVariable.woff2") format("woff2");
+        font-weight: 100 900;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.woff2") format("woff2");
+        font-weight: 100 700;
+        font-display: swap;
+      }
+
+      /* An index of the chain's series: paper and ink, hairlines between columns, ids in a monospace, Bitcoin's orange
+         for what's picked. Light or dark, as the system is. */
+      :root {
+        color-scheme: light dark;
+        --app: light-dark(#fbfaf7, #0e0f11);
+        --pane: light-dark(#ffffff, #141519);
+        --well: light-dark(#f3f1ec, #1b1d22);
+        --ink: light-dark(#17181b, #eceae5);
+        --soft: light-dark(#53565e, #a9acb4);
+        --faint: light-dark(#6c6f77, #8c9099);
+        --line: light-dark(#e7e4dd, #24262c);
+        --line-strong: light-dark(#d6d2c9, #33363e);
+        --accent: light-dark(#d4570a, #f2873a);
+        --accent-ink: light-dark(#9c3d00, #ffb27a);
+        --pick: light-dark(#fbe9dc, #33221a);
+        --pick-strong: light-dark(#f6d7bf, #47291a);
+        --hover: light-dark(#f4f1ea, #1c1e23);
+        --plot: light-dark(#d4570a, #f2873a);
+        --grid: light-dark(#eeebe4, #1f2126);
+        --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        --mono: Lilex, ui-monospace, SFMono-Regular, Menlo, monospace;
+        --radius: 10px;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        background: var(--app);
+        color: var(--ink);
+        font: 14px/1.5 var(--sans);
+        font-feature-settings: "cv11", "ss01";
+        -webkit-font-smoothing: antialiased;
+      }
+
+      button,
+      input {
+        font: inherit;
+        color: inherit;
+      }
+
+      button {
+        border: 0;
+        background: none;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
+        border-radius: 6px;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      code,
+      .mono {
+        font-family: var(--mono);
+        font-size: 0.92em;
+      }
+
+      .num {
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ── The bar: the brand, where we are, the search ── */
+
+      .bar {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 16px;
+        height: 56px;
+        padding: 0 16px;
+        border-bottom: 1px solid var(--line);
+        background: var(--pane);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        text-decoration: none;
+        white-space: nowrap;
+
+        img {
+          width: 20px;
+          height: 20px;
+        }
+
+        span {
+          color: var(--faint);
+          font-weight: 400;
+        }
+      }
+
+      .search {
+        position: relative;
+        justify-self: center;
+        width: min(560px, 100%);
+
+        svg {
+          position: absolute;
+          top: 50%;
+          left: 11px;
+          width: 15px;
+          height: 15px;
+          translate: 0 -50%;
+          color: var(--faint);
+          pointer-events: none;
+        }
+
+        input {
+          width: 100%;
+          height: 36px;
+          padding: 0 40px 0 34px;
+          border: 1px solid var(--line);
+          border-radius: 9px;
+          background: var(--well);
+          outline: none;
+
+          &::placeholder {
+            color: var(--faint);
+          }
+
+          &:focus {
+            border-color: var(--accent);
+            background: var(--pane);
+            box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 18%, transparent);
+          }
+
+          &::-webkit-search-cancel-button {
+            display: none;
+          }
+        }
+
+        kbd {
+          position: absolute;
+          top: 50%;
+          right: 9px;
+          translate: 0 -50%;
+          min-width: 20px;
+          padding: 1px 6px;
+          border: 1px solid var(--line-strong);
+          border-radius: 5px;
+          color: var(--faint);
+          font: 11px var(--mono);
+          text-align: center;
+          pointer-events: none;
+        }
+
+        input:focus ~ kbd,
+        input:not(:placeholder-shown) ~ kbd {
+          display: none;
+        }
+      }
+
+      .count {
+        color: var(--faint);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      @media (max-width: 720px) {
+        .bar {
+          grid-template-columns: auto minmax(0, 1fr);
+          gap: 12px;
+        }
+
+        .brand span,
+        .count {
+          display: none;
+        }
+
+        .search kbd {
+          display: none;
+        }
+      }
+
+      /* ── The catalog: a column per folder opened, the series at the end ── */
+
+      main {
+        position: relative;
+        display: flex;
+        min-width: 0;
+        min-height: 0;
+        overflow-x: auto;
+        overscroll-behavior-x: contain;
+      }
+
+      .column {
+        flex: none;
+        width: 252px;
+        overflow-y: auto;
+        border-right: 1px solid var(--line);
+        background: var(--pane);
+        overscroll-behavior: contain;
+
+        h2 {
+          position: sticky;
+          top: 0;
+          z-index: 1;
+          margin: 0;
+          padding: 12px 14px 8px;
+          background: var(--pane);
+          color: var(--faint);
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }
+
+        ul {
+          margin: 0;
+          padding: 0 6px 12px;
+          list-style: none;
+        }
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 2px 10px;
+        width: 100%;
+        min-height: 34px;
+        padding: 6px 8px 6px 10px;
+        border-radius: 7px;
+        text-align: left;
+
+        &:hover {
+          background: var(--hover);
+        }
+
+        &[aria-current="true"] {
+          background: var(--pick);
+        }
+
+        .label {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .side {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          color: var(--faint);
+          font-size: 12px;
+        }
+
+        .id {
+          grid-column: 1 / -1;
+          overflow: hidden;
+          color: var(--faint);
+          font: 11.5px var(--mono);
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        svg {
+          width: 14px;
+          height: 14px;
+        }
+      }
+
+      .column:focus-within .row[aria-current="true"],
+      .results .row[aria-selected="true"] {
+        background: var(--pick-strong);
+      }
+
+      /* A series: what it is, its history, how to have it. */
+      .series {
+        flex: 1 0 560px;
+        min-width: 0;
+        overflow-y: auto;
+        padding: 28px clamp(20px, 3vw, 40px) 48px;
+      }
+
+      .home {
+        flex: 1 0 420px;
+        display: grid;
+        align-content: center;
+        justify-items: start;
+        gap: 10px;
+        padding: 40px clamp(24px, 4vw, 56px);
+        color: var(--soft);
+
+        h1 {
+          margin: 0;
+          color: var(--ink);
+          font-size: clamp(26px, 3vw, 38px);
+          font-weight: 600;
+          letter-spacing: -0.03em;
+          line-height: 1.1;
+        }
+
+        p {
+          max-width: 34rem;
+          margin: 0;
+          text-wrap: pretty;
+        }
+      }
+
+      .crumbs {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 2px 4px;
+        margin: 0 0 10px;
+        padding: 0;
+        color: var(--faint);
+        font-size: 12.5px;
+        list-style: none;
+
+        li + li::before {
+          content: "›";
+          margin-right: 4px;
+        }
+
+        button:hover {
+          color: var(--ink);
+        }
+      }
+
+      .series h1 {
+        margin: 0;
+        font-size: clamp(22px, 2.4vw, 30px);
+        font-weight: 600;
+        letter-spacing: -0.025em;
+        line-height: 1.15;
+        text-wrap: balance;
+      }
+
+      .id-line {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-top: 10px;
+
+        code {
+          padding: 3px 8px;
+          border-radius: 6px;
+          background: var(--well);
+          overflow-wrap: anywhere;
+        }
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 28px;
+        padding: 0 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--pane);
+        color: var(--soft);
+        font-size: 12.5px;
+        text-decoration: none;
+        white-space: nowrap;
+
+        &:hover {
+          border-color: var(--line-strong);
+          color: var(--ink);
+        }
+
+        &[aria-pressed="true"] {
+          border-color: var(--accent);
+          background: var(--pick);
+          color: var(--accent-ink);
+        }
+
+        &.primary {
+          border-color: var(--accent);
+          background: var(--accent);
+          color: light-dark(#fff, #1c0c00);
+
+          &:hover {
+            color: light-dark(#fff, #1c0c00);
+            filter: brightness(1.06);
+          }
+        }
+
+        svg {
+          width: 14px;
+          height: 14px;
+        }
+      }
+
+      .about {
+        max-width: 44rem;
+        margin: 16px 0 0;
+        color: var(--soft);
+        text-wrap: pretty;
+      }
+
+      .facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 22px;
+        margin: 14px 0 0;
+
+        div {
+          display: grid;
+        }
+
+        dt {
+          color: var(--faint);
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+        }
+
+        dd {
+          margin: 0;
+        }
+      }
+
+      .card {
+        margin-top: 22px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--pane);
+      }
+
+      .card-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 12px 14px 0;
+      }
+
+      .group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      .readout {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        min-height: 30px;
+        padding: 8px 14px 0;
+
+        b {
+          font-size: 20px;
+          font-weight: 600;
+          letter-spacing: -0.02em;
+        }
+
+        span {
+          color: var(--faint);
+          font-size: 12.5px;
+        }
+      }
+
+      .plot {
+        position: relative;
+        height: 300px;
+        margin: 4px 0 6px;
+        touch-action: pan-y;
+
+        canvas {
+          display: block;
+          width: 100%;
+          height: 100%;
+        }
+      }
+
+      .card-foot {
+        padding: 0 14px 12px;
+        color: var(--faint);
+        font-size: 12px;
+      }
+
+      .values {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+
+        th,
+        td {
+          padding: 7px 14px;
+          border-top: 1px solid var(--line);
+          text-align: left;
+        }
+
+        th {
+          color: var(--faint);
+          font-weight: 500;
+          white-space: nowrap;
+        }
+
+        td {
+          overflow-wrap: anywhere;
+        }
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 18px;
+      }
+
+      .message {
+        padding: 40px 16px;
+        color: var(--soft);
+        text-align: center;
+      }
+
+      /* Search: its results where the columns were. */
+      .results {
+        flex: 1 0 auto;
+        width: min(760px, 100%);
+        margin: 0 auto;
+        padding: 14px 10px 40px;
+
+        h2 {
+          margin: 0;
+          padding: 4px 10px 10px;
+          color: var(--faint);
+          font-size: 12px;
+          font-weight: 500;
+        }
+
+        ul {
+          margin: 0;
+          padding: 0;
+          list-style: none;
+        }
+
+        .row {
+          min-height: 46px;
+        }
+
+        .where {
+          grid-column: 1 / -1;
+          overflow: hidden;
+          color: var(--faint);
+          font-size: 12px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+
+      /* A phone: one column at a time, a way back to the one before. */
+      .back {
+        display: none;
+      }
+
+      @media (max-width: 860px) {
+        main {
+          display: block;
+          overflow-x: hidden;
+          overflow-y: auto;
+        }
+
+        main > .column:not(:last-child),
+        main:has(> .series) > .column,
+        main:has(> .home) > .home {
+          display: none;
+        }
+
+        main:has(> .home) > .column {
+          display: block;
+        }
+
+        .column {
+          width: auto;
+          overflow: visible;
+          border: 0;
+          background: none;
+
+          h2 {
+            background: var(--app);
+          }
+
+          ul {
+            padding: 0 8px 24px;
+          }
+        }
+
+        .row {
+          min-height: 46px;
+        }
+
+        .series {
+          padding: 18px 16px 40px;
+        }
+
+        /* (The way back names the folder; the crumbs would say it again.) */
+        .crumbs {
+          display: none;
+        }
+
+        /* (A result's id under its name: both whole, the name first.) */
+        .results .side {
+          grid-column: 1 / -1;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .back {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          margin: 0 0 8px -6px;
+          padding: 6px;
+          color: var(--accent-ink);
+          font-size: 14px;
+
+          svg {
+            width: 16px;
+            height: 16px;
+          }
+        }
+
+        .column .back {
+          margin: 10px 8px 0;
+        }
+
+        .plot {
+          height: 240px;
+        }
+      }
+
+      @media (prefers-reduced-motion: no-preference) {
+        .row,
+        .chip {
+          transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="bar">
+      <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview <span>/ Explorer</span></a>
+      <form class="search" role="search" id="search-form">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+        <input type="search" id="q" placeholder="Search every series" aria-label="Search every series" aria-controls="found-list" autocomplete="off" spellcheck="false" />
+        <kbd>/</kbd>
+      </form>
+      <span class="count num" id="count"></span>
+    </header>
+    <main id="main"></main>
+    <script type="module">
+      // @ts-check
+      // Every series Bitview computes, as its client names them (the server's own module), browsed folder by folder;
+      // search by the server's; a series' description, unit and intervals from the server, its history fetched and drawn.
+      import { BitviewClient } from "/modules/bitview-client/index.js";
+
+      const client = new BitviewClient({ baseUrl: location.origin });
+      const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
+      const escape = (/** @type {string} */ text) => text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[/** @type {"&"} */ (c)]);
+      const grouped = new Intl.NumberFormat("en-US");
+
+      const ICON = {
+        chevron: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>`,
+        back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 6-6 6 6 6" /></svg>`,
+        copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h9" /></svg>`,
+        chart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15l4-5 3 3 5-6" /></svg>`,
+      };
+
+      // ── Words: keys and ids as people write them (Studio's rules) ──
+      const ACRONYMS = new Set(["sth", "lth", "mvrv", "sopr", "nupl", "usd", "btc", "ath", "atl", "sma", "ema", "utxo", "ohlc", "op", "vocdd", "hodl", "pct", "rbf", "cpfp", "tx", "pnl", "aviv", "rsi", "macd", "epobc", "cdd"]);
+      const WORDS = /** @type {Record<string, string>} */ ({ addrs: "addresses", addr: "address", txs: "transactions", utxos: "UTXOs", avg: "average" });
+      /** A percentile's key as said: "pct5" "5th percentile", "pct01" "0.1st", "pct995" "99.5th" (the presets' rule). */
+      function percentileKey(/** @type {string} */ key) {
+        const digits = /^pct(\d+)$/.exec(key)?.[1];
+        if (!digits) return null;
+        const p = digits.startsWith("0") ? `0.${digits.slice(1)}` : digits.length === 3 ? `${digits.slice(0, 2)}.${digits.slice(2)}` : digits;
+        return `${ordinalOf(p)} percentile`;
+      }
+      const word = (/** @type {string} */ text) => WORDS[text] ?? (ACRONYMS.has(text) || /^p2[a-z]+\d*$/.test(text) ? text.toUpperCase() : text);
+      const capitalize = (/** @type {string} */ text) => text.charAt(0).toUpperCase() + text.slice(1);
+      /** A percentile said: "2" "2nd", "99.9" "99.9th", "0.1" "0.1st". */
+      const ordinalOf = (/** @type {string} */ p) => `${p}${/(^|\D)1\d$/.test(p) ? "th" : p.at(-1) === "1" ? "st" : p.at(-1) === "2" ? "nd" : p.at(-1) === "3" ? "rd" : "th"}`;
+      /** A series id as words: "sth_realized_price" "STH realized price", "…_rarity_pct99_9" "…rarity 99.9th percentile". */
+      const humanize = (/** @type {string} */ name) =>
+        capitalize(name.replace(/pct(\d+)_(\d+)(?=_|$)/g, "pct$1.$2").split("_").filter(Boolean).map((part) => (/^pct[\d.]+$/.test(part) ? `${ordinalOf(part.slice(3))} percentile` : word(part))).join(" "));
+      /** A tree key as words: "utxoSet" "UTXO set", "minute10" "Minute 10", "p2pkh" whole, "_2024" "2024". */
+      const humanizeKey = (/** @type {string} */ key) =>
+        percentileKey(key) ??
+        capitalize(key.replace(/^_/, "").replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase().split(" ").flatMap((part) => (/^p2/.test(part) ? [part] : part.replace(/([a-z]{2})(\d)/g, "$1 $2").split(" "))).map(word).join(" "));
+
+      // ── The tree: the client's, each folder with how many series it holds ──
+      /** @typedef {{ key: string, label: string, path: string[], kids?: Node[], name?: string, indexes?: string[], count: number }} Node */
+      const isLeaf = (/** @type {any} */ n) => typeof n?.name === "string" && typeof n.indexes === "function";
+      /** @type {Map<string, Node>} each series' first place, by id */
+      const byName = new Map();
+      /** @returns {Node} */
+      function build(/** @type {any} */ value, /** @type {string} */ key, /** @type {string[]} */ path) {
+        if (isLeaf(value)) {
+          const node = { key, label: humanizeKey(key), path, name: value.name, indexes: value.indexes(), count: 1 };
+          if (!byName.has(value.name)) byName.set(value.name, node);
+          return node;
+        }
+        const kids = Object.entries(value).filter(([, v]) => v && typeof v === "object").map(([k, v]) => build(v, k, [...path, k])).filter((kid) => kid.count);
+        return { key, label: humanizeKey(key), path, kids, count: kids.reduce((sum, kid) => sum + kid.count, 0) };
+      }
+      const root = build(client.series, "", []);
+      $("count").textContent = `${grouped.format(byName.size)} series`;
+      /** The node at a path of keys (as far as it goes). */
+      function nodeAt(/** @type {string[]} */ path) {
+        let node = root;
+        for (const key of path) {
+          const next = node.kids?.find((kid) => kid.key === key);
+          if (!next) break;
+          node = next;
+        }
+        return node;
+      }
+      /** The nodes a path passes through, the root first. */
+      const trail = (/** @type {string[]} */ path) => path.map((_, i) => nodeAt(path.slice(0, i + 1)));
+
+      // ── Intervals, as Studio names them ──
+      const INTERVALS = /** @type {[string, string][]} */ ([
+        ["minute10", "10m"], ["minute30", "30m"], ["hour1", "1h"], ["hour4", "4h"], ["hour12", "12h"], ["day1", "1D"], ["day3", "3D"], ["week1", "1W"],
+        ["month1", "1M"], ["month3", "3M"], ["month6", "6M"], ["year1", "1Y"], ["year10", "10Y"], ["halving", "Halving"], ["epoch", "Epoch"], ["height", "Block"],
+      ]);
+      const INTERVAL_LABEL = Object.fromEntries(INTERVALS);
+      const rank = (/** @type {string} */ index) => ((i) => (i < 0 ? INTERVALS.length : i))(INTERVALS.findIndex(([id]) => id === index));
+      const dateBased = (/** @type {string} */ index) => {
+        try {
+          client.indexToDate(/** @type {any} */ (index), 0);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+      /** The interval a series opens on: daily if it has it, else its first by date, else its first. */
+      const firstInterval = (/** @type {string[]} */ indexes) => (indexes.includes("day1") ? "day1" : [...indexes].sort((a, b) => rank(a) - rank(b)).find(dateBased) ?? [...indexes].sort((a, b) => rank(a) - rank(b))[0]);
+      /** A fine or per-block interval has hundreds of thousands of points: its latest are drawn. */
+      const MOST = 20_000;
+
+      // ── Values, with their units ──
+      /** @type {Record<string, [string, string, boolean?]>} a value type's prefix, suffix, and whether its scale is SI (k, M, G…) */
+      const UNITS = {
+        Dollars: ["$", ""], Bitcoin: ["", " BTC"], Sats: ["", " sat"], Percent: ["", "%"], Multiple: ["", "×"], Ratio: ["", "×"], Bytes: ["", "B", true], BytesFract: ["", "B", true],
+        VSize: ["", "vB", true], Weight: ["", "WU", true], WeightFract: ["", "WU", true], Days: ["", " days"], Hashrate: ["", "H/s", true], FeeRate: ["", " sat/vB"], PerSecond: ["", "/s"], SecondsFract: ["", " s"],
+      };
+      const SI = ["", "k", "M", "G", "T", "P", "E", "Z", "Y"], SHORT = ["", "K", "M", "B", "T", "Q"];
+      /** A value as read: four digits, a letter for its thousands, its unit around it. */
+      function format(/** @type {number} */ value, /** @type {string} */ type) {
+        if (!Number.isFinite(value)) return "—";
+        const [prefix, suffix, si] = UNITS[type] ?? ["", ""], sign = value < 0 ? "−" : "", abs = Math.abs(value);
+        let text;
+        if (abs >= 1e6 || (si && abs >= 1e3)) {
+          const letters = si ? SI : SHORT, step = Math.min(letters.length - 1, Math.floor(Math.log10(abs) / 3));
+          text = `${(abs / 10 ** (step * 3)).toPrecision(4).replace(/\.?0+$/, "")}${si && suffix && !/^ /.test(suffix) ? " " : ""}${letters[step]}`;
+        } else if (abs >= 1000) text = grouped.format(Math.round(abs));
+        else if (abs === 0) text = "0";
+        else if (abs < 1e-4) text = abs.toExponential(2);
+        else text = abs.toPrecision(4).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+        return `${sign}${prefix}${text}${si && suffix && !/^ /.test(suffix) && !/[kMGTPEZY]$/.test(text) ? " " : ""}${suffix}`;
+      }
+      const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      /** A point's place: its date (and time, at a fine interval), or its number. */
+      function placeOf(/** @type {string} */ index, /** @type {number} */ i) {
+        if (!dateBased(index)) return `${INTERVAL_LABEL[index] ?? humanizeKey(index)} ${grouped.format(i)}`;
+        const at = client.indexToDate(/** @type {any} */ (index), i), day = `${at.getUTCDate()} ${MONTHS[at.getUTCMonth()]} ${at.getUTCFullYear()}`;
+        return /^(minute|hour)/.test(index) ? `${day}, ${String(at.getUTCHours()).padStart(2, "0")}:${String(at.getUTCMinutes()).padStart(2, "0")}` : day;
+      }
+
+      // ── Where we are: a folder, or a series at an interval (in the address) ──
+      /** @typedef {{ path: string[], index?: string, query?: string }} At */
+      /** @type {At} */
+      let at = read();
+      function read() {
+        const params = new URLSearchParams(location.search), series = params.get("series"), folder = params.get("folder");
+        const query = params.get("q") ?? "";
+        if (series && byName.has(series)) {
+          const node = /** @type {Node} */ (byName.get(series)), index = params.get("index") ?? "";
+          return { path: node.path, index: node.indexes?.includes(index) ? index : undefined, query };
+        }
+        return { path: folder ? nodeAt(folder.split("/")).path : [], query };
+      }
+      function write(/** @type {At} */ to, replace = false) {
+        const node = nodeAt(to.path), params = new URLSearchParams();
+        if (node.name) {
+          params.set("series", node.name);
+          if (to.index && to.index !== firstInterval(/** @type {string[]} */ (node.indexes))) params.set("index", to.index);
+        } else if (to.path.length) params.set("folder", to.path.join("/"));
+        if (to.query) params.set("q", to.query);
+        const url = `${location.pathname}${params.size ? `?${params}` : ""}`;
+        if (replace) history.replaceState(null, "", url);
+        else history.pushState(null, "", url);
+      }
+      function go(/** @type {At} */ to, replace = false) {
+        at = to;
+        write(to, replace);
+        render();
+      }
+      addEventListener("popstate", () => {
+        at = read();
+        $("q").value = at.query ?? "";
+        render();
+      });
+
+      // ── Drawing the page ──
+      const main = $("main");
+      const narrow = matchMedia("(max-width: 860px)");
+      /** Where each view was scrolled (a phone's page, by what it shows), to come back to it there. @type {Map<string, number>} */
+      const scrolled = new Map();
+      /** What the page shows, as a key: a folder's path, or a series. */
+      const shownKey = () => JSON.stringify(at.path);
+      let lastKey = "";
+      function render() {
+        // (Another view: what the last one was asking for, stopped.)
+        if (!at.query) searching?.abort();
+        if (at.query || !nodeAt(at.path).name) showing?.abort();
+        // (The view left, its scroll kept for coming back: a search's, none.)
+        if (lastKey) scrolled.set(lastKey, main.scrollTop);
+        if (at.query) {
+          lastKey = "";
+          return renderResults();
+        }
+        q.removeAttribute("aria-activedescendant");
+        const nodes = trail(at.path), leaf = nodes.at(-1)?.name ? /** @type {Node} */ (nodes.at(-1)) : null;
+        const folders = [root, ...nodes.filter((node) => !node.name)];
+        // (Kept through the redraw: each column's scroll, by its folder; the series' own; what had the focus.)
+        const columnsScrolled = new Map([...main.querySelectorAll(".column")].map((column) => [/** @type {HTMLElement} */ (column).dataset.folder, column.scrollTop]));
+        const article = /** @type {HTMLElement | null} */ (main.querySelector(".series")), sameSeries = leaf && leaf.name === lastSeries;
+        const seriesScrolled = article?.scrollTop ?? 0, viewHeight = document.getElementById("view")?.offsetHeight ?? 0, scalesHeight = document.getElementById("scales")?.offsetHeight ?? 0;
+        const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest?.("[data-path], [data-index], [data-range], [data-log], [data-copy]") ?? null);
+        const focusAt = focused && main.contains(focused) ? [...Object.entries(focused.dataset)].find(([name]) => ["path", "index", "range", "log", "copy"].includes(name)) : null;
+        const parts = folders.map((folder, depth) => columnHtml(folder, at.path[depth], depth));
+        // (After the columns: the series open, or at the top, what this is.)
+        main.innerHTML = parts.join("") + (leaf ? seriesHtml(leaf) : at.path.length ? "" : homeHtml());
+        document.title = `${leaf ? `${humanize(/** @type {string} */ (leaf.name))} · ` : nodes.length ? `${nodes.at(-1)?.label} · ` : ""}Explorer · Bitview`;
+        // (Each column where it was, else scrolled, on its own, to its open row if that's out of sight.)
+        for (const column of /** @type {NodeListOf<HTMLElement>} */ (main.querySelectorAll(".column"))) {
+          column.scrollTop = columnsScrolled.get(column.dataset.folder) ?? 0;
+          const row = /** @type {HTMLElement | null} */ (column.querySelector('[aria-current="true"]'));
+          if (row && (row.offsetTop < column.scrollTop || row.offsetTop + row.offsetHeight > column.scrollTop + column.clientHeight)) column.scrollTop = row.offsetTop - column.clientHeight / 2;
+        }
+        // (The same series at another interval: its history's place as tall as it was till it's drawn again, so where the
+        // page was scrolled to holds, not clamped to "Loading…".)
+        const drawnAgain = /** @type {HTMLElement | null} */ (main.querySelector(".series"));
+        if (sameSeries) {
+          $("view").style.minHeight = `${viewHeight}px`;
+          $("scales").style.minHeight = `${scalesHeight}px`;
+        }
+        // (Its actions written now, before its place is scrolled back to.)
+        if (leaf) showSeries(leaf);
+        // (Wide, the last column or the series in sight; narrow, the page where this view was left, else its top.)
+        main.scrollLeft = main.scrollWidth;
+        lastKey = shownKey();
+        if (narrow.matches) main.scrollTop = scrolled.get(lastKey) ?? 0;
+        if (sameSeries && drawnAgain) drawnAgain.scrollTop = seriesScrolled;
+        lastSeries = leaf?.name ?? "";
+        // (The focus back where it was, on what's drawn anew; one hidden now (a phone's folder left), the first row shown.)
+        if (focusAt) {
+          const again = /** @type {HTMLElement | null} */ ([...main.querySelectorAll(`[data-${focusAt[0]}]`)].find((element) => /** @type {HTMLElement} */ (element).dataset[focusAt[0]] === focusAt[1] && /** @type {HTMLElement} */ (element).offsetParent) ?? null);
+          (again ?? /** @type {HTMLElement | null} */ ([...main.querySelectorAll(".column")].at(-1)?.querySelector(".row") ?? null))?.focus({ preventScroll: true });
+        }
+      }
+      let lastSeries = "";
+      /** A folder's column: its folders and series, the one open marked; a phone's way back above. */
+      function columnHtml(/** @type {Node} */ folder, /** @type {string | undefined} */ open, /** @type {number} */ depth) {
+        // (One Tab stop a column: its open row, else its first; the arrows move within it.)
+        const stop = Math.max(0, /** @type {Node[]} */ (folder.kids).findIndex((kid) => kid.key === open));
+        const rows = /** @type {Node[]} */ (folder.kids).map((kid, i) => {
+          const current = kid.key === open;
+          return `<li><button type="button" class="row" tabindex="${i === stop ? 0 : -1}" data-path="${escape(JSON.stringify(kid.path))}" aria-current="${current}"${kid.name ? "" : ` aria-label="${escape(kid.label)}, ${kid.count} series"`}>
+            <span class="label">${escape(kid.label)}</span>
+            ${kid.name ? "" : `<span class="side num">${grouped.format(kid.count)}${ICON.chevron}</span>`}
+            ${kid.name ? `<span class="id">${escape(kid.name)}</span>` : ""}
+          </button></li>`;
+        }).join("");
+        const back = depth ? `<button type="button" class="back" data-path="${escape(JSON.stringify(folder.path.slice(0, -1)))}">${ICON.back}${escape(depth > 1 ? nodeAt(folder.path.slice(0, -1)).label : "All series")}</button>` : "";
+        return `<section class="column" data-folder="${escape(JSON.stringify(folder.path))}" aria-label="${escape(folder.label || "All series")}">${back}<h2>${escape(folder.label || "All series")}</h2><ul role="list">${rows}</ul></section>`;
+      }
+      function homeHtml() {
+        return `<section class="home"><h1>${grouped.format(byName.size)} series, from every block.</h1><p>What Bitview computes from the chain, as its API names it: open a folder, or search with <kbd>/</kbd>. Each series says what it is, draws its history, and shows how to fetch it.</p></section>`;
+      }
+      function crumbsHtml(/** @type {string[]} */ path) {
+        return `<ol class="crumbs">${trail(path).slice(0, -1).map((node) => `<li><button type="button" data-path="${escape(JSON.stringify(node.path))}">${escape(node.label)}</button></li>`).join("")}</ol>`;
+      }
+      function seriesHtml(/** @type {Node} */ leaf) {
+        const name = /** @type {string} */ (leaf.name), indexes = [...(/** @type {string[]} */ (leaf.indexes))].sort((a, b) => rank(a) - rank(b));
+        const index = at.index && indexes.includes(at.index) ? at.index : firstInterval(indexes);
+        return `<article class="series" aria-labelledby="series-title">
+          <button type="button" class="back" data-path="${escape(JSON.stringify(leaf.path.slice(0, -1)))}">${ICON.back}${escape(nodeAt(leaf.path.slice(0, -1)).label || "All series")}</button>
+          ${crumbsHtml(leaf.path)}
+          <h1 id="series-title">${escape(humanize(name))}</h1>
+          <div class="id-line"><code>${escape(name)}</code><button type="button" class="chip" data-copy="${escape(name)}">${ICON.copy}Copy id</button></div>
+          <p class="about" id="about">${known.has(name) ? escape(known.get(name).description ?? "") : "&nbsp;"}</p>
+          <dl class="facts" id="facts">${known.has(name) ? factsHtml(known.get(name), indexes.length) : ""}</dl>
+          <div class="card">
+            <div class="card-head">
+              <div class="group" role="group" aria-label="Interval">${indexes.map((id) => `<button type="button" class="chip" data-index="${id}" aria-pressed="${id === index}">${escape(INTERVAL_LABEL[id] ?? humanizeKey(id))}</button>`).join("")}</div>
+              <div class="group" role="group" aria-label="Scale" id="scales"></div>
+            </div>
+            <div id="view"><div class="message">Loading…</div></div>
+          </div>
+          <div class="actions" id="actions"></div>
+        </article>`;
+      }
+
+      // ── A series: its facts, its history ──
+      /** @type {AbortController | null} */
+      let showing = null;
+      /** @type {Map<string, Promise<any>>} each series' facts, once asked */
+      const infos = new Map();
+      /** Each series' facts once they've come: written with its page at once (its height as it'll be). @type {Map<string, any>} */
+      const known = new Map();
+      const factsHtml = (/** @type {any} */ info, /** @type {number} */ intervals) =>
+        [["Unit", info.unit], ["Value type", info.type], ["Intervals", String(intervals)]].filter(([, value]) => value).map(([label, value]) => `<div><dt>${label}</dt><dd>${escape(String(value))}</dd></div>`).join("");
+      const json = (/** @type {string} */ path, /** @type {AbortSignal} */ signal) =>
+        fetch(path, { signal }).then((response) => (response.ok ? response.json() : response.json().then((body) => Promise.reject(new Error(body?.error?.message ?? `The server answered ${response.status}.`)), () => Promise.reject(new Error(`The server answered ${response.status}.`)))));
+      const said = (/** @type {unknown} */ error) => (error instanceof TypeError ? "This server couldn't be reached." : /** @type {Error} */ (error).message);
+      async function showSeries(/** @type {Node} */ leaf) {
+        showing?.abort();
+        showing = new AbortController();
+        const signal = showing.signal, name = /** @type {string} */ (leaf.name), indexes = /** @type {string[]} */ (leaf.indexes);
+        const index = at.index && indexes.includes(at.index) ? at.index : firstInterval(indexes);
+        const api = `/api/series/${encodeURIComponent(name)}/${index}`;
+        $("actions").innerHTML = [
+          indexes.includes("day1") ? `<a class="chip primary" href="/studio/#chart=${encodeURIComponent(JSON.stringify({ layers: [{ series: name }] }))}">${ICON.chart}Chart in Studio</a>` : "",
+          `<a class="chip" href="${api}">JSON</a>`,
+          `<a class="chip" href="${api}?format=csv" download="${escape(name)}-${index}.csv">CSV</a>`,
+          `<button type="button" class="chip" data-copy="${escape(location.origin + api)}">${ICON.copy}Copy API address</button>`,
+        ].join("");
+        if (!infos.has(name)) infos.set(name, json(`/api/series/${encodeURIComponent(name)}`, new AbortController().signal).catch((error) => (infos.delete(name), Promise.reject(error))));
+        /** @type {Promise<any>} */ (infos.get(name)).then((info) => {
+          known.set(name, info);
+          if (signal.aborted) return;
+          $("about").textContent = info.description ?? "";
+          $("facts").innerHTML = factsHtml(info, indexes.length);
+        }, () => !signal.aborted && ($("about").textContent = ""));
+        try {
+          const dated = dateBased(index), fine = !dated || /^(minute|hour)/.test(index);
+          const answer = await json(`${api}${fine ? `?start=-${MOST}` : ""}`, signal);
+          if (signal.aborted) return;
+          drawSeries(answer, index);
+        } catch (error) {
+          if (signal.aborted) return;
+          $("view").style.removeProperty("min-height");
+          $("scales").style.removeProperty("min-height");
+          $("view").innerHTML = `<div class="message"><p>${escape(said(error))}</p><button type="button" class="chip" data-retry>Try again</button></div>`;
+        }
+      }
+
+      // ── Its history, drawn: a line (its close, for candles), hover or touch to read a point ──
+      /** @type {{ xs: number[], ys: number[], index: string, type: string, start: number, total: number, log: boolean, from: number } | null} */
+      let plot = null;
+      /** How far back a daily or weekly history shows: a year, four, or all of it (coarser ones show all). */
+      const RANGES = /** @type {[string, string, number][]} */ ([["1y", "Past year", 365], ["4y", "Past 4 years", 1461], ["all", "All", 0]]);
+      const ranged = (/** @type {string} */ index) => ["day1", "day3", "week1"].includes(index);
+      let range = "all";
+      function drawSeries(/** @type {any} */ answer, /** @type {string} */ index) {
+        // (Drawn: its place as tall as it is now.)
+        $("view").style.removeProperty("min-height");
+        $("scales").style.removeProperty("min-height");
+        const values = /** @type {any[]} */ (answer.data).map((v) => (Array.isArray(v) ? v[3] : v));
+        const numeric = values.some((v) => typeof v === "number");
+        if (!numeric) {
+          plot = null;
+          $("scales").innerHTML = "";
+          const last = values.map((value, i) => [answer.start + i, value]).slice(-12).reverse();
+          $("view").innerHTML = values.length
+            ? `<table class="values"><tbody>${last.map(([i, value]) => `<tr><th>${escape(placeOf(index, i))}</th><td class="mono">${escape(String(value ?? "—"))}</td></tr>`).join("")}</tbody></table><p class="card-foot">The latest of ${grouped.format(answer.end)}.</p>`
+            : `<div class="message">Nothing yet.</div>`;
+          return;
+        }
+        const xs = [], ys = [];
+        values.forEach((value, i) => {
+          if (typeof value === "number" && Number.isFinite(value)) {
+            xs.push(answer.start + i);
+            ys.push(value);
+          }
+        });
+        if (!ys.length) {
+          plot = null;
+          $("scales").innerHTML = "";
+          $("view").innerHTML = `<div class="message">Nothing yet.</div>`;
+          return;
+        }
+        // (A log scale skips what's zero or below, as Studio's does; it's the first one when the rest spans 100-fold.)
+        const above = ys.filter((y) => y > 0), loggable = above.length > 1 && ys.every((y) => y >= 0);
+        const spread = loggable ? Math.log10(Math.max(...above) / Math.min(...above)) : 0;
+        plot = { xs, ys, index, type: answer.type, start: answer.start, total: answer.end, log: loggable && spread > 2, from: 0 };
+        const dated = dateBased(index);
+        $("scales").innerHTML = [
+          ...(ranged(index) ? RANGES.map(([id, label]) => `<button type="button" class="chip" data-range="${id}" aria-pressed="${id === range}">${label}</button>`) : []),
+          `<button type="button" class="chip" data-log aria-pressed="${plot.log}"${loggable ? "" : " disabled title=\"Some values are below zero\""}>Log</button>`,
+        ].join("");
+        $("view").innerHTML = `<div class="readout" id="readout"></div><div class="plot"><canvas id="canvas" role="img"></canvas></div>${answer.start > 0 && !dated ? `<p class="card-foot">The latest ${grouped.format(values.length)} of ${grouped.format(answer.end)}.</p>` : /^(minute|hour)/.test(index) ? `<p class="card-foot">The latest ${grouped.format(values.length)} points.</p>` : ""}`;
+        plotSized.disconnect();
+        plotSized.observe(/** @type {HTMLElement} */ ($("canvas").parentElement));
+        setRange(range);
+      }
+      /** The plot's size watched (one at a time): drawn again as it changes. */
+      const plotSized = new ResizeObserver(() => paint());
+      function setRange(/** @type {string} */ id) {
+        if (!plot) return;
+        range = id;
+        const days = RANGES.find(([r]) => r === id)?.[2] ?? 0;
+        plot.from = 0;
+        if (days && ranged(plot.index)) {
+          const last = client.indexToDate(/** @type {any} */ (plot.index), /** @type {number} */ (plot.xs.at(-1))).getTime(), cutoff = last - days * 86_400_000;
+          const first = plot.xs.findIndex((x) => client.indexToDate(/** @type {any} */ (/** @type {any} */ (plot).index), x).getTime() >= cutoff);
+          plot.from = Math.max(0, first);
+        }
+        for (const chip of $("scales").querySelectorAll("[data-range]")) chip.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (chip).dataset.range === id));
+        paint();
+        readout(null);
+      }
+      /** @type {number | null} */
+      let hovered = null;
+      /**
+       * Round values for the value axis, between two ends (as the scale has them: log10s on a log one): about four, on
+       * a step of 1, 2 or 5 times a power of ten; on a log scale, the powers of ten (with 2 and 5 between, if few).
+       */
+      function ticks(/** @type {number} */ low, /** @type {number} */ high, /** @type {boolean} */ log) {
+        // (Less than a decade on a log scale: round values as a linear one would have them, placed on the log.)
+        if (log && high - low < 1) return ticks(10 ** low, 10 ** high, false).filter((v) => v > 0);
+        if (log) {
+          const out = [];
+          for (let e = Math.ceil(low - 1); e <= Math.floor(high); e++) for (const m of high - low < 2 ? [1, 2, 5] : [1]) if (Math.log10(m * 10 ** e) >= low && Math.log10(m * 10 ** e) <= high) out.push(m * 10 ** e);
+          // (Many decades: every other, or third…, so about five.)
+          const every = Math.ceil(out.length / 6);
+          return out.filter((_, i) => i % every === 0);
+        }
+        const rough = (high - low) / 4;
+        if (!(rough > 0) || !Number.isFinite(rough)) return [low];
+        const power = 10 ** Math.floor(Math.log10(rough)), step = [1, 2, 5, 10].map((m) => m * power).find((s) => s >= rough) ?? 10 * power;
+        const out = [];
+        // (At most a dozen: values a few ulps apart can't step the loop past them.)
+        for (let v = Math.ceil(low / step) * step; v <= high + step * 1e-9 && out.length < 12; v += step) out.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+        return out;
+      }
+      /**
+       * The time axis's marks, where what it reads changes (a year, a month, a day, as the span shown calls for), at least
+       * `gap` apart; a history by block or epoch, round numbers. @returns {{ x: number, label: string }[]}
+       */
+      function timeMarks(/** @type {number[]} */ xs, /** @type {number} */ from, /** @type {string} */ index, /** @type {(x: number) => number} */ X, /** @type {number} */ gap) {
+        const out = /** @type {{ x: number, label: string }[]} */ ([]);
+        if (!dateBased(index)) {
+          for (const v of ticks(xs[from], /** @type {number} */ (xs.at(-1)), false)) out.push({ x: X(v), label: grouped.format(v) });
+          return out;
+        }
+        const date = (/** @type {number} */ i) => client.indexToDate(/** @type {any} */ (index), i), days = (date(/** @type {number} */ (xs.at(-1))).getTime() - date(xs[from]).getTime()) / 86_400_000;
+        const by = days > 3 * 365 ? "year" : days > 60 ? "month" : "day";
+        const key = (/** @type {Date} */ d) => (by === "year" ? d.getUTCFullYear() : by === "month" ? d.getUTCFullYear() * 12 + d.getUTCMonth() : Math.floor(d.getTime() / 86_400_000));
+        const label = (/** @type {Date} */ d) => (by === "year" ? String(d.getUTCFullYear()) : by === "month" ? (d.getUTCMonth() ? MONTHS[d.getUTCMonth()] : String(d.getUTCFullYear())) : `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`);
+        let before = key(date(xs[from]));
+        for (let i = from + 1; i < xs.length; i++) {
+          const d = date(xs[i]), k = key(d);
+          if (k === before) continue;
+          before = k;
+          const x = X(xs[i]);
+          if (!out.length || x - /** @type {{ x: number }} */ (out.at(-1)).x >= gap) out.push({ x, label: label(d) });
+        }
+        return out;
+      }
+      function paint() {
+        const canvas = /** @type {HTMLCanvasElement | null} */ (document.getElementById("canvas"));
+        if (!canvas || !plot) return;
+        const box = /** @type {HTMLElement} */ (canvas.parentElement).getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
+        if (!box.width) return;
+        canvas.width = Math.round(box.width * dpr);
+        canvas.height = Math.round(box.height * dpr);
+        const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const color = (/** @type {string} */ name) => ink(name);
+        const { xs, ys, from, log, type, index } = plot;
+        const scale = (/** @type {number} */ y) => (log ? Math.log10(y) : y);
+        let low = Infinity, high = -Infinity;
+        const drawn = (/** @type {number} */ y) => !log || y > 0;
+        for (let i = from; i < ys.length; i++) {
+          if (!drawn(ys[i])) continue;
+          low = Math.min(low, scale(ys[i]));
+          high = Math.max(high, scale(ys[i]));
+        }
+        if (low === high) [low, high] = [low - 1, high + 1];
+        // (A little room above and below; a series that's never below zero doesn't get an axis below it.)
+        const pad = (high - low) * 0.06, floor = !log && ys.every((y) => y >= 0) ? 0 : -Infinity;
+        low = Math.max(floor, low - pad);
+        high += pad;
+        const left = 14, right = box.width - 64, top = 10, bottom = box.height - 26;
+        // (Placed by their index, not their count: a missing stretch keeps its width, a gap in the line.)
+        const first = xs[from], span = /** @type {number} */ (xs.at(-1)) - first;
+        const X = (/** @type {number} */ x) => left + (span > 0 ? ((x - first) / span) * (right - left) : (right - left) / 2);
+        const Y = (/** @type {number} */ y) => bottom - ((scale(y) - low) / (high - low)) * (bottom - top);
+        // Its grid and the value axis, at the right.
+        ctx.font = `11px ${getComputedStyle(canvas).getPropertyValue("--mono")}`;
+        ctx.fillStyle = color("--faint");
+        ctx.strokeStyle = color("--grid");
+        ctx.lineWidth = 1;
+        ctx.textBaseline = "middle";
+        for (const v of ticks(low, high, log)) {
+          const y = bottom - ((scale(v) - low) / (high - low)) * (bottom - top);
+          ctx.beginPath();
+          ctx.moveTo(left, Math.round(y) + 0.5);
+          ctx.lineTo(right, Math.round(y) + 0.5);
+          ctx.stroke();
+          ctx.fillText(format(v, type), right + 8, y);
+        }
+        // Its time axis: a mark where what it reads changes (a year, a month, a day), or round numbers.
+        ctx.textBaseline = "alphabetic";
+        ctx.textAlign = "center";
+        for (const { x, label } of timeMarks(xs, from, index, X, 72)) ctx.fillText(label, Math.min(Math.max(x, left + 20), right - 20), box.height - 8);
+        ctx.textAlign = "left";
+        // The line, in runs (a missing point breaks it), and a light wash under each.
+        const plotColor = color("--plot"), runs = /** @type {[number, number][][]} */ ([]);
+        for (let i = from; i < ys.length; i++) {
+          if (!drawn(ys[i])) continue;
+          const point = /** @type {[number, number]} */ ([X(xs[i]), Y(ys[i])]), run = runs.at(-1);
+          if (run && i > from && xs[i] - xs[i - 1] === 1 && drawn(ys[i - 1])) run.push(point);
+          else runs.push([point]);
+        }
+        const wash = ctx.createLinearGradient(0, top, 0, bottom);
+        wash.addColorStop(0, ink("--plot", 0.18));
+        wash.addColorStop(1, ink("--plot", 0));
+        ctx.lineWidth = 1.5;
+        ctx.lineJoin = "round";
+        for (const run of runs) {
+          ctx.beginPath();
+          run.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+          ctx.strokeStyle = plotColor;
+          ctx.stroke();
+          ctx.lineTo(/** @type {[number, number]} */ (run.at(-1))[0], bottom);
+          ctx.lineTo(run[0][0], bottom);
+          ctx.closePath();
+          ctx.fillStyle = wash;
+          ctx.fill();
+        }
+        // The point read, if any.
+        if (hovered !== null && hovered >= from && drawn(ys[hovered])) {
+          const x = X(xs[hovered]), y = Y(ys[hovered]);
+          ctx.strokeStyle = color("--line-strong");
+          ctx.beginPath();
+          ctx.moveTo(Math.round(x) + 0.5, top);
+          ctx.lineTo(Math.round(x) + 0.5, bottom);
+          ctx.stroke();
+          ctx.fillStyle = plotColor;
+          ctx.beginPath();
+          ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        canvas.setAttribute("aria-label", `${humanize(/** @type {string} */ (nodeAt(at.path).name))}: ${format(/** @type {number} */ (ys.at(-1)), type)} at ${placeOf(index, /** @type {number} */ (xs.at(-1)))}`);
+        // (The point nearest a pointer's place along: by its index, the nearest that has a value.)
+        /** @type {any} */ (canvas).pointAt = (/** @type {number} */ clientX) => {
+          const r = canvas.getBoundingClientRect(), target = first + ((clientX - r.left - left) / (right - left)) * span;
+          let lo = from, hi = ys.length - 1;
+          while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (xs[mid] < target) lo = mid + 1;
+            else hi = mid;
+          }
+          return lo > from && Math.abs(xs[lo - 1] - target) < Math.abs(xs[lo] - target) ? lo - 1 : lo;
+        };
+      }
+      /**
+       * One of the page's colors as the canvas can take it (a theme's light-dark() resolves only on an element: read
+       * through a probe), with an alpha; each kept until the theme changes.
+       */
+      const inks = new Map();
+      function ink(/** @type {string} */ name, alpha = 1) {
+        if (!inks.has(name)) {
+          const probe = document.createElement("span");
+          probe.style.color = `var(${name})`;
+          document.body.append(probe);
+          inks.set(name, getComputedStyle(probe).color.match(/[\d.]+/g)?.slice(0, 3).join(" ") ?? "0 0 0");
+          probe.remove();
+        }
+        return `rgb(${inks.get(name)} / ${alpha})`;
+      }
+      matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+        inks.clear();
+        paint();
+      });
+      /** The readout: the point read, else the latest. */
+      function readout(/** @type {number | null} */ i) {
+        hovered = i;
+        const element = document.getElementById("readout");
+        if (!element || !plot) return;
+        const k = i ?? plot.ys.length - 1;
+        element.innerHTML = `<b class="num">${escape(format(plot.ys[k], plot.type))}</b><span>${escape(placeOf(plot.index, plot.xs[k]))}${i === null ? ", the latest" : ""}</span>`;
+        paint();
+      }
+
+      // ── Search: the server's, every keystroke (the one before stopped) ──
+      /** @type {AbortController | null} */
+      let searching = null;
+      let picked = 0;
+      /** The search the results shown are for (Enter waits for the ones for what's typed now). */
+      let shownFor = "";
+      async function renderResults() {
+        const query = /** @type {string} */ (at.query);
+        searching?.abort();
+        searching = new AbortController();
+        const signal = searching.signal;
+        if (!main.querySelector(".results")) main.innerHTML = `<section class="results" aria-label="Search results"><h2 id="found">Searching…</h2><ul role="listbox" id="found-list" aria-labelledby="found"></ul></section>`;
+        try {
+          const found = /** @type {string[]} */ (await json(`/api/series/search?${new URLSearchParams({ q: query, limit: "60" })}`, signal)), names = found.filter((name) => byName.has(name));
+          if (signal.aborted) return;
+          picked = 0;
+          shownFor = query;
+          $("found").textContent = names.length ? `${found.length === 60 ? "The first 60" : grouped.format(names.length)} for “${query}”` : `Nothing for “${query}”`;
+          $("found-list").innerHTML = names.map((name, i) => {
+            const node = /** @type {Node} */ (byName.get(name));
+            return `<li role="none"><button type="button" class="row" role="option" id="found-${i}" aria-selected="${i === 0}" data-path="${escape(JSON.stringify(node.path))}" tabindex="-1">
+              <span class="label">${escape(humanize(name))}</span><span class="side mono">${escape(name)}</span>
+              <span class="where">${escape(trail(node.path).slice(0, -1).map((n) => n.label).join(" › "))}</span>
+            </button></li>`;
+          }).join("");
+          document.title = `“${query}” · Explorer · Bitview`;
+          sayPicked();
+        } catch (error) {
+          if (signal.aborted || !document.getElementById("found")) return;
+          $("found").textContent = said(error);
+          $("found-list").innerHTML = "";
+        }
+      }
+      function movePick(/** @type {number} */ step) {
+        const rows = [...$("found-list").querySelectorAll(".row")];
+        if (!rows.length) return;
+        picked = Math.max(0, Math.min(rows.length - 1, picked + step));
+        rows.forEach((row, i) => row.setAttribute("aria-selected", String(i === picked)));
+        rows[picked].scrollIntoView({ block: "nearest" });
+        sayPicked();
+      }
+      /** The result picked, told to a screen reader through the field (its focus stays there, as it's typed in). */
+      function sayPicked() {
+        const option = document.getElementById(`found-${picked}`);
+        if (option) q.setAttribute("aria-activedescendant", option.id);
+        else q.removeAttribute("aria-activedescendant");
+      }
+      const q = /** @type {HTMLInputElement} */ ($("q"));
+      q.value = at.query ?? "";
+      q.addEventListener("input", () => {
+        const query = q.value.trim();
+        if (!query) q.removeAttribute("aria-activedescendant");
+        // (Typing replaces the address's search; it doesn't add a step back for every letter.)
+        at = { path: at.path, query };
+        write(at, true);
+        render();
+      });
+      q.addEventListener("keydown", (event) => {
+        if (!at.query) return;
+        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+          event.preventDefault();
+          movePick(event.key === "ArrowDown" ? 1 : -1);
+        } else if (event.key === "Enter") {
+          event.preventDefault();
+          if (shownFor !== at.query) return;
+          /** @type {HTMLElement | undefined} */ ([...$("found-list").querySelectorAll(".row")][picked])?.click();
+        } else if (event.key === "Escape") {
+          q.value = "";
+          go({ path: at.path }, true);
+        }
+      });
+      $("search-form").addEventListener("submit", (event) => event.preventDefault());
+      addEventListener("keydown", (event) => {
+        if (event.key === "/" && document.activeElement !== q && !(event.target instanceof HTMLInputElement)) {
+          event.preventDefault();
+          q.focus();
+          q.select();
+        }
+      });
+
+      // ── Clicks: a row opens what it names; chips do what they say ──
+      main.addEventListener("click", (event) => {
+        const target = /** @type {HTMLElement} */ (event.target);
+        const path = /** @type {HTMLElement | null} */ (target.closest("[data-path]"));
+        if (path) {
+          const to = JSON.parse(/** @type {string} */ (path.dataset.path));
+          if (at.query) q.value = "";
+          return go({ path: to });
+        }
+        const index = /** @type {HTMLElement | null} */ (target.closest("[data-index]"));
+        if (index) return go({ path: at.path, index: index.dataset.index }, true);
+        const rangeChip = /** @type {HTMLElement | null} */ (target.closest("[data-range]"));
+        if (rangeChip) return setRange(/** @type {string} */ (rangeChip.dataset.range));
+        if (target.closest("[data-log]") && plot) {
+          plot.log = !plot.log;
+          /** @type {HTMLElement} */ (target.closest("[data-log]")).setAttribute("aria-pressed", String(plot.log));
+          return paint();
+        }
+        if (target.closest("[data-retry]")) return render();
+        const copy = /** @type {HTMLElement | null} */ (target.closest("[data-copy]"));
+        if (copy) {
+          // (Its own words kept once: a second click while it says "Copied" doesn't make that its words.)
+          copy.dataset.words ??= copy.innerHTML;
+          const done = () => {
+            copy.innerHTML = `${ICON.copy}Copied`;
+            clearTimeout(Number(copy.dataset.timer));
+            copy.dataset.timer = String(setTimeout(() => (copy.innerHTML = /** @type {string} */ (copy.dataset.words)), 1400));
+          };
+          // (No clipboard to write to (a page over plain http, as a node's on a LAN): the text written and selected,
+          // copied the old way.)
+          if (navigator.clipboard) navigator.clipboard.writeText(/** @type {string} */ (copy.dataset.copy)).then(done, () => {});
+          else {
+            const field = Object.assign(document.createElement("textarea"), { value: copy.dataset.copy });
+            document.body.append(field);
+            field.select();
+            if (document.execCommand("copy")) done();
+            field.remove();
+          }
+        }
+      });
+      // (Reading the chart: a pointer over it, a finger on it.)
+      main.addEventListener("pointermove", (event) => {
+        const canvas = /** @type {any} */ (/** @type {HTMLElement} */ (event.target).closest?.("canvas"));
+        if (!canvas?.pointAt || !plot) return;
+        if (event.pointerType !== "mouse" && !event.buttons) return;
+        readout(canvas.pointAt(event.clientX));
+      });
+      main.addEventListener("pointerdown", (event) => {
+        const canvas = /** @type {any} */ (/** @type {HTMLElement} */ (event.target).closest?.("canvas"));
+        if (canvas?.pointAt && plot) readout(canvas.pointAt(event.clientX));
+      });
+      main.addEventListener("pointerleave", () => plot && hovered !== null && readout(null), true);
+
+      // ── Keys in the columns: ↑ ↓ within one, → into a folder, ← back out ──
+      main.addEventListener("keydown", (event) => {
+        const row = /** @type {HTMLElement | null} */ (/** @type {HTMLElement} */ (event.target).closest?.(".column .row"));
+        if (!row) return;
+        const rows = [...(/** @type {HTMLElement} */ (row.closest("ul")).querySelectorAll(".row"))], i = rows.indexOf(row);
+        const path = JSON.parse(/** @type {string} */ (row.dataset.path));
+        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+          event.preventDefault();
+          const next = /** @type {HTMLElement | undefined} */ (rows[i + (event.key === "ArrowDown" ? 1 : -1)]);
+          if (!next) return;
+          // (Wide, the row moved to opens beside, as Finder's columns do; narrow, the focus moves, nothing opens.)
+          const to = JSON.parse(/** @type {string} */ (next.dataset.path));
+          if (!narrow.matches) {
+            go({ path: to }, true);
+            return focusRow(to);
+          }
+          row.tabIndex = -1;
+          next.tabIndex = 0;
+          next.focus();
+        } else if (event.key === "ArrowRight" && !nodeAt(path).name) {
+          event.preventDefault();
+          const first = nodeAt(path).kids?.[0];
+          if (!first) return;
+          go({ path: narrow.matches ? path : first.path });
+          focusRow(first.path);
+        } else if (event.key === "ArrowLeft" && path.length > 1) {
+          event.preventDefault();
+          // (Narrow, back to the folder this one's in, this folder's row lit there.)
+          go({ path: narrow.matches ? path.slice(0, -2) : path.slice(0, -1) });
+          focusRow(path.slice(0, -1));
+        }
+      });
+      function focusRow(/** @type {string[]} */ path) {
+        /** @type {HTMLElement | null} */ (main.querySelector(`.column .row[data-path="${CSS.escape(JSON.stringify(path))}"]`))?.focus();
+      }
+
+      render();
+    </script>
+  </body>
+</html>

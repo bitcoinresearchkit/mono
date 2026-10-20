@@ -94,9 +94,13 @@
         height: 100%;
       }
 
+      /* (A finger held on it holds a range: no selection, no callout to take the press first.) */
       #terrain {
         z-index: 1;
         touch-action: none;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
       }
 
       .topbar {
@@ -266,6 +270,44 @@
         display: flex;
         align-items: flex-end;
         gap: 14px;
+      }
+
+      /* The day's split, its key: a swatch a part (or, by age, one gradient from youngest to oldest). */
+      .split-legend {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        pointer-events: none;
+
+        &[hidden] {
+          display: none;
+        }
+
+        i {
+          display: inline-block;
+          width: 10px;
+          height: 10px;
+          margin-right: 6px;
+          border-radius: 2px;
+          vertical-align: -1px;
+          background: var(--swatch);
+        }
+
+        .ramp {
+          width: 96px;
+          height: 8px;
+          border-radius: 4px;
+          background: linear-gradient(90deg, var(--ramp));
+        }
+
+        /* (The day's parts couldn't be read: said where they'd be named.) */
+        &[data-failed]::after {
+          content: "COULDN’T LOAD";
+          color: #e5675a;
+        }
       }
 
       .selector {
@@ -518,8 +560,13 @@
                   <option value="age_12y_to_15y">12–15Y</option>
                   <option value="age_over_15y">15Y+</option>
                 </optgroup>
+                <optgroup label="TOGETHER, ON THE DAY">
+                  <option value="split:term">SHORT + LONG-TERM</option>
+                  <option value="split:age">EVERY AGE</option>
+                </optgroup>
               </select>
             </label>
+            <div id="split-legend" class="split-legend" hidden></div>
           </div>
         </div>
 
@@ -599,6 +646,8 @@
         const PRICE_TRAIL_LIFT = 6;
         const PRICE_TRAIL_CORNER_RADIUS = 6;
         const CACHE_LIMIT = 4_500;
+        // A touch held still this long on the terrain starts a price range.
+        const RANGE_HOLD_MS = 450;
         const SUMMARY_CACHE_LIMIT = 384;
         const WEIGHT_VARIANT_COUNT = 3;
         const CONCURRENCY = 7;
@@ -814,6 +863,9 @@
         const state = {
           dimension: "3d",
           cohort: "all",
+          // The cohort choice as picked (a split, "split:…", splits the selected day's slice: the terrain stays all).
+          cohortChoice: "all",
+          split: null,
           metric: "supply",
           mode: "value",
           weight: /** @type {import("../modules/bitview-client/index.js").UrpdWeight} */ ("none"),
@@ -869,6 +921,11 @@
           loading: 0,
           hoverModel: null,
           hoverPriceCoordinate: null,
+          // A price range held: its two ends as price coordinates (kept until a click on the terrain); the gesture making it.
+          range: null,
+          rangeGesture: null,
+          splitAsk: null,
+          rangeHold: 0,
           metricCdfCache: new WeakMap(),
           timeDragging: false,
           timePointerId: null,
@@ -1617,13 +1674,13 @@
             params,
             stored,
           );
-          state.cohort = resolveSetting(
+          applyCohortChoice(resolveSetting(
             "cohort",
             cohortSelect,
-            state.cohort,
+            state.cohortChoice,
             params,
             stored,
-          );
+          ));
           const urlDate = params.get("date");
           state.preferredDate = isIsoDate(urlDate)
             ? urlDate
@@ -1637,7 +1694,8 @@
           metricSelect.value = state.metric;
           modeSelect.value = state.mode;
           weightSelect.value = state.weight;
-          cohortSelect.value = state.cohort;
+          // (The cohort menu set by syncSplit: in a change view, what's drawn.)
+          syncSplit();
           syncProjectionTransforms();
         }
 
@@ -1656,7 +1714,7 @@
             data: state.metric,
             mode: state.mode,
             weight: state.weight,
-            cohort: state.cohort,
+            cohort: state.cohortChoice,
           };
           if (isIsoDate(state.preferredDate)) {
             settings.date = state.preferredDate;
@@ -1745,6 +1803,137 @@
           return `${cohort}:${weight}:${AGGREGATION}:${date}`;
         }
 
+        /**
+         * A split's parts, in order (by age, youngest first), each its cohort, name and color; by the cohort choice
+         * (none: not a split). The ages are the cohort list's own bands.
+         */
+        function splitParts(choice) {
+          if (choice === "split:term") {
+            return [
+              { cohort: "sth", label: "SHORT-TERM", color: "#f2a33a" },
+              { cohort: "lth", label: "LONG-TERM", color: "#5aa9e6" },
+            ];
+          }
+          if (choice !== "split:age") return null;
+          const bands = [...cohortSelect.querySelectorAll('optgroup[label="AGE BANDS"] option')];
+          // (Youngest amber to oldest blue, by way of red and violet: clear of the terrain's greens and browns.)
+          return bands.map((option, index) => ({
+            cohort: option.value,
+            label: option.textContent,
+            color: `oklch(72% 0.16 ${Math.round((420 - (index / (bands.length - 1)) * 170) % 360)})`,
+          }));
+        }
+
+        /** A cohort choice made: a split keeps the terrain all and splits the selected day; a cohort is the terrain. */
+        function applyCohortChoice(choice) {
+          state.cohortChoice = choice;
+          state.split = splitParts(choice);
+          state.splitAsk?.stop.abort();
+          state.splitAsk = null;
+          byId("split-legend").removeAttribute("data-failed");
+          state.cohort = state.split ? "all" : choice;
+          const legend = byId("split-legend");
+          syncSplit();
+          // (Its words change the controls' width: they're placed again.)
+          state.projectedUiKey = "";
+          if (!state.split) return legend.replaceChildren();
+          if (state.split.length === 2) {
+            legend.replaceChildren(...state.split.map(({ label, color }) => {
+              const item = document.createElement("span");
+              const swatch = document.createElement("i");
+              swatch.style.setProperty("--swatch", color);
+              item.append(swatch, label);
+              return item;
+            }));
+            return;
+          }
+          const ramp = Object.assign(document.createElement("span"), { className: "ramp" });
+          ramp.style.setProperty("--ramp", state.split.map(({ color }) => color).join(", "));
+          legend.replaceChildren(state.split[0].label, ramp, state.split.at(-1).label);
+        }
+
+        /**
+         * The split shown where it's drawn, the value view (a change view shows none): its legend there only, and the
+         * menu's together choices offered there only.
+         */
+        function syncSplit() {
+          const shown = Boolean(state.split) && state.mode === "value", legend = byId("split-legend");
+          if (legend.hidden === shown) {
+            legend.hidden = !shown;
+            state.projectedUiKey = "";
+          }
+          for (const option of cohortSelect.querySelectorAll('option[value^="split:"]')) option.disabled = state.mode !== "value";
+          // (The menu says what's drawn: in a change view, all coins, the split chosen kept for the value view.)
+          cohortSelect.value = state.mode === "value" ? state.cohortChoice : state.cohort;
+        }
+
+        /**
+         * The selected day's parts, once each are here (else asked for, the render after drawing them); the latest
+         * day's asked for again as they go stale, as its terrain is (shown meanwhile as they were).
+         */
+        function ensureSplit(index) {
+          const date = state.dates[index];
+          if (!state.split || !date) return null;
+          const latest = date === latestAvailableDate();
+          const profiles = state.split.map(({ cohort }) => state.cache.get(profileKeyForDate(date, cohort)));
+          const fresh = profiles.every((profile) => profile && (!latest || Date.now() - profile.fetchedAt < LIVE_DATA_POLL_MS));
+          if (!fresh) askSplit(date, latest);
+          else if (state.splitAsk) {
+            // (This day's here already: an ask for another stopped, and forgotten, so one that failed is asked again.)
+            state.splitAsk.stop.abort();
+            state.splitAsk = null;
+            byId("split-legend").removeAttribute("data-failed");
+          }
+          return profiles.every(Boolean) ? profiles : null;
+        }
+        /**
+         * One ask for a day's parts at a time: another day, weight or choice (or, the latest day, another minute)
+         * stops the last; one that failed isn't asked again until then.
+         */
+        function askSplit(date, latest) {
+          const key = `${state.cohortChoice}:${state.weight}:${date}${latest ? `:${Math.floor(Date.now() / LIVE_DATA_POLL_MS)}` : ""}`;
+          if (state.splitAsk?.key === key) return;
+          state.splitAsk?.stop.abort();
+          const stop = new AbortController();
+          state.splitAsk = { key, stop };
+          const legend = byId("split-legend");
+          legend.removeAttribute("data-failed");
+          // (Failed: said beside the legend, and asked again once the day, the weight or the choice changes.)
+          Promise.all(state.split.map(({ cohort }) => fetchProfileByDate(date, stop.signal, cohort, state.weight, latest)))
+            .then(() => !stop.signal.aborted && scheduleRender(), () => !stop.signal.aborted && legend.setAttribute("data-failed", ""));
+        }
+
+        /** A profile's metric by terrain bin, as sizes (P&L's two sides alike), kept on it per metric. */
+        function metricBins(profile) {
+          const key = `${state.metric}:${state.binCount}`;
+          if (profile.binsKey === key) return profile.bins;
+          const values = new Float32Array(state.binCount);
+          const source = metricSource(profile);
+          if (source) {
+            for (let index = 0; index < profile.prices.length; index++) {
+              const price = profile.prices[index];
+              if (!(price >= MIN_TERRAIN_PRICE)) continue;
+              const target = Math.floor((price - MIN_TERRAIN_PRICE) / PRICE_BUCKET_WIDTH);
+              if (target >= 0 && target < values.length) {
+                values[target] += Math.abs(Number(source[index]) || 0);
+              }
+            }
+          }
+          profile.binsKey = key;
+          profile.bins = values;
+          return values;
+        }
+
+        /** At a bin, each part's share of the day there, the largest first. */
+        function splitSharesAt(profiles, bin) {
+          const values = profiles.map((profile) => metricBins(profile)[bin] ?? 0);
+          const total = values.reduce((sum, value) => sum + value, 0);
+          if (!(total > 0)) return [];
+          return values
+            .map((value, part) => ({ part: state.split[part], share: value / total }))
+            .sort((a, b) => b.share - a.share);
+        }
+
         function profileCohorts(cohort = state.cohort) {
           return cohort === "all" ? ["all"] : [cohort, "all"];
         }
@@ -1804,7 +1993,8 @@
         }
 
         function putProfile(key, profile) {
-          const affectsScene = profileDateAffectsScene(profile.date);
+          // (A day's split parts aren't the terrain's: they change nothing it's drawn from.)
+          const affectsScene = (key.startsWith(`${state.cohort}:`) || key.startsWith("all:")) && profileDateAffectsScene(profile.date);
           let scaleChanged = key.startsWith("all:") && affectsScene;
           state.cache.delete(key);
           state.cache.set(key, profile);
@@ -3619,9 +3809,17 @@
 
           drawOutlinedDot(context, surfacePoint, 4, accent, 1.5);
 
+          const splitProfiles =
+            state.mode === "value" ? ensureSplit(state.selectedIndex) : null;
+          const parts = splitProfiles
+            ? splitSharesAt(splitProfiles, nearestPriceIndex(coordinate))
+                .slice(0, 2)
+                .map(({ part, share }) => `${part.label} ${Math.round(share * 100)}%`)
+                .join(" · ")
+            : "";
           drawPill(
             context,
-            pricePillLabel(profile, coordinate),
+            `${pricePillLabel(profile, coordinate)}${parts ? `\n${parts}` : ""}`,
             pricePoint.x,
             pricePoint.y,
             priceAxis,
@@ -3641,6 +3839,84 @@
             },
           );
           context.restore();
+        }
+
+        /** The selected date's metric between two prices, and its share of the whole (P&L: both sides, as sizes). */
+        function rangeAmount(profile, low, high) {
+          const source = metricSource(profile);
+          if (!source) return null;
+          let inside = 0, total = 0;
+          for (let index = 0; index < profile.prices.length; index++) {
+            const price = profile.prices[index], value = Math.abs(Number(source[index]) || 0);
+            if (!(price >= 0)) continue;
+            total += value;
+            if (price >= low && price < high) inside += value;
+          }
+          return total > 0 ? { inside, share: inside / total } : null;
+        }
+
+        function formatMetricAmount(value) {
+          return state.metric === "supply" ? formatSupply(value) : formatCurrency(value);
+        }
+
+        /** A price's place on the terrain, held to its ends. */
+        function terrainCoordinateOf(price) {
+          return clamp((price - MIN_TERRAIN_PRICE) / Math.max(PRICE_BUCKET_WIDTH, state.maxPrice - MIN_TERRAIN_PRICE), 0, 1);
+        }
+        /** A range held, as prices (its low bucket's start, its high bucket's end): the same dollars however the axis rescales. */
+        function rangeOf(coordinateA, coordinateB) {
+          const [a, b] = [priceAtTerrainCoordinate(coordinateA), priceAtTerrainCoordinate(coordinateB)].sort((x, y) => x - y);
+          return [a, b + PRICE_BUCKET_WIDTH];
+        }
+
+        function drawRangeSelection(layout, dateIndex, row, profile) {
+          if (!state.range || !row || !profile) return;
+          const [low, high] = state.range;
+          const from = terrainCoordinateOf(low), to = terrainCoordinateOf(high - PRICE_BUCKET_WIDTH);
+          const first = nearestPriceIndex(from), last = nearestPriceIndex(to);
+          const dateOffset = dateOffsetFromView(dateIndex);
+          const offsetX = dateOffset * layout.timeXStep, offsetY = dateOffset * layout.timeYStep;
+          const top = (binIndex, edge) => ({
+            x: layout.priceEdgeX[edge] + offsetX,
+            y: layout.priceEdgeYBase[edge] + offsetY - row[binIndex] * layout.heightScale,
+          });
+          const base = (edge) => ({ x: layout.priceEdgeX[edge] + offsetX, y: layout.priceEdgeYBase[edge] + offsetY });
+          // (The band: the slice's top from its first bin to its last, back along its foot.)
+          context.save();
+          context.beginPath();
+          const start = base(first);
+          context.moveTo(start.x, start.y);
+          for (let binIndex = first; binIndex <= last; binIndex++) {
+            const left = top(binIndex, binIndex), right = top(binIndex, binIndex + 1);
+            context.lineTo(left.x, left.y);
+            context.lineTo(right.x, right.y);
+          }
+          const end = base(last + 1);
+          context.lineTo(end.x, end.y);
+          context.closePath();
+          context.fillStyle = "rgba(255, 255, 255, 0.22)";
+          context.fill();
+          context.lineJoin = "round";
+          strokeOutlinedPath(context, BLACK_92, 2.7, WHITE, 0.9);
+          context.restore();
+
+          const { priceAxis, priceOut } = plotAxisGeometry(layout);
+          // (Its label at its middle; the pointer's own near it, at whichever end is farther from the pointer.)
+          const middle = (from + to) / 2, hover = state.hoverPriceCoordinate;
+          const near = hover !== null && Math.abs(hover - middle) < Math.max((to - from) / 2, 0.06);
+          const point = projectAtPriceAxis(layout, dateIndex, near ? (hover > middle ? from : to) : middle);
+          const amount = rangeAmount(profile, low, high);
+          drawPill(
+            context,
+            `${formatAxisPrice(low)} – ${formatAxisPrice(high)}\n${
+              amount ? `${formatMetricAmount(amount.inside)} · ${formatPercent(amount.share * 100)}` : "—"
+            }`,
+            point.x,
+            point.y,
+            priceAxis,
+            priceOut,
+            { attachEdge: "top" },
+          );
         }
 
         function priceRibbonPoint(
@@ -5019,6 +5295,42 @@
           }
         }
 
+        function drawSplit(layout, dateIndex, row, profiles) {
+          const bins = profiles.map(metricBins);
+          const dateOffset = dateOffsetFromView(dateIndex);
+          const offsetX = dateOffset * layout.timeXStep;
+          const offsetY = dateOffset * layout.timeYStep;
+          const totals = new Float32Array(row.length);
+          for (const values of bins) {
+            for (let bin = 0; bin < row.length; bin++) totals[bin] += values[bin];
+          }
+          const below = new Float32Array(row.length);
+          const edgeY = (bin, edge, fraction) =>
+            layout.priceEdgeYBase[edge] + offsetY - row[bin] * fraction * layout.heightScale;
+          context.save();
+          bins.forEach((values, part) => {
+            context.beginPath();
+            // (Its upper bound left to right, its lower bound back.)
+            for (let bin = 0; bin < row.length; bin++) {
+              const upper = totals[bin] ? (below[bin] + values[bin]) / totals[bin] : 0;
+              const leftX = layout.priceEdgeX[bin] + offsetX;
+              if (bin === 0) context.moveTo(leftX, edgeY(bin, bin, upper));
+              else context.lineTo(leftX, edgeY(bin, bin, upper));
+              context.lineTo(layout.priceEdgeX[bin + 1] + offsetX, edgeY(bin, bin + 1, upper));
+            }
+            for (let bin = row.length - 1; bin >= 0; bin--) {
+              const lower = totals[bin] ? below[bin] / totals[bin] : 0;
+              context.lineTo(layout.priceEdgeX[bin + 1] + offsetX, edgeY(bin, bin + 1, lower));
+              context.lineTo(layout.priceEdgeX[bin] + offsetX, edgeY(bin, bin, lower));
+            }
+            context.closePath();
+            context.fillStyle = state.split[part].color;
+            context.fill();
+            for (let bin = 0; bin < row.length; bin++) below[bin] += values[bin];
+          });
+          context.restore();
+        }
+
         function drawSelectionOutline(
           layout,
           dateIndex,
@@ -5212,6 +5524,14 @@
               scaleColorPeak(state.selectedIndex),
             );
           }
+          // (A split: the day's parts over its slice, in value mode, where the slice is the day's whole.)
+          const splitProfiles =
+            selected && state.mode === "value"
+              ? ensureSplit(state.selectedIndex)
+              : null;
+          if (splitProfiles) {
+            drawSplit(layout, selectedDateIndex, selected, splitProfiles);
+          }
           if (selectedReference) {
             drawSelectionOutline(
               layout,
@@ -5236,6 +5556,12 @@
             );
           }
           drawPlotAxes(layout, start, end);
+          drawRangeSelection(
+            layout,
+            selectedDateIndex,
+            selected,
+            selectedProfile,
+          );
           drawHoverCursor(
             layout,
             state.selectedIndex,
@@ -6394,18 +6720,38 @@
             event.pointerType,
           );
           if (!date) {
-            if (event.pointerType === "mouse") return;
             const coordinate = priceCoordinateAtPointer(
               event.offsetX, event.offsetY,
             );
             if (coordinate === null) {
-              resetHover();
+              if (event.pointerType !== "mouse") resetHover();
               return;
             }
+            // A press on the terrain: dragged, a price range held (a touch holds still a moment first, else it scrubs);
+            // released where it began, a click letting the range go.
+            state.rangeGesture = {
+              pointerId: event.pointerId,
+              anchor: coordinate,
+              x: event.offsetX,
+              y: event.offsetY,
+              moved: false,
+              held: event.pointerType === "mouse",
+            };
             event.preventDefault();
-            state.pricePointerId = event.pointerId;
             canvas.setPointerCapture?.(event.pointerId);
+            if (event.pointerType === "mouse") return;
+            state.pricePointerId = event.pointerId;
             setHoverPrice(coordinate);
+            clearTimeout(state.rangeHold);
+            state.rangeHold = setTimeout(() => {
+              const gesture = state.rangeGesture;
+              if (!gesture || gesture.moved) return;
+              gesture.held = true;
+              state.pricePointerId = null;
+              clearHoverState();
+              state.range = rangeOf(gesture.anchor, gesture.anchor);
+              scheduleRender();
+            }, RANGE_HOLD_MS);
             return;
           }
           const hitsDatePill = datePillHitTest(
@@ -6457,6 +6803,28 @@
           "pointermove",
           (event) => {
             state.lastPointerAt = performance.now();
+            const gesture = state.rangeGesture;
+            if (gesture && event.pointerId === gesture.pointerId) {
+              const moved = Math.hypot(event.offsetX - gesture.x, event.offsetY - gesture.y) > 6;
+              if (gesture.held) {
+                event.preventDefault();
+                if (!moved && !gesture.moved) return;
+                // (A drag begun: the pointer's readout put away, the range's own label read instead.)
+                if (!gesture.moved) clearHoverState();
+                gesture.moved = true;
+                const coordinate = priceCoordinateAtPointer(event.offsetX, event.offsetY, true);
+                if (coordinate !== null) {
+                  state.range = rangeOf(gesture.anchor, coordinate);
+                  scheduleRender();
+                }
+                return;
+              }
+              // (A touch that moves before its hold: a scrub, as ever.)
+              if (moved) {
+                clearTimeout(state.rangeHold);
+                state.rangeGesture = null;
+              }
+            }
             if (state.pricePointerId !== null) {
               if (event.pointerId !== state.pricePointerId) return;
               event.preventDefault();
@@ -6552,10 +6920,39 @@
           }
           if (event.type === "pointercancel") resetHover();
         };
+        const endRange = (event) => {
+          const gesture = state.rangeGesture;
+          if (!gesture || event.pointerId !== gesture.pointerId) return;
+          clearTimeout(state.rangeHold);
+          state.rangeGesture = null;
+          if (canvas.hasPointerCapture?.(event.pointerId)) {
+            canvas.releasePointerCapture(event.pointerId);
+          }
+          // (Let go without a drag, a click, a tap or a hold: the range goes.)
+          if (event.type === "pointerup" && !gesture.moved && state.range) {
+            state.range = null;
+            scheduleRender();
+          }
+        };
         for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
           canvas.addEventListener(type, endTimeDrag);
           canvas.addEventListener(type, endPriceDrag);
+          canvas.addEventListener(type, endRange);
         }
+        // (A long press is a range's, not the page's menu.)
+        canvas.addEventListener("contextmenu", (event) => event.preventDefault());
+        // (Escape: no range, and none being dragged out.)
+        window.addEventListener("keydown", (event) => {
+          if (event.key !== "Escape" || !(state.range || state.rangeGesture)) return;
+          const gesture = state.rangeGesture;
+          if (gesture) {
+            clearTimeout(state.rangeHold);
+            state.rangeGesture = null;
+            if (canvas.hasPointerCapture?.(gesture.pointerId)) canvas.releasePointerCapture(gesture.pointerId);
+          }
+          state.range = null;
+          scheduleRender();
+        });
         canvas.addEventListener("pointerleave", (event) => {
           if (
             state.timeDragging ||
@@ -6585,10 +6982,12 @@
 
         cohortSelect.addEventListener("change", () => {
           const preserveDate = state.dates[state.selectedIndex];
+          const cohort = state.cohort;
           clearHoverState();
-          state.cohort = cohortSelect.value;
+          applyCohortChoice(cohortSelect.value);
           persistSettings();
-          loadDates(state.cohort, preserveDate);
+          if (state.cohort !== cohort) loadDates(state.cohort, preserveDate);
+          else scheduleRender();
         });
 
         metricSelect.addEventListener("change", () => {
@@ -6606,6 +7005,7 @@
           cancelNavigationLoad();
           clearHoverState();
           state.mode = modeSelect.value;
+          syncSplit();
           rebuildSceneProfileDates();
           invalidateSamples();
           invalidateTerrainChunks();

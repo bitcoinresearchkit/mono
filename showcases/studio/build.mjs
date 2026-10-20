@@ -172,10 +172,11 @@ if (served) {
 let presetList = [];
 {
   input(join(HERE, "presets.js"));
-  const { studioPresets, leftOut } = await import(pathToFileURL(join(HERE, "presets.js")).href);
-  const client = new BitviewClient({ baseUrl: SERVER });
-  presetList = studioPresets(client);
-  const missing = leftOut(client, presetList);
+  const { studioPresets, leftOut, chainFacts } = await import(pathToFileURL(join(HERE, "presets.js")).href);
+  // (The chain's facts as the server says them now; unread, the presets made without them, every member in, as said.)
+  const client = new BitviewClient({ baseUrl: SERVER }), facts = await chainFacts(SERVER).catch((error) => void console.warn(`${SERVER}'s chain facts unread (${error.message}): presets of what never happened kept`));
+  presetList = studioPresets(client, facts);
+  const missing = leftOut(client, presetList, facts);
   // (What a chart can't hold the page leaves out without a word: here, it stops the build.)
   const over = presetList.filter((preset) => preset.c.layers.length > 40 || (preset.c.panes?.length ?? 1) > 12);
   if (over.length) throw new Error(`Presets over 40 layers or 12 panes: ${over.map((preset) => preset.p.join(" › ")).join(", ")}`);

@@ -1392,6 +1392,8 @@
       let marks = [];
       function draw(/** @type {number} */ now) {
         ctx.clearRect(0, 0, W, H);
+        // (No room for a planet yet: a canvas laid out at nothing, or not at all.)
+        if (!(R > 0)) return;
         ctx.font = font;
         const { byCountry, top, unknown } = shares(), m = unknown ? moon(unknown) : null;
         // The sky; the moon if it's behind; the atmosphere; the sphere.

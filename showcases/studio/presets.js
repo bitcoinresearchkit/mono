@@ -1,8 +1,9 @@
 // @ts-check
 /**
  * Studio's presets: its ready-made charts, in a tree of its own, made from a client's series tree (this repo's, so a
- * path it doesn't have fails where it's written). Every series Studio can chart (by date) is in one of them; the build
- * checks that (build.mjs) and puts them in the page; the dev page makes them as it loads.
+ * path it doesn't have fails where it's written), and the chain's facts (what has happened: no charts of a pool that
+ * never found a block, or of what's still to come). Every other series Studio can chart (by date) is in one of them; the
+ * build checks that (build.mjs) and puts them in the page; the dev page makes them as it loads.
  *
  * A preset: `p` its place (its sections, then its own name), `t` its title, `c` its chart as a link writes it (its
  * layers, its panes; the page reads it as it reads a link).
@@ -18,6 +19,8 @@
  * @typedef {{ p: string[], t: string, c: Sketch }} Preset
  * @typedef {{ name: string, title: string, c: Sketch }} ChartNode
  * @typedef {{ name: string, items: (ChartNode | SectionNode)[] }} SectionNode
+ * @typedef {{ pools: Set<string>, height: number, year: number }} Facts the chain's, from its server: the pools that
+ * have found a block, its height, the year
  */
 
 /** @param {any} n */
@@ -114,12 +117,42 @@ function shades(/** @type {number} */ i, /** @type {number} */ count) {
 }
 
 /**
- * Every preset, made from a client (its series tree and its tables of names).
- * @param {any} client
+ * The chain's facts the presets go by, from its server (`origin`): the pools that have found a block, its height, the
+ * year (see notYet).
+ * @param {string} origin @returns {Promise<Facts>}
+ */
+export async function chainFacts(origin) {
+  // (In a time: a stalled server holds up nothing; its facts are then missing, and the presets made without them.)
+  const read = (/** @type {string} */ path) => fetch(`${origin}${path}`, { signal: AbortSignal.timeout(15_000) }).then((response) => (response.ok ? response : Promise.reject(new Error(`${path}: ${response.status}`))));
+  const [pools, height] = await Promise.all([read("/api/v1/mining/pools/all").then((r) => r.json()), read("/api/blocks/tip/height").then((r) => r.text()).then(Number)]);
+  if (!Number.isFinite(height)) throw new Error("The chain's height isn't a number");
+  return { pools: new Set(pools.pools.filter((/** @type {any} */ pool) => pool.blockCount > 0).map((/** @type {any} */ pool) => pool.slug)), height, year: new Date().getUTCFullYear() };
+}
+
+/**
+ * What never happened or hasn't yet, by the chain's facts: pools that never found a block, halving epochs not begun,
+ * vintages to come. Their series are zeros or nothing: they get no presets, and the build doesn't miss them. Without
+ * facts, nothing.
+ * @param {any} t a client's series tree @param {Facts | undefined} facts @returns {Set<any>} their nodes
+ */
+function notYet(t, facts) {
+  const nodes = new Set();
+  if (!facts) return nodes;
+  for (const [key, node] of entries(t.pools)) if (node.blockCount && !facts.pools.has(key.replace(/^_/, ""))) nodes.add(node);
+  for (const [key, node] of entries(t.age.halvingEpochs)) if (Number(key.slice(1)) * 210_000 > facts.height) nodes.add(node);
+  for (const [key, node] of entries(t.age.vintages)) if (Number(key.slice(1)) > facts.year) nodes.add(node);
+  return nodes;
+}
+
+/**
+ * Every preset, made from a client (its series tree and its tables of names) and the chain's facts (see notYet).
+ * @param {any} client @param {Facts} [facts]
  * @returns {Preset[]}
  */
-export function studioPresets(client) {
-  const t = client.series;
+export function studioPresets(client, facts) {
+  const t = client.series, absent = notYet(t, facts);
+  /** A node's members that have been, by key. @param {any} n */
+  const members = (n) => entries(n).filter(([, node]) => !absent.has(node));
 
   // ── Layers and charts ─────────────────────────────────────────────────────
 
@@ -371,10 +404,26 @@ export function studioPresets(client) {
       chart("Ratios", titled("rarity ratios"), [...(node.ratio ? [series(node.ratio, "Price to it", around(1))] : []), ...bandLines(node, (v) => v.ratio)], { log: [1] }),
     ]);
   };
-  /** A node's rarity bands (its percentile children) as lines, rarest low to rarest high; `pick` takes a band's series. @param {any} node @param {(v: any) => any} pick */
-  const bandLines = (node, pick) => {
+  /**
+   * A node's rarity bands (its percentile children) as lines, rarest low to rarest high; `pick` takes a band's series,
+   * `shown` which are shown (all if not said).
+   * @param {any} node @param {(v: any) => any} pick @param {(p: number) => boolean} [shown]
+   */
+  const bandLines = (node, pick, shown = () => true) => {
     const bands = entries(node).filter(([k]) => Number.isFinite(percentile(k)));
-    return bands.map(([k, v], i) => series(pick(v), percentileLabel(percentile(k)), { color: ramp(bands.length, 140, 360)[i] }));
+    return bands.map(([k, v], i) => series(pick(v), percentileLabel(percentile(k)), { color: ramp(bands.length, 140, 360)[i], ...(shown(percentile(k)) ? {} : { hidden: true }) }));
+  };
+  /**
+   * The rarity meter's extremes, by key: each one's name, and the event its 0.1% tail marks on the price (its color and
+   * side); `low`: its rare side is low (the sell-side risk ratio's: sellers exhausted).
+   * @type {Record<string, { label: string, event: string, color: string, place: string, low?: boolean }>}
+   */
+  const EXTREMES = {
+    realizedProfit24h: { label: "Realized profit, 24h", event: "Profit taking", color: "green", place: "above" },
+    realizedLoss24h: { label: "Realized loss, 24h", event: "Capitulation", color: "red", place: "below" },
+    realizedPeakRegret24h: { label: "Realized peak regret, 24h", event: "Peak regret", color: "pink", place: "below" },
+    sellSideRiskRatio24h: { label: "Sell-side risk ratio, 24h", event: "Seller exhaustion", color: "yellow", place: "above", low: true },
+    supplyInLoss: { label: "Supply in loss", event: "Supply in loss", color: "orange", place: "below" },
   };
   /**
    * A section of one chart, that chart in its place, by the section's name (no folder holding one thing: a capital's
@@ -538,9 +587,10 @@ export function studioPresets(client) {
         ])),
         // (Each component by its cohort: a reference price's bands and ratios.)
         section("Components", entries(t.rarityMeter.components).map(([key, node]) => section(holderName(key).name, entries(node).map(([k, v]) => component(v, words(k), holderName(key).name))))),
+        // (Each extreme against its bands: the median and its rare side's tail shown, the others a click away.)
         section("Extremes", [eventsChart(), ...entries(t.rarityMeter.extremes).map(([key, node]) => {
-          const label = words(key);
-          return chart(label, `Rarity meter extremes: ${label}`, [series(own(node), label, { color: "orange", width: 2 }), ...bandLines(node, (v) => v)], { log: [1] });
+          const label = EXTREMES[key]?.label ?? words(key), low = EXTREMES[key]?.low;
+          return chart(label, `Rarity meter extremes: ${label}`, [series(own(node), label, { color: "orange", width: 2 }), ...bandLines(node, (v) => v, (p) => p === 50 || (low ? p <= 1 : p >= 99))], { log: [1] });
         })]),
       ]),
     ]),
@@ -557,8 +607,8 @@ export function studioPresets(client) {
     ]),
     section("Coin age", [
       section("Age bands", family(entries(t.age.ranges), (key) => ({ name: named(client.AGE_RANGE_NAMES, key).replace(/ old$/, ""), who: `UTXOs ${named(client.AGE_RANGE_NAMES, key).toLowerCase().replace(/^utxos /, "")}` }), { by: "age band", disjoint: true })),
-      section("Halving epochs", family(entries(t.age.halvingEpochs), (key) => ({ name: `Epoch ${key.slice(1)}`, who: `Coins last moved in halving epoch ${key.slice(1)}` }), { by: "halving epoch last moved", disjoint: true })),
-      section("Vintages", family(entries(t.age.vintages), (key) => ({ name: key.slice(1), who: `Coins last moved in ${key.slice(1)}` }), { by: "vintage", disjoint: true })),
+      section("Halving epochs", family(members(t.age.halvingEpochs), (key) => ({ name: `Epoch ${key.slice(1)}`, who: `Coins last moved in halving epoch ${key.slice(1)}` }), { by: "halving epoch last moved", disjoint: true })),
+      section("Vintages", family(members(t.age.vintages), (key) => ({ name: key.slice(1), who: `Coins last moved in ${key.slice(1)}` }), { by: "vintage", disjoint: true })),
     ]),
     section("Profitability", entries(t.profitability).map(([key, bands]) => section(holderName(key).name, family(entries(bands), (band) => ({ name: named(client.PROFITABILITY_RANGE_NAMES, band), who: `${holderName(key).who}, ${named(client.PROFITABILITY_RANGE_NAMES, band).toLowerCase()}` }), { by: `profit band, ${holderName(key).who.toLowerCase()}`, disjoint: true })))),
     section("UTXOs", [
@@ -606,8 +656,9 @@ export function studioPresets(client) {
         ...flow(blocks.count, "Count", "Blocks mined"),
         chart("Height", "Block height", [series(t.mappings.day1.firstHeight, "Height", { color: "orange" })]),
         chart("Interval", "Time between blocks", windows(blocks.interval.avg, "", { extra: { levels: [{ value: 600, color: "gray", dash: 3 }] } })),
-        ...stats(blocks.size, "Size", "Block size", "Block size"),
-        ...stats(blocks.weight, "Weight", "Block weight", "Block weight"),
+        // (Their sums, every block's together, "total"; each block's, its average and percentiles.)
+        ...stats(blocks.size, "Size", "Total block size", "Block size"),
+        ...stats(blocks.weight, "Weight", "Total block weight", "Block weight"),
       ]),
       section("Transactions", [
         ...stats(tx.count, "Count", "Transactions"),
@@ -750,17 +801,14 @@ export function studioPresets(client) {
   /** Extreme events: the days each extreme's input crossed into its historical 0.1% tail (its 0.1st percentile for the
    * sell-side risk ratio, whose rare side is low), marked on the price. */
   function eventsChart() {
-    const ex = t.rarityMeter.extremes;
-    const events = /** @type {[any, "pct999" | "pct01", string, string, string][]} */ ([
-      [ex.realizedProfit24h, "pct999", "Profit taking", "green", "above"],
-      [ex.realizedLoss24h, "pct999", "Capitulation", "red", "below"],
-      [ex.realizedPeakRegret24h, "pct999", "Peak regret", "pink", "below"],
-      [ex.sellSideRiskRatio24h, "pct01", "Seller exhaustion", "yellow", "above"],
-      [ex.supplyInLoss, "pct999", "Supply in loss", "orange", "below"],
-    ]);
     return chart("Events", "Rarity meter extreme events", [
       price(),
-      ...events.map(([node, band, label, color, place]) => ({ formula: `${own(node).name} ${band === "pct01" ? "<=" : ">="} ${node[band].name}`, type: "signal", label, color, place })),
+      // (Each extreme named here, by its key: one the client renamed fails here, not quietly gone.)
+      ...Object.entries(EXTREMES).map(([key, { event, color, place, low }]) => {
+        const node = t.rarityMeter.extremes[key];
+        if (!node) throw new Error(`No rarity meter extreme ${key}`);
+        return { formula: `${own(node).name} ${low ? "<=" : ">="} ${node[low ? "pct01" : "pct999"].name}`, type: "signal", label: event, color, place };
+      }),
     ]);
   }
   /** The price against the awake capitalized price and the true market mean, and the share of days it closed at or
@@ -821,7 +869,7 @@ export function studioPresets(client) {
   }
   /** Pools: their shares compared, then each pool, by name. */
   function poolCharts() {
-    const list = entries(t.pools).filter(([, node]) => node.blockCount).map(([key, node]) => /** @type {[string, any, string]} */ ([key, node, client.POOL_ID_TO_POOL_NAME[key.replace(/^_/, "")] ?? key])).sort((a, b) => a[2].localeCompare(b[2]));
+    const list = members(t.pools).filter(([, node]) => node.blockCount).map(([key, node]) => /** @type {[string, any, string]} */ ([key, node, client.POOL_ID_TO_POOL_NAME[key.replace(/^_/, "")] ?? key])).sort((a, b) => a[2].localeCompare(b[2]));
     // (Those mining most of the blocks in recent years: compared, and first; the others after, by name.)
     const MAJOR = ["foundryusa", "antpool", "viabtc", "f2pool", "marapool", "spiderpool", "binancepool", "luxor", "secpool", "braiinspool", "ocean", "poolin", "btccom", "unknown"];
     const major = MAJOR.flatMap((key) => list.filter(([k]) => k.replace(/^_/, "") === key)), others = list.filter((pool) => !major.includes(pool)), colors = ramp(major.length);
@@ -876,7 +924,7 @@ export function studioPresets(client) {
         chart("Immobile supply", "Immobile supply by age band", list.map(([key, node], i) => series(node.immobile.supply.btc, name(key), { color: colors[i], type: "area" })), { stack: { 1: "percent" } }),
       ]),
       ...list.map(([key, node]) => section(name(key), [
-        chart("Spending", `Spending rate and exposure: UTXOs ${name(key).toLowerCase()} old`, [series(node.spendingRate, "Spending rate", { color: "orange" }), series(node.spendingExposure, "Spending exposure", { color: "sky", pane: 2 }), series(node.mobility, "Mobility", { color: "violet", pane: 3 })]),
+        chart("Spending", `Spending rate, exposure and mobility: UTXOs ${name(key).toLowerCase()} old`, [series(node.spendingRate, "Spending rate", { color: "orange" }), series(node.spendingExposure, "Spending exposure", { color: "sky", pane: 2 }), series(node.mobility, "Mobility", { color: "violet", pane: 3 })]),
         chart("Mobile and immobile", `Mobile and immobile supply: UTXOs ${name(key).toLowerCase()} old`, [series(node.mobile.supply.btc, "Mobile", { color: "orange", type: "area" }), series(node.immobile.supply.btc, "Immobile", { color: "gray", type: "area" }), series(node.mobile.supply.usd, "Mobile, value", { color: "green", type: "area", pane: 2 }), series(node.immobile.supply.usd, "Immobile, value", { color: "gray", type: "area", pane: 2 })], { stack: { 1: "stack", 2: "stack" } }),
       ])),
     ];
@@ -921,10 +969,12 @@ function twins(tree) {
  * The series Studio can chart (by date) in a client's tree that no preset shows (as a layer's series), by name: the
  * build stops at any. (Not the indexes' own, `indexer` and `mappings`: a block's fields, an interval's first height,
  * date and start, the plumbing between indexes.) The price's candles count for its parts, and an alias' twin for it.
- * @param {any} client @param {Preset[]} presets @returns {string[]}
+ * What never happened or hasn't yet (notYet, by `facts`) has no presets: its series aren't missed.
+ * @param {any} client @param {Preset[]} presets @param {Facts} [facts] @returns {string[]}
  */
-export function leftOut(client, presets) {
+export function leftOut(client, presets, facts) {
   const shown = new Set(presets.flatMap((preset) => preset.c.layers.map((layer) => layer.series).filter(Boolean)));
+  const absent = notYet(client.series, facts);
   for (const [name, twin] of twins(client.series)) if (shown.has(twin)) shown.add(name);
   const missing = new Set();
   // (Nor the price's own parts, open, high, low, close and spot: its candles, in every preset with the price, show them.)
@@ -933,6 +983,7 @@ export function leftOut(client, presets) {
   const stack = [data];
   while (stack.length) {
     const node = stack.pop();
+    if (absent.has(node)) continue;
     if (isLeaf(node)) {
       if (byDate(node) && !shown.has(node.name)) missing.add(node.name);
     } else if (node && typeof node === "object") for (const value of Object.values(node)) stack.push(value);
