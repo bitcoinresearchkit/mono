@@ -1013,6 +1013,12 @@ has to be deleted by hand.
   published block (it took dates only, served from daily snapshots); responses carry the block's `height`, and `close`
   is the price at that block (was the day's close)
 
+#### `bitview-client` (JS), `bitview_client` (Python)
+
+- The clients export the OP_RETURN protocols' display names beside the cohort names, `OP_RETURN_KIND_NAMES`
+  (`{ veriBlock: "VeriBlock", ... }` in JavaScript, keyed `veri_block` in Python), generated from the protocol list in
+  `bitview_primitives` (`OP_RETURN_KIND_NAMES`, each kind's snake_case key and name)
+
 #### `bitviewd` and `bitviewd_bench`
 
 - Added the `cachebudget` config key and `--cachebudget` flag (bytes of the shared vector cache, default 2 GiB, the

@@ -65,30 +65,16 @@ function sentence(/** @type {string} */ text) {
     .replace(/(\d|[KMB])-(\d)/g, "$1–$2");
 }
 
-/** Words the client's keys spell in lowercase that are said otherwise. */
-const ACRONYMS = { sth: "STH", lth: "LTH", utxos: "UTXOs", rbf: "RBF", sighash: "SIGHASH", cpfp: "CPFP" };
 /**
- * A client key's words ("sthCostBasisPerCoinMedian" "STH cost basis per coin median", "realizedProfit24h" "Realized
- * profit 24h"), in sentence case.
+ * A client key's words ("supplyInLoss" "Supply in loss"), in sentence case, a trailing window set off
+ * ("realizedProfit24h" "Realized profit, 24h").
  */
 function words(/** @type {string} */ key) {
-  const list = key.replace(/([a-z])([A-Z0-9])/g, "$1 $2").replace(/(\d)([a-z]{3,})/g, "$1 $2").split(" ").map((word) => ((lower) => ACRONYMS[/** @type {keyof typeof ACRONYMS} */ (lower)] ?? lower)(word.toLowerCase()));
-  return list.map((word, i) => (i ? word : word[0].toUpperCase() + word.slice(1))).join(" ");
+  const text = key.replace(/([a-z])([A-Z0-9])/g, "$1 $2").replace(/(\d)([a-z]{3,})/g, "$1 $2").toLowerCase();
+  return (text[0].toUpperCase() + text.slice(1)).replace(/ (\d+[hdwmy])$/, ", $1");
 }
 /** A name as it reads inside a sentence: a plain capitalized word lowercased ("Unknown" "unknown"), a name kept ("P2TR"). */
 const inSentence = (/** @type {string} */ name) => (/^[A-Z][a-z]+$/.test(name) ? name.toLowerCase() : name);
-/** OP_RETURN protocols by their own names (the client's keys lose them: "veriBlock", "openAssets"). */
-const PROTOCOLS = {
-  runes: "Runes", witnessCommitment: "Witness commitment", veriBlock: "VeriBlock", omni: "Omni", stacks: "Stacks", blockstack: "Blockstack", colu: "Colu",
-  openAssets: "Open Assets", komodo: "Komodo", coinSpark: "CoinSpark", poet: "Po.et", docproof: "DocProof", factom: "Factom",
-  eternityWall: "Eternity Wall", memo: "Memo", bitproof: "Bitproof", ascribe: "Ascribe", stampery: "Stampery", bareHash: "Bare hash", text: "Text",
-  empty: "Empty", unknown: "Unknown",
-};
-
-/** The rarity meter's component groups by their cohort keys. */
-const COMPONENT_GROUPS = { all: "All coins", sth: "Short-term holders", under6m: "Under 6 months old", awake: "Awake coins", mobile: "Mobile coins" };
-/** The rarity meter's extremes, as said (their keys end in their window). */
-const EXTREMES = { supplyInLoss: "Supply in loss", realizedProfit24h: "Realized profit, 24h", realizedLoss24h: "Realized loss, 24h", realizedPeakRegret24h: "Realized peak regret, 24h", sellSideRiskRatio24h: "Sell-side risk ratio, 24h" };
 
 /** Transaction features as said (the client's keys spell them as words). */
 const FEATURES = {
@@ -431,11 +417,12 @@ export function studioPresets(client) {
   };
   /** The client's name for a member (its table's `long`), in sentence case. @param {Record<string, { long: string }>} table @param {string} key */
   const named = (table, key) => sentence(table[key]?.long ?? key);
-  /** A holder group's name and title. */
+  /** A holder group's (or weighted cohort's) name and title. */
   const HOLDERS = /** @type {Record<string, [string, string]>} */ ({
     all: ["All coins", "All coins"], sth: ["Short-term holders", "Short-term holders"], lth: ["Long-term holders", "Long-term holders"],
     under4m: ["Under 4 months old", "Coins under 4 months old"], under6m: ["Under 6 months old", "Coins under 6 months old"],
     over4m: ["Over 4 months old", "Coins over 4 months old"], over6m: ["Over 6 months old", "Coins over 6 months old"],
+    awake: ["Awake coins", "Awake coins"], mobile: ["Mobile coins", "Mobile coins"],
   });
   const holderName = (/** @type {string} */ key) => ({ name: HOLDERS[key]?.[0] ?? key, who: HOLDERS[key]?.[1] ?? key });
 
@@ -506,9 +493,9 @@ export function studioPresets(client) {
           chart("Level and score", `Rarity meter level and score, ${key}`, [series(node.level, "Level", { ...baseline, type: "histogram" }), series(node.score, "Score", { pane: 2, ...baseline })]),
         ])),
         // (Each component by its cohort: a reference price's bands and ratios.)
-        section("Components", entries(t.rarityMeter.components).map(([key, node]) => section(COMPONENT_GROUPS[key], entries(node).map(([k, v]) => component(v, words(k), COMPONENT_GROUPS[key]))))),
+        section("Components", entries(t.rarityMeter.components).map(([key, node]) => section(holderName(key).name, entries(node).map(([k, v]) => component(v, words(k), holderName(key).name))))),
         section("Extremes", entries(t.rarityMeter.extremes).map(([key, node]) => {
-          const label = EXTREMES[/** @type {keyof typeof EXTREMES} */ (key)] ?? words(key);
+          const label = words(key);
           return chart(label, `Rarity meter extremes: ${label}`, [...entries(node.thresholds).map(([k, v], i) => series(v, `Tail ${k.replace("tail", "").replace(/^0/, "0.")}%`, { color: ["red", "orange", "amber"][i] })), series(node.tailShare, "Tail share", { pane: 2, color: "sky" })]);
         })),
       ]),
@@ -635,11 +622,11 @@ export function studioPresets(client) {
       chart("Supply", "Vaulted, active and lost supply", [...[["vaulted", "Vaulted"], ["active", "Active"], ["hodledOrLost", "HODLed or lost"]].flatMap(([key, label], i) => [series(ct.supply[key].btc, label, { color: ["green", "red", "gray"][i] }), series(ct.supply[key].usd, `${label}, value`, { color: ["green", "red", "gray"][i], pane: 2 })])]),
       section("Value", entries(ct.value).flatMap(([key, node]) => flow(node, `Value ${key}`, `Cointime value ${key}`))),
       section("Age bands", cointimeBands(ct.ageRanges)),
-      section("Awake coins", entries(ct.cohorts).map(([key, c]) => section(holderName(key).name, weighted(c.awake, c.dormant, `Awake coins, ${holderName(key).who.toLowerCase()}`, "Awake", "Dormant")))),
+      section(holderName("awake").name, entries(ct.cohorts).map(([key, c]) => section(holderName(key).name, weighted(c.awake, c.dormant, `${holderName("awake").name}, ${holderName(key).who.toLowerCase()}`, "Awake", "Dormant")))),
     ]),
     section("Coinflow", [
       section("Age bands", coinflowBands(cf.ageRanges)),
-      section("Mobile coins", entries(cf.cohorts).map(([key, c]) => section(holderName(key).name, weighted(c.mobile, c.immobile, `Mobile coins, ${holderName(key).who.toLowerCase()}`, "Mobile", "Immobile")))),
+      section(holderName("mobile").name, entries(cf.cohorts).map(([key, c]) => section(holderName(key).name, weighted(c.mobile, c.immobile, `${holderName("mobile").name}, ${holderName(key).who.toLowerCase()}`, "Mobile", "Immobile")))),
     ]),
   ];
 
@@ -676,9 +663,9 @@ export function studioPresets(client) {
     const feature = /** @type {keyof typeof FEATURE_PHRASES} */ (key);
     return `Transactions with ${FEATURE_PHRASES[feature] ?? FEATURES[/** @type {keyof typeof FEATURES} */ (key)] ?? words(key).toLowerCase()}`;
   }
-  /** An OP_RETURN protocol's name ("Eternity Wall"), else its key's words. @param {string} key */
+  /** An OP_RETURN protocol's name ("Eternity Wall"), as the client names it. @param {string} key */
   function protocolName(key) {
-    return PROTOCOLS[/** @type {keyof typeof PROTOCOLS} */ (key)] ?? words(key);
+    return client.OP_RETURN_KIND_NAMES[key];
   }
   function policyName(/** @type {string} */ key) {
     return key === "preV30Standard" ? "Standard before v30" : key === "preV30Nonstandard" ? "Nonstandard before v30" : words(key);
@@ -724,7 +711,7 @@ export function studioPresets(client) {
         ...flow(a.new, "New", of("New addresses")),
         chart("Active", of("Active addresses"), entries(a.activity).flatMap(([key, node], i, all) => windows(node.avg, words(key), { show: key === "active" ? ["_1m"] : [], extra: { color: ramp(all.length)[i] } }))),
       ]),
-      a.avgBalance && chart("Average balance", of("Average address balance"), [series(a.avgBalance.btc, "Average balance", { color: "orange" }), series(a.avgBalance.usd, "In dollars", { color: "green", pane: 2 })], { log: [1, 2] }),
+      a.avgBalance && chart("Average balance", of("Average address balance"), [series(a.avgBalance.btc, "Average balance", { color: "orange" }), series(a.avgBalance.usd, "Value", { color: "green", pane: 2 })], { log: [1, 2] }),
       ...[["reused", "Reused"], ["respent", "Respent"]].filter(([key]) => a[key]).map(([key, label]) => section(label, [
         chart("Count", of(`${label} addresses`), [series(a[key].count.funded, "Funded", { color: "orange" }), series(a[key].count.total, "Total", { color: "sky" })], { log: [1] }),
         chart("Supply", of(`Supply in ${label.toLowerCase()} addresses`), [series(a[key].supply.btc, "Supply", { color: "orange" }), series(a[key].supply.usd, "Value", { color: "green", pane: 2 }), series(a[key].supply.share, "Share of all coins", { color: "sky", pane: 3 })]),

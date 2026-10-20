@@ -2,7 +2,7 @@ use std::fmt::Write;
 
 use crate::{
     ClientConstants, IndexSetPattern, address_payload_lengths, calendars, camel_case_keys,
-    cohort_constants, format_json,
+    format_json, name_constants,
 };
 
 /// The fixed runtime (`runtime.js`: base client, endpoints, caching and address hashing) after
@@ -59,7 +59,7 @@ pub(crate) fn generate_constants(output: &mut String) {
         "POOL_ID_TO_POOL_NAME",
         &format_json(&constants.pool_map),
     );
-    for (name, value) in cohort_constants() {
+    for (name, value) in name_constants() {
         write_const(output, name, &format_json(&camel_case_keys(value)));
     }
 

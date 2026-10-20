@@ -1,8 +1,8 @@
 use std::fmt::Write;
 
 use crate::{
-    ClientConstants, IndexSetPattern, address_payload_lengths, calendars, cohort_constants,
-    format_json, index_to_field_name,
+    ClientConstants, IndexSetPattern, address_payload_lengths, calendars, format_json,
+    index_to_field_name, name_constants,
 };
 
 pub(crate) fn generate_class_constants(output: &mut String) {
@@ -16,8 +16,8 @@ pub(crate) fn generate_class_constants(output: &mut String) {
         &format_json(&constants.pool_map),
     );
 
-    // Unlike JavaScript's, Python's cohort keys stay snake_case.
-    for (name, value) in cohort_constants() {
+    // Unlike JavaScript's, Python's name-table keys stay snake_case.
+    for (name, value) in name_constants() {
         write_class_const(output, name, &format_json(&value));
     }
 }

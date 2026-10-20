@@ -7571,6 +7571,31 @@ class BitviewClient extends BitviewClientBase {
     }
   });
 
+  OP_RETURN_KIND_NAMES = /** @type {const} */ ({
+    "runes": "Runes",
+    "witnessCommitment": "Witness commitment",
+    "veriBlock": "VeriBlock",
+    "omni": "Omni",
+    "stacks": "Stacks",
+    "blockstack": "Blockstack",
+    "colu": "Colu",
+    "openAssets": "Open Assets",
+    "komodo": "Komodo",
+    "coinSpark": "CoinSpark",
+    "poet": "Po.et",
+    "docproof": "DocProof",
+    "factom": "Factom",
+    "eternityWall": "Eternity Wall",
+    "memo": "Memo",
+    "bitproof": "Bitproof",
+    "ascribe": "Ascribe",
+    "stampery": "Stampery",
+    "bareHash": "Bare hash",
+    "text": "Text",
+    "empty": "Empty",
+    "unknown": "Unknown"
+  });
+
   /**
    * The UTC start of bucket `i`; throws for an index without a date calendar.
    * @param {Index} index

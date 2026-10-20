@@ -5535,6 +5535,31 @@ class BitviewClient(BitviewClientBase):
       }
     }
 
+    OP_RETURN_KIND_NAMES = {
+      "runes": "Runes",
+      "witness_commitment": "Witness commitment",
+      "veri_block": "VeriBlock",
+      "omni": "Omni",
+      "stacks": "Stacks",
+      "blockstack": "Blockstack",
+      "colu": "Colu",
+      "open_assets": "Open Assets",
+      "komodo": "Komodo",
+      "coin_spark": "CoinSpark",
+      "poet": "Po.et",
+      "docproof": "DocProof",
+      "factom": "Factom",
+      "eternity_wall": "Eternity Wall",
+      "memo": "Memo",
+      "bitproof": "Bitproof",
+      "ascribe": "Ascribe",
+      "stampery": "Stampery",
+      "bare_hash": "Bare hash",
+      "text": "Text",
+      "empty": "Empty",
+      "unknown": "Unknown"
+    }
+
     def __init__(self, base_url: str = 'http://localhost:3110', timeout: float = 30.0):
         super().__init__(base_url, timeout)
 

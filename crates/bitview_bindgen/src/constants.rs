@@ -1,5 +1,5 @@
-//! The constants the JavaScript and Python clients embed: version, indexes, mining pools, cohort
-//! names, date calendars and address payload lengths.
+//! The constants the JavaScript and Python clients embed: version, indexes, mining pools, display
+//! names (cohorts, OP_RETURN protocols), date calendars and address payload lengths.
 
 use std::collections::BTreeMap;
 
@@ -7,7 +7,7 @@ use bitview_cohort::{
     AGE_RANGE_NAMES, AMOUNT_RANGE_NAMES, ENTRY_NAMES, HALVING_EPOCH_NAMES,
     PROFITABILITY_RANGE_NAMES, SPENDABLE_TYPE_NAMES, TERM_NAMES, VINTAGE_NAMES,
 };
-use bitview_primitives::{Calendar, Index, pools};
+use bitview_primitives::{Calendar, Index, OP_RETURN_KIND_NAMES, pools};
 use brk_types::ADDRESS_PAYLOAD_LENGTHS;
 use serde::Serialize;
 use serde_json::{Map, Value, json, to_string_pretty};
@@ -62,7 +62,12 @@ pub fn address_payload_lengths() -> impl Iterator<Item = (String, usize)> {
         .map(|&(output_type, len)| (output_type.to_string(), len))
 }
 
-pub fn cohort_constants() -> Vec<(&'static str, Value)> {
+/// The display names the clients export: cohort families' and OP_RETURN protocols'.
+pub fn name_constants() -> Vec<(&'static str, Value)> {
+    let op_return_kinds: Map<String, Value> = OP_RETURN_KIND_NAMES
+        .iter()
+        .map(|&(key, name)| (key.to_owned(), json!(name)))
+        .collect();
     vec![
         ("TERM_NAMES", json!(TERM_NAMES)),
         ("HALVING_EPOCH_NAMES", json!(HALVING_EPOCH_NAMES)),
@@ -75,6 +80,7 @@ pub fn cohort_constants() -> Vec<(&'static str, Value)> {
             "PROFITABILITY_RANGE_NAMES",
             json!(PROFITABILITY_RANGE_NAMES),
         ),
+        ("OP_RETURN_KIND_NAMES", Value::Object(op_return_kinds)),
     ]
 }
 

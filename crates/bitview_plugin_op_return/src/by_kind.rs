@@ -4,7 +4,7 @@ use bitview_traversable::Traversable;
 /// One value per OP_RETURN kind: fields follow `OpReturnKind` order, so values indexed by kind
 /// push in field order.
 macro_rules! define_by_kind {
-    ($($kind:ident => $field:ident, $description:literal,)+) => {
+    ($($kind:ident => $field:ident, $display:literal, $description:literal,)+) => {
         #[derive(Clone, Traversable)]
         pub struct ByKind<T> {
             $(
