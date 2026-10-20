@@ -213,10 +213,11 @@ export function studioPresets(client) {
   };
   /**
    * A kind of transaction (a feature, a version, a pattern…): its count over windows, its share of all transactions
-   * below, and since the start at the bottom. @param {any} node @param {string} name @param {string} title
+   * below (the `share` given, else its own), and since the start at the bottom.
+   * @param {any} node @param {string} name @param {string} title @param {any} [share]
    */
-  const txKind = (node, name, title) =>
-    chart(name, title, [...windows(node.sum, ""), ...sharesOf(node.share, "Share", { pane: 2 }), series(node.cumulative, "All time", { pane: 3, color: "gray" })]);
+  const txKind = (node, name, title, share = node.share) =>
+    chart(name, title, [...windows(node.sum, ""), ...sharesOf(share, "Share", { pane: 2 }), series(node.cumulative, "All time", { pane: 3, color: "gray" })]);
   /**
    * Kinds of transactions that overlap: their shares of all transactions compared, then each one's chart.
    * @param {[string, any][]} list @param {(key: string) => string} name @param {(key: string) => string} title @param {string} compared
@@ -615,7 +616,10 @@ export function studioPresets(client) {
     section("OP_RETURN", [
       ...opReturnCharts(t.opReturn, (what) => `OP_RETURN ${what}`),
       section("Protocols", [
-        chart("Compare", "OP_RETURN outputs by protocol, 1 month", entries(t.opReturn.protocols).map(([key, node], i, all) => series(node.outputCount.sum._1m, protocolName(key), { color: ramp(all.length)[i], type: "area" })), { stack: { 1: "percent" } }),
+        section("Compare", [
+          chart("Outputs, 1 month", "OP_RETURN outputs by protocol, 1 month", entries(t.opReturn.protocols).map(([key, node], i, all) => series(node.outputCount.sum._1m, protocolName(key), { color: ramp(all.length)[i], type: "area" })), { stack: { 1: "percent" } }),
+          chart("Transaction share, 1 month", "Share of transactions by OP_RETURN protocol, 1 month", entries(t.opReturn.protocols).map(([key, node], i, all) => series(node.txShare._1m, protocolName(key), { color: ramp(all.length)[i] }))),
+        ]),
         ...entries(t.opReturn.protocols).map(([key, node]) => section(protocolName(key), opReturnCharts(node, (what) => `${protocolName(key)} OP_RETURN ${what}`))),
       ]),
       section("Policies", entries(t.opReturn.policies).map(([key, node]) => section(policyName(key), opReturnCharts(node, (what) => `OP_RETURN ${what}: ${policyName(key)}`)))),
@@ -704,7 +708,7 @@ export function studioPresets(client) {
   function opReturnCharts(node, titled) {
     return [
       ...flow(node.outputCount, "Outputs", titled("outputs")),
-      ...flow(node.txCount, "Transactions", titled("transactions")),
+      ...(node.txCount ? [txKind(node.txCount, "Transactions", titled("transactions"), node.txShare)] : []),
       ...flow(node.dataBytes, "Data", titled("data")),
       ...(node.dataBytes?.chainShare ? [chart("Data share", titled("share of block space"), sharesOf(node.dataBytes.chainShare, "Share"))] : []),
       ...flow(node.txVsize, "Transaction size", titled("transaction size")),
