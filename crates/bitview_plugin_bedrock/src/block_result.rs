@@ -44,9 +44,11 @@ impl BlockResult {
     ) {
         scratch.clear();
         let mut totals = [0_u64; MODE_COUNT];
+        // The weighted modes first, in `weights`' order, then the unweighted one.
         for bucket in source.project(weights, [AgeAggregateId::All.age_range_ids()]) {
-            totals[0] += u64::from(bucket.raw[0]);
-            for (total, sats) in totals[1..].iter_mut().zip(bucket.weighted[0]) {
+            let (weighted, unweighted) = totals.split_at_mut(MODE_COUNT - 1);
+            unweighted[0] += u64::from(bucket.raw[0]);
+            for (total, sats) in weighted.iter_mut().zip(bucket.weighted[0]) {
                 *total += u64::from(sats);
             }
             scratch.push(CumulativeBucket {

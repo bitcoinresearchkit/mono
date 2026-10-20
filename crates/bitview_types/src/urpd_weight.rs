@@ -2,7 +2,10 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-/// Weighting applied to a URPD: raw (unweighted), cointime, or coinflow.
+/// The weight applied to a URPD's age bands: `none` (every satoshi counts once), `wakefulness` (each band
+/// weighted by the share of its coin days already consumed, Cointime's; the distribution behind the
+/// `*_awake_*` series) or `mobility` (each band weighted by the estimated probability its coins are ever
+/// spent, Coinflow's; behind `*_mobile_*`).
 #[derive(
     Debug, Display, Clone, Copy, Default, PartialEq, Eq, Hash, Deserialize, Serialize, JsonSchema,
 )]
@@ -10,7 +13,7 @@ use strum::Display;
 #[strum(serialize_all = "snake_case")]
 pub enum UrpdWeight {
     #[default]
-    Raw,
-    Cointime,
-    Coinflow,
+    None,
+    Wakefulness,
+    Mobility,
 }

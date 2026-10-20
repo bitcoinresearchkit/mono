@@ -1152,7 +1152,7 @@ pub static COMMANDS: &[Command] = &[
         ],
         query_parameters: &[
             Parameter { api_name: "agg", name: "agg", required: false, value_name: "UrpdAggregation", repeatable: false, description: Some("Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.") },
-            Parameter { api_name: "weight", name: "weight", required: false, value_name: "UrpdWeight", repeatable: false, description: Some("Supply weighting. Default: raw (unweighted).") },
+            Parameter { api_name: "weight", name: "weight", required: false, value_name: "UrpdWeight", repeatable: false, description: Some("Supply weighting. Default: none (unweighted).") },
         ],
         request_body: None,
     },
@@ -1161,14 +1161,14 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/urpd/{cohort}/{point}",
         summary: "URPD at block height or date",
-        description: "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.",
+        description: "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.",
         path_parameters: &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "Cohort", repeatable: false, description: None },
             Parameter { api_name: "point", name: "point", required: true, value_name: "string", repeatable: false, description: None },
         ],
         query_parameters: &[
             Parameter { api_name: "agg", name: "agg", required: false, value_name: "UrpdAggregation", repeatable: false, description: Some("Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.") },
-            Parameter { api_name: "weight", name: "weight", required: false, value_name: "UrpdWeight", repeatable: false, description: Some("Supply weighting. Default: raw (unweighted).") },
+            Parameter { api_name: "weight", name: "weight", required: false, value_name: "UrpdWeight", repeatable: false, description: Some("Supply weighting. Default: none (unweighted).") },
         ],
         request_body: None,
     },

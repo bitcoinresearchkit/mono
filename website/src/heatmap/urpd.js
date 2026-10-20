@@ -95,11 +95,11 @@ const AGE_BANDS = Object.values(bitview.AGE_RANGE_NAMES).map(({ id, short }) => 
 
 export const rawUrpdHeatmapTree = createUrpdHeatmapTree();
 export const cointimeWeightedUrpdHeatmapTree = createUrpdHeatmapTree({
-  weight: "cointime",
+  weight: "wakefulness",
   weightTitle: "Cointime-Weighted",
 });
 export const coinflowWeightedUrpdHeatmapTree = createUrpdHeatmapTree({
-  weight: "coinflow",
+  weight: "mobility",
   weightTitle: "Coinflow-Weighted",
 });
 

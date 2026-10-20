@@ -43,6 +43,8 @@ has to be deleted by hand.
   write theirs once (`0_sats`, `1_to_10_sats`, ..., `1m_to_10m_sats`, `10m_to_100m_sats` for 0.1 to 1 BTC,
   `1_to_10_btc`, ..., `10k_to_100k_btc`, `over_100k_btc`), and the tree's keys follow (`utxos.amounts._1kTo10kSats`).
   URPD cohorts take the same names (`age_2y_to_3y`, was `utxos_2y_to_3y_old`; the age cutoffs, new, as `age_under_4m`)
+- URPD's `weight` takes the weight's own name: `none` (default), `wakefulness` (Cointime's, the distribution behind
+  the `*_awake_*` series) or `mobility` (Coinflow's, behind `*_mobile_*`); were `raw`, `cointime` and `coinflow`
 - A URPD (`GET /api/urpd/{cohort}` and `/api/urpd/{cohort}/{point}`) says its block as the UTXO set does and holds its
   buckets in columns as the set's origins: `{ height, hash, date, cohort, weight, aggregation, close, supply,
   buckets: { price, supply, realized_cap, unrealized_pnl } }`, one entry per bucket in ascending price. It gains the
@@ -134,14 +136,15 @@ has to be deleted by hand.
   `cointime_price` and `active_price`,
   and the extremes' `rank` (a coarse copy of `tail_share` that counted a missing value as 0). Bands, levels and scores
   are null before height 210,000, where calibration starts (were computed from zero bands)
-- Bedrock's modes are `unweighted`, `awake` and `mobile` (were `raw`, `cointime`, `coinflow`; ids
-  `bedrock_awake_floor_pct95`, ...); the horizon modes `coinflow_1m` ... `coinflow_8y` are gone. Each mode publishes
-  `floor`, `cost_basis_above_floor` (was `level`: the creation-price percentiles of the supply at or above its
-  95th-percentile floor) and `supply_in_loss_share_threshold` (was `loss_threshold`). `bedrock.cost_basis` is gone: the
-  awake and mobile cohorts' cost-basis percentiles (`awake_cost_basis_per_coin_pct5`, ...; were
-  `bedrock_cointime_cost_basis_per_coin_pct05`, ...) take its place. Calibration uses block observations: each mode's
-  loss thresholds are percentiles of its finite loss shares from earlier blocks, available once 52,560 such
-  observations (one nominal year) exist and the current share is finite (was daily, once 365 days were)
+- Bedrock's modes are `awake`, `mobile` and, last, `unweighted`, the baseline the weighted ones improve on (were
+  `raw`, `cointime`, `coinflow`; ids `bedrock_awake_floor_pct95`, ...); the horizon modes `coinflow_1m` ...
+  `coinflow_8y` are gone. Each mode publishes `floor`, `cost_basis_above_floor` (was `level`: the creation-price
+  percentiles of the supply at or above its 95th-percentile floor) and `supply_in_loss_share_threshold` (was
+  `loss_threshold`). `bedrock.cost_basis` is gone: the awake and mobile cohorts' cost-basis percentiles
+  (`awake_cost_basis_per_coin_pct5`, ...; were `bedrock_cointime_cost_basis_per_coin_pct05`, ...) take its place.
+  Calibration uses block observations: each mode's loss thresholds are percentiles of its finite loss shares from
+  earlier blocks, available once 52,560 such observations (one nominal year) exist and the current share is finite
+  (was daily, once 365 days were)
 - One word per concept in paths and ids: `avg` for a mean (was `average`), `median` for the 50th percentile in every
   percentile set (was `pct50`), unpadded percentiles (`pct5`, was `pct05`; the rarity bands' price ids `pct1`, `pct2`,
   `pct5`, were `pct01`, ...), and `block` for a node's own per-block series beside its derived children (was `base`)
@@ -314,7 +317,7 @@ has to be deleted by hand.
   only: `addrs_0sats_realized_profit`, ... are gone)
 - Address ids spell `address` out and say what they count: `funded_address_count` (was `addr_count`),
   `empty_address_count`, `total_address_count`, `new_address_count`, `sending_address_count` (was `sending_addrs`),
-  ..., `avg_address_balance` (was `avg_addr_amount`), `funded_reused_address_count` (was `reused_addr_count`) beside
+  ..., `address_balance_avg` (was `avg_addr_amount`), `funded_reused_address_count` (was `reused_addr_count`) beside
   `total_reused_address_count` (likewise respent and exposed), `reused_address_supply`,
   `output_to_reused_address_count`, ...; the funded count's window change is `funded_address_count_delta_24h` (was
   `addr_count_24h`); balance bands' ids start with `balance_` (`balance_1_to_10_btc_supply`,
@@ -335,11 +338,11 @@ has to be deleted by hand.
 - OP_RETURN is member-first: `op_return.protocols.<protocol>.*` and `op_return.policies.<policy>.*` (were
   `by_kind.<metric>.<kind>` and `policy.<metric>.<policy>`), with the totals at the root (were under `total`). Shares
   are `data_bytes.chain_share` and `fees.chain_share` (of the chain's block bytes and fees), each since the start and
-  over each window: ids `op_return_runes_data_bytes_chain_share_cumulative`,
+  over each window: ids `op_return_runes_data_chain_share_cumulative`,
   `op_return_runes_fee_chain_share_cumulative`, `op_return_runes_fee_chain_share_1m`, ... (were
   `op_return_runes_chain_share`, `op_return_runes_fee_share`, `op_return_runes_fee_share_1m`, ...; the data share's
   windows are new) and, for the totals, which sat beside their quantity,
-  `op_return_data_bytes_chain_share_cumulative`, `op_return_fee_chain_share_cumulative` (were `op_return_chain_share`,
+  `op_return_data_chain_share_cumulative`, `op_return_fee_chain_share_cumulative` (were `op_return_chain_share`,
   `op_return_fee_share`). Fees are BTC and USD (were sats). The totals gain `output_count` (id
   `op_return_output_count`, shared with outputs). Policy ids drop `policy_` (`op_return_oversized_tx_count`, was
   `op_return_policy_oversized_tx_count`)

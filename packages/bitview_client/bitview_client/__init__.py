@@ -37,8 +37,11 @@ Vin = int
 Version = int
 # Virtual size in vbytes (weight / 4, rounded up). Max block vsize is ~1,000,000 vB.
 VSize = int
-# Weighting applied to a URPD: raw (unweighted), cointime, or coinflow.
-UrpdWeight = Literal["raw", "cointime", "coinflow"]
+# The weight applied to a URPD's age bands: `none` (every satoshi counts once), `wakefulness` (each band
+# weighted by the share of its coin days already consumed, Cointime's; the distribution behind the
+# `*_awake_*` series) or `mobility` (each band weighted by the estimated probability its coins are ever
+# spent, Coinflow's; behind `*_mobile_*`).
+UrpdWeight = Literal["none", "wakefulness", "mobility"]
 # Aggregation strategy for URPD buckets.
 # Options: raw (no aggregation), lin200/lin500/lin1000 (linear $200/$500/$1000),
 # log10/log50/log100/log200/log500/log1000/log2000 (logarithmic with 10/50/100/200/500/1000/2000 buckets per decade).
@@ -291,7 +294,7 @@ class UrpdQuery(TypedDict, total=False):
     """
     Attributes:
         agg: Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
-        weight: Supply weighting. Default: raw (unweighted).
+        weight: Supply weighting. Default: none (unweighted).
     """
     agg: UrpdAggregation
     weight: UrpdWeight
@@ -1442,7 +1445,7 @@ class UrpdBuckets(TypedDict):
 
     Attributes:
         price: Each bucket's price, in USD: its lower bound when aggregated, and for `raw` the price its coins' creation prices round to (four significant digits of the price in cents).
-        supply: Supply held with a last-move price inside each bucket, in BTC. With a `cointime` or `coinflow` weight, the weighted supply, floored to whole satoshis at each grid price.
+        supply: Supply held with a last-move price inside each bucket, in BTC. With a `wakefulness` or `mobility` weight, the weighted supply, floored to whole satoshis at each grid price.
         realized_cap: Realized cap contribution in USD: `price * supply` summed over the coins in each bucket, each coin's creation price taken on the price grid (the `raw` bucket price, within 0.05% of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The buckets therefore need not sum to the cohort's realized cap series.
         unrealized_pnl: Unrealized P&L in USD at the represented block: `close * supply` minus each bucket's grid capital, rounded to the cent once. Can be negative.
     """
@@ -2986,9 +2989,9 @@ class BedrockAwake(_Node):
 
 
 class Bedrock(_Node):
-    unweighted: BedrockAwake = _at(BedrockAwake, '*_unweighted')
     awake: BedrockAwake = _at(BedrockAwake, '*_awake')
     mobile: BedrockAwake = _at(BedrockAwake, '*_mobile')
+    unweighted: BedrockAwake = _at(BedrockAwake, '*_unweighted')
 
 
 class TrueMarketMean(_Node):
@@ -3795,9 +3798,9 @@ class Pools(_Node):
 
 
 class DataBytes(_Node):
-    block: SeriesPattern18[Bytes] = _at(SeriesPattern18, '*')
-    cumulative: SeriesPattern1[Bytes] = _at(SeriesPattern1, '*_cumulative')
-    sum: InputsPerSecond[Bytes] = _at(InputsPerSecond, '*_sum')
+    block: SeriesPattern18[Bytes] = _at(SeriesPattern18, '*_bytes')
+    cumulative: SeriesPattern1[Bytes] = _at(SeriesPattern1, '*_bytes_cumulative')
+    sum: InputsPerSecond[Bytes] = _at(InputsPerSecond, '*_bytes_sum')
     chain_share: TxShare = _at(TxShare, '*_chain_share')
 
 
@@ -4009,7 +4012,7 @@ class P2pk(_Node):
     total: SeriesPattern1[Count] = _at(SeriesPattern1, '*_total_address_count')
     new: New = _at(New, '*_new_address_count')
     activity: AddressesActivity = _at(AddressesActivity, '*')
-    avg_balance: AvgBalance = _at(AvgBalance, '*_avg_address_balance')
+    avg_balance: AvgBalance = _at(AvgBalance, '*_address_balance_avg')
     reused: Reused = _at(Reused, '*')
     respent: Respent = _at(Respent, '*')
     exposed: Exposed = _at(Exposed, '*')
@@ -4111,7 +4114,7 @@ class Addresses(_Node):
     total: SeriesPattern1[Count] = _at(SeriesPattern1, 'total_*_count')
     new: New = _at(New, 'new_*_count')
     activity: AddressesActivity = _at(AddressesActivity, '')
-    avg_balance: AvgBalance = _at(AvgBalance, 'avg_*_balance')
+    avg_balance: AvgBalance = _at(AvgBalance, '*_balance_avg')
     reused: Reused = _at(Reused, '')
     respent: Respent = _at(Respent, '')
     exposed: Exposed = _at(Exposed, '')
@@ -4243,7 +4246,7 @@ class Age(_Node):
 
 class PoliciesMultiple(_Node):
     output_count: BlocksCount[Count] = _at(BlocksCount, '*_output_count')
-    data_bytes: DataBytes = _at(DataBytes, '*_data_bytes')
+    data_bytes: DataBytes = _at(DataBytes, '*_data')
     tx_count: BlocksCount[Count] = _at(BlocksCount, '*_tx_count')
     tx_share: TxShare = _at(TxShare, '*_tx_share')
     tx_vsize: BlocksCount[VSize] = _at(BlocksCount, '*_tx_vsize')
@@ -4285,7 +4288,7 @@ class Protocols(_Node):
 class OpReturn(_Node):
     flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
     output_count: BlocksCount[Count] = _at(BlocksCount, '*_output_count')
-    data_bytes: DataBytes = _at(DataBytes, '*_data_bytes')
+    data_bytes: DataBytes = _at(DataBytes, '*_data')
     tx_count: BlocksCount[Count] = _at(BlocksCount, '*_tx_count')
     tx_share: TxShare = _at(TxShare, '*_tx_share')
     tx_vsize: BlocksCount[VSize] = _at(BlocksCount, '*_tx_vsize')
@@ -5753,7 +5756,7 @@ class BitviewClient(BitviewClientBase):
     def get_urpd_at(self, cohort: Cohort, point: str, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
         """URPD at block height or date.
 
-        URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+        URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
 
         Endpoint: `GET /api/urpd/{cohort}/{point}`"""
         params: List[Tuple[str, Any]] = []

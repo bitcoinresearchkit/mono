@@ -129,10 +129,11 @@ const TAGS: [(&str, &str); 12] = [
         - `lin200` / `lin500` / `lin1000`: linear buckets, $200 / $500 / $1000 wide.\n\
         - `log10` / `log50` / `log100` / `log200`: logarithmic buckets, N bins per price decade.\n\n\
         Weight supply with the `weight` query parameter:\n\
-        - `raw`: unweighted supply (default).\n\
-        - `cointime`: cointime-weighted supply.\n\
-        - `coinflow`: coinflow-weighted supply.\n\n\
-        Raw and weighted age-range, `all`, `sth`, and `lth` distributions share \
+        - `none`: unweighted supply (default).\n\
+        - `wakefulness`: each age band weighted by its wakefulness (Cointime), the distribution behind \
+        the `*_awake_*` series.\n\
+        - `mobility`: each age band weighted by its mobility (Coinflow), behind the `*_mobile_*` series.\n\n\
+        Unweighted and weighted age-range, `all`, `sth`, and `lth` distributions share \
         the same block state. Weights are evaluated at the requested block.\n\n\
         Discovery flow: `GET /api/urpd` (cohorts), `GET /api/urpd/{cohort}` (latest), \
         `GET /api/urpd/{cohort}/{point}` (any block height or UTC day with a block).",

@@ -34,7 +34,7 @@ impl DataBytesSeries {
             Bytes,
             Quotient<PartsPerMillion32>,
         >(
-            &format!("{prefix}_data_bytes_chain_share"),
+            &format!("{prefix}_data_chain_share"),
             version,
             data_bytes.cumulative.resolutions.height_source(),
             block_size,

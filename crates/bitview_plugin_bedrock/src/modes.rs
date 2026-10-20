@@ -4,10 +4,6 @@ use super::Percentiles;
 
 #[derive(Traversable)]
 pub struct Modes<T> {
-    /// Bedrock's unweighted mode gives every unspent satoshi equal weight and
-    /// calibrates against the share of all-chain supply whose creation price
-    /// exceeds spot.
-    pub unweighted: T,
     /// Bedrock's awake mode weights each UTXO age range by wakefulness—the
     /// share of its accumulated coin days that has been consumed—and
     /// calibrates against the resulting weighted share of supply in loss.
@@ -16,20 +12,24 @@ pub struct Modes<T> {
     /// estimated probability that UTXOs of that age will ever be spent—and
     /// calibrates against the resulting weighted share of supply in loss.
     pub mobile: T,
+    /// Bedrock's unweighted mode gives every unspent satoshi equal weight and
+    /// calibrates against the share of all-chain supply whose creation price
+    /// exceeds spot.
+    pub unweighted: T,
 }
 
 collection!(
-    /// A Bedrock mode: the unweighted distribution, or one weighted by wakefulness (Cointime) or
-    /// mobility (Coinflow).
+    /// A Bedrock mode: the distribution weighted by wakefulness (Cointime) or mobility
+    /// (Coinflow), or, last, the unweighted one they improve on.
     ModeId for Modes {
-        Unweighted => unweighted,
         Awake => awake,
         Mobile => mobile,
+        Unweighted => unweighted,
     }
 );
 
 impl ModeId {
-    pub const ALL: [Self; 3] = [Self::Unweighted, Self::Awake, Self::Mobile];
+    pub const ALL: [Self; 3] = [Self::Awake, Self::Mobile, Self::Unweighted];
 }
 
 pub const MODE_COUNT: usize = ModeId::ALL.len();

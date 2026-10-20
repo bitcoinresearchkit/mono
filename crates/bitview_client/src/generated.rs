@@ -622,9 +622,9 @@ pub mod tree {
         cost_basis_above_floor: CostBasisAboveFloor = "*_cost_basis_above_floor",
     } }
     shape! { Bedrock at "series().bedrock" {
-        unweighted: BedrockAwake = "*_unweighted",
         awake: BedrockAwake = "*_awake",
         mobile: BedrockAwake = "*_mobile",
+        unweighted: BedrockAwake = "*_unweighted",
     } }
     shape! { TrueMarketMean at "series().cointime.prices.true_market_mean" {
         block: SeriesPattern1<Option<Dollars>> = "*",
@@ -1344,9 +1344,9 @@ pub mod tree {
         dmnd: Pools175btc = "*_dmnd",
     } }
     shape! { DataBytes at "series().op_return.data_bytes" {
-        block: SeriesPattern18<Bytes> = "*",
-        cumulative: SeriesPattern1<Bytes> = "*_cumulative",
-        sum: InputsPerSecond<Bytes> = "*_sum",
+        block: SeriesPattern18<Bytes> = "*_bytes",
+        cumulative: SeriesPattern1<Bytes> = "*_bytes_cumulative",
+        sum: InputsPerSecond<Bytes> = "*_bytes_sum",
         chain_share: TxShare = "*_chain_share",
     } }
     shape! { Inscription at "series().transactions.inscription" {
@@ -1532,7 +1532,7 @@ pub mod tree {
         total: SeriesPattern1<Count> = "*_total_address_count",
         new: New = "*_new_address_count",
         activity: AddressesActivity = "*",
-        avg_balance: AvgBalance = "*_avg_address_balance",
+        avg_balance: AvgBalance = "*_address_balance_avg",
         reused: Reused = "*",
         respent: Respent = "*",
         exposed: Exposed = "*",
@@ -1622,7 +1622,7 @@ pub mod tree {
         total: SeriesPattern1<Count> = "total_*_count",
         new: New = "new_*_count",
         activity: AddressesActivity = "",
-        avg_balance: AvgBalance = "avg_*_balance",
+        avg_balance: AvgBalance = "*_balance_avg",
         reused: Reused = "",
         respent: Respent = "",
         exposed: Exposed = "",
@@ -1742,7 +1742,7 @@ pub mod tree {
     } }
     shape! { PoliciesMultiple at "series().op_return.policies.multiple" {
         output_count: BlocksCount<Count> = "*_output_count",
-        data_bytes: DataBytes = "*_data_bytes",
+        data_bytes: DataBytes = "*_data",
         tx_count: BlocksCount<Count> = "*_tx_count",
         tx_share: TxShare = "*_tx_share",
         tx_vsize: BlocksCount<VSize> = "*_tx_vsize",
@@ -1781,7 +1781,7 @@ pub mod tree {
     shape! { OpReturn at "series().op_return" {
         flag: SeriesPattern19<Boolean> = "has_*",
         output_count: BlocksCount<Count> = "*_output_count",
-        data_bytes: DataBytes = "*_data_bytes",
+        data_bytes: DataBytes = "*_data",
         tx_count: BlocksCount<Count> = "*_tx_count",
         tx_share: TxShare = "*_tx_share",
         tx_vsize: BlocksCount<VSize> = "*_tx_vsize",
@@ -2621,7 +2621,7 @@ impl BitviewClient {
 
     /// URPD at block height or date
     ///
-    /// URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+    /// URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
     ///
     /// Endpoint: `GET /api/urpd/{cohort}/{point}`
     pub fn get_urpd_at(

@@ -121,7 +121,7 @@ impl Query {
         weight: UrpdWeight,
     ) -> Result<AgeRange<f64>> {
         AgeRange::try_from_fn(|age| {
-            if weight == UrpdWeight::Raw || !ages.contains(&age) {
+            if weight == UrpdWeight::None || !ages.contains(&age) {
                 return Ok(1.0);
             }
             let plugins = self.plugins();
@@ -135,9 +135,9 @@ impl Query {
                 .collect_one(height)
                 .data()?;
             match weight {
-                UrpdWeight::Raw => Some(1.0),
-                UrpdWeight::Cointime => plugins.cointime.urpd_weight(age, height, supply),
-                UrpdWeight::Coinflow => plugins.coinflow.urpd_weight(age, height, supply),
+                UrpdWeight::None => Some(1.0),
+                UrpdWeight::Wakefulness => plugins.cointime.urpd_weight(age, height, supply),
+                UrpdWeight::Mobility => plugins.coinflow.urpd_weight(age, height, supply),
             }
             .ok_or_else(|| Error::NotFound(format!("No {weight} weight at block {height}")))
         })
@@ -185,15 +185,15 @@ impl Query {
             + plugins.mappings.timestamp.monotonic.version()
             + plugins.utxo_set.supply.version();
         let weights = |age: &AgeRangeId| match weight {
-            UrpdWeight::Raw => Version::ZERO,
-            UrpdWeight::Cointime => age
+            UrpdWeight::None => Version::ZERO,
+            UrpdWeight::Wakefulness => age
                 .select(&plugins.cointime.age_ranges.urpd_weight_sources())
                 .version(),
-            UrpdWeight::Coinflow => age
+            UrpdWeight::Mobility => age
                 .select(&plugins.coinflow.age_ranges.urpd_weight_sources())
                 .version(),
         };
-        if weight == UrpdWeight::Raw {
+        if weight == UrpdWeight::None {
             return base;
         }
         base + ages
@@ -256,7 +256,7 @@ impl Query {
             aggregation,
             close: prices[end - 1],
         };
-        Ok(if weight == UrpdWeight::Raw {
+        Ok(if weight == UrpdWeight::None {
             header.build(source.project(&[], [ages]).map(|b| (b.price, b.raw[0])))
         } else {
             header.build(source.project(&[Some(&weights)], [ages]).filter_map(|b| {

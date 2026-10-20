@@ -1362,8 +1362,8 @@ asking the node
  * @typedef {Object} UrpdBuckets
  * @property {Dollars[]} price - Each bucket's price, in USD: its lower bound when aggregated, and for `raw` the price its
 coins' creation prices round to (four significant digits of the price in cents).
- * @property {Bitcoin[]} supply - Supply held with a last-move price inside each bucket, in BTC. With a `cointime` or
-`coinflow` weight, the weighted supply, floored to whole satoshis at each grid price.
+ * @property {Bitcoin[]} supply - Supply held with a last-move price inside each bucket, in BTC. With a `wakefulness` or
+`mobility` weight, the weighted supply, floored to whole satoshis at each grid price.
  * @property {Dollars[]} realizedCap - Realized cap contribution in USD: `price * supply` summed over the coins in each bucket,
 each coin's creation price taken on the price grid (the `raw` bucket price, within 0.05%
 of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The
@@ -1385,12 +1385,15 @@ capital, rounded to the cent once. Can be negative.
 /**
  * @typedef {Object} UrpdQuery
  * @property {UrpdAggregation=} agg - Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
- * @property {UrpdWeight=} weight - Supply weighting. Default: raw (unweighted).
+ * @property {UrpdWeight=} weight - Supply weighting. Default: none (unweighted).
  */
 /**
- * Weighting applied to a URPD: raw (unweighted), cointime, or coinflow.
+ * The weight applied to a URPD's age bands: `none` (every satoshi counts once), `wakefulness` (each band
+ * weighted by the share of its coin days already consumed, Cointime's; the distribution behind the
+ * `*_awake_*` series) or `mobility` (each band weighted by the estimated probability its coins are ever
+ * spent, Coinflow's; behind `*_mobile_*`).
  *
- * @typedef {("raw"|"cointime"|"coinflow")} UrpdWeight
+ * @typedef {("none"|"wakefulness"|"mobility")} UrpdWeight
  */
 /**
  * Unspent transaction output
@@ -2987,15 +2990,15 @@ const _BedrockAwake = _s({
 
 /**
  * @typedef {{
- *   unweighted: BedrockAwake,
  *   awake: BedrockAwake,
  *   mobile: BedrockAwake,
+ *   unweighted: BedrockAwake,
  * }} Bedrock
  */
 const _Bedrock = _s({
-  unweighted: [_BedrockAwake, '*_unweighted'],
   awake: [_BedrockAwake, '*_awake'],
   mobile: [_BedrockAwake, '*_mobile'],
+  unweighted: [_BedrockAwake, '*_unweighted'],
 });
 
 /**
@@ -4704,9 +4707,9 @@ const _Pools = _s({
  * }} DataBytes
  */
 const _DataBytes = _s({
-  block: [_i18, '*'],
-  cumulative: [_i1, '*_cumulative'],
-  sum: [_InputsPerSecond, '*_sum'],
+  block: [_i18, '*_bytes'],
+  cumulative: [_i1, '*_bytes_cumulative'],
+  sum: [_InputsPerSecond, '*_bytes_sum'],
   chainShare: [_TxShare, '*_chain_share'],
 });
 
@@ -5163,7 +5166,7 @@ const _P2pk = _s({
   total: [_i1, '*_total_address_count'],
   new: [_New, '*_new_address_count'],
   activity: [_AddressesActivity, '*'],
-  avgBalance: [_AvgBalance, '*_avg_address_balance'],
+  avgBalance: [_AvgBalance, '*_address_balance_avg'],
   reused: [_Reused, '*'],
   respent: [_Respent, '*'],
   exposed: [_Exposed, '*'],
@@ -5385,7 +5388,7 @@ const _Addresses = _s({
   total: [_i1, 'total_*_count'],
   new: [_New, 'new_*_count'],
   activity: [_AddressesActivity, ''],
-  avgBalance: [_AvgBalance, 'avg_*_balance'],
+  avgBalance: [_AvgBalance, '*_balance_avg'],
   reused: [_Reused, ''],
   respent: [_Respent, ''],
   exposed: [_Exposed, ''],
@@ -5664,7 +5667,7 @@ const _Age = _s({
  */
 const _PoliciesMultiple = _s({
   outputCount: [_BlocksCount, '*_output_count'],
-  dataBytes: [_DataBytes, '*_data_bytes'],
+  dataBytes: [_DataBytes, '*_data'],
   txCount: [_BlocksCount, '*_tx_count'],
   txShare: [_TxShare, '*_tx_share'],
   txVsize: [_BlocksCount, '*_tx_vsize'],
@@ -5753,7 +5756,7 @@ const _Protocols = _s({
 const _OpReturn = _s({
   flag: [_i19, 'has_*'],
   outputCount: [_BlocksCount, '*_output_count'],
-  dataBytes: [_DataBytes, '*_data_bytes'],
+  dataBytes: [_DataBytes, '*_data'],
   txCount: [_BlocksCount, '*_tx_count'],
   txShare: [_TxShare, '*_tx_share'],
   txVsize: [_BlocksCount, '*_tx_vsize'],
@@ -7941,7 +7944,7 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {Cohort} cohort
    * @param {UrpdAggregation=} [agg] - Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
-   * @param {UrpdWeight=} [weight] - Supply weighting. Default: raw (unweighted).
+   * @param {UrpdWeight=} [weight] - Supply weighting. Default: none (unweighted).
    * @param {{ signal?: AbortSignal, onValue?: (value: Urpd) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Urpd>}
    */
@@ -7957,14 +7960,14 @@ class BitviewClient extends BitviewClientBase {
   /**
    * URPD at block height or date
    *
-   * URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `cointime` or `coinflow` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+   * URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
    *
    * Endpoint: `GET /api/urpd/{cohort}/{point}`
    *
    * @param {Cohort} cohort
    * @param {string} point
    * @param {UrpdAggregation=} [agg] - Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
-   * @param {UrpdWeight=} [weight] - Supply weighting. Default: raw (unweighted).
+   * @param {UrpdWeight=} [weight] - Supply weighting. Default: none (unweighted).
    * @param {{ signal?: AbortSignal, onValue?: (value: Urpd) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Urpd>}
    */

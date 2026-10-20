@@ -8,7 +8,7 @@ pub struct UrpdQuery {
     /// Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
     #[serde(default, rename = "agg", alias = "bucket")]
     pub aggregation: UrpdAggregation,
-    /// Supply weighting. Default: raw (unweighted).
+    /// Supply weighting. Default: none (unweighted).
     #[serde(default)]
     pub weight: UrpdWeight,
 }

@@ -213,7 +213,7 @@ impl AddressVecs {
         let new = NewAddressCount::new(ctx, &name("new_address_count"), &total_source);
         let activity = ActivityVecs::import(ctx, prefix)?;
         let avg_balance =
-            AvgBalance::new(ctx, &name("avg_address_balance"), &supply, &funded.stored);
+            AvgBalance::new(ctx, &name("address_balance_avg"), &supply, &funded.stored);
         let reused = ReuseVecs::import(
             ctx,
             prefix,
