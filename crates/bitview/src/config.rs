@@ -161,7 +161,7 @@ impl Config {
             format!("[{}]", Port::DEFAULT).bright_black()
         );
         println!(
-            "    --website {}     Serve the default website (true), none (false) or a directory {}",
+            "    --website {}     Serve the showcases (true), nothing (false) or a directory {}",
             "<BOOL|PATH>".bright_black(),
             "[true]".bright_black()
         );

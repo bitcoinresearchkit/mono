@@ -5,30 +5,25 @@ use std::{
     fs,
     path::{Path, PathBuf},
     result::Result as StdResult,
-    str::{self as StdStr, FromStr},
+    str::FromStr,
     sync::OnceLock,
 };
 
 use axum::body::Bytes;
-use importmap::ImportMap;
 use include_dir::{Dir, File as EmbeddedFile, include_dir};
+use rapidhash::v3::rapidhash_v3;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use tracing::{error, info};
 
 use crate::Error;
 
-static EMBEDDED_WEBSITE: Dir = include_dir!("$CARGO_MANIFEST_DIR/website");
-
-/// Cached embedded index.html with importmap injected.
-static INDEX_HTML: OnceLock<(Bytes, String)> = OnceLock::new();
+static EMBEDDED: Dir = include_dir!("$CARGO_MANIFEST_DIR/showcases");
 
 /// Embedded files' content hashes by path, computed once on first use.
 static EMBEDDED_HASHES: OnceLock<HashMap<&'static Path, String>> = OnceLock::new();
 
-pub(crate) const HTML: &str = "text/html";
-
-/// A file to serve, with the content type its resolved name declares. Embedded content carries
-/// its hash (release only), computed once.
+/// A file to serve, with the content type its name declares. Embedded content carries its hash
+/// (release only), computed once.
 pub(crate) struct File {
     pub(crate) contents: Bytes,
     pub(crate) hash: Option<&'static str>,
@@ -53,27 +48,28 @@ impl File {
     }
 }
 
-/// The content type a file's name declares, for the kinds the website serves.
+/// The hash a file's validator names.
+pub(crate) fn hash(contents: &[u8]) -> String {
+    format!("{:016x}", rapidhash_v3(contents))
+}
+
+/// The content type a file's name declares, for the kinds the showcases use.
 fn content_type(path: &Path) -> Option<&'static str> {
     Some(match path.extension()?.to_str()? {
         "js" | "mjs" => "application/javascript",
-        "json" | "map" => "application/json",
-        "html" => HTML,
-        "css" => "text/css",
-        "toml" | "txt" => "text/plain",
-        "pdf" => "application/pdf",
+        "json" => "application/json",
+        "html" => "text/html",
+        "txt" => "text/plain",
+        "xml" => "application/xml",
         "woff2" => "font/woff2",
-        "ico" => "image/x-icon",
-        "jpg" | "jpeg" => "image/jpeg",
         "png" => "image/png",
         "svg" => "image/svg+xml",
-        "webmanifest" => "application/manifest+json",
         _ => return None,
     })
 }
 
 /// Website configuration:
-/// - `true` or omitted: `./website` in debug builds when it exists, else the embedded website
+/// - `true` or omitted: `./showcases` in debug builds when it exists, else the embedded showcases
 /// - `false`: disable website serving
 /// - `"/path/to/website"`: serve custom website from path
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
@@ -89,26 +85,41 @@ impl Website {
         !matches!(self, Self::Disabled)
     }
 
-    /// The directory to serve from; `None` for the embedded website (or when disabled).
+    /// The directory to serve from; `None` for the embedded showcases (or when disabled).
     pub(crate) fn filesystem_path(&self) -> Option<&Path> {
         match self {
             Self::Disabled => None,
             Self::Default => {
-                let local = Path::new("./website");
+                let local = Path::new("./showcases");
                 (cfg!(debug_assertions) && local.exists()).then_some(local)
             }
             Self::Filesystem(p) => Some(p),
         }
     }
 
-    /// Get file content by path (handles hash-stripping, SPA fallback, importmap)
+    /// The file `path` names, else the `index.html` of the folder it names (`""` is the root's).
     pub(crate) fn get_file(&self, path: &str) -> Result<File, Error> {
         // `router` registers no route for a disabled website.
         debug_assert!(self.is_enabled());
-        match self.filesystem_path() {
-            None => self.get_embedded(path),
-            Some(base) => self.get_filesystem(base, path),
-        }
+        let path = Path::new(path);
+        let page = path.join("index.html");
+        let file = match self.filesystem_path() {
+            None => EMBEDDED
+                .get_file(path)
+                .or_else(|| EMBEDDED.get_file(&page))
+                .map(File::embedded),
+            Some(base) => [base.join(path), base.join(&page)]
+                .into_iter()
+                .find(|file| file.is_file())
+                .and_then(|file| match fs::read(&file) {
+                    Ok(contents) => Some(File::fresh(contents, &file)),
+                    Err(e) => {
+                        error!("{}: {e}", file.display());
+                        None
+                    }
+                }),
+        };
+        file.ok_or_else(|| Error::not_found("File not found"))
     }
 
     /// Log which website source is being used (call once at startup)
@@ -125,110 +136,12 @@ impl Website {
             Self::Filesystem(p) => info!("Serving website from {}", p.display()),
         }
     }
-
-    fn get_index(&self) -> Result<File, Error> {
-        // Filesystem content is mutable and must never enter the embedded cache.
-        if let Some(base) = self.filesystem_path() {
-            let index = base.join("index.html");
-            if cfg!(debug_assertions) {
-                return fs::read(&index)
-                    .map(|contents| File::fresh(contents, &index))
-                    .map_err(|e| Error::not_found(e.to_string()));
-            }
-            let html = fs::read_to_string(&index).map_err(|e| Error::not_found(e.to_string()))?;
-            let html = match ImportMap::scan(base, "") {
-                Ok(importmap) => importmap.transform_html(&html).unwrap_or(html),
-                Err(e) => {
-                    error!("Failed to scan for importmap: {e}");
-                    html
-                }
-            };
-            return Ok(File::fresh(html.into_bytes(), &index));
-        }
-
-        let file = EMBEDDED_WEBSITE
-            .get_file("index.html")
-            .expect("index.html must exist in embedded website");
-        if cfg!(debug_assertions) {
-            return Ok(File::embedded(file));
-        }
-
-        let (html, hash) = INDEX_HTML.get_or_init(|| {
-            let html = StdStr::from_utf8(file.contents()).expect("index.html must be valid UTF-8");
-            let importmap = ImportMap::scan_embedded(&EMBEDDED_WEBSITE, "");
-            let html = importmap
-                .transform_html(html)
-                .unwrap_or_else(|| html.to_string());
-            let hash = ImportMap::hash(html.as_bytes());
-            (html.into(), hash)
-        });
-
-        Ok(File {
-            contents: html.clone(),
-            hash: Some(hash),
-            content_type: Some(HTML),
-        })
-    }
-
-    fn get_embedded(&self, path: &str) -> Result<File, Error> {
-        if path.is_empty() || path == "index.html" {
-            return self.get_index();
-        }
-
-        if let Some(file) = embedded_file(path) {
-            return Ok(File::embedded(file));
-        }
-
-        // SPA fallback: no extension -> index.html
-        if Path::new(path).extension().is_none() {
-            return self.get_index();
-        }
-
-        Err(Error::not_found("File not found"))
-    }
-
-    fn get_filesystem(&self, base: &Path, path: &str) -> Result<File, Error> {
-        // Root index.html (importmap, SPA)
-        if path.is_empty() || path == "index.html" {
-            return self.get_index();
-        }
-
-        let mut file_path = base.join(path);
-
-        // A folder with its own index.html is a standalone page
-        let page = file_path.join("index.html");
-        if page.is_file() {
-            file_path = page;
-        }
-
-        if !file_path.exists()
-            && let Some(unhashed) = ImportMap::strip_hash(&file_path)
-            && unhashed.exists()
-        {
-            file_path = unhashed;
-        }
-
-        // SPA fallback or missing file
-        if !file_path.exists() || file_path.is_dir() {
-            if file_path.extension().is_some() {
-                return Err(Error::not_found("File not found"));
-            }
-            return self.get_index();
-        }
-
-        fs::read(&file_path)
-            .map(|contents| File::fresh(contents, &file_path))
-            .map_err(|e| {
-                error!("{e}");
-                Error::not_found("File not found")
-            })
-    }
 }
 
 fn embedded_hash(file: &EmbeddedFile<'static>) -> &'static str {
     fn collect(dir: &'static Dir<'static>, hashes: &mut HashMap<&'static Path, String>) {
         for file in dir.files() {
-            hashes.insert(file.path(), ImportMap::hash(file.contents()));
+            hashes.insert(file.path(), hash(file.contents()));
         }
         for dir in dir.dirs() {
             collect(dir, hashes);
@@ -236,21 +149,10 @@ fn embedded_hash(file: &EmbeddedFile<'static>) -> &'static str {
     }
     let hashes = EMBEDDED_HASHES.get_or_init(|| {
         let mut hashes = HashMap::new();
-        collect(&EMBEDDED_WEBSITE, &mut hashes);
+        collect(&EMBEDDED, &mut hashes);
         hashes
     });
     &hashes[file.path()]
-}
-
-/// A file, its unhashed name, or a folder's own index.html (standalone page).
-fn embedded_file(path: &str) -> Option<&'static EmbeddedFile<'static>> {
-    EMBEDDED_WEBSITE
-        .get_file(path)
-        .or_else(|| {
-            ImportMap::strip_hash(Path::new(path))
-                .and_then(|unhashed| EMBEDDED_WEBSITE.get_file(unhashed.to_str()?))
-        })
-        .or_else(|| EMBEDDED_WEBSITE.get_file(Path::new(path).join("index.html")))
 }
 
 impl FromStr for Website {

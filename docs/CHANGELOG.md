@@ -966,6 +966,11 @@ has to be deleted by hand.
 - `bitview_mcp --api` must be an absolute HTTP(S) origin (a bare host was tried over HTTPS, then HTTP)
 - Data is safe across soft quits (SIGINT, SIGTERM) only: rawdb no longer syncs to the device on flush (v0.12.2 promised
   durability after `flush()`), so kernel panics, power loss and storage removal are not supported
+- The website is gone (Bitview Studio, a separate app, has its charts and search): the server serves the showcases
+  instead, their gallery at `/` and each one at `/<name>/`, embedded or, in debug builds, from `./showcases`.
+  `--website` serves them (`true`), nothing (`false`) or a directory. The website's block, transaction and address
+  pages have no replacement yet. `/api` stays the interactive API documentation (the API showcase is served on its
+  own), and a browser holding the website's service worker drops it, with its caches, on its next visit
 
 ### New Features
 
@@ -1080,9 +1085,10 @@ has to be deleted by hand.
 #### `bitview_website`
 
 - `crates/bitview_primitives/pools.sh` (was `crates/brk_types/pools.sh`, the pool list only) also refreshes the
-  website's pool logos from mempool.space; DMND and Noderunners have logos
-- A folder URL serves the folder's own `index.html` (`/folder/`; was the root `index.html`), dotted folder names
-  included (they answered 404)
+  showcases' pool logos from mempool.space; DMND and Noderunners have logos
+- `/` serves `index.html` and `/<path>` the file it names, else that folder's own `index.html` (`/chain`,
+  `/chain/`; was the root `index.html`), dotted folder names included (they answered 404); anything else answers 404
+  (unknown paths without an extension served the root page)
 
 #### Rust APIs
 
@@ -1349,8 +1355,8 @@ has to be deleted by hand.
   Core's sigop-adjusted vsize
 - A date or timestamp past the last block ends the series: as `start` it selects nothing (was the last block), as
   `end` it keeps the last block (was left out), for the height, epoch and halving indexes
-- The website caches only content-hashed files as immutable; fixed names (the search index, workers, fonts) revalidate
-  with an ETag, so an upgrade no longer leaves a stale search index for a year
+- Every served file revalidates with an ETag (content-hashed names, the injected import map and year-long `immutable`
+  caching are gone), so an upgrade never leaves a stale file cached
 - `/api/v1/replacements` and `/api/v1/fullrbf/replacements` walk a bounded history: they visit only replacements
   (every buried transaction was scanned, mined ones included), end with the complete trees found once a 4096-step work
   budget runs out, and skip a tree nested deeper than 32 replacements
@@ -1374,7 +1380,7 @@ has to be deleted by hand.
   stamp replaces them): after a reorg whose replacement came in one multi-block update, a later deeper reorg failed
   every update with a stamp mismatch
 - The Docker image builds: it copies every build input (v0.12.2's copied only `crates/`, missing the
-  `examples/custom_plugin` workspace member and the embedded `website/` and `modules/`)
+  `examples/custom_plugin` workspace member and the embedded `showcases/` and `modules/`)
 - After a reorg, an address's unspent outputs no longer list outputs that the replacement chain spent again. The
   storage engine's weak deletes assume a key is written once; a rollback writes spent outputs back, and a compaction
   that merged the restored entry with the orphaned spend dropped the delete still owed to the original entry below.

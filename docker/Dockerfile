@@ -6,10 +6,10 @@ WORKDIR /app
 
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY crates crates
-# Workspace member (root Cargo.toml) and the website embedded by bitview_website
-# (crates/bitview_website/website -> website, website/scripts/modules -> modules).
+# Workspace member (root Cargo.toml) and the showcases embedded by bitview_website
+# (crates/bitview_website/showcases -> showcases, showcases/modules -> modules).
 COPY examples examples
-COPY website website
+COPY showcases showcases
 COPY modules modules
 
 RUN cargo build --release --locked -p bitviewd

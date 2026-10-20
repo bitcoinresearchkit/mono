@@ -78,7 +78,7 @@ publish_release_selection() {
 # --allow-dirty even when the Git worktree itself is clean. Publish its
 # workspace dependencies first so Cargo can resolve the packaged crate.
 publish_release_selection "brk_logger" --package brk_logger
-publish_release_selection "importmap" --package importmap
+publish_release_selection "bitview_http" --package bitview_http
 
 PUBLISH_LOG=$(mktemp -t brk-rust-publish)
 trap 'rm -f "$PUBLISH_LOG"' EXIT

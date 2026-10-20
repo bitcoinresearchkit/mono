@@ -1,10 +1,9 @@
 # bitview_website
 
-Embedded and filesystem-backed website serving for Bitview.
+Serves Bitview's showcases, embedded or from a directory.
 
-Routes without extensions fall back to `index.html`, and a folder with its own `index.html` is
-served as a standalone page. Release builds generate the root index's import map for hashed
-assets.
+`/` serves `index.html` and `/<path>` the file it names, else that folder's own `index.html`;
+anything else is 404. Release builds tag each response with an ETag of its content.
 
 ## Usage
 
@@ -19,7 +18,7 @@ let app = your_api_router.merge(website_router);
 
 | Variant | Description |
 |---------|-------------|
-| `Default` | `./website` in debug builds when it exists, embedded otherwise |
+| `Default` | `./showcases` in debug builds when it exists, the embedded showcases otherwise |
 | `Filesystem(path)` | Always serve from specified path |
 | `Disabled` | No routes registered |
 
@@ -31,10 +30,10 @@ See the `website` example for a complete standalone server with compression, tra
 cargo run -p bitview_website --example website
 ```
 
-Pass a folder to serve it instead of the default website:
+Pass a folder to serve it instead of the showcases:
 
 ```sh
-cargo run -p bitview_website --example website -- showcases
+cargo run -p bitview_website --example website -- path/to/site
 ```
 
 Open `http://localhost:3110` (or port 3111 if 3110 is occupied) for the showcases gallery.

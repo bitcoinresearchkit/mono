@@ -1,18 +1,18 @@
 [package]
 name = "bitview_website"
-description = "Embedded or filesystem website router for Bitview"
+description = "Serves Bitview's showcases, embedded or from a directory"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 homepage.workspace = true
 repository.workspace = true
-include = ["src/**/*", "website/**/*", "Cargo.toml", "README.md"]
+include = ["src/**/*", "showcases/**/*", "Cargo.toml", "README.md"]
 
 [dependencies]
 axum = { workspace = true }
 bitview_http = { workspace = true }
 include_dir = { workspace = true }
-importmap = { workspace = true, features = ["embedded"] }
+rapidhash = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }

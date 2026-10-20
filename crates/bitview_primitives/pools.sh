@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Refreshes the mining pool list and the website's pool logos from mempool.
+# Refreshes the mining pool list and the showcases' pool logos from mempool.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -8,11 +8,11 @@ curl -fL \
   https://raw.githubusercontent.com/mempool/mining-pools/refs/heads/master/pools-v2.json \
   -o pools-v2.json
 
-# Logos are named like the website's pool slug: the name's lowercase letters and digits.
+# Logos are named like the showcases' pool slug: the name's lowercase letters and digits.
 python3 - <<'PY'
 import json, re, urllib.request
 
-ASSETS = "../../website/assets/pools"
+ASSETS = "../../showcases/pools"
 BASE = "https://mempool.space/resources/mining-pools"
 
 def fetch(name):

@@ -20674,7 +20674,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (packed) {
             const bytes = fromBase64(packed);
             list = JSON.parse(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
-          } else list = (await import("./presets.js")).studioPresets(client);
+          } else list = (await import("../studio/presets.js")).studioPresets(client);
           presetLooks = looksOf(list);
           return list;
         })());

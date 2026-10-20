@@ -8,8 +8,8 @@ use bitview_website::Website;
 
 use crate::{Port, cache::CdnCacheMode};
 
-/// Default max series-query response weight, in raw value bytes: 10k OHLC values (320 KB), the
-/// website's largest chart request. Bounding each response this way needs no server-wide body
+/// Default max series-query response weight, in raw value bytes: 10k OHLC values (320 KB), a
+/// chart's largest request. Bounding each response this way needs no server-wide body
 /// budget.
 pub const DEFAULT_MAX_WEIGHT: usize = 10_000 * size_of::<OHLCCents>();
 

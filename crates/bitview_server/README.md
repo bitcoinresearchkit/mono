@@ -3,7 +3,7 @@
 HTTP API server for Bitcoin on-chain analytics.
 
 Brotli, gzip and zstd compression skips small responses; a request refusing every encoding
-(identity included) gets 406 before any handler runs. The server can also host a website.
+(identity included) gets 406 before any handler runs. The server can also serve a folder of pages (the showcases by default).
 
 Route-family features (`chain`, `series`, `urpd`, and `price`, which `chain` and
 `urpd` imply) gate the routes; `full-api` enables all of them and is the default.

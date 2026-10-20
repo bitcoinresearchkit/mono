@@ -2,12 +2,12 @@
 // assistants is in it: its "About Studio's links", the page's own text.
 //
 // index.html stays as it is, the repo's: it imports the modules beside it and the client this code builds (it's the
-// version a server ships with itself, always in step). The file made here is served on its own, updated whenever, so
-// it holds up against whatever its server (SERVER) runs: it imports the client that server serves (the build its own
-// page maps, read at each load: made from that server's API, it always speaks the one live); everything else is
-// inside it: the chart library (this repo's, tried with Studio), the fonts, the color names, the search, the presets.
-// Series the page names by typed client paths are written as their names: paths move between versions, names are the
-// server's (one it lacks is said, and shows as missing).
+// version a server ships with itself, always in step). The file made here is served on its own, updated whenever, so it
+// holds up against whatever its server (SERVER) runs: it imports the client that server serves (read at each load: made
+// from that server's API, it always speaks the one live); everything else is inside it: the chart library (this repo's,
+// tried with Studio), the fonts, the color names, the search, the presets. Series the page names by typed client paths
+// are written as their names: paths move between versions, names are the server's (one it lacks is said, and shows as
+// missing).
 import { execFileSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -16,7 +16,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { gzipSync } from "node:zlib";
 
 const SERVER = "https://local.bitview.space";
-const CLIENT = "/scripts/modules/bitview-client/index.js";
+const CLIENT = "/modules/bitview-client/index.js";
 const HERE = dirname(fileURLToPath(import.meta.url)), SHOWCASES = join(HERE, "..");
 const out = process.argv[2] ?? join(HERE, "dist", "index.html");
 /** What the page is built from, each file by its own place (no link followed) and as it was read. @type {Map<string, Buffer>} */
@@ -90,20 +90,18 @@ replaceOnce(`import("../modules/lean-qr/2.7.3/index.mjs")`, `import(${JSON.strin
 replaceOnce(`/** @type {typeof import("../modules/quickmatch-js/src/index.js")} */ (await import(quickmatch))`, "(await import(quickmatch))");
 
 // The chart library, this repo's, in the page: Studio leans on its insides (its series drawn its own way, what it draws
-// over them), so it changes only when it's been tried, never with the website's.
+// over them), so it changes only when it's been tried, never with the showcases'.
 replaceOnce(`import * as LC from "../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs";`, `import * as LC from "${inlined("modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs")}";`);
 // The client, the server's: it's made from that server's API, so it always speaks the one live.
 replaceOnce(`import { BitviewClient } from "../modules/bitview-client/index.js";\n`, `${[
-  `// The client as ${SERVER} serves it now: the build its own page maps (cached for good, under a name that changes`,
-  `      // with each release), read at each load; its plain path if the page can't be read (or doesn't answer in a few`,
-  `      // seconds), or the mapped build fails. Not loading, the page says so (see #offline): the charts are kept, in this browser.`,
-  `      const served = await fetch("${SERVER}/", { signal: AbortSignal.timeout(8000) }).then((response) => response.text()).then((page) => JSON.parse(/<script type="importmap"[^>]*>([\\s\\S]*?)<\\/script>/.exec(page)?.[1] ?? "{}").imports ?? {}).catch(() => ({}));`,
-  `      // (Tried by four addresses, each started 6 s after the one before or at once as it fails, none given up on: a slow`,
-  `      // connection still loads, the first in wins. A first try may fail or stall (a browser just started, its add-ons not`,
-  `      // ready yet), and a failed import is the page's for good by its address: the last two by others. All failed: offline.)`,
-  `      const at = (map, again = 0) => \`${SERVER}\${map[${JSON.stringify(CLIENT)}] ?? ${JSON.stringify(CLIENT)}}\${again ? \`?again=\${again}\` : ""}\`;`,
+  `// The client as ${SERVER} serves it now, read at each load. Not loading, the page says so (see #offline): the charts`,
+  `      // are kept, in this browser. (Tried by four addresses, each started 6 s after the one before or at once as it`,
+  `      // fails, none given up on: a slow connection still loads, the first in wins. A first try may fail or stall (a browser`,
+  `      // just started, its add-ons not ready yet), and a failed import is the page's for good by its address: the others`,
+  `      // differ. All failed: offline.)`,
+  `      const at = (again) => \`${SERVER}${CLIENT}\${again ? \`?again=\${again}\` : ""}\`;`,
   `      const { BitviewClient } = await new Promise((done, fail) => {`,
-  `        const addresses = [at(served), at({}), at(served, 1), at({}, 2)];`,
+  `        const addresses = [0, 1, 2, 3].map(at);`,
   `        let started = 0, failed = 0, timer = 0;`,
   `        const next = () => {`,
   `          clearTimeout(timer);`,
@@ -118,9 +116,8 @@ replaceOnce(`import { BitviewClient } from "../modules/bitview-client/index.js";
   `      });`,
 ].join("\n")}\n`);
 replaceOnce(/new BitviewClient\(\{ baseUrl: "[^"]*"/, `new BitviewClient({ baseUrl: "${SERVER}"`);
-// Asked for at once (the page's head, not after its 2 MB are read): its server's connection, and its page, which the
-// module reads first (the same request: anonymous, as fetch makes it).
-replaceOnce(`    <title>Bitview Studio: charts of Bitcoin's on-chain data</title>`, `    <link rel="preconnect" href="${SERVER}" crossorigin />\n    <link rel="preload" href="${SERVER}/" as="fetch" crossorigin />\n    <title>Bitview Studio: charts of Bitcoin's on-chain data</title>`);
+// Asked for at once (the page's head, not after its 2 MB are read): its server's connection, and its client.
+replaceOnce(`    <title>Bitview Studio: charts of Bitcoin's on-chain data</title>`, `    <link rel="preconnect" href="${SERVER}" crossorigin />\n    <link rel="modulepreload" href="${SERVER}${CLIENT}" crossorigin />\n    <title>Bitview Studio: charts of Bitcoin's on-chain data</title>`);
 
 // Typed client paths, as the names they stand for (by this repo's client, whose paths they are).
 const { BitviewClient } = await import(pathToFileURL(join(SHOWCASES, "modules/bitview-client/index.js")).href);
@@ -151,9 +148,7 @@ const NAMES = `
   process.stdout.write(JSON.stringify({ version: String(served.VERSION), names: [...names] }));`;
 const served = await inFolder("bitview-client-", async (checks) => {
   try {
-    const page = await fetchText("/");
-    const map = JSON.parse(/<script type="importmap"[^>]*>([\s\S]*?)<\/script>/.exec(page)?.[1] ?? "{}").imports ?? {};
-    writeFileSync(join(checks, "served.mjs"), await fetchText(map[CLIENT] ?? CLIENT));
+    writeFileSync(join(checks, "served.mjs"), await fetchText(CLIENT));
   } catch (error) {
     console.warn(`Couldn't read ${SERVER}'s client (${error.message}): its names go unchecked`);
     return undefined;

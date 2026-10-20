@@ -10,7 +10,7 @@ instance is [bitview.space](https://bitview.space).
   Core data, RPC, mempool tracking, storage, domain types, and the on-chain
   price oracle.
 - **Bitview:** the self-hostable application that composes BRK with a typed
-  indexer and analytics plugin graph, query layer, REST server, website, and
+  indexer and analytics plugin graph, query layer, REST server, showcases, and
   generated clients.
 
 **Used by**
@@ -36,14 +36,14 @@ See [Architecture](./ARCHITECTURE.md) for the component and data-flow details.
 | [`examples/custom_plugin`](../examples/custom_plugin) | Runnable external-plugin and custom-composition example |
 | [`modules/bitview-client`](../modules/bitview-client) | JavaScript/TypeScript client |
 | [`packages/bitview_client`](../packages/bitview_client) | Python client |
-| `website` and `showcases` | Browser application and showcase pages |
+| `showcases` | Showcase pages, served by the server, and Studio |
 | `docs`, `benches`, `docker`, and `scripts` | Project documentation, measurements, packaging, and maintenance tooling |
 
 ## Use Bitview
 
-The hosted website, API, and MCP endpoint require no account or authentication:
+The hosted showcases, API, and MCP endpoint require no account or authentication:
 
-- [Website](https://bitview.space)
+- [Showcases](https://bitview.space)
 - [Interactive API](https://bitview.space/api)
 - [OpenAPI](https://bitview.space/openapi.json)
 - MCP client endpoint: `https://mcp.bitview.space/`
@@ -69,7 +69,7 @@ bitviewd
 The default composition needs Linux or macOS, a mainnet Bitcoin Core node with
 RPC and complete `blk*.dat` files from genesis, about 290 GiB for Bitview plus
 Bitcoin Core storage and growth headroom, and 16 GB of RAM recommended for a
-full sync. The website and API listen on `0.0.0.0:3110`
+full sync. The showcases and API listen on `0.0.0.0:3110`
 ([localhost:3110](http://localhost:3110) locally).
 
 See the [`bitviewd` guide](../crates/bitviewd) for requirements, disk usage,

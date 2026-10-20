@@ -2,13 +2,13 @@
 
 Bitview is the application layer built on the reusable Bitcoin Research Kit
 (BRK) crates. BRK reads and follows Bitcoin Core; Bitview turns that data into
-a typed plugin graph, queries, HTTP APIs, a website, generated clients, and MCP
+a typed plugin graph, queries, HTTP APIs, showcase pages, generated clients, and MCP
 tools.
 
 ```text
 Bitcoin Core blk*.dat, RPC --> brk_reader, brk_rpc --> Bitview plugin set --> Query
 Bitcoin Core mempool --------> brk_mempool --------------------------------> Query
-Query --> REST server --> Website and clients
+Query --> REST server --> Showcases and clients
 MCP clients --> MCP adapter --> REST server
 ```
 

@@ -5,13 +5,14 @@
 !rust-toolchain.toml
 !crates
 !examples
-!website
+!showcases
 !modules
 **/target
 **/node_modules
 **/.DS_Store
 # Re-excluded below the whitelist: local snapshot baselines, local assistant
-# settings (reachable through the website -> modules symlink) and logs.
+# settings (reachable through the showcases -> modules symlink) and logs.
 crates/bitview_devtools/snapshots
+showcases/studio/dist
 **/.claude
 **/*.log
