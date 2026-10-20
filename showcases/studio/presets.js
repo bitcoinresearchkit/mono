@@ -212,19 +212,19 @@ export function studioPresets(client) {
     return charts;
   };
   /**
-   * A kind of transaction (a feature, a version, a pattern…): its count over windows, its share of all transactions
-   * below (the `share` given, else its own), and since the start at the bottom.
+   * A count (a kind of transaction's, a type of output's…): its windows, its share of the whole below (the `share`
+   * given, else its own), and since the start at the bottom.
    * @param {any} node @param {string} name @param {string} title @param {any} [share]
    */
-  const txKind = (node, name, title, share = node.share) =>
+  const counted = (node, name, title, share = node.share) =>
     chart(name, title, [...windows(node.sum, ""), ...sharesOf(share, "Share", { pane: 2 }), series(node.cumulative, "All time", { pane: 3, color: "gray" })]);
   /**
-   * Kinds of transactions that overlap: their shares of all transactions compared, then each one's chart.
+   * Kinds of transactions, which overlap: their shares of all transactions compared, then each one's count.
    * @param {[string, any][]} list @param {(key: string) => string} name @param {(key: string) => string} title @param {string} compared
    */
   const txKinds = (list, name, title, compared) => [
     chart("Compare", `${compared}, 1 month`, list.map(([key, node], i) => series(node.share._1m, name(key), { color: ramp(list.length)[i] }))),
-    ...list.map(([key, node]) => txKind(node, name(key), title(key))),
+    ...list.map(([key, node]) => counted(node, name(key), title(key))),
   ];
   /**
    * A change over windows (`absolute` and `rate`): the amount (its windows) and, below, the rate.
@@ -592,12 +592,12 @@ export function studioPresets(client) {
         ]),
         section("Versions", [
           chart("Compare", "Transactions by version, 1 month", entries(tx.versions).map(([key, node], i, all) => series(node.sum._1m, key === "other" ? "Other" : `Version ${key.slice(1)}`, { color: ramp(all.length)[i], type: "area" })), { stack: { 1: "percent" } }),
-          ...entries(tx.versions).map(([key, node]) => txKind(node, key === "other" ? "Other" : `Version ${key.slice(1)}`, key === "other" ? "Transactions of other versions" : `Version ${key.slice(1)} transactions`)),
+          ...entries(tx.versions).map(([key, node]) => counted(node, key === "other" ? "Other" : `Version ${key.slice(1)}`, key === "other" ? "Transactions of other versions" : `Version ${key.slice(1)} transactions`)),
         ]),
         section("Patterns", txKinds(entries(tx.patterns), words, (key) => `${words(key)} transactions`, "Share of transactions by pattern")),
-        section("CPFP", [txKind(tx.fees.cpfpParent, "Parents", "CPFP parent transactions"), txKind(tx.fees.cpfpChild, "Children", "CPFP child transactions")]),
-        section("Inscriptions", [txKind(tx.inscription, "Count", "Inscription transactions"), ...flow(tx.inscription.fees, "Fees", "Inscription fees"), chart("Fee share", "Inscriptions' share of fees", sharesOf(tx.inscription.fees.chainShare, "Share"))]),
-        txKind(tx.nonstandard, "Nonstandard", "Nonstandard transactions"),
+        section("CPFP", [counted(tx.fees.cpfpParent, "Parents", "CPFP parent transactions"), counted(tx.fees.cpfpChild, "Children", "CPFP child transactions")]),
+        section("Inscriptions", [counted(tx.inscription, "Count", "Inscription transactions"), ...flow(tx.inscription.fees, "Fees", "Inscription fees"), chart("Fee share", "Inscriptions' share of fees", sharesOf(tx.inscription.fees.chainShare, "Share"))]),
+        counted(tx.nonstandard, "Nonstandard", "Nonstandard transactions"),
         ...flow(tx.sigopCost, "Signature operations", "Signature operation cost"),
       ]),
       section("Inputs", [
@@ -683,20 +683,18 @@ export function studioPresets(client) {
   function policyName(/** @type {string} */ key) {
     return key === "preV30Standard" ? "Standard before v30" : key === "preV30Nonstandard" ? "Nonstandard before v30" : words(key);
   }
-  /** Inputs or outputs by type: each type's count and transactions (sums) and their shares. @param {any} types @param {string} what @param {string} doing */
+  /** Inputs or outputs by type: each type's count and transactions, each with its share. @param {any} types @param {string} what @param {string} doing */
   function byType(types, what, doing) {
     const list = entries(types), colors = ramp(list.length);
     const name = (/** @type {string} */ key) => client.SPENDABLE_TYPE_NAMES[key]?.short ?? (key === "opReturn" ? "OP_RETURN" : key);
     return [
       section("Compare", [
         chart("Count, 1 month", `${what[0].toUpperCase()}${what.slice(1)} by type, 1 month`, list.map(([key, node], i) => series(node.count.sum._1m, name(key), { color: colors[i], type: "area" })), { stack: { 1: "percent" } }),
-        chart("Share, 1 month", `Share of ${what} by type, 1 month`, list.map(([key, node], i) => series(node.share._1m, name(key), { color: colors[i] }))),
+        chart("Transaction share, 1 month", `Share of transactions ${doing} each ${what.slice(0, -1)} type, 1 month`, list.map(([key, node], i) => series(node.txShare._1m, name(key), { color: colors[i] }))),
       ]),
       ...list.map(([key, node]) => section(name(key), [
-        ...flow(node.count, "Count", `${name(key)} ${what}`),
-        ...flow(node.txCount, "Transactions", `Transactions ${doing} ${inSentence(name(key))} ${what}`),
-        chart("Share", `Share of ${what} that are ${inSentence(name(key))}`, sharesOf(node.share, "Share")),
-        chart("Transaction share", `Share of transactions ${doing} ${inSentence(name(key))} ${what}`, sharesOf(node.txShare, "Share")),
+        counted(node.count, "Count", `${name(key)} ${what}`, node.share),
+        counted(node.txCount, "Transactions", `Transactions ${doing} ${inSentence(name(key))} ${what}`, node.txShare),
       ])),
     ];
   }
@@ -708,7 +706,7 @@ export function studioPresets(client) {
   function opReturnCharts(node, titled) {
     return [
       ...flow(node.outputCount, "Outputs", titled("outputs")),
-      ...(node.txCount ? [txKind(node.txCount, "Transactions", titled("transactions"), node.txShare)] : []),
+      ...(node.txCount ? [counted(node.txCount, "Transactions", titled("transactions"), node.txShare)] : []),
       ...flow(node.dataBytes, "Data", titled("data")),
       ...(node.dataBytes?.chainShare ? [chart("Data share", titled("share of block space"), sharesOf(node.dataBytes.chainShare, "Share"))] : []),
       ...flow(node.txVsize, "Transaction size", titled("transaction size")),
@@ -755,7 +753,7 @@ export function studioPresets(client) {
       ...flow(node.blocksMined, "Blocks mined", `Blocks mined: ${name}`),
       chart("Share", `Share of blocks: ${name}`, sharesOf(node.share, "Share")),
       ...flow(node.rewards, "Rewards", `Rewards: ${name}`),
-      chart("Fees per block", `Fees per block: ${name}`, [...windows(node.feesPerBlock, "Bitcoin", { pick: btc }), ...windows(node.feesPerBlock, "Dollars", { pick: usd, pane: 2 })]),
+      chart("Fees per block", `Fees per block: ${name}`, [...windows(node.feesPerBlock, "Bitcoin", { pick: btc }), ...windows(node.feesPerBlock, "Dollars", { pick: usd, pane: 2 })], { log: [1, 2] }),
       chart("Hash rate", `Hash rate: ${name}`, windows(node.hashrate, ""), { log: [1] }),
     ]);
     return [
