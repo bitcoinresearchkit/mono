@@ -338,8 +338,9 @@ export function studioPresets(client) {
     const list = entries(node).filter(([key, value]) => isLeaf(value) && Number.isFinite(percentile(key))).sort(([a], [b]) => percentile(a) - percentile(b));
     if (!list.length) return [];
     const colors = ramp(list.length, 25, 160);
-    // (The median by its well-known name where it has one: a cohort's median realized price.)
-    return [chart(name, title, [price(), ...list.map(([key, value], i) => series(key === "median" && isLeaf(node.medianRealizedPrice) ? node.medianRealizedPrice : value, percentileLabel(percentile(key)), { color: colors[i], width: key === "median" ? 2 : 1 })), ...more])];
+    // (The median by its well-known name where it has one: a cohort's median realized or capitalized price.)
+    const median = [node.medianRealizedPrice, node.medianCapitalizedPrice].find(isLeaf);
+    return [chart(name, title, [price(), ...list.map(([key, value], i) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color: colors[i], width: key === "median" ? 2 : 1 })), ...more])];
   };
   /** Whether a rarity meter node is a component (its percentiles' bands), not a group of them. @param {any} node */
   const isComponent = (node) => entries(node).some(([k]) => Number.isFinite(percentile(k)));
@@ -800,7 +801,7 @@ export function studioPresets(client) {
  * `realizedPrice` is its average cost basis per coin, `avg`; `mvrv` is that average's `ratio`). The presets chart the
  * well-known one.
  */
-const TWINS = [["realizedCap", "total"], ["realizedPrice", "avg"], ["capitalizedPrice", "avg"], ["medianRealizedPrice", "median"], ["mvrv", "ratio"], ["mayerMultiple", "ratio"], ["aviv", "ratio"]];
+const TWINS = [["realizedCap", "total"], ["realizedPrice", "avg"], ["capitalizedPrice", "avg"], ["medianRealizedPrice", "median"], ["medianCapitalizedPrice", "median"], ["mvrv", "ratio"], ["mayerMultiple", "ratio"], ["aviv", "ratio"]];
 /** Each alias' twin, both ways, by name, in a client's tree. @param {any} tree @returns {Map<string, string>} */
 function twins(tree) {
   const map = new Map(), stack = [tree];
