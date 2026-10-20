@@ -98,44 +98,44 @@ has to be deleted by hand.
 - Relations to nothing are null instead of a maximum-value marker: `spending_txin_index` while an output is unspent,
   and a coinbase input's `outpoint`, `spent_txout_index` and `type_index` (its `output_type` stays `unknown`)
 - One unit per quantity: the `_cents` copies of USD series, the `_sats` copies of BTC amounts and the sats-per-USD
-  copies of prices (`*_price_sats` and every other price's `_sats`) are gone from the API and the clients (they stay
-  the exact storage; the USD and BTC series print the same values exactly); `sats_per_dollar` replaces `price_sats`
-  and the true range is in USD (was cents). Unitless numbers have one form, the one they are read in: shares, rates
-  and changes in percent; ratios (spot ÷ price, SOPR, MVRV, NUPL, liveliness, sell-side risk, every `X_to_Y`) as a
-  ratio; the `_ppm` copies and the `_ratio` copies of percent values are gone. The Cointime and Coinflow in-loss shares
-  and the Bedrock loss thresholds are in percent (were decimals); sell-side risk is a ratio (was percent beside a
-  `_ratio` copy: same ids, 100 times smaller), and the rarity meter's seller-exhaustion thresholds follow it into a
-  ratio (were percent). A share with rolling windows keeps its all-time value as `cumulative` beside `24h`...`1y`, id
+  copies of prices (`*_price_sats` and every other price's `_sats`) are gone from the API and the clients (they stay the
+  exact storage; the USD and BTC series print the same values exactly); `sats_per_dollar` replaces `price_sats` and the
+  true range is in USD (was cents). Unitless numbers have one form, the one they are read in: shares, rates and changes
+  in percent; ratios (spot ÷ price, SOPR, MVRV, NUPL, liveliness, sell-side risk, every `X_to_Y`) as a ratio; the `_ppm`
+  copies and the `_ratio` copies of percent values are gone. The Cointime and Coinflow in-loss shares and the Bedrock
+  loss thresholds are in percent (were decimals); sell-side risk is a ratio (was percent beside a `_ratio` copy: same
+  ids, 100 times smaller). A share with rolling windows keeps its all-time value as `cumulative` beside `24h`...`1y`, id
   `*_cumulative` (`p2tr_output_share_cumulative`, was `p2tr_output_share`). A node left with one unit is the series
   itself: `price.spot`, `price.ohlc`, realized caps and prices (were their `.usd` child), shares (were `.percent`), BTC
   changes over a window (were `.btc`). About 26,100 v0.12.2 ids were such copies
 - Renamed the rarity meter `*_index` series to `*_level` (`rarity_meter.full.level`, ...)
 - Rarity meter components sit by cohort: `rarity_meter.components.{all, sth}.{realized_price, capitalized_price,
   median_realized_price, median_capitalized_price}`, with the whole network's cointime prices in `all` too
-  (`all.vaulted_price`, `all.true_market_mean`), `under_6m.{realized_price, capitalized_price}`,
-  `awake.realized_price` and `mobile.{realized_price, median_realized_price, median_capitalized_price}` (were
-  `coinflow_price`, `true_market_mean_price`, `under_6m_realized_price`, ...). A component's ids follow its price's: each percentile's price is its `band` (`<component>.<pct>.band`, ids
-  `<price>_rarity_<pct>`, as `sth_median_realized_price_rarity_pct1`; were `<component>.<pct>.price`, ids
-  `<component>_<pct>`) and its ratio `<component>.<pct>.ratio` (ids `<price>_rarity_ratio_<pct>`; were
-  `<component>_ratio_<pct>`), and a median component's price and spot ratio are `sth_median_realized_price`,
-  `sth_median_realized_price_ratio`, `median_capitalized_price`, ...
+  (`all.vaulted_price`, `all.true_market_mean`), `under_6m.{realized_price, capitalized_price}`, `awake.realized_price`
+  and `mobile.{realized_price, median_realized_price, median_capitalized_price}` (were `coinflow_price`,
+  `true_market_mean_price`, `under_6m_realized_price`, ...). A component's ids follow its price's: each percentile's
+  price is its `band` (`<component>.<pct>.band`, ids `<price>_rarity_<pct>`, as `sth_median_realized_price_rarity_pct1`;
+  were `<component>.<pct>.price`, ids `<component>_<pct>`) and its ratio `<component>.<pct>.ratio` (ids
+  `<price>_rarity_ratio_<pct>`; were `<component>_ratio_<pct>`), and a median component's price and spot ratio are
+  `sth_median_realized_price`, `sth_median_realized_price_ratio`, `median_capitalized_price`, ...
   Extremes are named by their input, `supply_in_loss`, `realized_profit_24h`, `realized_loss_24h`,
   `realized_peak_regret_24h`, `sell_side_risk_ratio_24h` (were `coins_in_loss`, `profit_taking`, `capitulation`,
-  `peak_regret`, `seller_exhaustion`), with `thresholds.{tail0_1, tail0_05, tail0_025}` and `tail_share` (were
-  `threshold_pct0_1`, ... and `tail`); the 0.025% threshold's id names its tail
-  (`rarity_meter_supply_in_loss_threshold_tail0_025`, was `rarity_meter_coins_in_loss_threshold`)
-- The rarity meter reads 16 reference models. Local reads the short-term holders' and under-six-month cohorts'
-  realized and capitalized prices and the short-term holders' median creation prices per coin and per dollar (was the
-  under-four- and under-six-month and short-term holders' realized prices and the short-term holders' capitalized
-  price); cycle the all-chain realized and capitalized prices and median creation prices, the mobile supply's medians,
-  the vaulted price, True Market Mean and the awake and mobile realized prices (was the all-chain, long-term holders'
-  and over-four- and over-six-month realized prices, the all-chain and long-term capitalized prices and Bedrock's
-  floors); full both. New components: `awake.realized_price`, `under_6m.capitalized_price` and the six medians
+  `peak_regret`, `seller_exhaustion`). Each is its input (`block`, under the input's own id: `supply_in_loss`,
+  `realized_profit_sum_24h`, ...) and the input's historical percentile bands, the components' rarity percentiles
+  (`supply_in_loss_rarity_pct99_9`, ...), in place of three tail thresholds and a tail share (were
+  `rarity_meter_coins_in_loss_threshold_pct0_1`, ... and `rarity_meter_coins_in_loss_tail`). The bands describe the
+  history alone, so they stay defined at blocks whose own value is left out of it (a zero supply in loss)
+- The rarity meter reads 16 reference models. Local reads the short-term holders' and under-six-month cohorts' realized
+  and capitalized prices and the short-term holders' median creation prices per coin and per dollar (was the under-four-
+  and under-six-month and short-term holders' realized prices and the short-term holders' capitalized price); cycle the
+  all-chain realized and capitalized prices and median creation prices, the mobile supply's medians, the vaulted price,
+  True Market Mean and the awake and mobile realized prices (was the all-chain, long-term holders' and over-four- and
+  over-six-month realized prices, the all-chain and long-term capitalized prices and Bedrock's floors); full both. New
+  components: `awake.realized_price`, `under_6m.capitalized_price` and the six medians
   (`{all, sth, mobile}.{median_realized_price, median_capitalized_price}`). Gone: `lth_realized_price`,
   `lth_capitalized_price`, `over_4m_realized_price`, `over_6m_realized_price`, `under_4m_realized_price`,
-  `cointime_price` and `active_price`,
-  and the extremes' `rank` (a coarse copy of `tail_share` that counted a missing value as 0). Bands, levels and scores
-  are null before height 210,000, where calibration starts (were computed from zero bands)
+  `cointime_price` and `active_price`, and the extremes' `rank`, which counted a missing value as 0. Bands, levels and
+  scores are null before height 210,000, where calibration starts (were computed from zero bands)
 - Bedrock's modes are `awake`, `mobile` and, last, `unweighted`, the baseline the weighted ones improve on (were
   `raw`, `cointime`, `coinflow`; ids `bedrock_awake_floor_pct95`, ...); the horizon modes `coinflow_1m` ...
   `coinflow_8y` are gone. Each mode publishes `floor`, `cost_basis_above_floor` (was `level`: the creation-price
@@ -1125,8 +1125,9 @@ has to be deleted by hand.
   extremes, which a single outlier set)
 - Transaction vsize statistics use the fee statistics' lower nearest rank `sorted[max(0, floor(n·p) − 1)]` (were the
   rounded nearest rank). Rolling-window percentiles and medians (were linearly interpolated), the VOCDD median behind
-  Reserve Risk, Bedrock's loss thresholds (were linearly interpolated) and the rarity meter's extreme thresholds (were
-  `sorted[floor((n − 1)·p)]`) use the nearest rank `ceil(n·p) − 1`, like the cost-basis and URPD percentiles
+  Reserve Risk, Bedrock's loss thresholds (were linearly interpolated) and the rarity meter's extreme bands (their
+  thresholds were `sorted[floor((n − 1)·p)]`) use the nearest rank `ceil(n·p) − 1`, like the cost-basis and URPD
+  percentiles
 - The inflation rate is the scheduled annual issuance over the supply (the block's scheduled subsidy times 52,560
   blocks), not the derived subsidy (zero for a block whose miner claimed nothing); it was the trailing 365-day supply
   change, which lagged a halving by up to a year (that change remains `supply_delta_1y_rate`). It is undefined only

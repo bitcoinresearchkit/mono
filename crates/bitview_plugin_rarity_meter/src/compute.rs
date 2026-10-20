@@ -22,24 +22,12 @@ impl ComputePlugin for Vecs {
         } = dependencies;
 
         let spot = &prices.spot.cents.height;
-        let metrics = &holders.cohorts.all;
-        let realized = &metrics.realized;
         let (components_result, extremes_result) = join(
             || {
                 self.components
                     .compute(indexer, holders, cointime, coinflow, spot, exit)
             },
-            || {
-                self.extremes.compute(
-                    indexer,
-                    &metrics.supply.in_loss.block.btc.height,
-                    &realized.profit.sum._24h.usd.height,
-                    &realized.loss.sum._24h.usd.height,
-                    &realized.peak_regret.sum._24h.usd.height,
-                    &realized.sell_side_risk_ratio._24h.ratio.height,
-                    exit,
-                )
-            },
+            || self.extremes.compute(indexer, exit),
         );
         components_result?;
         extremes_result?;

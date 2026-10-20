@@ -10,7 +10,6 @@ mod extremes;
 mod import;
 mod inner;
 mod median_component;
-mod threshold_vecs;
 
 pub use dependencies::Dependencies;
 

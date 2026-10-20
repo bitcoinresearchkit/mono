@@ -149,38 +149,6 @@ impl ExactOrderStats {
         debug_assert_eq!(rank_index, ranks.len());
     }
 
-    pub fn count_lt(&self, value: f64) -> usize {
-        let mut count = 0;
-        for block in &self.blocks {
-            if block
-                .last()
-                .is_some_and(|candidate| candidate.total_cmp(&value).is_lt())
-            {
-                count += block.len();
-                continue;
-            }
-            count += block.partition_point(|candidate| candidate.total_cmp(&value).is_lt());
-            break;
-        }
-        count
-    }
-
-    pub fn count_le(&self, value: f64) -> usize {
-        let mut count = 0;
-        for block in &self.blocks {
-            if block
-                .last()
-                .is_some_and(|candidate| !candidate.total_cmp(&value).is_gt())
-            {
-                count += block.len();
-                continue;
-            }
-            count += block.partition_point(|candidate| !candidate.total_cmp(&value).is_gt());
-            break;
-        }
-        count
-    }
-
     pub(crate) fn first(&self) -> f64 {
         self.blocks.first().unwrap().first().copied().unwrap()
     }

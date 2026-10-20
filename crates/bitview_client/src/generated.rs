@@ -434,21 +434,34 @@ pub mod tree {
         level: SeriesPattern1<Option<Score>> = "*_level",
         score: SeriesPattern1<Option<Score>> = "*_score",
     } }
-    shape! { Threshold<A> at "series().rarity_meter.extremes.realized_loss_24h.thresholds" {
-        tail0_1: SeriesPattern1<A> = "*_1",
-        tail0_05: SeriesPattern1<A> = "*_05",
-        tail0_025: SeriesPattern1<A> = "*_025",
-    } }
     shape! { Extreme<A> at "series().rarity_meter.extremes.realized_loss_24h" {
-        thresholds: Threshold<A> = "*_threshold_tail0",
-        tail_share: SeriesPattern1<Option<Percent>> = "*_tail_share",
+        block: SeriesPattern1<A> = "*",
+        pct0_1: SeriesPattern1<A> = "*_rarity_pct0_1",
+        pct0_5: SeriesPattern1<A> = "*_rarity_pct0_5",
+        pct1: SeriesPattern1<A> = "*_rarity_pct1",
+        pct2: SeriesPattern1<A> = "*_rarity_pct2",
+        pct5: SeriesPattern1<A> = "*_rarity_pct5",
+        pct10: SeriesPattern1<A> = "*_rarity_pct10",
+        pct20: SeriesPattern1<A> = "*_rarity_pct20",
+        pct30: SeriesPattern1<A> = "*_rarity_pct30",
+        pct40: SeriesPattern1<A> = "*_rarity_pct40",
+        median: SeriesPattern1<A> = "*_rarity_median",
+        pct60: SeriesPattern1<A> = "*_rarity_pct60",
+        pct70: SeriesPattern1<A> = "*_rarity_pct70",
+        pct80: SeriesPattern1<A> = "*_rarity_pct80",
+        pct90: SeriesPattern1<A> = "*_rarity_pct90",
+        pct95: SeriesPattern1<A> = "*_rarity_pct95",
+        pct98: SeriesPattern1<A> = "*_rarity_pct98",
+        pct99: SeriesPattern1<A> = "*_rarity_pct99",
+        pct99_5: SeriesPattern1<A> = "*_rarity_pct99_5",
+        pct99_9: SeriesPattern1<A> = "*_rarity_pct99_9",
     } }
     shape! { Extremes at "series().rarity_meter.extremes" {
-        supply_in_loss: Extreme<Option<Bitcoin>> = "*_supply_in_loss",
-        realized_profit_24h: Extreme<Option<Dollars>> = "*_realized_profit_24h",
-        realized_loss_24h: Extreme<Option<Dollars>> = "*_realized_loss_24h",
-        realized_peak_regret_24h: Extreme<Option<Dollars>> = "*_realized_peak_regret_24h",
-        sell_side_risk_ratio_24h: Extreme<Option<Ratio>> = "*_sell_side_risk_ratio_24h",
+        supply_in_loss: Extreme<Option<Bitcoin>> = "supply_in_loss",
+        realized_profit_24h: Extreme<Option<Dollars>> = "realized_profit_sum_*",
+        realized_loss_24h: Extreme<Option<Dollars>> = "realized_loss_sum_*",
+        realized_peak_regret_24h: Extreme<Option<Dollars>> = "realized_peak_regret_sum_*",
+        sell_side_risk_ratio_24h: Extreme<Option<Ratio>> = "sell_side_risk_ratio_*",
     } }
     shape! { MobileMedianCapitalizedPriceMedian at "series().rarity_meter.components.mobile.median_capitalized_price.median" {
         ratio: SeriesPattern1<Option<Multiple>> = "mobile_median_capitalized_price_rarity_ratio_*",
@@ -593,7 +606,7 @@ pub mod tree {
     } }
     shape! { RarityMeter at "series().rarity_meter" {
         components: Components = "pct99",
-        extremes: Extremes = "*",
+        extremes: Extremes = "24h",
         full: Meter = "*",
         local: Meter = "local_*",
         cycle: Meter = "cycle_*",

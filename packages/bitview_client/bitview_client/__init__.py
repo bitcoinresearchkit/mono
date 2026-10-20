@@ -2770,23 +2770,35 @@ class Meter(_Node):
     score: SeriesPattern1[Optional[Score]] = _at(SeriesPattern1, '*_score')
 
 
-class Threshold(_Node, Generic[A]):
-    tail0_1: SeriesPattern1[A] = _at(SeriesPattern1, '*_1')
-    tail0_05: SeriesPattern1[A] = _at(SeriesPattern1, '*_05')
-    tail0_025: SeriesPattern1[A] = _at(SeriesPattern1, '*_025')
-
-
 class Extreme(_Node, Generic[A]):
-    thresholds: Threshold[A] = _at(Threshold, '*_threshold_tail0')
-    tail_share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_tail_share')
+    block: SeriesPattern1[A] = _at(SeriesPattern1, '*')
+    pct0_1: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct0_1')
+    pct0_5: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct0_5')
+    pct1: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct1')
+    pct2: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct2')
+    pct5: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct5')
+    pct10: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct10')
+    pct20: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct20')
+    pct30: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct30')
+    pct40: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct40')
+    median: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_median')
+    pct60: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct60')
+    pct70: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct70')
+    pct80: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct80')
+    pct90: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct90')
+    pct95: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct95')
+    pct98: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct98')
+    pct99: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct99')
+    pct99_5: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct99_5')
+    pct99_9: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct99_9')
 
 
 class Extremes(_Node):
-    supply_in_loss: Extreme[Optional[Bitcoin]] = _at(Extreme, '*_supply_in_loss')
-    realized_profit_24h: Extreme[Optional[Dollars]] = _at(Extreme, '*_realized_profit_24h')
-    realized_loss_24h: Extreme[Optional[Dollars]] = _at(Extreme, '*_realized_loss_24h')
-    realized_peak_regret_24h: Extreme[Optional[Dollars]] = _at(Extreme, '*_realized_peak_regret_24h')
-    sell_side_risk_ratio_24h: Extreme[Optional[Ratio]] = _at(Extreme, '*_sell_side_risk_ratio_24h')
+    supply_in_loss: Extreme[Optional[Bitcoin]] = _at(Extreme, 'supply_in_loss')
+    realized_profit_24h: Extreme[Optional[Dollars]] = _at(Extreme, 'realized_profit_sum_*')
+    realized_loss_24h: Extreme[Optional[Dollars]] = _at(Extreme, 'realized_loss_sum_*')
+    realized_peak_regret_24h: Extreme[Optional[Dollars]] = _at(Extreme, 'realized_peak_regret_sum_*')
+    sell_side_risk_ratio_24h: Extreme[Optional[Ratio]] = _at(Extreme, 'sell_side_risk_ratio_*')
 
 
 class MobileMedianCapitalizedPriceMedian(_Node):
@@ -2956,7 +2968,7 @@ class Components(_Node):
 
 class RarityMeter(_Node):
     components: Components = _at(Components, 'pct99')
-    extremes: Extremes = _at(Extremes, '*')
+    extremes: Extremes = _at(Extremes, '24h')
     full: Meter = _at(Meter, '*')
     local: Meter = _at(Meter, 'local_*')
     cycle: Meter = _at(Meter, 'cycle_*')

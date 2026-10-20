@@ -4,24 +4,22 @@ use bitview_compute::{
     ExactOrderStats, FenwickTree, NumericValue, WRITE_INTERVAL, nearest_rank, prepare_computed,
     write_locked,
 };
-use bitview_primitives::PartsPerMillion32;
+use bitview_primitives::{RARITY_PERCENTILES, RARITY_PERCENTILES_LEN};
 use bitview_traversable::Traversable;
-use bitview_vecs::{IndexSources, PerBlock, PercentPerBlock};
+use bitview_vecs::{IndexSources, LazyPerBlock, PerBlock, shapes::RarityPercentiles};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Version};
-use derive_more::{Deref, DerefMut};
 use schemars::JsonSchema;
-use vecdb::{Database, ReadableVec, Rw, StorageMode, VecIndex, WritableVec};
-
-use crate::threshold_vecs::ThresholdVecs;
+use vecdb::{
+    AnyVec, Database, Ident, ReadableCloneableVec, ReadableVec, Rw, StorageMode, VecIndex,
+    WritableVec,
+};
 
 const MIN_HISTORY_BLOCKS: usize = 210_000;
 /// Above this many missing outputs, coordinate compression is faster than
 /// applying exact live updates one at a time.
 const BULK_BACKFILL_THRESHOLD: usize = 10_000;
-/// The highlighted tail shares, rarest first.
-const TAILS: [f64; 3] = [0.00025, 0.0005, 0.001];
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum WindowKind {
@@ -29,9 +27,10 @@ enum WindowKind {
     Rolling(usize),
 }
 
+/// Which observations an extreme's history keeps: all prior ones or a rolling window, and any
+/// finite value or only positive ones.
 #[derive(Clone, Copy)]
 pub(super) struct Config {
-    upper_tail: bool,
     window: WindowKind,
     positive_only: bool,
 }
@@ -43,44 +42,34 @@ impl Config {
 }
 
 pub(super) const REALIZED: Config = Config {
-    upper_tail: true,
     window: WindowKind::Full,
     positive_only: false,
 };
 
-pub(super) const COINS_IN_LOSS: Config = Config {
-    upper_tail: true,
+pub(super) const SUPPLY_IN_LOSS: Config = Config {
     window: WindowKind::Full,
     positive_only: true,
 };
 
 pub(super) const SELL_SIDE_RISK: Config = Config {
-    upper_tail: false,
     window: WindowKind::Rolling(MIN_HISTORY_BLOCKS),
     positive_only: true,
 };
 
-/// Historical extremeness of one metric.
-///
-/// `tail_share` is the represented observation's top- or bottom-tail share and the three
-/// `thresholds` are the highlight boundaries.
-#[derive(Deref, DerefMut, Traversable)]
+/// One metric and its historical percentile bands: the source values at each rarity percentile
+/// of its prior observations, so the metric reads against its own history as a price against its
+/// bands.
+#[derive(Traversable)]
 pub struct Extreme<T, M: StorageMode = Rw>
 where
     T: NumericValue + JsonSchema,
 {
-    #[deref]
-    #[deref_mut]
-    /// Source values corresponding to rare historical tail probabilities before
-    /// the represented observation. An upper-tail event is extreme at or above
-    /// its boundary; a lower-tail event is extreme at or below it. The series'
-    /// model determines the history and direction.
-    pub thresholds: ThresholdVecs<PerBlock<T, M>>,
-    /// Historical tail share: the fraction of accepted observations at least as
-    /// extreme as the represented source value in the configured upper or lower
-    /// tail. A smaller percentage means a rarer observation. The represented
-    /// observation is included in both numerator and denominator.
-    pub tail_share: PercentPerBlock<PartsPerMillion32, M>,
+    /// The metric itself, under its own id.
+    pub block: LazyPerBlock<T>,
+    /// The source value at this percentile of the accepted observations before the represented
+    /// one (the series' model sets the history).
+    #[traversable(flatten)]
+    pub bands: RarityPercentiles<PerBlock<T, M>>,
 
     history: M::WriteOnly<LiveHistory>,
 }
@@ -89,37 +78,24 @@ impl<T> Extreme<T>
 where
     T: NumericValue + JsonSchema,
 {
+    /// `source` is the metric; its id with `_rarity` prefixes the bands' (`supply_in_loss_rarity_pct1`).
     pub fn import(
         db: &Database,
-        name: &str,
+        source: &impl ReadableCloneableVec<Height, T>,
         version: Version,
         mappings: &IndexSources,
     ) -> Result<Self> {
-        let version = version + Version::TWO;
-        let thresholds = ThresholdVecs {
-            tail0_1: PerBlock::import(db, &format!("{name}_threshold_tail0_1"), version, mappings)?,
-            tail0_05: PerBlock::import(
-                db,
-                &format!("{name}_threshold_tail0_05"),
-                version,
-                mappings,
-            )?,
-            tail0_025: PerBlock::import(
-                db,
-                &format!("{name}_threshold_tail0_025"),
-                version,
-                mappings,
-            )?,
-        };
-
+        let name = format!("{}_rarity", source.name());
         Ok(Self {
-            thresholds,
-            tail_share: PercentPerBlock::import(
-                db,
-                &format!("{name}_tail_share"),
+            block: LazyPerBlock::from_height_source::<Ident>(
+                source.name(),
                 version,
+                source,
                 mappings,
-            )?,
+            ),
+            bands: RarityPercentiles::try_from_fn(|id| {
+                PerBlock::import(db, &format!("{name}_{}", id.suffix()), version, mappings)
+            })?,
             history: LiveHistory::new(),
         })
     }
@@ -127,10 +103,10 @@ where
     pub(super) fn compute(
         &mut self,
         starting_height: Height,
-        source: &impl ReadableVec<Height, T>,
         config: Config,
         exit: &Exit,
     ) -> Result<()> {
+        let source = &self.block.height.clone();
         let source_end = source.len();
         let start = prepare_computed(
             self.iter_any_stored_mut().collect::<Vec<_>>(),
@@ -173,13 +149,7 @@ where
 
         for (offset, value) in pending.into_iter().enumerate() {
             let height_index = start + offset;
-            let state = if config.accepts(value) && self.history.len() >= MIN_HISTORY_BLOCKS {
-                EventState::new(value, &self.history, config)
-            } else {
-                EventState::missing()
-            };
-
-            self.push_state(state);
+            self.push_bands(bands(&self.history));
             self.history.observe(value, config);
             self.write_if_needed(height_index, source_end, exit)?;
         }
@@ -217,13 +187,7 @@ where
         }
 
         for (height_index, &value) in values.iter().enumerate().skip(start) {
-            let state = if config.accepts(value) && history.len() >= MIN_HISTORY_BLOCKS {
-                EventState::new(value, &history, config)
-            } else {
-                EventState::missing()
-            };
-
-            self.push_state(state);
+            self.push_bands(bands(&history));
             if config.accepts(value) {
                 history.add(value);
             }
@@ -239,22 +203,10 @@ where
         Ok(())
     }
 
-    fn push_state(&mut self, state: EventState) {
-        let ThresholdVecs {
-            tail0_1,
-            tail0_05,
-            tail0_025,
-        } = &mut self.thresholds;
-        for (vec, threshold) in [tail0_1, tail0_05, tail0_025]
-            .into_iter()
-            .zip(state.thresholds)
-        {
-            vec.height.push(T::from(threshold));
+    fn push_bands(&mut self, bands: [f64; RARITY_PERCENTILES_LEN]) {
+        for (vec, band) in self.bands.iter_mut().zip(bands) {
+            vec.height.push(T::from(band));
         }
-        self.tail_share
-            .fixed
-            .height
-            .push(PartsPerMillion32::from(state.tail));
     }
 
     fn write_if_needed(
@@ -431,8 +383,7 @@ impl LiveHistory {
 trait HistoryStats {
     fn len(&self) -> usize;
     /// Percentiles (ascending) at the nearest rank, in one lookup.
-    fn percentiles(&self, ps: [f64; 3]) -> [f64; 3];
-    fn tail(&self, value: f64, upper: bool) -> f64;
+    fn percentiles<const N: usize>(&self, ps: [f64; N]) -> [f64; N];
 }
 
 impl HistoryStats for CoordinateHistory<'_> {
@@ -440,27 +391,11 @@ impl HistoryStats for CoordinateHistory<'_> {
         self.len
     }
 
-    fn percentiles(&self, ps: [f64; 3]) -> [f64; 3] {
+    fn percentiles<const N: usize>(&self, ps: [f64; N]) -> [f64; N] {
         let targets = ps.map(|p| nearest_rank(self.len, p) as f64);
         self.tree
             .kth(targets, &|count: &f64| *count)
             .map(|bucket| self.coordinates[bucket])
-    }
-
-    fn tail(&self, value: f64, upper: bool) -> f64 {
-        let bucket = self.bucket(value);
-        let less = if bucket == 0 {
-            0.0
-        } else {
-            self.tree.prefix_sum(bucket - 1)
-        };
-        let less_or_equal = self.tree.prefix_sum(bucket);
-        let count = if upper {
-            self.len as f64 - less
-        } else {
-            less_or_equal
-        };
-        (count + 1.0) / (self.len as f64 + 1.0)
     }
 }
 
@@ -469,47 +404,17 @@ impl HistoryStats for LiveHistory {
         self.stats.count()
     }
 
-    fn percentiles(&self, ps: [f64; 3]) -> [f64; 3] {
+    fn percentiles<const N: usize>(&self, ps: [f64; N]) -> [f64; N] {
         self.stats.percentiles(ps)
     }
-
-    fn tail(&self, value: f64, upper: bool) -> f64 {
-        let count = if upper {
-            self.stats.count() - self.stats.count_lt(value)
-        } else {
-            self.stats.count_le(value)
-        };
-        (count as f64 + 1.0) / (self.stats.count() as f64 + 1.0)
-    }
 }
 
-struct EventState {
-    /// The 0.1%, 0.05% and 0.025% tail thresholds, as the outputs take them.
-    thresholds: [f64; 3],
-    tail: f64,
-}
-
-impl EventState {
-    fn missing() -> Self {
-        Self {
-            thresholds: [f64::NAN; 3],
-            tail: f64::NAN,
-        }
-    }
-
-    fn new(value: f64, history: &impl HistoryStats, config: Config) -> Self {
-        // Lookups take ascending percentiles: the rarest tail comes last in the upper tail.
-        let [rarest, rarer, rare] = TAILS;
-        let thresholds = if config.upper_tail {
-            history.percentiles([1.0 - rare, 1.0 - rarer, 1.0 - rarest])
-        } else {
-            let mut thresholds = history.percentiles([rarest, rarer, rare]);
-            thresholds.reverse();
-            thresholds
-        };
-        Self {
-            thresholds,
-            tail: history.tail(value, config.upper_tail),
-        }
+/// The bands before an observation: its history's rarity percentiles once that history is long
+/// enough, else missing. They describe the history alone, whether or not the observation joins it.
+fn bands(history: &impl HistoryStats) -> [f64; RARITY_PERCENTILES_LEN] {
+    if history.len() >= MIN_HISTORY_BLOCKS {
+        history.percentiles(RARITY_PERCENTILES)
+    } else {
+        [f64::NAN; RARITY_PERCENTILES_LEN]
     }
 }

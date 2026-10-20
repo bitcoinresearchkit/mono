@@ -171,6 +171,8 @@ export function studioPresets(client) {
   const btc = (n) => (isLeaf(n) ? n : n?.btc);
   /** Its dollars', if it has them. @param {any} n */
   const usd = (n) => (isLeaf(n) ? undefined : n?.usd);
+  /** An amount as layers: its bitcoin, and its dollars' value below when it has them. @param {any} node @param {string} label */
+  const amount = (node, label) => [series(btc(node), label, { color: "orange" }), ...(usd(node) ? [series(usd(node), "Value", { color: "green", pane: 2 })] : [])];
   /** A series' node, or its `block` (a node with its own series under `block`, beside others). @param {any} n */
   const own = (n) => (isLeaf(n) ? n : n?.block);
   /** A baseline at `base`: green above, red below (a ratio's base 1, a change's 0). @param {number} [base] @returns {Layer} */
@@ -235,7 +237,7 @@ export function studioPresets(client) {
     const inProfit = supply?.inProfit, inLoss = supply?.inLoss;
     return [
       supply && section("Supply", [
-        chart("Total", of("Supply"), [series(btc(supply.total), "Supply", { color: "orange" }), ...(usd(supply.total) ? [series(usd(supply.total), "Value", { color: "green", pane: 2 })] : [])]),
+        chart("Total", of("Supply"), amount(supply.total, "Supply")),
         inProfit && chart("In profit and loss", of("Supply in profit and loss"), [
           series(btc(inProfit), "In profit", { color: "green", type: "area" }), series(btc(inLoss), "In loss", { color: "red", type: "area" }),
           ...(usd(inProfit) ? [series(usd(inProfit), "In profit, value", { color: "green", type: "area", pane: 2 }), series(usd(inLoss), "In loss, value", { color: "red", type: "area", pane: 2 })] : []),
@@ -350,11 +352,16 @@ export function studioPresets(client) {
    * @param {any} node @param {string} label @param {string} who
    */
   const component = (node, label, who) => {
-    const bands = entries(node).filter(([k]) => Number.isFinite(percentile(k))), titled = (/** @type {string} */ what) => `${label} ${what}: ${who}`;
+    const titled = (/** @type {string} */ what) => `${label} ${what}: ${who}`;
     return section(label, [
-      chart("Bands", titled("rarity bands"), [price(), ...(own(node) ? [series(own(node), label, { color: "orange" })] : []), ...bands.map(([k, v], i) => series(v.band, percentileLabel(percentile(k)), { color: ramp(bands.length, 140, 360)[i] }))]),
-      chart("Ratios", titled("rarity ratios"), [...(node.ratio ? [series(node.ratio, "Price to it", around(1))] : []), ...bands.map(([k, v], i) => series(v.ratio, percentileLabel(percentile(k)), { color: ramp(bands.length, 140, 360)[i] }))], { log: [1] }),
+      chart("Bands", titled("rarity bands"), [price(), ...(own(node) ? [series(own(node), label, { color: "orange" })] : []), ...bandLines(node, (v) => v.band)]),
+      chart("Ratios", titled("rarity ratios"), [...(node.ratio ? [series(node.ratio, "Price to it", around(1))] : []), ...bandLines(node, (v) => v.ratio)], { log: [1] }),
     ]);
+  };
+  /** A node's rarity bands (its percentile children) as lines, rarest low to rarest high; `pick` takes a band's series. @param {any} node @param {(v: any) => any} pick */
+  const bandLines = (node, pick) => {
+    const bands = entries(node).filter(([k]) => Number.isFinite(percentile(k)));
+    return bands.map(([k, v], i) => series(pick(v), percentileLabel(percentile(k)), { color: ramp(bands.length, 140, 360)[i] }));
   };
   /**
    * A section of one chart, that chart in its place, by the section's name (no folder holding one thing: a capital's
@@ -496,7 +503,7 @@ export function studioPresets(client) {
         section("Components", entries(t.rarityMeter.components).map(([key, node]) => section(holderName(key).name, entries(node).map(([k, v]) => component(v, words(k), holderName(key).name))))),
         section("Extremes", entries(t.rarityMeter.extremes).map(([key, node]) => {
           const label = words(key);
-          return chart(label, `Rarity meter extremes: ${label}`, [...entries(node.thresholds).map(([k, v], i) => series(v, `Tail ${k.replace("tail", "").replace(/^0/, "0.")}%`, { color: ["red", "orange", "amber"][i] })), series(node.tailShare, "Tail share", { pane: 2, color: "sky" })]);
+          return chart(label, `Rarity meter extremes: ${label}`, [series(own(node), label, { color: "orange", width: 2 }), ...bandLines(node, (v) => v)], { log: [1] });
         })),
       ]),
     ]),
@@ -578,8 +585,8 @@ export function studioPresets(client) {
           ...txKinds(entries(tx.features).filter(([, node]) => node.share), featureName, featureTx, "Share of transactions by feature"),
         ]),
         section("Versions", [
-          chart("Compare", "Transactions by version, 1 month", entries(tx.versions).map(([key, node], i, all) => series(node.sum._1m, key === "other" ? "Other" : `Version ${key.slice(1)}`, { color: ramp(all.length)[i], type: "area" })), { stack: { 1: "percent" } }),
-          ...entries(tx.versions).map(([key, node]) => counted(node, key === "other" ? "Other" : `Version ${key.slice(1)}`, key === "other" ? "Transactions of other versions" : `Version ${key.slice(1)} transactions`)),
+          chart("Compare", "Transactions by version, 1 month", entries(tx.versions).map(([key, node], i, all) => series(node.sum._1m, versionName(key), { color: ramp(all.length)[i], type: "area" })), { stack: { 1: "percent" } }),
+          ...entries(tx.versions).map(([key, node]) => counted(node, versionName(key), key === "other" ? "Transactions of other versions" : `${versionName(key)} transactions`)),
         ]),
         section("Patterns", txKinds(entries(tx.patterns), words, (key) => `${words(key)} transactions`, "Share of transactions by pattern")),
         section("CPFP", [counted(tx.fees.cpfpParent, "Parents", "CPFP parent transactions"), counted(tx.fees.cpfpChild, "Children", "CPFP child transactions")]),
@@ -667,6 +674,10 @@ export function studioPresets(client) {
   function protocolName(key) {
     return client.OP_RETURN_KIND_NAMES[key];
   }
+  /** A transaction version's name: `v2` "Version 2", `other` "Other". @param {string} key */
+  function versionName(key) {
+    return key === "other" ? "Other" : `Version ${key.slice(1)}`;
+  }
   function policyName(/** @type {string} */ key) {
     return key === "preV30Standard" ? "Standard before v30" : key === "preV30Nonstandard" ? "Nonstandard before v30" : words(key);
   }
@@ -704,6 +715,8 @@ export function studioPresets(client) {
   /** An address group's charts (every address, or one type's). @param {any} a @param {string} who */
   function addressCharts(a, who) {
     const of = (/** @type {string} */ what) => `${what}: ${who}`;
+    /** Supply held by some of the addresses: its amount, then its share of all coins. @param {any} supply @param {string} title */
+    const heldSupply = (supply, title) => chart("Supply", title, [...amount(supply, "Supply"), series(supply.share, "Share of all coins", { color: "sky", pane: 3 })]);
     return [
       section("Count", [
         chart("Funded, empty and total", of("Address count"), [series(own(a.funded), "Funded", { color: "orange" }), series(a.empty, "Empty", { color: "gray" }), series(a.total, "Total", { color: "sky" })], { log: [1] }),
@@ -711,10 +724,10 @@ export function studioPresets(client) {
         ...flow(a.new, "New", of("New addresses")),
         chart("Active", of("Active addresses"), entries(a.activity).flatMap(([key, node], i, all) => windows(node.avg, words(key), { show: key === "active" ? ["_1m"] : [], extra: { color: ramp(all.length)[i] } }))),
       ]),
-      a.avgBalance && chart("Average balance", of("Average address balance"), [series(a.avgBalance.btc, "Average balance", { color: "orange" }), series(a.avgBalance.usd, "Value", { color: "green", pane: 2 })], { log: [1, 2] }),
+      a.avgBalance && chart("Average balance", of("Average address balance"), amount(a.avgBalance, "Average balance"), { log: [1, 2] }),
       ...[["reused", "Reused"], ["respent", "Respent"]].filter(([key]) => a[key]).map(([key, label]) => section(label, [
         chart("Count", of(`${label} addresses`), [series(a[key].count.funded, "Funded", { color: "orange" }), series(a[key].count.total, "Total", { color: "sky" })], { log: [1] }),
-        chart("Supply", of(`Supply in ${label.toLowerCase()} addresses`), [series(a[key].supply.btc, "Supply", { color: "orange" }), series(a[key].supply.usd, "Value", { color: "green", pane: 2 }), series(a[key].supply.share, "Share of all coins", { color: "sky", pane: 3 })]),
+        heldSupply(a[key].supply, of(`Supply in ${label.toLowerCase()} addresses`)),
         ...flow(a[key].events.outputs.count, "Outputs to them", of(`Outputs to ${label.toLowerCase()} addresses`)),
         chart("Output share", of(`Share of outputs to ${label.toLowerCase()} addresses`), sharesOf(a[key].events.outputs.share, "Share")),
         ...flow(a[key].events.inputs.count, "Inputs from them", of(`Inputs from ${label.toLowerCase()} addresses`)),
@@ -724,7 +737,7 @@ export function studioPresets(client) {
       ])),
       a.exposed && section("Exposed", [
         chart("Count", of("Addresses with exposed public keys"), [series(a.exposed.count.funded, "Funded", { color: "orange" }), series(a.exposed.count.total, "Total", { color: "sky" })], { log: [1] }),
-        chart("Supply", of("Supply in addresses with exposed public keys"), [series(a.exposed.supply.btc, "Supply", { color: "orange" }), series(a.exposed.supply.usd, "Value", { color: "green", pane: 2 }), series(a.exposed.supply.share, "Share of all coins", { color: "sky", pane: 3 })]),
+        heldSupply(a.exposed.supply, of("Supply in addresses with exposed public keys")),
       ]),
       ...(a.supply ? cohort({ supply: a.supply, capital: a.capital }, who) : []),
     ].filter(Boolean).map((item) => lift(/** @type {SectionNode} */ (item)));

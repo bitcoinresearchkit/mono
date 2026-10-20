@@ -980,7 +980,6 @@ dependencies = [
  "brk_error",
  "brk_exit",
  "brk_types",
- "derive_more",
  "rayon",
  "schemars",
  "vecdb",

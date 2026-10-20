@@ -2517,27 +2517,49 @@ const _Meter = _s({
 /**
  * @template A
  * @typedef {{
- *   tail01: SeriesPattern1<A>,
- *   tail005: SeriesPattern1<A>,
- *   tail0025: SeriesPattern1<A>,
- * }} Threshold
- */
-const _Threshold = _s({
-  tail01: [_i1, '*_1'],
-  tail005: [_i1, '*_05'],
-  tail0025: [_i1, '*_025'],
-});
-
-/**
- * @template A
- * @typedef {{
- *   thresholds: Threshold<A>,
- *   tailShare: SeriesPattern1<?Percent>,
+ *   block: SeriesPattern1<A>,
+ *   pct01: SeriesPattern1<A>,
+ *   pct05: SeriesPattern1<A>,
+ *   pct1: SeriesPattern1<A>,
+ *   pct2: SeriesPattern1<A>,
+ *   pct5: SeriesPattern1<A>,
+ *   pct10: SeriesPattern1<A>,
+ *   pct20: SeriesPattern1<A>,
+ *   pct30: SeriesPattern1<A>,
+ *   pct40: SeriesPattern1<A>,
+ *   median: SeriesPattern1<A>,
+ *   pct60: SeriesPattern1<A>,
+ *   pct70: SeriesPattern1<A>,
+ *   pct80: SeriesPattern1<A>,
+ *   pct90: SeriesPattern1<A>,
+ *   pct95: SeriesPattern1<A>,
+ *   pct98: SeriesPattern1<A>,
+ *   pct99: SeriesPattern1<A>,
+ *   pct995: SeriesPattern1<A>,
+ *   pct999: SeriesPattern1<A>,
  * }} Extreme
  */
 const _Extreme = _s({
-  thresholds: [_Threshold, '*_threshold_tail0'],
-  tailShare: [_i1, '*_tail_share'],
+  block: [_i1, '*'],
+  pct01: [_i1, '*_rarity_pct0_1'],
+  pct05: [_i1, '*_rarity_pct0_5'],
+  pct1: [_i1, '*_rarity_pct1'],
+  pct2: [_i1, '*_rarity_pct2'],
+  pct5: [_i1, '*_rarity_pct5'],
+  pct10: [_i1, '*_rarity_pct10'],
+  pct20: [_i1, '*_rarity_pct20'],
+  pct30: [_i1, '*_rarity_pct30'],
+  pct40: [_i1, '*_rarity_pct40'],
+  median: [_i1, '*_rarity_median'],
+  pct60: [_i1, '*_rarity_pct60'],
+  pct70: [_i1, '*_rarity_pct70'],
+  pct80: [_i1, '*_rarity_pct80'],
+  pct90: [_i1, '*_rarity_pct90'],
+  pct95: [_i1, '*_rarity_pct95'],
+  pct98: [_i1, '*_rarity_pct98'],
+  pct99: [_i1, '*_rarity_pct99'],
+  pct995: [_i1, '*_rarity_pct99_5'],
+  pct999: [_i1, '*_rarity_pct99_9'],
 });
 
 /**
@@ -2550,11 +2572,11 @@ const _Extreme = _s({
  * }} Extremes
  */
 const _Extremes = _s({
-  supplyInLoss: [_Extreme, '*_supply_in_loss'],
-  realizedProfit24h: [_Extreme, '*_realized_profit_24h'],
-  realizedLoss24h: [_Extreme, '*_realized_loss_24h'],
-  realizedPeakRegret24h: [_Extreme, '*_realized_peak_regret_24h'],
-  sellSideRiskRatio24h: [_Extreme, '*_sell_side_risk_ratio_24h'],
+  supplyInLoss: [_Extreme, 'supply_in_loss'],
+  realizedProfit24h: [_Extreme, 'realized_profit_sum_*'],
+  realizedLoss24h: [_Extreme, 'realized_loss_sum_*'],
+  realizedPeakRegret24h: [_Extreme, 'realized_peak_regret_sum_*'],
+  sellSideRiskRatio24h: [_Extreme, 'sell_side_risk_ratio_*'],
 });
 
 /**
@@ -2926,7 +2948,7 @@ const _Components = _s({
  */
 const _RarityMeter = _s({
   components: [_Components, 'pct99'],
-  extremes: [_Extremes, '*'],
+  extremes: [_Extremes, '24h'],
   full: [_Meter, '*'],
   local: [_Meter, 'local_*'],
   cycle: [_Meter, 'cycle_*'],

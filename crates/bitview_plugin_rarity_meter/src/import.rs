@@ -21,7 +21,7 @@ impl Vecs {
             components: components::Components::import(
                 &db, version, mappings, holders, cointime, coinflow,
             )?,
-            extremes: extremes::Extremes::import(&db, version, mappings)?,
+            extremes: extremes::Extremes::import(&db, version, mappings, holders)?,
             full: inner::RarityMeterInner::import(&db, "rarity_meter", version, mappings)?,
             local: inner::RarityMeterInner::import(&db, "local_rarity_meter", version, mappings)?,
             cycle: inner::RarityMeterInner::import(&db, "cycle_rarity_meter", version, mappings)?,
