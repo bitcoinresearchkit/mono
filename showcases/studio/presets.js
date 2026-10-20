@@ -225,9 +225,10 @@ export function studioPresets(client) {
   /**
    * A cohort's charts in their sections, for whatever of them it has (every family's members have their own share of
    * the same parts). `who` its name in titles ("Short-term holders").
+   * `whole`: the cohort is all of what its shares divide (a family's `all`), its shares a flat 100%, left out.
    * @param {any} c @param {string} who @returns {(ChartNode | SectionNode)[]}
    */
-  const cohort = (c, who) => {
+  const cohort = (c, who, whole = false) => {
     const of = (/** @type {string} */ what) => `${what}: ${who}`;
     const supply = c.supply, capital = c.capital, utxos = c.utxos, activity = c.activity, realized = c.realized, unrealized = c.unrealized, cost = c.costBasis;
     const inProfit = supply?.inProfit, inLoss = supply?.inLoss;
@@ -239,7 +240,7 @@ export function studioPresets(client) {
           ...(usd(inProfit) ? [series(usd(inProfit), "In profit, value", { color: "green", type: "area", pane: 2 }), series(usd(inLoss), "In loss, value", { color: "red", type: "area", pane: 2 })] : []),
         ], { stack: { 1: "stack", 2: "stack" } }),
         inProfit?.share && chart("Share in profit", of("Share of supply in profit"), [series(inProfit.share, "In profit", { color: "green", levels: [{ value: 50, color: "gray", dash: 3 }] }), series(inLoss.share, "In loss", { color: "red" })]),
-        supply.share && chart("Share of all coins", of("Share of all coins and capital"), [series(supply.share, "Of all coins", { color: "orange" }), ...(capital?.share ? [series(capital.share, "Of all capital", { color: "green" })] : [])]),
+        supply.share && !whole && chart("Share of all coins", of("Share of all coins and capital"), [series(supply.share, "Of all coins", { color: "orange" }), ...(capital?.share ? [series(capital.share, "Of all capital", { color: "green" })] : [])]),
         ...change(supply.delta, "Change", of("Supply change")),
         ...flow(supply.matured, "Matured", of("Supply aging out")),
       ]),
@@ -375,15 +376,16 @@ export function studioPresets(client) {
   const family = (members, naming, options) => {
     const colors = ramp(members.length);
     /** Every member's series (`pick` takes it from the member), as a chart's layers. @param {(c: any) => any} pick @param {Layer} [extra] */
-    const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), naming(key).name, { color: colors[i], ...extra })] : []));
+    // (A family's `all`, where it reads as the others' reference, gray and dashed.)
+    const each = (pick, extra = {}, reference = false) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), naming(key).name, { color: colors[i], ...extra, ...(reference && key === "all" ? { color: "gray", dash: 3 } : {}) })] : []));
     /**
      * A comparison: every member's `pick`, as lines; an amount (`additive`) of members that split the whole, as their
      * shares of it, stacked ("Supply share"). Its title says by what, its window last ("…by age band, 1 month").
-     * @param {string} name @param {(c: any) => any} pick @param {{ price?: boolean, log?: boolean, additive?: boolean, level?: number }} [o]
+     * @param {string} name @param {(c: any) => any} pick @param {{ price?: boolean, log?: boolean, additive?: boolean, level?: number, reference?: boolean }} [o]
      */
     const compare = (name, pick, o = {}) => {
       // (Read against a reference, its level across: a ratio's 1, a net's 0; the members stay lines, each its color.)
-      const layers = each(pick, o.level === undefined ? {} : { levels: [{ value: o.level, color: "gray", dash: 3 }] });
+      const layers = each(pick, o.level === undefined ? {} : { levels: [{ value: o.level, color: "gray", dash: 3 }] }, o.reference);
       if (!layers.length) return null;
       const [, measure, window = ""] = /** @type {RegExpExecArray} */ (/^(.*?)(, 1 \w+)?$/.exec(name)), shares = Boolean(options.disjoint && o.additive);
       const named = shares ? `${measure} share${window}` : name, title = `${shares ? `${measure} share` : measure} by ${options.by}${window}`;
@@ -394,6 +396,9 @@ export function studioPresets(client) {
     const comparisons = [
       compare("Supply", (c) => btc(c.supply?.total), { log: true, additive: true }),
       compare("Realized cap", (c) => c.capital?.realizedCap, { log: true, additive: true }),
+      // (Overlapping members' shares as lines, all coins' 100% their reference; disjoint ones stack above.)
+      !options.disjoint && compare("Share of all coins", (c) => c.supply?.share, { reference: true }),
+      !options.disjoint && compare("Share of all capital", (c) => c.capital?.share, { reference: true }),
       compare("Realized price", (c) => c.costBasis?.perCoin?.realizedPrice, { price: true }),
       compare("MVRV", (c) => c.costBasis?.perCoin?.avg?.mvrv, { level: 1 }),
       compare("Share in profit", (c) => c.supply?.inProfit?.share),
@@ -408,7 +413,7 @@ export function studioPresets(client) {
     ].filter(Boolean);
     return [
       ...(comparisons.length ? [section("Compare", comparisons)] : []),
-      ...members.map(([key, c]) => ((n) => section(n.name, cohort(c, n.who)))(naming(key))),
+      ...members.map(([key, c]) => ((n) => section(n.name, cohort(c, n.who, key === "all")))(naming(key))),
     ];
   };
   /** The client's name for a member (its table's `long`), in sentence case. @param {Record<string, { long: string }>} table @param {string} key */
