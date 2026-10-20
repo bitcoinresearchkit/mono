@@ -1019,7 +1019,7 @@ pub mod tree {
         in_profit: OpReturnValue = "*_in_profit",
         in_loss: OpReturnValue = "*_in_loss",
     } }
-    shape! { ChainShare at "series().op_return.data_bytes.chain_share" {
+    shape! { TxShare at "series().op_return.tx_share" {
         cumulative: SeriesPattern1<Option<Percent>> = "*_cumulative",
         _24h: SeriesPattern1<Option<Percent>> = "*_24h",
         _1w: SeriesPattern1<Option<Percent>> = "*_1w",
@@ -1038,13 +1038,13 @@ pub mod tree {
         median: Sum = "*_median",
         pct75: Sum = "*_pct75",
         pct90: Sum = "*_pct90",
-        share: ChainShare = "fee_share",
+        share: TxShare = "fee_share",
     } }
     shape! { Subsidy at "series().mining.rewards.subsidy" {
         block: Block = "*",
         cumulative: AvgBalance = "*_cumulative",
         sum: Sum = "*_sum",
-        share: ChainShare = "*_share",
+        share: TxShare = "*_share",
     } }
     shape! { MiningRewards at "series().mining.rewards" {
         coinbase: OpReturnValue = "*",
@@ -1060,7 +1060,7 @@ pub mod tree {
         block: Block = "*_fees",
         cumulative: AvgBalance = "*_fees_cumulative",
         sum: Sum = "*_fees_sum",
-        chain_share: ChainShare = "*_fee_chain_share",
+        chain_share: TxShare = "*_fee_chain_share",
     } }
     shape! { BlocksHalving at "series().blocks.halving" {
         epoch: SeriesPattern1<Halving> = "*_epoch",
@@ -1169,7 +1169,7 @@ pub mod tree {
     } }
     shape! { Pools175btc at "series().pools._175btc" {
         blocks_mined: BlocksMined = "*_blocks_mined",
-        share: ChainShare = "*_share",
+        share: TxShare = "*_share",
         rewards: Pools175btcRewards = "*_rewards",
         fees_per_block: Sum = "*_fees_per_block",
         hashrate: InputsPerSecond<Option<Hashrate>> = "*_hashrate",
@@ -1347,14 +1347,14 @@ pub mod tree {
         block: SeriesPattern18<Bytes> = "*",
         cumulative: SeriesPattern1<Bytes> = "*_cumulative",
         sum: InputsPerSecond<Bytes> = "*_sum",
-        chain_share: ChainShare = "*_chain_share",
+        chain_share: TxShare = "*_chain_share",
     } }
     shape! { Inscription at "series().transactions.inscription" {
         flag: SeriesPattern19<Boolean> = "has_*",
         block: SeriesPattern18<Count> = "*_tx_count",
         cumulative: SeriesPattern1<Count> = "*_tx_count_cumulative",
         sum: InputsPerSecond<Count> = "*_tx_count_sum",
-        share: ChainShare = "*_tx_share",
+        share: TxShare = "*_tx_share",
         fees: OpReturnFees = "*",
     } }
     shape! { Nonstandard at "series().transactions.nonstandard" {
@@ -1362,7 +1362,7 @@ pub mod tree {
         block: SeriesPattern18<Count> = "*_tx_count",
         cumulative: SeriesPattern1<Count> = "*_tx_count_cumulative",
         sum: InputsPerSecond<Count> = "*_tx_count_sum",
-        share: ChainShare = "*_tx_share",
+        share: TxShare = "*_tx_share",
     } }
     shape! { Patterns at "series().transactions.patterns" {
         coinjoin: Nonstandard = "*",
@@ -1380,14 +1380,14 @@ pub mod tree {
         block: SeriesPattern18<Count> = "*_count",
         cumulative: SeriesPattern1<Count> = "*_count_cumulative",
         sum: InputsPerSecond<Count> = "*_count_sum",
-        share: ChainShare = "*_share",
+        share: TxShare = "*_share",
     } }
     shape! { DustOutput at "series().transactions.features.dust_output" {
         flag: SeriesPattern19<Boolean> = "has_*",
         block: SeriesPattern18<Count> = "*_tx_count",
         cumulative: SeriesPattern1<Count> = "*_tx_count_cumulative",
         sum: InputsPerSecond<Count> = "*_tx_count_sum",
-        share: ChainShare = "*_tx_share",
+        share: TxShare = "*_tx_share",
     } }
     shape! { Signatures at "series().transactions.features.signatures" {
         annex: DustOutput = "annex",
@@ -1503,7 +1503,7 @@ pub mod tree {
     } }
     shape! { EventsActive<A> at "series().addresses.respent.events.active" {
         count: A = "*_count",
-        share: ChainShare = "*_share",
+        share: TxShare = "*_share",
     } }
     shape! { RespentEvents at "series().addresses.respent.events" {
         outputs: EventsActive<BlocksCount<Count>> = "*_output_to_respent_address",
@@ -1743,6 +1743,7 @@ pub mod tree {
         output_count: BlocksCount<Count> = "*_output_count",
         data_bytes: DataBytes = "*_data_bytes",
         tx_count: BlocksCount<Count> = "*_tx_count",
+        tx_share: TxShare = "*_tx_share",
         tx_vsize: BlocksCount<VSize> = "*_tx_vsize",
         fees: OpReturnFees = "*",
     } }
@@ -1783,6 +1784,7 @@ pub mod tree {
         output_count: BlocksCount<Count> = "*_output_count",
         data_bytes: DataBytes = "*_data_bytes",
         tx_count: BlocksCount<Count> = "*_tx_count",
+        tx_share: TxShare = "*_tx_share",
         tx_vsize: BlocksCount<VSize> = "*_tx_vsize",
         fees: OpReturnFees = "*",
         protocols: Protocols = "*",
@@ -1790,9 +1792,9 @@ pub mod tree {
     } }
     shape! { TypesEmpty at "series().inputs.types.empty" {
         count: BlocksCount<Count> = "*_count",
-        share: ChainShare = "*_share",
+        share: TxShare = "*_share",
         tx_count: BlocksCount<Count> = "*_tx_count",
-        tx_share: ChainShare = "*_tx_share",
+        tx_share: TxShare = "*_tx_share",
     } }
     shape! { OutputsTypes at "series().outputs.types" {
         p2pk: TypesEmpty = "p2pk_*",

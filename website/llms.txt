@@ -1,6 +1,6 @@
 # Bitcoin Research Kit (BRK)
 
-> Free, open-source Bitcoin analytics API and block explorer. 21009 on-chain time-series and 99 API operations.
+> Free, open-source Bitcoin analytics API and block explorer. 21154 on-chain time-series and 99 API operations.
 
 ## API
 

@@ -3973,9 +3973,9 @@ const _TransferVolume = _s({
  *   _1w: SeriesPattern1<?Percent>,
  *   _1m: SeriesPattern1<?Percent>,
  *   _1y: SeriesPattern1<?Percent>,
- * }} ChainShare
+ * }} TxShare
  */
-const _ChainShare = _s({
+const _TxShare = _s({
   cumulative: [_i1, '*_cumulative'],
   _24h: [_i1, '*_24h'],
   _1w: [_i1, '*_1w'],
@@ -3996,7 +3996,7 @@ const _ChainShare = _s({
  *   median: Sum,
  *   pct75: Sum,
  *   pct90: Sum,
- *   share: ChainShare,
+ *   share: TxShare,
  * }} RewardsFees
  */
 const _RewardsFees = _s({
@@ -4011,7 +4011,7 @@ const _RewardsFees = _s({
   median: [_Sum, '*_median'],
   pct75: [_Sum, '*_pct75'],
   pct90: [_Sum, '*_pct90'],
-  share: [_ChainShare, 'fee_share'],
+  share: [_TxShare, 'fee_share'],
 });
 
 /**
@@ -4019,14 +4019,14 @@ const _RewardsFees = _s({
  *   block: Block,
  *   cumulative: AvgBalance,
  *   sum: Sum,
- *   share: ChainShare,
+ *   share: TxShare,
  * }} Subsidy
  */
 const _Subsidy = _s({
   block: [_Block, '*'],
   cumulative: [_AvgBalance, '*_cumulative'],
   sum: [_Sum, '*_sum'],
-  share: [_ChainShare, '*_share'],
+  share: [_TxShare, '*_share'],
 });
 
 /**
@@ -4060,14 +4060,14 @@ const _Mining = _s({
  *   block: Block,
  *   cumulative: AvgBalance,
  *   sum: Sum,
- *   chainShare: ChainShare,
+ *   chainShare: TxShare,
  * }} OpReturnFees
  */
 const _OpReturnFees = _s({
   block: [_Block, '*_fees'],
   cumulative: [_AvgBalance, '*_fees_cumulative'],
   sum: [_Sum, '*_fees_sum'],
-  chainShare: [_ChainShare, '*_fee_chain_share'],
+  chainShare: [_TxShare, '*_fee_chain_share'],
 });
 
 /**
@@ -4340,7 +4340,7 @@ const _BlocksMined = _s({
 /**
  * @typedef {{
  *   blocksMined: BlocksMined,
- *   share: ChainShare,
+ *   share: TxShare,
  *   rewards: Pools175btcRewards,
  *   feesPerBlock: Sum,
  *   hashrate: InputsPerSecond<?Hashrate>,
@@ -4348,7 +4348,7 @@ const _BlocksMined = _s({
  */
 const _Pools175btc = _s({
   blocksMined: [_BlocksMined, '*_blocks_mined'],
-  share: [_ChainShare, '*_share'],
+  share: [_TxShare, '*_share'],
   rewards: [_Pools175btcRewards, '*_rewards'],
   feesPerBlock: [_Sum, '*_fees_per_block'],
   hashrate: [_InputsPerSecond, '*_hashrate'],
@@ -4700,14 +4700,14 @@ const _Pools = _s({
  *   block: SeriesPattern18<Bytes>,
  *   cumulative: SeriesPattern1<Bytes>,
  *   sum: InputsPerSecond<Bytes>,
- *   chainShare: ChainShare,
+ *   chainShare: TxShare,
  * }} DataBytes
  */
 const _DataBytes = _s({
   block: [_i18, '*'],
   cumulative: [_i1, '*_cumulative'],
   sum: [_InputsPerSecond, '*_sum'],
-  chainShare: [_ChainShare, '*_chain_share'],
+  chainShare: [_TxShare, '*_chain_share'],
 });
 
 /**
@@ -4716,7 +4716,7 @@ const _DataBytes = _s({
  *   block: SeriesPattern18<Count>,
  *   cumulative: SeriesPattern1<Count>,
  *   sum: InputsPerSecond<Count>,
- *   share: ChainShare,
+ *   share: TxShare,
  *   fees: OpReturnFees,
  * }} Inscription
  */
@@ -4725,7 +4725,7 @@ const _Inscription = _s({
   block: [_i18, '*_tx_count'],
   cumulative: [_i1, '*_tx_count_cumulative'],
   sum: [_InputsPerSecond, '*_tx_count_sum'],
-  share: [_ChainShare, '*_tx_share'],
+  share: [_TxShare, '*_tx_share'],
   fees: [_OpReturnFees, '*'],
 });
 
@@ -4735,7 +4735,7 @@ const _Inscription = _s({
  *   block: SeriesPattern18<Count>,
  *   cumulative: SeriesPattern1<Count>,
  *   sum: InputsPerSecond<Count>,
- *   share: ChainShare,
+ *   share: TxShare,
  * }} Nonstandard
  */
 const _Nonstandard = _s({
@@ -4743,7 +4743,7 @@ const _Nonstandard = _s({
   block: [_i18, '*_tx_count'],
   cumulative: [_i1, '*_tx_count_cumulative'],
   sum: [_InputsPerSecond, '*_tx_count_sum'],
-  share: [_ChainShare, '*_tx_share'],
+  share: [_TxShare, '*_tx_share'],
 });
 
 /**
@@ -4781,14 +4781,14 @@ const _TransactionsFees = _s({
  *   block: SeriesPattern18<Count>,
  *   cumulative: SeriesPattern1<Count>,
  *   sum: InputsPerSecond<Count>,
- *   share: ChainShare,
+ *   share: TxShare,
  * }} TransactionsFeaturesOneInput
  */
 const _TransactionsFeaturesOneInput = _s({
   block: [_i18, '*_count'],
   cumulative: [_i1, '*_count_cumulative'],
   sum: [_InputsPerSecond, '*_count_sum'],
-  share: [_ChainShare, '*_share'],
+  share: [_TxShare, '*_share'],
 });
 
 /**
@@ -4797,7 +4797,7 @@ const _TransactionsFeaturesOneInput = _s({
  *   block: SeriesPattern18<Count>,
  *   cumulative: SeriesPattern1<Count>,
  *   sum: InputsPerSecond<Count>,
- *   share: ChainShare,
+ *   share: TxShare,
  * }} DustOutput
  */
 const _DustOutput = _s({
@@ -4805,7 +4805,7 @@ const _DustOutput = _s({
   block: [_i18, '*_tx_count'],
   cumulative: [_i1, '*_tx_count_cumulative'],
   sum: [_InputsPerSecond, '*_tx_count_sum'],
-  share: [_ChainShare, '*_tx_share'],
+  share: [_TxShare, '*_tx_share'],
 });
 
 /**
@@ -5081,13 +5081,13 @@ const _AllActivity = _s({
  * @template A
  * @typedef {{
  *   count: A,
- *   share: ChainShare,
+ *   share: TxShare,
  * }} EventsActive
  */
 /** @type {_Make} */
 const _EventsActive = (c, b, f0) => _n(c, b, {
   count: [f0, '*_count'],
-  share: [_ChainShare, '*_share'],
+  share: [_TxShare, '*_share'],
 });
 
 /**
@@ -5655,6 +5655,7 @@ const _Age = _s({
  *   outputCount: BlocksCount<Count>,
  *   dataBytes: DataBytes,
  *   txCount: BlocksCount<Count>,
+ *   txShare: TxShare,
  *   txVsize: BlocksCount<VSize>,
  *   fees: OpReturnFees,
  * }} PoliciesMultiple
@@ -5663,6 +5664,7 @@ const _PoliciesMultiple = _s({
   outputCount: [_BlocksCount, '*_output_count'],
   dataBytes: [_DataBytes, '*_data_bytes'],
   txCount: [_BlocksCount, '*_tx_count'],
+  txShare: [_TxShare, '*_tx_share'],
   txVsize: [_BlocksCount, '*_tx_vsize'],
   fees: [_OpReturnFees, '*'],
 });
@@ -5743,6 +5745,7 @@ const _Protocols = _s({
  *   outputCount: BlocksCount<Count>,
  *   dataBytes: DataBytes,
  *   txCount: BlocksCount<Count>,
+ *   txShare: TxShare,
  *   txVsize: BlocksCount<VSize>,
  *   fees: OpReturnFees,
  *   protocols: Protocols,
@@ -5754,6 +5757,7 @@ const _OpReturn = _s({
   outputCount: [_BlocksCount, '*_output_count'],
   dataBytes: [_DataBytes, '*_data_bytes'],
   txCount: [_BlocksCount, '*_tx_count'],
+  txShare: [_TxShare, '*_tx_share'],
   txVsize: [_BlocksCount, '*_tx_vsize'],
   fees: [_OpReturnFees, '*'],
   protocols: [_Protocols, '*'],
@@ -5763,16 +5767,16 @@ const _OpReturn = _s({
 /**
  * @typedef {{
  *   count: BlocksCount<Count>,
- *   share: ChainShare,
+ *   share: TxShare,
  *   txCount: BlocksCount<Count>,
- *   txShare: ChainShare,
+ *   txShare: TxShare,
  * }} TypesEmpty
  */
 const _TypesEmpty = _s({
   count: [_BlocksCount, '*_count'],
-  share: [_ChainShare, '*_share'],
+  share: [_TxShare, '*_share'],
   txCount: [_BlocksCount, '*_tx_count'],
-  txShare: [_ChainShare, '*_tx_share'],
+  txShare: [_TxShare, '*_tx_share'],
 });
 
 /**

@@ -3444,7 +3444,7 @@ class TransferVolume(_Node):
     in_loss: OpReturnValue = _at(OpReturnValue, '*_in_loss')
 
 
-class ChainShare(_Node):
+class TxShare(_Node):
     cumulative: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_cumulative')
     _24h: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_24h')
     _1w: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1w')
@@ -3464,14 +3464,14 @@ class RewardsFees(_Node):
     median: Sum = _at(Sum, '*_median')
     pct75: Sum = _at(Sum, '*_pct75')
     pct90: Sum = _at(Sum, '*_pct90')
-    share: ChainShare = _at(ChainShare, 'fee_share')
+    share: TxShare = _at(TxShare, 'fee_share')
 
 
 class Subsidy(_Node):
     block: Block = _at(Block, '*')
     cumulative: AvgBalance = _at(AvgBalance, '*_cumulative')
     sum: Sum = _at(Sum, '*_sum')
-    share: ChainShare = _at(ChainShare, '*_share')
+    share: TxShare = _at(TxShare, '*_share')
 
 
 class MiningRewards(_Node):
@@ -3490,7 +3490,7 @@ class OpReturnFees(_Node):
     block: Block = _at(Block, '*_fees')
     cumulative: AvgBalance = _at(AvgBalance, '*_fees_cumulative')
     sum: Sum = _at(Sum, '*_fees_sum')
-    chain_share: ChainShare = _at(ChainShare, '*_fee_chain_share')
+    chain_share: TxShare = _at(TxShare, '*_fee_chain_share')
 
 
 class BlocksHalving(_Node):
@@ -3618,7 +3618,7 @@ class BlocksMined(_Node):
 
 class Pools175btc(_Node):
     blocks_mined: BlocksMined = _at(BlocksMined, '*_blocks_mined')
-    share: ChainShare = _at(ChainShare, '*_share')
+    share: TxShare = _at(TxShare, '*_share')
     rewards: Pools175btcRewards = _at(Pools175btcRewards, '*_rewards')
     fees_per_block: Sum = _at(Sum, '*_fees_per_block')
     hashrate: InputsPerSecond[Optional[Hashrate]] = _at(InputsPerSecond, '*_hashrate')
@@ -3798,7 +3798,7 @@ class DataBytes(_Node):
     block: SeriesPattern18[Bytes] = _at(SeriesPattern18, '*')
     cumulative: SeriesPattern1[Bytes] = _at(SeriesPattern1, '*_cumulative')
     sum: InputsPerSecond[Bytes] = _at(InputsPerSecond, '*_sum')
-    chain_share: ChainShare = _at(ChainShare, '*_chain_share')
+    chain_share: TxShare = _at(TxShare, '*_chain_share')
 
 
 class Inscription(_Node):
@@ -3806,7 +3806,7 @@ class Inscription(_Node):
     block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
     sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_tx_count_sum')
-    share: ChainShare = _at(ChainShare, '*_tx_share')
+    share: TxShare = _at(TxShare, '*_tx_share')
     fees: OpReturnFees = _at(OpReturnFees, '*')
 
 
@@ -3815,7 +3815,7 @@ class Nonstandard(_Node):
     block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
     sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_tx_count_sum')
-    share: ChainShare = _at(ChainShare, '*_tx_share')
+    share: TxShare = _at(TxShare, '*_tx_share')
 
 
 class Patterns(_Node):
@@ -3836,7 +3836,7 @@ class TransactionsFeaturesOneInput(_Node):
     block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_count')
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_count_cumulative')
     sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_count_sum')
-    share: ChainShare = _at(ChainShare, '*_share')
+    share: TxShare = _at(TxShare, '*_share')
 
 
 class DustOutput(_Node):
@@ -3844,7 +3844,7 @@ class DustOutput(_Node):
     block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
     sum: InputsPerSecond[Count] = _at(InputsPerSecond, '*_tx_count_sum')
-    share: ChainShare = _at(ChainShare, '*_tx_share')
+    share: TxShare = _at(TxShare, '*_tx_share')
 
 
 class Signatures(_Node):
@@ -3975,7 +3975,7 @@ class AllActivity(_Node):
 
 class EventsActive(_Node, Generic[A]):
     count: A = _at(0, '*_count')
-    share: ChainShare = _at(ChainShare, '*_share')
+    share: TxShare = _at(TxShare, '*_share')
 
 
 class RespentEvents(_Node):
@@ -4244,6 +4244,7 @@ class PoliciesMultiple(_Node):
     output_count: BlocksCount[Count] = _at(BlocksCount, '*_output_count')
     data_bytes: DataBytes = _at(DataBytes, '*_data_bytes')
     tx_count: BlocksCount[Count] = _at(BlocksCount, '*_tx_count')
+    tx_share: TxShare = _at(TxShare, '*_tx_share')
     tx_vsize: BlocksCount[VSize] = _at(BlocksCount, '*_tx_vsize')
     fees: OpReturnFees = _at(OpReturnFees, '*')
 
@@ -4287,6 +4288,7 @@ class OpReturn(_Node):
     output_count: BlocksCount[Count] = _at(BlocksCount, '*_output_count')
     data_bytes: DataBytes = _at(DataBytes, '*_data_bytes')
     tx_count: BlocksCount[Count] = _at(BlocksCount, '*_tx_count')
+    tx_share: TxShare = _at(TxShare, '*_tx_share')
     tx_vsize: BlocksCount[VSize] = _at(BlocksCount, '*_tx_vsize')
     fees: OpReturnFees = _at(OpReturnFees, '*')
     protocols: Protocols = _at(Protocols, '*')
@@ -4295,9 +4297,9 @@ class OpReturn(_Node):
 
 class TypesEmpty(_Node):
     count: BlocksCount[Count] = _at(BlocksCount, '*_count')
-    share: ChainShare = _at(ChainShare, '*_share')
+    share: TxShare = _at(TxShare, '*_share')
     tx_count: BlocksCount[Count] = _at(BlocksCount, '*_tx_count')
-    tx_share: ChainShare = _at(ChainShare, '*_tx_share')
+    tx_share: TxShare = _at(TxShare, '*_tx_share')
 
 
 class OutputsTypes(_Node):

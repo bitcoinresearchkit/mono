@@ -1,7 +1,10 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Bytes, Count};
+use bitview_primitives::{Bytes, Count, PartsPerMillion32};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling, shapes::Windows};
+use bitview_vecs::{
+    LazyPercentCumulativeRolling, LazyWindowStartVec, PerBlockCumulativeRolling, ops::Quotient,
+    shapes::Windows,
+};
 use brk_error::Result;
 use brk_types::{Height, Sats, VSize, Version};
 use vecdb::{AnyStoredVec, Database, ReadableCloneableVec, Rw, StorageMode};
@@ -19,6 +22,9 @@ pub struct BucketVecs<M: StorageMode = Rw> {
     /// Number of transactions creating at least one of the outputs; each
     /// transaction counts once.
     pub tx_count: PerBlockCumulativeRolling<Count, M>,
+    /// Transactions creating at least one of the outputs, as a share of all transactions,
+    /// coinbase included.
+    pub tx_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
     /// Full virtual sizes of the transactions creating the outputs, in vbytes;
     /// each transaction is included once.
     pub tx_vsize: PerBlockCumulativeRolling<VSize, M>,
@@ -48,6 +54,19 @@ impl BucketVecs {
                 )
             };
         }
+        let tx_count = import!("tx_count")?;
+        let tx_share = LazyPercentCumulativeRolling::from_cumulative_ratio::<
+            Count,
+            Count,
+            Quotient<PartsPerMillion32>,
+        >(
+            &format!("{prefix}_tx_share"),
+            version,
+            tx_count.cumulative_source(),
+            &mappings.transaction_count_source(),
+            window_starts,
+            mappings,
+        );
         Ok(Self {
             output_count: import!("output_count")?,
             data_bytes: DataBytesSeries::new(
@@ -58,7 +77,8 @@ impl BucketVecs {
                 window_starts,
                 mappings,
             ),
-            tx_count: import!("tx_count")?,
+            tx_count,
+            tx_share,
             tx_vsize: import!("tx_vsize")?,
             fees: FeesSeries::import(db, prefix, version, chain_fees, window_starts, mappings)?,
         })

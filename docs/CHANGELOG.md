@@ -973,6 +973,10 @@ has to be deleted by hand.
   `transactions.features.scripts.p2tr.share.{cumulative, 24h, 1w, 1m, 1y}` (ids `p2tr_tx_share_cumulative`,
   `p2tr_tx_share_<window>`), `segwit_tx_share_1m`, `v2_tx_share_1m`, `coinjoin_tx_share_1m`,
   `cpfp_parent_tx_share_1m`, `nonstandard_tx_share_1m`, `inscription_tx_share_1m`, ...
+- OP_RETURN transactions' share of all transactions (coinbase included), in total and per protocol and policy:
+  `op_return.tx_share.{cumulative, 24h, 1w, 1m, 1y}` (ids `op_return_tx_share_cumulative`,
+  `op_return_tx_share_<window>`), `op_return_runes_tx_share_1m`, `op_return_pre_v30_nonstandard_tx_share_1m`, ...
+  The policies count non-coinbase transactions only, so their shares sum to slightly less than the total's
 - Inscription fees per block in BTC and USD (`transactions.inscription.fees`, ids `inscription_fees`,
   `inscription_fees_usd`, with cumulative and window sums) and their chain share,
   `transactions.inscription.fees.chain_share.{cumulative, 24h, 1w, 1m, 1y}` like OP_RETURN's (ids
