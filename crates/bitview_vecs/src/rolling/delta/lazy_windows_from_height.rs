@@ -20,6 +20,7 @@ pub type LazyRollingDeltasFiatFromHeight<S, C, B> =
     LazyRollingDeltas<LazyDeltaFiatFromHeight<S, C>, S, B>;
 
 #[derive(Clone, Traversable)]
+#[traversable(client = "Delta")]
 pub struct LazyRollingDeltas<A, S, B>
 where
     S: VecValue,

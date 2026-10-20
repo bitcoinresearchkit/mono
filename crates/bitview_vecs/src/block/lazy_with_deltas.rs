@@ -8,6 +8,7 @@ use vecdb::{Ident, ReadableCloneableVec};
 use crate::{IndexSources, LazyPerBlock, LazyRollingDeltasFromHeight, shapes::Windows};
 
 #[derive(Clone, Deref, DerefMut, Traversable)]
+#[traversable(client = "WithDelta")]
 pub struct LazyPerBlockWithDeltas<S, C, B>
 where
     S: NumericValue + JsonSchema + Into<f64>,

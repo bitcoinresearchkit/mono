@@ -13,6 +13,7 @@ use crate::{
 
 /// Per-block and rolling views backed by one canonical cumulative source.
 #[derive(Traversable)]
+#[traversable(client = "FlowStats")]
 pub struct PerBlockFullFromCumulative<T, M: StorageMode = Rw>
 where
     T: NumericValue + JsonSchema + Quantity,

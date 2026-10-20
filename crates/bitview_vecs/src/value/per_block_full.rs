@@ -11,6 +11,7 @@ use crate::{
 };
 
 #[derive(Deref, DerefMut, Traversable)]
+#[traversable(client = "ValueFlowStats")]
 pub struct ValuePerBlockFull<M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]

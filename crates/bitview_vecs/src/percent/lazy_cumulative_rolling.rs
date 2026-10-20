@@ -47,6 +47,7 @@ pub fn count_and_share(
 /// Cumulative and rolling views are flattened into `{ cumulative, 24h, 1w, 1m, 1y }`, with ids
 /// `{name}_cumulative` and `{name}_{window}`.
 #[derive(Clone, Traversable)]
+#[traversable(client = "Share")]
 pub struct LazyPercentCumulativeRolling<B: FixedRatio> {
     /// Numerator and denominator accumulated from the first block through the
     /// represented block.

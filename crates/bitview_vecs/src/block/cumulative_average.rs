@@ -16,6 +16,7 @@ use crate::{
 
 /// Cumulative source of truth with lazy exact per-block values and rolling averages.
 #[derive(Traversable)]
+#[traversable(client = "Averaged")]
 pub struct PerBlockCumulativeAverage<T, M: StorageMode = Rw>
 where
     T: NumericValue + JsonSchema + Quantity<Sum = T>,

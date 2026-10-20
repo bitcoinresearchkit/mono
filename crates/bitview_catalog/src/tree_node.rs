@@ -219,6 +219,7 @@ impl TreeNode {
             (Self::Leaf(leaf), Self::Branch(_)) => Self::leaf_and_group(&key, &leaf.leaf.name),
             (Self::Branch(_), Self::Leaf(leaf)) => Self::leaf_and_group(&key, &leaf.leaf.name),
             (Self::Branch(existing_branch), Self::Branch(new_inner)) => {
+                existing_branch.client_name = existing_branch.client_name.or(new_inner.client_name);
                 existing_branch.merge_fields(new_inner);
             }
         }

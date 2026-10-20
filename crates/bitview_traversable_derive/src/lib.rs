@@ -5,8 +5,8 @@ use proc_macro2::{Group, Spacing, Span, TokenStream as ProcMacro2TokenStream, To
 use quote::quote;
 use syn::{
     Attribute, Data, DeriveInput, Error, Expr, ExprLit, Field, Fields, GenericArgument,
-    GenericParam, Generics, Ident, Index, Lit, Member, Meta, PathArguments, Result, Token, Type,
-    TypeParam, WherePredicate, parse_macro_input, parse_quote, punctuated::Punctuated,
+    GenericParam, Generics, Ident, Index, Lit, LitStr, Member, Meta, PathArguments, Result, Token,
+    Type, TypeParam, WherePredicate, parse_macro_input, parse_quote, punctuated::Punctuated,
 };
 
 struct FieldModel<'a> {
@@ -39,16 +39,46 @@ fn traversable_metas(attrs: &[Attribute]) -> Result<Vec<Meta>> {
     Ok(metas)
 }
 
-/// Whether the struct carries `#[traversable(merge)]`, its only option.
-fn parse_merge(attrs: &[Attribute]) -> Result<bool> {
+/// A struct's own options: `merge`, and `client = ".."`, the name client types take for it where
+/// its Rust name describes storage (`LazyPercentCumulativeRolling` is `Share`).
+fn parse_struct_options(attrs: &[Attribute]) -> Result<(bool, Option<LitStr>)> {
     let mut merge = false;
+    let mut client = None;
     for meta in traversable_metas(attrs)? {
         match &meta {
             Meta::Path(path) if path.is_ident("merge") => merge = true,
-            _ => return Err(Error::new_spanned(meta, "expected `merge`")),
+            Meta::NameValue(name_value) if name_value.path.is_ident("client") => {
+                let Expr::Lit(ExprLit {
+                    lit: Lit::Str(value),
+                    ..
+                }) = &name_value.value
+                else {
+                    return Err(Error::new_spanned(&name_value.value, "expected a string"));
+                };
+                if !is_type_name(&value.value()) {
+                    return Err(Error::new_spanned(
+                        value,
+                        "a client name is a type name: ASCII letters and digits, an uppercase first",
+                    ));
+                }
+                client = Some(value.clone());
+            }
+            _ => {
+                return Err(Error::new_spanned(
+                    meta,
+                    "expected `merge` or `client = \"..\"`",
+                ));
+            }
         }
     }
-    Ok(merge)
+    Ok((merge, client))
+}
+
+/// ASCII letters and digits, an uppercase first: valid in every client language, and clear of
+/// their keywords, which are lowercase.
+fn is_type_name(name: &str) -> bool {
+    name.starts_with(|c: char| c.is_ascii_uppercase())
+        && name.chars().all(|c| c.is_ascii_alphanumeric())
 }
 
 fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
@@ -338,17 +368,53 @@ pub fn derive_traversable(input: TokenStream) -> TokenStream {
 }
 
 fn derive(input: &DeriveInput) -> Result<ProcMacro2TokenStream> {
-    let merge = parse_merge(&input.attrs)?;
+    let (merge, client) = parse_struct_options(&input.attrs)?;
     let fields = parse_fields(input, merge)?;
-    let mut output = gen_traversable(input, &fields, merge);
+    let client_name = client_name(input, &fields, merge, client)?;
+    let mut output = gen_traversable(input, &fields, merge, client_name.as_deref());
     output.extend(gen_read_only_clone(input, &fields));
     Ok(output)
+}
+
+/// The name client types take for the struct's branch: the one it declares, else its identifier
+/// without a `Vecs` suffix (`PoolVecs` is `Pool`); a plain `Vecs` names nothing. A struct that is
+/// its field's node (a tuple struct, a lone flattened field) has no branch to name.
+fn client_name(
+    input: &DeriveInput,
+    fields: &[FieldModel],
+    merge: bool,
+    client: Option<LitStr>,
+) -> Result<Option<String>> {
+    if delegates(fields, merge) {
+        return match client {
+            Some(client) => Err(Error::new_spanned(
+                client,
+                "`client` names a branch, and this struct is its field's node",
+            )),
+            None => Ok(None),
+        };
+    }
+    if let Some(client) = client {
+        return Ok(Some(client.value()));
+    }
+    let ident = input.ident.to_string();
+    let name = ident.strip_suffix("Vecs").unwrap_or(&ident);
+    Ok(is_type_name(name).then(|| name.to_owned()))
+}
+
+/// Whether the struct's node is its one field's: a tuple struct's, or a lone visible flattened
+/// field's.
+fn delegates(fields: &[FieldModel], merge: bool) -> bool {
+    let visible: Vec<&FieldModel> = fields.iter().filter(|f| !f.skipped && !f.hidden).collect();
+    matches!(fields, [field] if matches!(field.member, Member::Unnamed(_)))
+        || (!merge && matches!(visible[..], [only] if only.flatten && only.rename.is_none()))
 }
 
 fn gen_traversable(
     input: &DeriveInput,
     fields: &[FieldModel],
     merge: bool,
+    client: Option<&str>,
 ) -> ProcMacro2TokenStream {
     let name = &input.ident;
     let generics = &input.generics;
@@ -399,7 +465,7 @@ fn gen_traversable(
     let traversed_types: Vec<&Type> = traversed.iter().map(|f| f.ty).collect();
     let where_clause = build_where_clause(generics, &traversed_types);
 
-    let to_tree_node_body = generate_field_traversals(&visible, merge);
+    let to_tree_node_body = generate_field_traversals(client, &visible, merge);
     let exportable_vec = quote! { &dyn bitview_traversable::AnyExportableVec };
     let exportable = collect_iters(&traversed, "iter_any_exportable", &exportable_vec);
     let visible_iter = collect_iters(&visible, "iter_any_visible", &exportable_vec);
@@ -472,7 +538,11 @@ fn collect_iters(
     }
 }
 
-fn generate_field_traversals(visible: &[&FieldModel], merge: bool) -> ProcMacro2TokenStream {
+fn generate_field_traversals(
+    client: Option<&str>,
+    visible: &[&FieldModel],
+    merge: bool,
+) -> ProcMacro2TokenStream {
     // A struct whose only visible field is a flattened view is that view, a leaf included
     // (stored sources beside it stay hidden).
     if !merge
@@ -545,10 +615,19 @@ fn generate_field_traversals(visible: &[&FieldModel], merge: bool) -> ProcMacro2
         quote! { bitview_traversable::TreeNode::Branch(collected) }
     };
 
+    // The branch records its client name, for client type names.
+    let client_name = match client {
+        Some(name) => quote! { Some(#name) },
+        None => quote! { None },
+    };
     quote! {
         let mut collected = bitview_traversable::TreeBranch::default();
         #(#field_operations)*
-        #final_expr
+        let mut node = #final_expr;
+        if let bitview_traversable::TreeNode::Branch(branch) = &mut node {
+            branch.client_name = #client_name;
+        }
+        node
     }
 }
 

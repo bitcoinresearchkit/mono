@@ -573,11 +573,14 @@ has to be deleted by hand.
 
 #### `bitview-client` (JS), `bitview_client` (Python and Rust)
 
-- Generated all three series trees from one composition model. Typed series paths follow the series tree (see "One unit
-  per quantity": `client.series().price.close.by.day1()`), and type names change: each repeated structure is one generic
-  type named after its path (`Blocks`, `Interval<A, B>`, `SeriesTree`; Rust types live in `bitview_client::tree`)
-  instead of `SeriesTree_Blocks` or `_1m1w1y24hPattern6`. Clients shrink from 1.26 MB to 315 KB (JS), 1.05 MB to
-  276 KB (Python) and 1.95 MB to 180 KB (Rust), with a third of v0.12.2's series paths
+- Generated all three series trees from one composition model. Typed series paths follow the series tree (see "One
+  unit per quantity": `client.series().price.close.by.day1()`), and type names change: each repeated structure is one
+  generic type named after the type that defines it (`Pool` for every pool, `Flow<A>`, `Share`, `Windows<A>`, `Band`,
+  `CreationCohort`) and each top-level section after itself (`Holders`, `Bedrock`), with the tree section prefixed
+  where two structures would share a name (`HoldersActivity`), `Series` after a name the API already uses
+  (`CohortSeries`, `UtxoSetSeries`) and the path's name where no type defines one; Rust types live in
+  `bitview_client::tree` (were `SeriesTree_Blocks` or `_1m1w1y24hPattern6`). Clients shrink from 1.26 MB to 313 KB
+  (JS), 1.05 MB to 274 KB (Python) and 1.95 MB to 157 KB (Rust), with a third of v0.12.2's series paths
 - The raw `getSeries`/`get_series` methods return the same helper objects as typed endpoints (Python: a dataclass,
   read `.data` instead of `['data']`)
 - `BitviewError` carries the HTTP `status`, the server's `code` (`ErrorCode`) and the server's message in all three

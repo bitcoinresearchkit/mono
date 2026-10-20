@@ -2488,9 +2488,9 @@ const _s = (children) => (c, b) => _n(c, b, children);
  *   pct999: SeriesPattern1<?Dollars>,
  *   level: SeriesPattern1<?Score>,
  *   score: SeriesPattern1<?Score>,
- * }} Cycle
+ * }} Meter
  */
-const _Cycle = _s({
+const _Meter = _s({
   pct01: [_i1, '*_pct0_1'],
   pct05: [_i1, '*_pct0_5'],
   pct1: [_i1, '*_pct1'],
@@ -2520,9 +2520,9 @@ const _Cycle = _s({
  *   tail01: SeriesPattern1<A>,
  *   tail005: SeriesPattern1<A>,
  *   tail0025: SeriesPattern1<A>,
- * }} Thresholds
+ * }} Threshold
  */
-const _Thresholds = _s({
+const _Threshold = _s({
   tail01: [_i1, '*_1'],
   tail005: [_i1, '*_05'],
   tail0025: [_i1, '*_025'],
@@ -2531,30 +2531,30 @@ const _Thresholds = _s({
 /**
  * @template A
  * @typedef {{
- *   thresholds: Thresholds<A>,
+ *   thresholds: Threshold<A>,
  *   tailShare: SeriesPattern1<?Percent>,
- * }} RealizedLoss24h
+ * }} Extreme
  */
-const _RealizedLoss24h = _s({
-  thresholds: [_Thresholds, '*_threshold_tail0'],
+const _Extreme = _s({
+  thresholds: [_Threshold, '*_threshold_tail0'],
   tailShare: [_i1, '*_tail_share'],
 });
 
 /**
  * @typedef {{
- *   supplyInLoss: RealizedLoss24h<?Bitcoin>,
- *   realizedProfit24h: RealizedLoss24h<?Dollars>,
- *   realizedLoss24h: RealizedLoss24h<?Dollars>,
- *   realizedPeakRegret24h: RealizedLoss24h<?Dollars>,
- *   sellSideRiskRatio24h: RealizedLoss24h<?Ratio>,
+ *   supplyInLoss: Extreme<?Bitcoin>,
+ *   realizedProfit24h: Extreme<?Dollars>,
+ *   realizedLoss24h: Extreme<?Dollars>,
+ *   realizedPeakRegret24h: Extreme<?Dollars>,
+ *   sellSideRiskRatio24h: Extreme<?Ratio>,
  * }} Extremes
  */
 const _Extremes = _s({
-  supplyInLoss: [_RealizedLoss24h, '*_supply_in_loss'],
-  realizedProfit24h: [_RealizedLoss24h, '*_realized_profit_24h'],
-  realizedLoss24h: [_RealizedLoss24h, '*_realized_loss_24h'],
-  realizedPeakRegret24h: [_RealizedLoss24h, '*_realized_peak_regret_24h'],
-  sellSideRiskRatio24h: [_RealizedLoss24h, '*_sell_side_risk_ratio_24h'],
+  supplyInLoss: [_Extreme, '*_supply_in_loss'],
+  realizedProfit24h: [_Extreme, '*_realized_profit_24h'],
+  realizedLoss24h: [_Extreme, '*_realized_loss_24h'],
+  realizedPeakRegret24h: [_Extreme, '*_realized_peak_regret_24h'],
+  sellSideRiskRatio24h: [_Extreme, '*_sell_side_risk_ratio_24h'],
 });
 
 /**
@@ -2735,10 +2735,10 @@ const _AllMedianRealizedPriceMedian = _s({
  *   pct99: A,
  *   pct995: A,
  *   pct999: A,
- * }} MedianCapitalizedPrice
+ * }} MedianComponent
  */
 /** @type {_Make} */
-const _MedianCapitalizedPrice = (c, b, f0) => _n(c, b, {
+const _MedianComponent = (c, b, f0) => _n(c, b, {
   block: [_i1, '*'],
   ratio: [_i1, '*_ratio'],
   pct01: [f0, 'pct0_1'],
@@ -2806,10 +2806,10 @@ const _AllRealizedPriceMedian = _s({
  *   pct99: A,
  *   pct995: A,
  *   pct999: A,
- * }} CapitalizedPrice
+ * }} RarityPercentiles
  */
 /** @type {_Make} */
-const _CapitalizedPrice = (c, b, f0) => _n(c, b, {
+const _RarityPercentiles = (c, b, f0) => _n(c, b, {
   pct01: [f0, 'pct0_1'],
   pct05: [f0, 'pct0_5'],
   pct1: [f0, 'pct1'],
@@ -2833,103 +2833,103 @@ const _CapitalizedPrice = (c, b, f0) => _n(c, b, {
 
 /**
  * @typedef {{
- *   realizedPrice: CapitalizedPrice<MobileRealizedPriceMedian>,
- *   medianRealizedPrice: MedianCapitalizedPrice<MobileMedianRealizedPriceMedian>,
- *   medianCapitalizedPrice: MedianCapitalizedPrice<MobileMedianCapitalizedPriceMedian>,
- * }} ComponentsMobile
+ *   realizedPrice: RarityPercentiles<MobileRealizedPriceMedian>,
+ *   medianRealizedPrice: MedianComponent<MobileMedianRealizedPriceMedian>,
+ *   medianCapitalizedPrice: MedianComponent<MobileMedianCapitalizedPriceMedian>,
+ * }} MobileComponents
  */
-const _ComponentsMobile = _s({
-  realizedPrice: [(c, b) => _CapitalizedPrice(c, b, _MobileRealizedPriceMedian), 'pct99'],
-  medianRealizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, _MobileMedianRealizedPriceMedian), '*_realized_price'],
-  medianCapitalizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, _MobileMedianCapitalizedPriceMedian), '*_capitalized_price'],
+const _MobileComponents = _s({
+  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _MobileRealizedPriceMedian), 'pct99'],
+  medianRealizedPrice: [(c, b) => _MedianComponent(c, b, _MobileMedianRealizedPriceMedian), '*_realized_price'],
+  medianCapitalizedPrice: [(c, b) => _MedianComponent(c, b, _MobileMedianCapitalizedPriceMedian), '*_capitalized_price'],
 });
 
 /**
  * @typedef {{
- *   realizedPrice: CapitalizedPrice<AwakeRealizedPriceMedian>,
- * }} ComponentsAwake
+ *   realizedPrice: RarityPercentiles<AwakeRealizedPriceMedian>,
+ * }} AwakeComponents
  */
-const _ComponentsAwake = _s({
-  realizedPrice: [(c, b) => _CapitalizedPrice(c, b, _AwakeRealizedPriceMedian), '*'],
+const _AwakeComponents = _s({
+  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _AwakeRealizedPriceMedian), '*'],
 });
 
 /**
  * @typedef {{
- *   realizedPrice: CapitalizedPrice<Under6mRealizedPriceMedian>,
- *   capitalizedPrice: CapitalizedPrice<Under6mCapitalizedPriceMedian>,
- * }} Under6m
+ *   realizedPrice: RarityPercentiles<Under6mRealizedPriceMedian>,
+ *   capitalizedPrice: RarityPercentiles<Under6mCapitalizedPriceMedian>,
+ * }} MeanComponents
  */
-const _Under6m = _s({
-  realizedPrice: [(c, b) => _CapitalizedPrice(c, b, _Under6mRealizedPriceMedian), '*'],
-  capitalizedPrice: [(c, b) => _CapitalizedPrice(c, b, _Under6mCapitalizedPriceMedian), '*'],
+const _MeanComponents = _s({
+  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _Under6mRealizedPriceMedian), '*'],
+  capitalizedPrice: [(c, b) => _RarityPercentiles(c, b, _Under6mCapitalizedPriceMedian), '*'],
 });
 
 /**
  * @typedef {{
- *   realizedPrice: CapitalizedPrice<SthRealizedPriceMedian>,
- *   capitalizedPrice: CapitalizedPrice<SthCapitalizedPriceMedian>,
- *   medianRealizedPrice: MedianCapitalizedPrice<SthMedianRealizedPriceMedian>,
- *   medianCapitalizedPrice: MedianCapitalizedPrice<SthMedianCapitalizedPriceMedian>,
- * }} Sth
+ *   realizedPrice: RarityPercentiles<SthRealizedPriceMedian>,
+ *   capitalizedPrice: RarityPercentiles<SthCapitalizedPriceMedian>,
+ *   medianRealizedPrice: MedianComponent<SthMedianRealizedPriceMedian>,
+ *   medianCapitalizedPrice: MedianComponent<SthMedianCapitalizedPriceMedian>,
+ * }} CohortComponents
  */
-const _Sth = _s({
-  realizedPrice: [(c, b) => _CapitalizedPrice(c, b, _SthRealizedPriceMedian), '*'],
-  capitalizedPrice: [(c, b) => _CapitalizedPrice(c, b, _SthCapitalizedPriceMedian), '*'],
-  medianRealizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, _SthMedianRealizedPriceMedian), 'sth_median_realized_price'],
-  medianCapitalizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, _SthMedianCapitalizedPriceMedian), 'sth_median_capitalized_price'],
+const _CohortComponents = _s({
+  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _SthRealizedPriceMedian), '*'],
+  capitalizedPrice: [(c, b) => _RarityPercentiles(c, b, _SthCapitalizedPriceMedian), '*'],
+  medianRealizedPrice: [(c, b) => _MedianComponent(c, b, _SthMedianRealizedPriceMedian), 'sth_median_realized_price'],
+  medianCapitalizedPrice: [(c, b) => _MedianComponent(c, b, _SthMedianCapitalizedPriceMedian), 'sth_median_capitalized_price'],
 });
 
 /**
  * @typedef {{
- *   realizedPrice: CapitalizedPrice<AllRealizedPriceMedian>,
- *   capitalizedPrice: CapitalizedPrice<AllCapitalizedPriceMedian>,
- *   medianRealizedPrice: MedianCapitalizedPrice<AllMedianRealizedPriceMedian>,
- *   medianCapitalizedPrice: MedianCapitalizedPrice<AllMedianCapitalizedPriceMedian>,
- *   vaultedPrice: CapitalizedPrice<VaultedPriceMedian>,
- *   trueMarketMean: CapitalizedPrice<TrueMarketMeanMedian>,
- * }} ComponentsAll
+ *   realizedPrice: RarityPercentiles<AllRealizedPriceMedian>,
+ *   capitalizedPrice: RarityPercentiles<AllCapitalizedPriceMedian>,
+ *   medianRealizedPrice: MedianComponent<AllMedianRealizedPriceMedian>,
+ *   medianCapitalizedPrice: MedianComponent<AllMedianCapitalizedPriceMedian>,
+ *   vaultedPrice: RarityPercentiles<VaultedPriceMedian>,
+ *   trueMarketMean: RarityPercentiles<TrueMarketMeanMedian>,
+ * }} AllComponents
  */
-const _ComponentsAll = _s({
-  realizedPrice: [(c, b) => _CapitalizedPrice(c, b, _AllRealizedPriceMedian), '*'],
-  capitalizedPrice: [(c, b) => _CapitalizedPrice(c, b, _AllCapitalizedPriceMedian), '*'],
-  medianRealizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, _AllMedianRealizedPriceMedian), 'median_realized_price'],
-  medianCapitalizedPrice: [(c, b) => _MedianCapitalizedPrice(c, b, _AllMedianCapitalizedPriceMedian), 'median_capitalized_price'],
-  vaultedPrice: [(c, b) => _CapitalizedPrice(c, b, _VaultedPriceMedian), '*'],
-  trueMarketMean: [(c, b) => _CapitalizedPrice(c, b, _TrueMarketMeanMedian), '*'],
+const _AllComponents = _s({
+  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _AllRealizedPriceMedian), '*'],
+  capitalizedPrice: [(c, b) => _RarityPercentiles(c, b, _AllCapitalizedPriceMedian), '*'],
+  medianRealizedPrice: [(c, b) => _MedianComponent(c, b, _AllMedianRealizedPriceMedian), 'median_realized_price'],
+  medianCapitalizedPrice: [(c, b) => _MedianComponent(c, b, _AllMedianCapitalizedPriceMedian), 'median_capitalized_price'],
+  vaultedPrice: [(c, b) => _RarityPercentiles(c, b, _VaultedPriceMedian), '*'],
+  trueMarketMean: [(c, b) => _RarityPercentiles(c, b, _TrueMarketMeanMedian), '*'],
 });
 
 /**
  * @typedef {{
- *   all: ComponentsAll,
- *   sth: Sth,
- *   under6m: Under6m,
- *   awake: ComponentsAwake,
- *   mobile: ComponentsMobile,
+ *   all: AllComponents,
+ *   sth: CohortComponents,
+ *   under6m: MeanComponents,
+ *   awake: AwakeComponents,
+ *   mobile: MobileComponents,
  * }} Components
  */
 const _Components = _s({
-  all: [_ComponentsAll, '*'],
-  sth: [_Sth, '*'],
-  under6m: [_Under6m, '*'],
-  awake: [_ComponentsAwake, '*'],
-  mobile: [_ComponentsMobile, 'mobile_median'],
+  all: [_AllComponents, '*'],
+  sth: [_CohortComponents, '*'],
+  under6m: [_MeanComponents, '*'],
+  awake: [_AwakeComponents, '*'],
+  mobile: [_MobileComponents, 'mobile_median'],
 });
 
 /**
  * @typedef {{
  *   components: Components,
  *   extremes: Extremes,
- *   full: Cycle,
- *   local: Cycle,
- *   cycle: Cycle,
+ *   full: Meter,
+ *   local: Meter,
+ *   cycle: Meter,
  * }} RarityMeter
  */
 const _RarityMeter = _s({
   components: [_Components, 'pct99'],
   extremes: [_Extremes, '*'],
-  full: [_Cycle, '*'],
-  local: [_Cycle, 'local_*'],
-  cycle: [_Cycle, 'cycle_*'],
+  full: [_Meter, '*'],
+  local: [_Meter, 'local_*'],
+  cycle: [_Meter, 'cycle_*'],
 });
 
 /**
@@ -2943,9 +2943,9 @@ const _RarityMeter = _s({
  *   pct70: SeriesPattern1<?Dollars>,
  *   pct80: SeriesPattern1<?Dollars>,
  *   pct90: SeriesPattern1<?Dollars>,
- * }} CostBasisAboveFloor
+ * }} Levels
  */
-const _CostBasisAboveFloor = _s({
+const _Levels = _s({
   pct10: [_i1, '*_pct10'],
   pct20: [_i1, '*_pct20'],
   pct30: [_i1, '*_pct30'],
@@ -2965,9 +2965,9 @@ const _CostBasisAboveFloor = _s({
  *   pct99: SeriesPattern1<A>,
  *   pct995: SeriesPattern1<A>,
  *   pct999: SeriesPattern1<A>,
- * }} Floor
+ * }} Percentiles
  */
-const _Floor = _s({
+const _Percentiles = _s({
   pct95: [_i1, '*_pct95'],
   pct98: [_i1, '*_pct98'],
   pct99: [_i1, '*_pct99'],
@@ -2977,28 +2977,28 @@ const _Floor = _s({
 
 /**
  * @typedef {{
- *   supplyInLossShareThreshold: Floor<?Percent>,
- *   floor: Floor<?Dollars>,
- *   costBasisAboveFloor: CostBasisAboveFloor,
- * }} BedrockAwake
+ *   supplyInLossShareThreshold: Percentiles<?Percent>,
+ *   floor: Percentiles<?Dollars>,
+ *   costBasisAboveFloor: Levels,
+ * }} Mode
  */
-const _BedrockAwake = _s({
-  supplyInLossShareThreshold: [_Floor, '*_supply_in_loss_share_threshold'],
-  floor: [_Floor, '*_floor'],
-  costBasisAboveFloor: [_CostBasisAboveFloor, '*_cost_basis_above_floor'],
+const _Mode = _s({
+  supplyInLossShareThreshold: [_Percentiles, '*_supply_in_loss_share_threshold'],
+  floor: [_Percentiles, '*_floor'],
+  costBasisAboveFloor: [_Levels, '*_cost_basis_above_floor'],
 });
 
 /**
  * @typedef {{
- *   awake: BedrockAwake,
- *   mobile: BedrockAwake,
- *   unweighted: BedrockAwake,
+ *   awake: Mode,
+ *   mobile: Mode,
+ *   unweighted: Mode,
  * }} Bedrock
  */
 const _Bedrock = _s({
-  awake: [_BedrockAwake, '*_awake'],
-  mobile: [_BedrockAwake, '*_mobile'],
-  unweighted: [_BedrockAwake, '*_unweighted'],
+  awake: [_Mode, '*_awake'],
+  mobile: [_Mode, '*_mobile'],
+  unweighted: [_Mode, '*_unweighted'],
 });
 
 /**
@@ -3007,9 +3007,9 @@ const _Bedrock = _s({
  *   ratio: SeriesPattern1<?Multiple>,
  *   aviv: SeriesPattern1<?Multiple>,
  *   avivNupl: SeriesPattern1<?Ratio>,
- * }} TrueMarketMean
+ * }} CointimePriceWithRatio
  */
-const _TrueMarketMean = _s({
+const _CointimePriceWithRatio = _s({
   block: [_i1, '*'],
   ratio: [_i1, '*_ratio'],
   aviv: [_i1, 'aviv'],
@@ -3021,9 +3021,9 @@ const _TrueMarketMean = _s({
  *   block: SeriesPattern1<?Dollars>,
  *   ratio: SeriesPattern1<?Multiple>,
  *   mvrv: SeriesPattern1<?Multiple>,
- * }} PricesActive
+ * }} CointimePriceWithMvrv
  */
-const _PricesActive = _s({
+const _CointimePriceWithMvrv = _s({
   block: [_i1, '*_price'],
   ratio: [_i1, '*_price_ratio'],
   mvrv: [_i1, '*_mvrv'],
@@ -3031,17 +3031,17 @@ const _PricesActive = _s({
 
 /**
  * @typedef {{
- *   vaulted: PricesActive,
- *   active: PricesActive,
- *   trueMarketMean: TrueMarketMean,
- *   cointime: PricesActive,
+ *   vaulted: CointimePriceWithMvrv,
+ *   active: CointimePriceWithMvrv,
+ *   trueMarketMean: CointimePriceWithRatio,
+ *   cointime: CointimePriceWithMvrv,
  * }} Prices
  */
 const _Prices = _s({
-  vaulted: [_PricesActive, '*'],
-  active: [_PricesActive, 'active'],
-  trueMarketMean: [_TrueMarketMean, 'true_market_mean'],
-  cointime: [_PricesActive, 'cointime'],
+  vaulted: [_CointimePriceWithMvrv, '*'],
+  active: [_CointimePriceWithMvrv, 'active'],
+  trueMarketMean: [_CointimePriceWithRatio, 'true_market_mean'],
+  cointime: [_CointimePriceWithMvrv, 'cointime'],
 });
 
 /**
@@ -3079,9 +3079,9 @@ const _MobileCapital = _s({
 /**
  * @typedef {{
  *   share: SeriesPattern1<?Percent>,
- * }} SupplyInLoss
+ * }} InLoss
  */
-const _SupplyInLoss = _s({
+const _InLoss = _s({
   share: [_i1, '*'],
 });
 
@@ -3112,9 +3112,9 @@ const _Adjusted = _s({
  *   total: SeriesPattern1<?Dollars>,
  *   realizedCap: SeriesPattern1<?Dollars>,
  *   share: SeriesPattern1<?Percent>,
- * }} Loss0To10PercentCapital
+ * }} BandCapital
  */
-const _Loss0To10PercentCapital = _s({
+const _BandCapital = _s({
   total: [_i1, '*_capital'],
   realizedCap: [_i1, '*_realized_cap'],
   share: [_i1, '*_capital_share'],
@@ -3125,9 +3125,9 @@ const _Loss0To10PercentCapital = _s({
  *   total: SeriesPattern1<?Percent>,
  *   inProfit: SeriesPattern1<?Percent>,
  *   inLoss: SeriesPattern1<?Percent>,
- * }} CapitalDensity
+ * }} Density
  */
-const _CapitalDensity = _s({
+const _Density = _s({
   total: [_i1, '*'],
   inProfit: [_i1, '*_in_profit'],
   inLoss: [_i1, '*_in_loss'],
@@ -3138,9 +3138,9 @@ const _CapitalDensity = _s({
  *   block: SeriesPattern1<?Dollars>,
  *   ratio: SeriesPattern1<?Multiple>,
  *   mvrv: SeriesPattern1<?Multiple>,
- * }} Avg
+ * }} PriceWithMvrv
  */
-const _Avg = _s({
+const _PriceWithMvrv = _s({
   block: [_i1, '*_cost_basis_per_coin_avg'],
   ratio: [_i1, '*_cost_basis_per_coin_avg_ratio'],
   mvrv: [_i1, '*_mvrv'],
@@ -3148,7 +3148,7 @@ const _Avg = _s({
 
 /**
  * @typedef {{
- *   avg: Avg,
+ *   avg: PriceWithMvrv,
  *   realizedPrice: SeriesPattern1<?Dollars>,
  *   pct5: SeriesPattern1<?Dollars>,
  *   pct10: SeriesPattern1<?Dollars>,
@@ -3170,10 +3170,10 @@ const _Avg = _s({
  *   pct90: SeriesPattern1<?Dollars>,
  *   pct95: SeriesPattern1<?Dollars>,
  *   medianRealizedPrice: SeriesPattern1<?Dollars>,
- * }} AllCostBasisPerCoin
+ * }} CostBasisPerCoin
  */
-const _AllCostBasisPerCoin = _s({
-  avg: [_Avg, '*'],
+const _CostBasisPerCoin = _s({
+  avg: [_PriceWithMvrv, '*'],
   realizedPrice: [_i1, '*_realized_price'],
   pct5: [_i1, '*_cost_basis_per_coin_pct5'],
   pct10: [_i1, '*_cost_basis_per_coin_pct10'],
@@ -3204,9 +3204,9 @@ const _AllCostBasisPerCoin = _s({
  *   netPnl: SeriesPattern1<?Dollars>,
  *   grossPnl: SeriesPattern1<?Dollars>,
  *   nupl: SeriesPattern1<?Ratio>,
- * }} AllUnrealized
+ * }} Unrealized
  */
-const _AllUnrealized = _s({
+const _Unrealized = _s({
   profit: [_i1, '*_unrealized_profit'],
   loss: [_i1, '*_unrealized_loss'],
   netPnl: [_i1, '*_net_unrealized_pnl'],
@@ -3218,9 +3218,9 @@ const _AllUnrealized = _s({
  * @typedef {{
  *   block: SeriesPattern1<?Dollars>,
  *   share: SeriesPattern1<?Percent>,
- * }} CapitalInLoss
+ * }} Part
  */
-const _CapitalInLoss = _s({
+const _Part = _s({
   block: [_i1, '*'],
   share: [_i1, '*_share'],
 });
@@ -3229,9 +3229,9 @@ const _CapitalInLoss = _s({
  * @typedef {{
  *   btc: SeriesPattern1<?Bitcoin>,
  *   usd: SeriesPattern1<?Dollars>,
- * }} Total
+ * }} SpotValue
  */
-const _Total = _s({
+const _SpotValue = _s({
   btc: [_i1, '*'],
   usd: [_i1, 'market_cap'],
 });
@@ -3240,9 +3240,9 @@ const _Total = _s({
  * @typedef {{
  *   funded: SeriesPattern1<Count>,
  *   total: SeriesPattern1<Count>,
- * }} ExposedCount
+ * }} FundedTotal
  */
-const _ExposedCount = _s({
+const _FundedTotal = _s({
   funded: [_i1, '*_funded_exposed_address_count'],
   total: [_i1, '*_total_exposed_address_count'],
 });
@@ -3263,9 +3263,9 @@ const _RespentCount = _s({
  *   btc: SeriesPattern1<?Bitcoin>,
  *   usd: SeriesPattern1<?Dollars>,
  *   share: SeriesPattern1<?Percent>,
- * }} ExposedSupply
+ * }} PredicateSupply
  */
-const _ExposedSupply = _s({
+const _PredicateSupply = _s({
   btc: [_i1, '*'],
   usd: [_i1, '*_usd'],
   share: [_i1, '*_share'],
@@ -3273,13 +3273,13 @@ const _ExposedSupply = _s({
 
 /**
  * @typedef {{
- *   count: ExposedCount,
- *   supply: ExposedSupply,
+ *   count: FundedTotal,
+ *   supply: PredicateSupply,
  * }} Exposed
  */
 const _Exposed = _s({
-  count: [_ExposedCount, '*'],
-  supply: [_ExposedSupply, '*_exposed_address_supply'],
+  count: [_FundedTotal, '*'],
+  supply: [_PredicateSupply, '*_exposed_address_supply'],
 });
 
 /**
@@ -3297,20 +3297,20 @@ const _ReusedCount = _s({
  * @typedef {{
  *   avg: SeriesPattern1<?Dollars>,
  *   realizedPrice: SeriesPattern1<?Dollars>,
- * }} RookieCostBasisPerCoin
+ * }} PerCoin
  */
-const _RookieCostBasisPerCoin = _s({
+const _PerCoin = _s({
   avg: [_i1, '*_cost_basis_per_coin_avg'],
   realizedPrice: [_i1, '*_realized_price'],
 });
 
 /**
  * @typedef {{
- *   perCoin: RookieCostBasisPerCoin,
- * }} RookieCostBasis
+ *   perCoin: PerCoin,
+ * }} CohortCostBasis
  */
-const _RookieCostBasis = _s({
-  perCoin: [_RookieCostBasisPerCoin, '*'],
+const _CohortCostBasis = _s({
+  perCoin: [_PerCoin, '*'],
 });
 
 /**
@@ -3318,9 +3318,9 @@ const _RookieCostBasis = _s({
  *   profit: SeriesPattern1<?Dollars>,
  *   loss: SeriesPattern1<?Dollars>,
  *   netPnl: SeriesPattern1<?Dollars>,
- * }} RookieUnrealized
+ * }} CreationUnrealized
  */
-const _RookieUnrealized = _s({
+const _CreationUnrealized = _s({
   profit: [_i1, '*_unrealized_profit'],
   loss: [_i1, '*_unrealized_loss'],
   netPnl: [_i1, '*_net_unrealized_pnl'],
@@ -3332,9 +3332,9 @@ const _RookieUnrealized = _s({
  *   _1w: SeriesPattern1<?Percent>,
  *   _1m: SeriesPattern1<?Percent>,
  *   _1y: SeriesPattern1<?Percent>,
- * }} DeltaRate
+ * }} AddressesWindows
  */
-const _DeltaRate = _s({
+const _AddressesWindows = _s({
   _24h: [_i1, '*_24h_rate'],
   _1w: [_i1, '*_1w_rate'],
   _1m: [_i1, '*_1m_rate'],
@@ -3346,9 +3346,9 @@ const _DeltaRate = _s({
  *   block: SeriesPattern1<?Dollars>,
  *   ratio: SeriesPattern1<?Multiple>,
  *   mayerMultiple: SeriesPattern1<?Multiple>,
- * }} Sma200d
+ * }} MarketPriceWithRatio
  */
-const _Sma200d = _s({
+const _MarketPriceWithRatio = _s({
   block: [_i1, '*'],
   ratio: [_i1, '*_ratio'],
   mayerMultiple: [_i1, 'mayer_multiple'],
@@ -3358,16 +3358,16 @@ const _Sma200d = _s({
  * @typedef {{
  *   block: SeriesPattern1<?Dollars>,
  *   ratio: SeriesPattern1<?Multiple>,
- * }} Ema13d
+ * }} PriceWithRatio
  */
-const _Ema13d = _s({
+const _PriceWithRatio = _s({
   block: [_i1, '*'],
   ratio: [_i1, '*_ratio'],
 });
 
 /**
  * @typedef {{
- *   avg: Ema13d,
+ *   avg: PriceWithRatio,
  *   capitalizedPrice: SeriesPattern1<?Dollars>,
  *   pct5: SeriesPattern1<?Dollars>,
  *   pct10: SeriesPattern1<?Dollars>,
@@ -3389,10 +3389,10 @@ const _Ema13d = _s({
  *   pct90: SeriesPattern1<?Dollars>,
  *   pct95: SeriesPattern1<?Dollars>,
  *   medianCapitalizedPrice: SeriesPattern1<?Dollars>,
- * }} PerDollar
+ * }} CostBasisPerDollar
  */
-const _PerDollar = _s({
-  avg: [_Ema13d, '*_cost_basis_per_dollar_avg'],
+const _CostBasisPerDollar = _s({
+  avg: [_PriceWithRatio, '*_cost_basis_per_dollar_avg'],
   capitalizedPrice: [_i1, '*_capitalized_price'],
   pct5: [_i1, '*_cost_basis_per_dollar_pct5'],
   pct10: [_i1, '*_cost_basis_per_dollar_pct10'],
@@ -3418,108 +3418,108 @@ const _PerDollar = _s({
 
 /**
  * @typedef {{
- *   perCoin: AllCostBasisPerCoin,
- *   perDollar: PerDollar,
- *   supplyDensity: CapitalDensity,
- *   capitalDensity: CapitalDensity,
- * }} MobileCostBasis
+ *   perCoin: CostBasisPerCoin,
+ *   perDollar: CostBasisPerDollar,
+ *   supplyDensity: Density,
+ *   capitalDensity: Density,
+ * }} CostBasis
  */
-const _MobileCostBasis = _s({
-  perCoin: [_AllCostBasisPerCoin, '*'],
-  perDollar: [_PerDollar, '*'],
-  supplyDensity: [_CapitalDensity, '*_supply_density'],
-  capitalDensity: [_CapitalDensity, '*_capital_density'],
+const _CostBasis = _s({
+  perCoin: [_CostBasisPerCoin, '*'],
+  perDollar: [_CostBasisPerDollar, '*'],
+  supplyDensity: [_Density, '*_supply_density'],
+  capitalDensity: [_Density, '*_capital_density'],
 });
 
 /**
  * @typedef {{
- *   perCoin: AllCostBasisPerCoin,
- *   perDollar: PerDollar,
+ *   perCoin: CostBasisPerCoin,
+ *   perDollar: CostBasisPerDollar,
  *   min: SeriesPattern1<?Dollars>,
  *   max: SeriesPattern1<?Dollars>,
- *   supplyDensity: CapitalDensity,
- *   capitalDensity: CapitalDensity,
- * }} AllCostBasis
+ *   supplyDensity: Density,
+ *   capitalDensity: Density,
+ * }} HoldersCostBasis
  */
-const _AllCostBasis = _s({
-  perCoin: [_AllCostBasisPerCoin, '*'],
-  perDollar: [_PerDollar, '*'],
+const _HoldersCostBasis = _s({
+  perCoin: [_CostBasisPerCoin, '*'],
+  perDollar: [_CostBasisPerDollar, '*'],
   min: [_i1, '*_cost_basis_min'],
   max: [_i1, '*_cost_basis_max'],
-  supplyDensity: [_CapitalDensity, '*_supply_density'],
-  capitalDensity: [_CapitalDensity, '*_capital_density'],
+  supplyDensity: [_Density, '*_supply_density'],
+  capitalDensity: [_Density, '*_capital_density'],
 });
 
 /**
  * @typedef {{
- *   _1w: Ema13d,
- *   _8d: Ema13d,
- *   _13d: Ema13d,
- *   _21d: Ema13d,
- *   _1m: Ema13d,
- *   _34d: Ema13d,
- *   _55d: Ema13d,
- *   _89d: Ema13d,
- *   _144d: Ema13d,
- *   _200d: Ema13d,
- *   _1y: Ema13d,
- *   _2y: Ema13d,
- *   _200w: Ema13d,
- *   _4y: Ema13d,
+ *   _1w: PriceWithRatio,
+ *   _8d: PriceWithRatio,
+ *   _13d: PriceWithRatio,
+ *   _21d: PriceWithRatio,
+ *   _1m: PriceWithRatio,
+ *   _34d: PriceWithRatio,
+ *   _55d: PriceWithRatio,
+ *   _89d: PriceWithRatio,
+ *   _144d: PriceWithRatio,
+ *   _200d: PriceWithRatio,
+ *   _1y: PriceWithRatio,
+ *   _2y: PriceWithRatio,
+ *   _200w: PriceWithRatio,
+ *   _4y: PriceWithRatio,
  * }} Ema
  */
 const _Ema = _s({
-  _1w: [_Ema13d, '*_1w'],
-  _8d: [_Ema13d, '*_8d'],
-  _13d: [_Ema13d, '*_13d'],
-  _21d: [_Ema13d, '*_21d'],
-  _1m: [_Ema13d, '*_1m'],
-  _34d: [_Ema13d, '*_34d'],
-  _55d: [_Ema13d, '*_55d'],
-  _89d: [_Ema13d, '*_89d'],
-  _144d: [_Ema13d, '*_144d'],
-  _200d: [_Ema13d, '*_200d'],
-  _1y: [_Ema13d, '*_1y'],
-  _2y: [_Ema13d, '*_2y'],
-  _200w: [_Ema13d, '*_200w'],
-  _4y: [_Ema13d, '*_4y'],
+  _1w: [_PriceWithRatio, '*_1w'],
+  _8d: [_PriceWithRatio, '*_8d'],
+  _13d: [_PriceWithRatio, '*_13d'],
+  _21d: [_PriceWithRatio, '*_21d'],
+  _1m: [_PriceWithRatio, '*_1m'],
+  _34d: [_PriceWithRatio, '*_34d'],
+  _55d: [_PriceWithRatio, '*_55d'],
+  _89d: [_PriceWithRatio, '*_89d'],
+  _144d: [_PriceWithRatio, '*_144d'],
+  _200d: [_PriceWithRatio, '*_200d'],
+  _1y: [_PriceWithRatio, '*_1y'],
+  _2y: [_PriceWithRatio, '*_2y'],
+  _200w: [_PriceWithRatio, '*_200w'],
+  _4y: [_PriceWithRatio, '*_4y'],
 });
 
 /**
  * @typedef {{
- *   _1w: Ema13d,
- *   _8d: Ema13d,
- *   _13d: Ema13d,
- *   _21d: Ema13d,
- *   _1m: Ema13d,
- *   _34d: Ema13d,
- *   _50d: Ema13d,
- *   _55d: Ema13d,
- *   _89d: Ema13d,
- *   _144d: Ema13d,
- *   _200d: Sma200d,
- *   _1y: Ema13d,
- *   _2y: Ema13d,
- *   _200w: Ema13d,
- *   _4y: Ema13d,
- * }} MarketSma
+ *   _1w: PriceWithRatio,
+ *   _8d: PriceWithRatio,
+ *   _13d: PriceWithRatio,
+ *   _21d: PriceWithRatio,
+ *   _1m: PriceWithRatio,
+ *   _34d: PriceWithRatio,
+ *   _50d: PriceWithRatio,
+ *   _55d: PriceWithRatio,
+ *   _89d: PriceWithRatio,
+ *   _144d: PriceWithRatio,
+ *   _200d: MarketPriceWithRatio,
+ *   _1y: PriceWithRatio,
+ *   _2y: PriceWithRatio,
+ *   _200w: PriceWithRatio,
+ *   _4y: PriceWithRatio,
+ * }} Sma
  */
-const _MarketSma = _s({
-  _1w: [_Ema13d, '*_1w'],
-  _8d: [_Ema13d, '*_8d'],
-  _13d: [_Ema13d, '*_13d'],
-  _21d: [_Ema13d, '*_21d'],
-  _1m: [_Ema13d, '*_1m'],
-  _34d: [_Ema13d, '*_34d'],
-  _50d: [_Ema13d, '*_50d'],
-  _55d: [_Ema13d, '*_55d'],
-  _89d: [_Ema13d, '*_89d'],
-  _144d: [_Ema13d, '*_144d'],
-  _200d: [_Sma200d, '*_200d'],
-  _1y: [_Ema13d, '*_1y'],
-  _2y: [_Ema13d, '*_2y'],
-  _200w: [_Ema13d, '*_200w'],
-  _4y: [_Ema13d, '*_4y'],
+const _Sma = _s({
+  _1w: [_PriceWithRatio, '*_1w'],
+  _8d: [_PriceWithRatio, '*_8d'],
+  _13d: [_PriceWithRatio, '*_13d'],
+  _21d: [_PriceWithRatio, '*_21d'],
+  _1m: [_PriceWithRatio, '*_1m'],
+  _34d: [_PriceWithRatio, '*_34d'],
+  _50d: [_PriceWithRatio, '*_50d'],
+  _55d: [_PriceWithRatio, '*_55d'],
+  _89d: [_PriceWithRatio, '*_89d'],
+  _144d: [_PriceWithRatio, '*_144d'],
+  _200d: [_MarketPriceWithRatio, '*_200d'],
+  _1y: [_PriceWithRatio, '*_1y'],
+  _2y: [_PriceWithRatio, '*_2y'],
+  _200w: [_PriceWithRatio, '*_200w'],
+  _4y: [_PriceWithRatio, '*_4y'],
 });
 
 /**
@@ -3527,9 +3527,9 @@ const _MarketSma = _s({
  *   _1w: SeriesPattern1<?Dollars>,
  *   _1m: SeriesPattern1<?Dollars>,
  *   _1y: SeriesPattern1<?Dollars>,
- * }} Max
+ * }} PriceMinMax
  */
-const _Max = _s({
+const _PriceMinMax = _s({
   _1w: [_i1, '*_1w'],
   _1m: [_i1, '*_1m'],
   _1y: [_i1, '*_1y'],
@@ -3537,14 +3537,14 @@ const _Max = _s({
 
 /**
  * @typedef {{
- *   min: Max,
- *   max: Max,
+ *   min: PriceMinMax,
+ *   max: PriceMinMax,
  *   trueRange: SeriesPattern1<?Dollars>,
- * }} Range
+ * }} MarketRange
  */
-const _Range = _s({
-  min: [_Max, '*_min'],
-  max: [_Max, '*_max'],
+const _MarketRange = _s({
+  min: [_PriceMinMax, '*_min'],
+  max: [_PriceMinMax, '*_max'],
   trueRange: [_i1, '*_true_range'],
 });
 
@@ -3563,9 +3563,9 @@ const _Range = _s({
  *   _6y: SeriesPattern1<?Percent>,
  *   _8y: SeriesPattern1<?Percent>,
  *   _10y: SeriesPattern1<?Percent>,
- * }} Returns
+ * }} ByLookbackPeriod
  */
-const _Returns = _s({
+const _ByLookbackPeriod = _s({
   _24h: [_i1, '*_24h'],
   _1w: [_i1, '*_1w'],
   _1m: [_i1, '*_1m'],
@@ -3599,17 +3599,17 @@ const _Ath = _s({
 /**
  * @typedef {{
  *   ath: Ath,
- *   returns: Returns,
- *   range: Range,
- *   sma: MarketSma,
+ *   returns: ByLookbackPeriod,
+ *   range: MarketRange,
+ *   sma: Sma,
  *   ema: Ema,
  * }} Market
  */
 const _Market = _s({
   ath: [_Ath, '*'],
-  returns: [_Returns, '*_return'],
-  range: [_Range, '*'],
-  sma: [_MarketSma, '*_sma'],
+  returns: [_ByLookbackPeriod, '*_return'],
+  range: [_MarketRange, '*'],
+  sma: [_Sma, '*_sma'],
   ema: [_Ema, '*_ema'],
 });
 
@@ -3617,9 +3617,9 @@ const _Market = _s({
  * @typedef {{
  *   supply: SeriesPattern1<?Bitcoin>,
  *   count: SeriesPattern1<Count>,
- * }} UtxoSet2
+ * }} UtxoSetSeries
  */
-const _UtxoSet2 = _s({
+const _UtxoSetSeries = _s({
   supply: [_i1, '*'],
   count: [_i1, 'utxo_count'],
 });
@@ -3630,9 +3630,9 @@ const _UtxoSet2 = _s({
  *   block: SeriesPattern1<A>,
  *   atl: SeriesPattern1<A>,
  *   rebound: SeriesPattern1<?Percent>,
- * }} HashratePrice
+ * }} HashPriceValue
  */
-const _HashratePrice = _s({
+const _HashPriceValue = _s({
   block: [_i1, '*'],
   atl: [_i1, '*_atl'],
   rebound: [_i1, '*_rebound'],
@@ -3644,9 +3644,9 @@ const _HashratePrice = _s({
  *   _1m: SeriesPattern1<?Hashrate>,
  *   _2m: SeriesPattern1<?Hashrate>,
  *   _1y: SeriesPattern1<?Hashrate>,
- * }} RateSma
+ * }} HashRateSma
  */
-const _RateSma = _s({
+const _HashRateSma = _s({
   _1w: [_i1, '*_1w'],
   _1m: [_i1, '*_1m'],
   _2m: [_i1, '*_2m'],
@@ -3656,29 +3656,29 @@ const _RateSma = _s({
 /**
  * @typedef {{
  *   block: SeriesPattern1<?Hashrate>,
- *   sma: RateSma,
+ *   sma: HashRateSma,
  *   ath: SeriesPattern1<?Hashrate>,
  *   drawdown: SeriesPattern1<?Percent>,
- * }} HashrateRate
+ * }} Rate
  */
-const _HashrateRate = _s({
+const _Rate = _s({
   block: [_i1, '*'],
-  sma: [_RateSma, '*_sma'],
+  sma: [_HashRateSma, '*_sma'],
   ath: [_i1, '*_ath'],
   drawdown: [_i1, '*_drawdown'],
 });
 
 /**
  * @typedef {{
- *   rate: HashrateRate,
- *   price: HashratePrice<?HashPrice>,
- *   value: HashratePrice<?HashValue>,
+ *   rate: Rate,
+ *   price: HashPriceValue<?HashPrice>,
+ *   value: HashPriceValue<?HashValue>,
  * }} MiningHashrate
  */
 const _MiningHashrate = _s({
-  rate: [_HashrateRate, 'hashrate'],
-  price: [_HashratePrice, '*_price'],
-  value: [_HashratePrice, '*_value'],
+  rate: [_Rate, 'hashrate'],
+  price: [_HashPriceValue, '*_price'],
+  value: [_HashPriceValue, '*_value'],
 });
 
 /**
@@ -3692,9 +3692,9 @@ const _MiningHashrate = _s({
  *   median: SeriesPattern1<A>,
  *   pct75: SeriesPattern1<A>,
  *   pct90: SeriesPattern1<A>,
- * }} Vsize
+ * }} PerTxDistribution
  */
-const _Vsize = _s({
+const _PerTxDistribution = _s({
   tx: [_i19, '*'],
   min: [_i1, '*_min'],
   max: [_i1, '*_max'],
@@ -3709,68 +3709,68 @@ const _Vsize = _s({
  * @typedef {{
  *   btc: SeriesPattern1<?Bitcoin>,
  *   usd: SeriesPattern1<?Dollars>,
- * }} AvgBalance
+ * }} Value
  */
-const _AvgBalance = _s({
+const _Value = _s({
   btc: [_i1, '*'],
   usd: [_i1, '*_usd'],
 });
 
 /**
  * @typedef {{
- *   vaulted: AvgBalance,
- *   hodledOrLost: AvgBalance,
- *   active: AvgBalance,
+ *   vaulted: Value,
+ *   hodledOrLost: Value,
+ *   active: Value,
  * }} CointimeSupply
  */
 const _CointimeSupply = _s({
-  vaulted: [_AvgBalance, 'vaulted_*'],
-  hodledOrLost: [_AvgBalance, 'hodled_or_lost_*'],
-  active: [_AvgBalance, 'active_*'],
+  vaulted: [_Value, 'vaulted_*'],
+  hodledOrLost: [_Value, 'hodled_or_lost_*'],
+  active: [_Value, 'active_*'],
 });
 
 /**
  * @typedef {{
- *   total: AvgBalance,
- *   inLoss: SupplyInLoss,
+ *   total: Value,
+ *   inLoss: InLoss,
  * }} MobileSupply
  */
 const _MobileSupply = _s({
-  total: [_AvgBalance, '*'],
-  inLoss: [_SupplyInLoss, '*_in_loss_share'],
+  total: [_Value, '*'],
+  inLoss: [_InLoss, '*_in_loss_share'],
 });
 
 /**
  * @typedef {{
  *   supply: MobileSupply,
  *   capital: MobileCapital,
- *   costBasis: MobileCostBasis,
- * }} AllMobile
+ *   costBasis: CostBasis,
+ * }} Awake
  */
-const _AllMobile = _s({
+const _Awake = _s({
   supply: [_MobileSupply, '*_supply'],
   capital: [_MobileCapital, '*'],
-  costBasis: [_MobileCostBasis, '*'],
+  costBasis: [_CostBasis, '*'],
 });
 
 /**
  * @typedef {{
- *   supply: AvgBalance,
- * }} Immobile
+ *   supply: Value,
+ * }} Side
  */
-const _Immobile = _s({
-  supply: [_AvgBalance, '*'],
+const _Side = _s({
+  supply: [_Value, '*'],
 });
 
 /**
  * @typedef {{
- *   mobile: AllMobile,
- *   immobile: Immobile,
- * }} CoinflowCohortsAll
+ *   mobile: Awake,
+ *   immobile: Side,
+ * }} CoinflowCohortSeries
  */
-const _CoinflowCohortsAll = _s({
-  mobile: [_AllMobile, '*_mobile'],
-  immobile: [_Immobile, '*_immobile_supply'],
+const _CoinflowCohortSeries = _s({
+  mobile: [_Awake, '*_mobile'],
+  immobile: [_Side, '*_immobile_supply'],
 });
 
 /**
@@ -3778,195 +3778,195 @@ const _CoinflowCohortsAll = _s({
  *   spendingRate: SeriesPattern1<?PerDay>,
  *   spendingExposure: SeriesPattern1<?Float>,
  *   mobility: SeriesPattern1<?Ratio>,
- *   mobile: Immobile,
- *   immobile: Immobile,
- * }} CoinflowAgeRanges10yTo12y
+ *   mobile: Side,
+ *   immobile: Side,
+ * }} CoinflowRange
  */
-const _CoinflowAgeRanges10yTo12y = _s({
+const _CoinflowRange = _s({
   spendingRate: [_i1, '*_spending_rate'],
   spendingExposure: [_i1, '*_spending_exposure'],
   mobility: [_i1, '*_mobility'],
-  mobile: [_Immobile, '*_mobile_supply'],
-  immobile: [_Immobile, '*_immobile_supply'],
+  mobile: [_Side, '*_mobile_supply'],
+  immobile: [_Side, '*_immobile_supply'],
 });
 
 /**
  * @typedef {{
- *   awake: AllMobile,
- *   dormant: Immobile,
- * }} CointimeCohortsAll
+ *   awake: Awake,
+ *   dormant: Side,
+ * }} CointimeCohortSeries
  */
-const _CointimeCohortsAll = _s({
-  awake: [_AllMobile, '*_awake'],
-  dormant: [_Immobile, '*_dormant_supply'],
+const _CointimeCohortSeries = _s({
+  awake: [_Awake, '*_awake'],
+  dormant: [_Side, '*_dormant_supply'],
 });
 
 /**
  * @typedef {{
- *   total: AvgBalance,
+ *   total: Value,
  *   share: SeriesPattern1<?Percent>,
- * }} Loss0To10PercentSupply
+ * }} BandSupply
  */
-const _Loss0To10PercentSupply = _s({
-  total: [_AvgBalance, '*'],
+const _BandSupply = _s({
+  total: [_Value, '*'],
   share: [_i1, '*_share'],
 });
 
 /**
  * @typedef {{
- *   supply: Loss0To10PercentSupply,
- *   capital: Loss0To10PercentCapital,
- * }} Loss0To10Percent
+ *   supply: BandSupply,
+ *   capital: BandCapital,
+ * }} Band
  */
-const _Loss0To10Percent = _s({
-  supply: [_Loss0To10PercentSupply, '*_supply'],
-  capital: [_Loss0To10PercentCapital, '*'],
+const _Band = _s({
+  supply: [_BandSupply, '*_supply'],
+  capital: [_BandCapital, '*'],
 });
 
 /**
  * @typedef {{
- *   profitOver1000Percent: Loss0To10Percent,
- *   profit500To1000Percent: Loss0To10Percent,
- *   profit300To500Percent: Loss0To10Percent,
- *   profit200To300Percent: Loss0To10Percent,
- *   profit100To200Percent: Loss0To10Percent,
- *   profit90To100Percent: Loss0To10Percent,
- *   profit80To90Percent: Loss0To10Percent,
- *   profit70To80Percent: Loss0To10Percent,
- *   profit60To70Percent: Loss0To10Percent,
- *   profit50To60Percent: Loss0To10Percent,
- *   profit40To50Percent: Loss0To10Percent,
- *   profit30To40Percent: Loss0To10Percent,
- *   profit20To30Percent: Loss0To10Percent,
- *   profit10To20Percent: Loss0To10Percent,
- *   profit0To10Percent: Loss0To10Percent,
- *   loss0To10Percent: Loss0To10Percent,
- *   loss10To20Percent: Loss0To10Percent,
- *   loss20To30Percent: Loss0To10Percent,
- *   loss30To40Percent: Loss0To10Percent,
- *   loss40To50Percent: Loss0To10Percent,
- *   loss50To60Percent: Loss0To10Percent,
- *   loss60To70Percent: Loss0To10Percent,
- *   loss70To80Percent: Loss0To10Percent,
- *   loss80To90Percent: Loss0To10Percent,
- *   loss90To100Percent: Loss0To10Percent,
- * }} ProfitabilityAll
+ *   profitOver1000Percent: Band,
+ *   profit500To1000Percent: Band,
+ *   profit300To500Percent: Band,
+ *   profit200To300Percent: Band,
+ *   profit100To200Percent: Band,
+ *   profit90To100Percent: Band,
+ *   profit80To90Percent: Band,
+ *   profit70To80Percent: Band,
+ *   profit60To70Percent: Band,
+ *   profit50To60Percent: Band,
+ *   profit40To50Percent: Band,
+ *   profit30To40Percent: Band,
+ *   profit20To30Percent: Band,
+ *   profit10To20Percent: Band,
+ *   profit0To10Percent: Band,
+ *   loss0To10Percent: Band,
+ *   loss10To20Percent: Band,
+ *   loss20To30Percent: Band,
+ *   loss30To40Percent: Band,
+ *   loss40To50Percent: Band,
+ *   loss50To60Percent: Band,
+ *   loss60To70Percent: Band,
+ *   loss70To80Percent: Band,
+ *   loss80To90Percent: Band,
+ *   loss90To100Percent: Band,
+ * }} ProfitabilityRange
  */
-const _ProfitabilityAll = _s({
-  profitOver1000Percent: [_Loss0To10Percent, '*_profit_over_1000_percent'],
-  profit500To1000Percent: [_Loss0To10Percent, '*_profit_500_to_1000_percent'],
-  profit300To500Percent: [_Loss0To10Percent, '*_profit_300_to_500_percent'],
-  profit200To300Percent: [_Loss0To10Percent, '*_profit_200_to_300_percent'],
-  profit100To200Percent: [_Loss0To10Percent, '*_profit_100_to_200_percent'],
-  profit90To100Percent: [_Loss0To10Percent, '*_profit_90_to_100_percent'],
-  profit80To90Percent: [_Loss0To10Percent, '*_profit_80_to_90_percent'],
-  profit70To80Percent: [_Loss0To10Percent, '*_profit_70_to_80_percent'],
-  profit60To70Percent: [_Loss0To10Percent, '*_profit_60_to_70_percent'],
-  profit50To60Percent: [_Loss0To10Percent, '*_profit_50_to_60_percent'],
-  profit40To50Percent: [_Loss0To10Percent, '*_profit_40_to_50_percent'],
-  profit30To40Percent: [_Loss0To10Percent, '*_profit_30_to_40_percent'],
-  profit20To30Percent: [_Loss0To10Percent, '*_profit_20_to_30_percent'],
-  profit10To20Percent: [_Loss0To10Percent, '*_profit_10_to_20_percent'],
-  profit0To10Percent: [_Loss0To10Percent, '*_profit_0_to_10_percent'],
-  loss0To10Percent: [_Loss0To10Percent, '*_loss_0_to_10_percent'],
-  loss10To20Percent: [_Loss0To10Percent, '*_loss_10_to_20_percent'],
-  loss20To30Percent: [_Loss0To10Percent, '*_loss_20_to_30_percent'],
-  loss30To40Percent: [_Loss0To10Percent, '*_loss_30_to_40_percent'],
-  loss40To50Percent: [_Loss0To10Percent, '*_loss_40_to_50_percent'],
-  loss50To60Percent: [_Loss0To10Percent, '*_loss_50_to_60_percent'],
-  loss60To70Percent: [_Loss0To10Percent, '*_loss_60_to_70_percent'],
-  loss70To80Percent: [_Loss0To10Percent, '*_loss_70_to_80_percent'],
-  loss80To90Percent: [_Loss0To10Percent, '*_loss_80_to_90_percent'],
-  loss90To100Percent: [_Loss0To10Percent, '*_loss_90_to_100_percent'],
+const _ProfitabilityRange = _s({
+  profitOver1000Percent: [_Band, '*_profit_over_1000_percent'],
+  profit500To1000Percent: [_Band, '*_profit_500_to_1000_percent'],
+  profit300To500Percent: [_Band, '*_profit_300_to_500_percent'],
+  profit200To300Percent: [_Band, '*_profit_200_to_300_percent'],
+  profit100To200Percent: [_Band, '*_profit_100_to_200_percent'],
+  profit90To100Percent: [_Band, '*_profit_90_to_100_percent'],
+  profit80To90Percent: [_Band, '*_profit_80_to_90_percent'],
+  profit70To80Percent: [_Band, '*_profit_70_to_80_percent'],
+  profit60To70Percent: [_Band, '*_profit_60_to_70_percent'],
+  profit50To60Percent: [_Band, '*_profit_50_to_60_percent'],
+  profit40To50Percent: [_Band, '*_profit_40_to_50_percent'],
+  profit30To40Percent: [_Band, '*_profit_30_to_40_percent'],
+  profit20To30Percent: [_Band, '*_profit_20_to_30_percent'],
+  profit10To20Percent: [_Band, '*_profit_10_to_20_percent'],
+  profit0To10Percent: [_Band, '*_profit_0_to_10_percent'],
+  loss0To10Percent: [_Band, '*_loss_0_to_10_percent'],
+  loss10To20Percent: [_Band, '*_loss_10_to_20_percent'],
+  loss20To30Percent: [_Band, '*_loss_20_to_30_percent'],
+  loss30To40Percent: [_Band, '*_loss_30_to_40_percent'],
+  loss40To50Percent: [_Band, '*_loss_40_to_50_percent'],
+  loss50To60Percent: [_Band, '*_loss_50_to_60_percent'],
+  loss60To70Percent: [_Band, '*_loss_60_to_70_percent'],
+  loss70To80Percent: [_Band, '*_loss_70_to_80_percent'],
+  loss80To90Percent: [_Band, '*_loss_80_to_90_percent'],
+  loss90To100Percent: [_Band, '*_loss_90_to_100_percent'],
 });
 
 /**
  * @typedef {{
- *   all: ProfitabilityAll,
- *   sth: ProfitabilityAll,
- *   lth: ProfitabilityAll,
+ *   all: ProfitabilityRange,
+ *   sth: ProfitabilityRange,
+ *   lth: ProfitabilityRange,
  * }} Profitability
  */
 const _Profitability = _s({
-  all: [_ProfitabilityAll, ''],
-  sth: [_ProfitabilityAll, '*'],
-  lth: [_ProfitabilityAll, 'lth'],
+  all: [_ProfitabilityRange, ''],
+  sth: [_ProfitabilityRange, '*'],
+  lth: [_ProfitabilityRange, 'lth'],
 });
 
 /**
  * @typedef {{
- *   _24h: AvgBalance,
- *   _1w: AvgBalance,
- *   _1m: AvgBalance,
- *   _1y: AvgBalance,
- * }} Sum
+ *   _24h: Value,
+ *   _1w: Value,
+ *   _1m: Value,
+ *   _1y: Value,
+ * }} OpReturnWindows
  */
-const _Sum = _s({
-  _24h: [_AvgBalance, '*_24h'],
-  _1w: [_AvgBalance, '*_1w'],
-  _1m: [_AvgBalance, '*_1m'],
-  _1y: [_AvgBalance, '*_1y'],
+const _OpReturnWindows = _s({
+  _24h: [_Value, '*_24h'],
+  _1w: [_Value, '*_1w'],
+  _1m: [_Value, '*_1m'],
+  _1y: [_Value, '*_1y'],
 });
 
 /**
  * @typedef {{
- *   cumulative: AvgBalance,
- *   sum: Sum,
- * }} Pools175btcRewards
+ *   cumulative: Value,
+ *   sum: OpReturnWindows,
+ * }} Rewards
  */
-const _Pools175btcRewards = _s({
-  cumulative: [_AvgBalance, '*_cumulative'],
-  sum: [_Sum, '*_sum'],
+const _Rewards = _s({
+  cumulative: [_Value, '*_cumulative'],
+  sum: [_OpReturnWindows, '*_sum'],
 });
 
 /**
  * @typedef {{
  *   btc: SeriesPattern18<?Bitcoin>,
  *   usd: SeriesPattern18<?Dollars>,
- * }} Block
+ * }} OpReturnValue
  */
-const _Block = _s({
+const _OpReturnValue = _s({
   btc: [_i18, '*'],
   usd: [_i18, '*_usd'],
 });
 
 /**
  * @typedef {{
- *   block: Block,
- *   cumulative: AvgBalance,
- *   sum: Sum,
- * }} OpReturnValue
+ *   block: OpReturnValue,
+ *   cumulative: Value,
+ *   sum: OpReturnWindows,
+ * }} ValueFlow
  */
-const _OpReturnValue = _s({
-  block: [_Block, '*'],
-  cumulative: [_AvgBalance, '*_cumulative'],
-  sum: [_Sum, '*_sum'],
+const _ValueFlow = _s({
+  block: [_OpReturnValue, '*'],
+  cumulative: [_Value, '*_cumulative'],
+  sum: [_OpReturnWindows, '*_sum'],
 });
 
 /**
  * @typedef {{
- *   transferVolume: OpReturnValue,
- * }} Balances100To1kBtcActivity
+ *   transferVolume: ValueFlow,
+ * }} Activity
  */
-const _Balances100To1kBtcActivity = _s({
-  transferVolume: [_OpReturnValue, '*'],
+const _Activity = _s({
+  transferVolume: [_ValueFlow, '*'],
 });
 
 /**
  * @typedef {{
- *   block: Block,
- *   cumulative: AvgBalance,
- *   sum: Sum,
- *   inProfit: OpReturnValue,
- *   inLoss: OpReturnValue,
- * }} TransferVolume
+ *   block: OpReturnValue,
+ *   cumulative: Value,
+ *   sum: OpReturnWindows,
+ *   inProfit: ValueFlow,
+ *   inLoss: ValueFlow,
+ * }} HoldersValueFlow
  */
-const _TransferVolume = _s({
-  block: [_Block, '*'],
-  cumulative: [_AvgBalance, '*_cumulative'],
-  sum: [_Sum, '*_sum'],
-  inProfit: [_OpReturnValue, '*_in_profit'],
-  inLoss: [_OpReturnValue, '*_in_loss'],
+const _HoldersValueFlow = _s({
+  block: [_OpReturnValue, '*'],
+  cumulative: [_Value, '*_cumulative'],
+  sum: [_OpReturnWindows, '*_sum'],
+  inProfit: [_ValueFlow, '*_in_profit'],
+  inLoss: [_ValueFlow, '*_in_loss'],
 });
 
 /**
@@ -3976,9 +3976,9 @@ const _TransferVolume = _s({
  *   _1w: SeriesPattern1<?Percent>,
  *   _1m: SeriesPattern1<?Percent>,
  *   _1y: SeriesPattern1<?Percent>,
- * }} TxShare
+ * }} Share
  */
-const _TxShare = _s({
+const _Share = _s({
   cumulative: [_i1, '*_cumulative'],
   _24h: [_i1, '*_24h'],
   _1w: [_i1, '*_1w'],
@@ -3988,63 +3988,63 @@ const _TxShare = _s({
 
 /**
  * @typedef {{
- *   block: Block,
- *   cumulative: AvgBalance,
- *   sum: Sum,
- *   avg: Sum,
- *   min: Sum,
- *   max: Sum,
- *   pct10: Sum,
- *   pct25: Sum,
- *   median: Sum,
- *   pct75: Sum,
- *   pct90: Sum,
- *   share: TxShare,
- * }} RewardsFees
+ *   block: OpReturnValue,
+ *   cumulative: Value,
+ *   sum: OpReturnWindows,
+ *   avg: OpReturnWindows,
+ *   min: OpReturnWindows,
+ *   max: OpReturnWindows,
+ *   pct10: OpReturnWindows,
+ *   pct25: OpReturnWindows,
+ *   median: OpReturnWindows,
+ *   pct75: OpReturnWindows,
+ *   pct90: OpReturnWindows,
+ *   share: Share,
+ * }} ValueFlowStats
  */
-const _RewardsFees = _s({
-  block: [_Block, '*'],
-  cumulative: [_AvgBalance, '*_cumulative'],
-  sum: [_Sum, '*_sum'],
-  avg: [_Sum, '*_avg'],
-  min: [_Sum, '*_min'],
-  max: [_Sum, '*_max'],
-  pct10: [_Sum, '*_pct10'],
-  pct25: [_Sum, '*_pct25'],
-  median: [_Sum, '*_median'],
-  pct75: [_Sum, '*_pct75'],
-  pct90: [_Sum, '*_pct90'],
-  share: [_TxShare, 'fee_share'],
+const _ValueFlowStats = _s({
+  block: [_OpReturnValue, '*'],
+  cumulative: [_Value, '*_cumulative'],
+  sum: [_OpReturnWindows, '*_sum'],
+  avg: [_OpReturnWindows, '*_avg'],
+  min: [_OpReturnWindows, '*_min'],
+  max: [_OpReturnWindows, '*_max'],
+  pct10: [_OpReturnWindows, '*_pct10'],
+  pct25: [_OpReturnWindows, '*_pct25'],
+  median: [_OpReturnWindows, '*_median'],
+  pct75: [_OpReturnWindows, '*_pct75'],
+  pct90: [_OpReturnWindows, '*_pct90'],
+  share: [_Share, 'fee_share'],
 });
 
 /**
  * @typedef {{
- *   block: Block,
- *   cumulative: AvgBalance,
- *   sum: Sum,
- *   share: TxShare,
- * }} Subsidy
+ *   block: OpReturnValue,
+ *   cumulative: Value,
+ *   sum: OpReturnWindows,
+ *   share: Share,
+ * }} MiningValueFlow
  */
-const _Subsidy = _s({
-  block: [_Block, '*'],
-  cumulative: [_AvgBalance, '*_cumulative'],
-  sum: [_Sum, '*_sum'],
-  share: [_TxShare, '*_share'],
+const _MiningValueFlow = _s({
+  block: [_OpReturnValue, '*'],
+  cumulative: [_Value, '*_cumulative'],
+  sum: [_OpReturnWindows, '*_sum'],
+  share: [_Share, '*_share'],
 });
 
 /**
  * @typedef {{
- *   coinbase: OpReturnValue,
- *   subsidy: Subsidy,
- *   fees: RewardsFees,
- *   unclaimed: OpReturnValue,
+ *   coinbase: ValueFlow,
+ *   subsidy: MiningValueFlow,
+ *   fees: ValueFlowStats,
+ *   unclaimed: ValueFlow,
  * }} MiningRewards
  */
 const _MiningRewards = _s({
-  coinbase: [_OpReturnValue, '*'],
-  subsidy: [_Subsidy, 'subsidy'],
-  fees: [_RewardsFees, 'fees'],
-  unclaimed: [_OpReturnValue, 'unclaimed_rewards'],
+  coinbase: [_ValueFlow, '*'],
+  subsidy: [_MiningValueFlow, 'subsidy'],
+  fees: [_ValueFlowStats, 'fees'],
+  unclaimed: [_ValueFlow, 'unclaimed_rewards'],
 });
 
 /**
@@ -4060,17 +4060,17 @@ const _Mining = _s({
 
 /**
  * @typedef {{
- *   block: Block,
- *   cumulative: AvgBalance,
- *   sum: Sum,
- *   chainShare: TxShare,
- * }} OpReturnFees
+ *   block: OpReturnValue,
+ *   cumulative: Value,
+ *   sum: OpReturnWindows,
+ *   chainShare: Share,
+ * }} FeesSeries
  */
-const _OpReturnFees = _s({
-  block: [_Block, '*_fees'],
-  cumulative: [_AvgBalance, '*_fees_cumulative'],
-  sum: [_Sum, '*_fees_sum'],
-  chainShare: [_TxShare, '*_fee_chain_share'],
+const _FeesSeries = _s({
+  block: [_OpReturnValue, '*_fees'],
+  cumulative: [_Value, '*_fees_cumulative'],
+  sum: [_OpReturnWindows, '*_fees_sum'],
+  chainShare: [_Share, '*_fee_chain_share'],
 });
 
 /**
@@ -4112,9 +4112,9 @@ const _BlocksDifficulty = _s({
  *   _1w: SeriesPattern1<A>,
  *   _1m: SeriesPattern1<A>,
  *   _1y: SeriesPattern1<A>,
- * }} InputsPerSecond
+ * }} Windows
  */
-const _InputsPerSecond = _s({
+const _Windows = _s({
   _24h: [_i1, '*_24h'],
   _1w: [_i1, '*_1w'],
   _1m: [_i1, '*_1m'],
@@ -4124,40 +4124,40 @@ const _InputsPerSecond = _s({
 /**
  * @typedef {{
  *   block: SeriesPattern18<Count>,
- *   sum: InputsPerSecond<Count>,
- * }} New
+ *   sum: Windows<Count>,
+ * }} NewAddressCount
  */
-const _New = _s({
+const _NewAddressCount = _s({
   block: [_i18, '*'],
-  sum: [_InputsPerSecond, '*_sum'],
+  sum: [_Windows, '*_sum'],
 });
 
 /**
  * @template A
  * @typedef {{
- *   absolute: InputsPerSecond<A>,
- *   rate: DeltaRate,
+ *   absolute: Windows<A>,
+ *   rate: AddressesWindows,
  * }} Delta
  */
 const _Delta = _s({
-  absolute: [_InputsPerSecond, '*'],
-  rate: [_DeltaRate, '*'],
+  absolute: [_Windows, '*'],
+  rate: [_AddressesWindows, '*'],
 });
 
 /**
  * @typedef {{
- *   total: AvgBalance,
+ *   total: Value,
  *   share: SeriesPattern1<?Percent>,
- *   inProfit: ExposedSupply,
- *   inLoss: ExposedSupply,
+ *   inProfit: PredicateSupply,
+ *   inLoss: PredicateSupply,
  *   delta: Delta<?Bitcoin>,
  * }} LthSupply
  */
 const _LthSupply = _s({
-  total: [_AvgBalance, '*'],
+  total: [_Value, '*'],
   share: [_i1, '*_share'],
-  inProfit: [_ExposedSupply, '*_in_profit'],
-  inLoss: [_ExposedSupply, '*_in_loss'],
+  inProfit: [_PredicateSupply, '*_in_profit'],
+  inLoss: [_PredicateSupply, '*_in_loss'],
   delta: [_Delta, '*_delta'],
 });
 
@@ -4166,34 +4166,34 @@ const _LthSupply = _s({
  *   total: SeriesPattern1<?Dollars>,
  *   realizedCap: SeriesPattern1<?Dollars>,
  *   share: SeriesPattern1<?Percent>,
- *   inProfit: CapitalInLoss,
- *   inLoss: CapitalInLoss,
+ *   inProfit: Part,
+ *   inLoss: Part,
  *   delta: Delta<?Dollars>,
- * }} AllCapital
+ * }} Capital
  */
-const _AllCapital = _s({
+const _Capital = _s({
   total: [_i1, '*_capital'],
   realizedCap: [_i1, '*_realized_cap'],
   share: [_i1, '*_capital_share'],
-  inProfit: [_CapitalInLoss, '*_capital_in_profit'],
-  inLoss: [_CapitalInLoss, '*_capital_in_loss'],
+  inProfit: [_Part, '*_capital_in_profit'],
+  inLoss: [_Part, '*_capital_in_loss'],
   delta: [_Delta, '*_capital_delta'],
 });
 
 /**
  * @typedef {{
- *   total: Total,
+ *   total: SpotValue,
  *   share: SeriesPattern1<?Percent>,
- *   inProfit: ExposedSupply,
- *   inLoss: ExposedSupply,
+ *   inProfit: PredicateSupply,
+ *   inLoss: PredicateSupply,
  *   delta: Delta<?Bitcoin>,
  * }} AllSupply
  */
 const _AllSupply = _s({
-  total: [_Total, 'circulating_*'],
+  total: [_SpotValue, 'circulating_*'],
   share: [_i1, '*_share'],
-  inProfit: [_ExposedSupply, '*_in_profit'],
-  inLoss: [_ExposedSupply, '*_in_loss'],
+  inProfit: [_PredicateSupply, '*_in_profit'],
+  inLoss: [_PredicateSupply, '*_in_loss'],
   delta: [_Delta, '*_delta'],
 });
 
@@ -4203,9 +4203,9 @@ const _AllSupply = _s({
  *   realizedCap: SeriesPattern1<?Dollars>,
  *   delta: Delta<?Dollars>,
  *   share: SeriesPattern1<?Percent>,
- * }} AddressesCapital
+ * }} CapitalViews
  */
-const _AddressesCapital = _s({
+const _CapitalViews = _s({
   total: [_i1, '*_capital'],
   realizedCap: [_i1, '*_realized_cap'],
   delta: [_Delta, '*_capital_delta'],
@@ -4214,32 +4214,32 @@ const _AddressesCapital = _s({
 
 /**
  * @typedef {{
- *   total: AvgBalance,
+ *   total: Value,
  *   delta: Delta<?Bitcoin>,
  *   share: SeriesPattern1<?Percent>,
- * }} AddressesSupply
+ * }} CohortSupply
  */
-const _AddressesSupply = _s({
-  total: [_AvgBalance, '*'],
+const _CohortSupply = _s({
+  total: [_Value, '*'],
   delta: [_Delta, '*_delta'],
   share: [_i1, '*_share'],
 });
 
 /**
  * @typedef {{
- *   total: AvgBalance,
+ *   total: Value,
  *   delta: Delta<?Bitcoin>,
  *   share: SeriesPattern1<?Percent>,
- *   inProfit: AvgBalance,
- *   inLoss: AvgBalance,
- * }} RookieSupply
+ *   inProfit: Value,
+ *   inLoss: Value,
+ * }} CreationSupply
  */
-const _RookieSupply = _s({
-  total: [_AvgBalance, '*'],
+const _CreationSupply = _s({
+  total: [_Value, '*'],
   delta: [_Delta, '*_delta'],
   share: [_i1, '*_share'],
-  inProfit: [_AvgBalance, '*_in_profit'],
-  inLoss: [_AvgBalance, '*_in_loss'],
+  inProfit: [_Value, '*_in_profit'],
+  inLoss: [_Value, '*_in_loss'],
 });
 
 /**
@@ -4247,9 +4247,9 @@ const _RookieSupply = _s({
  * @typedef {{
  *   block: SeriesPattern1<A>,
  *   delta: Delta<B>,
- * }} Funded
+ * }} WithDelta
  */
-const _Funded = _s({
+const _WithDelta = _s({
   block: [_i1, '*'],
   delta: [_Delta, '*_delta'],
 });
@@ -4257,38 +4257,38 @@ const _Funded = _s({
 /**
  * @typedef {{
  *   circulating: SeriesPattern1<?Bitcoin>,
- *   burned: OpReturnValue,
+ *   burned: ValueFlow,
  *   inflationRate: SeriesPattern1<?Percent>,
  *   velocity: Velocity,
- *   marketCap: Funded<?Dollars, ?Dollars>,
+ *   marketCap: WithDelta<?Dollars, ?Dollars>,
  * }} Supply
  */
 const _Supply = _s({
   circulating: [_i1, '*'],
-  burned: [_OpReturnValue, 'burned'],
+  burned: [_ValueFlow, 'burned'],
   inflationRate: [_i1, 'inflation_rate'],
   velocity: [_Velocity, 'velocity'],
-  marketCap: [_Funded, 'market_cap'],
+  marketCap: [_WithDelta, 'market_cap'],
 });
 
 /**
  * @typedef {{
- *   count: Funded<Count, CountSigned>,
- * }} Balances0SatsUtxos
+ *   count: WithDelta<Count, CountSigned>,
+ * }} BalanceUtxos
  */
-const _Balances0SatsUtxos = _s({
-  count: [_Funded, '*'],
+const _BalanceUtxos = _s({
+  count: [_WithDelta, '*'],
 });
 
 /**
  * @typedef {{
- *   funded: Funded<Count, CountSigned>,
- *   utxos: Balances0SatsUtxos,
- * }} Balances0Sats
+ *   funded: WithDelta<Count, CountSigned>,
+ *   utxos: BalanceUtxos,
+ * }} ZeroBalance
  */
-const _Balances0Sats = _s({
-  funded: [_Funded, '*_address_count'],
-  utxos: [_Balances0SatsUtxos, '*_utxo_count'],
+const _ZeroBalance = _s({
+  funded: [_WithDelta, '*_address_count'],
+  utxos: [_BalanceUtxos, '*_utxo_count'],
 });
 
 /**
@@ -4299,9 +4299,9 @@ const _Balances0Sats = _s({
  *   share: SeriesPattern1<?Percent>,
  *   inProfit: SeriesPattern1<?Dollars>,
  *   inLoss: SeriesPattern1<?Dollars>,
- * }} RookieCapital
+ * }} CreationCapital
  */
-const _RookieCapital = _s({
+const _CreationCapital = _s({
   total: [_i1, '*_capital'],
   realizedCap: [_i1, '*_realized_cap'],
   delta: [_Delta, '*_capital_delta'],
@@ -4312,405 +4312,405 @@ const _RookieCapital = _s({
 
 /**
  * @typedef {{
- *   total: AvgBalance,
+ *   total: Value,
  *   delta: Delta<?Bitcoin>,
  *   share: SeriesPattern1<?Percent>,
- *   inProfit: AvgBalance,
- *   inLoss: AvgBalance,
- *   matured: OpReturnValue,
- * }} Ranges10yTo12ySupply
+ *   inProfit: Value,
+ *   inLoss: Value,
+ *   matured: ValueFlow,
+ * }} AgeCreationSupply
  */
-const _Ranges10yTo12ySupply = _s({
-  total: [_AvgBalance, '*_supply'],
+const _AgeCreationSupply = _s({
+  total: [_Value, '*_supply'],
   delta: [_Delta, '*_supply_delta'],
   share: [_i1, '*_supply_share'],
-  inProfit: [_AvgBalance, '*_supply_in_profit'],
-  inLoss: [_AvgBalance, '*_supply_in_loss'],
-  matured: [_OpReturnValue, '*_matured_supply'],
+  inProfit: [_Value, '*_supply_in_profit'],
+  inLoss: [_Value, '*_supply_in_loss'],
+  matured: [_ValueFlow, '*_matured_supply'],
 });
 
 /**
  * @typedef {{
  *   cumulative: SeriesPattern1<Count>,
- *   sum: InputsPerSecond<Count>,
+ *   sum: Windows<Count>,
  * }} BlockCount
  */
 const _BlockCount = _s({
   cumulative: [_i1, '*_cumulative'],
-  sum: [_InputsPerSecond, '*_sum'],
+  sum: [_Windows, '*_sum'],
 });
 
 /**
  * @typedef {{
  *   blockCount: BlockCount,
- *   blockShare: TxShare,
- *   rewards: Pools175btcRewards,
- *   feesPerBlock: Sum,
- *   hashrate: InputsPerSecond<?Hashrate>,
- * }} Pools175btc
+ *   blockShare: Share,
+ *   rewards: Rewards,
+ *   feesPerBlock: OpReturnWindows,
+ *   hashrate: Windows<?Hashrate>,
+ * }} Pool
  */
-const _Pools175btc = _s({
+const _Pool = _s({
   blockCount: [_BlockCount, '*_block_count'],
-  blockShare: [_TxShare, '*_block_share'],
-  rewards: [_Pools175btcRewards, '*_rewards'],
-  feesPerBlock: [_Sum, '*_fees_per_block'],
-  hashrate: [_InputsPerSecond, '*_hashrate'],
+  blockShare: [_Share, '*_block_share'],
+  rewards: [_Rewards, '*_rewards'],
+  feesPerBlock: [_OpReturnWindows, '*_fees_per_block'],
+  hashrate: [_Windows, '*_hashrate'],
 });
 
 /**
  * @typedef {{
  *   blockPool: SeriesPattern18<PoolSlug>,
- *   unknown: Pools175btc,
- *   blockfills: Pools175btc,
- *   ultimuspool: Pools175btc,
- *   terrapool: Pools175btc,
- *   luxor: Pools175btc,
- *   _1thash: Pools175btc,
- *   btccom: Pools175btc,
- *   bitfarms: Pools175btc,
- *   huobipool: Pools175btc,
- *   wayicn: Pools175btc,
- *   canoepool: Pools175btc,
- *   btctop: Pools175btc,
- *   bitcoincom: Pools175btc,
- *   _175btc: Pools175btc,
- *   gbminers: Pools175btc,
- *   axbt: Pools175btc,
- *   asicminer: Pools175btc,
- *   bitminter: Pools175btc,
- *   bitcoinrussia: Pools175btc,
- *   btcserv: Pools175btc,
- *   simplecoinus: Pools175btc,
- *   btcguild: Pools175btc,
- *   eligius: Pools175btc,
- *   ozcoin: Pools175btc,
- *   eclipsemc: Pools175btc,
- *   maxbtc: Pools175btc,
- *   triplemining: Pools175btc,
- *   coinlab: Pools175btc,
- *   _50btc: Pools175btc,
- *   ghashio: Pools175btc,
- *   stminingcorp: Pools175btc,
- *   bitparking: Pools175btc,
- *   mmpool: Pools175btc,
- *   polmine: Pools175btc,
- *   kncminer: Pools175btc,
- *   bitalo: Pools175btc,
- *   f2pool: Pools175btc,
- *   hhtt: Pools175btc,
- *   megabigpower: Pools175btc,
- *   mtred: Pools175btc,
- *   nmcbit: Pools175btc,
- *   yourbtcnet: Pools175btc,
- *   givemecoins: Pools175btc,
- *   braiinspool: Pools175btc,
- *   antpool: Pools175btc,
- *   multicoinco: Pools175btc,
- *   bcpoolio: Pools175btc,
- *   cointerra: Pools175btc,
- *   kanopool: Pools175btc,
- *   solock: Pools175btc,
- *   ckpool: Pools175btc,
- *   nicehash: Pools175btc,
- *   bitclub: Pools175btc,
- *   bitcoinaffiliatenetwork: Pools175btc,
- *   btcc: Pools175btc,
- *   bwpool: Pools175btc,
- *   exxbw: Pools175btc,
- *   bitsolo: Pools175btc,
- *   bitfury: Pools175btc,
- *   _21inc: Pools175btc,
- *   digitalbtc: Pools175btc,
- *   _8baochi: Pools175btc,
- *   mybtccoinpool: Pools175btc,
- *   tbdice: Pools175btc,
- *   hashpool: Pools175btc,
- *   nexious: Pools175btc,
- *   bravomining: Pools175btc,
- *   hotpool: Pools175btc,
- *   okexpool: Pools175btc,
- *   bcmonster: Pools175btc,
- *   _1hash: Pools175btc,
- *   bixin: Pools175btc,
- *   tatmaspool: Pools175btc,
- *   viabtc: Pools175btc,
- *   connectbtc: Pools175btc,
- *   batpool: Pools175btc,
- *   waterhole: Pools175btc,
- *   dcexploration: Pools175btc,
- *   dcex: Pools175btc,
- *   btpool: Pools175btc,
- *   _58coin: Pools175btc,
- *   bitcoinindia: Pools175btc,
- *   shawnp0wers: Pools175btc,
- *   phashio: Pools175btc,
- *   rigpool: Pools175btc,
- *   haozhuzhu: Pools175btc,
- *   _7pool: Pools175btc,
- *   miningkings: Pools175btc,
- *   hashbx: Pools175btc,
- *   dpool: Pools175btc,
- *   rawpool: Pools175btc,
- *   haominer: Pools175btc,
- *   helix: Pools175btc,
- *   bitcoinukraine: Pools175btc,
- *   poolin: Pools175btc,
- *   secretsuperstar: Pools175btc,
- *   tigerpoolnet: Pools175btc,
- *   sigmapoolcom: Pools175btc,
- *   okpooltop: Pools175btc,
- *   hummerpool: Pools175btc,
- *   tangpool: Pools175btc,
- *   bytepool: Pools175btc,
- *   spiderpool: Pools175btc,
- *   novablock: Pools175btc,
- *   miningcity: Pools175btc,
- *   binancepool: Pools175btc,
- *   minerium: Pools175btc,
- *   lubiancom: Pools175btc,
- *   okkong: Pools175btc,
- *   aaopool: Pools175btc,
- *   emcdpool: Pools175btc,
- *   foundryusa: Pools175btc,
- *   sbicrypto: Pools175btc,
- *   arkpool: Pools175btc,
- *   purebtccom: Pools175btc,
- *   marapool: Pools175btc,
- *   kucoinpool: Pools175btc,
- *   entrustcharitypool: Pools175btc,
- *   okminer: Pools175btc,
- *   titan: Pools175btc,
- *   pegapool: Pools175btc,
- *   btcnuggets: Pools175btc,
- *   cloudhashing: Pools175btc,
- *   digitalxmintsy: Pools175btc,
- *   telco214: Pools175btc,
- *   btcpoolparty: Pools175btc,
- *   multipool: Pools175btc,
- *   transactioncoinmining: Pools175btc,
- *   btcdig: Pools175btc,
- *   trickysbtcpool: Pools175btc,
- *   btcmp: Pools175btc,
- *   eobot: Pools175btc,
- *   unomp: Pools175btc,
- *   patels: Pools175btc,
- *   gogreenlight: Pools175btc,
- *   bitcoinindiapool: Pools175btc,
- *   ekanembtc: Pools175btc,
- *   canoe: Pools175btc,
- *   tiger: Pools175btc,
- *   _1m1x: Pools175btc,
- *   zulupool: Pools175btc,
- *   secpool: Pools175btc,
- *   ocean: Pools175btc,
- *   whitepool: Pools175btc,
- *   wiz: Pools175btc,
- *   wk057: Pools175btc,
- *   futurebitapollosolo: Pools175btc,
- *   carbonnegative: Pools175btc,
- *   portlandhodl: Pools175btc,
- *   phoenix: Pools175btc,
- *   neopool: Pools175btc,
- *   maxipool: Pools175btc,
- *   bitfufupool: Pools175btc,
- *   gdpool: Pools175btc,
- *   miningdutch: Pools175btc,
- *   publicpool: Pools175btc,
- *   miningsquared: Pools175btc,
- *   innopolistech: Pools175btc,
- *   btclab: Pools175btc,
- *   parasite: Pools175btc,
- *   redrockpool: Pools175btc,
- *   est3lar: Pools175btc,
- *   braiinssolo: Pools175btc,
- *   solopoolcom: Pools175btc,
- *   noderunners: Pools175btc,
- *   dmnd: Pools175btc,
+ *   unknown: Pool,
+ *   blockfills: Pool,
+ *   ultimuspool: Pool,
+ *   terrapool: Pool,
+ *   luxor: Pool,
+ *   _1thash: Pool,
+ *   btccom: Pool,
+ *   bitfarms: Pool,
+ *   huobipool: Pool,
+ *   wayicn: Pool,
+ *   canoepool: Pool,
+ *   btctop: Pool,
+ *   bitcoincom: Pool,
+ *   _175btc: Pool,
+ *   gbminers: Pool,
+ *   axbt: Pool,
+ *   asicminer: Pool,
+ *   bitminter: Pool,
+ *   bitcoinrussia: Pool,
+ *   btcserv: Pool,
+ *   simplecoinus: Pool,
+ *   btcguild: Pool,
+ *   eligius: Pool,
+ *   ozcoin: Pool,
+ *   eclipsemc: Pool,
+ *   maxbtc: Pool,
+ *   triplemining: Pool,
+ *   coinlab: Pool,
+ *   _50btc: Pool,
+ *   ghashio: Pool,
+ *   stminingcorp: Pool,
+ *   bitparking: Pool,
+ *   mmpool: Pool,
+ *   polmine: Pool,
+ *   kncminer: Pool,
+ *   bitalo: Pool,
+ *   f2pool: Pool,
+ *   hhtt: Pool,
+ *   megabigpower: Pool,
+ *   mtred: Pool,
+ *   nmcbit: Pool,
+ *   yourbtcnet: Pool,
+ *   givemecoins: Pool,
+ *   braiinspool: Pool,
+ *   antpool: Pool,
+ *   multicoinco: Pool,
+ *   bcpoolio: Pool,
+ *   cointerra: Pool,
+ *   kanopool: Pool,
+ *   solock: Pool,
+ *   ckpool: Pool,
+ *   nicehash: Pool,
+ *   bitclub: Pool,
+ *   bitcoinaffiliatenetwork: Pool,
+ *   btcc: Pool,
+ *   bwpool: Pool,
+ *   exxbw: Pool,
+ *   bitsolo: Pool,
+ *   bitfury: Pool,
+ *   _21inc: Pool,
+ *   digitalbtc: Pool,
+ *   _8baochi: Pool,
+ *   mybtccoinpool: Pool,
+ *   tbdice: Pool,
+ *   hashpool: Pool,
+ *   nexious: Pool,
+ *   bravomining: Pool,
+ *   hotpool: Pool,
+ *   okexpool: Pool,
+ *   bcmonster: Pool,
+ *   _1hash: Pool,
+ *   bixin: Pool,
+ *   tatmaspool: Pool,
+ *   viabtc: Pool,
+ *   connectbtc: Pool,
+ *   batpool: Pool,
+ *   waterhole: Pool,
+ *   dcexploration: Pool,
+ *   dcex: Pool,
+ *   btpool: Pool,
+ *   _58coin: Pool,
+ *   bitcoinindia: Pool,
+ *   shawnp0wers: Pool,
+ *   phashio: Pool,
+ *   rigpool: Pool,
+ *   haozhuzhu: Pool,
+ *   _7pool: Pool,
+ *   miningkings: Pool,
+ *   hashbx: Pool,
+ *   dpool: Pool,
+ *   rawpool: Pool,
+ *   haominer: Pool,
+ *   helix: Pool,
+ *   bitcoinukraine: Pool,
+ *   poolin: Pool,
+ *   secretsuperstar: Pool,
+ *   tigerpoolnet: Pool,
+ *   sigmapoolcom: Pool,
+ *   okpooltop: Pool,
+ *   hummerpool: Pool,
+ *   tangpool: Pool,
+ *   bytepool: Pool,
+ *   spiderpool: Pool,
+ *   novablock: Pool,
+ *   miningcity: Pool,
+ *   binancepool: Pool,
+ *   minerium: Pool,
+ *   lubiancom: Pool,
+ *   okkong: Pool,
+ *   aaopool: Pool,
+ *   emcdpool: Pool,
+ *   foundryusa: Pool,
+ *   sbicrypto: Pool,
+ *   arkpool: Pool,
+ *   purebtccom: Pool,
+ *   marapool: Pool,
+ *   kucoinpool: Pool,
+ *   entrustcharitypool: Pool,
+ *   okminer: Pool,
+ *   titan: Pool,
+ *   pegapool: Pool,
+ *   btcnuggets: Pool,
+ *   cloudhashing: Pool,
+ *   digitalxmintsy: Pool,
+ *   telco214: Pool,
+ *   btcpoolparty: Pool,
+ *   multipool: Pool,
+ *   transactioncoinmining: Pool,
+ *   btcdig: Pool,
+ *   trickysbtcpool: Pool,
+ *   btcmp: Pool,
+ *   eobot: Pool,
+ *   unomp: Pool,
+ *   patels: Pool,
+ *   gogreenlight: Pool,
+ *   bitcoinindiapool: Pool,
+ *   ekanembtc: Pool,
+ *   canoe: Pool,
+ *   tiger: Pool,
+ *   _1m1x: Pool,
+ *   zulupool: Pool,
+ *   secpool: Pool,
+ *   ocean: Pool,
+ *   whitepool: Pool,
+ *   wiz: Pool,
+ *   wk057: Pool,
+ *   futurebitapollosolo: Pool,
+ *   carbonnegative: Pool,
+ *   portlandhodl: Pool,
+ *   phoenix: Pool,
+ *   neopool: Pool,
+ *   maxipool: Pool,
+ *   bitfufupool: Pool,
+ *   gdpool: Pool,
+ *   miningdutch: Pool,
+ *   publicpool: Pool,
+ *   miningsquared: Pool,
+ *   innopolistech: Pool,
+ *   btclab: Pool,
+ *   parasite: Pool,
+ *   redrockpool: Pool,
+ *   est3lar: Pool,
+ *   braiinssolo: Pool,
+ *   solopoolcom: Pool,
+ *   noderunners: Pool,
+ *   dmnd: Pool,
  * }} Pools
  */
 const _Pools = _s({
   blockPool: [_i18, 'block_*'],
-  unknown: [_Pools175btc, '*_unknown'],
-  blockfills: [_Pools175btc, '*_blockfills'],
-  ultimuspool: [_Pools175btc, '*_ultimuspool'],
-  terrapool: [_Pools175btc, '*_terrapool'],
-  luxor: [_Pools175btc, '*_luxor'],
-  _1thash: [_Pools175btc, '*_1thash'],
-  btccom: [_Pools175btc, '*_btccom'],
-  bitfarms: [_Pools175btc, '*_bitfarms'],
-  huobipool: [_Pools175btc, '*_huobipool'],
-  wayicn: [_Pools175btc, '*_wayicn'],
-  canoepool: [_Pools175btc, '*_canoepool'],
-  btctop: [_Pools175btc, '*_btctop'],
-  bitcoincom: [_Pools175btc, '*_bitcoincom'],
-  _175btc: [_Pools175btc, '*_175btc'],
-  gbminers: [_Pools175btc, '*_gbminers'],
-  axbt: [_Pools175btc, '*_axbt'],
-  asicminer: [_Pools175btc, '*_asicminer'],
-  bitminter: [_Pools175btc, '*_bitminter'],
-  bitcoinrussia: [_Pools175btc, '*_bitcoinrussia'],
-  btcserv: [_Pools175btc, '*_btcserv'],
-  simplecoinus: [_Pools175btc, '*_simplecoinus'],
-  btcguild: [_Pools175btc, '*_btcguild'],
-  eligius: [_Pools175btc, '*_eligius'],
-  ozcoin: [_Pools175btc, '*_ozcoin'],
-  eclipsemc: [_Pools175btc, '*_eclipsemc'],
-  maxbtc: [_Pools175btc, '*_maxbtc'],
-  triplemining: [_Pools175btc, '*_triplemining'],
-  coinlab: [_Pools175btc, '*_coinlab'],
-  _50btc: [_Pools175btc, '*_50btc'],
-  ghashio: [_Pools175btc, '*_ghashio'],
-  stminingcorp: [_Pools175btc, '*_stminingcorp'],
-  bitparking: [_Pools175btc, '*_bitparking'],
-  mmpool: [_Pools175btc, '*_mmpool'],
-  polmine: [_Pools175btc, '*_polmine'],
-  kncminer: [_Pools175btc, '*_kncminer'],
-  bitalo: [_Pools175btc, '*_bitalo'],
-  f2pool: [_Pools175btc, '*_f2pool'],
-  hhtt: [_Pools175btc, '*_hhtt'],
-  megabigpower: [_Pools175btc, '*_megabigpower'],
-  mtred: [_Pools175btc, '*_mtred'],
-  nmcbit: [_Pools175btc, '*_nmcbit'],
-  yourbtcnet: [_Pools175btc, '*_yourbtcnet'],
-  givemecoins: [_Pools175btc, '*_givemecoins'],
-  braiinspool: [_Pools175btc, '*_braiinspool'],
-  antpool: [_Pools175btc, '*_antpool'],
-  multicoinco: [_Pools175btc, '*_multicoinco'],
-  bcpoolio: [_Pools175btc, '*_bcpoolio'],
-  cointerra: [_Pools175btc, '*_cointerra'],
-  kanopool: [_Pools175btc, '*_kanopool'],
-  solock: [_Pools175btc, '*_solock'],
-  ckpool: [_Pools175btc, '*_ckpool'],
-  nicehash: [_Pools175btc, '*_nicehash'],
-  bitclub: [_Pools175btc, '*_bitclub'],
-  bitcoinaffiliatenetwork: [_Pools175btc, '*_bitcoinaffiliatenetwork'],
-  btcc: [_Pools175btc, '*_btcc'],
-  bwpool: [_Pools175btc, '*_bwpool'],
-  exxbw: [_Pools175btc, '*_exxbw'],
-  bitsolo: [_Pools175btc, '*_bitsolo'],
-  bitfury: [_Pools175btc, '*_bitfury'],
-  _21inc: [_Pools175btc, '*_21inc'],
-  digitalbtc: [_Pools175btc, '*_digitalbtc'],
-  _8baochi: [_Pools175btc, '*_8baochi'],
-  mybtccoinpool: [_Pools175btc, '*_mybtccoinpool'],
-  tbdice: [_Pools175btc, '*_tbdice'],
-  hashpool: [_Pools175btc, '*_hashpool'],
-  nexious: [_Pools175btc, '*_nexious'],
-  bravomining: [_Pools175btc, '*_bravomining'],
-  hotpool: [_Pools175btc, '*_hotpool'],
-  okexpool: [_Pools175btc, '*_okexpool'],
-  bcmonster: [_Pools175btc, '*_bcmonster'],
-  _1hash: [_Pools175btc, '*_1hash'],
-  bixin: [_Pools175btc, '*_bixin'],
-  tatmaspool: [_Pools175btc, '*_tatmaspool'],
-  viabtc: [_Pools175btc, '*_viabtc'],
-  connectbtc: [_Pools175btc, '*_connectbtc'],
-  batpool: [_Pools175btc, '*_batpool'],
-  waterhole: [_Pools175btc, '*_waterhole'],
-  dcexploration: [_Pools175btc, '*_dcexploration'],
-  dcex: [_Pools175btc, '*_dcex'],
-  btpool: [_Pools175btc, '*_btpool'],
-  _58coin: [_Pools175btc, '*_58coin'],
-  bitcoinindia: [_Pools175btc, '*_bitcoinindia'],
-  shawnp0wers: [_Pools175btc, '*_shawnp0wers'],
-  phashio: [_Pools175btc, '*_phashio'],
-  rigpool: [_Pools175btc, '*_rigpool'],
-  haozhuzhu: [_Pools175btc, '*_haozhuzhu'],
-  _7pool: [_Pools175btc, '*_7pool'],
-  miningkings: [_Pools175btc, '*_miningkings'],
-  hashbx: [_Pools175btc, '*_hashbx'],
-  dpool: [_Pools175btc, '*_dpool'],
-  rawpool: [_Pools175btc, '*_rawpool'],
-  haominer: [_Pools175btc, '*_haominer'],
-  helix: [_Pools175btc, '*_helix'],
-  bitcoinukraine: [_Pools175btc, '*_bitcoinukraine'],
-  poolin: [_Pools175btc, '*_poolin'],
-  secretsuperstar: [_Pools175btc, '*_secretsuperstar'],
-  tigerpoolnet: [_Pools175btc, '*_tigerpoolnet'],
-  sigmapoolcom: [_Pools175btc, '*_sigmapoolcom'],
-  okpooltop: [_Pools175btc, '*_okpooltop'],
-  hummerpool: [_Pools175btc, '*_hummerpool'],
-  tangpool: [_Pools175btc, '*_tangpool'],
-  bytepool: [_Pools175btc, '*_bytepool'],
-  spiderpool: [_Pools175btc, '*_spiderpool'],
-  novablock: [_Pools175btc, '*_novablock'],
-  miningcity: [_Pools175btc, '*_miningcity'],
-  binancepool: [_Pools175btc, '*_binancepool'],
-  minerium: [_Pools175btc, '*_minerium'],
-  lubiancom: [_Pools175btc, '*_lubiancom'],
-  okkong: [_Pools175btc, '*_okkong'],
-  aaopool: [_Pools175btc, '*_aaopool'],
-  emcdpool: [_Pools175btc, '*_emcdpool'],
-  foundryusa: [_Pools175btc, '*_foundryusa'],
-  sbicrypto: [_Pools175btc, '*_sbicrypto'],
-  arkpool: [_Pools175btc, '*_arkpool'],
-  purebtccom: [_Pools175btc, '*_purebtccom'],
-  marapool: [_Pools175btc, '*_marapool'],
-  kucoinpool: [_Pools175btc, '*_kucoinpool'],
-  entrustcharitypool: [_Pools175btc, '*_entrustcharitypool'],
-  okminer: [_Pools175btc, '*_okminer'],
-  titan: [_Pools175btc, '*_titan'],
-  pegapool: [_Pools175btc, '*_pegapool'],
-  btcnuggets: [_Pools175btc, '*_btcnuggets'],
-  cloudhashing: [_Pools175btc, '*_cloudhashing'],
-  digitalxmintsy: [_Pools175btc, '*_digitalxmintsy'],
-  telco214: [_Pools175btc, '*_telco214'],
-  btcpoolparty: [_Pools175btc, '*_btcpoolparty'],
-  multipool: [_Pools175btc, '*_multipool'],
-  transactioncoinmining: [_Pools175btc, '*_transactioncoinmining'],
-  btcdig: [_Pools175btc, '*_btcdig'],
-  trickysbtcpool: [_Pools175btc, '*_trickysbtcpool'],
-  btcmp: [_Pools175btc, '*_btcmp'],
-  eobot: [_Pools175btc, '*_eobot'],
-  unomp: [_Pools175btc, '*_unomp'],
-  patels: [_Pools175btc, '*_patels'],
-  gogreenlight: [_Pools175btc, '*_gogreenlight'],
-  bitcoinindiapool: [_Pools175btc, '*_bitcoinindiapool'],
-  ekanembtc: [_Pools175btc, '*_ekanembtc'],
-  canoe: [_Pools175btc, '*_canoe'],
-  tiger: [_Pools175btc, '*_tiger'],
-  _1m1x: [_Pools175btc, '*_1m1x'],
-  zulupool: [_Pools175btc, '*_zulupool'],
-  secpool: [_Pools175btc, '*_secpool'],
-  ocean: [_Pools175btc, '*_ocean'],
-  whitepool: [_Pools175btc, '*_whitepool'],
-  wiz: [_Pools175btc, '*_wiz'],
-  wk057: [_Pools175btc, '*_wk057'],
-  futurebitapollosolo: [_Pools175btc, '*_futurebitapollosolo'],
-  carbonnegative: [_Pools175btc, '*_carbonnegative'],
-  portlandhodl: [_Pools175btc, '*_portlandhodl'],
-  phoenix: [_Pools175btc, '*_phoenix'],
-  neopool: [_Pools175btc, '*_neopool'],
-  maxipool: [_Pools175btc, '*_maxipool'],
-  bitfufupool: [_Pools175btc, '*_bitfufupool'],
-  gdpool: [_Pools175btc, '*_gdpool'],
-  miningdutch: [_Pools175btc, '*_miningdutch'],
-  publicpool: [_Pools175btc, '*_publicpool'],
-  miningsquared: [_Pools175btc, '*_miningsquared'],
-  innopolistech: [_Pools175btc, '*_innopolistech'],
-  btclab: [_Pools175btc, '*_btclab'],
-  parasite: [_Pools175btc, '*_parasite'],
-  redrockpool: [_Pools175btc, '*_redrockpool'],
-  est3lar: [_Pools175btc, '*_est3lar'],
-  braiinssolo: [_Pools175btc, '*_braiinssolo'],
-  solopoolcom: [_Pools175btc, '*_solopoolcom'],
-  noderunners: [_Pools175btc, '*_noderunners'],
-  dmnd: [_Pools175btc, '*_dmnd'],
+  unknown: [_Pool, '*_unknown'],
+  blockfills: [_Pool, '*_blockfills'],
+  ultimuspool: [_Pool, '*_ultimuspool'],
+  terrapool: [_Pool, '*_terrapool'],
+  luxor: [_Pool, '*_luxor'],
+  _1thash: [_Pool, '*_1thash'],
+  btccom: [_Pool, '*_btccom'],
+  bitfarms: [_Pool, '*_bitfarms'],
+  huobipool: [_Pool, '*_huobipool'],
+  wayicn: [_Pool, '*_wayicn'],
+  canoepool: [_Pool, '*_canoepool'],
+  btctop: [_Pool, '*_btctop'],
+  bitcoincom: [_Pool, '*_bitcoincom'],
+  _175btc: [_Pool, '*_175btc'],
+  gbminers: [_Pool, '*_gbminers'],
+  axbt: [_Pool, '*_axbt'],
+  asicminer: [_Pool, '*_asicminer'],
+  bitminter: [_Pool, '*_bitminter'],
+  bitcoinrussia: [_Pool, '*_bitcoinrussia'],
+  btcserv: [_Pool, '*_btcserv'],
+  simplecoinus: [_Pool, '*_simplecoinus'],
+  btcguild: [_Pool, '*_btcguild'],
+  eligius: [_Pool, '*_eligius'],
+  ozcoin: [_Pool, '*_ozcoin'],
+  eclipsemc: [_Pool, '*_eclipsemc'],
+  maxbtc: [_Pool, '*_maxbtc'],
+  triplemining: [_Pool, '*_triplemining'],
+  coinlab: [_Pool, '*_coinlab'],
+  _50btc: [_Pool, '*_50btc'],
+  ghashio: [_Pool, '*_ghashio'],
+  stminingcorp: [_Pool, '*_stminingcorp'],
+  bitparking: [_Pool, '*_bitparking'],
+  mmpool: [_Pool, '*_mmpool'],
+  polmine: [_Pool, '*_polmine'],
+  kncminer: [_Pool, '*_kncminer'],
+  bitalo: [_Pool, '*_bitalo'],
+  f2pool: [_Pool, '*_f2pool'],
+  hhtt: [_Pool, '*_hhtt'],
+  megabigpower: [_Pool, '*_megabigpower'],
+  mtred: [_Pool, '*_mtred'],
+  nmcbit: [_Pool, '*_nmcbit'],
+  yourbtcnet: [_Pool, '*_yourbtcnet'],
+  givemecoins: [_Pool, '*_givemecoins'],
+  braiinspool: [_Pool, '*_braiinspool'],
+  antpool: [_Pool, '*_antpool'],
+  multicoinco: [_Pool, '*_multicoinco'],
+  bcpoolio: [_Pool, '*_bcpoolio'],
+  cointerra: [_Pool, '*_cointerra'],
+  kanopool: [_Pool, '*_kanopool'],
+  solock: [_Pool, '*_solock'],
+  ckpool: [_Pool, '*_ckpool'],
+  nicehash: [_Pool, '*_nicehash'],
+  bitclub: [_Pool, '*_bitclub'],
+  bitcoinaffiliatenetwork: [_Pool, '*_bitcoinaffiliatenetwork'],
+  btcc: [_Pool, '*_btcc'],
+  bwpool: [_Pool, '*_bwpool'],
+  exxbw: [_Pool, '*_exxbw'],
+  bitsolo: [_Pool, '*_bitsolo'],
+  bitfury: [_Pool, '*_bitfury'],
+  _21inc: [_Pool, '*_21inc'],
+  digitalbtc: [_Pool, '*_digitalbtc'],
+  _8baochi: [_Pool, '*_8baochi'],
+  mybtccoinpool: [_Pool, '*_mybtccoinpool'],
+  tbdice: [_Pool, '*_tbdice'],
+  hashpool: [_Pool, '*_hashpool'],
+  nexious: [_Pool, '*_nexious'],
+  bravomining: [_Pool, '*_bravomining'],
+  hotpool: [_Pool, '*_hotpool'],
+  okexpool: [_Pool, '*_okexpool'],
+  bcmonster: [_Pool, '*_bcmonster'],
+  _1hash: [_Pool, '*_1hash'],
+  bixin: [_Pool, '*_bixin'],
+  tatmaspool: [_Pool, '*_tatmaspool'],
+  viabtc: [_Pool, '*_viabtc'],
+  connectbtc: [_Pool, '*_connectbtc'],
+  batpool: [_Pool, '*_batpool'],
+  waterhole: [_Pool, '*_waterhole'],
+  dcexploration: [_Pool, '*_dcexploration'],
+  dcex: [_Pool, '*_dcex'],
+  btpool: [_Pool, '*_btpool'],
+  _58coin: [_Pool, '*_58coin'],
+  bitcoinindia: [_Pool, '*_bitcoinindia'],
+  shawnp0wers: [_Pool, '*_shawnp0wers'],
+  phashio: [_Pool, '*_phashio'],
+  rigpool: [_Pool, '*_rigpool'],
+  haozhuzhu: [_Pool, '*_haozhuzhu'],
+  _7pool: [_Pool, '*_7pool'],
+  miningkings: [_Pool, '*_miningkings'],
+  hashbx: [_Pool, '*_hashbx'],
+  dpool: [_Pool, '*_dpool'],
+  rawpool: [_Pool, '*_rawpool'],
+  haominer: [_Pool, '*_haominer'],
+  helix: [_Pool, '*_helix'],
+  bitcoinukraine: [_Pool, '*_bitcoinukraine'],
+  poolin: [_Pool, '*_poolin'],
+  secretsuperstar: [_Pool, '*_secretsuperstar'],
+  tigerpoolnet: [_Pool, '*_tigerpoolnet'],
+  sigmapoolcom: [_Pool, '*_sigmapoolcom'],
+  okpooltop: [_Pool, '*_okpooltop'],
+  hummerpool: [_Pool, '*_hummerpool'],
+  tangpool: [_Pool, '*_tangpool'],
+  bytepool: [_Pool, '*_bytepool'],
+  spiderpool: [_Pool, '*_spiderpool'],
+  novablock: [_Pool, '*_novablock'],
+  miningcity: [_Pool, '*_miningcity'],
+  binancepool: [_Pool, '*_binancepool'],
+  minerium: [_Pool, '*_minerium'],
+  lubiancom: [_Pool, '*_lubiancom'],
+  okkong: [_Pool, '*_okkong'],
+  aaopool: [_Pool, '*_aaopool'],
+  emcdpool: [_Pool, '*_emcdpool'],
+  foundryusa: [_Pool, '*_foundryusa'],
+  sbicrypto: [_Pool, '*_sbicrypto'],
+  arkpool: [_Pool, '*_arkpool'],
+  purebtccom: [_Pool, '*_purebtccom'],
+  marapool: [_Pool, '*_marapool'],
+  kucoinpool: [_Pool, '*_kucoinpool'],
+  entrustcharitypool: [_Pool, '*_entrustcharitypool'],
+  okminer: [_Pool, '*_okminer'],
+  titan: [_Pool, '*_titan'],
+  pegapool: [_Pool, '*_pegapool'],
+  btcnuggets: [_Pool, '*_btcnuggets'],
+  cloudhashing: [_Pool, '*_cloudhashing'],
+  digitalxmintsy: [_Pool, '*_digitalxmintsy'],
+  telco214: [_Pool, '*_telco214'],
+  btcpoolparty: [_Pool, '*_btcpoolparty'],
+  multipool: [_Pool, '*_multipool'],
+  transactioncoinmining: [_Pool, '*_transactioncoinmining'],
+  btcdig: [_Pool, '*_btcdig'],
+  trickysbtcpool: [_Pool, '*_trickysbtcpool'],
+  btcmp: [_Pool, '*_btcmp'],
+  eobot: [_Pool, '*_eobot'],
+  unomp: [_Pool, '*_unomp'],
+  patels: [_Pool, '*_patels'],
+  gogreenlight: [_Pool, '*_gogreenlight'],
+  bitcoinindiapool: [_Pool, '*_bitcoinindiapool'],
+  ekanembtc: [_Pool, '*_ekanembtc'],
+  canoe: [_Pool, '*_canoe'],
+  tiger: [_Pool, '*_tiger'],
+  _1m1x: [_Pool, '*_1m1x'],
+  zulupool: [_Pool, '*_zulupool'],
+  secpool: [_Pool, '*_secpool'],
+  ocean: [_Pool, '*_ocean'],
+  whitepool: [_Pool, '*_whitepool'],
+  wiz: [_Pool, '*_wiz'],
+  wk057: [_Pool, '*_wk057'],
+  futurebitapollosolo: [_Pool, '*_futurebitapollosolo'],
+  carbonnegative: [_Pool, '*_carbonnegative'],
+  portlandhodl: [_Pool, '*_portlandhodl'],
+  phoenix: [_Pool, '*_phoenix'],
+  neopool: [_Pool, '*_neopool'],
+  maxipool: [_Pool, '*_maxipool'],
+  bitfufupool: [_Pool, '*_bitfufupool'],
+  gdpool: [_Pool, '*_gdpool'],
+  miningdutch: [_Pool, '*_miningdutch'],
+  publicpool: [_Pool, '*_publicpool'],
+  miningsquared: [_Pool, '*_miningsquared'],
+  innopolistech: [_Pool, '*_innopolistech'],
+  btclab: [_Pool, '*_btclab'],
+  parasite: [_Pool, '*_parasite'],
+  redrockpool: [_Pool, '*_redrockpool'],
+  est3lar: [_Pool, '*_est3lar'],
+  braiinssolo: [_Pool, '*_braiinssolo'],
+  solopoolcom: [_Pool, '*_solopoolcom'],
+  noderunners: [_Pool, '*_noderunners'],
+  dmnd: [_Pool, '*_dmnd'],
 });
 
 /**
  * @typedef {{
  *   block: SeriesPattern18<Bytes>,
  *   cumulative: SeriesPattern1<Bytes>,
- *   sum: InputsPerSecond<Bytes>,
- *   chainShare: TxShare,
- * }} DataBytes
+ *   sum: Windows<Bytes>,
+ *   chainShare: Share,
+ * }} DataBytesSeries
  */
-const _DataBytes = _s({
+const _DataBytesSeries = _s({
   block: [_i18, '*_bytes'],
   cumulative: [_i1, '*_bytes_cumulative'],
-  sum: [_InputsPerSecond, '*_bytes_sum'],
-  chainShare: [_TxShare, '*_chain_share'],
+  sum: [_Windows, '*_bytes_sum'],
+  chainShare: [_Share, '*_chain_share'],
 });
 
 /**
@@ -4718,18 +4718,18 @@ const _DataBytes = _s({
  *   flag: SeriesPattern19<Boolean>,
  *   block: SeriesPattern18<Count>,
  *   cumulative: SeriesPattern1<Count>,
- *   sum: InputsPerSecond<Count>,
- *   share: TxShare,
- *   fees: OpReturnFees,
+ *   sum: Windows<Count>,
+ *   share: Share,
+ *   fees: FeesSeries,
  * }} Inscription
  */
 const _Inscription = _s({
   flag: [_i19, 'has_*'],
   block: [_i18, '*_tx_count'],
   cumulative: [_i1, '*_tx_count_cumulative'],
-  sum: [_InputsPerSecond, '*_tx_count_sum'],
-  share: [_TxShare, '*_tx_share'],
-  fees: [_OpReturnFees, '*'],
+  sum: [_Windows, '*_tx_count_sum'],
+  share: [_Share, '*_tx_share'],
+  fees: [_FeesSeries, '*'],
 });
 
 /**
@@ -4737,61 +4737,61 @@ const _Inscription = _s({
  *   flag: SeriesPattern19<Boolean>,
  *   block: SeriesPattern18<Count>,
  *   cumulative: SeriesPattern1<Count>,
- *   sum: InputsPerSecond<Count>,
- *   share: TxShare,
- * }} Nonstandard
+ *   sum: Windows<Count>,
+ *   share: Share,
+ * }} TransactionsFlagged
  */
-const _Nonstandard = _s({
+const _TransactionsFlagged = _s({
   flag: [_i19, 'is_*'],
   block: [_i18, '*_tx_count'],
   cumulative: [_i1, '*_tx_count_cumulative'],
-  sum: [_InputsPerSecond, '*_tx_count_sum'],
-  share: [_TxShare, '*_tx_share'],
+  sum: [_Windows, '*_tx_count_sum'],
+  share: [_Share, '*_tx_share'],
 });
 
 /**
  * @typedef {{
- *   coinjoin: Nonstandard,
- *   consolidation: Nonstandard,
- *   batchPayout: Nonstandard,
+ *   coinjoin: TransactionsFlagged,
+ *   consolidation: TransactionsFlagged,
+ *   batchPayout: TransactionsFlagged,
  * }} Patterns
  */
 const _Patterns = _s({
-  coinjoin: [_Nonstandard, '*'],
-  consolidation: [_Nonstandard, 'consolidation'],
-  batchPayout: [_Nonstandard, 'batch_payout'],
+  coinjoin: [_TransactionsFlagged, '*'],
+  consolidation: [_TransactionsFlagged, 'consolidation'],
+  batchPayout: [_TransactionsFlagged, 'batch_payout'],
 });
 
 /**
  * @typedef {{
- *   fee: Vsize<Sats>,
+ *   fee: PerTxDistribution<Sats>,
  *   feeRate: SeriesPattern19<?FeeRate>,
- *   effectiveFeeRate: Vsize<?FeeRate>,
- *   cpfpParent: Nonstandard,
- *   cpfpChild: Nonstandard,
- * }} TransactionsFees
+ *   effectiveFeeRate: PerTxDistribution<?FeeRate>,
+ *   cpfpParent: TransactionsFlagged,
+ *   cpfpChild: TransactionsFlagged,
+ * }} Fees
  */
-const _TransactionsFees = _s({
-  fee: [_Vsize, 'tx_*'],
+const _Fees = _s({
+  fee: [_PerTxDistribution, 'tx_*'],
   feeRate: [_i19, '*_rate'],
-  effectiveFeeRate: [_Vsize, 'effective_*_rate'],
-  cpfpParent: [_Nonstandard, 'cpfp_parent'],
-  cpfpChild: [_Nonstandard, 'cpfp_child'],
+  effectiveFeeRate: [_PerTxDistribution, 'effective_*_rate'],
+  cpfpParent: [_TransactionsFlagged, 'cpfp_parent'],
+  cpfpChild: [_TransactionsFlagged, 'cpfp_child'],
 });
 
 /**
  * @typedef {{
  *   block: SeriesPattern18<Count>,
  *   cumulative: SeriesPattern1<Count>,
- *   sum: InputsPerSecond<Count>,
- *   share: TxShare,
- * }} TransactionsFeaturesOneInput
+ *   sum: Windows<Count>,
+ *   share: Share,
+ * }} TxCount
  */
-const _TransactionsFeaturesOneInput = _s({
+const _TxCount = _s({
   block: [_i18, '*_count'],
   cumulative: [_i1, '*_count_cumulative'],
-  sum: [_InputsPerSecond, '*_count_sum'],
-  share: [_TxShare, '*_share'],
+  sum: [_Windows, '*_count_sum'],
+  share: [_Share, '*_share'],
 });
 
 /**
@@ -4799,89 +4799,89 @@ const _TransactionsFeaturesOneInput = _s({
  *   flag: SeriesPattern19<Boolean>,
  *   block: SeriesPattern18<Count>,
  *   cumulative: SeriesPattern1<Count>,
- *   sum: InputsPerSecond<Count>,
- *   share: TxShare,
- * }} DustOutput
+ *   sum: Windows<Count>,
+ *   share: Share,
+ * }} Flagged
  */
-const _DustOutput = _s({
+const _Flagged = _s({
   flag: [_i19, 'has_*'],
   block: [_i18, '*_tx_count'],
   cumulative: [_i1, '*_tx_count_cumulative'],
-  sum: [_InputsPerSecond, '*_tx_count_sum'],
-  share: [_TxShare, '*_tx_share'],
+  sum: [_Windows, '*_tx_count_sum'],
+  share: [_Share, '*_tx_share'],
 });
 
 /**
  * @typedef {{
- *   annex: DustOutput,
- *   sighashAll: DustOutput,
- *   sighashNone: DustOutput,
- *   sighashSingle: DustOutput,
- *   sighashDefault: DustOutput,
- *   sighashAnyoneCanPay: DustOutput,
+ *   annex: Flagged,
+ *   sighashAll: Flagged,
+ *   sighashNone: Flagged,
+ *   sighashSingle: Flagged,
+ *   sighashDefault: Flagged,
+ *   sighashAnyoneCanPay: Flagged,
  * }} Signatures
  */
 const _Signatures = _s({
-  annex: [_DustOutput, 'annex'],
-  sighashAll: [_DustOutput, '*_all'],
-  sighashNone: [_DustOutput, '*_none'],
-  sighashSingle: [_DustOutput, '*_single'],
-  sighashDefault: [_DustOutput, '*_default'],
-  sighashAnyoneCanPay: [_DustOutput, '*_anyone_can_pay'],
+  annex: [_Flagged, 'annex'],
+  sighashAll: [_Flagged, '*_all'],
+  sighashNone: [_Flagged, '*_none'],
+  sighashSingle: [_Flagged, '*_single'],
+  sighashDefault: [_Flagged, '*_default'],
+  sighashAnyoneCanPay: [_Flagged, '*_anyone_can_pay'],
 });
 
 /**
  * @typedef {{
- *   p2pk: DustOutput,
- *   p2ms: DustOutput,
- *   p2pkh: DustOutput,
- *   p2sh: DustOutput,
- *   p2wpkh: DustOutput,
- *   p2wsh: DustOutput,
- *   p2tr: DustOutput,
- *   p2a: DustOutput,
- *   emptyScript: DustOutput,
- *   unknownScript: DustOutput,
- *   fakePubkey: DustOutput,
- *   fakeScripthash: DustOutput,
- * }} FeaturesScripts
+ *   p2pk: Flagged,
+ *   p2ms: Flagged,
+ *   p2pkh: Flagged,
+ *   p2sh: Flagged,
+ *   p2wpkh: Flagged,
+ *   p2wsh: Flagged,
+ *   p2tr: Flagged,
+ *   p2a: Flagged,
+ *   emptyScript: Flagged,
+ *   unknownScript: Flagged,
+ *   fakePubkey: Flagged,
+ *   fakeScripthash: Flagged,
+ * }} TransactionsScripts
  */
-const _FeaturesScripts = _s({
-  p2pk: [_DustOutput, 'p2pk'],
-  p2ms: [_DustOutput, 'p2ms'],
-  p2pkh: [_DustOutput, 'p2pkh'],
-  p2sh: [_DustOutput, 'p2sh'],
-  p2wpkh: [_DustOutput, 'p2wpkh'],
-  p2wsh: [_DustOutput, 'p2wsh'],
-  p2tr: [_DustOutput, 'p2tr'],
-  p2a: [_DustOutput, 'p2a'],
-  emptyScript: [_DustOutput, 'empty_*'],
-  unknownScript: [_DustOutput, 'unknown_*'],
-  fakePubkey: [_DustOutput, 'fake_pubkey'],
-  fakeScripthash: [_DustOutput, 'fake_scripthash'],
+const _TransactionsScripts = _s({
+  p2pk: [_Flagged, 'p2pk'],
+  p2ms: [_Flagged, 'p2ms'],
+  p2pkh: [_Flagged, 'p2pkh'],
+  p2sh: [_Flagged, 'p2sh'],
+  p2wpkh: [_Flagged, 'p2wpkh'],
+  p2wsh: [_Flagged, 'p2wsh'],
+  p2tr: [_Flagged, 'p2tr'],
+  p2a: [_Flagged, 'p2a'],
+  emptyScript: [_Flagged, 'empty_*'],
+  unknownScript: [_Flagged, 'unknown_*'],
+  fakePubkey: [_Flagged, 'fake_pubkey'],
+  fakeScripthash: [_Flagged, 'fake_scripthash'],
 });
 
 /**
  * @typedef {{
- *   scripts: FeaturesScripts,
+ *   scripts: TransactionsScripts,
  *   signatures: Signatures,
- *   segwit: TransactionsFeaturesOneInput,
- *   explicitlyRbf: Nonstandard,
- *   dustOutput: DustOutput,
- *   epobc: Nonstandard,
- *   oneInput: TransactionsFeaturesOneInput,
- *   oneOutput: TransactionsFeaturesOneInput,
- * }} TransactionsFeatures
+ *   segwit: TxCount,
+ *   explicitlyRbf: TransactionsFlagged,
+ *   dustOutput: Flagged,
+ *   epobc: TransactionsFlagged,
+ *   oneInput: TxCount,
+ *   oneOutput: TxCount,
+ * }} Features
  */
-const _TransactionsFeatures = _s({
-  scripts: [_FeaturesScripts, 'script'],
+const _Features = _s({
+  scripts: [_TransactionsScripts, 'script'],
   signatures: [_Signatures, 'sighash'],
-  segwit: [_TransactionsFeaturesOneInput, 'segwit_*'],
-  explicitlyRbf: [_Nonstandard, 'explicitly_rbf'],
-  dustOutput: [_DustOutput, 'dust_output'],
-  epobc: [_Nonstandard, 'epobc'],
-  oneInput: [_TransactionsFeaturesOneInput, 'one_input_*'],
-  oneOutput: [_TransactionsFeaturesOneInput, 'one_output_*'],
+  segwit: [_TxCount, 'segwit_*'],
+  explicitlyRbf: [_TransactionsFlagged, 'explicitly_rbf'],
+  dustOutput: [_Flagged, 'dust_output'],
+  epobc: [_TransactionsFlagged, 'epobc'],
+  oneInput: [_TxCount, 'one_input_*'],
+  oneOutput: [_TxCount, 'one_output_*'],
 });
 
 /**
@@ -4889,58 +4889,58 @@ const _TransactionsFeatures = _s({
  * @typedef {{
  *   block: SeriesPattern18<A>,
  *   cumulative: SeriesPattern1<A>,
- *   sum: InputsPerSecond<A>,
- *   avg: InputsPerSecond<B>,
- *   min: InputsPerSecond<A>,
- *   max: InputsPerSecond<A>,
- *   pct10: InputsPerSecond<A>,
- *   pct25: InputsPerSecond<A>,
- *   median: InputsPerSecond<A>,
- *   pct75: InputsPerSecond<A>,
- *   pct90: InputsPerSecond<A>,
- * }} Size
+ *   sum: Windows<A>,
+ *   avg: Windows<B>,
+ *   min: Windows<A>,
+ *   max: Windows<A>,
+ *   pct10: Windows<A>,
+ *   pct25: Windows<A>,
+ *   median: Windows<A>,
+ *   pct75: Windows<A>,
+ *   pct90: Windows<A>,
+ * }} FlowStats
  */
-const _Size = _s({
+const _FlowStats = _s({
   block: [_i18, '*'],
   cumulative: [_i1, '*_cumulative'],
-  sum: [_InputsPerSecond, '*_sum'],
-  avg: [_InputsPerSecond, '*_avg'],
-  min: [_InputsPerSecond, '*_min'],
-  max: [_InputsPerSecond, '*_max'],
-  pct10: [_InputsPerSecond, '*_pct10'],
-  pct25: [_InputsPerSecond, '*_pct25'],
-  median: [_InputsPerSecond, '*_median'],
-  pct75: [_InputsPerSecond, '*_pct75'],
-  pct90: [_InputsPerSecond, '*_pct90'],
+  sum: [_Windows, '*_sum'],
+  avg: [_Windows, '*_avg'],
+  min: [_Windows, '*_min'],
+  max: [_Windows, '*_max'],
+  pct10: [_Windows, '*_pct10'],
+  pct25: [_Windows, '*_pct25'],
+  median: [_Windows, '*_median'],
+  pct75: [_Windows, '*_pct75'],
+  pct90: [_Windows, '*_pct90'],
 });
 
 /**
  * @template A, B
  * @typedef {{
  *   block: SeriesPattern18<A>,
- *   avg: InputsPerSecond<B>,
- * }} Interval
+ *   avg: Windows<B>,
+ * }} Averaged
  */
-const _Interval = _s({
+const _Averaged = _s({
   block: [_i18, '*'],
-  avg: [_InputsPerSecond, '*_avg'],
+  avg: [_Windows, '*_avg'],
 });
 
 /**
  * @typedef {{
- *   reactivated: Interval<Count, ?CountFract>,
- *   sending: Interval<Count, ?CountFract>,
- *   receiving: Interval<Count, ?CountFract>,
- *   bidirectional: Interval<Count, ?CountFract>,
- *   active: Interval<Count, ?CountFract>,
+ *   reactivated: Averaged<Count, ?CountFract>,
+ *   sending: Averaged<Count, ?CountFract>,
+ *   receiving: Averaged<Count, ?CountFract>,
+ *   bidirectional: Averaged<Count, ?CountFract>,
+ *   active: Averaged<Count, ?CountFract>,
  * }} AddressesActivity
  */
 const _AddressesActivity = _s({
-  reactivated: [_Interval, '*_reactivated_address_count'],
-  sending: [_Interval, '*_sending_address_count'],
-  receiving: [_Interval, '*_receiving_address_count'],
-  bidirectional: [_Interval, '*_bidirectional_address_count'],
-  active: [_Interval, '*_active_address_count'],
+  reactivated: [_Averaged, '*_reactivated_address_count'],
+  sending: [_Averaged, '*_sending_address_count'],
+  receiving: [_Averaged, '*_receiving_address_count'],
+  bidirectional: [_Averaged, '*_bidirectional_address_count'],
+  active: [_Averaged, '*_active_address_count'],
 });
 
 /**
@@ -4948,79 +4948,79 @@ const _AddressesActivity = _s({
  * @typedef {{
  *   block: SeriesPattern18<A>,
  *   cumulative: SeriesPattern1<A>,
- *   sum: InputsPerSecond<A>,
- * }} BlocksCount
+ *   sum: Windows<A>,
+ * }} Flow
  */
-const _BlocksCount = _s({
+const _Flow = _s({
   block: [_i18, '*'],
   cumulative: [_i1, '*_cumulative'],
-  sum: [_InputsPerSecond, '*_sum'],
+  sum: [_Windows, '*_sum'],
 });
 
 /**
  * @typedef {{
  *   block: SeriesPattern1<?Float>,
  *   hodlBank: SeriesPattern1<?Float>,
- *   vocdd: BlocksCount<?DollarDaysPerCoin>,
+ *   vocdd: Flow<?DollarDaysPerCoin>,
  * }} ReserveRisk
  */
 const _ReserveRisk = _s({
   block: [_i1, '*'],
   hodlBank: [_i1, 'hodl_bank'],
-  vocdd: [_BlocksCount, 'vocdd'],
+  vocdd: [_Flow, 'vocdd'],
 });
 
 /**
  * @typedef {{
- *   destroyed: BlocksCount<?DollarBlocks>,
- *   created: BlocksCount<?DollarBlocks>,
- *   stored: BlocksCount<?DollarBlocks>,
- * }} Value
+ *   destroyed: Flow<?DollarBlocks>,
+ *   created: Flow<?DollarBlocks>,
+ *   stored: Flow<?DollarBlocks>,
+ * }} CointimeValue
  */
-const _Value = _s({
-  destroyed: [_BlocksCount, '*_destroyed'],
-  created: [_BlocksCount, '*_created'],
-  stored: [_BlocksCount, '*_stored'],
+const _CointimeValue = _s({
+  destroyed: [_Flow, '*_destroyed'],
+  created: [_Flow, '*_created'],
+  stored: [_Flow, '*_stored'],
 });
 
 /**
  * @typedef {{
- *   coindaysCreated: BlocksCount<?CoinDays>,
- *   coindaysConsumed: BlocksCount<?CoinDays>,
+ *   coindaysCreated: Flow<?CoinDays>,
+ *   coindaysConsumed: Flow<?CoinDays>,
  *   wakefulness: SeriesPattern1<?Ratio>,
  *   awakeToDormant: SeriesPattern1<?Multiple>,
- *   awake: Immobile,
- *   dormant: Immobile,
- * }} CointimeAgeRanges10yTo12y
+ *   awake: Side,
+ *   dormant: Side,
+ * }} CointimeRange
  */
-const _CointimeAgeRanges10yTo12y = _s({
-  coindaysCreated: [_BlocksCount, '*_coindays_created'],
-  coindaysConsumed: [_BlocksCount, '*_coindays_consumed'],
+const _CointimeRange = _s({
+  coindaysCreated: [_Flow, '*_coindays_created'],
+  coindaysConsumed: [_Flow, '*_coindays_consumed'],
   wakefulness: [_i1, '*_wakefulness'],
   awakeToDormant: [_i1, '*_awake_to_dormant'],
-  awake: [_Immobile, '*_awake_supply'],
-  dormant: [_Immobile, '*_dormant_supply'],
+  awake: [_Side, '*_awake_supply'],
+  dormant: [_Side, '*_dormant_supply'],
 });
 
 /**
  * @typedef {{
- *   coinblocksCreated: BlocksCount<?CoinBlocks>,
- *   coinblocksDestroyed: BlocksCount<?CoinBlocks>,
- *   coinblocksStored: BlocksCount<?CoinBlocks>,
+ *   coinblocksCreated: Flow<?CoinBlocks>,
+ *   coinblocksDestroyed: Flow<?CoinBlocks>,
+ *   coinblocksStored: Flow<?CoinBlocks>,
  *   liveliness: SeriesPattern1<?Ratio>,
  *   vaultedness: SeriesPattern1<?Ratio>,
  *   livelinessToVaultedness: SeriesPattern1<?Multiple>,
- *   concurrentLiveliness: InputsPerSecond<?Ratio>,
+ *   concurrentLiveliness: Windows<?Ratio>,
  * }} CointimeActivity
  */
 const _CointimeActivity = _s({
-  coinblocksCreated: [_BlocksCount, '*_created'],
-  coinblocksDestroyed: [_BlocksCount, '*_destroyed'],
-  coinblocksStored: [_BlocksCount, '*_stored'],
+  coinblocksCreated: [_Flow, '*_created'],
+  coinblocksDestroyed: [_Flow, '*_destroyed'],
+  coinblocksStored: [_Flow, '*_stored'],
   liveliness: [_i1, 'liveliness'],
   vaultedness: [_i1, 'vaultedness'],
   livelinessToVaultedness: [_i1, 'liveliness_to_vaultedness'],
-  concurrentLiveliness: [_InputsPerSecond, 'concurrent_liveliness'],
+  concurrentLiveliness: [_Windows, 'concurrent_liveliness'],
 });
 
 /**
@@ -5029,8 +5029,8 @@ const _CointimeActivity = _s({
  *   _1w: SeriesPattern1<?Multiple>,
  *   _1m: SeriesPattern1<?Multiple>,
  *   _1y: SeriesPattern1<?Multiple>,
- *   valueCreated: BlocksCount<?Dollars>,
- *   valueDestroyed: BlocksCount<?Dollars>,
+ *   valueCreated: Flow<?Dollars>,
+ *   valueDestroyed: Flow<?Dollars>,
  * }} AdjustedSopr
  */
 const _AdjustedSopr = _s({
@@ -5038,292 +5038,292 @@ const _AdjustedSopr = _s({
   _1w: [_i1, '*_sopr_1w'],
   _1m: [_i1, '*_sopr_1m'],
   _1y: [_i1, '*_sopr_1y'],
-  valueCreated: [_BlocksCount, '*_value_created'],
-  valueDestroyed: [_BlocksCount, '*_value_destroyed'],
+  valueCreated: [_Flow, '*_value_created'],
+  valueDestroyed: [_Flow, '*_value_destroyed'],
 });
 
 /**
  * @typedef {{
- *   profit: BlocksCount<?Dollars>,
- *   loss: BlocksCount<?Dollars>,
- *   netPnl: BlocksCount<?Dollars>,
- *   grossPnl: BlocksCount<?Dollars>,
- *   profitToLoss: InputsPerSecond<?Multiple>,
- *   valueDestroyed: BlocksCount<?Dollars>,
- *   peakRegret: BlocksCount<?Dollars>,
- *   sopr: InputsPerSecond<?Multiple>,
+ *   profit: Flow<?Dollars>,
+ *   loss: Flow<?Dollars>,
+ *   netPnl: Flow<?Dollars>,
+ *   grossPnl: Flow<?Dollars>,
+ *   profitToLoss: Windows<?Multiple>,
+ *   valueDestroyed: Flow<?Dollars>,
+ *   peakRegret: Flow<?Dollars>,
+ *   sopr: Windows<?Multiple>,
  *   adjustedSopr: AdjustedSopr,
- *   sellSideRiskRatio: InputsPerSecond<?Ratio>,
- * }} AllRealized
+ *   sellSideRiskRatio: Windows<?Ratio>,
+ * }} HoldersRealized
  */
-const _AllRealized = _s({
-  profit: [_BlocksCount, '*_realized_profit'],
-  loss: [_BlocksCount, '*_realized_loss'],
-  netPnl: [_BlocksCount, '*_net_realized_pnl'],
-  grossPnl: [_BlocksCount, '*_gross_realized_pnl'],
-  profitToLoss: [_InputsPerSecond, '*_realized_profit_to_loss'],
-  valueDestroyed: [_BlocksCount, '*_value_destroyed'],
-  peakRegret: [_BlocksCount, '*_realized_peak_regret'],
-  sopr: [_InputsPerSecond, '*_sopr'],
+const _HoldersRealized = _s({
+  profit: [_Flow, '*_realized_profit'],
+  loss: [_Flow, '*_realized_loss'],
+  netPnl: [_Flow, '*_net_realized_pnl'],
+  grossPnl: [_Flow, '*_gross_realized_pnl'],
+  profitToLoss: [_Windows, '*_realized_profit_to_loss'],
+  valueDestroyed: [_Flow, '*_value_destroyed'],
+  peakRegret: [_Flow, '*_realized_peak_regret'],
+  sopr: [_Windows, '*_sopr'],
   adjustedSopr: [_AdjustedSopr, '*_adjusted'],
-  sellSideRiskRatio: [_InputsPerSecond, '*_sell_side_risk_ratio'],
+  sellSideRiskRatio: [_Windows, '*_sell_side_risk_ratio'],
 });
 
 /**
  * @typedef {{
- *   transferVolume: TransferVolume,
- *   coindaysDestroyed: BlocksCount<?CoinDays>,
- *   dormancy: InputsPerSecond<?Days>,
- * }} AllActivity
+ *   transferVolume: HoldersValueFlow,
+ *   coindaysDestroyed: Flow<?CoinDays>,
+ *   dormancy: Windows<?Days>,
+ * }} HoldersActivity
  */
-const _AllActivity = _s({
-  transferVolume: [_TransferVolume, '*_transfer_volume'],
-  coindaysDestroyed: [_BlocksCount, '*_coindays_destroyed'],
-  dormancy: [_InputsPerSecond, '*_dormancy'],
+const _HoldersActivity = _s({
+  transferVolume: [_HoldersValueFlow, '*_transfer_volume'],
+  coindaysDestroyed: [_Flow, '*_coindays_destroyed'],
+  dormancy: [_Windows, '*_dormancy'],
 });
 
 /**
  * @template A
  * @typedef {{
  *   count: A,
- *   share: TxShare,
- * }} EventsActive
+ *   share: Share,
+ * }} EventCount
  */
 /** @type {_Make} */
-const _EventsActive = (c, b, f0) => _n(c, b, {
+const _EventCount = (c, b, f0) => _n(c, b, {
   count: [f0, '*_count'],
-  share: [_TxShare, '*_share'],
+  share: [_Share, '*_share'],
 });
 
 /**
  * @typedef {{
- *   outputs: EventsActive<BlocksCount<Count>>,
- *   inputs: EventsActive<BlocksCount<Count>>,
- *   active: EventsActive<Interval<Count, ?CountFract>>,
- * }} RespentEvents
+ *   outputs: EventCount<Flow<Count>>,
+ *   inputs: EventCount<Flow<Count>>,
+ *   active: EventCount<Averaged<Count, ?CountFract>>,
+ * }} ReuseEvents
  */
-const _RespentEvents = _s({
-  outputs: [(c, b) => _EventsActive(c, b, _BlocksCount), '*_output_to_respent_address'],
-  inputs: [(c, b) => _EventsActive(c, b, _BlocksCount), '*_input_from_respent_address'],
-  active: [(c, b) => _EventsActive(c, b, _Interval), '*_active_respent_address'],
+const _ReuseEvents = _s({
+  outputs: [(c, b) => _EventCount(c, b, _Flow), '*_output_to_respent_address'],
+  inputs: [(c, b) => _EventCount(c, b, _Flow), '*_input_from_respent_address'],
+  active: [(c, b) => _EventCount(c, b, _Averaged), '*_active_respent_address'],
 });
 
 /**
  * @typedef {{
  *   count: RespentCount,
- *   supply: ExposedSupply,
- *   events: RespentEvents,
- * }} Respent
+ *   supply: PredicateSupply,
+ *   events: ReuseEvents,
+ * }} Reuse
  */
-const _Respent = _s({
+const _Reuse = _s({
   count: [_RespentCount, '*'],
-  supply: [_ExposedSupply, '*_respent_address_supply'],
-  events: [_RespentEvents, '*'],
+  supply: [_PredicateSupply, '*_respent_address_supply'],
+  events: [_ReuseEvents, '*'],
 });
 
 /**
  * @typedef {{
- *   outputs: EventsActive<BlocksCount<Count>>,
- *   inputs: EventsActive<BlocksCount<Count>>,
- *   active: EventsActive<Interval<Count, ?CountFract>>,
- * }} ReusedEvents
+ *   outputs: EventCount<Flow<Count>>,
+ *   inputs: EventCount<Flow<Count>>,
+ *   active: EventCount<Averaged<Count, ?CountFract>>,
+ * }} AddressesReuseEvents
  */
-const _ReusedEvents = _s({
-  outputs: [(c, b) => _EventsActive(c, b, _BlocksCount), '*_output_to_reused_address'],
-  inputs: [(c, b) => _EventsActive(c, b, _BlocksCount), '*_input_from_reused_address'],
-  active: [(c, b) => _EventsActive(c, b, _Interval), '*_active_reused_address'],
+const _AddressesReuseEvents = _s({
+  outputs: [(c, b) => _EventCount(c, b, _Flow), '*_output_to_reused_address'],
+  inputs: [(c, b) => _EventCount(c, b, _Flow), '*_input_from_reused_address'],
+  active: [(c, b) => _EventCount(c, b, _Averaged), '*_active_reused_address'],
 });
 
 /**
  * @typedef {{
  *   count: ReusedCount,
- *   supply: ExposedSupply,
- *   events: ReusedEvents,
- * }} Reused
+ *   supply: PredicateSupply,
+ *   events: AddressesReuseEvents,
+ * }} AddressesReuse
  */
-const _Reused = _s({
+const _AddressesReuse = _s({
   count: [_ReusedCount, '*'],
-  supply: [_ExposedSupply, '*_reused_address_supply'],
-  events: [_ReusedEvents, '*'],
+  supply: [_PredicateSupply, '*_reused_address_supply'],
+  events: [_AddressesReuseEvents, '*'],
 });
 
 /**
  * @typedef {{
- *   funded: Funded<Count, CountSigned>,
+ *   funded: WithDelta<Count, CountSigned>,
  *   empty: SeriesPattern1<Count>,
  *   total: SeriesPattern1<Count>,
- *   new: New,
+ *   new: NewAddressCount,
  *   activity: AddressesActivity,
- *   avgBalance: AvgBalance,
- *   reused: Reused,
- *   respent: Respent,
+ *   avgBalance: Value,
+ *   reused: AddressesReuse,
+ *   respent: Reuse,
  *   exposed: Exposed,
- * }} P2pk
+ * }} AddressSeries
  */
-const _P2pk = _s({
-  funded: [_Funded, '*_funded_address_count'],
+const _AddressSeries = _s({
+  funded: [_WithDelta, '*_funded_address_count'],
   empty: [_i1, '*_empty_address_count'],
   total: [_i1, '*_total_address_count'],
-  new: [_New, '*_new_address_count'],
+  new: [_NewAddressCount, '*_new_address_count'],
   activity: [_AddressesActivity, '*'],
-  avgBalance: [_AvgBalance, '*_address_balance_avg'],
-  reused: [_Reused, '*'],
-  respent: [_Respent, '*'],
+  avgBalance: [_Value, '*_address_balance_avg'],
+  reused: [_AddressesReuse, '*'],
+  respent: [_Reuse, '*'],
   exposed: [_Exposed, '*'],
 });
 
 /**
  * @typedef {{
- *   p2pk: P2pk,
- *   p2pkh: P2pk,
- *   p2sh: P2pk,
- *   p2wpkh: P2pk,
- *   p2wsh: P2pk,
- *   p2tr: P2pk,
- * }} AddressesTypes
+ *   p2pk: AddressSeries,
+ *   p2pkh: AddressSeries,
+ *   p2sh: AddressSeries,
+ *   p2wpkh: AddressSeries,
+ *   p2wsh: AddressSeries,
+ *   p2tr: AddressSeries,
+ * }} AddressType
  */
-const _AddressesTypes = _s({
-  p2pk: [_P2pk, '*'],
-  p2pkh: [_P2pk, 'p2pkh'],
-  p2sh: [_P2pk, 'p2sh'],
-  p2wpkh: [_P2pk, 'p2wpkh'],
-  p2wsh: [_P2pk, 'p2wsh'],
-  p2tr: [_P2pk, 'p2tr'],
+const _AddressType = _s({
+  p2pk: [_AddressSeries, '*'],
+  p2pkh: [_AddressSeries, 'p2pkh'],
+  p2sh: [_AddressSeries, 'p2sh'],
+  p2wpkh: [_AddressSeries, 'p2wpkh'],
+  p2wsh: [_AddressSeries, 'p2wsh'],
+  p2tr: [_AddressSeries, 'p2tr'],
 });
 
 /**
  * @typedef {{
- *   profit: BlocksCount<?Dollars>,
- *   loss: BlocksCount<?Dollars>,
- * }} Balances100To1kBtcRealized
+ *   profit: Flow<?Dollars>,
+ *   loss: Flow<?Dollars>,
+ * }} Realized
  */
-const _Balances100To1kBtcRealized = _s({
-  profit: [_BlocksCount, '*_profit'],
-  loss: [_BlocksCount, '*_loss'],
+const _Realized = _s({
+  profit: [_Flow, '*_profit'],
+  loss: [_Flow, '*_loss'],
 });
 
 /**
  * @typedef {{
- *   funded: Funded<Count, CountSigned>,
- *   supply: AddressesSupply,
- *   capital: AddressesCapital,
- *   utxos: Balances0SatsUtxos,
- *   activity: Balances100To1kBtcActivity,
- *   realized: Balances100To1kBtcRealized,
- * }} Balances100To1kBtc
+ *   funded: WithDelta<Count, CountSigned>,
+ *   supply: CohortSupply,
+ *   capital: CapitalViews,
+ *   utxos: BalanceUtxos,
+ *   activity: Activity,
+ *   realized: Realized,
+ * }} Balance
  */
-const _Balances100To1kBtc = _s({
-  funded: [_Funded, '*_address_count'],
-  supply: [_AddressesSupply, '*_supply'],
-  capital: [_AddressesCapital, '*'],
-  utxos: [_Balances0SatsUtxos, '*_utxo_count'],
-  activity: [_Balances100To1kBtcActivity, '*_transfer_volume'],
-  realized: [_Balances100To1kBtcRealized, '*_realized'],
+const _Balance = _s({
+  funded: [_WithDelta, '*_address_count'],
+  supply: [_CohortSupply, '*_supply'],
+  capital: [_CapitalViews, '*'],
+  utxos: [_BalanceUtxos, '*_utxo_count'],
+  activity: [_Activity, '*_transfer_volume'],
+  realized: [_Realized, '*_realized'],
 });
 
 /**
  * @typedef {{
- *   transferVolume: OpReturnValue,
- *   coindaysDestroyed: BlocksCount<?CoinDays>,
- * }} RookieActivity
+ *   transferVolume: ValueFlow,
+ *   coindaysDestroyed: Flow<?CoinDays>,
+ * }} CreationActivity
  */
-const _RookieActivity = _s({
-  transferVolume: [_OpReturnValue, '*_transfer_volume'],
-  coindaysDestroyed: [_BlocksCount, '*_coindays_destroyed'],
+const _CreationActivity = _s({
+  transferVolume: [_ValueFlow, '*_transfer_volume'],
+  coindaysDestroyed: [_Flow, '*_coindays_destroyed'],
 });
 
 /**
  * @typedef {{
- *   profit: BlocksCount<?Dollars>,
- *   loss: BlocksCount<?Dollars>,
- *   netPnl: BlocksCount<?Dollars>,
- *   valueDestroyed: BlocksCount<?Dollars>,
- * }} RookieRealized
+ *   profit: Flow<?Dollars>,
+ *   loss: Flow<?Dollars>,
+ *   netPnl: Flow<?Dollars>,
+ *   valueDestroyed: Flow<?Dollars>,
+ * }} CreationRealized
  */
-const _RookieRealized = _s({
-  profit: [_BlocksCount, '*_realized_profit'],
-  loss: [_BlocksCount, '*_realized_loss'],
-  netPnl: [_BlocksCount, '*_net_realized_pnl'],
-  valueDestroyed: [_BlocksCount, '*_value_destroyed'],
+const _CreationRealized = _s({
+  profit: [_Flow, '*_realized_profit'],
+  loss: [_Flow, '*_realized_loss'],
+  netPnl: [_Flow, '*_net_realized_pnl'],
+  valueDestroyed: [_Flow, '*_value_destroyed'],
 });
 
 /**
  * @typedef {{
- *   transferVolume: TransferVolume,
- *   coindaysDestroyed: BlocksCount<?CoinDays>,
- *   coindaysCreated: BlocksCount<?CoinDays>,
- * }} Ranges10yTo12yActivity
+ *   transferVolume: HoldersValueFlow,
+ *   coindaysDestroyed: Flow<?CoinDays>,
+ *   coindaysCreated: Flow<?CoinDays>,
+ * }} AgeCreationActivity
  */
-const _Ranges10yTo12yActivity = _s({
-  transferVolume: [_TransferVolume, '*_transfer_volume'],
-  coindaysDestroyed: [_BlocksCount, '*_coindays_destroyed'],
-  coindaysCreated: [_BlocksCount, '*_coindays_created'],
+const _AgeCreationActivity = _s({
+  transferVolume: [_HoldersValueFlow, '*_transfer_volume'],
+  coindaysDestroyed: [_Flow, '*_coindays_destroyed'],
+  coindaysCreated: [_Flow, '*_coindays_created'],
 });
 
 /**
  * @typedef {{
- *   count: Funded<Count, CountSigned>,
- *   spentCount: BlocksCount<Count>,
- * }} RookieUtxos
+ *   count: WithDelta<Count, CountSigned>,
+ *   spentCount: Flow<Count>,
+ * }} CohortUtxos
  */
-const _RookieUtxos = _s({
-  count: [_Funded, '*_utxo_count'],
-  spentCount: [_BlocksCount, '*_spent_utxo_count'],
+const _CohortUtxos = _s({
+  count: [_WithDelta, '*_utxo_count'],
+  spentCount: [_Flow, '*_spent_utxo_count'],
 });
 
 /**
  * @typedef {{
- *   supply: AddressesSupply,
- *   capital: AddressesCapital,
- *   utxos: RookieUtxos,
- *   activity: Balances100To1kBtcActivity,
- *   realized: Balances100To1kBtcRealized,
- *   costBasis: RookieCostBasis,
- * }} Amounts100To1kBtc
+ *   supply: CohortSupply,
+ *   capital: CapitalViews,
+ *   utxos: CohortUtxos,
+ *   activity: Activity,
+ *   realized: Realized,
+ *   costBasis: CohortCostBasis,
+ * }} CohortSeries
  */
-const _Amounts100To1kBtc = _s({
-  supply: [_AddressesSupply, '*_supply'],
-  capital: [_AddressesCapital, '*'],
-  utxos: [_RookieUtxos, '*'],
-  activity: [_Balances100To1kBtcActivity, '*_transfer_volume'],
-  realized: [_Balances100To1kBtcRealized, '*_realized'],
-  costBasis: [_RookieCostBasis, '*'],
+const _CohortSeries = _s({
+  supply: [_CohortSupply, '*_supply'],
+  capital: [_CapitalViews, '*'],
+  utxos: [_CohortUtxos, '*'],
+  activity: [_Activity, '*_transfer_volume'],
+  realized: [_Realized, '*_realized'],
+  costBasis: [_CohortCostBasis, '*'],
 });
 
 /**
  * @typedef {{
- *   p2pk: Amounts100To1kBtc,
- *   p2pkh: Amounts100To1kBtc,
- *   p2ms: Amounts100To1kBtc,
- *   p2sh: Amounts100To1kBtc,
- *   p2wpkh: Amounts100To1kBtc,
- *   p2wsh: Amounts100To1kBtc,
- *   p2tr: Amounts100To1kBtc,
- *   p2a: Amounts100To1kBtc,
- *   unknown: Amounts100To1kBtc,
- *   empty: Amounts100To1kBtc,
- * }} UtxosTypes
+ *   p2pk: CohortSeries,
+ *   p2pkh: CohortSeries,
+ *   p2ms: CohortSeries,
+ *   p2sh: CohortSeries,
+ *   p2wpkh: CohortSeries,
+ *   p2wsh: CohortSeries,
+ *   p2tr: CohortSeries,
+ *   p2a: CohortSeries,
+ *   unknown: CohortSeries,
+ *   empty: CohortSeries,
+ * }} UtxosSpendableType
  */
-const _UtxosTypes = _s({
-  p2pk: [_Amounts100To1kBtc, 'p2pk'],
-  p2pkh: [_Amounts100To1kBtc, 'p2pkh'],
-  p2ms: [_Amounts100To1kBtc, 'p2ms'],
-  p2sh: [_Amounts100To1kBtc, 'p2sh'],
-  p2wpkh: [_Amounts100To1kBtc, 'p2wpkh'],
-  p2wsh: [_Amounts100To1kBtc, 'p2wsh'],
-  p2tr: [_Amounts100To1kBtc, 'p2tr'],
-  p2a: [_Amounts100To1kBtc, 'p2a'],
-  unknown: [_Amounts100To1kBtc, 'unknown_*'],
-  empty: [_Amounts100To1kBtc, 'empty_*'],
+const _UtxosSpendableType = _s({
+  p2pk: [_CohortSeries, 'p2pk'],
+  p2pkh: [_CohortSeries, 'p2pkh'],
+  p2ms: [_CohortSeries, 'p2ms'],
+  p2sh: [_CohortSeries, 'p2sh'],
+  p2wpkh: [_CohortSeries, 'p2wpkh'],
+  p2wsh: [_CohortSeries, 'p2wsh'],
+  p2tr: [_CohortSeries, 'p2tr'],
+  p2a: [_CohortSeries, 'p2a'],
+  unknown: [_CohortSeries, 'unknown_*'],
+  empty: [_CohortSeries, 'empty_*'],
 });
 
 /**
  * @typedef {{
- *   utxos: RookieUtxos,
- * }} Amounts0Sats
+ *   utxos: CohortUtxos,
+ * }} Zero
  */
-const _Amounts0Sats = _s({
-  utxos: [_RookieUtxos, '*'],
+const _Zero = _s({
+  utxos: [_CohortUtxos, '*'],
 });
 
 /**
@@ -5344,10 +5344,10 @@ const _Amounts0Sats = _s({
  *   _1kTo10kBtc: B,
  *   _10kTo100kBtc: B,
  *   over100kBtc: B,
- * }} Balances
+ * }} AmountRange
  */
 /** @type {_Make} */
-const _Balances = (c, b, f0, f1) => _n(c, b, {
+const _AmountRange = (c, b, f0, f1) => _n(c, b, {
   _0Sats: [f0, '*_0_sats'],
   _1To10Sats: [f1, '*_1_to_10_sats'],
   _10To100Sats: [f1, '*_10_to_100_sats'],
@@ -5367,46 +5367,46 @@ const _Balances = (c, b, f0, f1) => _n(c, b, {
 
 /**
  * @typedef {{
- *   funded: Funded<Count, CountSigned>,
+ *   funded: WithDelta<Count, CountSigned>,
  *   empty: SeriesPattern1<Count>,
  *   total: SeriesPattern1<Count>,
- *   new: New,
+ *   new: NewAddressCount,
  *   activity: AddressesActivity,
- *   avgBalance: AvgBalance,
- *   reused: Reused,
- *   respent: Respent,
+ *   avgBalance: Value,
+ *   reused: AddressesReuse,
+ *   respent: Reuse,
  *   exposed: Exposed,
- *   supply: AddressesSupply,
- *   capital: AddressesCapital,
- *   types: AddressesTypes,
- *   balances: Balances<Balances0Sats, Balances100To1kBtc>,
+ *   supply: CohortSupply,
+ *   capital: CapitalViews,
+ *   types: AddressType,
+ *   balances: AmountRange<ZeroBalance, Balance>,
  * }} Addresses
  */
 const _Addresses = _s({
-  funded: [_Funded, 'funded_*_count'],
+  funded: [_WithDelta, 'funded_*_count'],
   empty: [_i1, 'empty_*_count'],
   total: [_i1, 'total_*_count'],
-  new: [_New, 'new_*_count'],
+  new: [_NewAddressCount, 'new_*_count'],
   activity: [_AddressesActivity, ''],
-  avgBalance: [_AvgBalance, '*_balance_avg'],
-  reused: [_Reused, ''],
-  respent: [_Respent, ''],
+  avgBalance: [_Value, '*_balance_avg'],
+  reused: [_AddressesReuse, ''],
+  respent: [_Reuse, ''],
   exposed: [_Exposed, ''],
-  supply: [_AddressesSupply, '*_supply'],
-  capital: [_AddressesCapital, '*'],
-  types: [_AddressesTypes, 'p2pk'],
-  balances: [(c, b) => _Balances(c, b, _Balances0Sats, _Balances100To1kBtc), 'balance'],
+  supply: [_CohortSupply, '*_supply'],
+  capital: [_CapitalViews, '*'],
+  types: [_AddressType, 'p2pk'],
+  balances: [(c, b) => _AmountRange(c, b, _ZeroBalance, _Balance), 'balance'],
 });
 
 /**
  * @typedef {{
- *   amounts: Balances<Amounts0Sats, Amounts100To1kBtc>,
- *   types: UtxosTypes,
+ *   amounts: AmountRange<Zero, CohortSeries>,
+ *   types: UtxosSpendableType,
  * }} Utxos
  */
 const _Utxos = _s({
-  amounts: [(c, b) => _Balances(c, b, _Amounts0Sats, _Amounts100To1kBtc), '*'],
-  types: [_UtxosTypes, 'output'],
+  amounts: [(c, b) => _AmountRange(c, b, _Zero, _CohortSeries), '*'],
+  types: [_UtxosSpendableType, 'output'],
 });
 
 /**
@@ -5414,18 +5414,18 @@ const _Utxos = _s({
  * @typedef {{
  *   supply: A,
  *   capital: B,
- *   utxos: RookieUtxos,
+ *   utxos: CohortUtxos,
  *   activity: C,
  *   realized: D,
  *   unrealized: E,
  *   costBasis: F,
- * }} Rookie
+ * }} CreationCohort
  */
 /** @type {_Make} */
-const _Rookie = (c, b, f0, f1, f2, f3, f4, f5) => _n(c, b, {
+const _CreationCohort = (c, b, f0, f1, f2, f3, f4, f5) => _n(c, b, {
   supply: [f0, '*_supply'],
   capital: [f1, '*'],
-  utxos: [_RookieUtxos, '*'],
+  utxos: [_CohortUtxos, '*'],
   activity: [f2, '*'],
   realized: [f3, '*'],
   unrealized: [f4, '*'],
@@ -5434,13 +5434,13 @@ const _Rookie = (c, b, f0, f1, f2, f3, f4, f5) => _n(c, b, {
 
 /**
  * @typedef {{
- *   veteran: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   rookie: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
+ *   veteran: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   rookie: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
  * }} Entry
  */
 const _Entry = _s({
-  veteran: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*'],
-  rookie: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), 'rookie'],
+  veteran: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*'],
+  rookie: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), 'rookie'],
 });
 
 /**
@@ -5468,87 +5468,87 @@ const _Holders = (c, b, f0, f1) => _n(c, b, {
 
 /**
  * @typedef {{
- *   _2009: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2010: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2011: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2012: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2013: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2014: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2015: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2016: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2017: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2018: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2019: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2020: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2021: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2022: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2023: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2024: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2025: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2026: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2027: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- * }} Vintages
+ *   _2009: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2010: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2011: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2012: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2013: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2014: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2015: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2016: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2017: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2018: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2019: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2020: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2021: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2022: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2023: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2024: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2025: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2026: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2027: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ * }} Vintage
  */
-const _Vintages = _s({
-  _2009: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2009'],
-  _2010: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2010'],
-  _2011: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2011'],
-  _2012: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2012'],
-  _2013: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2013'],
-  _2014: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2014'],
-  _2015: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2015'],
-  _2016: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2016'],
-  _2017: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2017'],
-  _2018: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2018'],
-  _2019: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2019'],
-  _2020: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2020'],
-  _2021: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2021'],
-  _2022: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2022'],
-  _2023: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2023'],
-  _2024: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2024'],
-  _2025: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2025'],
-  _2026: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2026'],
-  _2027: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2027'],
+const _Vintage = _s({
+  _2009: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2009'],
+  _2010: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2010'],
+  _2011: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2011'],
+  _2012: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2012'],
+  _2013: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2013'],
+  _2014: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2014'],
+  _2015: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2015'],
+  _2016: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2016'],
+  _2017: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2017'],
+  _2018: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2018'],
+  _2019: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2019'],
+  _2020: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2020'],
+  _2021: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2021'],
+  _2022: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2022'],
+  _2023: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2023'],
+  _2024: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2024'],
+  _2025: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2025'],
+  _2026: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2026'],
+  _2027: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2027'],
 });
 
 /**
  * @typedef {{
- *   _0: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _1: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _2: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _3: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _4: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- *   _5: Rookie<RookieSupply, RookieCapital, RookieActivity, RookieRealized, RookieUnrealized, RookieCostBasis>,
- * }} HalvingEpochs
+ *   _0: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _1: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _2: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _3: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _4: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ *   _5: CreationCohort<CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis>,
+ * }} ByHalvingEpoch
  */
-const _HalvingEpochs = _s({
-  _0: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_0'],
-  _1: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_1'],
-  _2: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_2'],
-  _3: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_3'],
-  _4: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_4'],
-  _5: [(c, b) => _Rookie(c, b, _RookieSupply, _RookieCapital, _RookieActivity, _RookieRealized, _RookieUnrealized, _RookieCostBasis), '*_5'],
+const _ByHalvingEpoch = _s({
+  _0: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_0'],
+  _1: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_1'],
+  _2: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_2'],
+  _3: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_3'],
+  _4: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_4'],
+  _5: [(c, b) => _CreationCohort(c, b, _CreationSupply, _CreationCapital, _CreationActivity, _CreationRealized, _CreationUnrealized, _CohortCostBasis), '*_5'],
 });
 
 /**
  * @typedef {{
- *   supply: Ranges10yTo12ySupply,
- *   capital: RookieCapital,
- *   utxos: RookieUtxos,
- *   activity: Ranges10yTo12yActivity,
- *   realized: RookieRealized,
- *   unrealized: RookieUnrealized,
- *   costBasis: RookieCostBasis,
- * }} Ranges10yTo12y
+ *   supply: AgeCreationSupply,
+ *   capital: CreationCapital,
+ *   utxos: CohortUtxos,
+ *   activity: AgeCreationActivity,
+ *   realized: CreationRealized,
+ *   unrealized: CreationUnrealized,
+ *   costBasis: CohortCostBasis,
+ * }} Range
  */
-const _Ranges10yTo12y = _s({
-  supply: [_Ranges10yTo12ySupply, '*'],
-  capital: [_RookieCapital, '*'],
-  utxos: [_RookieUtxos, '*'],
-  activity: [_Ranges10yTo12yActivity, '*'],
-  realized: [_RookieRealized, '*'],
-  unrealized: [_RookieUnrealized, '*'],
-  costBasis: [_RookieCostBasis, '*'],
+const _Range = _s({
+  supply: [_AgeCreationSupply, '*'],
+  capital: [_CreationCapital, '*'],
+  utxos: [_CohortUtxos, '*'],
+  activity: [_AgeCreationActivity, '*'],
+  realized: [_CreationRealized, '*'],
+  unrealized: [_CreationUnrealized, '*'],
+  costBasis: [_CohortCostBasis, '*'],
 });
 
 /**
@@ -5577,10 +5577,10 @@ const _Ranges10yTo12y = _s({
  *   _10yTo12y: A,
  *   _12yTo15y: A,
  *   over15y: A,
- * }} Ranges
+ * }} AgeRange
  */
 /** @type {_Make} */
-const _Ranges = (c, b, f0) => _n(c, b, {
+const _AgeRange = (c, b, f0) => _n(c, b, {
   under1h: [f0, '*_under_1h'],
   _1hTo1d: [f0, '*_1h_to_1d'],
   _1dTo1w: [f0, '*_1d_to_1w'],
@@ -5608,22 +5608,22 @@ const _Ranges = (c, b, f0) => _n(c, b, {
 
 /**
  * @typedef {{
- *   ageRanges: Ranges<CoinflowAgeRanges10yTo12y>,
- *   cohorts: Holders<CoinflowCohortsAll, CoinflowCohortsAll>,
+ *   ageRanges: AgeRange<CoinflowRange>,
+ *   cohorts: Holders<CoinflowCohortSeries, CoinflowCohortSeries>,
  * }} Coinflow
  */
 const _Coinflow = _s({
-  ageRanges: [(c, b) => _Ranges(c, b, _CoinflowAgeRanges10yTo12y), '*'],
-  cohorts: [(c, b) => _Holders(c, b, _CoinflowCohortsAll, _CoinflowCohortsAll), '*'],
+  ageRanges: [(c, b) => _AgeRange(c, b, _CoinflowRange), '*'],
+  cohorts: [(c, b) => _Holders(c, b, _CoinflowCohortSeries, _CoinflowCohortSeries), '*'],
 });
 
 /**
  * @typedef {{
  *   activity: CointimeActivity,
- *   ageRanges: Ranges<CointimeAgeRanges10yTo12y>,
- *   cohorts: Holders<CointimeCohortsAll, CointimeCohortsAll>,
+ *   ageRanges: AgeRange<CointimeRange>,
+ *   cohorts: Holders<CointimeCohortSeries, CointimeCohortSeries>,
  *   supply: CointimeSupply,
- *   value: Value,
+ *   value: CointimeValue,
  *   caps: Caps,
  *   prices: Prices,
  *   adjusted: Adjusted,
@@ -5632,10 +5632,10 @@ const _Coinflow = _s({
  */
 const _Cointime = _s({
   activity: [_CointimeActivity, 'coinblocks'],
-  ageRanges: [(c, b) => _Ranges(c, b, _CointimeAgeRanges10yTo12y), '*'],
-  cohorts: [(c, b) => _Holders(c, b, _CointimeCohortsAll, _CointimeCohortsAll), '*'],
+  ageRanges: [(c, b) => _AgeRange(c, b, _CointimeRange), '*'],
+  cohorts: [(c, b) => _Holders(c, b, _CointimeCohortSeries, _CointimeCohortSeries), '*'],
   supply: [_CointimeSupply, 'supply'],
-  value: [_Value, 'cointime_value'],
+  value: [_CointimeValue, 'cointime_value'],
   caps: [_Caps, 'cap'],
   prices: [_Prices, 'vaulted'],
   adjusted: [_Adjusted, 'cointime_adjusted'],
@@ -5644,246 +5644,246 @@ const _Cointime = _s({
 
 /**
  * @typedef {{
- *   ranges: Ranges<Ranges10yTo12y>,
- *   halvingEpochs: HalvingEpochs,
- *   vintages: Vintages,
+ *   ranges: AgeRange<Range>,
+ *   halvingEpochs: ByHalvingEpoch,
+ *   vintages: Vintage,
  * }} Age
  */
 const _Age = _s({
-  ranges: [(c, b) => _Ranges(c, b, _Ranges10yTo12y), '*'],
-  halvingEpochs: [_HalvingEpochs, 'halving_epoch'],
-  vintages: [_Vintages, 'vintage'],
+  ranges: [(c, b) => _AgeRange(c, b, _Range), '*'],
+  halvingEpochs: [_ByHalvingEpoch, 'halving_epoch'],
+  vintages: [_Vintage, 'vintage'],
 });
 
 /**
  * @typedef {{
- *   outputCount: BlocksCount<Count>,
- *   dataBytes: DataBytes,
- *   txCount: BlocksCount<Count>,
- *   txShare: TxShare,
- *   txVsize: BlocksCount<VSize>,
- *   fees: OpReturnFees,
- * }} PoliciesMultiple
+ *   outputCount: Flow<Count>,
+ *   dataBytes: DataBytesSeries,
+ *   txCount: Flow<Count>,
+ *   txShare: Share,
+ *   txVsize: Flow<VSize>,
+ *   fees: FeesSeries,
+ * }} Bucket
  */
-const _PoliciesMultiple = _s({
-  outputCount: [_BlocksCount, '*_output_count'],
-  dataBytes: [_DataBytes, '*_data'],
-  txCount: [_BlocksCount, '*_tx_count'],
-  txShare: [_TxShare, '*_tx_share'],
-  txVsize: [_BlocksCount, '*_tx_vsize'],
-  fees: [_OpReturnFees, '*'],
+const _Bucket = _s({
+  outputCount: [_Flow, '*_output_count'],
+  dataBytes: [_DataBytesSeries, '*_data'],
+  txCount: [_Flow, '*_tx_count'],
+  txShare: [_Share, '*_tx_share'],
+  txVsize: [_Flow, '*_tx_vsize'],
+  fees: [_FeesSeries, '*'],
 });
 
 /**
  * @typedef {{
- *   preV30Standard: PoliciesMultiple,
- *   preV30Nonstandard: PoliciesMultiple,
- *   oversized: PoliciesMultiple,
- *   multiple: PoliciesMultiple,
- * }} Policies
+ *   preV30Standard: Bucket,
+ *   preV30Nonstandard: Bucket,
+ *   oversized: Bucket,
+ *   multiple: Bucket,
+ * }} Policy
  */
-const _Policies = _s({
-  preV30Standard: [_PoliciesMultiple, '*_pre_v30_standard'],
-  preV30Nonstandard: [_PoliciesMultiple, '*_pre_v30_nonstandard'],
-  oversized: [_PoliciesMultiple, '*_oversized'],
-  multiple: [_PoliciesMultiple, '*_multiple'],
+const _Policy = _s({
+  preV30Standard: [_Bucket, '*_pre_v30_standard'],
+  preV30Nonstandard: [_Bucket, '*_pre_v30_nonstandard'],
+  oversized: [_Bucket, '*_oversized'],
+  multiple: [_Bucket, '*_multiple'],
 });
 
 /**
  * @typedef {{
- *   runes: PoliciesMultiple,
- *   witnessCommitment: PoliciesMultiple,
- *   veriBlock: PoliciesMultiple,
- *   omni: PoliciesMultiple,
- *   stacks: PoliciesMultiple,
- *   blockstack: PoliciesMultiple,
- *   colu: PoliciesMultiple,
- *   openAssets: PoliciesMultiple,
- *   komodo: PoliciesMultiple,
- *   coinSpark: PoliciesMultiple,
- *   poet: PoliciesMultiple,
- *   docproof: PoliciesMultiple,
- *   factom: PoliciesMultiple,
- *   eternityWall: PoliciesMultiple,
- *   memo: PoliciesMultiple,
- *   bitproof: PoliciesMultiple,
- *   ascribe: PoliciesMultiple,
- *   stampery: PoliciesMultiple,
- *   bareHash: PoliciesMultiple,
- *   text: PoliciesMultiple,
- *   empty: PoliciesMultiple,
- *   unknown: PoliciesMultiple,
- * }} Protocols
+ *   runes: Bucket,
+ *   witnessCommitment: Bucket,
+ *   veriBlock: Bucket,
+ *   omni: Bucket,
+ *   stacks: Bucket,
+ *   blockstack: Bucket,
+ *   colu: Bucket,
+ *   openAssets: Bucket,
+ *   komodo: Bucket,
+ *   coinSpark: Bucket,
+ *   poet: Bucket,
+ *   docproof: Bucket,
+ *   factom: Bucket,
+ *   eternityWall: Bucket,
+ *   memo: Bucket,
+ *   bitproof: Bucket,
+ *   ascribe: Bucket,
+ *   stampery: Bucket,
+ *   bareHash: Bucket,
+ *   text: Bucket,
+ *   empty: Bucket,
+ *   unknown: Bucket,
+ * }} ByKind
  */
-const _Protocols = _s({
-  runes: [_PoliciesMultiple, '*_runes'],
-  witnessCommitment: [_PoliciesMultiple, '*_witness_commitment'],
-  veriBlock: [_PoliciesMultiple, '*_veri_block'],
-  omni: [_PoliciesMultiple, '*_omni'],
-  stacks: [_PoliciesMultiple, '*_stacks'],
-  blockstack: [_PoliciesMultiple, '*_blockstack'],
-  colu: [_PoliciesMultiple, '*_colu'],
-  openAssets: [_PoliciesMultiple, '*_open_assets'],
-  komodo: [_PoliciesMultiple, '*_komodo'],
-  coinSpark: [_PoliciesMultiple, '*_coin_spark'],
-  poet: [_PoliciesMultiple, '*_poet'],
-  docproof: [_PoliciesMultiple, '*_docproof'],
-  factom: [_PoliciesMultiple, '*_factom'],
-  eternityWall: [_PoliciesMultiple, '*_eternity_wall'],
-  memo: [_PoliciesMultiple, '*_memo'],
-  bitproof: [_PoliciesMultiple, '*_bitproof'],
-  ascribe: [_PoliciesMultiple, '*_ascribe'],
-  stampery: [_PoliciesMultiple, '*_stampery'],
-  bareHash: [_PoliciesMultiple, '*_bare_hash'],
-  text: [_PoliciesMultiple, '*_text'],
-  empty: [_PoliciesMultiple, '*_empty'],
-  unknown: [_PoliciesMultiple, '*_unknown'],
+const _ByKind = _s({
+  runes: [_Bucket, '*_runes'],
+  witnessCommitment: [_Bucket, '*_witness_commitment'],
+  veriBlock: [_Bucket, '*_veri_block'],
+  omni: [_Bucket, '*_omni'],
+  stacks: [_Bucket, '*_stacks'],
+  blockstack: [_Bucket, '*_blockstack'],
+  colu: [_Bucket, '*_colu'],
+  openAssets: [_Bucket, '*_open_assets'],
+  komodo: [_Bucket, '*_komodo'],
+  coinSpark: [_Bucket, '*_coin_spark'],
+  poet: [_Bucket, '*_poet'],
+  docproof: [_Bucket, '*_docproof'],
+  factom: [_Bucket, '*_factom'],
+  eternityWall: [_Bucket, '*_eternity_wall'],
+  memo: [_Bucket, '*_memo'],
+  bitproof: [_Bucket, '*_bitproof'],
+  ascribe: [_Bucket, '*_ascribe'],
+  stampery: [_Bucket, '*_stampery'],
+  bareHash: [_Bucket, '*_bare_hash'],
+  text: [_Bucket, '*_text'],
+  empty: [_Bucket, '*_empty'],
+  unknown: [_Bucket, '*_unknown'],
 });
 
 /**
  * @typedef {{
  *   flag: SeriesPattern19<Boolean>,
- *   outputCount: BlocksCount<Count>,
- *   dataBytes: DataBytes,
- *   txCount: BlocksCount<Count>,
- *   txShare: TxShare,
- *   txVsize: BlocksCount<VSize>,
- *   fees: OpReturnFees,
- *   protocols: Protocols,
- *   policies: Policies,
+ *   outputCount: Flow<Count>,
+ *   dataBytes: DataBytesSeries,
+ *   txCount: Flow<Count>,
+ *   txShare: Share,
+ *   txVsize: Flow<VSize>,
+ *   fees: FeesSeries,
+ *   protocols: ByKind,
+ *   policies: Policy,
  * }} OpReturn
  */
 const _OpReturn = _s({
   flag: [_i19, 'has_*'],
-  outputCount: [_BlocksCount, '*_output_count'],
-  dataBytes: [_DataBytes, '*_data'],
-  txCount: [_BlocksCount, '*_tx_count'],
-  txShare: [_TxShare, '*_tx_share'],
-  txVsize: [_BlocksCount, '*_tx_vsize'],
-  fees: [_OpReturnFees, '*'],
-  protocols: [_Protocols, '*'],
-  policies: [_Policies, '*'],
+  outputCount: [_Flow, '*_output_count'],
+  dataBytes: [_DataBytesSeries, '*_data'],
+  txCount: [_Flow, '*_tx_count'],
+  txShare: [_Share, '*_tx_share'],
+  txVsize: [_Flow, '*_tx_vsize'],
+  fees: [_FeesSeries, '*'],
+  protocols: [_ByKind, '*'],
+  policies: [_Policy, '*'],
 });
 
 /**
  * @typedef {{
- *   count: BlocksCount<Count>,
- *   share: TxShare,
- *   txCount: BlocksCount<Count>,
- *   txShare: TxShare,
- * }} TypesEmpty
+ *   count: Flow<Count>,
+ *   share: Share,
+ *   txCount: Flow<Count>,
+ *   txShare: Share,
+ * }} OutputTypeSeries
  */
-const _TypesEmpty = _s({
-  count: [_BlocksCount, '*_count'],
-  share: [_TxShare, '*_share'],
-  txCount: [_BlocksCount, '*_tx_count'],
-  txShare: [_TxShare, '*_tx_share'],
+const _OutputTypeSeries = _s({
+  count: [_Flow, '*_count'],
+  share: [_Share, '*_share'],
+  txCount: [_Flow, '*_tx_count'],
+  txShare: [_Share, '*_tx_share'],
 });
 
 /**
  * @typedef {{
- *   p2pk: TypesEmpty,
- *   p2pkh: TypesEmpty,
- *   p2ms: TypesEmpty,
- *   p2sh: TypesEmpty,
- *   p2wpkh: TypesEmpty,
- *   p2wsh: TypesEmpty,
- *   p2tr: TypesEmpty,
- *   p2a: TypesEmpty,
- *   unknown: TypesEmpty,
- *   empty: TypesEmpty,
- *   opReturn: TypesEmpty,
- * }} OutputsTypes
+ *   p2pk: OutputTypeSeries,
+ *   p2pkh: OutputTypeSeries,
+ *   p2ms: OutputTypeSeries,
+ *   p2sh: OutputTypeSeries,
+ *   p2wpkh: OutputTypeSeries,
+ *   p2wsh: OutputTypeSeries,
+ *   p2tr: OutputTypeSeries,
+ *   p2a: OutputTypeSeries,
+ *   unknown: OutputTypeSeries,
+ *   empty: OutputTypeSeries,
+ *   opReturn: OutputTypeSeries,
+ * }} ByType
  */
-const _OutputsTypes = _s({
-  p2pk: [_TypesEmpty, 'p2pk_*'],
-  p2pkh: [_TypesEmpty, 'p2pkh_*'],
-  p2ms: [_TypesEmpty, 'p2ms_*'],
-  p2sh: [_TypesEmpty, 'p2sh_*'],
-  p2wpkh: [_TypesEmpty, 'p2wpkh_*'],
-  p2wsh: [_TypesEmpty, 'p2wsh_*'],
-  p2tr: [_TypesEmpty, 'p2tr_*'],
-  p2a: [_TypesEmpty, 'p2a_*'],
-  unknown: [_TypesEmpty, 'unknown_*'],
-  empty: [_TypesEmpty, 'empty_*'],
-  opReturn: [_TypesEmpty, 'op_return_*'],
+const _ByType = _s({
+  p2pk: [_OutputTypeSeries, 'p2pk_*'],
+  p2pkh: [_OutputTypeSeries, 'p2pkh_*'],
+  p2ms: [_OutputTypeSeries, 'p2ms_*'],
+  p2sh: [_OutputTypeSeries, 'p2sh_*'],
+  p2wpkh: [_OutputTypeSeries, 'p2wpkh_*'],
+  p2wsh: [_OutputTypeSeries, 'p2wsh_*'],
+  p2tr: [_OutputTypeSeries, 'p2tr_*'],
+  p2a: [_OutputTypeSeries, 'p2a_*'],
+  unknown: [_OutputTypeSeries, 'unknown_*'],
+  empty: [_OutputTypeSeries, 'empty_*'],
+  opReturn: [_OutputTypeSeries, 'op_return_*'],
 });
 
 /**
  * @typedef {{
  *   spendingTxinIndex: SeriesPattern23<TxInIndex>,
- *   count: Size<Count, ?CountFract>,
- *   perSecond: InputsPerSecond<?PerSecond>,
- *   spendableCount: BlocksCount<Count>,
- *   types: OutputsTypes,
- *   opReturnValue: OpReturnValue,
+ *   count: FlowStats<Count, ?CountFract>,
+ *   perSecond: Windows<?PerSecond>,
+ *   spendableCount: Flow<Count>,
+ *   types: ByType,
+ *   opReturnValue: ValueFlow,
  * }} Outputs
  */
 const _Outputs = _s({
   spendingTxinIndex: [_i23, 'spending_txin_index'],
-  count: [_Size, '*_count'],
-  perSecond: [_InputsPerSecond, 'outputs_per_second'],
-  spendableCount: [_BlocksCount, 'spendable_*_count'],
-  types: [_OutputsTypes, '*'],
-  opReturnValue: [_OpReturnValue, 'op_return_value'],
+  count: [_FlowStats, '*_count'],
+  perSecond: [_Windows, 'outputs_per_second'],
+  spendableCount: [_Flow, 'spendable_*_count'],
+  types: [_ByType, '*'],
+  opReturnValue: [_ValueFlow, 'op_return_value'],
 });
 
 /**
  * @typedef {{
- *   p2pk: TypesEmpty,
- *   p2pkh: TypesEmpty,
- *   p2ms: TypesEmpty,
- *   p2sh: TypesEmpty,
- *   p2wpkh: TypesEmpty,
- *   p2wsh: TypesEmpty,
- *   p2tr: TypesEmpty,
- *   p2a: TypesEmpty,
- *   unknown: TypesEmpty,
- *   empty: TypesEmpty,
- * }} InputsTypes
+ *   p2pk: OutputTypeSeries,
+ *   p2pkh: OutputTypeSeries,
+ *   p2ms: OutputTypeSeries,
+ *   p2sh: OutputTypeSeries,
+ *   p2wpkh: OutputTypeSeries,
+ *   p2wsh: OutputTypeSeries,
+ *   p2tr: OutputTypeSeries,
+ *   p2a: OutputTypeSeries,
+ *   unknown: OutputTypeSeries,
+ *   empty: OutputTypeSeries,
+ * }} SpendableType
  */
-const _InputsTypes = _s({
-  p2pk: [_TypesEmpty, 'p2pk_*'],
-  p2pkh: [_TypesEmpty, 'p2pkh_*'],
-  p2ms: [_TypesEmpty, 'p2ms_*'],
-  p2sh: [_TypesEmpty, 'p2sh_*'],
-  p2wpkh: [_TypesEmpty, 'p2wpkh_*'],
-  p2wsh: [_TypesEmpty, 'p2wsh_*'],
-  p2tr: [_TypesEmpty, 'p2tr_*'],
-  p2a: [_TypesEmpty, 'p2a_*'],
-  unknown: [_TypesEmpty, 'unknown_*'],
-  empty: [_TypesEmpty, 'empty_*'],
+const _SpendableType = _s({
+  p2pk: [_OutputTypeSeries, 'p2pk_*'],
+  p2pkh: [_OutputTypeSeries, 'p2pkh_*'],
+  p2ms: [_OutputTypeSeries, 'p2ms_*'],
+  p2sh: [_OutputTypeSeries, 'p2sh_*'],
+  p2wpkh: [_OutputTypeSeries, 'p2wpkh_*'],
+  p2wsh: [_OutputTypeSeries, 'p2wsh_*'],
+  p2tr: [_OutputTypeSeries, 'p2tr_*'],
+  p2a: [_OutputTypeSeries, 'p2a_*'],
+  unknown: [_OutputTypeSeries, 'unknown_*'],
+  empty: [_OutputTypeSeries, 'empty_*'],
 });
 
 /**
  * @typedef {{
- *   count: Size<Count, ?CountFract>,
- *   perSecond: InputsPerSecond<?PerSecond>,
- *   types: InputsTypes,
+ *   count: FlowStats<Count, ?CountFract>,
+ *   perSecond: Windows<?PerSecond>,
+ *   types: SpendableType,
  * }} Inputs
  */
 const _Inputs = _s({
-  count: [_Size, '*_count'],
-  perSecond: [_InputsPerSecond, 'inputs_per_second'],
-  types: [_InputsTypes, '*'],
+  count: [_FlowStats, '*_count'],
+  perSecond: [_Windows, 'inputs_per_second'],
+  types: [_SpendableType, '*'],
 });
 
 /**
  * @typedef {{
- *   count: BlocksCount<Count>,
- *   interval: Interval<Seconds, ?SecondsFract>,
- *   size: Size<Bytes, ?BytesFract>,
- *   weight: Size<Weight, ?WeightFract>,
+ *   count: Flow<Count>,
+ *   interval: Averaged<Seconds, ?SecondsFract>,
+ *   size: FlowStats<Bytes, ?BytesFract>,
+ *   weight: FlowStats<Weight, ?WeightFract>,
  *   fullness: SeriesPattern18<?Percent>,
  *   difficulty: BlocksDifficulty,
  *   halving: BlocksHalving,
  * }} Blocks
  */
 const _Blocks = _s({
-  count: [_BlocksCount, '*_count'],
-  interval: [_Interval, '*_interval'],
-  size: [_Size, '*_size'],
-  weight: [_Size, '*_weight'],
+  count: [_Flow, '*_count'],
+  interval: [_Averaged, '*_interval'],
+  size: [_FlowStats, '*_size'],
+  weight: [_FlowStats, '*_weight'],
   fullness: [_i18, '*_fullness'],
   difficulty: [_BlocksDifficulty, 'difficulty'],
   halving: [_BlocksHalving, 'halving'],
@@ -5914,9 +5914,9 @@ const _Price = _s({
  * @typedef {{
  *   monotonic: SeriesPattern18<Timestamp>,
  *   periodStart: SeriesPattern2<Timestamp>,
- * }} MappingsTimestamp
+ * }} Timestamps
  */
-const _MappingsTimestamp = _s({
+const _Timestamps = _s({
   monotonic: [_i18, '*_monotonic'],
   periodStart: [_i2, '*'],
 });
@@ -5933,9 +5933,9 @@ const _TxoutIndex = _s({
 /**
  * @typedef {{
  *   identity: SeriesPattern20<TxInIndex>,
- * }} TxinIndex
+ * }} Identity
  */
-const _TxinIndex = _s({
+const _Identity = _s({
   identity: [_i20, '*'],
 });
 
@@ -6033,9 +6033,9 @@ const _MappingsDay3 = _s({
  * @typedef {{
  *   date: SeriesPattern8<Date>,
  *   firstHeight: SeriesPattern8<Height>,
- * }} MappingsDay1
+ * }} DatedResolution
  */
-const _MappingsDay1 = _s({
+const _DatedResolution = _s({
   date: [_i8, '*'],
   firstHeight: [_i8, 'first_height'],
 });
@@ -6097,9 +6097,9 @@ const _MappingsHalving = _s({
 /**
  * @typedef {{
  *   firstHeight: SeriesPattern17<Height>,
- * }} MappingsEpoch
+ * }} Resolution
  */
-const _MappingsEpoch = _s({
+const _Resolution = _s({
   firstHeight: [_i17, '*'],
 });
 
@@ -6152,42 +6152,42 @@ const _OutputsOpReturn = _s({
 /**
  * @typedef {{
  *   identity: SeriesPattern35<UnknownOutputIndex>,
- * }} OutputsUnknown
+ * }} Unknown
  */
-const _OutputsUnknown = _s({
+const _Unknown = _s({
   identity: [_i35, '*'],
 });
 
 /**
  * @typedef {{
  *   identity: SeriesPattern24<EmptyOutputIndex>,
- * }} OutputsEmpty
+ * }} Empty
  */
-const _OutputsEmpty = _s({
+const _Empty = _s({
   identity: [_i24, '*'],
 });
 
 /**
  * @typedef {{
  *   identity: SeriesPattern27<P2MSOutputIndex>,
- * }} OutputsP2ms
+ * }} P2ms
  */
-const _OutputsP2ms = _s({
+const _P2ms = _s({
   identity: [_i27, '*'],
 });
 
 /**
  * @typedef {{
- *   p2ms: OutputsP2ms,
- *   empty: OutputsEmpty,
- *   unknown: OutputsUnknown,
+ *   p2ms: P2ms,
+ *   empty: Empty,
+ *   unknown: Unknown,
  *   opReturn: OutputsOpReturn,
- * }} MappingsOutputs
+ * }} Output
  */
-const _MappingsOutputs = _s({
-  p2ms: [_OutputsP2ms, 'p2ms_output_*'],
-  empty: [_OutputsEmpty, 'empty_output_*'],
-  unknown: [_OutputsUnknown, 'unknown_output_*'],
+const _Output = _s({
+  p2ms: [_P2ms, 'p2ms_output_*'],
+  empty: [_Empty, 'empty_output_*'],
+  unknown: [_Unknown, 'unknown_output_*'],
   opReturn: [_OutputsOpReturn, 'op_return_*'],
 });
 
@@ -6195,9 +6195,9 @@ const _MappingsOutputs = _s({
  * @typedef {{
  *   identity: SeriesPattern26<P2AAddressIndex>,
  *   address: SeriesPattern26<Address>,
- * }} MappingsAddressesP2a
+ * }} P2a
  */
-const _MappingsAddressesP2a = _s({
+const _P2a = _s({
   identity: [_i26, '*_index'],
   address: [_i26, '*'],
 });
@@ -6288,7 +6288,7 @@ const _MappingsAddressesP2pk33 = _s({
  *   p2tr: MappingsAddressesP2tr,
  *   p2wpkh: MappingsAddressesP2wpkh,
  *   p2wsh: MappingsAddressesP2wsh,
- *   p2a: MappingsAddressesP2a,
+ *   p2a: P2a,
  * }} MappingsAddresses
  */
 const _MappingsAddresses = _s({
@@ -6299,22 +6299,22 @@ const _MappingsAddresses = _s({
   p2tr: [_MappingsAddressesP2tr, 'p2tr_*'],
   p2wpkh: [_MappingsAddressesP2wpkh, 'p2wpkh_*'],
   p2wsh: [_MappingsAddressesP2wsh, 'p2wsh_*'],
-  p2a: [_MappingsAddressesP2a, 'p2a_*'],
+  p2a: [_P2a, 'p2a_*'],
 });
 
 /**
  * @typedef {{
  *   addresses: MappingsAddresses,
- *   outputs: MappingsOutputs,
+ *   outputs: Output,
  *   height: MappingsHeight,
- *   epoch: MappingsEpoch,
+ *   epoch: Resolution,
  *   halving: MappingsHalving,
  *   minute10: MappingsMinute10,
  *   minute30: MappingsMinute30,
  *   hour1: MappingsHour1,
  *   hour4: MappingsHour4,
  *   hour12: MappingsHour12,
- *   day1: MappingsDay1,
+ *   day1: DatedResolution,
  *   day3: MappingsDay3,
  *   week1: MappingsWeek1,
  *   month1: MappingsMonth1,
@@ -6323,23 +6323,23 @@ const _MappingsAddresses = _s({
  *   year1: MappingsYear1,
  *   year10: MappingsYear10,
  *   txIndex: MappingsTxIndex,
- *   txinIndex: TxinIndex,
+ *   txinIndex: Identity,
  *   txoutIndex: TxoutIndex,
- *   timestamp: MappingsTimestamp,
+ *   timestamp: Timestamps,
  * }} Mappings
  */
 const _Mappings = _s({
   addresses: [_MappingsAddresses, 'address'],
-  outputs: [_MappingsOutputs, 'index'],
+  outputs: [_Output, 'index'],
   height: [_MappingsHeight, 'block'],
-  epoch: [_MappingsEpoch, 'first_height'],
+  epoch: [_Resolution, 'first_height'],
   halving: [_MappingsHalving, 'first_height'],
   minute10: [_MappingsMinute10, 'first_height'],
   minute30: [_MappingsMinute30, 'first_height'],
   hour1: [_MappingsHour1, 'first_height'],
   hour4: [_MappingsHour4, 'first_height'],
   hour12: [_MappingsHour12, 'first_height'],
-  day1: [_MappingsDay1, '*'],
+  day1: [_DatedResolution, '*'],
   day3: [_MappingsDay3, '*'],
   week1: [_MappingsWeek1, '*'],
   month1: [_MappingsMonth1, '*'],
@@ -6348,9 +6348,9 @@ const _Mappings = _s({
   year1: [_MappingsYear1, '*'],
   year10: [_MappingsYear10, '*'],
   txIndex: [_MappingsTxIndex, 'tx'],
-  txinIndex: [_TxinIndex, 'txin_index'],
+  txinIndex: [_Identity, 'txin_index'],
   txoutIndex: [_TxoutIndex, 'txout_index'],
-  timestamp: [_MappingsTimestamp, 'timestamp'],
+  timestamp: [_Timestamps, 'timestamp'],
 });
 
 /**
@@ -6373,9 +6373,9 @@ const _IndexerOpReturn = _s({
  *   firstIndex: SeriesPattern18<UnknownOutputIndex>,
  *   txIndex: SeriesPattern35<TxIndex>,
  *   legacySigopCost: SeriesPattern35<SigOps>,
- * }} ScriptsUnknown
+ * }} IndexerScriptTypeWithSigOps
  */
-const _ScriptsUnknown = _s({
+const _IndexerScriptTypeWithSigOps = _s({
   firstIndex: [_i18, 'first_*_output_index'],
   txIndex: [_i35, '*_output_tx_index'],
   legacySigopCost: [_i35, '*_legacy_sigop_cost'],
@@ -6386,9 +6386,9 @@ const _ScriptsUnknown = _s({
  *   firstIndex: SeriesPattern18<P2MSOutputIndex>,
  *   txIndex: SeriesPattern27<TxIndex>,
  *   legacySigopCost: SeriesPattern27<SigOps>,
- * }} ScriptsP2ms
+ * }} ScriptTypeWithSigOps
  */
-const _ScriptsP2ms = _s({
+const _ScriptTypeWithSigOps = _s({
   firstIndex: [_i18, 'first_*_output_index'],
   txIndex: [_i27, '*_output_tx_index'],
   legacySigopCost: [_i27, '*_legacy_sigop_cost'],
@@ -6398,33 +6398,33 @@ const _ScriptsP2ms = _s({
  * @typedef {{
  *   firstIndex: SeriesPattern18<EmptyOutputIndex>,
  *   txIndex: SeriesPattern24<TxIndex>,
- * }} ScriptsEmpty
+ * }} ScriptType
  */
-const _ScriptsEmpty = _s({
+const _ScriptType = _s({
   firstIndex: [_i18, 'first_*_index'],
   txIndex: [_i24, '*_tx_index'],
 });
 
 /**
  * @typedef {{
- *   empty: ScriptsEmpty,
- *   p2ms: ScriptsP2ms,
- *   unknown: ScriptsUnknown,
- * }} IndexerScripts
+ *   empty: ScriptType,
+ *   p2ms: ScriptTypeWithSigOps,
+ *   unknown: IndexerScriptTypeWithSigOps,
+ * }} Scripts
  */
-const _IndexerScripts = _s({
-  empty: [_ScriptsEmpty, '*'],
-  p2ms: [_ScriptsP2ms, 'p2ms'],
-  unknown: [_ScriptsUnknown, 'unknown'],
+const _Scripts = _s({
+  empty: [_ScriptType, '*'],
+  p2ms: [_ScriptTypeWithSigOps, 'p2ms'],
+  unknown: [_IndexerScriptTypeWithSigOps, 'unknown'],
 });
 
 /**
  * @typedef {{
  *   firstIndex: SeriesPattern18<P2AAddressIndex>,
  *   bytes: SeriesPattern26<P2ABytes>,
- * }} IndexerAddressesP2a
+ * }} AddrType
  */
-const _IndexerAddressesP2a = _s({
+const _AddrType = _s({
   firstIndex: [_i18, 'first_*_address_index'],
   bytes: [_i26, '*_bytes'],
 });
@@ -6515,10 +6515,10 @@ const _IndexerAddressesP2pk65 = _s({
  *   p2wpkh: IndexerAddressesP2wpkh,
  *   p2wsh: IndexerAddressesP2wsh,
  *   p2tr: IndexerAddressesP2tr,
- *   p2a: IndexerAddressesP2a,
- * }} IndexerAddresses
+ *   p2a: AddrType,
+ * }} Addrs
  */
-const _IndexerAddresses = _s({
+const _Addrs = _s({
   p2pk65: [_IndexerAddressesP2pk65, '*'],
   p2pk33: [_IndexerAddressesP2pk33, 'p2pk33'],
   p2pkh: [_IndexerAddressesP2pkh, 'p2pkh'],
@@ -6526,7 +6526,7 @@ const _IndexerAddresses = _s({
   p2wpkh: [_IndexerAddressesP2wpkh, 'p2wpkh'],
   p2wsh: [_IndexerAddressesP2wsh, 'p2wsh'],
   p2tr: [_IndexerAddressesP2tr, 'p2tr'],
-  p2a: [_IndexerAddressesP2a, 'p2a'],
+  p2a: [_AddrType, 'p2a'],
 });
 
 /**
@@ -6568,9 +6568,9 @@ const _IndexerInputs = _s({
 /**
  * @typedef {{
  *   block: SeriesPattern18<Count>,
- * }} IndexerTransactionsFeaturesOneInput
+ * }} CountSeries
  */
-const _IndexerTransactionsFeaturesOneInput = _s({
+const _CountSeries = _s({
   block: [_i18, '*'],
 });
 
@@ -6581,10 +6581,10 @@ const _IndexerTransactionsFeaturesOneInput = _s({
  *   v2: A,
  *   v3: A,
  *   other: A,
- * }} Versions
+ * }} VersionCount
  */
 /** @type {_Make} */
-const _Versions = (c, b, f0) => _n(c, b, {
+const _VersionCount = (c, b, f0) => _n(c, b, {
   v1: [f0, 'v1_*'],
   v2: [f0, 'v2_*'],
   v3: [f0, 'v3_*'],
@@ -6593,40 +6593,40 @@ const _Versions = (c, b, f0) => _n(c, b, {
 
 /**
  * @typedef {{
- *   count: Size<Count, ?CountFract>,
- *   features: TransactionsFeatures,
- *   vsize: Vsize<VSize>,
- *   fees: TransactionsFees,
+ *   count: FlowStats<Count, ?CountFract>,
+ *   features: Features,
+ *   vsize: PerTxDistribution<VSize>,
+ *   fees: Fees,
  *   inscription: Inscription,
  *   patterns: Patterns,
- *   nonstandard: Nonstandard,
- *   sigopCost: BlocksCount<SigOps>,
- *   versions: Versions<TransactionsFeaturesOneInput>,
- *   volume: OpReturnValue,
- *   perSecond: InputsPerSecond<?PerSecond>,
+ *   nonstandard: TransactionsFlagged,
+ *   sigopCost: Flow<SigOps>,
+ *   versions: VersionCount<TxCount>,
+ *   volume: ValueFlow,
+ *   perSecond: Windows<?PerSecond>,
  * }} Transactions
  */
 const _Transactions = _s({
-  count: [_Size, '*_count'],
-  features: [_TransactionsFeatures, '*'],
-  vsize: [_Vsize, '*_vsize'],
-  fees: [_TransactionsFees, 'fee'],
+  count: [_FlowStats, '*_count'],
+  features: [_Features, '*'],
+  vsize: [_PerTxDistribution, '*_vsize'],
+  fees: [_Fees, 'fee'],
   inscription: [_Inscription, 'inscription'],
   patterns: [_Patterns, 'coinjoin'],
-  nonstandard: [_Nonstandard, 'nonstandard'],
-  sigopCost: [_BlocksCount, 'block_sigop_cost'],
-  versions: [(c, b) => _Versions(c, b, _TransactionsFeaturesOneInput), '*'],
-  volume: [_OpReturnValue, '*_volume'],
-  perSecond: [_InputsPerSecond, '*_per_second'],
+  nonstandard: [_TransactionsFlagged, 'nonstandard'],
+  sigopCost: [_Flow, 'block_sigop_cost'],
+  versions: [(c, b) => _VersionCount(c, b, _TxCount), '*'],
+  volume: [_ValueFlow, '*_volume'],
+  perSecond: [_Windows, '*_per_second'],
 });
 
 /**
  * @typedef {{
  *   flag: SeriesPattern19<Boolean>,
  *   block: SeriesPattern18<Count>,
- * }} Epobc
+ * }} IndexerFeature
  */
-const _Epobc = _s({
+const _IndexerFeature = _s({
   flag: [_i19, 'is_*'],
   block: [_i18, '*_tx_count'],
 });
@@ -6635,68 +6635,68 @@ const _Epobc = _s({
  * @typedef {{
  *   flag: SeriesPattern19<Boolean>,
  *   block: SeriesPattern18<Count>,
- * }} Annex
+ * }} Feature
  */
-const _Annex = _s({
+const _Feature = _s({
   flag: [_i19, 'has_*'],
   block: [_i18, '*_tx_count'],
 });
 
 /**
  * @typedef {{
- *   p2pk: Annex,
- *   p2ms: Annex,
- *   p2pkh: Annex,
- *   p2sh: Annex,
- *   p2wpkh: Annex,
- *   p2wsh: Annex,
- *   p2tr: Annex,
- *   p2a: Annex,
- *   opReturn: Annex,
- *   emptyScript: Annex,
- *   unknownScript: Annex,
- *   fakePubkey: Annex,
- *   fakeScripthash: Annex,
- *   inscription: Annex,
- *   annex: Annex,
- *   sighashAll: Annex,
- *   sighashNone: Annex,
- *   sighashSingle: Annex,
- *   sighashDefault: Annex,
- *   sighashAnyoneCanPay: Annex,
- *   explicitlyRbf: Epobc,
- *   dustOutput: Annex,
- *   epobc: Epobc,
- *   oneInput: IndexerTransactionsFeaturesOneInput,
- *   oneOutput: IndexerTransactionsFeaturesOneInput,
- * }} IndexerTransactionsFeatures
+ *   p2pk: Feature,
+ *   p2ms: Feature,
+ *   p2pkh: Feature,
+ *   p2sh: Feature,
+ *   p2wpkh: Feature,
+ *   p2wsh: Feature,
+ *   p2tr: Feature,
+ *   p2a: Feature,
+ *   opReturn: Feature,
+ *   emptyScript: Feature,
+ *   unknownScript: Feature,
+ *   fakePubkey: Feature,
+ *   fakeScripthash: Feature,
+ *   inscription: Feature,
+ *   annex: Feature,
+ *   sighashAll: Feature,
+ *   sighashNone: Feature,
+ *   sighashSingle: Feature,
+ *   sighashDefault: Feature,
+ *   sighashAnyoneCanPay: Feature,
+ *   explicitlyRbf: IndexerFeature,
+ *   dustOutput: Feature,
+ *   epobc: IndexerFeature,
+ *   oneInput: CountSeries,
+ *   oneOutput: CountSeries,
+ * }} TransactionFeatures
  */
-const _IndexerTransactionsFeatures = _s({
-  p2pk: [_Annex, 'p2pk'],
-  p2ms: [_Annex, 'p2ms'],
-  p2pkh: [_Annex, 'p2pkh'],
-  p2sh: [_Annex, 'p2sh'],
-  p2wpkh: [_Annex, 'p2wpkh'],
-  p2wsh: [_Annex, 'p2wsh'],
-  p2tr: [_Annex, 'p2tr'],
-  p2a: [_Annex, 'p2a'],
-  opReturn: [_Annex, 'op_return'],
-  emptyScript: [_Annex, 'empty_script'],
-  unknownScript: [_Annex, 'unknown_script'],
-  fakePubkey: [_Annex, 'fake_pubkey'],
-  fakeScripthash: [_Annex, 'fake_scripthash'],
-  inscription: [_Annex, 'inscription'],
-  annex: [_Annex, 'annex'],
-  sighashAll: [_Annex, '*_all'],
-  sighashNone: [_Annex, '*_none'],
-  sighashSingle: [_Annex, '*_single'],
-  sighashDefault: [_Annex, '*_default'],
-  sighashAnyoneCanPay: [_Annex, '*_anyone_can_pay'],
-  explicitlyRbf: [_Epobc, 'explicitly_rbf'],
-  dustOutput: [_Annex, 'dust_output'],
-  epobc: [_Epobc, 'epobc'],
-  oneInput: [_IndexerTransactionsFeaturesOneInput, 'one_input_tx_count'],
-  oneOutput: [_IndexerTransactionsFeaturesOneInput, 'one_output_tx_count'],
+const _TransactionFeatures = _s({
+  p2pk: [_Feature, 'p2pk'],
+  p2ms: [_Feature, 'p2ms'],
+  p2pkh: [_Feature, 'p2pkh'],
+  p2sh: [_Feature, 'p2sh'],
+  p2wpkh: [_Feature, 'p2wpkh'],
+  p2wsh: [_Feature, 'p2wsh'],
+  p2tr: [_Feature, 'p2tr'],
+  p2a: [_Feature, 'p2a'],
+  opReturn: [_Feature, 'op_return'],
+  emptyScript: [_Feature, 'empty_script'],
+  unknownScript: [_Feature, 'unknown_script'],
+  fakePubkey: [_Feature, 'fake_pubkey'],
+  fakeScripthash: [_Feature, 'fake_scripthash'],
+  inscription: [_Feature, 'inscription'],
+  annex: [_Feature, 'annex'],
+  sighashAll: [_Feature, '*_all'],
+  sighashNone: [_Feature, '*_none'],
+  sighashSingle: [_Feature, '*_single'],
+  sighashDefault: [_Feature, '*_default'],
+  sighashAnyoneCanPay: [_Feature, '*_anyone_can_pay'],
+  explicitlyRbf: [_IndexerFeature, 'explicitly_rbf'],
+  dustOutput: [_Feature, 'dust_output'],
+  epobc: [_IndexerFeature, 'epobc'],
+  oneInput: [_CountSeries, 'one_input_tx_count'],
+  oneOutput: [_CountSeries, 'one_output_tx_count'],
 });
 
 /**
@@ -6710,8 +6710,8 @@ const _IndexerTransactionsFeatures = _s({
  *   sigopCost: SeriesPattern19<SigOps>,
  *   firstTxinIndex: SeriesPattern19<TxInIndex>,
  *   firstTxoutIndex: SeriesPattern19<TxOutIndex>,
- *   features: IndexerTransactionsFeatures,
- *   versions: Versions<IndexerTransactionsFeaturesOneInput>,
+ *   features: TransactionFeatures,
+ *   versions: VersionCount<CountSeries>,
  * }} IndexerTransactions
  */
 const _IndexerTransactions = _s({
@@ -6724,8 +6724,8 @@ const _IndexerTransactions = _s({
   sigopCost: [_i19, '*_sigop_cost'],
   firstTxinIndex: [_i19, 'first_txin_index'],
   firstTxoutIndex: [_i19, 'first_txout_index'],
-  features: [_IndexerTransactionsFeatures, 'sighash'],
-  versions: [(c, b) => _Versions(c, b, _IndexerTransactionsFeaturesOneInput), '*_count'],
+  features: [_TransactionFeatures, 'sighash'],
+  versions: [(c, b) => _VersionCount(c, b, _CountSeries), '*_count'],
 });
 
 /**
@@ -6759,8 +6759,8 @@ const _IndexerBlocks = _s({
  *   transactions: IndexerTransactions,
  *   inputs: IndexerInputs,
  *   outputs: IndexerOutputs,
- *   addresses: IndexerAddresses,
- *   scripts: IndexerScripts,
+ *   addresses: Addrs,
+ *   scripts: Scripts,
  *   opReturn: IndexerOpReturn,
  * }} Indexer
  */
@@ -6769,8 +6769,8 @@ const _Indexer = _s({
   transactions: [_IndexerTransactions, '*'],
   inputs: [_IndexerInputs, 'index'],
   outputs: [_IndexerOutputs, 'output'],
-  addresses: [_IndexerAddresses, 'p2pk65'],
-  scripts: [_IndexerScripts, 'empty_output'],
+  addresses: [_Addrs, 'p2pk65'],
+  scripts: [_Scripts, 'empty_output'],
   opReturn: [_IndexerOpReturn, 'op_return'],
 });
 
@@ -6786,12 +6786,12 @@ const _Indexer = _s({
  *   mining: Mining,
  *   opReturn: OpReturn,
  *   pools: Pools,
- *   utxoSet: UtxoSet2,
+ *   utxoSet: UtxoSetSeries,
  *   market: Market,
  *   age: Age,
  *   utxos: Utxos,
  *   addresses: Addresses,
- *   holders: Holders<Rookie<AllSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis>, Rookie<LthSupply, AllCapital, AllActivity, AllRealized, AllUnrealized, AllCostBasis>>,
+ *   holders: Holders<CreationCohort<AllSupply, Capital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis>, CreationCohort<LthSupply, Capital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis>>,
  *   entry: Entry,
  *   profitability: Profitability,
  *   supply: Supply,
@@ -6812,12 +6812,12 @@ const _SeriesTree = _s({
   mining: [_Mining, 'coinbase'],
   opReturn: [_OpReturn, 'op_return'],
   pools: [_Pools, 'pool'],
-  utxoSet: [_UtxoSet2, 'circulating_supply'],
+  utxoSet: [_UtxoSetSeries, 'circulating_supply'],
   market: [_Market, 'price'],
   age: [_Age, 'age'],
   utxos: [_Utxos, 'amount'],
   addresses: [_Addresses, 'address'],
-  holders: [(c, b) => _Holders(c, b, (c, b) => _Rookie(c, b, _AllSupply, _AllCapital, _AllActivity, _AllRealized, _AllUnrealized, _AllCostBasis), (c, b) => _Rookie(c, b, _LthSupply, _AllCapital, _AllActivity, _AllRealized, _AllUnrealized, _AllCostBasis)), 'age'],
+  holders: [(c, b) => _Holders(c, b, (c, b) => _CreationCohort(c, b, _AllSupply, _Capital, _HoldersActivity, _HoldersRealized, _Unrealized, _HoldersCostBasis), (c, b) => _CreationCohort(c, b, _LthSupply, _Capital, _HoldersActivity, _HoldersRealized, _Unrealized, _HoldersCostBasis)), 'age'],
   entry: [_Entry, 'veteran'],
   profitability: [_Profitability, 'sth'],
   supply: [_Supply, 'circulating_supply'],

@@ -20,7 +20,7 @@ Each collection holds one value per member and is built from its identifier with
 | `AmountRange` | `AmountRangeId` | 15 disjoint amount buckets, `0_sats` to `over_100k_btc` |
 | `ByHalvingEpoch` | `HalvingEpochId` | halving epochs |
 | `Vintage` | `VintageId` | creation years (vintages) |
-| `ByEntry` | `EntryPrice` | entry-price class: veteran (bought at a discount) or rookie |
+| `ByEntry` | `EntryPrice` | entry-price group: veteran (bought at a discount) or rookie |
 | `SpendableType` | `SpendableTypeId` | spendable output types, P2PK merged across key sizes |
 | `ByType` | `OutputTypeId` | the spendable types plus OP_RETURN (`UnspendableType`) |
 | `AddressType` | `AddressTypeId` | address types as analytics count them: P2PK merged, P2A excluded |

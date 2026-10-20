@@ -10,6 +10,7 @@ use vecdb::{AnyStoredVec, AnyVec, Database, ReadableVec, Rw, StorageMode, Writab
 use super::{Component, START_HEIGHT, component};
 
 #[derive(Traversable)]
+#[traversable(client = "Meter")]
 pub struct RarityMeterInner<M: StorageMode = Rw> {
     #[traversable(flatten)]
     /// Historical price boundaries that any of the meter's reference models calls rare.

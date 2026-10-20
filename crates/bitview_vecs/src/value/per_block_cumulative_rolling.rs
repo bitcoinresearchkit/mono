@@ -9,6 +9,7 @@ use crate::{
 };
 
 #[derive(Deref, DerefMut, Traversable)]
+#[traversable(client = "ValueFlow")]
 pub struct ValuePerBlockCumulativeRolling<M: StorageMode = Rw> {
     #[deref]
     #[deref_mut]

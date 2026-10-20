@@ -8,6 +8,7 @@ use crate::{
 };
 
 #[derive(Clone, Traversable)]
+#[traversable(client = "ValueFlow")]
 pub struct LazyValuePerBlockCumulativeRolling {
     /// Value for the represented block.
     pub block: LazyValueBlock,

@@ -9,6 +9,7 @@ use crate::{
 };
 
 #[derive(Clone, Traversable)]
+#[traversable(client = "Flow")]
 pub struct LazyPerBlockCumulativeRolling<T>
 where
     T: NumericValue + JsonSchema + Quantity<Sum = T>,

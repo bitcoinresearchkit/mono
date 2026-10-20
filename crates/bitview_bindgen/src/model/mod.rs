@@ -81,6 +81,8 @@ enum Body {
 struct Node {
     /// A leaf's series name, or a branch's base.
     name: String,
+    /// A branch's client name, from its defining type.
+    client_name: Option<&'static str>,
     body: Body,
     /// A leaf's value type, or a branch's shape with its type arguments.
     ty: Ty,
@@ -165,6 +167,8 @@ struct Flat {
     signature: Signature,
     children: Vec<usize>,
     height: usize,
+    /// The client name the branch's defining type gives it.
+    client_name: Option<&'static str>,
 }
 
 impl Model {
@@ -275,6 +279,7 @@ impl Model {
             .map(|id| match (flats[id].take(), shape_of[id]) {
                 (Some(flat), Some(shape)) => Node {
                     name: names[id].clone(),
+                    client_name: flat.client_name,
                     body: Body::Branch {
                         shape,
                         children: flat.children,
@@ -283,6 +288,7 @@ impl Model {
                 },
                 _ => Node {
                     name: names[id].clone(),
+                    client_name: None,
                     ty: Ty::Value(kinds[id].take().unwrap()),
                     body: Body::Leaf,
                 },
@@ -401,12 +407,13 @@ impl Model {
         paths.into_iter().map(Option::unwrap).collect()
     }
 
-    /// Each shape's type name: `SeriesTree` for the root, otherwise the PascalCase tail of the
-    /// shape's shallowest (then smallest) path, with as many trailing keys as it takes to be unique,
-    /// stay clear of `reserved` and the type-parameter letters, and start with a letter.
+    /// Each shape's type name: `SeriesTree` for the root; else its [`Self::type_names`] name;
+    /// otherwise the PascalCase tail of the shape's shallowest (then smallest) path, with as many
+    /// trailing keys as it takes to be unique, stay clear of `reserved` and the type-parameter
+    /// letters, and start with a letter.
     pub(crate) fn shape_names(&self, reserved: &BTreeSet<String>) -> Vec<String> {
         let max_params = self.params.iter().copied().max().unwrap_or(0);
-        let reserved: BTreeSet<String> = reserved
+        let mut reserved: BTreeSet<String> = reserved
             .iter()
             .cloned()
             .chain((0..max_params).map(param_name))
@@ -416,6 +423,8 @@ impl Model {
             Body::Branch { shape, .. } => *shape,
             Body::Leaf => unreachable!("the catalog root is a branch"),
         };
+        let typed = self.type_names(&reserved, &paths, root);
+        reserved.extend(typed.iter().flatten().cloned());
         let tail = |shape: usize, depth: usize| {
             let path = &paths[shape];
             to_pascal_case(&path[path.len() - depth.min(path.len())..].join("_"))
@@ -424,7 +433,7 @@ impl Model {
         let mut depths = vec![1; self.shapes.len()];
         let owners = loop {
             let mut owners: BTreeMap<String, Vec<usize>> = BTreeMap::new();
-            for shape in (0..self.shapes.len()).filter(|&s| s != root) {
+            for shape in (0..self.shapes.len()).filter(|&s| s != root && typed[s].is_none()) {
                 owners
                     .entry(tail(shape, depths[shape]))
                     .or_default()
@@ -450,7 +459,7 @@ impl Model {
 
         // A name still shared after all keys (`a_b.c` and `a.b_c`) goes to the first path; the
         // others, and any name still unusable, take the first free numeric suffix.
-        let mut names = vec![String::new(); self.shapes.len()];
+        let mut names: Vec<String> = typed.into_iter().map(Option::unwrap_or_default).collect();
         names[root] = "SeriesTree".to_owned();
         debug_assert!(!reserved.contains(&names[root]), "`SeriesTree` is reserved");
         let mut taken: HashSet<String> = reserved.iter().cloned().collect();
@@ -480,6 +489,92 @@ impl Model {
             names[shape] = name;
         }
         names
+    }
+
+    /// Each shape's name, by three rules: a section (a root child) is named after its key, any other
+    /// shape after the client name most of its instances' types give it (`Pool`); a name the API or a language already uses gets `Series` (`UtxoSetSeries`, beside
+    /// the API's `UtxoSet`); and of shapes sharing a name, one keeps it (a section, else the most
+    /// used, then the shallowest) while the others take their section as a prefix
+    /// (`HoldersActivity`). A name still shared or not an identifier is left to the path rule, as
+    /// are the root and shapes no type names.
+    fn type_names(
+        &self,
+        reserved: &BTreeSet<String>,
+        paths: &[Vec<String>],
+        root: usize,
+    ) -> Vec<Option<String>> {
+        let mut votes: Vec<BTreeMap<&str, usize>> = vec![BTreeMap::new(); self.shapes.len()];
+        let mut instances = vec![0_usize; self.shapes.len()];
+        for node in &self.nodes {
+            if let Body::Branch { shape, .. } = node.body {
+                instances[shape] += 1;
+                if let Some(name) = node.client_name {
+                    *votes[shape].entry(name).or_default() += 1;
+                }
+            }
+        }
+        let section = |shape: usize| to_pascal_case(&paths[shape][0]);
+        let is_section = |shape: usize| paths[shape].len() == 1;
+        let unreserved = |name: String| {
+            if reserved.contains(&name) {
+                format!("{name}Series")
+            } else {
+                name
+            }
+        };
+        let wanted: Vec<Option<String>> = votes
+            .into_iter()
+            .enumerate()
+            .map(|(shape, votes)| {
+                let name = if shape == root {
+                    None
+                } else if is_section(shape) {
+                    Some(section(shape))
+                } else {
+                    votes
+                        .into_iter()
+                        .max_by(|(a, x), (b, y)| x.cmp(y).then_with(|| b.cmp(a)))
+                        .map(|(name, _)| name.to_owned())
+                };
+                name.map(unreserved)
+            })
+            .collect();
+
+        let mut groups: BTreeMap<&str, Vec<usize>> = BTreeMap::new();
+        for (shape, name) in wanted.iter().enumerate() {
+            if let Some(name) = name {
+                groups.entry(name).or_default().push(shape);
+            }
+        }
+        let mut names = wanted.clone();
+        for (name, shapes) in groups.iter().filter(|(_, shapes)| shapes.len() > 1) {
+            let keeper = shapes.iter().copied().max_by(|&a, &b| {
+                is_section(a)
+                    .cmp(&is_section(b))
+                    .then_with(|| instances[a].cmp(&instances[b]))
+                    .then_with(|| paths[b].len().cmp(&paths[a].len()))
+                    .then_with(|| paths[b].cmp(&paths[a]))
+            });
+            for &shape in shapes.iter().filter(|&&s| Some(s) != keeper) {
+                names[shape] = Some(unreserved(format!("{}{name}", section(shape))));
+            }
+        }
+
+        let mut counts: HashMap<&str, usize> = HashMap::new();
+        for name in names.iter().flatten() {
+            *counts.entry(name).or_default() += 1;
+        }
+        let usable = |name: &String| {
+            counts[name.as_str()] == 1
+                && !reserved.contains(name)
+                && name != "SeriesTree"
+                && name.starts_with(|c: char| c.is_ascii_uppercase())
+                && name.chars().all(|c| c.is_ascii_alphanumeric())
+        };
+        names
+            .iter()
+            .map(|name| name.clone().filter(usable))
+            .collect()
     }
 
     /// Shapes ordered so every shape comes after the shapes of its branch children.
@@ -564,6 +659,7 @@ fn flatten(
                 signature: Signature(signature),
                 children,
                 height: height + 1,
+                client_name: branch.client_name,
             }));
         }
     }

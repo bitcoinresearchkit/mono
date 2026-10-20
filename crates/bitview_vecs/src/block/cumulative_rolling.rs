@@ -18,6 +18,7 @@ use crate::{
 };
 
 #[derive(Traversable)]
+#[traversable(client = "Flow")]
 pub struct PerBlockCumulativeRolling<T, M: StorageMode = Rw>
 where
     T: NumericValue + JsonSchema + Quantity<Sum = T>,

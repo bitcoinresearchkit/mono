@@ -8,6 +8,7 @@ use crate::{
 };
 
 #[derive(Clone, Traversable)]
+#[traversable(client = "Flow")]
 pub struct LazyFiatPerBlockCumulativeWithSums<C: FiatType> {
     /// Value for the represented block.
     block: LazyFiatBlock<C>,
