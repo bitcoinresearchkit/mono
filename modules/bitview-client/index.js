@@ -782,7 +782,7 @@ a bin closing at the first fee rate change past 50,000 vB
 /**
  * Protocol or format detected in an OP_RETURN output.
  *
- * @typedef {("runes"|"witness_commitment"|"veri_block"|"omni"|"stacks"|"blockstack"|"colu"|"open_assets"|"komodo"|"coin_spark"|"poet"|"docproof"|"open_timestamps"|"factom"|"eternity_wall"|"memo"|"bitproof"|"ascribe"|"stampery"|"epobc"|"bare_hash"|"text"|"empty"|"unknown")} OpReturnKind
+ * @typedef {("runes"|"witness_commitment"|"veri_block"|"omni"|"stacks"|"blockstack"|"colu"|"open_assets"|"komodo"|"coin_spark"|"poet"|"docproof"|"factom"|"eternity_wall"|"memo"|"bitproof"|"ascribe"|"stampery"|"bare_hash"|"text"|"empty"|"unknown")} OpReturnKind
  */
 /**
  * The output a transaction input spends: its transaction index and output position, written as
@@ -4865,6 +4865,7 @@ const _FeaturesScripts = _s({
  *   segwit: TransactionsFeaturesOneInput,
  *   explicitlyRbf: Nonstandard,
  *   dustOutput: DustOutput,
+ *   epobc: Nonstandard,
  *   oneInput: TransactionsFeaturesOneInput,
  *   oneOutput: TransactionsFeaturesOneInput,
  * }} TransactionsFeatures
@@ -4875,6 +4876,7 @@ const _TransactionsFeatures = _s({
   segwit: [_TransactionsFeaturesOneInput, 'segwit_*'],
   explicitlyRbf: [_Nonstandard, 'explicitly_rbf'],
   dustOutput: [_DustOutput, 'dust_output'],
+  epobc: [_Nonstandard, 'epobc'],
   oneInput: [_TransactionsFeaturesOneInput, 'one_input_*'],
   oneOutput: [_TransactionsFeaturesOneInput, 'one_output_*'],
 });
@@ -5698,14 +5700,12 @@ const _Policies = _s({
  *   coinSpark: PoliciesMultiple,
  *   poet: PoliciesMultiple,
  *   docproof: PoliciesMultiple,
- *   openTimestamps: PoliciesMultiple,
  *   factom: PoliciesMultiple,
  *   eternityWall: PoliciesMultiple,
  *   memo: PoliciesMultiple,
  *   bitproof: PoliciesMultiple,
  *   ascribe: PoliciesMultiple,
  *   stampery: PoliciesMultiple,
- *   epobc: PoliciesMultiple,
  *   bareHash: PoliciesMultiple,
  *   text: PoliciesMultiple,
  *   empty: PoliciesMultiple,
@@ -5725,14 +5725,12 @@ const _Protocols = _s({
   coinSpark: [_PoliciesMultiple, '*_coin_spark'],
   poet: [_PoliciesMultiple, '*_poet'],
   docproof: [_PoliciesMultiple, '*_docproof'],
-  openTimestamps: [_PoliciesMultiple, '*_open_timestamps'],
   factom: [_PoliciesMultiple, '*_factom'],
   eternityWall: [_PoliciesMultiple, '*_eternity_wall'],
   memo: [_PoliciesMultiple, '*_memo'],
   bitproof: [_PoliciesMultiple, '*_bitproof'],
   ascribe: [_PoliciesMultiple, '*_ascribe'],
   stampery: [_PoliciesMultiple, '*_stampery'],
-  epobc: [_PoliciesMultiple, '*_epobc'],
   bareHash: [_PoliciesMultiple, '*_bare_hash'],
   text: [_PoliciesMultiple, '*_text'],
   empty: [_PoliciesMultiple, '*_empty'],
@@ -6623,9 +6621,9 @@ const _Transactions = _s({
  * @typedef {{
  *   flag: SeriesPattern19<Boolean>,
  *   block: SeriesPattern18<Count>,
- * }} ExplicitlyRbf
+ * }} Epobc
  */
-const _ExplicitlyRbf = _s({
+const _Epobc = _s({
   flag: [_i19, 'is_*'],
   block: [_i18, '*_tx_count'],
 });
@@ -6663,8 +6661,9 @@ const _Annex = _s({
  *   sighashSingle: Annex,
  *   sighashDefault: Annex,
  *   sighashAnyoneCanPay: Annex,
- *   explicitlyRbf: ExplicitlyRbf,
+ *   explicitlyRbf: Epobc,
  *   dustOutput: Annex,
+ *   epobc: Epobc,
  *   oneInput: IndexerTransactionsFeaturesOneInput,
  *   oneOutput: IndexerTransactionsFeaturesOneInput,
  * }} IndexerTransactionsFeatures
@@ -6690,8 +6689,9 @@ const _IndexerTransactionsFeatures = _s({
   sighashSingle: [_Annex, '*_single'],
   sighashDefault: [_Annex, '*_default'],
   sighashAnyoneCanPay: [_Annex, '*_anyone_can_pay'],
-  explicitlyRbf: [_ExplicitlyRbf, 'explicitly_rbf'],
+  explicitlyRbf: [_Epobc, 'explicitly_rbf'],
   dustOutput: [_Annex, 'dust_output'],
+  epobc: [_Epobc, 'epobc'],
   oneInput: [_IndexerTransactionsFeaturesOneInput, 'one_input_tx_count'],
   oneOutput: [_IndexerTransactionsFeaturesOneInput, 'one_output_tx_count'],
 });

@@ -53,9 +53,7 @@ fn classify(data: &[u8], prefix: Option<&[u8]>) -> OpReturnKind {
         OpReturnKind::Poet
     } else if prefix.starts_with(b"DOCPROOF") {
         OpReturnKind::Docproof
-    } else if prefix.starts_with(b"\x05\x88\x96\x0d\x73\xd7\x19\x01") {
-        OpReturnKind::OpenTimestamps
-    } else if prefix.starts_with(b"Factom!!") {
+    } else if prefix.len() == 40 && prefix.starts_with(b"Fa") {
         OpReturnKind::Factom
     } else if prefix.starts_with(b"EW") {
         OpReturnKind::EternityWall
@@ -63,12 +61,10 @@ fn classify(data: &[u8], prefix: Option<&[u8]>) -> OpReturnKind {
         OpReturnKind::Memo
     } else if prefix.starts_with(b"BP") {
         OpReturnKind::Bitproof
-    } else if prefix.starts_with(b"ASCRIBE\0") {
+    } else if prefix.starts_with(b"ASCRIBESPOOL") {
         OpReturnKind::Ascribe
-    } else if prefix.starts_with(b"Stampery") {
+    } else if is_stampery(prefix) {
         OpReturnKind::Stampery
-    } else if prefix.starts_with(b"EPOBC") {
-        OpReturnKind::Epobc
     } else if data.len() == 82 {
         OpReturnKind::VeriBlock
     } else if (36..=38).contains(&data.len()) {
@@ -100,6 +96,12 @@ fn scan(script: &Script) -> (Option<&[u8]>, usize) {
     }
 
     (first_push, sigops.legacy)
+}
+
+/// A Stampery anchor (its BTA whitepaper): `S`, a version digit, an optional 2-byte server
+/// identifier, and a 32- or 64-byte hash.
+fn is_stampery(prefix: &[u8]) -> bool {
+    matches!(prefix, [b'S', b'1'..=b'9', ..]) && matches!(prefix.len(), 34 | 36 | 66 | 68)
 }
 
 fn is_memo(prefix: &[u8]) -> bool {

@@ -31,7 +31,7 @@ macro_rules! with_flagged_features {
                 sighash_default,
                 sighash_anyone_can_pay
             ],
-            others: [explicitly_rbf, dust_output]
+            others: [explicitly_rbf, dust_output, epobc]
         )
     };
 }

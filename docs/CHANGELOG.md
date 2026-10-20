@@ -9,7 +9,7 @@ All notable changes to the Bitcoin Research Kit (BRK) project will be documented
 ## Unreleased
 
 **Upgrading:** a node upgrading from v0.12.2 rebuilds once. VecDB headers moved to version 3 (they record the value
-size), so every stored vector resets; the indexer reindexes (indexer version 44) and every plugin recomputes. Nothing
+size), so every stored vector resets; the indexer reindexes (indexer version 45) and every plugin recomputes. Nothing
 has to be deleted by hand.
 
 ### Breaking Changes
@@ -175,8 +175,9 @@ has to be deleted by hand.
   `cpfp_parent_tx_count`, `inscription_tx_count` (were `tx_v1`, `tx_other_version`, `tx_count_annex`,
   `tx_count_dust_output`, `coinjoin_count`, `nonstandard_count`, `cpfp_parent_count`, `tx_count_inscription`), and
   features sit at `transactions.features.scripts.<feature>`, `transactions.features.signatures.<feature>` or, for
-  SegWit, opt-in RBF, dust outputs and single-input and single-output transactions, `transactions.features.<feature>`
-  (were under `features.count`), and inscription transactions at `transactions.inscription`
+  SegWit, opt-in RBF, dust outputs, EPOBC and single-input and single-output transactions,
+  `transactions.features.<feature>` (were under `features.count`), and inscription transactions at
+  `transactions.inscription`
 - Blocks: difficulty is `blocks.difficulty.block` (was `.value`); `blocks.count` holds `block`, `cumulative` and the
   window sums directly (were under `total`) and the constant `blocks.count.target.<window>` series are gone;
   `blocks.lookback` (window-start heights, `height_<window>_ago`) leaves the tree
@@ -222,6 +223,9 @@ has to be deleted by hand.
 - Descriptions: per-block values no longer claim time-period indexes they don't have, and every per-block value of a
   windowed series reads "Value for the represented block." (some had no per-block wording); undefined values are
   described as null; absolute deltas no longer mention a relative change
+- OpenTimestamps and EPOBC are no longer OP_RETURN protocols: the `op_return_open_timestamps_*` and
+  `op_return_epobc_*` series are gone. OpenTimestamps calendars commit bare 32-byte hashes, counted in `bare_hash`;
+  EPOBC tags the first input's sequence number and never used OP_RETURN (now a transaction feature, below)
 - Transaction features, patterns, policy and CPFP roles are member-first: each is one node holding its per-transaction
   `flag` beside its per-block count: `transactions.features.scripts.p2tr.{flag, block, cumulative, sum}` (were
   `transactions.features.has_p2tr` and `transactions.features.count.p2tr`), `transactions.patterns.coinjoin.{flag,
@@ -973,6 +977,9 @@ has to be deleted by hand.
   `transactions.features.scripts.p2tr.share.{cumulative, 24h, 1w, 1m, 1y}` (ids `p2tr_tx_share_cumulative`,
   `p2tr_tx_share_<window>`), `segwit_tx_share_1m`, `v2_tx_share_1m`, `coinjoin_tx_share_1m`,
   `cpfp_parent_tx_share_1m`, `nonstandard_tx_share_1m`, `inscription_tx_share_1m`, ...
+- EPOBC colored-coin transactions as a transaction feature, `transactions.features.epobc` (`is_epobc`,
+  `epobc_tx_count`, `epobc_tx_share_<window>`): version-1 transactions whose first input's sequence number carries
+  an EPOBC transfer (51) or genesis (37) tag in its low six bits, the bits above 11 zero
 - OP_RETURN transactions' share of all transactions (coinbase included), in total and per protocol and policy:
   `op_return.tx_share.{cumulative, 24h, 1w, 1m, 1y}` (ids `op_return_tx_share_cumulative`,
   `op_return_tx_share_<window>`), `op_return_runes_tx_share_1m`, `op_return_pre_v30_nonstandard_tx_share_1m`, ...
@@ -1180,9 +1187,11 @@ has to be deleted by hand.
 - Hash price, its all-time low and its rebound are null until the trailing 24 hours are fully priced (a partly
   priced first day pinned the low for years)
 - OP_RETURN: coinbase transactions no longer count in the pre-v30 policy categories, documented as size/count
-  categories; kind descriptions corrected (Po.et vs Proof of Existence, the OpenTimestamps tag, length/prefix
-  heuristics). A new `witness_commitment` protocol matches the BIP141 header (a 36-byte push beginning `aa21a9ed`),
-  so `komodo` no longer counts every SegWit coinbase commitment
+  categories; kind descriptions corrected (Po.et vs Proof of Existence, length/prefix heuristics). A new `witness_commitment` protocol matches the BIP141 header (a 36-byte push beginning `aa21a9ed`),
+  so `komodo` no longer counts every SegWit coinbase commitment. Three protocols never matched an output: Factom
+  is its anchor, `Fa` with a 6-byte height and a 32-byte Merkle root (was the prefix `Factom!!`), Ascribe its
+  `ASCRIBESPOOL` marker (was `ASCRIBE\0`), Stampery its BTA anchor, `S`, a version digit, an optional 2-byte server
+  identifier and a 32- or 64-byte hash (was the prefix `Stampery`)
 - Transactions: the ephemeral-dust policy switch uses the indexer's v29 height, 892,500 (was 905,000)
 - Coarse calendar periods' `date` is the period's start (was its first block's date: empty periods repeated the next
   one's)

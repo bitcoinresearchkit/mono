@@ -28,7 +28,7 @@ The website is going away: showcases become what's served by default.
 
 ## Back end
 
-- Before running this build on another machine with an index (the Mac mini, production), rename the indexer's empty and unknown feature regions, or the indexer stops with "drop and re-import it": with bitviewd stopped, `python3 -I _notes/tree-review-20261020/rename_regions.py ~/.bitview/plugins/indexer/vecs/regions --apply` (a dry run without `--apply`; it keeps a backup beside the file). Done on this Mac on 2026-10-20.
+- Indexer version 45 (2026-10-20: OP_RETURN markers, EPOBC) reindexes every machine with an index (this Mac, the Mac mini, production) from scratch on first start; plan the downtime. The feature-region rename (`_notes/tree-review-20261020/rename_regions.py`) is no longer needed.
 
 - Regenerate the client API docs (`scripts/js-docs.sh`, `scripts/python-docs.sh`; the release script runs them). They still show the removed URPD dates endpoint and the URPD's old shape.
 - Hawk's 323 findings, all in back-end crates: bitview_client, bitview_cohort, bitview_primitives, bitview_types, brk_pco, brk_lsm_tree, brk_types, bitview_catalog, brk_fjall.

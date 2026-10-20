@@ -144,7 +144,7 @@ OutputTypeNormalized = Literal["p2pk", "p2pkh", "multisig", "p2sh", "op_return",
 # Type (P2PKH, P2WPKH, P2SH, P2TR, etc.)
 OutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2ms", "p2sh", "opreturn", "p2wpkh", "p2wsh", "p2tr", "p2a", "empty", "unknown"]
 # Protocol or format detected in an OP_RETURN output.
-OpReturnKind = Literal["runes", "witness_commitment", "veri_block", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coin_spark", "poet", "docproof", "open_timestamps", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "epobc", "bare_hash", "text", "empty", "unknown"]
+OpReturnKind = Literal["runes", "witness_commitment", "veri_block", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coin_spark", "poet", "docproof", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "bare_hash", "text", "empty", "unknown"]
 # Content hash of the projected next block (block 0 of the mempool
 # snapshot), including its statistics and complete transaction bodies.
 # Opaque token, distinct from HTTP ETag formatting: pass back
@@ -3877,6 +3877,7 @@ class TransactionsFeatures(_Node):
     segwit: TransactionsFeaturesOneInput = _at(TransactionsFeaturesOneInput, 'segwit_*')
     explicitly_rbf: Nonstandard = _at(Nonstandard, 'explicitly_rbf')
     dust_output: DustOutput = _at(DustOutput, 'dust_output')
+    epobc: Nonstandard = _at(Nonstandard, 'epobc')
     one_input: TransactionsFeaturesOneInput = _at(TransactionsFeaturesOneInput, 'one_input_*')
     one_output: TransactionsFeaturesOneInput = _at(TransactionsFeaturesOneInput, 'one_output_*')
 
@@ -4269,14 +4270,12 @@ class Protocols(_Node):
     coin_spark: PoliciesMultiple = _at(PoliciesMultiple, '*_coin_spark')
     poet: PoliciesMultiple = _at(PoliciesMultiple, '*_poet')
     docproof: PoliciesMultiple = _at(PoliciesMultiple, '*_docproof')
-    open_timestamps: PoliciesMultiple = _at(PoliciesMultiple, '*_open_timestamps')
     factom: PoliciesMultiple = _at(PoliciesMultiple, '*_factom')
     eternity_wall: PoliciesMultiple = _at(PoliciesMultiple, '*_eternity_wall')
     memo: PoliciesMultiple = _at(PoliciesMultiple, '*_memo')
     bitproof: PoliciesMultiple = _at(PoliciesMultiple, '*_bitproof')
     ascribe: PoliciesMultiple = _at(PoliciesMultiple, '*_ascribe')
     stampery: PoliciesMultiple = _at(PoliciesMultiple, '*_stampery')
-    epobc: PoliciesMultiple = _at(PoliciesMultiple, '*_epobc')
     bare_hash: PoliciesMultiple = _at(PoliciesMultiple, '*_bare_hash')
     text: PoliciesMultiple = _at(PoliciesMultiple, '*_text')
     empty: PoliciesMultiple = _at(PoliciesMultiple, '*_empty')
@@ -4691,7 +4690,7 @@ class Transactions(_Node):
     per_second: InputsPerSecond[Optional[PerSecond]] = _at(InputsPerSecond, '*_per_second')
 
 
-class ExplicitlyRbf(_Node):
+class Epobc(_Node):
     flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'is_*')
     block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
 
@@ -4722,8 +4721,9 @@ class IndexerTransactionsFeatures(_Node):
     sighash_single: Annex = _at(Annex, '*_single')
     sighash_default: Annex = _at(Annex, '*_default')
     sighash_anyone_can_pay: Annex = _at(Annex, '*_anyone_can_pay')
-    explicitly_rbf: ExplicitlyRbf = _at(ExplicitlyRbf, 'explicitly_rbf')
+    explicitly_rbf: Epobc = _at(Epobc, 'explicitly_rbf')
     dust_output: Annex = _at(Annex, 'dust_output')
+    epobc: Epobc = _at(Epobc, 'epobc')
     one_input: IndexerTransactionsFeaturesOneInput = _at(IndexerTransactionsFeaturesOneInput, 'one_input_tx_count')
     one_output: IndexerTransactionsFeaturesOneInput = _at(IndexerTransactionsFeaturesOneInput, 'one_output_tx_count')
 

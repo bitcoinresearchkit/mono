@@ -3,7 +3,7 @@ use brk_types::{Height, Sats, TxIndex, Version};
 
 // One schema version for every data source: bump it when stored data changes or a source is
 // added.
-pub const VERSION: Version = Version::new(44);
+pub const VERSION: Version = Version::new(45);
 
 /// A BIP30 duplicate coinbase (https://github.com/bitcoin/bips/blob/master/bip-0030.mediawiki): it re-created
 /// an earlier coinbase's txid and overwrote that coinbase's unspent outputs, as in Bitcoin Core.

@@ -1417,6 +1417,7 @@ pub mod tree {
         segwit: TransactionsFeaturesOneInput = "segwit_*",
         explicitly_rbf: Nonstandard = "explicitly_rbf",
         dust_output: DustOutput = "dust_output",
+        epobc: Nonstandard = "epobc",
         one_input: TransactionsFeaturesOneInput = "one_input_*",
         one_output: TransactionsFeaturesOneInput = "one_output_*",
     } }
@@ -1766,14 +1767,12 @@ pub mod tree {
         coin_spark: PoliciesMultiple = "*_coin_spark",
         poet: PoliciesMultiple = "*_poet",
         docproof: PoliciesMultiple = "*_docproof",
-        open_timestamps: PoliciesMultiple = "*_open_timestamps",
         factom: PoliciesMultiple = "*_factom",
         eternity_wall: PoliciesMultiple = "*_eternity_wall",
         memo: PoliciesMultiple = "*_memo",
         bitproof: PoliciesMultiple = "*_bitproof",
         ascribe: PoliciesMultiple = "*_ascribe",
         stampery: PoliciesMultiple = "*_stampery",
-        epobc: PoliciesMultiple = "*_epobc",
         bare_hash: PoliciesMultiple = "*_bare_hash",
         text: PoliciesMultiple = "*_text",
         empty: PoliciesMultiple = "*_empty",
@@ -2125,7 +2124,7 @@ pub mod tree {
         volume: OpReturnValue = "*_volume",
         per_second: InputsPerSecond<Option<PerSecond>> = "*_per_second",
     } }
-    shape! { ExplicitlyRbf at "series().indexer.transactions.features.explicitly_rbf" {
+    shape! { Epobc at "series().indexer.transactions.features.epobc" {
         flag: SeriesPattern19<Boolean> = "is_*",
         block: SeriesPattern18<Count> = "*_tx_count",
     } }
@@ -2154,8 +2153,9 @@ pub mod tree {
         sighash_single: Annex = "*_single",
         sighash_default: Annex = "*_default",
         sighash_anyone_can_pay: Annex = "*_anyone_can_pay",
-        explicitly_rbf: ExplicitlyRbf = "explicitly_rbf",
+        explicitly_rbf: Epobc = "explicitly_rbf",
         dust_output: Annex = "dust_output",
+        epobc: Epobc = "epobc",
         one_input: IndexerTransactionsFeaturesOneInput = "one_input_tx_count",
         one_output: IndexerTransactionsFeaturesOneInput = "one_output_tx_count",
     } }

@@ -77,11 +77,11 @@ function words(/** @type {string} */ key) {
 }
 /** A name as it reads inside a sentence: a plain capitalized word lowercased ("Unknown" "unknown"), a name kept ("P2TR"). */
 const inSentence = (/** @type {string} */ name) => (/^[A-Z][a-z]+$/.test(name) ? name.toLowerCase() : name);
-/** OP_RETURN protocols by their own names (the client's keys lose them: "veriBlock", "epobc"). */
+/** OP_RETURN protocols by their own names (the client's keys lose them: "veriBlock", "openAssets"). */
 const PROTOCOLS = {
   runes: "Runes", witnessCommitment: "Witness commitment", veriBlock: "VeriBlock", omni: "Omni", stacks: "Stacks", blockstack: "Blockstack", colu: "Colu",
-  openAssets: "Open Assets", komodo: "Komodo", coinSpark: "CoinSpark", poet: "Po.et", docproof: "DocProof", openTimestamps: "OpenTimestamps", factom: "Factom",
-  eternityWall: "Eternity Wall", memo: "Memo", bitproof: "Bitproof", ascribe: "Ascribe", stampery: "Stampery", epobc: "EPOBC", bareHash: "Bare hash", text: "Text",
+  openAssets: "Open Assets", komodo: "Komodo", coinSpark: "CoinSpark", poet: "Po.et", docproof: "DocProof", factom: "Factom",
+  eternityWall: "Eternity Wall", memo: "Memo", bitproof: "Bitproof", ascribe: "Ascribe", stampery: "Stampery", bareHash: "Bare hash", text: "Text",
   empty: "Empty", unknown: "Unknown",
 };
 
@@ -94,10 +94,10 @@ const EXTREMES = { supplyInLoss: "Supply in loss", realizedProfit24h: "Realized 
 const FEATURES = {
   fakePubkey: "Fake public keys", fakeScripthash: "Fake script hashes", segwit: "SegWit", annex: "Taproot annex", sighashAll: "SIGHASH_ALL",
   sighashNone: "SIGHASH_NONE", sighashSingle: "SIGHASH_SINGLE", sighashDefault: "SIGHASH_DEFAULT", sighashAnyoneCanPay: "SIGHASH_ANYONECANPAY",
-  explicitlyRbf: "Opt-in RBF", dustOutput: "Dust outputs", oneInput: "One input", oneOutput: "One output", emptyScript: "Empty scripts", unknownScript: "Unknown scripts",
+  explicitlyRbf: "Opt-in RBF", dustOutput: "Dust outputs", epobc: "EPOBC", oneInput: "One input", oneOutput: "One output", emptyScript: "Empty scripts", unknownScript: "Unknown scripts",
 };
 /** …and inside a sentence, where it reads otherwise ("Transactions with a Taproot annex"). */
-const FEATURE_PHRASES = { emptyScript: "empty scripts", unknownScript: "unknown scripts", fakePubkey: "fake public keys", fakeScripthash: "fake script hashes", annex: "a Taproot annex", explicitlyRbf: "opt-in RBF", dustOutput: "dust outputs", oneInput: "one input", oneOutput: "one output" };
+const FEATURE_PHRASES = { emptyScript: "empty scripts", unknownScript: "unknown scripts", fakePubkey: "fake public keys", fakeScripthash: "fake script hashes", annex: "a Taproot annex", explicitlyRbf: "opt-in RBF", dustOutput: "dust outputs", epobc: "EPOBC colored-coin tags", oneInput: "one input", oneOutput: "one output" };
 
 // ── Colors ─────────────────────────────────────────────────────────────────
 
@@ -676,7 +676,7 @@ export function studioPresets(client) {
     const feature = /** @type {keyof typeof FEATURE_PHRASES} */ (key);
     return `Transactions with ${FEATURE_PHRASES[feature] ?? FEATURES[/** @type {keyof typeof FEATURES} */ (key)] ?? words(key).toLowerCase()}`;
   }
-  /** An OP_RETURN protocol's name ("OpenTimestamps"), else its key's words. @param {string} key */
+  /** An OP_RETURN protocol's name ("Eternity Wall"), else its key's words. @param {string} key */
   function protocolName(key) {
     return PROTOCOLS[/** @type {keyof typeof PROTOCOLS} */ (key)] ?? words(key);
   }

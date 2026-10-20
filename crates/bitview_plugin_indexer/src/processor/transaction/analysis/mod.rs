@@ -19,6 +19,16 @@ pub struct TransactionAnalysis {
     pub features: TxFeatureFlags,
 }
 
+/// EPOBC tags the first input's sequence number: tag bits 0 to 5 (51 transfer, 37 genesis),
+/// padding code bits 6 to 11, the rest zero. Version 1 only, before BIP68 gave those bits a
+/// meaning.
+#[inline(always)]
+fn record_epobc_tag(flags: &mut TxFeatureFlags, tx: &bitcoin::Transaction) {
+    let sequence = tx.input[0].sequence.0;
+    let tagged = tx.version.0 == 1 && sequence < 1 << 12 && matches!(sequence & 0x3f, 37 | 51);
+    flags.insert(TxFeatureFlags::EPOBC * u32::from(tagged));
+}
+
 #[inline(always)]
 pub fn record_explicit_rbf_signal(flags: &mut TxFeatureFlags, sequence: Sequence) {
     flags.insert(TxFeatureFlags::EXPLICITLY_RBF * u32::from(sequence.is_rbf()));
@@ -52,6 +62,7 @@ impl BlockProcessor<'_> {
                 record_explicit_rbf_signal(&mut flags, input.sequence);
                 sigops.scan_coinbase_input(input);
             } else {
+                record_epobc_tag(&mut flags, tx.tx);
                 for (input, source) in tx.tx.input.iter().zip(tx_inputs) {
                     record_explicit_rbf_signal(&mut flags, input.sequence);
                     let (output_type, legacy_sigop_cost) = resolved_output_facts(source, txouts);
