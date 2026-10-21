@@ -1035,7 +1035,7 @@ has to be deleted by hand.
 - Showcases whose charts Bitview Studio now draws are gone: Bedrock (its landscape, colored, beside each mode's floors),
   rarity meter (Studio's), extreme events (marked on the price in Studio's "Events"), regime (Studio's cost-basis
   distributions), HODL wave (with dormant and immobile supply waves; capital by wakefulness or mobility has no series),
-  supply density (Studio's supply and capital density charts), clouds (Studio's "Clouds"), middle (Studio's "Time
+  supply density (Studio's supply and capital density charts), clouds (Studio's "Cost basis clouds"), middle (Studio's "Time
   above"); so are the height page, the "Finding the floor" essay and capital
   sentiment, whose series went with its plugin
 
