@@ -6,7 +6,7 @@ use brk_types::{Cents, Height};
 use rangeindex::RangeMap;
 use vecdb::{ReadableVec, VecIndex};
 
-use crate::priced_range;
+use bitview_vecs::priced_range;
 
 /// Prices read at once for a group of adjacent candles.
 const BATCH_PRICES: usize = 1 << 16;

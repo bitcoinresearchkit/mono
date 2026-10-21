@@ -4,7 +4,7 @@ use bitview_traversable::Traversable;
 use bitview_vecs::{
     LazyCumulativeValuePerBlock, LazyIndexedVec, LazyPerBlock, LazyPercentPerBlock,
     LazyPercentRollingWindows, LazyRollingSumsAmountFromHeight, LazyRollingSumsFromHeight,
-    LazyWindowStartVec, ops::Quotient, shapes::Windows,
+    LazyWindowStartVec, PricedRows, ops::Quotient, priced_starts, shapes::Windows,
 };
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats};
 use vecdb::{
@@ -62,7 +62,8 @@ pub struct PoolFees {
 pub struct FeesAvg {
     /// In BTC.
     pub btc: LazyPerBlock<Bitcoin>,
-    /// In US dollars, each block's fees valued at its spot price.
+    /// In US dollars, each block's fees valued at its spot price: over the window's blocks from
+    /// the first exchange price (block 74,641) on, undefined (null) before it.
     pub usd: LazyPerBlock<Dollars>,
 }
 
@@ -171,7 +172,7 @@ impl PoolVecs {
 
         let fees_name = name("fees_avg");
         let fees_avg =
-            window_starts.zip_with_suffix(&block_count.sum, |suffix, start, blocks| {
+            window_starts.zip_with_suffix(&block_count.sum, |suffix, start, block_sum| {
                 let full_name = format!("{fees_name}_{suffix}");
                 let sats = LazyDeltaVec::<Height, Sats, Sats, DeltaSub>::new(
                     &format!("{full_name}_sats_sum"),
@@ -179,18 +180,26 @@ impl PoolVecs {
                     fee_sats.read_only_boxed_clone(),
                     start.read_only_boxed_clone(),
                 );
-                let cents = LazyDeltaVec::<Height, Cents, Cents, DeltaSub>::new(
+                // (In dollars, over the window's blocks from the first price on: none before it.)
+                let priced = priced_starts(start);
+                let cents = LazyDeltaVec::<Height, Cents, Cents, PricedRows<DeltaSub>>::new(
                     &format!("{full_name}_cents_sum"),
                     version,
                     fee_cents.read_only_boxed_clone(),
-                    start.read_only_boxed_clone(),
+                    priced.read_only_boxed_clone(),
+                );
+                let priced_blocks = LazyDeltaVec::<Height, Count, Count, PricedRows<DeltaSub>>::new(
+                    &format!("{full_name}_priced_block_count"),
+                    version,
+                    blocks.read_only_boxed_clone(),
+                    priced.read_only_boxed_clone(),
                 );
                 // A window without the pool's blocks holds none of its fees: 0 / 0, undefined.
                 let btc = LazyIndexedVec::new(
                     &format!("{full_name}_source"),
                     version,
                     &sats,
-                    &blocks.height,
+                    &block_sum.height,
                     |_, sats: Sats, blocks: Count| {
                         Quotient::<Bitcoin>::apply(Bitcoin::from(sats), blocks)
                     },
@@ -199,7 +208,7 @@ impl PoolVecs {
                     &format!("{full_name}_usd_source"),
                     version,
                     &cents,
-                    &blocks.height,
+                    &priced_blocks,
                     |_, cents: Cents, blocks: Count| {
                         Quotient::<Dollars>::apply(Dollars::from(cents), blocks)
                     },

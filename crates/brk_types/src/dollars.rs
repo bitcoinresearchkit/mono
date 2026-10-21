@@ -88,7 +88,7 @@ impl From<usize> for Dollars {
 /// sums stay alive).
 impl CheckedSub for Dollars {
     fn checked_sub(self, rhs: Self) -> Option<Self> {
-        if self.is_nan() {
+        if self.is_nan() || rhs.is_nan() {
             Some(self)
         } else {
             CentsSigned::from(self)

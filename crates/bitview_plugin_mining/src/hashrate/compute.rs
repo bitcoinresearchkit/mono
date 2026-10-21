@@ -2,7 +2,6 @@ use bitview_compute::ComputeRollingStats;
 use bitview_plugin_blocks::DifficultyVecs;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::LookbackVecs;
-use bitview_plugin_price::is_priced;
 use bitview_primitives::{HashPrice, HashValue, Hashrate, PartsPerMillionSigned32};
 use brk_error::Result;
 use brk_exit::Exit;
@@ -74,18 +73,14 @@ impl Vecs {
             exit,
         )?;
 
-        // NaN until the 24-hour window is fully priced: a partly priced sum would set a false low.
-        self.price.block.height.compute_transform3(
+        // (NaN until the 24-hour window is fully priced, as its dollar sum: a partly priced sum would
+        // set a false low.)
+        self.price.block.height.compute_transform2(
             starting_height,
             coinbase_usd_24h_sum,
             &self.rate.block.height,
-            lookback.start_vec(1),
-            |(_, coinbase_sum, hashrate, start, ..)| {
-                if is_priced(usize::from(start)) {
-                    HashPrice::from(reward_per_phs(f64::from(coinbase_sum), f64::from(hashrate)))
-                } else {
-                    HashPrice::NAN
-                }
+            |(_, coinbase_sum, hashrate, ..)| {
+                HashPrice::from(reward_per_phs(f64::from(coinbase_sum), f64::from(hashrate)))
             },
             exit,
         )?;

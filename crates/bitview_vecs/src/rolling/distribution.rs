@@ -103,7 +103,7 @@ where
         .into_par_iter()
         .try_for_each(|(outputs, starts, retained)| {
             compute_rolling_distribution_from_starts(
-                max_from, starts, source, outputs, retained, exit,
+                max_from, 0, starts, source, outputs, retained, exit,
             )
         })
     }

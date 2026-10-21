@@ -2,11 +2,11 @@ use bitview_compute::compute_rolling_extrema_from_starts;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::LookbackVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
+use bitview_vecs::priced_starts;
 use brk_error::Result;
 use brk_exit::Exit;
 
 use super::Vecs;
-use crate::priced::priced_starts;
 
 impl Vecs {
     pub(crate) fn compute(

@@ -16,6 +16,7 @@ rangeindex = { workspace = true }
 brk_error = { workspace = true, features = ["vecdb"] }
 bitview_traversable = { workspace = true, features = ["zstd"] }
 brk_types = { workspace = true, features = ["storage"] }
+brk_oracle = { workspace = true }
 derive_more = { workspace = true }
 rayon = { workspace = true }
 schemars = { workspace = true }

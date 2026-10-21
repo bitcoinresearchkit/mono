@@ -1,6 +1,6 @@
 use bitview_primitives::DollarBlocks;
 use bitview_traversable::Traversable;
-use bitview_vecs::PerBlockCumulativeRolling;
+use bitview_vecs::PricedPerBlockCumulativeRolling;
 use vecdb::{Rw, StorageMode};
 
 #[derive(Traversable)]
@@ -8,15 +8,15 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Spot price in USD multiplied by coinblocks destroyed by the block. This
     /// values the accumulated holding time consumed by that block's spending
     /// and is reported in USD-block intervals.
-    pub destroyed: PerBlockCumulativeRolling<DollarBlocks, M>,
+    pub destroyed: PricedPerBlockCumulativeRolling<DollarBlocks, M>,
     /// Spot price in USD multiplied by coinblocks created by the block. This
     /// values the one-block interval of holding time added by the circulating
     /// supply and is reported in USD-block intervals.
-    pub created: PerBlockCumulativeRolling<DollarBlocks, M>,
+    pub created: PricedPerBlockCumulativeRolling<DollarBlocks, M>,
     /// Spot price in USD multiplied by net coinblocks stored by the block, where
     /// net stored coinblocks equal coinblocks created minus coinblocks destroyed.
     /// Positive values mean more price-weighted holding time was added than
     /// consumed; negative values mean spending consumed more than was added.
     /// Reported in USD-block intervals.
-    pub stored: PerBlockCumulativeRolling<DollarBlocks, M>,
+    pub stored: PricedPerBlockCumulativeRolling<DollarBlocks, M>,
 }

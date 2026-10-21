@@ -15,9 +15,11 @@ pub struct SortedWindow {
 }
 
 impl SortedWindow {
-    /// Rebuilds the window of the row before `next` from history.
+    /// Rebuilds the window of the row before `next` from history, none of it before row `first`
+    /// (empty when that row is before it).
     pub(crate) fn read<I, A>(
         next: usize,
+        first: usize,
         window_starts: &impl ReadableVec<I, I>,
         source: &impl ReadableVec<I, A>,
     ) -> Self
@@ -26,9 +28,19 @@ impl SortedWindow {
         A: VecValue,
         f64: From<A>,
     {
-        let start = next.checked_sub(1).map_or(0, |last| {
-            window_starts.collect_one_at(last).unwrap().to_usize()
-        });
+        if next <= first {
+            // (Nothing before `first`: empty, the next row to enter `first`.)
+            return Self {
+                values: VecDeque::new(),
+                start: first,
+                sorted: ExactOrderStats::from_sorted(Vec::new()),
+            };
+        }
+        let start = window_starts
+            .collect_one_at(next - 1)
+            .unwrap()
+            .to_usize()
+            .max(first);
         let mut values = VecDeque::with_capacity(next - start);
         source.for_each_range_at(start, next, |value| values.push_back(f64::from(value)));
         let sorted = ExactOrderStats::from_unsorted(values.iter().copied().collect());

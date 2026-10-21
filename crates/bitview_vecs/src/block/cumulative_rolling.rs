@@ -8,33 +8,38 @@ use brk_exit::Exit;
 use brk_types::{Height, Version};
 use schemars::JsonSchema;
 use vecdb::{
-    AnyStoredVec, AnyVec, ComputeVec, Database, ReadableCloneableVec, ReadableVec, Rw, StorageMode,
-    VecIndex, VecValue, WritableVec,
+    AnyStoredVec, AnyVec, ComputeVec, Database, DeltaOp, DeltaSub, ReadableCloneableVec,
+    ReadableVec, Rw, StorageMode, VecIndex, VecValue, WritableVec,
 };
 
 use crate::{
     CumulativeState, IndexSources, LazyPreviousDeltaVec, LazyRollingSumsFromHeight, PerBlock,
-    shapes::Windows,
+    PricedSum, shapes::Windows,
 };
 
 #[derive(Traversable)]
 #[traversable(client = "Flow")]
-pub struct PerBlockCumulativeRolling<T, M: StorageMode = Rw>
+pub struct PerBlockCumulativeRolling<T, M: StorageMode = Rw, Op = DeltaSub>
 where
     T: NumericValue + JsonSchema + Quantity<Sum = T>,
+    Op: Clone + 'static,
 {
     /// Value for the represented block.
     pub block: LazyPreviousDeltaVec<Height, T>,
     /// Cumulative value through the represented block. At time-period indexes,
     /// the value is taken at the period's final block.
     pub cumulative: PerBlock<T, M>,
-    pub sum: LazyRollingSumsFromHeight<T>,
+    pub sum: LazyRollingSumsFromHeight<T, Op>,
     last: M::WriteOnly<CumulativeState<T>>,
 }
 
-impl<T> PerBlockCumulativeRolling<T>
+/// A flow valued in dollars: its window sums none until wholly priced (see [`crate::priced`]).
+pub type PricedPerBlockCumulativeRolling<T, M = Rw> = PerBlockCumulativeRolling<T, M, PricedSum>;
+
+impl<T, Op> PerBlockCumulativeRolling<T, Rw, Op>
 where
     T: NumericValue + JsonSchema + Quantity<Sum = T>,
+    Op: DeltaOp<T, T> + Clone,
 {
     pub fn import(
         db: &Database,
@@ -62,7 +67,7 @@ where
         })
     }
 
-    pub fn cumulative_source(&self) -> &(impl ReadableCloneableVec<Height, T> + use<T>) {
+    pub fn cumulative_source(&self) -> &(impl ReadableCloneableVec<Height, T> + use<T, Op>) {
         self.cumulative.resolutions.height_source()
     }
 

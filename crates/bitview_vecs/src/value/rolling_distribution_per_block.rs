@@ -4,6 +4,7 @@ use bitview_compute::{
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
+use brk_oracle::FIRST_PRICE_HEIGHT;
 use brk_types::{Cents, Height, Sats, Version};
 use derive_more::{Deref, DerefMut};
 use vecdb::{Database, ReadableVec, Rw, StorageMode};
@@ -11,7 +12,8 @@ use vecdb::{Database, ReadableVec, Rw, StorageMode};
 use crate::{IndexSources, ValuePerBlock, WindowStarts, shapes::Windows};
 
 /// Stored rolling distribution statistics with statistic-before-window ids, such as
-/// `{name}_max_24h`.
+/// `{name}_max_24h`; in dollars, over the window's blocks from the first exchange price (block
+/// 74,641) on, none before it.
 #[derive(Deref, DerefMut, Traversable)]
 pub struct RollingDistributionValuePerBlock<M: StorageMode = Rw> {
     #[deref]
@@ -58,9 +60,10 @@ impl RollingDistributionValuePerBlock {
             ($w:ident, $starts:expr, $kept:expr) => {{
                 let [sats_kept, cents_kept] = $kept;
                 macro_rules! compute_unit {
-                    ($unit:ident, $source:expr, $retained:expr) => {
+                    ($unit:ident, $first:expr, $source:expr, $retained:expr) => {
                         compute_rolling_distribution_from_starts(
                             max_from,
+                            $first,
                             $starts,
                             $source,
                             DistributionStats {
@@ -77,8 +80,9 @@ impl RollingDistributionValuePerBlock {
                         )?
                     };
                 }
-                compute_unit!(sats, sats_source, sats_kept);
-                compute_unit!(cents, cents_source, cents_kept);
+                compute_unit!(sats, 0, sats_source, sats_kept);
+                // (In dollars, over the window's priced blocks: none before the first price.)
+                compute_unit!(cents, FIRST_PRICE_HEIGHT, cents_source, cents_kept);
             }};
         }
         compute_window!(_24h, windows._24h, day_kept);

@@ -1,7 +1,7 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::Float64;
 use bitview_vecs::{
-    LazyIndexedVec, LazyPerBlock, LazyWindowStartVec, PerBlock, PerBlockCumulativeRolling,
+    LazyIndexedVec, LazyPerBlock, LazyWindowStartVec, PerBlock, PricedPerBlockCumulativeRolling,
     ops::Narrow, shapes::Windows,
 };
 use brk_error::Result;
@@ -45,7 +45,7 @@ impl Vecs {
                 &hodl_bank_sum,
             ),
             hodl_bank_sum,
-            vocdd: PerBlockCumulativeRolling::import(
+            vocdd: PricedPerBlockCumulativeRolling::import(
                 db,
                 "vocdd",
                 version + Version::ONE,

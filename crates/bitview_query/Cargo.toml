@@ -37,6 +37,7 @@ price = [
     "dep:arc-swap",
     "dep:bitview_plugin_mappings",
     "dep:bitview_plugin_price",
+    "dep:bitview_vecs",
     "dep:brk_oracle",
     "dep:parking_lot",
 ]
@@ -62,6 +63,7 @@ bitview_plugin_utxo_set = { workspace = true, optional = true }
 bitview_primitives = { workspace = true, features = ["storage"] }
 bitview_types = { workspace = true }
 bitview_urpd = { workspace = true, optional = true }
+bitview_vecs = { workspace = true, optional = true }
 bitview_catalog = { workspace = true, optional = true }
 brk_cpfp = { workspace = true, optional = true }
 brk_error = { workspace = true, features = ["jiff", "tokio", "vecdb"] }

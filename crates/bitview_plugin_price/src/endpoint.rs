@@ -5,7 +5,7 @@ use brk_types::{Cents, Dollars, Height, Version};
 use rangeindex::RangeMap;
 use vecdb::{Convert, ReadableBoxedVec, ReadableVec, VecIndex};
 
-use crate::priced_range;
+use bitview_vecs::priced_range;
 
 const COMPUTE_VERSION: Version = Version::TWO;
 

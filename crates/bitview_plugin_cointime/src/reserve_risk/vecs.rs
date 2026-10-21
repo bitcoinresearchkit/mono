@@ -1,7 +1,7 @@
 use bitview_compute::{Retained, SortedWindow};
 use bitview_primitives::{DollarDaysPerCoin, Float, Float64};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlock, PerBlock, PerBlockCumulativeRolling};
+use bitview_vecs::{LazyPerBlock, PerBlock, PricedPerBlockCumulativeRolling};
 use brk_types::Height;
 use vecdb::{PcoVec, Rw, StorageMode};
 
@@ -24,9 +24,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// multiplied by the block's coin days destroyed and divided by circulating
     /// supply in BTC. Reported in USD-days per BTC of circulating supply. Returns
     /// zero when circulating supply is zero.
-    pub vocdd: PerBlockCumulativeRolling<DollarDaysPerCoin, M>,
+    pub vocdd: PricedPerBlockCumulativeRolling<DollarDaysPerCoin, M>,
     /// Median over the blocks of the trailing 30 days of `vocdd.sum._24h`, in
-    /// USD-days per BTC: the HODL bank's input.
+    /// USD-days per BTC: the HODL bank's input. None until that sum has a value
+    /// (a day after the first exchange price), its windows starting there.
     #[traversable(hidden)]
     pub(crate) vocdd_median_1m: M::Stored<PcoVec<Height, DollarDaysPerCoin>>,
     pub(crate) vocdd_median_1m_window: M::WriteOnly<Retained<SortedWindow>>,

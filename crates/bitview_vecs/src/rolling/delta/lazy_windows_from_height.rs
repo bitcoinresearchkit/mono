@@ -6,7 +6,8 @@ use vecdb::{Convert, DeltaChange, ReadableCloneableVec, VecValue};
 
 use crate::{
     AmountType, FiatType, IndexSources, LazyDeltaAmountFromHeight, LazyDeltaFiatFromHeight,
-    LazyDeltaFromHeight, LazyDeltaPercentFromHeight, LazyPerBlock, shapes::Windows,
+    LazyDeltaFromHeight, LazyDeltaPercentFromHeight, LazyPerBlock, PRICED_VERSION,
+    PricedDeltaFromHeight, shapes::Windows,
 };
 
 /// Trailing-window deltas of a value in its plain units.
@@ -27,7 +28,9 @@ where
     B: FixedRatio,
 {
     /// Absolute change through the represented block from the value just
-    /// before a trailing window (zero for a window from genesis).
+    /// before a trailing window (zero for a window from genesis). In dollars,
+    /// undefined (null) until the window starts after the first exchange price
+    /// (block 74,641): values before it are zero.
     absolute: Windows<A>,
     /// Relative change through the represented block from the value just
     /// before a trailing window, divided by that value. Undefined (null) when
@@ -143,9 +146,14 @@ where
             window_starts,
             indexes,
             |name, version, start| {
-                let cents_name = format!("{name}_cents");
-                let cents =
-                    LazyDeltaFromHeight::from_source(&cents_name, version, source, start, indexes);
+                let (cents_name, version) = (format!("{name}_cents"), version + PRICED_VERSION);
+                let cents = PricedDeltaFromHeight::from_source(
+                    &cents_name,
+                    version,
+                    source,
+                    start,
+                    indexes,
+                );
                 let usd =
                     LazyPerBlock::from_resolutions::<Convert>(name, version, &cents.resolutions);
                 LazyDeltaFiatFromHeight { usd, cents }

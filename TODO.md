@@ -35,4 +35,4 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
 
 - OP_RETURN's transactions are one number computed twice: `op_return_tx_count`/`_tx_share` (the OP_RETURN plugin) and `op_return_output_tx_count`/`_tx_share` (outputs by type), same definition; and both plugins name their output count `op_return_output_count`. One plugin should take the other's. Studio pairs them meanwhile (`SAME` in `showcases/studio/presets.js`).
 
-- Dollar flows are 0, not missing, before the first exchange price (block 74,641): a sum over a window reaching back past it reads short (Studio's Puell multiple guards for it with `lag`, which hides its 10Y decade point and needs 4h+). Serve them missing there, the windows' sums missing until wholly priced; then drop the guard in `showcases/studio/presets.js`.
+- Once next.bitview.space serves the dollar windows missing until priced (`bitview_vecs::PricedWindow`), drop Studio's Puell multiple guard (`lag`, in `showcases/studio/presets.js`): it hides its 10Y decade point and needs 4h+.

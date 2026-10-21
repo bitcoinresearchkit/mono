@@ -1,9 +1,9 @@
 use std::ops::Range;
 
 use bitview_plugin_indexer::SafeLengths;
-use bitview_plugin_price::priced_range;
 use bitview_primitives::{HOUR4_INTERVAL, INDEX_EPOCH, Index};
 use bitview_types::{ExchangeRates, HistoricalPrice, PricePoint};
+use bitview_vecs::priced_range;
 use brk_types::{Cents, Dollars, Height, Timestamp};
 use vecdb::{AnyVec, ReadBounds, ReadableVec};
 

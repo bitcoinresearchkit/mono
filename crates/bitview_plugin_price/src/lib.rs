@@ -5,13 +5,11 @@ mod has;
 mod import;
 mod ohlc;
 mod oracle_feed;
-mod priced;
 mod split;
 
 pub use dependencies::Dependencies;
 pub use has::HasPrice;
 pub use oracle_feed::{feed_blocks_for_warmup, feed_blocks_with};
-pub use priced::{first_priced, is_priced, priced_range};
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::Float64;

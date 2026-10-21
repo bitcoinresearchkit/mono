@@ -292,6 +292,17 @@ impl TypedVec for LazyWindowStartVec {
 impl ReadableVec<Height, Height> for LazyWindowStartVec {
     vecdb::visitor_read_methods!(Height, for_each_value, try_for_each_value);
 
+    /// One search for the whole range, lent in chunks (the default reads chunk by chunk, each
+    /// searching the timestamps again).
+    fn for_each_chunk_at(&self, from: usize, to: usize, f: &mut dyn FnMut(usize, &[Height])) {
+        let mut starts = Vec::new();
+        self.for_each_value(from, to, |start| starts.push(start));
+        let size = self.cursor_chunk_size().max(1);
+        for (i, chunk) in starts.chunks(size).enumerate() {
+            f(from + i * size, chunk);
+        }
+    }
+
     fn collect_one_at(&self, index: usize) -> Option<Height> {
         if index >= self.timestamps.len() {
             return None;

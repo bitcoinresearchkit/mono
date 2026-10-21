@@ -3,7 +3,6 @@ mod compute;
 mod dependencies;
 mod import;
 mod moving_average;
-mod priced;
 mod range;
 mod returns;
 

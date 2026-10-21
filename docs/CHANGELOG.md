@@ -932,8 +932,13 @@ has to be deleted by hand.
 - `brk_oracle` exports `FIRST_PRICE_HEIGHT` (74,641) and its `bin_to_cents` returns `Cents`; `Oracle::{new, from_seed,
   ref_bin, price_cents}`, `BINS_PER_DECADE`, `NUM_BINS`, `pre_oracle_price_cents`, `seed_bin` and `seed_price_cents` are
   no longer public, `Oracle::from_checkpoint`'s replay returns a `Result`, and `HistogramRaw`, `HistogramEma` and
-  `HistogramEmaCompact` are type aliases over `brk_types::Histogram` (were structs). The price plugin exports
-  `is_priced`, `first_priced` and `priced_range`, and `bitview_plugin_indexer` `FIRST_V29_POLICY_HEIGHT`
+  `HistogramEmaCompact` are type aliases over `brk_types::Histogram` (were structs). `bitview_vecs` exports
+  `is_priced`, `first_priced`, `priced_range`, `first_wholly_priced`, `priced_starts`, the dollar window ops
+  (`PricedWindow`, `PricedRows`, `PricedSum`, `PricedChange`) and `PricedPerBlockCumulativeRolling`
+  (`PerBlockCumulativeRolling` and `LazyRollingSumsFromHeight` take their sum's op), and `bitview_plugin_indexer`
+  `FIRST_V29_POLICY_HEIGHT`. `CentsSigned` has a NaN (`i64::MIN`, written as null; its arithmetic keeps it), and
+  `bitview_compute`'s `compute_rolling_distribution_from_starts` and `compute_rolling_median_from_starts` take the
+  first row with a window (rows before it are NaN)
 - `lsm_tree::Slice` is `byteview::ByteView` (was a newtype over it); lsm-tree tables can hold a new value record (a
   value that still owes a weak delete), which v0.12.2 cannot read
 - `fjall` keyspace names are lowercase ASCII letters, digits, `_` and `-` (case aliases and `.` mapped onto shared
@@ -1292,6 +1297,15 @@ has to be deleted by hand.
   compare with the last price before the window
 - Hash price, its all-time low and its rebound are null until the trailing 24 hours are fully priced (a partly
   priced first day pinned the low for years)
+- Dollar windows are null until they're priced, where they valued the blocks before the first exchange price
+  (block 74,641) at zero: window sums of dollar flows, of amounts' dollar values and of Cointime's dollar-valued flows
+  (`*_sum_<window>_usd`, `cointime_value_*_sum_*`, `vocdd_sum_*`; a sum reaching back past it read short, and the
+  Puell multiple from them read high through 2011) from the window starting at the first price, and dollar windows'
+  changes (`*_delta_<window>` of caps; from zero, the whole cap) from the window starting after it. Means and the
+  per-block distributions (min, max, percentiles) of dollar values, and a pool's mean fee in dollars, are over the
+  window's priced blocks, null before the first price. Ratios computed from them (SOPR, profit to loss, sell-side
+  risk, velocity, hash price) are null where they are; reserve risk's median of the VOCDD day sums starts with them
+  (the HODL bank adds nothing before). Per-block dollar values and sums since the start are unchanged
 - OP_RETURN: coinbase transactions no longer count in the pre-v30 policy categories, documented as size/count
   categories; kind descriptions corrected (Po.et vs Proof of Existence, length/prefix heuristics). A new `witness_commitment` protocol matches the BIP141 header (a 36-byte push beginning `aa21a9ed`),
   so `komodo` no longer counts every SegWit coinbase commitment. Three protocols never matched an output: Factom

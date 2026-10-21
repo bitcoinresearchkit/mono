@@ -4,6 +4,7 @@ use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_plugin_price::Vecs as PriceVecs;
 use bitview_primitives::{CoinDays, DollarDaysPerCoin, Float64};
+use bitview_vecs::first_wholly_priced;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Bitcoin, Dollars, Timestamp};
@@ -50,8 +51,10 @@ impl Vecs {
             exit,
         )?;
 
+        // (From the first block whose day's sum has a value: none before it, as the sum.)
         self.vocdd_median_1m.compute_rolling_median_from_starts(
             starting_height,
+            first_wholly_priced(&mappings.lookback._24h),
             &mappings.lookback._1m,
             &self.vocdd.sum._24h.height,
             &mut self.vocdd_median_1m_window,
@@ -87,7 +90,11 @@ impl Vecs {
                 });
                 let days = timestamp.days_since(*previous);
                 *previous = timestamp;
-                *bank += (f64::from(price) - f64::from(median)) * days;
+                // (Nothing while the median has no value: the first priced day.)
+                let median = f64::from(median);
+                if !median.is_nan() {
+                    *bank += (f64::from(price) - median) * days;
+                }
                 Float64::from(*bank)
             },
             exit,

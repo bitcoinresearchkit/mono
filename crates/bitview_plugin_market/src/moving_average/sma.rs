@@ -1,13 +1,13 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Multiple, PriceRatio};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlock, PriceWithRatio};
+use bitview_vecs::{LazyPerBlock, PriceWithRatio, PricedRows};
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Cents, Height, Version};
-use vecdb::{Database, Ident, ReadableCloneableVec, ReadableVec, Rw, StorageMode};
-
-use crate::priced::PricedSmaVec;
+use vecdb::{
+    Database, DeltaAvg, Ident, LazyDeltaVec, ReadableCloneableVec, ReadableVec, Rw, StorageMode,
+};
 
 #[derive(Traversable)]
 pub struct SmaVecs<M: StorageMode = Rw> {
@@ -47,6 +47,10 @@ pub struct SmaVecs<M: StorageMode = Rw> {
     #[traversable(wrap = "200d", rename = "mayer_multiple")]
     pub mayer_multiple: LazyPerBlock<Multiple>,
 }
+
+/// A price SMA over a cumulative price source: the mean of the window's priced rows, to the
+/// nearest cent; NaN before the first price.
+type PricedSmaVec = LazyDeltaVec<Height, Cents, Cents, PricedRows<DeltaAvg>>;
 
 const VERSION: Version = Version::TWO;
 

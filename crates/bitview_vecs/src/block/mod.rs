@@ -11,7 +11,7 @@ mod stored;
 mod type_counts;
 
 pub use cumulative_average::PerBlockCumulativeAverage;
-pub use cumulative_rolling::PerBlockCumulativeRolling;
+pub use cumulative_rolling::{PerBlockCumulativeRolling, PricedPerBlockCumulativeRolling};
 pub use density_vecs::{Density, DensityVecs};
 pub use full_from_cumulative::PerBlockFullFromCumulative;
 pub use lazy::LazyPerBlock;

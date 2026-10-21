@@ -1,5 +1,5 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{LazyWindowStartVec, PerBlockCumulativeRolling, shapes::Windows};
+use bitview_vecs::{LazyWindowStartVec, PricedPerBlockCumulativeRolling, shapes::Windows};
 use brk_error::Result;
 use brk_types::Version;
 use vecdb::Database;
@@ -14,21 +14,21 @@ impl Vecs {
         window_starts: &Windows<&LazyWindowStartVec>,
     ) -> Result<Self> {
         Ok(Vecs {
-            destroyed: PerBlockCumulativeRolling::import(
+            destroyed: PricedPerBlockCumulativeRolling::import(
                 db,
                 "cointime_value_destroyed",
                 version,
                 mappings,
                 window_starts,
             )?,
-            created: PerBlockCumulativeRolling::import(
+            created: PricedPerBlockCumulativeRolling::import(
                 db,
                 "cointime_value_created",
                 version,
                 mappings,
                 window_starts,
             )?,
-            stored: PerBlockCumulativeRolling::import(
+            stored: PricedPerBlockCumulativeRolling::import(
                 db,
                 "cointime_value_stored",
                 version,
