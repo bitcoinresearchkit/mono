@@ -11083,6 +11083,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         delete all[from];
         putViews(all);
       };
+      /** A chart's view forgotten (as made, it opens at its range). @param {string} id */
+      const forgetView = (id) => {
+        const all = viewsNow();
+        if (all[id]) (delete all[id], putViews(all));
+      };
+      /** The view a chart came with (a link's, a file's) given to the one it's alike: none, that one's forgotten. @param {string} from @param {string} to */
+      const takeView = (from, to) => (viewsNow()[from] ? moveView(from, to) : forgetView(to));
       /** A chart given a new id (its own taken): its view, this tab's place in the history and the chart open follow. @param {Chart} doc @param {string} id */
       const rekey = (doc, id) => {
         const old = doc.id;
@@ -11883,9 +11890,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Its own window kept first, then this one's over it, or none: the range this one came with shows.)
           if (like === chart) saveView();
           like.range = doc.range;
-          const all = viewsNow();
-          if (all[doc.id]) moveView(doc.id, like.id);
-          else if (all[like.id]) delete all[like.id], putViews(all);
+          takeView(doc.id, like.id);
         }
         if (closedToast === shown) hideToast();
         leaveHome(() => {
@@ -27768,7 +27773,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const docs = parsed.charts.flatMap((item) => {
               try {
                 const doc = readChart(item);
-                if (library.charts.some((other) => sameChart(other, doc))) return (already++, []);
+                // (One here already isn't taken: neither is the view it came with, a backup's maybe, older than this one's.)
+                if (library.charts.some((other) => sameChart(other, doc))) return (forgetView(doc.id), already++, []);
                 const folder = folders.get(item.folder);
                 if (folder) doc.folder = folder.id;
                 if (typeof item.id === "string" && !byId.has(item.id)) byId.set(item.id, doc);
@@ -27867,12 +27873,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             } });
           }
           const doc = readChart(parsed);
-          // One here already (the same chart, as a link opened again finds it): that one opens.
-          const twin = library.charts.find((other) => sameChart(other, doc));
-          if (twin) {
-            leaveHome(() => twin !== chart && openChart(twin));
-            return toast(`Opened “${titleOf(twin)}”: you have it already`);
-          }
+          // One here already (the same chart, as a link opened again finds it): that one shown, at the file's view.
+          const twin = twinOf(doc);
+          if (twin) return void (showLinked(twin), toast(`Opened “${titleOf(twin)}”: you have it already`));
           // (Onto a new chart still empty, the file takes its place: an empty preview left simply goes.)
           const before = chart;
           adopt(doc);
@@ -27906,6 +27909,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.auto ? "auto" : doc.index, doc.range, Boolean(doc.halvings), doc.legend ?? "", doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, path, paths, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane), ...(layer.from ? { from: layer.from.map((member) => (EDGES.includes(member) ? member : doc.layers.findIndex((item) => item.id === member))) } : {}), ...(layer.ref ? { ref: doc.layers.findIndex((item) => item.id === layer.ref) } : {}), ...(layer.colorFrom ? { colorFrom: doc.layers.findIndex((item) => item.id === layer.colorFrom) } : {}) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
       /** Two charts alike (a link opened again is the chart already here). */
       const sameChart = (/** @type {Chart} */ a, /** @type {Chart} */ b) => contentOf(a) === contentOf(b);
+      /**
+       * A chart come in (a link's, a file's) that's here already: that one, at the view it came with (none, as made), its
+       * chunks at hand (for its views before) fetched anew; else null. @param {Chart} doc
+       */
+      function twinOf(doc) {
+        const twin = library.charts.find((other) => sameChart(other, doc));
+        if (!twin) return null;
+        takeView(doc.id, twin.id);
+        // (At every interval: Auto picks the one the view asks for.)
+        for (const key of spans.keys()) if (key.startsWith(`${twin.id}@`)) spans.delete(key);
+        return twin;
+      }
       /** A time as a link writes it: its date ("2021-11-10"), with its time where it has one ("2021-11-10T14:30:00Z"). */
       const dateText = (/** @type {number} */ time) => ((iso) => (iso.endsWith("T00:00:00Z") ? iso.slice(0, 10) : iso))(new Date(time * 1000).toISOString().replace(/\.\d+Z$/, "Z"));
       /** A time as a link has it: a date (as dateText writes it, or any ISO date), or seconds since 1970; else null. */
@@ -29690,16 +29705,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           })() : await fromLink(shared, base32);
           if (!doc.layers.length) throw new Error("it lists no layers");
           if (!currentRead(run, at)) return null;
-          const twin = library.charts.find((other) => sameChart(other, doc));
-          if (twin) {
-            const all = viewsNow();
-            if (all[doc.id]) all[twin.id] = all[doc.id];
-            else delete all[twin.id];
-            delete all[doc.id];
-            putViews(all);
-            // (Its chunks at hand were for its view before: those of this one are fetched.)
-            spans.delete(`${twin.id}@${twin.index}`);
-          }
+          const twin = twinOf(doc);
           const lost = lostDrawings ? `; ${plural(lostDrawings, "drawing")} couldn't be read` : "";
           // (From the address bar: read, it goes, its step in the history this chart's (on the grid, the grid's: opening
           // the chart steps on from it).)
@@ -29717,10 +29723,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return null;
         }
       }
-      /** A chart a link (or a script) brought, shown: the one open drawn anew, at the link's window; one kept, opened; else a preview. */
+      /** A chart a link (or a script, a file) brought, shown: the one open drawn anew, at the link's window; one kept, opened; else a preview. */
       /** @returns {Chart} the chart shown (a preview of it already there, that one) */
       function showLinked(/** @type {Chart} */ doc) {
-        if (doc === chart) leaveHome(() => { drawnChart = ""; refresh(true, true); });
+        if (doc === chart) leaveHome(() => { drawnChart = ""; autoPrepare(doc); refresh(true, true); });
         else if (library.charts.includes(doc)) leaveHome(() => openChart(doc));
         else {
           // (The toast asking for it kept: the one shown's, a preview of it already there maybe.)
