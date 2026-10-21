@@ -29610,8 +29610,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (lensAt) lookAt(lensAt);
         if (!moved) return;
         liveMoves++;
-        // (The view's change windows were read from the old value.)
+        // (The view's change windows were read from the old value; the navigator's shape from the data before it.)
         windows.data = null;
+        drawOverview();
         updateValues();
       }
       let pricePending = false, priceTimer = 0, priceDelay = 1000;
@@ -29944,8 +29945,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
          * Its picture as Export makes it (title, legends, dates), as a data URL: `width` and `height` in CSS pixels (1200 by
          * 760 if none, whatever the window), `scale` 1 or 2 (1 if none), a `type` (PNG, WebP or JPEG) and its
          * `quality`; with `part`, that part of its base64 (`partSize` characters, 45,000 if none: with the rest, under 50,000) as { part, parts, mime,
-         * base64 }, part 0 made for the chart as it is, the others from that same picture. None if another chart opens
-         * meanwhile.
+         * base64 }, part 0 made for the chart as it is, the others from that same picture (refused for another chart
+         * open since, or other options, `partSize` too). None if another chart opens meanwhile.
          */
         async png(/** @type {{ width?: number, height?: number, scale?: number, type?: string, quality?: number, part?: number, partSize?: number }} */ options = {}) {
           const width = Math.round(bounded(options.width ?? 1200, "width", 320, 4000)), height = Math.round(bounded(options.height ?? 760, "height", 240, 4000));
@@ -29955,11 +29956,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!["image/png", "image/webp", "image/jpeg"].includes(type)) throw new Error('type: "image/png", "image/webp" or "image/jpeg"');
           await studio.ready();
           // (Made once for the chart as it is now: its drawing, its live price, its view, the theme, the size asked for.)
-          const wanted = JSON.stringify([width, height, scale, type, quality]), key = JSON.stringify([contentOf(chart), chart.id, drawVersion, liveMoves, view.timeScale().getVisibleLogicalRange(), light, wanted]);
+          // (Its parts after the first from the same chart, cut alike.)
+          const wanted = JSON.stringify([chart.id, width, height, scale, type, quality, partSize]), key = JSON.stringify([contentOf(chart), drawVersion, liveMoves, view.timeScale().getVisibleLogicalRange(), light, wanted]);
           // (A part after the first: from the picture made with it, whatever's moved since, a live price each second; one
           // asked for otherwise, none.)
           if (options.part !== undefined && options.part !== 0) {
-            if (picture?.wanted !== wanted) throw new Error("Read part 0 first, with the same options");
+            if (picture?.wanted !== wanted) throw new Error("Read part 0 first, of this chart, with the same options");
           } else if (picture?.key !== key) {
             const at = navigations, url = (await chartImage({ width, height, scale })).toDataURL(type, quality);
             if (at !== navigations) throw new Error("Another chart was opened meanwhile");
