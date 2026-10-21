@@ -6,7 +6,7 @@
 
 # Interface: Utxo
 
-Defined in: [modules/bitview-client/index.js:1417](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1417)
+Defined in: [modules/bitview-client/index.js:1417](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1417)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1417](https://github.com/bitcoinres
 
 > **status**: [`TxStatus`](TxStatus.md)
 
-Defined in: [modules/bitview-client/index.js:1420](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1420)
+Defined in: [modules/bitview-client/index.js:1420](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1420)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:1420](https://github.com/bitcoinres
 
 > **txid**: `string`
 
-Defined in: [modules/bitview-client/index.js:1418](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1418)
+Defined in: [modules/bitview-client/index.js:1418](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1418)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [modules/bitview-client/index.js:1418](https://github.com/bitcoinres
 
 > **value**: `number`
 
-Defined in: [modules/bitview-client/index.js:1421](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1421)
+Defined in: [modules/bitview-client/index.js:1421](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1421)
 
 Output value in satoshis
 
@@ -40,4 +40,4 @@ Output value in satoshis
 
 > **vout**: `number`
 
-Defined in: [modules/bitview-client/index.js:1419](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1419)
+Defined in: [modules/bitview-client/index.js:1419](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1419)

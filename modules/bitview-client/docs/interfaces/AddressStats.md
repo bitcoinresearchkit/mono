@@ -6,7 +6,7 @@
 
 # Interface: AddressStats
 
-Defined in: [modules/bitview-client/index.js:61](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L61)
+Defined in: [modules/bitview-client/index.js:61](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L61)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:61](https://github.com/bitcoinresea
 
 > **address**: `string`
 
-Defined in: [modules/bitview-client/index.js:62](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L62)
+Defined in: [modules/bitview-client/index.js:62](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L62)
 
 Bitcoin address, or the hex public key of a P2PK output
 
@@ -24,7 +24,7 @@ Bitcoin address, or the hex public key of a P2PK output
 
 > **addressType**: [`OutputType`](../type-aliases/OutputType.md)
 
-Defined in: [modules/bitview-client/index.js:63](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L63)
+Defined in: [modules/bitview-client/index.js:63](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L63)
 
 Output script type
 
@@ -34,7 +34,7 @@ Output script type
 
 > **balance**: `number`
 
-Defined in: [modules/bitview-client/index.js:66](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L66)
+Defined in: [modules/bitview-client/index.js:66](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L66)
 
 Total current balance in satoshis, including pending (unconfirmed) mempool changes
 
@@ -44,7 +44,7 @@ Total current balance in satoshis, including pending (unconfirmed) mempool chang
 
 > **chainStats**: [`AddressChainStats`](AddressChainStats.md)
 
-Defined in: [modules/bitview-client/index.js:64](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L64)
+Defined in: [modules/bitview-client/index.js:64](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L64)
 
 Statistics for confirmed transactions on the blockchain
 
@@ -54,6 +54,6 @@ Statistics for confirmed transactions on the blockchain
 
 > **mempoolStats**: [`AddressMempoolStats`](AddressMempoolStats.md)
 
-Defined in: [modules/bitview-client/index.js:65](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L65)
+Defined in: [modules/bitview-client/index.js:65](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L65)
 
 Statistics for unconfirmed transactions in the mempool

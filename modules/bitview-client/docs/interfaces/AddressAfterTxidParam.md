@@ -6,7 +6,7 @@
 
 # Interface: AddressAfterTxidParam
 
-Defined in: [modules/bitview-client/index.js:10](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L10)
+Defined in: [modules/bitview-client/index.js:10](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L10)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:10](https://github.com/bitcoinresea
 
 > **address**: `string`
 
-Defined in: [modules/bitview-client/index.js:11](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L11)
+Defined in: [modules/bitview-client/index.js:11](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L11)
 
 ***
 
@@ -22,6 +22,6 @@ Defined in: [modules/bitview-client/index.js:11](https://github.com/bitcoinresea
 
 > **afterTxid**: `string`
 
-Defined in: [modules/bitview-client/index.js:12](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L12)
+Defined in: [modules/bitview-client/index.js:12](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L12)
 
 Last txid from the previous page (return transactions strictly older than this)

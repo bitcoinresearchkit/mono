@@ -8,23 +8,23 @@
 
 > **Extremes** = `object`
 
-Defined in: [modules/bitview-client/index.js:2588](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L2588)
+Defined in: [modules/bitview-client/index.js:2588](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2588)
 
 ## Type Parameters
 
 ## Type Declaration
 
-### realizedLoss24h
+### realizedLossSum24h
 
-> **realizedLoss24h**: [`Extreme`](Extreme.md)\<[`Dollars`](Dollars.md) \| `null`\>
+> **realizedLossSum24h**: [`Extreme`](Extreme.md)\<[`Dollars`](Dollars.md) \| `null`\>
 
-### realizedPeakRegret24h
+### realizedPeakRegretSum24h
 
-> **realizedPeakRegret24h**: [`Extreme`](Extreme.md)\<[`Dollars`](Dollars.md) \| `null`\>
+> **realizedPeakRegretSum24h**: [`Extreme`](Extreme.md)\<[`Dollars`](Dollars.md) \| `null`\>
 
-### realizedProfit24h
+### realizedProfitSum24h
 
-> **realizedProfit24h**: [`Extreme`](Extreme.md)\<[`Dollars`](Dollars.md) \| `null`\>
+> **realizedProfitSum24h**: [`Extreme`](Extreme.md)\<[`Dollars`](Dollars.md) \| `null`\>
 
 ### sellSideRiskRatio24h
 

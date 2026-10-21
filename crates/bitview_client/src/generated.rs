@@ -434,7 +434,7 @@ pub mod tree {
         level: SeriesPattern1<Option<Score>> = "*_level",
         score: SeriesPattern1<Option<Score>> = "*_score",
     } }
-    shape! { Extreme<A> at "series().rarity_meter.extremes.realized_loss_24h" {
+    shape! { Extreme<A> at "series().rarity_meter.extremes.realized_loss_sum_24h" {
         block: SeriesPattern1<A> = "*",
         p0_1: SeriesPattern1<A> = "*_rarity_p0_1",
         p0_5: SeriesPattern1<A> = "*_rarity_p0_5",
@@ -458,9 +458,9 @@ pub mod tree {
     } }
     shape! { Extremes at "series().rarity_meter.extremes" {
         supply_in_loss: Extreme<Option<Bitcoin>> = "supply_in_loss",
-        realized_profit_24h: Extreme<Option<Dollars>> = "realized_profit_sum_*",
-        realized_loss_24h: Extreme<Option<Dollars>> = "realized_loss_sum_*",
-        realized_peak_regret_24h: Extreme<Option<Dollars>> = "realized_peak_regret_sum_*",
+        realized_profit_sum_24h: Extreme<Option<Dollars>> = "realized_profit_sum_*",
+        realized_loss_sum_24h: Extreme<Option<Dollars>> = "realized_loss_sum_*",
+        realized_peak_regret_sum_24h: Extreme<Option<Dollars>> = "realized_peak_regret_sum_*",
         sell_side_risk_ratio_24h: Extreme<Option<Ratio>> = "sell_side_risk_ratio_*",
     } }
     shape! { MobileMedianCapitalizedPriceMedian at "series().rarity_meter.components.mobile.median_capitalized_price.median" {

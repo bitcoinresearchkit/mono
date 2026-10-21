@@ -6,7 +6,7 @@
 
 # Interface: AddressValidation
 
-Defined in: [modules/bitview-client/index.js:69](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L69)
+Defined in: [modules/bitview-client/index.js:69](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L69)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:69](https://github.com/bitcoinresea
 
 > `optional` **address?**: `string` \| `null`
 
-Defined in: [modules/bitview-client/index.js:71](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L71)
+Defined in: [modules/bitview-client/index.js:71](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L71)
 
 The validated address
 
@@ -24,7 +24,7 @@ The validated address
 
 > `optional` **error?**: `string` \| `null`
 
-Defined in: [modules/bitview-client/index.js:78](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L78)
+Defined in: [modules/bitview-client/index.js:78](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L78)
 
 Error message for invalid addresses
 
@@ -34,7 +34,7 @@ Error message for invalid addresses
 
 > `optional` **errorLocations?**: `number`[] \| `null`
 
-Defined in: [modules/bitview-client/index.js:77](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L77)
+Defined in: [modules/bitview-client/index.js:77](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L77)
 
 Error locations: an empty array for invalid addresses, omitted for valid ones
 
@@ -44,7 +44,7 @@ Error locations: an empty array for invalid addresses, omitted for valid ones
 
 > `optional` **isscript?**: `boolean` \| `null`
 
-Defined in: [modules/bitview-client/index.js:73](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L73)
+Defined in: [modules/bitview-client/index.js:73](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L73)
 
 Whether the address is P2SH, P2WSH or P2TR
 
@@ -54,7 +54,7 @@ Whether the address is P2SH, P2WSH or P2TR
 
 > **isvalid**: `boolean`
 
-Defined in: [modules/bitview-client/index.js:70](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L70)
+Defined in: [modules/bitview-client/index.js:70](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L70)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [modules/bitview-client/index.js:70](https://github.com/bitcoinresea
 
 > `optional` **iswitness?**: `boolean` \| `null`
 
-Defined in: [modules/bitview-client/index.js:74](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L74)
+Defined in: [modules/bitview-client/index.js:74](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L74)
 
 ***
 
@@ -70,7 +70,7 @@ Defined in: [modules/bitview-client/index.js:74](https://github.com/bitcoinresea
 
 > `optional` **scriptPubKey?**: `string` \| `null`
 
-Defined in: [modules/bitview-client/index.js:72](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L72)
+Defined in: [modules/bitview-client/index.js:72](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L72)
 
 The scriptPubKey in hex
 
@@ -80,7 +80,7 @@ The scriptPubKey in hex
 
 > `optional` **witnessProgram?**: `string` \| `null`
 
-Defined in: [modules/bitview-client/index.js:76](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L76)
+Defined in: [modules/bitview-client/index.js:76](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L76)
 
 Witness program in hex
 
@@ -90,6 +90,6 @@ Witness program in hex
 
 > `optional` **witnessVersion?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:75](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L75)
+Defined in: [modules/bitview-client/index.js:75](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L75)
 
 Witness version (0 for P2WPKH/P2WSH, 1 for P2TR and P2A)

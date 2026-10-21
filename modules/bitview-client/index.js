@@ -2581,17 +2581,17 @@ const _Extreme = _s({
 /**
  * @typedef {{
  *   supplyInLoss: Extreme<?Bitcoin>,
- *   realizedProfit24h: Extreme<?Dollars>,
- *   realizedLoss24h: Extreme<?Dollars>,
- *   realizedPeakRegret24h: Extreme<?Dollars>,
+ *   realizedProfitSum24h: Extreme<?Dollars>,
+ *   realizedLossSum24h: Extreme<?Dollars>,
+ *   realizedPeakRegretSum24h: Extreme<?Dollars>,
  *   sellSideRiskRatio24h: Extreme<?Ratio>,
  * }} Extremes
  */
 const _Extremes = _s({
   supplyInLoss: [_Extreme, 'supply_in_loss'],
-  realizedProfit24h: [_Extreme, 'realized_profit_sum_*'],
-  realizedLoss24h: [_Extreme, 'realized_loss_sum_*'],
-  realizedPeakRegret24h: [_Extreme, 'realized_peak_regret_sum_*'],
+  realizedProfitSum24h: [_Extreme, 'realized_profit_sum_*'],
+  realizedLossSum24h: [_Extreme, 'realized_loss_sum_*'],
+  realizedPeakRegretSum24h: [_Extreme, 'realized_peak_regret_sum_*'],
   sellSideRiskRatio24h: [_Extreme, 'sell_side_risk_ratio_*'],
 });
 

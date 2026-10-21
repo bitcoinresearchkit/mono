@@ -6,7 +6,7 @@
 
 # Interface: SkippedBuilder\<T\>
 
-Defined in: [modules/bitview-client/index.js:1810](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1810)
+Defined in: [modules/bitview-client/index.js:1810](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1810)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [modules/bitview-client/index.js:1810](https://github.com/bitcoinres
 
 > **fetch**: (`arg?`, `options?`) => `Promise`\<[`SeriesData`](../type-aliases/SeriesData.md)\<`T`\>\>
 
-Defined in: [modules/bitview-client/index.js:1812](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1812)
+Defined in: [modules/bitview-client/index.js:1812](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1812)
 
 Fetch from skipped position to end
 
@@ -44,7 +44,7 @@ Fetch from skipped position to end
 
 > **fetchCsv**: (`options?`) => `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:1813](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1813)
+Defined in: [modules/bitview-client/index.js:1813](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1813)
 
 #### Parameters
 
@@ -62,7 +62,7 @@ Defined in: [modules/bitview-client/index.js:1813](https://github.com/bitcoinres
 
 > **take**: (`n`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: [modules/bitview-client/index.js:1811](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1811)
+Defined in: [modules/bitview-client/index.js:1811](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1811)
 
 Take n items after skipped position
 
@@ -82,7 +82,7 @@ Take n items after skipped position
 
 > **then**: \<`TResult1`, `TResult2`\>(`onfulfilled?`, `onrejected?`) => `PromiseLike`\<`TResult1` \| `TResult2`\>
 
-Defined in: [modules/bitview-client/index.js:1814](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1814)
+Defined in: [modules/bitview-client/index.js:1814](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1814)
 
 Attaches callbacks for the resolution and/or rejection of the Promise.
 

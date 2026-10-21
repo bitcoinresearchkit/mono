@@ -6,7 +6,7 @@
 
 # Interface: BlockInfo
 
-Defined in: [modules/bitview-client/index.js:173](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L173)
+Defined in: [modules/bitview-client/index.js:173](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L173)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:173](https://github.com/bitcoinrese
 
 > **bits**: `number`
 
-Defined in: [modules/bitview-client/index.js:178](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L178)
+Defined in: [modules/bitview-client/index.js:178](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L178)
 
 Compact target (bits)
 
@@ -24,7 +24,7 @@ Compact target (bits)
 
 > **difficulty**: `number`
 
-Defined in: [modules/bitview-client/index.js:180](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L180)
+Defined in: [modules/bitview-client/index.js:180](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L180)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: [modules/bitview-client/index.js:180](https://github.com/bitcoinrese
 
 > **height**: `number`
 
-Defined in: [modules/bitview-client/index.js:175](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L175)
+Defined in: [modules/bitview-client/index.js:175](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L175)
 
 ***
 
@@ -40,7 +40,7 @@ Defined in: [modules/bitview-client/index.js:175](https://github.com/bitcoinrese
 
 > **id**: `string`
 
-Defined in: [modules/bitview-client/index.js:174](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L174)
+Defined in: [modules/bitview-client/index.js:174](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L174)
 
 Block hash
 
@@ -50,7 +50,7 @@ Block hash
 
 > **mediantime**: `number`
 
-Defined in: [modules/bitview-client/index.js:186](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L186)
+Defined in: [modules/bitview-client/index.js:186](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L186)
 
 Median time of the last 11 blocks
 
@@ -60,7 +60,7 @@ Median time of the last 11 blocks
 
 > **merkleRoot**: `string`
 
-Defined in: [modules/bitview-client/index.js:181](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L181)
+Defined in: [modules/bitview-client/index.js:181](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L181)
 
 ***
 
@@ -68,7 +68,7 @@ Defined in: [modules/bitview-client/index.js:181](https://github.com/bitcoinrese
 
 > **nonce**: `number`
 
-Defined in: [modules/bitview-client/index.js:179](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L179)
+Defined in: [modules/bitview-client/index.js:179](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L179)
 
 ***
 
@@ -76,7 +76,7 @@ Defined in: [modules/bitview-client/index.js:179](https://github.com/bitcoinrese
 
 > **previousblockhash**: `string`
 
-Defined in: [modules/bitview-client/index.js:185](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L185)
+Defined in: [modules/bitview-client/index.js:185](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L185)
 
 ***
 
@@ -84,7 +84,7 @@ Defined in: [modules/bitview-client/index.js:185](https://github.com/bitcoinrese
 
 > **size**: `number`
 
-Defined in: [modules/bitview-client/index.js:183](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L183)
+Defined in: [modules/bitview-client/index.js:183](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L183)
 
 Block size in bytes
 
@@ -94,7 +94,7 @@ Block size in bytes
 
 > **timestamp**: `number`
 
-Defined in: [modules/bitview-client/index.js:177](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L177)
+Defined in: [modules/bitview-client/index.js:177](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L177)
 
 Block timestamp (Unix time)
 
@@ -104,7 +104,7 @@ Block timestamp (Unix time)
 
 > **txCount**: `number`
 
-Defined in: [modules/bitview-client/index.js:182](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L182)
+Defined in: [modules/bitview-client/index.js:182](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L182)
 
 ***
 
@@ -112,7 +112,7 @@ Defined in: [modules/bitview-client/index.js:182](https://github.com/bitcoinrese
 
 > **version**: `number`
 
-Defined in: [modules/bitview-client/index.js:176](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L176)
+Defined in: [modules/bitview-client/index.js:176](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L176)
 
 ***
 
@@ -120,6 +120,6 @@ Defined in: [modules/bitview-client/index.js:176](https://github.com/bitcoinrese
 
 > **weight**: `number`
 
-Defined in: [modules/bitview-client/index.js:184](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L184)
+Defined in: [modules/bitview-client/index.js:184](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L184)
 
 Block weight in weight units

@@ -2807,9 +2807,9 @@ class Extreme(_Node, Generic[A]):
 
 class Extremes(_Node):
     supply_in_loss: Extreme[Optional[Bitcoin]] = _at(Extreme, 'supply_in_loss')
-    realized_profit_24h: Extreme[Optional[Dollars]] = _at(Extreme, 'realized_profit_sum_*')
-    realized_loss_24h: Extreme[Optional[Dollars]] = _at(Extreme, 'realized_loss_sum_*')
-    realized_peak_regret_24h: Extreme[Optional[Dollars]] = _at(Extreme, 'realized_peak_regret_sum_*')
+    realized_profit_sum_24h: Extreme[Optional[Dollars]] = _at(Extreme, 'realized_profit_sum_*')
+    realized_loss_sum_24h: Extreme[Optional[Dollars]] = _at(Extreme, 'realized_loss_sum_*')
+    realized_peak_regret_sum_24h: Extreme[Optional[Dollars]] = _at(Extreme, 'realized_peak_regret_sum_*')
     sell_side_risk_ratio_24h: Extreme[Optional[Ratio]] = _at(Extreme, 'sell_side_risk_ratio_*')
 
 

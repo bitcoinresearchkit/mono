@@ -6,7 +6,7 @@
 
 # Interface: TxStatus
 
-Defined in: [modules/bitview-client/index.js:1295](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1295)
+Defined in: [modules/bitview-client/index.js:1295](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1295)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1295](https://github.com/bitcoinres
 
 > `optional` **blockHash?**: `string` \| `null`
 
-Defined in: [modules/bitview-client/index.js:1298](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1298)
+Defined in: [modules/bitview-client/index.js:1298](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1298)
 
 Block hash (only present if confirmed)
 
@@ -24,7 +24,7 @@ Block hash (only present if confirmed)
 
 > `optional` **blockHeight?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:1297](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1297)
+Defined in: [modules/bitview-client/index.js:1297](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1297)
 
 Block height (only present if confirmed)
 
@@ -34,7 +34,7 @@ Block height (only present if confirmed)
 
 > `optional` **blockTime?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:1299](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1299)
+Defined in: [modules/bitview-client/index.js:1299](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1299)
 
 Block timestamp (only present if confirmed)
 
@@ -44,4 +44,4 @@ Block timestamp (only present if confirmed)
 
 > **confirmed**: `boolean`
 
-Defined in: [modules/bitview-client/index.js:1296](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1296)
+Defined in: [modules/bitview-client/index.js:1296](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1296)

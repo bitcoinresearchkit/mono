@@ -6,7 +6,7 @@
 
 # Interface: IndexInfo
 
-Defined in: [modules/bitview-client/index.js:676](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L676)
+Defined in: [modules/bitview-client/index.js:676](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L676)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:676](https://github.com/bitcoinrese
 
 > **aliases**: `string`[]
 
-Defined in: [modules/bitview-client/index.js:678](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L678)
+Defined in: [modules/bitview-client/index.js:678](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L678)
 
 Every name REST queries accept for it; MCP tools take the canonical `index` only
 
@@ -24,6 +24,6 @@ Every name REST queries accept for it; MCP tools take the canonical `index` only
 
 > **index**: [`Index`](../type-aliases/Index.md)
 
-Defined in: [modules/bitview-client/index.js:677](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L677)
+Defined in: [modules/bitview-client/index.js:677](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L677)
 
 The canonical index name

@@ -77,7 +77,7 @@ function sentence(/** @type {string} */ text) {
 
 /**
  * A client key's words ("supplyInLoss" "Supply in loss"), in sentence case, a trailing window set off
- * ("realizedProfit24h" "Realized profit, 24h").
+ * ("sellSideRiskRatio24h" "Sell side risk ratio, 24h").
  */
 function words(/** @type {string} */ key) {
   const text = key.replace(/([a-z])([A-Z0-9])/g, "$1 $2").replace(/(\d)([a-z]{3,})/g, "$1 $2").toLowerCase();
@@ -443,9 +443,9 @@ export function studioPresets(client, facts) {
    * @type {Record<string, { label: string, event: string, color: string, place: string, low?: boolean }>}
    */
   const EXTREMES = {
-    realizedProfit24h: { label: "Realized profit, 24h", event: "Profit taking", color: "green", place: "above" },
-    realizedLoss24h: { label: "Realized loss, 24h", event: "Capitulation", color: "red", place: "below" },
-    realizedPeakRegret24h: { label: "Realized peak regret, 24h", event: "Peak regret", color: "pink", place: "below" },
+    realizedProfitSum24h: { label: "Realized profit, 24h", event: "Profit taking", color: "green", place: "above" },
+    realizedLossSum24h: { label: "Realized loss, 24h", event: "Capitulation", color: "red", place: "below" },
+    realizedPeakRegretSum24h: { label: "Realized peak regret, 24h", event: "Peak regret", color: "pink", place: "below" },
     sellSideRiskRatio24h: { label: "Sell-side risk ratio, 24h", event: "Seller exhaustion", color: "yellow", place: "above", low: true },
     supplyInLoss: { label: "Supply in loss", event: "Supply in loss", color: "orange", place: "below" },
   };

@@ -6,7 +6,7 @@
 
 # Interface: ErrorDetail
 
-Defined in: [modules/bitview-client/index.js:537](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L537)
+Defined in: [modules/bitview-client/index.js:537](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L537)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:537](https://github.com/bitcoinrese
 
 > **code**: [`ErrorCode`](../type-aliases/ErrorCode.md)
 
-Defined in: [modules/bitview-client/index.js:539](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L539)
+Defined in: [modules/bitview-client/index.js:539](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L539)
 
 Machine-readable error code
 
@@ -24,7 +24,7 @@ Machine-readable error code
 
 > **docUrl**: `string`
 
-Defined in: [modules/bitview-client/index.js:541](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L541)
+Defined in: [modules/bitview-client/index.js:541](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L541)
 
 Link to API documentation
 
@@ -34,7 +34,7 @@ Link to API documentation
 
 > **message**: `string`
 
-Defined in: [modules/bitview-client/index.js:540](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L540)
+Defined in: [modules/bitview-client/index.js:540](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L540)
 
 Human-readable description
 
@@ -44,6 +44,6 @@ Human-readable description
 
 > **type**: [`ErrorType`](../type-aliases/ErrorType.md)
 
-Defined in: [modules/bitview-client/index.js:538](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L538)
+Defined in: [modules/bitview-client/index.js:538](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L538)
 
 Error category, following the HTTP status

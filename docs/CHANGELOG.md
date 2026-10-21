@@ -135,9 +135,9 @@ has to be deleted by hand.
   `<price>_ratio_rarity_<percentile>`, the price's ratio named as the extremes name their input's bands:
   `sth_realized_price_ratio_rarity_p1`; were `<component>_ratio_<percentile>`), and a median component's price and spot
   ratio are `sth_median_realized_price`, `sth_median_realized_price_ratio`, `median_capitalized_price`, ... Extremes are
-  named by their input, `supply_in_loss`, `realized_profit_24h`, `realized_loss_24h`, `realized_peak_regret_24h`,
-  `sell_side_risk_ratio_24h` (were `coins_in_loss`, `profit_taking`, `capitulation`, `peak_regret`,
-  `seller_exhaustion`). Each is its input (`block`, under the input's own id: `supply_in_loss`,
+  named by their input's id, `supply_in_loss`, `realized_profit_sum_24h`, `realized_loss_sum_24h`,
+  `realized_peak_regret_sum_24h`, `sell_side_risk_ratio_24h` (were `coins_in_loss`, `profit_taking`, `capitulation`,
+  `peak_regret`, `seller_exhaustion`). Each is its input (`block`, under the input's own id: `supply_in_loss`,
   `realized_profit_sum_24h`, ...) and the input's historical percentile bands, the components' rarity percentiles
   (`supply_in_loss_rarity_p99_9`, ...), in place of three tail thresholds and a tail share (were
   `rarity_meter_coins_in_loss_threshold_pct0_1`, ... and `rarity_meter_coins_in_loss_tail`). The bands describe the

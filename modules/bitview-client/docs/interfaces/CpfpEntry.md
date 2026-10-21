@@ -6,7 +6,7 @@
 
 # Interface: CpfpEntry
 
-Defined in: [modules/bitview-client/index.js:394](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L394)
+Defined in: [modules/bitview-client/index.js:394](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L394)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:394](https://github.com/bitcoinrese
 
 > **fee**: `number`
 
-Defined in: [modules/bitview-client/index.js:397](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L397)
+Defined in: [modules/bitview-client/index.js:397](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L397)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:397](https://github.com/bitcoinrese
 
 > **txid**: `string`
 
-Defined in: [modules/bitview-client/index.js:395](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L395)
+Defined in: [modules/bitview-client/index.js:395](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L395)
 
 ***
 
@@ -30,4 +30,4 @@ Defined in: [modules/bitview-client/index.js:395](https://github.com/bitcoinrese
 
 > **weight**: `number`
 
-Defined in: [modules/bitview-client/index.js:396](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L396)
+Defined in: [modules/bitview-client/index.js:396](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L396)

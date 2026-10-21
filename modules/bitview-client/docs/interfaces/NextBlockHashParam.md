@@ -6,7 +6,7 @@
 
 # Interface: NextBlockHashParam
 
-Defined in: [modules/bitview-client/index.js:780](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L780)
+Defined in: [modules/bitview-client/index.js:780](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L780)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [modules/bitview-client/index.js:780](https://github.com/bitcoinrese
 
 > **hash**: `string`
 
-Defined in: [modules/bitview-client/index.js:781](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L781)
+Defined in: [modules/bitview-client/index.js:781](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L781)

@@ -6,7 +6,7 @@
 
 # Interface: RangeBuilder\<T\>
 
-Defined in: [modules/bitview-client/index.js:1824](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1824)
+Defined in: [modules/bitview-client/index.js:1824](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1824)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [modules/bitview-client/index.js:1824](https://github.com/bitcoinres
 
 > **fetch**: (`arg?`, `options?`) => `Promise`\<[`SeriesData`](../type-aliases/SeriesData.md)\<`T`\>\>
 
-Defined in: [modules/bitview-client/index.js:1825](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1825)
+Defined in: [modules/bitview-client/index.js:1825](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1825)
 
 Fetch the selection (one item or a range)
 
@@ -44,7 +44,7 @@ Fetch the selection (one item or a range)
 
 > **fetchCsv**: (`options?`) => `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:1826](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1826)
+Defined in: [modules/bitview-client/index.js:1826](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1826)
 
 #### Parameters
 
@@ -62,7 +62,7 @@ Defined in: [modules/bitview-client/index.js:1826](https://github.com/bitcoinres
 
 > **then**: \<`TResult1`, `TResult2`\>(`onfulfilled?`, `onrejected?`) => `PromiseLike`\<`TResult1` \| `TResult2`\>
 
-Defined in: [modules/bitview-client/index.js:1827](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1827)
+Defined in: [modules/bitview-client/index.js:1827](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1827)
 
 Attaches callbacks for the resolution and/or rejection of the Promise.
 

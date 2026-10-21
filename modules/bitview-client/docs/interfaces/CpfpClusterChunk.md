@@ -6,7 +6,7 @@
 
 # Interface: CpfpClusterChunk
 
-Defined in: [modules/bitview-client/index.js:374](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L374)
+Defined in: [modules/bitview-client/index.js:374](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L374)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:374](https://github.com/bitcoinrese
 
 > **feerate**: `number`
 
-Defined in: [modules/bitview-client/index.js:376](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L376)
+Defined in: [modules/bitview-client/index.js:376](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L376)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [modules/bitview-client/index.js:376](https://github.com/bitcoinrese
 
 > **txs**: `number`[]
 
-Defined in: [modules/bitview-client/index.js:375](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L375)
+Defined in: [modules/bitview-client/index.js:375](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L375)

@@ -6,7 +6,7 @@
 
 # Interface: PoolDetail
 
-Defined in: [modules/bitview-client/index.js:949](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L949)
+Defined in: [modules/bitview-client/index.js:949](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L949)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:949](https://github.com/bitcoinrese
 
 > **blockCount**: [`PoolBlockCounts`](../type-aliases/PoolBlockCounts.md)
 
-Defined in: [modules/bitview-client/index.js:951](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L951)
+Defined in: [modules/bitview-client/index.js:951](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L951)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:951](https://github.com/bitcoinrese
 
 > **blockShare**: [`PoolBlockShares`](../type-aliases/PoolBlockShares.md)
 
-Defined in: [modules/bitview-client/index.js:952](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L952)
+Defined in: [modules/bitview-client/index.js:952](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L952)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [modules/bitview-client/index.js:952](https://github.com/bitcoinrese
 
 > **estimatedHashrate**: `number`
 
-Defined in: [modules/bitview-client/index.js:953](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L953)
+Defined in: [modules/bitview-client/index.js:953](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L953)
 
 Estimated hashrate based on blocks mined (H/s)
 
@@ -40,7 +40,7 @@ Estimated hashrate based on blocks mined (H/s)
 
 > **pool**: [`PoolDetailInfo`](PoolDetailInfo.md)
 
-Defined in: [modules/bitview-client/index.js:950](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L950)
+Defined in: [modules/bitview-client/index.js:950](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L950)
 
 ***
 
@@ -48,7 +48,7 @@ Defined in: [modules/bitview-client/index.js:950](https://github.com/bitcoinrese
 
 > `optional` **reportedHashrate?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:954](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L954)
+Defined in: [modules/bitview-client/index.js:954](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L954)
 
 Self-reported hashrate (if available, H/s)
 
@@ -58,6 +58,6 @@ Self-reported hashrate (if available, H/s)
 
 > **totalReward**: `number`
 
-Defined in: [modules/bitview-client/index.js:955](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L955)
+Defined in: [modules/bitview-client/index.js:955](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L955)
 
 Total reward earned by this pool: coinbase output value of every block it mined (sats)
