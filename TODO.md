@@ -35,3 +35,4 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
 
 - Indexer version 45 (2026-10-20: OP_RETURN markers, EPOBC) reindexes every machine with an index (this Mac, the Mac mini, production) from scratch on first start; plan the downtime. The feature-region rename (`_notes/tree-review-20261020/rename_regions.py`) is no longer needed.
 
+- OP_RETURN's transactions are one number computed twice: `op_return_tx_count`/`_tx_share` (the OP_RETURN plugin) and `op_return_output_tx_count`/`_tx_share` (outputs by type), same definition; and both plugins name their output count `op_return_output_count`. One plugin should take the other's. Studio pairs them meanwhile (`SAME` in `showcases/studio/presets.js`).
