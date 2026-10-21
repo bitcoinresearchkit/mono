@@ -21328,11 +21328,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       /** Where the page is, as an address (its canonical one): a preset's, a place of the presets', else the page's own ("/": your charts are no one else's); null, not known till they're read. */
       function addressNow() {
+        // (The presets' addresses made only where the page is one of theirs: the page's own, none.)
+        if (home ? !("path" in homeAt) : chart.preset === undefined) return "/";
         const book = addresses();
-        if (home) return "path" in homeAt ? (book ? book.sections.get(JSON.stringify(homeAt.path)) ?? "/" : null) : "/";
-        if (chart.preset === undefined) return "/";
+        if (!book) return null;
+        if (home) return book.sections.get(JSON.stringify(/** @type {{ path: string[] }} */ (homeAt).path)) ?? "/";
         const i = presetIndex(chart);
-        return book ? (i >= 0 ? book.presets[i] : "/") : null;
+        return i >= 0 ? book.presets[i] : "/";
       }
       /** The address the page is known by: the live one's (the preview's, any other, point there). */
       const ORIGIN = "https://studio.bitview.space";
