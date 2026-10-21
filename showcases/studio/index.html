@@ -11006,7 +11006,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!all[from] || from === to) return;
         all[to] = all[from];
         delete all[from];
-        storage.set(VIEWS, all);
+        putViews(all);
       };
       /** A chart given a new id (its own taken): its view, this tab's place in the history and the chart open follow. @param {Chart} doc @param {string} id */
       const rekey = (doc, id) => {
@@ -11237,6 +11237,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The library written, its shape's number with it; storage full, the cached previews and marks (drawn again) give
        * way to it. Whether it was. Read-only (see SCHEMA), it isn't, and that's said once.
        */
+      /** The sidebar's arrangement (its order, its folders, each chart's folder), as a key; as last written or taken in. */
+      const arrangedNow = () => JSON.stringify([library.order, library.folders, library.charts.map((doc) => [doc.id, doc.folder ?? ""])]);
+      let arrangedAs = "";
       function persist() {
         // Another tab's save since this one's, not heard yet (its storage event to come, or never: two tabs closed at once,
         // one back from the browser's history), taken in first: what's written holds both.
@@ -11268,6 +11271,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           try {
             localStorage.setItem(STORE, written);
             lastWritten = written;
+            arrangedAs = arrangedNow();
             return true;
           } catch {
             return false;
@@ -11371,6 +11375,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const doc of library.presets) if (!ourPresets.has(doc)) histories.delete(doc.id);
         // (Its charts this tab can't read, set aside: not counted, or each tab would save over the other's.)
         if (!saving && holdings(library.charts, library.folders, library.deleted, library.presets) !== holdings(incoming, folders, deleted, theirPresets)) save();
+        // (Taken in, theirs is the arrangement as last written.)
+        if (!saving) arrangedAs = arrangedNow();
         // (Still starting, a link being read: the library's taken, and start shows what's open once it's ready.)
         if (!chart) return;
         const current = isPreview(chart) ? chart : library.charts.find((doc) => doc.id === chart.id) ?? library.presets.find((doc) => doc.id === chart.id || (chart.preset !== undefined && doc.preset === chart.preset)) ?? chart;
@@ -11383,9 +11389,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         revision++;
         refresh(true);
       }
-      addEventListener("storage", (event) => event.key === STORE && reconcile());
-      // (Back from the browser's history as it was left, another tab's saves unheard: taken in now.)
-      addEventListener("pageshow", (event) => event.persisted && reconcile());
+      // (Another tab's save, or back from the browser's history as it was left (another tab's saves unheard), this one's
+      // arrangement changed since it last wrote it (a chart moved, a folder renamed, just now): this one's wins, as if it
+      // were saving.)
+      const takeIn = () => reconcile(undefined, arrangedNow() !== arrangedAs);
+      addEventListener("storage", (event) => event.key === STORE && takeIn());
+      addEventListener("pageshow", (event) => event.persisted && takeIn());
 
       /**
        * `run` as the page is left; by touch, as it's hidden too: a phone closes an app put away when it likes, with no word
@@ -11548,6 +11557,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The views left, as stored: read once (a grid of tiles asks for each, at each key typed), written through; another tab's write, read again. */
       let viewsLeft = /** @type {Record<string, any> | null} */ (null);
       const viewsNow = () => (viewsLeft ??= storage.get(VIEWS, {}));
+      /**
+       * The views written. (Charts this tab doesn't know may be another's, its previews and presets: their views kept;
+       * only past a hundred, the oldest left go.)
+       * @param {Record<string, any>} all
+       */
+      const putViews = (all) => {
+        const ids = Object.keys(all);
+        if (ids.length > 100) for (const id of ids.sort((a, b) => (all[a]?.at ?? 0) - (all[b]?.at ?? 0)).slice(0, ids.length - 100)) delete all[id];
+        storage.set(VIEWS, all);
+      };
       addEventListener("storage", (event) => event.key === VIEWS && (viewsLeft = null));
       const isEdge = (edge) => Array.isArray(edge) && edge.length === 2 && edge.every(Number.isFinite) && Math.abs(edge[0]) < 1e11;
       /** A view that reads as dates: at a known interval, its edges (their bars counted) within the calendar. */
@@ -11563,7 +11582,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** @returns {{ index: string, from: [number, number], to: [number, number] } | null} */
       function leftView(id) {
         const left = viewsNow()[id];
-        return isView(left) ? left : null;
+        // (Its time kept aside: the view alone, as a link or a picture's key takes it.)
+        return isView(left) ? (({ at, ...view }) => view)(left) : null;
       }
       /** An edge of the view as the time of the point nearest it, and how many bars it lies from that point. */
       function edgeOf(logical, times) {
@@ -11674,9 +11694,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const range = (asDrawn && glideTarget) || view.timeScale().getVisibleLogicalRange();
         const all = viewsNow();
         if (presetShown || !range) delete all[chart.id];
-        else all[chart.id] = { index: drawnIndex, from: edgeOf(range.from, times), to: edgeOf(range.to, times) };
-        for (const id of Object.keys(all)) if (!chartById(id)) delete all[id];
-        storage.set(VIEWS, all);
+        else all[chart.id] = { index: drawnIndex, from: edgeOf(range.from, times), to: edgeOf(range.to, times), at: Date.now() };
+        putViews(all);
       }
       onLeave(saveView);
       /**
@@ -11785,7 +11804,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           like.range = doc.range;
           const all = viewsNow();
           if (all[doc.id]) moveView(doc.id, like.id);
-          else if (all[like.id]) delete all[like.id], storage.set(VIEWS, all);
+          else if (all[like.id]) delete all[like.id], putViews(all);
         }
         if (closedToast === shown) hideToast();
         leaveHome(() => {
@@ -11814,7 +11833,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (focused) /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${CSS.escape(next && next !== back ? next.id : chart.id)}"]`))?.focus();
         // (Edited: offered back, its edits with it, where it was, at its window; open again only if it was.)
         if (touched.has(doc)) toast(`Closed the preview “${titleOf(doc)}”`, { label: "Undo", run: () => {
-          if (view) (viewsNow()[doc.id] = view), storage.set(VIEWS, viewsNow());
+          if (view) (viewsNow()[doc.id] = view), putViews(viewsNow());
           previewCharts.splice(Math.min(at, previewCharts.length), 0, doc);
           asideDirty.add(doc);
           if (open) return void showPreview(doc);
@@ -12884,7 +12903,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The layer in the spotlight while its row or caption is hovered: the others fade back. */
       let spotlit = null;
       /** The series that carry the lines across (levels, bases): drawn under every other, drawing nothing themselves. */
-      const carriers = [];
+      /**
+       * Each carrier by its pane and side, with the timeline it was drawn on, its format and its lines: a restyle on the
+       * same data keeps it, its lines drawn again (not a series over every point added and removed at each step of a
+       * color or width scrubbed). @type {Map<string, { series: any, times: number[], lines: any[] }>}
+       */
+      const carrierKept = new Map();
       /** The lines across with a tag on the axis, and the layers each is for (shared, several): a spotlight fades the others', their tags hidden. */
       const levelTags = /** @type {{ line: any, layers: Set<string>, color: string, label: boolean, faint: boolean }[]} */ ([]);
       /** Bars below their base, each colored on its own: their data, and their color as is and faded. */
@@ -13229,7 +13253,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
         built.clear();
         // The others' series go once the new ones are in: a scale left empty is reset by the chart library.
-        const old = [...[...was].filter(([id]) => !kept.has(id)).map(([, series]) => series), ...[...wasCloses].filter(([id]) => !kept.has(id)).map(([, close]) => close.series), ...carriers.splice(0)];
+        const old = [...[...was].filter(([id]) => !kept.has(id)).map(([, series]) => series), ...[...wasCloses].filter(([id]) => !kept.has(id)).map(([, close]) => close.series)];
+        // (The carriers drawn before: one of the same pane, side, format and timeline taken up again below; the rest go.)
+        const carriersBefore = new Map(carrierKept);
+        carrierKept.clear();
         let added = false;
         /** @type {{ layer: Layer, value: number, color: string, dash: number, tag: boolean, mode: number, pane: number, format: any }[]} */
         const across = [];
@@ -13394,19 +13421,31 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const [first, ...rest] of lines.values()) {
           const group = [first, ...rest], key = `${first.pane}|${first.layer.side}`;
           if (!carrierOf.has(key)) {
-            const carrier = view.addSeries(LC.LineSeries, { priceScaleId: first.layer.side, priceFormat: first.format, lineVisible: false, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false, autoscaleInfoProvider: () => null }, first.pane);
-            carrier.setData(data.times.map((time) => ({ time, value: first.value })));
+            const before = carriersBefore.get(key);
+            let carrier;
+            if (before && before.times === data.times) {
+              carrier = before.series;
+              for (const line of before.lines) carrier.removePriceLine(line);
+              // (Its format as now: its tags written as its layer's values are.)
+              carrier.applyOptions({ priceFormat: first.format });
+              carriersBefore.delete(key);
+            } else {
+              carrier = view.addSeries(LC.LineSeries, { priceScaleId: first.layer.side, priceFormat: first.format, lineVisible: false, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false, autoscaleInfoProvider: () => null }, first.pane);
+              carrier.setData(data.times.map((time) => ({ time, value: first.value })));
+            }
             carrier.setSeriesOrder(0);
-            carriers.push(carrier);
             carrierOf.set(key, carrier);
+            carrierKept.set(key, { series: carrier, times: data.times, lines: [] });
           }
           // (Its value on the axis where one of them asks: a level's is fixed, the axis reads it already.)
           const shared = group.some((line) => line.layer !== first.layer), shown = group.some((line) => !line.layer.hidden), label = shown && group.some((line) => line.tag);
           const priceLine = carrierOf.get(key).createPriceLine({ price: first.value, color: shared ? ink("gray") : first.color, lineWidth: 1, lineStyle: /** @type {any} */ (first.dash), lineVisible: shown, axisLabelVisible: label, title: "" });
+          carrierKept.get(key)?.lines.push(priceLine);
           if (shown) levelTags.push({ line: priceLine, layers: new Set(group.map((line) => line.layer.id)), color: priceLine.options().color, label, faint: false });
         }
         markSignals(doc, data, drawn, old);
         for (const series of old) view.removeSeries(series);
+        for (const { series } of carriersBefore.values()) view.removeSeries(series);
         // Each pane's series front to back as the panel lists them (its first layer in front; reversed, its last), over its
         // lines across (in a stack, its foot in front of the taller ones: each band and bar shows whole). Drawn back first.
         if (added) {
@@ -15085,7 +15124,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (toRange) {
           const all = viewsNow();
           delete all[chart.id];
-          storage.set(VIEWS, all);
+          putViews(all);
         } else saveView();
         // (A fine interval's chunks held from another visit, elsewhere: made anew for this view.)
         spans.delete(`${chart.id}@${index}`);
@@ -26311,8 +26350,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (want !== chart.index) {
             // (Kept as its view at that interval, as one left there is: drawn once, there, its chunks the ones for it.)
             const all = viewsNow();
-            all[chart.id] = { index: want, from: [span.from, 0], to: [Math.min(span.to, Date.now() / 1000), 0] };
-            storage.set(VIEWS, all);
+            all[chart.id] = { index: want, from: [span.from, 0], to: [Math.min(span.to, Date.now() / 1000), 0], at: Date.now() };
+            putViews(all);
             spans.delete(`${chart.id}@${want}`);
             chart.index = want;
             save(false);
@@ -27477,8 +27516,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const carried = input?.view;
         if (!isView(carried)) return;
         const all = viewsNow();
-        all[doc.id] = { index: carried.index, from: carried.from, to: carried.to };
-        storage.set(VIEWS, all);
+        all[doc.id] = { index: carried.index, from: carried.from, to: carried.to, at: Date.now() };
+        putViews(all);
       }
       /** A chart's content, ids aside (a file or a link gets new ones): panes in order, layers by their pane's place, keys sorted. */
       const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.auto ? "auto" : doc.index, doc.range, Boolean(doc.halvings), doc.legend ?? "", doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, path, paths, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane), ...(layer.from ? { from: layer.from.map((member) => (EDGES.includes(member) ? member : doc.layers.findIndex((item) => item.id === member))) } : {}), ...(layer.ref ? { ref: doc.layers.findIndex((item) => item.id === layer.ref) } : {}), ...(layer.colorFrom ? { colorFrom: doc.layers.findIndex((item) => item.id === layer.colorFrom) } : {}) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
@@ -29261,7 +29300,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (all[doc.id]) all[twin.id] = all[doc.id];
             else delete all[twin.id];
             delete all[doc.id];
-            storage.set(VIEWS, all);
+            putViews(all);
             // (Its chunks at hand were for its view before: those of this one are fetched.)
             spans.delete(`${twin.id}@${twin.index}`);
           }
@@ -29681,6 +29720,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("palette").addEventListener("close", quickHide);
 
       async function start() {
+        // (The arrangement as loaded: one changed from it, not written yet, is this tab's own.)
+        arrangedAs = arrangedNow();
         // (The page's first navigation, as navigate counts it: a chart opened while a link's read, the link's dropped.)
         const at = navigations + 1, shared = await fromHash(linkRun, at);
         // (A chart opened while its link was read: the link dropped, no picture, and gone from the address bar.)
