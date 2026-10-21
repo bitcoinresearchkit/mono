@@ -1785,6 +1785,11 @@
         transition: margin-top var(--dur-layout) var(--ease-layout), visibility 0s;
       }
 
+      /* (Installed on a phone only: see the phone's.) */
+      .top-strip {
+        display: none;
+      }
+
       /*
        * Full screen: the chart alone. The sidebar slides off, the header up, the card out to the edges, all as the
        * sidebar collapses; once gone, they're not drawn at all (the screen's whole, where the browser gives it).
@@ -7099,28 +7104,33 @@
           background: var(--card);
           box-shadow: none;
           outline: none;
+        }
 
-          /* Installed, a fixed strip of its color at the top, as the grid has its own: in Lockdown Mode, iOS 26 on
-             blurs an installed app's top, some 40pt down, over the header, unless a fixed box with a background, 6px
-             tall or more, is what's found at the top (the bar its color then, as while ⌘K's scrim is there). Found as
-             a tap would be, so on top and taking taps; 8px at least, the inset reading 0 there; the header clear of
-             it. Under its scrim and picture as the rest of the card. A browser's tab, nothing. */
-          @media (display-mode: standalone) {
-            &::before {
-              content: "";
-              position: fixed;
-              inset: 0 0 auto;
-              z-index: 5;
-              height: max(env(safe-area-inset-top), 8px);
-              background: var(--card);
-            }
+        /* Installed, the status bar the page's color, never a blur: iOS 26 on colors it from what's at the middle of
+           the top edge (4px in, found as a tap would be, but taps or not), the first fixed or sticky box from there up,
+           90% of the screen wide or more: its background where it's more than 10px each way, else the screen's pixels
+           (which Lockdown Mode doesn't read: it blurs the top some 40pt down, over the header). Found there otherwise:
+           the hints' layer and the closed scrim, both clear (passed over, then nothing fixed under them: the blur; ⌘K's
+           scrim, open, is read). So a strip of its own over them (an element: a pseudo-element is found as its owner):
+           not the screen's size (that keeps the color it found first), its background all but clear (iOS lays it over
+           the page's own: a chart's card, the grid's; nothing to see), no taps. (An iPad, as for any page, keeps the
+           color it found before a touch.) A browser's tab, none. */
+        @media (display-mode: standalone) {
+          .top-strip {
+            position: fixed;
+            inset: 0 0 auto;
+            z-index: 45;
+            display: block;
+            height: calc(env(safe-area-inset-top) + 12px);
+            background: color-mix(in srgb, var(--card) 1%, transparent);
+            pointer-events: none;
           }
         }
 
         /* Behind a chart's card, its own color: where the page isn't (an installed app's status bar), iOS shows the
            page's, and the ground's would be a darker strip over the header, a shadow (as theme-color reads, which iOS
-           doesn't follow live). */
-        body:not([data-home]) {
+           doesn't follow live). A picture's page, its own (the grid's). */
+        body:not([data-home], [data-picture]) {
           background: var(--card);
         }
 
@@ -7128,8 +7138,7 @@
           inset: 0;
 
           /* Installed, the status bar over the grid: what scrolls under it hidden, as an app's own lists (Safari's own
-             bar is its own; no room there, nothing); installed, iOS's blur kept off the page's top too (8px at least,
-             taking taps: the card's strip says why). */
+             bar is its own; no room there, nothing). */
           &::after {
             content: "";
             position: fixed;
@@ -7138,11 +7147,6 @@
             height: env(safe-area-inset-top);
             background: var(--app);
             pointer-events: none;
-
-            @media (display-mode: standalone) {
-              height: max(env(safe-area-inset-top), 8px);
-              pointer-events: auto;
-            }
           }
         }
 
@@ -7262,11 +7266,6 @@
         /* (The header as an iOS bar: its controls, and 4px about them.) */
         .card-head {
           padding: calc(4px + env(safe-area-inset-top)) 12px 4px;
-
-          /* (Installed, clear of the card's strip at the top.) */
-          @media (display-mode: standalone) {
-            padding-top: max(calc(4px + env(safe-area-inset-top)), 12px);
-          }
         }
 
         /* (Its text on the header's edge: the place's, else the name's.) */
@@ -7781,11 +7780,6 @@
         /* Full screen: the chart alone, no room kept for the bar; clear of the notch and the home indicator. */
         .app[data-full] .card {
           padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
-
-          /* (Installed, clear of the card's strip at the top too.) */
-          @media (display-mode: standalone) {
-            padding-top: max(env(safe-area-inset-top), 8px);
-          }
         }
 
         /* A phone on its side (wide as well as short: an upright one with its keyboard up stays upright): the capsule
@@ -9109,6 +9103,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
     <div id="toast" class="toast"></div>
     <div id="tip" class="tip" role="tooltip" hidden></div>
     <div id="hints" class="hints" aria-hidden="true"></div>
+    <div class="top-strip" aria-hidden="true"></div>
 
 
     <!-- The presets (presets.js): the build puts them here, compressed; the dev page makes them as it loads. -->
