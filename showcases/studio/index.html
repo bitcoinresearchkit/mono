@@ -10229,7 +10229,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const sr = sums((i) => r[i]), sk = sums((i) => k[i]), sq = sums((i) => (r[i] * r[i]) / k[i]), sc = sums(() => 1);
         const scale = Math.sqrt(365 / step) * 100, out = new Float64Array(len).fill(NaN);
         for (let i = 0; i < len; i++) {
-          if (!Number.isFinite(x[i]) || !(partial || i - first + 1 >= n)) continue;
+          // (Only where its own return is: none from a price of 0, or the first.)
+          if (!Number.isFinite(r[i]) || !(partial || i - first + 1 >= n)) continue;
           const lo = Math.max(0, i - n + 1), count = sc[i + 1] - sc[lo];
           if (count < 2) continue;
           const total = sr[i + 1] - sr[lo], span = sk[i + 1] - sk[lo];
@@ -10237,17 +10238,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return out;
       }
-      /** The choppiness index over `n` points, of one series: its moves' sum against its range, log-scaled to 0–100. @param {Vector} x */
+      /**
+       * The choppiness index over `n` moves, of one series: their sum against the range of the prices they span (one more:
+       * the first's start), log-scaled to 0–100 (a straight run, 0). @param {Vector} x
+       */
       function chopOf(x, n) {
         const moves = new Float64Array(x.length).fill(NaN);
-        let prev = NaN;
-        for (let i = 0; i < x.length; i++) {
-          if (!Number.isFinite(x[i])) continue;
-          if (Number.isFinite(prev)) moves[i] = Math.abs(x[i] - prev);
-          prev = x[i];
-        }
-        const total = rolling(moves, n).total, hi = extreme(x, n, (a, b) => a > b), lo = extreme(x, n, (a, b) => a < b), log = Math.log10(n);
-        return x.map((_, i) => (hi[i] > lo[i] && total[i] > 0 && log > 0 ? (100 * Math.log10(total[i] / (hi[i] - lo[i]))) / log : NaN));
+        // (A move from the point just before only: one across a gap would start outside the prices it's measured against.)
+        for (let i = 1; i < x.length; i++) if (Number.isFinite(x[i]) && Number.isFinite(x[i - 1])) moves[i] = Math.abs(x[i] - x[i - 1]);
+        // (Only where all `n` are: fewer would sum to less than the range, below 0.)
+        const { total, count } = rolling(moves, n), hi = extreme(x, n + 1, (a, b) => a > b), lo = extreme(x, n + 1, (a, b) => a < b), log = Math.log10(n);
+        return x.map((_, i) => (count[i] === n && hi[i] > lo[i] && total[i] > 0 && log > 0 ? (100 * Math.log10(total[i] / (hi[i] - lo[i]))) / log : NaN));
       }
       /** Growth a year, compounded, in %: over `n` points (`step`: a point's days), or (`n` Infinity) since its first value. @param {Vector} x */
       function cagrOf(x, n, step) {
@@ -10341,7 +10342,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       const hasFunction = (name) => Object.hasOwn(FUNCTIONS, name);
 
-      const TOKEN = /\s*(?:(\d+\.?\d*(?:e[+-]?\d+)?|\.\d+)([a-z]\w*)?|([A-Z]{1,2})(?![A-Za-z0-9_])|([a-z_][a-z0-9_]*)|([<>]=?|[-+*/^(),&|]))/y;
+      const TOKEN = /\s*(?:((?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)([a-z]\w*)?|([A-Z]{1,2})(?![A-Za-z0-9_])|([a-z_][a-z0-9_]*)|([<>]=?|[-+*/^(),&|]))/y;
       /** A formula that only isn't finished yet (more to type, not a mistake). */
       const unfinished = (/** @type {string} */ message) => Object.assign(new Error(message), { unfinished: true });
       function tokenize(source) {
@@ -10522,8 +10523,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           case "bin": {
             const a = sub(node.a), b = sub(node.b);
-            // (A comparison, or two joined, is 1 where true, 0 where false; where either has no value, none.)
-            const either = (/** @type {(x: number, y: number) => boolean} */ test) => (/** @type {number} */ x, /** @type {number} */ y) => (x !== x || y !== y ? NaN : Number(test(x, y)));
+            // (A comparison, or two joined, is 1 where true, 0 where false; where either has no value, none: an infinity (a
+            // log of 0, a division by 0) is none either.)
+            const either = (/** @type {(x: number, y: number) => boolean} */ test) => (/** @type {number} */ x, /** @type {number} */ y) => (!Number.isFinite(x) || !Number.isFinite(y) ? NaN : Number(test(x, y)));
             const op = { "+": (x, y) => x + y, "-": (x, y) => x - y, "*": (x, y) => x * y, "/": (x, y) => x / y, "^": (x, y) => x ** y, "<": either((x, y) => x < y), ">": either((x, y) => x > y), "<=": either((x, y) => x <= y), ">=": either((x, y) => x >= y), "&": either((x, y) => Boolean(x && y)), "|": either((x, y) => Boolean(x || y)) }[node.op];
             return lift(a, b, op);
           }
@@ -10565,7 +10567,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * letter with no layer, an unknown function or a series Bitview doesn't have (`missing`) marked.
        */
       function highlightFormula(source, colorOf, missing = (_name) => false) {
-        const pattern = /((?:\d+\.?\d*(?:e[+-]?\d+)?|\.\d+)(?:(?:mo|[hdwy])(?![a-z0-9_]))?)|([A-Z]{1,2})(?![A-Za-z0-9_])|([a-z_][a-z0-9_]*)|([<>≥≤]=?|[-+*/^(),×·÷−–&|])/g;
+        const pattern = /((?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?(?:(?:mo|[hdwy])(?![a-z0-9_]))?)|([A-Z]{1,2})(?![A-Za-z0-9_])|([a-z_][a-z0-9_]*)|([<>≥≤]=?|[-+*/^(),×·÷−–&|])/g;
         let html = "", last = 0;
         for (const match of source.matchAll(pattern)) {
           html += escape(source.slice(last, match.index));
@@ -11307,7 +11309,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The Charts page is on screen, where `homeAt` says (the open chart stays laid out under it). */
       let home = false;
 
-      let saveTimer = 0, savedTimer = 0;
+      /** (`unsaved`: a write that failed, tried again on leaving: storage may take it by then.) */
+      let saveTimer = 0, savedTimer = 0, unsaved = false;
       /** Whether the write coming says "Saved" (an edit asked for it meanwhile). */
       let announcing = false;
       /** The library as this tab last wrote it: storage still holding it, no other tab has saved since. */
@@ -11398,23 +11401,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const announced = announcing;
           saveTimer = 0;
           announcing = false;
-          const saved = $("saved");
-          const ok = persist();
-          if (readOnly) return;
-          if (ok && !announced && !saved.classList.contains("error")) return;
-          saved.textContent = ok ? "Saved" : "Not saved: storage full or blocked";
-          saved.classList.toggle("error", !ok);
-          if (ok) saved.removeAttribute("role");
-          else saved.setAttribute("role", "alert");
-          // (Where the header's word isn't seen (the grid, a phone's header), said in a notice.)
-          if (!ok && !saved.checkVisibility({ visibilityProperty: true })) notice("Not saved: storage full or blocked");
-          saved.classList.remove("fade");
-          void saved.offsetWidth;
-          clearTimeout(savedTimer);
-          if (!ok) return;
-          saved.classList.add("fade");
-          savedTimer = setTimeout(() => (saved.textContent = ""), 2600);
+          written(persist(), announced);
         }, 250);
+      }
+      /** A write's outcome, said: a failure stays on screen (and is tried again on leaving), until one goes through. */
+      function written(/** @type {boolean} */ ok, /** @type {boolean} */ announced) {
+        const saved = $("saved");
+        unsaved = !ok && !readOnly;
+        if (readOnly) return;
+        if (ok && !announced && !saved.classList.contains("error")) return;
+        saved.textContent = ok ? "Saved" : "Not saved: storage full or blocked";
+        saved.classList.toggle("error", !ok);
+        if (ok) saved.removeAttribute("role");
+        else saved.setAttribute("role", "alert");
+        // (Where the header's word isn't seen (the grid, a phone's header), said in a notice.)
+        if (!ok && !saved.checkVisibility({ visibilityProperty: true })) notice("Not saved: storage full or blocked");
+        saved.classList.remove("fade");
+        void saved.offsetWidth;
+        clearTimeout(savedTimer);
+        if (!ok) return;
+        saved.classList.add("fade");
+        savedTimer = setTimeout(() => (saved.textContent = ""), 2600);
       }
 
       /**
@@ -11515,10 +11522,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // too). (Back, a name being typed is a name kept: its field gone, as a click elsewhere leaves it.)
       onLeave(() => {
         flushEdits();
-        if (!saveTimer) return;
+        if (!saveTimer && !unsaved) return;
         clearTimeout(saveTimer);
         saveTimer = 0;
-        persist();
+        written(persist(), false);
       });
 
       /**
@@ -11537,8 +11544,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (chart.blank && (chart.layers.length || chart.title || chart.drawings?.length)) delete chart.blank;
         if (JSON.stringify(chart) === before) return;
         const now = Date.now();
-        // One step: a drag's edits, however long it lasts (the next drag, another); typed ones a second apart.
-        const joins = coalesce && coalesce === edits.key && (holding ? edits.held === holding : !edits.held && now - edits.at < 1000);
+        // One step: a drag's edits, however long it lasts (the next drag, another); typed ones a second apart. (Joining
+        // only a step there's still: the history let go meanwhile (another tab's edit taken in), it starts one anew.)
+        const joins = coalesce && edits.past.length > 0 && coalesce === edits.key && (holding ? edits.held === holding : !edits.held && now - edits.at < 1000);
         if (!joins) edits.past.push(before);
         const steps = edits.past.length;
         if (edits.past.length > 200) edits.past.shift();
