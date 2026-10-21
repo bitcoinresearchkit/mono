@@ -13,12 +13,16 @@
  *   with the same charts as the others, in sections by what they're about (supply, realized, cost basis…);
  * - a measure summed over trailing windows (24 hours to 1 year) is one chart, its month shown, the others in its legend;
  * - one in bitcoin has its value in dollars in a pane below it; one summed since the start is a chart of its own;
- * - a price shows over the price's candles.
+ * - a price shows over the price's candles;
+ * - the price is on top of every one: its candles first, in the first pane, which holds only prices (a chart of anything
+ *   else has them in a pane of their own above its own, shown short, or, about the chain's workings, not the market,
+ *   hidden there: see priced).
  * @typedef {Record<string, any>} Layer
  * @typedef {{ layers: Layer[], panes?: Record<string, any>[], range?: string }} Sketch
  * @typedef {{ p: string[], t: string, c: Sketch }} Preset
  * @typedef {{ name: string, title: string, c: Sketch }} ChartNode
- * @typedef {{ name: string, items: (ChartNode | SectionNode)[] }} SectionNode
+ * @typedef {{ name: string, items: (ChartNode | SectionNode)[], workings?: boolean }} SectionNode `workings`: its charts are
+ * about the chain's workings, not the market (the price over them hidden: see priced)
  * @typedef {{ pools: Set<string>, height: number, year: number }} Facts the chain's, from its server: the pools that
  * have found a block, its height, the year
  */
@@ -182,8 +186,11 @@ export function studioPresets(client, facts) {
     });
     return { name, title, c: { layers, panes, ...(options.range ? { range: options.range } : {}) } };
   };
-  /** @param {string} name @param {(ChartNode | SectionNode | null | undefined | false)[]} items @returns {SectionNode} */
-  const section = (name, items) => ({ name, items: /** @type {(ChartNode | SectionNode)[]} */ (items.filter(Boolean)) });
+  /**
+   * @param {string} name @param {(ChartNode | SectionNode | null | undefined | false)[]} items
+   * @param {{ workings?: boolean }} [options] @returns {SectionNode}
+   */
+  const section = (name, items, options = {}) => ({ name, items: /** @type {(ChartNode | SectionNode)[]} */ (items.filter(Boolean)), ...(options.workings ? { workings: true } : {}) });
 
   /** A node's windows (`_24h`… and any other spans), in order. @param {any} node */
   const windowsOf = (node) => entries(node).filter(([key, value]) => /^_\d+[hdwmy]$/.test(key) && (isLeaf(value) || value.btc));
@@ -649,7 +656,7 @@ export function studioPresets(client, facts) {
             chart("Fees per block in dollars", "Fees per block, in dollars", [...["avg", "min", "pct10", "pct25", "median", "pct75", "pct90", "max"].filter((key) => mining.rewards.fees[key]).flatMap((key, i) => windows(mining.rewards.fees[key], key === "avg" ? "Average" : key === "min" ? "Lowest" : key === "max" ? "Highest" : percentileLabel(percentile(key)), { pick: usd, show: key === "median" || key === "avg" ? ["_1m"] : [], extra: { color: ramp(8, 25, 300)[i] } }))], { log: [1] })]
           : [],
       ]),
-      section("Pools", poolCharts()),
+      section("Pools", poolCharts(), { workings: true }),
     ]),
     section("Network", [
       section("Blocks", [
@@ -694,7 +701,7 @@ export function studioPresets(client, facts) {
         ...flow(t.outputs.opReturnValue, "OP_RETURN value", "Value sent to OP_RETURN outputs"),
         section("By type", byType(t.outputs.types, "outputs", "creating")),
       ]),
-    ]),
+    ], { workings: true }),
     section("OP_RETURN", [
       ...opReturnCharts(t.opReturn, (what) => `OP_RETURN ${what}`),
       section("Protocols", [
@@ -705,7 +712,7 @@ export function studioPresets(client, facts) {
         ...entries(t.opReturn.protocols).map(([key, node]) => section(protocolName(key), opReturnCharts(node, (what) => `${protocolName(key)} OP_RETURN ${what}`))),
       ]),
       section("Policies", entries(t.opReturn.policies).map(([key, node]) => section(policyName(key), opReturnCharts(node, (what) => `OP_RETURN ${what}: ${policyName(key)}`)))),
-    ]),
+    ], { workings: true }),
     section("Cointime", [
       section("Activity", [
         ...flow(ct.activity.coinblocksCreated, "Coin blocks created", "Coin blocks created"),
@@ -932,12 +939,32 @@ export function studioPresets(client, facts) {
 
   // ── Flattened: each chart with its place ──────────────────────────────────
 
+  /**
+   * The price on top of a chart: its candles first, in the first pane (a pane with the price holds only prices: a cap
+   * isn't one). A chart without them has them in a pane of their own above its panes, each one down: shown, short, its
+   * own first pane as tall as a first one is; about the chain's workings (`hidden`), hidden there (a strip of its
+   * legend's, a click away).
+   * @param {Sketch} c @param {boolean} hidden @returns {Sketch}
+   */
+  const priced = (c, hidden) => {
+    const at = c.layers.findIndex((layer) => layer.series === t.price.ohlc.name);
+    if (at === 0 && (c.layers[0].pane ?? 1) === 1) return c;
+    // (Layers are named by their place, A first: a chart that names one would be read wrong with another before it.)
+    if (at > 0 || c.layers.some((layer) => layer.cloud || /\b[A-Z]{1,2}\b/.test(layer.formula ?? ""))) throw new Error(`A preset names its layers by place without the price first: ${c.layers.map((layer) => layer.label).join(", ")}`);
+    const [first, ...rest] = c.panes ?? [{ mode: 0 }];
+    return {
+      ...c,
+      layers: [{ ...price(), ...(hidden ? { hidden: true } : {}) }, ...c.layers.map((layer) => ({ ...layer, pane: (layer.pane ?? 1) + 1 }))],
+      panes: [{ mode: 1, size: 1.4 }, { ...first, size: first.size ?? 3 }, ...rest],
+    };
+  };
+
   /** @type {Preset[]} */
   const presets = [];
-  const walk = (/** @type {(ChartNode | SectionNode)[]} */ items, /** @type {string[]} */ path) => {
+  const walk = (/** @type {(ChartNode | SectionNode)[]} */ items, /** @type {string[]} */ path, workings = false) => {
     for (const item of items) {
-      if ("items" in item) walk(item.items, [...path, item.name]);
-      else presets.push({ p: [...path, item.name], t: item.title, c: item.c });
+      if ("items" in item) walk(item.items, [...path, item.name], workings || Boolean(item.workings));
+      else presets.push({ p: [...path, item.name], t: item.title, c: priced(item.c, workings) });
     }
   };
   walk(tree, []);

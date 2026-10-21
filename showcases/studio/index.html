@@ -11097,9 +11097,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (let done = 0; stack.length && more(done); done++) {
             const [node, path] = stack.pop();
             if (isLeaf(node)) {
-              if (index.has(node.name)) continue;
+              // (A name in several places, each with its own intervals (an interval's first height, under each): by date
+              // if any of them is.)
+              const dated = INTERVAL_ORDER.some((id) => node.indexes().includes(id));
+              if (index.has(node.name)) {
+                if (dated) byBlock.delete(node.name);
+                continue;
+              }
               index.set(node.name, path);
-              if (!INTERVAL_ORDER.some((id) => node.indexes().includes(id))) byBlock.add(node.name);
+              if (!dated) byBlock.add(node.name);
             } else if (node && typeof node === "object") for (const key of Object.keys(node)) stack.push([aside(node, key), path ? `${path}.${key}` : key]);
           }
           if (stack.length || catalogIndex) return;
@@ -24095,13 +24101,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           while (stack.length) {
             const node = stack.pop();
             if (typeof node?.name === "string" && Array.isArray(node.indexes)) {
-              if (described.has(node.name)) continue;
+              // (A name the catalog lists in several places, each with its own intervals (an interval's first height,
+              // under each): all of them, as its info has them.)
+              const had = about.get(node.name);
+              if (had) {
+                had.indexes = [...new Set([...had.indexes, ...node.indexes])];
+                continue;
+              }
               described.set(node.name, typeof node.description === "string" ? node.description : "");
               // (Its type as the API's info says it, "Dollars", "Sats": the catalog's kind; its "type" is the JSON one.)
               about.set(node.name, { description: typeof node.description === "string" ? node.description : "", indexes: node.indexes, type: typeof node.kind === "string" ? node.kind : "" });
-              if (!dated.some((id) => node.indexes.includes(id))) byBlock.add(node.name);
             } else if (node && typeof node === "object") for (const child of Object.values(node)) stack.push(child);
           }
+          for (const [name, { indexes }] of about) if (!dated.some((id) => indexes.includes(id))) byBlock.add(name);
           // In the server's orders: names by length then text, descriptions by text.
           const names = [...described.keys()].sort((a, b) => a.length - b.length || byBytes(a, b));
           const ids = new Map(names.map((name, id) => [name, id]));
