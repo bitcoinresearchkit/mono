@@ -35,7 +35,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// block's scheduled subsidy times 52,560 blocks, divided by the supply. Null
     /// without supply (block 0, whose output is unspendable).
     pub inflation_rate: LazyPercentPerBlock<PartsPerMillionSigned64>,
-    pub velocity: velocity::Vecs,
+    velocity: velocity::Vecs,
     /// Circulating supply valued at the represented block's Bitcoin spot price.
     #[traversable(wrap = "market_cap", rename = "block")]
     market_cap: LazyFiatPerBlock<Cents>,
