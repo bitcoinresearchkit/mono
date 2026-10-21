@@ -74,7 +74,12 @@ function sandboxed(script, readable) {
     throw new Error(said || (error.signal ? `stopped (${error.signal})` : "it failed"));
   }
 }
-const inlined = (path) => dataUrl("text/javascript", input(join(SHOWCASES, path)));
+/**
+ * A module of the repo's as a data URL of its text, quoted for the page's code: escaped only where a URL must be ("%",
+ * "#", line breaks), so the page's compression takes it as text (as base64 it shrank by a quarter, as text by two
+ * thirds); "</script" and "<!--" kept out of the script it's in.
+ */
+const inlined = (path) => JSON.stringify(`data:text/javascript;charset=utf-8,${input(join(SHOWCASES, path)).toString("utf8").replace(/[%#\r\n\t]/g, (c) => encodeURIComponent(c))}`).replace(/<(\/script|!--)/gi, "\\x3c$1");
 
 // Its brand, Bitview's home: the root of the server that serves it, here a site of its own.
 replaceOnce(`<a class="brand" href="/"`, `<a class="brand" href="https://bitview.space"`);
@@ -83,17 +88,17 @@ for (const font of ["InterVariable.woff2", "Lilex.woff2"]) replaceOnce(`url("../
 
 // The modules the server doesn't serve, or serves older; the search's worker takes the same one.
 const quickmatch = inlined("modules/quickmatch-js/src/index.js");
-replaceOnce(`import XKCD from "../modules/xkcd-colors/index.js";`, `import XKCD from "${inlined("modules/xkcd-colors/index.js")}";`);
-replaceOnce(`import { QuickMatch, QuickMatchConfig } from "../modules/quickmatch-js/src/index.js";`, `import { QuickMatch, QuickMatchConfig } from "${quickmatch}";`);
-replaceOnce(`new URL("../modules/quickmatch-js/src/index.js", location.href).href`, JSON.stringify(quickmatch));
+replaceOnce(`import XKCD from "../modules/xkcd-colors/index.js";`, `import XKCD from ${inlined("modules/xkcd-colors/index.js")};`);
+replaceOnce(`import { QuickMatch, QuickMatchConfig } from "../modules/quickmatch-js/src/index.js";`, `import { QuickMatch, QuickMatchConfig } from ${quickmatch};`);
+replaceOnce(`new URL("../modules/quickmatch-js/src/index.js", location.href).href`, quickmatch);
 // (The QR code's, loaded once a link's is asked for.)
-replaceOnce(`import("../modules/lean-qr/2.7.3/index.mjs")`, `import(${JSON.stringify(inlined("modules/lean-qr/2.7.3/index.mjs"))})`);
+replaceOnce(`import("../modules/lean-qr/2.7.3/index.mjs")`, `import(${inlined("modules/lean-qr/2.7.3/index.mjs")})`);
 // (A type for the editor only: nothing to load.)
 replaceOnce(`/** @type {typeof import("../modules/quickmatch-js/src/index.js")} */ (await import(quickmatch))`, "(await import(quickmatch))");
 
 // The chart library, this repo's, in the page: Studio leans on its insides (its series drawn its own way, what it draws
 // over them), so it changes only when it's been tried, never with the showcases'.
-replaceOnce(`import * as LC from "../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs";`, `import * as LC from "${inlined("modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs")}";`);
+replaceOnce(`import * as LC from "../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs";`, `import * as LC from ${inlined("modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs")};`);
 // The client, the server's: it's made from that server's API, so it always speaks the one live.
 replaceOnce(`import { BitviewClient } from "../modules/bitview-client/index.js";\n`, `${[
   `// The client as ${SERVER} serves it now, read at each load. Not loading, the page says so (see #offline): the charts`,
