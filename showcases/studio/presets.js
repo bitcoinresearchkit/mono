@@ -523,6 +523,7 @@ export function studioPresets(client, facts) {
       ...compare("Coin days destroyed, 1 month", (c) => c.activity?.coindaysDestroyed?.sum?._1m, { additive: true }),
       ...compare("Realized profit, 1 month", (c) => c.realized?.profit?.sum?._1m, { additive: true }),
       ...compare("Realized loss, 1 month", (c) => c.realized?.loss?.sum?._1m, { additive: true }),
+      ...compare("Net realized profit and loss, 1 month", (c) => c.realized?.netPnl?.sum?._1m, { level: 0 }),
       ...compare("SOPR, 1 week", (c) => c.realized?.sopr?._1w, { level: 1 }),
     ];
     return [
@@ -639,6 +640,7 @@ export function studioPresets(client, facts) {
       section("Entry price", family(entries(t.entry), (key) => ({ name: named(client.ENTRY_NAMES, key), who: `${named(client.ENTRY_NAMES, key)}, entered ${ENTERED[key] ?? key} the capitalized price at the time` }), { by: "entry price", disjoint: true })),
     ]),
     section("Coin age", [
+      lastMovedChart(),
       section("Age bands", family(entries(t.age.ranges), (key) => ({ name: named(client.AGE_RANGE_NAMES, key).replace(/ old$/, ""), who: `UTXOs ${named(client.AGE_RANGE_NAMES, key).toLowerCase().replace(/^utxos /, "")}` }), { by: "age band", disjoint: true, known: { Supply: "HODL waves", "Realized cap": "realized cap HODL waves" } })),
       section("Halving epochs", family(members(t.age.halvingEpochs), (key) => ({ name: `Epoch ${key.slice(1)}`, who: `Coins last moved in halving epoch ${key.slice(1)}` }), { by: "halving epoch last moved", disjoint: true })),
       section("Vintages", family(members(t.age.vintages), (key) => ({ name: key.slice(1), who: `Coins last moved in ${key.slice(1)}` }), { by: "vintage", disjoint: true })),
@@ -662,6 +664,14 @@ export function studioPresets(client, facts) {
     section("Mining", [
       section("Hashing", [
         chart("Hash rate", "Hash rate", [series(own(mining.hashrate.rate), "Hash rate", { color: "orange" }), ...windows(mining.hashrate.rate.sma, "Average", { show: ["_1m"] }), series(mining.hashrate.rate.ath, "All-time high", { color: "green", dash: 3, hidden: true }), series(blocks.difficulty.hashrate, "From difficulty", { color: "gray", hidden: true }), series(mining.hashrate.rate.drawdown, "Drawdown", { pane: 2, color: "red", type: "area" })], { log: [1] }),
+        // (Its 1- and 2-month averages, the 30- and 60-day of the convention: capitulation while the first is under, shaded;
+        // no marks where it crosses back, the averages crossing too often to read.)
+        chart("Hash ribbons", "Hash ribbons", [
+          price(),
+          series(mining.hashrate.rate.sma._1m, "1-month average", { pane: 2, color: "sky" }),
+          series(mining.hashrate.rate.sma._2m, "2-month average", { pane: 2, color: "violet" }),
+          { formula: "B < C", type: "signal", ref: "B", place: "shade", label: "Capitulation", color: "red" },
+        ], { log: [2] }),
         chart("Hash price", "Hash price", [series(own(mining.hashrate.price), "Hash price", { color: "green" }), series(mining.hashrate.price.atl, "All-time low", { color: "red", dash: 3 }), series(mining.hashrate.price.rebound, "Rebound", { pane: 2, color: "green" })], { log: [1] }),
         chart("Hash value", "Hash value", [series(own(mining.hashrate.value), "Hash value", { color: "orange" }), series(mining.hashrate.value.atl, "All-time low", { color: "red", dash: 3 }), series(mining.hashrate.value.rebound, "Rebound", { pane: 2, color: "orange" })], { log: [1] }),
       ]),
@@ -682,6 +692,10 @@ export function studioPresets(client, facts) {
         ...flow(mining.rewards.unclaimed, "Unclaimed", "Unclaimed rewards"),
         chart("Fee share", "Fees' share of rewards", sharesOf(mining.rewards.fees.share, "Fees")),
         chart("Subsidy share", "Subsidy's share of rewards", sharesOf(mining.rewards.subsidy.share, "Subsidy")),
+        // (A day's issuance in dollars against its year's average, the server's rolling sums (the same at every interval):
+        // miners' income high or low for the time. From a year after the first price on: before it, issuance is worth 0,
+        // the year's sum short; the guard a year back, 1 or 0 over 0, hides it.)
+        ((day, year) => chart("Puell multiple", "Puell multiple", [price(), { formula: `365 * ${day} / ${year} * (lag(${day}, 365d) / lag(${day}, 365d))`, label: "Puell multiple", format: "ratio", pane: 2, ...around(1), levels: [{ value: 4, color: "red", dash: 3 }, { value: 0.5, color: "green", dash: 3 }] }], { log: [2] }))(mining.rewards.subsidy.sum._24h.usd.name, mining.rewards.subsidy.sum._1y.usd.name),
         ...["avg", "min", "max", "p10", "p25", "median", "p75", "p90"].filter((key) => mining.rewards.fees[key]).length
           ? [chart("Fees per block", "Fees per block", [...["avg", "min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => mining.rewards.fees[key]).flatMap((key, i) => windows(mining.rewards.fees[key], key === "avg" ? "Average" : key === "min" ? "Lowest" : key === "max" ? "Highest" : percentileLabel(percentile(key)), { pick: btc, show: key === "median" || key === "avg" ? ["_1m"] : [], extra: { color: ramp(8, 25, 300)[i] } }))], { log: [1] }),
             chart("Fees per block in dollars", "Fees per block, in dollars", [...["avg", "min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => mining.rewards.fees[key]).flatMap((key, i) => windows(mining.rewards.fees[key], key === "avg" ? "Average" : key === "min" ? "Lowest" : key === "max" ? "Highest" : percentileLabel(percentile(key)), { pick: usd, show: key === "median" || key === "avg" ? ["_1m"] : [], extra: { color: ramp(8, 25, 300)[i] } }))], { log: [1] })]
@@ -863,6 +877,24 @@ export function studioPresets(client, facts) {
         ...counted(node.txCount, "Transactions", `Transactions ${doing} ${inSentence(name(key))} ${what}`, node.txShare),
       ])),
     ];
+  }
+  /**
+   * Supply last moved over 1, 2, 5 and 10 years ago: the age bands from each on, summed (in bitcoin, and their shares of
+   * all coins below).
+   */
+  function lastMovedChart() {
+    const bands = entries(t.age.ranges), colors = ramp(4);
+    // (Each from the band starting at its age: one the client renamed fails here, not quietly summed short.)
+    const from = (/** @type {string} */ key) => {
+      const at = bands.findIndex(([k]) => k === key);
+      if (at < 0) throw new Error(`No age band ${key}`);
+      return bands.slice(at).map(([, node]) => node.supply);
+    };
+    const over = /** @type {[string, string][]} */ ([["_1yTo18m", "1 year"], ["_2yTo3y", "2 years"], ["_5yTo6y", "5 years"], ["_10yTo12y", "10 years"]]);
+    return chart("Last moved", "Supply last moved over 1, 2, 5 and 10 years ago", [
+      ...over.map(([key, age], i) => ({ formula: from(key).map((supply) => supply.total.btc.name).join(" + "), label: `Over ${age}`, format: "btc", color: colors[i] })),
+      ...over.map(([key, age], i) => ({ formula: from(key).map((supply) => supply.share.name).join(" + "), label: `Over ${age}, share`, format: "percent", color: colors[i], pane: 2 })),
+    ]);
   }
   /** Bitcoin clouds: each holder group's awake and mobile realized and capitalized prices (its cohorts' together), a
    * cloud from the lowest to the highest. */

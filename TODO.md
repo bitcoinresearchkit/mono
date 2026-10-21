@@ -36,3 +36,5 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
 - Indexer version 45 (2026-10-20: OP_RETURN markers, EPOBC) reindexes every machine with an index (this Mac, the Mac mini, production) from scratch on first start; plan the downtime. The feature-region rename (`_notes/tree-review-20261020/rename_regions.py`) is no longer needed.
 
 - OP_RETURN's transactions are one number computed twice: `op_return_tx_count`/`_tx_share` (the OP_RETURN plugin) and `op_return_output_tx_count`/`_tx_share` (outputs by type), same definition; and both plugins name their output count `op_return_output_count`. One plugin should take the other's. Studio pairs them meanwhile (`SAME` in `showcases/studio/presets.js`).
+
+- Dollar flows are 0, not missing, before the first exchange price (block 74,641): a sum over a window reaching back past it reads short (Studio's Puell multiple guards for it with `lag`, which hides its 10Y decade point and needs 4h+). Serve them missing there, the windows' sums missing until wholly priced; then drop the guard in `showcases/studio/presets.js`.
