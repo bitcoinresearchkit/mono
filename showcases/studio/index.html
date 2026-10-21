@@ -188,6 +188,8 @@
         height: 100%;
         /* (No pull to reload, no bounce: a page that pulled away would take its undo with it.) */
         overscroll-behavior: none;
+        /* (Wrapped text, everywhere, no word left alone on its last line.) */
+        text-wrap-style: pretty;
       }
 
       /* A finger's: no grey flash on a tap (over a whole list either); a control's, no wait for a second (a double tap
@@ -5769,7 +5771,6 @@
 
         dt {
           color: var(--text);
-          text-wrap: pretty;
         }
 
         dd {
@@ -6049,8 +6050,6 @@
         width: max-content;
         max-width: 280px;
         margin: 0;
-        /* (Wrapped, no word left alone on its last line.) */
-        text-wrap: pretty;
         border-radius: var(--radius-sm);
         padding: 5px 6px 5px 9px;
         color: var(--ink);
