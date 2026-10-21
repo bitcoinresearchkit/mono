@@ -11,19 +11,14 @@
     * [INDEXES](#bitview_client.BitviewClient.INDEXES)
     * [POOL\_ID\_TO\_POOL\_NAME](#bitview_client.BitviewClient.POOL_ID_TO_POOL_NAME)
     * [TERM\_NAMES](#bitview_client.BitviewClient.TERM_NAMES)
-    * [EPOCH\_NAMES](#bitview_client.BitviewClient.EPOCH_NAMES)
-    * [CLASS\_NAMES](#bitview_client.BitviewClient.CLASS_NAMES)
+    * [HALVING\_EPOCH\_NAMES](#bitview_client.BitviewClient.HALVING_EPOCH_NAMES)
+    * [VINTAGE\_NAMES](#bitview_client.BitviewClient.VINTAGE_NAMES)
     * [ENTRY\_NAMES](#bitview_client.BitviewClient.ENTRY_NAMES)
     * [SPENDABLE\_TYPE\_NAMES](#bitview_client.BitviewClient.SPENDABLE_TYPE_NAMES)
     * [AGE\_RANGE\_NAMES](#bitview_client.BitviewClient.AGE_RANGE_NAMES)
-    * [UNDER\_AGE\_NAMES](#bitview_client.BitviewClient.UNDER_AGE_NAMES)
-    * [OVER\_AGE\_NAMES](#bitview_client.BitviewClient.OVER_AGE_NAMES)
     * [AMOUNT\_RANGE\_NAMES](#bitview_client.BitviewClient.AMOUNT_RANGE_NAMES)
-    * [OVER\_AMOUNT\_NAMES](#bitview_client.BitviewClient.OVER_AMOUNT_NAMES)
-    * [UNDER\_AMOUNT\_NAMES](#bitview_client.BitviewClient.UNDER_AMOUNT_NAMES)
     * [PROFITABILITY\_RANGE\_NAMES](#bitview_client.BitviewClient.PROFITABILITY_RANGE_NAMES)
-    * [PROFIT\_NAMES](#bitview_client.BitviewClient.PROFIT_NAMES)
-    * [LOSS\_NAMES](#bitview_client.BitviewClient.LOSS_NAMES)
+    * [OP\_RETURN\_KIND\_NAMES](#bitview_client.BitviewClient.OP_RETURN_KIND_NAMES)
     * [\_\_init\_\_](#bitview_client.BitviewClient.__init__)
     * [series](#bitview_client.BitviewClient.series)
     * [series\_endpoint](#bitview_client.BitviewClient.series_endpoint)
@@ -48,7 +43,6 @@
     * [get\_series\_version](#bitview_client.BitviewClient.get_series_version)
     * [get\_series\_bulk](#bitview_client.BitviewClient.get_series_bulk)
     * [list\_urpd\_cohorts](#bitview_client.BitviewClient.list_urpd_cohorts)
-    * [list\_urpd\_dates](#bitview_client.BitviewClient.list_urpd_dates)
     * [get\_urpd](#bitview_client.BitviewClient.get_urpd)
     * [get\_urpd\_at](#bitview_client.BitviewClient.get_urpd_at)
     * [get\_difficulty\_adjustment](#bitview_client.BitviewClient.get_difficulty_adjustment)
@@ -121,6 +115,9 @@
     * [get\_tx\_status](#bitview_client.BitviewClient.get_tx_status)
     * [get\_transaction\_times](#bitview_client.BitviewClient.get_transaction_times)
     * [post\_tx](#bitview_client.BitviewClient.post_tx)
+    * [get\_utxo\_set\_latest](#bitview_client.BitviewClient.get_utxo_set_latest)
+    * [get\_utxo\_set](#bitview_client.BitviewClient.get_utxo_set)
+    * [get\_utxo\_set\_diff](#bitview_client.BitviewClient.get_utxo_set_diff)
     * [get\_oracle\_price](#bitview_client.BitviewClient.get_oracle_price)
     * [get\_oracle\_histogram\_payments\_live](#bitview_client.BitviewClient.get_oracle_histogram_payments_live)
     * [get\_oracle\_histogram\_payments](#bitview_client.BitviewClient.get_oracle_histogram_payments)
@@ -141,7 +138,7 @@
 class BitviewError(Exception)
 ```
 
-Custom error class for Bitview client errors.
+A failed request: the HTTP status and the server's error code and message, when it sent them.
 
 <a id="bitview_client.SeriesData"></a>
 
@@ -152,7 +149,7 @@ Custom error class for Bitview client errors.
 class SeriesData(Generic[T])
 ```
 
-Series data with range information. Always int-indexed.
+Always int-indexed; a value is None where it is missing or undefined.
 
 <a id="bitview_client.DateSeriesData"></a>
 
@@ -162,8 +159,6 @@ Series data with range information. Always int-indexed.
 @dataclass
 class DateSeriesData(SeriesData[T])
 ```
-
-Series data with date-based index. Extends SeriesData with date methods.
 
 <a id="bitview_client.SeriesEndpoint"></a>
 
@@ -187,7 +182,7 @@ Examples:
 ## DateSeriesEndpoint Objects
 
 ```python
-class DateSeriesEndpoint(Generic[T])
+class DateSeriesEndpoint(SeriesEndpoint[T])
 ```
 
 Builder for series endpoint queries with date-based indexing.
@@ -195,10 +190,8 @@ Builder for series endpoint queries with date-based indexing.
 Accepts dates in __getitem__ and returns DateSeriesData from fetch().
 
 Examples:
-    data = endpoint.fetch()
     data = endpoint[date(2020, 1, 1)].fetch()
     data = endpoint[date(2020, 1, 1):date(2023, 1, 1)].fetch()
-    data = endpoint[:10].fetch()
 
 <a id="bitview_client.BitviewClient"></a>
 
@@ -208,7 +201,7 @@ Examples:
 class BitviewClient(BitviewClientBase)
 ```
 
-Main Bitview client with series tree and API methods.
+A method per API endpoint, and the typed series tree.
 
 <a id="bitview_client.BitviewClient.VERSION"></a>
 
@@ -226,13 +219,13 @@ Main Bitview client with series tree and API methods.
 
 #### TERM\_NAMES
 
-<a id="bitview_client.BitviewClient.EPOCH_NAMES"></a>
+<a id="bitview_client.BitviewClient.HALVING_EPOCH_NAMES"></a>
 
-#### EPOCH\_NAMES
+#### HALVING\_EPOCH\_NAMES
 
-<a id="bitview_client.BitviewClient.CLASS_NAMES"></a>
+<a id="bitview_client.BitviewClient.VINTAGE_NAMES"></a>
 
-#### CLASS\_NAMES
+#### VINTAGE\_NAMES
 
 <a id="bitview_client.BitviewClient.ENTRY_NAMES"></a>
 
@@ -246,37 +239,17 @@ Main Bitview client with series tree and API methods.
 
 #### AGE\_RANGE\_NAMES
 
-<a id="bitview_client.BitviewClient.UNDER_AGE_NAMES"></a>
-
-#### UNDER\_AGE\_NAMES
-
-<a id="bitview_client.BitviewClient.OVER_AGE_NAMES"></a>
-
-#### OVER\_AGE\_NAMES
-
 <a id="bitview_client.BitviewClient.AMOUNT_RANGE_NAMES"></a>
 
 #### AMOUNT\_RANGE\_NAMES
-
-<a id="bitview_client.BitviewClient.OVER_AMOUNT_NAMES"></a>
-
-#### OVER\_AMOUNT\_NAMES
-
-<a id="bitview_client.BitviewClient.UNDER_AMOUNT_NAMES"></a>
-
-#### UNDER\_AMOUNT\_NAMES
 
 <a id="bitview_client.BitviewClient.PROFITABILITY_RANGE_NAMES"></a>
 
 #### PROFITABILITY\_RANGE\_NAMES
 
-<a id="bitview_client.BitviewClient.PROFIT_NAMES"></a>
+<a id="bitview_client.BitviewClient.OP_RETURN_KIND_NAMES"></a>
 
-#### PROFIT\_NAMES
-
-<a id="bitview_client.BitviewClient.LOSS_NAMES"></a>
-
-#### LOSS\_NAMES
+#### OP\_RETURN\_KIND\_NAMES
 
 <a id="bitview_client.BitviewClient.__init__"></a>
 
@@ -300,13 +273,12 @@ def series() -> SeriesTree
 #### series\_endpoint
 
 ```python
-def series_endpoint(series: str, index: Index) -> SeriesEndpoint[Any]
+def series_endpoint(
+        series: str,
+        index: Index) -> Union[SeriesEndpoint[Any], DateSeriesEndpoint[Any]]
 ```
 
-Create a dynamic series endpoint builder for any series/index combination.
-
-Use this for programmatic access when the series name is determined at runtime.
-For type-safe access, use the `series` tree instead.
+A series by a name known only at runtime; `series` has the typed paths.
 
 <a id="bitview_client.BitviewClient.index_to_date"></a>
 
@@ -316,7 +288,7 @@ For type-safe access, use the `series` tree instead.
 def index_to_date(index: Index, i: int) -> Union[date, datetime]
 ```
 
-Convert an index value to a date/datetime for date-based indexes.
+The start of bucket `i`: a UTC datetime for sub-daily indexes, a date otherwise.
 
 <a id="bitview_client.BitviewClient.date_to_index"></a>
 
@@ -326,7 +298,7 @@ Convert an index value to a date/datetime for date-based indexes.
 def date_to_index(index: Index, d: Union[date, datetime]) -> int
 ```
 
-Convert a date/datetime to an index value for date-based indexes.
+The floor index (latest index whose date is <= the given date).
 
 <a id="bitview_client.BitviewClient.address_payload_hash_prefix"></a>
 
@@ -346,11 +318,11 @@ Compute the RapidHash v3 hash-prefix for raw address payload bytes.
 
 ```python
 def get_address_payload_hash_prefix_matches(
-        addr_type: OutputType, payload: Union[bytes, bytearray, memoryview],
-        nibbles: int) -> AddrHashPrefixMatches
+        address_type: OutputType, payload: Union[bytes, bytearray, memoryview],
+        nibbles: int) -> AddressHashPrefixMatches
 ```
 
-Fetch address hash-prefix matches from raw payload bytes matching addr_type length.
+Fetch address hash-prefix matches from raw payload bytes matching address_type length.
 
 <a id="bitview_client.BitviewClient.get_health"></a>
 
@@ -362,7 +334,7 @@ def get_health() -> Health
 
 Health check.
 
-Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index waits until the request deadline, then returns 504. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.
+Local health and query-readiness check. Returns server identity, uptime, and a coherent local sync snapshot without a bitcoind round-trip. Reads the published prefix during processing; an empty index returns 503 `state_updating` at once. Responses are not cached. For chain-tip catch-up, request `GET /api/server/sync`.
 
 Endpoint: `GET /health`
 
@@ -374,9 +346,7 @@ Endpoint: `GET /health`
 def get_version() -> str
 ```
 
-API version.
-
-Returns the current version of the API server
+API version
 
 Endpoint: `GET /version`
 
@@ -404,7 +374,7 @@ def get_disk_usage() -> DiskUsage
 
 Disk usage.
 
-Returns allocated file bytes for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.
+Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bitcoin data. Each request scans both trees; these are independent observations, not an atomic filesystem snapshot. Conditional requests validate the newly observed totals. Directory-link cycles and excessive nesting fail without returning partial totals.
 
 Endpoint: `GET /api/server/disk`
 
@@ -418,7 +388,7 @@ def get_series_tree() -> TreeNode
 
 Series catalog.
 
-Returns the complete hierarchical catalog of available series organized as a tree structure. Series are grouped by categories and subcategories.
+The available series as a tree of categories and subcategories.
 
 Endpoint: `GET /api/series`
 
@@ -446,7 +416,7 @@ def get_indexes() -> List[IndexInfo]
 
 List available indexes.
 
-Returns all available indexes with their accepted query aliases. Use any alias when querying series.
+Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only.
 
 Endpoint: `GET /api/series/indexes`
 
@@ -461,7 +431,7 @@ def list_series(page: Optional[int] = None,
 
 Series list.
 
-Paginated flat list of all available series names. Use `page` query param for pagination.
+Paginated flat list of all available series names.
 
 Endpoint: `GET /api/series/list`
 
@@ -470,7 +440,7 @@ Endpoint: `GET /api/series/list`
 #### search\_series
 
 ```python
-def search_series(q: SeriesName, limit: Optional[Limit] = None) -> List[str]
+def search_series(q: str, limit: Optional[Limit] = None) -> List[SeriesName]
 ```
 
 Search series.
@@ -489,7 +459,7 @@ def get_series_info(series: SeriesName) -> SeriesInfo
 
 Get series info.
 
-Returns the optional description, supported indexes, and value type for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
+Returns the optional description, supported indexes, the indexes whose values can be null, the value type, and the optional unit (what the value type measures) for the specified series. The decoded series name is limited to 1024 UTF-8 bytes.
 
 Endpoint: `GET /api/series/{series}`
 
@@ -508,7 +478,7 @@ def get_series(series: SeriesName,
 
 Get series data.
 
-Fetch data for a specific series at the given index. Use query parameters to filter by date range and format (json/csv).
+Rows selected by a range of positions, dates or timestamps, as JSON or CSV.
 
 Endpoint: `GET /api/series/{series}/{index}`
 
@@ -522,12 +492,12 @@ def get_series_data(series: SeriesName,
                     start: Optional[RangeIndex] = None,
                     end: Optional[RangeIndex] = None,
                     limit: Optional[Limit] = None,
-                    format: Optional[Format] = None) -> Union[List[bool], str]
+                    format: Optional[Format] = None) -> Union[List[Any], str]
 ```
 
 Get raw series data.
 
-Returns just the data array without the SeriesData wrapper. Supports the same range and format parameters as `GET /api/series/{series}/{index}`.
+The data array without the `SeriesData` wrapper. Supports the same range and format parameters as `GET /api/series/{series}/{index}`.
 
 Endpoint: `GET /api/series/{series}/{index}/data`
 
@@ -553,9 +523,7 @@ Endpoint: `GET /api/series/{series}/{index}/latest`
 def get_series_len(series: SeriesName, index: Index) -> int
 ```
 
-Get series data length.
-
-Returns the total number of data points for a series at the given index.
+Get series data length
 
 Endpoint: `GET /api/series/{series}/{index}/len`
 
@@ -598,43 +566,28 @@ Endpoint: `GET /api/series/bulk`
 #### list\_urpd\_cohorts
 
 ```python
-def list_urpd_cohorts() -> List[Cohort]
+def list_urpd_cohorts() -> List[UrpdCohort]
 ```
 
 Available URPD cohorts.
 
-Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `utxos_under_1h_old`.
+Every URPD cohort once a UTXO set is published (none before): the age aggregates (`all`, `sth`, `lth`, `age_under_4m`, ...), then the age bands from the youngest (`age_under_1h`, `age_1h_to_1d`, ...).
 
 Endpoint: `GET /api/urpd`
-
-<a id="bitview_client.BitviewClient.list_urpd_dates"></a>
-
-#### list\_urpd\_dates
-
-```python
-def list_urpd_dates(cohort: Cohort,
-                    weight: Optional[UrpdWeight] = None) -> List[Date]
-```
-
-Available URPD dates.
-
-Dates for which a URPD snapshot is available for the cohort and selected `weight`. One entry per UTC day, sorted ascending.
-
-Endpoint: `GET /api/urpd/{cohort}/dates`
 
 <a id="bitview_client.BitviewClient.get_urpd"></a>
 
 #### get\_urpd
 
 ```python
-def get_urpd(cohort: Cohort,
+def get_urpd(cohort: UrpdCohort,
              agg: Optional[UrpdAggregation] = None,
              weight: Optional[UrpdWeight] = None) -> Urpd
 ```
 
 Latest URPD.
 
-URPD for the most recent available date in the cohort. The response's `date` field echoes which date was served. Returns `{ cohort, date, weight, aggregation, close, total_supply, buckets }`. `close` and each bucket's `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and bucket `supply` are BTC. `unrealized_pnl` can be negative.
+URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
 
 Endpoint: `GET /api/urpd/{cohort}`
 
@@ -643,17 +596,17 @@ Endpoint: `GET /api/urpd/{cohort}`
 #### get\_urpd\_at
 
 ```python
-def get_urpd_at(cohort: Cohort,
-                date: str,
+def get_urpd_at(cohort: UrpdCohort,
+                point: HeightOrDate,
                 agg: Optional[UrpdAggregation] = None,
                 weight: Optional[UrpdWeight] = None) -> Urpd
 ```
 
-URPD at date.
+URPD at block height or date.
 
-URPD for a (cohort, date) pair. Returns `{ cohort, date, weight, aggregation, close, total_supply, buckets }` where each bucket is `{ price_floor, supply, realized_cap, unrealized_pnl }`. `close`, `price_floor`, `realized_cap`, and `unrealized_pnl` are USD; `total_supply` and `supply` are BTC. `unrealized_pnl` can be negative.
+URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
 
-Endpoint: `GET /api/urpd/{cohort}/{date}`
+Endpoint: `GET /api/urpd/{cohort}/{point}`
 
 <a id="bitview_client.BitviewClient.get_difficulty_adjustment"></a>
 
@@ -676,7 +629,7 @@ Endpoint: `GET /api/v1/difficulty-adjustment`
 #### get\_prices
 
 ```python
-def get_prices() -> Prices
+def get_prices() -> PricePoint
 ```
 
 Current BTC price.
@@ -693,12 +646,13 @@ Endpoint: `GET /api/v1/prices`
 
 ```python
 def get_historical_price(
-        timestamp: Optional[Timestamp] = None) -> HistoricalPrice
+        timestamp: Optional[Timestamp] = None,
+        currency: Optional[Currency] = None) -> HistoricalPrice
 ```
 
 Historical price.
 
-Completed four-hour BTC/USD closes, oldest first, labeled by interval end. With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only; exchangeRates is empty.
+Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
 
@@ -709,27 +663,27 @@ Endpoint: `GET /api/v1/historical-price`
 #### get\_address\_hash\_prefix\_matches
 
 ```python
-def get_address_hash_prefix_matches(addr_type: OutputType,
-                                    prefix: str) -> AddrHashPrefixMatches
+def get_address_hash_prefix_matches(address_type: OutputType,
+                                    prefix: str) -> AddressHashPrefixMatches
 ```
 
 Address hash-prefix matches.
 
 Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.
 
-Endpoint: `GET /api/address/hash-prefix/{addr_type}/{prefix}`
+Endpoint: `GET /api/address/hash-prefix/{address_type}/{prefix}`
 
 <a id="bitview_client.BitviewClient.get_address"></a>
 
 #### get\_address
 
 ```python
-def get_address(address: Addr) -> AddrStats
+def get_address(address: Address) -> AddressStats
 ```
 
 Address information.
 
-Retrieve address information including current balance and transaction counts. Supports all standard Bitcoin address types (P2PKH, P2SH, P2WPKH, P2WSH, P2TR).
+Balance and transaction counts. Supports P2PKH, P2SH, P2WPKH, P2WSH, P2TR and P2A addresses, and P2PK public keys in hex (33 or 65 bytes).
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address)*
 
@@ -740,7 +694,7 @@ Endpoint: `GET /api/address/{address}`
 #### get\_address\_txs
 
 ```python
-def get_address_txs(address: Addr) -> List[Transaction]
+def get_address_txs(address: Address) -> List[Transaction]
 ```
 
 Address transactions.
@@ -756,7 +710,7 @@ Endpoint: `GET /api/address/{address}/txs`
 #### get\_address\_confirmed\_txs
 
 ```python
-def get_address_confirmed_txs(address: Addr) -> List[Transaction]
+def get_address_confirmed_txs(address: Address) -> List[Transaction]
 ```
 
 Address confirmed transactions.
@@ -772,7 +726,7 @@ Endpoint: `GET /api/address/{address}/txs/chain`
 #### get\_address\_confirmed\_txs\_after
 
 ```python
-def get_address_confirmed_txs_after(address: Addr,
+def get_address_confirmed_txs_after(address: Address,
                                     after_txid: Txid) -> List[Transaction]
 ```
 
@@ -789,7 +743,7 @@ Endpoint: `GET /api/address/{address}/txs/chain/{after_txid}`
 #### get\_address\_mempool\_txs
 
 ```python
-def get_address_mempool_txs(address: Addr) -> List[Transaction]
+def get_address_mempool_txs(address: Address) -> List[Transaction]
 ```
 
 Address mempool transactions.
@@ -805,12 +759,12 @@ Endpoint: `GET /api/address/{address}/txs/mempool`
 #### get\_address\_utxos
 
 ```python
-def get_address_utxos(address: Addr) -> List[Utxo]
+def get_address_utxos(address: Address) -> List[Utxo]
 ```
 
 Address UTXOs.
 
-Get unspent transaction outputs (UTXOs) for an address. Returns txid, vout, value, and confirmation status for each UTXO.
+Get unspent transaction outputs (UTXOs) for an address, including unconfirmed ones; outputs that mempool transactions spend are left out.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-utxo)*
 
@@ -821,7 +775,7 @@ Endpoint: `GET /api/address/{address}/utxo`
 #### validate\_address
 
 ```python
-def validate_address(address: str) -> AddrValidation
+def validate_address(address: str) -> AddressValidation
 ```
 
 Validate address.
@@ -841,8 +795,6 @@ def get_block(hash: BlockHash) -> BlockInfo
 ```
 
 Block information.
-
-Retrieve block information by block hash. Returns block metadata including height, timestamp, difficulty, size, weight, and transaction count.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block)*
 
@@ -890,7 +842,7 @@ def get_block_by_height(height: Height) -> BlockHash
 
 Block hash by height.
 
-Retrieve the block hash at a given height. Returns the hash as plain text.
+Block hash as plain text.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*
 
@@ -938,7 +890,7 @@ def get_block_status(hash: BlockHash) -> BlockStatus
 
 Block status.
 
-Retrieve the status of a block. Returns whether the block is in the best chain and, if so, its height and the hash of the next block.
+Whether the block is in the best chain and, if so, its height and the hash of the next block. A block outside the best chain (orphaned or unknown) reports `in_best_chain: false`.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-status)*
 
@@ -954,8 +906,6 @@ def get_block_tip_height() -> Height
 
 Block tip height.
 
-Returns the height of the last block.
-
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-height)*
 
 Endpoint: `GET /api/blocks/tip/height`
@@ -969,8 +919,6 @@ def get_block_tip_hash() -> BlockHash
 ```
 
 Block tip hash.
-
-Returns the hash of the last block.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-tip-hash)*
 
@@ -1002,7 +950,7 @@ def get_block_txids(hash: BlockHash) -> List[Txid]
 
 Block transaction IDs.
 
-Retrieve all transaction IDs in a block. Returns an array of txids in block order.
+Transaction IDs in block order.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transaction-ids)*
 
@@ -1018,7 +966,7 @@ def get_block_txs(hash: BlockHash) -> List[Transaction]
 
 Block transactions.
 
-Retrieve transactions in a block by block hash. Returns up to 25 transactions starting from index 0.
+Up to 25 transactions starting at index 0.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
 
@@ -1035,7 +983,7 @@ def get_block_txs_from_index(hash: BlockHash,
 
 Block transactions (paginated).
 
-Retrieve transactions in a block by block hash, starting from the specified index. Returns up to 25 transactions at a time.
+Up to 25 transactions starting at `start_index`.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
 
@@ -1051,7 +999,7 @@ def get_blocks() -> List[BlockInfo]
 
 Recent blocks.
 
-Retrieve the last 10 blocks. Returns block metadata for each block.
+The last 10 blocks.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
 
@@ -1067,7 +1015,7 @@ def get_blocks_from_height(height: Height) -> List[BlockInfo]
 
 Blocks from height.
 
-Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0.
+Retrieve up to 10 blocks going backwards from the given height. For example, height=100 returns blocks 100, 99, 98, ..., 91. Height=0 returns only block 0. A height past the tip is not found.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks)*
 
@@ -1099,7 +1047,7 @@ def get_blocks_v1_from_height(height: Height) -> List[BlockInfoV1]
 
 Blocks from height with extras.
 
-Retrieve up to 15 blocks with extended data going backwards from the given height.
+Retrieve up to 15 blocks with extended data going backwards from the given height: the published blocks among the 15 heights ending at it, so fewer (or none) past the tip.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-blocks-v1)*
 
@@ -1115,8 +1063,6 @@ def get_pools() -> List[PoolInfo]
 
 List all mining pools.
 
-Get list of all known mining pools with their identifiers.
-
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
 
 Endpoint: `GET /api/v1/mining/pools`
@@ -1131,7 +1077,7 @@ def get_pool_stats(time_period: TimePeriod) -> PoolsSummary
 
 Mining pool statistics.
 
-Get mining pool statistics for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+Get mining pool statistics for a time period.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
 
@@ -1147,7 +1093,7 @@ def get_pool(slug: PoolSlug) -> PoolDetail
 
 Mining pool details.
 
-Get detailed information about a specific mining pool including block counts and shares for different time periods.
+Block counts and mining shares by time period for one pool.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool)*
 
@@ -1162,8 +1108,6 @@ def get_pools_hashrate() -> List[PoolHashrateEntry]
 ```
 
 All pools hashrate (all time).
-
-Get hashrate data for all mining pools.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
 
@@ -1180,7 +1124,7 @@ def get_pools_hashrate_by_period(
 
 All pools hashrate.
 
-Get hashrate data for all mining pools for a time period. Valid periods: `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+Get hashrate data for all mining pools for a time period.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
 
@@ -1226,9 +1170,9 @@ Endpoint: `GET /api/v1/mining/pool/{slug}/blocks`
 def get_pool_blocks_from(slug: PoolSlug, height: Height) -> List[BlockInfoV1]
 ```
 
-Mining pool blocks from height.
+Mining pool blocks before height.
 
-Get up to 100 blocks mined by a specific pool before (and including) the given height.
+Get up to 100 blocks mined by a specific pool strictly below the given height (pass the last height of a page to get the next one).
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*
 
@@ -1260,7 +1204,7 @@ def get_hashrate_by_period(time_period: TimePeriod) -> HashrateSummary
 
 Network hashrate.
 
-Get network hashrate and difficulty data for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+Get network hashrate and difficulty data for a time period.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*
 
@@ -1275,8 +1219,6 @@ def get_difficulty_adjustments() -> List[DifficultyAdjustmentEntry]
 ```
 
 Difficulty adjustments (all time).
-
-Get historical difficulty adjustments including timestamp, block height, difficulty value, and percentage change.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
 
@@ -1293,7 +1235,7 @@ def get_difficulty_adjustments_by_period(
 
 Difficulty adjustments.
 
-Get historical difficulty adjustments for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+Get historical difficulty adjustments for a time period.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
 
@@ -1325,7 +1267,7 @@ def get_block_fees(time_period: TimePeriod) -> List[BlockFeesEntry]
 
 Block fees.
 
-Get average total fees per block for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+Get average total fees per block for a time period.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-fees)*
 
@@ -1341,7 +1283,7 @@ def get_block_rewards(time_period: TimePeriod) -> List[BlockRewardsEntry]
 
 Block rewards.
 
-Get average coinbase reward (subsidy + fees) per block for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+Get average coinbase reward (subsidy + fees) per block for a time period.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-rewards)*
 
@@ -1357,7 +1299,7 @@ def get_block_fee_rates(time_period: TimePeriod) -> List[BlockFeeRatesEntry]
 
 Block fee rates.
 
-Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
 
@@ -1373,7 +1315,7 @@ def get_block_sizes_weights(time_period: TimePeriod) -> BlockSizesWeights
 
 Block sizes and weights.
 
-Get average block sizes and weights for a time period. Valid periods: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`.
+Get average block sizes and weights for a time period.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-sizes-weights)*
 
@@ -1405,7 +1347,7 @@ def get_recommended_fees() -> RecommendedFees
 
 Recommended fees.
 
-Recommended fee rates by confirmation target.
+Recommended fee rates by confirmation target, in whole sat/vB.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-recommended-fees)*
 
@@ -1416,7 +1358,7 @@ Endpoint: `GET /api/v1/fees/recommended`
 #### get\_precise\_fees
 
 ```python
-def get_precise_fees() -> RecommendedFees
+def get_precise_fees() -> PreciseRecommendedFees
 ```
 
 Recommended fee rates (precise).
@@ -1436,8 +1378,6 @@ def get_mempool() -> MempoolInfo
 ```
 
 Mempool statistics.
-
-Get current mempool statistics including transaction count, total vsize, total fees, and fee histogram.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*
 
@@ -1499,7 +1439,7 @@ def get_replacements() -> List[ReplacementNode]
 
 Recent RBF replacements.
 
-Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the same shape as `tx_rbf().replacements`.
+Returns up to 25 most-recent RBF replacement trees across the whole mempool. Each entry has the shape of `replacements` in `GET /api/v1/tx/{txid}/rbf`.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-replacements)*
 
@@ -1545,7 +1485,7 @@ def get_block_template_diff(hash: NextBlockHash) -> BlockTemplateDiff
 
 Block template diff since hash.
 
-Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.
+Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild and replace the cached `stats` with the response's; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.
 
 Endpoint: `GET /api/v1/mempool/block-template/diff/{hash}`
 
@@ -1559,7 +1499,7 @@ def get_live_price() -> Dollars
 
 Live BTC/USD price.
 
-Returns the current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the last 12 blocks plus mempool.
+Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available.
 
 Endpoint: `GET /api/mempool/price`
 
@@ -1619,8 +1559,6 @@ def get_tx(txid: Txid) -> Transaction
 
 Transaction information.
 
-Retrieve complete transaction data by transaction ID (txid). Returns inputs, outputs, fee, size, and confirmation status.
-
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction)*
 
 Endpoint: `GET /api/tx/{txid}`
@@ -1635,7 +1573,7 @@ def get_tx_hex(txid: Txid) -> Hex
 
 Transaction hex.
 
-Retrieve the raw transaction as a hex-encoded string. Returns the serialized transaction in hexadecimal format.
+Hex-encoded serialized transaction.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-hex)*
 
@@ -1667,8 +1605,6 @@ def get_tx_merkle_proof(txid: Txid) -> MerkleProof
 
 Transaction merkle proof.
 
-Get the merkle inclusion proof for a transaction.
-
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-merkle-proof)*
 
 Endpoint: `GET /api/tx/{txid}/merkle-proof`
@@ -1683,7 +1619,7 @@ def get_tx_outspend(txid: Txid, vout: Vout) -> TxOutspend
 
 Output spend status.
 
-Get the spending status of a transaction output. Returns whether the output has been spent and, if so, the spending transaction details.
+Whether the output has been spent and, if so, the spending transaction details.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*
 
@@ -1699,7 +1635,7 @@ def get_tx_outspends(txid: Txid) -> List[TxOutspend]
 
 All output spend statuses.
 
-Get the spending status of all outputs in a transaction. Returns an array with the spend status for each output.
+Spend statuses in output-index order.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspends)*
 
@@ -1742,12 +1678,12 @@ Endpoint: `GET /api/tx/{txid}/status`
 #### get\_transaction\_times
 
 ```python
-def get_transaction_times(txId: List[Txid]) -> List[int]
+def get_transaction_times(txId: List[Txid]) -> List[Timestamp]
 ```
 
 Transaction first-seen times.
 
-Returns timestamps when transactions were first seen in the mempool. Returns 0 for mined or unknown transactions.
+First-seen UNIX timestamps in seconds, in request order, of transactions in the mempool or that recently left it other than by replacement (mined ones included); 0 otherwise.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-times)*
 
@@ -1768,6 +1704,48 @@ Submit a raw transaction as hexadecimal text (at most 8,000,000 request bytes, i
 *[Mempool.space docs](https://mempool.space/docs/api/rest#post-transaction)*
 
 Endpoint: `POST /api/tx`
+
+<a id="bitview_client.BitviewClient.get_utxo_set_latest"></a>
+
+#### get\_utxo\_set\_latest
+
+```python
+def get_utxo_set_latest() -> UtxoSet
+```
+
+Latest UTXO set.
+
+The UTXO set after the latest published block, in the layout of `GET /api/utxo-set/{point}`.
+
+Endpoint: `GET /api/utxo-set`
+
+<a id="bitview_client.BitviewClient.get_utxo_set"></a>
+
+#### get\_utxo\_set
+
+```python
+def get_utxo_set(point: HeightOrDate) -> UtxoSet
+```
+
+UTXO set at block height or date.
+
+The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
+
+Endpoint: `GET /api/utxo-set/{point}`
+
+<a id="bitview_client.BitviewClient.get_utxo_set_diff"></a>
+
+#### get\_utxo\_set\_diff
+
+```python
+def get_utxo_set_diff(point: HeightOrDate) -> UtxoSetDiff
+```
+
+UTXO set changes of a block or date.
+
+What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.
+
+Endpoint: `GET /api/utxo-set/{point}/diff`
 
 <a id="bitview_client.BitviewClient.get_oracle_price"></a>
 
@@ -1802,7 +1780,7 @@ Endpoint: `GET /api/oracle/histogram/payments/live`
 #### get\_oracle\_histogram\_payments
 
 ```python
-def get_oracle_histogram_payments(point: str) -> List[int]
+def get_oracle_histogram_payments(point: HeightOrDate) -> List[int]
 ```
 
 Payment output histogram at height or day.
@@ -1821,7 +1799,7 @@ def get_oracle_histogram_outputs_live() -> List[int]
 
 Live output value histogram.
 
-Live unfiltered output value histogram for the complete published mempool. Every live output is binned by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
+Live unfiltered output value histogram for the complete published mempool. Nonzero outputs within the histogram's bin range are counted by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
 
 Endpoint: `GET /api/oracle/histogram/outputs/live`
 
@@ -1830,12 +1808,12 @@ Endpoint: `GET /api/oracle/histogram/outputs/live`
 #### get\_oracle\_histogram\_outputs
 
 ```python
-def get_oracle_histogram_outputs(point: str) -> List[int]
+def get_oracle_histogram_outputs(point: HeightOrDate) -> List[int]
 ```
 
 Output value histogram at height or day.
 
-Unfiltered output value histogram for a confirmed point. A block height (`840000`) gives every output in that block, coinbase included, binned by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
+Unfiltered output value histogram for a confirmed point. A block height (`840000`) counts that block's nonzero outputs within the histogram's bin range, coinbase included, by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
 
 Endpoint: `GET /api/oracle/histogram/outputs/{point}`
 
@@ -1844,12 +1822,12 @@ Endpoint: `GET /api/oracle/histogram/outputs/{point}`
 #### get\_openapi
 
 ```python
-def get_openapi() -> str
+def get_openapi() -> Any
 ```
 
 OpenAPI specification.
 
-Full OpenAPI 3.1 specification for this API.
+Full OpenAPI 3.1 specification for this API. Build tools from this document.
 
 Endpoint: `GET /openapi.json`
 
@@ -1861,8 +1839,9 @@ Endpoint: `GET /openapi.json`
 def get_api() -> Any
 ```
 
-Compact OpenAPI specification.
+Compact API summary.
 
-Compact OpenAPI specification optimized for LLM consumption. Removes redundant fields while preserving essential API information. The full specification is available at `GET /openapi.json`.
+Compact custom summary of the OpenAPI specification for LLM reading: types instead of schemas, `returns` instead of responses, no examples; parameters keep their enum, default and bounds. Not valid OpenAPI: build tools from `GET /openapi.json`.
 
 Endpoint: `GET /api.json`
+

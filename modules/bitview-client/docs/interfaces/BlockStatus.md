@@ -6,7 +6,7 @@
 
 # Interface: BlockStatus
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:277](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L277)
+Defined in: [modules/bitview-client/index.js:239](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L239)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:277](https://github.
 
 > `optional` **height?**: `number` \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:279](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L279)
+Defined in: [modules/bitview-client/index.js:241](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L241)
 
 Block height (only if in best chain)
 
@@ -24,9 +24,7 @@ Block height (only if in best chain)
 
 > **inBestChain**: `boolean`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:278](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L278)
-
-Whether this block is in the best chain
+Defined in: [modules/bitview-client/index.js:240](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L240)
 
 ***
 
@@ -34,6 +32,6 @@ Whether this block is in the best chain
 
 > `optional` **nextBest?**: `string` \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:280](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L280)
+Defined in: [modules/bitview-client/index.js:242](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L242)
 
 Hash of the next block in the best chain (null if tip)

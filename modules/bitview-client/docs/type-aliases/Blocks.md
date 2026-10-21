@@ -1,0 +1,43 @@
+[**bitview-client**](../README.md)
+
+***
+
+[bitview-client](../globals.md) / Blocks
+
+# Type Alias: Blocks
+
+> **Blocks** = `object`
+
+Defined in: [modules/bitview-client/index.js:5965](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L5965)
+
+## Type Parameters
+
+## Type Declaration
+
+### count
+
+> **count**: [`Flow`](Flow.md)\<[`Count`](Count.md)\>
+
+### difficulty
+
+> **difficulty**: [`BlocksDifficulty`](BlocksDifficulty.md)
+
+### fullness
+
+> **fullness**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Percent`](Percent.md) \| `null`\>
+
+### halving
+
+> **halving**: [`BlocksHalving`](BlocksHalving.md)
+
+### interval
+
+> **interval**: [`Averaged`](Averaged.md)\<[`Seconds`](Seconds.md), [`SecondsFract`](SecondsFract.md) \| `null`\>
+
+### size
+
+> **size**: [`FlowStats`](FlowStats.md)\<[`Bytes`](Bytes.md), [`BytesFract`](BytesFract.md) \| `null`\>
+
+### weight
+
+> **weight**: [`FlowStats`](FlowStats.md)\<[`Weight`](Weight.md), [`WeightFract`](WeightFract.md) \| `null`\>

@@ -6,7 +6,7 @@
 
 # Interface: DataRangeFormat
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:488](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L488)
+Defined in: [modules/bitview-client/index.js:423](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L423)
 
 ## Properties
 
@@ -14,9 +14,9 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:488](https://github.
 
 > `optional` **end?**: [`RangeIndex`](../type-aliases/RangeIndex.md) \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:490](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L490)
+Defined in: [modules/bitview-client/index.js:425](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L425)
 
-Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
+Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
 
 ***
 
@@ -24,9 +24,7 @@ Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negati
 
 > `optional` **format?**: [`Format`](../type-aliases/Format.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:492](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L492)
-
-Format of the output
+Defined in: [modules/bitview-client/index.js:427](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L427)
 
 ***
 
@@ -34,9 +32,9 @@ Format of the output
 
 > `optional` **limit?**: `number` \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:491](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L491)
+Defined in: [modules/bitview-client/index.js:426](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L426)
 
-Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
+Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
 
 ***
 
@@ -44,6 +42,6 @@ Maximum number of values to return (ignored if `end` is set). Aliases: `count`, 
 
 > `optional` **start?**: [`RangeIndex`](../type-aliases/RangeIndex.md) \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:489](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L489)
+Defined in: [modules/bitview-client/index.js:424](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L424)
 
-Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
+Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`

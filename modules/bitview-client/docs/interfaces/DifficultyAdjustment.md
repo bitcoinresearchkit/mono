@@ -6,7 +6,7 @@
 
 # Interface: DifficultyAdjustment
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:514](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L514)
+Defined in: [modules/bitview-client/index.js:465](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L465)
 
 ## Properties
 
@@ -14,9 +14,10 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:514](https://github.
 
 > **adjustedTimeAvg**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:524](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L524)
+Defined in: [modules/bitview-client/index.js:475](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L475)
 
-Time-adjusted average (milliseconds)
+Block time the projection uses (milliseconds): `timeAvg`, except in an epoch's first 503
+blocks, where it spans the last 503 blocks, those before the retarget scaled by it
 
 ***
 
@@ -24,9 +25,9 @@ Time-adjusted average (milliseconds)
 
 > **difficultyChange**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:516](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L516)
+Defined in: [modules/bitview-client/index.js:467](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L467)
 
-Estimated difficulty change at next retarget (%)
+Estimated difficulty change at next retarget at the `adjustedTimeAvg` pace (%)
 
 ***
 
@@ -34,7 +35,7 @@ Estimated difficulty change at next retarget (%)
 
 > **estimatedRetargetDate**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:517](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L517)
+Defined in: [modules/bitview-client/index.js:468](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L468)
 
 Estimated timestamp of next retarget (milliseconds)
 
@@ -44,9 +45,9 @@ Estimated timestamp of next retarget (milliseconds)
 
 > **expectedBlocks**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:526](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L526)
+Defined in: [modules/bitview-client/index.js:479](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L479)
 
-Expected blocks based on wall clock time since epoch start
+Blocks expected at the 10-minute target between the epoch's first block and the tip block
 
 ***
 
@@ -54,9 +55,7 @@ Expected blocks based on wall clock time since epoch start
 
 > **nextRetargetHeight**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:522](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L522)
-
-Height of next retarget
+Defined in: [modules/bitview-client/index.js:473](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L473)
 
 ***
 
@@ -64,7 +63,7 @@ Height of next retarget
 
 > **previousRetarget**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:520](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L520)
+Defined in: [modules/bitview-client/index.js:471](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L471)
 
 Previous difficulty adjustment (%)
 
@@ -74,7 +73,7 @@ Previous difficulty adjustment (%)
 
 > **previousTime**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:521](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L521)
+Defined in: [modules/bitview-client/index.js:472](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L472)
 
 Timestamp of most recent retarget (seconds)
 
@@ -84,7 +83,7 @@ Timestamp of most recent retarget (seconds)
 
 > **progressPercent**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:515](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L515)
+Defined in: [modules/bitview-client/index.js:466](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L466)
 
 Progress through current difficulty epoch (0-100%)
 
@@ -94,7 +93,7 @@ Progress through current difficulty epoch (0-100%)
 
 > **remainingBlocks**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:518](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L518)
+Defined in: [modules/bitview-client/index.js:469](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L469)
 
 Blocks remaining until retarget
 
@@ -104,9 +103,9 @@ Blocks remaining until retarget
 
 > **remainingTime**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:519](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L519)
+Defined in: [modules/bitview-client/index.js:470](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L470)
 
-Estimated time until retarget (milliseconds)
+Estimated time until retarget at `adjustedTimeAvg` (milliseconds)
 
 ***
 
@@ -114,7 +113,7 @@ Estimated time until retarget (milliseconds)
 
 > **timeAvg**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:523](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L523)
+Defined in: [modules/bitview-client/index.js:474](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L474)
 
 Average block time in current epoch (milliseconds)
 
@@ -124,6 +123,7 @@ Average block time in current epoch (milliseconds)
 
 > **timeOffset**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:525](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L525)
+Defined in: [modules/bitview-client/index.js:477](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L477)
 
-Time offset from expected schedule (seconds)
+Testnet's offset for its 20-minute minimum-difficulty rule (milliseconds): always 0 on
+mainnet, as mempool.space

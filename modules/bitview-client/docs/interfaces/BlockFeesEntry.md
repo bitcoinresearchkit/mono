@@ -6,7 +6,7 @@
 
 # Interface: BlockFeesEntry
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:170](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L170)
+Defined in: [modules/bitview-client/index.js:144](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L144)
 
 ## Properties
 
@@ -14,9 +14,9 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:170](https://github.
 
 > **avgFees**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:173](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L173)
+Defined in: [modules/bitview-client/index.js:147](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L147)
 
-Average fees per block in this window (sats)
+Mean fees per block in this bucket, rounded half up (sats)
 
 ***
 
@@ -24,9 +24,9 @@ Average fees per block in this window (sats)
 
 > **avgHeight**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:171](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L171)
+Defined in: [modules/bitview-client/index.js:145](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L145)
 
-Average block height in this window
+Average block height in this bucket
 
 ***
 
@@ -34,16 +34,16 @@ Average block height in this window
 
 > **timestamp**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:172](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L172)
+Defined in: [modules/bitview-client/index.js:146](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L146)
 
-Unix timestamp at the window midpoint
+Average block timestamp in this bucket
 
 ***
 
-### uSD
+### USD
 
-> **uSD**: `number`
+> **USD**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:174](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L174)
+Defined in: [modules/bitview-client/index.js:148](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L148)
 
-BTC/USD price at this height
+Mean BTC/USD spot price over the bucket's blocks (the price, not the fees in USD)

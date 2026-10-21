@@ -6,7 +6,7 @@
 
 # Interface: BitviewClientOptions
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1494](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1494)
+Defined in: [modules/bitview-client/index.js:1560](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1560)
 
 ## Properties
 
@@ -14,9 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1494](https://github
 
 > **baseUrl**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1495](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1495)
-
-Base URL for the API
+Defined in: [modules/bitview-client/index.js:1561](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1561)
 
 ***
 
@@ -24,7 +22,7 @@ Base URL for the API
 
 > `optional` **browserCache?**: `string` \| `boolean`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1497](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1497)
+Defined in: [modules/bitview-client/index.js:1563](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1563)
 
 Enable browser Cache API with default name (true), custom name (string), or disable (false). No effect in Node.js. Default: true
 
@@ -34,9 +32,9 @@ Enable browser Cache API with default name (true), custom name (string), or disa
 
 > `optional` **memCache?**: `number` \| `boolean`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1498](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1498)
+Defined in: [modules/bitview-client/index.js:1564](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1564)
 
-In-memory parsed-response cache size (LRU). true/undefined → 1000, false/0 → disabled. Lets 304 responses skip the JSON parse entirely. Default: 1000
+LRU capacity of the in-memory parsed-response cache, which lets 304 responses skip the JSON parse: true/undefined → 1000, false/0 → disabled
 
 ***
 
@@ -44,6 +42,6 @@ In-memory parsed-response cache size (LRU). true/undefined → 1000, false/0 →
 
 > `optional` **timeout?**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1496](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1496)
+Defined in: [modules/bitview-client/index.js:1562](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1562)
 
 Request timeout in milliseconds

@@ -6,7 +6,7 @@
 
 # Interface: SeriesSelection
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1153](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1153)
+Defined in: [modules/bitview-client/index.js:1187](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1187)
 
 ## Properties
 
@@ -14,9 +14,9 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1153](https://github
 
 > `optional` **end?**: [`RangeIndex`](../type-aliases/RangeIndex.md) \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1157](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1157)
+Defined in: [modules/bitview-client/index.js:1191](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1191)
 
-Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `to`, `t`, `e`
+Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
 
 ***
 
@@ -24,9 +24,7 @@ Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negati
 
 > `optional` **format?**: [`Format`](../type-aliases/Format.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1159](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1159)
-
-Format of the output
+Defined in: [modules/bitview-client/index.js:1193](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1193)
 
 ***
 
@@ -34,9 +32,7 @@ Format of the output
 
 > **index**: [`Index`](../type-aliases/Index.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1155](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1155)
-
-Index to query
+Defined in: [modules/bitview-client/index.js:1189](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1189)
 
 ***
 
@@ -44,9 +40,9 @@ Index to query
 
 > `optional` **limit?**: `number` \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1158](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1158)
+Defined in: [modules/bitview-client/index.js:1192](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1192)
 
-Maximum number of values to return (ignored if `end` is set). Aliases: `count`, `c`, `l`
+Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
 
 ***
 
@@ -54,9 +50,7 @@ Maximum number of values to return (ignored if `end` is set). Aliases: `count`, 
 
 > **series**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1154](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1154)
-
-Requested series
+Defined in: [modules/bitview-client/index.js:1188](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1188)
 
 ***
 
@@ -64,6 +58,6 @@ Requested series
 
 > `optional` **start?**: [`RangeIndex`](../type-aliases/RangeIndex.md) \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1156](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1156)
+Defined in: [modules/bitview-client/index.js:1190](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1190)
 
-Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. Aliases: `from`, `f`, `s`
+Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`

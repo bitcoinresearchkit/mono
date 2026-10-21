@@ -13,3 +13,5 @@ worker.*
 !lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.d.mts
 *.cts
 *.rs
+# (The client's generated docs, whatever their names: `cli*` above caught ClientFetchOptions.md, git ignoring case here.)
+!bitview-client/docs/**

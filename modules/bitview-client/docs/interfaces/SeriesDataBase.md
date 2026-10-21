@@ -6,7 +6,7 @@
 
 # Interface: SeriesDataBase\<T\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1685](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1685)
+Defined in: [modules/bitview-client/index.js:1734](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1734)
 
 ## Type Parameters
 
@@ -20,9 +20,9 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1685](https://github
 
 > **data**: `T`[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1692](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1692)
+Defined in: [modules/bitview-client/index.js:1740](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1740)
 
-The series data
+The series data (`null` where a value is missing or undefined)
 
 ***
 
@@ -30,7 +30,7 @@ The series data
 
 > **end**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1690](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1690)
+Defined in: [modules/bitview-client/index.js:1739](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1739)
 
 End index (exclusive)
 
@@ -40,7 +40,7 @@ End index (exclusive)
 
 > **entries**: () => \[`number`, `T`\][]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1696](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1696)
+Defined in: [modules/bitview-client/index.js:1744](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1744)
 
 Get [index, value] pairs
 
@@ -54,9 +54,7 @@ Get [index, value] pairs
 
 > **index**: [`Index`](../type-aliases/Index.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1687](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1687)
-
-The index type used for this query
+Defined in: [modules/bitview-client/index.js:1736](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1736)
 
 ***
 
@@ -64,9 +62,7 @@ The index type used for this query
 
 > **indexes**: () => `number`[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1694](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1694)
-
-Get index numbers
+Defined in: [modules/bitview-client/index.js:1742](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1742)
 
 #### Returns
 
@@ -78,9 +74,7 @@ Get index numbers
 
 > **isDateBased**: `boolean`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1693](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1693)
-
-Whether this series uses a date-based index
+Defined in: [modules/bitview-client/index.js:1741](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1741)
 
 ***
 
@@ -88,9 +82,9 @@ Whether this series uses a date-based index
 
 > **keys**: () => `number`[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1695](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1695)
+Defined in: [modules/bitview-client/index.js:1743](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1743)
 
-Get keys as index numbers (alias for indexes)
+Alias for indexes
 
 #### Returns
 
@@ -102,7 +96,7 @@ Get keys as index numbers (alias for indexes)
 
 > **start**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1689](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1689)
+Defined in: [modules/bitview-client/index.js:1738](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1738)
 
 Start index (inclusive)
 
@@ -112,7 +106,7 @@ Start index (inclusive)
 
 > **toMap**: () => `Map`\<`number`, `T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1697](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1697)
+Defined in: [modules/bitview-client/index.js:1745](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1745)
 
 Convert to Map<index, value>
 
@@ -126,9 +120,9 @@ Convert to Map<index, value>
 
 > **type**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1688](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1688)
+Defined in: [modules/bitview-client/index.js:1737](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1737)
 
-Value type (e.g. "f32", "u64", "Sats")
+Value type (e.g. "Ratio", "Sats", "Cents")
 
 ***
 
@@ -136,6 +130,4 @@ Value type (e.g. "f32", "u64", "Sats")
 
 > **version**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1686](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1686)
-
-Version of the series data
+Defined in: [modules/bitview-client/index.js:1735](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1735)

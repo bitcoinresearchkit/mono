@@ -6,7 +6,7 @@
 
 # Interface: Health
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:627](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L627)
+Defined in: [modules/bitview-client/index.js:599](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L599)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:627](https://github.
 
 > **blocksBehind**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:637](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L637)
+Defined in: [modules/bitview-client/index.js:610](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L610)
 
 Number of blocks behind the tip
 
@@ -24,7 +24,7 @@ Number of blocks behind the tip
 
 > **computedHeight**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:635](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L635)
+Defined in: [modules/bitview-client/index.js:607](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L607)
 
 Height of the last computed block (series)
 
@@ -34,7 +34,7 @@ Height of the last computed block (series)
 
 > **indexedHeight**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:634](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L634)
+Defined in: [modules/bitview-client/index.js:606](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L606)
 
 Height of the last indexed block
 
@@ -44,7 +44,7 @@ Height of the last indexed block
 
 > **lastIndexedAt**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:638](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L638)
+Defined in: [modules/bitview-client/index.js:611](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L611)
 
 Human-readable timestamp of the last indexed block (ISO 8601)
 
@@ -54,7 +54,7 @@ Human-readable timestamp of the last indexed block (ISO 8601)
 
 > **lastIndexedAtUnix**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:639](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L639)
+Defined in: [modules/bitview-client/index.js:612](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L612)
 
 Unix timestamp of the last indexed block
 
@@ -62,11 +62,9 @@ Unix timestamp of the last indexed block
 
 ### service
 
-> **service**: `string`
+> **service**: `"brk"`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:629](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L629)
-
-Service name
+Defined in: [modules/bitview-client/index.js:601](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L601)
 
 ***
 
@@ -74,7 +72,7 @@ Service name
 
 > **startedAt**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:632](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L632)
+Defined in: [modules/bitview-client/index.js:604](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L604)
 
 Server start time (ISO 8601)
 
@@ -82,11 +80,9 @@ Server start time (ISO 8601)
 
 ### status
 
-> **status**: `string`
+> **status**: `"healthy"`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:628](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L628)
-
-Health status ("healthy")
+Defined in: [modules/bitview-client/index.js:600](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L600)
 
 ***
 
@@ -94,7 +90,7 @@ Health status ("healthy")
 
 > **timestamp**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:631](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L631)
+Defined in: [modules/bitview-client/index.js:603](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L603)
 
 Current server time (ISO 8601)
 
@@ -104,9 +100,10 @@ Current server time (ISO 8601)
 
 > **tipHeight**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:636](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L636)
+Defined in: [modules/bitview-client/index.js:608](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L608)
 
-Height of the chain tip (from Bitcoin node)
+Height of the Bitcoin node's chain tip; `/health` reports `indexed_height` instead, without
+asking the node
 
 ***
 
@@ -114,7 +111,7 @@ Height of the chain tip (from Bitcoin node)
 
 > **uptimeSeconds**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:633](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L633)
+Defined in: [modules/bitview-client/index.js:605](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L605)
 
 Uptime in seconds
 
@@ -124,6 +121,4 @@ Uptime in seconds
 
 > **version**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:630](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L630)
-
-Server version
+Defined in: [modules/bitview-client/index.js:602](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L602)

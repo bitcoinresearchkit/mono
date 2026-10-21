@@ -6,7 +6,7 @@
 
 # Interface: HashrateSummary
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:618](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L618)
+Defined in: [modules/bitview-client/index.js:592](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L592)
 
 ## Properties
 
@@ -14,9 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:618](https://github.
 
 > **currentDifficulty**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:622](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L622)
-
-Current network difficulty
+Defined in: [modules/bitview-client/index.js:596](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L596)
 
 ***
 
@@ -24,9 +22,9 @@ Current network difficulty
 
 > **currentHashrate**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:621](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L621)
+Defined in: [modules/bitview-client/index.js:595](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L595)
 
-Current network hashrate (H/s)
+Current network hashrate over the trailing 7 days (H/s)
 
 ***
 
@@ -34,9 +32,7 @@ Current network hashrate (H/s)
 
 > **difficulty**: [`DifficultyEntry`](DifficultyEntry.md)[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:620](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L620)
-
-Historical difficulty adjustments
+Defined in: [modules/bitview-client/index.js:594](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L594)
 
 ***
 
@@ -44,6 +40,4 @@ Historical difficulty adjustments
 
 > **hashrates**: [`HashrateEntry`](HashrateEntry.md)[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:619](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L619)
-
-Historical hashrate data points
+Defined in: [modules/bitview-client/index.js:593](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L593)

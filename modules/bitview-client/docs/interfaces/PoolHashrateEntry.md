@@ -6,7 +6,7 @@
 
 # Interface: PoolHashrateEntry
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:929](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L929)
+Defined in: [modules/bitview-client/index.js:968](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L968)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:929](https://github.
 
 > **avgHashrate**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:931](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L931)
+Defined in: [modules/bitview-client/index.js:970](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L970)
 
 Average hashrate (H/s)
 
@@ -24,9 +24,7 @@ Average hashrate (H/s)
 
 > **poolName**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:933](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L933)
-
-Pool name
+Defined in: [modules/bitview-client/index.js:972](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L972)
 
 ***
 
@@ -34,7 +32,7 @@ Pool name
 
 > **share**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:932](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L932)
+Defined in: [modules/bitview-client/index.js:971](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L971)
 
 Pool's share of total network hashrate (0.0 - 1.0)
 
@@ -44,6 +42,6 @@ Pool's share of total network hashrate (0.0 - 1.0)
 
 > **timestamp**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:930](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L930)
+Defined in: [modules/bitview-client/index.js:969](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L969)
 
 Unix timestamp

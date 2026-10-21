@@ -6,20 +6,22 @@
 
 # Interface: UrpdParams
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1409](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1409)
+Defined in: [modules/bitview-client/index.js:1397](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1397)
 
 ## Properties
 
 ### cohort
 
-> **cohort**: `string`
+> **cohort**: [`UrpdCohort`](../type-aliases/UrpdCohort.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1410](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1410)
+Defined in: [modules/bitview-client/index.js:1398](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1398)
 
 ***
 
 ### point
 
-> **point**: `string`
+> **point**: [`HeightOrDate`](../type-aliases/HeightOrDate.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1411](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1411)
+Defined in: [modules/bitview-client/index.js:1399](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1399)
+
+Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)

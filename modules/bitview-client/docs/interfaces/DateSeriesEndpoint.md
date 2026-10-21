@@ -6,7 +6,7 @@
 
 # Interface: DateSeriesEndpoint\<T\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1734](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1734)
+Defined in: [modules/bitview-client/index.js:1782](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1782)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1734](https://github
 
 > **fetch**: (`arg?`, `options?`) => `Promise`\<[`DateSeriesData`](../type-aliases/DateSeriesData.md)\<`T`\>\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1740](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1740)
+Defined in: [modules/bitview-client/index.js:1788](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1788)
 
 Fetch all data
 
@@ -44,7 +44,7 @@ Fetch all data
 
 > **fetchCsv**: (`options?`) => `Promise`\<`string`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1741](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1741)
+Defined in: [modules/bitview-client/index.js:1789](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1789)
 
 Fetch all data as CSV
 
@@ -64,9 +64,7 @@ Fetch all data as CSV
 
 > **first**: (`n`) => [`DateRangeBuilder`](DateRangeBuilder.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1737](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1737)
-
-Get first n items
+Defined in: [modules/bitview-client/index.js:1785](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1785)
 
 #### Parameters
 
@@ -82,11 +80,9 @@ Get first n items
 
 ### get
 
-> **get**: (`index`) => [`DateSingleItemBuilder`](DateSingleItemBuilder.md)\<`T`\>
+> **get**: (`index`) => [`DateRangeBuilder`](DateRangeBuilder.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1735](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1735)
-
-Get single item at index or Date
+Defined in: [modules/bitview-client/index.js:1783](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1783)
 
 #### Parameters
 
@@ -96,7 +92,7 @@ Get single item at index or Date
 
 #### Returns
 
-[`DateSingleItemBuilder`](DateSingleItemBuilder.md)\<`T`\>
+[`DateRangeBuilder`](DateRangeBuilder.md)\<`T`\>
 
 ***
 
@@ -104,9 +100,7 @@ Get single item at index or Date
 
 > **last**: (`n`) => [`DateRangeBuilder`](DateRangeBuilder.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1738](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1738)
-
-Get last n items
+Defined in: [modules/bitview-client/index.js:1786](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1786)
 
 #### Parameters
 
@@ -124,7 +118,7 @@ Get last n items
 
 > **len**: () => `Promise`\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1742](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1742)
+Defined in: [modules/bitview-client/index.js:1790](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1790)
 
 Get total number of data points
 
@@ -138,9 +132,7 @@ Get total number of data points
 
 > **path**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1745](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1745)
-
-The endpoint path
+Defined in: [modules/bitview-client/index.js:1793](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1793)
 
 ***
 
@@ -148,7 +140,7 @@ The endpoint path
 
 > **skip**: (`n`) => [`DateSkippedBuilder`](DateSkippedBuilder.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1739](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1739)
+Defined in: [modules/bitview-client/index.js:1787](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1787)
 
 Skip first n items, chain with take()
 
@@ -168,9 +160,7 @@ Skip first n items, chain with take()
 
 > **slice**: (`start?`, `end?`) => [`DateRangeBuilder`](DateRangeBuilder.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1736](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1736)
-
-Slice by index or Date
+Defined in: [modules/bitview-client/index.js:1784](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1784)
 
 #### Parameters
 
@@ -190,11 +180,43 @@ Slice by index or Date
 
 ### then
 
-> **then**: [`DateThenable`](../type-aliases/DateThenable.md)\<`T`\>
+> **then**: \<`TResult1`, `TResult2`\>(`onfulfilled?`, `onrejected?`) => `PromiseLike`\<`TResult1` \| `TResult2`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1744](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1744)
+Defined in: [modules/bitview-client/index.js:1792](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1792)
 
 Thenable (await endpoint)
+
+Attaches callbacks for the resolution and/or rejection of the Promise.
+
+#### Type Parameters
+
+##### TResult1
+
+`TResult1` = [`DateSeriesData`](../type-aliases/DateSeriesData.md)\<`T`\>
+
+##### TResult2
+
+`TResult2` = `never`
+
+#### Parameters
+
+##### onfulfilled?
+
+((`value`) => `TResult1` \| `PromiseLike`\<`TResult1`\>) \| `null`
+
+The callback to execute when the Promise is resolved.
+
+##### onrejected?
+
+((`reason`) => `TResult2` \| `PromiseLike`\<`TResult2`\>) \| `null`
+
+The callback to execute when the Promise is rejected.
+
+#### Returns
+
+`PromiseLike`\<`TResult1` \| `TResult2`\>
+
+A Promise for the completion of which ever callback is executed.
 
 ***
 
@@ -202,9 +224,7 @@ Thenable (await endpoint)
 
 > **version**: () => `Promise`\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1743](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1743)
-
-Get the current version of the series
+Defined in: [modules/bitview-client/index.js:1791](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1791)
 
 #### Returns
 

@@ -6,9 +6,9 @@
 
 # Class: BitviewError
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1541](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1541)
+Defined in: [modules/bitview-client/index.js:1607](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1607)
 
-Custom error class for Bitview client errors
+A failed request: the HTTP status and the server's error code and message, when it sent them.
 
 ## Extends
 
@@ -18,9 +18,9 @@ Custom error class for Bitview client errors
 
 ### Constructor
 
-> **new BitviewError**(`message`, `status?`): `BitviewError`
+> **new BitviewError**(`message`, `status?`, `code?`): `BitviewError`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1546](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1546)
+Defined in: [modules/bitview-client/index.js:1613](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1613)
 
 #### Parameters
 
@@ -32,6 +32,10 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1546](https://github
 
 `number`
 
+##### code?
+
+[`ErrorCode`](../type-aliases/ErrorCode.md)
+
 #### Returns
 
 `BitviewError`
@@ -39,27 +43,3 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1546](https://github
 #### Overrides
 
 `Error.constructor`
-
-## Methods
-
-### isError()
-
-> `static` **isError**(`error`): `error is Error`
-
-Defined in: .npm/\_npx/940582f83630445a/node\_modules/typescript/lib/lib.esnext.error.d.ts:23
-
-Indicates whether the argument provided is a built-in Error instance or not.
-
-#### Parameters
-
-##### error
-
-`unknown`
-
-#### Returns
-
-`error is Error`
-
-#### Inherited from
-
-`Error.isError`

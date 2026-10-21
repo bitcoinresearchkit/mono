@@ -1,0 +1,19 @@
+[**bitview-client**](../README.md)
+
+***
+
+[bitview-client](../globals.md) / TxinIndex
+
+# Type Alias: TxinIndex
+
+> **TxinIndex** = `object`
+
+Defined in: [modules/bitview-client/index.js:6021](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L6021)
+
+## Type Parameters
+
+## Type Declaration
+
+### identity
+
+> **identity**: [`SeriesPattern20`](SeriesPattern20.md)\<[`TxInIndex`](TxInIndex-1.md)\>

@@ -6,26 +6,12 @@
 
 # Type Alias: DateThenable\<T\>
 
-> **DateThenable**\<`T`\> = (`onfulfilled?`, `onrejected?`) => `Promise`\<[`DateSeriesData`](DateSeriesData.md)\<`T`\>\>
+> **DateThenable**\<`T`\> = `PromiseLike`\<[`DateSeriesData`](DateSeriesData.md)\<`T`\>\>\[`"then"`\]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1714](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1714)
+Defined in: [modules/bitview-client/index.js:1762](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1762)
 
 ## Type Parameters
 
 ### T
 
 `T`
-
-## Parameters
-
-### onfulfilled?
-
-(`value`) => `any`
-
-### onrejected?
-
-(`reason`) => `never`
-
-## Returns
-
-`Promise`\<[`DateSeriesData`](DateSeriesData.md)\<`T`\>\>

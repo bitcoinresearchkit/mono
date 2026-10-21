@@ -1,0 +1,55 @@
+[**bitview-client**](../README.md)
+
+***
+
+[bitview-client](../globals.md) / HoldersRealized
+
+# Type Alias: HoldersRealized
+
+> **HoldersRealized** = `object`
+
+Defined in: [modules/bitview-client/index.js:5142](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L5142)
+
+## Type Parameters
+
+## Type Declaration
+
+### adjustedSopr
+
+> **adjustedSopr**: [`AdjustedSopr`](AdjustedSopr.md)
+
+### grossPnl
+
+> **grossPnl**: [`Flow`](Flow.md)\<[`Dollars`](Dollars.md) \| `null`\>
+
+### loss
+
+> **loss**: [`Flow`](Flow.md)\<[`Dollars`](Dollars.md) \| `null`\>
+
+### netPnl
+
+> **netPnl**: [`Flow`](Flow.md)\<[`Dollars`](Dollars.md) \| `null`\>
+
+### peakRegret
+
+> **peakRegret**: [`Flow`](Flow.md)\<[`Dollars`](Dollars.md) \| `null`\>
+
+### profit
+
+> **profit**: [`Flow`](Flow.md)\<[`Dollars`](Dollars.md) \| `null`\>
+
+### profitToLoss
+
+> **profitToLoss**: [`Windows`](Windows.md)\<[`Multiple`](Multiple.md) \| `null`\>
+
+### sellSideRiskRatio
+
+> **sellSideRiskRatio**: [`Windows`](Windows.md)\<[`Ratio`](Ratio.md) \| `null`\>
+
+### sopr
+
+> **sopr**: [`Windows`](Windows.md)\<[`Multiple`](Multiple.md) \| `null`\>
+
+### valueDestroyed
+
+> **valueDestroyed**: [`Flow`](Flow.md)\<[`Dollars`](Dollars.md) \| `null`\>

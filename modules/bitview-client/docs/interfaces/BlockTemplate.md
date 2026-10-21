@@ -6,15 +6,15 @@
 
 # Interface: BlockTemplate
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:287](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L287)
+Defined in: [modules/bitview-client/index.js:249](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L249)
 
 ## Properties
 
 ### hash
 
-> **hash**: `number`
+> **hash**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:288](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L288)
+Defined in: [modules/bitview-client/index.js:250](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L250)
 
 Pass to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
 
@@ -24,9 +24,7 @@ Pass to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
 
 > **stats**: [`MempoolBlock`](MempoolBlock.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:289](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L289)
-
-Aggregate stats for this block (size, vsize, fee range, ...).
+Defined in: [modules/bitview-client/index.js:251](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L251)
 
 ***
 
@@ -34,6 +32,6 @@ Aggregate stats for this block (size, vsize, fee range, ...).
 
 > **transactions**: [`Transaction`](Transaction.md)[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:290](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L290)
+Defined in: [modules/bitview-client/index.js:252](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L252)
 
 Full transaction bodies in `getblocktemplate` order.

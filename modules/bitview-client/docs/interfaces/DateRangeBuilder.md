@@ -6,7 +6,7 @@
 
 # Interface: DateRangeBuilder\<T\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1794](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1794)
+Defined in: [modules/bitview-client/index.js:1830](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1830)
 
 ## Type Parameters
 
@@ -20,9 +20,9 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1794](https://github
 
 > **fetch**: (`arg?`, `options?`) => `Promise`\<[`DateSeriesData`](../type-aliases/DateSeriesData.md)\<`T`\>\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1795](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1795)
+Defined in: [modules/bitview-client/index.js:1831](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1831)
 
-Fetch the range
+Fetch the selection (one item or a range)
 
 #### Parameters
 
@@ -44,9 +44,7 @@ Fetch the range
 
 > **fetchCsv**: (`options?`) => `Promise`\<`string`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1796](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1796)
-
-Fetch as CSV
+Defined in: [modules/bitview-client/index.js:1832](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1832)
 
 #### Parameters
 
@@ -62,8 +60,38 @@ Fetch as CSV
 
 ### then
 
-> **then**: [`DateThenable`](../type-aliases/DateThenable.md)\<`T`\>
+> **then**: \<`TResult1`, `TResult2`\>(`onfulfilled?`, `onrejected?`) => `PromiseLike`\<`TResult1` \| `TResult2`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1797](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1797)
+Defined in: [modules/bitview-client/index.js:1833](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1833)
 
-Thenable
+Attaches callbacks for the resolution and/or rejection of the Promise.
+
+#### Type Parameters
+
+##### TResult1
+
+`TResult1` = [`DateSeriesData`](../type-aliases/DateSeriesData.md)\<`T`\>
+
+##### TResult2
+
+`TResult2` = `never`
+
+#### Parameters
+
+##### onfulfilled?
+
+((`value`) => `TResult1` \| `PromiseLike`\<`TResult1`\>) \| `null`
+
+The callback to execute when the Promise is resolved.
+
+##### onrejected?
+
+((`reason`) => `TResult2` \| `PromiseLike`\<`TResult2`\>) \| `null`
+
+The callback to execute when the Promise is rejected.
+
+#### Returns
+
+`PromiseLike`\<`TResult1` \| `TResult2`\>
+
+A Promise for the completion of which ever callback is executed.

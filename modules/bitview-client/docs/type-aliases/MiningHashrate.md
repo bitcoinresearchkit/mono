@@ -1,0 +1,27 @@
+[**bitview-client**](../README.md)
+
+***
+
+[bitview-client](../globals.md) / MiningHashrate
+
+# Type Alias: MiningHashrate
+
+> **MiningHashrate** = `object`
+
+Defined in: [modules/bitview-client/index.js:3705](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L3705)
+
+## Type Parameters
+
+## Type Declaration
+
+### price
+
+> **price**: [`HashPriceValue`](HashPriceValue.md)\<[`HashPrice`](HashPrice.md) \| `null`\>
+
+### rate
+
+> **rate**: [`Rate`](Rate.md)
+
+### value
+
+> **value**: [`HashPriceValue`](HashPriceValue.md)\<[`HashValue`](HashValue.md) \| `null`\>

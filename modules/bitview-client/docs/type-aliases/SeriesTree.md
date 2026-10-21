@@ -1,0 +1,107 @@
+[**bitview-client**](../README.md)
+
+***
+
+[bitview-client](../globals.md) / SeriesTree
+
+# Type Alias: SeriesTree
+
+> **SeriesTree** = `object`
+
+Defined in: [modules/bitview-client/index.js:6887](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L6887)
+
+## Type Parameters
+
+## Type Declaration
+
+### addresses
+
+> **addresses**: [`Addresses`](Addresses.md)
+
+### age
+
+> **age**: [`Age`](Age.md)
+
+### bedrock
+
+> **bedrock**: [`Bedrock`](Bedrock.md)
+
+### blocks
+
+> **blocks**: [`Blocks`](Blocks.md)
+
+### coinflow
+
+> **coinflow**: [`Coinflow`](Coinflow.md)
+
+### cointime
+
+> **cointime**: [`Cointime`](Cointime.md)
+
+### entry
+
+> **entry**: [`Entry`](Entry.md)
+
+### holders
+
+> **holders**: [`Holders`](Holders.md)\<[`CreationCohort`](CreationCohort.md)\<[`AllSupply`](AllSupply.md), [`Capital`](Capital.md), [`HoldersActivity`](HoldersActivity.md), [`HoldersRealized`](HoldersRealized.md), [`Unrealized`](Unrealized.md), [`HoldersCostBasis`](HoldersCostBasis.md)\>, [`CreationCohort`](CreationCohort.md)\<[`LthSupply`](LthSupply.md), [`Capital`](Capital.md), [`HoldersActivity`](HoldersActivity.md), [`HoldersRealized`](HoldersRealized.md), [`Unrealized`](Unrealized.md), [`HoldersCostBasis`](HoldersCostBasis.md)\>\>
+
+### indexer
+
+> **indexer**: [`Indexer`](Indexer.md)
+
+### inputs
+
+> **inputs**: [`Inputs`](Inputs.md)
+
+### mappings
+
+> **mappings**: [`Mappings`](Mappings.md)
+
+### market
+
+> **market**: [`Market`](Market.md)
+
+### mining
+
+> **mining**: [`Mining`](Mining.md)
+
+### opReturn
+
+> **opReturn**: [`OpReturn`](OpReturn.md)
+
+### outputs
+
+> **outputs**: [`Outputs`](Outputs.md)
+
+### pools
+
+> **pools**: [`Pools`](Pools.md)
+
+### price
+
+> **price**: [`Price`](Price.md)
+
+### profitability
+
+> **profitability**: [`Profitability`](Profitability.md)
+
+### rarityMeter
+
+> **rarityMeter**: [`RarityMeter`](RarityMeter.md)
+
+### supply
+
+> **supply**: [`Supply`](Supply.md)
+
+### transactions
+
+> **transactions**: [`Transactions`](Transactions.md)
+
+### utxos
+
+> **utxos**: [`Utxos`](Utxos.md)
+
+### utxoSet
+
+> **utxoSet**: [`UtxoSetSeries`](UtxoSetSeries.md)

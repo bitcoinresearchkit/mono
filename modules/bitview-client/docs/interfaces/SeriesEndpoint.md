@@ -6,7 +6,7 @@
 
 # Interface: SeriesEndpoint\<T\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1718](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1718)
+Defined in: [modules/bitview-client/index.js:1766](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1766)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1718](https://github
 
 > **fetch**: (`arg?`, `options?`) => `Promise`\<[`SeriesData`](../type-aliases/SeriesData.md)\<`T`\>\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1724](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1724)
+Defined in: [modules/bitview-client/index.js:1772](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1772)
 
 Fetch all data
 
@@ -44,7 +44,7 @@ Fetch all data
 
 > **fetchCsv**: (`options?`) => `Promise`\<`string`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1725](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1725)
+Defined in: [modules/bitview-client/index.js:1773](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1773)
 
 Fetch all data as CSV
 
@@ -64,9 +64,7 @@ Fetch all data as CSV
 
 > **first**: (`n`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1721](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1721)
-
-Get first n items
+Defined in: [modules/bitview-client/index.js:1769](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1769)
 
 #### Parameters
 
@@ -82,11 +80,9 @@ Get first n items
 
 ### get
 
-> **get**: (`index`) => [`SingleItemBuilder`](SingleItemBuilder.md)\<`T`\>
+> **get**: (`index`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1719](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1719)
-
-Get single item at index
+Defined in: [modules/bitview-client/index.js:1767](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1767)
 
 #### Parameters
 
@@ -96,7 +92,7 @@ Get single item at index
 
 #### Returns
 
-[`SingleItemBuilder`](SingleItemBuilder.md)\<`T`\>
+[`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
 ***
 
@@ -104,9 +100,7 @@ Get single item at index
 
 > **last**: (`n`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1722](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1722)
-
-Get last n items
+Defined in: [modules/bitview-client/index.js:1770](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1770)
 
 #### Parameters
 
@@ -124,7 +118,7 @@ Get last n items
 
 > **len**: () => `Promise`\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1726](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1726)
+Defined in: [modules/bitview-client/index.js:1774](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1774)
 
 Get total number of data points
 
@@ -138,9 +132,7 @@ Get total number of data points
 
 > **path**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1729](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1729)
-
-The endpoint path
+Defined in: [modules/bitview-client/index.js:1777](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1777)
 
 ***
 
@@ -148,7 +140,7 @@ The endpoint path
 
 > **skip**: (`n`) => [`SkippedBuilder`](SkippedBuilder.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1723](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1723)
+Defined in: [modules/bitview-client/index.js:1771](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1771)
 
 Skip first n items, chain with take()
 
@@ -168,9 +160,7 @@ Skip first n items, chain with take()
 
 > **slice**: (`start?`, `end?`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1720](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1720)
-
-Slice by index
+Defined in: [modules/bitview-client/index.js:1768](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1768)
 
 #### Parameters
 
@@ -190,11 +180,43 @@ Slice by index
 
 ### then
 
-> **then**: [`Thenable`](../type-aliases/Thenable.md)\<`T`\>
+> **then**: \<`TResult1`, `TResult2`\>(`onfulfilled?`, `onrejected?`) => `PromiseLike`\<`TResult1` \| `TResult2`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1728](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1728)
+Defined in: [modules/bitview-client/index.js:1776](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1776)
 
 Thenable (await endpoint)
+
+Attaches callbacks for the resolution and/or rejection of the Promise.
+
+#### Type Parameters
+
+##### TResult1
+
+`TResult1` = [`SeriesData`](../type-aliases/SeriesData.md)\<`T`\>
+
+##### TResult2
+
+`TResult2` = `never`
+
+#### Parameters
+
+##### onfulfilled?
+
+((`value`) => `TResult1` \| `PromiseLike`\<`TResult1`\>) \| `null`
+
+The callback to execute when the Promise is resolved.
+
+##### onrejected?
+
+((`reason`) => `TResult2` \| `PromiseLike`\<`TResult2`\>) \| `null`
+
+The callback to execute when the Promise is rejected.
+
+#### Returns
+
+`PromiseLike`\<`TResult1` \| `TResult2`\>
+
+A Promise for the completion of which ever callback is executed.
 
 ***
 
@@ -202,9 +224,7 @@ Thenable (await endpoint)
 
 > **version**: () => `Promise`\<`number`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1727](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1727)
-
-Get the current version of the series
+Defined in: [modules/bitview-client/index.js:1775](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1775)
 
 #### Returns
 

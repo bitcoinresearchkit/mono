@@ -6,8 +6,8 @@
 
 # Type Alias: P2ABytes
 
-> **P2ABytes** = [`U8x2`](U8x2.md)
+> **P2ABytes** = `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:821](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L821)
+Defined in: [modules/bitview-client/index.js:824](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L824)
 
 ## Type Parameters

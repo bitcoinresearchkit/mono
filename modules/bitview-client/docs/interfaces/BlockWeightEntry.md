@@ -6,7 +6,7 @@
 
 # Interface: BlockWeightEntry
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:347](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L347)
+Defined in: [modules/bitview-client/index.js:301](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L301)
 
 ## Properties
 
@@ -14,9 +14,9 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:347](https://github.
 
 > **avgHeight**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:348](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L348)
+Defined in: [modules/bitview-client/index.js:302](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L302)
 
-Average block height in this window
+Average block height in this bucket
 
 ***
 
@@ -24,9 +24,9 @@ Average block height in this window
 
 > **avgWeight**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:350](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L350)
+Defined in: [modules/bitview-client/index.js:304](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L304)
 
-Rolling 24h median block weight (weight units)
+Mean block weight in this bucket, rounded half up (weight units)
 
 ***
 
@@ -34,6 +34,6 @@ Rolling 24h median block weight (weight units)
 
 > **timestamp**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:349](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L349)
+Defined in: [modules/bitview-client/index.js:303](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L303)
 
-Unix timestamp at the window midpoint
+Average block timestamp in this bucket

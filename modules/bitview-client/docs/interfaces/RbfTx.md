@@ -6,7 +6,7 @@
 
 # Interface: RbfTx
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1027](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1027)
+Defined in: [modules/bitview-client/index.js:1063](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1063)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1027](https://github
 
 > **fee**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1029](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1029)
+Defined in: [modules/bitview-client/index.js:1065](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1065)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1029](https://github
 
 > `optional` **fullRbf?**: `boolean` \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1035](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1035)
+Defined in: [modules/bitview-client/index.js:1071](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1071)
 
 Only populated on the root `tx` of an RBF response. `true` iff
 this tx displaced at least one non-signaling predecessor.
@@ -33,7 +33,7 @@ this tx displaced at least one non-signaling predecessor.
 
 > **rate**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1032](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1032)
+Defined in: [modules/bitview-client/index.js:1068](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1068)
 
 ***
 
@@ -41,7 +41,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1032](https://github
 
 > **rbf**: `boolean`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1034](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1034)
+Defined in: [modules/bitview-client/index.js:1070](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1070)
 
 BIP-125 signaling: at least one input has sequence < 0xffffffff-1.
 
@@ -51,7 +51,7 @@ BIP-125 signaling: at least one input has sequence < 0xffffffff-1.
 
 > **time**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1033](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1033)
+Defined in: [modules/bitview-client/index.js:1069](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1069)
 
 ***
 
@@ -59,7 +59,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1033](https://github
 
 > **txid**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1028](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1028)
+Defined in: [modules/bitview-client/index.js:1064](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1064)
 
 ***
 
@@ -67,7 +67,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1028](https://github
 
 > **value**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1031](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1031)
+Defined in: [modules/bitview-client/index.js:1067](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1067)
 
 Sum of output amounts.
 
@@ -77,4 +77,4 @@ Sum of output amounts.
 
 > **vsize**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1030](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1030)
+Defined in: [modules/bitview-client/index.js:1066](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1066)

@@ -6,8 +6,8 @@
 
 # Type Alias: Index
 
-> **Index** = `"minute10"` \| `"minute30"` \| `"hour1"` \| `"hour4"` \| `"hour12"` \| `"day1"` \| `"day3"` \| `"week1"` \| `"month1"` \| `"month3"` \| `"month6"` \| `"year1"` \| `"year10"` \| `"halving"` \| `"epoch"` \| `"height"` \| `"tx_index"` \| `"txin_index"` \| `"txout_index"` \| `"empty_output_index"` \| `"op_return_index"` \| `"p2a_addr_index"` \| `"p2ms_output_index"` \| `"p2pk33_addr_index"` \| `"p2pk65_addr_index"` \| `"p2pkh_addr_index"` \| `"p2sh_addr_index"` \| `"p2tr_addr_index"` \| `"p2wpkh_addr_index"` \| `"p2wsh_addr_index"` \| `"unknown_output_index"` \| `"funded_addr_index"` \| `"empty_addr_index"` \| `"extended_empty_addr_index"`
+> **Index** = `"minute10"` \| `"minute30"` \| `"hour1"` \| `"hour4"` \| `"hour12"` \| `"day1"` \| `"day3"` \| `"week1"` \| `"month1"` \| `"month3"` \| `"month6"` \| `"year1"` \| `"year10"` \| `"halving"` \| `"epoch"` \| `"height"` \| `"tx_index"` \| `"txin_index"` \| `"txout_index"` \| `"empty_output_index"` \| `"op_return_index"` \| `"p2a_address_index"` \| `"p2ms_output_index"` \| `"p2pk33_address_index"` \| `"p2pk65_address_index"` \| `"p2pkh_address_index"` \| `"p2sh_address_index"` \| `"p2tr_address_index"` \| `"p2wpkh_address_index"` \| `"p2wsh_address_index"` \| `"unknown_output_index"`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:694](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L694)
+Defined in: [modules/bitview-client/index.js:673](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L673)
 
 ## Type Parameters

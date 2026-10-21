@@ -1,0 +1,63 @@
+[**bitview-client**](../README.md)
+
+***
+
+[bitview-client](../globals.md) / TransactionsScripts
+
+# Type Alias: TransactionsScripts
+
+> **TransactionsScripts** = `object`
+
+Defined in: [modules/bitview-client/index.js:4932](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L4932)
+
+## Type Parameters
+
+## Type Declaration
+
+### emptyScript
+
+> **emptyScript**: [`Flagged`](Flagged.md)
+
+### fakePubkey
+
+> **fakePubkey**: [`Flagged`](Flagged.md)
+
+### fakeScripthash
+
+> **fakeScripthash**: [`Flagged`](Flagged.md)
+
+### p2a
+
+> **p2a**: [`Flagged`](Flagged.md)
+
+### p2ms
+
+> **p2ms**: [`Flagged`](Flagged.md)
+
+### p2pk
+
+> **p2pk**: [`Flagged`](Flagged.md)
+
+### p2pkh
+
+> **p2pkh**: [`Flagged`](Flagged.md)
+
+### p2sh
+
+> **p2sh**: [`Flagged`](Flagged.md)
+
+### p2tr
+
+> **p2tr**: [`Flagged`](Flagged.md)
+
+### p2wpkh
+
+> **p2wpkh**: [`Flagged`](Flagged.md)
+
+### p2wsh
+
+> **p2wsh**: [`Flagged`](Flagged.md)
+
+### unknownScript
+
+> **unknownScript**: [`Flagged`](Flagged.md)

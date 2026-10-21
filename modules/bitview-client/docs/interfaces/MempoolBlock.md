@@ -6,7 +6,7 @@
 
 # Interface: MempoolBlock
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:716](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L716)
+Defined in: [modules/bitview-client/index.js:693](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L693)
 
 ## Properties
 
@@ -14,9 +14,10 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:716](https://github.
 
 > **blockSize**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:717](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L717)
+Defined in: [modules/bitview-client/index.js:694](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L694)
 
-Total serialized block size in bytes (witness + non-witness).
+Sum of the transactions' serialized sizes in bytes (witness + non-witness), without header
+or coinbase.
 
 ***
 
@@ -24,9 +25,9 @@ Total serialized block size in bytes (witness + non-witness).
 
 > **blockVSize**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:718](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L718)
+Defined in: [modules/bitview-client/index.js:696](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L696)
 
-Total block virtual size in vbytes
+Sum of the transactions' virtual sizes in vbytes
 
 ***
 
@@ -34,9 +35,11 @@ Total block virtual size in vbytes
 
 > **feeRange**: `number`[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:722](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L722)
+Defined in: [modules/bitview-client/index.js:700](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L700)
 
-Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
+Vsize-weighted percentiles of the transactions' CPFP chunk fee rates, in sat/vB:
+[0, 10, 25, 50, 75, 90, 100] for the first block, [5, 10, 25, 50, 75, 90, 95] for the
+later projected ones
 
 ***
 
@@ -44,7 +47,7 @@ Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
 
 > **medianFee**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:721](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L721)
+Defined in: [modules/bitview-client/index.js:699](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L699)
 
 Median fee rate in sat/vB
 
@@ -54,7 +57,7 @@ Median fee rate in sat/vB
 
 > **nTx**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:719](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L719)
+Defined in: [modules/bitview-client/index.js:697](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L697)
 
 Number of transactions in the projected block
 
@@ -64,6 +67,6 @@ Number of transactions in the projected block
 
 > **totalFees**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:720](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L720)
+Defined in: [modules/bitview-client/index.js:698](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L698)
 
 Total fees in satoshis

@@ -6,7 +6,7 @@
 
 # Interface: Urpd
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1374](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1374)
+Defined in: [modules/bitview-client/index.js:1352](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1352)
 
 ## Properties
 
@@ -14,17 +14,15 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1374](https://github
 
 > **aggregation**: [`UrpdAggregation`](../type-aliases/UrpdAggregation.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1379](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1379)
-
-Aggregation strategy applied to the buckets.
+Defined in: [modules/bitview-client/index.js:1358](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1358)
 
 ***
 
 ### buckets
 
-> **buckets**: [`UrpdBucket`](UrpdBucket.md)[]
+> **buckets**: [`UrpdBuckets`](UrpdBuckets.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1382](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1382)
+Defined in: [modules/bitview-client/index.js:1361](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1361)
 
 ***
 
@@ -32,7 +30,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1382](https://github
 
 > **close**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1380](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1380)
+Defined in: [modules/bitview-client/index.js:1359](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1359)
 
 Price at `height`, in USD. Anchor for `unrealized_pnl`.
 
@@ -40,9 +38,9 @@ Price at `height`, in USD. Anchor for `unrealized_pnl`.
 
 ### cohort
 
-> **cohort**: `string`
+> **cohort**: [`UrpdCohort`](../type-aliases/UrpdCohort.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1375](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1375)
+Defined in: [modules/bitview-client/index.js:1356](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1356)
 
 ***
 
@@ -50,9 +48,19 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1375](https://github
 
 > **date**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1376](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1376)
+Defined in: [modules/bitview-client/index.js:1355](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1355)
 
-UTC date of the represented block.
+UTC date of the represented block's monotonic timestamp.
+
+***
+
+### hash
+
+> **hash**: `string`
+
+Defined in: [modules/bitview-client/index.js:1354](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1354)
+
+Hash of block `height`.
 
 ***
 
@@ -60,19 +68,19 @@ UTC date of the represented block.
 
 > **height**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1377](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1377)
+Defined in: [modules/bitview-client/index.js:1353](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1353)
 
 Exact published block represented by this distribution.
 
 ***
 
-### totalSupply
+### supply
 
-> **totalSupply**: `number`
+> **supply**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1381](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1381)
+Defined in: [modules/bitview-client/index.js:1360](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1360)
 
-Sum of `supply` across all buckets, in BTC.
+Sum of `buckets.supply`, in BTC.
 
 ***
 
@@ -80,6 +88,4 @@ Sum of `supply` across all buckets, in BTC.
 
 > **weight**: [`UrpdWeight`](../type-aliases/UrpdWeight.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1378](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1378)
-
-Weighting applied to the source supply.
+Defined in: [modules/bitview-client/index.js:1357](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1357)

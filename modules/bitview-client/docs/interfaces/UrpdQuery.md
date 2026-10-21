@@ -6,7 +6,7 @@
 
 # Interface: UrpdQuery
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1416](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1416)
+Defined in: [modules/bitview-client/index.js:1402](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1402)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1416](https://github
 
 > `optional` **agg?**: [`UrpdAggregation`](../type-aliases/UrpdAggregation.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1417](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1417)
+Defined in: [modules/bitview-client/index.js:1403](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1403)
 
 Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
 
@@ -24,6 +24,6 @@ Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
 
 > `optional` **weight?**: [`UrpdWeight`](../type-aliases/UrpdWeight.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1418](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1418)
+Defined in: [modules/bitview-client/index.js:1404](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1404)
 
-Supply weighting. Default: raw (unweighted).
+Supply weighting. Default: none (unweighted).

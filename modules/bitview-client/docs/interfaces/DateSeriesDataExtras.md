@@ -6,7 +6,7 @@
 
 # Interface: DateSeriesDataExtras\<T\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1704](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1704)
+Defined in: [modules/bitview-client/index.js:1752](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1752)
 
 ## Type Parameters
 
@@ -20,9 +20,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1704](https://github
 
 > **dateEntries**: () => \[`Date`, `T`\][]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1706](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1706)
-
-Get [date, value] pairs
+Defined in: [modules/bitview-client/index.js:1754](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1754)
 
 #### Returns
 
@@ -34,7 +32,7 @@ Get [date, value] pairs
 
 > **dates**: () => `Date`[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1705](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1705)
+Defined in: [modules/bitview-client/index.js:1753](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1753)
 
 Get dates for each data point
 
@@ -48,9 +46,7 @@ Get dates for each data point
 
 > **toDateMap**: () => `Map`\<`Date`, `T`\>
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1707](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1707)
-
-Convert to Map<date, value>
+Defined in: [modules/bitview-client/index.js:1755](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1755)
 
 #### Returns
 

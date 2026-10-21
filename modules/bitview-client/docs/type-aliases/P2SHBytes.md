@@ -6,8 +6,8 @@
 
 # Type Alias: P2SHBytes
 
-> **P2SHBytes** = [`U8x20`](U8x20.md)
+> **P2SHBytes** = `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:830](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L830)
+Defined in: [modules/bitview-client/index.js:869](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L869)
 
 ## Type Parameters

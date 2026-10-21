@@ -1,0 +1,51 @@
+[**bitview-client**](../README.md)
+
+***
+
+[bitview-client](../globals.md) / Cointime
+
+# Type Alias: Cointime
+
+> **Cointime** = `object`
+
+Defined in: [modules/bitview-client/index.js:5716](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L5716)
+
+## Type Parameters
+
+## Type Declaration
+
+### activity
+
+> **activity**: [`CointimeActivity`](CointimeActivity.md)
+
+### adjusted
+
+> **adjusted**: [`Adjusted`](Adjusted.md)
+
+### ageRanges
+
+> **ageRanges**: [`AgeRange`](AgeRange.md)\<[`CointimeRange`](CointimeRange.md)\>
+
+### caps
+
+> **caps**: [`Caps`](Caps.md)
+
+### cohorts
+
+> **cohorts**: [`Holders`](Holders.md)\<[`CointimeCohort`](CointimeCohort.md), [`CointimeCohort`](CointimeCohort.md)\>
+
+### prices
+
+> **prices**: [`Prices`](Prices.md)
+
+### reserveRisk
+
+> **reserveRisk**: [`ReserveRisk`](ReserveRisk.md)
+
+### supply
+
+> **supply**: [`CointimeSupply`](CointimeSupply.md)
+
+### value
+
+> **value**: [`CointimeValue`](CointimeValue.md)

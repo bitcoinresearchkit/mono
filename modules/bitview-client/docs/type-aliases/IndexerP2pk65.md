@@ -1,0 +1,23 @@
+[**bitview-client**](../README.md)
+
+***
+
+[bitview-client](../globals.md) / IndexerP2pk65
+
+# Type Alias: IndexerP2pk65
+
+> **IndexerP2pk65** = `object`
+
+Defined in: [modules/bitview-client/index.js:6587](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L6587)
+
+## Type Parameters
+
+## Type Declaration
+
+### bytes
+
+> **bytes**: [`SeriesPattern29`](SeriesPattern29.md)\<[`P2PK65Bytes`](P2PK65Bytes.md)\>
+
+### firstIndex
+
+> **firstIndex**: [`SeriesPattern18`](SeriesPattern18.md)\<[`P2PK65AddressIndex`](P2PK65AddressIndex.md)\>

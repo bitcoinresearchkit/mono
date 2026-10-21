@@ -6,7 +6,7 @@
 
 # Interface: MempoolRecentTx
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:736](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L736)
+Defined in: [modules/bitview-client/index.js:718](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L718)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:736](https://github.
 
 > **fee**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:738](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L738)
+Defined in: [modules/bitview-client/index.js:720](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L720)
 
 Transaction fee (sats)
 
@@ -24,9 +24,7 @@ Transaction fee (sats)
 
 > **txid**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:737](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L737)
-
-Transaction ID
+Defined in: [modules/bitview-client/index.js:719](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L719)
 
 ***
 
@@ -34,7 +32,7 @@ Transaction ID
 
 > **value**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:740](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L740)
+Defined in: [modules/bitview-client/index.js:722](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L722)
 
 Total output value (sats)
 
@@ -44,6 +42,6 @@ Total output value (sats)
 
 > **vsize**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:739](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L739)
+Defined in: [modules/bitview-client/index.js:721](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L721)
 
 Virtual size (vbytes)

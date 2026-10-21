@@ -6,7 +6,7 @@
 
 # Interface: SeriesInfo
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1113](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1113)
+Defined in: [modules/bitview-client/index.js:1148](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1148)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1113](https://github
 
 > `optional` **description?**: `string` \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1114](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1114)
+Defined in: [modules/bitview-client/index.js:1149](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1149)
 
 Human-readable metric definition, when documented
 
@@ -24,9 +24,18 @@ Human-readable metric definition, when documented
 
 > **indexes**: [`Index`](../type-aliases/Index.md)[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1115](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1115)
+Defined in: [modules/bitview-client/index.js:1150](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1150)
 
-Available indexes
+***
+
+### nullable
+
+> **nullable**: [`Index`](../type-aliases/Index.md)[]
+
+Defined in: [modules/bitview-client/index.js:1151](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1151)
+
+Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
+undefined one (e.g. NaN)
 
 ***
 
@@ -34,6 +43,16 @@ Available indexes
 
 > **type**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1116](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1116)
+Defined in: [modules/bitview-client/index.js:1153](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1153)
 
-Value type (e.g. "f32", "u64", "Sats")
+Value type (e.g. "Ratio", "Sats", "Cents")
+
+***
+
+### unit?
+
+> `optional` **unit?**: `string` \| `null`
+
+Defined in: [modules/bitview-client/index.js:1154](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1154)
+
+What the value type measures, when documented (e.g. "A duration in days.")

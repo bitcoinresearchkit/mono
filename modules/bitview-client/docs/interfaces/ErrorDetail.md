@@ -6,17 +6,17 @@
 
 # Interface: ErrorDetail
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:573](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L573)
+Defined in: [modules/bitview-client/index.js:537](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L537)
 
 ## Properties
 
 ### code
 
-> **code**: `string`
+> **code**: [`ErrorCode`](../type-aliases/ErrorCode.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:575](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L575)
+Defined in: [modules/bitview-client/index.js:539](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L539)
 
-Machine-readable error code (e.g. "invalid_addr", "series_not_found")
+Machine-readable error code
 
 ***
 
@@ -24,7 +24,7 @@ Machine-readable error code (e.g. "invalid_addr", "series_not_found")
 
 > **docUrl**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:577](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L577)
+Defined in: [modules/bitview-client/index.js:541](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L541)
 
 Link to API documentation
 
@@ -34,7 +34,7 @@ Link to API documentation
 
 > **message**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:576](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L576)
+Defined in: [modules/bitview-client/index.js:540](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L540)
 
 Human-readable description
 
@@ -42,8 +42,8 @@ Human-readable description
 
 ### type
 
-> **type**: `string`
+> **type**: [`ErrorType`](../type-aliases/ErrorType.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:574](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L574)
+Defined in: [modules/bitview-client/index.js:538](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L538)
 
-Error category: "invalid_request", "forbidden", "not_found", "unavailable", or "internal"
+Error category, following the HTTP status

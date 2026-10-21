@@ -6,7 +6,7 @@
 
 # Interface: MerkleProof
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:745](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L745)
+Defined in: [modules/bitview-client/index.js:732](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L732)
 
 ## Properties
 
@@ -14,9 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:745](https://github.
 
 > **blockHeight**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:746](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L746)
-
-Block height containing the transaction
+Defined in: [modules/bitview-client/index.js:733](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L733)
 
 ***
 
@@ -24,9 +22,9 @@ Block height containing the transaction
 
 > **merkle**: `string`[]
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:747](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L747)
+Defined in: [modules/bitview-client/index.js:734](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L734)
 
-Merkle proof path (hex-encoded hashes)
+Merkle proof path, from the transaction's sibling up
 
 ***
 
@@ -34,6 +32,6 @@ Merkle proof path (hex-encoded hashes)
 
 > **pos**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:748](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L748)
+Defined in: [modules/bitview-client/index.js:735](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L735)
 
 Transaction position in the block (0-indexed)

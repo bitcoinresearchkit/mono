@@ -1,0 +1,23 @@
+[**bitview-client**](../README.md)
+
+***
+
+[bitview-client](../globals.md) / MappingsMonth1
+
+# Type Alias: MappingsMonth1
+
+> **MappingsMonth1** = `object`
+
+Defined in: [modules/bitview-client/index.js:6088](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L6088)
+
+## Type Parameters
+
+## Type Declaration
+
+### date
+
+> **date**: [`SeriesPattern11`](SeriesPattern11.md)\<[`Date`](Date.md)\>
+
+### firstHeight
+
+> **firstHeight**: [`SeriesPattern11`](SeriesPattern11.md)\<[`Height`](Height.md)\>

@@ -6,7 +6,7 @@
 
 # Interface: TxidVout
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1340](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1340)
+Defined in: [modules/bitview-client/index.js:1325](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1325)
 
 ## Properties
 
@@ -14,9 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:1340](https://github
 
 > **txid**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1341](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1341)
-
-Transaction ID
+Defined in: [modules/bitview-client/index.js:1326](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1326)
 
 ***
 
@@ -24,6 +22,6 @@ Transaction ID
 
 > **vout**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:1342](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L1342)
+Defined in: [modules/bitview-client/index.js:1327](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L1327)
 
 Output index

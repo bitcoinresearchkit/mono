@@ -6,7 +6,7 @@
 
 # Interface: BlockPool
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:243](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L243)
+Defined in: [modules/bitview-client/index.js:209](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L209)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [Developer/mono/modules/bitview-client/index.js:243](https://github.
 
 > **blockNumber**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:247](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L247)
+Defined in: [modules/bitview-client/index.js:213](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L213)
 
 This block's ordinal among blocks attributed to this pool
 
@@ -24,9 +24,9 @@ This block's ordinal among blocks attributed to this pool
 
 > **id**: `number`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:244](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L244)
+Defined in: [modules/bitview-client/index.js:210](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L210)
 
-Unique pool identifier
+Zero-based pool ID, matching mempool.space's `unique_id`
 
 ***
 
@@ -34,7 +34,7 @@ Unique pool identifier
 
 > `optional` **minerNames?**: `string`[] \| `null`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:248](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L248)
+Defined in: [modules/bitview-client/index.js:214](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L214)
 
 Miner name tags found in coinbase scriptsig
 
@@ -44,9 +44,7 @@ Miner name tags found in coinbase scriptsig
 
 > **name**: `string`
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:245](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L245)
-
-Pool name
+Defined in: [modules/bitview-client/index.js:211](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L211)
 
 ***
 
@@ -54,6 +52,6 @@ Pool name
 
 > **slug**: [`PoolSlug`](../type-aliases/PoolSlug.md)
 
-Defined in: [Developer/mono/modules/bitview-client/index.js:246](https://github.com/bitcoinresearchkit/mono/blob/ea62dc574077b34b3299e636a16f81ea96849ead/modules/bitview-client/index.js#L246)
+Defined in: [modules/bitview-client/index.js:212](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L212)
 
 URL-friendly pool identifier

@@ -1,0 +1,39 @@
+[**bitview-client**](../README.md)
+
+***
+
+[bitview-client](../globals.md) / AddressType
+
+# Type Alias: AddressType
+
+> **AddressType** = `object`
+
+Defined in: [modules/bitview-client/index.js:5268](https://github.com/bitcoinresearchkit/mono/blob/35af38a95a9d8eab77d0bc6900ec332bc53accaf/modules/bitview-client/index.js#L5268)
+
+## Type Parameters
+
+## Type Declaration
+
+### p2pk
+
+> **p2pk**: [`AddressSeries`](AddressSeries.md)
+
+### p2pkh
+
+> **p2pkh**: [`AddressSeries`](AddressSeries.md)
+
+### p2sh
+
+> **p2sh**: [`AddressSeries`](AddressSeries.md)
+
+### p2tr
+
+> **p2tr**: [`AddressSeries`](AddressSeries.md)
+
+### p2wpkh
+
+> **p2wpkh**: [`AddressSeries`](AddressSeries.md)
+
+### p2wsh
+
+> **p2wsh**: [`AddressSeries`](AddressSeries.md)
