@@ -29,11 +29,11 @@ where
         window_start: &impl ReadableCloneableVec<Height, Height>,
         indexes: &IndexSources,
     ) -> Self {
-        let fixed_name = format!("{name}_rate_{}", B::SUFFIX);
+        let fixed_name = format!("{name}_percent_{}", B::SUFFIX);
         let fixed =
             LazyDeltaFromHeight::from_source(&fixed_name, version, source, window_start, indexes);
 
-        let percent_name = format!("{name}_rate");
+        let percent_name = format!("{name}_percent");
         let percent = LazyPerBlock::from_resolutions::<FixedToPercent>(
             &percent_name,
             version,

@@ -14,8 +14,8 @@ use vecdb::{Database, Rw, StorageMode, Version, WritableVec};
 /// Share of a block's vsize at each end whose extreme rates bound the effective fee rate range.
 const EDGE_SHARE: f64 = 0.02;
 
-/// One block's statistics in [`DistributionStats::as_mut_array`] order: min, max, pct10,
-/// pct25, median, pct75, pct90.
+/// One block's statistics in [`DistributionStats::as_mut_array`] order: min, max, p10,
+/// p25, median, p75, p90.
 pub type Stats<T> = [T; 7];
 
 /// Per-block distributions of a per-transaction value, statistic first, ids `{name}_{stat}`.
@@ -71,16 +71,16 @@ pub fn weighted<T: NumericValue + Ord>(block: &mut [(T, VSize)]) -> Stats<T> {
     let head_max = edge_rate(block.iter().copied(), edge, Ord::max);
     let tail_min = edge_rate(block.iter().rev().copied(), edge, Ord::min);
     block.sort_unstable();
-    let [pct1, pct10, pct25, median, pct75, pct90, pct99] =
+    let [p1, p10, p25, median, p75, p90, p99] =
         weighted_percentiles(block, [1, 10, 25, 50, 75, 90, 99]);
     [
-        pct1.min(tail_min),
-        pct99.max(head_max),
-        pct10,
-        pct25,
+        p1.min(tail_min),
+        p99.max(head_max),
+        p10,
+        p25,
         median,
-        pct75,
-        pct90,
+        p75,
+        p90,
     ]
 }
 /// The extreme rate, by `pick`, of the transactions overlapping the first `edge` vbytes of `txs`

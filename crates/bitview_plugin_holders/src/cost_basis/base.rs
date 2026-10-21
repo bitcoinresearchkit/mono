@@ -3,7 +3,7 @@ use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CostBasisMeans, CostBasisPerCoin, CostBasisPerDollar, Density, LazyPerBlock,
+    CostBasisMeans, CostBasisByCoin, CostBasisByDollar, Density, LazyPerBlock,
     LazyPercentPerBlock, PerBlock, Price,
 };
 use brk_error::Result;
@@ -19,10 +19,10 @@ use crate::columns::Columns;
 pub struct CostBasis<M: StorageMode = Rw> {
     /// Creation prices (spot when each output was created) of the cohort's unspent outputs,
     /// weighted by satoshis.
-    pub per_coin: CostBasisPerCoin<M>,
+    pub by_coin: CostBasisByCoin<M>,
     /// Creation prices (spot when each output was created) of the cohort's unspent outputs,
     /// weighted by each output's USD value at creation.
-    pub per_dollar: CostBasisPerDollar<M>,
+    pub by_dollar: CostBasisByDollar<M>,
     /// Lowest occupied bucket of the price grid among the cohort's unspent outputs: creation
     /// prices rounded to four significant digits of the price in cents (exact cents under $100,
     /// then steps of at most 0.1% up to $100,000,000). Undefined (null) without supply.
@@ -54,8 +54,8 @@ impl CostBasis {
             Price::from_height_source(&name(metric), sources_v, &source.cents.height, mappings)
         };
         let CostBasisMeans {
-            per_coin,
-            per_dollar,
+            by_coin,
+            by_dollar,
         } = CostBasisMeans::import(
             db,
             name,
@@ -63,13 +63,13 @@ impl CostBasis {
             v,
             &c.price,
             &c.capitalized_price,
-            id.select(&sources.per_coin),
-            id.select(&sources.per_dollar),
+            id.select(&sources.by_coin),
+            id.select(&sources.by_dollar),
             mappings,
         )?;
         Ok(Self {
-            per_coin,
-            per_dollar,
+            by_coin,
+            by_dollar,
             min: price("cost_basis_min", id.select(&sources.min)),
             max: price("cost_basis_max", id.select(&sources.max)),
             supply_density: id.select(&sources.supply_density).series.clone(),
@@ -83,7 +83,7 @@ impl CostBasis {
         spot: &impl ReadableVec<Height, Cents>,
         exit: &Exit,
     ) -> Result<()> {
-        self.per_coin.avg.compute_ratio(from, spot, exit)?;
-        self.per_dollar.avg.compute_ratio(from, spot, exit)
+        self.by_coin.avg.compute_ratio(from, spot, exit)?;
+        self.by_dollar.avg.compute_ratio(from, spot, exit)
     }
 }

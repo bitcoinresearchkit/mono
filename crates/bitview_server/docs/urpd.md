@@ -25,6 +25,6 @@ reconstruction. For example:
 `/api/urpd/age_under_4m/900000?weight=wakefulness&agg=raw`
 
 Cointime and Coinflow expose the same per-block URPD metric layout for each
-aggregate: cost-basis percentiles per coin/per dollar, capitalized price and
+aggregate: cost-basis percentiles by coin and by dollar, capitalized price and
 supply density. Each plugin projects all requested cohorts in one pass; the
 age filters do not require separate copies of the UTXO set history or saved URPDs.

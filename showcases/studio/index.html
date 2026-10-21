@@ -9944,14 +9944,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const amount = (delta, unit) => (unit === "percent" ? `${precise(Math.abs(delta))} pt` : format(Math.abs(delta), unit === "ratio" ? "number" : unit));
 
       /** Words of series names and catalog folders, written the way people write them. */
-      const ACRONYMS = new Set(["sth", "lth", "mvrv", "sopr", "nupl", "usd", "btc", "ath", "sma", "ema", "utxo", "ohlc", "op", "vocdd", "hodl", "pct", "rbf", "cpfp", "tx", "pnl"]);
+      const ACRONYMS = new Set(["sth", "lth", "mvrv", "sopr", "nupl", "usd", "btc", "ath", "sma", "ema", "utxo", "ohlc", "op", "vocdd", "hodl", "rbf", "cpfp", "tx", "pnl"]);
       const WORDS = { addrs: "addresses", addr: "address", txs: "transactions", utxos: "UTXOs" };
-      const word = (text) => WORDS[text] ?? (ACRONYMS.has(text) || /^p2[a-z]+\d*$/.test(text) ? text.toUpperCase() : text);
+      /** A percentile as said, its decimal point an underscore or a dot: "p5" 5th percentile, "p0_1" 0.1st, "p99_9" 99.9th. */
+      const percentileWord = (text) => ((p) => p && `${p}${/(^|\D)1\d$/.test(p) ? "th" : p.at(-1) === "1" ? "st" : p.at(-1) === "2" ? "nd" : p.at(-1) === "3" ? "rd" : "th"} percentile`)(/^p(\d+(?:[._]\d+)?)$/.exec(text)?.[1].replace("_", "."));
+      const word = (text) => WORDS[text] ?? percentileWord(text) ?? (ACRONYMS.has(text) || /^p2[a-z]+\d*$/.test(text) ? text.toUpperCase() : text);
       const plural = (n, word) => `${grouped.format(n)} ${word}${n === 1 ? "" : "s"}`;
       const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
-      const humanize = (name) => capitalize(name.split("_").filter(Boolean).map(word).join(" "));
-      /** A catalog key: "utxoSet" is UTXO set, "minute10" is Minute 10, "p2pkh" stays whole. */
-      const humanizeKey = (key) => capitalize(key.replace(/^_/, "").replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase().split(" ").flatMap((part) => (/^p2/.test(part) ? [part] : part.replace(/([a-z]{2})(\d)/g, "$1 $2").split(" "))).map(word).join(" "));
+      /** A series id as words, a percentile's decimal point kept: "supply_in_loss_rarity_p99_9" …rarity 99.9th percentile. */
+      const humanize = (name) => capitalize(name.replace(/(^|_)p(\d+)_(\d+)(?=_|$)/g, "$1p$2.$3").split("_").filter(Boolean).map(word).join(" "));
+      /** A catalog key: "utxoSet" is UTXO set, "minute10" is Minute 10, "p2pkh" stays whole, "p99_5ToP99_9" 99.5th percentile to 99.9th percentile. */
+      const humanizeKey = (key) => capitalize(key.replace(/^_/, "").replace(/([a-z\d])([A-Z])/g, "$1 $2").toLowerCase().split(" ").flatMap((part) => (/^p2/.test(part) ? [part] : part.replace(/([a-z]{2})(\d)/g, "$1 $2").split(" "))).map(word).join(" "));
       function ago(time) {
         const minutes = Math.round((Date.now() - time) / 60000);
         if (minutes < 1) return "just now";

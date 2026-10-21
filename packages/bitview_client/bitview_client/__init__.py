@@ -147,7 +147,7 @@ OutputTypeNormalized = Literal["p2pk", "p2pkh", "multisig", "p2sh", "op_return",
 # An output's script type (P2PKH, P2WPKH, P2SH, P2TR…).
 OutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2ms", "p2sh", "opreturn", "p2wpkh", "p2wsh", "p2tr", "p2a", "empty", "unknown"]
 # Protocol or format detected in an OP_RETURN output.
-OpReturnKind = Literal["runes", "witness_commitment", "veri_block", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coin_spark", "poet", "docproof", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "bare_hash", "text", "empty", "unknown"]
+OpReturnKind = Literal["runes", "witness_commitment", "veriblock", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coinspark", "poet", "docproof", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "bare_hash", "text", "empty", "unknown"]
 # Content hash of the projected next block (block 0 of the mempool
 # snapshot), including its statistics and complete transaction bodies.
 # Opaque token, distinct from HTTP ETag formatting: pass back
@@ -2747,50 +2747,50 @@ E = TypeVar('E')
 F = TypeVar('F')
 
 class Meter(_Node):
-    pct0_1: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct0_1')
-    pct0_5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct0_5')
-    pct1: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct1')
-    pct2: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct2')
-    pct5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct5')
-    pct10: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct10')
-    pct20: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct20')
-    pct30: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct30')
-    pct40: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct40')
+    p0_1: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p0_1')
+    p0_5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p0_5')
+    p1: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p1')
+    p2: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p2')
+    p5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p5')
+    p10: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p10')
+    p20: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p20')
+    p30: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p30')
+    p40: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p40')
     median: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_median')
-    pct60: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct60')
-    pct70: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct70')
-    pct80: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct80')
-    pct90: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct90')
-    pct95: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct95')
-    pct98: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct98')
-    pct99: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct99')
-    pct99_5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct99_5')
-    pct99_9: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct99_9')
+    p60: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p60')
+    p70: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p70')
+    p80: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p80')
+    p90: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p90')
+    p95: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p95')
+    p98: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p98')
+    p99: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p99')
+    p99_5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p99_5')
+    p99_9: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p99_9')
     level: SeriesPattern1[Optional[Score]] = _at(SeriesPattern1, '*_level')
     score: SeriesPattern1[Optional[Score]] = _at(SeriesPattern1, '*_score')
 
 
 class Extreme(_Node, Generic[A]):
     block: SeriesPattern1[A] = _at(SeriesPattern1, '*')
-    pct0_1: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct0_1')
-    pct0_5: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct0_5')
-    pct1: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct1')
-    pct2: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct2')
-    pct5: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct5')
-    pct10: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct10')
-    pct20: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct20')
-    pct30: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct30')
-    pct40: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct40')
+    p0_1: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p0_1')
+    p0_5: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p0_5')
+    p1: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p1')
+    p2: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p2')
+    p5: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p5')
+    p10: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p10')
+    p20: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p20')
+    p30: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p30')
+    p40: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p40')
     median: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_median')
-    pct60: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct60')
-    pct70: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct70')
-    pct80: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct80')
-    pct90: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct90')
-    pct95: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct95')
-    pct98: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct98')
-    pct99: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct99')
-    pct99_5: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct99_5')
-    pct99_9: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_pct99_9')
+    p60: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p60')
+    p70: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p70')
+    p80: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p80')
+    p90: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p90')
+    p95: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p95')
+    p98: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p98')
+    p99: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p99')
+    p99_5: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p99_5')
+    p99_9: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p99_9')
 
 
 class Extremes(_Node):
@@ -2874,25 +2874,25 @@ class AllMedianRealizedPriceMedian(_Node):
 class MedianComponent(_Node, Generic[A]):
     block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
     ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_ratio')
-    pct0_1: A = _at(0, 'pct0_1')
-    pct0_5: A = _at(0, 'pct0_5')
-    pct1: A = _at(0, 'pct1')
-    pct2: A = _at(0, 'pct2')
-    pct5: A = _at(0, 'pct5')
-    pct10: A = _at(0, 'pct10')
-    pct20: A = _at(0, 'pct20')
-    pct30: A = _at(0, 'pct30')
-    pct40: A = _at(0, 'pct40')
+    p0_1: A = _at(0, 'p0_1')
+    p0_5: A = _at(0, 'p0_5')
+    p1: A = _at(0, 'p1')
+    p2: A = _at(0, 'p2')
+    p5: A = _at(0, 'p5')
+    p10: A = _at(0, 'p10')
+    p20: A = _at(0, 'p20')
+    p30: A = _at(0, 'p30')
+    p40: A = _at(0, 'p40')
     median: A = _at(0, 'median')
-    pct60: A = _at(0, 'pct60')
-    pct70: A = _at(0, 'pct70')
-    pct80: A = _at(0, 'pct80')
-    pct90: A = _at(0, 'pct90')
-    pct95: A = _at(0, 'pct95')
-    pct98: A = _at(0, 'pct98')
-    pct99: A = _at(0, 'pct99')
-    pct99_5: A = _at(0, 'pct99_5')
-    pct99_9: A = _at(0, 'pct99_9')
+    p60: A = _at(0, 'p60')
+    p70: A = _at(0, 'p70')
+    p80: A = _at(0, 'p80')
+    p90: A = _at(0, 'p90')
+    p95: A = _at(0, 'p95')
+    p98: A = _at(0, 'p98')
+    p99: A = _at(0, 'p99')
+    p99_5: A = _at(0, 'p99_5')
+    p99_9: A = _at(0, 'p99_9')
 
 
 class AllCapitalizedPriceMedian(_Node):
@@ -2906,29 +2906,29 @@ class AllRealizedPriceMedian(_Node):
 
 
 class RarityPercentiles(_Node, Generic[A]):
-    pct0_1: A = _at(0, 'pct0_1')
-    pct0_5: A = _at(0, 'pct0_5')
-    pct1: A = _at(0, 'pct1')
-    pct2: A = _at(0, 'pct2')
-    pct5: A = _at(0, 'pct5')
-    pct10: A = _at(0, 'pct10')
-    pct20: A = _at(0, 'pct20')
-    pct30: A = _at(0, 'pct30')
-    pct40: A = _at(0, 'pct40')
+    p0_1: A = _at(0, 'p0_1')
+    p0_5: A = _at(0, 'p0_5')
+    p1: A = _at(0, 'p1')
+    p2: A = _at(0, 'p2')
+    p5: A = _at(0, 'p5')
+    p10: A = _at(0, 'p10')
+    p20: A = _at(0, 'p20')
+    p30: A = _at(0, 'p30')
+    p40: A = _at(0, 'p40')
     median: A = _at(0, 'median')
-    pct60: A = _at(0, 'pct60')
-    pct70: A = _at(0, 'pct70')
-    pct80: A = _at(0, 'pct80')
-    pct90: A = _at(0, 'pct90')
-    pct95: A = _at(0, 'pct95')
-    pct98: A = _at(0, 'pct98')
-    pct99: A = _at(0, '*')
-    pct99_5: A = _at(0, '*_5')
-    pct99_9: A = _at(0, '*_9')
+    p60: A = _at(0, 'p60')
+    p70: A = _at(0, 'p70')
+    p80: A = _at(0, 'p80')
+    p90: A = _at(0, 'p90')
+    p95: A = _at(0, 'p95')
+    p98: A = _at(0, 'p98')
+    p99: A = _at(0, '*')
+    p99_5: A = _at(0, '*_5')
+    p99_9: A = _at(0, '*_9')
 
 
 class MobileComponents(_Node):
-    realized_price: RarityPercentiles[MobileRealizedPriceMedian] = _at((RarityPercentiles, MobileRealizedPriceMedian), 'pct99')
+    realized_price: RarityPercentiles[MobileRealizedPriceMedian] = _at((RarityPercentiles, MobileRealizedPriceMedian), 'p99')
     median_realized_price: MedianComponent[MobileMedianRealizedPriceMedian] = _at((MedianComponent, MobileMedianRealizedPriceMedian), '*_realized_price')
     median_capitalized_price: MedianComponent[MobileMedianCapitalizedPriceMedian] = _at((MedianComponent, MobileMedianCapitalizedPriceMedian), '*_capitalized_price')
 
@@ -2967,7 +2967,7 @@ class Components(_Node):
 
 
 class RarityMeter(_Node):
-    components: Components = _at(Components, 'pct99')
+    components: Components = _at(Components, 'p99')
     extremes: Extremes = _at(Extremes, '24h')
     full: Meter = _at(Meter, '*')
     local: Meter = _at(Meter, 'local_*')
@@ -2975,31 +2975,31 @@ class RarityMeter(_Node):
 
 
 class FloorCapital(_Node):
-    pct95_to_pct98: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct95_to_pct98')
-    pct98_to_pct99: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct98_to_pct99')
-    pct99_to_pct99_5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct99_to_pct99_5')
-    pct99_5_to_pct99_9: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct99_5_to_pct99_9')
-    below_pct99_9: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_below_pct99_9')
+    p95_to_p98: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p95_to_p98')
+    p98_to_p99: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p98_to_p99')
+    p99_to_p99_5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p99_to_p99_5')
+    p99_5_to_p99_9: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p99_5_to_p99_9')
+    below_p99_9: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_below_p99_9')
 
 
 class Levels(_Node):
-    pct10: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct10')
-    pct20: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct20')
-    pct30: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct30')
-    pct40: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct40')
+    p10: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p10')
+    p20: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p20')
+    p30: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p30')
+    p40: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p40')
     median: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_median')
-    pct60: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct60')
-    pct70: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct70')
-    pct80: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct80')
-    pct90: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_pct90')
+    p60: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p60')
+    p70: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p70')
+    p80: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p80')
+    p90: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p90')
 
 
 class Percentiles(_Node, Generic[A]):
-    pct95: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct95')
-    pct98: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct98')
-    pct99: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct99')
-    pct99_5: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct99_5')
-    pct99_9: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct99_9')
+    p95: SeriesPattern1[A] = _at(SeriesPattern1, '*_p95')
+    p98: SeriesPattern1[A] = _at(SeriesPattern1, '*_p98')
+    p99: SeriesPattern1[A] = _at(SeriesPattern1, '*_p99')
+    p99_5: SeriesPattern1[A] = _at(SeriesPattern1, '*_p99_5')
+    p99_9: SeriesPattern1[A] = _at(SeriesPattern1, '*_p99_9')
 
 
 class CointimePriceWithRatio(_Node):
@@ -3064,33 +3064,33 @@ class Density(_Node):
 
 
 class PriceWithMvrv(_Node):
-    block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_avg')
-    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_cost_basis_per_coin_avg_ratio')
+    block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_avg')
+    ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_cost_basis_by_coin_avg_ratio')
     mvrv: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_mvrv')
 
 
-class CostBasisPerCoin(_Node):
+class CostBasisByCoin(_Node):
     avg: PriceWithMvrv = _at(PriceWithMvrv, '*')
     realized_price: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_realized_price')
-    pct5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct5')
-    pct10: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct10')
-    pct15: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct15')
-    pct20: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct20')
-    pct25: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct25')
-    pct30: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct30')
-    pct35: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct35')
-    pct40: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct40')
-    pct45: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct45')
-    median: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_median')
-    pct55: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct55')
-    pct60: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct60')
-    pct65: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct65')
-    pct70: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct70')
-    pct75: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct75')
-    pct80: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct80')
-    pct85: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct85')
-    pct90: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct90')
-    pct95: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_pct95')
+    p5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p5')
+    p10: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p10')
+    p15: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p15')
+    p20: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p20')
+    p25: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p25')
+    p30: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p30')
+    p35: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p35')
+    p40: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p40')
+    p45: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p45')
+    median: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_median')
+    p55: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p55')
+    p60: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p60')
+    p65: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p65')
+    p70: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p70')
+    p75: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p75')
+    p80: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p80')
+    p85: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p85')
+    p90: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p90')
+    p95: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_p95')
     median_realized_price: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_median_realized_price')
 
 
@@ -3138,13 +3138,13 @@ class ReusedCount(_Node):
     total: SeriesPattern1[Count] = _at(SeriesPattern1, '*_total_reused_address_count')
 
 
-class PerCoin(_Node):
-    avg: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_coin_avg')
+class ByCoin(_Node):
+    avg: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_avg')
     realized_price: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_realized_price')
 
 
 class CohortCostBasis(_Node):
-    per_coin: PerCoin = _at(PerCoin, '*')
+    by_coin: ByCoin = _at(ByCoin, '*')
 
 
 class CreationUnrealized(_Node):
@@ -3154,10 +3154,10 @@ class CreationUnrealized(_Node):
 
 
 class AddressesWindows(_Node):
-    _24h: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_24h_rate')
-    _1w: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1w_rate')
-    _1m: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1m_rate')
-    _1y: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1y_rate')
+    _24h: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_24h_percent')
+    _1w: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1w_percent')
+    _1m: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1m_percent')
+    _1y: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_1y_percent')
 
 
 class MarketPriceWithRatio(_Node):
@@ -3171,41 +3171,41 @@ class PriceWithRatio(_Node):
     ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_ratio')
 
 
-class CostBasisPerDollar(_Node):
-    avg: PriceWithRatio = _at(PriceWithRatio, '*_cost_basis_per_dollar_avg')
+class CostBasisByDollar(_Node):
+    avg: PriceWithRatio = _at(PriceWithRatio, '*_cost_basis_by_dollar_avg')
     capitalized_price: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_capitalized_price')
-    pct5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct5')
-    pct10: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct10')
-    pct15: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct15')
-    pct20: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct20')
-    pct25: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct25')
-    pct30: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct30')
-    pct35: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct35')
-    pct40: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct40')
-    pct45: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct45')
-    median: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_median')
-    pct55: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct55')
-    pct60: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct60')
-    pct65: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct65')
-    pct70: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct70')
-    pct75: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct75')
-    pct80: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct80')
-    pct85: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct85')
-    pct90: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct90')
-    pct95: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_per_dollar_pct95')
+    p5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p5')
+    p10: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p10')
+    p15: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p15')
+    p20: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p20')
+    p25: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p25')
+    p30: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p30')
+    p35: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p35')
+    p40: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p40')
+    p45: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p45')
+    median: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_median')
+    p55: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p55')
+    p60: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p60')
+    p65: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p65')
+    p70: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p70')
+    p75: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p75')
+    p80: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p80')
+    p85: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p85')
+    p90: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p90')
+    p95: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_dollar_p95')
     median_capitalized_price: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_median_capitalized_price')
 
 
 class CostBasis(_Node):
-    per_coin: CostBasisPerCoin = _at(CostBasisPerCoin, '*')
-    per_dollar: CostBasisPerDollar = _at(CostBasisPerDollar, '*')
+    by_coin: CostBasisByCoin = _at(CostBasisByCoin, '*')
+    by_dollar: CostBasisByDollar = _at(CostBasisByDollar, '*')
     supply_density: Density = _at(Density, '*_supply_density')
     capital_density: Density = _at(Density, '*_capital_density')
 
 
 class HoldersCostBasis(_Node):
-    per_coin: CostBasisPerCoin = _at(CostBasisPerCoin, '*')
-    per_dollar: CostBasisPerDollar = _at(CostBasisPerDollar, '*')
+    by_coin: CostBasisByCoin = _at(CostBasisByCoin, '*')
+    by_dollar: CostBasisByDollar = _at(CostBasisByDollar, '*')
     min: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_min')
     max: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_max')
     supply_density: Density = _at(Density, '*_supply_density')
@@ -3325,11 +3325,11 @@ class PerTxDistribution(_Node, Generic[A]):
     tx: SeriesPattern19[A] = _at(SeriesPattern19, '*')
     min: SeriesPattern1[A] = _at(SeriesPattern1, '*_min')
     max: SeriesPattern1[A] = _at(SeriesPattern1, '*_max')
-    pct10: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct10')
-    pct25: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct25')
+    p10: SeriesPattern1[A] = _at(SeriesPattern1, '*_p10')
+    p25: SeriesPattern1[A] = _at(SeriesPattern1, '*_p25')
     median: SeriesPattern1[A] = _at(SeriesPattern1, '*_median')
-    pct75: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct75')
-    pct90: SeriesPattern1[A] = _at(SeriesPattern1, '*_pct90')
+    p75: SeriesPattern1[A] = _at(SeriesPattern1, '*_p75')
+    p90: SeriesPattern1[A] = _at(SeriesPattern1, '*_p90')
 
 
 class Value(_Node):
@@ -3338,11 +3338,11 @@ class Value(_Node):
 
 
 class FloorSupply(_Node):
-    pct95_to_pct98: Value = _at(Value, '*_pct95_to_pct98')
-    pct98_to_pct99: Value = _at(Value, '*_pct98_to_pct99')
-    pct99_to_pct99_5: Value = _at(Value, '*_pct99_to_pct99_5')
-    pct99_5_to_pct99_9: Value = _at(Value, '*_pct99_5_to_pct99_9')
-    below_pct99_9: Value = _at(Value, '*_below_pct99_9')
+    p95_to_p98: Value = _at(Value, '*_p95_to_p98')
+    p98_to_p99: Value = _at(Value, '*_p98_to_p99')
+    p99_to_p99_5: Value = _at(Value, '*_p99_to_p99_5')
+    p99_5_to_p99_9: Value = _at(Value, '*_p99_5_to_p99_9')
+    below_p99_9: Value = _at(Value, '*_below_p99_9')
 
 
 class Mode(_Node):
@@ -3492,11 +3492,11 @@ class ValueFlowStats(_Node):
     avg: OpReturnWindows = _at(OpReturnWindows, '*_avg')
     min: OpReturnWindows = _at(OpReturnWindows, '*_min')
     max: OpReturnWindows = _at(OpReturnWindows, '*_max')
-    pct10: OpReturnWindows = _at(OpReturnWindows, '*_pct10')
-    pct25: OpReturnWindows = _at(OpReturnWindows, '*_pct25')
+    p10: OpReturnWindows = _at(OpReturnWindows, '*_p10')
+    p25: OpReturnWindows = _at(OpReturnWindows, '*_p25')
     median: OpReturnWindows = _at(OpReturnWindows, '*_median')
-    pct75: OpReturnWindows = _at(OpReturnWindows, '*_pct75')
-    pct90: OpReturnWindows = _at(OpReturnWindows, '*_pct90')
+    p75: OpReturnWindows = _at(OpReturnWindows, '*_p75')
+    p90: OpReturnWindows = _at(OpReturnWindows, '*_p90')
     share: Share = _at(Share, 'fee_share')
 
 
@@ -3555,7 +3555,7 @@ class NewAddressCount(_Node):
 
 class Delta(_Node, Generic[A]):
     absolute: Windows[A] = _at(Windows, '*')
-    rate: AddressesWindows = _at(AddressesWindows, '*')
+    percent: AddressesWindows = _at(AddressesWindows, '*')
 
 
 class LthSupply(_Node):
@@ -3908,7 +3908,7 @@ class Features(_Node):
     scripts: TransactionsScripts = _at(TransactionsScripts, 'script')
     signatures: Signatures = _at(Signatures, 'sighash')
     segwit: TxCount = _at(TxCount, 'segwit_*')
-    explicitly_rbf: TransactionsFlagged = _at(TransactionsFlagged, 'explicitly_rbf')
+    rbf_signaling: TransactionsFlagged = _at(TransactionsFlagged, 'rbf_signaling')
     dust_output: Flagged = _at(Flagged, 'dust_output')
     epobc: TransactionsFlagged = _at(TransactionsFlagged, 'epobc')
     one_input: TxCount = _at(TxCount, 'one_input_*')
@@ -3922,11 +3922,11 @@ class FlowStats(_Node, Generic[A, B]):
     avg: Windows[B] = _at(Windows, '*_avg')
     min: Windows[A] = _at(Windows, '*_min')
     max: Windows[A] = _at(Windows, '*_max')
-    pct10: Windows[A] = _at(Windows, '*_pct10')
-    pct25: Windows[A] = _at(Windows, '*_pct25')
+    p10: Windows[A] = _at(Windows, '*_p10')
+    p25: Windows[A] = _at(Windows, '*_p25')
     median: Windows[A] = _at(Windows, '*_median')
-    pct75: Windows[A] = _at(Windows, '*_pct75')
-    pct90: Windows[A] = _at(Windows, '*_pct90')
+    p75: Windows[A] = _at(Windows, '*_p75')
+    p90: Windows[A] = _at(Windows, '*_p90')
 
 
 class Averaged(_Node, Generic[A, B]):
@@ -4293,14 +4293,14 @@ class Policy(_Node):
 class ByKind(_Node):
     runes: Bucket = _at(Bucket, '*_runes')
     witness_commitment: Bucket = _at(Bucket, '*_witness_commitment')
-    veri_block: Bucket = _at(Bucket, '*_veri_block')
+    veriblock: Bucket = _at(Bucket, '*_veriblock')
     omni: Bucket = _at(Bucket, '*_omni')
     stacks: Bucket = _at(Bucket, '*_stacks')
     blockstack: Bucket = _at(Bucket, '*_blockstack')
     colu: Bucket = _at(Bucket, '*_colu')
     open_assets: Bucket = _at(Bucket, '*_open_assets')
     komodo: Bucket = _at(Bucket, '*_komodo')
-    coin_spark: Bucket = _at(Bucket, '*_coin_spark')
+    coinspark: Bucket = _at(Bucket, '*_coinspark')
     poet: Bucket = _at(Bucket, '*_poet')
     docproof: Bucket = _at(Bucket, '*_docproof')
     factom: Bucket = _at(Bucket, '*_factom')
@@ -4754,7 +4754,7 @@ class TransactionFeatures(_Node):
     sighash_single: Feature = _at(Feature, '*_single')
     sighash_default: Feature = _at(Feature, '*_default')
     sighash_anyone_can_pay: Feature = _at(Feature, '*_anyone_can_pay')
-    explicitly_rbf: IndexerFeature = _at(IndexerFeature, 'explicitly_rbf')
+    rbf_signaling: IndexerFeature = _at(IndexerFeature, 'rbf_signaling')
     dust_output: Feature = _at(Feature, 'dust_output')
     epobc: IndexerFeature = _at(IndexerFeature, 'epobc')
     one_input: CountSeries = _at(CountSeries, 'one_input_tx_count')
@@ -5568,14 +5568,14 @@ class BitviewClient(BitviewClientBase):
     OP_RETURN_KIND_NAMES = {
       "runes": "Runes",
       "witness_commitment": "Witness commitment",
-      "veri_block": "VeriBlock",
+      "veriblock": "VeriBlock",
       "omni": "Omni",
       "stacks": "Stacks",
       "blockstack": "Blockstack",
       "colu": "Colu",
       "open_assets": "Open Assets",
       "komodo": "Komodo",
-      "coin_spark": "CoinSpark",
+      "coinspark": "CoinSpark",
       "poet": "Po.et",
       "docproof": "DocProof",
       "factom": "Factom",

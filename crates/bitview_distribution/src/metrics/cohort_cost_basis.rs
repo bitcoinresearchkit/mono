@@ -6,18 +6,18 @@ use brk_types::{Cents, Height, Version};
 use vecdb::{Database, Rw, StorageMode, WritableVec};
 
 /// A cohort's mean creation price; `name` gives each series name from its metric
-/// (`cost_basis_per_coin_avg` -> `age_1d_to_1w_cost_basis_per_coin_avg`).
+/// (`cost_basis_by_coin_avg` -> `age_1d_to_1w_cost_basis_by_coin_avg`).
 #[derive(Traversable)]
 pub struct CohortCostBasis<M: StorageMode = Rw> {
     /// Creation prices (spot when each output was created) of the cohort's unspent outputs,
     /// weighted by satoshis.
-    per_coin: PerCoin,
+    by_coin: ByCoin,
     #[traversable(hidden)]
     stored: CachedSeries<Height, Cents, M>,
 }
 
 #[derive(Clone, Traversable)]
-struct PerCoin {
+struct ByCoin {
     /// The weighted mean; undefined (null) while the cohort holds no supply.
     avg: Price<LazyPerBlock<Cents>>,
     /// Realized price: realized cap divided by supply, the weighted mean; undefined (null) while
@@ -32,12 +32,12 @@ impl CohortCostBasis {
         version: Version,
         mappings: &MappingsVecs,
     ) -> Result<Self> {
-        let stored = import_cached(db, &name("cost_basis_per_coin_avg_cents"), version)?;
+        let stored = import_cached(db, &name("cost_basis_by_coin_avg_cents"), version)?;
         let price =
             |metric: &str| Price::from_height_source(&name(metric), version, &stored, mappings);
         Ok(Self {
-            per_coin: PerCoin {
-                avg: price("cost_basis_per_coin_avg"),
+            by_coin: ByCoin {
+                avg: price("cost_basis_by_coin_avg"),
                 realized_price: price("realized_price"),
             },
             stored,

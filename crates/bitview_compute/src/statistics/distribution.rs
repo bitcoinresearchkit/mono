@@ -51,15 +51,15 @@ where
         values.collect_range_into_at(from, to, &mut entering);
         for (index, (start, &value)) in (from..).zip(starts.iter().zip(&entering)) {
             window.push(index, f64::from(value), start.to_usize());
-            let [pct10, pct25, median, pct75, pct90] =
+            let [p10, p25, median, p75, p90] =
                 window.percentiles([0.10, 0.25, 0.50, 0.75, 0.90]);
             outputs.min.push(T::from(window.min()));
             outputs.max.push(T::from(window.max()));
-            outputs.pct10.push(T::from(pct10));
-            outputs.pct25.push(T::from(pct25));
+            outputs.p10.push(T::from(p10));
+            outputs.p25.push(T::from(p25));
             outputs.median.push(T::from(median));
-            outputs.pct75.push(T::from(pct75));
-            outputs.pct90.push(T::from(pct90));
+            outputs.p75.push(T::from(p75));
+            outputs.p90.push(T::from(p90));
         }
         if to == end || outputs.min.batch_limit_reached() {
             let _lock = exit.lock();

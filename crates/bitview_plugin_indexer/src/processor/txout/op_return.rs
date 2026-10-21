@@ -48,7 +48,7 @@ fn classify(data: &[u8], prefix: Option<&[u8]>) -> OpReturnKind {
     } else if prefix.starts_with(b"OA\x01\x00") {
         OpReturnKind::OpenAssets
     } else if prefix.starts_with(b"SPK") {
-        OpReturnKind::CoinSpark
+        OpReturnKind::Coinspark
     } else if prefix.starts_with(b"POET") {
         OpReturnKind::Poet
     } else if prefix.starts_with(b"DOCPROOF") {
@@ -66,7 +66,7 @@ fn classify(data: &[u8], prefix: Option<&[u8]>) -> OpReturnKind {
     } else if is_stampery(prefix) {
         OpReturnKind::Stampery
     } else if data.len() == 82 {
-        OpReturnKind::VeriBlock
+        OpReturnKind::Veriblock
     } else if (36..=38).contains(&data.len()) {
         OpReturnKind::Komodo
     } else if matches!(prefix.len(), 20 | 32) {

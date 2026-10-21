@@ -86,8 +86,8 @@ has to be deleted by hand.
   parameter (was `addr_type`), and the error codes `invalid_address` and `unknown_address` (were `invalid_addr`,
   `unknown_addr`)
 - Undefined values are null instead of a made-up number: shares, ratios and relative changes over a zero denominator
-  or base (supply, capital and fee shares, velocity, delta rates from a zero start, price returns and drawdown before
-  a price exists), cost basis and realized and capitalized prices of empty cohorts, dormancy over windows without
+  or base (supply, capital and fee shares, velocity, percent changes from a zero start, price returns and drawdown
+  before a price exists), cost basis and realized and capitalized prices of empty cohorts, dormancy over windows without
   spent coins and the coinflow spending rate of age ranges without coin days created (were 0), SOPR without value
   destroyed and the realized profit-to-loss ratio without realized loss (were 1). Rolling averages count an undefined
   value as zero
@@ -114,15 +114,16 @@ has to be deleted by hand.
   (`all.vaulted_price`, `all.true_market_mean`), `under_6m.{realized_price, capitalized_price}`, `awake.realized_price`
   and `mobile.{realized_price, median_realized_price, median_capitalized_price}` (were `coinflow_price`,
   `true_market_mean_price`, `under_6m_realized_price`, ...). A component's ids follow its price's: each percentile's
-  price is its `band` (`<component>.<pct>.band`, ids `<price>_rarity_<pct>`, as `sth_median_realized_price_rarity_pct1`;
-  were `<component>.<pct>.price`, ids `<component>_<pct>`) and its ratio `<component>.<pct>.ratio` (ids
-  `<price>_rarity_ratio_<pct>`; were `<component>_ratio_<pct>`), and a median component's price and spot ratio are
+  price is its `band` (`<component>.<percentile>.band`, ids `<price>_rarity_<percentile>`, as
+  `sth_median_realized_price_rarity_p1`; were `<component>.<percentile>.price`, ids `<component>_<percentile>`) and its
+  ratio `<component>.<percentile>.ratio` (ids `<price>_rarity_ratio_<percentile>`; were
+  `<component>_ratio_<percentile>`), and a median component's price and spot ratio are
   `sth_median_realized_price`, `sth_median_realized_price_ratio`, `median_capitalized_price`, ...
   Extremes are named by their input, `supply_in_loss`, `realized_profit_24h`, `realized_loss_24h`,
   `realized_peak_regret_24h`, `sell_side_risk_ratio_24h` (were `coins_in_loss`, `profit_taking`, `capitulation`,
   `peak_regret`, `seller_exhaustion`). Each is its input (`block`, under the input's own id: `supply_in_loss`,
   `realized_profit_sum_24h`, ...) and the input's historical percentile bands, the components' rarity percentiles
-  (`supply_in_loss_rarity_pct99_9`, ...), in place of three tail thresholds and a tail share (were
+  (`supply_in_loss_rarity_p99_9`, ...), in place of three tail thresholds and a tail share (were
   `rarity_meter_coins_in_loss_threshold_pct0_1`, ... and `rarity_meter_coins_in_loss_tail`). The bands describe the
   history alone, so they stay defined at blocks whose own value is left out of it (a zero supply in loss)
 - The rarity meter reads 16 reference models. Local reads the short-term holders' and under-six-month cohorts' realized
@@ -137,17 +138,25 @@ has to be deleted by hand.
   `cointime_price` and `active_price`, and the extremes' `rank`, which counted a missing value as 0. Bands, levels and
   scores are null before height 210,000, where calibration starts (were computed from zero bands)
 - Bedrock's modes are `awake`, `mobile` and, last, `unweighted`, the baseline the weighted ones improve on (were
-  `raw`, `cointime`, `coinflow`; ids `bedrock_awake_floor_pct95`, ...); the horizon modes `coinflow_1m` ...
+  `raw`, `cointime`, `coinflow`; ids `bedrock_awake_floor_p95`, ...); the horizon modes `coinflow_1m` ...
   `coinflow_8y` are gone. Each mode publishes `floor`, `cost_basis_above_floor` (was `level`: the creation-price
   percentiles of the supply at or above its 95th-percentile floor) and `supply_in_loss_share_threshold` (was
   `loss_threshold`). `bedrock.cost_basis` is gone: the awake and mobile cohorts' cost-basis percentiles
-  (`awake_cost_basis_per_coin_pct5`, ...; were `bedrock_cointime_cost_basis_per_coin_pct05`, ...) take its place.
+  (`awake_cost_basis_by_coin_p5`, ...; were `bedrock_cointime_cost_basis_per_coin_pct05`, ...) take its place.
   Calibration uses block observations: each mode's loss thresholds are percentiles of its finite loss shares from
   earlier blocks, available once 52,560 such observations (one nominal year) exist and the current share is finite
   (was daily, once 365 days were)
 - One word per concept in paths and ids: `avg` for a mean (was `average`), `median` for the 50th percentile in every
-  percentile set (was `pct50`), unpadded percentiles (`pct5`, was `pct05`; the rarity bands' price ids `pct1`, `pct2`,
-  `pct5`, were `pct01`, ...), and `block` for a node's own per-block series beside its derived children (was `base`)
+  percentile set (was `pct50`), `p` and the percentile for the others, unpadded, an underscore for its decimal point
+  (`p5`, `p99_9`, `bedrock_awake_floor_capital_p99_5_to_p99_9`; were `pct05`, `pct99_9`; the rarity bands' price ids
+  `p1`, `p2`, `p5`, were `pct01`, ...), which the clients keep in their keys (`p0_1`, `p99_9`, `p99_5ToP99_9`; were
+  `pct01`, `pct999`), `percent` for a window's relative change (`sth_supply_delta_1m_percent`, was
+  `sth_supply_delta_1m_rate`), `by_coin` and `by_dollar` for a cost basis weighted by coin or by dollar
+  (`cost_basis.by_coin.median`, `sth_cost_basis_by_dollar_p5`; were `per_coin`, `per_dollar`), `rbf_signaling` for a
+  transaction signaling opt-in RBF (below; was `explicitly_rbf`), an OP_RETURN protocol's one-word name
+  (`op_return.protocols.{veriblock, coinspark}`, ids `op_return_veriblock_*`, `op_return_coinspark_*`, and the
+  `op_return_protocol` values; were `veri_block`, `coin_spark`), and `block` for a node's own per-block series beside
+  its derived children (was `base`)
 - Flows (amounts or counts summed per block: transfer volume, rewards, realized profit, coin days destroyed, ...) lose
   their per-block window averages (`*_average_<window>`), which were the window `sum` divided by its block count: they
   keep `block`, `sum` and `cumulative`. Distributions (block size, fees per block, ...) keep `avg` beside `min`, `max`
@@ -207,12 +216,12 @@ has to be deleted by hand.
   `raw_locktime`), `tx_version` at `.version` (was `.tx_version`) and `tx_fee` (was `fee`). The block sum of sigop cost
   is `transactions.sigop_cost.{block, cumulative, sum}`, ids `block_sigop_cost`, `block_sigop_cost_cumulative`,
   `block_sigop_cost_sum_<W>` (were `transactions.sigops.total`, `total_sigop_cost*`)
-- Per-transaction values sit beside their per-block statistics: `transactions.vsize.{tx, min, max, pct10, pct25,
-  median, pct75, pct90}` (were `transactions.size.vsize.{tx_index, block.median, ...}`), ids `tx_vsize` and
+- Per-transaction values sit beside their per-block statistics: `transactions.vsize.{tx, min, max, p10, p25,
+  median, p75, p90}` (were `transactions.size.vsize.{tx_index, block.median, ...}`), ids `tx_vsize` and
   `tx_vsize_median`, ...; likewise `transactions.fees.fee` (`tx_fee_median`, was `fee_median`) and
   `transactions.fees.effective_fee_rate`. The six-block statistics (`tx_vsize_6b_median`, `fee_6b_median`, ...) and
   the transaction weight statistics (`tx_weight_*`; vsize stays) are gone
-- The indexer's per-block transaction counts take the `<kind>_tx_count` template: `explicitly_rbf_tx_count`,
+- The indexer's per-block transaction counts take the `<kind>_tx_count` template: `rbf_signaling_tx_count`,
   `one_input_tx_count`, `one_output_tx_count`, `fake_pubkey_tx_count`, and per output type `p2pkh_tx_count`, ...,
   `empty_script_tx_count`, `unknown_script_tx_count` (at `features.empty_script`, `features.unknown_script`):
   transactions that create or spend that type, beside `outputs`' `p2pkh_output_tx_count` and `inputs`'
@@ -251,13 +260,13 @@ has to be deleted by hand.
   SegWit, opt-in RBF, dust outputs and single-input and single-output transactions directly under
   `transactions.features`; ids are unchanged. Inscription transactions take the same shape:
   `transactions.inscription.{flag, block, cumulative, sum}` (were `inscription.count.{block, ...}`). The indexer's
-  columns take the same shape: `indexer.transactions.features.<feature>.{flag, block}`, `is_explicitly_rbf` at
-  `indexer.transactions.features.explicitly_rbf.flag` (was `transactions.raw.is_explicitly_rbf`) and the version
-  counts at `indexer.transactions.versions.<version>.block` (were `transactions.features.count.{v1, ...,
-  other_version}`). Flag ids are unchanged but for `has_empty_script` and `has_unknown_script` (were `has_empty`,
-  `has_unknown`); where the indexer and a plugin publish one id, both paths serve the same series with the same
-  description. Per-block feature and version counts are `Count` (were `StoredU64`; stored as `Count16`). Every
-  feature's count now has its cumulative and window sums (`segwit_tx_count_cumulative`,
+  columns take the same shape: `indexer.transactions.features.<feature>.{flag, block}`, `is_rbf_signaling` at
+  `indexer.transactions.features.rbf_signaling.flag` (was `is_explicitly_rbf` at `transactions.raw.is_explicitly_rbf`)
+  and the version counts at `indexer.transactions.versions.<version>.block` (were `transactions.features.count.{v1,
+  ..., other_version}`). Flag ids are unchanged but for `is_rbf_signaling`, `has_empty_script` and `has_unknown_script`
+  (were `is_explicitly_rbf`, `has_empty`, `has_unknown`); where the indexer and a plugin publish one id, both paths
+  serve the same series with the same description. Per-block feature and version counts are `Count` (were `StoredU64`;
+  stored as `Count16`). Every feature's count now has its cumulative and window sums (`segwit_tx_count_cumulative`,
   `segwit_tx_count_sum_<window>`, likewise `p2pkh_tx_count`, `one_input_tx_count`, ...; were only for Taproot, the
   annex, the sighash types, opt-in RBF and dust outputs)
 - Mappings: address types sit at `mappings.addresses.<type>.{identity, address}` with ids `<type>_address` (were
@@ -284,7 +293,7 @@ has to be deleted by hand.
 - Age and UTXO cohorts are member-first: `age.ranges.<range>`, `age.halving_epochs.<epoch>`, `age.vintages.<year>`,
   `utxos.amounts.<band>` and `utxos.types.<type>` each hold `supply.{total, delta, share}`, `capital` (below),
   `utxos.{count, spent_count}`, `activity.transfer_volume`, `realized.{profit, loss}` and
-  `cost_basis.per_coin.{avg, realized_price}` and, in age, `supply.{in_profit, in_loss}`,
+  `cost_basis.by_coin.{avg, realized_price}` and, in age, `supply.{in_profit, in_loss}`,
   `activity.coindays_destroyed`, `realized.{net_pnl, value_destroyed}` and `unrealized.{profit, loss, net_pnl}` (were
   metric-first under `cohorts`: `cohorts.supply.total.age.range.<range>`,
   `cohorts.realized.cap.utxo_amount.range.<band>`, `cohorts.supply.total.{epoch, class_, type}.<member>`, ...). Age
@@ -370,9 +379,9 @@ has to be deleted by hand.
   is `cointime.reserve_risk.block` (was `.value`); `hodled_or_lost_supply` sits at `cointime.supply.hodled_or_lost`,
   beside the vaulted supply it names (was `supply.hodled_or_lost`)
 - Cointime and Coinflow names: the weighted realized capitalization and price are `capital.realized_cap` and
-  `cost_basis.per_coin.realized_price`, ids `awake_realized_cap`, `awake_realized_price`, `mobile_realized_cap`,
+  `cost_basis.by_coin.realized_price`, ids `awake_realized_cap`, `awake_realized_price`, `mobile_realized_cap`,
   `mobile_realized_price` (were `awake_cap`, `awake_price`, `coinflow_cap`, `coinflow_price`), with ratios
-  `awake_cost_basis_per_coin_avg_ratio` and `mobile_cost_basis_per_coin_avg_ratio` (were `awake_price_ratio`,
+  `awake_cost_basis_by_coin_avg_ratio` and `mobile_cost_basis_by_coin_avg_ratio` (were `awake_price_ratio`,
   `coinflow_price_ratio`); Coinflow's other ids name the side (`mobile_supply_in_loss_share`, `sth_mobile_realized_cap`,
   ...; were `coinflow_supply_in_loss_share`, `sth_coinflow_cap`, ...), `liveliness_to_vaultedness` (was
   `activity_to_vaultedness` at `activity.ratio`), `awake_to_dormant` (was `wakefulness_to_dormancy`), the adjusted rates
@@ -440,17 +449,17 @@ has to be deleted by hand.
   threshold and all in profit or in loss (`utxos_over_10pct_in_profit_sth_supply`, `utxos_in_loss_realized_cap`,
   `utxos_over_50pct_in_loss_nupl`, ...; derivable from the bands; 851 series)
 - Mean creation prices sit with the other creation-price statistics, each name analysts use beside its descriptive
-  series, in holders, entry, age cohorts, UTXO cohorts, Cointime and Coinflow: `cost_basis.per_coin.avg` with its
+  series, in holders, entry, age cohorts, UTXO cohorts, Cointime and Coinflow: `cost_basis.by_coin.avg` with its
   jargon `realized_price` and, where they exist, `avg.{ratio, mvrv}` and `median_realized_price` beside the percentiles;
-  `cost_basis.per_dollar.avg.{block, ratio}` with `capitalized_price` and `median_capitalized_price`. Ids:
-  `sth_cost_basis_per_coin_avg[_ratio]`, `sth_cost_basis_per_dollar_avg[_ratio]` and the jargon `sth_realized_price`,
+  `cost_basis.by_dollar.avg.{block, ratio}` with `capitalized_price` and `median_capitalized_price`. Ids:
+  `sth_cost_basis_by_coin_avg[_ratio]`, `sth_cost_basis_by_dollar_avg[_ratio]` and the jargon `sth_realized_price`,
   `sth_mvrv`, `sth_capitalized_price`, `sth_median_realized_price` and `sth_median_capitalized_price` (second ids for
-  `cost_basis.per_coin.median` and `cost_basis.per_dollar.median`). They were `realized.{price, mvrv,
+  `cost_basis.by_coin.median` and `cost_basis.by_dollar.median`). They were `realized.{price, mvrv,
   capitalized_price}` (holders) and `realized.price` (entry, age cohorts, UTXO cohorts); the holders'
-  `*_realized_price_ratio` and `*_capitalized_price_ratio` ids are `*_cost_basis_per_{coin,dollar}_avg_ratio`, the
+  `*_realized_price_ratio` and `*_capitalized_price_ratio` ids are `*_cost_basis_by_{coin,dollar}_avg_ratio`, the
   other cohorts' realized price ratios are gone with their MVRV (`utxos_1d_to_1w_old_realized_price_ratio`,
   `epoch_0_realized_price_ratio`, `p2pkh_realized_price_ratio`, ...), and entry, age and UTXO cohorts gain
-  `*_cost_basis_per_coin_avg`. Cointime and Coinflow gain MVRV (`awake_mvrv`, `sth_mobile_mvrv`, ...). Every cohort's
+  `*_cost_basis_by_coin_avg`. Cointime and Coinflow gain MVRV (`awake_mvrv`, `sth_mobile_mvrv`, ...). Every cohort's
   `value_destroyed` sits in `realized` (was `realized.sopr.value_destroyed`)
 - Three duplicates are gone. `realized.net_pnl.delta` in the holders, age and entry cohorts (ids
   `*net_realized_pnl_delta_*`): the window's change of the cumulative net PnL, which equals `realized.net_pnl.sum`,
@@ -852,12 +861,12 @@ has to be deleted by hand.
   are gone); `ByAddrType` and `AddrTypeId` moved here from `bitview_cohort`; `FundedAddressData::send` is infallible;
   `Index::Day3.index_to_date` returns the row's date (row 0 is 2008-12-31; was `None`) and `Index::possible_values` is
   `aliases`; `Year` is gone; `Pool::slug()` is the `slug` field and `Pools::get_unknown` is `unknown`;
-  `PercentileId::{Pct5, Median}` (were `Pct05`/`Pct50`) gain `suffix()`, and `RarityPercentileId::Median` (was `Pct50`;
+  `PercentileId::{P5, Median}` (were `Pct05`/`Pct50`) gain `suffix()`, and `RarityPercentileId::Median` (was `Pct50`;
   `price_suffix` is gone)
 - `bitview_primitives` declares the OP_RETURN kinds once (`with_op_return_kinds!`): `OpReturnKind` no longer implements
-  vecdb's `ColumnId` (`ALL`, `get`) and `OP_RETURN_KINDS` is gone. It adds `Index::calendar()`,
-  `From<SatsFract> for Bitcoin` and `From<CentsFract> for Dollars` (`bitview_compute`'s `AvgSatsToBtc` and
-  `AvgCentsToUsd` are gone), and holds `with_resolution_fields!`
+  vecdb's `ColumnId` (`ALL`, `get`), `OP_RETURN_KINDS` is gone and `OpReturnKind::{Veriblock, Coinspark}` were
+  `VeriBlock`, `CoinSpark`. It adds `Index::calendar()`, `From<SatsFract> for Bitcoin` and `From<CentsFract> for
+  Dollars` (`bitview_compute`'s `AvgSatsToBtc` and `AvgCentsToUsd` are gone), and holds `with_resolution_fields!`
 - `Cents::round_to(i32)` and `CentsCompact::round_to(i32)` are `round_to_significant(u32)` (significant digits of the
   amount in cents); `round_to_dollar` (whole dollars, then digits) is gone
 - The rarity meter's levels and scores are `bitview_primitives::Score` (were `StoredI8`), with an undefined value
@@ -1013,18 +1022,18 @@ has to be deleted by hand.
 
 - `GET /api/series/{name}` returns `unit`, what the value type measures (e.g. "A duration in days."), and `nullable`,
   the indexes whose values can be `null`; the catalog carries `nullable` too. Every series value type has a description
-- Bedrock floor supply and capital, `bedrock.<mode>.{floor_supply, floor_capital}.{pct95_to_pct98, pct98_to_pct99,
-  pct99_to_pct99_5, pct99_5_to_pct99_9, below_pct99_9}` (ids `bedrock_awake_floor_supply_pct95_to_pct98`, ..., in BTC
-  and `_usd`, and `bedrock_awake_floor_capital_pct95_to_pct98`, ..., in USD): the supply created while spot sat in each
+- Bedrock floor supply and capital, `bedrock.<mode>.{floor_supply, floor_capital}.{p95_to_p98, p98_to_p99,
+  p99_to_p99_5, p99_5_to_p99_9, below_p99_9}` (ids `bedrock_awake_floor_supply_p95_to_p98`, ..., in BTC and `_usd`,
+  and `bedrock_awake_floor_capital_p95_to_p98`, ..., in USD): the supply created while spot sat in each
   band of the mode's floors at its creation block, less what has been spent since, and its capital (each unspent
   output at its creation price), counted from the second halving (block 420,000), before which calibration dominates
   the floors
 - Median time past, `indexer.blocks.median_time` (id `median_time`, height index): the median of each block's header
   timestamp and up to ten predecessors, which the next block's timestamp must exceed
 - Cointime's awake and Coinflow's mobile cohorts publish their creation-price statistics as series, in `all`, `sth`,
-  `lth` and the new `under_4m`, `under_6m`, `over_4m` and `over_6m` cohorts: mean per coin and per dollar with
+  `lth` and the new `under_4m`, `under_6m`, `over_4m` and `over_6m` cohorts: means by coin and by dollar with
   `realized_price`, `capitalized_price` and MVRV, URPD percentiles and median, `median_realized_price`, and supply and
-  capital density (`awake_cost_basis_per_coin_median`, `sth_mobile_cost_basis_per_dollar_pct5`, `awake_mvrv`,
+  capital density (`awake_cost_basis_by_coin_median`, `sth_mobile_cost_basis_by_dollar_p5`, `awake_mvrv`,
   `age_under_4m_mobile_realized_price`, ...); v0.12.2 had the weighted distributions only at `/api/urpd`.
   Coinflow, Cointime and Bedrock replay their per-block distribution in parallel 5,000-block segments, each from its
   nearest UTXO history snapshot
@@ -1068,7 +1077,7 @@ has to be deleted by hand.
 #### `bitview-client` (JS), `bitview_client` (Python)
 
 - The clients export the OP_RETURN protocols' display names beside the cohort names, `OP_RETURN_KIND_NAMES`
-  (`{ veriBlock: "VeriBlock", ... }` in JavaScript, keyed `veri_block` in Python), generated from the protocol list in
+  (`{ veriblock: "VeriBlock", ... }` in JavaScript, keyed `veriblock` in Python), generated from the protocol list in
   `bitview_primitives` (`OP_RETURN_KIND_NAMES`, each kind's snake_case key and name)
 
 #### `bitviewd` and `bitviewd_bench`
@@ -1183,7 +1192,7 @@ has to be deleted by hand.
   percentiles
 - The inflation rate is the scheduled annual issuance over the supply (the block's scheduled subsidy times 52,560
   blocks), not the derived subsidy (zero for a block whose miner claimed nothing); it was the trailing 365-day supply
-  change, which lagged a halving by up to a year (that change remains `supply_delta_1y_rate`). It is undefined only
+  change, which lagged a halving by up to a year (that change remains `supply_delta_1y_percent`). It is undefined only
   without supply, at block 0. Cointime's adjusted inflation follows
 - Profitability bands place each edge exactly: the creation price `spot × 100 / (100 ± p)` rounds up to the price
   grid and the outputs below it fall in the more profitable band, while the outputs in the spot's own grid bucket
@@ -1255,9 +1264,9 @@ has to be deleted by hand.
 - Price averages and extremes start at the first exchange price (block 74,641, 16 August 2010): SMAs, EMAs (seeded
   with that price), the 1w/1m/1y min/max and their ratios (Mayer Multiple included) are null before it (zeros
   pulled them down into 2014)
-- Window deltas and their rates (`*_delta_<window>`) start from the value before the window, like the window sums: a
-  change over a window equals the sum of its flows (they left out the window's first block); price returns compare
-  with the last price before the window
+- Window deltas and their percent changes (`*_delta_<window>`) start from the value before the window, like the window
+  sums: a change over a window equals the sum of its flows (they left out the window's first block); price returns
+  compare with the last price before the window
 - Hash price, its all-time low and its rebound are null until the trailing 24 hours are fully priced (a partly
   priced first day pinned the low for years)
 - OP_RETURN: coinbase transactions no longer count in the pre-v30 policy categories, documented as size/count

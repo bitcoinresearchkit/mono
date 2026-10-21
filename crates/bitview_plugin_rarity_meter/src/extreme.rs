@@ -78,7 +78,7 @@ impl<T> Extreme<T>
 where
     T: NumericValue + JsonSchema,
 {
-    /// `source` is the metric; its id with `_rarity` prefixes the bands' (`supply_in_loss_rarity_pct1`).
+    /// `source` is the metric; its id with `_rarity` prefixes the bands' (`supply_in_loss_rarity_p1`).
     pub fn import(
         db: &Database,
         source: &impl ReadableCloneableVec<Height, T>,

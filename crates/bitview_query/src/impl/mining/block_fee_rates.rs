@@ -19,11 +19,11 @@ impl Query {
 
         let means = |vec| bw.means(vec, mempool_fee_rate);
         let min = means(&frd.min.height)?;
-        let pct10 = means(&frd.pct10.height)?;
-        let pct25 = means(&frd.pct25.height)?;
+        let p10 = means(&frd.p10.height)?;
+        let p25 = means(&frd.p25.height)?;
         let median = means(&frd.median.height)?;
-        let pct75 = means(&frd.pct75.height)?;
-        let pct90 = means(&frd.pct90.height)?;
+        let p75 = means(&frd.p75.height)?;
+        let p90 = means(&frd.p90.height)?;
         let max = means(&frd.max.height)?;
         drop(pin);
 
@@ -36,11 +36,11 @@ impl Query {
                 timestamp: b.avg_timestamp,
                 percentiles: FeeRatePercentiles {
                     min: min[i],
-                    pct10: pct10[i],
-                    pct25: pct25[i],
+                    p10: p10[i],
+                    p25: p25[i],
                     median: median[i],
-                    pct75: pct75[i],
-                    pct90: pct90[i],
+                    p75: p75[i],
+                    p90: p90[i],
                     max: max[i],
                 },
             })

@@ -6,7 +6,7 @@ mod price_with_mvrv;
 mod price_with_ratio;
 mod rolling_windows;
 
-pub use cost_basis_means::{CostBasisMeans, CostBasisPerCoin, CostBasisPerDollar};
+pub use cost_basis_means::{CostBasisMeans, CostBasisByCoin, CostBasisByDollar};
 pub use lazy_per_block::LazyRatioPerBlock;
 pub use lazy_rolling_windows::LazyRatioRollingWindows;
 pub use per_block::RatioPerBlock;

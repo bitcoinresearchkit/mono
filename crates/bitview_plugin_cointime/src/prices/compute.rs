@@ -19,7 +19,7 @@ impl Vecs {
         cap: &cap::Vecs,
         exit: &Exit,
     ) -> Result<()> {
-        let realized_price = &holders.cohorts.all.cost_basis.per_coin.avg.cents.height;
+        let realized_price = &holders.cohorts.all.cost_basis.by_coin.avg.cents.height;
 
         self.vaulted_cents.compute_transform2(
             from,

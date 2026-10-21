@@ -34,8 +34,8 @@ fn record_epobc_tag(flags: &mut TxFeatureFlags, tx: &bitcoin::Transaction, first
 }
 
 #[inline(always)]
-pub fn record_explicit_rbf_signal(flags: &mut TxFeatureFlags, sequence: Sequence) {
-    flags.insert(TxFeatureFlags::EXPLICITLY_RBF * u32::from(sequence.is_rbf()));
+pub fn record_rbf_signaling(flags: &mut TxFeatureFlags, sequence: Sequence) {
+    flags.insert(TxFeatureFlags::RBF_SIGNALING * u32::from(sequence.is_rbf()));
 }
 
 impl BlockProcessor<'_> {
@@ -63,7 +63,7 @@ impl BlockProcessor<'_> {
 
             if unlikely(is_coinbase) {
                 let input = &tx.tx.input[0];
-                record_explicit_rbf_signal(&mut flags, input.sequence);
+                record_rbf_signaling(&mut flags, input.sequence);
                 sigops.scan_coinbase_input(input);
             } else {
                 record_epobc_tag(
@@ -72,7 +72,7 @@ impl BlockProcessor<'_> {
                     resolved_output_facts(&tx_inputs[0], txouts).0,
                 );
                 for (input, source) in tx.tx.input.iter().zip(tx_inputs) {
-                    record_explicit_rbf_signal(&mut flags, input.sequence);
+                    record_rbf_signaling(&mut flags, input.sequence);
                     let (output_type, legacy_sigop_cost) = resolved_output_facts(source, txouts);
                     let facts = input::analyze(input, output_type, &mut flags);
                     sigops.scan_input(output_type, legacy_sigop_cost, &facts);

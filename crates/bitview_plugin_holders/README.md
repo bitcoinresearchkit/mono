@@ -22,7 +22,7 @@ bands live in the Profitability plugin. Downstream plugins, including Rarity
 Meter, read these completed aggregate metrics instead of computing their own
 raw threshold prices.
 
-The realized price and MVRV are second ids for `cost_basis.per_coin.avg` and its spot ratio. NUPL
+The realized price and MVRV are second ids for `cost_basis.by_coin.avg` and its spot ratio. NUPL
 has one stored fixed-point source, computed alongside the block's P&L from net
 unrealized profit/loss divided by the cohort market cap. Zero market cap leaves it
 undefined (null).

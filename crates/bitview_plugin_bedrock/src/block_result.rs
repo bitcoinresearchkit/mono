@@ -9,15 +9,15 @@ use super::{
 };
 
 const LEVEL_PERCENTILES: Levels<f64> = Levels {
-    pct10: 0.1,
-    pct20: 0.2,
-    pct30: 0.3,
-    pct40: 0.4,
+    p10: 0.1,
+    p20: 0.2,
+    p30: 0.3,
+    p40: 0.4,
     median: 0.5,
-    pct60: 0.6,
-    pct70: 0.7,
-    pct80: 0.8,
-    pct90: 0.9,
+    p60: 0.6,
+    p70: 0.7,
+    p80: 0.8,
+    p90: 0.9,
 };
 
 pub(crate) type BlockResult = Modes<ModeResult>;
@@ -90,7 +90,7 @@ impl BlockResult {
                 // rounding at the boundary.
                 supply == 0 || (denominator - supply) as f64 / denominator as f64 > threshold
             });
-            if percentile == LossPercentileId::Pct95 {
+            if percentile == LossPercentileId::P95 {
                 p95_floor = floor;
             }
             Cents::from(buckets[floor].price)

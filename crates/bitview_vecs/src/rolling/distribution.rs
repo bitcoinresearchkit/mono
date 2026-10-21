@@ -59,30 +59,30 @@ where
         let DistributionStats {
             min,
             max,
-            pct10,
-            pct25,
+            p10,
+            p25,
             median,
-            pct75,
-            pct90,
+            p75,
+            p90,
         } = &mut self.stats;
         let min = &mut min.0;
         let max = &mut max.0;
-        let pct10 = &mut pct10.0;
-        let pct25 = &mut pct25.0;
+        let p10 = &mut p10.0;
+        let p25 = &mut p25.0;
         let median = &mut median.0;
-        let pct75 = &mut pct75.0;
-        let pct90 = &mut pct90.0;
+        let p75 = &mut p75.0;
+        let p90 = &mut p90.0;
 
         macro_rules! window {
             ($w:ident) => {
                 DistributionStats::<&mut PcoVec<Height, T, Budgeted>> {
                     min: &mut min.$w.height,
                     max: &mut max.$w.height,
-                    pct10: &mut pct10.$w.height,
-                    pct25: &mut pct25.$w.height,
+                    p10: &mut p10.$w.height,
+                    p25: &mut p25.$w.height,
                     median: &mut median.$w.height,
-                    pct75: &mut pct75.$w.height,
-                    pct90: &mut pct90.$w.height,
+                    p75: &mut p75.$w.height,
+                    p90: &mut p90.$w.height,
                 }
             };
         }

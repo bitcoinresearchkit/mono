@@ -32,7 +32,7 @@ where
     /// Relative change through the represented block from the value just
     /// before a trailing window, divided by that value. Undefined (null) when
     /// it is zero, as for a window from genesis.
-    rate: Windows<LazyDeltaPercentFromHeight<S, B>>,
+    percent: Windows<LazyDeltaPercentFromHeight<S, B>>,
 }
 
 impl<A, S, B> LazyRollingDeltas<A, S, B>
@@ -49,20 +49,20 @@ where
         mut absolute: impl FnMut(&str, Version, &W) -> A,
     ) -> Self {
         let version = version + super::VERSION;
-        let (absolute, rate) = window_starts
+        let (absolute, percent) = window_starts
             .map_with_suffix(|suffix, window_start| {
                 let name = format!("{name}_{suffix}");
-                let rate = LazyDeltaPercentFromHeight::from_source(
+                let percent = LazyDeltaPercentFromHeight::from_source(
                     &name,
                     version,
                     source,
                     *window_start,
                     indexes,
                 );
-                (absolute(&name, version, *window_start), rate)
+                (absolute(&name, version, *window_start), percent)
             })
             .unzip();
-        Self { absolute, rate }
+        Self { absolute, percent }
     }
 }
 

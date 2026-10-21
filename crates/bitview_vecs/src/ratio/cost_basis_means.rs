@@ -10,14 +10,14 @@ use crate::{
 
 /// A cohort's creation prices: its means with their spot ratios, and the percentile views of
 /// grid prices another owner stores and computes. Owners keep both as their own documented
-/// `per_coin` and `per_dollar` fields.
+/// `by_coin` and `by_dollar` fields.
 pub struct CostBasisMeans<M: StorageMode = Rw> {
-    pub per_coin: CostBasisPerCoin<M>,
-    pub per_dollar: CostBasisPerDollar<M>,
+    pub by_coin: CostBasisByCoin<M>,
+    pub by_dollar: CostBasisByDollar<M>,
 }
 
 #[derive(Traversable)]
-pub struct CostBasisPerCoin<M: StorageMode = Rw> {
+pub struct CostBasisByCoin<M: StorageMode = Rw> {
     /// The weighted mean; undefined (null) while the cohort holds no supply.
     pub avg: PriceWithMvrv<M>,
     /// Realized price: realized cap divided by supply, the weighted mean; undefined (null) while
@@ -35,7 +35,7 @@ pub struct CostBasisPerCoin<M: StorageMode = Rw> {
 }
 
 #[derive(Traversable)]
-pub struct CostBasisPerDollar<M: StorageMode = Rw> {
+pub struct CostBasisByDollar<M: StorageMode = Rw> {
     /// The weighted mean; undefined (null) while the cohort's USD value at creation is zero.
     pub avg: PriceWithRatio<M>,
     /// Capitalized price: the weighted mean; undefined (null) while the cohort's USD value at
@@ -53,8 +53,8 @@ pub struct CostBasisPerDollar<M: StorageMode = Rw> {
 }
 
 impl CostBasisMeans {
-    /// `name` gives each id from its metric (`cost_basis_per_coin_avg` ->
-    /// `sth_cost_basis_per_coin_avg`). The means are lazy over `realized_price` and
+    /// `name` gives each id from its metric (`cost_basis_by_coin_avg` ->
+    /// `sth_cost_basis_by_coin_avg`). The means are lazy over `realized_price` and
     /// `capitalized_price`, with stored spot ratios; the median aliases take `percentile_version`,
     /// the version of the percentiles' owner.
     #[allow(clippy::too_many_arguments)]
@@ -65,15 +65,15 @@ impl CostBasisMeans {
         percentile_version: Version,
         realized_price: &impl ReadableCloneableVec<Height, Cents>,
         capitalized_price: &impl ReadableCloneableVec<Height, Cents>,
-        per_coin: &PercentilesVecs,
-        per_dollar: &PercentilesVecs,
+        by_coin: &PercentilesVecs,
+        by_dollar: &PercentilesVecs,
         indexes: &IndexSources,
     ) -> Result<Self> {
         Ok(Self {
-            per_coin: CostBasisPerCoin {
+            by_coin: CostBasisByCoin {
                 avg: PriceWithMvrv::import(
                     db,
-                    &name("cost_basis_per_coin_avg"),
+                    &name("cost_basis_by_coin_avg"),
                     &name("mvrv"),
                     version,
                     realized_price,
@@ -85,17 +85,17 @@ impl CostBasisMeans {
                     realized_price,
                     indexes,
                 ),
-                percentiles: per_coin.prices.clone(),
+                percentiles: by_coin.prices.clone(),
                 median_realized_price: Price::from_lazy_cents_source(
                     &name("median_realized_price"),
                     percentile_version,
-                    &per_coin.median.cents,
+                    &by_coin.median.cents,
                 ),
             },
-            per_dollar: CostBasisPerDollar {
+            by_dollar: CostBasisByDollar {
                 avg: PriceWithRatio::import(
                     db,
-                    &name("cost_basis_per_dollar_avg"),
+                    &name("cost_basis_by_dollar_avg"),
                     version,
                     capitalized_price,
                     indexes,
@@ -106,11 +106,11 @@ impl CostBasisMeans {
                     capitalized_price,
                     indexes,
                 ),
-                percentiles: per_dollar.prices.clone(),
+                percentiles: by_dollar.prices.clone(),
                 median_capitalized_price: Price::from_lazy_cents_source(
                     &name("median_capitalized_price"),
                     percentile_version,
-                    &per_dollar.median.cents,
+                    &by_dollar.median.cents,
                 ),
             },
         })

@@ -66,7 +66,7 @@ macro_rules! with_transaction_features {
                 /// signal defined by BIP 125. This is a mechanical sequence signal: it does not prove the transaction
                 /// was replaceable or replaced, does not include inherited signaling, and does not account for
                 /// full-RBF policy. Coinbase transactions are evaluated by the same sequence rule.
-                explicitly_rbf: is_explicitly_rbf, EXPLICITLY_RBF = 22;
+                rbf_signaling: is_rbf_signaling, RBF_SIGNALING = 22;
                 /// Non-coinbase transactions with at least one output below the type-specific dust threshold: 672
                 /// sats for P2PK65, 576 for P2PK33, 546 for P2PKH, 540 for P2SH, 294 for P2WPKH, 330 for P2WSH or
                 /// P2TR, 240 for P2A, and 471 for an empty script. P2MS and unknown scripts use their computed

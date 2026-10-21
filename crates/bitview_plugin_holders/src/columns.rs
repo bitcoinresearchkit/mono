@@ -128,12 +128,12 @@ impl Columns {
             supply_loss: import_cached(db, &id.metric_name("supply_in_loss_sats"), version)?,
             price: import_cached(
                 db,
-                &id.metric_name("cost_basis_per_coin_avg_cents"),
+                &id.metric_name("cost_basis_by_coin_avg_cents"),
                 version,
             )?,
             capitalized_price: import_cached(
                 db,
-                &id.metric_name("cost_basis_per_dollar_avg_cents"),
+                &id.metric_name("cost_basis_by_dollar_avg_cents"),
                 version,
             )?,
             gross_pnl: import_cached(

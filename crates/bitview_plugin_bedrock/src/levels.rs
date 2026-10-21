@@ -2,25 +2,25 @@ use bitview_traversable::Traversable;
 
 #[derive(Clone, Traversable)]
 pub struct Levels<T> {
-    pub pct10: T,
-    pub pct20: T,
-    pub pct30: T,
-    pub pct40: T,
+    pub p10: T,
+    pub p20: T,
+    pub p30: T,
+    pub p40: T,
     pub median: T,
-    pub pct60: T,
-    pub pct70: T,
-    pub pct80: T,
-    pub pct90: T,
+    pub p60: T,
+    pub p70: T,
+    pub p80: T,
+    pub p90: T,
 }
 
 collection!(LevelId for Levels {
-    Pct10 => pct10,
-    Pct20 => pct20,
-    Pct30 => pct30,
-    Pct40 => pct40,
+    P10 => p10,
+    P20 => p20,
+    P30 => p30,
+    P40 => p40,
     Median => median,
-    Pct60 => pct60,
-    Pct70 => pct70,
-    Pct80 => pct80,
-    Pct90 => pct90,
+    P60 => p60,
+    P70 => p70,
+    P80 => p80,
+    P90 => p90,
 });

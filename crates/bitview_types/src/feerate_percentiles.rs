@@ -12,19 +12,19 @@ pub struct FeeRatePercentiles {
     pub min: FeeRate,
     /// Mean of the blocks' 10th percentile fee rate (sat/vB)
     #[serde(rename = "avgFee_10")]
-    pub pct10: FeeRate,
+    pub p10: FeeRate,
     /// Mean of the blocks' 25th percentile fee rate (sat/vB)
     #[serde(rename = "avgFee_25")]
-    pub pct25: FeeRate,
+    pub p25: FeeRate,
     /// Mean of the blocks' median fee rate (sat/vB)
     #[serde(rename = "avgFee_50")]
     pub median: FeeRate,
     /// Mean of the blocks' 75th percentile fee rate (sat/vB)
     #[serde(rename = "avgFee_75")]
-    pub pct75: FeeRate,
+    pub p75: FeeRate,
     /// Mean of the blocks' 90th percentile fee rate (sat/vB)
     #[serde(rename = "avgFee_90")]
-    pub pct90: FeeRate,
+    pub p90: FeeRate,
     /// Mean of the blocks' maximum fee rate (sat/vB)
     #[serde(rename = "avgFee_100")]
     pub max: FeeRate,

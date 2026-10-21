@@ -288,7 +288,7 @@ impl DefaultPlugins {
                     .cohorts
                     .all
                     .cost_basis
-                    .per_dollar
+                    .by_dollar
                     .avg
                     .cents
                     .height

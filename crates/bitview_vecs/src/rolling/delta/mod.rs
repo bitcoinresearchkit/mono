@@ -15,5 +15,5 @@ pub use lazy_windows_from_height::{
     LazyRollingDeltasFromHeight,
 };
 
-/// Window deltas and rates start from the value before the window, subtracted exactly.
+/// Window deltas and their percent changes start from the value before the window, subtracted exactly.
 const VERSION: Version = Version::ONE;

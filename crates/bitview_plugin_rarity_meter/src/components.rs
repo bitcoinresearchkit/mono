@@ -13,8 +13,8 @@ use vecdb::{Database, ReadableVec, Rw, StorageMode};
 use super::{Component, median_component::MedianComponent};
 
 /// The reference prices whose spot ratios the meter ranks, by the cohort they come from. Each
-/// component's series follow its price's id: its bands `<price>_rarity_<pct>`
-/// (`sth_median_realized_price_rarity_pct1`), their ratios `<price>_rarity_ratio_<pct>`; a median
+/// component's series follow its price's id: its bands `<price>_rarity_<percentile>`
+/// (`sth_median_realized_price_rarity_p1`), their ratios `<price>_rarity_ratio_<percentile>`; a median
 /// also publishes its price and spot ratio (`sth_median_realized_price`, `..._ratio`).
 #[derive(Traversable)]
 pub struct Components<M: StorageMode = Rw> {
@@ -125,60 +125,60 @@ impl Components {
         Ok(Self {
             all: AllComponents {
                 cohort: CohortComponents {
-                    realized_price: mean!("realized_price", cohorts.all.cost_basis.per_coin.avg),
+                    realized_price: mean!("realized_price", cohorts.all.cost_basis.by_coin.avg),
                     capitalized_price: mean!(
                         "capitalized_price",
-                        cohorts.all.cost_basis.per_dollar.avg
+                        cohorts.all.cost_basis.by_dollar.avg
                     ),
                     median_realized_price: median!(
                         "median_realized_price",
-                        cohorts.all.cost_basis.per_coin
+                        cohorts.all.cost_basis.by_coin
                     ),
                     median_capitalized_price: median!(
                         "median_capitalized_price",
-                        cohorts.all.cost_basis.per_dollar
+                        cohorts.all.cost_basis.by_dollar
                     ),
                 },
                 vaulted_price: mean!("vaulted_price", cointime.prices.vaulted),
                 true_market_mean: mean!("true_market_mean", cointime.prices.true_market_mean),
             },
             sth: CohortComponents {
-                realized_price: mean!("sth_realized_price", cohorts.sth.cost_basis.per_coin.avg),
+                realized_price: mean!("sth_realized_price", cohorts.sth.cost_basis.by_coin.avg),
                 capitalized_price: mean!(
                     "sth_capitalized_price",
-                    cohorts.sth.cost_basis.per_dollar.avg
+                    cohorts.sth.cost_basis.by_dollar.avg
                 ),
                 median_realized_price: median!(
                     "sth_median_realized_price",
-                    cohorts.sth.cost_basis.per_coin
+                    cohorts.sth.cost_basis.by_coin
                 ),
                 median_capitalized_price: median!(
                     "sth_median_capitalized_price",
-                    cohorts.sth.cost_basis.per_dollar
+                    cohorts.sth.cost_basis.by_dollar
                 ),
             },
             under_6m: MeanComponents {
                 realized_price: mean!(
                     "age_under_6m_realized_price",
-                    cohorts.under_6m.cost_basis.per_coin.avg
+                    cohorts.under_6m.cost_basis.by_coin.avg
                 ),
                 capitalized_price: mean!(
                     "age_under_6m_capitalized_price",
-                    cohorts.under_6m.cost_basis.per_dollar.avg
+                    cohorts.under_6m.cost_basis.by_dollar.avg
                 ),
             },
             awake: AwakeComponents {
-                realized_price: mean!("awake_realized_price", awake.cost_basis.per_coin.avg),
+                realized_price: mean!("awake_realized_price", awake.cost_basis.by_coin.avg),
             },
             mobile: MobileComponents {
-                realized_price: mean!("mobile_realized_price", mobile.cost_basis.per_coin.avg),
+                realized_price: mean!("mobile_realized_price", mobile.cost_basis.by_coin.avg),
                 median_realized_price: median!(
                     "mobile_median_realized_price",
-                    mobile.cost_basis.per_coin
+                    mobile.cost_basis.by_coin
                 ),
                 median_capitalized_price: median!(
                     "mobile_median_capitalized_price",
-                    mobile.cost_basis.per_dollar
+                    mobile.cost_basis.by_dollar
                 ),
             },
         })
@@ -224,26 +224,26 @@ impl Components {
         let jobs = [
             (
                 &mut all.realized_price,
-                &cohorts.all.cost_basis.per_coin.avg.relative.fixed.height,
+                &cohorts.all.cost_basis.by_coin.avg.relative.fixed.height,
             ),
             (
                 &mut all.capitalized_price,
-                &cohorts.all.cost_basis.per_dollar.avg.relative.fixed.height,
+                &cohorts.all.cost_basis.by_dollar.avg.relative.fixed.height,
             ),
             (
                 &mut sth.realized_price,
-                &cohorts.sth.cost_basis.per_coin.avg.relative.fixed.height,
+                &cohorts.sth.cost_basis.by_coin.avg.relative.fixed.height,
             ),
             (
                 &mut sth.capitalized_price,
-                &cohorts.sth.cost_basis.per_dollar.avg.relative.fixed.height,
+                &cohorts.sth.cost_basis.by_dollar.avg.relative.fixed.height,
             ),
             (
                 &mut under_6m.realized_price,
                 &cohorts
                     .under_6m
                     .cost_basis
-                    .per_coin
+                    .by_coin
                     .avg
                     .relative
                     .fixed
@@ -254,7 +254,7 @@ impl Components {
                 &cohorts
                     .under_6m
                     .cost_basis
-                    .per_dollar
+                    .by_dollar
                     .avg
                     .relative
                     .fixed
@@ -262,11 +262,11 @@ impl Components {
             ),
             (
                 &mut awake.realized_price,
-                &awake_cohort.cost_basis.per_coin.avg.relative.fixed.height,
+                &awake_cohort.cost_basis.by_coin.avg.relative.fixed.height,
             ),
             (
                 &mut mobile.realized_price,
-                &mobile_cohort.cost_basis.per_coin.avg.relative.fixed.height,
+                &mobile_cohort.cost_basis.by_coin.avg.relative.fixed.height,
             ),
             (
                 vaulted_price,

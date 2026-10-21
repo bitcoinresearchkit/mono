@@ -3097,14 +3097,14 @@
 
       const OP_RETURN_KINDS = [
         ["runes", "runes", "runes", "orange"],
-        ["veri block", "veri_block", "veriBlock", "blue"],
+        ["veriblock", "veriblock", "veriblock", "blue"],
         ["omni", "omni", "omni", "violet"],
         ["stacks", "stacks", "stacks", "purple"],
         ["blockstack", "blockstack", "blockstack", "indigo"],
         ["colu", "colu", "colu", "cyan"],
         ["open assets", "open_assets", "openAssets", "sky"],
         ["komodo", "komodo", "komodo", "amber"],
-        ["coin spark", "coin_spark", "coinSpark", "yellow"],
+        ["coinspark", "coinspark", "coinspark", "yellow"],
         ["poet", "poet", "poet", "fuchsia"],
         ["docproof", "docproof", "docproof", "emerald"],
         ["open timestamps", "open_timestamps", "openTimestamps", "green"],
@@ -3193,7 +3193,7 @@
 
         const counts = [
           { key: "version:1", series: count.v1 }, { key: "version:2", series: count.v2 }, { key: "version:3", series: count.v3 }, { key: "version:other", series: count.otherVersion },
-          { key: "rbf:yes", series: count.explicitlyRbf }, { key: "input:one", series: count.oneInput }, { key: "output:one", series: count.oneOutput },
+          { key: "rbf:yes", series: count.rbfSignaling }, { key: "input:one", series: count.oneInput }, { key: "output:one", series: count.oneOutput },
           { key: "type:p2pk", series: count.p2pk }, { key: "type:p2pkh", series: count.p2pkh }, { key: "type:p2sh", series: count.p2sh }, { key: "type:p2wpkh", series: count.p2wpkh },
           { key: "type:p2wsh", series: count.p2wsh }, { key: "type:taproot", series: count.p2tr }, { key: "type:p2a", series: count.p2a }, { key: "type:multisig", series: count.p2ms },
           { key: "type:op_return", series: count.opReturn }, { key: "type:empty", series: count.empty }, { key: "type:unknown", series: count.unknown },
@@ -3214,8 +3214,8 @@
           ["version:2", { matches: equals(2), series: tx.raw.txVersion }],
           ["version:3", { matches: equals(3), series: tx.raw.txVersion }],
           ["version:other", { matches: (value) => value !== 1 && value !== 2 && value !== 3, series: tx.raw.txVersion }],
-          ["rbf:yes", { matches: isTrue, series: tx.raw.isExplicitlyRbf }],
-          ["rbf:no", { matches: equals(false), series: tx.raw.isExplicitlyRbf }],
+          ["rbf:yes", { matches: isTrue, series: tx.raw.isRbfSignaling }],
+          ["rbf:no", { matches: equals(false), series: tx.raw.isRbfSignaling }],
           ["input:one", { matches: equals(1), series: mappings.txIndex.inputCount }],
           ["input:multi", { matches: differs(1), series: mappings.txIndex.inputCount }],
           ["output:one", { matches: equals(1), series: mappings.txIndex.outputCount }],

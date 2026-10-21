@@ -712,15 +712,13 @@
       };
 
       // ── Words: keys and ids as people write them (Studio's rules) ──
-      const ACRONYMS = new Set(["sth", "lth", "mvrv", "sopr", "nupl", "usd", "btc", "ath", "atl", "sma", "ema", "utxo", "ohlc", "vocdd", "hodl", "pct", "rbf", "cpfp", "tx", "pnl", "aviv", "rsi", "macd", "epobc", "cdd"]);
+      const ACRONYMS = new Set(["sth", "lth", "mvrv", "sopr", "nupl", "usd", "btc", "ath", "atl", "sma", "ema", "utxo", "ohlc", "vocdd", "hodl", "rbf", "cpfp", "tx", "pnl", "aviv", "rsi", "macd", "epobc", "cdd"]);
       const WORDS = /** @type {Record<string, string>} */ ({ addrs: "addresses", addr: "address", txs: "transactions", utxos: "UTXOs", avg: "average", opreturn: "OP_RETURN" });
-      /** A percentile's key as said: "pct5" "5th percentile", "pct01" "0.1st", "pct995" "99.5th" (the presets' rule). */
+      /** A percentile's key as said, its decimal point an underscore: "p5" "5th percentile", "p0_1" "0.1st", "p99_5" "99.5th". */
       function percentileKey(/** @type {string} */ key) {
-        const digits = /^pct(\d+)$/.exec(key)?.[1];
-        return digits ? `${ordinalOf(percentOf(digits))} percentile` : null;
+        const digits = /^p(\d+(?:_\d+)?)$/.exec(key)?.[1];
+        return digits ? `${ordinalOf(digits.replace("_", "."))} percentile` : null;
       }
-      /** A percentile key's digits as its number: "5" 5, "01" 0.1, "995" 99.5. */
-      const percentOf = (/** @type {string} */ digits) => (digits.startsWith("0") ? `0.${digits.slice(1)}` : digits.length === 3 ? `${digits.slice(0, 2)}.${digits.slice(2)}` : digits);
       const word = (/** @type {string} */ text) => WORDS[text] ?? (ACRONYMS.has(text) || /^p2[a-z]+\d*$/.test(text) ? text.toUpperCase() : text);
       const capitalize = (/** @type {string} */ text) => text.charAt(0).toUpperCase() + text.slice(1);
       /** A percentile said: "2" "2nd", "99.9" "99.9th", "0.1" "0.1st". */
@@ -733,15 +731,15 @@
        */
       const spoken = (/** @type {string[]} */ parts) => {
         const amount = (/** @type {number} */ i) => ["sats", "btc"].includes(parts[i + 1]) || (parts[i + 1] === "to" && ["sats", "btc"].includes(parts[i + 3]));
-        return parts.map((part, i) => (/^pct[\d.]+$/.test(part) ? `${ordinalOf(part.slice(3))} percentile` : amount(i) ? word(part) : windowOf(part) ?? word(part))).join(" ");
+        return parts.map((part, i) => (/^p[\d.]+$/.test(part) ? `${ordinalOf(part.slice(1))} percentile` : amount(i) ? word(part) : windowOf(part) ?? word(part))).join(" ");
       };
-      /** A series id as words: "sth_realized_price" "STH realized price", "…_rarity_pct99_9" "…rarity 99.9th percentile". */
+      /** A series id as words: "sth_realized_price" "STH realized price", "…_rarity_p99_9" "…rarity 99.9th percentile". */
       const humanize = (/** @type {string} */ name) =>
-        capitalize(spoken(name.replace(/pct(\d+)_(\d+)(?=_|$)/g, "pct$1.$2").replace(/(^|_)op_return(?=_|$)/g, "$1opreturn").split("_").filter(Boolean)));
+        capitalize(spoken(name.replace(/(^|_)p(\d+)_(\d+)(?=_|$)/g, "$1p$2.$3").replace(/(^|_)op_return(?=_|$)/g, "$1opreturn").split("_").filter(Boolean)));
       /** A tree key as words: "utxoSet" "UTXO set", "minute10" "Minute 10", "p2pkh" whole, "_2024" "2024", "_1m" "1 month". */
       const humanizeKey = (/** @type {string} */ key) =>
         percentileKey(key) ??
-        capitalize(spoken(key.replace(/^_/, "").replace(/([oO])pReturn/g, "$1preturn").replace(/([a-z\d])([A-Z])/g, "$1 $2").toLowerCase().split(" ").flatMap((part) => (/^p2/.test(part) ? [part] : /^pct\d+$/.test(part) ? [`pct${percentOf(part.slice(3))}`] : part.replace(/([a-z]{2})(\d)/g, "$1 $2").split(" ")))));
+        capitalize(spoken(key.replace(/^_/, "").replace(/([oO])pReturn/g, "$1preturn").replace(/([a-z\d])([A-Z])/g, "$1 $2").toLowerCase().split(" ").flatMap((part) => (/^p2/.test(part) ? [part] : /^p\d+(_\d+)?$/.test(part) ? [part.replace("_", ".")] : part.replace(/([a-z]{2})(\d)/g, "$1 $2").split(" ")))));
 
       // ── The tree: the client's, each folder with how many series it holds ──
       /** @typedef {{ key: string, label: string, path: string[], kids?: Node[], name?: string, indexes?: string[], count: number }} Node */

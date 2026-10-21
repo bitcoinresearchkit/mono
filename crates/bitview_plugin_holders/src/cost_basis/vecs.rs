@@ -13,8 +13,8 @@ use super::CostBasisBlockData;
 pub struct CostBasisVecs<M: StorageMode = Rw> {
     pub min: AgeAggregate<Price<PerBlock<Cents, M>>>,
     pub max: AgeAggregate<Price<PerBlock<Cents, M>>>,
-    pub per_coin: AgeAggregate<PercentilesVecs<M>>,
-    pub per_dollar: AgeAggregate<PercentilesVecs<M>>,
+    pub by_coin: AgeAggregate<PercentilesVecs<M>>,
+    pub by_dollar: AgeAggregate<PercentilesVecs<M>>,
     pub supply_density: AgeAggregate<DensityVecs<M>>,
     pub capital_density: AgeAggregate<DensityVecs<M>>,
 }
@@ -55,8 +55,8 @@ impl CostBasisVecs {
         Ok(Box::new(Self {
             min: prices("cost_basis_min")?,
             max: prices("cost_basis_max")?,
-            per_coin: percentiles("cost_basis_per_coin")?,
-            per_dollar: percentiles("cost_basis_per_dollar")?,
+            by_coin: percentiles("cost_basis_by_coin")?,
+            by_dollar: percentiles("cost_basis_by_dollar")?,
             supply_density: densities("supply_density")?,
             capital_density: densities("capital_density")?,
         }))
@@ -79,9 +79,9 @@ impl CostBasisVecs {
                 .push(&values.supply_density);
             id.select_mut(&mut self.capital_density)
                 .push(&values.capital_density);
-            id.select_mut(&mut self.per_coin)
+            id.select_mut(&mut self.by_coin)
                 .push(&percentiles.sat_prices);
-            id.select_mut(&mut self.per_dollar)
+            id.select_mut(&mut self.by_dollar)
                 .push(&percentiles.usd_prices);
         }
     }

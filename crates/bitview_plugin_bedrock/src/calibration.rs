@@ -52,13 +52,13 @@ impl Calibration {
         Thresholds::from_fn(|mode| {
             let history = self.histories.select(mode);
             (current.select(mode).is_some() && history.count() >= MINIMUM_BLOCKS).then(|| {
-                let [pct95, pct98, pct99, pct99_5, pct99_9] = history.percentiles(PERCENTILES);
+                let [p95, p98, p99, p99_5, p99_9] = history.percentiles(PERCENTILES);
                 Percentiles {
-                    pct95,
-                    pct98,
-                    pct99,
-                    pct99_5,
-                    pct99_9,
+                    p95,
+                    p98,
+                    p99,
+                    p99_5,
+                    p99_9,
                 }
             })
         })

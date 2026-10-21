@@ -9,30 +9,30 @@ pub struct DistributionStats<A> {
     /// Maximum value in the represented distribution.
     pub max: A,
     /// 10th percentile of the represented distribution.
-    pub pct10: A,
+    pub p10: A,
     /// 25th percentile of the represented distribution.
-    pub pct25: A,
+    pub p25: A,
     /// Median of the represented distribution.
     pub median: A,
     /// 75th percentile of the represented distribution.
-    pub pct75: A,
+    pub p75: A,
     /// 90th percentile of the represented distribution.
-    pub pct90: A,
+    pub p90: A,
 }
 
 impl<A> DistributionStats<A> {
     const SUFFIXES: [&'static str; 7] =
-        ["min", "max", "pct10", "pct25", "median", "pct75", "pct90"];
+        ["min", "max", "p10", "p25", "median", "p75", "p90"];
 
     pub fn as_mut_array(&mut self) -> [&mut A; 7] {
         [
             &mut self.min,
             &mut self.max,
-            &mut self.pct10,
-            &mut self.pct25,
+            &mut self.p10,
+            &mut self.p25,
             &mut self.median,
-            &mut self.pct75,
-            &mut self.pct90,
+            &mut self.p75,
+            &mut self.p90,
         ]
     }
 
@@ -40,11 +40,11 @@ impl<A> DistributionStats<A> {
         Ok(Self {
             min: f(Self::SUFFIXES[0])?,
             max: f(Self::SUFFIXES[1])?,
-            pct10: f(Self::SUFFIXES[2])?,
-            pct25: f(Self::SUFFIXES[3])?,
+            p10: f(Self::SUFFIXES[2])?,
+            p25: f(Self::SUFFIXES[3])?,
             median: f(Self::SUFFIXES[4])?,
-            pct75: f(Self::SUFFIXES[5])?,
-            pct90: f(Self::SUFFIXES[6])?,
+            p75: f(Self::SUFFIXES[5])?,
+            p90: f(Self::SUFFIXES[6])?,
         })
     }
 }

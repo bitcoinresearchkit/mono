@@ -88,8 +88,8 @@ impl MetricBuckets {
         };
         let coin_targets = self.totals.map(|totals| targets(totals.sats));
         let dollar_targets = self.totals.map(|totals| targets(totals.value));
-        let mut per_coin = [[Cents::NAN; PERCENTILES_LEN]; COHORTS];
-        let mut per_dollar = [[Cents::NAN; PERCENTILES_LEN]; COHORTS];
+        let mut by_coin = [[Cents::NAN; PERCENTILES_LEN]; COHORTS];
+        let mut by_dollar = [[Cents::NAN; PERCENTILES_LEN]; COHORTS];
         // Each cohort's next unresolved percentile; all resolved without a total.
         let mut coin = self
             .totals
@@ -122,12 +122,12 @@ impl MetricBuckets {
                 running.add(price_u128, row[cohort]);
                 let coin = &mut coin[cohort];
                 while *coin < PERCENTILES_LEN && running.sats > coin_targets[cohort][*coin] {
-                    per_coin[cohort][*coin] = price.into();
+                    by_coin[cohort][*coin] = price.into();
                     *coin += 1;
                 }
                 let dollar = &mut dollar[cohort];
                 while *dollar < PERCENTILES_LEN && running.value > dollar_targets[cohort][*dollar] {
-                    per_dollar[cohort][*dollar] = price.into();
+                    by_dollar[cohort][*dollar] = price.into();
                     *dollar += 1;
                 }
             }
@@ -158,8 +158,8 @@ impl MetricBuckets {
             };
             CohortBlock {
                 cost_basis: CostBasisByPercentile {
-                    per_coin: per_coin[cohort],
-                    per_dollar: per_dollar[cohort],
+                    by_coin: by_coin[cohort],
+                    by_dollar: by_dollar[cohort],
                 },
                 supply_density,
                 capital_density,

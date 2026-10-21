@@ -313,20 +313,20 @@ impl Query {
         // Effective fee rates: CPFP-adjusted.
         let frd = &plugins.transactions.fees.effective_fee_rate.distribution;
         let fr_min = frd.min.height.collect_range_at(begin, end);
-        let fr_pct10 = frd.pct10.height.collect_range_at(begin, end);
-        let fr_pct25 = frd.pct25.height.collect_range_at(begin, end);
+        let fr_p10 = frd.p10.height.collect_range_at(begin, end);
+        let fr_p25 = frd.p25.height.collect_range_at(begin, end);
         let fr_median = frd.median.height.collect_range_at(begin, end);
-        let fr_pct75 = frd.pct75.height.collect_range_at(begin, end);
-        let fr_pct90 = frd.pct90.height.collect_range_at(begin, end);
+        let fr_p75 = frd.p75.height.collect_range_at(begin, end);
+        let fr_p90 = frd.p90.height.collect_range_at(begin, end);
         let fr_max = frd.max.height.collect_range_at(begin, end);
 
         let fad = &plugins.transactions.fees.fee.distribution;
         let fa_min = fad.min.height.collect_range_at(begin, end);
-        let fa_pct10 = fad.pct10.height.collect_range_at(begin, end);
-        let fa_pct25 = fad.pct25.height.collect_range_at(begin, end);
+        let fa_p10 = fad.p10.height.collect_range_at(begin, end);
+        let fa_p25 = fad.p25.height.collect_range_at(begin, end);
         let fa_median = fad.median.height.collect_range_at(begin, end);
-        let fa_pct75 = fad.pct75.height.collect_range_at(begin, end);
-        let fa_pct90 = fad.pct90.height.collect_range_at(begin, end);
+        let fa_p75 = fad.p75.height.collect_range_at(begin, end);
+        let fa_p90 = fad.p90.height.collect_range_at(begin, end);
         let fa_max = fad.max.height.collect_range_at(begin, end);
 
         if [
@@ -344,18 +344,18 @@ impl Query {
             input_volumes.len(),
             prices.len(),
             fr_min.len(),
-            fr_pct10.len(),
-            fr_pct25.len(),
+            fr_p10.len(),
+            fr_p25.len(),
             fr_median.len(),
-            fr_pct75.len(),
-            fr_pct90.len(),
+            fr_p75.len(),
+            fr_p90.len(),
             fr_max.len(),
             fa_min.len(),
-            fa_pct10.len(),
-            fa_pct25.len(),
+            fa_p10.len(),
+            fa_p25.len(),
             fa_median.len(),
-            fa_pct75.len(),
-            fa_pct90.len(),
+            fa_p75.len(),
+            fa_p90.len(),
             fa_max.len(),
         ]
         .into_iter()
@@ -430,11 +430,11 @@ impl Query {
                     median_fee: mempool_fee_rate(fr_median[i]),
                     fee_range: [
                         fr_min[i],
-                        fr_pct10[i],
-                        fr_pct25[i],
+                        fr_p10[i],
+                        fr_p25[i],
                         fr_median[i],
-                        fr_pct75[i],
-                        fr_pct90[i],
+                        fr_p75[i],
+                        fr_p90[i],
                         fr_max[i],
                     ]
                     .map(mempool_fee_rate),
@@ -463,11 +463,11 @@ impl Query {
                     median_fee_amt: fa_median[i],
                     fee_percentiles: [
                         fa_min[i],
-                        fa_pct10[i],
-                        fa_pct25[i],
+                        fa_p10[i],
+                        fa_p25[i],
                         fa_median[i],
-                        fa_pct75[i],
-                        fa_pct90[i],
+                        fa_p75[i],
+                        fa_p90[i],
                         fa_max[i],
                     ],
                     segwit_total_txs: u32::from(*segwit_txs[i]),

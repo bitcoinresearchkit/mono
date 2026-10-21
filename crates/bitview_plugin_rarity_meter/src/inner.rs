@@ -240,8 +240,8 @@ impl RarityMeterInner {
                 values.min().expect("rarity meter component")
             }
         });
-        let lower = boundary_values[RarityPercentileId::Pct5.boundary_index().unwrap()];
-        let upper = boundary_values[RarityPercentileId::Pct95.boundary_index().unwrap()];
+        let lower = boundary_values[RarityPercentileId::P5.boundary_index().unwrap()];
+        let upper = boundary_values[RarityPercentileId::P95.boundary_index().unwrap()];
         // A source's boundaries are all undefined or none.
         debug_assert_eq!(lower.is_nan(), upper.is_nan(), "half-defined boundaries");
 

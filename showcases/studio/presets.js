@@ -49,13 +49,11 @@ function windowLabel(/** @type {string} */ key) {
 const windowAdjective = (/** @type {string} */ key) => windowLabel(key).replace(/^(\d+) (\w+?)s?$/, "$1-$2");
 /** A window's key, short (axis-like): `_24h` "24h", `_200d` "200d", `_1m` "1m". */
 const windowShort = (/** @type {string} */ key) => key.replace(/^_/, "");
-/** A percentile's key as a number: `pct5` 5, `pct01` 0.1, `pct05` 0.5, `pct995` 99.5, `median` 50. */
+/** A percentile's key as a number, its decimal point an underscore: `p5` 5, `p0_1` 0.1, `p99_5` 99.5, `median` 50. */
 function percentile(/** @type {string} */ key) {
   if (key === "median") return 50;
-  const digits = /^pct(\d+)$/.exec(key)?.[1];
-  if (!digits) return NaN;
-  if (digits.startsWith("0")) return Number(`0.${digits.slice(1)}`);
-  return digits.length === 3 ? Number(`${digits.slice(0, 2)}.${digits.slice(2)}`) : Number(digits);
+  const digits = /^p(\d+(?:_\d+)?)$/.exec(key)?.[1];
+  return digits ? Number(digits.replace("_", ".")) : NaN;
 }
 /** A percentile as said, its suffix by its last digit: 5 "5th", 0.1 "0.1st", 50 "Median", 99.5 "99.5th", 12 "12th". */
 function percentileLabel(/** @type {number} */ p) {
@@ -63,9 +61,9 @@ function percentileLabel(/** @type {number} */ p) {
   const text = String(p), last = text.at(-1), teen = /(^|\D)1\d$/.test(text);
   return `${text}${teen ? "th" : last === "1" ? "st" : last === "2" ? "nd" : last === "3" ? "rd" : "th"}`;
 }
-/** A Bedrock floor band's label from its key: "pct95ToPct98" is "95th–98th", "belowPct999" "Below 99.9th". */
+/** A Bedrock floor band's label from its key: "p95ToP98" is "95th–98th", "belowP99_9" "Below 99.9th". */
 function floorBandLabel(/** @type {string} */ key) {
-  const [high, low] = (key.match(/pct\d+/gi) ?? []).map((p) => percentileLabel(percentile(p.toLowerCase())));
+  const [high, low] = (key.match(/p\d+(?:_\d+)?/gi) ?? []).map((p) => percentileLabel(percentile(p.toLowerCase())));
   return low ? `${high}–${low}` : `Below ${high}`;
 }
 /** A name as written in the client's tables ("1 to 2 Months Old", "100K-1M Sats") in sentence case, ranges with en dashes. */
@@ -92,10 +90,10 @@ const inSentence = (/** @type {string} */ name) => (/^[A-Z][a-z]+$/.test(name) ?
 const FEATURES = {
   fakePubkey: "Fake public keys", fakeScripthash: "Fake script hashes", segwit: "SegWit", annex: "Taproot annex", sighashAll: "SIGHASH_ALL",
   sighashNone: "SIGHASH_NONE", sighashSingle: "SIGHASH_SINGLE", sighashDefault: "SIGHASH_DEFAULT", sighashAnyoneCanPay: "SIGHASH_ANYONECANPAY",
-  explicitlyRbf: "Opt-in RBF", dustOutput: "Dust outputs", epobc: "EPOBC", oneInput: "One input", oneOutput: "One output", emptyScript: "Empty scripts", unknownScript: "Unknown scripts",
+  rbfSignaling: "RBF signaling", dustOutput: "Dust outputs", epobc: "EPOBC", oneInput: "One input", oneOutput: "One output", emptyScript: "Empty scripts", unknownScript: "Unknown scripts",
 };
 /** …and inside a sentence, where it reads otherwise ("Transactions with a Taproot annex"). */
-const FEATURE_PHRASES = { emptyScript: "empty scripts", unknownScript: "unknown scripts", fakePubkey: "fake public keys", fakeScripthash: "fake script hashes", annex: "a Taproot annex", explicitlyRbf: "opt-in RBF", dustOutput: "dust outputs", epobc: "EPOBC colored-coin tags", oneInput: "one input", oneOutput: "one output" };
+const FEATURE_PHRASES = { emptyScript: "empty scripts", unknownScript: "unknown scripts", fakePubkey: "fake public keys", fakeScripthash: "fake script hashes", annex: "a Taproot annex", rbfSignaling: "RBF signaling", dustOutput: "dust outputs", epobc: "EPOBC colored-coin tags", oneInput: "one input", oneOutput: "one output" };
 
 // ── Colors ─────────────────────────────────────────────────────────────────
 
@@ -271,7 +269,7 @@ export function studioPresets(client, facts) {
    */
   const change = (delta, name, title) =>
     delta?.absolute
-      ? [chart(name, title, [...windows(delta.absolute, "", { extra: { type: "histogram", color: "green", colorBelow: "red" } }), ...windows(delta.rate, "Rate", { pane: 2, around: 0 })])]
+      ? [chart(name, title, [...windows(delta.absolute, "", { extra: { type: "histogram", color: "green", colorBelow: "red" } }), ...windows(delta.percent, "Percent", { pane: 2, around: 0 })])]
       : [];
 
   // ── A cohort's charts (the holders, an age band, an amount, a type…) ────────
@@ -365,16 +363,16 @@ export function studioPresets(client, facts) {
       ]),
       cost && section("Cost basis", [
         chart("Realized price", of("Realized price"), [
-          price(), series(cost.perCoin.realizedPrice, "Realized price", { color: "orange" }),
-          ...(cost.perCoin.medianRealizedPrice ? [series(cost.perCoin.medianRealizedPrice, "Median realized price", { color: "yellow", hidden: true })] : []),
+          price(), series(cost.byCoin.realizedPrice, "Realized price", { color: "orange" }),
+          ...(cost.byCoin.medianRealizedPrice ? [series(cost.byCoin.medianRealizedPrice, "Median realized price", { color: "yellow", hidden: true })] : []),
           ...(cost.min ? [series(cost.min, "Lowest", { color: "red", dash: 3, hidden: true }), series(cost.max, "Highest", { color: "green", dash: 3, hidden: true })] : []),
-          ...(cost.perCoin.avg?.mvrv ? [series(cost.perCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1) })] : []),
+          ...(cost.byCoin.avg?.mvrv ? [series(cost.byCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1) })] : []),
         ], { log: [2] }),
-        ...percentiles(cost.perCoin, "Distribution", of("Cost basis distribution, by coin")),
-        ...(cost.perDollar ? [
-          ...percentiles(cost.perDollar, "Distribution by dollar", of("Cost basis distribution, by dollar"), [
-            series(cost.perDollar.capitalizedPrice, "Capitalized price", { color: "orange" }),
-            series(cost.perDollar.avg.ratio, "Price to capitalized price", { pane: 2, ...around(1) }),
+        ...percentiles(cost.byCoin, "Distribution", of("Cost basis distribution, by coin")),
+        ...(cost.byDollar ? [
+          ...percentiles(cost.byDollar, "Distribution by dollar", of("Cost basis distribution, by dollar"), [
+            series(cost.byDollar.capitalizedPrice, "Capitalized price", { color: "orange" }),
+            series(cost.byDollar.avg.ratio, "Price to capitalized price", { pane: 2, ...around(1) }),
           ], { log: [2] }),
         ] : []),
         cost.supplyDensity && chart("Supply density", of("Supply near the price"), [
@@ -387,7 +385,7 @@ export function studioPresets(client, facts) {
     ].filter(Boolean).map((item) => lift(/** @type {SectionNode} */ (item)));
   };
   /**
-   * Percentiles of a price (`pct5`… keys) over the price, as a fan: each its own line, the median solid, colored from
+   * Percentiles of a price (`p5`… keys) over the price, as a fan: each its own line, the median solid, colored from
    * low to high; with `more` layers after them. None, no chart.
    * @param {any} node @param {string} name @param {string} title @param {Layer[]} [more] @param {{ log?: number[] }} [options]
    */
@@ -420,8 +418,8 @@ export function studioPresets(client, facts) {
   const referenceOf = (cohort, key) => {
     const cost = (t.holders[cohort] ?? { awake: ct.cohorts.all.awake, mobile: cf.cohorts.all.mobile }[cohort])?.costBasis;
     return /** @type {Record<string, [any, any]>} */ ({
-      realizedPrice: [cost?.perCoin.realizedPrice, cost?.perCoin.avg.mvrv],
-      capitalizedPrice: [cost?.perDollar.capitalizedPrice, cost?.perDollar.avg.ratio],
+      realizedPrice: [cost?.byCoin.realizedPrice, cost?.byCoin.avg.mvrv],
+      capitalizedPrice: [cost?.byDollar.capitalizedPrice, cost?.byDollar.avg.ratio],
       vaultedPrice: [ct.prices.vaulted.block, ct.prices.vaulted.ratio],
       trueMarketMean: [ct.prices.trueMarketMean.block, ct.prices.trueMarketMean.ratio],
     })[key];
@@ -489,8 +487,8 @@ export function studioPresets(client, facts) {
       // (Overlapping members' shares as lines, all coins' 100% their reference; disjoint ones stack above.)
       !options.disjoint && compare("Share of all coins", (c) => c.supply?.share, { reference: true }),
       !options.disjoint && compare("Share of all capital", (c) => c.capital?.share, { reference: true }),
-      compare("Realized price", (c) => c.costBasis?.perCoin?.realizedPrice, { price: true }),
-      compare("MVRV", (c) => c.costBasis?.perCoin?.avg?.mvrv, { level: 1, log: true }),
+      compare("Realized price", (c) => c.costBasis?.byCoin?.realizedPrice, { price: true }),
+      compare("MVRV", (c) => c.costBasis?.byCoin?.avg?.mvrv, { level: 1, log: true }),
       compare("Share in profit", (c) => c.supply?.inProfit?.share),
       compare("NUPL", (c) => c.unrealized?.nupl, { level: 0 }),
       compare("UTXO count", (c) => own(c.utxos?.count), { log: true, additive: true }),
@@ -562,9 +560,9 @@ export function studioPresets(client, facts) {
     ]),
     section("Valuation", [
       chart("Market and realized cap", "Market cap and realized cap", [series(t.holders.all.supply.total.usd, "Market cap", { color: "green" }), series(t.holders.all.capital.realizedCap, "Realized cap", { color: "orange" })], { log: [1] }),
-      chart("MVRV", "Market value to realized value (MVRV)", [price(), series(t.holders.all.costBasis.perCoin.realizedPrice, "Realized price", { color: "orange" }), series(t.holders.all.costBasis.perCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1), levels: [{ value: 3.5, color: "red", dash: 3 }] })], { log: [2] }),
+      chart("MVRV", "Market value to realized value (MVRV)", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: "orange" }), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1), levels: [{ value: 3.5, color: "red", dash: 3 }] })], { log: [2] }),
       chart("NUPL", "Net unrealized profit and loss (NUPL)", [price(), series(t.holders.all.unrealized.nupl, "NUPL", { pane: 2, ...baseline, levels: [0.25, 0.5, 0.75].map((value) => ({ value, color: "gray", dash: 3 })) })]),
-      chart("Value anchors", "Price and its on-chain anchors", [price(), series(t.holders.all.costBasis.perCoin.realizedPrice, "Realized price", { color: "orange" }), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" }), series(ct.prices.cointime.block, "Cointime price", { color: "violet" }), series(t.holders.all.costBasis.perDollar.capitalizedPrice, "Capitalized price", { color: "green" })]),
+      chart("Value anchors", "Price and its on-chain anchors", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: "orange" }), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" }), series(ct.prices.cointime.block, "Cointime price", { color: "violet" }), series(t.holders.all.costBasis.byDollar.capitalizedPrice, "Capitalized price", { color: "green" })]),
       cloudsChart(),
       section("Cointime prices", [
         chart("Compare", "Cointime prices", [price(), ...[["vaulted", "Vaulted price"], ["active", "Active price"], ["cointime", "Cointime price"]].map(([key, label], i) => series(ct.prices[key].block, label, { color: ["green", "red", "violet"][i] })), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" })]),
@@ -666,9 +664,9 @@ export function studioPresets(client, facts) {
         ...flow(mining.rewards.unclaimed, "Unclaimed", "Unclaimed rewards"),
         chart("Fee share", "Fees' share of rewards", sharesOf(mining.rewards.fees.share, "Fees")),
         chart("Subsidy share", "Subsidy's share of rewards", sharesOf(mining.rewards.subsidy.share, "Subsidy")),
-        ...["avg", "min", "max", "pct10", "pct25", "median", "pct75", "pct90"].filter((key) => mining.rewards.fees[key]).length
-          ? [chart("Fees per block", "Fees per block", [...["avg", "min", "pct10", "pct25", "median", "pct75", "pct90", "max"].filter((key) => mining.rewards.fees[key]).flatMap((key, i) => windows(mining.rewards.fees[key], key === "avg" ? "Average" : key === "min" ? "Lowest" : key === "max" ? "Highest" : percentileLabel(percentile(key)), { pick: btc, show: key === "median" || key === "avg" ? ["_1m"] : [], extra: { color: ramp(8, 25, 300)[i] } }))], { log: [1] }),
-            chart("Fees per block in dollars", "Fees per block, in dollars", [...["avg", "min", "pct10", "pct25", "median", "pct75", "pct90", "max"].filter((key) => mining.rewards.fees[key]).flatMap((key, i) => windows(mining.rewards.fees[key], key === "avg" ? "Average" : key === "min" ? "Lowest" : key === "max" ? "Highest" : percentileLabel(percentile(key)), { pick: usd, show: key === "median" || key === "avg" ? ["_1m"] : [], extra: { color: ramp(8, 25, 300)[i] } }))], { log: [1] })]
+        ...["avg", "min", "max", "p10", "p25", "median", "p75", "p90"].filter((key) => mining.rewards.fees[key]).length
+          ? [chart("Fees per block", "Fees per block", [...["avg", "min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => mining.rewards.fees[key]).flatMap((key, i) => windows(mining.rewards.fees[key], key === "avg" ? "Average" : key === "min" ? "Lowest" : key === "max" ? "Highest" : percentileLabel(percentile(key)), { pick: btc, show: key === "median" || key === "avg" ? ["_1m"] : [], extra: { color: ramp(8, 25, 300)[i] } }))], { log: [1] }),
+            chart("Fees per block in dollars", "Fees per block, in dollars", [...["avg", "min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => mining.rewards.fees[key]).flatMap((key, i) => windows(mining.rewards.fees[key], key === "avg" ? "Average" : key === "min" ? "Lowest" : key === "max" ? "Highest" : percentileLabel(percentile(key)), { pick: usd, show: key === "median" || key === "avg" ? ["_1m"] : [], extra: { color: ramp(8, 25, 300)[i] } }))], { log: [1] })]
           : [],
       ]),
       section("Pools", poolCharts(), { workings: true }),
@@ -755,7 +753,7 @@ export function studioPresets(client, facts) {
    * @param {any} node @param {string} name @param {string} title
    */
   function stats(node, name, title, perBlock = `${title} per block`) {
-    const keys = ["avg", "min", "pct10", "pct25", "median", "pct75", "pct90", "max"].filter((key) => node[key]), colors = ramp(keys.length, 25, 300);
+    const keys = ["avg", "min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => node[key]), colors = ramp(keys.length, 25, 300);
     return [
       ...flow(node, name, title),
       ...(keys.length ? [chart(`${name} per block`, `${perBlock}: average and percentiles`, keys.flatMap((key, i) => windows(node[key], statLabel(key), { show: key === "avg" ? ["_1m"] : [], extra: { color: colors[i] } })), { log: [1] })] : []),
@@ -763,7 +761,7 @@ export function studioPresets(client, facts) {
   }
   /** Percentile statistics as layers (min, percentiles, max), the median shown. @param {any} node */
   function percentileStats(node) {
-    const keys = ["min", "pct10", "pct25", "median", "pct75", "pct90", "max"].filter((key) => byDate(node[key])), colors = ramp(keys.length, 25, 300);
+    const keys = ["min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => byDate(node[key])), colors = ramp(keys.length, 25, 300);
     return keys.map((key, i) => series(node[key], statLabel(key), { color: colors[i], ...(key === "median" ? {} : { hidden: true }) }));
   }
   function statLabel(/** @type {string} */ key) {
@@ -813,7 +811,7 @@ export function studioPresets(client, facts) {
     return chart("Clouds", "Bitcoin clouds", [
       price(),
       ...groups.flatMap(([label, keys, color]) => {
-        const names = keys.flatMap((key) => [ct.cohorts[key].awake, cf.cohorts[key].mobile]).flatMap((cohort) => [cohort.costBasis.perCoin.realizedPrice.name, cohort.costBasis.perDollar.capitalizedPrice.name]);
+        const names = keys.flatMap((key) => [ct.cohorts[key].awake, cf.cohorts[key].mobile]).flatMap((cohort) => [cohort.costBasis.byCoin.realizedPrice.name, cohort.costBasis.byDollar.capitalizedPrice.name]);
         const fold = (/** @type {string} */ fn) => names.reduce((all, name) => `${fn}(${all}, ${name})`);
         return [{ formula: fold("min"), label: `${label}, lowest`, format: "usd", color, width: 1 }, { formula: fold("max"), label: `${label}, highest`, format: "usd", color, width: 1 }];
       }),
@@ -829,14 +827,14 @@ export function studioPresets(client, facts) {
       ...Object.entries(EXTREMES).map(([key, { event, color, place, low }]) => {
         const node = t.rarityMeter.extremes[key];
         if (!node) throw new Error(`No rarity meter extreme ${key}`);
-        return { formula: `${own(node).name} ${low ? "<=" : ">="} ${node[low ? "pct01" : "pct999"].name}`, type: "signal", label: event, color, place };
+        return { formula: `${own(node).name} ${low ? "<=" : ">="} ${node[low ? "p0_1" : "p99_9"].name}`, type: "signal", label: event, color, place };
       }),
     ]);
   }
   /** The price against the awake capitalized price and the true market mean, and the share of days it closed at or
    * above each. */
   function timeAboveChart() {
-    const lines = /** @type {[any, string, string][]} */ ([[ct.cohorts.all.awake.costBasis.perDollar.capitalizedPrice, "Awake capitalized price", "orange"], [ct.prices.trueMarketMean.block, "True market mean", "sky"]]);
+    const lines = /** @type {[any, string, string][]} */ ([[ct.cohorts.all.awake.costBasis.byDollar.capitalizedPrice, "Awake capitalized price", "orange"], [ct.prices.trueMarketMean.block, "True market mean", "sky"]]);
     return chart("Time above", "Time above the awake capitalized price and true market mean", [
       price(),
       ...lines.map(([node, label, color]) => series(node, label, { color })),
@@ -989,7 +987,7 @@ export function studioPresets(client, facts) {
 
 /**
  * The server's aliases: two keys of one node naming the same series under two ids, the well-known name first (a cohort's
- * `realizedPrice` is its average cost basis per coin, `avg`; `mvrv` is that average's `ratio`). The presets chart the
+ * `realizedPrice` is its average cost basis by coin, `avg`; `mvrv` is that average's `ratio`). The presets chart the
  * well-known one.
  */
 const TWINS = [["realizedCap", "total"], ["realizedPrice", "avg"], ["capitalizedPrice", "avg"], ["medianRealizedPrice", "median"], ["medianCapitalizedPrice", "median"], ["mvrv", "ratio"], ["mayerMultiple", "ratio"], ["aviv", "ratio"]];
