@@ -8707,8 +8707,9 @@
         if (/[#&]image=/.test(location.hash)) document.body.toggleAttribute("data-picture", true);
         // (The Charts page where start() opens it: as the history or the last visit says; nothing kept yet, a first visit.)
         const kept = /"charts":\[\{/.test(localStorage.getItem("bitview-studio:v2") ?? "") || localStorage.getItem("bitview-studio:preview") !== null;
-        // (An address of the presets': a preset's, its chart; their page's or a section's, the page.)
-        const routed = !/^studio(?:-next)?\.bitview\.space$/.test(location.hostname) ? null : /^\/chart\//.test(location.pathname) ? false : /^\/presets(?:\/|$)/.test(location.pathname) ? true : null;
+        // (An address of the presets': their page's or a section's, ending in a slash, the page; a preset's, without, its
+        // chart (an old one's, /chart/, too).)
+        const routed = !/^studio(?:-next)?\.bitview\.space$/.test(location.hostname) ? null : /^\/presets(?:\/.*)?\/$|^\/presets$/.test(location.pathname) ? true : /^\/(?:presets|chart)\//.test(location.pathname) ? false : null;
         if (!/[#&](?:chart|image|c)=/.test(location.hash) && (there ? there.home : routed ?? (!kept || (prefs.home ?? true)))) document.body.toggleAttribute("data-home", true);
       } catch {}
     </script>
@@ -8739,7 +8740,7 @@
           <ul>
             <li>A chart is a link: https://studio.bitview.space/#chart= followed by its JSON (below), such as {"layers": [{"series": "price"}, {"series": "realized_price"}]}.</li>
             <li>Its picture alone: the same link with #image= in place of #chart=, a page that is, once drawn, that picture (with only screenshots to work with, take one of it).</li>
-            <li>Thousands of ready-made charts (presets), each at an address of its own: https://studio.bitview.space/chart/ and its place, such as https://studio.bitview.space/chart/market/capitalization/compare; their sections at https://studio.bitview.space/presets/ and theirs, such as https://studio.bitview.space/presets/market; every one listed in https://studio.bitview.space/sitemap.xml.</li>
+            <li>Thousands of ready-made charts (presets), each at an address of its own: https://studio.bitview.space/presets/ and its place, such as https://studio.bitview.space/presets/valuation/mvrv; their sections at the same, ending in a slash, such as https://studio.bitview.space/presets/valuation/; every one listed in https://studio.bitview.space/sitemap.xml.</li>
             <li>From a script in the page: await studio.open(chart); await studio.ready(); await studio.png({ width: 1200, height: 760, scale: 2 }), its picture as a PNG data URL, in one result (see "From a script").</li>
           </ul>
           <h2>Opening a chart from a link</h2>
@@ -21227,8 +21228,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /* addresses: the build runs this same code for the sitemap (build.mjs reads it between these marks) */
       /**
-       * Each place of the presets' an address of its own, for search engines and links: their page /presets, a section
-       * /presets/market/capitalization, a preset /chart/market/capitalization/compare (its kind said by its start: the page
+       * Each place of the presets' an address of its own, for search engines and links: their page /presets/, a section
+       * /presets/valuation/, a preset /presets/valuation/mvrv (a section's ending in a slash, as a folder's does: the page
        * knows which before they're read). Names as an address writes them: lowercase words joined by dashes, signs as words
        * (>4M RP: over-4m-rp; +90%: plus-90-percent). Two under one place still alike, each tagged by its own name (a short
        * hash of it): an address is the same whatever else there is, and in whatever order.
@@ -21242,25 +21243,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const c of text) h = Math.imul(h ^ /** @type {number} */ (c.codePointAt(0)), 16777619);
           return (h >>> 0).toString(36).slice(0, 4);
         };
-        // (How many of a kind under one place would be written alike: those, tagged.)
+        // (How many under one place would be written alike, sections and presets together: those, tagged.)
         const sectionPaths = new Map();
         for (const preset of list) for (let depth = 1; depth < preset.p.length; depth++) sectionPaths.set(JSON.stringify(preset.p.slice(0, depth)), preset.p.slice(0, depth));
         const alike = new Map(), count = (/** @type {string} */ key) => alike.set(key, (alike.get(key) ?? 0) + 1);
-        const keyOf = (/** @type {string} */ kind, /** @type {string[]} */ path) => `${kind}${JSON.stringify(path.slice(0, -1))}|${word(/** @type {string} */ (path.at(-1)))}`;
-        for (const path of sectionPaths.values()) count(keyOf("s", path));
-        for (const preset of list) count(keyOf("p", preset.p));
-        const named = (/** @type {string} */ kind, /** @type {string[]} */ path) => ((name) => (alike.get(keyOf(kind, path)) > 1 ? `${word(name)}-${tag(name)}` : word(name)))(/** @type {string} */ (path.at(-1)));
-        const sections = new Map([["[]", "/presets"]]), at = /** @type {Map<string, { path: string[] } | { preset: number }>} */ (new Map([["/presets", { path: [] }]]));
+        const keyOf = (/** @type {string[]} */ path) => `${JSON.stringify(path.slice(0, -1))}|${word(/** @type {string} */ (path.at(-1)))}`;
+        for (const path of sectionPaths.values()) count(keyOf(path));
+        for (const preset of list) count(keyOf(preset.p));
+        const named = (/** @type {string[]} */ path) => ((name) => (alike.get(keyOf(path)) > 1 ? `${word(name)}-${tag(name)}` : word(name)))(/** @type {string} */ (path.at(-1)));
+        const sections = new Map([["[]", "/presets/"]]), at = /** @type {Map<string, { path: string[] } | { preset: number }>} */ (new Map([["/presets/", { path: [] }]]));
         const sectionAt = (/** @type {string[]} */ path) => {
           const key = JSON.stringify(path), known = sections.get(key);
           if (known) return known;
-          const address = `${sectionAt(path.slice(0, -1))}/${named("s", path)}`;
+          const address = `${sectionAt(path.slice(0, -1))}${named(path)}/`;
           sections.set(key, address);
           at.set(address, { path });
           return address;
         };
         const presetsAt = list.map((preset, i) => {
-          const address = `/chart${sectionAt(preset.p.slice(0, -1)).slice("/presets".length)}/${named("p", preset.p)}`;
+          const address = `${sectionAt(preset.p.slice(0, -1))}${named(preset.p)}`;
           at.set(address, { preset: i });
           return address;
         });
@@ -21272,8 +21273,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The presets' addresses, made once they're read. */
       let addressBook = /** @type {{ for: Preset[] | null, book: ReturnType<typeof addressesOf> | null }} */ ({ for: null, book: null });
       const addresses = () => (!presets ? null : addressBook.for === presets ? addressBook.book : (addressBook = { for: presets, book: addressesOf(presets) }).book);
-      /** What an address opens: a preset, a place of the presets'; none, nothing of theirs. */
-      const routeOf = (/** @type {string} */ pathname) => addresses()?.at.get(pathname.replace(/\/+$/, "")) ?? null;
+      /**
+       * What an address opens: a preset, a place of the presets'; none, nothing of theirs. Its slash as written, else the
+       * other way (a section's without it, a preset's with it); an old preset's, /chart/ and its place, as /presets/ (a
+       * place that's a section's now, that section).
+       */
+      const routeOf = (/** @type {string} */ pathname) => {
+        const book = addresses(), address = pathname.replace(/^\/chart\//, "/presets/").replace(/\/{2,}$/, "/");
+        return book?.at.get(address) ?? book?.at.get(address.endsWith("/") ? address.slice(0, -1) : `${address}/`) ?? null;
+      };
       /** Where the page is, as an address (its canonical one): a preset's, a place of the presets', else the page's own ("/": your charts are no one else's); null, not known till they're read. */
       function addressNow() {
         const book = addresses();

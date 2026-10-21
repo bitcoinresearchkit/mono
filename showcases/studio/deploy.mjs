@@ -106,7 +106,7 @@ export async function deploy(target, quiet = false) {
   }
   if (!uploaded) throw new Error("Cloudflare gave no token for the files' upload");
   // The Worker: its files alone, served as they are (no code); any address that isn't one of them, the page (which opens
-  // what it names: /presets/…, /chart/…).
+  // what it names: /presets/…; an old /chart/…, as /presets/…).
   const worker = new FormData();
   worker.append("metadata", new Blob([JSON.stringify({ assets: { jwt: uploaded, config: { not_found_handling: "single-page-application" } }, compatibility_date: "2026-10-11" })], { type: "application/json" }));
   await api(`/accounts/${account}/workers/scripts/${name}`, { method: "PUT", body: worker });
