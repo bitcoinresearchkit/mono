@@ -61,6 +61,8 @@ function percentileLabel(/** @type {number} */ p) {
   const text = String(p), last = text.at(-1), teen = /(^|\D)1\d$/.test(text);
   return `${text}${teen ? "th" : last === "1" ? "st" : last === "2" ? "nd" : last === "3" ? "rd" : "th"}`;
 }
+/** A Bedrock mode's name from its key: "awake" is "Awake". */
+const modeName = (/** @type {string} */ mode) => sentence(mode[0].toUpperCase() + mode.slice(1));
 /** A Bedrock floor band's label from its key: "p95ToP98" is "95th–98th", "belowP99_9" "Below 99.9th". */
 function floorBandLabel(/** @type {string} */ key) {
   const [high, low] = (key.match(/p\d+(?:_\d+)?/gi) ?? []).map((p) => percentileLabel(percentile(p.toLowerCase())));
@@ -259,6 +261,14 @@ export function studioPresets(client, facts) {
     chart(name, title, [...windows(node.sum, ""), ...sharesOf(share, "Share", { pane: 2 })]),
     chart(`${name}, all time`, title.replace(/^([^:]*)(:|$)/, "$1, all time$2"), [series(node.cumulative, "All time", { color: "gray" })]),
   ];
+  /**
+   * A whole's parts compared: their amounts stacked, then their shares of it, as areas (`[name, title]` each chart's).
+   * @param {[string, string]} amounts @param {[string, string]} shares @param {Layer[]} layers @returns {ChartNode[]}
+   */
+  const parts = ([name, title], [shareName, shareTitle], layers) => {
+    const areas = layers.map((layer) => ({ ...layer, type: "area" }));
+    return [chart(name, title, areas, { stack: { 1: "stack" } }), chart(shareName, shareTitle, areas, { stack: { 1: "percent" } })];
+  };
   /**
    * Kinds of transactions, which overlap: their shares of all transactions compared, then each one's count.
    * @param {[string, any][]} list @param {(key: string) => string} name @param {(key: string) => string} title @param {string} compared
@@ -468,52 +478,52 @@ export function studioPresets(client, facts) {
    * A family of cohorts: its comparisons (each a chart of every member), then each member's charts.
    * @param {[string, any][]} members its members' keys and nodes
    * @param {(key: string) => { name: string, who: string }} naming each member's name (in the tree) and title (in charts)
-   * @param {{ by: string, disjoint?: boolean, of?: string }} options `by`: what a
-   * comparison's title says it's by ("age band", "holder group, short-term"); `disjoint`: the members split the whole
-   * (bands), so their amounts stack, as shares; `of`: what the members' shares divide, if not all coins (see cohort)
+   * @param {{ by: string, disjoint?: boolean, of?: string, charts?: (key: string, c: any, who: string) => (ChartNode | SectionNode)[] }} options
+   * `by`: what a comparison's title says it's by ("age band", "holder group, short-term"); `disjoint`: the members split
+   * the whole (bands), so their amounts stack, and as shares; `of`: what the members' shares divide, if not all coins
+   * (see cohort); `charts`: each member's, if not a cohort's
    * @returns {(ChartNode | SectionNode)[]}
    */
   const family = (members, naming, options) => {
     const colors = ramp(members.length);
     /** Every member's series (`pick` takes it from the member), as a chart's layers. @param {(c: any) => any} pick @param {Layer} [extra] */
-    // (A family's `all`, where it reads as the others' reference, gray and dashed.)
-    const each = (pick, extra = {}, reference = false) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), naming(key).name, { color: colors[i], ...extra, ...(reference && key === "all" ? { color: "gray", dash: 3 } : {}) })] : []));
+    // (A family's `all`, the others' reference: gray and dashed.)
+    const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), naming(key).name, { color: colors[i], ...extra, ...(key === "all" ? { color: "gray", dash: 3 } : {}) })] : []));
     /**
-     * A comparison: every member's `pick`, as lines; an amount (`additive`) of members that split the whole, as their
-     * shares of it, stacked ("Supply share"). Its title says by what, its window last ("…by age band, 1 month").
-     * @param {string} name @param {(c: any) => any} pick @param {{ price?: boolean, log?: boolean, additive?: boolean, level?: number, reference?: boolean }} [o]
+     * A comparison: every member's `pick`, as lines; an amount (`additive`) of members that split the whole, stacked,
+     * then as their shares of it ("Supply", "Supply share"). Its title says by what, its window last ("…by age band, 1
+     * month"). @param {string} name @param {(c: any) => any} pick @param {{ price?: boolean, log?: boolean, additive?: boolean, level?: number }} [o]
+     * @returns {ChartNode[]}
      */
     const compare = (name, pick, o = {}) => {
       // (Read against a reference, its level across: a ratio's 1, a net's 0; the members stay lines, each its color.)
-      const layers = each(pick, o.level === undefined ? {} : { levels: [{ value: o.level, color: "gray", dash: 3 }] }, o.reference);
-      if (!layers.length) return null;
-      const [, measure, window = ""] = /** @type {RegExpExecArray} */ (/^(.*?)(, 1 \w+)?$/.exec(name)), shares = Boolean(options.disjoint && o.additive);
-      const named = shares ? `${measure} share${window}` : name, title = `${shares ? `${measure} share` : measure} by ${options.by}${window}`;
-      if (o.price) return chart(named, title, [price(), ...layers]);
-      if (shares) return chart(named, title, layers.map((layer) => ({ ...layer, type: "area" })), { stack: { 1: "percent" } });
-      return chart(named, title, layers, o.log ? { log: [1] } : {});
+      const layers = each(pick, o.level === undefined ? {} : { levels: [{ value: o.level, color: "gray", dash: 3 }] });
+      if (!layers.length) return [];
+      const [, measure, window = ""] = /** @type {RegExpExecArray} */ (/^(.*?)(, 1 \w+)?$/.exec(name)), title = `${measure} by ${options.by}${window}`;
+      if (options.disjoint && o.additive) return parts([name, title], [`${measure} share${window}`, `${measure} share by ${options.by}${window}`], layers);
+      if (o.price) return [chart(name, title, [price(), ...layers])];
+      return [chart(name, title, layers, o.log ? { log: [1] } : {})];
     };
     const comparisons = [
-      compare("Supply", (c) => btc(c.supply?.total), { log: true, additive: true }),
-      compare("Realized cap", (c) => c.capital?.realizedCap, { log: true, additive: true }),
+      ...compare("Supply", (c) => btc(c.supply?.total), { log: true, additive: true }),
+      ...compare("Realized cap", (c) => c.capital?.realizedCap, { log: true, additive: true }),
       // (Overlapping members' shares as lines, all coins' 100% their reference; disjoint ones stack above.)
-      !options.disjoint && compare("Share of all coins", (c) => c.supply?.share, { reference: true }),
-      !options.disjoint && compare("Share of all capital", (c) => c.capital?.share, { reference: true }),
-      compare("Realized price", (c) => c.costBasis?.byCoin?.realizedPrice, { price: true }),
-      compare("MVRV", (c) => c.costBasis?.byCoin?.avg?.mvrv, { level: 1, log: true }),
-      compare("Share in profit", (c) => c.supply?.inProfit?.share),
-      compare("NUPL", (c) => c.unrealized?.nupl, { level: 0 }),
-      compare("UTXO count", (c) => own(c.utxos?.count), { log: true, additive: true }),
-      compare("Address count", (c) => own(c.funded), { log: true, additive: true }),
-      compare("Transfer volume, 1 month", (c) => btc(c.activity?.transferVolume?.sum?._1m), { additive: true }),
-      compare("Coin days destroyed, 1 month", (c) => c.activity?.coindaysDestroyed?.sum?._1m, { additive: true }),
-      compare("Realized profit, 1 month", (c) => c.realized?.profit?.sum?._1m, { additive: true }),
-      compare("Realized loss, 1 month", (c) => c.realized?.loss?.sum?._1m, { additive: true }),
-      compare("SOPR, 1 week", (c) => c.realized?.sopr?._1w, { level: 1 }),
-    ].filter(Boolean);
+      ...(options.disjoint ? [] : [...compare("Share of all coins", (c) => c.supply?.share), ...compare("Share of all capital", (c) => c.capital?.share)]),
+      ...compare("Realized price", (c) => c.costBasis?.byCoin?.realizedPrice, { price: true }),
+      ...compare("MVRV", (c) => c.costBasis?.byCoin?.avg?.mvrv, { level: 1, log: true }),
+      ...compare("Share in profit", (c) => c.supply?.inProfit?.share),
+      ...compare("NUPL", (c) => c.unrealized?.nupl, { level: 0 }),
+      ...compare("UTXO count", (c) => own(c.utxos?.count), { log: true, additive: true }),
+      ...compare("Address count", (c) => own(c.funded), { log: true, additive: true }),
+      ...compare("Transfer volume, 1 month", (c) => btc(c.activity?.transferVolume?.sum?._1m), { additive: true }),
+      ...compare("Coin days destroyed, 1 month", (c) => c.activity?.coindaysDestroyed?.sum?._1m, { additive: true }),
+      ...compare("Realized profit, 1 month", (c) => c.realized?.profit?.sum?._1m, { additive: true }),
+      ...compare("Realized loss, 1 month", (c) => c.realized?.loss?.sum?._1m, { additive: true }),
+      ...compare("SOPR, 1 week", (c) => c.realized?.sopr?._1w, { level: 1 }),
+    ];
     return [
       ...(comparisons.length ? [section("Compare", comparisons)] : []),
-      ...members.map(([key, c]) => ((n) => section(n.name, cohort(c, n.who, key === "all", options.of)))(naming(key))),
+      ...members.map(([key, c]) => ((n) => section(n.name, options.charts ? options.charts(key, c, n.who) : cohort(c, n.who, key === "all", options.of)))(naming(key))),
     ];
   };
   /** The client's name for a member (its table's `long`), in sentence case. @param {Record<string, { long: string }>} table @param {string} key */
@@ -525,6 +535,16 @@ export function studioPresets(client, facts) {
     over4m: ["Over 4 months old", "Coins over 4 months old", " over 4 months old"], over6m: ["Over 6 months old", "Coins over 6 months old", " over 6 months old"],
     awake: ["Awake coins", "Awake coins", ""], mobile: ["Mobile coins", "Mobile coins", ""],
   });
+  /**
+   * The holder groups' things (by their keys: their cohorts, profit bands…), in the sets they're read in, each set's
+   * items from `build` (by what its comparisons are by): all coins and short- and long-term holders, then the other age
+   * cutoffs, in pairs, if any. @param {[string, any][]} list @param {(members: [string, any][], by: string) => (ChartNode | SectionNode)[]} build
+   */
+  const holderSets = (list, build) => {
+    const pick = (/** @type {string[]} */ keys) => keys.flatMap((key) => list.filter(([k]) => k === key));
+    const cutoffs = pick(["under4m", "over4m", "under6m", "over6m"]);
+    return [...build(pick(["all", "sth", "lth"]), "holder group"), ...(cutoffs.length ? [section("Age cutoffs", build(cutoffs, "age cutoff"))] : [])];
+  };
   const holderName = (/** @type {string} */ key) => ({ name: HOLDERS[key]?.[0] ?? key, who: HOLDERS[key]?.[1] ?? key, of: (/** @type {string} */ coins) => `${coins}${HOLDERS[key]?.[2] ?? `, ${key}`}` });
 
   // ── The tree ──────────────────────────────────────────────────────────────
@@ -607,15 +627,16 @@ export function studioPresets(client, facts) {
       chart("Velocity", "Velocity", [series(sup.velocity.btc, "In bitcoin", { color: "orange" }), series(sup.velocity.usd, "In dollars", { color: "green" }), series(ct.adjusted.velocity.btc, "Cointime-adjusted, in bitcoin", { color: "violet", hidden: true }), series(ct.adjusted.velocity.usd, "Cointime-adjusted, in dollars", { color: "sky", hidden: true })]),
     ]),
     section("Holders", [
-      // (The veteran and rookie coins with them: groups of holders too, by when they came in.)
-      ...family([...entries(t.holders), ...entries(t.entry)], (key) => (HOLDERS[key] ? holderName(key) : { name: named(client.ENTRY_NAMES, key), who: named(client.ENTRY_NAMES, key) }), { by: "holder group" }),
+      ...holderSets(entries(t.holders), (members, by) => family(members, holderName, { by })),
+      // (The veteran and rookie coins: all coins split by when they came in, below or above the capitalized price.)
+      section("Entry price", family(entries(t.entry), (key) => ({ name: named(client.ENTRY_NAMES, key), who: named(client.ENTRY_NAMES, key) }), { by: "entry price", disjoint: true })),
     ]),
     section("Coin age", [
       section("Age bands", family(entries(t.age.ranges), (key) => ({ name: named(client.AGE_RANGE_NAMES, key).replace(/ old$/, ""), who: `UTXOs ${named(client.AGE_RANGE_NAMES, key).toLowerCase().replace(/^utxos /, "")}` }), { by: "age band", disjoint: true })),
       section("Halving epochs", family(members(t.age.halvingEpochs), (key) => ({ name: `Epoch ${key.slice(1)}`, who: `Coins last moved in halving epoch ${key.slice(1)}` }), { by: "halving epoch last moved", disjoint: true })),
       section("Vintages", family(members(t.age.vintages), (key) => ({ name: key.slice(1), who: `Coins last moved in ${key.slice(1)}` }), { by: "vintage", disjoint: true })),
     ]),
-    section("Profitability", entries(t.profitability).map(([key, bands]) => section(holderName(key).name, family(entries(bands), (band) => ({ name: named(client.PROFITABILITY_RANGE_NAMES, band), who: `${holderName(key).who}, ${named(client.PROFITABILITY_RANGE_NAMES, band).toLowerCase()}` }), { by: `profit band, ${holderName(key).who.toLowerCase()}`, disjoint: true, ...(key === "all" ? {} : { of: `${holderName(key).who.toLowerCase()}'` }) })))),
+    section("Profitability", holderSets(entries(t.profitability), (groups) => groups.map(([key, bands]) => section(holderName(key).name, family(entries(bands), (band) => ({ name: named(client.PROFITABILITY_RANGE_NAMES, band), who: `${holderName(key).who}, ${named(client.PROFITABILITY_RANGE_NAMES, band).toLowerCase()}` }), { by: `profit band, ${holderName(key).who.toLowerCase()}`, disjoint: true, ...(key === "all" ? {} : { of: `${holderName(key).who.toLowerCase()}'` }) }))))),
     section("UTXOs", [
       chart("Count", "UTXO count", [series(t.utxoSet.count, "UTXOs", { color: "sky" })], { log: [1] }),
       section("By amount", family(entries(t.utxos.amounts), (key) => ({ name: named(client.AMOUNT_RANGE_NAMES, key), who: `UTXOs of ${named(client.AMOUNT_RANGE_NAMES, key)}` }), { by: "UTXO amount", disjoint: true })),
@@ -685,7 +706,7 @@ export function studioPresets(client, facts) {
           section("Signatures", txKinds(entries(tx.features.signatures), featureName, featureTx, "Share of transactions by signature feature")),
         ]),
         section("Versions", [
-          chart("Compare", "Transactions by version, 1 month", entries(tx.versions).map(([key, node], i, all) => series(node.sum._1m, versionName(key), { color: ramp(all.length)[i], type: "area" })), { stack: { 1: "percent" } }),
+          section("Compare", parts(["Transactions, 1 month", "Transactions by version, 1 month"], ["Transaction share, 1 month", "Share of transactions by version, 1 month"], entries(tx.versions).map(([key, node], i, all) => series(node.sum._1m, versionName(key), { color: ramp(all.length)[i] })))),
           ...entries(tx.versions).flatMap(([key, node]) => counted(node, versionName(key), key === "other" ? "Transactions of other versions" : `${versionName(key)} transactions`)),
         ]),
         section("Patterns", txKinds(entries(tx.patterns), words, (key) => `${words(key)} transactions`, "Share of transactions by pattern")),
@@ -707,12 +728,19 @@ export function studioPresets(client, facts) {
         ...opReturnCharts(t.opReturn, (what) => `OP_RETURN ${what}`, t.outputs.types.opReturn.share, t.outputs.opReturnValue),
         section("Protocols", [
           section("Compare", [
-            chart("Outputs, 1 month", "OP_RETURN outputs by protocol, 1 month", entries(t.opReturn.protocols).map(([key, node], i, all) => series(node.outputCount.sum._1m, protocolName(key), { color: ramp(all.length)[i], type: "area" })), { stack: { 1: "percent" } }),
+            ...parts(["Outputs, 1 month", "OP_RETURN outputs by protocol, 1 month"], ["Output share, 1 month", "Share of OP_RETURN outputs by protocol, 1 month"], entries(t.opReturn.protocols).map(([key, node], i, all) => series(node.outputCount.sum._1m, protocolName(key), { color: ramp(all.length)[i] }))),
             chart("Transaction share, 1 month", "Share of transactions by OP_RETURN protocol, 1 month", entries(t.opReturn.protocols).map(([key, node], i, all) => series(node.txShare._1m, protocolName(key), { color: ramp(all.length)[i] }))),
           ]),
           ...entries(t.opReturn.protocols).map(([key, node]) => section(protocolName(key), opReturnCharts(node, (what) => `${protocolName(key)} OP_RETURN ${what}`))),
         ]),
-        section("Policies", entries(t.opReturn.policies).map(([key, node]) => section(policyName(key), opReturnCharts(node, (what) => `OP_RETURN ${what}: ${policyName(key)}`)))),
+        section("Policies", [
+          // (They overlap, oversized and several outputs both beyond the standard before v30: lines.)
+          section("Compare", [
+            chart("Transaction share, 1 month", "Share of transactions by OP_RETURN policy, 1 month", entries(t.opReturn.policies).map(([key, node], i, all) => series(node.txShare._1m, policyName(key), { color: ramp(all.length)[i] }))),
+            chart("Data, 1 month", "OP_RETURN data by policy, 1 month", entries(t.opReturn.policies).map(([key, node], i, all) => series(node.dataBytes.sum._1m, policyName(key), { color: ramp(all.length)[i] })), { log: [1] }),
+          ]),
+          ...entries(t.opReturn.policies).map(([key, node]) => section(policyName(key), opReturnCharts(node, (what) => `OP_RETURN ${what}: ${policyName(key)}`))),
+        ]),
       ]),
     ], { workings: true }),
     section("Cointime", [
@@ -727,39 +755,43 @@ export function studioPresets(client, facts) {
       ]),
       section("Value", entries(ct.value).flatMap(([key, node]) => flow(node, `Value ${key}`, `Cointime value ${key}`))),
       section("Age bands", cointimeBands(ct.ageRanges)),
-      section(holderName("awake").name, entries(ct.cohorts).map(([key, c]) => section(holderName(key).name, weighted(c.awake, c.dormant, holderName(key).of(holderName("awake").name), "Awake", "Dormant")))),
+      section(holderName("awake").name, weightedSets(ct.cohorts, "awake", "dormant", "Awake", "Dormant")),
     ]),
     section("Coinflow", [
       section("Age bands", coinflowBands(cf.ageRanges)),
-      section(holderName("mobile").name, entries(cf.cohorts).map(([key, c]) => section(holderName(key).name, weighted(c.mobile, c.immobile, holderName(key).of(holderName("mobile").name), "Mobile", "Immobile")))),
+      section(holderName("mobile").name, weightedSets(cf.cohorts, "mobile", "immobile", "Mobile", "Immobile")),
     ]),
-    section("Bedrock", entries(t.bedrock).map(([mode, node]) => {
-      // The Bedrock landscape, top to bottom: sky over the all-time high, water from it to the median cost basis above
-      // the floor, soil down to the first floor, bedrock through the floors, the deepest down to the bottom.
-      const edges = [
-        [m.ath.high, "All-time high"],
-        ...entries(node.costBasisAboveFloor).reverse().map(([key, value]) => [value, `${percentileLabel(percentile(key))} cost basis`]),
-        ...entries(node.floor).map(([key, value]) => [value, `${percentileLabel(percentile(key))} floor`]),
-      ];
-      const bands = entries(node.floorSupply), colors = ramp(bands.length, 140, 200);
-      return section(sentence(mode[0].toUpperCase() + mode.slice(1)), [
-        chart("Floors", `Bedrock floors, ${mode}`, [price(), ...entries(node.floor).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 140, 200)[i] }))]),
-        // (The price first: in front.)
-        chart("Floors, colored", `Bedrock landscape, ${mode}`, [
-          price(),
-          ...edges.map(([value, label], i) => series(value, label, { color: LANDSCAPE[i], width: 1 })),
-          { cloud: [letter(1), "top"], label: "Above the all-time high", color: SKY, opacity: 1 },
-          ...edges.map(([, label], i) => ({ cloud: [letter(i + 1), i + 1 < edges.length ? letter(i + 2) : "bottom"], label: i + 1 < edges.length ? `${label} to ${edges[i + 1][1].toLowerCase()}` : `Below the ${label.toLowerCase()}`, color: LANDSCAPE[i], opacity: 1 })),
-        ]),
-        chart("Supply between floors", `Supply created between Bedrock floors, ${mode}`, [
-          ...bands.map(([key, value], i) => series(value.btc, floorBandLabel(key), { color: colors[i], type: "area" })),
-          ...bands.map(([key, value], i) => series(value.usd, `${floorBandLabel(key)}, value`, { color: colors[i], type: "area", pane: 2 })),
-        ], { stack: { 1: "stack", 2: "stack" } }),
-        chart("Capital between floors", `Capital of the supply created between Bedrock floors, ${mode}`, entries(node.floorCapital).map(([key, value], i) => series(value, floorBandLabel(key), { color: colors[i], type: "area" })), { stack: { 1: "stack" } }),
-        chart("Cost basis above the floor", `Cost basis above the Bedrock floor, ${mode}`, [price(), ...entries(node.costBasisAboveFloor).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 25, 160)[i], width: key === "median" ? 2 : 1 }))]),
-        chart("Supply-in-loss thresholds", `Bedrock's supply-in-loss thresholds, ${mode}`, entries(node.supplyInLossShareThreshold).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 25, 100)[i] }))),
-      ]);
-    })),
+    section("Bedrock", [
+      // (Each floor, its modes' over the price: how far weighting moves it.)
+      section("Compare", entries(entries(t.bedrock)[0][1].floor).map(([key]) => chart(`${percentileLabel(percentile(key))} floor`, `Bedrock ${percentileLabel(percentile(key))} floor by mode`, [price(), ...entries(t.bedrock).map(([mode, node], i, all) => series(node.floor[key], modeName(mode), { color: ramp(all.length)[i] }))]))),
+      ...entries(t.bedrock).map(([mode, node]) => {
+        // The Bedrock landscape, top to bottom: sky over the all-time high, water from it to the median cost basis above
+        // the floor, soil down to the first floor, bedrock through the floors, the deepest down to the bottom.
+        const edges = [
+          [m.ath.high, "All-time high"],
+          ...entries(node.costBasisAboveFloor).reverse().map(([key, value]) => [value, `${percentileLabel(percentile(key))} cost basis`]),
+          ...entries(node.floor).map(([key, value]) => [value, `${percentileLabel(percentile(key))} floor`]),
+        ];
+        const bands = entries(node.floorSupply), colors = ramp(bands.length, 140, 200);
+        return section(modeName(mode), [
+          chart("Floors", `Bedrock floors, ${mode}`, [price(), ...entries(node.floor).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 140, 200)[i] }))]),
+          // (The price first: in front.)
+          chart("Floors, colored", `Bedrock landscape, ${mode}`, [
+            price(),
+            ...edges.map(([value, label], i) => series(value, label, { color: LANDSCAPE[i], width: 1 })),
+            { cloud: [letter(1), "top"], label: "Above the all-time high", color: SKY, opacity: 1 },
+            ...edges.map(([, label], i) => ({ cloud: [letter(i + 1), i + 1 < edges.length ? letter(i + 2) : "bottom"], label: i + 1 < edges.length ? `${label} to ${edges[i + 1][1].toLowerCase()}` : `Below the ${label.toLowerCase()}`, color: LANDSCAPE[i], opacity: 1 })),
+          ]),
+          chart("Supply between floors", `Supply created between Bedrock floors, ${mode}`, [
+            ...bands.map(([key, value], i) => series(value.btc, floorBandLabel(key), { color: colors[i], type: "area" })),
+            ...bands.map(([key, value], i) => series(value.usd, `${floorBandLabel(key)}, value`, { color: colors[i], type: "area", pane: 2 })),
+          ], { stack: { 1: "stack", 2: "stack" } }),
+          chart("Capital between floors", `Capital of the supply created between Bedrock floors, ${mode}`, entries(node.floorCapital).map(([key, value], i) => series(value, floorBandLabel(key), { color: colors[i], type: "area" })), { stack: { 1: "stack" } }),
+          chart("Cost basis above the floor", `Cost basis above the Bedrock floor, ${mode}`, [price(), ...entries(node.costBasisAboveFloor).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 25, 160)[i], width: key === "median" ? 2 : 1 }))]),
+          chart("Supply-in-loss thresholds", `Bedrock's supply-in-loss thresholds, ${mode}`, entries(node.supplyInLossShareThreshold).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 25, 100)[i] }))),
+        ]);
+      }),
+    ]),
   ];
 
   // ── Pieces the tree above uses ────────────────────────────────────────────
@@ -812,11 +844,11 @@ export function studioPresets(client, facts) {
    * @param {string} doing @param {string[]} [apart]
    */
   function byType(types, what, doing, apart = []) {
-    const list = entries(types), colors = ramp(list.length);
+    const list = entries(types), colors = ramp(list.length), What = `${what[0].toUpperCase()}${what.slice(1)}`;
     const name = (/** @type {string} */ key) => client.SPENDABLE_TYPE_NAMES[key]?.short ?? (key === "opReturn" ? "OP_RETURN" : key);
     return [
       section("Compare", [
-        chart("Count, 1 month", `${what[0].toUpperCase()}${what.slice(1)} by type, 1 month`, list.map(([key, node], i) => series(node.count.sum._1m, name(key), { color: colors[i], type: "area" })), { stack: { 1: "percent" } }),
+        ...parts([`${What}, 1 month`, `${What} by type, 1 month`], [`${What.slice(0, -1)} share, 1 month`, `Share of ${what} by type, 1 month`], list.map(([key, node], i) => series(node.count.sum._1m, name(key), { color: colors[i] }))),
         chart("Transaction share, 1 month", `Share of transactions ${doing} each ${what.slice(0, -1)} type, 1 month`, list.map(([key, node], i) => series(node.txShare._1m, name(key), { color: colors[i] }))),
       ]),
       ...list.filter(([key]) => !apart.includes(key)).map(([key, node]) => section(name(key), [
@@ -936,7 +968,11 @@ export function studioPresets(client, facts) {
     ]);
     return [
       section("Compare", [
-        chart("Share, 1 month", "Mining pools' share of blocks, 1 month", major.map(([, node, name], i) => series(node.blockShare._1m, name, { color: colors[i], type: "area" })), { stack: { 1: "stack" } }),
+        // (The others together, what the rest leaves: the whole accounted for.)
+        chart("Share, 1 month", "Mining pools' share of blocks, 1 month", [
+          ...major.map(([, node, name], i) => series(node.blockShare._1m, name, { color: colors[i], type: "area" })),
+          { formula: `100 - (${major.map(([, node]) => node.blockShare._1m.name).join(" + ")})`, label: "Other pools", format: "percent", color: "gray", type: "area" },
+        ], { stack: { 1: "stack" } }),
         chart("Hash rate, 1 month", "Mining pools' hash rate, 1 month", major.map(([, node, name], i) => series(node.hashrate._1m, name, { color: colors[i] })), { log: [1] }),
       ]),
       ...major.map(pool),
@@ -952,14 +988,22 @@ export function studioPresets(client, facts) {
       ...cohort({ costBasis: on.costBasis }, who),
     ];
   }
+  /**
+   * Weighted coins (`on`, "awake"; the rest `off`, "dormant") of each holder group, in the holder groups' sets: compared,
+   * then each group's. @param {any} cohorts @param {string} on @param {string} off @param {string} onLabel @param {string} offLabel
+   */
+  function weightedSets(cohorts, on, off, onLabel, offLabel) {
+    const naming = (/** @type {string} */ key) => ({ name: holderName(key).name, who: holderName(key).of(holderName(on).name) });
+    return holderSets(entries(cohorts).map(([key, c]) => [key, c[on]]), (members, by) => family(members, naming, { by: `${by}, ${holderName(on).name.toLowerCase()}`, charts: (key, c, who) => weighted(c, cohorts[key][off], who, onLabel, offLabel) }));
+  }
   /** Cointime by age band: coin days created and consumed, wakefulness, awake and dormant supply. @param {any} ranges */
   function cointimeBands(ranges) {
     const list = entries(ranges), name = (/** @type {string} */ key) => named(client.AGE_RANGE_NAMES, key).replace(/ old$/, ""), colors = ramp(list.length);
     return [
       section("Compare", [
         chart("Wakefulness", "Wakefulness by age band", list.map(([key, node], i) => series(node.wakefulness, name(key), { color: colors[i] }))),
-        chart("Awake supply", "Awake supply by age band", list.map(([key, node], i) => series(node.awake.supply.btc, name(key), { color: colors[i], type: "area" })), { stack: { 1: "percent" } }),
-        chart("Dormant supply", "Dormant supply by age band", list.map(([key, node], i) => series(node.dormant.supply.btc, name(key), { color: colors[i], type: "area" })), { stack: { 1: "percent" } }),
+        ...parts(["Awake supply", "Awake supply by age band"], ["Awake supply share", "Awake supply share by age band"], list.map(([key, node], i) => series(node.awake.supply.btc, name(key), { color: colors[i] }))),
+        ...parts(["Dormant supply", "Dormant supply by age band"], ["Dormant supply share", "Dormant supply share by age band"], list.map(([key, node], i) => series(node.dormant.supply.btc, name(key), { color: colors[i] }))),
       ]),
       ...list.map(([key, node]) => section(name(key), [
         ...flow(node.coindaysConsumed, "Coin days consumed", `Coin days consumed: UTXOs ${name(key).toLowerCase()} old`),
@@ -974,9 +1018,10 @@ export function studioPresets(client, facts) {
     return [
       section("Compare", [
         chart("Spending rate", "Spending rate by age band", list.map(([key, node], i) => series(node.spendingRate, name(key), { color: colors[i] })), { log: [1] }),
+        chart("Spending exposure", "Spending exposure by age band", list.map(([key, node], i) => series(node.spendingExposure, name(key), { color: colors[i] }))),
         chart("Mobility", "Mobility by age band", list.map(([key, node], i) => series(node.mobility, name(key), { color: colors[i] }))),
-        chart("Mobile supply", "Mobile supply by age band", list.map(([key, node], i) => series(node.mobile.supply.btc, name(key), { color: colors[i], type: "area" })), { stack: { 1: "percent" } }),
-        chart("Immobile supply", "Immobile supply by age band", list.map(([key, node], i) => series(node.immobile.supply.btc, name(key), { color: colors[i], type: "area" })), { stack: { 1: "percent" } }),
+        ...parts(["Mobile supply", "Mobile supply by age band"], ["Mobile supply share", "Mobile supply share by age band"], list.map(([key, node], i) => series(node.mobile.supply.btc, name(key), { color: colors[i] }))),
+        ...parts(["Immobile supply", "Immobile supply by age band"], ["Immobile supply share", "Immobile supply share by age band"], list.map(([key, node], i) => series(node.immobile.supply.btc, name(key), { color: colors[i] }))),
       ]),
       ...list.map(([key, node]) => section(name(key), [
         chart("Spending rate", `Spending rate: UTXOs ${name(key).toLowerCase()} old`, [series(node.spendingRate, "Spending rate", { color: "orange" })]),
