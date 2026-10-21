@@ -9828,7 +9828,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return `${sign}${text}`;
         }
       }
-      /** An axis label is at most this many characters, its sign included; the price scales at most that wide. */
+      /** An axis label is at most this many characters, its sign aside; the price scales at most that wide, and a sign. */
       const AXIS_CHARS = 6;
       /** The axes' labels, by value and suffix: the chart asks for the same ticks every frame of a move. */
       const axisLabels = new Map();
@@ -9842,8 +9842,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (axisLabels.size > 4000) axisLabels.clear();
         // The library steps its ticks by subtraction: the zero one can come out as 6e-17. Below the scales' least move,
         // it's 0.
+        // (Its sign aside, as a precise figure's: −0.0002 as 0.0002, not 2e-4 beside it.)
         const shown = Math.abs(value) < 5e-10 ? 0 : value, sign = shown < 0 ? "−" : "";
-        const label = `${sign}${compact(Math.abs(shown), 3, AXIS_CHARS - sign.length - suffix.length)}${suffix}`;
+        const label = `${sign}${compact(Math.abs(shown), 3, AXIS_CHARS - suffix.length)}${suffix}`;
         axisLabels.set(key, label);
         return label;
       }
@@ -9860,7 +9861,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!gap) return labels;
         const near = (/** @type {number[]} */ read) => read.every((value, i) => Math.abs(value - values[i]) <= gap / 100);
         if (near(labels.map(readLabel))) return labels;
-        const fit = (/** @type {string[]} */ texts) => texts.every((text) => text.length <= AXIS_CHARS && !text.includes("e"));
+        const fit = (/** @type {string[]} */ texts) => texts.every((text) => text.replace(/^−/, "").length <= AXIS_CHARS && !text.includes("e"));
         for (let digits = 4; digits <= 9; digits++) {
           // (With letters, as axisLabel's; where those are too long (12.345K), in plain digits (12345).)
           for (const lettered of [true, false]) {

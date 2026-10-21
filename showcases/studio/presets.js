@@ -305,8 +305,8 @@ export function studioPresets(client, facts) {
       capital && section("Capital", [
         chart("Total", of("Realized cap"), [
           series(capital.realizedCap, "Realized cap", { color: "orange" }),
-          ...(capital.inProfit ? [series(own(capital.inProfit), "In profit", { color: "emerald", hidden: true }), series(own(capital.inLoss), "In loss", { color: "red", hidden: true })] : []),
-          ...(capital.inProfit?.share ? [series(capital.inProfit.share, "Share in profit", { color: "emerald", pane: 2 }), series(capital.inLoss.share, "Share in loss", { color: "red", pane: 2 })] : []),
+          ...(capital.inProfit ? [series(own(capital.inProfit), "In profit", { color: "green", hidden: true }), series(own(capital.inLoss), "In loss", { color: "red", hidden: true })] : []),
+          ...(capital.inProfit?.share ? [series(capital.inProfit.share, "Share in profit", { color: "green", pane: 2 }), series(capital.inLoss.share, "Share in loss", { color: "red", pane: 2 })] : []),
         ], { log: [1] }),
         ...change(capital.delta, "Change", of("Capital change")),
       ]),
@@ -400,16 +400,31 @@ export function studioPresets(client, facts) {
     return [chart(name, title, [price(), ...list.map(([key, value], i) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color: colors[i], width: key === "median" ? 2 : 1 })), ...more], options)];
   };
   /**
-   * A rarity meter component's charts: its price bands over the price (with its reference price, a median's), and its
-   * ratio percentiles (with the price's ratio to it). `who` its cohort in titles.
-   * @param {any} node @param {string} label @param {string} who
+   * A rarity meter component's charts: its price bands over the price, with its reference price, and its ratio
+   * percentiles, with the price's ratio to it (a median's its own; the others' where the cohort or Cointime has them:
+   * `reference`). `who` its cohort in titles.
+   * @param {any} node @param {string} label @param {string} who @param {[any, any] | undefined} reference
    */
-  const component = (node, label, who) => {
-    const titled = (/** @type {string} */ what) => `${label} ${what}: ${who}`;
+  const component = (node, label, who, reference) => {
+    const titled = (/** @type {string} */ what) => `${label} ${what}: ${who}`, [base, ratio] = own(node) ? [own(node), node.ratio] : reference ?? [];
     return section(label, [
-      chart("Bands", titled("rarity bands"), [price(), ...(own(node) ? [series(own(node), label, { color: "orange" })] : []), ...bandLines(node, (v) => v.band)]),
-      chart("Ratios", titled("rarity ratios"), [...(node.ratio ? [series(node.ratio, "Price to it", around(1))] : []), ...bandLines(node, (v) => v.ratio)], { log: [1] }),
+      chart("Bands", titled("rarity bands"), [price(), ...(base ? [series(base, label, { color: "orange" })] : []), ...bandLines(node, (v) => v.band)]),
+      chart("Ratios", titled("rarity ratios"), [...(ratio ? [series(ratio, "Price ratio", around(1))] : []), ...bandLines(node, (v) => v.ratio)], { log: [1] }),
     ]);
+  };
+  /**
+   * A rarity component's reference price and the price's ratio to it, by the component's cohort (a holder group's, or
+   * the awake or mobile coins') and key.
+   * @param {string} cohort @param {string} key @returns {[any, any] | undefined}
+   */
+  const referenceOf = (cohort, key) => {
+    const cost = (t.holders[cohort] ?? { awake: ct.cohorts.all.awake, mobile: cf.cohorts.all.mobile }[cohort])?.costBasis;
+    return /** @type {Record<string, [any, any]>} */ ({
+      realizedPrice: [cost?.perCoin.realizedPrice, cost?.perCoin.avg.mvrv],
+      capitalizedPrice: [cost?.perDollar.capitalizedPrice, cost?.perDollar.avg.ratio],
+      vaultedPrice: [ct.prices.vaulted.block, ct.prices.vaulted.ratio],
+      trueMarketMean: [ct.prices.trueMarketMean.block, ct.prices.trueMarketMean.ratio],
+    })[key];
   };
   /**
    * A node's rarity bands (its percentile children) as lines, rarest low to rarest high; `pick` takes a band's series,
@@ -514,7 +529,7 @@ export function studioPresets(client, facts) {
       ...list.map(([key, value]) => chart(windowLabel(key), `${windowAdjective(key)} ${kind}`, [
         price(), series(own(value), `${windowAdjective(key)} ${kind}`, { color: "sky" }),
         // (The 200-day's ratio is the Mayer multiple: shown as it, with its bands.)
-        value.mayerMultiple ? series(value.mayerMultiple, "Mayer multiple", { pane: 2, ...around(1), levels: [{ value: 2.4, color: "red", dash: 3 }, { value: 0.8, color: "green", dash: 3 }] }) : series(value.ratio, "Price to it", { pane: 2, ...around(1) }),
+        value.mayerMultiple ? series(value.mayerMultiple, "Mayer multiple", { pane: 2, ...around(1), levels: [{ value: 2.4, color: "red", dash: 3 }, { value: 0.8, color: "green", dash: 3 }] }) : series(value.ratio, "Price ratio", { pane: 2, ...around(1) }),
       ], { log: [2] })),
     ]);
   };
@@ -593,7 +608,7 @@ export function studioPresets(client, facts) {
           chart("Level and score", `Rarity meter level and score, ${key}`, [series(node.level, "Level", { ...baseline, type: "histogram" }), series(node.score, "Score", { pane: 2, ...baseline })]),
         ])),
         // (Each component by its cohort: a reference price's bands and ratios.)
-        section("Components", entries(t.rarityMeter.components).map(([key, node]) => section(holderName(key).name, entries(node).map(([k, v]) => component(v, words(k), holderName(key).name))))),
+        section("Components", entries(t.rarityMeter.components).map(([key, node]) => section(holderName(key).name, entries(node).map(([k, v]) => component(v, words(k), holderName(key).name, referenceOf(key, k)))))),
         // (Each extreme against its bands: the median and its rare side's tail shown, the others a click away.)
         section("Extremes", [eventsChart(), ...entries(t.rarityMeter.extremes).map(([key, node]) => {
           const label = EXTREMES[key]?.label ?? words(key), low = EXTREMES[key]?.low;
@@ -703,7 +718,7 @@ export function studioPresets(client, facts) {
       ]),
     ], { workings: true }),
     section("OP_RETURN", [
-      ...opReturnCharts(t.opReturn, (what) => `OP_RETURN ${what}`),
+      ...opReturnCharts(t.opReturn, (what) => `OP_RETURN ${what}`, t.outputs.types.opReturn.share),
       section("Protocols", [
         section("Compare", [
           chart("Outputs, 1 month", "OP_RETURN outputs by protocol, 1 month", entries(t.opReturn.protocols).map(([key, node], i, all) => series(node.outputCount.sum._1m, protocolName(key), { color: ramp(all.length)[i], type: "area" })), { stack: { 1: "percent" } }),
@@ -830,12 +845,13 @@ export function studioPresets(client, facts) {
   }
   /**
    * OP_RETURN's charts (all of them, a protocol's, a policy's), each titled by `titled` from what it shows ("outputs"
-   * as "Runes OP_RETURN outputs", "OP_RETURN outputs: Oversized").
-   * @param {any} node @param {(what: string) => string} titled
+   * as "Runes OP_RETURN outputs", "OP_RETURN outputs: Oversized"); all of them, with their share of all outputs
+   * (`outputShare`, the outputs' by type), as that type's own chart is.
+   * @param {any} node @param {(what: string) => string} titled @param {any} [outputShare]
    */
-  function opReturnCharts(node, titled) {
+  function opReturnCharts(node, titled, outputShare) {
     return [
-      ...flow(node.outputCount, "Outputs", titled("outputs")),
+      ...(outputShare ? [counted(node.outputCount, "Outputs", titled("outputs"), outputShare)] : flow(node.outputCount, "Outputs", titled("outputs"))),
       ...(node.txCount ? [counted(node.txCount, "Transactions", titled("transactions"), node.txShare)] : []),
       ...flow(node.dataBytes, "Data", titled("data")),
       ...(node.dataBytes?.chainShare ? [chart("Data share", titled("share of block space"), sharesOf(node.dataBytes.chainShare, "Share"))] : []),
