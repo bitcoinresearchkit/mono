@@ -21618,8 +21618,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The last search over the presets (all of them, no `under`): typed on, it narrows what it found. */
       let presetsFound = { query: "", found: /** @type {number[]} */ ([]) };
       /**
-       * The presets whose words hold every word typed, the best first (every word in its title, then its title
-       * starting with the first, then the shortest title), as many as `most`.
+       * The presets whose words hold every word typed, the best first (what's typed its name, or its title's subject,
+       * before ": "; then every word in its title, then its title starting with the first; at each, the nearest the top
+       * of the tree, then the shortest title: the measure itself before its families' members), as many as `most`.
        */
       function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ most, under = /** @type {((i: number) => boolean) | null} */ (null)) {
         const list = /** @type {Preset[]} */ (presets), query = words.join(" ");
@@ -21631,15 +21632,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (among && !renamed.size) for (const i of among) words.every((word) => wordsAt(i).includes(word)) && found.push(i);
         else for (let i = 0; i < presetWords.length; i++) if ((!under || under(i)) && words.every((word) => wordsAt(i).includes(word))) found.push(i);
         if (!under) presetsFound = { query, found };
-        // The best first: all its words in its title, starting it; then the shortest. Bucketed (fit, then length), not
-        // sorted: a word or two matches thousands.
-        const buckets = /** @type {number[][][]} */ ([[], [], [], []]);
+        // The best first: what's typed its name or its title's subject; then all its words in its title, starting it; then
+        // the nearest the top, the shortest. Bucketed (fit, then depth and length), not sorted: a word or two matches
+        // thousands.
+        const buckets = /** @type {number[][][]} */ ([[], [], [], [], []]);
         for (const i of found) {
-          const title = ((kept) => (kept ? titleOf(kept) : list[i].t))(keptPreset(i)).toLowerCase(), fit = (words.every((word) => title.includes(word)) ? 2 : 0) + (title.startsWith(words[0]) ? 1 : 0);
-          (buckets[fit][list[i].t.length] ??= []).push(i);
+          const title = ((kept) => (kept ? titleOf(kept) : list[i].t))(keptPreset(i)).toLowerCase();
+          const exact = list[i].p.at(-1)?.toLowerCase() === query || title.split(": ")[0] === query;
+          const fit = exact ? 4 : (words.every((word) => title.includes(word)) ? 2 : 0) + (title.startsWith(words[0]) ? 1 : 0);
+          (buckets[fit][list[i].p.length * 1000 + Math.min(title.length, 999)] ??= []).push(i);
         }
         const best = [];
-        for (let fit = 3; fit >= 0 && best.length < most; fit--) for (const same of buckets[fit]) if (same && best.length < most) best.push(...same.slice(0, most - best.length));
+        for (let fit = 4; fit >= 0 && best.length < most; fit--) for (const same of buckets[fit]) if (same && best.length < most) best.push(...same.slice(0, most - best.length));
         return best;
       }
       /** A preset's row: its title (as edited here, if it is; found by a search, its place too); its preview; ↵ opens it; its actions (⌘K). */

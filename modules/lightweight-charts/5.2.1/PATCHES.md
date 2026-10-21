@@ -7,7 +7,7 @@ then open `tests.html` (served from the repo) in a window wide enough for its tw
 
 The plots draw exactly what the library does, but for the log marks (1, 12) and the rounded bars (7, only where a radius
 is set); the axes' tags are rounded (6), the time axis's labels fade before its ends (10), a price axis's tags stay inside
-its pane (11), an indexed scale's labels are its series' (19). A view held on screen as a right scale's width changes, an option (20). A view keeps a share of it on its data, an option (13). The rest (2–5, 8, 9, 14) draw the same, faster; a tag hides the mark labels under it (15). `tests.html` runs the patched file and 5.2.1 as published side by side through every
+its pane (11), an indexed scale's labels are its series' (19). A view held on screen as a right scale's width changes, an option (20). A view keeps a share of it on its data, an option (13). The rest (2–5, 8, 9, 14, 22, 23) draw the same, faster; a tag hides the mark labels under it (15). `tests.html` runs the patched file and 5.2.1 as published side by side through every
 series type, every price scale mode (inverted too), pans, jumps, zooms, the crosshair, restyles, live updates, new data,
 resizes, margins, moves between scales, a held price range and conflation, and compares their plots pixel for pixel, the
 axes left out (713 steps).
@@ -367,3 +367,28 @@ width and the scales' then still add up to the chart's.
 
 `tests.html` doesn't read a scale's width then. Checked in Studio: a layer on a pane's left scale, the first there, the
 chart's width read as it's added.
+
+## 22. A gradient asked for by its values
+
+An area's fill, a baseline's fill and its line ask the gradient cache (`class Fe`, `Nb`) for each point's style: each
+call built an object of its seven values for the cache to compare with the last one's, an object a point in view, each
+frame. `Nb(t, ...)` now takes the seven values themselves and keeps the last ones in fields: the same comparison, the
+same gradient made when one changes, no object.
+
+- `class Fe`: `Nb(t,s,e,r,h,a,l,o)` (was `Nb(t,i)` with `i` the values' object, kept as `Fb`).
+- Its callers: the baseline's `Ob` (`class We`) and `kb` (`class He`), the area's `Ob`.
+
+## 23. One style for every point: none asked per point
+
+A line's or an area's path asked its style function for each point in view, each frame (`fe`: `r(t, v)`), to start a
+new stroke where a point's style differs, though a series without points of their own colors has one style for all. Its
+points now say so: building them (`zM()`, the three: the colorer's styles, each compared key by key with the first's,
+`bvSame`, in `bvOwn()`'s `Sh`) and restyling them (`BM()`) mark the points array (`bvU`), and `fe` takes the first
+point in view's style for every one when it's set (`u=i.bvU?c:r(t,v)`).
+
+`tests.html` runs a line with points of their own colors beside ones without, restyled mid-pan. A baseline whose
+price crosses its base has two line colors (`sh`), so isn't one style: drawn as before.
+
+Measured (Chromium, 1440×900 at 2x, a pan and a wheel zoom at Max, 25 layers; CPU time in script, before → after
+22 and 23): stacked areas (HODL waves) 1,698–1,725 → 1,325–1,352 ms (−22%; the paths' own functions 904–931 →
+523–535); lines (realized price by age band) 1,620–1,653 → 1,253–1,298 ms (−22%).
