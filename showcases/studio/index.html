@@ -19270,7 +19270,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function sizeSheet(sheet, change, from = sheet.getBoundingClientRect().top, speed = 0) {
         slides.get(sheet)?.cancel();
-        sheet.style.height = "";
+        sheet.style.height = sheet.style.maxHeight = "";
         change();
         // (Where its top comes to rest: its foot the screen's, whatever transform it has meanwhile; its height as laid out,
         // to the fraction.)
@@ -19282,11 +19282,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The layout's curve, as a sheet opens and closes, its start's slope the finger's speed in shares of the way a
         // duration: none still, at most 2.5.)
         const timing = { duration: MOTION.layout, easing: `cubic-bezier(0.4, ${clamp((0.4 * speed * MOTION.layout) / by, 0, 1).toFixed(3)}, 0.2, 1)` };
-        if (by > 0) sheet.style.height = `${height + by}px`;
+        // (Its height as it showed, a stretched one's too: past its tallest.)
+        if (by > 0) (sheet.style.height = `${height + by}px`), (sheet.style.maxHeight = "none");
         const slide = sheet.animate({ transform: by < 0 ? [`translateY(${-by}px)`, "none"] : ["none", `translateY(${by}px)`] }, timing);
         slides.set(sheet, slide);
         beginOnTime(slide);
-        if (by > 0) slide.finished.then(() => (sheet.style.height = ""), () => {});
+        if (by > 0) slide.finished.then(() => (sheet.style.height = sheet.style.maxHeight = ""), () => {});
       }
       let keysWaiting = /** @type {(() => void) | null} */ (null), keysTimer = 0;
       /**
@@ -19305,16 +19306,80 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         clearTimeout(keysTimer);
         run?.();
       }
-      /** Whether a sheet dragged down goes: past a third of its height, or flicked (24px down, let go at 0.6px a millisecond). */
-      const sheetGoes = (/** @type {number} */ by, /** @type {number} */ speed, /** @type {number} */ height) => by > height / 3 || (by > 24 && speed > 0.6);
+      /**
+       * Where a sheet let go `by` down at `speed` (px/ms, down above 0) would come to rest, slowing as iOS's own lists do
+       * (0.998 of its speed kept each millisecond): how a native sheet reads a flick, a short fast one as far as a long
+       * slow drag.
+       */
+      const sheetRest = (/** @type {number} */ by, /** @type {number} */ speed) => by + (speed * 0.998) / (1 - 0.998);
+      /** Whether a sheet dragged down goes: it'd come to rest past a third of its height (flicked up, it comes back). */
+      const sheetGoes = (/** @type {number} */ by, /** @type {number} */ speed, /** @type {number} */ height) => sheetRest(by, speed) > height / 3;
+      /** How far a sheet pulled `past` its tallest shows past it: less and less, as iOS's own edges give (55%, then less). */
+      const stretched = (/** @type {number} */ past) => (1 - 1 / ((past * 0.55) / innerHeight + 1)) * innerHeight;
+      /**
+       * A sheet let go to close: on down from where it showed (`from`, its top) past the screen's foot, at the finger's
+       * speed (px/ms). Closed (`close`) at once, all that follows its closing now, its slide over its own way out (its dim's
+       * its own); a dialog, though, once out of sight: closed in Safari, it's gone at once (no `overlay` there), so it's
+       * slid first, its backdrop fading with it. Opened or closed meanwhile otherwise (esc, ×, Back, another menu), it's
+       * that's: the slide stops, a dialog never closed later. A dialog pressed as it slides stays where it's caught, open
+       * (see sheetTaken).
+       * @param {HTMLElement} sheet @param {() => void} close @param {number} from @param {number} speed
+       */
+      function slideAway(sheet, close, from, speed) {
+        const later = sheet instanceof HTMLDialogElement;
+        slides.get(sheet)?.cancel();
+        if (!later) close();
+        // (Typed into, let go of as it goes, the keyboard down with it: iOS draws a field's caret apart, left behind.)
+        else if (sheet.contains(document.activeElement) && typing(document.activeElement)) /** @type {HTMLElement} */ (document.activeElement).blur();
+        // (Its own way, back as the drag let go of it, or out as it closed, gives way: a transition outranks an animation.
+        // The rest of its way out (its display, its visibility, kept till it's done) held to begin with the slide.)
+        const own = sheet.getAnimations().filter((animation) => animation instanceof CSSTransition);
+        for (const animation of own) if (/** @type {CSSTransition} */ (animation).transitionProperty === "transform") animation.cancel();
+        if (reduced.matches) return void (later && close());
+        // (Where it's laid out, its transform aside: the slide's from where it showed to its own height past its place,
+        // past the foot it's on, however tall the screen gets meanwhile: a keyboard going down.)
+        const top = sheet.getBoundingClientRect().top - new DOMMatrix(getComputedStyle(sheet).transform).m42, by = document.documentElement.clientHeight + 16 - from;
+        const timing = /** @type {KeyframeAnimationOptions} */ ({ duration: MOTION.layout, easing: `cubic-bezier(0.4, ${clamp((0.4 * Math.max(0, speed) * MOTION.layout) / by, 0, 1).toFixed(3)}, 0.2, 1)`, fill: "forwards" });
+        const slide = sheet.animate({ transform: [`translateY(${from - top}px)`, "translateY(calc(100% + 16px))"] }, timing);
+        slide.id = "away";
+        let fade = /** @type {Animation | null} */ (null);
+        try {
+          if (later) fade = sheet.animate({ opacity: [1, 0] }, { ...timing, pseudoElement: "::backdrop" });
+        } catch {}
+        slides.set(sheet, slide);
+        beginOnTime(slide, ...(fade ? [fade] : []), ...own.filter((animation) => animation.playState !== "idle"));
+        const meanwhile = new MutationObserver(() => slide.cancel());
+        meanwhile.observe(sheet, { attributes: true, attributeFilter: ["open", "hidden"] });
+        meanwhile.observe(document.body, { attributes: true, attributeFilter: ["data-sheet"] });
+        slide.finished.then(() => {
+          // (Opened or closed in the very task it ended in: its change not heard yet, but there.)
+          const changed = meanwhile.takeRecords().length > 0;
+          meanwhile.disconnect();
+          if (later && !changed) close();
+          // (Closed, at its closed place at once, out of sight already: its own way there, from where it went, not taken.)
+          for (const animation of sheet.getAnimations()) if (animation instanceof CSSTransition && animation.transitionProperty === "transform") animation.finish();
+          slide.cancel();
+          fade?.cancel();
+        }, () => (meanwhile.disconnect(), fade?.cancel()));
+      }
+      /**
+       * A sheet pressed as it slides away: stopped where it shows, open; how far down from its rest it shows then (as it
+       * slides in, its own motion's). @param {HTMLElement} sheet
+       */
+      function sheetTaken(sheet) {
+        const slide = slides.get(sheet), away = slide?.id === "away" && slide.playState !== "finished", shown = sheet.getBoundingClientRect().top;
+        if (away) slide.cancel();
+        return new DOMMatrix(getComputedStyle(sheet).transform).m42 + (away ? shown - sheet.getBoundingClientRect().top : 0);
+      }
       /**
        * A phone's sheet of two heights, whole (88% of the screen) and half (56%), dragged by its top: `grab` says where a
        * press takes it, by its handle or by its head (or not at all); `pulls`, whether its content pulls it too (see
        * dragSheet). Up from half it grows, down it follows the finger.
-       * Let go upright, it stops at the nearest of whole, half and gone, a flick one stop on its way; its handle tapped,
-       * the other height. On its side (a column), down past a third, or flicked, it goes; less, it comes back. `whole`
-       * and `size` read and set which height it has (its motion is sizeSheet's, from where it was let go), `close` closes
-       * it; `scrim`, dimmed behind it whole, lightens as it goes down.
+       * Up past whole, it stretches, less and less. Let go upright, it stops at whole, half or gone, the nearest to where
+       * it'd come to rest (sheetRest), never back against a flick; its handle tapped, the other height. On its side (a
+       * column), as sheetGoes says, it goes; else it comes back. `whole` and `size` read and set which height it has (its
+       * motion is sizeSheet's, from where it was let go), `close` closes it (slid away first: slideAway); `scrim`, dimmed
+       * behind it whole, lightens as it goes down.
        * @param {HTMLElement} sheet
        * @param {{ grab: (event: PointerEvent) => "handle" | "head" | false, whole: () => boolean, size: (whole: boolean) => void, close: () => void, scrim?: HTMLElement, pulls: () => boolean }} how
        */
@@ -19333,27 +19398,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Taken as it moves to a height: stopped where it shows, as tall as it shows, the finger's from there.)
             const slide = slides.get(sheet);
             held = "";
-            if (slide && slide.playState !== "finished") {
+            if (slide && slide.id !== "away" && slide.playState !== "finished") {
               slide.cancel();
               held = sheet.style.height = `${document.documentElement.clientHeight - shown}px`;
             }
-            // (Taken as it slides in: from where it shows, not from its stop.)
-            base = new DOMMatrix(getComputedStyle(sheet).transform).m42;
+            // (Taken as it slides in or away: from where it shows, not from its stop.)
+            base = sheetTaken(sheet);
             (height = sheet.offsetHeight), (handle = by === "handle");
             sheet.style.transition = "none";
             if (scrim) scrim.style.transition = "none";
             return true;
           },
           move: (moved) => {
-            // (A drag that turns back grows it or moves it as it is now, never both.)
-            const by = moved + base, grows = by < 0 && heldUpright.matches && !whole(), down = Math.max(0, by);
-            sheet.style.height = grows ? `${Math.min(height - by, innerHeight * SHEET_WHOLE)}px` : held;
+            // (A drag that turns back grows it or moves it as it is now, never both; past whole, stretched.)
+            const by = moved + base, grows = by < 0 && heldUpright.matches, down = Math.max(0, by), tallest = innerHeight * SHEET_WHOLE;
+            sheet.style.maxHeight = grows || held ? "none" : "";
+            sheet.style.height = grows ? `${height - by <= tallest ? height - by : tallest + stretched(height - by - tallest)}px` : held;
             sheet.style.transform = grows ? "" : `translateY(${down}px)`;
             shown = sheet.getBoundingClientRect().top;
             if (scrim && whole()) scrim.style.opacity = String(1 - down / sheet.offsetHeight);
           },
           back: () => {
-            sheet.style.transition = sheet.style.transform = sheet.style.height = "";
+            sheet.style.transition = sheet.style.transform = sheet.style.height = sheet.style.maxHeight = "";
             if (scrim) scrim.style.transition = scrim.style.opacity = "";
           },
           release: (moved, speed) => {
@@ -19361,15 +19427,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // one too): its handle's switches the height; any other, it goes on where it was going: by its own motion as
             // it slid in, its slide to a height taken up again from where it shows.)
             const by = moved + base, still = Math.abs(moved) < 4;
+            const away = () => slideAway(sheet, close, shown, speed);
             if (handle && still && heldUpright.matches) return sizeSheet(sheet, () => size(!whole()), shown);
             if (still) return void (held && sizeSheet(sheet, () => {}, shown));
-            if (!heldUpright.matches) return void (sheetGoes(by, speed, height) && close());
-            // (A slow drag most of the way to half lands there; a flick, let go moving, goes one stop on.)
-            const stops = [innerHeight * SHEET_WHOLE, innerHeight * SHEET_HALF, 0], flick = Math.abs(by) > 16 && Math.abs(speed) > 0.6 ? Math.sign(speed) : 0;
-            const nearest = stops.reduce((near, each, i) => (Math.abs(each - (height - by)) < Math.abs(stops[near] - (height - by)) ? i : near), 0);
-            const stop = flick ? clamp((whole() ? 0 : 1) + flick, 0, 2) : nearest;
-            if (stop === 2) return close();
-            sizeSheet(sheet, () => size(stop === 0), shown, speed);
+            if (!heldUpright.matches) return void (sheetGoes(by, speed, height) && away());
+            // (The stop nearest where it'd come to rest, of those on its way: a flick down never brings it back up.)
+            const now = document.documentElement.clientHeight - shown, rest = height - sheetRest(by, speed), stops = [innerHeight * SHEET_WHOLE, innerHeight * SHEET_HALF, 0];
+            const onWay = stops.filter((each) => (speed > 0.1 ? each <= now + 1 : speed < -0.1 ? each >= now - 1 : true));
+            const near = (onWay.length ? onWay : stops).reduce((best, each) => (Math.abs(each - rest) < Math.abs(best - rest) ? each : best));
+            if (near === 0) return away();
+            sizeSheet(sheet, () => size(near === stops[0]), shown, speed);
           },
         });
       }
@@ -26908,36 +26975,36 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // goes; else it comes back.
       {
         const menu = $("menu");
-        // (How far down it showed as it was taken: sliding in, from there.)
-        let base = 0;
+        // (How far down it showed as it was taken: sliding in or away, from there; its top as it shows.)
+        let base = 0, shown = 0;
         dragSheet(menu, {
           pulls: () => menu.classList.contains("as-sheet") && !menu.hidden,
           grab: (event) => {
             if (!menu.classList.contains("as-sheet") || (event && !closest(event, ".menu-handle"))) return false;
-            base = new DOMMatrix(getComputedStyle(menu).transform).m42;
+            base = sheetTaken(menu);
             menu.style.transition = "none";
             return true;
           },
-          move: (by) => (menu.style.transform = `translateY(${Math.max(0, by + base)}px)`),
+          move: (by) => ((menu.style.transform = `translateY(${Math.max(0, by + base)}px)`), (shown = menu.getBoundingClientRect().top)),
           back: () => (menu.style.transition = menu.style.transform = ""),
-          release: (by, speed) => Math.abs(by) >= 4 && sheetGoes(Math.max(0, by + base), speed, menu.offsetHeight) && hideMenu(),
+          release: (by, speed) => Math.abs(by) >= 4 && sheetGoes(Math.max(0, by + base), speed, menu.offsetHeight) && slideAway(menu, hideMenu, shown, speed),
         });
       }
       // The shortcuts' and the guide's sheets, a phone's: dragged down by their handle, or their lines at their top, they
-      // go (closed: they slide away as they close); else they come back.
+      // go as sheetGoes says (slid away, then closed: slideAway); else they come back.
       for (const sheet of [$("shortcuts"), $("guide")]) {
-        let base = 0;
+        let base = 0, shown = 0;
         dragSheet(sheet, {
           pulls: () => phone.matches && /** @type {HTMLDialogElement} */ (sheet).open,
           grab: (event) => {
             if (!phone.matches || !(/** @type {HTMLDialogElement} */ (sheet).open) || (event && !closest(event, ".menu-handle"))) return false;
-            base = new DOMMatrix(getComputedStyle(sheet).transform).m42;
+            base = sheetTaken(sheet);
             sheet.style.transition = "none";
             return true;
           },
-          move: (by) => (sheet.style.transform = `translateY(${Math.max(0, by + base)}px)`),
+          move: (by) => ((sheet.style.transform = `translateY(${Math.max(0, by + base)}px)`), (shown = sheet.getBoundingClientRect().top)),
           back: () => (sheet.style.transition = sheet.style.transform = ""),
-          release: (by, speed) => Math.abs(by) >= 4 && sheetGoes(Math.max(0, by + base), speed, sheet.offsetHeight) && /** @type {HTMLDialogElement} */ (sheet).close(),
+          release: (by, speed) => Math.abs(by) >= 4 && sheetGoes(Math.max(0, by + base), speed, sheet.offsetHeight) && slideAway(sheet, () => /** @type {HTMLDialogElement} */ (sheet).close(), shown, speed),
         });
       }
       /**
