@@ -18306,7 +18306,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** @type {Action[]} */
         const inside = "path" in place
           ? (presetNodeAt(place.path)?.items ?? []).map((item) => (typeof item === "number"
-            ? { group: at, label: ((edited) => (edited ? titleOf(edited) : /** @type {Preset[]} */ (presets)[item].t))(editedPreset(item)), current: item === presetIndex(chart), run: () => pickPreset(item) }
+            ? { group: at, label: ((edited) => (edited ? titleOf(edited) : /** @type {Preset[]} */ (presets)[item].t))(keptPreset(item)), current: item === presetIndex(chart), run: () => pickPreset(item) }
             : { group: at, ...page({ name: /** @type {string} */ (item.path.at(-1)), at: { path: item.path } }) }))
           : "folder" in place ? childrenOf(place.folder || undefined).map((item) => ("layers" in item ? doc(item) : { group: at, ...page({ name: item.name, at: { folder: item.id } }) }))
           : listedPreviews().map(doc);
@@ -19682,7 +19682,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The presets' marks in the sidebar, as drawn (this visit's: made as their rows come into sight), by what each is of. @type {Map<string, any[]>} */
       const presetMarks = new Map();
       // (By the preset, as made; edited here, by its copy as it is: nothing else changes it.)
-      const presetMarkKey = (/** @type {number} */ i) => ((doc) => (doc ? `${doc.id}@${doc.updated}` : presetKey(i)))(editedPreset(i));
+      const presetMarkKey = (/** @type {number} */ i) => ((doc) => (doc ? `${doc.id}@${doc.updated}` : presetKey(i)))(keptPreset(i));
       /** A preset's mark, as its row shows it: drawn, else the empty one till it is. */
       const presetMark = (/** @type {number} */ i) => markOf(presetMarks.get(presetMarkKey(i)) ?? []);
       /** The preset rows in sight, their marks drawn one at a time; one gone out of sight before its turn, let go of. */
@@ -19727,7 +19727,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (typeof item === "number") {
               if (!depth) continue;
               // (In its folders, by its own name, the folders saying the rest; its title on hover. Retitled here, by that.)
-              const preset = /** @type {Preset[]} */ (presets)[item], doc = editedPreset(item), edited = Boolean(doc && presetEdited(doc));
+              const preset = /** @type {Preset[]} */ (presets)[item], doc = keptPreset(item), edited = Boolean(doc && presetEdited(doc));
               const title = escape(doc ? titleOf(doc) : preset.t), label = doc && titleOf(doc) !== preset.t ? title : escape(/** @type {string} */ (preset.p.at(-1)));
               parts.push([`preset:${item}`, `<div class="chart-row preset-row in-folder ${edited ? "edited" : ""}" data-preset-row="${item}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-preset="${item}" data-tip="${title}${edited ? ": edited here" : ""}">${presetMark(item)}<span class="label">${label}</span></button><button type="button" class="cap small chart-more" data-preset-menu="${item}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button></div>`]);
               continue;
@@ -21023,9 +21023,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * two hundred looked at kept (with their drawings: a gallery's page of them). @type {Map<number, Chart>}
        */
       const presetDocs = new Map();
-      /** A preset's chart as it shows: as edited here, else as made. */
+      /** A preset's chart as it shows: as edited here, else as made (a copy left as it was, of a preset since changed, too). */
       function presetDoc(/** @type {number} */ i) {
-        return editedPreset(i) ?? templateDoc(i);
+        return keptPreset(i) ?? templateDoc(i);
       }
       /** A preset's chart as made (made once looked at, kept a while). */
       function templateDoc(/** @type {number} */ i) {
@@ -21185,14 +21185,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Whether a preset's been changed here (it says so, and can be reset). @param {Chart} doc */
       const presetEdited = (doc) => doc.preset !== undefined && !pristine(doc);
+      /** A preset's copy kept here that still stands: edited, or left as it was of the preset as made now. */
+      const keptPreset = (/** @type {number} */ i) => ((had) => (had && (!pristine(had) || had.base === templateHash(i)) ? had : undefined))(editedPreset(i));
       /**
        * A preset's chart: as edited here, else as made now (one left as it was, made anew: the presets may have changed
        * since). Never edited: stamped 0 (past a reset, just after it), any edit's copy (here,
        * another tab's) wins over it; nothing of an earlier one's undo comes with it.
        */
       function presetChart(/** @type {number} */ i) {
-        const key = presetKey(i), had = editedPreset(i), id = presetIdOf(key);
-        if (had && (!pristine(had) || had.base === templateHash(i))) return had;
+        const key = presetKey(i), had = editedPreset(i), id = presetIdOf(key), kept = keptPreset(i);
+        if (kept) return kept;
         const doc = /** @type {Chart} */ ({ ...freshPreset(i), id, preset: key, updated: (library.deleted[id] ?? -1) + 1 });
         doc.base = contentHash(doc);
         library.presets = [...library.presets.filter((other) => other !== had), doc];
@@ -21345,7 +21347,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         ];
       }
       /** A preset's words for a search: its title as made, and as edited here, and where it is. */
-      const presetSearchWords = (/** @type {number} */ i) => ((edited) => (edited ? `${presetWords[i]} ${titleOf(edited).toLowerCase()}` : presetWords[i]))(editedPreset(i));
+      const presetSearchWords = (/** @type {number} */ i) => ((edited) => (edited ? `${presetWords[i]} ${titleOf(edited).toLowerCase()}` : presetWords[i]))(keptPreset(i));
       /** The last search over the presets (all of them, no `under`): typed on, it narrows what it found. */
       let presetsFound = { query: "", found: /** @type {number[]} */ ([]) };
       /**
@@ -21366,7 +21368,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // sorted: a word or two matches thousands.
         const buckets = /** @type {number[][][]} */ ([[], [], [], []]);
         for (const i of found) {
-          const title = (editedPreset(i) ? titleOf(/** @type {Chart} */ (editedPreset(i))) : list[i].t).toLowerCase(), fit = (words.every((word) => title.includes(word)) ? 2 : 0) + (title.startsWith(words[0]) ? 1 : 0);
+          const title = ((kept) => (kept ? titleOf(kept) : list[i].t))(keptPreset(i)).toLowerCase(), fit = (words.every((word) => title.includes(word)) ? 2 : 0) + (title.startsWith(words[0]) ? 1 : 0);
           (buckets[fit][list[i].t.length] ??= []).push(i);
         }
         const best = [];
@@ -21375,7 +21377,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A preset's row: its title (as edited here, if it is; found by a search, its place too); its preview; ↵ opens it; its actions (⌘K). */
       const presetRow = (/** @type {number} */ i, deep = false) => {
-        const preset = /** @type {Preset[]} */ (presets)[i], edited = editedPreset(i), title = edited ? titleOf(edited) : preset.t;
+        const preset = /** @type {Preset[]} */ (presets)[i], edited = keptPreset(i), title = edited ? titleOf(edited) : preset.t;
         return {
           kind: "row", key: `preset:${i}`, icon: ICONS.charts, label: title, ...(deep ? { aside: preset.p.slice(0, -1).join(" › ") } : {}), words: presetSearchWords(i), verb: "Open",
           run: () => pickPreset(i),
