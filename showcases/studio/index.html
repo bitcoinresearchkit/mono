@@ -9767,6 +9767,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return sign + abs.toExponential(0);
       }
       const grouped = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+      /** Dollars to the cent, as a live price is read: $97,123.45. */
+      const toTheCent = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const dollarsAndCents = (/** @type {number} */ value) => `$${toTheCent.format(value)}`;
 
       /**
        * A value in its unit, as the legend and the panel write it: its figure as everywhere (precise, by the value, not
@@ -28581,8 +28584,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         $("live").classList.toggle("offline", lost);
         $("live").classList.remove("waiting");
-        $("stamp").textContent = $("home-live").textContent = [lost ? "Offline" : "Live", !lost && livePrice ? format(livePrice, "usd") : "", liveHeight ? `#${grouped.format(liveHeight)}` : "", !livePrice && at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · ");
-        $("live").dataset.tip = [lost ? `${SERVER_HOST} isn't answering: trying again` : SERVER_HOST, !lost && livePrice ? `live price ${format(livePrice, "usd")}` : "", liveHeight ? `data up to block ${grouped.format(liveHeight)}${at ? `, ${`${at.getDate()} ${MONTHS[at.getMonth()]}, ${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`}` : ""}` : "", points ? `${grouped.format(points)} points at ${INTERVAL_LABEL[chart.index]}` : "", lost ? "" : "new blocks show within seconds"].filter(Boolean).join(" · ");
+        $("stamp").textContent = $("home-live").textContent = [lost ? "Offline" : "Live", !lost && livePrice ? dollarsAndCents(livePrice) : "", liveHeight ? `#${grouped.format(liveHeight)}` : "", !livePrice && at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · ");
+        $("live").dataset.tip = [lost ? `${SERVER_HOST} isn't answering: trying again` : SERVER_HOST, !lost && livePrice ? `live price ${dollarsAndCents(livePrice)}` : "", liveHeight ? `data up to block ${grouped.format(liveHeight)}${at ? `, ${`${at.getDate()} ${MONTHS[at.getMonth()]}, ${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`}` : ""}` : "", points ? `${grouped.format(points)} points at ${INTERVAL_LABEL[chart.index]}` : "", lost ? "" : "new blocks show within seconds"].filter(Boolean).join(" · ");
       }
 
       // ── Rendering the page ────────────────────────────────────────────────────
