@@ -9636,7 +9636,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return at;
       };
       /** A signal, said: the layer its marks are on, how many there are. @param {Layer} layer */
-      const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it on" : on.hidden ? `Hidden with ${labelOf(on)}` : `Signal on ${labelOf(on)}${values ? ` · ${plural(turnsOf(values).length, "time")}${FINE.has(chart.index) ? " in what's loaded" : ""}` : ""}`))(chart.layers.find((item) => item.id === layer.ref), resolved?.results.get(layer.id)?.shown);
+      const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it on" : on.hidden ? `Hidden with ${labelOf(on)}` : `Signal on ${labelOf(on)}${values ? ` · ${plural(turnsOf(values).length, "time")}${fineDrawn() ? " in what's loaded" : ""}` : ""}`))(chart.layers.find((item) => item.id === layer.ref), resolved?.results.get(layer.id)?.shown);
       const typeName = (/** @type {string} */ type) => [...TYPES, ...FROM_TYPES].find(([id]) => id === type)?.[1] ?? type;
       /** @type {[string, string][]} */
       const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"]];
@@ -13231,7 +13231,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const setData = series.setData.bind(series), update = series.update.bind(series);
         series.setData = (/** @type {any[]} */ rows) => {
           setData(rows);
-          if (FINE.has(chart.index)) rowsOf.set(series, rows);
+          // (By the chart being built: a look's, mid-switch, at the old interval.)
+          if (FINE.has(drawnDoc?.index ?? chart.index)) rowsOf.set(series, rows);
           else rowsOf.delete(series);
         };
         series.update = (/** @type {any} */ row, /** @type {boolean | undefined} */ historical) => (rowsOf.delete(series), update(row, historical));
@@ -14332,7 +14333,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const layers = chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden);
           return layers.length ? capitalize(`${chart.panes.length > 1 ? `Pane ${i + 1}, ` : ""}${pane.stack === "percent" ? "100% stacked" : `${MODES[paneMode(pane)].name.toLowerCase()} scale`}: ${layers.map((layer) => `${labelOf(layer)} ${sayValue(layer, point)}`).join(", ")}`) : "";
         }).filter(Boolean);
-        return `${CADENCE[chart.index]}, ${span}. ${panes.join(". ")}.`;
+        return `${CADENCE[shownIndex()]}, ${span}. ${panes.join(". ")}.`;
       }
       /** The plot as its keys describe it: what it shows, and how to read it. */
       const chartSummary = () => `${chartFacts()} The left and right arrows read it date by date (with shift, ten at a time); Home and End, the first and last shown. With a drawing tool in hand, Enter places a point there, and the up and down arrows move it off the line.`;
@@ -14421,7 +14422,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Said once it's there: a chart full, its notice says why not.)
         const reading = kind === "ruler" ? rulerReading(drawing) : null;
         if (kind === "ruler") said.textContent = reading ? `${reading.name}: ${reading.figures.join(", ")} over ${reading.span}` : "Nothing measured";
-        else if (drawingById(drawing.id)) said.textContent = `${TOOLS[kind].name} ${kind === "hline" ? `at ${amountOn(point.layer, point.value)}` : kind === "vline" ? `at ${dateLabel(time, FINE.has(chart.index))}` : `from ${at(drawing.points[0])} to ${at(spot)}`}`;
+        else if (drawingById(drawing.id)) said.textContent = `${TOOLS[kind].name} ${kind === "hline" ? `at ${amountOn(point.layer, point.value)}` : kind === "vline" ? `at ${dateLabel(time, fineDrawn())}` : `from ${at(drawing.points[0])} to ${at(spot)}`}`;
       }
       $("plot-keys").addEventListener("focus", () => (describePlot(), tool && renderBelt()));
       // (Left for another window, it's where it was when the window's back.)
@@ -15045,7 +15046,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The days the view spans, by its bars at its interval: past the data's ends too (time all the same: scrolled to the
        * start, or past what a fine interval's loaded, it's no narrower than it shows). Nothing drawn, none.
        */
-      const viewDays = () => ((range) => (range && resolved?.times.length ? (range.to - range.from) * INTERVAL_DAYS[chart.index] : null))(view.timeScale().getVisibleLogicalRange());
+      const viewDays = () => ((range) => (range && resolved?.times.length ? (range.to - range.from) * INTERVAL_DAYS[shownIndex()] : null))(view.timeScale().getVisibleLogicalRange());
       /** An Auto chart about to be drawn: at the interval its view as left asks for, else its range's (not one, then another). @param {Chart} doc */
       function autoPrepare(doc) {
         if (!doc.auto) return;
@@ -25536,7 +25537,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let looking = false;
       function showLook(look) {
         if (!resolved || drawnChart !== chart.id || !$("palette").open) return;
-        const doc = structuredClone(chart);
+        // (At the interval of the data on screen: a switch still loading has its own; see shownIndex.)
+        const doc = { ...structuredClone(chart), index: shownIndex() };
         look(doc);
         // (As an edit leaves it: a cloud colored by its layers follows one's color looked at.)
         normalize(doc);
@@ -25551,7 +25553,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         lookDoc = null;
         if (!looking) return;
         looking = false;
-        if (resolved && drawnChart === chart.id) build(structuredClone(chart), resolved, false);
+        if (resolved && drawnChart === chart.id) build({ ...structuredClone(chart), index: shownIndex() }, resolved, false);
       }
       $("palette").addEventListener("close", clearLook);
       /** A pane by what it shows: its layers' names, the first two. */
@@ -25857,7 +25859,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const layer = layerById(id), values = layer && resolved?.results.get(id)?.shown, on = layer?.ref ? layerById(layer.ref) : null;
           if (!values || !resolved) return [];
           const times = resolved.times;
-          return turnsOf(values).reverse().map((i) => ({ key: `at:${times[i]}`, icon: ICONS.calendar, label: dateLabel(times[i], FINE.has(chart.index)), aside: on ? `${labelOf(on)} ${format(valueAt(on, { at: i, rest: false }), unitFor(on, resolved?.results.get(on.id)))}` : undefined, run: () => goToTime(times[i]) }));
+          return turnsOf(values).reverse().map((i) => ({ key: `at:${times[i]}`, icon: ICONS.calendar, label: dateLabel(times[i], fineDrawn()), aside: on ? `${labelOf(on)} ${format(valueAt(on, { at: i, rest: false }), unitFor(on, resolved?.results.get(on.id)))}` : undefined, run: () => goToTime(times[i]) }));
         }, "Go");
       }
       /**
@@ -25870,7 +25872,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const middle = (range.from + range.to) / 2, turns = [...new Set(chart.layers.filter((layer) => signalShown(layer)).flatMap((layer) => turnsOf(resolved?.results.get(layer.id)?.shown)))].sort((a, b) => a - b);
         const at = by > 0 ? turns.find((i) => i > middle + 0.01) : turns.findLast((i) => i < middle - 0.01);
         // (Minutes and hours: what's loaded only, said.)
-        if (at === undefined) return notice(`${by > 0 ? "No signal after this" : "No signal before this"}${FINE.has(chart.index) ? " in what's loaded" : ""}`);
+        if (at === undefined) return notice(`${by > 0 ? "No signal after this" : "No signal before this"}${fineDrawn() ? " in what's loaded" : ""}`);
         goToTime(resolved.times[at]);
       }
       /** A page of actions (each one acts and closes ⌘K), its rows as a menu has them. @returns {Page} */
@@ -28346,7 +28348,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // (The theme's colors too, as the shot has them: all read before the marks load, while another chart, theme or
         // size may come.)
-        const title = titleOf(chart), cadence = CADENCE[chart.index], [sans, cardColor, inkColor, softColor, mutedColor, lineColor] = ["--sans", "--card", "--ink", "--soft", "--muted", "--line"].map(css);
+        const title = titleOf(chart), cadence = CADENCE[shownIndex()], [sans, cardColor, inkColor, softColor, mutedColor, lineColor] = ["--sans", "--card", "--ink", "--soft", "--muted", "--line"].map(css);
         await drawMarks(pieces);
         const px = (n) => Math.round(n * scale);
         const font = (weight, size) => `${weight} ${px(size)}px ${sans}`;
@@ -28425,7 +28427,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The view's dates, as the foot says them, and the date of the values the legends show (the view's last point). */
       function viewDates() {
-        const times = resolved.times, fine = FINE.has(chart.index), span = view.timeScale().getVisibleRange();
+        const times = resolved.times, fine = fineDrawn(), span = view.timeScale().getVisibleRange();
         if (!times.length) return { span: "", values: "" };
         const last = times[lastShown()];
         return { span: spanParts(Number(span?.from ?? times[0]), Number(span?.to ?? last), fine).join(" – "), values: chart.legend === "off" ? "" : `Values on ${dateLabel(last, fine)}` };
@@ -28794,7 +28796,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("live").classList.toggle("offline", lost);
         $("live").classList.remove("waiting");
         $("stamp").textContent = $("home-live").textContent = [lost ? "Offline" : "Live", !lost && livePrice ? dollarsAndCents(livePrice) : "", liveHeight ? `#${grouped.format(liveHeight)}` : "", !livePrice && at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · ");
-        $("live").dataset.tip = [lost ? `${SERVER_HOST} isn't answering: trying again` : SERVER_HOST, !lost && livePrice ? `live price ${dollarsAndCents(livePrice)}` : "", liveHeight ? `data up to block ${grouped.format(liveHeight)}${at ? `, ${`${at.getDate()} ${MONTHS[at.getMonth()]}, ${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`}` : ""}` : "", points ? `${grouped.format(points)} points at ${INTERVAL_LABEL[chart.index]}` : "", lost ? "" : "new blocks show within seconds"].filter(Boolean).join(" · ");
+        $("live").dataset.tip = [lost ? `${SERVER_HOST} isn't answering: trying again` : SERVER_HOST, !lost && livePrice ? `live price ${dollarsAndCents(livePrice)}` : "", liveHeight ? `data up to block ${grouped.format(liveHeight)}${at ? `, ${`${at.getDate()} ${MONTHS[at.getMonth()]}, ${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`}` : ""}` : "", points ? `${grouped.format(points)} points at ${INTERVAL_LABEL[shownIndex()]}` : "", lost ? "" : "new blocks show within seconds"].filter(Boolean).join(" · ");
       }
 
       // ── Rendering the page ────────────────────────────────────────────────────
