@@ -10715,14 +10715,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {string} name @param {Set<string>} used @param {string} [asked] @returns {Partial<Layer>}
        */
       function firstLook(name, used, asked) {
-        indexCatalog();
-        const type = known.get(name)?.type ?? "", unit = type ? unitOf(type) : units.get(name);
-        const own = presetLooks.get(name), ownType = own?.type ?? (isOhlc(name) ? "candles" : "line"), look = asked ?? ownType, told = look === ownType ? own : undefined;
+        const type = known.get(name)?.type ?? "", unit = type ? unitOf(type) : units.get(name), { look, told } = seriesLook(name, asked);
         // (A baseline as every one starts: green above its base, red below, the presets' shades of them said so.)
-        const color = told?.color ?? (look === "baseline" ? "green" : catalogIndex?.get(name)?.startsWith("price.") ? "ink" : unit === "usd" ? "green" : unit === "btc" || unit === "sats" ? "orange" : "");
+        // (The catalog, indexed the rest of the way only when it's asked: the presets' own looks come first.)
+        const color = told?.color ?? (look === "baseline" ? "green" : (indexCatalog(), catalogIndex?.get(name))?.startsWith("price.") ? "ink" : unit === "usd" ? "green" : unit === "btc" || unit === "sats" ? "orange" : "");
         // (A baseline's green is every baseline's: taken already, still its own.)
-        return { ...(look !== "line" ? { type: look } : {}), ...(told?.base ? { base: told.base } : {}), ...(color && (!used.has(color) || (look === "baseline" && color === "green")) ? { color } : {}) };
+        return { ...firstForm(name, asked), ...(color && (!used.has(color) || (look === "baseline" && color === "green")) ? { color } : {}) };
       }
+      /** A series' first type, and the presets' look of it where that type's theirs. @param {string} name @param {string} [asked] */
+      const seriesLook = (name, asked) => {
+        const own = presetLooks.get(name), ownType = own?.type ?? (isOhlc(name) ? "candles" : "line"), look = asked ?? ownType;
+        return { look, told: look === ownType ? own : undefined };
+      };
+      /** A series' first type and base: its first look's, its color aside. @param {string} name @param {string} [asked] @returns {Partial<Layer>} */
+      const firstForm = (name, asked) => (({ look, told }) => ({ ...(look !== "line" ? { type: look } : {}), ...(told?.base ? { base: told.base } : {}) }))(seriesLook(name, asked));
       /** Whether Bitview says a series is open-high-low-close (its type, as known: asked for already). */
       const isOhlc = (/** @type {string} */ name) => /^OHLC/.test(known.get(name)?.type ?? "");
       /** @param {Partial<Layer>} spec @param {Chart} doc @returns {Layer} */
@@ -12527,7 +12533,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A series by block, by its day (its own over 24 hours, their sum, their average; before a unit it ends in, as
        * fees_usd's is fees_sum_24h_usd), if Bitview has one; else null.
        */
-      const dailyOf = (/** @type {string} */ name) => DAILY(name).find((other) => catalogIndex?.has(other) && !byBlock.has(other)) ?? null;
+      const dailyOf = (/** @type {string} */ name) => (indexCatalog(), DAILY(name).find((other) => catalogIndex?.has(other) && !byBlock.has(other)) ?? null);
 
       /**
        * @typedef {{ values?: Vector, shown?: Vector, ohlc?: (number[] | null)[], low?: Vector, breaks?: Uint8Array, sides?: Uint8Array, unit: string, error?: string, detail?: string, info?: any, unavailable?: boolean, missing?: boolean }} Result
@@ -24586,6 +24592,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * search answers, for bitview.space's too. @param {string[]} names
        */
       function byDate(names) {
+        indexCatalog();
         const first = [], last = [], placed = new Set();
         for (const name of names) {
           if (placed.has(name)) continue;
@@ -24760,6 +24767,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (dialog.dataset.leaving) (dismissing = false), arrive(dialog);
         if (!dialog.open) (input.inert = !keys), dialog.showModal(), (input.inert = false), !keys && dialog.focus();
         if (typing && TOUCH) input.focus();
+        // (Its series, those by block only said so, and how many there are: the catalog indexed the rest of the way first.)
+        indexCatalog();
         applyScope();
         input.value = palette.query;
         paletteKeys(true);
@@ -28168,7 +28177,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (A cloud of no colors given: colored by its layers.)
             ...(kind === "cloud" && !colors[i] && layer.colorBelow === undefined ? { byLayers: true } : {}),
             ...(number(layer.pane) !== null ? { pane: panes[clamp(/** @type {number} */ (number(layer.pane)), 1, panes.length) - 1].id } : layer.pane === undefined ? { pane: panes[0].id } : {}),
-            ...(typeof layer.series === "string" ? { series: seriesName(layer.series), ...(({ type, base }) => ({ ...(type && layer.type === undefined ? { type } : {}), ...(base !== undefined && layer.base === undefined ? { base } : {}) }))(firstLook(seriesName(layer.series), usedColors, typeof layer.type === "string" ? layer.type : undefined)) } : {}),
+            ...(typeof layer.series === "string" ? { series: seriesName(layer.series), ...(({ type, base }) => ({ ...(type && layer.type === undefined ? { type } : {}), ...(base !== undefined && layer.base === undefined ? { base } : {}) }))(firstForm(seriesName(layer.series), typeof layer.type === "string" ? layer.type : undefined)) } : {}),
             ...(kind ? { [kind]: members } : {}),
             ...(typeof layer.ref === "string" ? { ref: letterId(layer.ref) } : {}),
             ...(typeof layer.colorFrom === "string" ? { colorFrom: letterId(layer.colorFrom) } : {}),
