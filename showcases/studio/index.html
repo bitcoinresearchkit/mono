@@ -80,8 +80,11 @@
       :root {
         color-scheme: dark;
         /* Sizes more than one rule (or the script) shares: the panel's width beside the chart, the tablet's floating panel's
-           height, a phone's sheet's two heights (fractions of the screen's: the script reads them too). */
+           height, a phone's sheet's two heights (fractions of the screen's: the script reads them too); a layer row's value
+           and change (the script measures their room at them). */
         --panel-width: 300px;
+        --row-value-size: 12px;
+        --row-change-size: 11px;
         --tablet-panel: 44dvh;
         --sheet-whole: 0.88;
         /* (What an installed app's status bar takes at the top, for the script to read.) */
@@ -1388,7 +1391,7 @@
 
       .row-value {
         color: var(--ink);
-        font: 510 12px/20px var(--sans);
+        font: 510 var(--row-value-size)/20px var(--sans);
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
 
@@ -1427,7 +1430,7 @@
       .row-change {
         border-radius: var(--radius-xs);
         padding: 0 4px;
-        font: 510 11px/16px var(--sans);
+        font: 510 var(--row-change-size)/16px var(--sans);
         font-variant-numeric: tabular-nums;
 
         &.up {
@@ -6465,9 +6468,9 @@
         }
       }
 
-      /* (The home's presets where a screen has the room (a big iPad's, a tall desktop's): in rows, every recommended one in
-         sight, not a row to swipe; a phone's, a laptop's, one row.) */
-      @media (min-width: 761px) and (min-height: 1000px) {
+      /* (The home's presets where a screen has the room (an iPad's upright, a tall desktop's): in rows, every recommended
+         one in sight, not a row to swipe; a phone's, a laptop's, one row.) */
+      @media (min-width: 700px) and (min-height: 1000px) {
         .shelf.lead .shelf-row {
           grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
           grid-auto-flow: row;
@@ -7422,12 +7425,9 @@
           }
         }
 
-        .row-value {
-          font-size: 14px;
-        }
-
-        .row-change {
-          font-size: 12px;
+        :root {
+          --row-value-size: 14px;
+          --row-change-size: 12px;
         }
 
         .layer-row .letter {
@@ -9212,6 +9212,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The stylesheet's motion, for what moves from here: its lengths in milliseconds, and its curve. */
       const MOTION = { micro: parseFloat(css("--dur-micro")), small: parseFloat(css("--dur-small")), panel: parseFloat(css("--dur-panel")), page: parseFloat(css("--dur-page")), ease: css("--ease"), layout: parseFloat(css("--dur-layout")), easeLayout: css("--ease-layout") };
       const phone = matchMedia("(max-width: 760px), (max-height: 500px)");
+      /** A layer row's value and change sizes, as the stylesheet sets them now (a phone's are larger): their room measured at them. */
+      const readRowSizes = () => ({ value: parseFloat(token("--row-value-size")), change: parseFloat(token("--row-change-size")) });
+      let rowSizes = readRowSizes();
+      // (Changed, the rows written again at them: a cloud's room is set as it's written.)
+      phone.addEventListener("change", () => ((rowSizes = readRowSizes()), chart && renderLayers()));
       /** What of the page shows (a keyboard over it, iOS's, shortens it; every browser Studio runs in has one). */
       const viewport = /** @type {VisualViewport} */ (window.visualViewport);
       /** A phone held upright (its sheet at half height first). */
@@ -12599,6 +12604,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           prune(frames, 8, (key) => Boolean(chart) && key.startsWith(`${chart.id}@`));
         }
         const { lo, times, position } = frame, length = times.length;
+        // (A formula's result kept for a layer the chart no longer has (a preview's, one removed): let go of.)
+        for (const id of frame.computed.keys()) if (!doc.layers.some((layer) => layer.id === id)) frame.computed.delete(id);
         /** @type {Map<string, Result>} */
         const results = new Map();
         /** A series' data on the timeline: its values (a candle's close), and its candles when it has them (once a series, its layers and formulas sharing them, kept with the frame). */
@@ -13195,7 +13202,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         endScaleGlide();
         const veils = autoFade && !first ? veilPlots() : [], held = veils.length ? heldScales() : [];
         autoFade = false;
-        build(structuredClone(chart), result, refit);
+        build(withLook(structuredClone(chart)), result, refit);
         liftVeils(veils);
         glideScales(held);
         drawnChart = doc.id;
@@ -13927,16 +13934,36 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The layer whose line the pointer is on: its legend item and panel row light up, the legend scrolling to it if it must. */
       let litLayer = null;
+      /** Each layer's legend items and panel row, by its id: found again only when one's missing or gone from the page. */
+      let litItems = /** @type {Map<string, HTMLElement[]>} */ (new Map());
+      /** Every legend item and panel row, found anew and kept by layer. */
+      function findLitItems() {
+        const items = all$(".legend [data-select], .layer-row[data-layer]");
+        litItems = new Map();
+        for (const item of items) {
+          const of = /** @type {string} */ (item.dataset.select ?? item.dataset.layer);
+          litItems.set(of, [...(litItems.get(of) ?? []), item]);
+        }
+        return items;
+      }
+      function litItemsOf(/** @type {string} */ layer) {
+        const kept = litItems.get(layer);
+        if (kept?.length && kept.every((item) => item.isConnected)) return kept;
+        findLitItems();
+        return litItems.get(layer) ?? [];
+      }
       function lightLegend(id, again = false) {
         if (id === litLayer && !again) return;
-        // (Moving from one to another, only those two change; drawn again, every one is set.)
-        const of = (/** @type {string | null} */ layer) => (layer ? all$(`.legend [data-select="${CSS.escape(layer)}"], .layer-row[data-layer="${CSS.escape(layer)}"]`) : []);
-        const items = again ? all$(".legend [data-select], .layer-row[data-layer]") : [...of(litLayer), ...of(id)];
+        // (Moving from one to another, only those two change; drawn again (the legends' or the rows' writers ask), every
+        // one is set, and found anew.)
+        const of = (/** @type {string | null} */ layer) => (layer ? litItemsOf(layer) : []);
+        const items = again ? findLitItems() : [...of(litLayer), ...of(id)];
         litLayer = id;
         // (Where it is, read before anything's lit: lighting it moves nothing, and reading after would lay the page out
-        // again, each move.)
-        const button = id && !again ? /** @type {HTMLElement | null} */ (document.querySelector(`.legend [data-select="${id}"]`)) : null;
-        const row = button?.parentElement, place = button && row ? { left: button.offsetLeft, width: button.offsetWidth, at: row.scrollLeft, room: row.clientWidth, full: row.scrollWidth } : null;
+        // again, each move; only in a legend wider than its room, the one that can scroll, and not while the view moves:
+        // bands sweep under a pointer held still, the legend kept where it is.)
+        const button = id && !again && performance.now() - viewMovedAt >= 250 ? of(id).find((item) => item.closest(".legend")) : undefined;
+        const row = button?.parentElement, place = button && row?.classList.contains("overflows") ? { left: button.offsetLeft, width: button.offsetWidth, at: row.scrollLeft, room: row.clientWidth, full: row.scrollWidth } : null;
         for (const item of items) item.classList.toggle("lit", (item.dataset.select ?? item.dataset.layer) === id);
         if (!place || !row) return;
         const left = place.left, right = left + place.width;
@@ -14577,7 +14604,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Its tip open: it says the new dates, or goes.)
             if (tipTarget === element && !$("tip").hidden) tip ? showTip(element) : hideTip();
           }
-          const figures = /** @type {HTMLElement} */ (element.parentElement), width = layer.hidden || result.error ? "" : `${Math.max(valueSlot(layer, 12), chipSlot(layer))}px`;
+          const figures = /** @type {HTMLElement} */ (element.parentElement), width = layer.hidden || result.error ? "" : `${Math.max(valueSlot(layer, rowSizes.value), chipSlot(layer))}px`;
           if (figures.style.minWidth !== width) figures.style.minWidth = width;
         }
       }
@@ -14588,13 +14615,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function chipSlot(layer) {
         const span = changeWindow(layer);
         if (!span) return 0;
-        const key = `chip:${layer.id}:${span.unit}:${span.a}:${span.last}`, measured = slotsNow();
+        const key = `chip:${layer.id}:${span.unit}:${span.a}:${span.last}:${rowSizes.change}`, measured = slotsNow();
         if (measured.has(key)) return /** @type {number} */ (measured.get(key));
         const { values, a, base, lo, hi, relative, unit } = extremes(span);
         const from = values[relative ? base : a];
         const texts = [lo, hi].map((to) => chipText(change(from, to, relative, unit)));
         if (relative) texts.push("↓ 00.0%", "↑ 00.0%", "↑ 000%");
-        const width = widest(texts, 510, 11) + 8;
+        const width = widest(texts, 510, rowSizes.change) + 8;
         measured.set(key, width);
         return width;
       }
@@ -21887,7 +21914,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}>
                   ${letterChip(layer)}
                   <span class="row-text"><span class="name">${escape(labelOf(layer))}</span>${sub}</span>
-                  <span class="row-figures"${layer.type === "cloud" && result?.low ? ` style="min-width: ${valueSlot(layer, 12, true)}px"` : ""}><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.type === "cloud" ? " data-lines" : ""}`}></span>${layer.type === "cloud" || layer.type === "signal" ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}</span>
+                  <span class="row-figures"${layer.type === "cloud" && result?.low ? ` style="min-width: ${valueSlot(layer, rowSizes.value, true)}px"` : ""}><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.type === "cloud" ? " data-lines" : ""}`}></span>${layer.type === "cloud" || layer.type === "signal" ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}</span>
                 </button>
                 <button type="button" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"} ${keyText("(⌥-click: alone in its pane)")}">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>
               </div>`;
@@ -25409,6 +25436,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $("palette-input").removeAttribute("aria-activedescendant");
           $("palette-preview").innerHTML = "";
           $("palette-look").hidden = true;
+          // (Nothing highlighted: the chart as it is.)
+          clearLook();
           if (quick) quickShow();
           updatePaletteKeys();
           return;
@@ -25625,22 +25654,31 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * nothing is kept until it's chosen. Moving off it, going back or closing, the chart is as it was.
        */
       let looking = false;
-      function showLook(look) {
-        if (!resolved || drawnChart !== chart.id || !$("palette").open) return;
-        // (At the interval of the data on screen: a switch still loading has its own; see shownIndex.)
-        const doc = { ...structuredClone(chart), index: shownIndex() };
-        look(doc);
+      /** The look shown, applied again to whatever the chart's drawn from next (a block's new data, a restyle). @type {((doc: Chart) => void) | null} */
+      let lookShown = null;
+      /** The chart to build: as it is, or with the look shown on it. @param {Chart} doc */
+      function withLook(doc) {
+        if (!lookShown) return doc;
+        lookShown(doc);
         // (As an edit leaves it: a cloud colored by its layers follows one's color looked at.)
         normalize(doc);
-        // (A look is a restyle: each series kept, its look applied.)
         lookDoc = doc;
-        build(doc, resolved, false);
+        return doc;
+      }
+      function showLook(look) {
+        // (Not shown (the chart's own still drawing): none, not the one before kept.)
+        if (!resolved || drawnChart !== chart.id || !$("palette").open) return clearLook();
+        lookShown = look;
+        // (At the interval of the data on screen: a switch still loading has its own; see shownIndex. A look is a
+        // restyle: each series kept, its look applied.)
+        build(withLook({ ...structuredClone(chart), index: shownIndex() }), resolved, false);
         looking = true;
         $("palette").toggleAttribute("data-looking", true);
       }
       function clearLook() {
         $("palette").removeAttribute("data-looking");
         lookDoc = null;
+        lookShown = null;
         if (!looking) return;
         looking = false;
         if (resolved && drawnChart === chart.id) build({ ...structuredClone(chart), index: shownIndex() }, resolved, false);
@@ -28940,7 +28978,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (redraw === "none") {
           updateLegends();
           showDrawings(chart);
-        } else if (resolved && drawnChart === chart.id && drawnData === dataKey(chart) && drawingData === drawnData) build(structuredClone(chart), resolved, refit);
+        } else if (resolved && drawnChart === chart.id && drawnData === dataKey(chart) && drawingData === drawnData) build(withLook(structuredClone(chart)), resolved, refit);
         else draw(refit);
       }
 

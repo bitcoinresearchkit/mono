@@ -606,7 +606,8 @@ export function studioPresets(client, facts) {
       cloudsChart(),
       chart("Cointime caps", "Cointime capitalizations", [...[["thermo", "Thermo cap"], ["investor", "Investor cap"], ["active", "Active cap"], ["vaulted", "Vaulted cap"], ["cointime", "Cointime cap"]].map(([key, label], i) => series(ct.caps[key], label, { color: ["orange", "green", "red", "sky", "violet"][i] })), series(ct.caps.investorness, "Investorness", { pane: 2, color: "green" }), series(ct.caps.producerness, "Producerness", { pane: 2, color: "orange" })], { log: [1] }),
       chart("Reserve risk", "Reserve risk", [price(), series(ct.reserveRisk.block, "Reserve risk", { pane: 2, color: "orange" }), series(ct.reserveRisk.hodlBank, "HODL bank", { pane: 3, color: "sky" })], { log: [2, 3] }),
-      ...flow(ct.reserveRisk.vocdd, "Value of coin days destroyed", "Value of coin days destroyed (VOCDD)"),
+      // (By its short name, as MVRV and NUPL are, the long one in its title: long, it and its all-time twin read alike, cut short.)
+      ...flow(ct.reserveRisk.vocdd, "VOCDD", "Value of coin days destroyed (VOCDD)"),
       section("Cointime prices", [
         chart("Compare", "Cointime prices", [price(), ...[["vaulted", "Vaulted price"], ["active", "Active price"], ["cointime", "Cointime price"]].map(([key, label], i) => series(ct.prices[key].block, label, { color: ["green", "red", "violet"][i] })), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" })]),
         ...[["vaulted", "Vaulted price"], ["active", "Active price"], ["cointime", "Cointime price"]].map(([key, label]) => chart(label, label, [price(), series(ct.prices[key].block, label, { color: "sky" }), series(ct.prices[key].mvrv, "MVRV", { pane: 2, ...around(1) })], { log: [2] })),
