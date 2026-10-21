@@ -9628,7 +9628,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const refFor = (doc, trend) => ((refs) => (refs.find((layer) => layer.pane === trend.pane && (layer.type === "candles" || /^price/.test(layer.series ?? ""))) ?? refs.find((layer) => layer.pane === trend.pane) ?? refs[0])?.id)(refsFor(doc, trend));
       /** A type's name: a series' or a formula's, or one made from layers. */
       /** An unnamed formula's line (its name is its formula): what it is, in what once known. @param {Layer} layer */
-      const formulaLine = (layer) => (layer.type === "signal" ? signalLine(layer) : ((result) => (result?.shown ? `Formula · ${UNIT_NAMES[unitFor(layer, result)] ?? "Number"}` : "Formula"))(resolved?.results.get(layer.id)));
+      const formulaLine = (layer) => (layer.type === "signal" ? signalLine(layer) : ((result) => (result?.values ? `Formula · ${UNIT_NAMES[unitFor(layer, result)] ?? "Number"}` : "Formula"))(resolved?.results.get(layer.id)));
       /** Where a signal turns true in its values: each point's index. @param {ArrayLike<number> | undefined} values */
       const turnsOf = (values) => {
         const at = [];
@@ -9642,7 +9642,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return at;
       };
       /** A signal, said: the layer its marks are on, how many there are. @param {Layer} layer */
-      const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it on" : on.hidden ? `Hidden with ${labelOf(on)}` : `Signal on ${labelOf(on)}${values ? ` · ${plural(turnsOf(values).length, "time")}${fineDrawn() ? " in what's loaded" : ""}` : ""}`))(chart.layers.find((item) => item.id === layer.ref), resolved?.results.get(layer.id)?.shown);
+      const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it on" : on.hidden ? `Hidden with ${labelOf(on)}` : `Signal on ${labelOf(on)}${values ? ` · ${plural(turnsOf(values).length, "time")}${fineDrawn() ? " in what's loaded" : ""}` : ""}`))(chart.layers.find((item) => item.id === layer.ref), resolved?.results.get(layer.id)?.values);
       const typeName = (/** @type {string} */ type) => [...TYPES, ...FROM_TYPES].find(([id]) => id === type)?.[1] ?? type;
       /** @type {[string, string][]} */
       const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"]];
@@ -12536,7 +12536,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const dailyOf = (/** @type {string} */ name) => (indexCatalog(), DAILY(name).find((other) => catalogIndex?.has(other) && !byBlock.has(other)) ?? null);
 
       /**
-       * @typedef {{ values?: Vector, shown?: Vector, ohlc?: (number[] | null)[], low?: Vector, breaks?: Uint8Array, sides?: Uint8Array, unit: string, error?: string, detail?: string, info?: any, unavailable?: boolean, missing?: boolean }} Result
+       * @typedef {{ values?: Vector, ohlc?: (number[] | null)[], low?: Vector, breaks?: Uint8Array, sides?: Uint8Array, unit: string, error?: string, detail?: string, info?: any, unavailable?: boolean, missing?: boolean }} Result
        *   `low`: a cloud's lows (its highs, its values); `breaks`: a trend's flips; `sides`: which it's on, a trend's (see
        *   trendOf), or a cloud's two is over (see cloudOf).
        * `error` as short as says what to do (the legend, a row), `detail` the sentence why (the editor, a preview, a tip)
@@ -12651,7 +12651,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (before?.info === meta) results.set(layer.id, before);
           else {
             const { values, ohlc } = align(data);
-            const result = { values, ohlc, shown: values, unit: unitOf(meta.type), info: meta };
+            const result = { values, ohlc, unit: unitOf(meta.type), info: meta };
             frame.series.set(layer.series, result);
             results.set(layer.id, result);
           }
@@ -12663,7 +12663,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (error) bySeries.set(name, { unit: units.get(name) ?? "number", error: error?.unavailable && meta && !datedIntervals(meta).length ? "By block only" : failure(error, doc.index) });
           else {
             const { values } = align(data);
-            bySeries.set(name, { values, shown: values, unit: unitOf(meta.type) });
+            bySeries.set(name, { values, unit: unitOf(meta.type) });
           }
         }
         /** Lowercased, to follow a name in a sentence (a layer's letter, or Bitview, kept as written). */
@@ -12713,23 +12713,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const inputs = [...refsOf(node)].map((letter) => {
             const target = byLetter.get(letter);
             const result = !target || target === layer || target.type === "cloud" ? null : computed(target);
-            return result?.shown ? idOf(result.shown) : result?.error ?? "-";
+            return result?.values ? idOf(result.values) : result?.error ?? "-";
           });
-          const key = [frame.id, layer.formula, doc.index, ...inputs, ...[...refsOf(node, "series")].map((name) => (bySeries.get(name)?.shown ? idOf(bySeries.get(name)?.shown) : "-"))].join("|");
+          const key = [frame.id, layer.formula, doc.index, ...inputs, ...[...refsOf(node, "series")].map((name) => (bySeries.get(name)?.values ? idOf(bySeries.get(name)?.values) : "-"))].join("|");
           return kept(layer, key, () => {
             const value = evaluate(node, length, (name, kind) => {
               if (kind === "series") {
                 const input = bySeries.get(name);
-                if (!input?.shown) throw new Error(`${name}: ${input?.error ? quiet(input.error) : "no data"}`);
-                return input.shown;
+                if (!input?.values) throw new Error(`${name}: ${input?.error ? quiet(input.error) : "no data"}`);
+                return input.values;
               }
               const target = byLetter.get(name);
               if (!target) throw new Error(goneLayer(doc, name) ?? `There is no layer ${name}`);
               if (target === layer) throw new Error(`${name} can't refer to itself`);
               if (target.type === "cloud") throw new Error(`${name} is a cloud: a range, not one value`);
               const result = computed(target);
-              if (!result?.shown) throw result?.error ? failing(`${name} has no data (${quiet(result.detail ?? result.error)})`, `${name} has no data`) : new Error(`${name} has no data`);
-              return result.shown;
+              if (!result?.values) throw result?.error ? failing(`${name} has no data (${quiet(result.detail ?? result.error)})`, `${name} has no data`) : new Error(`${name} has no data`);
+              return result.values;
             }, doc.index, false, memo);
             if (!length) throw new Error("Name a series, or add one, to give the formula a timeline");
             const values = typeof value === "number" ? new Float64Array(length).fill(value) : value;
@@ -12738,7 +12738,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const target = byLetter.get(name);
               return !target || target.type === "cloud" ? null : computed(target)?.unit ?? null;
             }) ?? "number";
-            return { values, shown: values, unit };
+            return { values, unit };
           });
         });
         /** A layer's result, made now if it's a formula's or made from layers (each once, in the order they need). */
@@ -12753,22 +12753,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const all = (layer.from ?? []).flatMap((id) => ((member) => (member ? [computed(member)] : []))(doc.layers.find((item) => item.id === id)));
           // (One of them in a loop through it: it's in the loop too, whatever's computed first.)
           if (all.some((result) => result?.error === LOOP)) throw new Error(LOOP);
-          const inputs = all.filter((result) => result?.shown), edges = layer.type === "cloud" ? edgesOf(layer).length : 0;
+          const inputs = all.filter((result) => result?.values), edges = layer.type === "cloud" ? edgesOf(layer).length : 0;
           if (inputs.length + edges < 2) return { unit: inputs[0]?.unit ?? "number", error: fromShort(layer, doc) || (edges ? "Needs a layer with data" : "Needs two layers with data") };
           const ref = layer.type === "trend" ? doc.layers.find((item) => item.id === layer.ref) : null, by = ref ? computed(ref) : null;
           if (by?.error === LOOP) throw new Error(LOOP);
-          if (layer.type === "trend" && !by?.shown) return { unit: inputs[0].unit, error: !ref ? "Pick what flips it" : `${ref.letter} has no data` };
-          const key = [frame.id, layer.type, edgesOf(layer).join(), ...inputs.map((input) => idOf(/** @type {Vector} */ (input.shown))), by?.shown ? idOf(by.shown) : "", by?.ohlc ? idOf(/** @type {any} */ (by.ohlc)) : ""].join("|");
+          if (layer.type === "trend" && !by?.values) return { unit: inputs[0].unit, error: !ref ? "Pick what flips it" : `${ref.letter} has no data` };
+          const key = [frame.id, layer.type, edgesOf(layer).join(), ...inputs.map((input) => idOf(/** @type {Vector} */ (input.values))), by?.values ? idOf(by.values) : "", by?.ohlc ? idOf(/** @type {any} */ (by.ohlc)) : ""].join("|");
           return kept(layer, key, () => {
             if (layer.type === "cloud" && edges) {
-              const values = inputs[0]?.shown ?? new Float64Array(length).fill(NaN);
-              return { values, shown: values, low: values, unit: inputs[0]?.unit ?? "number" };
+              const values = inputs[0]?.values ?? new Float64Array(length).fill(NaN);
+              return { values, low: values, unit: inputs[0]?.unit ?? "number" };
             }
-            if (layer.type === "cloud") return { ...cloudOf(/** @type {Vector} */ (inputs[0].shown), /** @type {Vector} */ (inputs[1].shown)), unit: inputs[0].unit };
+            if (layer.type === "cloud") return { ...cloudOf(/** @type {Vector} */ (inputs[0].values), /** @type {Vector} */ (inputs[1].values)), unit: inputs[0].unit };
             const low = new Float64Array(length).fill(NaN), high = new Float64Array(length).fill(NaN), count = new Uint8Array(length);
-            for (const { shown } of inputs) {
+            for (const { values } of inputs) {
               for (let i = 0; i < length; i++) {
-                const value = /** @type {Vector} */ (shown)[i];
+                const value = /** @type {Vector} */ (values)[i];
                 if (!Number.isFinite(value)) continue;
                 count[i]++;
                 // (NaN, where none was yet, compares false.)
@@ -12778,15 +12778,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
             // (Where fewer than two have a value, none: a range of one value isn't one.)
             for (let i = 0; i < length; i++) if (count[i] < 2) low[i] = high[i] = NaN;
-            const trend = trendOf(low, high, /** @type {Vector} */ (by?.shown), by?.ohlc ?? null);
-            return { values: trend.values, shown: trend.values, breaks: trend.breaks, sides: trend.sides, unit: inputs[0].unit };
+            const trend = trendOf(low, high, /** @type {Vector} */ (by?.values), by?.ohlc ?? null);
+            return { values: trend.values, breaks: trend.breaks, sides: trend.sides, unit: inputs[0].unit };
           });
         });
         doc.layers.filter((layer) => layer.formula !== undefined || layer.from).forEach(computed);
         let first = length;
-        for (const { shown } of results.values()) {
-          if (!shown) continue;
-          for (let i = 0; i < first; i++) if (Number.isFinite(shown[i]) && shown[i] !== 0) {
+        for (const { values } of results.values()) {
+          if (!values) continue;
+          for (let i = 0; i < first; i++) if (Number.isFinite(values[i]) && values[i] !== 0) {
             first = i;
             break;
           }
@@ -12803,7 +12803,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           // (Shown as they are, the values are copied once.)
           const values = result.values?.slice(first);
-          const out = { ...result, values, shown: result.shown === result.values ? values : result.shown?.slice(first), ohlc: result.ohlc?.slice(first), ...(result.low ? { low: result.low.slice(first) } : {}), ...(result.breaks ? { breaks: result.breaks.slice(first) } : {}), ...(result.sides ? { sides: result.sides.slice(first) } : {}) };
+          const out = { ...result, values, ohlc: result.ohlc?.slice(first), ...(result.low ? { low: result.low.slice(first) } : {}), ...(result.breaks ? { breaks: result.breaks.slice(first) } : {}), ...(result.sides ? { sides: result.sides.slice(first) } : {}) };
           trims.set(result, { first, out });
           results.set(id, out);
         }
@@ -13206,7 +13206,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // interval (a date gone to), stays as it is.)
         if (drawnChart === doc.id && drawnIndex !== doc.index && leftView(doc.id)?.index === drawnIndex) storeView(true);
         // (Nothing at all, bitview.space not answering: one word of it over the plot, not a red line per layer.)
-        const unreached = result.failed.length > 0 && ![...result.results.values()].some((item) => item?.shown);
+        const unreached = result.failed.length > 0 && ![...result.results.values()].some((item) => item?.values);
         $("unreached").hidden = !unreached;
         $("navigator").classList.toggle("waiting", unreached);
         resolved = result;
@@ -13291,9 +13291,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const layer of doc.layers) {
           // (Candles zoomed out to their close line: on the line, the candles unseen.)
           const close = layer.ref ? closes.get(layer.ref) : null;
-          const on = layer.type === "signal" && !layer.hidden && layer.place !== "shade" && layer.ref ? (close && !candlesFit ? close.series : drawn.get(layer.ref)) : null, values = data.results.get(layer.id)?.shown;
+          const on = layer.type === "signal" && !layer.hidden && layer.place !== "shade" && layer.ref ? (close && !candlesFit ? close.series : drawn.get(layer.ref)) : null, values = data.results.get(layer.id)?.values;
           // (Only where its layer has a value drawn: a mark in a gap would sit on another date.)
-          const target = doc.layers.find((item) => item.id === layer.ref), own = data.results.get(layer.ref ?? "")?.shown, log = target ? modeOf(doc, target) === 1 : false;
+          const target = doc.layers.find((item) => item.id === layer.ref), own = data.results.get(layer.ref ?? "")?.values, log = target ? modeOf(doc, target) === 1 : false;
           if (!on || !values || !own) continue;
           const [, , position, shape] = MARK_PLACES.find(([place]) => place === (layer.place ?? "above")) ?? MARK_PLACES[0], op = opacityOf(layer);
           const color = op < 1 ? alpha(ink(layer.color), op) : ink(layer.color), list = marked.get(on) ?? marked.set(on, []).get(on);
@@ -13459,32 +13459,32 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (layer.type === "dots") dotted.set(layer.id, { series, width: layer.width, radius });
           }
           paints.set(layer.id, paint);
-          built.set(layer.id, { shape: layerShape(layer, i), shown: stack?.values ?? result?.shown, ohlc: result?.ohlc, stacked: Boolean(stack), painted: painting, ...(result?.low ? { low: result.low } : {}) });
+          built.set(layer.id, { shape: layerShape(layer, i), shown: stack?.values ?? result?.values, ohlc: result?.ohlc, stacked: Boolean(stack), painted: painting, ...(result?.low ? { low: result.low } : {}) });
           // The same values (and not bars, their colors in them): nothing to set again. None now (an error, a formula
           // being written), a kept series is emptied.
           const before = kept.get(layer.id);
-          if (!result?.shown && again && before?.shown) {
+          if (!result?.values && again && before?.shown) {
             series.setData([]);
             closes.get(layer.id)?.series.setData([]);
-          } else if (result?.shown && again && (painting ? samePaint(before?.painted, painting) && wasPainted.has(layer.id) : !before?.painted) && before?.shown === (stack?.values ?? result.shown) && before?.ohlc === result.ohlc && layer.type !== "histogram" && before?.low === result.low) {
+          } else if (result?.values && again && (painting ? samePaint(before?.painted, painting) && wasPainted.has(layer.id) : !before?.painted) && before?.shown === (stack?.values ?? result.values) && before?.ohlc === result.ohlc && layer.type !== "histogram" && before?.low === result.low) {
             const carried = painting ? wasPainted.get(layer.id) : undefined;
             // (Faded by a spotlight the build ends: given back.)
             if (carried?.faint) (carried.faint = false), series.setData(carried.points);
             if (carried) paintedPoints.set(layer.id, carried);
             linesAcross(layer, pane, common.priceFormat, op);
           }
-          else if (result?.shown && signal && layer.place === "shade") {
-            const shown = result.shown;
+          else if (result?.values && signal && layer.place === "shade") {
+            const shown = result.values;
             setRows(series, data.times.map((time, i) => (Number.isFinite(shown[i]) && shown[i] !== 0 ? { time, low: 0, high: 0 } : { time })));
-          } else if (result?.shown && layer.type === "cloud") {
+          } else if (result?.values && layer.type === "cloud") {
             // (Its scale's: log, none at or under zero; on one it doesn't fit, none. Which of its two is over: where that
             // changes, they cross. Of its pane's two edges, every date, its values none.)
-            const log = modeOf(doc, layer) === 1, low = /** @type {Vector} */ (result.low), high = result.shown, sides = result.sides, whole = edgesOf(layer).length > 1;
+            const log = modeOf(doc, layer) === 1, low = /** @type {Vector} */ (result.low), high = result.values, sides = result.sides, whole = edgesOf(layer).length > 1;
             const rows = fromUnfit(doc, layer) ? [] : data.times.map((time, i) => (whole ? { time, low: 0, high: 0, ...(dated ? { color: alpha(dated(i), op) } : {}) } : Number.isFinite(low[i]) && Number.isFinite(high[i]) && (!log || low[i] > 0) ? { time, low: low[i], high: high[i], ...(sides ? { side: sides[i] } : {}), ...(dated ? { color: alpha(dated(i), op) } : {}) } : { time }));
             setRows(series, rows);
             if (dated) paintedPoints.set(layer.id, { points: rows, faint: false, paintWith: (/** @type {string} */ c) => ({ color: alpha(c, op) }) });
-          } else if (result?.shown) {
-            const shown = stack?.values ?? result.shown;
+          } else if (result?.values) {
+            const shown = stack?.values ?? result.values;
             // A stacked candle: its open, high, low and close on the ones before it too.
             const at = (/** @type {number} */ value, /** @type {number} */ i) => (stack ? (stack.under[i] + value) * (stack.scale?.[i] ?? 1) : value);
             // Log scales can't show zero or negative values: they become gaps.
@@ -13714,7 +13714,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (firstOf.data === data && firstOf.key === key) return firstOf.first;
         let first = data.times.length;
         for (const layer of doc.layers) {
-          const values = layer.hidden ? null : data.results.get(layer.id)?.shown;
+          const values = layer.hidden ? null : data.results.get(layer.id)?.values;
           if (!values) continue;
           for (let i = 0; i < first; i++) if (Number.isFinite(values[i])) {
             first = i;
@@ -13823,7 +13823,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const readPoint = () => (hoverTime === null ? { at: lastShown(), rest: true } : { at: indexOfTime(hoverTime), rest: false });
       /** A layer's value at a point; at rest, its last one up to there (a series can end before the others). */
       function valueAt(layer, { at, rest }) {
-        const values = resolved?.results.get(layer.id)?.shown;
+        const values = resolved?.results.get(layer.id)?.values;
         if (!values || at < 0) return NaN;
         if (rest) while (at > 0 && !Number.isFinite(values[at])) at--;
         return values[at];
@@ -13834,7 +13834,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * there's none (of its pane's two edges, all along).
        */
       function rangeAt(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ { at, rest }, /** @type {string} */ unit, lines = false) {
-        const result = resolved?.results.get(layer.id), high = result?.shown, low = result?.low;
+        const result = resolved?.results.get(layer.id), high = result?.values, low = result?.low;
         if (!high || !low || at < 0) return "—";
         if (rest) while (at > 0 && !Number.isFinite(high[at])) at--;
         if (!Number.isFinite(low[at]) || !Number.isFinite(high[at])) return "—";
@@ -13892,7 +13892,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const result = resolved?.results.get(layer.id);
             const value = result?.error ? `<span class="legend-error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>`
               : fromUnfit(chart, layer) ? `<span class="legend-error">${fromUnfit(chart, layer)}</span>`
-              : layer.hidden || !result?.shown || (layer.type === "signal" && !signalShown(layer)) ? '<span class="legend-value"></span>'
+              : layer.hidden || !result?.values || (layer.type === "signal" && !signalShown(layer)) ? '<span class="legend-value"></span>'
               : `<span class="legend-value" data-value="${layer.id}" style="min-width: ${valueSlot(layer, 12)}px"></span>`;
             return `<button type="button" class="${layer.hidden || (layer.type === "signal" && !signalShown(layer)) ? "hidden" : ""} ${layer.id === selected || layerPicks.has(layer.id) ? "selected" : ""}" data-select="${layer.id}">
               <span class="legend-name">${seriesMark(layer)}<span class="name">${escape(labelOf(layer))}</span></span>${value}
@@ -14055,7 +14055,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           high[i] = Math.max(a, b);
           sides[i] = side;
         }
-        return { values: high, shown: high, low, sides };
+        return { values: high, low, sides };
       }
       /** A result's values drawn small: a trend's with a gap at each switch (its point there left out: small, no line up or down). */
       const gapped = (/** @type {Vector | undefined} */ values, /** @type {Result | undefined} */ result) => (values && result?.breaks ? Float64Array.from(values, (value, i) => (result.breaks?.[i] ? NaN : value)) : values);
@@ -14071,13 +14071,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (layer.colorFrom && !seen.has(layer.id)) {
           const source = doc.layers.find((item) => item.id === layer.colorFrom);
           // (Its source's as drawn, date by date: where that has a value, its colors, else its own one.)
-          const values = source && data.results.get(source.id)?.shown;
+          const values = source && data.results.get(source.id)?.values;
           if (source) {
             const one = source.color, its = colorsAt(doc, source, data, seen.add(layer.id));
             return values ? (i) => (Number.isFinite(values[i]) ? its?.(i) ?? one : null) : null;
           }
         }
-        const result = data.results.get(layer.id), values = result?.shown, top = layer.color, under = belowOf(layer);
+        const result = data.results.get(layer.id), values = result?.values, top = layer.color, under = belowOf(layer);
         // By its levels: the highest one at or under its value, its color; under them all, its own.
         if (layer.byLevels && values && layer.levels?.length) {
           const steps = levelSteps(layer);
@@ -14121,7 +14121,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const seen = new Set(); at && !seen.has(at.id); at = at.colorFrom ? doc.layers.find((item) => item.id === at?.colorFrom) : undefined) {
           seen.add(at.id);
           const result = data.results.get(at.id);
-          sig.push(ink(at.color), ink(belowOf(at)), at.base, at.type, result?.shown, result?.sides, at.byLevels ? JSON.stringify(at.levels) : "", at.colors === 4 ? `${ink(fadingOf(at, false))} ${ink(fadingOf(at, true))}` : "");
+          sig.push(ink(at.color), ink(belowOf(at)), at.base, at.type, result?.values, result?.sides, at.byLevels ? JSON.stringify(at.levels) : "", at.colors === 4 ? `${ink(fadingOf(at, false))} ${ink(fadingOf(at, true))}` : "");
         }
         return sig;
       }
@@ -14131,7 +14131,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The color a layer is drawn in at its latest value (its name), where it varies (its colors another's, a trend's or a cloud's two); else null. @param {Layer} layer */
       function colorNow(layer) {
         const at = resolved ? paintOf(chart, layer, resolved) : null;
-        const values = at && resolved?.results.get(layer.id)?.shown;
+        const values = at && resolved?.results.get(layer.id)?.values;
         if (!at || !values) return null;
         for (let i = values.length - 1; i >= 0; i--) if (Number.isFinite(values[i])) return at(i);
         return null;
@@ -14215,7 +14215,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * keep that room, so values change on hover without moving anything.
        */
       function valueSlot(layer, size, lines = false) {
-        const result = resolved?.results.get(layer.id), values = result?.shown;
+        const result = resolved?.results.get(layer.id), values = result?.values;
         if (!values) return 0;
         const unit = unitFor(layer, result), key = `${layer.id}:${unit}:${size}:${layer.from ? edgesOf(layer).join() : ""}:${lines ? "lines" : ""}:${named(layer) ? JSON.stringify([layer.underName, layer.levels?.map((level) => level.name)]) : ""}`;
         const measured = slotsNow();
@@ -14295,7 +14295,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function changeWindow(layer) {
         const range = view.timeScale().getVisibleLogicalRange();
         const result = resolved?.results.get(layer.id);
-        const values = result?.shown;
+        const values = result?.values;
         if (!values || !range || !resolved.times.length) return null;
         const n = resolved.times.length, last = lastShown(), first = firstInView(), unit = unitFor(layer, result);
         if (windows.data !== resolved || windows.view !== `${first}:${last}`) windows = { data: resolved, view: `${first}:${last}`, by: new Map() };
@@ -14664,9 +14664,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!resolved || !chart) return null;
         const first = chart.panes[0];
         // (Never a signal's: its values are its marks', 0 and 1.)
-        const drawnHere = (/** @type {Layer} */ item) => item.type !== "signal" && resolved?.results.get(item.id)?.shown;
+        const drawnHere = (/** @type {Layer} */ item) => item.type !== "signal" && resolved?.results.get(item.id)?.values;
         const layer = chart.layers.find((item) => item.pane === first?.id && !item.hidden && drawnHere(item)) ?? chart.layers.find(drawnHere);
-        return layer ? { layer, values: resolved.results.get(layer.id).shown, log: modeOf(chart, layer) === 1 } : null;
+        return layer ? { layer, values: resolved.results.get(layer.id).values, log: modeOf(chart, layer) === 1 } : null;
       }
       /**
        * Where the overview was, just after the data grew or shrank at an end (a chunk reached for, a block, the oldest let
@@ -15475,7 +15475,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * its last (a switch, or none after). @param {Result} result @param {{ at: number, step: number }} line
        */
       function segmentEnds(result, line, series) {
-        const shown = result.shown, breaks = result.breaks, range = view.timeScale().getVisibleLogicalRange();
+        const shown = result.values, breaks = result.breaks, range = view.timeScale().getVisibleLogicalRange();
         if (!shown || !range) return [];
         const on = (/** @type {number} */ i) => i >= 0 && i < shown.length && Number.isFinite(shown[i]), ends = [];
         for (let i = Math.max(0, Math.floor(range.from) - 1), to = Math.min(shown.length - 1, Math.ceil(range.to) + 1); i <= to; i++) {
@@ -15749,7 +15749,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** What a ruler measures: its layer's change from its first date to its last (whichever way it was drawn): in %, in its unit, over how long. */
       function rulerReading(/** @type {Drawing} */ drawing) {
-        const layer = layerById(drawing.layer), result = layer && resolved?.results.get(layer.id), values = result?.shown, n = resolved?.times.length ?? 0;
+        const layer = layerById(drawing.layer), result = layer && resolved?.results.get(layer.id), values = result?.values, n = resolved?.times.length ?? 0;
         if (!layer || !values || !n) return null;
         const [a, b] = drawing.points.map(([time]) => nearestFinite(values, clamp(Math.round(barOf(time)), 0, n - 1)));
         // (Its dates past the data read its nearest; both on one: nothing measured.)
@@ -17448,7 +17448,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // an edit elsewhere (a color, a width) finds the same totals, and their series aren't set again. (Its marks' own,
         // from other data, aren't kept: `kept` false.)
         const key = kept && doc.id === chart?.id ? doc.panes.filter((pane) => pane.stack).map((pane) => `${pane.id}:${pane.stack}:${pane.reverse ? 1 : 0}:${doc.layers.filter((layer) => layer.pane === pane.id).map((layer) => {
-          const shown = data.results.get(layer.id)?.shown;
+          const shown = data.results.get(layer.id)?.values;
           return `${layer.id}.${layer.side}.${layer.hidden ? 0 : 1}.${shown ? idOf(shown) : "-"}`;
         }).join()}`).join("|") : "";
         if (key && key === stacksMade.key) return stacksMade.stacked;
@@ -17457,11 +17457,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!pane.stack) continue;
           const shares = pane.stack === "percent";
           for (const side of ["left", "right"]) {
-            const layers = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && !layer.from && layer.type !== "signal" && data.results.get(layer.id)?.shown);
+            const layers = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && !layer.from && layer.type !== "signal" && data.results.get(layer.id)?.values);
             if (!layers.length) continue;
-            const n = data.results.get(layers[0].id).shown.length, total = new Float64Array(n);
+            const n = data.results.get(layers[0].id).values.length, total = new Float64Array(n);
             for (const layer of pane.reverse ? [...layers].reverse() : layers) {
-              const own = data.results.get(layer.id).shown, values = new Float64Array(n), under = Float64Array.from(total);
+              const own = data.results.get(layer.id).values, values = new Float64Array(n), under = Float64Array.from(total);
               for (let i = 0; i < n; i++) {
                 if (Number.isFinite(own[i])) values[i] = total[i] += shares && own[i] < 0 ? 0 : own[i];
                 else values[i] = NaN;
@@ -17756,7 +17756,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Its range, as the chart opens on it: the last 8 years, or all of them.)
         const start = rangeStart(doc, data.times);
         for (const layer of doc.layers) {
-          const all = gapped(data.results.get(layer.id)?.shown, data.results.get(layer.id)), values = all && start ? Array.prototype.slice.call(all, start) : all, highAll = stacked.get(layer.id)?.values, high = highAll && start ? Array.prototype.slice.call(highAll, start) : highAll, bars = layer.type === "histogram" && modeOf(doc, layer) === 0;
+          const all = gapped(data.results.get(layer.id)?.values, data.results.get(layer.id)), values = all && start ? Array.prototype.slice.call(all, start) : all, highAll = stacked.get(layer.id)?.values, high = highAll && start ? Array.prototype.slice.call(highAll, start) : highAll, bars = layer.type === "histogram" && modeOf(doc, layer) === 0;
           // (A chart's mark is its lines: a cloud, a range, isn't one; a signal's marks neither.)
           if (!values || layer.type === "cloud" || layer.type === "signal") continue;
           const base = baseOf(layer);
@@ -17973,8 +17973,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Each side of a pane has its own scale, as on the chart.
           for (const side of ["left", "right"]) {
             // (A signal's marks aren't drawn this small.)
-            const shaped = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && layer.type !== "signal" && data.results.get(layer.id)?.shown && !fromUnfit(doc, layer)).map((layer) => {
-              const values = gapped(stacked.get(layer.id)?.values ?? data.results.get(layer.id).shown, data.results.get(layer.id)), mode = modeOf(doc, layer);
+            const shaped = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && layer.type !== "signal" && data.results.get(layer.id)?.values && !fromUnfit(doc, layer)).map((layer) => {
+              const values = gapped(stacked.get(layer.id)?.values ?? data.results.get(layer.id).values, data.results.get(layer.id)), mode = modeOf(doc, layer);
               // Percent and indexed scales start from the first value in view.
               let base = NaN;
               for (let i = first; mode >= 2 && i <= last && !Number.isFinite(base); i++) if (Number.isFinite(values[i]) && values[i] !== 0) base = values[i];
@@ -21927,7 +21927,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             </div>`], ...layers.map((layer) => /** @type {[string, string]} */ ([layer.id, ((layer) => {
               const result = resolved?.results.get(layer.id);
               const loading = layer.series && !result;
-              const sub = result?.error ? `<span class="sub error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>` : layer.from ? `<span class="sub">${escape(fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.shown).map((item) => item.letter) : [])}`)}</span>` : layer.formula !== undefined ? (layer.label ? `<span class="sub code">ƒ ${escape(layer.formula)}</span>` : `<span class="sub">${escape(formulaLine(layer))}</span>`) : `<span class="sub code">${escape(layer.series ?? "")}</span>`;
+              const sub = result?.error ? `<span class="sub error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>` : layer.from ? `<span class="sub">${escape(fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`)}</span>` : layer.formula !== undefined ? (layer.label ? `<span class="sub code">ƒ ${escape(layer.formula)}</span>` : `<span class="sub">${escape(formulaLine(layer))}</span>`) : `<span class="sub code">${escape(layer.series ?? "")}</span>`;
               return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
                 <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" ${layerPicks.has(layer.id) ? "checked" : ""} />
                 <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}>
@@ -22317,7 +22317,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               </details>
               ${signal ? `<div class="field"><span>Marked on</span><button type="button" class="preset" id="signal-ref" aria-haspopup="menu" data-tip="The layer its marks are on">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>
               <div class="field"><span>Shown as</span><div class="tabs glyphs" role="group" aria-label="How it shows">${MARK_PLACES.map(([place]) => `<button type="button" data-place="${place}" aria-pressed="${(layer.place ?? "above") === place}" aria-label="${placeName(place)}" data-tip="${placeName(place)}">${glyphSvg(markBody(place, "currentColor"))}</button>`).join("")}</div></div>
-              <div class="field"><span>Times</span><button type="button" class="preset" id="signal-times" aria-haspopup="dialog" data-tip="Each time it turned true, to go to">${((n) => (n === null ? `<span class="name">Loading</span>` : `<span class="name">${plural(n, "time")}</span>`))(result?.shown ? turnsOf(result.shown).length : null)}${CHEVRON}</button></div>` : ""}
+              <div class="field"><span>Times</span><button type="button" class="preset" id="signal-times" aria-haspopup="dialog" data-tip="Each time it turned true, to go to">${((n) => (n === null ? `<span class="name">Loading</span>` : `<span class="name">${plural(n, "time")}</span>`))(result?.values ? turnsOf(result.values).length : null)}${CHEVRON}</button></div>` : ""}
             </section>`
           : `<section>
               <h3>Series</h3>
@@ -23168,7 +23168,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (message || !node) status.textContent = message;
         else {
           const uses = usesOf(node);
-          status.textContent = `${uses.length ? `Uses ${uses.join(", ")}` : "A constant"} · ${layer.type === "signal" ? plural(turnsOf(result?.shown).length, "time") : UNIT_NAMES[unitFor(layer, result)] ?? "Number"}`;
+          status.textContent = `${uses.length ? `Uses ${uses.join(", ")}` : "A constant"} · ${layer.type === "signal" ? plural(turnsOf(result?.values).length, "time") : UNIT_NAMES[unitFor(layer, result)] ?? "Number"}`;
         }
         status.classList.toggle("error", Boolean(message));
         $("formula-editor").classList.toggle("invalid", Boolean(message));
@@ -23723,7 +23723,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         else if (action === "pane-menu") paneMenu(button, [selected], undefined, () => refocus("#pane"));
         else if (button.id === "trend-ref" || button.id === "signal-ref") refMenu(button, selected);
-        else if (button.id === "signal-times") resolved?.results.get(selected)?.shown ? openPage(timesPage(selected)) : notice("Its data is still loading");
+        else if (button.id === "signal-times") resolved?.results.get(selected)?.values ? openPage(timesPage(selected)) : notice("Its data is still loading");
         else if (place) editLayer((layer) => (layer.place = place === "above" ? undefined : place));
         else if (action === "format-menu") formatMenu(button);
         else if (action === "color-mode") menuOf(button, colorModeChoices(selected));
@@ -23998,7 +23998,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", ...(chart.layers.length < MAX_LAYERS ? {} : { disabled: `A chart holds ${MAX_LAYERS} layers at most` }), run: () => (menu && layerPicks.size ? duplicateLayers([id]) : duplicateLayer(id)) },
           ...(menu ? [{ key: "move", icon: ICONS.pane, label: "Move to pane", page: () => choicePage("Move to pane", () => paneChoices([id])) }] : []),
           // (Its data, as the chart has it, at its interval: any layer's, a formula's too; a series', where it comes from.)
-          { key: "data", icon: ICONS.table, label: "Download data", aside: "CSV", verb: "Download", ...(resolved?.results.get(id)?.shown ? {} : { disabled: "Its data isn't here yet" }), run: () => exportData([layer]) },
+          { key: "data", icon: ICONS.table, label: "Download data", aside: "CSV", verb: "Download", ...(resolved?.results.get(id)?.values ? {} : { disabled: "Its data isn't here yet" }), run: () => exportData([layer]) },
           ...(layer.series ? [{ key: "api", icon: ICONS.link, label: "Open in the API", aside: "As JSON", verb: "Open", run: () => window.open(`${client.baseUrl}/api/series/${encodeURIComponent(/** @type {string} */ (layer.series))}/${chart.index}`, "_blank", "noopener") }] : []),
           { key: "remove", icon: ICONS.trash, label: "Remove", kbd: "⌫", verb: "Remove", danger: true, run: () => removeLayer(id) },
         ];
@@ -25341,8 +25341,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <p class="description">${uses.length ? `Uses ${escape(uses.join(", "))}` : "A constant"}. ${layer.place === "shade" ? "Shaded while it's true" : "Marked where it turns true"}.</p>
               <div class="info"><h5>${editing ? "Layer" : "As layer"} ${escape(layer.letter)}</h5><dl>
                 <div><dt>Marked on</dt><dd>${on ? escape(labelOf(on)) : "No layer"}</dd></div>
-                <div><dt>Times</dt><dd>${grouped.format(turnsOf(result.shown).length)}</dd></div>
-                <div><dt>Now</dt><dd>${escape(format(Array.prototype.findLast.call(result.shown, (value) => Number.isFinite(value)) ?? NaN, unit))}</dd></div>
+                <div><dt>Times</dt><dd>${grouped.format(turnsOf(result.values).length)}</dd></div>
+                <div><dt>Now</dt><dd>${escape(format(Array.prototype.findLast.call(result.values, (value) => Number.isFinite(value)) ?? NaN, unit))}</dd></div>
               </dl></div>`);
           }
           panel.innerHTML = `<h4><code>${escape(text)}</code></h4>
@@ -25353,7 +25353,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <div><dt>Latest</dt><dd id="spark-caption"></dd></div>
               ${editing ? "" : `<div><dt>Goes in</dt><dd>${palette.into ? `Pane ${paneNumber(palette.into)}` : chart.panes.length < MAX_PANES ? "New pane" : `Pane ${chart.panes.length}`}</dd></div>`}
             </dl></div>`;
-          drawSpark(Array.from(result.shown), unit, ink(layer.color));
+          drawSpark(Array.from(result.values), unit, ink(layer.color));
         })();
       }
       /** What a piece of a formula is: a layer of this chart, with its latest value; or a function. */
@@ -26006,7 +26006,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Each time a signal turned true, the latest first: its date, its layer's value there; picked, gone to. @param {string} id */
       function timesPage(id) {
         return listPage("Times it turned true", () => {
-          const layer = layerById(id), values = layer && resolved?.results.get(id)?.shown, on = layer?.ref ? layerById(layer.ref) : null;
+          const layer = layerById(id), values = layer && resolved?.results.get(id)?.values, on = layer?.ref ? layerById(layer.ref) : null;
           if (!values || !resolved) return [];
           const times = resolved.times;
           return turnsOf(values).reverse().map((i) => ({ key: `at:${times[i]}`, icon: ICONS.calendar, label: dateLabel(times[i], fineDrawn()), aside: on ? `${labelOf(on)} ${format(valueAt(on, { at: i, rest: false }), unitFor(on, resolved?.results.get(on.id)))}` : undefined, run: () => goToTime(times[i]) }));
@@ -26019,7 +26019,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function stepSignal(/** @type {1 | -1} */ by) {
         const range = view.timeScale().getVisibleLogicalRange();
         if (!resolved || !range) return;
-        const middle = (range.from + range.to) / 2, turns = [...new Set(chart.layers.filter((layer) => signalShown(layer)).flatMap((layer) => turnsOf(resolved?.results.get(layer.id)?.shown)))].sort((a, b) => a - b);
+        const middle = (range.from + range.to) / 2, turns = [...new Set(chart.layers.filter((layer) => signalShown(layer)).flatMap((layer) => turnsOf(resolved?.results.get(layer.id)?.values)))].sort((a, b) => a - b);
         const at = by > 0 ? turns.find((i) => i > middle + 0.01) : turns.findLast((i) => i < middle - 0.01);
         // (Minutes and hours: what's loaded only, said.)
         if (at === undefined) return notice(`${by > 0 ? "No signal after this" : "No signal before this"}${fineDrawn() ? " in what's loaded" : ""}`);
@@ -26375,7 +26375,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(layer.type === "signal" ? [
               { key: "ref", icon: ICONS.signal, label: "Marked on", aside: ((ref) => (ref ? labelOf(ref) : "None"))(layerById(layer.ref ?? "")), group: first, page: () => choicePage("Marked on", () => refChoices(id)) },
               { key: "place", icon: glyphSvg(markBody(layer.place, "currentColor")), label: "Shown as", aside: placeName(layer.place ?? "above"), group: first, page: () => choicePage("Shown as", () => MARK_PLACES.map(([place]) => ({ key: place, icon: glyphSvg(markBody(place, "currentColor")), label: placeName(place), current: (now().place ?? "above") === place, run: set((item) => (item.place = place === "above" ? undefined : place)) }))) },
-              { key: "times", icon: ICONS.calendar, label: "Times it turned true", aside: ((values) => (values ? plural(turnsOf(values).length, "time") : undefined))(result?.shown), group: first, page: () => timesPage(id) },
+              { key: "times", icon: ICONS.calendar, label: "Times it turned true", aside: ((values) => (values ? plural(turnsOf(values).length, "time") : undefined))(result?.values), group: first, page: () => timesPage(id) },
             ] : []),
             ...(layer.series ? [
               { key: "copy-name", icon: ICONS.copy, label: "Copy the series name", verb: "Copy", group: first, run: () => copyName(/** @type {string} */ (layer.series)) },
@@ -26572,11 +26572,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <div><dt>Type</dt><dd>${escape(typeName(layer.type))}</dd></div>
             <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div>
             <div><dt>Layout</dt><dd>Pane ${at + 1}, ${layer.side === "left" ? "left" : "right"} axis</dd></div>
-            <div><dt>Latest</dt><dd id="spark-caption">${layer.type === "cloud" && result?.shown ? escape(rangeAt(layer, { at: result.shown.length - 1, rest: true }, unit)) : "—"}</dd></div>
+            <div><dt>Latest</dt><dd id="spark-caption">${layer.type === "cloud" && result?.values ? escape(rangeAt(layer, { at: result.values.length - 1, rest: true }, unit)) : "—"}</dd></div>
           </dl></div>`;
         // (Its colors date by date, where they vary: as given, else as it's drawn; a color given, that one alone.)
         const dated = tint !== undefined ? tint : color ? null : resolved ? paintOf(chart, layer, resolved) : null;
-        if (result?.shown && !result.error && layer.type !== "cloud") drawSpark(Array.from(result.shown), unit, ink(color ?? layer.color), dated && ((i) => ((name) => (name ? ink(name) : null))(dated(i))));
+        if (result?.values && !result.error && layer.type !== "cloud") drawSpark(Array.from(result.values), unit, ink(color ?? layer.color), dated && ((i) => ((name) => (name ? ink(name) : null))(dated(i))));
       }
       /** @returns {Page} */
       const panesPage = () => ({ title: "Panes", placeholder: "Search this chart's panes", rows: () => [
@@ -28335,13 +28335,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function exportData(which) {
         // (Still loading, what's there may be what was before: nothing then.)
         if (!settled()) return notice("The chart is still loading");
-        const layers = which.filter((layer) => resolved?.results.get(layer.id)?.shown);
+        const layers = which.filter((layer) => resolved?.results.get(layer.id)?.values);
         if (!layers.length || !resolved) return notice("Its data isn't here yet");
         const quote = (text) => `"${String(text).replace(/"/g, '""')}"`;
         // (A cloud's columns: its low, its high, but for an edge.)
         const ends = (/** @type {Layer} */ layer) => (layer.type === "cloud" ? ["low", "high"].filter((end) => !layer.from?.includes(end === "low" ? "bottom" : "top")) : [""]);
         const header = ["date", ...layers.flatMap((layer) => ends(layer).map((end) => quote(`${layer.letter} ${labelOf(layer)}${end ? ` (${end})` : ""}`)))].join(",");
-        const columns = layers.flatMap((layer) => ((result) => ends(layer).map((end) => (end === "low" ? result?.low : result?.shown)))(resolved?.results.get(layer.id)));
+        const columns = layers.flatMap((layer) => ((result) => ends(layer).map((end) => (end === "low" ? result?.low : result?.values)))(resolved?.results.get(layer.id)));
         const rows = resolved.times.map((time, i) => {
           const cells = columns.map((values) => ((value) => (value !== undefined && Number.isFinite(value) ? String(value) : ""))(values?.[i]));
           return cells.some(Boolean) ? [new Date(time * 1000).toISOString().slice(0, FINE.has(chart.index) ? 16 : 10), ...cells].join(",") : null;
@@ -29531,7 +29531,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (ohlc) ownLive.add(ohlc);
           // (A trend's breaks and sides too, a cloud's sides, none on the bars added.)
           const more = (/** @type {Uint8Array | undefined} */ marks) => marks && Uint8Array.from({ length: marks.length + added.length }, (_, i) => marks[i] ?? 0);
-          return [id, { ...result, values, shown: result.shown === result.values ? values : grown(result.shown), ohlc, ...(result.low ? { low: grown(result.low) } : {}), ...(result.breaks ? { breaks: more(result.breaks) } : {}), ...(result.sides ? { sides: more(result.sides) } : {}) }];
+          return [id, { ...result, values, ohlc, ...(result.low ? { low: grown(result.low) } : {}), ...(result.breaks ? { breaks: more(result.breaks) } : {}), ...(result.sides ? { sides: more(result.sides) } : {}) }];
         }));
         return { ...data, times: [...data.times, ...added], results };
       }
@@ -29591,7 +29591,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // others.)
           const painted = paintedPoints.get(layer.id);
           if (painted) for (const gap of added.slice(0, -1)) painted.points.push({ time: gap });
-          data.results.set(layer.id, { ...result, values, shown: values, ohlc });
+          data.results.set(layer.id, { ...result, values, ohlc });
           // (What's drawn is read too: a drawing snaps to the price as it is now.)
           const made = built.get(layer.id);
           if (made && !made.stacked) built.set(layer.id, { ...made, shown: values, ohlc });
@@ -30062,7 +30062,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const drawn = previewOf(copy, data, previewBars(doc, index), QUICK_PICTURE);
           // (Each layer's value at the picture's end, as the legend reads it there: a cloud to an edge, its one side.)
           const values = new Map(copy.layers.flatMap((layer) => {
-            const result = data.results.get(layer.id), high = result?.shown, low = result?.low, unit = unitFor(layer, result);
+            const result = data.results.get(layer.id), high = result?.values, low = result?.low, unit = unitFor(layer, result);
             if (!high || result.error) return [];
             let at = Math.min(drawn.end ?? high.length - 1, high.length - 1);
             while (at >= 0 && !Number.isFinite(high[at])) at--;
@@ -30071,7 +30071,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }));
           // (Its named values, in their band's color.)
           const bands = new Map(copy.layers.flatMap((layer) => {
-            const high = data.results.get(layer.id)?.shown;
+            const high = data.results.get(layer.id)?.values;
             if (!high || !named(layer)) return [];
             let at = Math.min(drawn.end ?? high.length - 1, high.length - 1);
             while (at >= 0 && !Number.isFinite(high[at])) at--;
