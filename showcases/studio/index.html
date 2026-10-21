@@ -7277,7 +7277,9 @@
           }
         }
 
-        .stage:has(.belt:not([hidden])) .stage-foot > * {
+        /* (Its belt shown said by the stage (renderBelt), not found by :has(): one over the stage, or the page, is asked
+           again at every change in it, a legend's values each frame of a scrub among them.) */
+        .stage[data-belt-shown] .stage-foot > * {
           visibility: hidden;
         }
 
@@ -7788,8 +7790,9 @@
           }
         }
 
-        body[data-home]:has(#home-bar:not([hidden])) .mobile-bar,
-        body[data-sheet="panel"]:has(#layers-bar:not([hidden])) .mobile-bar {
+        /* (Picks said by the body (renderPicked, renderLayersBar): see .stage[data-belt-shown].) */
+        body[data-home][data-charts-picked] .mobile-bar,
+        body[data-sheet="panel"][data-layers-picked] .mobile-bar {
           visibility: hidden;
           opacity: 0;
         }
@@ -7909,8 +7912,8 @@
           }
 
           /* (The tabs a rail there, a selection's bar floating over the foot: the rail stays.) */
-          body[data-home]:has(#home-bar:not([hidden])) .mobile-bar,
-          body[data-sheet="panel"]:has(#layers-bar:not([hidden])) .mobile-bar {
+          body[data-home][data-charts-picked] .mobile-bar,
+          body[data-sheet="panel"][data-layers-picked] .mobile-bar {
             visibility: visible;
             opacity: 1;
           }
@@ -16325,6 +16328,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const belt = $("belt"), drawings = tool ? [] : /** @type {Drawing[]} */ ([...chosen].map(drawingById).filter(Boolean)), drawing = drawings.length === 1 ? drawings[0] : undefined;
         const was = belt.hidden || belt.classList.contains("held") || reduced.matches ? null : belt.getBoundingClientRect();
         belt.hidden = home || !chart.layers.length || !(prefs.belt.on || tool || selectingArea || magnifying || drawings.length || beltKeys);
+        /** @type {HTMLElement} */ (belt.closest(".stage")).toggleAttribute("data-belt-shown", !belt.hidden);
         // (Its button gone, the magnifier with it.)
         if (belt.hidden && magnifying) return setMagnifier(false);
         $("draw-toggle").setAttribute("aria-pressed", String(prefs.belt.on));
@@ -18764,6 +18768,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           /** @type {HTMLInputElement} */ (tile.querySelector(".tile-check")).checked = on;
         }
         $("home-bar").hidden = n === 0;
+        document.body.toggleAttribute("data-charts-picked", n > 0);
         $("home-picked").textContent = plural(n, "chart");
         // (Rename, one at a time: dimmed with several, in its place, nothing in the bar moving as picks come and go.)
         const rename = /** @type {HTMLButtonElement} */ ($("home-bar").querySelector('[data-batch="rename"]'));
@@ -22105,6 +22110,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function renderLayersBar() {
         const layers = pickedLayers(), hide = layers.some((layer) => !layer.hidden), bar = $("layers-bar");
         bar.hidden = !layers.length;
+        document.body.toggleAttribute("data-layers-picked", layers.length > 0);
         if (!layers.length) return;
         $("layers-picked").textContent = plural(layers.length, "layer");
         const toggle = /** @type {HTMLElement} */ (bar.querySelector('[data-layers-batch="hide"]'));
