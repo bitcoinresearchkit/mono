@@ -78,7 +78,7 @@ address payload bytes.
  * @property {?string=} error - Error message for invalid addresses
  */
 /**
- * Bitcoin amount as floating point (1 BTC = 100,000,000 satoshis)
+ * An amount in bitcoin, as a decimal number (1 BTC = 100,000,000 satoshis).
  *
  * @typedef {number} Bitcoin
  */
@@ -520,7 +520,7 @@ mainnet, as mempool.space
  * @typedef {number} DollarDaysPerCoin
  */
 /**
- * US Dollar amount
+ * An amount in US dollars.
  *
  * @typedef {number} Dollars
  */
@@ -620,7 +620,7 @@ asking the node
  * @property {Timestamp} lastIndexedAtUnix - Unix timestamp of the last indexed block
  */
 /**
- * Block height
+ * A block height: how many blocks came before it.
  *
  * @typedef {number} Height
  */
@@ -793,7 +793,7 @@ a bin closing at the first fee rate change past 50,000 vB
  * @property {Vout} vout
  */
 /**
- * Type (P2PKH, P2WPKH, P2SH, P2TR, etc.)
+ * An output's script type (P2PKH, P2WPKH, P2SH, P2TR…).
  *
  * @typedef {("p2pk65"|"p2pk33"|"p2pkh"|"p2ms"|"p2sh"|"opreturn"|"p2wpkh"|"p2wsh"|"p2tr"|"p2a"|"empty"|"unknown")} OutputType
  */
@@ -967,7 +967,7 @@ a bin closing at the first fee rate change past 50,000 vB
  * @property {number} uniqueId - Zero-based pool ID, matching mempool.space's `unique_id`
  */
 /**
- * URL-friendly mining pool identifier
+ * A mining pool's identifier, as written in URLs.
  *
  * @typedef {("unknown"|"blockfills"|"ultimuspool"|"terrapool"|"luxor"|"1thash"|"btccom"|"bitfarms"|"huobipool"|"wayicn"|"canoepool"|"btctop"|"bitcoincom"|"175btc"|"gbminers"|"axbt"|"asicminer"|"bitminter"|"bitcoinrussia"|"btcserv"|"simplecoinus"|"btcguild"|"eligius"|"ozcoin"|"eclipsemc"|"maxbtc"|"triplemining"|"coinlab"|"50btc"|"ghashio"|"stminingcorp"|"bitparking"|"mmpool"|"polmine"|"kncminer"|"bitalo"|"f2pool"|"hhtt"|"megabigpower"|"mtred"|"nmcbit"|"yourbtcnet"|"givemecoins"|"braiinspool"|"antpool"|"multicoinco"|"bcpoolio"|"cointerra"|"kanopool"|"solock"|"ckpool"|"nicehash"|"bitclub"|"bitcoinaffiliatenetwork"|"btcc"|"bwpool"|"exxbw"|"bitsolo"|"bitfury"|"21inc"|"digitalbtc"|"8baochi"|"mybtccoinpool"|"tbdice"|"hashpool"|"nexious"|"bravomining"|"hotpool"|"okexpool"|"bcmonster"|"1hash"|"bixin"|"tatmaspool"|"viabtc"|"connectbtc"|"batpool"|"waterhole"|"dcexploration"|"dcex"|"btpool"|"58coin"|"bitcoinindia"|"shawnp0wers"|"phashio"|"rigpool"|"haozhuzhu"|"7pool"|"miningkings"|"hashbx"|"dpool"|"rawpool"|"haominer"|"helix"|"bitcoinukraine"|"poolin"|"secretsuperstar"|"tigerpoolnet"|"sigmapoolcom"|"okpooltop"|"hummerpool"|"tangpool"|"bytepool"|"spiderpool"|"novablock"|"miningcity"|"binancepool"|"minerium"|"lubiancom"|"okkong"|"aaopool"|"emcdpool"|"foundryusa"|"sbicrypto"|"arkpool"|"purebtccom"|"marapool"|"kucoinpool"|"entrustcharitypool"|"okminer"|"titan"|"pegapool"|"btcnuggets"|"cloudhashing"|"digitalxmintsy"|"telco214"|"btcpoolparty"|"multipool"|"transactioncoinmining"|"btcdig"|"trickysbtcpool"|"btcmp"|"eobot"|"unomp"|"patels"|"gogreenlight"|"bitcoinindiapool"|"ekanembtc"|"canoe"|"tiger"|"1m1x"|"zulupool"|"secpool"|"ocean"|"whitepool"|"wiz"|"wk057"|"futurebitapollosolo"|"carbonnegative"|"portlandhodl"|"phoenix"|"neopool"|"maxipool"|"bitfufupool"|"gdpool"|"miningdutch"|"publicpool"|"miningsquared"|"innopolistech"|"btclab"|"parasite"|"redrockpool"|"est3lar"|"braiinssolo"|"solopoolcom"|"noderunners"|"dmnd")} PoolSlug
  */
@@ -1097,7 +1097,7 @@ on serialization otherwise.
  * @property {string} totalTx
  */
 /**
- * Amount in satoshis (1 BTC = 100,000,000 sats)
+ * An amount in satoshis (100,000,000 to a bitcoin).
  *
  * @typedef {number} Sats
  */
@@ -1207,7 +1207,7 @@ asking the node
  * @property {TimePeriod} timePeriod - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
  */
 /**
- * UNIX timestamp in seconds
+ * A Unix timestamp, in seconds.
  *
  * @typedef {number} Timestamp
  */
@@ -1302,7 +1302,7 @@ asking the node
  * @typedef {number} TxVersionRaw
  */
 /**
- * Transaction ID (hash)
+ * A transaction ID: its hash.
  *
  * @typedef {string} Txid
  */
@@ -1322,7 +1322,7 @@ asking the node
  * @property {Txid[]} txId - Transaction IDs to look up (max 250 per request).
  */
 /**
- * Index within its type (e.g., 0 for first P2WPKH address)
+ * An index within its type (0 for the first P2WPKH address).
  *
  * @typedef {number} TypeIndex
  */

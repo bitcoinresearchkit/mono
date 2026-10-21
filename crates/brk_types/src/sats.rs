@@ -12,7 +12,7 @@ use crate::{CheckedSub, unlikely};
 #[cfg(feature = "storage")]
 use vecdb::{OverflowVecValue, Pco, SaturatingAdd, Version};
 
-/// Amount in satoshis (1 BTC = 100,000,000 sats)
+/// An amount in satoshis (100,000,000 to a bitcoin).
 #[derive(
     Debug,
     PartialEq,

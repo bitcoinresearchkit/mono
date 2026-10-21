@@ -11,7 +11,7 @@ use crate::{Cents, CheckedSub};
 #[cfg(feature = "storage")]
 use vecdb::Pco;
 
-/// US Dollar amount
+/// An amount in US dollars.
 #[derive(
     Debug,
     Default,

@@ -10,7 +10,7 @@ use crate::CheckedSub;
 #[cfg(feature = "storage")]
 use vecdb::Pco;
 
-/// UNIX timestamp in seconds
+/// A Unix timestamp, in seconds.
 #[derive(
     Debug,
     Default,

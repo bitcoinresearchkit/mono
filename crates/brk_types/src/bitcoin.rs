@@ -10,7 +10,7 @@ use crate::CheckedSub;
 #[cfg(feature = "storage")]
 use vecdb::Pco;
 
-/// Bitcoin amount as floating point (1 BTC = 100,000,000 satoshis)
+/// An amount in bitcoin, as a decimal number (1 BTC = 100,000,000 satoshis).
 #[derive(Debug, Default, Clone, Copy, Serialize, Deserialize, Add, AddAssign, From, Into)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Pco))]

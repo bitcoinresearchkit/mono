@@ -645,7 +645,7 @@
               ]
             },
             "Txid": {
-              "description": "Transaction ID (hash)",
+              "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
@@ -1011,7 +1011,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "OutputType": {
-              "description": "Type (P2PKH, P2WPKH, P2SH, P2TR, etc.)",
+              "description": "An output's script type (P2PKH, P2WPKH, P2SH, P2TR…).",
               "type": "string",
               "enum": [
                 "p2pk65",
@@ -2143,7 +2143,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Height": {
-              "description": "Block height",
+              "description": "A block height: how many blocks came before it.",
               "type": "integer",
               "format": "uint32",
               "minimum": 0,
@@ -2193,7 +2193,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Timestamp": {
-              "description": "UNIX timestamp in seconds",
+              "description": "A Unix timestamp, in seconds.",
               "type": "integer",
               "format": "uint32",
               "minimum": 0,
@@ -4177,7 +4177,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Height": {
-              "description": "Block height",
+              "description": "A block height: how many blocks came before it.",
               "type": "integer",
               "format": "uint32",
               "minimum": 0,
@@ -4903,7 +4903,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Height": {
-              "description": "Block height",
+              "description": "A block height: how many blocks came before it.",
               "type": "integer",
               "format": "uint32",
               "minimum": 0,
@@ -5492,7 +5492,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Txid": {
-              "description": "Transaction ID (hash)",
+              "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
@@ -6409,7 +6409,7 @@
               ]
             },
             "Timestamp": {
-              "description": "UNIX timestamp in seconds",
+              "description": "A Unix timestamp, in seconds.",
               "type": "integer",
               "format": "uint32",
               "minimum": 0,
@@ -7079,7 +7079,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "PoolSlug": {
-              "description": "URL-friendly mining pool identifier",
+              "description": "A mining pool's identifier, as written in URLs.",
               "type": "string",
               "enum": [
                 "unknown",
@@ -7610,7 +7610,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "PoolSlug": {
-              "description": "URL-friendly mining pool identifier",
+              "description": "A mining pool's identifier, as written in URLs.",
               "type": "string",
               "enum": [
                 "unknown",
@@ -8363,7 +8363,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Height": {
-              "description": "Block height",
+              "description": "A block height: how many blocks came before it.",
               "type": "integer",
               "format": "uint32",
               "minimum": 0,
@@ -8375,7 +8375,7 @@
               ]
             },
             "PoolSlug": {
-              "description": "URL-friendly mining pool identifier",
+              "description": "A mining pool's identifier, as written in URLs.",
               "type": "string",
               "enum": [
                 "unknown",
@@ -9128,7 +9128,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "PoolSlug": {
-              "description": "URL-friendly mining pool identifier",
+              "description": "A mining pool's identifier, as written in URLs.",
               "type": "string",
               "enum": [
                 "unknown",
@@ -11626,7 +11626,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Txid": {
-              "description": "Transaction ID (hash)",
+              "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
@@ -11682,7 +11682,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Txid": {
-              "description": "Transaction ID (hash)",
+              "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
@@ -12084,7 +12084,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Txid": {
-              "description": "Transaction ID (hash)",
+              "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
@@ -12131,7 +12131,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Txid": {
-              "description": "Transaction ID (hash)",
+              "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
@@ -12213,7 +12213,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Txid": {
-              "description": "Transaction ID (hash)",
+              "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
@@ -12265,7 +12265,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Txid": {
-              "description": "Transaction ID (hash)",
+              "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
@@ -12439,7 +12439,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Txid": {
-              "description": "Transaction ID (hash)",
+              "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
@@ -12599,7 +12599,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Txid": {
-              "description": "Transaction ID (hash)",
+              "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
@@ -12787,7 +12787,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Txid": {
-              "description": "Transaction ID (hash)",
+              "description": "A transaction ID: its hash.",
               "type": "string",
               "examples": [
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",

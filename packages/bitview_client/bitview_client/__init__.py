@@ -46,7 +46,7 @@ UrpdWeight = Literal["none", "wakefulness", "mobility"]
 # Options: raw (no aggregation), lin200/lin500/lin1000 (linear $200/$500/$1000),
 # log10/log50/log100/log200/log500/log1000/log2000 (logarithmic with 10/50/100/200/500/1000/2000 buckets per decade).
 UrpdAggregation = Literal["raw", "lin200", "lin500", "lin1000", "log10", "log50", "log100", "log200", "log500", "log1000", "log2000"]
-# Index within its type (e.g., 0 for first P2WPKH address)
+# An index within its type (0 for the first P2WPKH address).
 TypeIndex = int
 # Index of an output with an unrecognized script.
 UnknownOutputIndex = TypeIndex
@@ -72,7 +72,7 @@ P2AAddressIndex = TypeIndex
 OpReturnIndex = TypeIndex
 # Index of an output with an empty script.
 EmptyOutputIndex = TypeIndex
-# Transaction ID (hash)
+# A transaction ID: its hash.
 Txid = str
 # Raw transaction version (i32) from Bitcoin protocol.
 # Unlike TxVersion (u8, indexed), this preserves non-standard values
@@ -89,7 +89,7 @@ TxOutIndex = int
 TxIndex = int
 # Index of a transaction input.
 TxInIndex = int
-# UNIX timestamp in seconds
+# A Unix timestamp, in seconds.
 Timestamp = int
 # Lookback window for mining statistics.
 TimePeriod = Literal["24h", "3d", "1w", "1m", "3m", "6m", "1y", "2y", "3y", "all"]
@@ -110,7 +110,7 @@ Seconds = int
 Score = int
 # A signed amount in satoshis.
 SatsSigned = int
-# Amount in satoshis (1 BTC = 100,000,000 sats)
+# An amount in satoshis (100,000,000 to a bitcoin).
 Sats = int
 # Transaction locktime. Values below 500,000,000 are interpreted as block heights; values at or above are Unix timestamps.
 RawLockTime = int
@@ -118,7 +118,7 @@ RawLockTime = int
 Ratio = float
 # A positional index, YYYY-MM-DD date, or ISO 8601 timestamp.
 RangeIndex = Union[int, str, str]
-# URL-friendly mining pool identifier
+# A mining pool's identifier, as written in URLs.
 PoolSlug = Literal["unknown", "blockfills", "ultimuspool", "terrapool", "luxor", "1thash", "btccom", "bitfarms", "huobipool", "wayicn", "canoepool", "btctop", "bitcoincom", "175btc", "gbminers", "axbt", "asicminer", "bitminter", "bitcoinrussia", "btcserv", "simplecoinus", "btcguild", "eligius", "ozcoin", "eclipsemc", "maxbtc", "triplemining", "coinlab", "50btc", "ghashio", "stminingcorp", "bitparking", "mmpool", "polmine", "kncminer", "bitalo", "f2pool", "hhtt", "megabigpower", "mtred", "nmcbit", "yourbtcnet", "givemecoins", "braiinspool", "antpool", "multicoinco", "bcpoolio", "cointerra", "kanopool", "solock", "ckpool", "nicehash", "bitclub", "bitcoinaffiliatenetwork", "btcc", "bwpool", "exxbw", "bitsolo", "bitfury", "21inc", "digitalbtc", "8baochi", "mybtccoinpool", "tbdice", "hashpool", "nexious", "bravomining", "hotpool", "okexpool", "bcmonster", "1hash", "bixin", "tatmaspool", "viabtc", "connectbtc", "batpool", "waterhole", "dcexploration", "dcex", "btpool", "58coin", "bitcoinindia", "shawnp0wers", "phashio", "rigpool", "haozhuzhu", "7pool", "miningkings", "hashbx", "dpool", "rawpool", "haominer", "helix", "bitcoinukraine", "poolin", "secretsuperstar", "tigerpoolnet", "sigmapoolcom", "okpooltop", "hummerpool", "tangpool", "bytepool", "spiderpool", "novablock", "miningcity", "binancepool", "minerium", "lubiancom", "okkong", "aaopool", "emcdpool", "foundryusa", "sbicrypto", "arkpool", "purebtccom", "marapool", "kucoinpool", "entrustcharitypool", "okminer", "titan", "pegapool", "btcnuggets", "cloudhashing", "digitalxmintsy", "telco214", "btcpoolparty", "multipool", "transactioncoinmining", "btcdig", "trickysbtcpool", "btcmp", "eobot", "unomp", "patels", "gogreenlight", "bitcoinindiapool", "ekanembtc", "canoe", "tiger", "1m1x", "zulupool", "secpool", "ocean", "whitepool", "wiz", "wk057", "futurebitapollosolo", "carbonnegative", "portlandhodl", "phoenix", "neopool", "maxipool", "bitfufupool", "gdpool", "miningdutch", "publicpool", "miningsquared", "innopolistech", "btclab", "parasite", "redrockpool", "est3lar", "braiinssolo", "solopoolcom", "noderunners", "dmnd"]
 # A percentage: a ratio times 100.
 Percent = float
@@ -144,7 +144,7 @@ P2PK33Bytes = str
 P2ABytes = str
 # Output type names used by Esplora and mempool.space.
 OutputTypeNormalized = Literal["p2pk", "p2pkh", "multisig", "p2sh", "op_return", "v0_p2wpkh", "v0_p2wsh", "v1_p2tr", "anchor", "empty", "unknown"]
-# Type (P2PKH, P2WPKH, P2SH, P2TR, etc.)
+# An output's script type (P2PKH, P2WPKH, P2SH, P2TR…).
 OutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2ms", "p2sh", "opreturn", "p2wpkh", "p2wsh", "p2tr", "p2a", "empty", "unknown"]
 # Protocol or format detected in an OP_RETURN output.
 OpReturnKind = Literal["runes", "witness_commitment", "veri_block", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coin_spark", "poet", "docproof", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "bare_hash", "text", "empty", "unknown"]
@@ -181,7 +181,7 @@ Hour12 = int
 Hour1 = int
 # Hex-encoded data as a JSON string.
 Hex = str
-# Block height
+# A block height: how many blocks came before it.
 Height = int
 # Hashes per second.
 Hashrate = float
@@ -205,7 +205,7 @@ ErrorType = Literal["invalid_request", "not_found", "unavailable", "timeout", "i
 ErrorCode = Literal["not_found", "invalid_address", "invalid_network", "unsupported_type", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "unknown_address", "unknown_txid", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
 # Index of a difficulty epoch (2,016 blocks).
 Epoch = int
-# US Dollar amount
+# An amount in US dollars.
 Dollars = float
 # Open, high, low and close prices in US dollars: [open, high, low, close].
 OHLCDollars = List[Dollars]
@@ -270,7 +270,7 @@ BlockTxIndex = int
 # Double-SHA256 block-header hash, serialized in Bitcoin's conventional
 # hexadecimal byte order.
 BlockHash = str
-# Bitcoin amount as floating point (1 BTC = 100,000,000 satoshis)
+# An amount in bitcoin, as a decimal number (1 BTC = 100,000,000 satoshis).
 Bitcoin = float
 # Bitcoin address, or the hex public key of a P2PK output.
 Address = str

@@ -10,7 +10,7 @@ use vecdb::{Bytes, Error, Formattable, Result};
 /// `Display` (series ids) and `AsRef<str>`.
 macro_rules! pool_slugs {
     ($($(#[$attr:meta])* $variant:ident => $slug:literal,)*) => {
-        /// URL-friendly mining pool identifier
+        /// A mining pool's identifier, as written in URLs.
         #[allow(clippy::upper_case_acronyms)]
         #[derive(
             Default,

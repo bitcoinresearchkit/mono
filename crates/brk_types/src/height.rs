@@ -25,7 +25,7 @@ use vecdb::{Bytes, Pco, PrintableIndex, Stamp, VecIndex};
 pub const BLOCKS_PER_DIFF_EPOCH: u32 = 2016;
 pub const BLOCKS_PER_HALVING: u32 = 210_000;
 
-/// Block height
+/// A block height: how many blocks came before it.
 #[derive(
     Debug,
     Clone,

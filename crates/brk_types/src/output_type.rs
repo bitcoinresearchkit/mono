@@ -31,7 +31,7 @@ use vecdb::{Bytes, Formattable, Pco};
 #[serde(rename_all = "lowercase")]
 #[strum(serialize_all = "lowercase")]
 #[repr(u8)]
-/// Type (P2PKH, P2WPKH, P2SH, P2TR, etc.)
+/// An output's script type (P2PKH, P2WPKH, P2SH, P2TR…).
 pub enum OutputType {
     P2PK65,
     P2PK33,

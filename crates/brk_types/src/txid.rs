@@ -9,7 +9,7 @@ use schemars::JsonSchema;
 #[cfg(feature = "storage")]
 use vecdb::Bytes;
 
-/// Transaction ID (hash)
+/// A transaction ID: its hash.
 #[derive(Debug, Deref, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[cfg_attr(feature = "storage", derive(Bytes))]

@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 #[cfg(feature = "storage")]
 use vecdb::{Formattable, Pco, PrintableIndex, VecIndex};
 
-/// Index within its type (e.g., 0 for first P2WPKH address)
+/// An index within its type (0 for the first P2WPKH address).
 #[derive(
     Debug,
     PartialEq,
