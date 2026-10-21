@@ -20,7 +20,7 @@ Built against next.bitview.space; deployed to studio-next only, never studio.bit
   the old Studio reads the website's import map, which the new server lacks. Upgrade the server and redeploy Studio at
   once. Deploy the MCP page only once `main` has `showcases/assets/fonts` (its fonts load from there through jsDelivr).
 
-- Before going live, decide what happens to presets people edited on the old tree: their places are gone, so the edits match no preset (kept in the browser, shown nowhere, only in Download all), and old `/chart/…` addresses open the Charts page.
+- Old `/chart/…` addresses (presets' places on the old tree) open the Charts page: decide whether they lead anywhere.
 
 ## Showcases
 

@@ -21141,6 +21141,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           presetWords = list.map((preset) => `${preset.t} ${preset.p.join(" ")}`.toLowerCase());
           // (Those opened and left as they were, before they could be told: let go of now; the open one, as the presets
           // have it now, if that's changed.)
+          // (Adopted first: copies left as they were, stored, are still here for an adoption's stamp to pass.)
+          adoptPresets();
           prunePresets(chart ?? null);
           const at = chart?.preset !== undefined ? presetIndex(chart) : -1, now = at >= 0 ? presetChart(at) : chart;
           if (now && now !== chart) openChart(now);
@@ -21424,6 +21426,82 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (left.length === library.presets.length) return;
         library.presets = left;
         save();
+      }
+      /**
+       * Presets edited here whose place is gone (the presets arranged anew since, by a newer Studio): each moved to the
+       * preset that now shows the same series, its edits there (edited: Reset brings that one back as made); none does,
+       * kept as a chart of the Library, its title and edits as they were (a series gone since says so there, and offers
+       * the closest). Nothing lost, nothing hidden; said once.
+       */
+      function adoptPresets() {
+        // (Those left as they were opened aren't edits: prunePresets lets go of them, after. One another tab placed
+        // already (deleted here, kept only while it's open) is that tab's.)
+        const lost = library.presets.filter((doc) => presetIndex(doc) < 0 && !pristine(doc) && !isDeleted(doc));
+        if (!lost.length || readOnly) return;
+        // (What a chart shows, its looks aside: its series and formulas, as a set; what's made from them (a cloud, a
+        // trend) an edit of it.)
+        const shows = (/** @type {Chart} */ doc) => JSON.stringify([...new Set(doc.layers.flatMap((layer) => layer.series ?? layer.formula ?? []))].sort());
+        // (A preset taken already: edited here, or the one open.)
+        const taken = (/** @type {number} */ i) => ((had) => Boolean(had && (presetEdited(had) || had === chart)))(editedPreset(i));
+        /** Each set's presets free to take one. @type {Map<string, number[]>} */
+        const holders = new Map();
+        /** @type {Preset[]} */ (presets).forEach((_, i) => {
+          if (taken(i)) return;
+          const set = shows(freshPreset(i));
+          holders.set(set, [...(holders.get(set) ?? []), i]);
+        });
+        // (Its place's last name, as stored: a key that isn't one, none.)
+        const nameOf = (/** @type {Chart} */ doc) => {
+          try {
+            const place = JSON.parse(doc.preset ?? "");
+            return Array.isArray(place) ? place.at(-1) : undefined;
+          } catch {
+            return undefined;
+          }
+        };
+        // (Series by their paths first: renamed since, by their names now.)
+        for (const doc of lost) normalize(doc);
+        // Each to a preset of its set: those of the same name first, then the rest, one each.
+        /** @type {Map<Chart, number>} */
+        const to = new Map();
+        for (const named of [true, false]) {
+          for (const doc of lost) {
+            if (to.has(doc)) continue;
+            const set = shows(doc), at = holders.get(set) ?? [], i = named ? at.find((j) => /** @type {Preset[]} */ (presets)[j].p.at(-1) === nameOf(doc)) : at[0];
+            if (i === undefined) continue;
+            to.set(doc, i);
+            holders.set(set, at.filter((j) => j !== i));
+          }
+        }
+        const stamp = (/** @type {number} */ at) => Math.max(at, Date.now() - 29 * 86400000);
+        for (const doc of lost) {
+          const i = to.get(doc), old = doc.id, replaced = library.presets.filter((other) => other !== doc && i !== undefined && other.preset === presetKey(i));
+          library.presets = library.presets.filter((other) => other !== doc && !replaced.includes(other));
+          // (Its copy as stored let go of, here and in any tab's next save, by its id as of its stamp, a month kept.)
+          library.deleted[old] = Math.max(library.deleted[old] ?? 0, stamp(doc.updated));
+          // (The same id in every tab doing this at once: its copies one chart.)
+          const id = i === undefined ? `a${hashOf(old)}`.slice(0, 16) : presetIdOf(presetKey(i));
+          rekey(doc, id);
+          // (Newer than its old copy's end, than any reset of where it goes, and than the copy there it replaces.)
+          doc.updated = Math.max(Date.now(), doc.updated + 1, (library.deleted[id] ?? 0) + 1, ...replaced.map((other) => other.updated + 1));
+          // (Its steps back were of its old place: none.)
+          histories.delete(id);
+          if (doc === chart) (edits.past = []), (edits.future = []);
+          if (i === undefined) {
+            delete doc.preset;
+            delete doc.base;
+            library.charts.unshift(doc);
+          } else {
+            Object.assign(doc, { preset: presetKey(i), base: templateHash(i) });
+            library.presets.push(doc);
+          }
+        }
+        save();
+        // (The open one drawn again under its new id: a draw of it still on its way, under its old one, gives way. Still
+        // starting, the start draws it.)
+        if (started && lost.includes(/** @type {Chart} */ (chart))) refresh(true);
+        const moved = to.size, kept = lost.length - moved;
+        toast(`The presets were arranged anew: ${[moved ? `${plural(moved, "edited preset")} moved to ${moved === 1 ? "its new place" : "their new places"}` : "", kept ? `${plural(kept, "edited preset")} kept as ${kept === 1 ? "a chart" : "charts"} in your Library` : ""].filter(Boolean).join(", ")}`);
       }
       /** A preset back as made (its edits let go of), with an Undo; open, it shows as it is. @param {Chart} doc */
       function resetPreset(doc) {
