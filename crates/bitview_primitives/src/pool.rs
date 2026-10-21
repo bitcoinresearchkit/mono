@@ -4,6 +4,8 @@ use crate::PoolSlug;
 pub struct Pool {
     pub slug: PoolSlug,
     pub name: &'static str,
+    /// What its series are of, leading their descriptions: "Uses blocks mined by Foundry USA."
+    pub lead: &'static str,
     pub(crate) addrs: Box<[&'static str]>,
     pub(crate) tags: Box<[&'static str]>,
     /// Lowercase coinbase tags for case-insensitive matching

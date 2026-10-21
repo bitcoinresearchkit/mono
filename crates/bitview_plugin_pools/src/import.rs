@@ -41,6 +41,7 @@ impl Vecs {
                 (pool.slug, vecs)
             })
             .collect::<BTreeMap<_, _>>();
+        let by_slug = crate::BySlug(by_slug);
 
         let this = Self {
             block_pool,

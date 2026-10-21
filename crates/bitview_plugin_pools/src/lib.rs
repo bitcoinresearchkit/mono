@@ -9,11 +9,11 @@ pub use dependencies::Dependencies;
 pub use has::HasPools;
 pub use pool::PoolVecs;
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, ops::Deref};
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::{PoolSlug, Pools};
-use bitview_traversable::Traversable;
+use bitview_traversable::{AnyExportableVec, AnyStoredVec, Traversable, TreeNode};
 use brk_types::Height;
 use vecdb::{BytesVec, Database, Rw, StorageMode, Version};
 
@@ -38,5 +38,50 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub heights: PoolHeights,
     // Each known mining pool, plus `unknown` for unattributed blocks.
     #[traversable(flatten)]
-    pub by_slug: BTreeMap<PoolSlug, PoolVecs>,
+    pub by_slug: BySlug,
+}
+
+/// Each pool's series, by its slug: their descriptions led by the pool they're of (see `Pool::lead`).
+#[derive(Clone)]
+pub struct BySlug(BTreeMap<PoolSlug, PoolVecs>);
+
+impl Deref for BySlug {
+    type Target = BTreeMap<PoolSlug, PoolVecs>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Traversable for BySlug {
+    fn to_tree_node(&self) -> TreeNode {
+        self.0.to_tree_node()
+    }
+
+    fn iter_any_exportable(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
+        self.0.iter_any_exportable()
+    }
+
+    fn iter_any_visible(&self) -> impl Iterator<Item = &dyn AnyExportableVec> {
+        self.0.iter_any_visible()
+    }
+
+    fn iter_any_stored_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
+        self.0.iter_any_stored_mut()
+    }
+
+    fn collect_series_descriptions<'a>(
+        &'a self,
+        description_fragments: &mut Vec<&'static str>,
+        descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>,
+    ) {
+        let pools = bitview_primitives::pools();
+        for (slug, vecs) in &self.0 {
+            let lead = pools.get(*slug).lead;
+            description_fragments.push(lead);
+            vecs.collect_series_descriptions(description_fragments, descriptions);
+            let popped = description_fragments.pop();
+            debug_assert_eq!(popped, Some(lead));
+        }
+    }
 }
