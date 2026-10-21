@@ -29556,18 +29556,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const layer of layers) {
           const result = data.results.get(layer.id), value = /** @type {(price: number) => number} */ (LIVE.get(layer.series ?? ""))(price);
           if (!result?.values) continue;
-          // A live bar opens at the last close; a point the server has (or one opened before) moves.
+          // A live bar opens at the last close (at an interval the timeline's just grown by, or one it has that this layer
+          // hasn't yet: another layer's series has it already; far behind, it waits for the server); a point the server
+          // has (or one opened before) moves.
+          const opens = added.length > 0 || !Number.isFinite(result.values[at]);
           let last = at;
-          if (added.length) while (last > 0 && !Number.isFinite(result.values[last])) last--;
-          else if (!Number.isFinite(result.values[at])) continue;
+          if (opens) while (last > 0 && !Number.isFinite(result.values[last])) last--;
+          if (at - last > 100 || !Number.isFinite(result.values[last])) continue;
           const values = liveCopy(result.values), bar = result.ohlc?.[last], close = closes.get(layer.id), series = close?.series ?? drawn.get(layer.id);
           values[at] = value;
           rescan(values, at);
           // Its candles move too, drawn as candles or not (a switch to candles shows them as they are).
           const ohlc = bar ? liveCopy(result.ohlc) : result.ohlc;
           if (bar) {
-            const [open, high, low, before] = bar.map(Number), from = added.length ? before : open;
-            const candle = added.length ? [from, Math.max(from, value), Math.min(from, value), value] : [open, Math.max(high, value), Math.min(low, value), value];
+            const [open, high, low, before] = bar.map(Number), from = opens ? before : open;
+            const candle = opens ? [from, Math.max(from, value), Math.min(from, value), value] : [open, Math.max(high, value), Math.min(low, value), value];
             ohlc[at] = candle;
             for (const gap of added.slice(0, -1)) close?.candles.update({ time: gap });
             close?.candles.update({ time, open: candle[0], high: candle[1], low: candle[2], close: value });
