@@ -20,7 +20,7 @@
  * @typedef {Record<string, any>} Layer
  * @typedef {{ layers: Layer[], panes?: Record<string, any>[], range?: string }} Sketch
  * @typedef {{ p: string[], t: string, c: Sketch }} Preset
- * @typedef {{ name: string, title: string, c: Sketch }} ChartNode
+ * @typedef {{ name: string, title: string, c: Sketch, priceHidden?: boolean }} ChartNode
  * @typedef {{ name: string, items: (ChartNode | SectionNode)[], workings?: boolean }} SectionNode `workings`: its charts are
  * about the chain's workings, not the market (the price over them hidden: see priced)
  * @typedef {{ pools: Set<string>, height: number, year: number }} Facts the chain's, from its server: the pools that
@@ -172,7 +172,8 @@ export function studioPresets(client, facts) {
    * A chart: its layers, each with its pane (1 if none), and its panes' scales (a pane with the price, or `log` said,
    * logarithmic; else linear) and stacks.
    * @param {string} name @param {string} title @param {Layer[]} layers
-   * @param {{ log?: number[], linear?: number[], stack?: Record<number, string>, sizes?: number[], range?: string }} [options]
+   * `priceHidden`: the price on top starts hidden (a chart whose subject already moves with it, as market cap).
+   * @param {{ log?: number[], linear?: number[], stack?: Record<number, string>, sizes?: number[], range?: string, priceHidden?: boolean }} [options]
    * @returns {ChartNode}
    */
   const chart = (name, title, layers, options = {}) => {
@@ -182,7 +183,7 @@ export function studioPresets(client, facts) {
       const log = options.log?.includes(n) || (withPrice && !options.linear?.includes(n));
       return { mode: log ? 1 : 0, ...(options.stack?.[n] ? { stack: options.stack[n] } : {}), ...(options.sizes?.[i] ? { size: options.sizes[i] } : {}) };
     });
-    return { name, title, c: { layers, panes, ...(options.range ? { range: options.range } : {}) } };
+    return { name, title, c: { layers, panes, ...(options.range ? { range: options.range } : {}) }, ...(options.priceHidden ? { priceHidden: true } : {}) };
   };
   /**
    * @param {string} name @param {(ChartNode | SectionNode | null | undefined | false)[]} items
@@ -559,7 +560,7 @@ export function studioPresets(client, facts) {
       ]),
     ]),
     section("Valuation", [
-      chart("Market and realized cap", "Market cap and realized cap", [series(t.holders.all.supply.total.usd, "Market cap", { color: "green" }), series(t.holders.all.capital.realizedCap, "Realized cap", { color: "orange" })], { log: [1] }),
+      chart("Market and realized cap", "Market cap and realized cap", [series(t.holders.all.supply.total.usd, "Market cap", { color: "green" }), series(t.holders.all.capital.realizedCap, "Realized cap", { color: "orange" })], { log: [1], priceHidden: true }),
       chart("MVRV", "Market value to realized value (MVRV)", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: "orange" }), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1), levels: [{ value: 3.5, color: "red", dash: 3 }] })], { log: [2] }),
       chart("NUPL", "Net unrealized profit and loss (NUPL)", [price(), series(t.holders.all.unrealized.nupl, "NUPL", { pane: 2, ...baseline, levels: [0.25, 0.5, 0.75].map((value) => ({ value, color: "gray", dash: 3 })) })]),
       chart("Value anchors", "Price and its on-chain anchors", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: "orange" }), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" }), series(ct.prices.cointime.block, "Cointime price", { color: "violet" }), series(t.holders.all.costBasis.byDollar.capitalizedPrice, "Capitalized price", { color: "green" })]),
@@ -956,8 +957,8 @@ export function studioPresets(client, facts) {
   /**
    * The price on top of a chart: its candles first, in the first pane (a pane with the price holds only prices: a cap
    * isn't one). A chart without them has them in a pane of their own above its panes, each one down: shown, short, its
-   * own first pane as tall as a first one is; about the chain's workings (`hidden`), hidden there (a strip of its
-   * legend's, a click away).
+   * own first pane as tall as a first one is; about the chain's workings, or a chart's `priceHidden` (`hidden`), hidden
+   * there (a strip of its legend's, a click away).
    * @param {Sketch} c @param {boolean} hidden @returns {Sketch}
    */
   const priced = (c, hidden) => {
@@ -978,7 +979,7 @@ export function studioPresets(client, facts) {
   const walk = (/** @type {(ChartNode | SectionNode)[]} */ items, /** @type {string[]} */ path, workings = false) => {
     for (const item of items) {
       if ("items" in item) walk(item.items, [...path, item.name], workings || Boolean(item.workings));
-      else presets.push({ p: [...path, item.name], t: item.title, c: priced(item.c, workings) });
+      else presets.push({ p: [...path, item.name], t: item.title, c: priced(item.c, workings || Boolean(item.priceHidden)) });
     }
   };
   walk(tree, []);
