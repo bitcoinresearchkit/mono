@@ -368,13 +368,13 @@ export function studioPresets(client, facts) {
           ...(cost.min ? [series(cost.min, "Lowest", { color: "red", dash: 3, hidden: true }), series(cost.max, "Highest", { color: "green", dash: 3, hidden: true })] : []),
           ...(cost.byCoin.avg?.mvrv ? [series(cost.byCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1) })] : []),
         ], { log: [2] }),
+        cost.byDollar && chart("Capitalized price", of("Capitalized price"), [
+          price(), series(cost.byDollar.capitalizedPrice, "Capitalized price", { color: "orange" }),
+          ...(cost.byDollar.medianCapitalizedPrice ? [series(cost.byDollar.medianCapitalizedPrice, "Median capitalized price", { color: "yellow", hidden: true })] : []),
+          series(cost.byDollar.avg.ratio, "Price ratio", { pane: 2, ...around(1) }),
+        ], { log: [2] }),
         ...percentiles(cost.byCoin, "Distribution", of("Cost basis distribution, by coin")),
-        ...(cost.byDollar ? [
-          ...percentiles(cost.byDollar, "Distribution by dollar", of("Cost basis distribution, by dollar"), [
-            series(cost.byDollar.capitalizedPrice, "Capitalized price", { color: "orange" }),
-            series(cost.byDollar.avg.ratio, "Price to capitalized price", { pane: 2, ...around(1) }),
-          ], { log: [2] }),
-        ] : []),
+        ...(cost.byDollar ? percentiles(cost.byDollar, "Distribution by dollar", of("Cost basis distribution, by dollar")) : []),
         cost.supplyDensity && chart("Supply density", of("Supply near the price"), [
           series(cost.supplyDensity.total, "Supply", { color: "orange" }), series(cost.supplyDensity.inProfit, "In profit", { color: "green", hidden: true }), series(cost.supplyDensity.inLoss, "In loss", { color: "red", hidden: true }),
         ]),
