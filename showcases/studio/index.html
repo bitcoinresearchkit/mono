@@ -7100,19 +7100,20 @@
           box-shadow: none;
           outline: none;
 
-          /* Installed, the status bar over the card: a fixed strip of its color at the top, as the grid has its own
-             (iOS 26 on blurs an installed app's top, some 40pt down, over the header, unless a fixed box with a
-             background, 6px tall or more, spans the top: the bar its color then, as while ⌘K's scrim is there). Its
-             inset is 0 there, so 8px at least; behind the header's own (it starts 4px down), under its scrim and
-             picture as the rest of the card. */
-          &::before {
-            content: "";
-            position: fixed;
-            inset: 0 0 auto;
-            z-index: -1;
-            height: max(env(safe-area-inset-top), 8px);
-            background: var(--card);
-            pointer-events: none;
+          /* Installed, a fixed strip of its color at the top, as the grid has its own: in Lockdown Mode, iOS 26 on
+             blurs an installed app's top, some 40pt down, over the header, unless a fixed box with a background, 6px
+             tall or more, is what's found at the top (the bar its color then, as while ⌘K's scrim is there). Found as
+             a tap would be, so on top and taking taps; 8px at least, the inset reading 0 there; the header clear of
+             it. Under its scrim and picture as the rest of the card. A browser's tab, nothing. */
+          @media (display-mode: standalone) {
+            &::before {
+              content: "";
+              position: fixed;
+              inset: 0 0 auto;
+              z-index: 5;
+              height: max(env(safe-area-inset-top), 8px);
+              background: var(--card);
+            }
           }
         }
 
@@ -7126,16 +7127,22 @@
         .home {
           inset: 0;
 
-          /* Installed, the status bar over the grid: what scrolls under it hidden, as an app's own lists, and iOS's
-             blur kept off the page's top (a fixed strip there, 8px at least, the card's own says why). */
+          /* Installed, the status bar over the grid: what scrolls under it hidden, as an app's own lists (Safari's own
+             bar is its own; no room there, nothing); installed, iOS's blur kept off the page's top too (8px at least,
+             taking taps: the card's strip says why). */
           &::after {
             content: "";
             position: fixed;
             inset: 0 0 auto;
             z-index: 5;
-            height: max(env(safe-area-inset-top), 8px);
+            height: env(safe-area-inset-top);
             background: var(--app);
             pointer-events: none;
+
+            @media (display-mode: standalone) {
+              height: max(env(safe-area-inset-top), 8px);
+              pointer-events: auto;
+            }
           }
         }
 
@@ -7255,6 +7262,11 @@
         /* (The header as an iOS bar: its controls, and 4px about them.) */
         .card-head {
           padding: calc(4px + env(safe-area-inset-top)) 12px 4px;
+
+          /* (Installed, clear of the card's strip at the top.) */
+          @media (display-mode: standalone) {
+            padding-top: max(calc(4px + env(safe-area-inset-top)), 12px);
+          }
         }
 
         /* (Its text on the header's edge: the place's, else the name's.) */
@@ -7769,6 +7781,11 @@
         /* Full screen: the chart alone, no room kept for the bar; clear of the notch and the home indicator. */
         .app[data-full] .card {
           padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+
+          /* (Installed, clear of the card's strip at the top too.) */
+          @media (display-mode: standalone) {
+            padding-top: max(env(safe-area-inset-top), 8px);
+          }
         }
 
         /* A phone on its side (wide as well as short: an upright one with its keyboard up stays upright): the capsule
