@@ -1421,6 +1421,27 @@
           return Math.sign(value) * height;
         }
 
+        /**
+         * The value axis's ticks, each a value and its height: 0, then round values (1, 2 or 5 times a power of ten)
+         * at their own heights, from the top down, at least a fifth of the axis apart (none crowding 0, nor the axis's
+         * title at its top); in a change
+         * view, mirrored below it. (Labeled by the value itself: back from its height, a million comes out a hair under.)
+         */
+        function valueTicks() {
+          const top = state.valueScale, ticks = [{ value: 0, height: 0 }];
+          if (!(top > 0)) return ticks;
+          let last = Infinity;
+          for (let power = Math.floor(Math.log10(top)); power > Math.floor(Math.log10(top)) - 12; power--) {
+            for (const mantissa of [5, 2, 1]) {
+              const value = mantissa * 10 ** power;
+              if (value > top) continue;
+              const height = heightFromRelativeValue(value / top);
+              if (height >= 0.1 && height <= 0.92 && last - height >= 0.2) ticks.push({ value, height: (last = height) });
+            }
+          }
+          return state.mode === "value" ? ticks : [...ticks, ...ticks.filter(({ value }) => value > 0).map(({ value, height }) => ({ value: -value, height: -height }))];
+        }
+
         function relativeValueFromHeight(height) {
           const magnitude = clamp(Math.abs(height), 0, 1);
           const value =
@@ -2516,20 +2537,8 @@
           );
 
           const valueLabels = [valueAxisTitle()];
-          const valueTickCount = 4;
-          const firstValueTick =
-            state.mode === "value" ? 0 : -valueTickCount;
-          const valueTickStep = state.mode === "value" ? 1 : 2;
-          for (
-            let tickIndex = firstValueTick;
-            tickIndex <= valueTickCount;
-            tickIndex += valueTickStep
-          ) {
-            valueLabels.push(
-              formatAxisValue(
-                valueAtTerrainHeight(tickIndex / valueTickCount),
-              ),
-            );
+          for (const { value } of valueTicks()) {
+            valueLabels.push(formatAxisValue(value));
           }
           const right = Math.ceil(
             measureMonoText(valueLabels) +
@@ -3101,16 +3110,26 @@
           const magnitude = Math.abs(value);
           let scaled = magnitude;
           let suffix = "";
-          for (const [size, unit] of AXIS_UNITS) {
+          for (const [i, [size, unit]] of AXIS_UNITS.entries()) {
             if (magnitude >= size) {
               scaled = magnitude / size;
               suffix = unit;
+              // (Rounded up to a thousand, 999,600 is a million: the next unit's, not 1000K.)
+              if (i > 0 && Math.round(scaled) >= 1000) {
+                scaled = magnitude / AXIS_UNITS[i - 1][0];
+                suffix = AXIS_UNITS[i - 1][1];
+              }
               break;
             }
           }
+          if (!suffix && Math.round(magnitude) >= 1000) {
+            scaled = magnitude / AXIS_UNITS.at(-1)[0];
+            suffix = AXIS_UNITS.at(-1)[1];
+          }
           const precision = scaled >= 100 ? 0 : scaled >= 10 ? 1 : 2;
-          const text = Number(scaled.toFixed(precision));
-          const sign = negative ? "−" : "";
+          // (Under 1, by its significant digits: 0.005 isn't 0.01, nor 0.002 0; under a millionth, 0.)
+          const text = scaled >= 1 ? Number(scaled.toFixed(precision)) : scaled < 1e-6 ? 0 : Number(scaled.toPrecision(2));
+          const sign = negative && text !== 0 ? "−" : "";
           return currency
             ? `${sign}$${text}${suffix}`
             : `${sign}${text}${suffix} BTC`;
@@ -3696,17 +3715,7 @@
 
           if (selectedProfile && state.valueScale > 0) {
             const valueOut = priceAxis;
-            const valueTickCount = 4;
-            const firstValueTick =
-              state.mode === "value" ? 0 : -valueTickCount;
-            const valueTickStep =
-              state.mode === "value" ? 1 : 2;
-            for (
-              let tickIndex = firstValueTick;
-              tickIndex <= valueTickCount;
-              tickIndex += valueTickStep
-            ) {
-              const height = tickIndex / valueTickCount;
+            for (const { value, height } of valueTicks()) {
               const point = projectAtPrice(
                 layout,
                 axisDateIndex,
@@ -3721,9 +3730,7 @@
               );
               context.stroke();
               drawValueLabel(
-                formatAxisValue(
-                  valueAtTerrainHeight(height),
-                ),
+                formatAxisValue(value),
                 point.x + valueOut.x * 11,
                 point.y + valueOut.y * 11,
               );

@@ -712,26 +712,36 @@
       };
 
       // ── Words: keys and ids as people write them (Studio's rules) ──
-      const ACRONYMS = new Set(["sth", "lth", "mvrv", "sopr", "nupl", "usd", "btc", "ath", "atl", "sma", "ema", "utxo", "ohlc", "op", "vocdd", "hodl", "pct", "rbf", "cpfp", "tx", "pnl", "aviv", "rsi", "macd", "epobc", "cdd"]);
-      const WORDS = /** @type {Record<string, string>} */ ({ addrs: "addresses", addr: "address", txs: "transactions", utxos: "UTXOs", avg: "average" });
+      const ACRONYMS = new Set(["sth", "lth", "mvrv", "sopr", "nupl", "usd", "btc", "ath", "atl", "sma", "ema", "utxo", "ohlc", "vocdd", "hodl", "pct", "rbf", "cpfp", "tx", "pnl", "aviv", "rsi", "macd", "epobc", "cdd"]);
+      const WORDS = /** @type {Record<string, string>} */ ({ addrs: "addresses", addr: "address", txs: "transactions", utxos: "UTXOs", avg: "average", opreturn: "OP_RETURN" });
       /** A percentile's key as said: "pct5" "5th percentile", "pct01" "0.1st", "pct995" "99.5th" (the presets' rule). */
       function percentileKey(/** @type {string} */ key) {
         const digits = /^pct(\d+)$/.exec(key)?.[1];
-        if (!digits) return null;
-        const p = digits.startsWith("0") ? `0.${digits.slice(1)}` : digits.length === 3 ? `${digits.slice(0, 2)}.${digits.slice(2)}` : digits;
-        return `${ordinalOf(p)} percentile`;
+        return digits ? `${ordinalOf(percentOf(digits))} percentile` : null;
       }
+      /** A percentile key's digits as its number: "5" 5, "01" 0.1, "995" 99.5. */
+      const percentOf = (/** @type {string} */ digits) => (digits.startsWith("0") ? `0.${digits.slice(1)}` : digits.length === 3 ? `${digits.slice(0, 2)}.${digits.slice(2)}` : digits);
       const word = (/** @type {string} */ text) => WORDS[text] ?? (ACRONYMS.has(text) || /^p2[a-z]+\d*$/.test(text) ? text.toUpperCase() : text);
       const capitalize = (/** @type {string} */ text) => text.charAt(0).toUpperCase() + text.slice(1);
       /** A percentile said: "2" "2nd", "99.9" "99.9th", "0.1" "0.1st". */
       const ordinalOf = (/** @type {string} */ p) => `${p}${/(^|\D)1\d$/.test(p) ? "th" : p.at(-1) === "1" ? "st" : p.at(-1) === "2" ? "nd" : p.at(-1) === "3" ? "rd" : "th"}`;
+      /** A trailing window said: "24h" "24 hours", "1m" "1 month" (null if it isn't one). */
+      const windowOf = (/** @type {string} */ part) => ((m) => (m ? `${m[1]} ${{ h: "hour", d: "day", w: "week", m: "month", y: "year" }[m[2]]}${m[1] === "1" ? "" : "s"}` : null))(/^(\d+)([hdwmy])$/.exec(part));
+      /**
+       * Words said: a percentile's, a span of time's spelled out ("1m" "1 month", "24h" "24 hours", an age band's
+       * "1 week to 1 month"), not an amount's ("100k to 1m sats": a million, its unit after it or after its range).
+       */
+      const spoken = (/** @type {string[]} */ parts) => {
+        const amount = (/** @type {number} */ i) => ["sats", "btc"].includes(parts[i + 1]) || (parts[i + 1] === "to" && ["sats", "btc"].includes(parts[i + 3]));
+        return parts.map((part, i) => (/^pct[\d.]+$/.test(part) ? `${ordinalOf(part.slice(3))} percentile` : amount(i) ? word(part) : windowOf(part) ?? word(part))).join(" ");
+      };
       /** A series id as words: "sth_realized_price" "STH realized price", "…_rarity_pct99_9" "…rarity 99.9th percentile". */
       const humanize = (/** @type {string} */ name) =>
-        capitalize(name.replace(/pct(\d+)_(\d+)(?=_|$)/g, "pct$1.$2").split("_").filter(Boolean).map((part) => (/^pct[\d.]+$/.test(part) ? `${ordinalOf(part.slice(3))} percentile` : word(part))).join(" "));
-      /** A tree key as words: "utxoSet" "UTXO set", "minute10" "Minute 10", "p2pkh" whole, "_2024" "2024". */
+        capitalize(spoken(name.replace(/pct(\d+)_(\d+)(?=_|$)/g, "pct$1.$2").replace(/(^|_)op_return(?=_|$)/g, "$1opreturn").split("_").filter(Boolean)));
+      /** A tree key as words: "utxoSet" "UTXO set", "minute10" "Minute 10", "p2pkh" whole, "_2024" "2024", "_1m" "1 month". */
       const humanizeKey = (/** @type {string} */ key) =>
         percentileKey(key) ??
-        capitalize(key.replace(/^_/, "").replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase().split(" ").flatMap((part) => (/^p2/.test(part) ? [part] : part.replace(/([a-z]{2})(\d)/g, "$1 $2").split(" "))).map(word).join(" "));
+        capitalize(spoken(key.replace(/^_/, "").replace(/([oO])pReturn/g, "$1preturn").replace(/([a-z\d])([A-Z])/g, "$1 $2").toLowerCase().split(" ").flatMap((part) => (/^p2/.test(part) ? [part] : /^pct\d+$/.test(part) ? [`pct${percentOf(part.slice(3))}`] : part.replace(/([a-z]{2})(\d)/g, "$1 $2").split(" ")))));
 
       // ── The tree: the client's, each folder with how many series it holds ──
       /** @typedef {{ key: string, label: string, path: string[], kids?: Node[], name?: string, indexes?: string[], count: number }} Node */
@@ -790,18 +800,24 @@
         VSize: ["", "vB", true], Weight: ["", "WU", true], WeightFract: ["", "WU", true], Days: ["", " days"], Hashrate: ["", "H/s", true], FeeRate: ["", " sat/vB"], PerSecond: ["", "/s"], SecondsFract: ["", " s"],
       };
       const SI = ["", "k", "M", "G", "T", "P", "E", "Z", "Y"], SHORT = ["", "K", "M", "B", "T", "Q"];
-      /** A value as read: four digits, a letter for its thousands, its unit around it. */
-      function format(/** @type {number} */ value, /** @type {string} */ type) {
+      /**
+       * A value as read: four digits, a letter for its thousands (from a million; on an axis, `short`, from a thousand,
+       * its ticks alike: 100, 10K, 1M), its unit around it.
+       */
+      function format(/** @type {number} */ value, /** @type {string} */ type, short = false, digits = 4) {
         if (!Number.isFinite(value)) return "—";
         const [prefix, suffix, si] = UNITS[type] ?? ["", ""], sign = value < 0 ? "−" : "", abs = Math.abs(value);
         let text;
-        if (abs >= 1e6 || (si && abs >= 1e3)) {
-          const letters = si ? SI : SHORT, step = Math.min(letters.length - 1, Math.floor(Math.log10(abs) / 3));
-          text = `${(abs / 10 ** (step * 3)).toPrecision(4).replace(/\.?0+$/, "")}${si && suffix && !/^ /.test(suffix) ? " " : ""}${letters[step]}`;
+        if (abs >= (short ? 1e3 : 1e6) || (si && abs >= 1e3)) {
+          const letters = si ? SI : SHORT;
+          let step = Math.min(letters.length - 1, Math.floor(Math.log10(abs) / 3)), mantissa = abs / 10 ** (step * 3);
+          // (Rounded up to a thousand, 999,950 is a million: the next letter's.)
+          if (Number(mantissa.toPrecision(digits)) >= 1000 && step < letters.length - 1) (step++, (mantissa /= 1000));
+          text = `${mantissa.toPrecision(digits).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "")}${si && suffix && !/^ /.test(suffix) ? " " : ""}${letters[step]}`;
         } else if (abs >= 1000) text = grouped.format(Math.round(abs));
         else if (abs === 0) text = "0";
-        else if (abs < 1e-4) text = abs.toExponential(2);
-        else text = abs.toPrecision(4).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+        else if (abs < 1e-4) text = abs.toExponential(digits - 2);
+        else text = abs.toPrecision(digits).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
         return `${sign}${prefix}${text}${si && suffix && !/^ /.test(suffix) && !/[kMGTPEZY]$/.test(text) ? " " : ""}${suffix}`;
       }
       const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -1129,24 +1145,30 @@
         const pad = (high - low) * 0.06, floor = !log && ys.every((y) => y >= 0) ? 0 : -Infinity;
         low = Math.max(floor, low - pad);
         high += pad;
-        const left = 14, right = box.width - 64, top = 10, bottom = box.height - 26;
+        // The value axis's labels first: the plot ends where the widest leaves room for it. (Letters from a thousand, with
+        // as many digits as tell the ticks apart.)
+        ctx.font = `11px ${getComputedStyle(canvas).getPropertyValue("--mono")}`;
+        const values = ticks(low, high, log), apart = (/** @type {string[]} */ texts) => new Set(texts).size === texts.length;
+        let labels = values.map((v) => format(v, type, true));
+        for (let digits = 5; !apart(labels) && digits <= 12; digits++) labels = values.map((v) => format(v, type, true, digits));
+        const widest = Math.max(0, ...labels.map((label) => ctx.measureText(label).width));
+        const left = 14, right = box.width - Math.max(64, Math.ceil(widest) + 16), top = 10, bottom = box.height - 26;
         // (Placed by their index, not their count: a missing stretch keeps its width, a gap in the line.)
         const first = xs[from], span = /** @type {number} */ (xs.at(-1)) - first;
         const X = (/** @type {number} */ x) => left + (span > 0 ? ((x - first) / span) * (right - left) : (right - left) / 2);
         const Y = (/** @type {number} */ y) => bottom - ((scale(y) - low) / (high - low)) * (bottom - top);
         // Its grid and the value axis, at the right.
-        ctx.font = `11px ${getComputedStyle(canvas).getPropertyValue("--mono")}`;
         ctx.fillStyle = color("--faint");
         ctx.strokeStyle = color("--grid");
         ctx.lineWidth = 1;
         ctx.textBaseline = "middle";
-        for (const v of ticks(low, high, log)) {
+        for (const [k, v] of values.entries()) {
           const y = bottom - ((scale(v) - low) / (high - low)) * (bottom - top);
           ctx.beginPath();
           ctx.moveTo(left, Math.round(y) + 0.5);
           ctx.lineTo(right, Math.round(y) + 0.5);
           ctx.stroke();
-          ctx.fillText(format(v, type), right + 8, y);
+          ctx.fillText(labels[k], right + 8, y);
         }
         // Its time axis: a mark where what it reads changes (a year, a month, a day), or round numbers.
         ctx.textBaseline = "alphabetic";
