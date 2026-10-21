@@ -8159,8 +8159,9 @@
           max-width: none;
           margin: auto 0 0;
           border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
-          /* (In from the foot, as the layers sheet; closed, it slides down before it's gone, its backdrop fading, where the
-             browser keeps a closing dialog over the page meanwhile (Safari doesn't: there, gone at once).) */
+          /* (In from the foot, as the layers sheet; closed, it slides down before it's gone, its backdrop fading: where
+             the browser keeps a closing dialog over the page meanwhile, as it closes; in Safari, before (`data-leaving`:
+             see leave); let go of a drag, from there (see slideAway).) */
           transition: transform var(--dur-layout) var(--ease-layout), background var(--dur-small) var(--ease);
 
           /* (Over a dialog's own pop.) */
@@ -13102,8 +13103,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The draw whose data is on screen; behind `drawVersion` while one is loading. */
       let drawnVersion = 0;
       let drawnIndex = "";
+      /** The interval of the data on screen: during a switch, the old one (its data the one drawn till the new one's in). */
+      const shownIndex = () => drawnIndex || chart.index;
       /** Whether what's drawn is at a fine interval (its dates written with their times): during a switch, the old data's. */
-      const fineDrawn = () => FINE.has(drawnIndex || chart.index);
+      const fineDrawn = () => FINE.has(shownIndex());
       let drawnRange = "";
       let drawnChart = "";
       /** Who waits for the chart to be drawn (see settle): woken as it is. @type {Set<() => void>} */
@@ -16673,7 +16676,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const plot = plotBox();
           // Let go: on the side it's on, where along it its middle is. (Taken away, by a touch that scrolled: back.)
           if (plot && at.type === "pointerup") {
-            const speed = speedOf(trail), by = { x: restOf(at.clientX, speed.x) - at.clientX, y: restOf(at.clientY, speed.y) - at.clientY };
+            const thrown = (/** @type {number} */ from, /** @type {(point: { x: number, y: number }) => number} */ along) => restOf(from, speedOf(trail, along)) - from;
+            const by = { x: thrown(at.clientX, (point) => point.x), y: thrown(at.clientY, (point) => point.y) };
             const now = belt.getBoundingClientRect(), side = sideAt(at.clientX + by.x - canvas.left, at.clientY + by.y - canvas.top, plot);
             const middle = upright(side) ? (now.top + by.y + now.height / 2 - canvas.top - plot.top) / plot.height : (now.left + by.x + now.width / 2 - canvas.left - plot.left) / plot.width;
             Object.assign(prefs.belt, { dock: side, at: clamp(middle, 0, 1) });
@@ -19191,9 +19195,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         const end = (/** @type {number} */ y) => {
           if (!pull) return;
-          // (Its speed as it's let go: over its last tenth of a second; held still that long, none.)
-          const now = performance.now(), past = pull.trail.find((point) => now - point.at <= 100) ?? { y, at: now };
-          const by = y - pull.y, speed = (y - past.y) / Math.max(1, now - past.at);
+          // (Its speed as it's let go, the release its trail's last point.)
+          const by = y - pull.y, speed = speedOf([...pull.trail, { y, at: performance.now() }], (point) => point.y);
           pull = null;
           letGo();
           release(by, speed);
@@ -19360,10 +19363,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * flick, a short fast one as far as a long slow drag.
        */
       const restOf = (/** @type {number} */ at, /** @type {number} */ speed) => at + (speed * 0.998) / (1 - 0.998);
-      /** A pointer's speed as it's let go (px/ms, each way): over its last tenth of a second; held still that long, none. @param {{ x: number, y: number, at: number }[]} trail */
-      const speedOf = (trail) => {
+      /**
+       * A pointer's speed as it's let go, along what `along` reads of each point (px/ms): over its last tenth of a second;
+       * held still that long, none. @template P @param {(P & { at: number })[]} trail @param {(point: P) => number} along
+       */
+      const speedOf = (trail, along) => {
         const now = performance.now(), last = trail.at(-1), past = trail.find((point) => now - point.at <= 100) ?? last;
-        return !last || !past ? { x: 0, y: 0 } : { x: (last.x - past.x) / Math.max(1, now - past.at), y: (last.y - past.y) / Math.max(1, now - past.at) };
+        return last && past ? (along(last) - along(past)) / Math.max(1, now - past.at) : 0;
       };
       /** Whether a sheet dragged down goes: it'd come to rest past a third of its height (flicked up, it comes back). */
       const sheetGoes = (/** @type {number} */ by, /** @type {number} */ speed, /** @type {number} */ height) => restOf(by, speed) > height / 3;
@@ -26535,7 +26541,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The stretch a date shows (its middle, as wide as the chart shows, when it's longer), and whether it's all loaded. */
       function stretchOf(span) {
         // (A span running past now, this month or year, ends now: its middle is of what there is.)
-        const step = INTERVAL_DAYS[chart.index] * 86400, range = view.timeScale().getVisibleLogicalRange(), end = Math.min(span.to, Date.now() / 1000), middle = (span.from + end) / 2;
+        const step = INTERVAL_DAYS[shownIndex()] * 86400, range = view.timeScale().getVisibleLogicalRange(), end = Math.min(span.to, Date.now() / 1000), middle = (span.from + end) / 2;
         // (A day shows at the zoom the chart has, centered: that's its stretch.)
         const width = span.day && range ? (range.to - range.from) * step : Math.min(end - span.from, mostBars() * step);
         const from = middle - width / 2, to = Math.min(middle + width / 2, end), times = resolved?.times ?? [];
@@ -26547,9 +26553,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const times = resolved?.times ?? [];
         if (times.length < 2) return "This chart has no data to go to yet";
         // At a fine interval, all of its history (what isn't loaded loads); at a coarse one, the last point stands for its
-        // whole interval (a yearly chart's 2026 takes October).
-        const fine = FINE.has(chart.index), start = fine ? timeAt(chart.index, 0) : times[0];
-        const end = fine ? Date.now() / 1000 : timeAt(chart.index, indexAt(chart.index, /** @type {number} */ (times.at(-1))) + 1);
+        // whole interval (a yearly chart's 2026 takes October). (By the data on screen: see shownIndex.)
+        const index = shownIndex(), fine = FINE.has(index), start = fine ? timeAt(index, 0) : times[0];
+        const end = fine ? Date.now() / 1000 : timeAt(index, indexAt(index, /** @type {number} */ (times.at(-1))) + 1);
         if (span.to >= start && span.from < end) return "";
         return `This chart runs from ${monthYear(start)} to ${monthYear(end - 1)}`;
       }
@@ -26570,36 +26576,33 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function goToDate(span, by = 0, go = ++dateGoes) {
         if (!span || outOfData(span)) return;
-        // (A draw under way (a switch's, another Go's, a block come in) would take the view back as it lands: once it
-        // has, from what it drew.)
-        if (!settled()) return void afterDrawn(go, () => goToDate(span, by, go));
-        const loaded = by > 0 && by === drawnVersion;
         // (Auto, a month or a year asked for: at the interval it asks for, then there (a fine one loads its chunks for it
         // first, below); a day, at the zoom the chart has, as it is.)
-        if (chart.auto && !loaded && !span.day) {
-          const want = autoPick(chart, Math.max(1, (Math.min(span.to, Date.now() / 1000) - span.from) / 86400), view.timeScale().width());
-          if (drawnChart !== chart.id || drawnIndex !== want) {
-            // (Not the one on screen (a switch to it under way, or none): kept as its view at that interval, as one left
-            // there is: drawn once, there, its chunks the ones for it.)
-            const all = viewsNow();
-            all[chart.id] = { index: want, from: [span.from, 0], to: [Math.min(span.to, Date.now() / 1000), 0], at: Date.now() };
-            putViews(all);
-            spans.delete(`${chart.id}@${want}`);
-            chart.index = want;
-            save(false);
-            return void refresh(true);
-          }
-          // (The one on screen, a switch away from it still loading: that switch called off (drawn again as it is, its
-          // draw the latest), then there, once drawn: a glide begun first, the draw would put the view back.)
-          if (chart.index !== want) {
-            autoFade = false;
-            chart.index = want;
-            save(false);
-            refresh(false);
-            void draw();
-            return void afterDrawn(go, () => goToDate(span, 0, go));
-          }
+        const want = chart.auto && !span.day ? autoPick(chart, Math.max(1, (Math.min(span.to, Date.now() / 1000) - span.from) / 86400), view.timeScale().width()) : null;
+        // (Not the one on screen (a switch to it under way, to another, or none): kept as its view at that interval, as
+        // one left there is: drawn once, there, its chunks the ones for it, its draw the latest.)
+        if (want && (drawnChart !== chart.id || drawnIndex !== want)) {
+          const all = viewsNow();
+          all[chart.id] = { index: want, from: [span.from, 0], to: [Math.min(span.to, Date.now() / 1000), 0], at: Date.now() };
+          putViews(all);
+          spans.delete(`${chart.id}@${want}`);
+          chart.index = want;
+          save(false);
+          return void refresh(true);
         }
+        // (The one on screen, a switch away from it still loading: that switch called off, the chart drawn again as it
+        // is (its draw the latest), then there once drawn: a glide begun first, the draw would put the view back.)
+        if (want && chart.index !== want) {
+          autoFade = false;
+          chart.index = want;
+          save(false);
+          refresh(true);
+          return void afterDrawn(go, () => goToDate(span, 0, go));
+        }
+        // (Any other draw under way (another Go's, a block come in) would take the view back as it lands: once it has,
+        // from what it drew.)
+        if (!settled()) return void afterDrawn(go, () => goToDate(span, by, go));
+        const loaded = by > 0 && by === drawnVersion;
         // Past what a fine interval has loaded: the chunks around it load first (joined to those held when they meet,
         // the most held at once kept on its side), then the view goes there.
         const held = spanOf(chart), stretch = stretchOf(span);
@@ -26632,7 +26635,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function previewDate(panel, span) {
         const why = span ? outOfData(span) : "";
         // (At a fine interval, a stretch not loaded yet loads first: nothing to light or count until then.)
-        const away = Boolean(span && !why && FINE.has(chart.index) && !stretchOf(span).loaded);
+        const away = Boolean(span && !why && fineDrawn() && !stretchOf(span).loaded);
         const points = span && !why && !away ? pointsOf(span) : null, wide = points && points.last - points.first + 1 > mostBars();
         panel.innerHTML = `<h4 class="plain">${span ? escape(span.label) : "Go to a date"}</h4>
           <p class="description">${escape(!span ? "A year or a month is shown whole; a day, centered at the zoom the chart has." : why || (away ? "Loads first, then shows it." : span.day ? "Centered, at the zoom the chart has." : wide ? "Its middle: all of it takes a longer interval." : "Shown whole, edge to edge."))}</p>
@@ -28963,15 +28966,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Typing into a field (a tick isn't one: keys still do what they do). */
       const typing = (target) => (target instanceof HTMLInputElement && !["checkbox", "radio", "button"].includes(target.type)) || target instanceof HTMLTextAreaElement || target?.isContentEditable;
       // The keyboard, by touch. iOS lays it over the page (its viewport the same: what's under it, hidden) and, a field
-      // under it tapped, moves the whole page up to it (the header, a sheet's top, off the screen); Android makes the page
-      // as short as it leaves (resizes-content). While it's up (typing, and the page's foot under it, or the page a quarter
-      // shorter, not as the focus says: a field can keep it with the keyboard put away), `data-keys` ("covering" the
-      // page's foot, iOS's; "shortening" the page, Android's), the bars out of its way, and `--keys`, how much of the page's foot it covers (iOS's; none where the page is made shorter): a sheet's
-      // list goes on to its top. A field in a phone's sheet tapped (the layers', ⌘K), not focused yet, is focused where it
-      // is, its caret where it was tapped (the page left in place; a half sheet made whole once the keyboard's up, as ⌘K
-      // is: see onceKeys), and scrolled into what shows (seen on iOS 26.5: focused so, the page doesn't move, however low
-      // the field: its list scrolls). A tap in a field focused already is the browser's (its caret, a word selected).
-      // A menu's (a color's hex) is iOS's: no list there to scroll, iOS moves the page up to it, smoothly, on its own.
+      // under it tapped, moves the whole page up to it (the header, a sheet's top, off the screen); Android makes the
+      // page as short as it leaves (resizes-content). While it's up (typing, and the page's foot under it, or the page
+      // a quarter shorter, not as the focus says: a field can keep it with the keyboard put away), `data-keys`
+      // ("covering" the page's foot, iOS's; "shortening" the page, Android's), the bars out of its way, and `--keys`,
+      // how much of the page's foot it covers (iOS's; none where the page is made shorter): a sheet's list goes on to
+      // its top. A field in a phone's sheet tapped (the layers', ⌘K), not focused yet, is focused where it is, its
+      // caret where it was tapped (the page left in place; a half sheet made whole once the keyboard's up, as ⌘K is:
+      // see onceKeys), and scrolled into what shows (seen on iOS 26.5: focused so, the page doesn't move, however low
+      // the field: its list scrolls). A tap in a field focused already is the browser's (its caret, a word selected). A
+      // menu's (a color's hex) is iOS's: no list there to scroll, iOS moves the page up to it, smoothly, on its own.
       {
         const root = document.documentElement;
         /** The page's height with no keyboard, at each width it's had (a screen turned with the keyboard up, the other's). */
@@ -28998,10 +29002,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           tallest.set(innerWidth, most);
           const under = Math.max(0, Math.round(layout - viewport.height));
           // (By touch: a window made shorter by a mouse isn't a keyboard.)
-          const up = TOUCH && typing(document.activeElement) && (under > 120 || most - layout > most / 4);
-          if (up) document.body.dataset.keys = under ? "covering" : "shortening";
+          // (Covering by what's under it; else by the page made shorter: a pixel's rounding there is none.)
+          const covering = under > 120, up = TOUCH && typing(document.activeElement) && (covering || most - layout > most / 4);
+          if (up) document.body.dataset.keys = covering ? "covering" : "shortening";
           else delete document.body.dataset.keys;
-          if ((up ? under : 0) !== covered) root.style.setProperty("--keys", `${(covered = up ? under : 0)}px`);
+          const keys = up && covering ? under : 0;
+          if (keys !== covered) root.style.setProperty("--keys", `${(covered = keys)}px`);
           if (up) keysCame(), reveal();
         };
         viewport.addEventListener("resize", read);
