@@ -9180,6 +9180,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       const css = (/** @type {string} */ name) => tokens.get(name) ?? (tokens.set(name, token(name)), tokens.get(name));
       const uid = () => Math.random().toString(36).slice(2, 10);
+      /** A key that's part of an IME's composing (a candidate confirmed, put away): the IME's, not the page's. (Safari's
+       * confirming Enter comes after the composition ends, as key 229.) @param {KeyboardEvent} event */
+      const composing = (event) => event.isComposing || event.keyCode === 229;
       /** A short fingerprint of a text (two FNV-1a passes, as letters and digits): the same text, the same one. */
       const hashOf = (/** @type {string} */ text) => {
         let a = 0x811c9dc5, b = 0x050c5d1f;
@@ -11578,9 +11581,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!home) redo();
       }
       function travel(/** @type {"past" | "future"} */ back, /** @type {"past" | "future"} */ forth) {
-        // A field being typed into is kept first (a step of its own: the steps are read after it); what's being drawn or
-        // moved, of the chart as it is, goes.
+        // A field being typed into is kept first (a step of its own: the steps are read after it), a color picked and
+        // waiting for its frame too; what's being drawn or moved, of the chart as it is, goes.
         leaveField();
+        flushPick();
         stopDrawing();
         const from = edits[back], to = edits[forth];
         const state = from.pop();
@@ -17433,7 +17437,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("draw-text").addEventListener("blur", endTyping);
       $("draw-text").addEventListener("keydown", (event) => {
         // (Enter mid-composition is the input method's. A label is one line: ⇧Enter puts it down too.)
-        if (event.isComposing || !((event.key === "Enter" && (!event.shiftKey || writing?.label)) || event.key === "Escape")) return;
+        if (composing(event) || !((event.key === "Enter" && (!event.shiftKey || writing?.label)) || event.key === "Escape")) return;
         event.preventDefault();
         const back = writing?.back;
         $("draw-text").blur();
@@ -18914,7 +18918,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Kept at once where the page leaves it: a save, another chart opened.)
         naming = { input, find, finish: () => finish(true, false) };
         input.addEventListener("keydown", (event) => {
-          if (event.isComposing || (event.key !== "Enter" && event.key !== "Escape")) return;
+          if (composing(event) || (event.key !== "Enter" && event.key !== "Escape")) return;
           event.preventDefault();
           event.stopPropagation();
           finish(event.key === "Enter", true);
@@ -21001,7 +21005,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // tree: → opens a folder (a group's head), then goes into it; ← closes it, then goes to the one it's in, as from a
       // chart. (The heads a level above the rows; on the rail, out of sight, none.)
       $("chart-list").addEventListener("keydown", (event) => {
-        if (event.isComposing || typing(event.target)) return;
+        if (composing(event) || typing(event.target)) return;
         const rows = all$(`.chart-row:not([inert]), .folder-row:not([inert])${railed() ? "" : ", .list-head"}`, $("chart-list")), row = /** @type {HTMLElement | null} */ (closest(event, ".chart-row, .folder-row, .list-head"));
         const first = (/** @type {HTMLElement | undefined} */ each) => /** @type {HTMLElement | null | undefined} */ (each?.querySelector(".nav-item, .list-head-name"));
         const level = (/** @type {HTMLElement} */ each) => (each.classList.contains("list-head") ? -1 : depthOf(each));
@@ -24671,6 +24675,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         query: "",
         controller: /** @type {AbortController | null} */ (null),
         timer: 0,
+        /** The rows waiting for `timer` to be drawn (↵ draws them first). @type {(() => void) | null} */
+        pending: null,
         moved: false,
         /** @type {string | null} the row to land on when going back up (the folder or page just left) */
         landOn: null,
@@ -25029,6 +25035,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function showPalette() {
         const query = palette.query.trim();
         clearTimeout(palette.timer);
+        palette.pending = null;
         palette.controller?.abort();
         $("palette-glow").hidden = true;
         renderPath();
@@ -25135,12 +25142,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         palette.landOn = null;
         const landing = (items) => Math.max(0, items.findIndex((item) => item.key === landOn));
         const searching = () => {
+          clearTimeout(palette.timer);
+          palette.pending = null;
           palette.items = local;
           palette.active = landing(local);
+          palette.moved = false;
           $("palette-glow").hidden = false;
           renderPalette(true);
         };
-        if (finder.ready) palette.timer = setTimeout(searching, 80);
+        // (Drawn a moment later; meanwhile a key on the list (↵ too) draws these first and goes on with them, a click or a
+        // hover on the last query's rows only draws them: nothing's done to a list no longer typed.)
+        if (finder.ready) (palette.timer = setTimeout(searching, 80)), (palette.pending = searching);
         else searching();
         // ("add price" is a search for price: ↵ adds it. The top result leads, or the row come back to.)
         searchSeries(query.replace(/^add\s+(?=\S)/i, ""), (names) => {
@@ -25164,6 +25176,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const settle = (/** @type {string[] | null} */ names, note = "") => {
           if (controller.signal.aborted) return;
           clearTimeout(palette.timer);
+          palette.pending = null;
           const active = palette.items[palette.active];
           palette.items = compose(names);
           palette.active = palette.moved ? Math.max(0, palette.items.indexOf(active)) : lead(palette.items);
@@ -26905,10 +26918,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         showPalette();
       });
       $("palette-input").addEventListener("keydown", (event) => {
-        if (event.isComposing) return;
-        if (event.key === "ArrowDown") move(event.shiftKey ? 5 : 1);
-        else if (event.key === "ArrowUp") move(event.shiftKey ? -5 : -1);
-        else if (event.key === "Enter") event.repeat || choose(event.shiftKey, event.metaKey || event.ctrlKey);
+        if (composing(event)) return;
+        // (The list's keys as they're said (↑↓, ⇧ by five; ↵, ⇧↵, ⌘↵): another chord's the field's, ⌘↑ to its start.)
+        const plain = !event.metaKey && !event.ctrlKey && !event.altKey;
+        if (["ArrowDown", "ArrowUp", "ArrowRight", "Enter", "Tab"].includes(event.key)) palette.pending?.();
+        if (event.key === "ArrowDown" && plain) move(event.shiftKey ? 5 : 1);
+        else if (event.key === "ArrowUp" && plain) move(event.shiftKey ? -5 : -1);
+        else if (event.key === "Enter" && !event.altKey) event.repeat || choose(event.shiftKey, event.metaKey || event.ctrlKey);
         else if (event.key === "ArrowRight" && (palette.items[palette.active]?.kind === "folder" || palette.items[palette.active]?.page || palette.items[palette.active]?.leads) && event.target.selectionStart === event.target.value.length) choose();
         else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && palette.pages.length) popPage();
         else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && palette.path.length) goUp(palette.path.length - 1);
@@ -26929,18 +26945,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("palette-list").addEventListener("click", (event) => {
         const option = closest(event, "[data-option]");
         if (!option) return;
+        if (palette.pending) return palette.pending();
         palette.active = Number(option.dataset.option);
         choose(event.shiftKey);
       });
       $("palette-list").addEventListener("mousemove", (event) => {
+        if (palette.pending) return palette.pending();
         const option = closest(event, "[data-option]");
         if (option && Number(option.dataset.option) !== palette.active) move(Number(option.dataset.option) - palette.active, false);
       });
+      // (The foot's ↵ and Actions as their keys: rows waiting, drawn first.)
       $("palette-enter").addEventListener("click", () => {
+        palette.pending?.();
         choose(false);
         if ($("palette").open) paletteKeys();
       });
-      $("palette-actions").addEventListener("click", () => showActions());
+      $("palette-actions").addEventListener("click", () => (palette.pending?.(), showActions()));
       // By a finger, a row held: its other actions (there's no foot's Actions by touch); moved, it's a scroll.
       {
         let rowHold = 0, rowHeld = false, at = /** @type {[number, number]} */ ([0, 0]);
@@ -27665,7 +27685,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       document.addEventListener("keydown", (event) => {
         const field = event.target;
-        if (!(field instanceof HTMLInputElement) || !field.matches(FIELDS) || (event.key !== "Enter" && event.key !== "Escape")) return;
+        if (!(field instanceof HTMLInputElement) || !field.matches(FIELDS) || composing(event) || (event.key !== "Enter" && event.key !== "Escape")) return;
         event.preventDefault();
         if (event.key === "Escape" && typedFrom.has(field) && field.value !== typedFrom.get(field)) {
           field.value = typedFrom.get(field);
