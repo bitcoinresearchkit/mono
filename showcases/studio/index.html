@@ -392,6 +392,11 @@
             max-width: 100%;
             max-height: calc(100dvh - 32px);
           }
+
+          /* (Out of sight till it's its turn: see pictureDrawing.) */
+          #picture-note:not([data-shown]) {
+            visibility: hidden;
+          }
         }
       }
 
@@ -12061,11 +12066,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return out;
         };
         const ring = (points) => `M${points.map(([x, y]) => `${x.toFixed(4)} ${y.toFixed(4)}`).join("L")}Z`;
-        /** The mark at a fill, turned by `yaw` (REST: as it rests); `spinning` (0 to 1) draws it as the box at any angle. */
-        const draw = (fill, yaw, spinning = 0) => {
+        /**
+         * The mark at a fill, turned by `yaw` (REST: as it rests); `spinning` (0 to 1) draws it as the box at any angle.
+         * (`opened`: the flat opening at that fill, made once for a blur's copies.)
+         */
+        const draw = (fill, yaw, spinning = 0, opened = flat(fill)) => {
           const box = hull([...seen(BOX, HALF_HEIGHT, yaw), ...seen(BOX, -HALF_HEIGHT, yaw)]);
           const k = Math.max(spinning, Math.abs(Math.sin(2 * (yaw - REST)))), level = HALF_HEIGHT - (1 - fill) * 2 * HALF_HEIGHT;
-          const opening = k < 1e-6 ? flat(fill) : blend(flat(fill), hull([...seen(OPEN, HALF_HEIGHT, yaw), ...seen(OPEN, level, yaw)]), k);
+          const opening = k < 1e-6 ? opened : blend(opened, hull([...seen(OPEN, HALF_HEIGHT, yaw), ...seen(OPEN, level, yaw)]), k);
           return ring(box) + ring(opening);
         };
         first.setAttribute("d", draw(1, REST));
@@ -12177,7 +12185,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (!rest.has(n)) rest.set(n, draw(n / 240, REST));
             shapes = [rest.get(n)];
           } else if (sweep < 0.005) shapes = [draw(fill, REST + angle, spinning)];
-          else shapes = Array.from({ length: COPIES }, (_, j) => draw(fill, REST + from - j * step, spinning));
+          else {
+            const opened = flat(fill);
+            shapes = Array.from({ length: COPIES }, (_, j) => draw(fill, REST + from - j * step, spinning, opened));
+          }
           const opacity = shapes.length === 1 ? "1" : String(1 - 0.005 ** (1 / COPIES));
           paths.forEach((path, i) => {
             const d = shapes[i] ?? "", seen = written[i];
@@ -12310,7 +12321,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // either end of it loads the next one out. Older chunks are final, fetched once; the latest two again as blocks
       // come. Coming back to a view left in the past (a reload), only the chunks it covers load.
 
-      /** @typedef {{ from: number, to: number, live: boolean, rest?: number }} Span the chunks a chart holds, `live` while they reach the latest; `rest`: no reaching out before then (a chunk failed) */
+      /** @typedef {{ from: number, to: number, live: boolean, rest?: number, floor?: { at: number, of: string } }} Span the chunks a chart holds, `live` while they reach the latest; `rest`: no reaching out before then (nothing came from there); `floor`: the oldest with points for the series it was found with (those before it came empty: they start later) */
       /** The chunk a time falls in, at a fine interval. */
       const chunkAt = (index, time) => Math.floor(indexAt(index, time) / CHUNK);
       /** The chunk the latest points are in, by the clock. */
@@ -14849,7 +14860,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function nearEnd(span, range, n) {
         const near = Math.max(CHUNK, (range.to - range.from) / 2);
-        return range.from < near && span.from > 0 ? -1 : range.to > n - 1 - near && !span.live ? 1 : 0;
+        const floor = span.floor && span.floor.of === seriesIn(chart).sort().join() ? span.floor.at : 0;
+        return range.from < near && span.from > floor ? -1 : range.to > n - 1 - near && !span.live ? 1 : 0;
       }
       /**
        * The next chunk out, asked for as soon as the view comes close to an end of what's held (mid-gesture too, as an
@@ -14864,11 +14876,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!side) return;
         const k = side < 0 ? span.from - 1 : span.to + 1;
         for (const name of seriesIn(chart)) {
-          // (Only series it has: not one a formula half names, nor one without this interval.)
-          if ((catalogIndex && !catalogIndex.has(name)) || (known.get(name) && !known.get(name).indexes.includes(chart.index))) continue;
-          if (!chunks.has(`${name}@${chart.index}#${k}`)) loadChunk(name, chart.index, k, false);
+          if (chunked(name, chart.index) && !chunks.has(`${name}@${chart.index}#${k}`)) loadChunk(name, chart.index, k, false);
         }
       }
+      /** A series the server has at an interval, by chunks: not one a formula half names, nor one without it. */
+      const chunked = (name, index) => !((catalogIndex && !catalogIndex.has(name)) || (known.get(name) && !known.get(name).indexes.includes(index)));
       /**
        * At a fine interval, the view close to either end of what's loaded, at rest (drawn mid-gesture, the view would
        * leap): the next chunk out, older as it goes back, newer back to the latest (what's loaded stays, up to the most
@@ -15159,13 +15171,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // Another draw took its place: nothing to judge (that one shows what is).
         if (!drew) return;
-        // Nothing more on that side (the chunk failed): back as it was (drawn again, the far end it let go back too), and a
-        // rest before trying that side again.
+        // Nothing more on that side: back as it was (drawn again, the far end it let go back too), and a rest before trying
+        // that side again.
         const now = by < 0 ? resolved?.times[0] : resolved?.times.at(-1);
         if (reached !== undefined && now !== undefined && (by < 0 ? now >= reached : now <= reached)) {
-          const dropped = by < 0 ? span.to < was.to : span.from > was.from;
+          const dropped = by < 0 ? span.to < was.to : span.from > was.from, k = by < 0 ? span.from : span.to, names = seriesIn(chart);
           Object.assign(span, was, { rest: Date.now() + 5000 });
           if (dropped) void draw();
+          // An older chunk that came empty for every series the chart reads (none failed; not judged by what's drawn: a
+          // formula's result is trimmed of its leading zeros): none older asked for again, its series starting later.
+          if (by < 0) {
+            // (One not held any more, the cache's oldest let go, counts as not: only a series without chunks has none.)
+            const empty = await Promise.all(names.map((name) => chunks.get(`${name}@${index}#${k}`)?.then((got) => got.data.every((value) => value == null), () => false) ?? !chunked(name, index)));
+            if (empty.every(Boolean)) span.floor = { at: was.from, of: names.sort().join() };
+          }
           return;
         }
         // Once the chart has moved the view onto its new points (on its next frame): judged before, the view it had would
@@ -29246,6 +29265,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const shared = key ? params.get(key) : null;
         if (!shared) return null;
         picturing = key === "image";
+        if (picturing) pictureDrawing();
         Object.assign(reading, { hash: location.hash, run, at });
         // (Read, the link goes from the address bar (see clearLink); one that can't be read stays as it is, to be put
         // right there.)
@@ -29389,8 +29409,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         document.body.toggleAttribute("data-picture", true);
         layOutAlone(true);
         const image = /** @type {HTMLImageElement} */ ($("picture-img"));
-        $("picture-open").hidden = true;
-        $("picture-note").hidden = false;
+        pictureDrawing();
         try {
           // (The chart as the window lays it out: a link's picture, across it; its legends' marks its own lines, not the
           // faint ones they show till its mini chart's drawn.)
@@ -29403,7 +29422,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (run !== pictureRun || !picturing) return;
           image.src = url;
           image.alt = `${titleOf(chart)}. ${chartFacts()}`;
-          $("picture-leave").hidden = true;
           // (Its link as Copy link writes it, compressed: shown once it's this picture's.)
           const link = await shareLink(chart);
           if (run !== pictureRun || !picturing) return;
@@ -29415,11 +29433,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           pictureFailed(`Couldn't make its picture: ${/** @type {Error} */ (error).message}`);
         }
       }
+      /** The picture-note's showings, counted: one a newer has taken over shows nothing. */
+      let noteRun = 0;
+      /**
+       * A picture being drawn: a picture or a failure before it put away, and its note said after a moment, once the page's
+       * fonts are in (a picture made at once shows none, and the note's never in the font before Inter).
+       */
+      function pictureDrawing() {
+        const run = ++noteRun, note = $("picture-note");
+        $("picture-open").hidden = true;
+        $("picture-leave").hidden = true;
+        note.hidden = false;
+        delete note.dataset.shown;
+        note.textContent = "Drawing the chart…";
+        setTimeout(() => void document.fonts.ready.then(() => run === noteRun && (note.dataset.shown = "")), 800);
+      }
       /** A picture's link that gives none: the page says why (its title too, what a screenshot or a tab shows), Studio a click away. */
       function pictureFailed(/** @type {string} */ why) {
         document.body.toggleAttribute("data-picture", true);
         $("picture-open").hidden = true;
+        noteRun++;
         $("picture-note").hidden = false;
+        $("picture-note").dataset.shown = "";
         $("picture-note").textContent = why;
         $("picture-leave").hidden = false;
         document.title = why;
