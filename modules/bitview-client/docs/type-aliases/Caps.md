@@ -8,7 +8,7 @@
 
 > **Caps** = `object`
 
-Defined in: [modules/bitview-client/index.js:3085](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3085)
+Defined in: [modules/bitview-client/index.js:3095](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3095)
 
 ## Type Parameters
 

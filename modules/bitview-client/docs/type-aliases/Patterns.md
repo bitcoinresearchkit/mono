@@ -8,7 +8,7 @@
 
 > **Patterns** = `object`
 
-Defined in: [modules/bitview-client/index.js:4842](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4842)
+Defined in: [modules/bitview-client/index.js:4852](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4852)
 
 ## Type Parameters
 

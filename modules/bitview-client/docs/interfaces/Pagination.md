@@ -6,7 +6,7 @@
 
 # Interface: Pagination
 
-Defined in: [modules/bitview-client/index.js:913](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L913)
+Defined in: [modules/bitview-client/index.js:918](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L918)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:913](https://github.com/bitcoinrese
 
 > `optional` **page?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:914](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L914)
+Defined in: [modules/bitview-client/index.js:919](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L919)
 
 Zero-based page number (default: 0)
 
@@ -24,6 +24,6 @@ Zero-based page number (default: 0)
 
 > `optional` **perPage?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:915](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L915)
+Defined in: [modules/bitview-client/index.js:920](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L920)
 
 Results per page (default: 1000, max: 1000)

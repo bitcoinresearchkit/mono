@@ -8,7 +8,7 @@
 
 > **BlocksHalving** = `object`
 
-Defined in: [modules/bitview-client/index.js:4166](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4166)
+Defined in: [modules/bitview-client/index.js:4176](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4176)
 
 ## Type Parameters
 

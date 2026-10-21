@@ -6,7 +6,7 @@
 
 # Interface: PoolHashrateEntry
 
-Defined in: [modules/bitview-client/index.js:968](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L968)
+Defined in: [modules/bitview-client/index.js:973](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L973)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:968](https://github.com/bitcoinrese
 
 > **avgHashrate**: `number`
 
-Defined in: [modules/bitview-client/index.js:970](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L970)
+Defined in: [modules/bitview-client/index.js:975](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L975)
 
 Average hashrate (H/s)
 
@@ -24,7 +24,7 @@ Average hashrate (H/s)
 
 > **poolName**: `string`
 
-Defined in: [modules/bitview-client/index.js:972](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L972)
+Defined in: [modules/bitview-client/index.js:977](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L977)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: [modules/bitview-client/index.js:972](https://github.com/bitcoinrese
 
 > **share**: `number`
 
-Defined in: [modules/bitview-client/index.js:971](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L971)
+Defined in: [modules/bitview-client/index.js:976](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L976)
 
 Pool's share of total network hashrate (0.0 - 1.0)
 
@@ -42,6 +42,6 @@ Pool's share of total network hashrate (0.0 - 1.0)
 
 > **timestamp**: `number`
 
-Defined in: [modules/bitview-client/index.js:969](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L969)
+Defined in: [modules/bitview-client/index.js:974](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L974)
 
 Unix timestamp

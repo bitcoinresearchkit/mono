@@ -7,7 +7,7 @@ use axum::{
     http::HeaderMap,
     response::{IntoResponse, Response},
 };
-use bitview_types::{DiskUsage, Health, HealthStatus, SyncStatus};
+use bitview_types::{DiskUsage, Health, HealthStatus, ServerVersion, SyncStatus};
 use jiff::Timestamp;
 
 use super::AppState;
@@ -33,7 +33,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 let mut response = Json(Health {
                     status: HealthStatus::Healthy,
                     service: Cow::Borrowed("brk"),
-                    version: Cow::Borrowed(VERSION),
+                    version: ServerVersion(Cow::Borrowed(VERSION)),
                     timestamp,
                     started_at: state.started_at.to_string(),
                     uptime_seconds: uptime.as_secs(),
@@ -64,7 +64,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .tag(tags::SERVER)
                     .mcp_ignore()
                     .summary("API version")
-                    .json_response::<String>()
+                    .json_response::<ServerVersion>()
                     .not_modified()
             },
         ),

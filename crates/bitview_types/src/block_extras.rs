@@ -1,4 +1,4 @@
-use brk_types::{Address, Dollars, FeeRate, Hex, Sats, Timestamp, Weight};
+use brk_types::{Address, BlockHash, Dollars, FeeRate, Hex, Sats, Timestamp, Weight};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -119,7 +119,7 @@ pub struct BlockExtras {
     pub first_seen: Option<Timestamp>,
 
     /// Orphaned blocks (always empty)
-    pub orphans: Vec<String>,
+    pub orphans: Vec<BlockHash>,
 
     /// USD price at block height
     pub price: Dollars,

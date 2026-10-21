@@ -8,7 +8,7 @@
 
 > **Respent** = `object`
 
-Defined in: [modules/bitview-client/index.js:5201](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5201)
+Defined in: [modules/bitview-client/index.js:5211](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5211)
 
 ## Type Parameters
 

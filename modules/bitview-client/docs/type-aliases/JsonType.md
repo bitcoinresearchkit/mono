@@ -8,6 +8,6 @@
 
 > **JsonType** = `"null"` \| `"boolean"` \| `"integer"` \| `"number"` \| `"string"` \| `"array"` \| `"object"`
 
-Defined in: [modules/bitview-client/index.js:683](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L683)
+Defined in: [modules/bitview-client/index.js:688](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L688)
 
 ## Type Parameters

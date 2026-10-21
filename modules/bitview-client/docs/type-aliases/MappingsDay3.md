@@ -8,7 +8,7 @@
 
 > **MappingsDay3** = `object`
 
-Defined in: [modules/bitview-client/index.js:6110](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6110)
+Defined in: [modules/bitview-client/index.js:6120](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6120)
 
 ## Type Parameters
 

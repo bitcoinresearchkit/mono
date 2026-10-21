@@ -8,7 +8,7 @@
 
 > **Outputs** = `object`
 
-Defined in: [modules/bitview-client/index.js:5905](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5905)
+Defined in: [modules/bitview-client/index.js:5915](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5915)
 
 ## Type Parameters
 

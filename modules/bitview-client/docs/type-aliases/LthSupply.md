@@ -8,7 +8,7 @@
 
 > **LthSupply** = `object`
 
-Defined in: [modules/bitview-client/index.js:4239](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4239)
+Defined in: [modules/bitview-client/index.js:4249](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4249)
 
 ## Type Parameters
 

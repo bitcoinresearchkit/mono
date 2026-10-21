@@ -3,14 +3,14 @@ use std::borrow::Cow;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::SyncStatus;
+use crate::{ServerVersion, SyncStatus};
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Health {
     pub status: HealthStatus,
     #[schemars(extend("const" = "brk"))]
     pub service: Cow<'static, str>,
-    pub version: Cow<'static, str>,
+    pub version: ServerVersion,
     /// Current server time (ISO 8601)
     #[schemars(extend("format" = "date-time"))]
     pub timestamp: String,

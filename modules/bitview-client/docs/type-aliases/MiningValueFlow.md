@@ -8,7 +8,7 @@
 
 > **MiningValueFlow** = `object`
 
-Defined in: [modules/bitview-client/index.js:4111](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4111)
+Defined in: [modules/bitview-client/index.js:4121](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4121)
 
 ## Type Parameters
 

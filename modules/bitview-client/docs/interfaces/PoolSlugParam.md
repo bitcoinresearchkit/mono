@@ -6,7 +6,7 @@
 
 # Interface: PoolSlugParam
 
-Defined in: [modules/bitview-client/index.js:991](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L991)
+Defined in: [modules/bitview-client/index.js:996](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L996)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [modules/bitview-client/index.js:991](https://github.com/bitcoinrese
 
 > **slug**: [`PoolSlug`](../type-aliases/PoolSlug.md)
 
-Defined in: [modules/bitview-client/index.js:992](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L992)
+Defined in: [modules/bitview-client/index.js:997](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L997)

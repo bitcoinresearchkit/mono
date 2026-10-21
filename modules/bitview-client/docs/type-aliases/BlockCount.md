@@ -8,7 +8,7 @@
 
 > **BlockCount** = `object`
 
-Defined in: [modules/bitview-client/index.js:4421](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4421)
+Defined in: [modules/bitview-client/index.js:4431](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4431)
 
 ## Type Parameters
 

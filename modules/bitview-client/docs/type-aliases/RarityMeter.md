@@ -8,7 +8,7 @@
 
 > **RarityMeter** = `object`
 
-Defined in: [modules/bitview-client/index.js:2963](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2963)
+Defined in: [modules/bitview-client/index.js:2973](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2973)
 
 ## Type Parameters
 

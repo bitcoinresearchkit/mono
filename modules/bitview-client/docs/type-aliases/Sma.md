@@ -8,7 +8,7 @@
 
 > **Sma** = `object`
 
-Defined in: [modules/bitview-client/index.js:3534](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3534)
+Defined in: [modules/bitview-client/index.js:3544](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3544)
 
 ## Type Parameters
 

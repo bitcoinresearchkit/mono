@@ -8,7 +8,7 @@
 
 > **MappingsEpoch** = `object`
 
-Defined in: [modules/bitview-client/index.js:6185](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6185)
+Defined in: [modules/bitview-client/index.js:6195](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6195)
 
 ## Type Parameters
 

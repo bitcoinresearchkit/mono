@@ -106,10 +106,11 @@ has to be deleted by hand.
   `MerkleNode`s, its extras' `coinbaseRaw` and `header` `Hex`, `coinbaseAddress`, `coinbaseAddresses` and a pool's
   `addresses` `Address`es and `firstSeen` a `Timestamp`; inputs' `scriptsig` and `witness` and outputs' `scriptpubkey`
   are `Hex`; series search and `GET /api/series/list` return `SeriesName`s, `GET /api/v1/transaction-times`
-  `Timestamp`s; a series' JSON `type` is `JsonType` and `/health`'s `status` `HealthStatus` (`healthy`); ISO 8601 times
-  are `date-time`s and `reward-stats` totals digit strings; a difficulty adjustment is the tuple `[Timestamp, Height,
-  number, number]` (was `number[]`). The document's tuples are `prefixItems`, as OpenAPI 3.1 has them (was draft-07's
-  `items` array)
+  `Timestamp`s; a series' JSON `type` is `JsonType`, `/health`'s `status` `HealthStatus` (`healthy`) and its `version`,
+  as `GET /version`'s answer, `ServerVersion` (SemVer); an index's `aliases` are `IndexAlias`es, every name REST queries
+  accept; a block's `orphans` are `BlockHash`es; ISO 8601 times are `date-time`s and `reward-stats` totals digit
+  strings; a difficulty adjustment is the tuple `[Timestamp, Height, number, number]` (was `number[]`). The document's
+  tuples are `prefixItems`, as OpenAPI 3.1 has them (was draft-07's `items` array)
 - Relations to nothing are null instead of a maximum-value marker: `spending_txin_index` while an output is unspent,
   and a coinbase input's `outpoint`, `spent_txout_index` and `type_index` (its `output_type` stays `unknown`)
 - One unit per quantity: the `_cents` copies of USD series, the `_sats` copies of BTC amounts and the sats-per-USD

@@ -8,6 +8,6 @@
 
 > **Ratio** = `number`
 
-Defined in: [modules/bitview-client/index.js:1042](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1042)
+Defined in: [modules/bitview-client/index.js:1047](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1047)
 
 ## Type Parameters

@@ -8,6 +8,6 @@
 
 > **P2WSHBytes** = `string`
 
-Defined in: [modules/bitview-client/index.js:899](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L899)
+Defined in: [modules/bitview-client/index.js:904](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L904)
 
 ## Type Parameters

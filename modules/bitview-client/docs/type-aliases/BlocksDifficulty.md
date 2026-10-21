@@ -8,7 +8,7 @@
 
 > **BlocksDifficulty** = `object`
 
-Defined in: [modules/bitview-client/index.js:4182](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4182)
+Defined in: [modules/bitview-client/index.js:4192](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4192)
 
 ## Type Parameters
 

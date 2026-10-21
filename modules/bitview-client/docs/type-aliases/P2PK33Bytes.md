@@ -8,6 +8,6 @@
 
 > **P2PK33Bytes** = `string`
 
-Defined in: [modules/bitview-client/index.js:839](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L839)
+Defined in: [modules/bitview-client/index.js:844](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L844)
 
 ## Type Parameters

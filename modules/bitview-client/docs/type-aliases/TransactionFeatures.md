@@ -8,7 +8,7 @@
 
 > **TransactionFeatures** = `object`
 
-Defined in: [modules/bitview-client/index.js:6757](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6757)
+Defined in: [modules/bitview-client/index.js:6767](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6767)
 
 ## Type Parameters
 

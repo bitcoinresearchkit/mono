@@ -8,7 +8,7 @@
 
 > **CohortSupply** = `object`
 
-Defined in: [modules/bitview-client/index.js:4305](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4305)
+Defined in: [modules/bitview-client/index.js:4315](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4315)
 
 ## Type Parameters
 

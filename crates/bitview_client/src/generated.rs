@@ -2345,7 +2345,7 @@ impl BitviewClient {
     /// API version
     ///
     /// Endpoint: `GET /version`
-    pub fn get_version(&self) -> Result<String> {
+    pub fn get_version(&self) -> Result<ServerVersion> {
         self.base.get_json(&format!("/version"))
     }
 

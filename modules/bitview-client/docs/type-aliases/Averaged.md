@@ -8,7 +8,7 @@
 
 > **Averaged**\<`A`, `B`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:5007](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5007)
+Defined in: [modules/bitview-client/index.js:5017](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5017)
 
 ## Type Parameters
 

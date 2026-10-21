@@ -8,7 +8,7 @@
 
 > **Ath** = `object`
 
-Defined in: [modules/bitview-client/index.js:3619](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3619)
+Defined in: [modules/bitview-client/index.js:3629](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3629)
 
 ## Type Parameters
 

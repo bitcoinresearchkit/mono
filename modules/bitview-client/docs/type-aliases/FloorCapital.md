@@ -8,7 +8,7 @@
 
 > **FloorCapital** = `object`
 
-Defined in: [modules/bitview-client/index.js:2980](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2980)
+Defined in: [modules/bitview-client/index.js:2990](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2990)
 
 ## Type Parameters
 

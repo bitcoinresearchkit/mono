@@ -343,7 +343,7 @@ Endpoint: `GET /health`
 #### get\_version
 
 ```python
-def get_version() -> str
+def get_version() -> ServerVersion
 ```
 
 API version

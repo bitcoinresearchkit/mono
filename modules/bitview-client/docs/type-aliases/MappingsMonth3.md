@@ -8,7 +8,7 @@
 
 > **MappingsMonth3** = `object`
 
-Defined in: [modules/bitview-client/index.js:6077](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6077)
+Defined in: [modules/bitview-client/index.js:6087](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6087)
 
 ## Type Parameters
 
