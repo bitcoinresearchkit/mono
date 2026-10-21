@@ -6445,6 +6445,16 @@
         }
       }
 
+      /* (The home's presets where a screen has the room (a big iPad's, a tall desktop's): in rows, every recommended one in
+         sight, not a row to swipe; a phone's, a laptop's, one row.) */
+      @media (min-width: 761px) and (min-height: 1000px) {
+        .shelf.lead .shelf-row {
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          grid-auto-flow: row;
+          overflow-x: visible;
+        }
+      }
+
       /* The grid's groups, while there are previews: the previews', then your charts', each named, how many beside. */
       .grid-group {
         display: flex;
@@ -18511,9 +18521,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A shelf: a section's first charts in a row, its name leading to it (the recommended's, nowhere; the presets', at
        * the top, the recommended, leading to all of them: `count`, how many that is).
-       * @param {string} name @param {number[]} list @param {string[] | null} to
+       * `lead`: the page's first, its tiles in rows where a screen has the room for them.
+       * @param {string} name @param {number[]} list @param {string[] | null} to @param {number} [count] @param {boolean} [lead]
        */
-      const shelfHtml = (name, list, to, count = list.length) => `<section class="shelf" data-list="${listAt()}"><div class="shelf-head">${to ? `<button type="button" class="shelf-title" data-place="${escape(JSON.stringify({ path: to }))}">${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>` : `<h2 class="shelf-title">${escape(name)}</h2>`}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${list.slice(0, SHELF).map((i) => presetTileHtml(i)).join("")}</div></section>`;
+      const shelfHtml = (name, list, to, count = list.length, lead = false) => `<section class="shelf${lead ? " lead" : ""}" data-list="${listAt()}"><div class="shelf-head">${to ? `<button type="button" class="shelf-title" data-place="${escape(JSON.stringify({ path: to }))}">${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>` : `<h2 class="shelf-title">${escape(name)}</h2>`}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${list.slice(0, SHELF).map((i) => presetTileHtml(i)).join("")}</div></section>`;
       /** The presets' side of the page, where it is (none in your Library): at the top, one shelf (the recommended, leading to them all); on their page, the recommended, then each section as a shelf; in a section, its own as a grid, then each section in it. */
       function renderGallery() {
         const field = /** @type {HTMLInputElement} */ ($("home-filter")), words = field.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -18552,7 +18563,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         } else {
           const { own, groups } = sectionAt(path);
           // (At the top, the presets as one shelf, as your Library's is: the recommended, leading to them all.)
-          $("gallery").innerHTML = top ? shelfHtml("Presets", recommendedPresets(), [], presets.length) : [
+          $("gallery").innerHTML = top ? shelfHtml("Presets", recommendedPresets(), [], presets.length, true) : [
             ...(path.length ? [] : [shelfHtml("Recommended", recommendedPresets(), null)]),
             ...(own.length ? [presetGridHtml(own)] : []),
             ...[...groups].map(([name, list]) => shelfHtml(name, list, [...path, name])),
@@ -20908,7 +20919,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const RECOMMENDED = [
         "Valuation › Market and realized cap", "Valuation › Value anchors", "Valuation › MVRV", "Coin age › Age bands › Compare › Supply share",
         "Holders › Compare › Realized price", "Holders › Compare › MVRV", "Price › Returns › Short-term", "Mining › Hashing › Hash price",
-        "Supply › Inflation", "Valuation › Rarity meter › Full › Bands", "Bedrock › Unweighted › Floors",
+        "Supply › Inflation", "Valuation › Rarity meter › Full › Bands", "Bedrock › Unweighted › Floors", "Network › Transactions › Count",
       ];
       /**
        * Each series' look as the presets draw it (its color, its type, a baseline's base): the one they give it most, for a
