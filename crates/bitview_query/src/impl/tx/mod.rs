@@ -7,7 +7,7 @@ use bitcoin::{
 };
 use bitview_plugin_indexer::{OutputRange, SafeLengths};
 use bitview_primitives::Lengths;
-use bitview_types::MerkleProof;
+use bitview_types::{MerkleNode, MerkleProof};
 use brk_types::{BlockHash, Height, Timestamp, Transaction, TxIndex, TxStatus, Txid, TxidPrefix};
 use vecdb::{ReadableVec, VecIndex};
 
@@ -205,7 +205,7 @@ impl Query {
     }
 }
 
-fn merkle_path(txids: &[Txid], pos: usize) -> Vec<String> {
+fn merkle_path(txids: &[Txid], pos: usize) -> Vec<MerkleNode> {
     // Txid bytes are in internal order (same layout as BitcoinTxid)
     let mut hashes: Vec<[u8; 32]> = txids
         .iter()
@@ -220,7 +220,7 @@ fn merkle_path(txids: &[Txid], pos: usize) -> Vec<String> {
         // Display order: reverse bytes for hex output
         let mut display = hashes[sibling];
         display.reverse();
-        proof.push(display.to_lower_hex_string());
+        proof.push(MerkleNode::from(display.to_lower_hex_string()));
 
         hashes = hashes
             .chunks(2)

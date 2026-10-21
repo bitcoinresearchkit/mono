@@ -3,6 +3,8 @@ use brk_types::BlockHash;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::MerkleNode;
+
 /// Block header in mempool.space's format: the fields of `bitcoin::block::Header` except its
 /// timestamp.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -13,7 +15,7 @@ pub struct BlockHeader {
     #[serde(rename = "previousblockhash")]
     pub previous_block_hash: BlockHash,
 
-    pub merkle_root: String,
+    pub merkle_root: MerkleNode,
 
     /// Compact target (bits)
     pub bits: u32,
@@ -26,7 +28,7 @@ impl From<Header> for BlockHeader {
         Self {
             version: h.version.to_consensus() as u32,
             previous_block_hash: BlockHash::from(h.prev_blockhash),
-            merkle_root: h.merkle_root.to_string(),
+            merkle_root: h.merkle_root.to_string().into(),
             bits: h.bits.to_consensus(),
             nonce: h.nonce,
         }

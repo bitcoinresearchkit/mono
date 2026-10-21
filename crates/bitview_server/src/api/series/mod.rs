@@ -10,11 +10,11 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bitview_catalog::TreeNode;
-use bitview_primitives::Index;
+use bitview_primitives::{Index, SeriesName};
 use bitview_query::{Error as QueryError, Output, Query as BrkQuery, ResolvedQuery};
 use bitview_types::{
     DataRangeFormat, DetailedSeriesCount, Format, IndexInfo, PaginatedSeries, Pagination,
-    SearchQuery, SeriesData, SeriesInfo, SeriesName, SeriesNameWithIndex, SeriesSelection,
+    SearchQuery, SeriesData, SeriesInfo, SeriesNameWithIndex, SeriesSelection,
 };
 use brk_types::Version;
 use serde_json::{Value, to_vec};
@@ -300,7 +300,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 .tag(tags::SERIES)
                 .summary("Search series")
                 .description(&format!("Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to {MAX_INPUT_BYTES} UTF-8 bytes."))
-                .json_response::<Vec<&str>>()
+                .json_response::<Vec<SeriesName>>()
                 .not_modified(),
         ),
     )

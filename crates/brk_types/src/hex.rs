@@ -1,11 +1,14 @@
 use std::{fmt, ops::Deref};
 
+#[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 /// Hex-encoded data as a JSON string.
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(transparent)]
+#[cfg_attr(feature = "schemars", schemars(extend("pattern" = "^([0-9a-f]{2})*$")))]
 pub struct Hex(String);
 
 impl From<String> for Hex {

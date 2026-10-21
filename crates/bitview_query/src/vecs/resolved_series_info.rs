@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use bitview_types::{SeriesInfo, SeriesName};
+use bitview_primitives::SeriesName;
+use bitview_types::SeriesInfo;
 
 use super::{Vecs, series::Series};
 

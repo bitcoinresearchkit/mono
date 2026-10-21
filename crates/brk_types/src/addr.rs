@@ -14,7 +14,7 @@ use crate::AddressBytes;
 use vecdb::Formattable;
 
 /// Bitcoin address, or the hex public key of a P2PK output.
-#[derive(Debug, Clone, Deref, Serialize, Deserialize, From)]
+#[derive(Debug, Clone, PartialEq, Eq, Deref, Serialize, Deserialize, From)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(transparent)]
 #[cfg_attr(feature = "schemars", schemars(

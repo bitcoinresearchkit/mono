@@ -2,7 +2,7 @@ use bitview_primitives::Index;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::SeriesName;
+use bitview_primitives::SeriesName;
 
 #[derive(Clone, Debug, Deserialize, Serialize, JsonSchema)]
 pub struct SeriesNameWithIndex {

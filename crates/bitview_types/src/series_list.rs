@@ -5,7 +5,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Deserializer, de::Error as _};
 use serde_json::Value;
 
-use super::SeriesName;
+use bitview_primitives::SeriesName;
 
 /// Comma-separated list of series names
 ///

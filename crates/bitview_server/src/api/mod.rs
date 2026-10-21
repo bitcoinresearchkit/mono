@@ -5,6 +5,7 @@ use aide::{
     transform::TransformOperation,
 };
 use axum::{Extension, http::HeaderMap, response::Redirect, routing::get};
+use schemars::{SchemaGenerator, generate::SchemaSettings, transform::ReplacePrefixItems};
 use serde_json::Value;
 
 use super::AppState;
@@ -51,6 +52,17 @@ pub trait ApiRoutes {
 
 impl ApiRoutes for ApiRouter<AppState> {
     fn add_api_routes(self) -> Self {
+        // The document is OpenAPI 3.1, whose schemas are JSON Schema 2020-12: aide's draft-07
+        // settings, kept, except that a tuple stays `prefixItems` (draft-07 writes `items: [..]`).
+        aide::generate::in_context(|context| {
+            context.schema = SchemaGenerator::new(SchemaSettings::draft07().with(|settings| {
+                settings.inline_subschemas = false;
+                settings.definitions_path = "#/components/schemas/".into();
+                settings
+                    .transforms
+                    .retain(|transform| !transform.is::<ReplacePrefixItems>());
+            }));
+        });
         let router = server::add_routes(self);
         #[cfg(feature = "series")]
         let router = series::add_routes(router);

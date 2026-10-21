@@ -1,6 +1,7 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{extract::Path, http::HeaderMap, response::Response};
 use bitview_primitives::Day1;
+use bitview_types::HeightOrDate;
 use brk_oracle::{HistogramEmaCompact, HistogramRaw};
 use brk_types::Dollars;
 
@@ -9,7 +10,7 @@ use crate::{
     api::tags,
     error::Result,
     extended::TransformResponseExtended,
-    params::{Empty, HeightOrDate, HeightOrDateParam},
+    params::{Empty, HeightOrDateParam},
     request_state::RequestState,
 };
 
@@ -73,7 +74,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        _: Empty,
                        RequestState(state): RequestState|
                        -> Result<Response> {
-                    let point = path.resolve()?;
+                    let point = path.point;
                     Ok(state
                         .respond_json_settled(&headers, move |q| match point {
                             HeightOrDate::Date(date) => {
@@ -134,7 +135,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        _: Empty,
                        RequestState(state): RequestState|
                        -> Result<Response> {
-                    let point = path.resolve()?;
+                    let point = path.point;
                     Ok(state
                         .respond_json_settled(&headers, move |q| match point {
                             HeightOrDate::Date(date) => {

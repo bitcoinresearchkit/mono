@@ -19,6 +19,7 @@ use vecdb::Bytes;
 #[cfg_attr(feature = "schemars", schemars(
     transparent,
     with = "String",
+    extend("pattern" = "^[0-9a-f]{64}$"),
     example = &"000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
     example = &"0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"
 ))]

@@ -1,4 +1,6 @@
 use brk_types::Height;
+
+use crate::MerkleNode;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -6,8 +8,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct MerkleProof {
     pub block_height: Height,
-    /// Merkle proof path (hex-encoded hashes)
-    pub merkle: Vec<String>,
+    /// Merkle proof path, from the transaction's sibling up
+    pub merkle: Vec<MerkleNode>,
     /// Transaction position in the block (0-indexed)
     #[schemars(example = 42)]
     pub pos: usize,

@@ -295,12 +295,17 @@
               "type": "string"
             },
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Height": {
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "Hex": {
+              "pattern": "^([0-9a-f]{2})*$",
+              "type": "string"
             },
             "OutputTypeNormalized": {
               "enum": [
@@ -455,14 +460,18 @@
                   ]
                 },
                 "scriptsig": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "scriptsig_asm": {
                   "type": "string"
                 },
                 "witness": {
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/Hex"
                   },
                   "type": "array"
                 },
@@ -500,7 +509,11 @@
               "type": "object",
               "properties": {
                 "scriptpubkey": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "scriptpubkey_asm": {
                   "type": "string"
@@ -580,6 +593,7 @@
               "type": "integer"
             },
             "Txid": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Vout": {
@@ -651,7 +665,8 @@
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
                 "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
                 "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
@@ -666,12 +681,17 @@
               "type": "string"
             },
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Height": {
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "Hex": {
+              "pattern": "^([0-9a-f]{2})*$",
+              "type": "string"
             },
             "OutputTypeNormalized": {
               "enum": [
@@ -826,14 +846,18 @@
                   ]
                 },
                 "scriptsig": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "scriptsig_asm": {
                   "type": "string"
                 },
                 "witness": {
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/Hex"
                   },
                   "type": "array"
                 },
@@ -871,7 +895,11 @@
               "type": "object",
               "properties": {
                 "scriptpubkey": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "scriptpubkey_asm": {
                   "type": "string"
@@ -951,6 +979,7 @@
               "type": "integer"
             },
             "Txid": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Vout": {
@@ -1000,6 +1029,7 @@
             },
             "prefix": {
               "type": "string",
+              "pattern": "^[0-9a-f]{1,16}$",
               "description": "First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw\naddress payload bytes."
             }
           },
@@ -1044,6 +1074,7 @@
                   "$ref": "#/$defs/OutputType"
                 },
                 "prefix": {
+                  "pattern": "^[0-9a-f]{1,16}$",
                   "type": "string"
                 },
                 "truncated": {
@@ -1144,12 +1175,17 @@
               "type": "string"
             },
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Height": {
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "Hex": {
+              "pattern": "^([0-9a-f]{2})*$",
+              "type": "string"
             },
             "OutputTypeNormalized": {
               "enum": [
@@ -1304,14 +1340,18 @@
                   ]
                 },
                 "scriptsig": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "scriptsig_asm": {
                   "type": "string"
                 },
                 "witness": {
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/Hex"
                   },
                   "type": "array"
                 },
@@ -1349,7 +1389,11 @@
               "type": "object",
               "properties": {
                 "scriptpubkey": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "scriptpubkey_asm": {
                   "type": "string"
@@ -1429,6 +1473,7 @@
               "type": "integer"
             },
             "Txid": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Vout": {
@@ -1501,12 +1546,17 @@
               "type": "string"
             },
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Height": {
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "Hex": {
+              "pattern": "^([0-9a-f]{2})*$",
+              "type": "string"
             },
             "OutputTypeNormalized": {
               "enum": [
@@ -1661,14 +1711,18 @@
                   ]
                 },
                 "scriptsig": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "scriptsig_asm": {
                   "type": "string"
                 },
                 "witness": {
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/Hex"
                   },
                   "type": "array"
                 },
@@ -1706,7 +1760,11 @@
               "type": "object",
               "properties": {
                 "scriptpubkey": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "scriptpubkey_asm": {
                   "type": "string"
@@ -1786,6 +1844,7 @@
               "type": "integer"
             },
             "Txid": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Vout": {
@@ -1855,6 +1914,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Height": {
@@ -1914,6 +1974,7 @@
               ]
             },
             "Txid": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Utxo": {
@@ -1992,7 +2053,8 @@
               "examples": [
                 "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
                 "0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
@@ -2001,6 +2063,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "BlockInfo": {
@@ -2058,7 +2121,7 @@
                   "format": "double"
                 },
                 "merkle_root": {
-                  "type": "string"
+                  "$ref": "#/$defs/MerkleNode"
                 },
                 "tx_count": {
                   "type": "integer",
@@ -2093,6 +2156,10 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "MerkleNode": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
             },
             "Timestamp": {
               "minimum": 0,
@@ -2212,6 +2279,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "BlockTimestamp": {
@@ -2229,6 +2297,7 @@
                   "$ref": "#/$defs/BlockHash"
                 },
                 "timestamp": {
+                  "format": "date-time",
                   "type": "string"
                 }
               }
@@ -2561,7 +2630,8 @@
               "examples": [
                 "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
                 "0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
@@ -2886,7 +2956,8 @@
               "examples": [
                 "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
                 "0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
@@ -2895,6 +2966,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "BlockStatus": {
@@ -3030,7 +3102,8 @@
               "examples": [
                 "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
                 "0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             },
             "BlockTxIndex": {
               "description": "Position of a transaction within a single block (0 = coinbase).\nDistinct from `TxIndex`, which is the chain-wide global tx index.",
@@ -3094,7 +3167,8 @@
               "examples": [
                 "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
                 "0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             },
             "BlockTxIndex": {
               "description": "Position of a transaction within a single block (0 = coinbase).\nDistinct from `TxIndex`, which is the chain-wide global tx index.",
@@ -3118,12 +3192,17 @@
               "type": "string"
             },
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Height": {
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "Hex": {
+              "pattern": "^([0-9a-f]{2})*$",
+              "type": "string"
             },
             "OutputTypeNormalized": {
               "enum": [
@@ -3278,14 +3357,18 @@
                   ]
                 },
                 "scriptsig": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "scriptsig_asm": {
                   "type": "string"
                 },
                 "witness": {
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/Hex"
                   },
                   "type": "array"
                 },
@@ -3323,7 +3406,11 @@
               "type": "object",
               "properties": {
                 "scriptpubkey": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "scriptpubkey_asm": {
                   "type": "string"
@@ -3403,6 +3490,7 @@
               "type": "integer"
             },
             "Txid": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Vout": {
@@ -3463,7 +3551,8 @@
               "examples": [
                 "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
                 "0000000000000000000320283a032748cef8227873ff4872689bf23f1cda83a5"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
@@ -3471,6 +3560,9 @@
           "$ref": "#/$defs/BlockInfoV1",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Address": {
+              "type": "string"
+            },
             "BlockExtras": {
               "required": [
                 "totalFees",
@@ -3550,17 +3642,25 @@
                   ]
                 },
                 "coinbaseRaw": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "coinbaseAddress": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Address"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "coinbaseAddresses": {
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/Address"
                   },
                   "type": "array"
                 },
@@ -3620,7 +3720,11 @@
                   "$ref": "#/$defs/Weight"
                 },
                 "header": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "utxoSetChange": {
                   "format": "int64",
@@ -3643,12 +3747,14 @@
                   "type": "number"
                 },
                 "firstSeen": {
-                  "minimum": 0,
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
-                  "format": "uint64"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Timestamp"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "orphans": {
                   "items": {
@@ -3666,6 +3772,7 @@
               }
             },
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "BlockInfoV1": {
@@ -3724,7 +3831,7 @@
                   "format": "double"
                 },
                 "merkle_root": {
-                  "type": "string"
+                  "$ref": "#/$defs/MerkleNode"
                 },
                 "tx_count": {
                   "type": "integer",
@@ -3814,6 +3921,14 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "Hex": {
+              "pattern": "^([0-9a-f]{2})*$",
+              "type": "string"
+            },
+            "MerkleNode": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
             },
             "PoolSlug": {
               "enum": [
@@ -4040,6 +4155,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "BlockInfo": {
@@ -4097,7 +4213,7 @@
                   "format": "double"
                 },
                 "merkle_root": {
-                  "type": "string"
+                  "$ref": "#/$defs/MerkleNode"
                 },
                 "tx_count": {
                   "type": "integer",
@@ -4132,6 +4248,10 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "MerkleNode": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
             },
             "Timestamp": {
               "minimum": 0,
@@ -4198,6 +4318,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "BlockInfo": {
@@ -4255,7 +4376,7 @@
                   "format": "double"
                 },
                 "merkle_root": {
-                  "type": "string"
+                  "$ref": "#/$defs/MerkleNode"
                 },
                 "tx_count": {
                   "type": "integer",
@@ -4290,6 +4411,10 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "MerkleNode": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
             },
             "Timestamp": {
               "minimum": 0,
@@ -4339,6 +4464,9 @@
           "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Address": {
+              "type": "string"
+            },
             "BlockExtras": {
               "required": [
                 "totalFees",
@@ -4418,17 +4546,25 @@
                   ]
                 },
                 "coinbaseRaw": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "coinbaseAddress": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Address"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "coinbaseAddresses": {
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/Address"
                   },
                   "type": "array"
                 },
@@ -4488,7 +4624,11 @@
                   "$ref": "#/$defs/Weight"
                 },
                 "header": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "utxoSetChange": {
                   "format": "int64",
@@ -4511,12 +4651,14 @@
                   "type": "number"
                 },
                 "firstSeen": {
-                  "minimum": 0,
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
-                  "format": "uint64"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Timestamp"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "orphans": {
                   "items": {
@@ -4534,6 +4676,7 @@
               }
             },
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "BlockInfoV1": {
@@ -4592,7 +4735,7 @@
                   "format": "double"
                 },
                 "merkle_root": {
-                  "type": "string"
+                  "$ref": "#/$defs/MerkleNode"
                 },
                 "tx_count": {
                   "type": "integer",
@@ -4682,6 +4825,14 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "Hex": {
+              "pattern": "^([0-9a-f]{2})*$",
+              "type": "string"
+            },
+            "MerkleNode": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
             },
             "PoolSlug": {
               "enum": [
@@ -4923,6 +5074,9 @@
           "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Address": {
+              "type": "string"
+            },
             "BlockExtras": {
               "required": [
                 "totalFees",
@@ -5002,17 +5156,25 @@
                   ]
                 },
                 "coinbaseRaw": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "coinbaseAddress": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Address"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "coinbaseAddresses": {
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/Address"
                   },
                   "type": "array"
                 },
@@ -5072,7 +5234,11 @@
                   "$ref": "#/$defs/Weight"
                 },
                 "header": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "utxoSetChange": {
                   "format": "int64",
@@ -5095,12 +5261,14 @@
                   "type": "number"
                 },
                 "firstSeen": {
-                  "minimum": 0,
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
-                  "format": "uint64"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Timestamp"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "orphans": {
                   "items": {
@@ -5118,6 +5286,7 @@
               }
             },
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "BlockInfoV1": {
@@ -5176,7 +5345,7 @@
                   "format": "double"
                 },
                 "merkle_root": {
-                  "type": "string"
+                  "$ref": "#/$defs/MerkleNode"
                 },
                 "tx_count": {
                   "type": "integer",
@@ -5266,6 +5435,14 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "Hex": {
+              "pattern": "^([0-9a-f]{2})*$",
+              "type": "string"
+            },
+            "MerkleNode": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
             },
             "PoolSlug": {
               "enum": [
@@ -5498,7 +5675,8 @@
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
                 "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
                 "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
@@ -5697,6 +5875,7 @@
               "format": "uint64"
             },
             "Txid": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "VSize": {
@@ -5866,13 +6045,35 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "DifficultyAdjustmentEntry": {
-              "maxItems": 4,
+              "minItems": 4,
               "type": "array",
-              "items": {
-                "type": "number",
-                "format": "double"
-              },
-              "minItems": 4
+              "prefixItems": [
+                {
+                  "$ref": "#/$defs/Timestamp"
+                },
+                {
+                  "$ref": "#/$defs/Height"
+                },
+                {
+                  "format": "double",
+                  "type": "number"
+                },
+                {
+                  "format": "double",
+                  "type": "number"
+                }
+              ],
+              "items": false
+            },
+            "Height": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
+            },
+            "Timestamp": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
             }
           }
         },
@@ -5934,13 +6135,35 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "DifficultyAdjustmentEntry": {
-              "maxItems": 4,
+              "minItems": 4,
               "type": "array",
-              "items": {
-                "type": "number",
-                "format": "double"
-              },
-              "minItems": 4
+              "prefixItems": [
+                {
+                  "$ref": "#/$defs/Timestamp"
+                },
+                {
+                  "$ref": "#/$defs/Height"
+                },
+                {
+                  "format": "double",
+                  "type": "number"
+                },
+                {
+                  "format": "double",
+                  "type": "number"
+                }
+              ],
+              "items": false
+            },
+            "Height": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
+            },
+            "Timestamp": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
             }
           }
         },
@@ -6084,6 +6307,7 @@
               "format": "uint32"
             },
             "Txid": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "VSize": {
@@ -6432,6 +6656,7 @@
               "type": "number"
             },
             "ExchangeRates": {
+              "additionalProperties": false,
               "type": "object"
             },
             "HistoricalPrice": {
@@ -6788,6 +7013,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "NextBlockHash": {
+              "pattern": "^[0-9]+$",
               "type": "string"
             }
           }
@@ -6864,6 +7090,7 @@
               "format": "uint64"
             },
             "Txid": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "VSize": {
@@ -6895,18 +7122,50 @@
           "type": "object",
           "properties": {
             "point": {
-              "type": "string",
-              "description": "Confirmed block height as decimal digits (`840000`) or calendar date in\n`YYYY-MM-DD` format.",
-              "examples": [
-                "840000"
-              ]
+              "$ref": "#/$defs/HeightOrDate",
+              "description": "Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)"
             }
           },
           "additionalProperties": false,
           "required": [
             "point"
           ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$defs": {
+            "Date": {
+              "description": "Calendar date in YYYY-MM-DD format.",
+              "type": "string",
+              "format": "date",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "examples": [
+                "2009-01-03",
+                "2024-04-20"
+              ]
+            },
+            "Height": {
+              "description": "A block height: how many blocks came before it.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0,
+              "examples": [
+                0,
+                210000,
+                420000,
+                840000
+              ]
+            },
+            "HeightOrDate": {
+              "description": "A confirmed point of the chain: a block height (`840000`) or a UTC calendar day (`YYYY-MM-DD`).",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Height"
+                },
+                {
+                  "$ref": "#/$defs/Date"
+                }
+              ]
+            }
+          }
         },
         "outputSchema": {
           "items": {
@@ -6981,18 +7240,50 @@
           "type": "object",
           "properties": {
             "point": {
-              "type": "string",
-              "description": "Confirmed block height as decimal digits (`840000`) or calendar date in\n`YYYY-MM-DD` format.",
-              "examples": [
-                "840000"
-              ]
+              "$ref": "#/$defs/HeightOrDate",
+              "description": "Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)"
             }
           },
           "additionalProperties": false,
           "required": [
             "point"
           ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$defs": {
+            "Date": {
+              "description": "Calendar date in YYYY-MM-DD format.",
+              "type": "string",
+              "format": "date",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "examples": [
+                "2009-01-03",
+                "2024-04-20"
+              ]
+            },
+            "Height": {
+              "description": "A block height: how many blocks came before it.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0,
+              "examples": [
+                0,
+                210000,
+                420000,
+                840000
+              ]
+            },
+            "HeightOrDate": {
+              "description": "A confirmed point of the chain: a block height (`840000`) or a UTC calendar day (`YYYY-MM-DD`).",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Height"
+                },
+                {
+                  "$ref": "#/$defs/Date"
+                }
+              ]
+            }
+          }
         },
         "outputSchema": {
           "items": {
@@ -7256,6 +7547,9 @@
           "$ref": "#/$defs/PoolDetail",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Address": {
+              "type": "string"
+            },
             "PoolBlockCounts": {
               "required": [
                 "all",
@@ -7361,7 +7655,7 @@
                 },
                 "addresses": {
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/Address"
                   },
                   "type": "array"
                 },
@@ -7790,6 +8084,9 @@
           "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Address": {
+              "type": "string"
+            },
             "BlockExtras": {
               "required": [
                 "totalFees",
@@ -7869,17 +8166,25 @@
                   ]
                 },
                 "coinbaseRaw": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "coinbaseAddress": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Address"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "coinbaseAddresses": {
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/Address"
                   },
                   "type": "array"
                 },
@@ -7939,7 +8244,11 @@
                   "$ref": "#/$defs/Weight"
                 },
                 "header": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "utxoSetChange": {
                   "format": "int64",
@@ -7962,12 +8271,14 @@
                   "type": "number"
                 },
                 "firstSeen": {
-                  "minimum": 0,
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
-                  "format": "uint64"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Timestamp"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "orphans": {
                   "items": {
@@ -7985,6 +8296,7 @@
               }
             },
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "BlockInfoV1": {
@@ -8043,7 +8355,7 @@
                   "format": "double"
                 },
                 "merkle_root": {
-                  "type": "string"
+                  "$ref": "#/$defs/MerkleNode"
                 },
                 "tx_count": {
                   "type": "integer",
@@ -8133,6 +8445,14 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "Hex": {
+              "pattern": "^([0-9a-f]{2})*$",
+              "type": "string"
+            },
+            "MerkleNode": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
             },
             "PoolSlug": {
               "enum": [
@@ -8555,6 +8875,9 @@
           "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Address": {
+              "type": "string"
+            },
             "BlockExtras": {
               "required": [
                 "totalFees",
@@ -8634,17 +8957,25 @@
                   ]
                 },
                 "coinbaseRaw": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "coinbaseAddress": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Address"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "coinbaseAddresses": {
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/Address"
                   },
                   "type": "array"
                 },
@@ -8704,7 +9035,11 @@
                   "$ref": "#/$defs/Weight"
                 },
                 "header": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "utxoSetChange": {
                   "format": "int64",
@@ -8727,12 +9062,14 @@
                   "type": "number"
                 },
                 "firstSeen": {
-                  "minimum": 0,
-                  "type": [
-                    "integer",
-                    "null"
-                  ],
-                  "format": "uint64"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Timestamp"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "orphans": {
                   "items": {
@@ -8750,6 +9087,7 @@
               }
             },
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "BlockInfoV1": {
@@ -8808,7 +9146,7 @@
                   "format": "double"
                 },
                 "merkle_root": {
-                  "type": "string"
+                  "$ref": "#/$defs/MerkleNode"
                 },
                 "tx_count": {
                   "type": "integer",
@@ -8898,6 +9236,14 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "Hex": {
+              "pattern": "^([0-9a-f]{2})*$",
+              "type": "string"
+            },
+            "MerkleNode": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
             },
             "PoolSlug": {
               "enum": [
@@ -10355,6 +10701,7 @@
               "format": "uint32"
             },
             "Txid": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "VSize": {
@@ -10435,12 +10782,15 @@
                   ]
                 },
                 "totalReward": {
+                  "pattern": "^[0-9]+$",
                   "type": "string"
                 },
                 "totalFee": {
+                  "pattern": "^[0-9]+$",
                   "type": "string"
                 },
                 "totalTx": {
+                  "pattern": "^[0-9]+$",
                   "type": "string"
                 }
               }
@@ -10594,7 +10944,8 @@
                 "price_close",
                 "market_cap",
                 "realized_price"
-              ]
+              ],
+              "pattern": "^[a-z0-9_]+$"
             }
           }
         },
@@ -11109,7 +11460,8 @@
                 "price_close",
                 "market_cap",
                 "realized_price"
-              ]
+              ],
+              "pattern": "^[a-z0-9_]+$"
             }
           }
         },
@@ -11278,7 +11630,8 @@
                 "price_close",
                 "market_cap",
                 "realized_price"
-              ]
+              ],
+              "pattern": "^[a-z0-9_]+$"
             }
           }
         },
@@ -11375,7 +11728,8 @@
                 "price_close",
                 "market_cap",
                 "realized_price"
-              ]
+              ],
+              "pattern": "^[a-z0-9_]+$"
             }
           }
         },
@@ -11475,7 +11829,8 @@
                 "price_close",
                 "market_cap",
                 "realized_price"
-              ]
+              ],
+              "pattern": "^[a-z0-9_]+$"
             }
           }
         },
@@ -11564,6 +11919,7 @@
                   ]
                 },
                 "last_indexed_at": {
+                  "format": "date-time",
                   "type": "string"
                 },
                 "last_indexed_at_unix": {
@@ -11632,18 +11988,24 @@
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
                 "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
                 "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
         "outputSchema": {
           "items": {
-            "type": "integer",
-            "minimum": 0,
-            "format": "uint64"
+            "$ref": "#/$defs/Timestamp"
           },
           "type": "array",
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$defs": {
+            "Timestamp": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
+            }
+          }
         },
         "annotations": {
           "readOnlyHint": true,
@@ -11688,7 +12050,8 @@
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
                 "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
                 "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
@@ -11700,12 +12063,17 @@
               "type": "string"
             },
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Height": {
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "Hex": {
+              "pattern": "^([0-9a-f]{2})*$",
+              "type": "string"
             },
             "OutputTypeNormalized": {
               "enum": [
@@ -11860,14 +12228,18 @@
                   ]
                 },
                 "scriptsig": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "scriptsig_asm": {
                   "type": "string"
                 },
                 "witness": {
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/Hex"
                   },
                   "type": "array"
                 },
@@ -11905,7 +12277,11 @@
               "type": "object",
               "properties": {
                 "scriptpubkey": {
-                  "type": "string"
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    }
+                  ]
                 },
                 "scriptpubkey_asm": {
                   "type": "string"
@@ -11985,6 +12361,7 @@
               "type": "integer"
             },
             "Txid": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Vout": {
@@ -12090,7 +12467,8 @@
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
                 "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
                 "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
@@ -12137,7 +12515,8 @@
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
                 "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
                 "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
@@ -12149,6 +12528,10 @@
               "minimum": 0,
               "type": "integer",
               "format": "uint32"
+            },
+            "MerkleNode": {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
             },
             "MerkleProof": {
               "required": [
@@ -12163,7 +12546,7 @@
                 },
                 "merkle": {
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/MerkleNode"
                   },
                   "type": "array"
                 },
@@ -12219,7 +12602,8 @@
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
                 "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
                 "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
@@ -12271,7 +12655,8 @@
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
                 "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
                 "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             },
             "Vout": {
               "description": "Index of the output being spent in the previous transaction (coinbase inputs: 4294967295)",
@@ -12293,6 +12678,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Height": {
@@ -12388,6 +12774,7 @@
               ]
             },
             "Txid": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Vin": {
@@ -12445,7 +12832,8 @@
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
                 "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
                 "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
@@ -12457,6 +12845,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Height": {
@@ -12552,6 +12941,7 @@
               ]
             },
             "Txid": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Vin": {
@@ -12605,7 +12995,8 @@
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
                 "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
                 "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
@@ -12741,6 +13132,7 @@
               "format": "uint32"
             },
             "Txid": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "VSize": {
@@ -12793,7 +13185,8 @@
                 "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
                 "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
                 "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
-              ]
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
@@ -12802,6 +13195,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Height": {
@@ -12884,7 +13278,7 @@
           "type": "object",
           "properties": {
             "cohort": {
-              "$ref": "#/$defs/Cohort"
+              "$ref": "#/$defs/UrpdCohort"
             },
             "agg": {
               "$ref": "#/$defs/UrpdAggregation",
@@ -12901,11 +13295,6 @@
           ],
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Cohort": {
-              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and the published UTXO set.",
-              "type": "string",
-              "pattern": "^[a-z0-9_]+$"
-            },
             "UrpdAggregation": {
               "description": "Aggregation strategy for URPD buckets.\nOptions: raw (no aggregation), lin200/lin500/lin1000 (linear $200/$500/$1000),\nlog10/log50/log100/log200/log500/log1000/log2000 (logarithmic with 10/50/100/200/500/1000/2000 buckets per decade).",
               "type": "string",
@@ -12921,6 +13310,42 @@
                 "log500",
                 "log1000",
                 "log2000"
+              ]
+            },
+            "UrpdCohort": {
+              "description": "A URPD cohort, by its series' prefix: an age aggregate (`all`, `sth`, `lth`, `age_under_4m`, ...) or an age band (`age_under_1h`, `age_1h_to_1d`, ...).",
+              "type": "string",
+              "enum": [
+                "all",
+                "sth",
+                "lth",
+                "age_under_4m",
+                "age_under_6m",
+                "age_over_4m",
+                "age_over_6m",
+                "age_under_1h",
+                "age_1h_to_1d",
+                "age_1d_to_1w",
+                "age_1w_to_1m",
+                "age_1m_to_2m",
+                "age_2m_to_3m",
+                "age_3m_to_4m",
+                "age_4m_to_5m",
+                "age_5m_to_6m",
+                "age_6m_to_9m",
+                "age_9m_to_1y",
+                "age_1y_to_18m",
+                "age_18m_to_2y",
+                "age_2y_to_3y",
+                "age_3y_to_4y",
+                "age_4y_to_5y",
+                "age_5y_to_6y",
+                "age_6y_to_7y",
+                "age_7y_to_8y",
+                "age_8y_to_10y",
+                "age_10y_to_12y",
+                "age_12y_to_15y",
+                "age_over_15y"
               ]
             },
             "UrpdWeight": {
@@ -12943,10 +13368,7 @@
               "type": "number"
             },
             "BlockHash": {
-              "type": "string"
-            },
-            "Cohort": {
-              "pattern": "^[a-z0-9_]+$",
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Date": {
@@ -12999,7 +13421,7 @@
                   ]
                 },
                 "cohort": {
-                  "$ref": "#/$defs/Cohort"
+                  "$ref": "#/$defs/UrpdCohort"
                 },
                 "weight": {
                   "$ref": "#/$defs/UrpdWeight"
@@ -13076,6 +13498,41 @@
                   "type": "array"
                 }
               }
+            },
+            "UrpdCohort": {
+              "enum": [
+                "all",
+                "sth",
+                "lth",
+                "age_under_4m",
+                "age_under_6m",
+                "age_over_4m",
+                "age_over_6m",
+                "age_under_1h",
+                "age_1h_to_1d",
+                "age_1d_to_1w",
+                "age_1w_to_1m",
+                "age_1m_to_2m",
+                "age_2m_to_3m",
+                "age_3m_to_4m",
+                "age_4m_to_5m",
+                "age_5m_to_6m",
+                "age_6m_to_9m",
+                "age_9m_to_1y",
+                "age_1y_to_18m",
+                "age_18m_to_2y",
+                "age_2y_to_3y",
+                "age_3y_to_4y",
+                "age_4y_to_5y",
+                "age_5y_to_6y",
+                "age_6y_to_7y",
+                "age_7y_to_8y",
+                "age_8y_to_10y",
+                "age_10y_to_12y",
+                "age_12y_to_15y",
+                "age_over_15y"
+              ],
+              "type": "string"
             },
             "UrpdWeight": {
               "enum": [
@@ -13122,13 +13579,11 @@
           "type": "object",
           "properties": {
             "cohort": {
-              "$ref": "#/$defs/Cohort"
+              "$ref": "#/$defs/UrpdCohort"
             },
             "point": {
-              "type": "string",
-              "examples": [
-                "840000"
-              ]
+              "$ref": "#/$defs/HeightOrDate",
+              "description": "Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)"
             },
             "agg": {
               "$ref": "#/$defs/UrpdAggregation",
@@ -13146,10 +13601,38 @@
           ],
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Cohort": {
-              "description": "URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.\n\nNames are non-empty ASCII `[a-z0-9_]+`. Availability is determined by\nsupported age filters and the published UTXO set.",
+            "Date": {
+              "description": "Calendar date in YYYY-MM-DD format.",
               "type": "string",
-              "pattern": "^[a-z0-9_]+$"
+              "format": "date",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "examples": [
+                "2009-01-03",
+                "2024-04-20"
+              ]
+            },
+            "Height": {
+              "description": "A block height: how many blocks came before it.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0,
+              "examples": [
+                0,
+                210000,
+                420000,
+                840000
+              ]
+            },
+            "HeightOrDate": {
+              "description": "A confirmed point of the chain: a block height (`840000`) or a UTC calendar day (`YYYY-MM-DD`).",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Height"
+                },
+                {
+                  "$ref": "#/$defs/Date"
+                }
+              ]
             },
             "UrpdAggregation": {
               "description": "Aggregation strategy for URPD buckets.\nOptions: raw (no aggregation), lin200/lin500/lin1000 (linear $200/$500/$1000),\nlog10/log50/log100/log200/log500/log1000/log2000 (logarithmic with 10/50/100/200/500/1000/2000 buckets per decade).",
@@ -13166,6 +13649,42 @@
                 "log500",
                 "log1000",
                 "log2000"
+              ]
+            },
+            "UrpdCohort": {
+              "description": "A URPD cohort, by its series' prefix: an age aggregate (`all`, `sth`, `lth`, `age_under_4m`, ...) or an age band (`age_under_1h`, `age_1h_to_1d`, ...).",
+              "type": "string",
+              "enum": [
+                "all",
+                "sth",
+                "lth",
+                "age_under_4m",
+                "age_under_6m",
+                "age_over_4m",
+                "age_over_6m",
+                "age_under_1h",
+                "age_1h_to_1d",
+                "age_1d_to_1w",
+                "age_1w_to_1m",
+                "age_1m_to_2m",
+                "age_2m_to_3m",
+                "age_3m_to_4m",
+                "age_4m_to_5m",
+                "age_5m_to_6m",
+                "age_6m_to_9m",
+                "age_9m_to_1y",
+                "age_1y_to_18m",
+                "age_18m_to_2y",
+                "age_2y_to_3y",
+                "age_3y_to_4y",
+                "age_4y_to_5y",
+                "age_5y_to_6y",
+                "age_6y_to_7y",
+                "age_7y_to_8y",
+                "age_8y_to_10y",
+                "age_10y_to_12y",
+                "age_12y_to_15y",
+                "age_over_15y"
               ]
             },
             "UrpdWeight": {
@@ -13188,10 +13707,7 @@
               "type": "number"
             },
             "BlockHash": {
-              "type": "string"
-            },
-            "Cohort": {
-              "pattern": "^[a-z0-9_]+$",
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Date": {
@@ -13244,7 +13760,7 @@
                   ]
                 },
                 "cohort": {
-                  "$ref": "#/$defs/Cohort"
+                  "$ref": "#/$defs/UrpdCohort"
                 },
                 "weight": {
                   "$ref": "#/$defs/UrpdWeight"
@@ -13321,6 +13837,41 @@
                   "type": "array"
                 }
               }
+            },
+            "UrpdCohort": {
+              "enum": [
+                "all",
+                "sth",
+                "lth",
+                "age_under_4m",
+                "age_under_6m",
+                "age_over_4m",
+                "age_over_6m",
+                "age_under_1h",
+                "age_1h_to_1d",
+                "age_1d_to_1w",
+                "age_1w_to_1m",
+                "age_1m_to_2m",
+                "age_2m_to_3m",
+                "age_3m_to_4m",
+                "age_4m_to_5m",
+                "age_5m_to_6m",
+                "age_6m_to_9m",
+                "age_9m_to_1y",
+                "age_1y_to_18m",
+                "age_18m_to_2y",
+                "age_2y_to_3y",
+                "age_3y_to_4y",
+                "age_4y_to_5y",
+                "age_5y_to_6y",
+                "age_6y_to_7y",
+                "age_7y_to_8y",
+                "age_8y_to_10y",
+                "age_10y_to_12y",
+                "age_12y_to_15y",
+                "age_over_15y"
+              ],
+              "type": "string"
             },
             "UrpdWeight": {
               "enum": [
@@ -13371,18 +13922,50 @@
           "type": "object",
           "properties": {
             "point": {
-              "type": "string",
-              "description": "Confirmed block height as decimal digits (`840000`) or calendar date in\n`YYYY-MM-DD` format.",
-              "examples": [
-                "840000"
-              ]
+              "$ref": "#/$defs/HeightOrDate",
+              "description": "Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)"
             }
           },
           "additionalProperties": false,
           "required": [
             "point"
           ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$defs": {
+            "Date": {
+              "description": "Calendar date in YYYY-MM-DD format.",
+              "type": "string",
+              "format": "date",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "examples": [
+                "2009-01-03",
+                "2024-04-20"
+              ]
+            },
+            "Height": {
+              "description": "A block height: how many blocks came before it.",
+              "type": "integer",
+              "format": "uint32",
+              "minimum": 0,
+              "examples": [
+                0,
+                210000,
+                420000,
+                840000
+              ]
+            },
+            "HeightOrDate": {
+              "description": "A confirmed point of the chain: a block height (`840000`) or a UTC calendar day (`YYYY-MM-DD`).",
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Height"
+                },
+                {
+                  "$ref": "#/$defs/Date"
+                }
+              ]
+            }
+          }
         },
         "outputSchema": {
           "$ref": "#/$defs/UtxoSetDiff",
@@ -13393,6 +13976,7 @@
               "type": "number"
             },
             "BlockHash": {
+              "pattern": "^[0-9a-f]{64}$",
               "type": "string"
             },
             "Date": {
@@ -13584,10 +14168,14 @@
                 "series": {
                   "type": "array",
                   "items": {
-                    "type": "string"
+                    "$ref": "#/$defs/SeriesName"
                   }
                 }
               }
+            },
+            "SeriesName": {
+              "type": "string",
+              "pattern": "^[a-z0-9_]+$"
             }
           }
         },
@@ -13617,7 +14205,7 @@
       "tool": {
         "name": "list_urpd_cohorts",
         "title": "Available URPD cohorts",
-        "description": "Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `age_under_4m`, `age_under_6m`, `age_over_4m`, `age_over_6m`, `age_under_1h`.\n\nREST operation: `GET /api/urpd`.",
+        "description": "Every URPD cohort once a UTXO set is published (none before): the age aggregates (`all`, `sth`, `lth`, `age_under_4m`, ...), then the age bands from the youngest (`age_under_1h`, `age_1h_to_1d`, ...).\n\nREST operation: `GET /api/urpd`.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -13626,13 +14214,44 @@
         },
         "outputSchema": {
           "items": {
-            "$ref": "#/$defs/Cohort"
+            "$ref": "#/$defs/UrpdCohort"
           },
           "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "Cohort": {
-              "pattern": "^[a-z0-9_]+$",
+            "UrpdCohort": {
+              "enum": [
+                "all",
+                "sth",
+                "lth",
+                "age_under_4m",
+                "age_under_6m",
+                "age_over_4m",
+                "age_over_6m",
+                "age_under_1h",
+                "age_1h_to_1d",
+                "age_1d_to_1w",
+                "age_1w_to_1m",
+                "age_1m_to_2m",
+                "age_2m_to_3m",
+                "age_3m_to_4m",
+                "age_4m_to_5m",
+                "age_5m_to_6m",
+                "age_6m_to_9m",
+                "age_9m_to_1y",
+                "age_1y_to_18m",
+                "age_18m_to_2y",
+                "age_2y_to_3y",
+                "age_3y_to_4y",
+                "age_4y_to_5y",
+                "age_5y_to_6y",
+                "age_6y_to_7y",
+                "age_7y_to_8y",
+                "age_8y_to_10y",
+                "age_10y_to_12y",
+                "age_12y_to_15y",
+                "age_over_15y"
+              ],
               "type": "string"
             }
           }
@@ -13659,8 +14278,11 @@
           "type": "object",
           "properties": {
             "q": {
-              "$ref": "#/$defs/SeriesName",
-              "description": "Search query string"
+              "type": "string",
+              "description": "Words to find in series names and descriptions (`realized price`, `mvrv`), in any order",
+              "examples": [
+                "realized price"
+              ]
             },
             "limit": {
               "$ref": "#/$defs/Limit",
@@ -13683,23 +14305,21 @@
                 10,
                 100
               ]
-            },
-            "SeriesName": {
-              "type": "string",
-              "examples": [
-                "price_close",
-                "market_cap",
-                "realized_price"
-              ]
             }
           }
         },
         "outputSchema": {
           "items": {
-            "type": "string"
+            "$ref": "#/$defs/SeriesName"
           },
           "type": "array",
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$defs": {
+            "SeriesName": {
+              "type": "string",
+              "pattern": "^[a-z0-9_]+$"
+            }
+          }
         },
         "annotations": {
           "readOnlyHint": true,
@@ -13752,6 +14372,9 @@
           "$ref": "#/$defs/AddressValidation",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "Address": {
+              "type": "string"
+            },
             "AddressValidation": {
               "type": "object",
               "properties": {
@@ -13759,15 +14382,23 @@
                   "type": "boolean"
                 },
                 "address": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Address"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "scriptPubKey": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "isscript": {
@@ -13792,9 +14423,13 @@
                   "minimum": 0
                 },
                 "witness_program": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Hex"
+                    },
+                    {
+                      "type": "null"
+                    }
                   ]
                 },
                 "error_locations": {
@@ -13818,6 +14453,10 @@
               "required": [
                 "isvalid"
               ]
+            },
+            "Hex": {
+              "pattern": "^([0-9a-f]{2})*$",
+              "type": "string"
             }
           }
         },

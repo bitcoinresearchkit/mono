@@ -8,8 +8,10 @@ use axum::{
     http::HeaderMap,
     response::Response,
 };
-use bitview_types::{Hex, MerkleProof, RbfResponse};
-use brk_types::{CpfpInfo, Transaction, TxOutspend, TxStatus, Txid, TxidPrefix, Version};
+use bitview_types::{MerkleProof, RbfResponse};
+use brk_types::{
+    CpfpInfo, Hex, Timestamp, Transaction, TxOutspend, TxStatus, Txid, TxidPrefix, Version,
+};
 use serde_json::to_vec;
 use tower_http::limit::RequestBodyLimitLayer;
 
@@ -308,7 +310,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 .tag(tags::TRANSACTIONS)
                 .summary("Transaction first-seen times")
                 .description("First-seen UNIX timestamps in seconds, in request order, of transactions in the mempool or that recently left it other than by replacement (mined ones included); 0 otherwise.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-times)*")
-                .json_response::<Vec<u64>>()
+                .json_response::<Vec<Timestamp>>()
                 .not_modified(),
         ),
     )

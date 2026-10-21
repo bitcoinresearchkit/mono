@@ -21,6 +21,8 @@ pub(crate) enum Ty {
     /// An object mapping string keys to one value type.
     Map(Box<Ty>),
     List(Box<Ty>),
+    /// A fixed-length array, each position its own type (`prefixItems`).
+    Tuple(Vec<Ty>),
     /// A named schema.
     Ref(String),
     /// String literals (`enum`).
@@ -50,6 +52,9 @@ impl Ty {
                 Some(element) => Self::List(Box::new(Self::Ref(element.to_owned()))),
                 None => Self::Ref(name.to_owned()),
             };
+        }
+        if let Some(Value::String(value)) = schema.get("const") {
+            return Self::Literals(vec![value.clone()]);
         }
         let literals: Vec<String> = schema
             .get("enum")
@@ -110,7 +115,10 @@ impl Ty {
             "integer" => Self::Integer,
             "number" => Self::Number,
             "string" => Self::String,
-            "array" => Self::List(Box::new(schema.get("items").map_or(Self::Any, Self::parse))),
+            "array" => match schema.get("prefixItems").and_then(Value::as_array) {
+                Some(items) => Self::Tuple(items.iter().map(Self::parse).collect()),
+                None => Self::List(Box::new(schema.get("items").map_or(Self::Any, Self::parse))),
+            },
             "object" => match schema.get("additionalProperties") {
                 Some(value @ Value::Object(_)) => Self::Map(Box::new(Self::parse(value))),
                 _ => Self::Object,
@@ -136,6 +144,10 @@ impl Display for Ty {
             Self::String => f.write_str("string"),
             Self::Object | Self::Map(_) => f.write_str("object"),
             Self::List(item) => write!(f, "{item}[]"),
+            Self::Tuple(items) => {
+                let items: Vec<String> = items.iter().map(Self::to_string).collect();
+                write!(f, "[{}]", items.join(", "))
+            }
             Self::Ref(name) => f.write_str(name),
             Self::Literals(values) => f.write_str(&values.join(" | ")),
             Self::Nullable(ty) => write!(f, "{ty} | null"),

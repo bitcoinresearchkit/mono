@@ -964,7 +964,7 @@ pub mod tree {
     shape! { Side at "series().coinflow.age_ranges._10y_to_12y.immobile" {
         supply: Value = "*",
     } }
-    shape! { CoinflowCohortSeries at "series().coinflow.cohorts.all" {
+    shape! { CoinflowCohort at "series().coinflow.cohorts.all" {
         mobile: Awake = "*_mobile",
         immobile: Side = "*_immobile_supply",
     } }
@@ -975,7 +975,7 @@ pub mod tree {
         mobile: Side = "*_mobile_supply",
         immobile: Side = "*_immobile_supply",
     } }
-    shape! { CointimeCohortSeries at "series().cointime.cohorts.all" {
+    shape! { CointimeCohort at "series().cointime.cohorts.all" {
         awake: Awake = "*_awake",
         dormant: Side = "*_dormant_supply",
     } }
@@ -1608,7 +1608,7 @@ pub mod tree {
         count: WithDelta<Count, CountSigned> = "*_utxo_count",
         spent_count: Flow<Count> = "*_spent_utxo_count",
     } }
-    shape! { CohortSeries at "series().utxos.amounts._100_to_1k_btc" {
+    shape! { Cohort at "series().utxos.amounts._100_to_1k_btc" {
         supply: CohortSupply = "*_supply",
         capital: CapitalViews = "*",
         utxos: CohortUtxos = "*",
@@ -1617,16 +1617,16 @@ pub mod tree {
         cost_basis: CohortCostBasis = "*",
     } }
     shape! { UtxosSpendableType at "series().utxos.types" {
-        p2pk: CohortSeries = "p2pk",
-        p2pkh: CohortSeries = "p2pkh",
-        p2ms: CohortSeries = "p2ms",
-        p2sh: CohortSeries = "p2sh",
-        p2wpkh: CohortSeries = "p2wpkh",
-        p2wsh: CohortSeries = "p2wsh",
-        p2tr: CohortSeries = "p2tr",
-        p2a: CohortSeries = "p2a",
-        unknown: CohortSeries = "unknown_*",
-        empty: CohortSeries = "empty_*",
+        p2pk: Cohort = "p2pk",
+        p2pkh: Cohort = "p2pkh",
+        p2ms: Cohort = "p2ms",
+        p2sh: Cohort = "p2sh",
+        p2wpkh: Cohort = "p2wpkh",
+        p2wsh: Cohort = "p2wsh",
+        p2tr: Cohort = "p2tr",
+        p2a: Cohort = "p2a",
+        unknown: Cohort = "unknown_*",
+        empty: Cohort = "empty_*",
     } }
     shape! { Zero at "series().utxos.amounts._0_sats" {
         utxos: CohortUtxos = "*",
@@ -1664,7 +1664,7 @@ pub mod tree {
         balances: AmountRange<ZeroBalance, Balance> = "balance",
     } }
     shape! { Utxos at "series().utxos" {
-        amounts: AmountRange<Zero, CohortSeries> = "*",
+        amounts: AmountRange<Zero, Cohort> = "*",
         types: UtxosSpendableType = "output",
     } }
     shape! { CreationCohort<A, B, C, D, E, F> at "series().entry.rookie" {
@@ -1754,12 +1754,12 @@ pub mod tree {
     } }
     shape! { Coinflow at "series().coinflow" {
         age_ranges: AgeRange<CoinflowRange> = "*",
-        cohorts: Holders<CoinflowCohortSeries, CoinflowCohortSeries> = "*",
+        cohorts: Holders<CoinflowCohort, CoinflowCohort> = "*",
     } }
     shape! { Cointime at "series().cointime" {
         activity: CointimeActivity = "coinblocks",
         age_ranges: AgeRange<CointimeRange> = "*",
-        cohorts: Holders<CointimeCohortSeries, CointimeCohortSeries> = "*",
+        cohorts: Holders<CointimeCohort, CointimeCohort> = "*",
         supply: CointimeSupply = "supply",
         value: CointimeValue = "cointime_value",
         caps: Caps = "cap",
@@ -2421,7 +2421,7 @@ impl BitviewClient {
     /// Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
     ///
     /// Endpoint: `GET /api/series/search`
-    pub fn search_series(&self, q: SeriesName, limit: Option<Limit>) -> Result<Vec<String>> {
+    pub fn search_series(&self, q: &str, limit: Option<Limit>) -> Result<Vec<SeriesName>> {
         let mut query = Vec::new();
         query.push(query_pair("q", q));
         if let Some(v) = limit {
@@ -2617,10 +2617,10 @@ impl BitviewClient {
 
     /// Available URPD cohorts
     ///
-    /// Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `age_under_4m`, `age_under_6m`, `age_over_4m`, `age_over_6m`, `age_under_1h`.
+    /// Every URPD cohort once a UTXO set is published (none before): the age aggregates (`all`, `sth`, `lth`, `age_under_4m`, ...), then the age bands from the youngest (`age_under_1h`, `age_1h_to_1d`, ...).
     ///
     /// Endpoint: `GET /api/urpd`
-    pub fn list_urpd_cohorts(&self) -> Result<Vec<Cohort>> {
+    pub fn list_urpd_cohorts(&self) -> Result<Vec<UrpdCohort>> {
         self.base.get_json(&format!("/api/urpd"))
     }
 
@@ -2631,7 +2631,7 @@ impl BitviewClient {
     /// Endpoint: `GET /api/urpd/{cohort}`
     pub fn get_urpd(
         &self,
-        cohort: Cohort,
+        cohort: UrpdCohort,
         agg: Option<UrpdAggregation>,
         weight: Option<UrpdWeight>,
     ) -> Result<Urpd> {
@@ -2658,8 +2658,8 @@ impl BitviewClient {
     /// Endpoint: `GET /api/urpd/{cohort}/{point}`
     pub fn get_urpd_at(
         &self,
-        cohort: Cohort,
-        point: &str,
+        cohort: UrpdCohort,
+        point: HeightOrDate,
         agg: Option<UrpdAggregation>,
         weight: Option<UrpdWeight>,
     ) -> Result<Urpd> {
@@ -3551,7 +3551,7 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-times)*
     ///
     /// Endpoint: `GET /api/v1/transaction-times`
-    pub fn get_transaction_times(&self, txId: &[Txid]) -> Result<Vec<i64>> {
+    pub fn get_transaction_times(&self, txId: &[Txid]) -> Result<Vec<Timestamp>> {
         let mut query = Vec::new();
         for v in txId {
             query.push(query_pair("txId[]", v));
@@ -3592,7 +3592,7 @@ impl BitviewClient {
     /// The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
     ///
     /// Endpoint: `GET /api/utxo-set/{point}`
-    pub fn get_utxo_set(&self, point: &str) -> Result<UtxoSet> {
+    pub fn get_utxo_set(&self, point: HeightOrDate) -> Result<UtxoSet> {
         self.base
             .get_json(&format!("/api/utxo-set/{}", path_segment(point)))
     }
@@ -3602,7 +3602,7 @@ impl BitviewClient {
     /// What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.
     ///
     /// Endpoint: `GET /api/utxo-set/{point}/diff`
-    pub fn get_utxo_set_diff(&self, point: &str) -> Result<UtxoSetDiff> {
+    pub fn get_utxo_set_diff(&self, point: HeightOrDate) -> Result<UtxoSetDiff> {
         self.base
             .get_json(&format!("/api/utxo-set/{}/diff", path_segment(point)))
     }
@@ -3631,7 +3631,7 @@ impl BitviewClient {
     /// Smoothed histogram of oracle-eligible payment outputs for a confirmed point. A block height (`840000`) gives that block's oracle payment histogram; a calendar date (`YYYY-MM-DD`) gives the average of that day's per-block payment histograms. A flat array of log-scale bins.
     ///
     /// Endpoint: `GET /api/oracle/histogram/payments/{point}`
-    pub fn get_oracle_histogram_payments(&self, point: &str) -> Result<Vec<i64>> {
+    pub fn get_oracle_histogram_payments(&self, point: HeightOrDate) -> Result<Vec<i64>> {
         self.base.get_json(&format!(
             "/api/oracle/histogram/payments/{}",
             path_segment(point)
@@ -3653,7 +3653,7 @@ impl BitviewClient {
     /// Unfiltered output value histogram for a confirmed point. A block height (`840000`) counts that block's nonzero outputs within the histogram's bin range, coinbase included, by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
     ///
     /// Endpoint: `GET /api/oracle/histogram/outputs/{point}`
-    pub fn get_oracle_histogram_outputs(&self, point: &str) -> Result<Vec<i64>> {
+    pub fn get_oracle_histogram_outputs(&self, point: HeightOrDate) -> Result<Vec<i64>> {
         self.base.get_json(&format!(
             "/api/oracle/histogram/outputs/{}",
             path_segment(point)

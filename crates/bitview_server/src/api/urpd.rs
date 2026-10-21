@@ -4,7 +4,7 @@ use axum::{
     http::HeaderMap,
     response::Response,
 };
-use bitview_types::{Cohort, Urpd};
+use bitview_types::{HeightOrDate, Urpd, UrpdCohort};
 use serde_json::to_vec;
 
 use super::AppState;
@@ -13,14 +13,14 @@ use crate::{
     api::tags,
     error::Result,
     extended::TransformResponseExtended,
-    params::{Empty, HeightOrDate, HeightOrDateParam, UrpdCohortParam, UrpdParams, UrpdQuery},
+    params::{Empty, UrpdCohortParam, UrpdParams, UrpdQuery},
     request_state::RequestState,
 };
 
 async fn serve_urpd(
     state: AppState,
     headers: HeaderMap,
-    cohort: Cohort,
+    cohort: UrpdCohort,
     point: Option<HeightOrDate>,
     query: UrpdQuery,
 ) -> Result<Response> {
@@ -34,12 +34,12 @@ async fn serve_urpd(
             move |q| {
                 let resolved = match point {
                     Some(HeightOrDate::Date(date)) => {
-                        q.resolve_urpd_at(&cohort, date, query.aggregation, query.weight)?
+                        q.resolve_urpd_at(cohort, date, query.aggregation, query.weight)?
                     }
                     Some(HeightOrDate::Height(height)) => {
-                        q.resolve_urpd_height(&cohort, height, query.aggregation, query.weight)?
+                        q.resolve_urpd_height(cohort, height, query.aggregation, query.weight)?
                     }
-                    None => q.resolve_urpd_latest(&cohort, query.aggregation, query.weight)?,
+                    None => q.resolve_urpd_latest(cohort, query.aggregation, query.weight)?,
                 };
                 // The selection alone identifies the body: a match answers 304 unreconstructed.
                 let params = CacheParams::live(format!("urpd3-{}", resolved.representation()))
@@ -65,10 +65,11 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .tag(tags::URPD)
                     .summary("Available URPD cohorts")
                     .description(
-                        "Cohorts for which URPD data is available. Returns names like \
-                        `all`, `sth`, `lth`, `age_under_4m`, `age_under_6m`, `age_over_4m`, `age_over_6m`, `age_under_1h`.",
+                        "Every URPD cohort once a UTXO set is published (none before): the age aggregates \
+                        (`all`, `sth`, `lth`, `age_under_4m`, ...), then the age bands from the youngest \
+                        (`age_under_1h`, `age_1h_to_1d`, ...).",
                     )
-                    .json_response::<Vec<Cohort>>()
+                    .json_response::<Vec<UrpdCohort>>()
                     .not_modified()
             },
         ),
@@ -106,7 +107,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                    Query(query): Query<UrpdQuery>,
                    RequestState(state): RequestState|
                    -> Result<Response> {
-                serve_urpd(state, headers, params.cohort, Some(HeightOrDateParam { point: params.point }.resolve()?), query).await
+                serve_urpd(state, headers, params.cohort, Some(params.point), query).await
             },
             |op| {
                 op.id("get_urpd_at")

@@ -2,7 +2,7 @@ use aide::axum::{ApiRouter, routing::get_with};
 use axum::{extract::Path, http::HeaderMap, response::Response};
 use bitview_primitives::BlockHashPrefix;
 use bitview_query::{Query, Result as QueryResult, UtxoSetPoint};
-use bitview_types::{UtxoSet, UtxoSetDiff};
+use bitview_types::{HeightOrDate, UtxoSet, UtxoSetDiff};
 use brk_types::Version;
 use serde::Serialize;
 use serde_json::to_vec;
@@ -13,7 +13,7 @@ use crate::{
     api::tags,
     error::Result,
     extended::TransformResponseExtended,
-    params::{Empty, HeightOrDate, HeightOrDateParam},
+    params::{Empty, HeightOrDateParam},
     request_state::RequestState,
 };
 
@@ -85,7 +85,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                    _: Empty,
                    RequestState(state): RequestState|
                    -> Result<Response> {
-                let point = path.resolve()?;
+                let point = path.point;
                 state
                     .respond_utxo_set(headers, Some(point), Query::utxo_set)
                     .await
@@ -116,7 +116,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                    _: Empty,
                    RequestState(state): RequestState|
                    -> Result<Response> {
-                let point = path.resolve()?;
+                let point = path.point;
                 state
                     .respond_utxo_set(headers, Some(point), Query::utxo_set_diff)
                     .await

@@ -2,6 +2,8 @@ use brk_types::{BlockHash, Height, Timestamp, Weight};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+use crate::MerkleNode;
+
 /// Block information matching mempool.space /api/block/{hash}
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct BlockInfo {
@@ -19,10 +21,7 @@ pub struct BlockInfo {
     pub nonce: u32,
     #[schemars(example = 110_451_832_649_830.94)]
     pub difficulty: f64,
-    #[schemars(
-        example = &"4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
-    )]
-    pub merkle_root: String,
+    pub merkle_root: MerkleNode,
     #[schemars(example = 2500)]
     pub tx_count: u32,
     /// Block size in bytes

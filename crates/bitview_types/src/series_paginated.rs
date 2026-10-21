@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use bitview_primitives::SeriesName;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -15,5 +16,6 @@ pub struct PaginatedSeries {
     pub total_count: usize,
     pub per_page: usize,
     pub has_more: bool,
+    #[schemars(with = "Vec<SeriesName>")]
     pub series: Vec<Cow<'static, str>>,
 }

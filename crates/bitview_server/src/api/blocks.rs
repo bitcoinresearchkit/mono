@@ -9,8 +9,8 @@ use bitcoin::hashes::{Hash, HashEngine, sha256};
 use bitview_query::{
     Error as QueryError, Query, ResolvedBlocks, ResolvedBlocksV1, Result as QueryResult,
 };
-use bitview_types::{BlockInfo, BlockInfoV1, BlockStatus, BlockTimestamp, BlockTxIndex, Hex};
-use brk_types::{BlockHash, Dollars, Height, Timestamp, Transaction, Txid};
+use bitview_types::{BlockInfo, BlockInfoV1, BlockStatus, BlockTimestamp, BlockTxIndex};
+use brk_types::{BlockHash, Dollars, Height, Hex, Timestamp, Transaction, Txid};
 use serde::Serialize;
 use serde_json::to_vec;
 

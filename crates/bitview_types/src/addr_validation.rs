@@ -1,5 +1,5 @@
 use bitcoin::hex::DisplayHex;
-use brk_types::{AddressBytes, OutputType};
+use brk_types::{Address, AddressBytes, Hex, OutputType};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -11,12 +11,12 @@ pub struct AddressValidation {
     /// The validated address
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "address")]
-    pub addr: Option<String>,
+    pub addr: Option<Address>,
 
     /// The scriptPubKey in hex
     #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "scriptPubKey")]
-    pub script_pub_key: Option<String>,
+    pub script_pub_key: Option<Hex>,
 
     /// Whether the address is P2SH, P2WSH or P2TR
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -31,7 +31,7 @@ pub struct AddressValidation {
 
     /// Witness program in hex
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub witness_program: Option<String>,
+    pub witness_program: Option<Hex>,
 
     /// Error locations: an empty array for invalid addresses, omitted for valid ones
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -64,7 +64,7 @@ impl AddressValidation {
         };
 
         let output_type = OutputType::from(&script);
-        let script_hex = script.as_bytes().to_lower_hex_string();
+        let script_hex = Hex::from(script.as_bytes().to_lower_hex_string());
 
         let is_script = matches!(
             output_type,
@@ -73,11 +73,12 @@ impl AddressValidation {
         let witness_version = script.witness_version().map(|v| v.to_num());
         let is_witness = witness_version.is_some();
         // A witness program is the version opcode, one push opcode, then the program.
-        let witness_program = is_witness.then(|| script.as_bytes()[2..].to_lower_hex_string());
+        let witness_program =
+            is_witness.then(|| Hex::from(script.as_bytes()[2..].to_lower_hex_string()));
 
         Self {
             isvalid: true,
-            addr: Some(addr.to_string()),
+            addr: Some(Address::from(addr.to_string())),
             script_pub_key: Some(script_hex),
             isscript: Some(is_script),
             iswitness: Some(is_witness),

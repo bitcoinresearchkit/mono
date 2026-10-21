@@ -1,11 +1,11 @@
-use bitview_types::Cohort;
+use bitview_types::{HeightOrDate, UrpdCohort};
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-/// A URPD cohort and exact block height or UTC calendar-day alias.
+/// A URPD cohort and the confirmed point to read it at.
 #[derive(Deserialize, JsonSchema)]
 pub struct UrpdParams {
-    pub cohort: Cohort,
-    #[schemars(example = &"840000")]
-    pub point: String,
+    pub cohort: UrpdCohort,
+    /// Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
+    pub point: HeightOrDate,
 }

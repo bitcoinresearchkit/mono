@@ -635,7 +635,7 @@ Output value histogram at height or day
 Unfiltered output value histogram for a confirmed point. A block height (`840000`) counts that block's nonzero outputs within the histogram's bin range, coinbase included, by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
 
 Parameters:
-- `point` (path, string, required): Confirmed block height as decimal digits (`840000`) or calendar date in `YYYY-MM-DD` format.
+- `point` (path, HeightOrDate, required): Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
 
 Returns: JSON `integer[]`
 
@@ -654,7 +654,7 @@ Payment output histogram at height or day
 Smoothed histogram of oracle-eligible payment outputs for a confirmed point. A block height (`840000`) gives that block's oracle payment histogram; a calendar date (`YYYY-MM-DD`) gives the average of that day's per-block payment histograms. A flat array of log-scale bins.
 
 Parameters:
-- `point` (path, string, required): Confirmed block height as decimal digits (`840000`) or calendar date in `YYYY-MM-DD` format.
+- `point` (path, HeightOrDate, required): Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
 
 Returns: JSON `integer[]`
 
@@ -747,10 +747,10 @@ Search series
 Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
 
 Parameters:
-- `q` (query, SeriesName, required): Search query string
+- `q` (query, string, required): Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
 - `limit` (query, Limit, optional): Maximum number of results, 100 when omitted
 
-Returns: JSON `string[]`
+Returns: JSON `SeriesName[]`
 
 #### GET `/api/series/{series}`
 
@@ -858,7 +858,7 @@ First-seen UNIX timestamps in seconds, in request order, of transactions in the 
 Parameters:
 - `txId[]` (query, Txid[], required): Transaction IDs to look up (max 250 per request).
 
-Returns: JSON `integer[]`
+Returns: JSON `Timestamp[]`
 
 ### Tx
 
@@ -991,9 +991,9 @@ Returns: text `Txid`
 
 Available URPD cohorts
 
-Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `age_under_4m`, `age_under_6m`, `age_over_4m`, `age_over_6m`, `age_under_1h`.
+Every URPD cohort once a UTXO set is published (none before): the age aggregates (`all`, `sth`, `lth`, `age_under_4m`, ...), then the age bands from the youngest (`age_under_1h`, `age_1h_to_1d`, ...).
 
-Returns: JSON `Cohort[]`
+Returns: JSON `UrpdCohort[]`
 
 #### GET `/api/urpd/{cohort}`
 
@@ -1002,7 +1002,7 @@ Latest URPD
 URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
 
 Parameters:
-- `cohort` (path, Cohort, required)
+- `cohort` (path, UrpdCohort, required)
 - `agg` (query, UrpdAggregation, optional): Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
 - `weight` (query, UrpdWeight, optional): Supply weighting. Default: none (unweighted).
 
@@ -1015,8 +1015,8 @@ URPD at block height or date
 URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
 
 Parameters:
-- `cohort` (path, Cohort, required)
-- `point` (path, string, required)
+- `cohort` (path, UrpdCohort, required)
+- `point` (path, HeightOrDate, required): Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
 - `agg` (query, UrpdAggregation, optional): Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
 - `weight` (query, UrpdWeight, optional): Supply weighting. Default: none (unweighted).
 
@@ -1039,7 +1039,7 @@ UTXO set at block height or date
 The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.
 
 Parameters:
-- `point` (path, string, required): Confirmed block height as decimal digits (`840000`) or calendar date in `YYYY-MM-DD` format.
+- `point` (path, HeightOrDate, required): Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
 
 Returns: JSON `UtxoSet`
 
@@ -1050,7 +1050,7 @@ UTXO set changes of a block or date
 What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.
 
 Parameters:
-- `point` (path, string, required): Confirmed block height as decimal digits (`840000`) or calendar date in `YYYY-MM-DD` format.
+- `point` (path, HeightOrDate, required): Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
 
 Returns: JSON `UtxoSetDiff`
 
@@ -1095,7 +1095,7 @@ Returns: JSON `string`
 ### `AddressHashPrefixMatches`
 
 - `address_type`: `OutputType` (required)
-- `prefix`: `string` (required)
+- `prefix`: `string` (required) — The requested prefix, lowercased.
 - `truncated`: `boolean` (required)
 - `addresses`: `Address[]` (required)
 
@@ -1119,12 +1119,12 @@ Returns: JSON `string`
 ### `AddressValidation`
 
 - `isvalid`: `boolean` (required)
-- `address`: `string | null` — The validated address
-- `scriptPubKey`: `string | null` — The scriptPubKey in hex
+- `address`: `Address | null` — The validated address
+- `scriptPubKey`: `Hex | null` — The scriptPubKey in hex
 - `isscript`: `boolean | null` — Whether the address is P2SH, P2WSH or P2TR
 - `iswitness`: `boolean | null`
 - `witness_version`: `integer | null` — Witness version (0 for P2WPKH/P2WSH, 1 for P2TR and P2A)
-- `witness_program`: `string | null` — Witness program in hex
+- `witness_program`: `Hex | null` — Witness program in hex
 - `error_locations`: `integer[] | null` — Error locations: an empty array for invalid addresses, omitted for valid ones
 - `error`: `string | null` — Error message for invalid addresses
 
@@ -1141,9 +1141,9 @@ Returns: JSON `string`
 - `pool`: `BlockPool` (required)
 - `avgFee`: `Sats` (required) — Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
 - `avgFeeRate`: `FeeRate` (required) — Average fee rate in sat/vB
-- `coinbaseRaw`: `string` (required) — Raw coinbase transaction scriptsig as hex
-- `coinbaseAddress`: `string | null` — Primary coinbase output address
-- `coinbaseAddresses`: `string[]` (required) — All coinbase output addresses
+- `coinbaseRaw`: `Hex` (required) — Raw coinbase transaction scriptsig as hex
+- `coinbaseAddress`: `Address | null` — Primary coinbase output address
+- `coinbaseAddresses`: `Address[]` (required) — All coinbase output addresses
 - `coinbaseSignature`: `string` (required) — Coinbase output script in ASM format
 - `coinbaseSignatureAscii`: `string` (required) — Coinbase scriptsig with each byte read as the Unicode code point of the same value
 - `avgTxSize`: `number` (required) — Non-coinbase transaction bytes over the transaction count (coinbase included), rounded to 2 decimals
@@ -1155,12 +1155,12 @@ Returns: JSON `string`
 - `segwitTotalTxs`: `integer` (required)
 - `segwitTotalSize`: `integer` (required) — Total size of segwit transactions in bytes
 - `segwitTotalWeight`: `Weight` (required)
-- `header`: `string` (required) — Raw 80-byte block header as hex
+- `header`: `Hex` (required) — Raw 80-byte block header as hex
 - `utxoSetChange`: `integer` (required) — UTXO set change as mempool.space and bitcoin-cli report it: total outputs minus total inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
 - `utxoSetSize`: `integer` (required) — Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
 - `totalInputAmt`: `Sats` (required) — Total input amount in satoshis
 - `virtualSize`: `number` (required) — Virtual size in vbytes: weight / 4, unrounded
-- `firstSeen`: `integer | null` — Timestamp when the block was first seen (always null, not yet supported)
+- `firstSeen`: `Timestamp | null` — Timestamp when the block was first seen (always null, not yet supported)
 - `orphans`: `string[]` (required) — Orphaned blocks (always empty)
 - `price`: `Dollars` (required) — USD price at block height
 
@@ -1196,7 +1196,7 @@ Returns: JSON `string`
 - `bits`: `integer` (required) — Compact target (bits)
 - `nonce`: `integer` (required)
 - `difficulty`: `number` (required)
-- `merkle_root`: `string` (required)
+- `merkle_root`: `MerkleNode` (required)
 - `tx_count`: `integer` (required)
 - `size`: `integer` (required) — Block size in bytes
 - `weight`: `Weight` (required) — Block weight in weight units
@@ -1212,7 +1212,7 @@ Returns: JSON `string`
 - `bits`: `integer` (required) — Compact target (bits)
 - `nonce`: `integer` (required)
 - `difficulty`: `number` (required)
-- `merkle_root`: `string` (required)
+- `merkle_root`: `MerkleNode` (required)
 - `tx_count`: `integer` (required)
 - `size`: `integer` (required) — Block size in bytes
 - `weight`: `Weight` (required) — Block weight in weight units
@@ -1287,10 +1287,6 @@ Returns: JSON `string`
 - `timestamp`: `Timestamp` (required) — Average block timestamp in this bucket
 - `avgWeight`: `Weight` (required) — Mean block weight in this bucket, rounded half up (weight units)
 
-### `Cohort`
-
-`string`
-
 ### `CpfpCluster`
 
 - `txs`: `CpfpClusterTx[]` (required) — All txs in the cluster, in topological order (parents before children).
@@ -1364,7 +1360,7 @@ Returns: JSON `string`
 
 ### `DifficultyAdjustmentEntry`
 
-`number[]`
+`[Timestamp, Height, number, number]`
 
 ### `DifficultyEntry`
 
@@ -1411,8 +1407,8 @@ Returns: JSON `string`
 
 ### `Health`
 
-- `status`: `string` (required) — Health status ("healthy")
-- `service`: `string` (required)
+- `status`: `HealthStatus` (required)
+- `service`: `brk` (required)
 - `version`: `string` (required)
 - `timestamp`: `string` (required) — Current server time (ISO 8601)
 - `started_at`: `string` (required) — Server start time (ISO 8601)
@@ -1424,9 +1420,17 @@ Returns: JSON `string`
 - `last_indexed_at`: `string` (required) — Human-readable timestamp of the last indexed block (ISO 8601)
 - `last_indexed_at_unix`: `Timestamp` (required) — Unix timestamp of the last indexed block
 
+### `HealthStatus`
+
+`healthy`
+
 ### `Height`
 
 `integer`
+
+### `HeightOrDate`
+
+`Height | Date`
 
 ### `Hex`
 
@@ -1445,6 +1449,10 @@ Returns: JSON `string`
 
 - `index`: `Index` (required) — The canonical index name
 - `aliases`: `string[]` (required) — Every name REST queries accept for it; MCP tools take the canonical `index` only
+
+### `JsonType`
+
+`null | boolean | integer | number | string | array | object`
 
 ### `Limit`
 
@@ -1473,10 +1481,14 @@ Returns: JSON `string`
 - `vsize`: `VSize` (required) — Virtual size (vbytes)
 - `value`: `Sats` (required) — Total output value (sats)
 
+### `MerkleNode`
+
+`string`
+
 ### `MerkleProof`
 
 - `block_height`: `Height` (required)
-- `merkle`: `string[]` (required) — Merkle proof path (hex-encoded hashes)
+- `merkle`: `MerkleNode[]` (required) — Merkle proof path, from the transaction's sibling up
 - `pos`: `integer` (required) — Transaction position in the block (0-indexed)
 
 ### `NextBlockHash`
@@ -1498,7 +1510,7 @@ Returns: JSON `string`
 - `total_count`: `integer` (required)
 - `per_page`: `integer` (required)
 - `has_more`: `boolean` (required)
-- `series`: `string[]` (required)
+- `series`: `SeriesName[]` (required)
 
 ### `PoolBlockCounts`
 
@@ -1526,7 +1538,7 @@ Returns: JSON `string`
 - `id`: `integer` (required) — One-based pool ID, matching mempool.space's `id`
 - `name`: `string` (required)
 - `link`: `string` (required) — Pool website URL
-- `addresses`: `string[]` (required) — Known payout addresses
+- `addresses`: `Address[]` (required) — Known payout addresses
 - `regexes`: `string[]` (required) — Coinbase tags, matched as case-insensitive substrings
 - `slug`: `PoolSlug` (required) — URL-friendly pool identifier
 - `unique_id`: `integer` (required) — Zero-based pool ID, matching mempool.space's `unique_id`
@@ -1628,7 +1640,7 @@ Returns: JSON `string`
 - `endBlock`: `Height` (required) — Last block in the range
 - `totalReward`: `string` (required) — Total coinbase rewards (subsidy + fees) in sats
 - `totalFee`: `string` (required) — Total transaction fees in sats
-- `totalTx`: `string` (required)
+- `totalTx`: `string` (required) — Total transactions, coinbase included
 
 ### `Sats`
 
@@ -1664,12 +1676,12 @@ Returns: JSON `string`
 
 ### `SeriesLeafWithSchema`
 
-- `name`: `string` (required)
-- `kind`: `string` (required) — The Rust type (e.g., "Sats", "Ratio").
+- `name`: `SeriesName` (required)
+- `kind`: `string` (required) — The value type, by its schema's name (e.g., "Sats", "Ratio").
 - `indexes`: `Index[]` (required)
 - `nullable`: `Index[]` (required) — Indexes whose values can be null: a missing value (e.g. a period without blocks) or an undefined one (e.g. NaN).
 - `description`: `string | null` — Human-readable metric definition, when documented.
-- `type`: `string` (required) — JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").
+- `type`: `JsonType` (required) — What the values are on the wire.
 
 ### `SeriesList`
 
@@ -1723,9 +1735,9 @@ Returns: JSON `string`
 - `txid`: `Txid` (required) — Transaction ID of the output being spent
 - `vout`: `Vout` (required) — Output index being spent (coinbase: 4294967295)
 - `prevout`: `TxOut | null` (required) — The output being spent
-- `scriptsig`: `string` (required) — Signature script in hex (empty for native SegWit inputs)
+- `scriptsig`: `Hex` (required) — Signature script in hex (empty for native SegWit inputs)
 - `scriptsig_asm`: `string` (required) — Signature script in assembly format
-- `witness`: `string[]` — Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
+- `witness`: `Hex[]` — Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
 - `is_coinbase`: `boolean` (required)
 - `sequence`: `integer` (required)
 - `inner_redeemscript_asm`: `string` — Inner redeemscript in assembly (P2SH inputs)
@@ -1737,7 +1749,7 @@ Returns: JSON `string`
 
 ### `TxOut`
 
-- `scriptpubkey`: `string` (required) — Script pubkey (locking script), encoded as hexadecimal.
+- `scriptpubkey`: `Hex` (required) — Script pubkey (locking script), encoded as hexadecimal.
 - `scriptpubkey_asm`: `string` (required) — Script pubkey in assembly format.
 - `scriptpubkey_type`: `OutputTypeNormalized` (required) — Esplora/mempool.space script type.
 - `scriptpubkey_address`: `Address` — Bitcoin address, omitted for scripts without an address (P2PK included, as Esplora).
@@ -1774,7 +1786,7 @@ Returns: JSON `string`
 - `height`: `Height` (required) — Exact published block represented by this distribution.
 - `hash`: `BlockHash` (required) — Hash of block `height`.
 - `date`: `Date` (required) — UTC date of the represented block's monotonic timestamp.
-- `cohort`: `Cohort` (required)
+- `cohort`: `UrpdCohort` (required)
 - `weight`: `UrpdWeight` (required)
 - `aggregation`: `UrpdAggregation` (required)
 - `close`: `Dollars` (required) — Price at `height`, in USD. Anchor for `unrealized_pnl`.
@@ -1791,6 +1803,10 @@ Returns: JSON `string`
 - `supply`: `Bitcoin[]` (required) — Supply held with a last-move price inside each bucket, in BTC. With a `wakefulness` or `mobility` weight, the weighted supply, floored to whole satoshis at each grid price.
 - `realized_cap`: `Dollars[]` (required) — Realized cap contribution in USD: `price * supply` summed over the coins in each bucket, each coin's creation price taken on the price grid (the `raw` bucket price, within 0.05% of the exact price), rounded to the cent: a bucket worth under half a cent shows 0. The buckets therefore need not sum to the cohort's realized cap series.
 - `unrealized_pnl`: `Dollars[]` (required) — Unrealized P&L in USD at the represented block: `close * supply` minus each bucket's grid capital, rounded to the cent once. Can be negative.
+
+### `UrpdCohort`
+
+`all | sth | lth | age_under_4m | age_under_6m | age_over_4m | age_over_6m | age_under_1h | age_1h_to_1d | age_1d_to_1w | age_1w_to_1m | age_1m_to_2m | age_2m_to_3m | age_3m_to_4m | age_4m_to_5m | age_5m_to_6m | age_6m_to_9m | age_9m_to_1y | age_1y_to_18m | age_18m_to_2y | age_2y_to_3y | age_3y_to_4y | age_4y_to_5y | age_5y_to_6y | age_6y_to_7y | age_7y_to_8y | age_8y_to_10y | age_10y_to_12y | age_12y_to_15y | age_over_15y`
 
 ### `UrpdWeight`
 

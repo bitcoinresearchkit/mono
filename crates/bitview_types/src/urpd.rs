@@ -3,7 +3,7 @@ use brk_types::{Bitcoin, BlockHash, Dollars, Height};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::{Cohort, UrpdAggregation, UrpdBuckets, UrpdWeight};
+use crate::{UrpdAggregation, UrpdBuckets, UrpdCohort, UrpdWeight};
 
 /// UTXO Realized Price Distribution for a cohort at a specific block.
 ///
@@ -18,7 +18,7 @@ pub struct Urpd {
     pub hash: BlockHash,
     /// UTC date of the represented block's monotonic timestamp.
     pub date: Date,
-    pub cohort: Cohort,
+    pub cohort: UrpdCohort,
     pub weight: UrpdWeight,
     pub aggregation: UrpdAggregation,
     /// Price at `height`, in USD. Anchor for `unrealized_pnl`.

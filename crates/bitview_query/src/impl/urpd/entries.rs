@@ -1,11 +1,11 @@
 use bitcoin::Amount;
 use bitview_primitives::{CentsCompact, Date};
-use bitview_types::{Cohort, Urpd, UrpdAggregation, UrpdBuckets, UrpdWeight};
+use bitview_types::{Urpd, UrpdAggregation, UrpdBuckets, UrpdCohort, UrpdWeight};
 use brk_types::{Bitcoin, BlockHash, Cents, CentsSats, CentsSigned, Dollars, Height, Sats};
 
 /// What a URPD response echoes about the distribution [`Self::build`] buckets.
 pub(super) struct UrpdHeader {
-    pub(super) cohort: Cohort,
+    pub(super) cohort: UrpdCohort,
     pub(super) height: Height,
     pub(super) hash: BlockHash,
     pub(super) date: Date,
@@ -41,7 +41,9 @@ impl UrpdHeader {
             buckets.price.push(Dollars::from(price));
             buckets.supply.push(Bitcoin::from(supply));
             buckets.realized_cap.push(Dollars::from(capital.to_cents()));
-            buckets.unrealized_pnl.push(Dollars::from(CentsSigned::from(unrealized_pnl)));
+            buckets
+                .unrealized_pnl
+                .push(Dollars::from(CentsSigned::from(unrealized_pnl)));
         };
         for (price, supply) in entries {
             // Weights are within [0, 1]: a weighted mass never exceeds the raw one.

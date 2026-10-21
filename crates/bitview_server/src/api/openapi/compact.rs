@@ -115,7 +115,7 @@ fn compact_component(schema: Value) -> Value {
 }
 
 /// A schema as the type a reader needs: a referenced schema's name, a JSON type, `array[T]`, a
-/// union `[T, ...]`, or, when there is more to say, an object of its `type`, `items`, small
+/// tuple `tuple[T1, T2]`, a union `[T, ...]`, or, when there is more to say, an object of its `type`, `items`, small
 /// `enum`, `properties` and map values (`additionalProperties`), each compacted the same way.
 /// Everything else (descriptions, examples, formats, patterns, bounds, `required`) is dropped.
 fn compact_schema(schema: Value) -> Value {
@@ -142,7 +142,23 @@ fn compact_schema(schema: Value) -> Value {
 
     let mut compact = Map::new();
     let items = schema.shift_remove("items").map(compact_schema);
+    // A tuple of named item types reads as `tuple[T1, T2, ...]`.
+    let tuple = match schema.shift_remove("prefixItems") {
+        Some(Value::Array(members)) => {
+            let members: Vec<Value> = members.into_iter().map(compact_schema).collect();
+            members.iter().all(Value::is_string).then(|| {
+                let names: Vec<&str> = members.iter().filter_map(Value::as_str).collect();
+                Value::String(format!("tuple[{}]", names.join(", ")))
+            })
+        }
+        _ => None,
+    };
     if let Some(mut ty) = schema.shift_remove("type") {
+        if let Some(tuple) = tuple
+            && ty == "array"
+        {
+            ty = tuple;
+        }
         // An array of a named item type reads as `array[T]`.
         if let Some(Value::String(item)) = &items {
             let array_of = Value::String(format!("array[{item}]"));

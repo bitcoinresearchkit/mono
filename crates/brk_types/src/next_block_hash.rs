@@ -12,7 +12,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error};
 /// A decimal string, since JavaScript numbers can't hold every 64-bit value.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, From, Into)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
-#[cfg_attr(feature = "schemars", schemars(with = "String", example = &"9007199254740993"))]
+#[cfg_attr(feature = "schemars", schemars(with = "String", extend("pattern" = "^[0-9]+$"), example = &"9007199254740993"))]
 pub struct NextBlockHash(u64);
 
 impl Serialize for NextBlockHash {

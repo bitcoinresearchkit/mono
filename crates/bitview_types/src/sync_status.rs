@@ -14,6 +14,7 @@ pub struct SyncStatus {
     /// Number of blocks behind the tip
     pub blocks_behind: Height,
     /// Human-readable timestamp of the last indexed block (ISO 8601)
+    #[schemars(extend("format" = "date-time"))]
     pub last_indexed_at: String,
     /// Unix timestamp of the last indexed block
     pub last_indexed_at_unix: Timestamp,

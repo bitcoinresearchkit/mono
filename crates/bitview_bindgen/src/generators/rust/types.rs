@@ -3,6 +3,10 @@ use crate::Ty;
 pub(crate) fn rust_type(ty: &Ty) -> String {
     match ty {
         Ty::List(item) => format!("Vec<{}>", rust_type(item)),
+        Ty::Tuple(items) => {
+            let items: Vec<String> = items.iter().map(rust_type).collect();
+            format!("({})", items.join(", "))
+        }
         // API consumers read the version value; they do not need vecdb's
         // persisted-version arithmetic or file operations.
         Ty::Ref(name) if name == "Version" => "u32".to_owned(),

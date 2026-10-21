@@ -8,9 +8,9 @@ use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct};
 #[cfg(feature = "schemars")]
 use serde_json::json;
 
-#[cfg(feature = "schemars")]
-use crate::OutputTypeNormalized;
 use crate::{Address, AddressBytes, OutputType, Sats, bytes::DisplayStr};
+#[cfg(feature = "schemars")]
+use crate::{Hex, OutputTypeNormalized};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct TxOut {
@@ -25,7 +25,7 @@ pub struct TxOut {
 struct TxOutSchema {
     /// Script pubkey (locking script), encoded as hexadecimal.
     #[schemars(example = "00143b064c595a95f977f00352d6e917501267cacdc6")]
-    scriptpubkey: String,
+    scriptpubkey: Hex,
     /// Script pubkey in assembly format.
     #[schemars(example = "OP_0 OP_PUSHBYTES_20 3b064c595a95f977f00352d6e917501267cacdc6")]
     scriptpubkey_asm: String,

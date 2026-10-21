@@ -12,8 +12,8 @@ use bitcoin::{
 use bitview_primitives::{Bytes32, Difficulty, Lengths, PoolSlug, pools};
 use bitview_types::{BlockExtras, BlockHeader, BlockInfo, BlockInfoV1, BlockPool};
 use brk_types::{
-    BlkPosition, BlockHash, CheckedSub, Dollars, FeeRate, Height, Sats, Timestamp, TxIndex, Weight,
-    Weight32,
+    Address, BlkPosition, BlockHash, CheckedSub, Dollars, FeeRate, Height, Hex, Sats, Timestamp,
+    TxIndex, Weight, Weight32,
 };
 use vecdb::{ReadableVec, VecIndex};
 
@@ -24,11 +24,11 @@ const HEADER_SIZE: usize = 80;
 /// The coinbase fields of the extended (`v1`) block rows.
 struct Coinbase {
     /// Hex-encoded scriptsig bytes.
-    raw_hex: String,
+    raw_hex: Hex,
     /// Primary payout address (first non-duplicate output address).
-    primary_address: Option<String>,
+    primary_address: Option<Address>,
     /// Deduped payout address list (consecutive duplicates collapsed).
-    addresses: Vec<String>,
+    addresses: Vec<Address>,
     /// Payout-output `asm` (first non-OP_RETURN output, or first output).
     payout_asm: String,
     /// Scriptsig bytes as chars, one per byte (U+0000 to U+00FF).
@@ -165,17 +165,17 @@ impl Query {
             .map(|input| input.script_sig.as_bytes().to_vec())
             .unwrap_or_default();
 
-        let raw_hex = scriptsig_bytes.to_lower_hex_string();
+        let raw_hex = Hex::from(scriptsig_bytes.to_lower_hex_string());
 
         let scriptsig_ascii: String = scriptsig_bytes.iter().map(|&b| b as char).collect();
 
-        let mut addresses: Vec<String> = tx
+        let mut addresses: Vec<Address> = tx
             .output
             .iter()
             .filter_map(|output| {
                 BitcoinAddress::from_script(&output.script_pubkey, Network::Bitcoin)
                     .ok()
-                    .map(|a| a.to_string())
+                    .map(|a| Address::from(a.to_string()))
             })
             .collect();
         // Collapse consecutive duplicates only: padding outputs to the same
@@ -473,7 +473,7 @@ impl Query {
                     segwit_total_txs: u32::from(*segwit_txs[i]),
                     segwit_total_size: u64::from(*segwit_sizes[i]),
                     segwit_total_weight: segwit_weights[i].into(),
-                    header: raw_header.to_lower_hex_string(),
+                    header: Hex::from(raw_header.to_lower_hex_string()),
                     utxo_set_change: total_outputs as i64 - total_inputs as i64,
                     utxo_set_size: *utxo_set_sizes[i],
                     total_input_amt,

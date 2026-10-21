@@ -14,14 +14,15 @@ pub struct RewardStats {
     pub end_block: Height,
     /// Total coinbase rewards (subsidy + fees) in sats
     #[serde(with = "decimal_string")]
-    #[schemars(with = "String")]
+    #[schemars(with = "String", extend("pattern" = "^[0-9]+$"))]
     pub total_reward: Sats,
     /// Total transaction fees in sats
     #[serde(with = "decimal_string")]
-    #[schemars(with = "String")]
+    #[schemars(with = "String", extend("pattern" = "^[0-9]+$"))]
     pub total_fee: Sats,
+    /// Total transactions, coinbase included
     #[serde(with = "decimal_string")]
-    #[schemars(with = "String")]
+    #[schemars(with = "String", extend("pattern" = "^[0-9]+$"))]
     pub total_tx: u64,
 }
 

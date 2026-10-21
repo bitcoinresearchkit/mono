@@ -1,13 +1,14 @@
 use std::{collections::BTreeSet, sync::Arc};
 
-use bitview_primitives::Index;
+use bitview_primitives::{Index, SeriesName};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, JsonSchema)]
 pub struct SeriesLeaf {
+    #[schemars(with = "SeriesName")]
     pub name: String,
-    /// The Rust type (e.g., "Sats", "Ratio").
+    /// The value type, by its schema's name (e.g., "Sats", "Ratio").
     pub kind: String,
     pub indexes: BTreeSet<Index>,
     /// Indexes whose values can be null: a missing value (e.g. a period without blocks) or an

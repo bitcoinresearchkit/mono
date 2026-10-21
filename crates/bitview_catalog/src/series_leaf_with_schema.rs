@@ -5,16 +5,16 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::SeriesLeaf;
+use crate::{JsonType, SeriesLeaf};
 
 /// Series leaf with JSON Schema for client generation.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct SeriesLeafWithSchema {
     #[serde(flatten)]
     pub leaf: SeriesLeaf,
-    /// JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").
+    /// What the values are on the wire.
     #[serde(rename = "type")]
-    pub(crate) openapi_type: String,
+    pub(crate) openapi_type: JsonType,
     /// JSON Schema for the value type.
     #[serde(skip)]
     pub schema: Value,
@@ -55,13 +55,17 @@ impl PartialEq for SeriesLeafWithSchema {
 impl Eq for SeriesLeafWithSchema {}
 
 /// Extract JSON type from a root schema, following `$ref` and composition keywords.
-pub fn extract_json_type(schema: &Value) -> String {
+pub fn extract_json_type(schema: &Value) -> JsonType {
     extract_json_type_inner(schema, schema)
 }
 
-fn extract_json_type_inner(node: &Value, root: &Value) -> String {
-    if let Some(value_type) = node.get("type").and_then(Value::as_str) {
-        return value_type.to_string();
+fn extract_json_type_inner(node: &Value, root: &Value) -> JsonType {
+    if let Some(value_type) = node
+        .get("type")
+        .and_then(Value::as_str)
+        .and_then(JsonType::parse)
+    {
+        return value_type;
     }
 
     if let Some(reference) = node.get("$ref").and_then(Value::as_str)
@@ -86,12 +90,12 @@ fn extract_json_type_inner(node: &Value, root: &Value) -> String {
         if let Some(variants) = node.get(key).and_then(Value::as_array) {
             for variant in variants {
                 let value_type = extract_json_type_inner(variant, root);
-                if value_type != "null" {
+                if value_type != JsonType::Null {
                     return value_type;
                 }
             }
         }
     }
 
-    "object".to_string()
+    JsonType::Object
 }

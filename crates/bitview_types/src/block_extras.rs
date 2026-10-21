@@ -1,4 +1,4 @@
-use brk_types::{Dollars, FeeRate, Sats, Weight};
+use brk_types::{Address, Dollars, FeeRate, Hex, Sats, Timestamp, Weight};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -34,15 +34,15 @@ pub struct BlockExtras {
 
     /// Raw coinbase transaction scriptsig as hex
     #[serde(rename = "coinbaseRaw")]
-    pub coinbase_raw: String,
+    pub coinbase_raw: Hex,
 
     /// Primary coinbase output address
     #[serde(rename = "coinbaseAddress")]
-    pub coinbase_address: Option<String>,
+    pub coinbase_address: Option<Address>,
 
     /// All coinbase output addresses
     #[serde(rename = "coinbaseAddresses")]
-    pub coinbase_addresses: Vec<String>,
+    pub coinbase_addresses: Vec<Address>,
 
     /// Coinbase output script in ASM format
     #[serde(rename = "coinbaseSignature")]
@@ -92,7 +92,7 @@ pub struct BlockExtras {
     pub segwit_total_weight: Weight,
 
     /// Raw 80-byte block header as hex
-    pub header: String,
+    pub header: Hex,
 
     /// UTXO set change as mempool.space and bitcoin-cli report it: total outputs minus total
     /// inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
@@ -116,7 +116,7 @@ pub struct BlockExtras {
 
     /// Timestamp when the block was first seen (always null, not yet supported)
     #[serde(rename = "firstSeen")]
-    pub first_seen: Option<u64>,
+    pub first_seen: Option<Timestamp>,
 
     /// Orphaned blocks (always empty)
     pub orphans: Vec<String>,

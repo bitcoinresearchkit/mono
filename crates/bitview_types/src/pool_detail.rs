@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use bitview_primitives::{Pool, PoolSlug};
-use brk_types::Sats;
+use brk_types::{Address, Sats};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -43,6 +43,7 @@ pub struct PoolDetailInfo {
     pub link: Cow<'static, str>,
 
     /// Known payout addresses
+    #[schemars(with = "Vec<Address>")]
     pub addresses: Vec<Cow<'static, str>>,
 
     /// Coinbase tags, matched as case-insensitive substrings

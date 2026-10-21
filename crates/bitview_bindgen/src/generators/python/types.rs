@@ -196,6 +196,19 @@ pub(crate) fn python_type(ty: &Ty, quote: &impl Fn(&str) -> bool) -> String {
         Ty::Object => "dict".to_owned(),
         Ty::Map(value) => format!("dict[str, {}]", python_type(value, quote)),
         Ty::List(item) => format!("List[{}]", python_type(item, quote)),
+        // JSON arrays decode to lists: a tuple is a list of its positions' types.
+        Ty::Tuple(items) => {
+            let mut types: Vec<String> = Vec::new();
+            for ty in items.iter().map(|ty| python_type(ty, quote)) {
+                if !types.contains(&ty) {
+                    types.push(ty);
+                }
+            }
+            match types.as_slice() {
+                [ty] => format!("List[{ty}]"),
+                _ => format!("List[Union[{}]]", types.join(", ")),
+            }
+        }
         Ty::Ref(name) if quote(name) => format!("\"{name}\""),
         Ty::Ref(name) => name.clone(),
         Ty::Literals(values) => {

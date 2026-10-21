@@ -1,10 +1,10 @@
 use std::{fmt::Write, ops::Range};
 
 use bitview_catalog::TreeNode;
-use bitview_primitives::{BlockHashPrefix, Date, Epoch, Halving, Index, TxOutIndex};
+use bitview_primitives::{BlockHashPrefix, Date, Epoch, Halving, Index, SeriesName, TxOutIndex};
 use bitview_types::{
     DetailedSeriesCount, Format, IndexInfo, Limit, PaginatedSeries, Pagination, RangeIndex,
-    SearchQuery, SeriesInfo, SeriesName, SeriesSelection,
+    SearchQuery, SeriesInfo, SeriesSelection,
 };
 use brk_types::{Height, Timestamp, TxIndex, Version};
 use itoa::Buffer;

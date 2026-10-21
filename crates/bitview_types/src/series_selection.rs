@@ -2,7 +2,9 @@ use bitview_primitives::Index;
 use schemars::JsonSchema;
 use serde::Deserialize;
 
-use crate::{DataRangeFormat, SeriesList, SeriesName};
+use bitview_primitives::SeriesName;
+
+use crate::{DataRangeFormat, SeriesList};
 
 with_range_format! {
     #[derive(Clone, Debug, Deserialize, JsonSchema)]

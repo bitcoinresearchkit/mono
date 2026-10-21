@@ -22,4 +22,5 @@ pub struct HistoricalPrice {
 
 /// Always empty: prices are quoted in USD only.
 #[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
 pub struct ExchangeRates {}

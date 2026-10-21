@@ -8,6 +8,8 @@ use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct};
 #[cfg(feature = "schemars")]
 use serde_json::json;
 
+#[cfg(feature = "schemars")]
+use crate::Hex;
 use crate::{TxOut, Txid, Vout, bytes::DisplayStr, tx::p2sh_redeem_script};
 
 #[derive(Debug, Clone, Deserialize)]
@@ -36,12 +38,11 @@ struct TxInSchema {
     /// The output being spent
     prevout: Option<TxOut>,
     /// Signature script in hex (empty for native SegWit inputs)
-    scriptsig: String,
+    scriptsig: Hex,
     /// Signature script in assembly format
     scriptsig_asm: String,
     /// Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
-    #[schemars(with = "Vec<String>")]
-    witness: Witness,
+    witness: Vec<Hex>,
     #[schemars(example = false)]
     is_coinbase: bool,
     #[schemars(example = 4294967293_u32)]

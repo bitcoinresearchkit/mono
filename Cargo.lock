@@ -1199,6 +1199,7 @@ name = "bitview_types"
 version = "0.12.2"
 dependencies = [
  "bitcoin",
+ "bitview_cohort",
  "bitview_primitives",
  "brk_types",
  "derive_more",

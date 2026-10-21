@@ -26,6 +26,8 @@ has to be deleted by hand.
   error" and the detail goes to the log, so file paths and panic payloads no longer reach clients
 - Errors carry no ETag (those of cached endpoints carried the resource's): 400 and 404 keep `public, max-age=1,
   must-revalidate`, and every other error is `no-store` (all were `public, max-age=1, must-revalidate`)
+- An unknown URPD cohort answers 400 `bad_request` ("Invalid URL: unknown URPD cohort `x` (`GET /api/urpd` lists them)";
+  was 404 `not_found` listing the cohorts), as any other unparsable path parameter
 - `GET /api/v1/mining/reward-stats/0` answers 400 `bad_request` (was 404 `out_of_range`); an address of a kind
   Bitview does not index (e.g. witness v2) answers 400 `unsupported_type` (was 500); a block transaction whose indexed
   prevout address is missing answers 500 (was served with an empty prevout script); `too_many_utxos` names the
@@ -95,6 +97,19 @@ has to be deleted by hand.
   present, though its JSON held `null` there too): a period without blocks (date resolutions; height, halving and epoch
   never) or a type's own undefined value (non-finite floats, the `FeeRate` sentinel, `Score`); CSV writes undefined
   values as empty cells
+- The API is typed as closely as its values: the URPD cohort is `UrpdCohort`, every cohort by name (the age aggregates,
+  then the age bands from the youngest, the order `GET /api/urpd` now lists them in; was `Cohort`, a string enum in
+  alphabetical order); the `{point}` of `/api/urpd/{cohort}/{point}`, `/api/utxo-set/{point}`,
+  `/api/utxo-set/{point}/diff` and the oracle histograms is `HeightOrDate`, a `Height` or a `Date` (was a string);
+  transaction ids, block hashes, hex data, series names and the address hash prefix carry their canonical pattern
+  (lowercase hex, `^[a-z0-9_]+$`), `NextBlockHash` its digits; a block's `merkle_root` and a merkle proof's path are
+  `MerkleNode`s, its extras' `coinbaseRaw` and `header` `Hex`, `coinbaseAddress`, `coinbaseAddresses` and a pool's
+  `addresses` `Address`es and `firstSeen` a `Timestamp`; inputs' `scriptsig` and `witness` and outputs' `scriptpubkey`
+  are `Hex`; series search and `GET /api/series/list` return `SeriesName`s, `GET /api/v1/transaction-times`
+  `Timestamp`s; a series' JSON `type` is `JsonType` and `/health`'s `status` `HealthStatus` (`healthy`); ISO 8601 times
+  are `date-time`s and `reward-stats` totals digit strings; a difficulty adjustment is the tuple `[Timestamp, Height,
+  number, number]` (was `number[]`). The document's tuples are `prefixItems`, as OpenAPI 3.1 has them (was draft-07's
+  `items` array)
 - Relations to nothing are null instead of a maximum-value marker: `spending_txin_index` while an output is unspent,
   and a coinbase input's `outpoint`, `spent_txout_index` and `type_index` (its `output_type` stays `unknown`)
 - One unit per quantity: the `_cents` copies of USD series, the `_sats` copies of BTC amounts and the sats-per-USD
@@ -592,7 +607,7 @@ has to be deleted by hand.
   `CreationCohort`) and each top-level section after itself (`Holders`, `Bedrock`), with the tree section prefixed where
   two structures would share a name (`HoldersActivity`), or, among structures in one section that each always sit under
   their own field, after that field (`FloorSupply`, `FloorCapital`; `MappingsDay1` where the field's name is taken),
-  `Series` after a name the API already uses (`CohortSeries`, `UtxoSetSeries`) and the path's name where no type defines
+  `Series` after a name the API already uses (`UtxoSetSeries`) and the path's name where no type defines
   one; Rust types live in `bitview_client::tree` (were `SeriesTree_Blocks` or `_1m1w1y24hPattern6`). Clients shrink from
   1.26 MB to 313 KB (JS), 1.05 MB to 274 KB (Python) and 1.95 MB to 157 KB (Rust), with a third of v0.12.2's series
   paths
@@ -866,6 +881,10 @@ has to be deleted by hand.
   `aliases`; `Year` is gone; `Pool::slug()` is the `slug` field and `Pools::get_unknown` is `unknown`;
   `PercentileId::{P5, Median}` (were `Pct05`/`Pct50`) gain `suffix()`, and `RarityPercentileId::Median` (was `Pct50`;
   `price_suffix` is gone)
+- `brk_types::Cohort` (a name) is `bitview_types::UrpdCohort` (`Aggregate(AgeAggregateId)` or `Range(AgeRangeId)`, with
+  `all()`, `name()` and `age_range_ids()`), `bitview_types::SeriesName` is `bitview_primitives::SeriesName`, and
+  `bitview_types::HeightOrDate` is new (a height or a date); `extract_json_type` returns a `JsonType`;
+  `brk_types::Address` is `PartialEq`
 - `bitview_primitives` declares the OP_RETURN kinds once (`with_op_return_kinds!`): `OpReturnKind` no longer implements
   vecdb's `ColumnId` (`ALL`, `get`), `OP_RETURN_KINDS` is gone and `OpReturnKind::{Veriblock, Coinspark}` were
   `VeriBlock`, `CoinSpark`. It adds `Index::calendar()`, `From<SatsFract> for Bitcoin` and `From<CentsFract> for

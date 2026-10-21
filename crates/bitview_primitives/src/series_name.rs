@@ -11,6 +11,7 @@ use serde::{Deserialize, Serialize};
 #[serde(transparent)]
 #[schemars(
     with = "String",
+    extend("pattern" = "^[a-z0-9_]+$"),
     example = &"price_close",
     example = &"market_cap",
     example = &"realized_price"

@@ -633,7 +633,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Output value histogram at height or day",
         description: "Unfiltered output value histogram for a confirmed point. A block height (`840000`) counts that block's nonzero outputs within the histogram's bin range, coinbase included, by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.",
         path_parameters: &[
-            Parameter { api_name: "point", name: "point", required: true, value_name: "string", repeatable: false, description: Some("Confirmed block height as decimal digits (`840000`) or calendar date in\n`YYYY-MM-DD` format.") },
+            Parameter { api_name: "point", name: "point", required: true, value_name: "HeightOrDate", repeatable: false, description: Some("Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)") },
         ],
         query_parameters: &[
         ],
@@ -658,7 +658,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Payment output histogram at height or day",
         description: "Smoothed histogram of oracle-eligible payment outputs for a confirmed point. A block height (`840000`) gives that block's oracle payment histogram; a calendar date (`YYYY-MM-DD`) gives the average of that day's per-block payment histograms. A flat array of log-scale bins.",
         path_parameters: &[
-            Parameter { api_name: "point", name: "point", required: true, value_name: "string", repeatable: false, description: Some("Confirmed block height as decimal digits (`840000`) or calendar date in\n`YYYY-MM-DD` format.") },
+            Parameter { api_name: "point", name: "point", required: true, value_name: "HeightOrDate", repeatable: false, description: Some("Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)") },
         ],
         query_parameters: &[
         ],
@@ -1148,7 +1148,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Latest URPD",
         description: "URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.",
         path_parameters: &[
-            Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "Cohort", repeatable: false, description: None },
+            Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "UrpdCohort", repeatable: false, description: None },
         ],
         query_parameters: &[
             Parameter { api_name: "agg", name: "agg", required: false, value_name: "UrpdAggregation", repeatable: false, description: Some("Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.") },
@@ -1163,8 +1163,8 @@ pub static COMMANDS: &[Command] = &[
         summary: "URPD at block height or date",
         description: "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.",
         path_parameters: &[
-            Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "Cohort", repeatable: false, description: None },
-            Parameter { api_name: "point", name: "point", required: true, value_name: "string", repeatable: false, description: None },
+            Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "UrpdCohort", repeatable: false, description: None },
+            Parameter { api_name: "point", name: "point", required: true, value_name: "HeightOrDate", repeatable: false, description: Some("Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)") },
         ],
         query_parameters: &[
             Parameter { api_name: "agg", name: "agg", required: false, value_name: "UrpdAggregation", repeatable: false, description: Some("Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.") },
@@ -1179,7 +1179,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "UTXO set at block height or date",
         description: "The UTXO set after a block (`840000`) or after the last published block of a UTC day (`YYYY-MM-DD`), by creation height. Returns `{ height, hash, date, count, supply, origins }`; entry `i` of `origins.count` and `origins.supply` (BTC) is what remains unspent of block `i`'s outputs.",
         path_parameters: &[
-            Parameter { api_name: "point", name: "point", required: true, value_name: "string", repeatable: false, description: Some("Confirmed block height as decimal digits (`840000`) or calendar date in\n`YYYY-MM-DD` format.") },
+            Parameter { api_name: "point", name: "point", required: true, value_name: "HeightOrDate", repeatable: false, description: Some("Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)") },
         ],
         query_parameters: &[
         ],
@@ -1192,7 +1192,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "UTXO set changes of a block or date",
         description: "What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed in the UTXO set. Returns `{ first, last, hash, date, created, spent }`: `created` has one row per block, `spent` one row per creation height, each as columnar `height`, `count` and `supply` (BTC). The set after block `first - 1` plus `created` minus `spent` is the set after block `last`.",
         path_parameters: &[
-            Parameter { api_name: "point", name: "point", required: true, value_name: "string", repeatable: false, description: Some("Confirmed block height as decimal digits (`840000`) or calendar date in\n`YYYY-MM-DD` format.") },
+            Parameter { api_name: "point", name: "point", required: true, value_name: "HeightOrDate", repeatable: false, description: Some("Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)") },
         ],
         query_parameters: &[
         ],
@@ -1241,7 +1241,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/urpd",
         summary: "Available URPD cohorts",
-        description: "Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `age_under_4m`, `age_under_6m`, `age_over_4m`, `age_over_6m`, `age_under_1h`.",
+        description: "Every URPD cohort once a UTXO set is published (none before): the age aggregates (`all`, `sth`, `lth`, `age_under_4m`, ...), then the age bands from the youngest (`age_under_1h`, `age_1h_to_1d`, ...).",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -1269,7 +1269,7 @@ pub static COMMANDS: &[Command] = &[
         path_parameters: &[
         ],
         query_parameters: &[
-            Parameter { api_name: "q", name: "q", required: true, value_name: "SeriesName", repeatable: false, description: Some("Search query string") },
+            Parameter { api_name: "q", name: "q", required: true, value_name: "string", repeatable: false, description: Some("Words to find in series names and descriptions (`realized price`, `mvrv`), in any order") },
             Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of results, 100 when omitted") },
         ],
         request_body: None,

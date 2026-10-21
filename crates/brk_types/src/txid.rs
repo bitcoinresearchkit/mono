@@ -22,7 +22,10 @@ use vecdb::Bytes;
     )
 )]
 #[repr(C)]
-#[cfg_attr(feature = "schemars", schemars(transparent, with = "String"))]
+#[cfg_attr(
+    feature = "schemars",
+    schemars(transparent, with = "String", extend("pattern" = "^[0-9a-f]{64}$"))
+)]
 pub struct Txid([u8; 32]);
 
 crate::bytes::impl_hash32!(Txid, BitcoinTxid, expecting: "a transaction ID");

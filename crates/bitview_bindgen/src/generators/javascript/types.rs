@@ -124,6 +124,10 @@ pub(crate) fn js_type(ty: &Ty) -> String {
         Ty::Object => "Object".to_owned(),
         Ty::Map(value) => format!("{{ [key: string]: {} }}", js_type(value)),
         Ty::List(item) => format!("{}[]", js_type(item)),
+        Ty::Tuple(items) => {
+            let items: Vec<String> = items.iter().map(js_type).collect();
+            format!("[{}]", items.join(", "))
+        }
         Ty::Ref(name) => name.clone(),
         Ty::Literals(values) => {
             let values: Vec<String> = values.iter().map(|value| format!("\"{value}\"")).collect();

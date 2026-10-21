@@ -30,7 +30,7 @@ confirmed activity
 /**
  * @typedef {Object} AddressHashPrefixMatches
  * @property {OutputType} addressType
- * @property {string} prefix
+ * @property {string} prefix - The requested prefix, lowercased.
  * @property {boolean} truncated
  * @property {Address[]} addresses
  */
@@ -68,12 +68,12 @@ address payload bytes.
 /**
  * @typedef {Object} AddressValidation
  * @property {boolean} isvalid
- * @property {?string=} address - The validated address
- * @property {?string=} scriptPubKey - The scriptPubKey in hex
+ * @property {(Address|null)=} address - The validated address
+ * @property {(Hex|null)=} scriptPubKey - The scriptPubKey in hex
  * @property {?boolean=} isscript - Whether the address is P2SH, P2WSH or P2TR
  * @property {?boolean=} iswitness
  * @property {?number=} witnessVersion - Witness version (0 for P2WPKH/P2WSH, 1 for P2TR and P2A)
- * @property {?string=} witnessProgram - Witness program in hex
+ * @property {(Hex|null)=} witnessProgram - Witness program in hex
  * @property {?number[]=} errorLocations - Error locations: an empty array for invalid addresses, omitted for valid ones
  * @property {?string=} error - Error message for invalid addresses
  */
@@ -97,9 +97,9 @@ address payload bytes.
  * @property {BlockPool} pool
  * @property {Sats} avgFee - Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
  * @property {FeeRate} avgFeeRate - Average fee rate in sat/vB
- * @property {string} coinbaseRaw - Raw coinbase transaction scriptsig as hex
- * @property {?string=} coinbaseAddress - Primary coinbase output address
- * @property {string[]} coinbaseAddresses - All coinbase output addresses
+ * @property {Hex} coinbaseRaw - Raw coinbase transaction scriptsig as hex
+ * @property {(Address|null)=} coinbaseAddress - Primary coinbase output address
+ * @property {Address[]} coinbaseAddresses - All coinbase output addresses
  * @property {string} coinbaseSignature - Coinbase output script in ASM format
  * @property {string} coinbaseSignatureAscii - Coinbase scriptsig with each byte read as the Unicode code point of the same value
  * @property {number} avgTxSize - Non-coinbase transaction bytes over the transaction count (coinbase included), rounded to
@@ -112,13 +112,13 @@ address payload bytes.
  * @property {number} segwitTotalTxs
  * @property {number} segwitTotalSize - Total size of segwit transactions in bytes
  * @property {Weight} segwitTotalWeight
- * @property {string} header - Raw 80-byte block header as hex
+ * @property {Hex} header - Raw 80-byte block header as hex
  * @property {number} utxoSetChange - UTXO set change as mempool.space and bitcoin-cli report it: total outputs minus total
 inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
  * @property {number} utxoSetSize - Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
  * @property {Sats} totalInputAmt - Total input amount in satoshis
  * @property {number} virtualSize - Virtual size in vbytes: weight / 4, unrounded
- * @property {?number=} firstSeen - Timestamp when the block was first seen (always null, not yet supported)
+ * @property {(Timestamp|null)=} firstSeen - Timestamp when the block was first seen (always null, not yet supported)
  * @property {string[]} orphans - Orphaned blocks (always empty)
  * @property {Dollars} price - USD price at block height
  */
@@ -178,7 +178,7 @@ inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
  * @property {number} bits - Compact target (bits)
  * @property {number} nonce
  * @property {number} difficulty
- * @property {string} merkleRoot
+ * @property {MerkleNode} merkleRoot
  * @property {number} txCount
  * @property {number} size - Block size in bytes
  * @property {Weight} weight - Block weight in weight units
@@ -196,7 +196,7 @@ inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
  * @property {number} bits - Compact target (bits)
  * @property {number} nonce
  * @property {number} difficulty
- * @property {string} merkleRoot
+ * @property {MerkleNode} merkleRoot
  * @property {number} txCount
  * @property {number} size - Block size in bytes
  * @property {Weight} weight - Block weight in weight units
@@ -317,14 +317,6 @@ prior template's transactions or a full transaction body.
  * A mean size in bytes.
  *
  * @typedef {number} BytesFract
- */
-/**
- * URPD cohort identifier. Use `GET /api/urpd` to list available cohorts.
- *
- * Names are non-empty ASCII `[a-z0-9_]+`. Availability is determined by
- * supported age filters and the published UTXO set.
- *
- * @typedef {string} Cohort
  */
 /**
  * Bitcoin multiplied by the blocks it was held.
@@ -487,9 +479,9 @@ mainnet, as mempool.space
  * @property {number} expectedBlocks - Blocks expected at the 10-minute target between the epoch's first block and the tip block
  */
 /**
- * Serializes as an array: [timestamp, height, difficulty, adjustment ratio].
+ * A difficulty adjustment, written as an array (as mempool.space does): `[timestamp, height, difficulty, adjustment]`.
  *
- * @typedef {number[]} DifficultyAdjustmentEntry
+ * @typedef {[Timestamp, Height, number, number]} DifficultyAdjustmentEntry
  */
 /**
  * A single difficulty data point in the hashrate summary.
@@ -605,8 +597,8 @@ mainnet, as mempool.space
  */
 /**
  * @typedef {Object} Health
- * @property {string} status - Health status ("healthy")
- * @property {string} service
+ * @property {HealthStatus} status
+ * @property {("brk")} service
  * @property {string} version
  * @property {string} timestamp - Current server time (ISO 8601)
  * @property {string} startedAt - Server start time (ISO 8601)
@@ -620,14 +612,23 @@ asking the node
  * @property {Timestamp} lastIndexedAtUnix - Unix timestamp of the last indexed block
  */
 /**
+ * The server's health: `healthy` whenever it answers.
+ *
+ * @typedef {("healthy")} HealthStatus
+ */
+/**
  * A block height: how many blocks came before it.
  *
  * @typedef {number} Height
  */
 /**
+ * A confirmed point of the chain: a block height (`840000`) or a UTC calendar day (`YYYY-MM-DD`).
+ *
+ * @typedef {(Height|Date)} HeightOrDate
+ */
+/**
  * @typedef {Object} HeightOrDateParam
- * @property {string} point - Confirmed block height as decimal digits (`840000`) or calendar date in
-`YYYY-MM-DD` format.
+ * @property {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
  */
 /**
  * @typedef {Object} HeightParam
@@ -677,6 +678,11 @@ asking the node
  * @property {string[]} aliases - Every name REST queries accept for it; MCP tools take the canonical `index` only
  */
 /**
+ * A JSON Schema type: what a series' values are on the wire.
+ *
+ * @typedef {("null"|"boolean"|"integer"|"number"|"string"|"array"|"object")} JsonType
+ */
+/**
  * Maximum number of results to return; each parameter states what omitting it means.
  *
  * @typedef {number} Limit
@@ -716,11 +722,16 @@ a bin closing at the first fee rate change past 50,000 vB
  * @property {Sats} value - Total output value (sats)
  */
 /**
+ * A merkle tree node: a double-SHA256 hash, hex-encoded in Bitcoin's display byte order.
+ *
+ * @typedef {string} MerkleNode
+ */
+/**
  * Merkle inclusion proof for a transaction
  *
  * @typedef {Object} MerkleProof
  * @property {Height} blockHeight
- * @property {string[]} merkle - Merkle proof path (hex-encoded hashes)
+ * @property {MerkleNode[]} merkle - Merkle proof path, from the transaction's sibling up
  * @property {number} pos - Transaction position in the block (0-indexed)
  */
 /**
@@ -896,7 +907,7 @@ a bin closing at the first fee rate change past 50,000 vB
  * @property {number} totalCount
  * @property {number} perPage
  * @property {boolean} hasMore
- * @property {string[]} series
+ * @property {SeriesName[]} series
  */
 /**
  * @typedef {Object} Pagination
@@ -948,7 +959,7 @@ a bin closing at the first fee rate change past 50,000 vB
  * @property {number} id - One-based pool ID, matching mempool.space's `id`
  * @property {string} name
  * @property {string} link - Pool website URL
- * @property {string[]} addresses - Known payout addresses
+ * @property {Address[]} addresses - Known payout addresses
  * @property {string[]} regexes - Coinbase tags, matched as case-insensitive substrings
  * @property {PoolSlug} slug - URL-friendly pool identifier
  * @property {number} uniqueId - Zero-based pool ID, matching mempool.space's `unique_id`
@@ -1094,7 +1105,7 @@ on serialization otherwise.
  * @property {Height} endBlock - Last block in the range
  * @property {string} totalReward - Total coinbase rewards (subsidy + fees) in sats
  * @property {string} totalFee - Total transaction fees in sats
- * @property {string} totalTx
+ * @property {string} totalTx - Total transactions, coinbase included
  */
 /**
  * An amount in satoshis (100,000,000 to a bitcoin).
@@ -1113,7 +1124,7 @@ on serialization otherwise.
  */
 /**
  * @typedef {Object} SearchQuery
- * @property {SeriesName} q - Search query string
+ * @property {string} q - Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
  * @property {Limit=} limit - Maximum number of results, 100 when omitted
  */
 /**
@@ -1146,13 +1157,13 @@ undefined one (e.g. NaN)
  * Series leaf with JSON Schema for client generation.
  *
  * @typedef {Object} SeriesLeafWithSchema
- * @property {string} name
- * @property {string} kind - The Rust type (e.g., "Sats", "Ratio").
+ * @property {SeriesName} name
+ * @property {string} kind - The value type, by its schema's name (e.g., "Sats", "Ratio").
  * @property {Index[]} indexes
  * @property {Index[]} nullable - Indexes whose values can be null: a missing value (e.g. a period without blocks) or an
 undefined one (e.g. NaN).
  * @property {?string=} description - Human-readable metric definition, when documented.
- * @property {string} type - JSON Schema type (e.g., "integer", "number", "string", "boolean", "array", "object").
+ * @property {JsonType} type - What the values are on the wire.
  */
 /**
  * Comma-separated list of series names
@@ -1237,9 +1248,9 @@ asking the node
  * @property {Txid} txid - Transaction ID of the output being spent
  * @property {Vout} vout - Output index being spent (coinbase: 4294967295)
  * @property {(TxOut|null)} prevout - The output being spent
- * @property {string} scriptsig - Signature script in hex (empty for native SegWit inputs)
+ * @property {Hex} scriptsig - Signature script in hex (empty for native SegWit inputs)
  * @property {string} scriptsigAsm - Signature script in assembly format
- * @property {string[]=} witness - Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
+ * @property {Hex[]=} witness - Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)
  * @property {boolean} isCoinbase
  * @property {number} sequence
  * @property {string=} innerRedeemscriptAsm - Inner redeemscript in assembly (P2SH inputs)
@@ -1262,7 +1273,7 @@ asking the node
  */
 /**
  * @typedef {Object} TxOut
- * @property {string} scriptpubkey - Script pubkey (locking script), encoded as hexadecimal.
+ * @property {Hex} scriptpubkey - Script pubkey (locking script), encoded as hexadecimal.
  * @property {string} scriptpubkeyAsm - Script pubkey in assembly format.
  * @property {OutputTypeNormalized} scriptpubkeyType - Esplora/mempool.space script type.
  * @property {Address=} scriptpubkeyAddress - Bitcoin address, omitted for scripts without an address (P2PK included, as Esplora).
@@ -1342,7 +1353,7 @@ asking the node
  * @property {Height} height - Exact published block represented by this distribution.
  * @property {BlockHash} hash - Hash of block `height`.
  * @property {Date} date - UTC date of the represented block's monotonic timestamp.
- * @property {Cohort} cohort
+ * @property {UrpdCohort} cohort
  * @property {UrpdWeight} weight
  * @property {UrpdAggregation} aggregation
  * @property {Dollars} close - Price at `height`, in USD. Anchor for `unrealized_pnl`.
@@ -1372,15 +1383,20 @@ buckets therefore need not sum to the cohort's realized cap series.
 capital, rounded to the cent once. Can be negative.
  */
 /**
- * @typedef {Object} UrpdCohortParam
- * @property {Cohort} cohort
+ * A URPD cohort, by its series' prefix: an age aggregate (`all`, `sth`, `lth`, `age_under_4m`, ...) or an age band (`age_under_1h`, `age_1h_to_1d`, ...).
+ *
+ * @typedef {("all"|"sth"|"lth"|"age_under_4m"|"age_under_6m"|"age_over_4m"|"age_over_6m"|"age_under_1h"|"age_1h_to_1d"|"age_1d_to_1w"|"age_1w_to_1m"|"age_1m_to_2m"|"age_2m_to_3m"|"age_3m_to_4m"|"age_4m_to_5m"|"age_5m_to_6m"|"age_6m_to_9m"|"age_9m_to_1y"|"age_1y_to_18m"|"age_18m_to_2y"|"age_2y_to_3y"|"age_3y_to_4y"|"age_4y_to_5y"|"age_5y_to_6y"|"age_6y_to_7y"|"age_7y_to_8y"|"age_8y_to_10y"|"age_10y_to_12y"|"age_12y_to_15y"|"age_over_15y")} UrpdCohort
  */
 /**
- * A URPD cohort and exact block height or UTC calendar-day alias.
+ * @typedef {Object} UrpdCohortParam
+ * @property {UrpdCohort} cohort
+ */
+/**
+ * A URPD cohort and the confirmed point to read it at.
  *
  * @typedef {Object} UrpdParams
- * @property {Cohort} cohort
- * @property {string} point
+ * @property {UrpdCohort} cohort
+ * @property {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
  */
 /**
  * @typedef {Object} UrpdQuery
@@ -3826,9 +3842,9 @@ const _Side = _s({
  * @typedef {{
  *   mobile: Awake,
  *   immobile: Side,
- * }} CoinflowCohortSeries
+ * }} CoinflowCohort
  */
-const _CoinflowCohortSeries = _s({
+const _CoinflowCohort = _s({
   mobile: [_Awake, '*_mobile'],
   immobile: [_Side, '*_immobile_supply'],
 });
@@ -3854,9 +3870,9 @@ const _CoinflowRange = _s({
  * @typedef {{
  *   awake: Awake,
  *   dormant: Side,
- * }} CointimeCohortSeries
+ * }} CointimeCohort
  */
-const _CointimeCohortSeries = _s({
+const _CointimeCohort = _s({
   awake: [_Awake, '*_awake'],
   dormant: [_Side, '*_dormant_supply'],
 });
@@ -5348,9 +5364,9 @@ const _CohortUtxos = _s({
  *   activity: Activity,
  *   realized: Realized,
  *   costBasis: CohortCostBasis,
- * }} CohortSeries
+ * }} Cohort
  */
-const _CohortSeries = _s({
+const _Cohort = _s({
   supply: [_CohortSupply, '*_supply'],
   capital: [_CapitalViews, '*'],
   utxos: [_CohortUtxos, '*'],
@@ -5361,29 +5377,29 @@ const _CohortSeries = _s({
 
 /**
  * @typedef {{
- *   p2pk: CohortSeries,
- *   p2pkh: CohortSeries,
- *   p2ms: CohortSeries,
- *   p2sh: CohortSeries,
- *   p2wpkh: CohortSeries,
- *   p2wsh: CohortSeries,
- *   p2tr: CohortSeries,
- *   p2a: CohortSeries,
- *   unknown: CohortSeries,
- *   empty: CohortSeries,
+ *   p2pk: Cohort,
+ *   p2pkh: Cohort,
+ *   p2ms: Cohort,
+ *   p2sh: Cohort,
+ *   p2wpkh: Cohort,
+ *   p2wsh: Cohort,
+ *   p2tr: Cohort,
+ *   p2a: Cohort,
+ *   unknown: Cohort,
+ *   empty: Cohort,
  * }} UtxosSpendableType
  */
 const _UtxosSpendableType = _s({
-  p2pk: [_CohortSeries, 'p2pk'],
-  p2pkh: [_CohortSeries, 'p2pkh'],
-  p2ms: [_CohortSeries, 'p2ms'],
-  p2sh: [_CohortSeries, 'p2sh'],
-  p2wpkh: [_CohortSeries, 'p2wpkh'],
-  p2wsh: [_CohortSeries, 'p2wsh'],
-  p2tr: [_CohortSeries, 'p2tr'],
-  p2a: [_CohortSeries, 'p2a'],
-  unknown: [_CohortSeries, 'unknown_*'],
-  empty: [_CohortSeries, 'empty_*'],
+  p2pk: [_Cohort, 'p2pk'],
+  p2pkh: [_Cohort, 'p2pkh'],
+  p2ms: [_Cohort, 'p2ms'],
+  p2sh: [_Cohort, 'p2sh'],
+  p2wpkh: [_Cohort, 'p2wpkh'],
+  p2wsh: [_Cohort, 'p2wsh'],
+  p2tr: [_Cohort, 'p2tr'],
+  p2a: [_Cohort, 'p2a'],
+  unknown: [_Cohort, 'unknown_*'],
+  empty: [_Cohort, 'empty_*'],
 });
 
 /**
@@ -5469,12 +5485,12 @@ const _Addresses = _s({
 
 /**
  * @typedef {{
- *   amounts: AmountRange<Zero, CohortSeries>,
+ *   amounts: AmountRange<Zero, Cohort>,
  *   types: UtxosSpendableType,
  * }} Utxos
  */
 const _Utxos = _s({
-  amounts: [(c, b) => _AmountRange(c, b, _Zero, _CohortSeries), '*'],
+  amounts: [(c, b) => _AmountRange(c, b, _Zero, _Cohort), '*'],
   types: [_UtxosSpendableType, 'output'],
 });
 
@@ -5678,19 +5694,19 @@ const _AgeRange = (c, b, f0) => _n(c, b, {
 /**
  * @typedef {{
  *   ageRanges: AgeRange<CoinflowRange>,
- *   cohorts: Holders<CoinflowCohortSeries, CoinflowCohortSeries>,
+ *   cohorts: Holders<CoinflowCohort, CoinflowCohort>,
  * }} Coinflow
  */
 const _Coinflow = _s({
   ageRanges: [(c, b) => _AgeRange(c, b, _CoinflowRange), '*'],
-  cohorts: [(c, b) => _Holders(c, b, _CoinflowCohortSeries, _CoinflowCohortSeries), '*'],
+  cohorts: [(c, b) => _Holders(c, b, _CoinflowCohort, _CoinflowCohort), '*'],
 });
 
 /**
  * @typedef {{
  *   activity: CointimeActivity,
  *   ageRanges: AgeRange<CointimeRange>,
- *   cohorts: Holders<CointimeCohortSeries, CointimeCohortSeries>,
+ *   cohorts: Holders<CointimeCohort, CointimeCohort>,
  *   supply: CointimeSupply,
  *   value: CointimeValue,
  *   caps: Caps,
@@ -5702,7 +5718,7 @@ const _Coinflow = _s({
 const _Cointime = _s({
   activity: [_CointimeActivity, 'coinblocks'],
   ageRanges: [(c, b) => _AgeRange(c, b, _CointimeRange), '*'],
-  cohorts: [(c, b) => _Holders(c, b, _CointimeCohortSeries, _CointimeCohortSeries), '*'],
+  cohorts: [(c, b) => _Holders(c, b, _CointimeCohort, _CointimeCohort), '*'],
   supply: [_CointimeSupply, 'supply'],
   value: [_CointimeValue, 'cointime_value'],
   caps: [_Caps, 'cap'],
@@ -7850,10 +7866,10 @@ class BitviewClient extends BitviewClientBase {
    *
    * Endpoint: `GET /api/series/search`
    *
-   * @param {SeriesName} q - Search query string
+   * @param {string} q - Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
    * @param {Limit=} [limit] - Maximum number of results, 100 when omitted
-   * @param {{ signal?: AbortSignal, onValue?: (value: string[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<string[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: SeriesName[]) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<SeriesName[]>}
    */
   async searchSeries(q, limit, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
@@ -8018,11 +8034,11 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Available URPD cohorts
    *
-   * Cohorts for which URPD data is available. Returns names like `all`, `sth`, `lth`, `age_under_4m`, `age_under_6m`, `age_over_4m`, `age_over_6m`, `age_under_1h`.
+   * Every URPD cohort once a UTXO set is published (none before): the age aggregates (`all`, `sth`, `lth`, `age_under_4m`, ...), then the age bands from the youngest (`age_under_1h`, `age_1h_to_1d`, ...).
    *
    * Endpoint: `GET /api/urpd`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Cohort[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Cohort[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: UrpdCohort[]) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<UrpdCohort[]>}
    */
   async listUrpdCohorts({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/urpd`;
@@ -8036,7 +8052,7 @@ class BitviewClient extends BitviewClientBase {
    *
    * Endpoint: `GET /api/urpd/{cohort}`
    *
-   * @param {Cohort} cohort
+   * @param {UrpdCohort} cohort
    * @param {UrpdAggregation=} [agg] - Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
    * @param {UrpdWeight=} [weight] - Supply weighting. Default: none (unweighted).
    * @param {{ signal?: AbortSignal, onValue?: (value: Urpd) => void, cache?: boolean, memCache?: boolean }} [options]
@@ -8058,8 +8074,8 @@ class BitviewClient extends BitviewClientBase {
    *
    * Endpoint: `GET /api/urpd/{cohort}/{point}`
    *
-   * @param {Cohort} cohort
-   * @param {string} point
+   * @param {UrpdCohort} cohort
+   * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
    * @param {UrpdAggregation=} [agg] - Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
    * @param {UrpdWeight=} [weight] - Supply weighting. Default: none (unweighted).
    * @param {{ signal?: AbortSignal, onValue?: (value: Urpd) => void, cache?: boolean, memCache?: boolean }} [options]
@@ -9248,8 +9264,8 @@ address payload bytes.
    * Endpoint: `GET /api/v1/transaction-times`
    *
    * @param {Txid[]} txId - Transaction IDs to look up (max 250 per request).
-   * @param {{ signal?: AbortSignal, onValue?: (value: number[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<number[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Timestamp[]) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Timestamp[]>}
    */
   async getTransactionTimes(txId, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
@@ -9298,8 +9314,7 @@ address payload bytes.
    *
    * Endpoint: `GET /api/utxo-set/{point}`
    *
-   * @param {string} point - Confirmed block height as decimal digits (`840000`) or calendar date in
-`YYYY-MM-DD` format.
+   * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
    * @param {{ signal?: AbortSignal, onValue?: (value: UtxoSet) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<UtxoSet>}
    */
@@ -9315,8 +9330,7 @@ address payload bytes.
    *
    * Endpoint: `GET /api/utxo-set/{point}/diff`
    *
-   * @param {string} point - Confirmed block height as decimal digits (`840000`) or calendar date in
-`YYYY-MM-DD` format.
+   * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
    * @param {{ signal?: AbortSignal, onValue?: (value: UtxoSetDiff) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<UtxoSetDiff>}
    */
@@ -9360,8 +9374,7 @@ address payload bytes.
    *
    * Endpoint: `GET /api/oracle/histogram/payments/{point}`
    *
-   * @param {string} point - Confirmed block height as decimal digits (`840000`) or calendar date in
-`YYYY-MM-DD` format.
+   * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
    * @param {{ signal?: AbortSignal, onValue?: (value: number[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<number[]>}
    */
@@ -9391,8 +9404,7 @@ address payload bytes.
    *
    * Endpoint: `GET /api/oracle/histogram/outputs/{point}`
    *
-   * @param {string} point - Confirmed block height as decimal digits (`840000`) or calendar date in
-`YYYY-MM-DD` format.
+   * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
    * @param {{ signal?: AbortSignal, onValue?: (value: number[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<number[]>}
    */

@@ -29,7 +29,7 @@ struct ErrorDetail {
     /// Human-readable description
     message: String,
     /// Link to API documentation
-    #[schemars(with = "String")]
+    #[schemars(with = "String", extend("format" = "uri-reference"))]
     doc_url: &'static str,
 }
 

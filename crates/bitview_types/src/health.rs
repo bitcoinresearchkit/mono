@@ -7,16 +7,25 @@ use crate::SyncStatus;
 
 #[derive(Debug, Serialize, Deserialize, JsonSchema)]
 pub struct Health {
-    /// Health status ("healthy")
-    pub status: Cow<'static, str>,
+    pub status: HealthStatus,
+    #[schemars(extend("const" = "brk"))]
     pub service: Cow<'static, str>,
     pub version: Cow<'static, str>,
     /// Current server time (ISO 8601)
+    #[schemars(extend("format" = "date-time"))]
     pub timestamp: String,
     /// Server start time (ISO 8601)
+    #[schemars(extend("format" = "date-time"))]
     pub started_at: String,
     /// Uptime in seconds
     pub uptime_seconds: u64,
     #[serde(flatten)]
     pub sync: SyncStatus,
+}
+
+/// The server's health: `healthy` whenever it answers.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum HealthStatus {
+    Healthy,
 }
