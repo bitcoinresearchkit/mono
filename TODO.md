@@ -21,7 +21,6 @@ Built against next.bitview.space; deployed to studio-next only, never studio.bit
   once. Deploy the MCP page only once `main` has `showcases/assets/fonts` (its fonts load from there through jsDelivr).
 
 - Before going live, decide what happens to presets people edited on the old tree: their places are gone, so the edits match no preset (kept in the browser, shown nowhere, only in Download all), and old `/chart/…` addresses open the Charts page.
-- Going to a date while an Auto switch is still loading (a ~130 ms window), at the interval still on screen, leaves the view where it was (`goToDate`'s Auto branch when the interval it asks for is the one drawn).
 
 ## Showcases
 

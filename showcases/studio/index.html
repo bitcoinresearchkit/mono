@@ -26551,15 +26551,34 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (span.to >= start && span.from < end) return "";
         return `This chart runs from ${monthYear(start)} to ${monthYear(end - 1)}`;
       }
-      /** The view on a date: a year or a month shown whole, a day (or a span of a few points) centered at the zoom it has. */
-      function goToDate(span, loaded = false) {
+      /** The latest Go to a date: one waiting on a draw (see goToDate) goes on only if none came since. */
+      let dateGoes = 0;
+      /**
+       * A Go on once the chart's latest draw is on screen (see settled), if it's still the latest Go, on this chart: a task
+       * on, after what that draw's caller does once it's drawn (a range asked for, set then).
+       */
+      const afterDrawn = (/** @type {number} */ go, /** @type {() => void} */ then) => {
+        const id = chart.id, wake = () => (drawnWaiters.delete(wake), setTimeout(() => chart.id === id && go === dateGoes && then()));
+        drawnWaiters.add(wake);
+      };
+      /**
+       * The view on a date: a year or a month shown whole, a day (or a span of a few points) centered at the zoom it has.
+       * (`go`: which Go it is, kept through its waits; `by`, the draw that loaded its chunks: loaded while it's the one
+       * drawn.)
+       */
+      function goToDate(span, by = 0, go = ++dateGoes) {
         if (!span || outOfData(span)) return;
+        // (A draw under way (a switch's, another Go's, a block come in) would take the view back as it lands: once it
+        // has, from what it drew.)
+        if (!settled()) return void afterDrawn(go, () => goToDate(span, by, go));
+        const loaded = by > 0 && by === drawnVersion;
         // (Auto, a month or a year asked for: at the interval it asks for, then there (a fine one loads its chunks for it
         // first, below); a day, at the zoom the chart has, as it is.)
         if (chart.auto && !loaded && !span.day) {
           const want = autoPick(chart, Math.max(1, (Math.min(span.to, Date.now() / 1000) - span.from) / 86400), view.timeScale().width());
-          if (want !== chart.index) {
-            // (Kept as its view at that interval, as one left there is: drawn once, there, its chunks the ones for it.)
+          if (drawnChart !== chart.id || drawnIndex !== want) {
+            // (Not the one on screen (a switch to it under way, or none): kept as its view at that interval, as one left
+            // there is: drawn once, there, its chunks the ones for it.)
             const all = viewsNow();
             all[chart.id] = { index: want, from: [span.from, 0], to: [Math.min(span.to, Date.now() / 1000), 0], at: Date.now() };
             putViews(all);
@@ -26567,6 +26586,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             chart.index = want;
             save(false);
             return void refresh(true);
+          }
+          // (The one on screen, a switch away from it still loading: that switch called off (drawn again as it is, its
+          // draw the latest), then there, once drawn: a glide begun first, the draw would put the view back.)
+          if (chart.index !== want) {
+            autoFade = false;
+            chart.index = want;
+            save(false);
+            refresh(false);
+            void draw();
+            return void afterDrawn(go, () => goToDate(span, 0, go));
           }
         }
         // Past what a fine interval has loaded: the chunks around it load first (joined to those held when they meet,
@@ -26581,8 +26610,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             else held.from = held.to - MOST_CHUNKS + 1;
           }
           held.live = held.to >= latest;
-          const id = chart.id;
-          return void draw().then((drew) => drew && chart.id === id && goToDate(span, true));
+          void draw();
+          // (Loaded while this draw's the one drawn; another in its place (another interval), looked at again.)
+          const mine = drawVersion;
+          return void afterDrawn(go, () => goToDate(span, mine, go));
         }
         const { first, last } = pointsOf(span), range = view.timeScale().getVisibleLogicalRange();
         autoScale();
