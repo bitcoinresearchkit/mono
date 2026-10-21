@@ -7100,16 +7100,17 @@
           box-shadow: none;
           outline: none;
 
-          /* Installed, the status bar over the card: a fixed strip of its color there, as the grid has its own (iOS
-             26 on blurs what an installed app has under its status bar, some 40pt past it, over the header, unless a
-             fixed box with a background spans the top: its color then; seen in Lockdown Mode). The card's own, under
-             its scrim and its picture as the rest of it. */
+          /* Installed, the status bar over the card: a fixed strip of its color at the top, as the grid has its own
+             (iOS 26 on blurs an installed app's top, some 40pt down, over the header, unless a fixed box with a
+             background, 6px tall or more, spans the top: the bar its color then, as while ⌘K's scrim is there). Its
+             inset is 0 there, so 8px at least; behind the header's own (it starts 4px down), under its scrim and
+             picture as the rest of the card. */
           &::before {
             content: "";
             position: fixed;
             inset: 0 0 auto;
-            z-index: 5;
-            height: env(safe-area-inset-top);
+            z-index: -1;
+            height: max(env(safe-area-inset-top), 8px);
             background: var(--card);
             pointer-events: none;
           }
@@ -7125,14 +7126,14 @@
         .home {
           inset: 0;
 
-          /* Installed, the status bar over the grid: what scrolls under it hidden, as an app's own lists (Safari's own
-             bar is its own; no room there, nothing). */
+          /* Installed, the status bar over the grid: what scrolls under it hidden, as an app's own lists, and iOS's
+             blur kept off the page's top (a fixed strip there, 8px at least, the card's own says why). */
           &::after {
             content: "";
             position: fixed;
             inset: 0 0 auto;
             z-index: 5;
-            height: env(safe-area-inset-top);
+            height: max(env(safe-area-inset-top), 8px);
             background: var(--app);
             pointer-events: none;
           }
