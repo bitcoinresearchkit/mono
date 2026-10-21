@@ -17,19 +17,17 @@ pub struct MedianComponent<M: StorageMode = Rw> {
 }
 
 impl MedianComponent {
-    /// `price` names the price and its spot ratio (its source's id), `name` the component's own
-    /// series.
+    /// `price` names the price, its spot ratio and the component's series (its source's id).
     pub fn import(
         db: &Database,
         price: &str,
-        name: &str,
         version: Version,
         indexes: &IndexSources,
         source: &impl ReadableCloneableVec<Height, Cents>,
     ) -> Result<Self> {
         Ok(Self {
             price: PriceWithRatio::import(db, price, version, source, indexes)?,
-            component: Component::import(db, name, version, indexes, source)?,
+            component: Component::import(db, price, version, indexes, source)?,
         })
     }
 

@@ -116,12 +116,13 @@ has to be deleted by hand.
   `true_market_mean_price`, `under_6m_realized_price`, ...). A component's ids follow its price's: each percentile's
   price is its `band` (`<component>.<percentile>.band`, ids `<price>_rarity_<percentile>`, as
   `sth_median_realized_price_rarity_p1`; were `<component>.<percentile>.price`, ids `<component>_<percentile>`) and its
-  ratio `<component>.<percentile>.ratio` (ids `<price>_rarity_ratio_<percentile>`; were
-  `<component>_ratio_<percentile>`), and a median component's price and spot ratio are
-  `sth_median_realized_price`, `sth_median_realized_price_ratio`, `median_capitalized_price`, ...
-  Extremes are named by their input, `supply_in_loss`, `realized_profit_24h`, `realized_loss_24h`,
-  `realized_peak_regret_24h`, `sell_side_risk_ratio_24h` (were `coins_in_loss`, `profit_taking`, `capitulation`,
-  `peak_regret`, `seller_exhaustion`). Each is its input (`block`, under the input's own id: `supply_in_loss`,
+  ratio `<component>.<percentile>.ratio`, that percentile of spot over the price (ids
+  `<price>_ratio_rarity_<percentile>`, the price's ratio named as the extremes name their input's bands:
+  `sth_realized_price_ratio_rarity_p1`; were `<component>_ratio_<percentile>`), and a median component's price and spot
+  ratio are `sth_median_realized_price`, `sth_median_realized_price_ratio`, `median_capitalized_price`, ... Extremes are
+  named by their input, `supply_in_loss`, `realized_profit_24h`, `realized_loss_24h`, `realized_peak_regret_24h`,
+  `sell_side_risk_ratio_24h` (were `coins_in_loss`, `profit_taking`, `capitulation`, `peak_regret`,
+  `seller_exhaustion`). Each is its input (`block`, under the input's own id: `supply_in_loss`,
   `realized_profit_sum_24h`, ...) and the input's historical percentile bands, the components' rarity percentiles
   (`supply_in_loss_rarity_p99_9`, ...), in place of three tail thresholds and a tail share (were
   `rarity_meter_coins_in_loss_threshold_pct0_1`, ... and `rarity_meter_coins_in_loss_tail`). The bands describe the
@@ -358,12 +359,14 @@ has to be deleted by hand.
   `op_return_policy_oversized_tx_count`)
 - Pools have one shape at `pools.<slug>` (were `pools.major.<slug>` for 22 pools with rewards and `pools.minor.<slug>`
   for the rest), ids `pool_<slug>_...` (`pool_foundryusa_block_share_1m`; were `foundryusa_...`): `block_count`
-  (cumulative and window sums; was `blocks_mined`; the per-block 0/1 and the major pools' per-block `<slug>_rewards`
-  are gone), `block_share` (all time and per window; was `dominance`), `rewards` (BTC and USD, cumulative and
-  window sums), `fees_per_block` (fees of the pool's blocks per block it mined, per window, BTC and USD; empty when it
-  mined none) and `hashrate` (its window share of blocks times the network hash-rate estimate). All are read from
-  in-memory per-pool running totals: the pools plugin stores only the per-block attribution (`pools.block_pool`, id
-  `block_pool`; was `pool`). `GET /api/v1/mining/pool/{slug}` reports `totalReward` for every pool
+  (cumulative and window sums; was `blocks_mined`; the per-block 0/1 and the major pools' per-block `<slug>_rewards` are
+  gone), `block_share` (all time and per window; was `dominance`), `coinbase` (BTC and USD, cumulative and window sums:
+  the coinbase value of its blocks, as the network's `mining.rewards.coinbase`; was `rewards`, ids `<slug>_rewards_*`,
+  whose window averages are gone), `fees.avg` (ids `pool_<slug>_fees_avg_<window>`: the average fees of its blocks per
+  window, as the network's `fees_avg_<window>`, BTC and USD; empty when it mined none) and `hashrate` (its window share
+  of blocks times the network hash-rate estimate). All are read from in-memory per-pool running totals: the pools plugin
+  stores only the per-block attribution (`pools.block_pool`, id `block_pool`; was `pool`). `GET
+  /api/v1/mining/pool/{slug}` reports `totalReward` for every pool
 - Cointime and Coinflow are member-first. Their cohorts sit under `cohorts`: `all`, `sth` and `lth` (were
   `cointime.{awake, dormant}`, `cointime.{sth, lth}.{awake, dormant}`, `coinflow.{supply, cap, price}` and
   `coinflow.{sth, lth}.*`) and the new age cutoffs `under_4m`, `under_6m`, `over_4m` and `over_6m`.

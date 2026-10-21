@@ -20,12 +20,11 @@ pub struct PoolVecs {
     /// Share of all blocks attributed to the pool: from genesis through the represented block
     /// (`cumulative`) or over a trailing window.
     block_share: BlockShare,
-    /// Coinbase output value of the pool's blocks, with USD valuing each block's reward at its
+    /// Coinbase output value of the pool's blocks, with USD valuing each block's coinbase at its
     /// spot price.
-    pub rewards: Rewards,
-    /// Transaction fees per block the pool mined over a trailing window: the fees of its blocks
-    /// in the window divided by their number; null when it mined none.
-    fees_per_block: Windows<FeesPerBlock>,
+    pub coinbase: Coinbase,
+    /// Transaction fees of the pool's blocks.
+    fees: PoolFees,
     /// Estimated hash rate over a trailing window, in hashes per second: the pool's share of the
     /// window's blocks times the network hash-rate estimate for the same window.
     hashrate: Windows<LazyPerBlock<Hashrate>>,
@@ -46,14 +45,21 @@ pub struct BlockShare {
 }
 
 #[derive(Clone, Traversable)]
-pub struct Rewards {
+pub struct Coinbase {
     /// Through the represented block, from genesis.
     pub cumulative: LazyCumulativeValuePerBlock,
     pub sum: LazyRollingSumsAmountFromHeight,
 }
 
 #[derive(Clone, Traversable)]
-pub struct FeesPerBlock {
+pub struct PoolFees {
+    /// Average transaction fees of the pool's blocks over a trailing window: the fees of its
+    /// blocks in the window divided by their number; null when it mined none.
+    pub avg: Windows<FeesAvg>,
+}
+
+#[derive(Clone, Traversable)]
+pub struct FeesAvg {
     /// In BTC.
     pub btc: LazyPerBlock<Bitcoin>,
     /// In US dollars, each block's fees valued at its spot price.
@@ -81,13 +87,13 @@ impl PoolVecs {
             pool_heights.clone(),
         );
         let coinbase_sats = PoolCumulativeVec::<Sats>::new(
-            &name("rewards_cumulative_sats_source"),
+            &name("coinbase_cumulative_sats_source"),
             slug,
             Column::CoinbaseSats,
             pool_heights.clone(),
         );
         let coinbase_cents = PoolCumulativeVec::<Cents>::new(
-            &name("rewards_cumulative_cents_source"),
+            &name("coinbase_cumulative_cents_source"),
             slug,
             Column::CoinbaseCents,
             pool_heights.clone(),
@@ -144,17 +150,17 @@ impl PoolVecs {
             ),
         };
 
-        let rewards_name = name("rewards");
-        let rewards = Rewards {
+        let coinbase_name = name("coinbase");
+        let coinbase = Coinbase {
             cumulative: LazyCumulativeValuePerBlock::from_sources(
-                &format!("{rewards_name}_cumulative"),
+                &format!("{coinbase_name}_cumulative"),
                 version,
                 &coinbase_sats,
                 &coinbase_cents,
                 mappings,
             ),
             sum: LazyRollingSumsAmountFromHeight::new(
-                &format!("{rewards_name}_sum"),
+                &format!("{coinbase_name}_sum"),
                 version,
                 &coinbase_sats,
                 &coinbase_cents,
@@ -163,8 +169,8 @@ impl PoolVecs {
             ),
         };
 
-        let fees_name = name("fees_per_block");
-        let fees_per_block =
+        let fees_name = name("fees_avg");
+        let fees_avg =
             window_starts.zip_with_suffix(&block_count.sum, |suffix, start, blocks| {
                 let full_name = format!("{fees_name}_{suffix}");
                 let sats = LazyDeltaVec::<Height, Sats, Sats, DeltaSub>::new(
@@ -198,7 +204,7 @@ impl PoolVecs {
                         Quotient::<Dollars>::apply(Dollars::from(cents), blocks)
                     },
                 );
-                FeesPerBlock {
+                FeesAvg {
                     btc: LazyPerBlock::from_height_source::<Ident>(
                         &full_name, version, &btc, mappings,
                     ),
@@ -242,8 +248,8 @@ impl PoolVecs {
         Self {
             block_count,
             block_share,
-            rewards,
-            fees_per_block,
+            coinbase,
+            fees: PoolFees { avg: fees_avg },
             hashrate,
         }
     }

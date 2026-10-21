@@ -165,7 +165,7 @@ impl Query {
         let estimated_hashrate = (share_24h * network_hr as f64) as u128;
 
         let total_reward = vecs
-            .rewards
+            .coinbase
             .cumulative
             .sats
             .height

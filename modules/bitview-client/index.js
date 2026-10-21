@@ -2586,8 +2586,8 @@ const _Extremes = _s({
  * }} MobileMedianCapitalizedPriceMedian
  */
 const _MobileMedianCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'mobile_median_capitalized_price_rarity_ratio_*'],
-  band: [_i1, 'mobile_median_capitalized_price_rarity_*'],
+  ratio: [_i1, 'mobile_median_capitalized_price_ratio_*'],
+  band: [_i1, 'mobile_median_capitalized_price_*'],
 });
 
 /**
@@ -2597,8 +2597,8 @@ const _MobileMedianCapitalizedPriceMedian = _s({
  * }} MobileMedianRealizedPriceMedian
  */
 const _MobileMedianRealizedPriceMedian = _s({
-  ratio: [_i1, 'mobile_median_realized_price_rarity_ratio_*'],
-  band: [_i1, 'mobile_median_realized_price_rarity_*'],
+  ratio: [_i1, 'mobile_median_realized_price_ratio_*'],
+  band: [_i1, 'mobile_median_realized_price_*'],
 });
 
 /**
@@ -2608,8 +2608,8 @@ const _MobileMedianRealizedPriceMedian = _s({
  * }} MobileRealizedPriceMedian
  */
 const _MobileRealizedPriceMedian = _s({
-  ratio: [_i1, 'mobile_realized_price_rarity_ratio_*'],
-  band: [_i1, 'mobile_realized_price_rarity_*'],
+  ratio: [_i1, 'mobile_realized_price_ratio_*'],
+  band: [_i1, 'mobile_realized_price_*'],
 });
 
 /**
@@ -2619,8 +2619,8 @@ const _MobileRealizedPriceMedian = _s({
  * }} AwakeRealizedPriceMedian
  */
 const _AwakeRealizedPriceMedian = _s({
-  ratio: [_i1, 'awake_realized_price_rarity_ratio_*'],
-  band: [_i1, 'awake_realized_price_rarity_*'],
+  ratio: [_i1, 'awake_realized_price_ratio_*'],
+  band: [_i1, 'awake_realized_price_*'],
 });
 
 /**
@@ -2630,8 +2630,8 @@ const _AwakeRealizedPriceMedian = _s({
  * }} Under6mCapitalizedPriceMedian
  */
 const _Under6mCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'age_under_6m_capitalized_price_rarity_ratio_*'],
-  band: [_i1, 'age_under_6m_capitalized_price_rarity_*'],
+  ratio: [_i1, 'age_under_6m_capitalized_price_ratio_*'],
+  band: [_i1, 'age_under_6m_capitalized_price_*'],
 });
 
 /**
@@ -2641,8 +2641,8 @@ const _Under6mCapitalizedPriceMedian = _s({
  * }} Under6mRealizedPriceMedian
  */
 const _Under6mRealizedPriceMedian = _s({
-  ratio: [_i1, 'age_under_6m_realized_price_rarity_ratio_*'],
-  band: [_i1, 'age_under_6m_realized_price_rarity_*'],
+  ratio: [_i1, 'age_under_6m_realized_price_ratio_*'],
+  band: [_i1, 'age_under_6m_realized_price_*'],
 });
 
 /**
@@ -2652,8 +2652,8 @@ const _Under6mRealizedPriceMedian = _s({
  * }} SthMedianCapitalizedPriceMedian
  */
 const _SthMedianCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'sth_median_capitalized_price_rarity_ratio_*'],
-  band: [_i1, 'sth_median_capitalized_price_rarity_*'],
+  ratio: [_i1, 'sth_median_capitalized_price_ratio_*'],
+  band: [_i1, 'sth_median_capitalized_price_*'],
 });
 
 /**
@@ -2663,8 +2663,8 @@ const _SthMedianCapitalizedPriceMedian = _s({
  * }} SthMedianRealizedPriceMedian
  */
 const _SthMedianRealizedPriceMedian = _s({
-  ratio: [_i1, 'sth_median_realized_price_rarity_ratio_*'],
-  band: [_i1, 'sth_median_realized_price_rarity_*'],
+  ratio: [_i1, 'sth_median_realized_price_ratio_*'],
+  band: [_i1, 'sth_median_realized_price_*'],
 });
 
 /**
@@ -2674,8 +2674,8 @@ const _SthMedianRealizedPriceMedian = _s({
  * }} SthCapitalizedPriceMedian
  */
 const _SthCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'sth_capitalized_price_rarity_ratio_*'],
-  band: [_i1, 'sth_capitalized_price_rarity_*'],
+  ratio: [_i1, 'sth_capitalized_price_ratio_*'],
+  band: [_i1, 'sth_capitalized_price_*'],
 });
 
 /**
@@ -2685,8 +2685,8 @@ const _SthCapitalizedPriceMedian = _s({
  * }} SthRealizedPriceMedian
  */
 const _SthRealizedPriceMedian = _s({
-  ratio: [_i1, 'sth_realized_price_rarity_ratio_*'],
-  band: [_i1, 'sth_realized_price_rarity_*'],
+  ratio: [_i1, 'sth_realized_price_ratio_*'],
+  band: [_i1, 'sth_realized_price_*'],
 });
 
 /**
@@ -2696,8 +2696,8 @@ const _SthRealizedPriceMedian = _s({
  * }} TrueMarketMeanMedian
  */
 const _TrueMarketMeanMedian = _s({
-  ratio: [_i1, 'true_market_mean_rarity_ratio_*'],
-  band: [_i1, 'true_market_mean_rarity_*'],
+  ratio: [_i1, 'true_market_mean_ratio_*'],
+  band: [_i1, 'true_market_mean_*'],
 });
 
 /**
@@ -2707,8 +2707,8 @@ const _TrueMarketMeanMedian = _s({
  * }} VaultedPriceMedian
  */
 const _VaultedPriceMedian = _s({
-  ratio: [_i1, 'vaulted_price_rarity_ratio_*'],
-  band: [_i1, 'vaulted_price_rarity_*'],
+  ratio: [_i1, 'vaulted_price_ratio_*'],
+  band: [_i1, 'vaulted_price_*'],
 });
 
 /**
@@ -2718,8 +2718,8 @@ const _VaultedPriceMedian = _s({
  * }} AllMedianCapitalizedPriceMedian
  */
 const _AllMedianCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'median_capitalized_price_rarity_ratio_*'],
-  band: [_i1, 'median_capitalized_price_rarity_*'],
+  ratio: [_i1, 'median_capitalized_price_ratio_*'],
+  band: [_i1, 'median_capitalized_price_*'],
 });
 
 /**
@@ -2729,8 +2729,8 @@ const _AllMedianCapitalizedPriceMedian = _s({
  * }} AllMedianRealizedPriceMedian
  */
 const _AllMedianRealizedPriceMedian = _s({
-  ratio: [_i1, 'median_realized_price_rarity_ratio_*'],
-  band: [_i1, 'median_realized_price_rarity_*'],
+  ratio: [_i1, 'median_realized_price_ratio_*'],
+  band: [_i1, 'median_realized_price_*'],
 });
 
 /**
@@ -2763,25 +2763,25 @@ const _AllMedianRealizedPriceMedian = _s({
 const _MedianComponent = (c, b, f0) => _n(c, b, {
   block: [_i1, '*'],
   ratio: [_i1, '*_ratio'],
-  p0_1: [f0, 'p0_1'],
-  p0_5: [f0, 'p0_5'],
-  p1: [f0, 'p1'],
-  p2: [f0, 'p2'],
-  p5: [f0, 'p5'],
-  p10: [f0, 'p10'],
-  p20: [f0, 'p20'],
-  p30: [f0, 'p30'],
-  p40: [f0, 'p40'],
-  median: [f0, 'median'],
-  p60: [f0, 'p60'],
-  p70: [f0, 'p70'],
-  p80: [f0, 'p80'],
-  p90: [f0, 'p90'],
-  p95: [f0, 'p95'],
-  p98: [f0, 'p98'],
-  p99: [f0, 'p99'],
-  p99_5: [f0, 'p99_5'],
-  p99_9: [f0, 'p99_9'],
+  p0_1: [f0, 'rarity_p0_1'],
+  p0_5: [f0, 'rarity_p0_5'],
+  p1: [f0, 'rarity_p1'],
+  p2: [f0, 'rarity_p2'],
+  p5: [f0, 'rarity_p5'],
+  p10: [f0, 'rarity_p10'],
+  p20: [f0, 'rarity_p20'],
+  p30: [f0, 'rarity_p30'],
+  p40: [f0, 'rarity_p40'],
+  median: [f0, 'rarity_median'],
+  p60: [f0, 'rarity_p60'],
+  p70: [f0, 'rarity_p70'],
+  p80: [f0, 'rarity_p80'],
+  p90: [f0, 'rarity_p90'],
+  p95: [f0, 'rarity_p95'],
+  p98: [f0, 'rarity_p98'],
+  p99: [f0, 'rarity_p99'],
+  p99_5: [f0, 'rarity_p99_5'],
+  p99_9: [f0, 'rarity_p99_9'],
 });
 
 /**
@@ -2791,8 +2791,8 @@ const _MedianComponent = (c, b, f0) => _n(c, b, {
  * }} AllCapitalizedPriceMedian
  */
 const _AllCapitalizedPriceMedian = _s({
-  ratio: [_i1, 'capitalized_price_rarity_ratio_*'],
-  band: [_i1, 'capitalized_price_rarity_*'],
+  ratio: [_i1, 'capitalized_price_ratio_*'],
+  band: [_i1, 'capitalized_price_*'],
 });
 
 /**
@@ -2802,8 +2802,8 @@ const _AllCapitalizedPriceMedian = _s({
  * }} AllRealizedPriceMedian
  */
 const _AllRealizedPriceMedian = _s({
-  ratio: [_i1, 'realized_price_rarity_ratio_*'],
-  band: [_i1, 'realized_price_rarity_*'],
+  ratio: [_i1, 'realized_price_ratio_*'],
+  band: [_i1, 'realized_price_*'],
 });
 
 /**
@@ -2832,25 +2832,25 @@ const _AllRealizedPriceMedian = _s({
  */
 /** @type {_Make} */
 const _RarityPercentiles = (c, b, f0) => _n(c, b, {
-  p0_1: [f0, 'p0_1'],
-  p0_5: [f0, 'p0_5'],
-  p1: [f0, 'p1'],
-  p2: [f0, 'p2'],
-  p5: [f0, 'p5'],
-  p10: [f0, 'p10'],
-  p20: [f0, 'p20'],
-  p30: [f0, 'p30'],
-  p40: [f0, 'p40'],
-  median: [f0, 'median'],
-  p60: [f0, 'p60'],
-  p70: [f0, 'p70'],
-  p80: [f0, 'p80'],
-  p90: [f0, 'p90'],
-  p95: [f0, 'p95'],
-  p98: [f0, 'p98'],
-  p99: [f0, '*'],
-  p99_5: [f0, '*_5'],
-  p99_9: [f0, '*_9'],
+  p0_1: [f0, '*_p0_1'],
+  p0_5: [f0, '*_p0_5'],
+  p1: [f0, '*_p1'],
+  p2: [f0, '*_p2'],
+  p5: [f0, '*_p5'],
+  p10: [f0, '*_p10'],
+  p20: [f0, '*_p20'],
+  p30: [f0, '*_p30'],
+  p40: [f0, '*_p40'],
+  median: [f0, '*_median'],
+  p60: [f0, '*_p60'],
+  p70: [f0, '*_p70'],
+  p80: [f0, '*_p80'],
+  p90: [f0, '*_p90'],
+  p95: [f0, '*_p95'],
+  p98: [f0, '*_p98'],
+  p99: [f0, '*_p99'],
+  p99_5: [f0, '*_p99_5'],
+  p99_9: [f0, '*_p99_9'],
 });
 
 /**
@@ -2861,7 +2861,7 @@ const _RarityPercentiles = (c, b, f0) => _n(c, b, {
  * }} MobileComponents
  */
 const _MobileComponents = _s({
-  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _MobileRealizedPriceMedian), 'p99'],
+  realizedPrice: [(c, b) => _RarityPercentiles(c, b, _MobileRealizedPriceMedian), 'rarity'],
   medianRealizedPrice: [(c, b) => _MedianComponent(c, b, _MobileMedianRealizedPriceMedian), '*_realized_price'],
   medianCapitalizedPrice: [(c, b) => _MedianComponent(c, b, _MobileMedianCapitalizedPriceMedian), '*_capitalized_price'],
 });
@@ -2947,11 +2947,11 @@ const _Components = _s({
  * }} RarityMeter
  */
 const _RarityMeter = _s({
-  components: [_Components, 'p99'],
+  components: [_Components, '*'],
   extremes: [_Extremes, '24h'],
-  full: [_Meter, '*'],
-  local: [_Meter, 'local_*'],
-  cycle: [_Meter, 'cycle_*'],
+  full: [_Meter, '*_meter'],
+  local: [_Meter, 'local_*_meter'],
+  cycle: [_Meter, 'cycle_*_meter'],
 });
 
 /**
@@ -3970,11 +3970,20 @@ const _OpReturnWindows = _s({
 
 /**
  * @typedef {{
+ *   avg: OpReturnWindows,
+ * }} PoolFees
+ */
+const _PoolFees = _s({
+  avg: [_OpReturnWindows, '*'],
+});
+
+/**
+ * @typedef {{
  *   cumulative: Value,
  *   sum: OpReturnWindows,
- * }} Rewards
+ * }} Coinbase
  */
-const _Rewards = _s({
+const _Coinbase = _s({
   cumulative: [_Value, '*_cumulative'],
   sum: [_OpReturnWindows, '*_sum'],
 });
@@ -4098,9 +4107,9 @@ const _MiningValueFlow = _s({
  *   subsidy: MiningValueFlow,
  *   fees: ValueFlowStats,
  *   unclaimed: ValueFlow,
- * }} MiningRewards
+ * }} Rewards
  */
-const _MiningRewards = _s({
+const _Rewards = _s({
   coinbase: [_ValueFlow, '*'],
   subsidy: [_MiningValueFlow, 'subsidy'],
   fees: [_ValueFlowStats, 'fees'],
@@ -4109,12 +4118,12 @@ const _MiningRewards = _s({
 
 /**
  * @typedef {{
- *   rewards: MiningRewards,
+ *   rewards: Rewards,
  *   hashrate: MiningHashrate,
  * }} Mining
  */
 const _Mining = _s({
-  rewards: [_MiningRewards, '*'],
+  rewards: [_Rewards, '*'],
   hashrate: [_MiningHashrate, 'hash'],
 });
 
@@ -4404,16 +4413,16 @@ const _BlockCount = _s({
  * @typedef {{
  *   blockCount: BlockCount,
  *   blockShare: Share,
- *   rewards: Rewards,
- *   feesPerBlock: OpReturnWindows,
+ *   coinbase: Coinbase,
+ *   fees: PoolFees,
  *   hashrate: Windows<?Hashrate>,
  * }} Pool
  */
 const _Pool = _s({
   blockCount: [_BlockCount, '*_block_count'],
   blockShare: [_Share, '*_block_share'],
-  rewards: [_Rewards, '*_rewards'],
-  feesPerBlock: [_OpReturnWindows, '*_fees_per_block'],
+  coinbase: [_Coinbase, '*_coinbase'],
+  fees: [_PoolFees, '*_fees_avg'],
   hashrate: [_Windows, '*_hashrate'],
 });
 
@@ -6884,7 +6893,7 @@ const _SeriesTree = _s({
   cointime: [_Cointime, 'age'],
   coinflow: [_Coinflow, 'age'],
   bedrock: [_Bedrock, 'bedrock'],
-  rarityMeter: [_RarityMeter, 'rarity_meter'],
+  rarityMeter: [_RarityMeter, 'rarity'],
 });
 
 /**

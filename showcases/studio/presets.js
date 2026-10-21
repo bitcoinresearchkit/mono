@@ -897,8 +897,8 @@ export function studioPresets(client, facts) {
     /** A pool's charts. @param {[string, any, string]} pool */
     const pool = ([, node, name]) => section(name, [
       counted(node.blockCount, "Blocks mined", `Blocks mined: ${name}`, node.blockShare),
-      ...flow(node.rewards, "Rewards", `Rewards: ${name}`),
-      chart("Fees per block", `Fees per block: ${name}`, [...windows(node.feesPerBlock, "Bitcoin", { pick: btc }), ...windows(node.feesPerBlock, "Dollars", { pick: usd, pane: 2 })], { log: [1, 2] }),
+      ...flow(node.coinbase, "Coinbase", `Coinbase rewards: ${name}`),
+      chart("Fees per block", `Fees per block: ${name}`, [...windows(node.fees.avg, "Bitcoin", { pick: btc }), ...windows(node.fees.avg, "Dollars", { pick: usd, pane: 2 })], { log: [1, 2] }),
       chart("Hash rate", `Hash rate: ${name}`, windows(node.hashrate, ""), { log: [1] }),
     ]);
     return [

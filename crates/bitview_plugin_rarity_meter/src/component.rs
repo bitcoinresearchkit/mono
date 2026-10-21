@@ -42,9 +42,11 @@ pub struct Component<M: StorageMode = Rw> {
 const VERSION: Version = Version::new(15);
 
 impl Component {
+    /// `price` is the reference price's id: the bands are `<price>_rarity_<percentile>` and their
+    /// ratios, percentiles of the price's spot ratio, `<price>_ratio_rarity_<percentile>`.
     pub(crate) fn import(
         db: &Database,
-        name: &str,
+        price: &str,
         version: Version,
         mappings: &IndexSources,
         price_source: &impl ReadableCloneableVec<Height, Cents>,
@@ -52,18 +54,18 @@ impl Component {
         let version = version + VERSION;
         let component_price = ComponentPrice::new(price_source);
         let ratios = RarityPercentiles::try_from_fn(|id| {
-            import_cached(db, &format!("{name}_ratio_{}_ppm", id.suffix()), version)
+            import_cached(db, &format!("{price}_ratio_rarity_{}_ppm", id.suffix()), version)
         })?;
         let bands = RarityPercentiles::from_fn(|id| {
             let suffix = id.suffix();
             let ratio = LazyRatioPerBlock::from_height_source(
-                &format!("{name}_ratio_{suffix}"),
+                &format!("{price}_ratio_rarity_{suffix}"),
                 version,
                 ratios.get(id),
                 mappings,
             );
             let band = component_price.price_for_ratio(
-                &format!("{name}_{suffix}"),
+                &format!("{price}_rarity_{suffix}"),
                 version,
                 &ratio.fixed.height,
                 mappings,

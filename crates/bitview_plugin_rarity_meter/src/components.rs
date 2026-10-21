@@ -14,7 +14,7 @@ use super::{Component, median_component::MedianComponent};
 
 /// The reference prices whose spot ratios the meter ranks, by the cohort they come from. Each
 /// component's series follow its price's id: its bands `<price>_rarity_<percentile>`
-/// (`sth_median_realized_price_rarity_p1`), their ratios `<price>_rarity_ratio_<percentile>`; a median
+/// (`sth_median_realized_price_rarity_p1`), their ratios `<price>_ratio_rarity_<percentile>`; a median
 /// also publishes its price and spot ratio (`sth_median_realized_price`, `..._ratio`).
 #[derive(Traversable)]
 pub struct Components<M: StorageMode = Rw> {
@@ -100,7 +100,7 @@ impl Components {
             ($price:literal, $reference:expr) => {
                 Component::import(
                     db,
-                    concat!($price, "_rarity"),
+                    $price,
                     version,
                     mappings,
                     &$reference.cents.height,
@@ -112,7 +112,6 @@ impl Components {
                 MedianComponent::import(
                     db,
                     $price,
-                    concat!($price, "_rarity"),
                     version,
                     mappings,
                     &$cost_basis.percentiles.median.cents.height,
