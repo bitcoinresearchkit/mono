@@ -233,21 +233,21 @@ export function studioPresets(client, facts) {
 
   /**
    * A flow (an amount per block: summed over windows, `sum`, and since the start, `cumulative`) as charts: its sums,
-   * the bitcoin's dollars below; since the start, a chart of its own (in a pane below its sums, when it's a plain one).
+   * the bitcoin's dollars below; since the start, a chart of its own (as a count's is).
    * Since the start, its title says so after the measure, before whose it is ("Rewards, all time: Foundry USA").
-   * @param {any} node @param {string} name @param {string} title @param {{ extra?: Layer }} [options]
+   * @param {any} node @param {string} name @param {string} title
    * @returns {ChartNode[]}
    */
-  const flow = (node, name, title, options = {}) => {
+  const flow = (node, name, title) => {
     if (!node) return [];
     const titled = (/** @type {string} */ after) => title.replace(/^([^:]*)(:|$)/, `$1${after}$2`);
-    const sums = node.sum ?? node, extra = options.extra ?? {};
+    const sums = node.sum ?? node;
     const pair = windowsOf(sums).some(([, value]) => value.btc);
     if (!pair) {
-      const layers = [...windows(sums, "", { extra }), ...(byDate(node.cumulative) ? [series(node.cumulative, "All time", { pane: 2, color: "gray" })] : [])];
-      return layers.length ? [chart(name, titled(""), layers)] : [];
+      const layers = windows(sums, "");
+      return [...(layers.length ? [chart(name, titled(""), layers)] : []), ...(byDate(node.cumulative) ? [chart(`${name}, all time`, titled(", all time"), [series(node.cumulative, "All time", { color: "gray" })])] : [])];
     }
-    const charts = [chart(name, titled(""), [...windows(sums, "Bitcoin", { pick: btc, extra }), ...windows(sums, "Dollars", { pick: usd, pane: 2, extra })])];
+    const charts = [chart(name, titled(""), [...windows(sums, "Bitcoin", { pick: btc }), ...windows(sums, "Dollars", { pick: usd, pane: 2 })])];
     if (node.cumulative && byDate(btc(node.cumulative))) charts.push(chart(`${name}, all time`, titled(", all time"), [series(btc(node.cumulative), "Bitcoin", { color: "orange" }), ...(byDate(usd(node.cumulative)) ? [series(usd(node.cumulative), "Dollars", { color: "green", pane: 2 })] : [])]));
     return charts;
   };
@@ -672,8 +672,13 @@ export function studioPresets(client, facts) {
           series(mining.hashrate.rate.sma._2m, "2-month average", { pane: 2, color: "violet" }),
           { formula: "B < C", type: "signal", ref: "B", place: "shade", label: "Capitulation", color: "red" },
         ], { log: [2] }),
-        chart("Hash price", "Hash price", [series(own(mining.hashrate.price), "Hash price", { color: "green" }), series(mining.hashrate.price.atl, "All-time low", { color: "red", dash: 3 }), series(mining.hashrate.price.rebound, "Rebound", { pane: 2, color: "green" })], { log: [1] }),
-        chart("Hash value", "Hash value", [series(own(mining.hashrate.value), "Hash value", { color: "orange" }), series(mining.hashrate.value.atl, "All-time low", { color: "red", dash: 3 }), series(mining.hashrate.value.rebound, "Rebound", { pane: 2, color: "orange" })], { log: [1] }),
+        // (A day's revenue per PH/s: in dollars, its hash price, the one asked for, first; below in satoshis, its hash value;
+        // each over its all-time low, then how far above it each is.)
+        chart("Hash price and value", "Hash price and hash value", [
+          series(own(mining.hashrate.price), "Hash price", { color: "green" }), series(mining.hashrate.price.atl, "Hash price's all-time low", { color: "red", dash: 3 }),
+          series(own(mining.hashrate.value), "Hash value", { pane: 2, color: "orange" }), series(mining.hashrate.value.atl, "Hash value's all-time low", { pane: 2, color: "red", dash: 3 }),
+        ], { log: [1, 2] }),
+        chart("Rebound", "Hash price and hash value above their all-time lows", [series(mining.hashrate.price.rebound, "Hash price", { color: "green" }), series(mining.hashrate.value.rebound, "Hash value", { color: "orange" })]),
       ]),
       section("Difficulty", [
         chart("History", "Difficulty", [series(blocks.difficulty.block, "Difficulty", { color: "orange" }), series(blocks.difficulty.adjustment, "Adjustment", { pane: 2, type: "histogram", color: "green", colorBelow: "red" })], { log: [1] }),
@@ -690,8 +695,11 @@ export function studioPresets(client, facts) {
         ...flow(mining.rewards.subsidy, "Subsidy", "Block subsidy"),
         ...flow(mining.rewards.fees, "Fees", "Transaction fees"),
         ...flow(mining.rewards.unclaimed, "Unclaimed", "Unclaimed rewards"),
-        chart("Fee share", "Fees' share of rewards", sharesOf(mining.rewards.fees.share, "Fees")),
-        chart("Subsidy share", "Subsidy's share of rewards", sharesOf(mining.rewards.subsidy.share, "Subsidy")),
+        // (The two make up the rewards: one chart, each in its color, since the start dashed.)
+        chart("Subsidy and fee shares", "Subsidy's and fees' shares of rewards", /** @type {[any, string, string][]} */ ([[mining.rewards.subsidy.share, "Subsidy", "orange"], [mining.rewards.fees.share, "Fees", "green"]]).flatMap(([share, what, color]) => [
+          series(share.cumulative, `${what}, all time`, { color, dash: 3 }),
+          ...windows(share, what, { extra: { color } }),
+        ])),
         // (A day's issuance in dollars against its year's average, the server's rolling sums (the same at every interval):
         // miners' income high or low for the time. From a year after the first price on: before it, issuance is worth 0,
         // the year's sum short; the guard a year back, 1 or 0 over 0, hides it.)
@@ -706,7 +714,6 @@ export function studioPresets(client, facts) {
     section("Network", [
       section("Blocks", [
         ...flow(blocks.count, "Count", "Blocks mined"),
-        chart("Height", "Block height", [series(t.mappings.day1.firstHeight, "Height", { color: "orange" })]),
         chart("Interval", "Time between blocks", windows(blocks.interval.avg, "", { extra: { levels: [{ value: 600, color: "gray", dash: 3 }] } })),
         // (Their sums, every block's together, "total"; each block's, its average and percentiles.)
         ...stats(blocks.size, "Size", "Total block size", "Block size"),
