@@ -4358,8 +4358,8 @@
         --edited-mark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m10.5 2.5 3 3-8 8H2.5v-3z'/%3E%3Cpath d='m8.5 4.5 3 3'/%3E%3C/svg%3E");
       }
 
-      /* (A tile's mark beside its name, shrunk to it, not in it: a long name's ellipsis doesn't take it; its interval
-         still at the end.) */
+      /* (A tile's mark beside its name, shrunk to it, not in it: a long name's clamp doesn't take it; centered on its first
+         line; its interval still at the end.) */
       .tile.edited {
         .tile-name {
           flex: 0 1 auto;
@@ -4374,13 +4374,14 @@
           content: "";
           flex: none;
           order: 1;
-          align-self: center;
+          align-self: flex-start;
         }
       }
 
       .preset-tile.edited .tile-head::after {
         width: 11px;
         height: 11px;
+        margin-top: 3.5px;
         background: var(--count);
         -webkit-mask: var(--edited-mark) center / contain no-repeat;
         mask: var(--edited-mark) center / contain no-repeat;
@@ -4391,6 +4392,7 @@
       .tile.edited:not(.preset-tile) .tile-head::after {
         width: 6px;
         height: 6px;
+        margin-top: 6px;
         border-radius: 50%;
         background: var(--ink);
       }
@@ -6623,7 +6625,7 @@
 
       .tile-open {
         display: grid;
-        /* (As wide as the tile: a long title ellipsizes, never sizes the column.) */
+        /* (As wide as the tile: a long title wraps, never sizes the column.) */
         grid-template-columns: minmax(0, 1fr);
         width: 100%;
         border: 0;
@@ -6740,14 +6742,17 @@
       }
 
       /* Room at its end for the tick. */
+      /* (Two lines of title in every tile: a long one wraps rather than ellipsizes, and tiles side by side stay alike.) */
       .tile-head {
         display: flex;
         align-items: baseline;
         gap: 8px;
+        min-height: 36px;
         margin-right: 26px;
       }
 
       .tile-name {
+        display: -webkit-box;
         flex: 1;
         min-width: 0;
         overflow: hidden;
@@ -6755,8 +6760,9 @@
         font-size: 13px;
         font-weight: 590;
         line-height: 18px;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        overflow-wrap: anywhere;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
       }
 
       .tile-index {
@@ -7959,10 +7965,6 @@
           .menu.as-sheet {
             padding-left: 6px;
           }
-        }
-
-        .legend button .name {
-          max-width: 7rem;
         }
 
         .shelf-empty {
