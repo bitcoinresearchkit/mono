@@ -7099,6 +7099,20 @@
           background: var(--card);
           box-shadow: none;
           outline: none;
+
+          /* Installed, the status bar over the card: a fixed strip of its color there, as the grid has its own (iOS
+             26 on blurs what an installed app has under its status bar, some 40pt past it, over the header, unless a
+             fixed box with a background spans the top: its color then; seen in Lockdown Mode). The card's own, under
+             its scrim and its picture as the rest of it. */
+          &::before {
+            content: "";
+            position: fixed;
+            inset: 0 0 auto;
+            z-index: 5;
+            height: env(safe-area-inset-top);
+            background: var(--card);
+            pointer-events: none;
+          }
         }
 
         /* Behind a chart's card, its own color: where the page isn't (an installed app's status bar), iOS shows the
