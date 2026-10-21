@@ -1532,37 +1532,52 @@
 
       @media (min-width: 761px) and (min-height: 501px) {
         /* Leaving as they came: a dialog, Quick Look, a menu settle back out (a phone's sheets slide down instead). Hidden
-           meanwhile, nothing in them is reached. */
-        /* (Where a browser can keep a closing dialog over the page meanwhile (Safari can't): elsewhere, gone at once, as
-           before. ⌘K's own list, its color's fade with them.) */
-        @supports (overlay: auto) {
-          dialog,
-          #quick {
+           meanwhile, nothing in them is reached. (Where a browser keeps a closing one over the page meanwhile, closed,
+           its display and its top layer kept till it's out; elsewhere (Safari), `data-leaving` plays it before it
+           closes: see leave. ⌘K's own list, its color's fade with them.) */
+        dialog,
+        #quick {
+          transition: opacity var(--dur-micro) var(--ease), transform var(--dur-micro) var(--ease), visibility var(--dur-micro);
+
+          &::backdrop {
+            transition: opacity var(--dur-micro) var(--ease);
+          }
+
+          @supports (overlay: auto) {
             transition: opacity var(--dur-micro) var(--ease), transform var(--dur-micro) var(--ease), visibility var(--dur-micro), display var(--dur-micro) allow-discrete, overlay var(--dur-micro) allow-discrete;
 
             &::backdrop {
               transition: opacity var(--dur-micro) var(--ease), display var(--dur-micro) allow-discrete, overlay var(--dur-micro) allow-discrete;
             }
           }
+        }
 
-          dialog.palette {
+        dialog.palette {
+          transition: background var(--dur-small) var(--ease), opacity var(--dur-micro) var(--ease), transform var(--dur-micro) var(--ease), visibility var(--dur-micro);
+
+          &::backdrop {
+            transition: background var(--dur-small) var(--ease), opacity var(--dur-micro) var(--ease);
+          }
+
+          @supports (overlay: auto) {
             transition: background var(--dur-small) var(--ease), opacity var(--dur-micro) var(--ease), transform var(--dur-micro) var(--ease), visibility var(--dur-micro), display var(--dur-micro) allow-discrete, overlay var(--dur-micro) allow-discrete;
 
             &::backdrop {
               transition: background var(--dur-small) var(--ease), opacity var(--dur-micro) var(--ease), display var(--dur-micro) allow-discrete, overlay var(--dur-micro) allow-discrete;
             }
           }
+        }
 
-          dialog:not([open]),
-          #quick:not(:popover-open) {
-            visibility: hidden;
+        dialog:not([open]),
+        #quick:not(:popover-open),
+        :is(dialog, #quick)[data-leaving] {
+          visibility: hidden;
+          opacity: 0;
+          transform: translateY(6px) scale(0.985);
+          pointer-events: none;
+
+          &::backdrop {
             opacity: 0;
-            transform: translateY(6px) scale(0.985);
-            pointer-events: none;
-
-            &::backdrop {
-              opacity: 0;
-            }
           }
         }
 
@@ -8157,8 +8172,9 @@
             transition: transform var(--dur-layout) var(--ease-layout), background var(--dur-small) var(--ease), display var(--dur-layout) allow-discrete, overlay var(--dur-layout) allow-discrete;
           }
 
-          &:not([open]) {
+          &:is(:not([open]), [data-leaving]) {
             transform: translateY(100%);
+            pointer-events: none;
           }
 
           @starting-style {
@@ -8176,7 +8192,7 @@
             }
           }
 
-          &:not([open])::backdrop {
+          &:is(:not([open]), [data-leaving])::backdrop {
             opacity: 0;
           }
 
@@ -16631,7 +16647,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       }
       sliders($("menu"), { valueOf: (id) => ((look) => (look ? SLIDERS[id].of(look) : undefined))(lookFor(id === "draw-width" ? "width" : "opacity")), set: (id, value) => setDrawSlider(/** @type {"draw-width" | "draw-opacity"} */ (id), value) });
-      // Its grip carries it, turning as it nears a side; let go, it docks on that side, where along it it was let go.
+      // Its grip carries it, turning as it nears a side; let go, it docks on the side it'd come to rest by, thrown (restOf),
+      // where along it it would.
       $("belt").addEventListener("pointerdown", (event) => {
         const belt = $("belt");
         if (!closest(event, ".grip") || event.button !== 0) return;
@@ -16640,7 +16657,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         belt.classList.add("held");
         // (The belt holds the pointer, not the grip: a redraw mid-way replaces the grip.)
         belt.setPointerCapture(event.pointerId);
+        let trail = [{ x: event.clientX, y: event.clientY, at: performance.now() }];
         const carry = (/** @type {PointerEvent} */ at) => {
+          const now = performance.now();
+          trail = [...trail.filter((point) => now - point.at <= 100), { x: at.clientX, y: at.clientY, at: now }];
           Object.assign(belt.style, { left: `${at.clientX - offset.x - canvas.left}px`, top: `${at.clientY - offset.y - canvas.top}px` });
           const plot = plotBox();
           if (plot) turnBelt(upright(sideAt(at.clientX - canvas.left, at.clientY - canvas.top, plot)));
@@ -16654,8 +16674,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const plot = plotBox();
           // Let go: on the side it's on, where along it its middle is. (Taken away, by a touch that scrolled: back.)
           if (plot && at.type === "pointerup") {
-            const now = belt.getBoundingClientRect(), side = sideAt(at.clientX - canvas.left, at.clientY - canvas.top, plot);
-            const middle = upright(side) ? (now.top + now.height / 2 - canvas.top - plot.top) / plot.height : (now.left + now.width / 2 - canvas.left - plot.left) / plot.width;
+            const speed = speedOf(trail), by = { x: restOf(at.clientX, speed.x) - at.clientX, y: restOf(at.clientY, speed.y) - at.clientY };
+            const now = belt.getBoundingClientRect(), side = sideAt(at.clientX + by.x - canvas.left, at.clientY + by.y - canvas.top, plot);
+            const middle = upright(side) ? (now.top + by.y + now.height / 2 - canvas.top - plot.top) / plot.height : (now.left + by.x + now.width / 2 - canvas.left - plot.left) / plot.width;
             Object.assign(prefs.belt, { dock: side, at: clamp(middle, 0, 1) });
             savePrefs();
           }
@@ -19053,6 +19074,31 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // Back and Forward, between the grid and the charts opened from it.
       /** Back, Forward or a link pasted in: whatever dialog is open closes first. */
       const closeDialogs = () => all$("dialog[open]").forEach((dialog) => /** @type {HTMLDialogElement} */ (dialog).close());
+      /** Whether this browser keeps a closing dialog or popover drawn while it leaves (`overlay`; Safari doesn't). */
+      const keepsLeaving = CSS.supports("overlay: auto");
+      let leavings = 0;
+      /**
+       * A dialog or a popover put away by the person (its ×, esc, a click beside it), as it leaves. Where the browser
+       * keeps it drawn meanwhile, closed now, the style playing its way out; elsewhere (Safari: closed, gone at once), its
+       * closed look played first (`data-leaving`, the style's own, as it'd go: a phone's sheet down, a dialog's settle
+       * back out), out of reach, then closed. Opened again meanwhile (arrive), it stays. Closed by what it ran, it closes
+       * at once, there (`close()`): what follows is the page's (a modal dialog open, the page can't take the focus), and
+       * the result's what's looked at, as Spotlight goes.
+       * @param {HTMLDialogElement | HTMLElement} element
+       */
+      function leave(element) {
+        if (!(element instanceof HTMLDialogElement ? element.open : element.matches(":popover-open"))) return;
+        const shut = () => ((element.inert = false), delete element.dataset.leaving, element instanceof HTMLDialogElement ? element.close() : element.hidePopover());
+        if (keepsLeaving || reduced.matches) return void shut();
+        if (element.dataset.leaving) return;
+        const mine = String(++leavings);
+        element.dataset.leaving = mine;
+        element.inert = true;
+        const motions = element.getAnimations({ subtree: true }).filter((motion) => motion instanceof CSSTransition && /** @type {KeyframeEffect} */ (motion.effect).target === element);
+        Promise.allSettled(motions.map((motion) => motion.finished)).then(() => element.dataset.leaving === mine && shut());
+      }
+      /** A dialog or a popover opened again as it leaves (see leave): it stays. @param {HTMLElement} element */
+      const arrive = (element) => ((element.inert = false), delete element.dataset.leaving);
       // Back (Android's) closes a phone's sheet, the layers' or a menu's, as it does a dialog: a close watcher for each
       // open one (where the browser has them), the last opened closed first, ⌘K's dialog among them. Closing the layers'
       // sheet, its list next time (a layer's settings were in it).
@@ -19307,13 +19353,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         run?.();
       }
       /**
-       * Where a sheet let go `by` down at `speed` (px/ms, down above 0) would come to rest, slowing as iOS's own lists do
-       * (0.998 of its speed kept each millisecond): how a native sheet reads a flick, a short fast one as far as a long
-       * slow drag.
+       * Where something thrown, let go `at` (px, along one way) moving at `speed` (px/ms that way), would come to rest,
+       * slowing as iOS's own lists do (0.998 of its speed kept each millisecond): how a native sheet or window reads a
+       * flick, a short fast one as far as a long slow drag.
        */
-      const sheetRest = (/** @type {number} */ by, /** @type {number} */ speed) => by + (speed * 0.998) / (1 - 0.998);
+      const restOf = (/** @type {number} */ at, /** @type {number} */ speed) => at + (speed * 0.998) / (1 - 0.998);
+      /** A pointer's speed as it's let go (px/ms, each way): over its last tenth of a second; held still that long, none. @param {{ x: number, y: number, at: number }[]} trail */
+      const speedOf = (trail) => {
+        const now = performance.now(), last = trail.at(-1), past = trail.find((point) => now - point.at <= 100) ?? last;
+        return !last || !past ? { x: 0, y: 0 } : { x: (last.x - past.x) / Math.max(1, now - past.at), y: (last.y - past.y) / Math.max(1, now - past.at) };
+      };
       /** Whether a sheet dragged down goes: it'd come to rest past a third of its height (flicked up, it comes back). */
-      const sheetGoes = (/** @type {number} */ by, /** @type {number} */ speed, /** @type {number} */ height) => sheetRest(by, speed) > height / 3;
+      const sheetGoes = (/** @type {number} */ by, /** @type {number} */ speed, /** @type {number} */ height) => restOf(by, speed) > height / 3;
       /** How far a sheet pulled `past` its tallest shows past it: less and less, as iOS's own edges give (55%, then less). */
       const stretched = (/** @type {number} */ past) => (1 - 1 / ((past * 0.55) / innerHeight + 1)) * innerHeight;
       /**
@@ -19376,7 +19427,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * press takes it, by its handle or by its head (or not at all); `pulls`, whether its content pulls it too (see
        * dragSheet). Up from half it grows, down it follows the finger.
        * Up past whole, it stretches, less and less. Let go upright, it stops at whole, half or gone, the nearest to where
-       * it'd come to rest (sheetRest), never back against a flick; its handle tapped, the other height. On its side (a
+       * it'd come to rest (restOf), never back against a flick; its handle tapped, the other height. On its side (a
        * column), as sheetGoes says, it goes; else it comes back. `whole` and `size` read and set which height it has (its
        * motion is sizeSheet's, from where it was let go), `close` closes it (slid away first: slideAway); `scrim`, dimmed
        * behind it whole, lightens as it goes down.
@@ -19432,7 +19483,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (still) return void (held && sizeSheet(sheet, () => {}, shown));
             if (!heldUpright.matches) return void (sheetGoes(by, speed, height) && away());
             // (The stop nearest where it'd come to rest, of those on its way: a flick down never brings it back up.)
-            const now = document.documentElement.clientHeight - shown, rest = height - sheetRest(by, speed), stops = [innerHeight * SHEET_WHOLE, innerHeight * SHEET_HALF, 0];
+            const now = document.documentElement.clientHeight - shown, rest = height - restOf(by, speed), stops = [innerHeight * SHEET_WHOLE, innerHeight * SHEET_HALF, 0];
             const onWay = stops.filter((each) => (speed > 0.1 ? each <= now + 1 : speed < -0.1 ? each >= now - 1 : true));
             const near = (onWay.length ? onWay : stops).reduce((best, each) => (Math.abs(each - rest) < Math.abs(best - rest) ? each : best));
             if (near === 0) return away();
@@ -20566,7 +20617,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** The item an id names now (the list may have been drawn anew since the press). */
         const itemNamed = (/** @type {string} */ id) => all$(how.item, list).find((element) => how.idOf(element) === id);
         const unmark = () => [list, ...all$(".drop-before, .drop-after, .drop-target", list)].forEach((element) => (element.classList.remove("drop-before", "drop-after", "drop-down", "drop-target"), element.style.removeProperty("--drop-depth")));
-        const endDrag = (landed = false) => {
+        /** The gesture over: `landed`, let go by the pointer (else put back: esc, a cancel); `back`, landing nowhere. */
+        const endDrag = (landed = false, back = !landed) => {
           const unpick = Boolean(press?.began && drag && !landed);
           if (press) clearTimeout(press.timer);
           press?.touched?.removeEventListener("touchmove", pin);
@@ -20574,7 +20626,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (carrying === endDrag) carrying = null;
           if (!drag) return;
           cancelAnimationFrame(drag.frame);
-          drag.ghost.remove();
+          // (Let go, the pill goes quickly; put back (esc, let go nowhere), back to where it came from as it goes.)
+          const ghost = drag.ghost, from = back && itemNamed(drag.ids[0])?.getBoundingClientRect();
+          if (reduced.matches) ghost.remove();
+          else {
+            const away = from ? `translate(${from.left + 8}px, ${from.top + (from.height - drag.height) / 2}px)` : `${ghost.style.transform} scale(0.96)`;
+            ghost.animate({ transform: [ghost.style.transform, away], opacity: [1, 0] }, { duration: from ? MOTION.small : MOTION.micro, easing: MOTION.ease, fill: "forwards" }).finished.then(() => ghost.remove(), () => ghost.remove());
+          }
           unmark();
           all$(".dragging", list).forEach((element) => element.classList.remove("dragging"));
           list.classList.remove("carrying");
@@ -20706,7 +20764,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A drag, or a hold, makes no click: it'd open, or pick again, what was pressed.)
           if (carried || press.held) swallowClick();
           const began = press.began;
-          endDrag(true);
+          endDrag(true, !carried?.at);
           if (carried?.at) how.land(carried.ids, carried.at, carried.y);
           // A hold that became a drag moved it: it picked nothing (picking was on before, it stays).
           if (carried && began) how.unpick?.();
@@ -24524,10 +24582,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const putAside = (anywhere = false) => (putAway = { at: Date.now(), chart: chart.id, home, browsing: palette.op.kind === "browse", anywhere, state: { path: palette.path.slice(), pages: palette.pages, root: palette.root, query: palette.query, landOn: palette.items[palette.active]?.key ?? null } });
       /** Whether ⌘K is being put away (esc, its close buttons, a click beside it), not closed by what it ran. */
       let dismissing = false;
-      function dismissPalette() {
+      /** ⌘K put away: at once (for what follows), or `leaving`, by the person (see leave). */
+      function dismissPalette(leaving = false) {
         dismissing = true;
         putAside();
-        $("palette").close();
+        // (Quick Look in it put away with it, as it starts.)
+        if (leaving) quickHide(), leave($("palette"));
+        else $("palette").close();
       }
       $("palette").addEventListener("cancel", () => ((dismissing = true), putAside()));
       // (Closed by a preset it opened: where it was kept, for anywhere.)
@@ -24558,6 +24619,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (By touch, opened with the focus on ⌘K, not its field: no keyboard till it's tapped. Opened by a tap on a search
         // field, or Search, its field at once: the keyboard with it, as that tap asked, in it for iOS to allow it.)
         const keys = !TOUCH || byKeys || typing;
+        // (Opened again as it leaves: it stays, put away no more.)
+        if (dialog.dataset.leaving) (dismissing = false), arrive(dialog);
         if (!dialog.open) (input.inert = !keys), dialog.showModal(), (input.inert = false), !keys && dialog.focus();
         if (typing && TOUCH) input.focus();
         applyScope();
@@ -28633,7 +28696,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function showGuide() {
         const open = !home && chart.layers.length > 0;
         $("guide-body").innerHTML = `<section class="guide-start"><p>A chart's link opens it, for anyone, as it is here: its layers, their look, its view. It holds the chart itself (as JSON): nothing's stored on a server. Your Library, and the presets as you've edited them, are kept in this browser.</p>${open ? `<div class="guide-actions"><button type="button" class="btn small" data-guide="link">${ICONS.link}Copy this chart's link</button><button type="button" class="btn small" data-guide="json">${ICONS.copy}Copy its JSON</button></div>` : ""}</section><h2 class="guide-ref">For scripts and assistants</h2>${codeIn($("about").innerHTML.replace(/<h1>[\s\S]*?<\/h1>/, ""))}`;
-        $("guide").showModal();
+        arrive($("guide"));
+        if (!$("guide").open) $("guide").showModal();
         $("guide").focus();
       }
       $("guide").addEventListener("click", async (event) => {
@@ -28645,7 +28709,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The shortcuts sheet opens on itself, not on a ringed close button. */
       function showShortcuts() {
         renderSingleKeys();
-        $("shortcuts").showModal();
+        arrive($("shortcuts"));
+        if (!$("shortcuts").open) $("shortcuts").showModal();
         $("shortcuts").focus();
       }
       /** A key a hint says the page answers to: any, but a single one (a letter, a digit, a sign) once those are off. */
@@ -28821,9 +28886,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         else if (action === "full") setFull();
         else if (action === "draw") toggleBelt();
-        else if (action === "close-palette") dismissPalette();
-        else if (action === "close-shortcuts") $("shortcuts").close();
-        else if (action === "close-guide") $("guide").close();
+        else if (action === "close-palette") dismissPalette(true);
+        else if (action === "close-shortcuts") leave($("shortcuts"));
+        else if (action === "close-guide") leave($("guide"));
         else if (action === "guide") showGuide();
         else if (action === "close-sheet") {
           delete document.body.dataset.sheet;
@@ -28843,8 +28908,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // the backdrop.)
           const box = dialog.getBoundingClientRect();
           if (event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom) return;
-          if (dialog.id === "palette") dismissPalette();
-          else /** @type {HTMLDialogElement} */ (dialog).close();
+          if (dialog.id === "palette") dismissPalette(true);
+          else leave(/** @type {HTMLDialogElement} */ (dialog));
+        });
+        // (esc: as it leaves, where the browser wouldn't play it: see leave. Unless something of it took the key: Quick Look.)
+        dialog.addEventListener("cancel", (event) => {
+          if (keepsLeaving || event.defaultPrevented) return;
+          event.preventDefault();
+          leave(/** @type {HTMLDialogElement} */ (dialog));
         });
         dialog.addEventListener("close", () => $("toast").parentElement === dialog && (all$("dialog[open]").at(-1) ?? document.body).append($("toast")));
         // (Closed: no series being added or replaced any more.)
@@ -28948,7 +29019,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (mod && key === "k") {
           event.preventDefault();
-          if (!$("palette").open) return openPalette({ resume: true });
+          if (!$("palette").open || $("palette").dataset.leaving) return openPalette({ resume: true });
           if (!$("menu").hidden && $("menu").closest("#palette")) return void (hideMenu(), paletteKeys());
           return showActions();
         }
@@ -29854,6 +29925,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             /** @type {HTMLElement} */ (frame.querySelector(".quick-ticks")).innerHTML = (drawn.ticks ?? []).map((tick) => `<span style="left: ${((tick.x / W) * 100).toFixed(2)}%">${escape(tick.text)}</span>`).join("");
           }));
         }
+        arrive($("quick"));
         if (!$("quick").matches(":popover-open")) $("quick").showPopover();
         $("palette-input").focus({ preventScroll: true });
       }
@@ -29863,7 +29935,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         quick = null;
         // (Its pictures not kept past it: the next look draws from the data as it is then.)
         quickPictures.clear();
-        if ($("quick").matches(":popover-open")) $("quick").hidePopover();
+        leave($("quick"));
         if ($("palette").open) $("palette-input").focus({ preventScroll: true });
       }
       const quickToggle = () => (quick ? quickHide() : quickShow());
