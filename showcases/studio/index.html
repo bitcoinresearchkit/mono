@@ -7717,8 +7717,10 @@
             display: none;
           }
 
-          /* (Their room given to the chart, a gap kept over the keys; with the sheet up, its room kept, the foot's given.) */
-          &:not([data-sheet="panel"]) .card {
+          /* (Their room given to the chart, a gap kept over the keys, where the page is made shorter (Android's); where
+             the keys lie over it (iOS's), that room is under them: kept, the chart not laid out again for nothing as
+             they come and go (the title tapped, ⌘K). With the sheet up, its room kept, the foot's given.) */
+          &[data-keys="shortening"]:not([data-sheet="panel"]) .card {
             padding-bottom: 8px;
           }
 
@@ -28792,8 +28794,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // The keyboard, by touch. iOS lays it over the page (its viewport the same: what's under it, hidden) and, a field
       // under it tapped, moves the whole page up to it (the header, a sheet's top, off the screen); Android makes the page
       // as short as it leaves (resizes-content). While it's up (typing, and the page's foot under it, or the page a quarter
-      // shorter, not as the focus says: a field can keep it with the keyboard put away), `data-keys`, the bars out of its
-      // way, and `--keys`, how much of the page's foot it covers (iOS's; none where the page is made shorter): a sheet's
+      // shorter, not as the focus says: a field can keep it with the keyboard put away), `data-keys` ("covering" the
+      // page's foot, iOS's; "shortening" the page, Android's), the bars out of its way, and `--keys`, how much of the page's foot it covers (iOS's; none where the page is made shorter): a sheet's
       // list goes on to its top. A field in a phone's sheet tapped (the layers', ⌘K), not focused yet, is focused where it
       // is, its caret where it was tapped (the page left in place; a half sheet made whole once the keyboard's up, as ⌘K
       // is: see onceKeys), and scrolled into what shows (seen on iOS 26.5: focused so, the page doesn't move, however low
@@ -28826,7 +28828,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const under = Math.max(0, Math.round(layout - viewport.height));
           // (By touch: a window made shorter by a mouse isn't a keyboard.)
           const up = TOUCH && typing(document.activeElement) && (under > 120 || most - layout > most / 4);
-          document.body.toggleAttribute("data-keys", up);
+          if (up) document.body.dataset.keys = under ? "covering" : "shortening";
+          else delete document.body.dataset.keys;
           if ((up ? under : 0) !== covered) root.style.setProperty("--keys", `${(covered = up ? under : 0)}px`);
           if (up) keysCame(), reveal();
         };
