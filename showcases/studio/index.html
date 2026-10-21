@@ -11990,6 +11990,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("panel-toggle").setAttribute("aria-pressed", String(state === "open"));
       }
       const panelShown = () => (phone.matches ? document.body.dataset.sheet === "panel" : document.body.dataset.panel === "open" || document.body.hasAttribute("data-peek"));
+      // (Its rows' values written only while it shows (see updateReadout): shown again with some left behind, at once.)
+      let rowsBehind = false;
+      new MutationObserver(() => rowsBehind && panelShown() && valuesSoon()).observe(document.body, { attributes: true, attributeFilter: ["data-panel", "data-sheet", "data-peek"] });
       function togglePanel(open = !panelShown()) {
         if (!chart.layers.length) return;
         if (!open) stopCarrying();
@@ -13977,7 +13980,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function updateReadout() {
         const point = readPoint();
-        for (const element of all$("[data-value]")) {
+        // (The panel's rows only while it shows: hidden, it's still laid out, and each written value lays the page out
+        // again; shown, they're written at once, see rowsBehind.)
+        rowsBehind = !panelShown();
+        for (const element of all$(rowsBehind ? "[data-value]:not(.row-value)" : "[data-value]")) {
           const layer = layerById(element.dataset.value);
           const result = resolved?.results.get(element.dataset.value);
           if (!layer || !result || result.error) continue;
@@ -14582,7 +14588,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * value and change, so nothing beside them moves while the crosshair runs.
        */
       function updateRowChanges() {
-        if (!resolved) return;
+        if (!resolved || !panelShown()) return;
         const point = readPoint(), moving = performance.now() - viewMovedAt < 250;
         for (const element of all$(".row-change[data-change]")) {
           const layer = layerById(element.dataset.change);
@@ -28667,8 +28673,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       function hideTip() {
         clearTimeout(tipTimer);
-        if (!tip.hidden) tipClosed = performance.now();
-        tip.hidden = true;
+        // (Set only when it changes: set again, the page's style is looked at again.)
+        if (!tip.hidden) (tipClosed = performance.now()), (tip.hidden = true);
         tipTarget = null;
         described?.removeAttribute("aria-describedby");
         described = null;
