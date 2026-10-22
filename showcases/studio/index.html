@@ -17335,6 +17335,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (drawing.kind === "trend") return crossesBox(...trendEnds(drawing, a, b, size), box);
         if (drawing.kind === "hline") return a.y >= box.top && a.y <= box.bottom;
         if (drawing.kind === "vline") return a.x >= box.left && a.x <= box.right;
+        // (An ellipse where it is, not its corners: the box's point nearest its middle, inside it.)
+        if (drawing.kind === "ellipse" && finite(a) && finite(b) && a.x !== b.x && a.y !== b.y) {
+          const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2, x = (clamp(cx, box.left, box.right) - cx) / Math.abs(b.x - cx), y = (clamp(cy, box.top, box.bottom) - cy) / Math.abs(b.y - cy);
+          return x * x + y * y <= 1;
+        }
         if (BOXES.has(drawing.kind)) return finite(a) && finite(b) && overlaps({ left: Math.min(a.x, b.x), right: Math.max(a.x, b.x), top: Math.min(a.y, b.y), bottom: Math.max(a.y, b.y) });
         if (drawing.kind === "text") return finite(a) && overlaps(boundsOf(drawing, points));
         const shown = points.filter(finite);
@@ -22648,7 +22653,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A custom color's hex, typed or followed (`target`: what it sets), its name after it in the field (none: an empty
        * field, a color another's); joined under its surface, the two one control. @param {string} target @param {string} color
        */
-      const hexField = (target, color) => `<label class="hex-field"><span class="hex-box"><input class="hex" data-hex="${escape(target)}" value="${color ? escape(ink(color)) : ""}" maxlength="7" spellcheck="false" autocomplete="off" aria-label="Hex color" /><span class="color-now">${color ? escape(colorName(color)) : ""}</span></span></label>`;
+      const hexField = (target, color) => `<label class="hex-field"><span class="hex-box"><input class="hex" data-hex="${escape(target)}" value="${color ? escape(ink(color)) : ""}" maxlength="40" spellcheck="false" autocomplete="off" aria-label="Hex color" /><span class="color-now">${color ? escape(colorName(color)) : ""}</span></span></label>`;
       const swatchGrid = (/** @type {string} */ current) => `<div class="swatch-grid" role="radiogroup" aria-label="Bitview's colors">${SWATCHES.map((color) => `<button type="button" role="radio" data-pick-color="${escape(color)}" aria-checked="${current === color}" aria-label="${escape(colorName(color))}"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button>`).join("")}</div>`;
       /** The surface: every hue across, lightness down, the color's place ringed (`target`: what it picks for, see planeTarget). */
       function planeHtml(/** @type {string} */ color, /** @type {string} */ target, name = "Color") {
@@ -23000,8 +23005,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         event.preventDefault();
         event.stopPropagation();
         const color = event.key === "Enter" ? readColor(field.value) : null, key = field.closest("[data-palette]")?.getAttribute("data-palette");
-        if (color && key) editById(selected, (item) => setColor(item, key, kept(color)));
+        if (color && key) editById(selected, (item) => setColor(item, key, color));
         letGo(field);
+      }, true);
+      // (Another's hex (a level's, a popover's): ↵ takes what reads there too, before its menu closes.)
+      document.addEventListener("keydown", (event) => {
+        const field = event.target;
+        if (event.key !== "Enter" || composing(event) || !(field instanceof HTMLInputElement) || !field.dataset.hex || field.matches("#inspector .color-editor .hex")) return;
+        const color = readColor(field.value);
+        if (color) pick(field.dataset.hex, color), flushPick();
       }, true);
       document.addEventListener("focusout", (event) => /** @type {HTMLElement} */ (event.target).matches?.("#inspector .color-editor .hex") && inspectorDue && afterPress(() => setTimeout(renderInspector)));
       // A color typed in hex (#3b82f6, or without its #): picked as the surface picks it, its ring moved there.
@@ -27553,7 +27565,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           event.preventDefault();
           return void buttons[(at + (event.shiftKey ? -1 : 1) + buttons.length) % buttons.length]?.focus();
         }
-        const done = target.matches("input") && (event.key === "Enter" || event.key === "Escape");
+        const done = target.matches("input") && !composing(event) && (event.key === "Enter" || event.key === "Escape");
         if (event.key === "Tab" || done) {
           // (Tab, the browser's: on from the opener.)
           if (done) event.preventDefault(), event.stopPropagation();
@@ -27564,7 +27576,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (With its modifiers, as it's written: ⌥↑, ⇧↵, ⌘↵. A bare ↵ or arrow is the menu's own: the focused item, the next.)
         const glyph = { Backspace: "⌫", Enter: "↵", ArrowUp: "↑", ArrowDown: "↓", ArrowLeft: "←", ArrowRight: "→" }[event.key] ?? event.key.toUpperCase();
         const modified = event.metaKey || event.ctrlKey || event.altKey || event.shiftKey;
-        const key = keyText(`${event.metaKey || event.ctrlKey ? "⌘" : ""}${event.altKey ? "⌥" : ""}${event.shiftKey && event.key.length > 1 ? "⇧" : ""}${glyph}`);
+        const key = keyText(`${event.metaKey || event.ctrlKey ? "⌘" : ""}${event.altKey ? "⌥" : ""}${event.shiftKey && (event.key.length > 1 || /^[a-z]$/i.test(event.key)) ? "⇧" : ""}${glyph}`);
         const hinted = (modified || !["↵", "↑", "↓", "←", "→"].includes(glyph)) && all$("button:not(:disabled)", $("menu")).find((button) => button.dataset.key === key);
         if (hinted) {
           event.preventDefault();
@@ -29291,7 +29303,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // A chart focused in the sidebar or the grid: ⌘D and ⌫ are its own (in the grid, the picks' too), not the open chart's.
         const inList = typing(event.target) || !document.activeElement?.matches?.(":focus-visible") ? null : /** @type {HTMLElement | null} */ (document.activeElement.closest("#chart-list, #home-grid"));
-        if (inList && !event.altKey && ((mod && key === "d") || (!mod && (event.key === "Backspace" || event.key === "Delete")))) {
+        if (inList && !event.altKey && ((mod && !event.shiftKey && key === "d") || (!mod && (event.key === "Backspace" || event.key === "Delete")))) {
           event.preventDefault();
           const item = /** @type {HTMLElement | null} */ (document.activeElement?.closest?.("[data-chart-row], [data-home-card]") ?? null);
           const id = item?.dataset.chartRow ?? item?.dataset.homeCard ?? "", doc = chartById(id), inGrid = inList.id === "home-grid";
@@ -29313,7 +29325,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           event.preventDefault();
           return nudgeDrawings(event.key, event.shiftKey, mod, event.repeat);
         }
-        if (mod && key === "d" && !home && (chosen.size || layerPicks.size || selected) && !typing(event.target)) {
+        // (⌘D alone: ⌘⇧D, ⌘⌥D are no one's here.)
+        if (mod && !event.shiftKey && !event.altKey && key === "d" && !home && (chosen.size || layerPicks.size || selected) && !typing(event.target)) {
           event.preventDefault();
           return chosen.size ? duplicateDrawings([...chosen]) : layerPicks.size ? layersBatch("duplicate") : duplicateLayer(selected);
         }
