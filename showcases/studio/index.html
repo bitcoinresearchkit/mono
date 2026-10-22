@@ -8765,7 +8765,7 @@
           <ul>
             <li>{"series": "realized_price"}: a series, by its exact name.</li>
             <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). Spans are a number and a unit: h, d, w, mo or y; some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
-            <li>{"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns true (0 is false, anything else true; > < >= <= are 1 or 0, joined with &amp; and |): "place", "below" or "on" (above if none), or "shade": its stretches shaded, its layer's pane's height.</li>
+            <li>{"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns up or down: above 0 is up, below 0 down, 0 off (> < >= <= are 1 or 0, joined with &amp; and |: a condition is up where true; (B > 3.5) - (B < 1) is up, down or off). "place", "below" or "on" (above if none): where an up mark goes, a down one mirrored (above and below swapped), in "colorBelow" (red if none); or "shade": its stretches shaded, its layer's pane's height, down ones in "colorBelow". "results": true: on each mark that ends a stretch, what it made by layer A (A's change over it, up; the opposite, down), a dot where one ends off; their total, compounded, in its line.</li>
             <li>{"cloud": ["B", "C"]}: filled between those two layers, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them); "color" alone, that one all along; "color" and "colorBelow", those two (where B is over, where C is). Either of the two (or both) can be "top" or "bottom", its pane's edge: from the layer up to the pane's top, or from its bottom up to it, in one color: {"cloud": ["A", "top"]}. Two exactly: for more layers, formulas first, {"formula": "max(B, max(C, D))"} and {"formula": "min(B, min(C, D))"}, then a cloud between those two.</li>
             <li>{"trend": ["B", "C"], "ref": "A"}: a line on the lowest of those layers until layer A (a price, say) touches it, then on the highest until A touches that, and so on (a candle's wick counts); width and dash as a line's.</li>
           </ul>
@@ -9629,7 +9629,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const MARK_PLACES = /** @type {[string, string, string, string][]} */ ([["above", "Above", "aboveBar", "arrowDown"], ["below", "Below", "belowBar", "arrowUp"], ["on", "On it", "inBar", "circle"], ["shade", "Shaded", "", ""]]);
       /** A place's name as a choice says it: "Above the layer", "Shaded". @param {string} place */
-      const placeName = (place) => ((text) => (place === "shade" ? "Shaded where it's true" : place === "on" ? "On the layer" : `${text} the layer`))(MARK_PLACES.find(([id]) => id === place)?.[1] ?? "");
+      const placeName = (place) => ((text) => (place === "shade" ? "Shaded while up or down" : place === "on" ? "On the layer" : `${text} the layer`))(MARK_PLACES.find(([id]) => id === place)?.[1] ?? "");
       /** What can flip a trend: a layer of one value (not made from layers), not one of those it's made from. @param {Chart} doc @param {Layer} trend */
       const refsFor = (doc, trend) => doc.layers.filter((layer) => !layer.from && layer.type !== "signal" && !trend.from?.includes(layer.id) && !readsOf(layer, doc).has(trend.letter));
       /** A trend's reference by default: a price in its pane (candles, a series named so), else the first of those there, else the first. @param {Chart} doc @param {Layer} trend */
@@ -9637,20 +9637,47 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A type's name: a series' or a formula's, or one made from layers. */
       /** An unnamed formula's line (its name is its formula): what it is, in what once known. @param {Layer} layer */
       const formulaLine = (layer) => (layer.type === "signal" ? signalLine(layer) : ((result) => (result?.values ? `Formula · ${UNIT_NAMES[unitFor(layer, result)] ?? "Number"}` : "Formula"))(resolved?.results.get(layer.id)));
-      /** Where a signal turns true in its values: each point's index. @param {ArrayLike<number> | undefined} values */
-      const turnsOf = (values) => {
-        const at = [];
-        let was = NaN;
+      /**
+       * Where a signal changes state, from one known (gaps passed over): above 0 it's up (1), below down (-1), at 0 neither.
+       * Each change says the state it turns to (`to`), the one it ends (`was`), and where that stretch began with a change of
+       * its own (`since`; -1: it was so from the first value known). @param {ArrayLike<number> | undefined} values
+       * @returns {{ at: number, to: number, was: number, since: number }[]}
+       */
+      const changesOf = (values) => {
+        const out = [];
+        let was = NaN, since = -1;
         for (let i = 0; i < (values?.length ?? 0); i++) {
           const value = /** @type {ArrayLike<number>} */ (values)[i];
           if (value !== value) continue;
-          if (value && was === 0) at.push(i);
-          was = value ? 1 : 0;
+          const state = value > 0 ? 1 : value < 0 ? -1 : 0;
+          if (state === was) continue;
+          if (was === was) out.push({ at: i, to: state, was, since });
+          since = was === was ? i : -1;
+          was = state;
         }
-        return at;
+        return out;
       };
-      /** A signal, said: the layer its marks are on, how many there are. @param {Layer} layer */
-      const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it on" : on.hidden ? `Hidden with ${labelOf(on)}` : `Signal on ${labelOf(on)}${values ? ` · ${plural(turnsOf(values).length, "time")}${fineDrawn() ? " in what's loaded" : ""}` : ""}`))(chart.layers.find((item) => item.id === layer.ref), resolved?.results.get(layer.id)?.values);
+      /** Where a signal's marks are: each change to up or down (a condition's: where it turns true). @param {ArrayLike<number> | undefined} values */
+      const turnsOf = (values) => changesOf(values).flatMap((change) => (change.to ? [change.at] : []));
+      /**
+       * What a stretch a change ends made, by the layer it's marked on: that layer's change over it, up; the opposite, down
+       * (the state was right: more); none for one of neither, one begun before a change, or a value there not above 0 (or
+       * not finite: a formula's division by 0).
+       * @param {{ at: number, was: number, since: number }} change @param {ArrayLike<number>} own
+       */
+      const stretchResult = (change, own) => ((from, to) => (change.was && change.since >= 0 && from > 0 && to > 0 && Number.isFinite(from) && Number.isFinite(to) ? change.was * (to / from - 1) : undefined))(own[change.since], own[change.at]);
+      /** A stretch's result, said: +10.2%, −4.1%; ten times or more, as a growth reads: 840×. */
+      const resultText = (/** @type {number} */ result) => (result >= 9 ? `${precise(1 + result)}×` : `${result < 0 ? "−" : "+"}${precise(Math.abs(result) * 100)}%`);
+      /** A signal's stretches' results, compounded: what following it made, by its layer (none, none). @param {Layer} layer */
+      const resultsOf = (layer) => {
+        const values = resolved?.results.get(layer.id)?.values, own = resolved?.results.get(layer.ref ?? "")?.values;
+        if (!values || !own) return undefined;
+        const results = changesOf(values).flatMap((change) => ((result) => (result === undefined ? [] : [result]))(stretchResult(change, own)));
+        // (A stretch losing all, or more (down, its layer more than doubled), leaves nothing: none to go on from.)
+        return results.length ? results.reduce((total, result) => total * Math.max(0, 1 + result), 1) - 1 : undefined;
+      };
+      /** A signal, said: the layer its marks are on, how many there are (with its results, what they made). @param {Layer} layer */
+      const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it on" : on.hidden ? `Hidden with ${labelOf(on)}` : `Signal on ${labelOf(on)}${values ? ` · ${plural(turnsOf(values).length, "time")}${((total) => (total === undefined ? "" : ` · ${resultText(total)} in all`))(layer.results ? resultsOf(layer) : undefined)}${fineDrawn() ? " in what's loaded" : ""}` : ""}`))(chart.layers.find((item) => item.id === layer.ref), resolved?.results.get(layer.id)?.values);
       const typeName = (/** @type {string} */ type) => [...TYPES, ...FROM_TYPES].find(([id]) => id === type)?.[1] ?? type;
       /** @type {[string, string][]} */
       const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"]];
@@ -9660,7 +9687,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const SHAPES = [["straight", "Straight", LC.LineType.Simple], ["steps", "Steps", LC.LineType.WithSteps], ["curved", "Curved", LC.LineType.Curved]];
       const lineTypeOf = (layer) => SHAPES.find(([id]) => id === layer.shape)?.[2] ?? LC.LineType.Simple;
       /** A type's two colors, where it has two: what each is called. */
-      const PAIRS = { baseline: ["Above", "Below"], histogram: ["Above", "Below"], trend: ["Resistance", "Support"] };
+      const PAIRS = { baseline: ["Above", "Below"], histogram: ["Above", "Below"], trend: ["Resistance", "Support"], signal: ["Up", "Down"] };
+      /** Whether a signal has a down state (below 0) in what's drawn: its second color, the down one's, then offered. @param {Layer} layer */
+      const signedSignal = (layer) => layer.type === "signal" && ((values) => Boolean(values) && values.some((/** @type {number} */ value) => value < 0))(resolved?.results.get(layer.id)?.values);
       /**
        * How a layer's colors can be chosen, by its type (see colorModeOf): one color; two ("sides": a baseline's or bars'
        * above and below their base, a trend's on resistance and on support, a cloud's by which of its two is over); a
@@ -9849,7 +9878,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function format(value, unit) {
         if (value === undefined || value === null || !Number.isFinite(value)) return "—";
         // (A signal's: true, anything but 0.)
-        if (unit === "signal") return value ? "Yes" : "No";
+        // (A signal's state: above 0 up, below down, at 0 off.)
+        if (unit === "signal") return value > 0 ? "Up" : value < 0 ? "Down" : "Off";
         // (A true minus, as the ruler writes it, outside the unit's sign: −$1,234.)
         const text = precise(Math.abs(value)), sign = value < 0 && text !== "0" ? "−" : "";
         // (A unit said with an SI prefix (H/s, B, vB, WU) takes the figure's letter onto it: 976.1 EH/s, 1.587 MB,
@@ -10602,15 +10632,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @typedef {{ id: string, letter: string, series?: string, formula?: string, label?: string, color: string,
        *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, colorBelow?: string, colors?: 1 | 4, colorFading?: string, colorBelowFading?: string, opacity?: number,
        *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
-       *   shape?: string, levels?: Level[], fill?: string, place?: string, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean }} Layer
+       *   shape?: string, levels?: Level[], fill?: string, place?: string, results?: boolean, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean }} Layer
        *   Made from layers (`from`: the ids of the layers it's made of, none itself made from layers), by its type: a cloud
        *   ("cloud") is filled between its two, at each date (in two colors, `color` where the first is over the second,
        *   `colorBelow` where the second is, parting where they cross); a trend ("trend") is on the lowest of two or more
        *   or the highest, flipping when its reference (`ref`: a layer's id, one of one value, not one of them) touches it
        *   (see trendOf). Short of what it needs, it says so.
-       *   A signal ("signal"): a formula read as true (not 0) or false (0), marked on another layer (`ref`, the first that
-       *   can carry marks if none) where it turns true, `place` (above it, unset; below; on it), or shaded where it's true
-       *   ("shade"), in its own color.
+       *   A signal ("signal"): a formula read as a state, up (above 0), down (below) or off (0; a condition is up where
+       *   true), marked on another layer (`ref`, the first that can carry marks if none) where it turns up or down, `place`
+       *   (above it, unset; below; on it: an up mark's, a down one's mirrored), or shaded while up or down ("shade"); up
+       *   in its color, down in its second (`colorBelow`, red unset). `results`: each stretch's result on the mark that ends it (see
+       *   stretchResult).
        *   `colorFrom`: another layer's id, whose colors it takes date by date (see colorsAt): a line's, dots', an area's,
        *   bars', a cloud's or a trend's (not a baseline's, nor candles').
        *   `byLevels`: colored by its levels instead, date by date: above each, that level's color; under them all, its own
@@ -10882,10 +10914,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // A signal: marks on its layer, in its pane, on its side (its layer gone, none till another's picked: never moved
         // to another on its own); nothing of a line's look.
         for (const layer of doc.layers) {
-          if (layer.type !== "signal") continue;
+          if (layer.type !== "signal") {
+            delete layer.results;
+            continue;
+          }
           const on = doc.layers.find((other) => other.id === layer.ref);
           if (on) Object.assign(layer, { pane: on.pane, side: on.side });
-          for (const key of ["shape", "levels", "colorFrom", "byLevels", "colors", "colorBelow", "priceLine", "base", "format", "fill", "baseLine", "underName"]) delete layer[key];
+          for (const key of ["shape", "levels", "colorFrom", "byLevels", "colors", "priceLine", "base", "format", "fill", "baseLine", "underName"]) delete layer[key];
           if (layer.place === "above" || !MARK_PLACES.some(([place]) => place === layer.place)) delete layer.place;
         }
         if (!doc.panes.length) doc.panes.push({ id: uid(), mode: 1 });
@@ -13372,9 +13407,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Only where its layer has a value drawn: a mark in a gap would sit on another date.)
           const target = doc.layers.find((item) => item.id === layer.ref), own = data.results.get(layer.ref ?? "")?.values, log = target ? modeOf(doc, target) === 1 : false;
           if (!on || !values || !own) continue;
-          const [, , position, shape] = MARK_PLACES.find(([place]) => place === (layer.place ?? "above")) ?? MARK_PLACES[0], op = opacityOf(layer);
-          const color = op < 1 ? alpha(ink(layer.color), op) : ink(layer.color), list = marked.get(on) ?? marked.set(on, []).get(on);
-          for (const i of turnsOf(values)) if (Number.isFinite(own[i]) && (!log || own[i] > 0)) list.push({ time: data.times[i], position, shape, color, id: layer.id });
+          // (Up, at its place; down, its mirror (above and below swapped), in its second color (red, unset). Its results asked for, each
+          // stretch's on the mark that ends it: one ending in neither, a dot there.)
+          const place = layer.place ?? "above", [, , position, shape] = MARK_PLACES.find(([id]) => id === place) ?? MARK_PLACES[0], op = opacityOf(layer);
+          const [, , downPosition, downShape] = MARK_PLACES.find(([id]) => id === (place === "above" ? "below" : place === "below" ? "above" : place)) ?? MARK_PLACES[0];
+          const color = op < 1 ? alpha(ink(layer.color), op) : ink(layer.color), down = alpha(ink(belowOf(layer)), op), list = marked.get(on) ?? marked.set(on, []).get(on);
+          for (const change of changesOf(values)) {
+            const i = change.at, result = layer.results ? stretchResult(change, own) : undefined, text = result === undefined ? {} : { text: resultText(result) };
+            if (!Number.isFinite(own[i]) || (log && !(own[i] > 0))) continue;
+            if (change.to > 0) list.push({ time: data.times[i], position, shape, color, id: layer.id, ...text });
+            else if (change.to < 0) list.push({ time: data.times[i], position: downPosition, shape: downShape, color: down, id: layer.id, ...text });
+            else if (result !== undefined) list.push({ time: data.times[i], position: "inBar", shape: "circle", size: 0.5, color: change.was > 0 ? color : down, id: layer.id, ...text });
+          }
         }
         for (const [series, plugin] of markers) {
           if (marked.has(series) && !old.includes(series)) continue;
@@ -13485,7 +13529,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const fromSource = candles ? null : paintOf(doc, layer, data);
           // (A date it has no color for: its own.)
           const dated = fromSource && ((/** @type {number} */ i) => ((name) => (name ? ink(name) : base))(fromSource(i)));
-          const painting = dated ? paintSig(doc, layer, data, op, base) : null;
+          // (A shaded signal's down stretches, in its second color: painted in its rows, as dated layers' colors are, so a spotlight
+          // fades them and a new color (a theme, its opacity) paints them again.)
+          const shadeDown = signal && layer.place === "shade" ? alpha(ink(belowOf(layer)), 0.14 * op) : "";
+          const painting = dated ? paintSig(doc, layer, data, op, base) : shadeDown ? [shadeDown] : null;
           // Colors are kept apart from the rest so a spotlight can fade them and give them back.
           const paint = layer.type === "cloud" ? { color: alpha(base, op) } : signal && layer.place === "shade" ? { color: alpha(base, 0.14 * op) } : candles ? { upColor: css("--card"), downColor: color, wickUpColor: color, wickDownColor: color, borderUpColor: color, borderDownColor: color }
             // An area filled above its line is evenly tinted: the fill's gradient runs by price, so above a line that runs
@@ -13503,7 +13550,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (signal && layer.place === "shade") {
             // Shaded: its stretches, its pane's height (a band to both its edges, as a cloud between them is: on a scale
             // of its own, unseen), faint, behind what's drawn.
-            const options = { ...common, ...paint, visible: signalShown(layer, doc), lastValueVisible: false, priceLineVisible: false, top: true, bottom: true, priceScaleId: `shade:${layer.id}`, autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 1 } }) };
+            const options = { ...common, ...paint, visible: signalShown(layer, doc), lastValueVisible: false, priceLineVisible: false, top: true, bottom: true, midway: true, priceScaleId: `shade:${layer.id}`, autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 1 } }) };
             series = again ?? tracked(view.addCustomSeries(cloudView(), options, pane));
             if (again) series.applyOptions(lookOf(options));
           } else if (layer.type === "cloud") {
@@ -13551,8 +13598,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             linesAcross(layer, pane, common.priceFormat, op);
           }
           else if (result?.values && signal && layer.place === "shade") {
-            const shown = result.values;
-            setRows(series, data.times.map((time, i) => (Number.isFinite(shown[i]) && shown[i] !== 0 ? { time, low: 0, high: 0 } : { time })));
+            const shown = result.values, rows = data.times.map((time, i) => (Number.isFinite(shown[i]) && shown[i] !== 0 ? { time, low: 0, high: 0, ...(shown[i] < 0 ? { color: shadeDown } : {}) } : { time }));
+            setRows(series, rows);
+            paintedPoints.set(layer.id, { points: rows, faint: false });
           } else if (result?.values && layer.type === "cloud") {
             // (Its scale's: log, none at or under zero; on one it doesn't fit, none. Which of its two is over: where that
             // changes, they cross. Of its pane's two edges, every date, its values none.)
@@ -16895,7 +16943,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function cloudView() {
         /** @type {any} */
-        let data = null, options = { color: "transparent", top: false, bottom: false };
+        let data = null, options = { color: "transparent", top: false, bottom: false, midway: false };
         // A pixel column's highest and lowest (in prices: the scale turns them over), kept between frames: one point of the
         // path a column, however many bars it holds (zoomed out, hundreds), and nothing made anew each frame. A point where
         // its two cross, its height (`ats`, in pixels; a column's, NaN).
@@ -16954,7 +17002,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                   const first = side === 2 ? top : bottom, nextFirst = row.side === 2 ? nextTop : nextBottom;
                   (xs[k] = xs[k - 1] + t * (column - xs[k - 1])), (ats[k++] = first + t * (nextFirst - first));
                   if (now !== color) restart();
-                } else if (now !== color && k) restart();
+                } else if (now !== color && k) {
+                  // (`midway`, a shaded signal's: its color changes between the two bars, where one stretch ends and the
+                  // next begins, not at the last one.)
+                  if (options.midway && xs[k - 1] !== column) (xs[k] = (xs[k - 1] + column) / 2), (highs[k] = highs[k - 1]), (lows[k] = lows[k - 1]), (ats[k++] = NaN);
+                  restart();
+                }
                 color = now;
                 side = row.side;
                 if (k && xs[k - 1] === column && Number.isNaN(ats[k - 1])) {
@@ -16968,7 +17021,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           update: (/** @type {any} */ next, /** @type {any} */ given) => ((data = next), (options = given)),
           priceValueBuilder: (/** @type {any} */ row) => [row.low, row.high, row.high],
           isWhitespace: (/** @type {any} */ row) => !Number.isFinite(row.low) || !Number.isFinite(row.high),
-          defaultOptions: () => ({ ...LC.customSeriesDefaultOptions, color: "transparent", top: false, bottom: false }),
+          defaultOptions: () => ({ ...LC.customSeriesDefaultOptions, color: "transparent", top: false, bottom: false, midway: false }),
         };
       }
       /** A stroke with what adds nothing taken out: no point strays further than `tolerance` pixels from what's kept. */
@@ -22439,11 +22492,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <p id="formula-status" class="formula-status"></p>
               <details class="help"><summary>Functions and how letters work</summary>
                 <div class="functions">${Object.entries(FUNCTIONS).map(([name, [, signature, what]]) => `<button type="button" data-insert="${name}("><b>${escape(signature)}</b><span>${escape(what)}</span></button>`).join("")}</div>
-                <p>Capital letters are layers as drawn; a series by its name (${escape(tree.price.close.name)}) is the series itself. Comparisons (&gt; &lt; &gt;= &lt;=) are 1 where true, 0 where not, joined with &amp; (and) and | (or): a signal marks where one turns true. Use + − × ÷ ^ and parentheses. Windows are spans of time: 12h, 30d, 4w, 6mo, 2y, or 4 * 365d (a bare number is days); shorter than the interval, one point. A window is always last; at 1D and up, it holds what there is until it's full, and one left out (where it shows span?) is all of history so far.</p>
+                <p>Capital letters are layers as drawn; a series by its name (${escape(tree.price.close.name)}) is the series itself. Comparisons (&gt; &lt; &gt;= &lt;=) are 1 where true, 0 where not, joined with &amp; (and) and | (or): a signal marks where one turns true, or, signed, where it turns up (above 0) or down (below): (A &gt; B) - (A &lt; B). Use + − × ÷ ^ and parentheses. Windows are spans of time: 12h, 30d, 4w, 6mo, 2y, or 4 * 365d (a bare number is days); shorter than the interval, one point. A window is always last; at 1D and up, it holds what there is until it's full, and one left out (where it shows span?) is all of history so far.</p>
               </details>
               ${signal ? `<div class="field"><span>Marked on</span><button type="button" class="preset" id="signal-ref" aria-haspopup="menu" data-tip="The layer its marks are on">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>
               <div class="field"><span>Shown as</span><div class="tabs glyphs" role="group" aria-label="How it shows">${MARK_PLACES.map(([place]) => `<button type="button" data-place="${place}" aria-pressed="${(layer.place ?? "above") === place}" aria-label="${placeName(place)}" data-tip="${placeName(place)}">${glyphSvg(markBody(place, "currentColor"))}</button>`).join("")}</div></div>
-              <div class="field"><span>Times</span><button type="button" class="preset" id="signal-times" aria-haspopup="dialog" data-tip="Each time it turned true, to go to">${((n) => (n === null ? `<span class="name">Loading</span>` : `<span class="name">${plural(n, "time")}</span>`))(result?.values ? turnsOf(result.values).length : null)}${CHEVRON}</button></div>` : ""}
+              <div class="field switch"><span>Results</span><div class="tabs" role="group" aria-label="Results">${[[false, "Off", "Marks alone"], [true, "On", "On each mark that ends a stretch, what it made: its layer's change over it, up; the opposite, down"]].map(([on, text, tip]) => `<button type="button" data-results="${on ? 1 : 0}" aria-pressed="${Boolean(layer.results) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>
+              <div class="field"><span>Times</span><button type="button" class="preset" id="signal-times" aria-haspopup="dialog" data-tip="Each time it marked, to go to">${((n) => (n === null ? `<span class="name">Loading</span>` : `<span class="name">${plural(n, "time")}</span>`))(result?.values ? turnsOf(result.values).length : null)}${CHEVRON}</button></div>` : ""}
             </section>`
           : `<section>
               <h3>Series</h3>
@@ -22668,7 +22722,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function colorSlots(layer) {
         const mode = colorModeOf(layer), pair = layer.type === "cloud" ? ((letters) => (letters.length === 2 ? [`${letters[0]} over ${letters[1]}`, `${letters[1]} over ${letters[0]}`] : ["First over", "Second over"]))(fromLetters(layer)) : PAIRS[layer.type];
         return mode === "from" ? [["from", "Layer"]] : mode === "levels" ? [["color", "Under its levels"]] : mode === "layers" ? []
-          : mode === "sides" ? [["color", pair[0]], ["colorBelow", pair[1]]]
+          : mode === "sides" || signedSignal(layer) ? [["color", pair[0]], ["colorBelow", pair[1]]]
           : mode === "momentum" ? [["color", "Above, growing"], ["colorFading", "Above, fading"], ["colorBelow", "Below, growing"], ["colorBelowFading", "Below, fading"]]
           : [["color", "Color"]];
       }
@@ -23833,7 +23887,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("inspector").addEventListener("click", (event) => {
         const button = closest(event, "button");
         if (!button) return;
-        const { type, dash, shape, fill, place, side, priceLine, action, insert, index, reset, colorSelect, replace, removeLevel, lineColor, lineDash, lineTag, levelMenu, act, colorSlot: slot, pickColor, colorSource: source } = button.dataset;
+        const { type, dash, shape, fill, place, side, priceLine, results, action, insert, index, reset, colorSelect, replace, removeLevel, lineColor, lineDash, lineTag, levelMenu, act, colorSlot: slot, pickColor, colorSource: source } = button.dataset;
         const paletteKey = button.closest("[data-palette]")?.getAttribute("data-palette");
         if (index) switchInterval(index);
         else if (slot) colorSlot.set(`${chart.id}:${selected}`, slot), renderInspector();
@@ -23894,6 +23948,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         else if (side) editLayer((layer) => (layer.side = side));
         else if (priceLine) editLayer((layer) => (layer.priceLine = priceLine === "1" || undefined));
+        else if (results) editLayer((layer) => (layer.results = results === "1" || undefined));
         else if (insert) insertAtCaret(insert);
         else if (reset) {
           editLayer((layer) => DEFAULTS[reset].set(layer));
@@ -25139,8 +25194,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { title: "Zoom out", text: "Wider, around the middle of the view (or its right edge, at the latest).", words: "wider further shrink", icon: "charts", kbd: "−", run: () => zoom(1.6) },
           ]),
           ...(chart.layers.some((layer) => signalShown(layer)) ? [
-            { title: "Next signal", text: "The next time a signal turned true, after the middle of the view.", words: "signal mark next forward jump occurrence", icon: "calendar", run: () => stepSignal(1) },
-            { title: "Previous signal", text: "The last time a signal turned true, before the middle of the view.", words: "signal mark previous back jump occurrence", icon: "calendar", run: () => stepSignal(-1) },
+            { title: "Next signal", text: "A signal's next mark, after the middle of the view.", words: "signal mark next forward jump occurrence", icon: "calendar", run: () => stepSignal(1) },
+            { title: "Previous signal", text: "A signal's last mark, before the middle of the view.", words: "signal mark previous back jump occurrence", icon: "calendar", run: () => stepSignal(-1) },
           ] : []),
           ...(empty ? [] : [{ title: "Go to a date", text: "A year, a month or a day: the chart shows it.", words: "jump date time when navigate calendar", icon: "calendar", kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }]),
           { title: "Rename this chart", text: "Its title, typed here.", words: "title name", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
@@ -25514,7 +25569,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (layer.type === "signal") {
             const on = doc.layers.find((item) => item.id === layer?.ref);
             return void (panel.innerHTML = `<h4><code>${escape(text)}</code></h4>
-              <p class="description">${uses.length ? `Uses ${escape(uses.join(", "))}` : "A constant"}. ${layer.place === "shade" ? "Shaded while it's true" : "Marked where it turns true"}.</p>
+              <p class="description">${uses.length ? `Uses ${escape(uses.join(", "))}` : "A constant"}. ${layer.place === "shade" ? "Shaded while it's up or down" : "Marked where it turns up or down"} (above 0, up; below, down).</p>
               <div class="info"><h5>${editing ? "Layer" : "As layer"} ${escape(layer.letter)}</h5><dl>
                 <div><dt>Marked on</dt><dd>${on ? escape(labelOf(on)) : "No layer"}</dd></div>
                 <div><dt>Times</dt><dd>${grouped.format(turnsOf(result.values).length)}</dd></div>
@@ -26181,17 +26236,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         autoScale();
         glide({ from: at - half, to: at + half });
       }
-      /** Each time a signal turned true, the latest first: its date, its layer's value there; picked, gone to. @param {string} id */
+      /**
+       * Each time a signal marked, the latest first: its date, up or down (one with a down state), what the stretch it
+       * ends made (its results asked for: where it ends in neither too), its layer's value there; picked, gone to.
+       * @param {string} id
+       */
       function timesPage(id) {
-        return listPage("Times it turned true", () => {
-          const layer = layerById(id), values = layer && resolved?.results.get(id)?.values, on = layer?.ref ? layerById(layer.ref) : null;
-          if (!values || !resolved) return [];
-          const times = resolved.times;
-          return turnsOf(values).reverse().map((i) => ({ key: `at:${times[i]}`, icon: ICONS.calendar, label: dateLabel(times[i], fineDrawn()), aside: on ? `${labelOf(on)} ${format(valueAt(on, { at: i, rest: false }), unitFor(on, resolved?.results.get(on.id)))}` : undefined, run: () => goToTime(times[i]) }));
+        return listPage("Times marked", () => {
+          const layer = layerById(id), values = layer && resolved?.results.get(id)?.values, on = layer?.ref ? layerById(layer.ref) : null, own = on ? resolved?.results.get(on.id)?.values : undefined;
+          if (!layer || !values || !resolved) return [];
+          const times = resolved.times, changes = changesOf(values), signed = changes.some((change) => change.to < 0 || change.was < 0);
+          return changes.flatMap((change) => {
+            const i = change.at, result = layer.results && own ? stretchResult(change, own) : undefined;
+            if (!change.to && result === undefined) return [];
+            const said = [change.to < 0 ? "Down" : change.to > 0 ? (signed ? "Up" : "") : "Off", result === undefined ? "" : resultText(result), on ? `${labelOf(on)} ${format(valueAt(on, { at: i, rest: false }), unitFor(on, resolved?.results.get(on.id)))}` : ""].filter(Boolean);
+            return [{ key: `at:${times[i]}`, icon: ICONS.calendar, label: dateLabel(times[i], fineDrawn()), aside: said.join(" · ") || undefined, run: () => goToTime(times[i]) }];
+          }).reverse();
         }, "Go");
       }
       /**
-       * The next time a shown signal turned true after the middle of the view (`by` 1), or the last one before it (-1):
+       * A shown signal's next mark after the middle of the view (`by` 1), or its last one before it (-1):
        * gone to; none, said.
        */
       function stepSignal(/** @type {1 | -1} */ by) {
@@ -26553,7 +26617,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(layer.type === "signal" ? [
               { key: "ref", icon: ICONS.signal, label: "Marked on", aside: ((ref) => (ref ? labelOf(ref) : "None"))(layerById(layer.ref ?? "")), group: first, page: () => choicePage("Marked on", () => refChoices(id)) },
               { key: "place", icon: glyphSvg(markBody(layer.place, "currentColor")), label: "Shown as", aside: placeName(layer.place ?? "above"), group: first, page: () => choicePage("Shown as", () => MARK_PLACES.map(([place]) => ({ key: place, icon: glyphSvg(markBody(place, "currentColor")), label: placeName(place), current: (now().place ?? "above") === place, run: set((item) => (item.place = place === "above" ? undefined : place)) }))) },
-              { key: "times", icon: ICONS.calendar, label: "Times it turned true", aside: ((values) => (values ? plural(turnsOf(values).length, "time") : undefined))(result?.values), group: first, page: () => timesPage(id) },
+              { key: "results", icon: ICONS.signal, label: "Results", aside: layer.results ? "On" : "Off", verb: layer.results ? "Turn off" : "Turn on", group: first, stay: true, run: set((item) => (item.results = !item.results || undefined)), choices: () => [true, false].map((on) => ({ key: on ? "on" : "off", icon: ICONS.signal, label: on ? "On" : "Off", current: Boolean(now().results) === on, run: set((item) => (item.results = on || undefined)) })) },
+              { key: "times", icon: ICONS.calendar, label: "Times marked", aside: ((values) => (values ? plural(turnsOf(values).length, "time") : undefined))(result?.values), group: first, page: () => timesPage(id) },
             ] : []),
             ...(layer.series ? [
               { key: "copy-name", icon: ICONS.copy, label: "Copy the series name", verb: "Copy", group: first, run: () => copyName(/** @type {string} */ (layer.series)) },
@@ -28453,6 +28518,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(layer.fill === "above" ? { fill: "above" } : {}),
             ...((made === "trend" || (!made && layer.type === "signal")) && typeof layer.ref === "string" ? { ref: layer.ref } : {}),
             ...(MARK_PLACES.some(([place]) => place !== "above" && place === layer.place) ? { place: layer.place } : {}),
+            ...(!made && layer.type === "signal" && layer.results === true ? { results: true } : {}),
             ...(typeof layer.colorFrom === "string" ? { colorFrom: layer.colorFrom } : {}),
             ...(layer.byLevels === true ? { byLevels: true } : {}),
             ...(layer.byLayers === true ? { byLayers: true } : {}),
