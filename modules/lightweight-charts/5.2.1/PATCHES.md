@@ -481,7 +481,8 @@ since: within a quarter of a CSS pixel (half a device pixel at 2x) while bars ar
 crowd (a quarter of a pixel by the bars to a pixel), up to a whole pixel (`bvR`: zoomed out, a little less exact; zoomed
 in, as exact as ever), by the smaller of the two pixel ratios. Kept by a cone of the directions from the last
 point drawn (its anchor) that pass that close to each point left out (the tangents to a circle of that radius around
-it: exact); a point joins it where its direction is in the cone and it's no nearer the anchor than those left out
+it: exact; kept as two directions, each a point's own turned by the tangent's angle, by its sine and cosine: square
+roots alone, no trigonometry, a point in the cone by two cross products' signs); a point joins it where its direction is in the cone and it's no nearer the anchor than those left out
 before it (their nearest place on the segment, then, not past its end), and within a million pixels of it (an infinite
 or far point never joins: the drawing goes on as the canvas has it); one within the radius of the anchor joins while
 those left out are all as near. Any other ends the segment at the one before, drawn, the cone started again from it. A
@@ -492,7 +493,7 @@ lines, and those whose points have their own styles, as before.
   `s.bvS` where they're restyled (`BM()`, an option changed).
 - `fe`: `bvZ` (a simple line, no dash, `bvU` and `bvS`), `bvR` (`Math.min(o,_)` times a quarter of the bars a CSS pixel, a span not a number the quarter alone,
   in view, from `.25` to `1`) and `bvR2` (its square); in its case 0, the point checked
-  against the cone (`atan2`, `asin`), kept pending, or the pending one drawn (`lineTo`) and the cone started again from
+  against the cone (`bvLx`/`bvLy` and `bvUx`/`bvUy`, its two directions; `bvF`, none yet: all), kept pending, or the pending one drawn (`lineTo`) and the cone started again from
   it; the last pending one drawn before the path's end (the stroke, an area's fill, by the path's own end).
 
 `tests.html` leaves `bvSimplify` unset: its pictures the same as before the patch. Checked on synthetic paths (the
