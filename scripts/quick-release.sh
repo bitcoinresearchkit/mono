@@ -39,7 +39,7 @@ echo "=== Checking credentials ==="
 echo ""
 
 echo "--- npm ---"
-npm whoami || { echo "npm not authenticated. Run: npm login"; exit 1; }
+(cd "$ROOT_DIR/modules/bitview-client" && bun pm whoami) || { echo "npm not authenticated. Run: bunx --bun npm login"; exit 1; }
 echo ""
 
 echo "--- PyPI ---"
@@ -62,7 +62,7 @@ if [ "$RESUME_RELEASE" = false ]; then
     echo "--- JavaScript ---"
     cd "$ROOT_DIR/modules/bitview-client"
     # JavaScript needs no build step; importing checks the generated module.
-    node -e "import('./index.js')"
+    bun -e "await import('./index.js')"
     echo "OK"
     echo ""
 

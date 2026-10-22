@@ -11,7 +11,7 @@ if [ -z "$VERSION" ]; then
 fi
 
 # Both packages follow the workspace release version.
-node --input-type=module - "$ROOT_DIR/modules" "$VERSION" <<'JS'
+bun run - "$ROOT_DIR/modules" "$VERSION" <<'JS'
 import { readFileSync, writeFileSync } from 'node:fs';
 const [root, version] = process.argv.slice(2);
 if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(version)) {
@@ -28,23 +28,23 @@ writeFileSync(source, readFileSync(source, 'utf8').replace(/VERSION = "v[^"]*"/,
 JS
 
 publish_if_missing() {
-    local package_dir="$1" name version tag metadata
-    name=$(cd "$package_dir" && node -p 'JSON.parse(require("fs").readFileSync("package.json")).name')
-    version=$(cd "$package_dir" && node -p 'JSON.parse(require("fs").readFileSync("package.json")).version')
-    if metadata=$(npm view "$name@$version" version --json --loglevel=silent 2>&1); then
-        echo "$name@$version already published; skipping"
-        return
-    fi
-    # Only an explicit registry E404 means unpublished. Auth/network failures
+    local package_dir="$1" name version tag status
+    name=$(jq -r .name "$package_dir/package.json")
+    version=$(jq -r .version "$package_dir/package.json")
+    # Only the registry's 404 means unpublished. Auth/network failures
     # must stop the release rather than being mistaken for a missing version.
-    if ! printf '%s' "$metadata" | node --input-type=module -e '
-        import { readFileSync } from "node:fs";
-        try { process.exit(JSON.parse(readFileSync(0, "utf8")).error?.code === "E404" ? 0 : 1); }
-        catch { process.exit(1); }
-    '; then
-        printf '%s\n' "$metadata" >&2
-        return 1
-    fi
+    status=$(curl -s -o /dev/null -w '%{http_code}' "https://registry.npmjs.org/$name/$version")
+    case "$status" in
+        200)
+            echo "$name@$version already published; skipping"
+            return
+            ;;
+        404) ;;
+        *)
+            echo "Could not check whether $name@$version is published (HTTP $status)" >&2
+            return 1
+            ;;
+    esac
 
     case "$version" in
         *-alpha*) tag=alpha ;;
@@ -57,13 +57,10 @@ publish_if_missing() {
         read -r -s -p "npm OTP for $name (blank for a bypass-2FA token): " NPM_OTP
         echo ""
     fi
+    NPM_OTP="${NPM_OTP:-${NPM_CONFIG_OTP:-}}"
     echo "Publishing $name@$version ($tag)"
-    if [ -n "${NPM_OTP:-}" ]; then
-        (cd "$package_dir" && NPM_CONFIG_OTP="$NPM_OTP" npm publish --access public --tag "$tag")
-        unset NPM_OTP
-    else
-        (cd "$package_dir" && npm publish --access public --tag "$tag")
-    fi
+    (cd "$package_dir" && bun publish --access public --tag "$tag" ${NPM_OTP:+--otp "$NPM_OTP"})
+    unset NPM_OTP
 }
 
 publish_if_missing "$ROOT_DIR/modules/bitview-client"
