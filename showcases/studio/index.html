@@ -9700,8 +9700,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return out;
       };
-      /** Where a signal's marks are: each change to up or down (a condition's: where it turns true). @param {ArrayLike<number> | undefined} values */
-      const turnsOf = (values) => changesOf(values).flatMap((change) => (change.to ? [change.at] : []));
+      /**
+       * Where a signal's marks are: each change to up or down (a condition's: where it turns true), and with its results,
+       * each stretch ending off with one (its dot): counted, listed and stepped through as they're drawn. Its layer's
+       * values, the chart's as drawn unless given (⌘K's preview, its own).
+       * @param {Layer} layer @param {ArrayLike<number> | undefined} values @param {ArrayLike<number> | null | undefined} [own] (null: none)
+       */
+      const marksOf = (layer, values, own = resolved?.results.get(layer.ref ?? "")?.values) => changesOf(values).flatMap((change) => (change.to || (layer.results && own && stretchResult(change, own) !== undefined) ? [change.at] : []));
       /**
        * What a stretch a change ends made, by the layer it's marked on: that layer's change over it, up; the opposite, down
        * (the state was right: more); none for one of neither, one begun before a change, or a value there not above 0 (or
@@ -9720,7 +9725,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return results.length ? results.reduce((total, result) => total * Math.max(0, 1 + result), 1) - 1 : undefined;
       };
       /** A signal, said: the layer its marks are on, how many there are (with its results, what they made). @param {Layer} layer */
-      const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it on" : on.hidden ? `Hidden with ${labelOf(on)}` : `Signal on ${labelOf(on)}${values ? ` · ${plural(turnsOf(values).length, "time")}${((total) => (total === undefined ? "" : ` · ${resultText(total)} in all`))(layer.results ? resultsOf(layer) : undefined)}${fineDrawn() ? " in what's loaded" : ""}` : ""}`))(chart.layers.find((item) => item.id === layer.ref), resolved?.results.get(layer.id)?.values);
+      const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it on" : on.hidden ? `Hidden with ${labelOf(on)}` : `Signal on ${labelOf(on)}${values ? ` · ${plural(marksOf(layer, values).length, "time")}${((total) => (total === undefined ? "" : ` · ${resultText(total)} in all`))(layer.results ? resultsOf(layer) : undefined)}${fineDrawn() ? " in what's loaded" : ""}` : ""}`))(chart.layers.find((item) => item.id === layer.ref), resolved?.results.get(layer.id)?.values);
       const typeName = (/** @type {string} */ type) => [...TYPES, ...FROM_TYPES].find(([id]) => id === type)?.[1] ?? type;
       /** @type {[string, string][]} */
       const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"]];
@@ -11077,12 +11082,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * 5, the deletions, so a Studio that doesn't record them can't save over them; 6, folders in folders, so one that
        * reads them flat can't save them so; 7, the presets as edited, so one that doesn't keep them can't drop them; 8, a chart's interval Auto, so one that
        * doesn't know it can't save it as one interval for good; 9, signals, so one that doesn't know them can't save them
-       * as lines): one
+       * as lines; 10, a signal's down color and results, so one that doesn't know them can't drop them): one
        * saved by a newer
        * Studio (a later number), or stored in a shape it can't read at all (damaged, another's), is opened read-only here,
        * said so, and kept as it is: it may hold what this one would drop, or lose entirely, if it saved over it.
        */
-      const SCHEMA = 9;
+      const SCHEMA = 10;
       let readOnly = Number(/** @type {any} */ (library)?.schema) > SCHEMA || (!Array.isArray(library?.charts) && (() => {
         try {
           return localStorage.getItem(STORE) !== null;
@@ -22590,7 +22595,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               ${signal ? `<div class="field"><span>Marked on</span><button type="button" class="preset" id="signal-ref" aria-haspopup="menu" data-tip="The layer its marks are on">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>
               <div class="field"><span>Shown as</span><div class="tabs glyphs" role="group" aria-label="How it shows">${MARK_PLACES.map(([place]) => `<button type="button" data-place="${place}" aria-pressed="${(layer.place ?? "above") === place}" aria-label="${placeName(place)}" data-tip="${placeName(place)}">${glyphSvg(markBody(place, "currentColor"))}</button>`).join("")}</div></div>
               <div class="field switch"><span>Results</span><div class="tabs" role="group" aria-label="Results">${[[false, "Off", "Marks alone"], [true, "On", "On each mark that ends a stretch, what it made: its layer's change over it, up; the opposite, down"]].map(([on, text, tip]) => `<button type="button" data-results="${on ? 1 : 0}" aria-pressed="${Boolean(layer.results) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>
-              <div class="field"><span>Times</span><button type="button" class="preset" id="signal-times" aria-haspopup="dialog" data-tip="Each time it marked, to go to">${((n) => (n === null ? `<span class="name">Loading</span>` : `<span class="name">${plural(n, "time")}</span>`))(result?.values ? turnsOf(result.values).length : null)}${CHEVRON}</button></div>` : ""}
+              <div class="field"><span>Times</span><button type="button" class="preset" id="signal-times" aria-haspopup="dialog" data-tip="Each time it marked, to go to">${((n) => (n === null ? `<span class="name">Loading</span>` : `<span class="name">${plural(n, "time")}</span>`))(result?.values ? marksOf(layer, result.values).length : null)}${CHEVRON}</button></div>` : ""}
             </section>`
           : `<section>
               <h3>Series</h3>
@@ -23409,6 +23414,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return used ? `${letter} (${labelOf(used)})` : letter;
         }),
         ...refsOf(node, "series"),
+        // (Each point's date: what the formula reads too.)
+        ...(JSON.stringify(node).includes('"k":"date"') ? ["date"] : []),
       ];
       /** Mirror colors, status line, name placeholder: everything that follows the formula as it's typed. */
       /** The formula editor as tall as its lines, its width changed (a phone turned, the panel resized). */
@@ -23448,7 +23455,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (message || !node) status.textContent = message;
         else {
           const uses = usesOf(node);
-          status.textContent = `${uses.length ? `Uses ${uses.join(", ")}` : "A constant"} · ${layer.type === "signal" ? plural(turnsOf(result?.values).length, "time") : UNIT_NAMES[unitFor(layer, result)] ?? "Number"}`;
+          status.textContent = `${uses.length ? `Uses ${uses.join(", ")}` : "A constant"} · ${layer.type === "signal" ? plural(marksOf(layer, result?.values).length, "time") : UNIT_NAMES[unitFor(layer, result)] ?? "Number"}`;
         }
         status.classList.toggle("error", Boolean(message));
         $("formula-editor").classList.toggle("invalid", Boolean(message));
@@ -25686,7 +25693,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <p class="description">${uses.length ? `Uses ${escape(uses.join(", "))}` : "A constant"}. ${layer.place === "shade" ? "Shaded while it's up or down" : "Marked where it turns up or down"} (above 0, up; below, down).</p>
               <div class="info"><h5>${editing ? "Layer" : "As layer"} ${escape(layer.letter)}</h5><dl>
                 <div><dt>Marked on</dt><dd>${on ? escape(labelOf(on)) : "No layer"}</dd></div>
-                <div><dt>Times</dt><dd>${grouped.format(turnsOf(result.values).length)}</dd></div>
+                <div><dt>Times</dt><dd>${grouped.format(marksOf(layer, result.values, data?.results.get(layer.ref ?? "")?.values ?? null).length)}</dd></div>
                 <div><dt>Now</dt><dd>${escape(format(Array.prototype.findLast.call(result.values, (value) => Number.isFinite(value)) ?? NaN, unit))}</dd></div>
               </dl></div>`);
           }
@@ -26375,7 +26382,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function stepSignal(/** @type {1 | -1} */ by) {
         const range = view.timeScale().getVisibleLogicalRange();
         if (!resolved || !range) return;
-        const middle = (range.from + range.to) / 2, turns = [...new Set(chart.layers.filter((layer) => signalShown(layer)).flatMap((layer) => turnsOf(resolved?.results.get(layer.id)?.values)))].sort((a, b) => a - b);
+        const middle = (range.from + range.to) / 2, turns = [...new Set(chart.layers.filter((layer) => signalShown(layer)).flatMap((layer) => marksOf(layer, resolved?.results.get(layer.id)?.values)))].sort((a, b) => a - b);
         const at = by > 0 ? turns.find((i) => i > middle + 0.01) : turns.findLast((i) => i < middle - 0.01);
         // (Minutes and hours: what's loaded only, said.)
         if (at === undefined) return notice(`${by > 0 ? "No signal after this" : "No signal before this"}${fineDrawn() ? " in what's loaded" : ""}`);
@@ -26693,7 +26700,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const layer = layerById(id);
           if (!layer) return [];
           const result = resolved?.results.get(layer.id), unit = unitFor(layer, result), at = chart.panes.findIndex((pane) => pane.id === layer.pane);
-          const lineish = LINED.has(layer.type), pair = PAIRS[layer.type];
+          const lineish = LINED.has(layer.type);
           const set = (edit) => () => editById(id, edit);
           /** A change, kept with ↵ (`run`), shown on the chart while highlighted (`look`). */
           const both = (edit) => ({ run: set(edit), look: (/** @type {Chart} */ doc) => {
@@ -26732,7 +26739,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               { key: "ref", icon: ICONS.signal, label: "Marked on", aside: ((ref) => (ref ? labelOf(ref) : "None"))(layerById(layer.ref ?? "")), group: first, page: () => choicePage("Marked on", () => refChoices(id)) },
               { key: "place", icon: glyphSvg(markBody(layer.place, "currentColor")), label: "Shown as", aside: placeName(layer.place ?? "above"), group: first, page: () => choicePage("Shown as", () => MARK_PLACES.map(([place]) => ({ key: place, icon: glyphSvg(markBody(place, "currentColor")), label: placeName(place), current: (now().place ?? "above") === place, run: set((item) => (item.place = place === "above" ? undefined : place)) }))) },
               { key: "results", icon: ICONS.signal, label: "Results", aside: layer.results ? "On" : "Off", verb: layer.results ? "Turn off" : "Turn on", group: first, stay: true, run: set((item) => (item.results = !item.results || undefined)), choices: () => [true, false].map((on) => ({ key: on ? "on" : "off", icon: ICONS.signal, label: on ? "On" : "Off", current: Boolean(now().results) === on, run: set((item) => (item.results = on || undefined)) })) },
-              { key: "times", icon: ICONS.calendar, label: "Times marked", aside: ((values) => (values ? plural(turnsOf(values).length, "time") : undefined))(result?.values), group: first, page: () => timesPage(id) },
+              { key: "times", icon: ICONS.calendar, label: "Times marked", aside: ((values) => (values ? plural(marksOf(layer, values).length, "time") : undefined))(result?.values), group: first, page: () => timesPage(id) },
             ] : []),
             ...(layer.series ? [
               { key: "copy-name", icon: ICONS.copy, label: "Copy the series name", verb: "Copy", group: first, run: () => copyName(/** @type {string} */ (layer.series)) },
@@ -26740,7 +26747,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(!layer.from && layer.type !== "signal" ? [{ key: "cycles", icon: ICONS.pane, label: "Compare halving cycles", aside: "Each from its start", words: "cycles halving compare periods rebase normalize epochs", verb: "Compare", group: first, run: () => compareCycles(id) }] : []),
             { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: first, page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined), { redraw: "none" })) },
             { key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => retype(item, type)) }))) },
-            ...(pair ? [{ key: "base", icon: ICONS.ruler, label: "Base", aside: format(baseOf(layer), unit), group: "Style", page: () => numberPage({ title: "Base", value: String(baseOf(layer)), fallback: 0, apply: (n) => editById(id, (item) => (item.base = n || undefined)) }) }] : []),
+            ...(layer.type === "baseline" || layer.type === "histogram" ? [{ key: "base", icon: ICONS.ruler, label: "Base", aside: format(baseOf(layer), unit), group: "Style", page: () => numberPage({ title: "Base", value: String(baseOf(layer)), fallback: 0, apply: (n) => editById(id, (item) => (item.base = n || undefined)) }) }] : []),
             ...(layer.type === "baseline" ? [lineRow(id, "base", "Base line", "Style")] : []),
             ...(modesOf(layer).length > 1 ? [{ key: "colors", icon: modeSwatch(layer, colorModeOf(layer)), label: "Colors", aside: modeName(layer, colorModeOf(layer)), words: `colors color way ${modesOf(layer).map((mode) => /** @type {Record<string, string>} */ (MODE_WORDS)[mode] + (mode === "sides" && layer.type === "trend" ? " resistance support" : mode === "sides" && layer.type === "cloud" ? " cross over under crossing" : "")).join(" ")}`, group: "Style", page: () => choicePage("Colors", () => colorModeChoices(id), lookOfChoice) }] : []),
             ...colorSlots(layer).map(([key, label]) => (key === "from"
@@ -28224,6 +28231,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             library.order = [...order, ...before];
             // (Edited where this Studio's presets have no place: moved to the one showing the same, else kept as charts.)
             const keptAsCharts = presets ? adoptPresets(edits, false) : 0, keptIds = edits.filter((doc) => library.charts.includes(doc)).map((doc) => doc.id);
+            // (The edited presets by their ids as placed (an adopted one's, new): another tab's edit replaces the object.)
+            const editIds = edits.filter((doc) => library.presets.includes(doc)).map((doc) => doc.id);
             save();
             // (On your Library's page, where they are; picked to tell them from the charts already here (into none,
             // they're all there is).)
@@ -28240,8 +28249,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // (Edited presets kept as charts, with them.)
               const ids = new Set([...docs.map((doc) => doc.id), ...keptIds]);
               for (const doc of library.charts.filter((doc) => ids.has(doc.id))) (discard(doc), picked.delete(doc.id));
-              for (const doc of edits) {
-                if (!library.presets.includes(doc)) continue;
+              for (const id of editIds) {
+                const doc = library.presets.find((other) => other.id === id);
+                if (!doc) continue;
                 library.presets = library.presets.filter((other) => other !== doc);
                 library.deleted[doc.id] = Math.max(Date.now(), doc.updated);
                 // (Open: as made, there.)
