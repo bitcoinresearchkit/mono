@@ -407,3 +407,19 @@ the right) landed at that price on the default scale, off its line, often off th
 
 Studio's keyboard crosshair walks the selected layer, which can be on either side. `tests.html`: 713/713 the same (it
 sets no crosshair).
+
+## 25. A custom series' bars kept between frames
+
+A custom series' view handed its renderer every bar as a new object each frame (`NM`: `bars: this.kM.map(Ls)`, each
+`{x, time, originalData, barColor}`), all of them, in view or not: a chart of 30 custom series (Studio's clouds) at
+Max made some 180,000 objects a frame. The bars are kept (`bvBars`) and only their `x` and `barColor` written each
+frame; they're made anew when a point isn't the one its bar was made from (its time or its row: new data, older data
+put before it, a point updated), or the count differs.
+
+- `zs.NM()`: the kept bars checked point by point against `kM` (`time` is `wt`, `originalData` is `HM`), updated
+  (`x` from `_t`, `barColor` from `sh`), else `this.bvBars = kM.map(Ls)`.
+
+A renderer reading `bars` gets the same values as before; one keeping the array, or a bar, across frames now sees it
+change (Studio's cloud reads them each draw, keeping nothing). Measured (Chromium at 4x, a pan and a wheel zoom at Max
+of "Bedrock landscape, awake", 33 layers, most clouds): median frame 50 → 33 ms, script −16%; the plot's pixels
+identical with and without it (a screenshot compared, live price held); `tests.html` 713/713.
