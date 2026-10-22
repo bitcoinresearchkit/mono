@@ -11352,7 +11352,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // Another tab's save since this one's, not heard yet (its storage event to come, or never: two tabs closed at once,
         // one back from the browser's history), taken in first: what's written holds both.
         const stored = storedSince();
-        if (stored) reconcile(stored, true);
+        // (The arrangement this one's only if it changed it since it last wrote or took one in: else theirs, as it's
+        // taken in when heard (an edit's save here doesn't roll back a folder renamed or a chart moved there).)
+        if (stored) reconcile(stored, arrangedNow() !== arrangedAs, true);
         if (readOnly) {
           if (!readOnlyTold) notice("Read-only: these charts were saved by a newer Studio, or in a form this one can't read. Reload to keep changes", { label: "Reload", run: () => location.reload() });
           readOnlyTold = true;
@@ -11445,10 +11447,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Another tab's save, taken in. Its charts, ours kept where ours were edited later or it hasn't them; its folders, ours
        * it hasn't kept; every tab's deletions, what was deleted after its last edit gone (but the chart open here). The
        * arrangement (the charts' order, which is in which folder, the sidebar's order, a folder's name) as that tab saved
-       * it; `saving` (taken in by a save of this tab's), as this one has it: it's what's being saved. Storage then without
+       * it; `saving`, as this one has it (changed here since it last wrote one: it's what's being saved). `writing`: taken
+       * in by this tab's save, which writes it at once (nothing left to save). Storage then without
        * what's here (two tabs saving at once: the last one's library alone), the two, merged, saved over it.
        */
-      function reconcile(stored = storedSince(), saving = false) {
+      function reconcile(stored = storedSince(), saving = false, writing = false) {
         if (!stored) return;
         const deleted = deletedOf(stored.deleted), incoming = stored.charts.flatMap(restore), folders = foldersOf(stored.folders, []);
         // (A preview another tab kept: the same, that one it is now (open, that one's open); else one of its own, a new
@@ -11486,7 +11489,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         library.presets = [...byPreset.values()].filter((doc) => doc.id === chart?.id || !isDeleted(doc));
         for (const doc of library.presets) if (!ourPresets.has(doc)) histories.delete(doc.id);
         // (Its charts this tab can't read, set aside: not counted, or each tab would save over the other's.)
-        if (!saving && holdings(library.charts, library.folders, library.deleted, library.presets) !== holdings(incoming, folders, deleted, theirPresets)) save();
+        if (!saving && !writing && holdings(library.charts, library.folders, library.deleted, library.presets) !== holdings(incoming, folders, deleted, theirPresets)) save();
         // (Taken in, theirs is the arrangement as last written.)
         if (!saving) arrangedAs = arrangedNow();
         // (Still starting, a link being read: the library's taken, and start shows what's open once it's ready.)
@@ -11668,20 +11671,36 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * On its preset, a chart keeps nothing: the preset follows the newest data.
        */
       const VIEWS = "bitview-studio:views";
-      /** The views left, as stored: read once (a grid of tiles asks for each, at each key typed), written through; another tab's write, read again. */
-      let viewsLeft = /** @type {Record<string, any> | null} */ (null);
-      const viewsNow = () => (viewsLeft ??= storage.get(VIEWS, {}));
+      /**
+       * The views left, as stored: read once (a grid of tiles asks for each, at each key typed), written through; another
+       * tab's write, read again. `viewsBase`: as read, to tell another tab's writes since from this one's.
+       */
+      let viewsLeft = /** @type {Record<string, any> | null} */ (null), viewsBase = /** @type {Record<string, any>} */ ({});
+      const viewsNow = () => viewsLeft ?? ((viewsBase = storage.get(VIEWS, {})), (viewsLeft = { ...viewsBase }));
       /**
        * The views written. (Charts this tab doesn't know may be another's, its previews and presets: their views kept;
        * only past a hundred, the oldest left go.)
        * @param {Record<string, any>} all
        */
       const putViews = (all) => {
+        // (Another tab's writes since this one read them, taken in a chart's view at a time: changed there alone, theirs
+        // (gone there, gone); here alone, this one's; in both, the later (a view left over one let go of).)
+        const stored = storage.get(VIEWS, {}), at = (/** @type {any} */ view) => (view === undefined ? -Infinity : view?.at ?? 0);
+        for (const id of new Set([...Object.keys(stored), ...Object.keys(viewsBase)])) {
+          const theirs = Object.hasOwn(stored, id) ? stored[id] : undefined, base = Object.hasOwn(viewsBase, id) ? viewsBase[id] : undefined;
+          if ((theirs === undefined) === (base === undefined) && at(theirs) === at(base)) continue;
+          const ours = Object.hasOwn(all, id) ? all[id] : undefined;
+          if (ours === base || at(theirs) > at(ours)) theirs === undefined ? delete all[id] : (all[id] = theirs);
+          // (The base as storage is now, whichever won: written or not, what's theirs isn't this one's own.)
+          theirs === undefined ? delete viewsBase[id] : (viewsBase[id] = theirs);
+        }
         const ids = Object.keys(all);
         if (ids.length > 100) for (const id of ids.sort((a, b) => (all[a]?.at ?? 0) - (all[b]?.at ?? 0)).slice(0, ids.length - 100)) delete all[id];
-        storage.set(VIEWS, all);
+        if (storage.set(VIEWS, all)) viewsBase = { ...all };
       };
       addEventListener("storage", (event) => event.key === VIEWS && (viewsLeft = null));
+      // (Back from the browser's history, others' writes since unheard: read again.)
+      addEventListener("pageshow", (event) => event.persisted && (viewsLeft = null));
       const isEdge = (edge) => Array.isArray(edge) && edge.length === 2 && edge.every(Number.isFinite) && Math.abs(edge[0]) < 1e11;
       /** A view that reads as dates: at a known interval, its edges (their bars counted) within the calendar. */
       function isView(/** @type {any} */ view) {
