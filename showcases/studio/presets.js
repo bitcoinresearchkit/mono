@@ -602,6 +602,9 @@ export function studioPresets(client, facts) {
         chart("MACD", "MACD of the price", [price(), { formula: "macd(A)", label: "MACD", pane: 2, color: "sky" }, { formula: "macd_signal(A)", label: "Signal", pane: 2, color: "orange" }, { formula: "macd_hist(A)", label: "Histogram", pane: 2, type: "histogram", color: "green", colorBelow: "red" }]),
         chart("Volatility", "Annualized price volatility", [price(), { formula: "volatility(A, 30d)", label: "30 days", pane: 2, color: "sky" }, { formula: "volatility(A, 1y)", label: "1 year", pane: 2, color: "violet" }]),
         chart("Pi cycle", "Pi cycle top", [price(), { formula: "sma(A, 111d)", label: "111-day SMA", color: "green" }, { formula: "2 * sma(A, 350d)", label: "350-day SMA × 2", color: "red" }]),
+        // (Each halving cycle mined from its start, at 1×: as ⌘K's "Compare halving cycles" makes them; a cycle's years,
+        // its halving's, every four.)
+        ((cycles) => chart("Halving cycles", "Price over each halving cycle, from its start", [price(), ...Array.from({ length: cycles }, (_, n) => ({ formula: `rebase(when(A, halving_epoch == ${n}))`, label: `${n ? 2008 + 4 * n : 2009}–${n + 1 < cycles ? 2012 + 4 * n : "now"}`, pane: 2, color: ["orange", "red", "blue", "violet", "green", "teal", "pink"][n % 7] }))], { log: [2] }))(Math.floor((facts?.height ?? 840_000) / 210_000) + 1),
       ]),
     ]),
     section("Valuation", [
