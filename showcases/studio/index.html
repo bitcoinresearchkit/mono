@@ -3418,6 +3418,80 @@
         }
       }
 
+      /* The sidebar's and the panel's widths, the person's: dragged at their inner edge (see setWidth), a line there as
+         it's pointed at, focused or dragged; side by side with the chart only (a rail, a floating panel, a sheet: none). */
+      .grip {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        z-index: 4;
+        display: none;
+        width: 7px;
+        cursor: col-resize;
+        touch-action: none;
+
+        &::after {
+          content: "";
+          position: absolute;
+          inset: 0 3px;
+          background: var(--line-strong);
+          opacity: 0;
+          transition: opacity var(--dur-micro) var(--ease);
+        }
+
+        &:is(:hover:where(.can-hover *), .dragging)::after {
+          opacity: 1;
+        }
+
+        &:focus-visible {
+          outline: none;
+
+          &::after {
+            background: var(--focus);
+            opacity: 1;
+          }
+        }
+      }
+
+      #side-grip {
+        right: 0;
+      }
+
+      #panel-grip {
+        left: 0;
+      }
+
+      @media (min-width: 761px) and (min-height: 501px) {
+        body:not([data-sidebar="collapsed"]) #side-grip {
+          display: block;
+        }
+      }
+
+      @media (min-width: 1101px) and (min-height: 501px) {
+        /* (Its width as kept, beside the chart only: floating or a sheet, as it comes.) */
+        :root {
+          --panel-width: var(--panel-kept, 300px);
+        }
+
+        .panel {
+          position: relative;
+        }
+
+        #panel-grip {
+          display: block;
+        }
+      }
+
+      /* (Dragged, the widths follow the hand: no motion of their own.) */
+      body[data-resizing] {
+        cursor: col-resize;
+        user-select: none;
+
+        :is(.sidebar, .panel) {
+          transition: none;
+        }
+      }
+
       /* Hidden by choice on wide screens, once it has slid shut; on phones the panel is a sheet and follows its own rule. */
       @media (min-width: 761px) and (min-height: 501px) {
         body[data-panel="closed"]:not([data-peek]) .panel {
@@ -8764,6 +8838,15 @@
         if (prefs.sidebar === "collapsed" || (prefs.sidebar === undefined && matchMedia("(max-width: 1100px)").matches)) document.body.dataset.sidebar = "collapsed";
         // (The panel the same: a tablet's starts closed unless one was chosen; else it'd be seen sliding away.)
         document.body.dataset.panel = prefs.panel === "open" || prefs.panel === "closed" ? prefs.panel : matchMedia("(max-width: 1100px)").matches ? "closed" : "open";
+        // (The sidebar's and the panel's widths, as kept: within their bounds, see applyWidths.)
+        {
+          // (The chart left at least 500px beside both; the sidebar's first, the panel's by it.)
+          const most = (min, share, cap, other) => Math.max(min, Math.min(cap, Math.round(innerWidth * share), innerWidth - 500 - other));
+          const beside = matchMedia("(min-width: 1101px) and (min-height: 501px)").matches;
+          const side = Number.isFinite(prefs.sideWidth) ? Math.min(Math.max(prefs.sideWidth, 264), most(264, 0.34, 480, !beside ? 0 : Number.isFinite(prefs.panelWidth) ? Math.max(prefs.panelWidth, 300) : 300)) : 264;
+          if (Number.isFinite(prefs.sideWidth)) document.documentElement.style.setProperty("--side", `${side}px`);
+          if (Number.isFinite(prefs.panelWidth)) document.documentElement.style.setProperty("--panel-kept", `${Math.min(Math.max(prefs.panelWidth, 300), most(300, 0.4, 560, side))}px`);
+        }
         // (The theme, as chosen: the stylesheet does the rest.)
         if (prefs.theme === "light" || prefs.theme === "system") document.documentElement.dataset.theme = prefs.theme;
         const there = history.state;
@@ -8794,6 +8877,7 @@
           <button class="nav-item side-action" type="button" data-action="shortcuts" data-tip="Shortcuts" data-kbd="?"><span data-icon="keyboard"></span><span class="label">Shortcuts</span><kbd>?</kbd></button>
           <button class="nav-item side-action" type="button" id="sidebar-toggle" data-action="toggle-sidebar" data-tip="Collapse" data-kbd="\" aria-expanded="true"><span data-icon="sidebar"></span><span class="label">Collapse</span><kbd>\</kbd></button>
         </div>
+        <div id="side-grip" class="grip" role="separator" aria-orientation="vertical" aria-label="Sidebar width" tabindex="0" data-tip="Drag to resize, double-click to reset"></div>
       </aside>
 
       <main id="main" class="card" style="--i: 2">
@@ -8952,6 +9036,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <!-- On a phone, under the layers' sheet (in the card's own layering, as the sheet is), over all else. -->
           <div id="scrim" class="scrim" data-action="close-sheet"></div>
           <aside id="panel" class="panel" aria-label="This chart" tabindex="-1">
+            <div id="panel-grip" class="grip" role="separator" aria-orientation="vertical" aria-label="Panel width" tabindex="0" data-tip="Drag to resize, double-click to reset"></div>
             <section id="layers-view" class="panel-view" aria-label="Layers">
               <div class="panel-head">
                 <h2>Layers <span id="layer-count" class="count"></span></h2>
@@ -11453,6 +11538,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           sidebar: stored.sidebar === "collapsed" || stored.sidebar === "expanded" ? stored.sidebar : tablet.matches ? "collapsed" : "expanded",
           panel: stored.panel === "open" || stored.panel === "closed" ? stored.panel : tablet.matches ? "closed" : "open",
           home: stored.home !== false,
+          /** The sidebar's and the panel's widths, the person's (null: as they come; see setWidth). */
+          sideWidth: /** @type {number | null} */ (Number.isFinite(stored.sideWidth) ? stored.sideWidth : null),
+          panelWidth: /** @type {number | null} */ (Number.isFinite(stored.panelWidth) ? stored.panelWidth : null),
           /** The presets' sections open in the sidebar (their paths, as kept). */
           /** Where the Charts page was last (see Place): Charts, from a chart, after a reload too, comes back there. */
           at: /** @type {any} */ (stored.at && typeof stored.at === "object" ? stored.at : null),
@@ -12289,6 +12377,99 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         applyPanel();
       }
       applyPanel();
+
+      // ── The sidebar's and the panel's widths ─────────────────────────────────
+
+      /**
+       * Each one's width: at least as it comes (the page's own, --side and --panel-width: the first script too), at most a
+       * share of the window (never wider than `cap`); its property, its pref, its element and its grip.
+       */
+      const SIDE_WIDTHS = /** @type {const} */ ({
+        side: { prop: "--side", key: "sideWidth", min: 264, share: 0.34, cap: 480, element: "sidebar", grip: "side-grip" },
+        panel: { prop: "--panel-kept", key: "panelWidth", min: 300, share: 0.4, cap: 560, element: "panel", grip: "panel-grip" },
+      });
+      /** @typedef {keyof typeof SIDE_WIDTHS} Widthed */
+      /** The chart's least room beside both (its foot's ranges and navigator, its plot). */
+      const CHART_ROOM = 500;
+      /** Whether the panel sits beside the chart (narrower, it floats over it or is a sheet: its width is its own). */
+      const besideChart = matchMedia("(min-width: 1101px) and (min-height: 501px)");
+      /**
+       * The most one can be at this window's width, the other as kept (the sidebar's by the panel's kept or least, when it
+       * sits beside the chart; the panel's by the sidebar's: the first script's the same).
+       * @param {Widthed} which
+       */
+      const widthMost = (which) => {
+        const { min, share, cap } = SIDE_WIDTHS[which], other = which === "side" ? (besideChart.matches ? Math.max(prefs.panelWidth ?? 0, SIDE_WIDTHS.panel.min) : 0) : widthOf("side");
+        return Math.max(min, Math.min(cap, Math.round(innerWidth * share), innerWidth - CHART_ROOM - other));
+      };
+      const widthOf = (/** @type {Widthed} */ which) => ((kept) => (kept === null ? SIDE_WIDTHS[which].min : clamp(kept, SIDE_WIDTHS[which].min, widthMost(which))))(prefs[SIDE_WIDTHS[which].key]);
+      /** The widths as kept, within their bounds at this window's width; their grips say them. */
+      function applyWidths() {
+        for (const which of /** @type {Widthed[]} */ (["side", "panel"])) {
+          const { prop, key, min, grip } = SIDE_WIDTHS[which], kept = prefs[key], width = widthOf(which);
+          if (kept === null) document.documentElement.style.removeProperty(prop);
+          else document.documentElement.style.setProperty(prop, `${width}px`);
+          for (const [name, value] of [["aria-valuemin", min], ["aria-valuemax", widthMost(which)], ["aria-valuenow", width]]) $(grip).setAttribute(name, String(value));
+        }
+      }
+      applyWidths();
+      addEventListener("resize", applyWidths);
+      /**
+       * The view kept while a width is changed by hand (its stretch of time, its bars narrower or wider; see holdView):
+       * the one before. Let go of once the chart has its last size (two frames after).
+       * @type {{ from: number, to: number } | null}
+       */
+      let resizeKeeps = null;
+      let resizes = 0;
+      /** A width changed by hand: to `px` (null: as it comes), at once, the view kept. @param {Widthed} which @param {number | null} px */
+      function setWidth(which, px) {
+        const run = ++resizes;
+        resizeKeeps ??= chart && drawnChart === chart.id ? view.timeScale().getVisibleLogicalRange() : null;
+        document.body.dataset.resizing = "";
+        /** @type {any} */ (prefs)[SIDE_WIDTHS[which].key] = px === null ? null : Math.round(clamp(px, SIDE_WIDTHS[which].min, widthMost(which)));
+        applyWidths();
+        requestAnimationFrame(() => requestAnimationFrame(() => run === resizes && ((resizeKeeps = null), delete document.body.dataset.resizing)));
+      }
+      for (const which of /** @type {Widthed[]} */ (["side", "panel"])) {
+        const grip = $(SIDE_WIDTHS[which].grip), element = () => $(SIDE_WIDTHS[which].element), sign = which === "side" ? 1 : -1;
+        grip.addEventListener("pointerdown", (event) => {
+          if (event.button !== 0 || grip.classList.contains("dragging")) return;
+          event.preventDefault();
+          const pointer = event.pointerId;
+          const from = element().getBoundingClientRect().width, start = event.clientX;
+          let x = start, frame = 0;
+          grip.setPointerCapture(event.pointerId);
+          grip.classList.add("dragging");
+          // (At most once a frame, where the hand is then.)
+          const move = (/** @type {PointerEvent} */ moved) => {
+            if (moved.pointerId !== pointer) return;
+            x = moved.clientX;
+            frame ||= requestAnimationFrame(() => ((frame = 0), setWidth(which, from + sign * (x - start))));
+          };
+          const end = (/** @type {PointerEvent} */ lost) => {
+            if (lost.pointerId !== pointer) return;
+            if (frame) (cancelAnimationFrame(frame), setWidth(which, from + sign * (x - start)));
+            grip.removeEventListener("pointermove", move);
+            grip.removeEventListener("lostpointercapture", end);
+            grip.classList.remove("dragging");
+            savePrefs();
+          };
+          grip.addEventListener("pointermove", move);
+          grip.addEventListener("lostpointercapture", end);
+        });
+        grip.addEventListener("dblclick", () => (setWidth(which, null), savePrefs()));
+        // (Its keys as a separator's: ← → by a step (⇧, four), Home and End to its least and its most.)
+        grip.addEventListener("keydown", (event) => {
+          const now = element().getBoundingClientRect().width, step = event.shiftKey ? 64 : 16;
+          const to = event.key === "ArrowRight" ? now + sign * step : event.key === "ArrowLeft" ? now - sign * step : event.key === "Home" ? 0 : event.key === "End" ? Infinity : null;
+          if (to === null || event.metaKey || event.ctrlKey || event.altKey) return;
+          // (Its own: not the page's too, a drawing nudged.)
+          event.preventDefault();
+          event.stopPropagation();
+          setWidth(which, to);
+          savePrefs();
+        });
+      }
       // A phone's sheet takes the focus as it opens, and gives it back to what opened it as it closes. Whole (dragged up),
       // it's modal: what's behind it can't be reached, by Tab or a screen reader (the tab bar isn't behind it: it floats
       // over it, live); at half height, or a column on its side, the chart beside stays live.
@@ -15358,6 +15539,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (width) lastBox = box;
         if (!was || !width || !resized) return;
         if (rightGap(width) !== view.timeScale().options().rightOffsetPixels) view.applyOptions({ timeScale: { rightOffsetPixels: rightGap(width) } });
+        // (A width changed by hand (the sidebar's, the panel's): the view's stretch kept instead, its bars as close as that
+        // needs; a preset showing is shown again whole (see relayout).)
+        if (resizeKeeps && resolved && chart && drawnChart === chart.id) {
+          heldView = madeView = null;
+          fitSpacing(chart, resolved.times.length, resizeKeeps);
+          if (!presetShown) view.timeScale().setVisibleLogicalRange(resizeKeeps);
+          return;
+        }
         if (presetShown || !resolved || !chart || drawnChart !== chart.id) return void (heldView = madeView = null);
         // (Its bars as wide: as many across the box as it holds, the last whole, as the library counts them.)
         const spacing = was.box / (was.to - was.from + 1), bars = box / spacing - 1, last = resolved.times.length - 1;
@@ -20681,6 +20870,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (took.includes("sidebar")) (applySidebar(), renderCharts());
         if (took.includes("panel") && !fullOn()) applyPanel();
+        if (took.includes("sideWidth") || took.includes("panelWidth")) applyWidths();
         if (took.includes("belt") || took.includes("pen")) renderBelt();
         if (took.includes("keys")) renderSingleKeys();
         if (took.includes("presetsOpen") || took.includes("groupsClosed")) renderCharts();
