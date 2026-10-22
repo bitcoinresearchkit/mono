@@ -18827,11 +18827,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (action === "duplicate") {
           // (The picks' copies picked; one not picked, its copy alone, the picks as they are.)
-          const copies = duplicateCharts(docs).map((doc) => doc.id);
+          // (A ⇧-click's run from the copy of the one it ran from, as it is before the copies redraw the page: the
+          // original isn't picked.)
+          const from = docs.findIndex((doc) => doc.id === pickedLast), copies = duplicateCharts(docs).map((doc) => doc.id);
           if (!ids) {
             picked.clear();
             // (Those shown: one past a shelf's end isn't.)
             for (const id of copies) if (shownYours.some((doc) => doc.id === id)) picked.add(id);
+            const anchor = copies[from];
+            pickedLast = anchor && picked.has(anchor) ? anchor : [...picked].at(-1) ?? "";
             renderPicked();
           }
           tileOpen(copies[0])?.focus();
@@ -30083,6 +30087,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** Quick Look works by a keyboard: none by touch, nor on a phone. */
       const quickWorks = () => !TOUCH && !phone.matches;
+      phone.addEventListener("change", () => phone.matches && quickHide());
       /** Whether a ⌘K row is a chart to look at. */
       const canLook = (/** @type {any} */ item) => Boolean(lookableAt(item));
       /** The chart a ⌘K row is, to look at: a chart's (yours, a preview), a preset's (as edited here, else as made). @returns {{ doc: Chart, i: number } | null} */
@@ -30139,7 +30144,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * ⌘K's ↵ does.
        */
       function quickShow() {
-        if (!quickWorks() || !$("palette").open) return;
+        // (Where it can't show (the window made a phone's), one showing goes: it would show another than the one lit.)
+        if (!quickWorks() || !$("palette").open) return void quickHide();
         const look = lookableAt(palette.items[palette.active]), key = look ? JSON.stringify([look.doc.id, previewKey(look.doc), titleOf(look.doc), look.doc.layers.map(labelOf), light]) : "";
         if (quick?.key === key && $("quick").matches(":popover-open")) return;
         quick = { key };
