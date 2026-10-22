@@ -15367,7 +15367,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           start = ontoData(start) ?? start;
           view.timeScale().setVisibleLogicalRange(start);
         }
-        brushDrag = { mode, x, perPixel: (n - 1) / rect.width, range: start, pointer: event.pointerId };
+        brushDrag = { mode, x, perPixel: (n - 1) / rect.width, range: start, pointer: event.pointerId, times: resolved?.times, width: rect.width };
         $("navigator").setPointerCapture(event.pointerId);
         $("brush").classList.add("dragging");
       });
@@ -15385,6 +15385,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return;
         }
         if (event.pointerId !== brushDrag.pointer) return;
+        // (The timeline or the strip changed under it (another interval, a block, a resize): taken up again from here, not
+        // moved by the old one's bars a pixel.)
+        if (brushDrag.times !== resolved?.times || brushDrag.width !== rect.width) {
+          const now = view.timeScale().getVisibleLogicalRange(), n = resolved?.times.length ?? 0;
+          if (!now || n < 2) return;
+          Object.assign(brushDrag, { x, perPixel: (n - 1) / rect.width, range: now, times: resolved?.times, width: rect.width });
+        }
         const delta = (x - brushDrag.x) * brushDrag.perPixel;
         let { from, to } = brushDrag.range;
         if (brushDrag.mode === "pan") {
