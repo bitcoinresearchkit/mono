@@ -31,7 +31,7 @@
       // Its manifest, made here (the page is one file): its name, its icons, opening where it's served, as an app.
       {
         // (Studio's own, wherever it's opened from (a preset's address, a section's): the app is the studio, from its start.)
-        const here = /^studio(?:-next)?\.bitview\.space$/.test(location.hostname) ? `${location.origin}/` : location.href.replace(/[?#].*$/, ""), icon = (/** @type {string} */ rel) => /** @type {HTMLLinkElement | null} */ (document.querySelector(`link[rel="${rel}"]`))?.href;
+        const here = /^studio\.bitview\.space$/.test(location.hostname) ? `${location.origin}/` : location.href.replace(/[?#].*$/, ""), icon = (/** @type {string} */ rel) => /** @type {HTMLLinkElement | null} */ (document.querySelector(`link[rel="${rel}"]`))?.href;
         // (Its launch screen in the theme it opens in: dark unless light is chosen, or the system's.)
         const theme = (() => { try { return JSON.parse(localStorage.getItem("bitview-studio:prefs") ?? "{}").theme; } catch { return undefined; } })();
         const ground = theme === "light" || (theme === "system" && matchMedia("(prefers-color-scheme: light)").matches) ? "#f6f6f7" : "#08090a";
@@ -8755,7 +8755,7 @@
         const kept = /"charts":\[\{/.test(localStorage.getItem("bitview-studio:v2") ?? "") || localStorage.getItem("bitview-studio:preview") !== null;
         // (An address of the presets': their page's or a section's, ending in a slash, the page; a preset's, without, its
         // chart (an old one's, /chart/, too).)
-        const routed = !/^studio(?:-next)?\.bitview\.space$/.test(location.hostname) ? null : /^\/presets(?:\/.*)?\/$|^\/presets$/.test(location.pathname) ? true : /^\/(?:presets|chart)\//.test(location.pathname) ? false : null;
+        const routed = !/^studio\.bitview\.space$/.test(location.hostname) ? null : /^\/presets(?:\/.*)?\/$|^\/presets$/.test(location.pathname) ? true : /^\/(?:presets|chart)\//.test(location.pathname) ? false : null;
         if (!/[#&](?:chart|image|c)=/.test(location.hash) && (there ? there.home : routed ?? (!kept || (prefs.home ?? true)))) document.body.toggleAttribute("data-home", true);
       } catch {}
     </script>
@@ -21638,7 +21638,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /* /addresses */
       /** Whether the page is Studio's own, served at its root (which serves the page at every address): an address of the presets' read as it starts; elsewhere (a file, another server, a page in a folder), none. */
-      const ROUTED = location.protocol === "https:" && /^studio(?:-next)?\.bitview\.space$/.test(location.hostname) && /^\/(?:$|presets(?:\/|$)|chart\/)/.test(location.pathname);
+      const ROUTED = location.protocol === "https:" && /^studio\.bitview\.space$/.test(location.hostname) && /^\/(?:$|presets(?:\/|$)|chart\/)/.test(location.pathname);
       /** The presets' addresses, made once they're read. */
       let addressBook = /** @type {{ for: Preset[] | null, book: ReturnType<typeof addressesOf> | null }} */ ({ for: null, book: null });
       const addresses = () => (!presets ? null : addressBook.for === presets ? addressBook.book : (addressBook = { for: presets, book: addressesOf(presets) }).book);
@@ -29195,7 +29195,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // once a version (kept: a reload that still finds the old page, an edge slow to let it go, isn't told again), and
       // only while nothing else is said (a toast's Undo never taken); not over a link's picture. Only where it's deployed
       // on its own (studio.bitview.space), a file of its own there: a page that isn't (a 404's), nothing said.
-      if (location.protocol === "https:" && /^studio(?:-next)?\.bitview\.space$/.test(location.hostname) && !document.body.hasAttribute("data-picture")) {
+      if (location.protocol === "https:" && /^studio\.bitview\.space$/.test(location.hostname) && !document.body.hasAttribute("data-picture")) {
         const newer = async () => {
           if (document.hidden || !navigator.onLine || $("toast").classList.contains("visible")) return;
           try {

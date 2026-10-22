@@ -130,7 +130,9 @@ replaceOnce("new BitviewClient({ baseUrl: location.origin", `new BitviewClient({
 // Asked for at once (the page's head, not after its 2 MB are read): its server's connection, and its client.
 replaceOnce(`    <title>Bitview Studio: charts of Bitcoin's on-chain data</title>`, `    <link rel="preconnect" href="${SERVER}" crossorigin />\n    <link rel="modulepreload" href="${SERVER}${CLIENT}" crossorigin />\n    <title>Bitview Studio: charts of Bitcoin's on-chain data</title>`);
 
-// Typed client paths, as the names they stand for (by this repo's client, whose paths they are).
+// Typed client paths, as the names they stand for (by this repo's client, whose paths they are: read as an input too,
+// its names and the presets made by it).
+input(join(SHOWCASES, "modules/bitview-client/index.js"));
 const { BitviewClient } = await import(pathToFileURL(join(SHOWCASES, "modules/bitview-client/index.js")).href);
 const tree = new BitviewClient({ baseUrl: SERVER }).series;
 const walk = (node, keys) => keys.reduce((at, key) => at?.[key], node);
@@ -248,7 +250,7 @@ console.log(`${relative(process.cwd(), out)}: ${(Buffer.byteLength(html) / 1024)
 // Beside the page, for those who find it (the page itself is the one file of the app): llms.txt, its text for
 // assistants (the page's own, its "about" section, as Markdown: one text, written once); sitemap.xml, every address it
 // has (the Charts page, the presets' page, each section, each preset: the page's own code makes them, read from it);
-// robots.txt, the sitemap's address (the preview's says no: see deploy.mjs); og.png, how a link to it previews;
+// robots.txt, the sitemap's address; og.png, how a link to it previews;
 // version.txt, the build (an open page tells a newer one by it).
 {
   const ORIGIN = "https://studio.bitview.space", folder = dirname(out);
@@ -280,12 +282,12 @@ console.log(`${relative(process.cwd(), out)}: ${(Buffer.byteLength(html) / 1024)
   console.log(`Beside it: llms.txt (${(markdown.length / 1024).toFixed(0)} KB), sitemap.xml (${urls.length} addresses), robots.txt, og.png, version.txt`);
 }
 
-// The page built, on the preview (studio-next.bitview.space; see deploy.mjs): a build elsewhere (an out given), not.
+// The page built, on studio.bitview.space (see deploy.mjs) when it's a commit's: a build elsewhere (an out given), not.
 if (!process.argv[2]) {
   try {
-    await (await import("./deploy.mjs")).deploy("next", true);
+    await (await import("./deploy.mjs")).deploy(true);
   } catch (error) {
-    console.warn(`Preview not deployed: ${/** @type {Error} */ (error).message.split("\n")[0]}`);
+    console.warn(`Not deployed: ${/** @type {Error} */ (error).message.split("\n")[0]}`);
   }
 }
 

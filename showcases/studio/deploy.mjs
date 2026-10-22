@@ -1,23 +1,21 @@
-// Studio on Cloudflare, by its API alone (nothing to install). The build deploys each page it builds to the preview,
-// studio-next.bitview.space; `node showcases/studio/deploy.mjs live` puts a commit on studio.bitview.space: built again,
-// apart (so no other build's page goes in its place), and sent only if its version names the commit as it is (nothing it
-// was built from changed since).
+// Studio on Cloudflare, by its API alone (nothing to install): studio.bitview.space shows the page built last, deployed
+// by the build (or `node showcases/studio/deploy.mjs`), and only if its version names the commit as it is (nothing it
+// was built from changed since: a build with changes not committed isn't sent).
 //
-// Each is a Worker of static files alone, the page (as the dashboard's upload makes one): its manifest sent, the page
-// uploaded if Cloudflare hasn't it, the Worker put, its domain attached (already so, nothing changes), and its host's
-// cache purged (bitview.space's edge keeps pages: the one before would be served on). Its keys are in scripts/.tokens:
+// A Worker of static files alone, the page (as the dashboard's upload makes one): its manifest sent, the page uploaded
+// if Cloudflare hasn't it, the Worker put, its domain attached (already so, nothing changes), and its host's cache
+// purged (bitview.space's edge keeps pages: the one before would be served on). Its keys are in scripts/.tokens:
 // CF_ACCOUNT_ID, CF_ZONE_ID (bitview.space's), CF_DEPLOY_API_TOKEN, an API token with Account › Workers Scripts › Edit,
 // and the purge script's CF_PURGE_API_TOKEN (its host alone purged, never the zone's whole).
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-/** Where each goes: its Worker, and its domain. */
-const TARGETS = /** @type {const} */ ({ next: ["studio-next", "studio-next.bitview.space"], live: ["studio", "studio.bitview.space"] });
+/** Where it goes: its Worker, and its domain. */
+const [name, hostname] = ["studio", "studio.bitview.space"];
 
 /** The keys in scripts/.tokens (`export NAME=value` lines), the environment's first. @returns {Record<string, string>} */
 function keys() {
@@ -27,49 +25,29 @@ function keys() {
 }
 
 /**
- * The page deployed: the one built last for the preview (`quiet`: the build's own, skipped with a line when it isn't
- * set up), one built now for live.
- * @param {keyof typeof TARGETS} target
+ * The page built last (dist), deployed if it's a commit's (`quiet`: the build's own, skipped with a line when it isn't
+ * set up).
  */
-export async function deploy(target, quiet = false) {
+export async function deploy(quiet = false) {
   const { CF_ACCOUNT_ID: account, CF_ZONE_ID: zone, CF_DEPLOY_API_TOKEN: token, CF_PURGE_API_TOKEN: purge } = keys();
   // (A token's shape checked first: one that isn't would be said back, whole, by the request it can't be sent in.)
   const shaped = (/** @type {string | undefined} */ key) => !key || /^[\w-]+$/.test(key);
   const why = !token ? "no CF_DEPLOY_API_TOKEN in scripts/.tokens (see showcases/studio/deploy.mjs)" : !shaped(token) || !shaped(purge) ? "CF_DEPLOY_API_TOKEN or CF_PURGE_API_TOKEN isn't one (letters, digits, - and _ only)" : !account || !zone ? "no CF_ACCOUNT_ID or CF_ZONE_ID in scripts/.tokens" : "";
   if (why) {
-    if (quiet) return void console.log(`Preview not deployed: ${why}`);
+    if (quiet) return void console.log(`Not deployed: ${why}`);
     throw new Error(why);
   }
+  if (!existsSync(join(HERE, "dist", "index.html"))) throw new Error("Nothing built yet (node showcases/studio/build.mjs)");
   // (The page, and the files the build puts beside it for those who find it: see build.mjs.)
-  const BESIDE = ["llms.txt", "sitemap.xml", "robots.txt", "og.png", "version.txt"];
-  /** @type {Buffer} */
-  let page;
+  const BESIDE = ["llms.txt", "sitemap.xml", "robots.txt", "og.png", "version.txt"], folder = join(HERE, "dist");
+  const page = readFileSync(join(folder, "index.html"));
   /** @type {Record<string, Buffer>} */
   const files = {};
-  const take = (/** @type {string} */ folder) => {
-    page = readFileSync(join(folder, "index.html"));
-    for (const name of BESIDE) if (existsSync(join(folder, name))) files[`/${name}`] = readFileSync(join(folder, name));
-  };
-  if (target === "live") {
-    const apart = mkdtempSync(join(tmpdir(), "studio-live-")), file = join(apart, "index.html");
-    try {
-      execFileSync(process.execPath, [join(HERE, "build.mjs"), file], { stdio: "inherit" });
-      take(apart);
-    } finally {
-      rmSync(apart, { recursive: true, force: true });
-    }
-    const head = execFileSync("git", ["rev-parse", "--short=9", "HEAD"], { cwd: HERE }).toString().trim(), built = /const BUILD = "[^"]* \(([^)]*)\)";/.exec(String(page))?.[1];
-    if (built !== head) throw new Error(`Not deployed: built from ${built ? `${built.replace("+", "")} with changes not committed` : "an unknown version"}, not the commit ${head} alone (live is a commit's: commit first)`);
-  } else {
-    if (!existsSync(join(HERE, "dist", "index.html"))) throw new Error("Nothing built yet (node showcases/studio/build.mjs)");
-    take(join(HERE, "dist"));
-    // (The preview isn't to be found: its page says so to search engines, which may read it to see that; the live one's
-    // the one they know.)
-    files["/robots.txt"] = Buffer.from("User-agent: *\nAllow: /\n");
-    page = Buffer.from(String(page).replace('<meta charset="utf-8" />', '<meta charset="utf-8" />\n    <meta name="robots" content="noindex" />'));
-  }
+  for (const file of BESIDE) if (existsSync(join(folder, file))) files[`/${file}`] = readFileSync(join(folder, file));
+  // (A commit's alone: its version names it as it is, nothing it was built from changed since.)
+  const head = execFileSync("git", ["rev-parse", "--short=9", "HEAD"], { cwd: HERE }).toString().trim(), built = /const BUILD = "[^"]* \(([^)]*)\)";/.exec(String(page))?.[1];
+  if (built !== head) throw new Error(!built ? "built from an unknown version" : built.endsWith("+") ? "built with changes not committed: commit, then build again" : `built from ${built}, not ${head}: build again`);
   files["/index.html"] = page;
-  const [name, hostname] = TARGETS[target];
   /** Cloudflare's API: its result, or what it says went wrong (never what was sent: a failed request says only its kind). */
   const api = async (/** @type {string} */ path, /** @type {RequestInit} */ init = {}, bearer = token) => {
     // (Its account and zone said as "…", in what Cloudflare says too.)
@@ -117,13 +95,8 @@ export async function deploy(target, quiet = false) {
 }
 
 if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const target = /** @type {keyof typeof TARGETS} */ (process.argv[2]);
-  if (!Object.hasOwn(TARGETS, target)) {
-    console.error("node showcases/studio/deploy.mjs next | live");
-    process.exit(1);
-  }
   try {
-    await deploy(target);
+    await deploy();
   } catch (error) {
     console.error(/** @type {Error} */ (error).message);
     process.exit(1);

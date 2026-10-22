@@ -14,7 +14,7 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Studio on the new server
 
-Built against next.bitview.space; deployed to studio-next only, never studio.bitview.space until you say.
+Built against next.bitview.space, on studio.bitview.space (each build of a commit deploys it).
 
 - Release together: the built Studio imports `/modules/bitview-client/index.js`, which only the new server serves, and
   the old Studio reads the website's import map, which the new server lacks. Upgrade the server and redeploy Studio at
