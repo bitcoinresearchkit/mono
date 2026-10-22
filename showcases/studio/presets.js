@@ -18,7 +18,7 @@
  *   else has them in a pane of their own above its own, shown short, or, about the chain's workings, not the market,
  *   hidden there: see priced).
  * @typedef {Record<string, any>} Layer
- * @typedef {{ layers: Layer[], panes?: Record<string, any>[], range?: string }} Sketch
+ * @typedef {{ layers: Layer[], panes?: Record<string, any>[], range?: string, halvings?: boolean }} Sketch
  * @typedef {{ p: string[], t: string, c: Sketch }} Preset
  * @typedef {{ name: string, title: string, c: Sketch, priceHidden?: boolean }} ChartNode
  * @typedef {{ name: string, items: (ChartNode | SectionNode)[], workings?: boolean }} SectionNode `workings`: its charts are
@@ -175,7 +175,7 @@ export function studioPresets(client, facts) {
    * logarithmic; else linear) and stacks.
    * @param {string} name @param {string} title @param {Layer[]} layers
    * `priceHidden`: the price on top starts hidden (a chart whose subject already moves with it, as market cap).
-   * @param {{ log?: number[], linear?: number[], stack?: Record<number, string>, sizes?: number[], range?: string, priceHidden?: boolean }} [options]
+   * @param {{ log?: number[], linear?: number[], stack?: Record<number, string>, sizes?: number[], range?: string, halvings?: boolean, priceHidden?: boolean }} [options]
    * @returns {ChartNode}
    */
   const chart = (name, title, layers, options = {}) => {
@@ -185,7 +185,7 @@ export function studioPresets(client, facts) {
       const log = options.log?.includes(n) || (withPrice && !options.linear?.includes(n));
       return { mode: log ? 1 : 0, ...(options.stack?.[n] ? { stack: options.stack[n] } : {}), ...(options.sizes?.[i] ? { size: options.sizes[i] } : {}) };
     });
-    return { name, title, c: { layers, panes, ...(options.range ? { range: options.range } : {}) }, ...(options.priceHidden ? { priceHidden: true } : {}) };
+    return { name, title, c: { layers, panes, ...(options.range ? { range: options.range } : {}), ...(options.halvings ? { halvings: true } : {}) }, ...(options.priceHidden ? { priceHidden: true } : {}) };
   };
   /**
    * @param {string} name @param {(ChartNode | SectionNode | null | undefined | false)[]} items
@@ -589,28 +589,43 @@ export function studioPresets(client, facts) {
         chart("Short-term", "Price returns, up to a year", windowsOf(m.returns).filter(([key]) => !/y$/.test(key) || key === "_1y").map(([key, value], i, all) => series(value, windowLabel(key), { ...baseline, ...shades(i, all.length), ...(key === "_1m" ? {} : { hidden: true }) }))),
         // (Over years, returns run from −80% to millions of percent: as growth multiples, on a log scale, 1× no change.)
         chart("Long-term", "Price growth over years", windowsOf(m.returns).filter(([key]) => /y$/.test(key) && key !== "_1y").map(([key, value], i, all) => ({ formula: `1 + ${value.name} / 100`, label: windowLabel(key), format: "ratio", ...around(1), ...shades(i, all.length), ...(key === "_4y" ? {} : { hidden: true }) })), { log: [1] }),
+        // (Growth a year, compounded: what years of it made, each year alike; 4 years, a halving cycle, shown.)
+        chart("Compound annual growth", "Compound annual growth of the price", [price(), ...[["2y", "2 years"], ["4y", "4 years"], ["8y", "8 years"]].map(([span, label], i) => ({ formula: `cagr(A, ${span})`, label, pane: 2, ...around(0), ...shades(i, 3), ...(span === "4y" ? {} : { hidden: true }) })), { formula: "cagr(A)", label: "Since its start", pane: 2, color: "gray", hidden: true }]),
         ...windowsOf(m.returns).map(([key, value]) => chart(windowLabel(key), `${windowAdjective(key)} price return`, [price(), series(value, `${windowAdjective(key)} return`, { pane: 2, ...baseline })])),
       ]),
       section("Moving averages", [averages(m.sma, "SMA"), averages(m.ema, "EMA")]),
       section("Range", [
+        // (Its high so far, a step up each new one; below, how far under it the price has been, filled up to it.)
+        chart("All-time highs", "The price's all-time highs, and its drawdown from them", [price(), { formula: "highest(A)", label: "All-time high", color: "green", shape: "steps" }, { formula: "drawdown(A)", label: "Drawdown", pane: 2, type: "area", fill: "above", color: "red" }]),
         ...entries(m.range.max).map(([key]) => chart(`${windowAdjective(key)} high and low`, `Price's ${windowAdjective(key)} high and low`, [price(), series(m.range.max[key], "High", { color: "green" }), series(m.range.min[key], "Low", { color: "red" }), { cloud: ["B", "C"], label: "Range", color: "sky", opacity: 0.1 }])),
         // (`trueRange` is the absolute change of the price from one block to the next, a day's its last: not a daily range.)
         chart("Block-to-block change", "Price's absolute change from one block to the next", [series(m.range.trueRange, "Change", { color: "sky" })], { log: [1] }),
       ]),
       section("Technical", [
         chart("RSI", "Relative strength index of the price", [price(), { formula: "rsi(A)", label: "RSI", pane: 2, color: "violet", levels: [{ value: 30, color: "green", dash: 3 }, { value: 70, color: "red", dash: 3 }] }]),
-        chart("MACD", "MACD of the price", [price(), { formula: "macd(A)", label: "MACD", pane: 2, color: "sky" }, { formula: "macd_signal(A)", label: "Signal", pane: 2, color: "orange" }, { formula: "macd_hist(A)", label: "Histogram", pane: 2, type: "histogram", color: "green", colorBelow: "red" }]),
+        chart("MACD", "MACD of the price", [price(), { formula: "macd(A)", label: "MACD", pane: 2, color: "sky" }, { formula: "macd_signal(A)", label: "Signal", pane: 2, color: "orange" }, { formula: "macd_hist(A)", label: "Histogram", pane: 2, type: "histogram", colors: 4, color: "green", colorBelow: "red" }]),
         chart("Volatility", "Annualized price volatility", [price(), { formula: "volatility(A, 30d)", label: "30 days", pane: 2, color: "sky" }, { formula: "volatility(A, 1y)", label: "1 year", pane: 2, color: "violet" }]),
-        chart("Pi cycle", "Pi cycle top", [price(), { formula: "sma(A, 111d)", label: "111-day SMA", color: "green" }, { formula: "2 * sma(A, 350d)", label: "350-day SMA × 2", color: "red" }]),
+        // (Marked where the 111-day crosses over twice the 350-day: the tops it called.)
+        chart("Pi cycle", "Pi cycle top", [price(), { formula: "sma(A, 111d)", label: "111-day SMA", color: "green" }, { formula: "2 * sma(A, 350d)", label: "350-day SMA × 2", color: "red" }, { formula: "B > C", type: "signal", ref: "A", label: "Top signal", color: "red" }]),
+        // (Up where the 50-day is over the 200-day, down where under: each run's result on the cross that ends it, their
+        // total in its line.)
+        chart("Golden and death crosses", "Golden and death crosses", [price(), { formula: "sma(A, 50d)", label: "50-day SMA", color: "amber" }, { formula: "sma(A, 200d)", label: "200-day SMA", color: "sky" }, { formula: "(B > C) - (B < C)", type: "signal", ref: "A", place: "below", results: true, label: "Cross", color: "green" }]),
+        // (A stop on the last 20 days' low while the price holds over it; broken, on their high, till that breaks: the
+        // turtles' breakout, as a trend.)
+        chart("Trailing stop", "A 20-day trailing stop", [price(), { formula: "lag(highest(A, 20d), 1d)", label: "20-day high", color: "gray", dash: 2, hidden: true }, { formula: "lag(lowest(A, 20d), 1d)", label: "20-day low", color: "gray", dash: 2, hidden: true }, { trend: ["B", "C"], ref: "A", label: "Trailing stop", color: "red", colorBelow: "green", width: 2 }], { range: "1y" }),
         // (Each halving cycle mined from its start, at 1×: as ⌘K's "Compare halving cycles" makes them; a cycle's years,
         // its halving's, every four.)
-        ((cycles) => chart("Halving cycles", "Price over each halving cycle, from its start", [price(), ...Array.from({ length: cycles }, (_, n) => ({ formula: `rebase(when(A, halving_epoch == ${n}))`, label: `${n ? 2008 + 4 * n : 2009}–${n + 1 < cycles ? 2012 + 4 * n : "now"}`, pane: 2, color: ["orange", "red", "blue", "violet", "green", "teal", "pink"][n % 7] }))], { log: [2] }))(Math.floor((facts?.height ?? 840_000) / 210_000) + 1),
+        ((cycles) => chart("Halving cycles", "The price's halving cycles, each from its start", [price(), ...Array.from({ length: cycles }, (_, n) => ({ formula: `rebase(when(A, halving_epoch == ${n}))`, label: `${n ? 2008 + 4 * n : 2009}–${n + 1 < cycles ? 2012 + 4 * n : "now"}`, pane: 2, color: ["orange", "red", "blue", "violet", "green", "teal", "pink"][n % 7] }))], { log: [2], halvings: true, range: "max" }))(Math.floor((facts?.height ?? 840_000) / 210_000) + 1),
       ]),
     ]),
     section("Valuation", [
       chart("Market and realized cap", "Market cap and realized cap", [series(t.holders.all.supply.total.usd, "Market cap", { color: "green" }), series(t.holders.all.capital.realizedCap, "Realized cap", { color: "orange" })], { log: [1], priceHidden: true }),
       ...change(sup.marketCap.delta, "Market cap change", "Market cap change"),
       chart("MVRV", "Market value to realized value (MVRV)", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: "orange" }), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1), levels: [{ value: 3.5, color: "red", dash: 3 }] })], { log: [2] }),
+      // (The price in its MVRV's zone, date by date: under 1, under its realized value; over 3.5, far over it.)
+      chart("Price by MVRV zone", "The price by its MVRV zone", [{ ...price(), hidden: true }, series(t.price.close, "Price by zone", { colorFrom: "C", width: 2 }), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, color: "green", byLevels: true, underName: "Undervalued", levels: [{ value: 1, color: "gray", name: "Fair", dash: 3 }, { value: 3.5, color: "red", name: "Overvalued", dash: 3 }] })], { log: [1, 2] }),
+      // (How far market cap is over realized cap, in market cap's deviations over all history: over 7, its tops.)
+      chart("MVRV Z-score", "MVRV Z-score", [price(), { formula: `(${t.holders.all.supply.total.usd.name} - ${t.holders.all.capital.realizedCap.name}) / stdev(${t.holders.all.supply.total.usd.name})`, label: "MVRV Z-score", pane: 2, format: "number", ...baseline, levels: [{ value: 7, color: "red", dash: 3, name: "Top zone" }] }]),
       chart("NUPL", "Net unrealized profit and loss (NUPL)", [price(), series(t.holders.all.unrealized.nupl, "NUPL", { pane: 2, ...baseline, levels: [0.25, 0.5, 0.75].map((value) => ({ value, color: "gray", dash: 3 })) })]),
       chart("On-chain prices", "Realized, true market mean, Cointime and capitalized prices", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: "orange" }), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" }), series(ct.prices.cointime.block, "Cointime price", { color: "violet" }), series(t.holders.all.costBasis.byDollar.capitalizedPrice, "Capitalized price", { color: "green" })]),
       cloudsChart(),
@@ -692,7 +707,7 @@ export function studioPresets(client, facts) {
         chart("Rebound", "Hash price and hash value above their all-time lows", [series(mining.hashrate.price.rebound, "Hash price", { color: "green" }), series(mining.hashrate.value.rebound, "Hash value", { color: "orange" })]),
       ]),
       section("Difficulty", [
-        chart("History", "Difficulty", [series(blocks.difficulty.block, "Difficulty", { color: "orange" }), series(blocks.difficulty.adjustment, "Adjustment", { pane: 2, type: "histogram", color: "green", colorBelow: "red" })], { log: [1] }),
+        chart("History", "Difficulty", [series(blocks.difficulty.block, "Difficulty", { color: "orange", shape: "steps" }), series(blocks.difficulty.adjustment, "Adjustment", { pane: 2, type: "histogram", color: "green", colorBelow: "red" })], { log: [1] }),
         chart("Next adjustment", "Until the next difficulty adjustment", [series(blocks.difficulty.blocksToRetarget, "Blocks", { color: "sky" }), series(blocks.difficulty.daysToRetarget, "Days", { color: "orange", pane: 2 })]),
         chart("Epoch", "Difficulty epoch", [series(blocks.difficulty.epoch, "Epoch", { color: "gray" })]),
       ]),
