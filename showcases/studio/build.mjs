@@ -83,8 +83,12 @@ const inlined = (path) => JSON.stringify(`data:text/javascript;charset=utf-8,${i
 
 // Its brand, Bitview's home: the root of the server that serves it, here a site of its own.
 replaceOnce(`<a class="brand" href="/"`, `<a class="brand" href="https://bitview.space"`);
-// The fonts.
-for (const font of ["InterVariable.woff2", "Lilex.woff2"]) replaceOnce(`url("../assets/fonts/${font}")`, `url("${dataUrl("font/woff2", input(join(SHOWCASES, "assets", "fonts", font)))}")`);
+// The fonts, cut to the characters of fonts/ranges.txt (fonts/subset.sh): one the page writes outside them stops the
+// build below (else it'd be in another font).
+for (const font of ["InterVariable.woff2", "Lilex.woff2"]) replaceOnce(`url("../assets/fonts/${font}")`, `url("${dataUrl("font/woff2", input(join(HERE, "fonts", font)))}")`);
+const ranges = String(input(join(HERE, "fonts", "ranges.txt"), "utf8")).trim().split(",").map((range) => range.slice(2).split("-").map((hex) => parseInt(hex, 16)));
+/** The text the page writes beyond its own, packed (the presets'): its characters the fonts' too. */
+let packedText = "";
 
 // The modules the server doesn't serve, or serves older; the search's worker takes the same one.
 const quickmatch = inlined("modules/quickmatch-js/src/index.js");
@@ -191,7 +195,7 @@ let presetList = [];
   const places = new Set(presetList.map((preset) => preset.p.join(" › ")));
   const gone = [...recommended.matchAll(/"([^"]+)"/g)].map(([, place]) => place).filter((place) => !places.has(place));
   if (gone.length) throw new Error(`Recommended, but no preset: ${gone.join(", ")}`);
-  const json = JSON.stringify(presetList), packed = gzipSync(json, { level: 9 }).toString("base64");
+  const json = (packedText = JSON.stringify(presetList)), packed = gzipSync(json, { level: 9 }).toString("base64");
   replaceOnce(`<script id="presets" type="application/gzip"></script>`, `<script id="presets" type="application/gzip">${packed}</script>`);
   console.log(`${presetList.length} presets, every series in one: ${(packed.length / 1024).toFixed(0)} KB`);
   // (Their series, as the served client has them: one it lacks, said, as the page's own are above.)
@@ -221,6 +225,8 @@ let presetList = [];
 }
 const left = html.match(/["'(]\.\.\/(?:modules|assets)\/[^"')]*/g);
 if (left?.length) throw new Error(`Still relative: ${left.join(", ")}`);
+const unfonted = [...new Set(html + packedText)].filter((c) => c >= " " && !ranges.some(([from, to = from]) => /** @type {number} */ (c.codePointAt(0)) >= from && /** @type {number} */ (c.codePointAt(0)) <= to));
+if (unfonted.length) throw new Error(`Characters outside fonts/ranges.txt (add their blocks there, then run fonts/subset.sh): ${unfonted.map((c) => `${c} U+${(c.codePointAt(0) ?? 0).toString(16).toUpperCase().padStart(4, "0")}`).join(", ")}`);
 // Each of the page's scripts as it's written now, parsed (what the build put in can't break it: a name declared twice
 // fails here, not in a browser).
 await inFolder("bitview-page-", (parsing) => {
