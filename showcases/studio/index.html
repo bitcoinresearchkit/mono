@@ -14008,6 +14008,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // its values: the legend's, the crosshair's.)
           const signal = layer.type === "signal";
           const common = {
+            // (Its line drawn without the points it'd pass within a quarter of a pixel of: Firefox draws it three times as
+            // fast, the same to the eye; see LWC patch 29.)
+            bvSimplify: true,
             priceScaleId: layer.side,
             visible: !layer.hidden && !signal,
             priceLineVisible: Boolean(layer.priceLine) && !stack && !signal,
