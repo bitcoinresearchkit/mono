@@ -21717,7 +21717,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Looked at again behind, once the page has started: kept anew if the chain's facts have changed.)
             const facts = kept.headers.get("x-facts");
             setTimeout(() => made(facts).then((result) => (result.text ? keep(result) : undefined)).catch(() => {}), 5000);
-            return JSON.parse(await kept.text());
+            const text = await kept.text();
+            // (Read, then made sense of, a frame apart.)
+            await aFrame();
+            return JSON.parse(text);
           }
           const result = await made(null);
           void keep(result)?.catch(() => {});
@@ -21744,12 +21747,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       }
       /**
+       * The next frame, for work split across frames; a hidden tab (no frames: a tab opened behind, a prerender) or one
+       * hidden meanwhile goes on at once, or a tenth of a second on.
+       */
+      function aFrame() {
+        return document.hidden ? Promise.resolve() : new Promise((done) => (requestAnimationFrame(() => done(undefined)), setTimeout(done, 100)));
+      }
+      /**
        * The presets, read once, when first wanted (readPresetList), then shown: read, ⌘K, open, shows them.
        */
       function loadPresets() {
         return (presetsLoad ??= (async () => {
           presetsFailed = false;
           const list = await readPresetList();
+          // (A frame between their reading and their showing: neither one long one, Firefox's a tenth of a second.)
+          await aFrame();
           presets = list;
           presetWords = list.map((preset) => `${preset.t} ${preset.p.join(" ")}`.toLowerCase());
           // (Those opened and left as they were, before they could be told: let go of now; the open one, as the presets
@@ -22325,7 +22337,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // Read once the page has settled: the recommended cards fill in, and ⌘K finds them at once.
       renderRecommended();
       const readPresets = () => void loadPresets().catch(() => {});
-      whenIdle(readPresets, { timeout: 4000, settle: 1500 });
+      // (The served page's, kept in this browser: read at once, see presetsKept.)
+      if ($("presets")?.textContent?.trim()) whenIdle(readPresets, { timeout: 4000, settle: 1500 });
+      else readPresets();
 
       /** After a menu pick re-renders the list, focus goes back to the same menu button. */
       const refocus = (selector) => requestAnimationFrame(() => /** @type {HTMLElement | null} */ (document.querySelector(selector))?.focus());
