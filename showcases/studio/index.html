@@ -16337,8 +16337,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (belt.hidden && magnifying) return setMagnifier(false);
         $("draw-toggle").setAttribute("aria-pressed", String(prefs.belt.on));
         if (belt.hidden) {
-          // (What had the focus in it lets go: hidden, it can't keep it.)
-          if (belt.contains(document.activeElement)) /** @type {HTMLElement} */ (document.activeElement).blur();
+          // (What had the focus in it lets go: hidden, it can't keep it; the chart's keys take it, not the page.)
+          if (belt.contains(document.activeElement)) /** @type {HTMLElement} */ (document.activeElement).blur(), $("plot-keys").hidden || $("plot-keys").focus({ preventScroll: true });
           return;
         }
         // (Carried, it turns as it goes: its side is set on release.)
@@ -16396,6 +16396,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           writeHow();
           drawKeys(belt);
           restoreFocus(belt, focus);
+          // (Its button in focus gone with what it was for (a drawing removed): the chart's keys take it, not the page.)
+          if (focus && document.activeElement === document.body && !$("plot-keys").hidden) $("plot-keys").focus({ preventScroll: true });
           rovingBelt();
           // The button in focus gone with what it was for (a drawing removed from it): D's keys end with it.
           if (focus && !belt.contains(document.activeElement) && beltKeys) {
@@ -17054,13 +17056,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         drawingMenu(hit.drawing, { x: event.clientX, y: event.clientY });
       });
       /** A right-click on a drawing: what the chosen ones do. */
-      const drawingMenu = (/** @type {Drawing} */ drawing, /** @type {{ x: number, y: number }} */ point) => ((ids) => menuOf($("chart"), drawingRows(ids), point, "", { named: ids.length > 1 ? plural(ids.length, "drawing") : drawingNames().get(ids[0]) ?? "Drawing" }))([...chosen].length ? [...chosen] : [drawing.id]);
+      const drawingMenu = (/** @type {Drawing} */ drawing, /** @type {{ x: number, y: number }} */ point) => ((ids) => menuOf($("plot-keys"), drawingRows(ids), point, "", { named: ids.length > 1 ? plural(ids.length, "drawing") : drawingNames().get(ids[0]) ?? "Drawing" }))([...chosen].length ? [...chosen] : [drawing.id]);
       /** What drawings do (one: its text, its label too). @param {string[]} ids @returns {Action[]} */
       function drawingRows(ids) {
         const several = ids.length > 1, one = several ? null : drawingById(ids[0]);
         return [
-          ...(one?.kind === "text" ? [{ key: "text", icon: ICONS.pencil, label: "Edit the text", run: () => ((now) => now && startTyping(now))(drawingById(one.id)) }] : []),
-          ...(one && LINES.has(one.kind) ? [{ key: "label", icon: ICONS.label, label: one.label ? "Edit the label" : "Add a label", run: () => ((now) => now && startLabel(now))(drawingById(one.id)) }] : []),
+          ...(one?.kind === "text" ? [{ key: "text", icon: ICONS.pencil, label: "Edit the text", run: () => ((now) => now && startTyping(now, $("plot-keys")))(drawingById(one.id)) }] : []),
+          ...(one && LINES.has(one.kind) ? [{ key: "label", icon: ICONS.label, label: one.label ? "Edit the label" : "Add a label", run: () => ((now) => now && startLabel(now, now.at, $("plot-keys")))(drawingById(one.id)) }] : []),
           { key: "duplicate", icon: ICONS.duplicate, label: several ? `Duplicate ${ids.length} drawings` : "Duplicate", kbd: "⌘D", verb: "Duplicate", run: () => duplicateDrawings(ids) },
           { key: "remove", icon: ICONS.trash, label: several ? `Remove ${ids.length} drawings` : "Remove", kbd: "⌫", verb: "Remove", danger: true, run: () => removeDrawings(ids) },
         ];
@@ -26500,7 +26502,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(drawing.kind === "text" ? [{ key: "text", icon: ICONS.pencil, label: "Text", aside: drawing.text, verb: "Edit", group: "Style", run: () => {
               $("palette").close();
               const now = drawingById(id);
-              if (now) startTyping(now);
+              if (now) startTyping(now, $("plot-keys"));
             } }] : []),
             // (A ruler's look is its reading's: up or down.)
             ...(drawing.kind === "ruler" ? [] : [
