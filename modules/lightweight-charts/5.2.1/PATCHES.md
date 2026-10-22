@@ -476,25 +476,29 @@ the same each time; pans and zooms with a scale widening as before.
 Firefox strokes a canvas's paths on the CPU where WebGL is off (Mullvad Browser, Tor Browser): Studio's busy charts (24
 lines of ~2,700 points in view) took 45 ms to draw at 2x (Chromium: 2 ms), all of it the strokes, by their points
 (half the points, 27 ms; their width no matter). A series with `bvSimplify: true` draws its line through fewer: a point
-is left out where the segment drawn from the last point drawn passes within a quarter of a device pixel of it, and of
-every one left out since. Kept by a cone of the directions from the last point drawn (its anchor) that pass that close
-to each point left out (the tangents to a quarter-pixel circle around it: exact); a point joins it where its direction
-is in the cone and it's no nearer the anchor than those left out before it (their nearest place on the segment, then,
-not past its end), and within a million pixels of it (an infinite or far point never joins: the drawing goes on as the
-canvas has it); one within a quarter pixel of the anchor joins while those left out are all as near. Any other ends
-the segment at the one before, drawn, the cone started again from it. A line's path only (`fe`, a simple line, no
-dash, one style for all its points, see 23): stepped, curved and dashed lines, and those whose points have their own
-styles, as before.
+is left out where the segment drawn from the last point drawn passes close enough to it, and to every one left out
+since: within a quarter of a CSS pixel (half a device pixel at 2x) while bars are a pixel or more apart, more as they
+crowd (a quarter of a pixel by the bars to a pixel), up to a whole pixel (`bvR`: zoomed out, a little less exact; zoomed
+in, as exact as ever), by the smaller of the two pixel ratios. Kept by a cone of the directions from the last
+point drawn (its anchor) that pass that close to each point left out (the tangents to a circle of that radius around
+it: exact); a point joins it where its direction is in the cone and it's no nearer the anchor than those left out
+before it (their nearest place on the segment, then, not past its end), and within a million pixels of it (an infinite
+or far point never joins: the drawing goes on as the canvas has it); one within the radius of the anchor joins while
+those left out are all as near. Any other ends the segment at the one before, drawn, the cone started again from it. A
+line's path only (`fe`, a simple line, no dash, one style for all its points, see 23): stepped, curved and dashed
+lines, and those whose points have their own styles, as before.
 
 - The points' arrays: `this.kM.bvS=!!this.ae.N().bvSimplify` with `bvU` where they're built (`zM()`, the three), and
   `s.bvS` where they're restyled (`BM()`, an option changed).
-- `fe`: `bvZ` (a simple line, no dash, `bvU` and `bvS`); in its case 0, the point checked against the cone (`atan2`,
-  `asin`), kept pending, or the pending one drawn (`lineTo`) and the cone started again from it; the last pending one
-  drawn before the path's end (the stroke, an area's fill, by the path's own end).
+- `fe`: `bvZ` (a simple line, no dash, `bvU` and `bvS`), `bvR` (`Math.min(o,_)` times a quarter of the bars a CSS pixel, a span not a number the quarter alone,
+  in view, from `.25` to `1`) and `bvR2` (its square); in its case 0, the point checked
+  against the cone (`atan2`, `asin`), kept pending, or the pending one drawn (`lineTo`) and the cone started again from
+  it; the last pending one drawn before the path's end (the stroke, an area's fill, by the path's own end).
 
 `tests.html` leaves `bvSimplify` unset: its pictures the same as before the patch. Checked on synthetic paths (the
 loop as the file has it: random walks with spikes, a smooth curve, steps of 0.05 to 2 device pixels, spikes and turns
-at a pixel's width, NaN, infinities and points a long way off): no point left out more than 0.250 px from the path drawn; 97% of a smooth curve's points left
-out, half a noisy one's. Measured (Mullvad Browser, headless, 2x, one redraw for a 5-bar pan): "Realized price by age
-band" (24 lines) 44.7 → 20.3 ms, HODL waves (24 stacked areas) 68.9 → 51.4 ms; Chromium 2.1 → 3.1 ms. Its pixels
-(Chromium, 2x): 8.5% of the plot's differ by a little (antialiasing), 0.0003% by more than a quarter, at most 69 of 255.
+at a pixel's width, NaN, infinities and points a long way off): no point left out further than the radius from the
+path drawn; 97% of a smooth curve's points left out, half a noisy one's. Measured (Mullvad Browser, headless, 2x, one
+redraw for a 5-bar pan, 8 years in view): "Realized price by age band" (24 lines) 44.7 → 11.9 ms, panning ~25 → ~57
+fps; HODL waves (24 stacked areas) 68.9 → 40.0 ms; Chromium 2.1 → 3.1 ms. Its pixels (Mullvad, 2x): 3.4% of the busy plot's differ, by a
+little (antialiasing), 0.4% by more than a quarter, none to be told apart by eye.
