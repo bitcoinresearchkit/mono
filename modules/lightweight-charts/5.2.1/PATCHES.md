@@ -491,6 +491,9 @@ lines, and those whose points have their own styles, as before.
 
 - The points' arrays: `this.kM.bvS=!!this.ae.N().bvSimplify` with `bvU` where they're built (`zM()`, the three), and
   `s.bvS` where they're restyled (`BM()`, an option changed).
+- Walked again in the same paint (an area's fill, then its line: see 30), its points aren't simplified again: the kept
+  ones are recorded on the points' array (`bvKeep`: the paint, `bvPaint`, counted by the pane's `bvViews`; the range;
+  the radius in CSS pixels; their indices) and drawn as they are (`bvRp`): its fill's edge and its line the same points.
 - `fe`: `bvZ` (a simple line, no dash, `bvU` and `bvS`), `bvR` (`Math.min(o,_)` times a quarter of the bars a CSS pixel, a span not a number the quarter alone,
   in view, from `.25` to `1`) and `bvR2` (its square); in its case 0, the point checked
   against the cone (`bvLx`/`bvLy` and `bvUx`/`bvUy`, its two directions; `bvF`, none yet: all), kept pending, or the pending one drawn (`lineTo`) and the cone started again from
