@@ -423,3 +423,17 @@ A renderer reading `bars` gets the same values as before; one keeping the array,
 change (Studio's cloud reads them each draw, keeping nothing). Measured (Chromium at 4x, a pan and a wheel zoom at Max
 of "Bedrock landscape, awake", 33 layers, most clouds): median frame 50 → 33 ms, script −16%; the plot's pixels
 identical with and without it (a screenshot compared, live price held); `tests.html` 713/713.
+
+## 26. A custom series' prices placed from its first value as updated
+
+A custom series' renderer turns prices into coordinates through the view (`WM`), and each call asked the series for
+its first value in view afresh (`this.ae.zt()`: the visible range, a search for its first point, a new object):
+Studio's clouds ask it for each pixel column's high and low, tens of thousands of times a frame. The view's update
+(`LM`, which computes that first value to place its points) keeps it (`bvZ`, cleared when it starts), and `WM` uses it
+(the series' own, asked, without one: an update that stopped early).
+
+- `Es.LM()`: `this.bvZ=null` first; `const s=this.bvZ=this.ae.zt()`.
+- `zs.WM(t)`: `const i=this.bvZ??this.ae.zt()`.
+
+The same frame's first value either way: it changes with the data or the visible range, which run the update again.
+Measured (as 25): `WM` 675 → 467 ms, script −9%; the plot's pixels the same; `tests.html` 713/713.
