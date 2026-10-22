@@ -2489,10 +2489,27 @@
           background: var(--line);
           pointer-events: none;
         }
+
+        /* (Mid-motion, along the plot as stretched, and with the left scale as moved: see stretchDrawn.) */
+        &:nth-child(1)::after {
+          translate: var(--stretch-left, 0px) 0;
+        }
+
+        &:nth-child(2)::after {
+          left: var(--stretch-left, 0px);
+          right: var(--stretch-right, 0px);
+        }
       }
 
       #chart table tr:last-child > td {
         position: relative;
+      }
+
+      /* (Mid-motion, a separator's cell stretched (a transform: a layer of its own) still over the plots, its handle with
+         it: see stretchDrawn.) */
+      #chart [data-stretching] tr > td[colspan] {
+        position: relative;
+        z-index: 3;
       }
 
       #full {
@@ -13113,13 +13130,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * How close the chart's bars can get: four a pixel; at a day or coarser (all of history at hand, a few thousand
        * bars), as close as all of it needs to fit, its first date's label room left: Max is all of history there.
        */
-      function fitSpacing(/** @type {Chart} */ doc, /** @type {number} */ bars) {
+      function fitSpacing(/** @type {Chart} */ doc, /** @type {number} */ bars, /** @type {{ from: number, to: number } | null} */ held = null) {
         // (By the chart's own width, its price scales at their widest: not the plot's, narrower or wider as a scale's
         // labels are, which would set it again as the view moves, the library then moving the view: a spacing set again
         // is applied a frame later, as it was when set, undoing a zoom made since.)
         const sides = ["left", "right"].filter((side) => view.priceScale(side, 0).options().visible).length;
         const width = view.timeScale().width() ? chartWidth() - sides * axisWidth() : 0;
-        const spacing = FINE.has(doc.index) || width <= 30 + rightGap(width) || bars < 2 ? MIN_BAR_SPACING : Math.max(0.005, Math.min(MIN_BAR_SPACING, (0.995 * (width - 30 - rightGap(width))) / (bars - 1)));
+        const fitted = FINE.has(doc.index) || width <= 30 + rightGap(width) || bars < 2 ? MIN_BAR_SPACING : Math.max(0.005, Math.min(MIN_BAR_SPACING, (0.995 * (width - 30 - rightGap(width))) / (bars - 1)));
+        // (Never closer than the view's own bars: one kept at a narrower width (a layout's motion) isn't squeezed. `held`:
+        // a view about to be shown, its own.)
+        const range = held ?? (drawnChart === doc.id && drawnIndex === doc.index ? view.timeScale().getVisibleLogicalRange() : null), spacing = Math.min(fitted, range ? view.timeScale().width() / (range.to - range.from + 1) : Infinity);
         if (spacing !== view.timeScale().options().minBarSpacing) view.applyOptions({ timeScale: { minBarSpacing: spacing } });
       }
       /** Over several years the time axis names years only: a lone month at the edge ("Sep") reads as noise. */
@@ -13196,12 +13216,33 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * of its frames (each a new size: its canvases made anew, every series drawn again; Firefox shows a third of them).
        * It takes its size at the motion's end at once, as the motion starts (the press that made it: it follows at once,
        * nothing snaps at the end), pinned to the edges of its box that move least (the sidebar's motion moves the left
-       * one: pinned right), the moving edges sliding over it or off it. At the end, it follows its box again.
+       * one: pinned right), the moving edges sliding over it or off it. Its box narrowing or widening, it keeps the view's
+       * stretch of time instead: drawn once at its end's width, pinned to its price axis's side, its plot stretched to its
+       * box's width each frame (see stretchDrawn: nothing drawn again, the drawing's own end the motion's). At the end, it
+       * follows its box again.
        */
       let motionsSized = 0, sizeHeld = false;
+      /**
+       * The chart as drawn, stretched to its box mid-motion (see stretchDrawn): its plot's width drawn, its scales' (`left`,
+       * the left one's), its pinned side, and the clipping let go of meanwhile (each element's own, as it was).
+       * @type {{ to: number, sides: number, left: number, leftAxis: boolean, clipped: [HTMLElement, string][] } | null}
+       */
+      let drawnStretch = null;
       function sizeOnce() {
         const box = $("chart"), inMotion = /** @type {CSSTransition[]} */ (document.querySelector(".app")?.getAnimations({ subtree: true }).filter((motion) => motion instanceof CSSTransition && /^(width|height|margin|padding|border|inset|left|right|top|bottom)/.test(motion.transitionProperty)) ?? []);
-        if (!inMotion.length) return;
+        // (No motion (reduced motion): the chart at its box's new size at once, its view's stretch kept as well, before the
+        // library's own resize keeps its bars' width instead.)
+        if (!inMotion.length) {
+          const { width, height } = box.getBoundingClientRect();
+          if (sizeHeld || Math.abs(width - chartWidth()) < 1 || !resolved?.times.length || !chart || drawnChart !== chart.id) return;
+          const was = (view.bvFlush(), view.timeScale().getVisibleLogicalRange());
+          view.applyOptions({ autoSize: false });
+          view.resize(width, height, true);
+          keepStretch(was);
+          Object.assign(view.chartElement().style, { width: "100%", height: "100%" });
+          view.applyOptions({ autoSize: true });
+          return;
+        }
         // (Its box now and the chart's own size: the same, unless a motion before this one's still holding it.)
         const run = ++motionsSized, at = inMotion.map((motion) => motion.currentTime), now = box.getBoundingClientRect(), own = view.chartElement().getBoundingClientRect();
         // (Its box at their end: each motion that moves it there for a moment, read, and back where it was; nothing's drawn
@@ -13210,8 +13251,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const motion of moving) motion.currentTime = motion.effect?.getComputedTiming().endTime ?? null;
         const end = box.getBoundingClientRect();
         moving.forEach((motion) => (motion.currentTime = at[inMotion.indexOf(motion)]));
+        // (Across, its stretch kept: the view as drawn (a motion's in flight, as it'll end), and the plot's width shown now
+        // (a motion's in flight, as stretched).)
+        const across = Math.abs(end.width - now.width) >= 1 && Boolean(resolved?.times.length) && Boolean(chart) && drawnChart === chart?.id;
+        const leftAxis = view.priceScale("left").width() > 0 && !(view.priceScale("right").width() > 0);
+        const was = across ? (view.bvFlush(), view.timeScale().getVisibleLogicalRange()) : null;
+        stretchDrawn(null);
         const width = end.width, height = end.height;
-        const side = Math.abs(end.left - now.left) <= Math.abs(end.right - now.right) ? "left" : "right", edge = Math.abs(end.top - now.top) <= Math.abs(end.bottom - now.bottom) ? "top" : "bottom";
+        const side = across ? (leftAxis ? "left" : "right") : Math.abs(end.left - now.left) <= Math.abs(end.right - now.right) ? "left" : "right", edge = Math.abs(end.top - now.top) <= Math.abs(end.bottom - now.bottom) ? "top" : "bottom";
         view.applyOptions({ autoSize: false });
         sizeHeld = true;
         chartHeight = height;
@@ -13221,17 +13268,73 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // their start, not a long frame in.)
           for (const motion of inMotion) motion.pause();
           view.resize(width, height, true);
+          if (across) keepStretch(was);
           // (Those another toggle has replaced meanwhile left be: started again, they'd come back.)
           // (Which are still paused, all read first, then each started: a read between writes would lay the page out again
           // for each of them, hundreds with a long Library's rows.)
           requestAnimationFrame((time) => inMotion.filter((motion) => motion.playState === "paused").forEach((motion) => (motion.startTime = time - Number(at[inMotion.indexOf(motion)] ?? 0))));
         }
+        // (Stretched, by its scales as drawn at its end's width; a motion started mid-motion, its end size already drawn,
+        // too.)
+        if (across) {
+          const left = view.priceScale("left").width(), right = view.priceScale("right").width(), element = view.chartElement();
+          // (Its own clipping let go of meanwhile (the library's, at the chart's and each cell's edge): the card's own clips
+          // at the box.)
+          const clipped = /** @type {[HTMLElement, string][]} */ ([element, ...all$("tr > td > div", element)].map((item) => [item, item.style.overflow]));
+          for (const [item] of clipped) item.style.overflow = "visible";
+          drawnStretch = { to: width - left - right, sides: left + right, left, leftAxis: left > 0 && !(right > 0), clipped };
+          stretchDrawn(now.width);
+          const frame = () => run === motionsSized && drawnStretch && (stretchDrawn(box.getBoundingClientRect().width), requestAnimationFrame(frame));
+          requestAnimationFrame(frame);
+        }
         Promise.allSettled(inMotion.map((motion) => motion.finished)).then(() => run === motionsSized && releaseSize());
+      }
+      /**
+       * The chart as drawn at its end's width (`drawnStretch.to`, its plot's), stretched to its box `shown` wide, as the box is
+       * laid out this frame (one clock: the browser's own animations of a transform can run a frame or two off the box's):
+       * its plots and time axis scaled from its price axis's side, what's over them (the legends) moved with their edge.
+       * The drawing as it is (a line or a label a little wider or narrower meanwhile). Null: back as drawn.
+       * @param {number | null} shown
+       */
+      function stretchDrawn(shown) {
+        const element = view.chartElement(), canvases = all$("tr > td:nth-child(2) > div > canvas", element), edged = [...all$(".legend", element), ...all$("tr > td:nth-child(1):not([colspan]) > div", element)], rules = all$("tr > td[colspan]", element);
+        if (shown === null || !drawnStretch) {
+          for (const [item, overflow] of drawnStretch?.clipped ?? []) item.style.overflow = overflow;
+          drawnStretch = null;
+          for (const item of [...canvases, ...edged, ...rules]) Object.assign(item.style, { transform: "", transformOrigin: "" });
+          for (const side of ["left", "right"]) element.style.removeProperty(`--stretch-${side}`);
+          delete element.dataset.stretching;
+          return;
+        }
+        const { to, sides, left, leftAxis, clipped } = drawnStretch, from = Math.max(1, shown - sides);
+        // (A pane's cells new meanwhile, their clipping let go of too.)
+        for (const item of all$("tr > td > div", element)) if (!clipped.some(([held]) => held === item)) (clipped.push([item, item.style.overflow]), (item.style.overflow = "visible"));
+        for (const canvas of canvases) Object.assign(canvas.style, { transformOrigin: leftAxis ? "left" : "right", transform: `scaleX(${from / to})` });
+        // (The panes' rules (a separator's cell, across the scales' room too) from the chart's pinned edge; the last
+        // pane's, along the plot.)
+        for (const rule of rules) Object.assign(rule.style, { transformOrigin: leftAxis ? "left" : "right", transform: `scaleX(${(from + sides) / (to + sides)})` });
+        element.style.setProperty(`--stretch-${leftAxis ? "right" : "left"}`, `${to - from}px`);
+        element.dataset.stretching = "";
+        // (What's at the plot's moving edge, moved with it: the legends, and a left scale (pinned left, the edge doesn't
+        // move).)
+        if (!leftAxis) for (const item of left ? edged : all$(".legend", element)) item.style.transform = `translateX(${to - from}px)`;
+      }
+      /**
+       * A view kept at the chart's width now: its stretch of time (a preset showing, its window at this width), its bars
+       * as close as that needs. Drawn at once. @param {{ from: number, to: number } | null} was
+       */
+      function keepStretch(was) {
+        if (!chart || !resolved || drawnChart !== chart.id) return;
+        fitSpacing(chart, resolved.times.length, was);
+        if (presetShown && !glideTarget) applyRange(chart, resolved);
+        else if (was) view.timeScale().setVisibleLogicalRange(was);
+        view.bvFlush();
       }
       /** The chart following its box again (a window resized meanwhile, at once): what's laid out by its size, again. */
       function releaseSize() {
         if (!sizeHeld) return;
         sizeHeld = false;
+        stretchDrawn(null);
         // (Back in its box, the whole of it, as the library made it.)
         Object.assign(view.chartElement().style, { position: "", left: "", right: "", top: "", bottom: "", width: "100%", height: "100%" });
         view.applyOptions({ autoSize: true });
@@ -13927,10 +14030,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         fitSpacing(doc, data.times.length);
         const left = drawnChart !== doc.id || drawnIndex !== doc.index ? leftView(doc.id) : null;
         const back = left && data.times.length > 1 ? viewOn(left, doc.index, data.times) : null;
+        // (Shown, drawn, and shown again: its price scales laid out for it first, else for the view before it (the
+        // library's own, on a first draw), and the change of their width held against it, see LWC patch 20.)
         if (back && back.to - back.from >= 1) {
-          view.timeScale().setVisibleLogicalRange(within(back, "to"));
+          const target = within(back, "to");
+          view.timeScale().setVisibleLogicalRange(target);
+          view.bvFlush();
+          view.timeScale().setVisibleLogicalRange(target);
           setPresetShown(false);
         } else if (!visible || presetShown) {
+          applyRange(doc, data);
+          view.bvFlush();
           applyRange(doc, data);
           setPresetShown(true);
         }
@@ -15235,10 +15345,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** An image being made of the chart (its resizes the picture's: see chartImage). */
       let exporting = false;
       /**
-       * The box resized (a window, the sidebar, the panel, a phone turned): its bars as wide as they were, from the view as
-       * left (not as the library has already moved it): its right edge kept (at the latest, the latest with its room after
-       * it); past the data's start, the share of it on the data (never less than the library keeps on it: not pushed later
-       * each time it widens, and back as it was when the box is). A preset showing is shown again whole (see relayout).
+       * The box resized (a window, a phone turned; a layout's motion keeps its stretch instead, see sizeOnce): its bars
+       * as wide as they were, from the view as left (not as the library has already moved it): its right edge kept (at the
+       * latest, the latest with its room after it); past the data's start, the share of it on the data (never less than
+       * the library keeps on it: not pushed later each time it widens, and back as it was when the box is). A preset
+       * showing is shown again whole (see relayout).
        */
       function holdView() {
         const width = view.timeScale().width(), box = chartWidth(), was = heldView, resized = box !== lastBox;
@@ -21561,14 +21672,76 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (packed) {
             const bytes = fromBase64(packed);
             list = JSON.parse(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
-          } else {
-            // (The chain's facts from this server; without them, every preset, those of what never happened too.)
-            const made = await import("../studio/presets.js");
-            list = made.studioPresets(client, await made.chainFacts(location.origin).catch(() => undefined));
-          }
+          } else list = await presetsKept();
           presetLooks = looksOf(list);
           return list;
         })());
+      }
+      /**
+       * The dev page's presets, made from this repo's presets.js and its client: kept in this browser by what made them
+       * (those two files, by a hash of them, and the chain's facts then), read back at once on a reload; made in a worker
+       * (off the page's thread: Firefox took a fifth of a second) when either file changed, and looked at again behind
+       * (made anew for the next reload when the chain's facts have changed: a pool's first block, a halving, a new year).
+       * Without the Cache API or a worker, made here as ever.
+       * @returns {Promise<Preset[]>}
+       */
+      async function presetsKept() {
+        const presetsUrl = new URL("../studio/presets.js", location.href).href, clientUrl = new URL("../modules/bitview-client/index.js", location.href).href;
+        const here = async () => {
+          const made = await import("../studio/presets.js");
+          // (The chain's facts from this server; without them, every preset, those of what never happened too.)
+          return made.studioPresets(client, await made.chainFacts(location.origin).catch(() => undefined));
+        };
+        /** Made in a worker: its list (as JSON) and the facts it was made with; only those, if they're `known`. */
+        const made = (/** @type {string | null} */ known) => new Promise((resolve, reject) => {
+          const source = URL.createObjectURL(new Blob([`(${presetsMaker})(${JSON.stringify(presetsUrl)}, ${JSON.stringify(clientUrl)}, ${JSON.stringify(location.origin)}, ${JSON.stringify(known)});`], { type: "text/javascript" }));
+          let worker;
+          try {
+            worker = new Worker(source, { type: "module" });
+          } catch (error) {
+            URL.revokeObjectURL(source);
+            return reject(error);
+          }
+          const done = () => (worker.terminate(), URL.revokeObjectURL(source));
+          worker.onmessage = ({ data }) => (done(), data.error ? reject(new Error(data.error)) : resolve(/** @type {{ facts: string, text?: string }} */ (data)));
+          worker.onerror = (event) => (done(), reject(new Error(event.message || "The presets' worker failed")));
+        });
+        try {
+          const store = await caches.open("bitview-studio:presets");
+          const texts = await Promise.all([presetsUrl, clientUrl].map((url) => fetch(url).then((response) => (response.ok ? response.text() : Promise.reject(new Error(`${url}: ${response.status}`))))));
+          const hash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texts.join("\0"))))].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+          const key = new URL(`presets-${hash}.json`, location.origin).href, kept = await store.match(key);
+          /** @param {{ facts: string, text?: string }} result */
+          const keep = (result) => result.facts && result.text ? Promise.all([...(store.keys ? [store.keys().then((keys) => Promise.all(keys.filter((request) => request.url !== key).map((request) => store.delete(request))))] : []), store.put(key, new Response(result.text, { headers: { "content-type": "application/json", "x-facts": result.facts } }))]) : undefined;
+          if (kept) {
+            // (Looked at again behind, once the page has started: kept anew if the chain's facts have changed.)
+            const facts = kept.headers.get("x-facts");
+            setTimeout(() => made(facts).then((result) => (result.text ? keep(result) : undefined)).catch(() => {}), 5000);
+            return JSON.parse(await kept.text());
+          }
+          const result = await made(null);
+          void keep(result)?.catch(() => {});
+          return JSON.parse(/** @type {string} */ (result.text));
+        } catch {
+          return here();
+        }
+      }
+      /**
+       * The presets, made in a worker (see presetsKept): its whole source, its arguments written in. Posts the chain's
+       * facts it made them with (a pool's slugs, the halving epoch, the year), and the list as JSON unless those facts are
+       * the ones `known`.
+       * @param {string} presetsUrl @param {string} clientUrl @param {string} origin @param {string | null} known
+       */
+      async function presetsMaker(presetsUrl, clientUrl, origin, known) {
+        try {
+          const [{ studioPresets, chainFacts }, { BitviewClient }] = await Promise.all([import(presetsUrl), import(clientUrl)]);
+          /** @type {{ pools: Set<string>, height: number, year: number } | undefined} */
+          const facts = await chainFacts(origin).catch(() => undefined);
+          const said = facts ? JSON.stringify([[...facts.pools].sort(), Math.floor(facts.height / 210_000), facts.year]) : "";
+          postMessage(known !== null && said === known ? { facts: said } : { facts: said, text: JSON.stringify(studioPresets(new BitviewClient({ baseUrl: origin }), facts)) });
+        } catch (error) {
+          postMessage({ error: String(error) });
+        }
       }
       /**
        * The presets, read once, when first wanted (readPresetList), then shown: read, ⌘K, open, shows them.

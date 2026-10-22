@@ -437,3 +437,36 @@ Studio's clouds ask it for each pixel column's high and low, tens of thousands o
 
 The same frame's first value either way: it changes with the data or the visible range, which run the update again.
 Measured (as 25): `WM` 675 → 467 ms, script −9%; the plot's pixels the same; `tests.html` 713/713.
+
+## 27. A frame's changes drawn at once, asked
+
+The chart draws what's asked of it (a range set, options) on its next animation frame. A page that needs it drawn now
+(Studio: a view put back is shown, drawn so its price scales are laid out for it, and shown again, see 28) had no way to.
+`chart.bvFlush()` draws the changes waiting at once, as a forced resize does (`wg` with its third argument), without
+redrawing what hasn't changed; nothing waiting, nothing's done.
+
+- The chart widget: `bvFlush(){if(!this.lg||null===this.ag)return;window.cancelAnimationFrame(this.eg),this.lg=!1,
+  this.eg=0;const i=this.ag,t=performance.now();this.ag=null,this.yg(i,t);for(const n of i.bs())if(5===n.ds&&!n.Wt.Kc(t))
+  {this.Qt().ps(n.Wt);break}}` before `Md(t)` (the frame's own callback, the same steps).
+- The chart's API: `bvFlush(){this.hv.bvFlush()}` after `resize(t,i,n)`.
+
+`tests.html` doesn't call it: nothing else changes. Checked in Studio: a chart opened and reloaded, its view as kept.
+
+## 28. A scale never laid out isn't held against
+
+Patch 20 holds the bars on screen as the right scale's width changes, a range asked for included (applied over the
+plot as it was when asked, then held). A chart's first draw asks for its range before its scale is laid out (its width
+0 then, see 21): the scale then took its room from the range's left edge, the view narrower by the scale's width than
+asked. Studio, which puts a view back as it was left, lost that much of it at each reload. Until the right scale has
+been laid out with a width once, nothing's held: the range is shown over the plot as it is, as without the option. (A
+scale hidden and shown again was laid out: held both ways, as before. One shown for the first time after the chart's
+first draw (only left scales till then) isn't held either: the view shown over the plot as it is, a scale's width less.)
+
+- `class zi` (the time scale): `bvLaid=!1` in its constructor.
+- `nd(t)` (a range applied): `t.bvLaid` for `void 0!==t.bvRight`; `setVisibleLogicalRange` carries `bvLaid:i.bvLaid` with
+  `bvRight` and `bvBox`.
+- The chart widget's layout (`zg()`): `this.sn.ia.bvLaid&&` before `this.hg!==n&&(this.sn.ia.bvPending=n-this.hg)`,
+  and `n>0&&(this.sn.ia.bvLaid=!0)` after it.
+
+`tests.html` leaves `bvHoldOnAxes` unset. Checked in Studio: a view left zoomed out at the latest, reloaded three times,
+the same each time; pans and zooms with a scale widening as before.
