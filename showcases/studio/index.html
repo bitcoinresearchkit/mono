@@ -14207,8 +14207,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // nothing: it has nothing shown.)
           for (const side of ["left", "right"]) view.priceScale(side, i).applyOptions({ visible: sides.has(side), textColor: folded.has(pane.id) ? "transparent" : css("--chart-text"), scaleMargins: marginsOf(doc, pane, i), ...(keep ? {} : { mode: paneMode(pane), autoScale: true }) });
         });
-        // (Mid-drag, panes of the same shape keep their sizes: no need to measure them again.)
-        if (!(holding && drawnPanes === panesShape)) sizePanes(doc);
+        // (Mid-drag, panes of the same shape keep their sizes: no need to measure them again. Laid from the chart, or the
+        // look on it, whose copy this is: a copy is no other chart, see panesLaid.)
+        if (!(holding && drawnPanes === panesShape)) sizePanes();
         drawnPanes = panesShape;
         view.applyOptions({ timeScale: { timeVisible: FINE.has(doc.index) } });
         // A chart opening comes back where it was left; at another interval, on the same time (on its preset, if it
@@ -14337,10 +14338,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The chart as ⌘K shows a look on it, while it does (sized as it shows). @type {Chart | null} */
       let lookDoc = null;
-      function sizePanes(doc = lookDoc ?? chart) {
+      /**
+       * The panes' sizes as last laid on them: which chart's (the chart itself: a new id is the same chart), on which of the
+       * library's panes, and theirs. Laid on again only as what's meant changes (another chart, other panes, other sizes,
+       * panes made anew) or asked again: sizes the panes took otherwise, a separator dragged, stay (put back each layout, a
+       * drag jumped back a frame at a time, and was lost if let go just then).
+       */
+      let panesLaid = { doc: /** @type {Chart | null} */ (null), meant: "", panes: /** @type {any[]} */ ([]), factors: /** @type {number[]} */ ([]) };
+      function sizePanes(doc = lookDoc ?? chart, again = false) {
         const panes = view.panes();
         if (!doc || panes.length !== doc.panes.length) return;
-        paneFactors(doc).forEach((factor, i) => Math.abs(panes[i].getStretchFactor() - factor) > 1e-6 && panes[i].setStretchFactor(factor));
+        const factors = paneFactors(doc), meant = `${doc.panes.map((pane) => pane.id).join()}|${factors.join()}`;
+        if (doc === panesLaid.doc && meant === panesLaid.meant && panes.every((pane, i) => pane === panesLaid.panes[i]) && !again) return;
+        panesLaid = { doc, meant, panes, factors };
+        factors.forEach((factor, i) => Math.abs(panes[i].getStretchFactor() - factor) > 1e-6 && panes[i].setStretchFactor(factor));
       }
       /** The first date anything shown has a value at (an index's first dates can hold none: the price's start in 2010). */
       let firstOf = { data: /** @type {Resolved | null} */ (null), key: "", first: 0 };
@@ -15204,18 +15215,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       resized.observe($("chart"));
       resized.observe($("navigator"));
-      // Pane separators resize panes; their sizes stay with the chart.
-      $("chart").addEventListener("pointerup", () => setTimeout(() => {
-        const panes = view.panes();
-        if (!settled() || panes.length !== chart.panes.length) return;
+      // Pane separators resize panes (the chart library's own drag); their sizes stay with the chart, kept as a pointer's
+      // let go (a moment later: the library's last move in), wherever: a release lost, the next one keeps them. Only the
+      // open chart's, drawn, no look on it: the panes on screen are its.
+      const keepPaneSizes = () => setTimeout(() => {
+        const panes = view.panes(), laid = panesLaid.factors;
+        if (lookDoc || !settled() || panesLaid.doc !== chart || panes.length !== chart.panes.length || panes.length !== laid.length || panes.some((pane, i) => pane !== panesLaid.panes[i])) return;
+        // (None dragged: as laid on.)
+        if (panes.every((pane, i) => Math.abs(pane.getStretchFactor() - laid[i]) <= 1e-6)) return;
         // (A folded pane dragged open goes back: it opens when a layer in it shows.)
-        const folded = foldedPanes(chart), meant = paneFactors(chart);
-        if (chart.panes.some((pane, i) => folded.has(pane.id) && Math.abs(panes[i].getStretchFactor() - meant[i]) > 1e-6)) return sizePanes();
-        const sizes = chart.panes.map((_, i) => Math.round(panes[i].getStretchFactor() * 100) / 100);
-        if (sizes.every((size, i) => folded.has(chart.panes[i].id) || size === Math.round((chart.panes[i].size ?? defaultSize(i)) * 100) / 100)) return;
+        const folded = foldedPanes(chart);
+        if (chart.panes.some((pane, i) => folded.has(pane.id) && Math.abs(panes[i].getStretchFactor() - laid[i]) > 1e-6)) return sizePanes(chart, true);
+        // (To a thousandth: laid on again, a size kept rounder would move the separator a pixel from where it was let go.)
+        const sizes = chart.panes.map((_, i) => Math.round(panes[i].getStretchFactor() * 1000) / 1000);
+        if (sizes.every((size, i) => folded.has(chart.panes[i].id) || size === Math.round((chart.panes[i].size ?? defaultSize(i)) * 1000) / 1000)) return;
         commit((doc) => doc.panes.forEach((pane, i) => !folded.has(pane.id) && (pane.size = sizes[i])), { redraw: "none", quiet: true });
+        // (Laid on as kept: what an undo puts back is then another size, laid on in its turn.)
+        sizePanes(chart);
         fitMargins();
-      }, 0));
+      }, 0);
+      addEventListener("pointerup", keepPaneSizes);
+      addEventListener("pointercancel", keepPaneSizes);
 
       /**
        * The values and changes shown again, once on the next frame however many moves ask in it (the crosshair's and the
