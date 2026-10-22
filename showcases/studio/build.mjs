@@ -1,4 +1,4 @@
-// Studio as one file: `node showcases/studio/build.mjs [out]` (out: dist/index.html, beside this). Its guide for
+// Studio as one file: `bun showcases/studio/build.mjs [out]` (out: dist/index.html, beside this). Its guide for
 // assistants is in it: its "About Studio's links", the page's own text.
 //
 // index.html stays as it is, the repo's: it imports the modules beside it and the client this code builds (it's the
@@ -237,7 +237,7 @@ await inFolder("bitview-page-", (parsing) => {
     const file = join(parsing, `script-${i}.${/type="module"/.test(attributes ?? "") ? "mjs" : "cjs"}`);
     writeFileSync(file, body);
     try {
-      execFileSync(process.execPath, ["--check", file], { stdio: ["ignore", "ignore", "pipe"] });
+      execFileSync(process.execPath, ["build", "--no-bundle", "--target=browser", file], { stdio: ["ignore", "ignore", "pipe"] });
     } catch (error) {
       throw new Error(`The page's script ${i} doesn't parse: ${String(error.stderr ?? "").trim().split("\n").filter(Boolean).slice(-2).join(" | ")}`);
     }

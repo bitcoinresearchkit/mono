@@ -1,5 +1,5 @@
 // Studio on Cloudflare, by its API alone (nothing to install): studio.bitview.space shows the page built last, deployed
-// by the build (or `node showcases/studio/deploy.mjs`), and only if its version names the commit as it is (nothing it
+// by the build (or `bun showcases/studio/deploy.mjs`), and only if its version names the commit as it is (nothing it
 // was built from changed since: a build with changes not committed isn't sent).
 //
 // A Worker of static files alone, the page (as the dashboard's upload makes one): its manifest sent, the page uploaded
@@ -37,7 +37,7 @@ export async function deploy(quiet = false) {
     if (quiet) return void console.log(`Not deployed: ${why}`);
     throw new Error(why);
   }
-  if (!existsSync(join(HERE, "dist", "index.html"))) throw new Error("Nothing built yet (node showcases/studio/build.mjs)");
+  if (!existsSync(join(HERE, "dist", "index.html"))) throw new Error("Nothing built yet (bun showcases/studio/build.mjs)");
   // (The page, and the files the build puts beside it for those who find it: see build.mjs.)
   const BESIDE = ["llms.txt", "sitemap.xml", "robots.txt", "og.png", "version.txt"], folder = join(HERE, "dist");
   const page = readFileSync(join(folder, "index.html"));

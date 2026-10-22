@@ -7232,8 +7232,9 @@
         }
 
         /* The header: the title, Undo (Keep in its place for a preview, Copy for a preset, till it's edited), Draw, Share
-           (its icon), ⋯ (Redo in it, a preset's Reset); "Saved" said elsewhere, taking no room from the title. */
-        #saved,
+           (its icon), ⋯ (Redo in it, a preset's Reset); "Saved" said elsewhere, taking no room from the title (not saved,
+           it stays: it lasts). */
+        #saved:not(.error),
         #preset-reset,
         .head-actions:has(#preview-note:not([hidden])):not(:has(#keep.edited)) #undo,
         .head-actions:has(#preset-note:not([hidden])):has(#preset-reset[hidden]) #undo {
@@ -9691,7 +9692,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         let was = NaN, since = -1;
         for (let i = 0; i < (values?.length ?? 0); i++) {
           const value = /** @type {ArrayLike<number>} */ (values)[i];
-          if (value !== value) continue;
+          // (None, or an infinity (a division by 0): a gap, nothing turned.)
+          if (!Number.isFinite(value)) continue;
           const state = value > 0 ? 1 : value < 0 ? -1 : 0;
           if (state === was) continue;
           if (was === was) out.push({ at: i, to: state, was, since });
@@ -9706,7 +9708,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * values, the chart's as drawn unless given (⌘K's preview, its own).
        * @param {Layer} layer @param {ArrayLike<number> | undefined} values @param {ArrayLike<number> | null | undefined} [own] (null: none)
        */
-      const marksOf = (layer, values, own = resolved?.results.get(layer.ref ?? "")?.values) => changesOf(values).flatMap((change) => (change.to || (layer.results && own && stretchResult(change, own) !== undefined) ? [change.at] : []));
+      const marksOf = (layer, values, own = resolved?.results.get(layer.ref ?? "")?.values) => {
+        // (As markSignals draws them: only where its layer has a value (above 0 on a log scale); shaded, its turns.)
+        const target = chart?.layers.find((item) => item.id === layer.ref), log = target ? modeOf(chart, target) === 1 : false;
+        if (layer.place === "shade") return changesOf(values).flatMap((change) => (change.to ? [change.at] : []));
+        // (Its layer without values (not loaded, failed): none drawn.)
+        if (!own) return [];
+        const drawn = (/** @type {number} */ i) => Number.isFinite(own[i]) && (!log || own[i] > 0);
+        return changesOf(values).flatMap((change) => (drawn(change.at) && (change.to || (layer.results && stretchResult(change, own) !== undefined)) ? [change.at] : []));
+      };
       /**
        * What a stretch a change ends made, by the layer it's marked on: that layer's change over it, up; the opposite, down
        * (the state was right: more); none for one of neither, one begun before a change, or a value there not above 0 (or
@@ -10152,7 +10162,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A formula's parts: numbers (a date written 2020-05-11, its time), layers by letter (`ref`), series by name, each
        * point's date (`date`, its time), and what combines them.
-       * @typedef {{ k: "num", v: number, unit?: string, text?: string } | { k: "ref", v: string } | { k: "series", v: string } | { k: "date" } | { k: "neg", a: Node } | { k: "bin", op: string, a: Node, b: Node } | { k: "call", f: string, args: Node[] }} Node
+       * @typedef {{ k: "num", v: number, unit?: string, text?: string, date?: true } | { k: "ref", v: string } | { k: "series", v: string } | { k: "date" } | { k: "neg", a: Node } | { k: "bin", op: string, a: Node, b: Node } | { k: "call", f: string, args: Node[] }} Node
        */
 
       /** @typedef {{ mean: Vector, variance: Vector, count: Vector, total: Vector }} WindowStats */
@@ -10453,7 +10463,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const hasFunction = (name) => Object.hasOwn(FUNCTIONS, name);
 
       /** A date in a formula: a year, a month, a day (2020-05-11). */
-      const DATE_TOKEN = /\s*(\d{4})-(\d{2})-(\d{2})(?![\w.])/y;
+      const DATE_TOKEN = /\s*(\d{4})-(\d{1,2})-(\d{1,2})(?![\w.])/y;
       const TOKEN = /\s*(?:((?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?)([a-z]\w*)?|([A-Z]{1,2})(?![A-Za-z0-9_])|([a-z_][a-z0-9_]*)|([<>]=?|[=!]=|[-+*/^(),&|]))/y;
       /** A formula that only isn't finished yet (more to type, not a mistake). */
       const unfinished = (/** @type {string} */ message) => Object.assign(new Error(message), { unfinished: true });
@@ -10471,7 +10481,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             at.setUTCFullYear(year, month - 1, date);
             const time = at.getTime();
             if (at.getUTCFullYear() !== year || at.getUTCMonth() !== month - 1 || at.getUTCDate() !== date) throw new Error(`${day[0].trim()} isn't a date: a year, a month, a day (2020-05-11)`);
-            tokens.push({ t: "num", v: time / 1000, text: day[0].trim() });
+            tokens.push({ t: "num", v: time / 1000, text: day[0].trim(), date: true });
             index = DATE_TOKEN.lastIndex;
             continue;
           }
@@ -10511,7 +10521,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         function primary() {
           const token = tokens[at++];
           if (!token) throw unfinished("The formula ends too early");
-          if (token.t === "num") return token.unit ? { k: "num", v: token.v, unit: token.unit, text: token.text } : { k: "num", v: token.v };
+          if (token.t === "num") return token.unit ? { k: "num", v: token.v, unit: token.unit, text: token.text } : token.date ? { k: "num", v: /** @type {number} */ (token.v), date: true } : { k: "num", v: token.v };
           if (token.t === "ref") return { k: "ref", v: token.v };
           if (token.t === "id") {
             // A name with arguments is a function; alone, it's a series, by its name on Bitview.
@@ -10554,7 +10564,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // parentheses, compared, is meant: (A > 1) > 0.)
             if (COMPARES.has(String(token.v)) && compared) throw new Error("Join comparisons with & or |: A > 1 & A < 3");
             compared = COMPARES.has(String(token.v));
-            left = { k: "bin", op: token.v, a: left, b: expression(token.v === "^" ? precedence : precedence + 1) };
+            const a = left, b = expression(token.v === "^" ? precedence : precedence + 1);
+            // (A date compared with a bare number (date >= 2020: seconds since 1970) is a date written short.)
+            if (COMPARES.has(String(token.v)) && [[a, b], [b, a]].some(([one, other]) => one.k === "date" && other.k === "num" && !other.date && !other.unit)) throw unfinished("Compare date with a date, written 2020-05-01");
+            left = { k: "bin", op: token.v, a, b };
           }
         }
         const node = expression(0);
@@ -10702,7 +10715,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * letter with no layer, an unknown function or a series Bitview doesn't have (`missing`) marked.
        */
       function highlightFormula(source, colorOf, missing = (_name) => false) {
-        const pattern = /(\d{4}-\d{2}-\d{2}(?![\w.])|(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?(?:(?:mo|[hdwy])(?![a-z0-9_]))?)|([A-Z]{1,2})(?![A-Za-z0-9_])|([a-z_][a-z0-9_]*)|([<>≥≤]=?|[=!]=|[-+*/^(),×·÷−–&|≠])/g;
+        const pattern = /(\d{4}-\d{1,2}-\d{1,2}(?![\w.])|(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?(?:(?:mo|[hdwy])(?![a-z0-9_]))?)|([A-Z]{1,2})(?![A-Za-z0-9_])|([a-z_][a-z0-9_]*)|([<>≥≤]=?|[=!]=|[-+*/^(),×·÷−–&|≠])/g;
         let html = "", last = 0;
         for (const match of source.matchAll(pattern)) {
           html += escape(source.slice(last, match.index));
@@ -10957,6 +10970,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const asideDirty = new WeakSet();
       /** A preview changed: marked edited, kept aside. @param {Chart} doc */
       const touchPreview = (doc) => void (touched.add(doc), asideDirty.add(doc));
+      /**
+       * A preview a link opened, kept aside as it is (marked not edited): its link's gone from the address bar once read,
+       * so a reload, or a tab the phone put away, finds it again (till it's kept or closed). @param {Chart} doc
+       */
+      const keepAsideOpened = (doc) => void (isPreview(doc) && !drafts.has(doc) && (asideDirty.add(doc), save()));
 
       /** Drops empty panes, keeps every layer on a pane, keeps letters unique, draws layers pane by pane. @param {Chart} doc */
       function normalize(doc) {
@@ -11095,6 +11113,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return false;
         }
       })());
+      /** Why nothing's saved here, if it isn't: a newer Studio's library ("newer"), one this can't read ("unreadable"), storage full ("full"). */
+      let unsavedWhy = !readOnly ? "" : Number(/** @type {any} */ (library)?.schema) > SCHEMA ? "newer" : "unreadable";
       if (!Array.isArray(library?.charts)) library = { charts: [], active: "", folders: [], order: [], presets: [], deleted: {} };
       /** The sidebar's order as stored, read: its keys, once each. */
       const orderOf = (/** @type {any} */ stored) => [...new Set((Array.isArray(stored) ? stored : []).filter((key) => typeof key === "string" && /^[fc]:[a-z0-9]{1,16}$/.test(key)))];
@@ -11129,7 +11149,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const aside = storage.get(UNREAD, []);
           const list = (Array.isArray(aside) ? aside : []).filter((item) => (stored?.id ? item?.id !== stored.id : JSON.stringify(item) !== JSON.stringify(stored)));
           // (Not set aside: the library stays as stored, read-only, rather than lose it at the next save.)
-          if (!storage.set(UNREAD, [...list, stored])) readOnly = true;
+          if (!storage.set(UNREAD, [...list, stored])) (readOnly = true), (unsavedWhy = "full");
           console.error(`A saved chart couldn't be read; it's kept under "${UNREAD}" in this browser's storage.`, error);
           return [];
         }
@@ -11266,8 +11286,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (history.state?.chart === old) history.replaceState({ ...history.state, chart: id }, "");
         // (Edited, kept aside under its new id, and its copy under the old one let go of once that's written (another
         // tab's later one stays).)
-        if (touched.has(doc)) asideDirty.add(doc);
-        if (touched.has(doc) && isPreview(doc)) keptPreviews.set(old, doc.updated);
+        if (touched.has(doc) || (isPreview(doc) && !drafts.has(doc))) asideDirty.add(doc);
+        if (isPreview(doc) && !drafts.has(doc)) keptPreviews.set(old, doc.updated);
       };
       /** A link that couldn't be read, left in the address bar to be put right (until another chart's opened). */
       let brokenLink = "";
@@ -11486,7 +11506,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const stored = JSON.parse(text);
           // (Another tab's, newer or unreadable here: kept, and none of this one's saved over it.)
           if (!(Number(stored?.schema) > SCHEMA) && Array.isArray(stored?.charts)) return stored;
-        } catch {}
+          unsavedWhy ||= Number(stored?.schema) > SCHEMA ? "newer" : "unreadable";
+        } catch {
+          unsavedWhy ||= "unreadable";
+        }
         readOnly = true;
         return null;
       }
@@ -11504,11 +11527,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The arrangement this one's only if it changed it since it last wrote or took one in: else theirs, as it's
         // taken in when heard (an edit's save here doesn't roll back a folder renamed or a chart moved there).)
         if (stored) reconcile(stored, arrangedNow() !== arrangedAs, true);
-        if (readOnly) {
-          if (!readOnlyTold) notice("Read-only: these charts were saved by a newer Studio, or in a form this one can't read. Reload to keep changes", { label: "Reload", run: () => location.reload() });
-          readOnlyTold = true;
-          return false;
-        }
+        if (readOnly) return false;
         // (A deletion the chart open here still stands under kept past its month: else it'd be saved back.)
         const pruned = deletedOf(library.deleted);
         for (const doc of [...library.charts, ...library.presets]) if (isDeleted(doc)) pruned[doc.id] = library.deleted[doc.id];
@@ -11522,7 +11541,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         let aside = true;
         if (mine.length) {
           const merged = new Map(previewsAside().map((doc) => [doc.id, doc]));
-          for (const doc of mine) if (!((merged.get(doc.id)?.updated ?? -Infinity) > doc.updated)) merged.set(doc.id, doc);
+          // (One not edited (a link's, as it came): marked so, a preview again as it was, not an edited one.)
+          for (const doc of mine) if (!((merged.get(doc.id)?.updated ?? -Infinity) > doc.updated)) merged.set(doc.id, touched.has(doc) ? doc : /** @type {any} */ ({ ...doc, untouched: true }));
           aside = storage.set(PREVIEW_ASIDE, [...merged.values()]) || (storage.drop(PREVIEWS, THUMBS), storage.set(PREVIEW_ASIDE, [...merged.values()]));
           if (aside) for (const doc of mine) asideDirty.delete(doc);
         }
@@ -11547,7 +11567,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return ok && aside;
       }
-      let readOnlyTold = false;
+      /** When what isn't saved was last said (see tellUnsaved). */
+      let unsavedToldAt = -Infinity;
+      /**
+       * What isn't saved, said with a way to keep it (a notice, at most once a minute while it lasts: an edit's, where the
+       * header's word isn't seen too): read-only, its edits a download away (to import once reloaded); one this can't
+       * read, it as stored; storage full, the charts.
+       */
+      function tellUnsaved() {
+        if (Date.now() - unsavedToldAt < 60_000) return;
+        unsavedToldAt = Date.now();
+        const why = readOnly ? unsavedWhy : "full";
+        if (why === "unreadable") return notice("Your saved charts can't be read here: changes can't be saved, and they're kept as they are", { label: "Download", run: () => (downloadStored(), downloadAll(true)) });
+        notice(why === "newer" ? "A newer Studio saved your charts: changes here can't be saved. Download them, then reload" : "Not saved: storage is full or blocked. Download your charts to keep them", { label: "Download", run: () => downloadAll(true) });
+      }
+      /** The library as stored, as it is (one this can't read): a file of it. */
+      function downloadStored() {
+        let stored = "";
+        try {
+          stored = localStorage.getItem(STORE) ?? "";
+        } catch {}
+        if (!stored) return notice("Nothing stored to download");
+        download(`bitview-charts-as-stored-${new Date().toLocaleDateString("en-CA")}.json`, new Blob([stored], { type: "application/json" }));
+      }
       /** What's being typed where it shows (a drawing's text or label, a name), kept now: before a save, a page left. */
       function flushEdits() {
         endTyping();
@@ -11571,14 +11613,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function written(/** @type {boolean} */ ok, /** @type {boolean} */ announced) {
         const saved = $("saved");
         unsaved = !ok && !readOnly;
-        if (readOnly) return;
         if (ok && !announced && !saved.classList.contains("error")) return;
-        saved.textContent = ok ? "Saved" : "Not saved: storage full or blocked";
+        // (Not saved, read-only too: said in the header for as long as it lasts, and in a notice with a way to keep it.)
+        saved.textContent = ok ? "Saved" : readOnly ? "Read-only: not saved" : "Not saved";
         saved.classList.toggle("error", !ok);
         if (ok) saved.removeAttribute("role");
         else saved.setAttribute("role", "alert");
-        // (Where the header's word isn't seen (the grid, a phone's header), said in a notice.)
-        if (!ok && !saved.checkVisibility({ visibilityProperty: true })) notice("Not saved: storage full or blocked");
+        if (!ok) tellUnsaved();
         saved.classList.remove("fade");
         void saved.offsetWidth;
         clearTimeout(savedTimer);
@@ -11858,6 +11899,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A view that reads as dates: at a known interval, its edges (their bars counted) within the calendar. */
       function isView(/** @type {any} */ view) {
         if (!view || !Object.hasOwn(INTERVAL_LABEL, view.index) || !isEdge(view.from) || !isEdge(view.to)) return false;
+        if (view.latest !== undefined && !(Array.isArray(view.latest) && view.latest.length === 2 && view.latest.every(Number.isFinite))) return false;
         try {
           const { start, end } = viewTimes(view);
           return Math.abs(start) < 1e11 && Math.abs(end) < 1e11;
@@ -11865,7 +11907,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return false;
         }
       }
-      /** @returns {{ index: string, from: [number, number], to: [number, number] } | null} */
+      /**
+       * Left at the latest, `latest` is its edges by the bars from the last (its right edge on it or past it).
+       * @returns {{ index: string, from: [number, number], to: [number, number], latest?: [number, number] } | null}
+       */
       function leftView(id) {
         const left = viewsNow()[id];
         // (Its time kept aside: the view alone, as a link or a picture's key takes it.)
@@ -11921,6 +11966,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * date both intervals have, at the same place: its label doesn't move).
        */
       function viewOn(left, index, times) {
+        // (Left at the latest (its right edge on the last bar, or past it): at the latest again, bars come since or not,
+        // as wide, as far past it. At its interval, by its bars from the last (its times may be before the chunks loaded
+        // now); at another, placed by the calendar: up to the last.)
+        if (left.latest && left.index === index) return { from: times.length - 1 + left.latest[0], to: times.length - 1 + left.latest[1] };
+        const view = viewAsLeft(left, index, times), shift = left.latest ? Math.max(0, times.length - 1 - view.to) : 0;
+        return shift > 0 ? { from: view.from + shift, to: view.to + shift } : view;
+      }
+      /** A kept view as it was left, on the points at `index` (see viewOn). */
+      function viewAsLeft(left, index, times) {
         if (left.index === index) return { from: logicalOf(left.from, times, index), to: logicalOf(left.to, times, index) };
         const { start, end } = viewTimes(left), last = /** @type {number} */ (times.at(-1)), lastIndex = indexAt(index, last);
         // A moment's place: on the data, between the point at or before it and the next; past it, counted by the calendar
@@ -11980,7 +12034,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const range = (asDrawn && glideTarget) || view.timeScale().getVisibleLogicalRange();
         const all = viewsNow();
         if (presetShown || !range) delete all[chart.id];
-        else all[chart.id] = { index: drawnIndex, from: edgeOf(range.from, times), to: edgeOf(range.to, times), at: Date.now() };
+        // (At the latest only where its data is: a fine interval's chunks loaded may end in the past.)
+        else all[chart.id] = { index: drawnIndex, from: edgeOf(range.from, times), to: edgeOf(range.to, times), ...(range.to > times.length - 1.5 && drawnLive ? { latest: [range.from - (times.length - 1), range.to - (times.length - 1)] } : {}), at: Date.now() };
         putViews(all);
       }
       onLeave(saveView);
@@ -12094,6 +12149,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (closedToast === shown) hideToast();
         leaveHome(() => {
           addPreview(shown);
+          keepAsideOpened(shown);
           if (shown === chart) (drawnChart = ""), autoPrepare(shown), refresh(true, true);
           else openChart(shown);
         }, null, push);
@@ -12130,7 +12186,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The preview the toast up says was closed (its Undo brings it back). @type {Chart | null} */
       let closedToast = null;
       /** The previews kept aside, this tab's and others'. @returns {Chart[]} */
-      const previewsAside = () => ((stored) => (Array.isArray(stored) ? stored : []))(storage.get(PREVIEW_ASIDE, null));
+      const previewsAside = () => ((stored) => (Array.isArray(stored) ? stored.filter((doc) => typeof doc?.id === "string") : []))(storage.get(PREVIEW_ASIDE, null));
       /** Previews kept, by their ids aside (and when last edited): let go of there once saved with your charts (see persist). @type {Map<string, number>} */
       const keptPreviews = new Map();
       /** An aside copy that's another tab's later one than `updated` (edited there since): kept, as theirs. */
@@ -12650,8 +12706,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const left = leftView(doc.id);
           if (left) {
             const { start, end } = viewTimes(left), most = left.index === doc.index ? MOST_CHUNKS : FIRST_CHUNKS;
-            const to = clamp(chunkAt(doc.index, end), 0, latest);
-            const from = clamp(chunkAt(doc.index, start), Math.max(0, to - most + 1), to);
+            // (Left at the latest: the latest chunks, from its start as late as the time come since its end.)
+            const to = left.latest ? latest : clamp(chunkAt(doc.index, end), 0, latest), since = left.latest ? Math.max(0, Date.now() / 1000 - end) : 0;
+            const from = clamp(chunkAt(doc.index, start + since), Math.max(0, to - most + 1), to);
             span = { from, to, live: to >= latest };
           } else span = presetSpan(doc.index, doc.range);
           spans.set(key, span);
@@ -13342,6 +13399,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const fineDrawn = () => FINE.has(shownIndex());
       let drawnRange = "";
       let drawnChart = "";
+      /** Whether the data on screen reaches the latest bar (a fine interval's chunks may end in the past). */
+      let drawnLive = true;
       /** Who waits for the chart to be drawn (see settle): woken as it is. @type {Set<() => void>} */
       const drawnWaiters = new Set();
       /** The chart as it was last drawn (a ⌘K preview's, while one shows): the live price paints its colors from it. @type {Chart | null} */
@@ -13405,7 +13464,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Another chart's, loading: the one before out of sight meanwhile, its lines and legend not under the words.)
         $("chart").classList.toggle("waiting", showLoading && first);
         if (showLoading) $("unreached").hidden = true;
-        // Data from memory, asked before the latest block: its tails come again.
+        // Data from memory, asked before the latest block: its tails come again. (Its span as asked: what it reaches.)
+        const live = !FINE.has(doc.index) || spanOf(doc)?.live !== false;
         const result = await resolve(doc, fresh || stale(doc));
         if (version !== drawVersion) return false;
         $("loading").hidden = true;
@@ -13432,6 +13492,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         glideScales(held);
         drawnChart = doc.id;
         drawnVersion = version;
+        drawnLive = live;
         for (const wake of [...drawnWaiters]) wake();
         // (Auto: its view drawn, the interval it asks for looked at once it rests.)
         if (chart.auto) rest();
@@ -24463,14 +24524,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (meta && !datedIntervals(meta).length) return void blockOnly(name, (day) => addSeries(day, { newPane, pane: into }));
         const unit = meta ? unitOf(meta.type) : units.get(name) ?? "number";
         units.set(name, unit);
+        // (A pane of its own wanted, every pane taken and the last a stack (where it would go): said, not summed into it.)
+        const own = into ? null : newPane || !chart.layers.length ? undefined : chart.panes.find((candidate) => !candidate.stack && chart.layers.some((layer) => layer.pane === candidate.id && unitFor(layer, resolved?.results.get(layer.id)) === unit));
+        if (!into && !own && chart.layers.length && chart.panes.length >= MAX_PANES && chart.panes.at(-1)?.stack) return void notice(`A chart holds up to ${MAX_PANES} panes, the last a stack: add it to a pane from ⌘K's Actions`);
         let added;
         commit((doc) => {
           const look = firstLook(name, new Set(doc.layers.map((layer) => layer.color)));
-          let pane = into ? doc.panes.find((candidate) => candidate.id === into) : newPane || !doc.layers.length ? undefined : doc.panes.find((candidate) => doc.layers.some((layer) => layer.pane === candidate.id && unitFor(layer, resolved?.results.get(layer.id)) === unit));
+          let pane = into ? doc.panes.find((candidate) => candidate.id === into) : newPane || !doc.layers.length ? undefined : doc.panes.find((candidate) => !candidate.stack && doc.layers.some((layer) => layer.pane === candidate.id && unitFor(layer, resolved?.results.get(layer.id)) === unit));
           const sibling = pane && doc.layers.find((layer) => layer.pane === pane.id && unitFor(layer, resolved?.results.get(layer.id)) === unit);
+          // (One of its unit stacked: not summed into it unasked, a pane of its own. A chart emptied: its pane as new.)
           if (!pane) {
             pane = doc.layers.length ? newPaneIn(doc) : doc.panes[0];
-            if (!doc.layers.some((layer) => layer.pane === pane.id)) pane.mode = unit === "usd" ? 1 : 0;
+            if (!doc.layers.some((layer) => layer.pane === pane.id)) (pane.mode = unit === "usd" ? 1 : 0), delete pane.stack;
           }
           added = makeLayer({ series: name, pane: /** @type {Pane} */ (pane).id, side: sibling?.side ?? "right", ...look }, doc);
           doc.layers.push(added);
@@ -26431,10 +26496,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return listPage("Times marked", () => {
           const layer = layerById(id), values = layer && resolved?.results.get(id)?.values, on = layer?.ref ? layerById(layer.ref) : null, own = on ? resolved?.results.get(on.id)?.values : undefined;
           if (!layer || !values || !resolved) return [];
-          const times = resolved.times, changes = changesOf(values), signed = changes.some((change) => change.to < 0 || change.was < 0);
+          const times = resolved.times, changes = changesOf(values), signed = changes.some((change) => change.to < 0 || change.was < 0), marked = new Set(marksOf(layer, values));
           return changes.flatMap((change) => {
-            const i = change.at, result = layer.results && own ? stretchResult(change, own) : undefined;
-            if (!change.to && result === undefined) return [];
+            const i = change.at, result = layer.results && own && layer.place !== "shade" ? stretchResult(change, own) : undefined;
+            if (!marked.has(i)) return [];
             const said = [change.to < 0 ? "Down" : change.to > 0 ? (signed ? "Up" : "") : "Off", result === undefined ? "" : resultText(result), on ? `${labelOf(on)} ${format(valueAt(on, { at: i, rest: false }), unitFor(on, resolved?.results.get(on.id)))}` : ""].filter(Boolean);
             return [{ key: `at:${times[i]}`, icon: ICONS.calendar, label: dateLabel(times[i], fineDrawn()), aside: said.join(" · ") || undefined, run: () => goToTime(times[i]) }];
           }).reverse();
@@ -28074,7 +28139,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (button?.getAttribute("aria-disabled") === "true") notice(`${button.textContent} is more than fits at ${INTERVAL_LABEL[chart.index]}`);
         else if (button) setRange(/** @type {string} */ (button.dataset.range));
       });
-      $("title").addEventListener("input", (event) => commit((doc) => (doc.title = event.target.value), { coalesce: "title", redraw: "none" }));
+      $("title").addEventListener("input", (event) => (fitTitle(), commit((doc) => (doc.title = event.target.value), { coalesce: "title", redraw: "none" })));
+      /**
+       * The title as wide as it reads, its text or what it'd be named (up to its room), where the field can't size itself
+       * (Safari, Firefox: no field-sizing).
+       */
+      function fitTitle() {
+        if (CSS.supports("field-sizing", "content")) return;
+        const field = /** @type {HTMLInputElement} */ ($("title")), style = getComputedStyle(field), text = field.value || field.placeholder;
+        measure.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+        const spacing = parseFloat(style.letterSpacing) || 0;
+        field.style.width = `${Math.ceil(measure.measureText(text).width + spacing * text.length + parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)) + 2}px`;
+      }
+      // (Its font come late, measured again.)
+      document.fonts.addEventListener("loadingdone", fitTitle);
       // A title is trimmed once it's done: stray spaces don't make a name.
       $("title").addEventListener("blur", (event) => {
         // (Only what was typed: one focused and left as it was isn't an edit (another tab's rename, taken in meanwhile, stays).)
@@ -28366,7 +28444,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const carried = input?.view;
         if (!isView(carried)) return;
         const all = viewsNow();
-        all[doc.id] = { index: carried.index, from: carried.from, to: carried.to, at: Date.now() };
+        all[doc.id] = { index: carried.index, from: carried.from, to: carried.to, ...(carried.latest ? { latest: carried.latest } : {}), at: Date.now() };
         putViews(all);
       }
       /** A chart's content, ids aside (a file or a link gets new ones): panes in order, layers by their pane's place, keys sorted. */
@@ -28770,11 +28848,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether there's anything Download all would take: your charts, the presets as edited, those kept aside. */
       const anythingKept = () => library.charts.length > 0 || library.folders.length > 0 || library.presets.some(presetEdited) || asideCount() > 0;
       /** All the charts in one file, every folder with them (an empty one too), the presets as edited, and those kept aside, as they were. */
-      function downloadAll() {
-        const aside = keptAside(), edited = library.presets.filter(presetEdited);
-        if (!library.charts.length && !library.folders.length && !aside.length && !edited.length) return notice("No charts yet");
-        download(`bitview-charts-${new Date().toLocaleDateString("en-CA")}.json`, chartsFile(library.charts, library.folders, aside, edited));
-        toast(`Downloaded ${plural(library.charts.length, "chart")}${library.folders.length ? ` and ${plural(library.folders.length, "folder")}` : ""}${edited.length ? `, ${plural(edited.length, "edited preset")}` : ""}${aside.length ? `, and ${aside.length} kept aside` : ""}, in one file`);
+      /** Every chart of yours, its folders, the edited presets (`rescue`: what isn't saved, its previews too) in a file. */
+      function downloadAll(rescue = false) {
+        const aside = keptAside(), edited = library.presets.filter(presetEdited), charts = rescue ? [...library.charts, ...listedPreviews()] : library.charts;
+        if (!charts.length && !library.folders.length && !aside.length && !edited.length) return notice("No charts yet");
+        download(`bitview-charts-${new Date().toLocaleDateString("en-CA")}.json`, chartsFile(charts, library.folders, aside, edited));
+        toast(`Downloaded ${plural(charts.length, "chart")}${library.folders.length ? ` and ${plural(library.folders.length, "folder")}` : ""}${edited.length ? `, ${plural(edited.length, "edited preset")}` : ""}${aside.length ? `, and ${aside.length} kept aside` : ""}, in one file`);
       }
       function downloadChart(/** @type {Chart} */ doc) {
         download(fileName("json", doc), new Blob([JSON.stringify(portable(doc), null, 2)], { type: "application/json" }));
@@ -29431,6 +29510,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         renderChartPath();
         // (Untitled, what it's called meanwhile: in the field, the one it'd be named.)
         $("title").placeholder = derivedTitle(chart);
+        fitTitle();
         syncUndo();
         renderInterval();
         renderRanges();
@@ -30626,14 +30706,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const stored = previewsAside(), kept = (/** @type {any} */ doc) => library.charts.find((item) => item.id === doc.id);
         const unsaved = stored.filter((doc) => !kept(doc) || laterAside(doc, /** @type {Chart} */ (kept(doc)).updated)).map((doc) => (kept(doc) ? { ...doc, id: uid() } : doc));
         if (unsaved.length < stored.length || unsaved.some((doc, i) => doc !== stored[i])) unsaved.length ? storage.set(PREVIEW_ASIDE, unsaved) : storage.drop(PREVIEW_ASIDE);
-        const setAside = unsaved.flatMap(restore);
-        for (const doc of setAside) touched.add(doc), previewCharts.push(doc);
+        const setAside = unsaved.flatMap((record) => restore(record).map((doc) => ((/** @type {any} */ (record)?.untouched === true || touched.add(doc)), doc)));
+        for (const doc of setAside) previewCharts.push(doc);
         if (shared) {
           const like = !library.charts.includes(shared) && previewLike(shared);
           if (like) (like.range = shared.range), takeView(shared.id, like.id);
           if (like && toastOfPreview === shared) toastOfPreview = like;
           chart = like || shared;
-          if (!library.charts.includes(chart)) addPreview(chart);
+          if (!library.charts.includes(chart)) addPreview(chart), keepAsideOpened(chart);
         }
         // (Charts another tab saved while this one was starting: the first of them, as a library's first is.)
         chart ??= chartById(library.active) ?? library.charts[0] ?? setAside[0];
