@@ -10460,8 +10460,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return [];
         }
       }
-      /** A formula with a series renamed (as a series: a function of the same name stays). */
-      const renamed = (formula, from, to) => formula.replace(new RegExp(`(?<![A-Za-z0-9_])${from}(?![A-Za-z0-9_])(?!\\s*\\()`, "g"), to);
+      /** A formula with its series renamed (`names`: old to new), all at once (as series: a function of the same name stays). */
+      const renamed = (/** @type {string} */ formula, /** @type {Map<string, string>} */ names) => (names.size ? formula.replace(new RegExp(`(?<![A-Za-z0-9_])(${[...names.keys()].join("|")})(?![A-Za-z0-9_])(?!\\s*\\()`, "g"), (name) => /** @type {string} */ (names.get(name))) : formula);
 
       const KEEPS_UNIT = new Set(["sma", "ema", "sum", "stdev", "sd", "median", "percentile", "highest", "lowest", "lag", "diff", "abs", "macd", "macd_signal", "macd_hist"]);
       /** Functions whose result is a percent, whatever their input's unit. */
@@ -10844,14 +10844,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const layer of doc.layers) {
           if (layer.formula === undefined) continue;
           /** @type {Record<string, string>} */
-          const paths = {};
+          const paths = {}, names = new Map();
           for (const name of seriesNamed(layer.formula)) {
             const path = layer.paths?.[name], current = path ? nameAt(path) : null;
             if (current && path) {
-              if (current !== name) layer.formula = renamed(layer.formula, name, current);
+              if (current !== name) names.set(name, current);
               paths[current] = path;
             } else if (catalogIndex?.has(name)) paths[name] = /** @type {string} */ (catalogIndex.get(name));
           }
+          // (All at once: one renamed to another's old name isn't renamed again.)
+          layer.formula = renamed(layer.formula, names);
           if (Object.keys(paths).length) layer.paths = paths;
           else delete layer.paths;
         }
@@ -12544,6 +12546,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const DAILY = (/** @type {string} */ name) => ((unit) => ["24h", "sum_24h", "avg_24h"].flatMap((end) => [`${name}_${end}`, ...(unit ? [`${unit[1]}_${end}_${unit[2]}`] : [])]))(/^(.*)_(usd|btc)$/.exec(name));
       /** Why a series by block isn't charted, said one way everywhere. */
       const BY_BLOCK = "By block only: Studio charts by date";
+      /** A series of text (a date, a hash, an address), said: its values aren't numbers. */
+      const TEXT_VALUES = "Its values are text (a date, a hash, an address), not numbers to chart";
+      /** Whether a series' data is text: its first value a string, or an object that isn't a candle. @param {{ data: any[] }} data */
+      const isText = (data) => ((value) => typeof value === "string" || (typeof value === "object" && value !== null && !Array.isArray(value)))(data.data.find((value) => value !== null && value !== undefined));
       /**
        * A series by block, by its day (its own over 24 hours, their sum, their average; before a unit it ends in, as
        * fees_usd's is fees_sum_24h_usd), if Bitview has one; else null.
@@ -12661,6 +12667,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             results.set(layer.id, { unit: units.get(layer.series) ?? "number", error: blocked ? "By block only" : failure(error, doc.index), ...(blocked ? { detail: BY_BLOCK } : {}), info: meta, unavailable: Boolean(error?.unavailable), missing: error?.status === 404 });
             continue;
           }
+          if (isText(data)) {
+            results.set(layer.id, { unit: "number", error: "Text, not numbers", detail: TEXT_VALUES, info: meta });
+            continue;
+          }
           // (The same result while the frame and what Bitview says of the series are: the chart keeps its series.)
           const before = frame.series.get(layer.series);
           if (before?.info === meta) results.set(layer.id, before);
@@ -12676,6 +12686,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const name of named) {
           const { meta, data, error } = fetched.get(name);
           if (error) bySeries.set(name, { unit: units.get(name) ?? "number", error: error?.unavailable && meta && !datedIntervals(meta).length ? "By block only" : failure(error, doc.index) });
+          else if (isText(data)) bySeries.set(name, { unit: "number", error: "Text, not numbers" });
           else {
             const { values } = align(data);
             bySeries.set(name, { values, unit: unitOf(meta.type) });
@@ -24193,11 +24204,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         toast(`Added ${formula} as ${added.letter}, marked on ${((on) => (on ? labelOf(on) : "no layer"))(layerById(added.ref ?? ""))}`, editAdded(added));
       }
       /** A formula as a layer, in a new pane (or `pane`), selected. @param {string | null} [pane] */
-      function addFormulaLayer(formula, pane = null) {
+      /** A formula as a layer: in `pane` (on `side`, its layer's it's made from), else in a new one. */
+      function addFormulaLayer(formula, pane = null, side = /** @type {string | null} */ (null)) {
         if (!roomFor(chart)) return;
         let added;
         commit((doc) => {
-          added = makeLayer({ formula, pane: pane && doc.panes.some((item) => item.id === pane) ? pane : newPaneIn(doc).id }, doc);
+          const kept = pane && doc.panes.some((item) => item.id === pane);
+          added = makeLayer({ formula, pane: kept ? pane : newPaneIn(doc).id, ...(kept && side ? { side } : {}) }, doc);
           doc.layers.push(added);
         });
         if (!added) return;
@@ -24335,7 +24348,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function derive(/** @type {string} */ id, /** @type {string} */ starter) {
         const source = layerById(id);
         if (!source) return;
-        if (starter === "own") return openPalette({ formula: true, into: source.pane, query: source.letter });
+        if (starter === "own") return openPalette({ formula: true, into: source.pane, query: source.letter, side: source.side });
         const formulas = (STARTERS.find((item) => item.id === starter)?.formulas ?? []).map((text) => text.replaceAll("X", source.letter));
         if (!formulas.length) return;
         if (chart.layers.length + formulas.length > MAX_LAYERS) return void notice(`A chart holds up to ${MAX_LAYERS} layers`);
@@ -24465,7 +24478,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 had.indexes = [...new Set([...had.indexes, ...node.indexes])];
                 continue;
               }
-              described.set(node.name, typeof node.description === "string" ? node.description : "");
+              // (A text (a date, a hash, an address) or an object isn't a value to chart: not searched for (one added says so).)
+              const text = node.type === "string" || node.type === "object";
+              if (!text) described.set(node.name, typeof node.description === "string" ? node.description : "");
               // (Its type as the API's info says it, "Dollars", "Sats": the catalog's kind; its "type" is the JSON one.)
               about.set(node.name, { description: typeof node.description === "string" ? node.description : "", indexes: node.indexes, type: typeof node.kind === "string" ? node.kind : "" });
             } else if (node && typeof node === "object") for (const child of Object.values(node)) stack.push(child);
@@ -24685,7 +24700,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * What ⌘K's doing: browsing everything; adding a series (`into` a pane chosen beforehand: its id, or "new", each into a
        * new one); replacing a `layer`'s series; a formula, added (`into` a pane) or a layer's own, `editing`.
-       * @typedef {{ kind: "browse" } | { kind: "add", into: string | null } | { kind: "replace", layer: string } | { kind: "formula", editing: string | null, into: string | null, signal?: boolean }} PaletteOp
+       * @typedef {{ kind: "browse" } | { kind: "add", into: string | null } | { kind: "replace", layer: string } | { kind: "formula", editing: string | null, into: string | null, signal?: boolean, side?: string | null }} PaletteOp
        */
       const palette = {
         path: /** @type {string[]} */ ([]),
@@ -24786,7 +24801,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * swapped; `formula`: a formula to add (`into` a pane) or, `editing`, a formula layer's own; `query` starts the
        * search, `path` the folder it opens on and `landOn` the row; `resume`: back where it was put away, if it can be.
        */
-      function openPalette({ add = false, replace = null, query = "", formula = false, editing = /** @type {string | null} */ (null), into = /** @type {string | null} */ (null), path = /** @type {string[] | null} */ (null), landOn = /** @type {string | null} */ (null), resume = false, typing = false, signal = false } = {}) {
+      function openPalette({ add = false, replace = null, query = "", formula = false, editing = /** @type {string | null} */ (null), into = /** @type {string | null} */ (null), path = /** @type {string[] | null} */ (null), landOn = /** @type {string | null} */ (null), resume = false, typing = false, signal = false, side = /** @type {string | null} */ (null) } = {}) {
         // (Resumed only where it was browsing: adding, replacing or a formula start again.)
         const spot = resume && putAway?.browsing && (putAway.anywhere ? Date.now() - putAway.at < 600_000 : putAway.chart === chart.id && putAway.home === home && Date.now() - putAway.at < 90_000) ? putAway.state : null;
         // (Adding to a chart with no room: said now, not once a series is picked.)
@@ -24798,7 +24813,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const back = add && !query && addedFrom?.chart === chart.id ? addedFrom : null;
         Object.assign(palette, spot ?? { pages: [], root: {}, query, path: path ?? (back ? back.path.slice() : []), landOn: landOn ?? back?.key ?? null });
         paletteShown = null;
-        palette.op = replace ? { kind: "replace", layer: replace } : formula ? { kind: "formula", editing, into, signal } : add ? { kind: "add", into } : { kind: "browse" };
+        palette.op = replace ? { kind: "replace", layer: replace } : formula ? { kind: "formula", editing, into, signal, side } : add ? { kind: "add", into } : { kind: "browse" };
         const dialog = $("palette"), input = $("palette-input");
         if (!dialog.open) (trailDrawn = ""), dialog.removeAttribute("data-half");
         // (By touch, opened with the focus on ⌘K, not its field: no keyboard till it's tapped. Opened by a tap on a search
@@ -25324,15 +25339,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (problem) return notice(problem);
         if (keep && !palette.editing && !asSignal(text)) {
           // Added, and the formula stays, selected, to write the next one.
-          addFormulaLayer(text, pane === "new" ? null : pane);
+          addFormulaLayer(text, pane === "new" ? null : pane, formulaSide(pane));
           paletteKeys(true);
           return;
         }
         $("palette").close();
         if (palette.editing) editById(palette.editing, (layer) => (layer.formula = text));
         else if (asSignal(text)) addSignalLayer(text);
-        else addFormulaLayer(text, pane === "new" ? null : pane);
+        else addFormulaLayer(text, pane === "new" ? null : pane, formulaSide(pane));
       }
+      /** The side a formula from ⌘K goes on in `pane`: in its layer's pane, that layer's (see derive); else none (a layer's first, the right). */
+      const formulaSide = (/** @type {string | null | undefined} */ pane) => (palette.op.kind === "formula" && pane === palette.op.into ? palette.op.side ?? null : null);
       /** A layer's formula, in ⌘K's formula page: previewed as it's changed, applied with ↵. */
       function editFormula(id) {
         const layer = layerById(id);
@@ -25359,7 +25376,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           let layer = palette.editing ? doc.layers.find((item) => item.id === palette.editing) : null;
           if (layer) layer.formula = text;
           else if (asSignal(text)) doc.layers.push((layer = makeLayer({ formula: text, type: "signal", ref: markable(doc, /** @type {any} */ ({}))[0]?.id }, doc)));
-          else doc.layers.push((layer = makeLayer({ formula: text, pane: palette.into ?? newPaneIn(doc).id }, doc)));
+          else doc.layers.push((layer = makeLayer({ formula: text, pane: palette.into ?? newPaneIn(doc).id, ...(palette.into && formulaSide(palette.into) ? { side: formulaSide(palette.into) } : {}) }, doc)));
           const editing = palette.editing !== null;
           const data = await resolve(doc).catch(() => null);
           if (run !== formulaRun || palette.items[palette.active]?.kind !== "formula") return;
