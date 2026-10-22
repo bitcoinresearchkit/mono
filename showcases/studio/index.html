@@ -10565,7 +10565,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /** Functions whose window takes two points at least. */
-      const TWO_POINTS = new Set(["stdev", "sd", "zscore", "volatility", "vol", "chop", "rsi", "stochrsi"]);
+      const TWO_POINTS = new Set(["stdev", "sd", "zscore", "volatility", "vol", "chop", "rsi", "stochrsi", "macd", "macd_signal", "macd_hist"]);
       /**
        * name → [arity, signature, what it does, run, the span may be left out, its usual span (days)]; a window is a span
        * of time (30d, 4w, 6mo, 2y, 12h; a bare number is days), always the last argument, run as the interval's points
@@ -10600,7 +10600,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         percentile: [3, "percentile(x, p, span?)", "rolling p-th percentile (p from 0 to 100; the median at 50; no span: of all so far)", (x, n, p, partial) => rollingPercentile(x, n, p, partial), true],
         change: [2, "change(x, span)", "% change over the span", (x, n) => shifted(x, n, (a, b) => (a / b - 1) * 100)],
         diff: [2, "diff(x, span)", "difference over the span", (x, n) => shifted(x, n, (a, b) => a - b)],
-        lag: [2, "lag(x, span)", "value a span earlier", (x, n) => shifted(x, n, (_a, b) => b)],
+        lag: [2, "lag(x, span)", "value a span earlier", (x, n) => x.map((_value, i) => (i >= n ? x[i - n] : NaN))],
         cagr: [2, "cagr(x, span?)", "% growth a year, compounded, over the span (no span: since its first value)", (x, n, _p, _partial, step) => cagrOf(x, n, step), true],
         drawdown: [1, "drawdown(x)", "% below its highest so far", (x) => {
           let top = -Infinity;
@@ -10840,9 +10840,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           case "bin": {
             const a = sub(node.a), b = sub(node.b);
             // (A comparison, or two joined, is 1 where true, 0 where false; where either has no value, none: an infinity (a
-            // log of 0, a division by 0) is none either.)
+            // log of 0, a division by 0) is none either. Joined, a side with none decides nothing the other decides
+            // alone: true | none is true, false & none false.)
             const either = (/** @type {(x: number, y: number) => boolean} */ test) => (/** @type {number} */ x, /** @type {number} */ y) => (!Number.isFinite(x) || !Number.isFinite(y) ? NaN : Number(test(x, y)));
-            const op = { "+": (x, y) => x + y, "-": (x, y) => x - y, "*": (x, y) => x * y, "/": (x, y) => x / y, "^": (x, y) => x ** y, "<": either((x, y) => x < y), ">": either((x, y) => x > y), "<=": either((x, y) => x <= y), ">=": either((x, y) => x >= y), "==": either((x, y) => x === y), "!=": either((x, y) => x !== y), "&": either((x, y) => Boolean(x && y)), "|": either((x, y) => Boolean(x || y)) }[node.op];
+            const or = (/** @type {number} */ x, /** @type {number} */ y) => ((Number.isFinite(x) && x !== 0) || (Number.isFinite(y) && y !== 0) ? 1 : Number.isFinite(x) && Number.isFinite(y) ? 0 : NaN);
+            const and = (/** @type {number} */ x, /** @type {number} */ y) => (x === 0 || y === 0 ? 0 : Number.isFinite(x) && Number.isFinite(y) ? 1 : NaN);
+            const op = { "+": (x, y) => x + y, "-": (x, y) => x - y, "*": (x, y) => x * y, "/": (x, y) => x / y, "^": (x, y) => x ** y, "<": either((x, y) => x < y), ">": either((x, y) => x > y), "<=": either((x, y) => x <= y), ">=": either((x, y) => x >= y), "==": either((x, y) => x === y), "!=": either((x, y) => x !== y), "&": and, "|": or }[node.op];
             return lift(a, b, op);
           }
           case "call": {
@@ -10869,7 +10872,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // (Where a window must be full: on a finer interval, and for a value a span back. Those warming up twice, an
               // RSI's stochastic, MACD's signal, reach twice as far.)
               const reach = ["stochrsi", "macd_signal", "macd_hist"].includes(node.f) ? points * 2 : points;
-              if (!out.some(Number.isFinite) && points !== Infinity && (FINE.has(index) || ["change", "diff", "lag", "cagr"].includes(node.f)) && outreaches(x, reach)) {
+              if (!out.some(Number.isFinite) && points !== Infinity && (FINE.has(index) || ["change", "diff", "lag", "cagr", "rsi", "stochrsi", "chop"].includes(node.f)) && outreaches(x, reach)) {
                 const written = spanned ? node.args[arity - 1] : null;
                 throw windowTooLong(node.f, !written ? `${grouped.format(points)} points` : written.k === "num" ? (written.unit ? written.text ?? "" : `${written.v}d`) : `${grouped.format(points)} points`, /** @type {number} */ (days), index, reach > length, ["change", "diff", "lag"].includes(node.f));
               }
@@ -13354,6 +13357,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }, doc.index, false, memo);
             if (!length) throw new Error("Name a series, or add one, to give the formula a timeline");
             const values = typeof value === "number" ? new Float64Array(length).fill(value) : value;
+            // (No value at any date, all of history loaded (a finer interval's may be in what it hasn't yet): said, rather
+            // than a blank layer.)
+            if (!FINE.has(doc.index) && !values.some(Number.isFinite)) throw failing("It has no value at any date: what it reads has none where it's computed (a log of 0 or less, a root of a negative, a division by 0), or a when() holds nowhere", "No values");
             const unit = unitOfNode(node, (name, kind) => {
               if (kind === "series") return bySeries.get(name)?.unit ?? null;
               const target = byLetter.get(name);
@@ -26517,9 +26523,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const through = [...refs].some((letter) => ((other) => other && readsOf(other).has(layer.letter))(chart.layers.find((item) => item.letter === letter)));
         return through ? "It would read itself, through the layers it reads" : "";
       }
+      /**
+       * A window written that can't be one (a span of 0 or less, a percentile's p past 0 to 100), as computing it would
+       * say: found as it's typed, not once it's computed. @returns {string}
+       */
+      function windowError(/** @type {any} */ node) {
+        if (!node || typeof node !== "object") return "";
+        if (node.k === "call") {
+          const [arity, signature, , run] = FUNCTIONS[node.f] ?? [];
+          const span = arity >= 2 && run !== null && node.args.length === arity ? node.args[arity - 1] : null, p = arity === 3 ? node.args[1] : null;
+          // (A number written, its sign as written: -(-30d) is 30d. Anything else is computing's to say.)
+          const written = (/** @type {any} */ arg) => (arg?.k === "num" ? arg.v : arg?.k === "neg" ? -written(arg.a) : NaN);
+          if (span && p?.k === "num" && p.unit) return `${signature}: p first, the span last`;
+          if (span && !Number.isNaN(written(span)) && !(written(span) > 0)) return `${signature}: the window is a span of time, like 30d, 4w, 6mo or 2y`;
+          if (p && !p.unit && !Number.isNaN(written(p)) && !(written(p) >= 0 && written(p) <= 100)) return `${signature}: p is a percent, from 0 to 100`;
+          for (const arg of node.args) if (windowError(arg)) return windowError(arg);
+          return "";
+        }
+        return windowError(node.a) || windowError(node.b);
+      }
       /** Why a formula can't be added to this chart: it doesn't read, or a letter names no layer here; else "". */
       function formulaError(/** @type {string} */ text) {
-        const problem = parseError(text);
+        const problem = parseError(text) || windowError(parse(text));
         if (problem) return problem;
         const missing = [...refsOf(parse(text))].find((letter) => !chart.layers.some((layer) => layer.letter === letter));
         return missing ? goneLayer(chart, missing) ?? `There is no layer ${missing}` : "";
