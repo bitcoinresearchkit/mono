@@ -900,6 +900,61 @@
         color: var(--soft);
       }
 
+      /* A list's highlight, gliding from row to row as the pointer or the keys go along it (see glides): its ::before,
+         behind its rows (the list its own layer), at the lit row's box, in the list's --glide. A row lit its own way (the
+         open chart, a menu's open row) shows over it. */
+      :where(.glides) {
+        position: relative;
+      }
+
+      .glides {
+        isolation: isolate;
+
+        &::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          z-index: -1;
+          width: var(--glide-w, 0);
+          height: var(--glide-h, 0);
+          border-radius: var(--glide-r, 0);
+          background: var(--glide, var(--hover));
+          opacity: 0;
+          transform: translate(var(--glide-x, 0), var(--glide-y, 0));
+          pointer-events: none;
+          transition: opacity var(--dur-small) var(--ease), transform var(--dur-small) var(--ease), width var(--dur-small) var(--ease), height var(--dur-small) var(--ease);
+        }
+
+        /* (Placed at once: come from none, it fades in where it lands; its row written anew, it's there as it was.) */
+        &[data-still]::before {
+          transition: opacity var(--dur-small) var(--ease);
+        }
+
+        &[data-glide="gone"]::before {
+          transition: none;
+        }
+
+        &:is([data-glide="on"], [data-glide="keyed"])::before {
+          opacity: 1;
+        }
+
+        /* (Reached by keys: edged too, a tint alone too faint to find.) */
+        &[data-glide="keyed"]::before {
+          box-shadow: inset 0 0 0 1px var(--edge);
+        }
+
+        /* (A row pressed, where a press has a ground of its own: that alone, as before.) */
+        &.menu:has(> button:active)::before,
+        &.chart-list:has(:is(.chart-item, .folder-item):active)::before {
+          opacity: 0;
+        }
+      }
+
+      body.carrying .glides::before {
+        opacity: 0;
+      }
+
       .chart-list {
         /* (Its rows' gap, the same open and on the rail: room there for an open folder's surface, see the rail.) */
         --row-gap: 4px;
@@ -1049,9 +1104,13 @@
           }
         }
 
+        /* (Its ground the list's highlight: see glides.) */
         &:hover:where(.can-hover *) .chart-item {
           color: var(--ink);
-          background: var(--hover);
+
+          &:where(:not(:active)) {
+            background: none;
+          }
         }
 
         &.active .chart-item {
@@ -1098,7 +1157,10 @@
 
         &:hover:where(.can-hover *) .folder-item {
           color: var(--ink);
-          background: var(--hover);
+
+          &:where(:not(:active)) {
+            background: none;
+          }
         }
 
         /* (Closed over the open chart: a dot after its name, the logo's orange, the way back to it; its name only as wide as
@@ -5474,6 +5536,7 @@
 
       .palette-list {
         flex: 1;
+        --glide: var(--press);
         overflow-y: auto;
         margin: 0;
         padding: 6px;
@@ -5491,11 +5554,8 @@
           padding: 0 10px;
           cursor: pointer;
 
-          /* (The row ↵ runs: edged too, as a menu's row reached by keys is.) */
+          /* (The row ↵ runs: on the list's highlight, edged, as a menu's row reached by keys is; see glides.) */
           &[aria-selected="true"] {
-            background: var(--press);
-            box-shadow: inset 0 0 0 1px var(--edge);
-
             > svg {
               color: var(--ink);
             }
@@ -5781,9 +5841,14 @@
           display: none;
         }
 
-        .palette-list li[aria-selected="true"]:not(:active) {
-          background: none;
-          box-shadow: none;
+        /* (A finger's: no highlight, the row it presses lit as it does.) */
+        .palette-list::before {
+          display: none;
+        }
+
+        .palette-list li[aria-selected="true"]:active {
+          background: var(--press);
+          box-shadow: inset 0 0 0 1px var(--edge);
         }
 
         .palette-list li {
@@ -5949,6 +6014,7 @@
       }
 
       .menu {
+        --glide: var(--press);
         position: fixed;
         z-index: 20;
         min-width: 196px;
@@ -5980,15 +6046,19 @@
           text-align: left;
           white-space: nowrap;
 
+          /* (Pointed at or reached by keys, its ground the menu's highlight, see glides; its submenu open, its own.) */
           &:hover:where(.can-hover *),
           &:focus-visible,
           &[aria-expanded="true"] {
             color: var(--ink);
-            background: var(--press);
             outline: none;
           }
 
-          /* (Reached by keys: edged too, a tint alone too faint to find.) */
+          &[aria-expanded="true"] {
+            background: var(--press);
+          }
+
+          /* (Reached by keys: edged too, a tint alone too faint to find; the row keys act on, the highlight elsewhere or not.) */
           &:focus-visible {
             box-shadow: inset 0 0 0 1px var(--edge);
           }
@@ -14592,6 +14662,104 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         element.style.setProperty("--edge-start", `${overflows ? clamp(at, 0, 28) : 0}px`);
         element.style.setProperty("--edge-end", `${overflows ? clamp(full - size - at, 0, 28) : 0}px`);
       }
+      /**
+       * A list's highlight that glides from row to row as the pointer or the keys go along it, rather than each row lighting
+       * its own: the list's ::before (see .glides), set to the lit row's box as laid out (a list scaled as it opens measures
+       * the same). Come from none, it shows where it lands (no slide from where it last was); none lit, it fades where it
+       * is, then takes no room (an empty box still counts in what the list scrolls); its row written away, it's gone at
+       * once, unless another's lit in its place (⌘K's results written anew; a row written anew, its own, found by `again`:
+       * there at once, shown as it was); the list resized or its rows moved, it's where its row is at once (`fit`, for rows
+       * sliding meanwhile); a row that can't be lit now (`can`: one folding), none. Returns what lights a row (`keyed`:
+       * reached by keys, edged; null: none).
+       * @param {HTMLElement} list @param {{ again?: (gone: HTMLElement) => HTMLElement | null, can?: (row: HTMLElement) => boolean }} [how]
+       */
+      function glides(list, { again = () => null, can = () => true } = {}) {
+        list.classList.add("glides");
+        let lit = /** @type {HTMLElement | null} */ (null), keyedNow = false, shown = false, dropped = false;
+        const set = (/** @type {Record<string, string>} */ values) => Object.entries(values).forEach(([name, value]) => list.style.setProperty(`--glide-${name}`, value));
+        const collapse = () => ((shown = false), set({ x: "0px", y: "0px", w: "0px", h: "0px" }));
+        /** At its row's box (in the list's own coordinates, its scroll's); `still`: there at once, no slide. */
+        const place = (/** @type {HTMLElement} */ row, /** @type {boolean} */ still) => {
+          let x = 0, y = 0;
+          for (let at = /** @type {HTMLElement | null} */ (row); at && at !== list; at = /** @type {HTMLElement | null} */ (at.offsetParent)) (x += at.offsetLeft), (y += at.offsetTop);
+          if (still) list.dataset.still = "";
+          set({ x: `${x}px`, y: `${y}px`, w: `${row.offsetWidth}px`, h: `${row.offsetHeight}px`, r: getComputedStyle(row).borderRadius });
+          // (Its place taken before it moves on.)
+          if (still) (getComputedStyle(list, "::before").transform, delete list.dataset.still);
+        };
+        list.addEventListener("transitionend", (event) => event.target === list && event.pseudoElement === "::before" && event.propertyName === "opacity" && list.dataset.glide === "off" && collapse());
+        new MutationObserver(() => {
+          // (Written anew as it fades (a menu shut mid-fade has no end to it): gone.)
+          if (!lit) return shown && list.dataset.glide === "off" && ((list.dataset.glide = "gone"), collapse());
+          if (lit.isConnected) return can(lit) ? place(lit, true) : light(null);
+          const anew = again(lit);
+          if (anew && can(anew)) return place((lit = anew), true);
+          // (Gone, unless another's lit in its place as these changes are taken in: see ⌘K's.)
+          lit = null;
+          dropped = true;
+          queueMicrotask(() => dropped && ((dropped = false), (list.dataset.glide = "gone"), collapse()));
+        }).observe(list, { childList: true, subtree: true });
+        new ResizeObserver(() => lit && place(lit, true)).observe(list);
+        const light = (/** @type {HTMLElement | null} */ row, keyed = false) => {
+          if (row && !can(row)) row = null;
+          if (row === lit && keyed === keyedNow) return;
+          if (!row) {
+            // (No fade to wait for: none at all, or none shown yet, a row grazed.)
+            const unseen = reduced.matches || getComputedStyle(list, "::before").opacity === "0";
+            if (lit) list.dataset.glide = "off";
+            lit = null;
+            if (unseen) collapse();
+            return;
+          }
+          place(row, !shown || dropped);
+          list.dataset.glide = keyed ? "keyed" : "on";
+          (lit = row), (keyedNow = keyed), (shown = true), (dropped = false);
+        };
+        return Object.assign(light, { fit: () => lit?.isConnected && (can(lit) ? place(lit, true) : light(null)) });
+      }
+      // The menus: the row pointed at (a mouse's; between rows, on a rule, it stays), or reached by keys (its edge its own:
+      // the row keys act on, wherever the pointer is); on another of their controls (the colors' swatches), none.
+      for (const menu of [$("menu"), $("submenu")]) {
+        const light = glides(menu), rowOf = (/** @type {Event} */ event) => /** @type {HTMLElement | null} */ (closest(event, ".menu > button"));
+        const control = (/** @type {Event} */ event) => (closest(event, "button, input, select, textarea, a, [tabindex]") ?? menu) !== menu;
+        menu.addEventListener("pointerover", (event) => {
+          if (event.pointerType !== "mouse") return;
+          const row = rowOf(event);
+          if (row) light(row.matches(':disabled, [aria-disabled="true"]') ? null : row);
+          else if (control(event)) light(null);
+        });
+        const focused = () => /** @type {HTMLElement | null} */ (menu.querySelector(":scope > button:focus-visible"));
+        menu.addEventListener("pointerleave", () => light(focused()));
+        menu.addEventListener("focusin", (event) => {
+          const row = rowOf(event);
+          if (!row) light(null);
+          else if (row.matches(":focus-visible")) light(row);
+        });
+        // (Keys walking it, on the row focused already (Home on the first): it, once they're taken in.)
+        menu.addEventListener("keydown", (event) => ["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key) && setTimeout(() => focused() && light(focused())));
+        menu.addEventListener("focusout", (event) => !menu.contains(/** @type {Node | null} */ (event.relatedTarget)) && !menu.matches(":hover") && light(null));
+      }
+      // ⌘K: the row ↵ runs, however it's come to (the arrows, the pointer, the list written anew); a finger's ⌘K has none.
+      {
+        const list = $("palette-list"), light = glides(list), coarse = matchMedia("(hover: none) and (pointer: coarse)");
+        new MutationObserver(() => !coarse.matches && light(list.querySelector('[aria-selected="true"]'), true)).observe(list, { childList: true, subtree: true, attributeFilter: ["aria-selected"] });
+      }
+      // The sidebar's charts and folders: the one pointed at (between rows, it stays; on a section's head, none; folding, none:
+      // the highlight would show whole over a row half shown); a row written anew (a folder opened, a chart), its own, by its key.
+      const sideLight = glides($("chart-list"), {
+        again: (gone) => {
+          const key = [.../** @type {HTMLElement} */ (gone.parentElement).attributes].find(({ name }) => /^data-.+-row$/.test(name));
+          return key ? $("chart-list").querySelector(`[${key.name}="${CSS.escape(key.value)}"] > :is(.chart-item, .folder-item)`) : null;
+        },
+        can: (item) => !item.closest("[data-folding]"),
+      });
+      $("chart-list").addEventListener("pointerover", (event) => {
+        if (event.pointerType !== "mouse") return;
+        const row = closest(event, ".chart-row, .folder-row");
+        if (row) sideLight(row.querySelector(":scope > :is(.chart-item, .folder-item)"));
+        else if (event.target !== $("chart-list")) sideLight(null);
+      });
+      $("chart-list").addEventListener("pointerleave", () => sideLight(null));
       /** The layer whose line the pointer is on: its legend item and panel row light up, the legend scrolling to it if it must. */
       let litLayer = null;
       /** Each layer's legend items and panel row, by its id: found again only when one's missing or gone from the page. */
@@ -20825,6 +20993,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (On the rail, its own slice of their surface fades with them: a fade under way, from its closing, goes first.)
         for (const animation of head.getAnimations({ subtree: true })) if (/** @type {KeyframeEffect | null} */ (animation.effect)?.pseudoElement === "::before") animation.cancel();
         if (!head.classList.contains("in-folder") && !group) folds.push(head.animate({ opacity: closing ? [1, 0] : [0, 1] }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none", pseudoElement: "::before" }));
+        // (The sidebar's highlight with its row as the rows slide, each frame till they're still.)
+        let sliding = true;
+        Promise.allSettled(folds.map((animation) => animation.finished)).then(() => {
+          sliding = false;
+          // (Still, the row under the pointer, the one it folded under lit at last.)
+          const under = document.documentElement.classList.contains("can-hover") ? /** @type {HTMLElement | null} */ ($("chart-list").querySelector(":is(.chart-row, .folder-row):hover > :is(.chart-item, .folder-item)")) : null;
+          if (under) sideLight(under);
+          else sideLight.fit();
+        });
+        const follow = () => sliding && (sideLight.fit(), requestAnimationFrame(follow));
+        requestAnimationFrame(follow);
         if (!closing) return;
         closings++;
         Promise.allSettled(folds.map((animation) => animation.finished)).then(() => {
@@ -20926,6 +21105,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Folders closing now: the list's drawn without their charts once the last is done (one before would cut the others short). */
       let closings = 0;
+      /** Each row's fold under way (see foldRows). @type {WeakMap<Element, Animation>} */
+      const foldOf = new WeakMap();
       /**
        * Rows unfolding from nothing, or folding to it: clipped as they go, sliding out from under the one above and fading.
        * One under way turns back from where it is. All measured first, then all moved (a long folder: one layout, not one
@@ -20951,7 +21132,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             marginTop: closing ? ["0px", gap] : [gap, "0px"],
             opacity: [shown, closing ? 0 : 1],
           }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none" });
-          if (!closing) animation.finished.then(() => Object.assign(element.style, { overflow: "", overflowClipMargin: "", alignItems: "" }), () => {});
+          // (Folding, it's no row to light: see glides. Unmarked once this fold's done, unless another's begun meanwhile.)
+          element.dataset.folding = "";
+          foldOf.set(element, animation);
+          const still = () => foldOf.get(element) === animation && (foldOf.delete(element), delete element.dataset.folding);
+          if (!closing) animation.finished.then(() => (Object.assign(element.style, { overflow: "", overflowClipMargin: "", alignItems: "" }), still()), still);
           return animation;
         });
       }
