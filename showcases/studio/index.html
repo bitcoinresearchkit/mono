@@ -13198,6 +13198,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         navigatorFont = "";
         view.applyOptions({ layout: { fontFamily: chartSans } });
         drawOverview();
+        // (Marks' words measured in it: which have room, again.)
+        labelMarks();
       });
       /** @type {Map<string, any>} layer id → its series on the chart */
       const drawn = new Map();
@@ -13521,11 +13523,64 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (marked.has(series) && !old.includes(series)) continue;
           plugin.detach();
           markers.delete(series);
+          markLists.delete(series);
+          labeledAs.delete(series);
         }
         for (const [series, list] of marked) {
           list.sort((a, b) => a.time - b.time);
-          const plugin = markers.get(series) ?? markers.set(series, LC.createSeriesMarkers(series, [], { zOrder: "aboveSeries" })).get(series);
-          plugin.setMarkers(list);
+          if (!markers.has(series)) markers.set(series, LC.createSeriesMarkers(series, [], { zOrder: "aboveSeries" }));
+          markLists.set(series, list);
+          labeledAs.delete(series);
+        }
+        labelMarks();
+      }
+      /** Each series' marks as made, their words all there (see labelMarks). @type {Map<any, any[]>} */
+      const markLists = new Map();
+      /** Which marks were last given their words, by series (null: none have any): set again only as that changes. @type {Map<any, string | null>} */
+      const labeledAs = new Map();
+      /** Words as wide as the chart draws them (its font, 11px), each measured once. */
+      const labelWidths = new Map(), labelPen = /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
+      const labelWidth = (/** @type {string} */ text) => {
+        const key = `${chartSans}|${text}`;
+        if (!labelWidths.has(key)) {
+          if (labelWidths.size > 2000) labelWidths.clear();
+          labelPen.font = `11px ${chartSans}`;
+          labelWidths.set(key, labelPen.measureText(text).width);
+        }
+        return /** @type {number} */ (labelWidths.get(key));
+      };
+      /**
+       * Marks' words (a stretch's result) where each has room, at the view's zoom: from the latest back, one whose words
+       * would run into the next one's goes without them (its mark stays; zoomed in, they're back). Across, whatever side of
+       * the line: a mark under one bar and one over the next sit at one height where the price drops between them. The
+       * marks set again only as that changes (a pan, mostly, changes nothing).
+       */
+      function labelMarks() {
+        const scale = view.timeScale();
+        for (const [series, list] of markLists) {
+          const plugin = markers.get(series);
+          // (Words of none: set once, as made.)
+          if (!plugin || labeledAs.get(series) === null) continue;
+          // (Which have room, first: the marks made again only if that's changed, as a pan mostly leaves it.)
+          let start = Infinity, key = "", any = false;
+          for (let i = list.length - 1; i >= 0; i--) {
+            const mark = list[i];
+            if (!mark.text) continue;
+            any = true;
+            const x = scale.timeToCoordinate(mark.time), half = labelWidth(mark.text) / 2 + 3;
+            if (x === null || x + half > start) continue;
+            start = x - half;
+            key += `${i},`;
+          }
+          if (!any) {
+            labeledAs.set(series, null);
+            plugin.setMarkers(list);
+            continue;
+          }
+          if (labeledAs.get(series) === key) continue;
+          labeledAs.set(series, key);
+          const labeled = new Set(key.split(",").filter(Boolean).map(Number));
+          plugin.setMarkers(list.map((mark, i) => (labeled.has(i) || !mark.text ? mark : (({ text: _text, ...bare }) => bare)(mark))));
         }
       }
       function build(doc, data, refit) {
@@ -15095,7 +15150,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           context.fillText(date.text, date.x, foot);
         }
       }
-      view.timeScale().subscribeSizeChange(() => (holdView(), relayout()));
+      view.timeScale().subscribeSizeChange(() => (holdView(), relayout(), labelMarks()));
       /**
        * The view as left, by the chart's box (see boxView) and as the plot had it: what each resize of the box keeps (see
        * holdView), however many come and go (it isn't the view a resize made); and the view a resize made last (by the
@@ -15164,6 +15219,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         placeBrush();
         fitCandles();
         fitDots();
+        labelMarks();
         valuesSoon();
         // (Mid-resize, a preset showing still is: the new width's layout puts it back, see relayout.)
         const shown = view.timeScale().width() !== laidWidth ? presetShown : showsPreset();
