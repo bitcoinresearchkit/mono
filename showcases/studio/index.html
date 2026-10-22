@@ -11046,11 +11046,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const aside = storage.get(UNREAD, []);
         if (Array.isArray(aside) && aside.length) {
           const alike = (doc) => JSON.stringify({ ...doc, id: "", updated: 0 });
-          const ids = new Set(library.charts.map((doc) => doc.id)), here = new Set(library.charts.map(alike)), back = [], still = [];
+          const ids = new Set(library.charts.map((doc) => doc.id)), here = new Set(library.charts.map(alike)), back = [], still = [], newer = new Map();
           for (const stored of aside) {
             try {
               const doc = read(stored);
-              if (ids.has(doc.id) || here.has(alike(doc)) || library.deleted[doc.id] >= doc.updated) continue;
+              if (here.has(alike(doc)) || library.deleted[doc.id] >= doc.updated) continue;
+              // (The same chart here, edited before this one was set aside: this one, in its place.)
+              if (ids.has(doc.id)) {
+                const have = library.charts.find((item) => item.id === doc.id);
+                if (have && doc.updated > (newer.get(doc.id) ?? have).updated) newer.set(doc.id, doc);
+                continue;
+              }
               ids.add(doc.id);
               here.add(alike(doc));
               back.push(doc);
@@ -11060,8 +11066,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           // Off the side only once they're saved in the library (a preset's with the presets, the latest of each).
           const charts = back.filter((doc) => doc.preset === undefined), edited = presetsOf([...library.presets, ...back.filter((doc) => doc.preset !== undefined)]);
-          if (!readOnly && still.length !== aside.length && storage.set(STORE, { ...library, schema: SCHEMA, charts: [...charts, ...library.charts], presets: edited })) {
-            library.charts.unshift(...charts);
+          const replaced = library.charts.map((doc) => {
+            const later = newer.get(doc.id);
+            if (!later) return doc;
+            // (Where it is, the library's: a move doesn't make a chart later.)
+            if (doc.folder === undefined) delete later.folder;
+            else later.folder = doc.folder;
+            return later;
+          });
+          if (!readOnly && still.length !== aside.length && storage.set(STORE, { ...library, schema: SCHEMA, charts: [...charts, ...replaced], presets: edited })) {
+            library.charts = [...charts, ...replaced];
             library.presets = edited;
             storage.set(UNREAD, still);
           }
@@ -11117,8 +11131,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (chart === doc) library.active = id;
         if (drawnChart === old) drawnChart = id;
         if (history.state?.chart === old) history.replaceState({ ...history.state, chart: id }, "");
-        // (Edited, kept aside under its new id.)
+        // (Edited, kept aside under its new id, and its copy under the old one let go of once that's written (another
+        // tab's later one stays).)
         if (touched.has(doc)) asideDirty.add(doc);
+        if (touched.has(doc) && isPreview(doc)) keptPreviews.set(old, doc.updated);
       };
       /** A link that couldn't be read, left in the address bar to be put right (until another chart's opened). */
       let brokenLink = "";
@@ -11388,9 +11404,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
         };
         const ok = write() || (storage.drop(PREVIEWS, THUMBS), write());
-        // (Previews kept: let go of aside only once they're saved with your charts, never before.)
-        if (ok && keptPreviews.size) {
-          const left = previewsAside().filter((item) => !keptPreviews.has(item.id));
+        // (Previews kept: let go of aside only once they're saved with your charts, never before; one rekeyed, once its
+        // copy under its new id is written.)
+        if (ok && aside && keptPreviews.size) {
+          const left = previewsAside().filter((item) => !keptPreviews.has(item.id) || laterAside(item, /** @type {number} */ (keptPreviews.get(item.id))));
           if (left.length) storage.set(PREVIEW_ASIDE, left);
           else storage.drop(PREVIEW_ASIDE);
           keptPreviews.clear();
@@ -11458,7 +11475,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // id, its history and all with it.)
         for (const doc of [...previewCharts]) {
           const saved = incoming.find((item) => item.id === doc.id);
-          if (saved && sameChart(saved, doc)) dropPreview(doc);
+          if (saved && sameChart(saved, doc)) (dropPreview(doc), forgetPreview(doc));
           else if (saved) rekey(doc, uid());
         }
         for (const [id, at] of Object.entries(deleted)) if (!(library.deleted[id] >= at)) library.deleted[id] = at;
@@ -11978,12 +11995,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let closedToast = null;
       /** The previews kept aside, this tab's and others'. @returns {Chart[]} */
       const previewsAside = () => ((stored) => (Array.isArray(stored) ? stored : []))(storage.get(PREVIEW_ASIDE, null));
-      /** Previews kept, by their ids aside: let go of there once saved with your charts (see persist). */
-      const keptPreviews = new Set();
-      /** A preview let go of (closed): no longer kept aside. */
+      /** Previews kept, by their ids aside (and when last edited): let go of there once saved with your charts (see persist). @type {Map<string, number>} */
+      const keptPreviews = new Map();
+      /** An aside copy that's another tab's later one than `updated` (edited there since): kept, as theirs. */
+      const laterAside = (/** @type {any} */ item, /** @type {number} */ updated) => (Number(item?.updated) || 0) > updated;
+      /** A preview let go of (closed): no longer kept aside (another tab's later copy of it stays). */
       const forgetPreview = (/** @type {Chart} */ doc) => {
         asideDirty.delete(doc);
-        const left = previewsAside().filter((item) => item.id !== doc.id);
+        const left = previewsAside().filter((item) => item.id !== doc.id || laterAside(item, doc.updated));
         if (left.length) storage.set(PREVIEW_ASIDE, left);
         else storage.drop(PREVIEW_ASIDE);
       };
@@ -11995,7 +12014,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!isPreview(doc)) return;
         // (Its copy aside stays till it's saved with your charts: see persist.)
         asideDirty.delete(doc);
-        keptPreviews.add(doc.id);
+        keptPreviews.set(doc.id, doc.updated);
         // (Its id another's, listed or deleted: a new one.)
         if (library.charts.some((other) => other.id === doc.id) || Object.hasOwn(library.deleted, doc.id)) rekey(doc, uid());
         // (Kept by its button, which goes: the focus on the chart's ⋯ beside it, not into a field where the next key would type.)
@@ -27775,8 +27794,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("title").addEventListener("input", (event) => commit((doc) => (doc.title = event.target.value), { coalesce: "title", redraw: "none" }));
       // A title is trimmed once it's done: stray spaces don't make a name.
       $("title").addEventListener("blur", (event) => {
+        // (Only what was typed: one focused and left as it was isn't an edit (another tab's rename, taken in meanwhile, stays).)
         const title = event.target.value.trim();
-        if (title !== chart.title) commit((doc) => (doc.title = title), { coalesce: "title", redraw: "none" });
+        if (title !== chart.title && event.target.value !== typedFrom.get(event.target)) commit((doc) => (doc.title = title), { coalesce: "title", redraw: "none" });
+        // (Left, it's untouched again: a rename taken in while it's not focused (a tab in the background) shows.)
+        typedFrom.set(event.target, event.target.value);
       });
       // Single-line fields: Enter is done, Escape takes back what was typed; both leave the field.
       const FIELDS = "#title, #label, .number-input, .level-name";
@@ -29107,7 +29129,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (What waits for a draw asks again: the grid shown, layers gone, it says so at once.)
         for (const wake of [...drawnWaiters]) wake();
         clearLink();
-        if (document.activeElement !== $("title")) $("title").value = chart.title;
+        // (Focused but not typed in, it follows the chart too: another tab's rename, taken in.)
+        if (document.activeElement !== $("title") || $("title").value === typedFrom.get($("title"))) typedFrom.set($("title"), ($("title").value = chart.title));
         renderChartPath();
         // (Untitled, what it's called meanwhile: in the field, the one it'd be named.)
         $("title").placeholder = derivedTitle(chart);
@@ -30301,8 +30324,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (navigations > at) (picturing = false), clearLink();
         // Edited previews kept aside (left, reloaded, a tab closed): previews again; one opened, with nothing else to show.
         // (One kept since, in another tab, let go of.)
-        const stored = previewsAside(), unsaved = stored.filter((doc) => !library.charts.some((item) => item.id === doc.id));
-        if (unsaved.length < stored.length) unsaved.length ? storage.set(PREVIEW_ASIDE, unsaved) : storage.drop(PREVIEW_ASIDE);
+        // (One kept in your charts as late or later, let go of; a later one, its edits since in another tab, a preview of
+        // its own, under a new id: its copy aside with it.)
+        const stored = previewsAside(), kept = (/** @type {any} */ doc) => library.charts.find((item) => item.id === doc.id);
+        const unsaved = stored.filter((doc) => !kept(doc) || laterAside(doc, /** @type {Chart} */ (kept(doc)).updated)).map((doc) => (kept(doc) ? { ...doc, id: uid() } : doc));
+        if (unsaved.length < stored.length || unsaved.some((doc, i) => doc !== stored[i])) unsaved.length ? storage.set(PREVIEW_ASIDE, unsaved) : storage.drop(PREVIEW_ASIDE);
         const setAside = unsaved.flatMap(restore);
         for (const doc of setAside) touched.add(doc), previewCharts.push(doc);
         if (shared) {
