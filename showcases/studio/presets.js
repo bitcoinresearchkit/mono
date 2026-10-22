@@ -595,8 +595,6 @@ export function studioPresets(client, facts) {
       ]),
       section("Moving averages", [averages(m.sma, "SMA"), averages(m.ema, "EMA")]),
       section("Range", [
-        // (Its high so far, a step up each new one; below, how far under it the price has been, filled up to it.)
-        chart("All-time highs", "The price's all-time highs, and its drawdown from them", [price(), { formula: "highest(A)", label: "All-time high", color: "green", shape: "steps" }, { formula: "drawdown(A)", label: "Drawdown", pane: 2, type: "area", fill: "above", color: "red" }]),
         ...entries(m.range.max).map(([key]) => chart(`${windowAdjective(key)} high and low`, `Price's ${windowAdjective(key)} high and low`, [price(), series(m.range.max[key], "High", { color: "green" }), series(m.range.min[key], "Low", { color: "red" }), { cloud: ["B", "C"], label: "Range", color: "sky", opacity: 0.1 }])),
         // (`trueRange` is the absolute change of the price from one block to the next, a day's its last: not a daily range.)
         chart("Block-to-block change", "Price's absolute change from one block to the next", [series(m.range.trueRange, "Change", { color: "sky" })], { log: [1] }),
@@ -623,7 +621,7 @@ export function studioPresets(client, facts) {
       ...change(sup.marketCap.delta, "Market cap change", "Market cap change"),
       chart("MVRV", "Market value to realized value (MVRV)", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: "orange" }), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, ...around(1), levels: [{ value: 3.5, color: "red", dash: 3 }] })], { log: [2] }),
       // (The price in its MVRV's zone, date by date: under 1, under its realized value; over 3.5, far over it.)
-      chart("Price by MVRV zone", "The price by its MVRV zone", [{ ...price(), hidden: true }, series(t.price.close, "Price by zone", { colorFrom: "C", width: 2 }), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, color: "green", byLevels: true, underName: "Undervalued", levels: [{ value: 1, color: "gray", name: "Fair", dash: 3 }, { value: 3.5, color: "red", name: "Overvalued", dash: 3 }] })], { log: [1, 2] }),
+      chart("Price by MVRV zone", "The price by its MVRV zone", [{ ...price(), hidden: true }, series(t.price.close, "Price by zone", { colorFrom: "C", color: "gray", width: 2 }), series(t.holders.all.costBasis.byCoin.avg.mvrv, "MVRV", { pane: 2, color: "green", byLevels: true, underName: "Undervalued", levels: [{ value: 1, color: "gray", name: "Fair", dash: 3 }, { value: 3.5, color: "red", name: "Overvalued", dash: 3 }] })], { log: [1, 2] }),
       // (How far market cap is over realized cap, in market cap's deviations over all history: over 7, its tops.)
       chart("MVRV Z-score", "MVRV Z-score", [price(), { formula: `(${t.holders.all.supply.total.usd.name} - ${t.holders.all.capital.realizedCap.name}) / stdev(${t.holders.all.supply.total.usd.name})`, label: "MVRV Z-score", pane: 2, format: "number", ...baseline, levels: [{ value: 7, color: "red", dash: 3, name: "Top zone" }] }]),
       chart("NUPL", "Net unrealized profit and loss (NUPL)", [price(), series(t.holders.all.unrealized.nupl, "NUPL", { pane: 2, ...baseline, levels: [0.25, 0.5, 0.75].map((value) => ({ value, color: "gray", dash: 3 })) })]),

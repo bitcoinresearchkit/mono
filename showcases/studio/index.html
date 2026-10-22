@@ -9667,8 +9667,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** What a signal's marks can be on: a layer of one value drawn as itself (not a cloud, not a signal). @param {Chart} doc @param {Layer} signal */
       const markable = (doc, signal) => doc.layers.filter((other) => other !== signal && other.type !== "cloud" && other.type !== "signal");
       /**
-       * How a signal shows: marks where it turns true, over its layer (pointing down at it), under it (pointing up), on it;
-       * or, shaded, the stretches where it's true, its layer's pane's height.
+       * How a signal shows: marks where it turns up (a condition: true), over its layer (pointing down at it), under it
+       * (pointing up), on it, a down one mirrored; or, shaded, its stretches up or down, its layer's pane's height.
        */
       const MARK_PLACES = /** @type {[string, string, string, string][]} */ ([["above", "Above", "aboveBar", "arrowDown"], ["below", "Below", "belowBar", "arrowUp"], ["on", "On it", "inBar", "circle"], ["shade", "Shaded", "", ""]]);
       /** A place's name as a choice says it: "Above the layer", "Shaded". @param {string} place */
@@ -13491,8 +13491,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return true;
       }
       /**
-       * The signals' marks, each on its layer's series, where it turns true (false before it, its value nothing between:
-       * not at its first, nothing turned): all of a layer's in time's order. Those on a series let go of (`old`), or no
+       * The signals' marks, each on its layer's series, where it turns up or down (and with its results, where a stretch
+       * ends off; see changesOf: not at its first, nothing turned): all of a layer's in time's order. Those on a series let go of (`old`), or no
        * longer marked, cleared.
        * @param {Chart} doc @param {Resolved} data @param {Map<string, any>} drawn @param {any[]} old
        */
@@ -18653,6 +18653,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         renderGallery();
         // (Searched: how many found, of both.)
         const query = $("home-filter").value.trim();
+        // (The top page with nothing of yours yet: the presets first, what there is to see; your Library's shelf, how to
+        // start it, after. Once there's a chart of yours, it leads.)
+        const grid = $("home-grid"), gallery = $("gallery"), presetsFirst = "top" in homeAt && !query && !listed().length && !listedPreviews().length;
+        if (presetsFirst !== (gallery.nextElementSibling === grid)) {
+          // (A focus in either, kept: a move lets it go.)
+          const focused = document.activeElement;
+          presetsFirst ? gallery.after(grid) : gallery.before(grid);
+          if (focused instanceof HTMLElement && focused !== document.activeElement && focused.isConnected) focused.focus({ preventScroll: true });
+        }
         $("home-count").textContent = query ? `${grouped.format(shownYours.length + (home && ("top" in homeAt || "previews" in homeAt) ? previewsShown().length : 0) + galleryFound)}${galleryFound === 1000 ? "+" : ""} found` : "";
       }
       /** The page's head: its name (a folder of yours, its menu beside it), the way up (each level a step to), its search, what's there to do. */
@@ -21450,7 +21459,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       /** The presets the empty chart offers first, by their place (the build checks each is one). */
       const RECOMMENDED = [
-        "Valuation › Market and realized cap", "Valuation › On-chain prices", "Valuation › MVRV", "Coin age › Age bands › Compare › Supply share",
+        "Valuation › Price by MVRV zone", "Price › Technical › Halving cycles", "Valuation › On-chain prices", "Valuation › Market and realized cap", "Valuation › MVRV", "Coin age › Age bands › Compare › Supply share",
         "Holders › Compare › Realized price", "Holders › Compare › MVRV", "Price › Returns › Short-term", "Mining › Hashing › Hash price and value",
         "Supply › Inflation", "Valuation › Rarity meter › Full › Bands", "Bedrock › Unweighted › Floors", "Network › Transactions › Count",
       ];
@@ -22169,7 +22178,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function markersHtml() {
         // (The past ones on the chart; the next, what it can't say otherwise.)
-        const on = Boolean(chart.halvings), [next] = nextHalvings(1), years = next ? `${ordinal(next.n)} ≈ ${monthYear(next.time)}` : "Every 210,000 blocks";
+        const on = Boolean(chart.halvings), [next] = nextHalvings(1), years = next ? `Next ≈ ${monthYear(next.time)}` : "Every 210,000 blocks";
         const count = chart.drawings?.length ?? 0, drawn = !drawingsHidden;
         return `<section class="markers"><div class="markers-head"><span>Markers</span></div>
           <div class="layer-row marker-row ${on ? "" : "hidden"}">
@@ -25301,7 +25310,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ] : []),
           ...(empty || chart.panes.length >= MAX_PANES ? [] : [{ title: "Add to a new pane", text: "A series in a pane of its own, under the others.", words: "new pane add series separate own below", icon: "pane", keepOpen: true, run: () => openPalette({ add: true, into: "new" }) }]),
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, words: "formula expression compute ratio", icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
-          ...(chart.layers.some((layer) => layer.type !== "cloud" && layer.type !== "signal") ? [{ title: "Add a signal", text: "Marks on a layer where a formula turns true, like A > sma(A, 200d).", words: "signal mark marker when condition cross crosses above below event alert", icon: "signal", run: addSignal, keepOpen: true }] : []),
+          ...(chart.layers.some((layer) => layer.type !== "cloud" && layer.type !== "signal") ? [{ title: "Add a signal", text: "Marks on a layer where a formula turns up or down, like A > sma(A, 200d), or (A > B) - (A < B).", words: "signal mark marker when condition cross crosses above below event alert", icon: "signal", run: addSignal, keepOpen: true }] : []),
           ...(empty ? [] : [{ title: SHARE, text: "A link that opens this chart for anyone.", words: "share url send link copy qr code scan phone", icon: "share", run: () => $("share").click(), suggested: true }]),
           ...(empty ? [] : [{ title: "Open image", text: "The chart's picture alone, in a tab of its own.", words: "image picture tab open view", icon: "link", run: () => exportAs("open") }]),
           ...(!isYours(chart) ? [] : [{ title: "Move to a folder", text: `${titleOf(chart)}: now ${chart.folder ? folderPath(chart.folder) : "in none"}.`, words: "folder move organize group put", icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
@@ -26622,7 +26631,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { kind: "row", key: "add:cloud", icon: ICONS.cloud, label: "Cloud", aside: "Filled between two layers", words: "cloud band fill area between range cross edge", group: "Other layers", other: true, verb: "Add", page: () => cloudPage() },
           ] : []),
           ...(markable(chart, /** @type {any} */ ({})).length ? [
-            { kind: "row", key: "add:signal", icon: ICONS.signal, label: "Signal", aside: "Marks where a formula turns true", words: "signal mark marker when condition cross crosses above below event alert", group: "Other layers", other: true, verb: "Add", run: () => addSignal() },
+            { kind: "row", key: "add:signal", icon: ICONS.signal, label: "Signal", aside: "Marks where a formula turns up or down", words: "signal mark marker when condition cross crosses above below event alert", group: "Other layers", other: true, verb: "Add", run: () => addSignal() },
           ] : []),
           ...(cloudable() ? [
             { kind: "row", key: "add:trend", icon: ICONS.riding, label: "Trend", aside: trendShort() || "Rides two layers, flipped by a third", words: "trend riding above below support resistance", group: "Other layers", other: true, verb: "Add", page: () => trendPage(), ...(trendShort() ? { disabled: trendShort() } : {}) },
