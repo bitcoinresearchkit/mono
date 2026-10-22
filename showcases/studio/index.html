@@ -18635,7 +18635,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         savePrefs();
       };
       /** The page's step of the history as it is. */
-      const homeState = () => ({ home: true, at: homeAt });
+      /**
+       * The page's step of the history: where it is, and its key (a new one, else this step's own): the step shown from
+       * then (see leftPlaces).
+       */
+      const homeState = (/** @type {string | undefined} */ key = history.state?.home ? history.state.key : undefined) => ({ home: true, at: homeAt, key: (shownKey = key ?? uid()) });
+      /**
+       * Each page's place as it was left, by its step's key: Back and Forward come back there. A step left by them can't
+       * be written any more (its place, in it, only when left otherwise): kept here, it's where it was last.
+       */
+      const leftPlaces = /** @type {Map<string, { top: number, rows: Record<string, number>, shown: number }>} */ (new Map());
+      /** The key of the step shown (a page's, see homeState). */
+      let shownKey = /** @type {string | undefined} */ (history.state?.key);
       /** Whether the page shows charts of yours (or previews): at the top, your Library, a folder of it, the previews. */
       const yoursShown = () => home && !("path" in homeAt);
       /**
@@ -18652,14 +18663,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const same = JSON.stringify(place) === JSON.stringify(homeAt);
         /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
         if (!same) {
-          if (home) history.replaceState({ ...homeState(), place: galleryPlace() }, "");
+          if (home) {
+            const place = galleryPlace();
+            history.replaceState({ ...homeState(), place }, "");
+            leftPlaces.set(history.state.key, place);
+          }
           placeHome(place);
           galleryShown = GALLERY_PAGE;
           clearPicks();
         }
         homeScroll().scrollTop = 0;
         if (!home) return showHome();
-        if (!same) history.pushState(homeState(), "");
+        if (!same) history.pushState(homeState(uid()), "");
         const fromPage = $("home").contains(document.activeElement);
         renderHome();
         if (!same) pageIn();
@@ -19145,7 +19160,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         home = true;
         prefs.home = true;
         savePrefs();
-        if (push) history.pushState(homeState(), "");
+        if (push) history.pushState(homeState(uid()), "");
         void morph(draft ? null : $("main"), () => {
           // Once the page as it was is pictured (the new chart, empty), it's taken back and the one before it goes under
           // the grid (else that one's foot would show, fading, as the page leaves).
@@ -19182,7 +19197,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         show();
         // (Where the page was, kept in its step: Back comes back there; Charts, too.)
         leftPlace = galleryPlace();
-        if (push && history.state?.home) history.replaceState({ ...history.state, place: leftPlace }, "");
+        // (A step from before steps had keys: given one.)
+        if (push && history.state?.home) (history.replaceState({ ...history.state, ...homeState(), place: leftPlace }, ""), leftPlaces.set(history.state.key, leftPlace));
         if (push) history.pushState({ chart: chart.id, fromHome: true, place: leftPlace }, "");
         const focused = $("home").contains(document.activeElement);
         return morph(before, async () => {
@@ -19286,12 +19302,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         new MutationObserver(sync).observe($("menu"), { attributes: true, attributeFilter: ["hidden", "class"] });
       }
       addEventListener("popstate", (event) => {
+        // (The page left, where it was, by its step: its own can't be written now. Still coming back (a second step
+        // taken at once), it isn't shown yet: nothing to keep.)
+        if (home && shownKey && document.body.hasAttribute("data-home")) leftPlaces.set(shownKey, galleryPlace());
+        shownKey = event.state?.key;
         // (A step whose address holds a link, one put in or a picture's: its hashchange reads it; one that couldn't be
         // read, as it is.)
         if (location.hash !== brokenLink && /^#(?:.*&)?(?:chart|image|c)=/.test(location.hash)) return;
         closeDialogs();
         if (event.state?.home) {
-          const to = asPlace(event.state.at), place = event.state.place ?? null;
+          const to = asPlace(event.state.at), place = leftPlaces.get(event.state.key) ?? event.state.place ?? null;
           // (Back to where it was (from a chart), as much of it shown; elsewhere, as much as it showed when left, else a
           // page, nothing searched; its scroll as it was left, else its top.)
           if (JSON.stringify(to) !== JSON.stringify(homeAt)) {
