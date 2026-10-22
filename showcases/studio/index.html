@@ -14403,7 +14403,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * layer without one there, the point being placed keeps its own. None: nothing drawn there.
        */
       function keyPoint(/** @type {number} */ i) {
-        const at = (/** @type {Layer} */ item) => built.get(item.id)?.shown?.[i] ?? NaN;
+        // (A value as drawn: on a log scale, none at or under zero.)
+        const at = (/** @type {Layer} */ item) => ((value) => (modeOf(chart, item) === 1 && !(value > 0) ? NaN : value))(built.get(item.id)?.shown?.[i] ?? NaN);
         const layer = placing?.host ?? [layerById(selected), ...chart.layers].find((item) => item && !item.hidden && item.type !== "signal" && drawn.get(item.id) && Number.isFinite(at(item)));
         const value = !layer ? NaN : tool && keyValue?.layer === layer.id ? keyValue.value : Number.isFinite(at(layer)) ? at(layer) : placing ? (draft?.points.at(-1)?.[1] ?? NaN) : NaN;
         return layer && Number.isFinite(value) ? { layer, value } : null;

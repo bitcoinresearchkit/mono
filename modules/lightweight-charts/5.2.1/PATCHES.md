@@ -392,3 +392,18 @@ price crosses its base has two line colors (`sh`), so isn't one style: drawn as 
 Measured (Chromium, 1440×900 at 2x, a pan and a wheel zoom at Max, 25 layers; CPU time in script, before → after
 22 and 23): stacked areas (HODL waves) 1,698–1,725 → 1,325–1,352 ms (−22%; the paths' own functions 904–931 →
 523–535); lines (realized price by age band) 1,620–1,653 → 1,253–1,298 ms (−22%).
+
+## 24. A crosshair set on a series, at its own scale's price
+
+`setCrosshairPosition(price, time, series)` placed the crosshair through its pane's default price scale (`Gd`:
+`n.kn()`), whatever the series' own: a price given for a series on the other side (a ratio on the left, the price on
+the right) landed at that price on the default scale, off its line, often off the plot. The series is passed on, and
+`Gd(t,i,n,o)` converts through its scale (`o.Ft()`), the default's only without one.
+
+- The API's `setCrosshairPosition`: `Gd(t,i,e,s)` (`s` the series' model).
+- `Gd(t,i,n,o)`: `const s=o?o.Ft():n.kn()`, its base the series' own first value as `priceToCoordinate` takes it
+  (`o.zt().Wt`: on a percentage or indexed scale shared with another series, the scale's first value can be that
+  one's), the default scale's without a series; none (nothing in view) places nothing (it asserted, a throw).
+
+Studio's keyboard crosshair walks the selected layer, which can be on either side. `tests.html`: 713/713 the same (it
+sets no crosshair).
