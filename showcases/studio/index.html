@@ -9159,6 +9159,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let seriesCount = 0;
       /** The series Bitview has only by block, none by date (Studio charts by date): known once the catalog's indexed. */
       const byBlock = new Set();
+      /** Series the catalog lists under more than one top folder (a folder's place among them isn't theirs: see catalogTops). @type {Set<string>} */
+      const sharedTops = new Set();
       /** Read catalog children without caching them on their parents (a normal walk would retain tens of megabytes). */
       const aside = (/** @type {any} */ node, /** @type {string} */ key) => Reflect.get(node, key, {});
 
@@ -11195,6 +11197,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const dated = INTERVAL_ORDER.some((id) => node.indexes().includes(id));
               if (index.has(node.name)) {
                 if (dated) byBlock.delete(node.name);
+                if (index.get(node.name).split(".")[0] !== path.split(".")[0]) sharedTops.add(node.name);
                 continue;
               }
               index.set(node.name, path);
@@ -25085,6 +25088,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         ]).filter((command) => !home || command.anywhere);
       }
 
+      /**
+       * The catalog's top folders in the presets' order: by the first preset charted from a series it alone holds (the
+       * most asked for first); none (its series all elsewhere too: the server's plumbing, a copy), last; alike, as the
+       * server has them. The presets or the catalog not read yet, as the server has them.
+       */
+      let topRanks = /** @type {{ for: Preset[], ranks: Map<string, number> } | null} */ (null);
+      function catalogTops(/** @type {any} */ node) {
+        const keys = Object.keys(node ?? {});
+        if (!presets || !catalogIndex) return keys;
+        if (topRanks?.for !== presets) {
+          const ranks = new Map();
+          presets.forEach((preset, i) => {
+            for (const layer of preset.c.layers) for (const name of [layer.series, ...(typeof layer.formula === "string" ? seriesNamed(layer.formula) : [])]) {
+              const top = typeof name === "string" && !sharedTops.has(name) ? catalogIndex?.get(name)?.split(".")[0] : undefined;
+              if (top && !ranks.has(top)) ranks.set(top, i);
+            }
+          });
+          topRanks = { for: presets, ranks };
+        }
+        const { ranks } = topRanks, last = presets.length;
+        return keys.sort((a, b) => (ranks.get(a) ?? last) - (ranks.get(b) ?? last));
+      }
       function showPalette() {
         const query = palette.query.trim();
         clearTimeout(palette.timer);
@@ -25118,7 +25143,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (!query) {
           const node = nodeAt(palette.path);
-          const folder = Object.keys(node ?? {}).map((key) => {
+          const folder = (palette.path.length ? Object.keys(node ?? {}) : catalogTops(node)).map((key) => {
             const child = node[key];
             const group = palette.path.length ? "" : "Catalog";
             return isLeaf(child) ? { kind: "series", key, name: child.name, group } : { kind: "folder", key, path: [...palette.path, key], group };
