@@ -11447,12 +11447,35 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       /** The view a chart came with (a link's, a file's) given to the one it's alike: none, that one's forgotten. @param {string} from @param {string} to */
       const takeView = (from, to) => (viewsNow()[from] ? moveView(from, to) : forgetView(to));
+      /**
+       * A formula left unfinished in the panel (one that doesn't read yet), by chart id (a chart given a new id, they
+       * follow) and layer: shown again with its error when its layer's open (the layer keeps the last that read), till it
+       * reads and is applied, esc lets it go, or the layer's formula is changed otherwise (`over`: the formula it was
+       * typed over; see pruneDrafts).
+       * @type {Map<string, Map<string, { text: string, over: string }>>}
+       */
+      const formulaDrafts = new Map();
+      /** The drafts whose formulas were changed otherwise (an edit, an undo, another tab's) let go; a chart not here now (a preset let go till it's opened again) keeps its. */
+      function pruneDrafts() {
+        let shown = false;
+        for (const [id, drafts] of formulaDrafts) {
+          const doc = chartById(id) ?? (id === chart?.id ? chart : null);
+          if (doc) for (const [layer, draft] of drafts) if (doc.layers.find((item) => item.id === layer)?.formula !== draft.over) (drafts.delete(layer), (shown ||= id === chart?.id && layer === selected));
+        }
+        // (The one the panel shows let go while it's not being typed in (the panel kept as another field's focused): the
+        // field as its layer is.)
+        const field = document.getElementById("formula"), layer = layerById(selected);
+        if (!shown || !(field instanceof HTMLTextAreaElement) || document.activeElement === field || layer?.formula === undefined) return;
+        formulaTyped++;
+        field.value = layer.formula;
+        updateFormula(layer);
+      }
       /** A chart given a new id (its own taken): its view, this tab's place in the history and the chart open follow. @param {Chart} doc @param {string} id */
       const rekey = (doc, id) => {
         const old = doc.id;
         doc.id = id;
         moveView(old, id);
-        for (const map of /** @type {Map<string, any>[]} */ ([histories, previews, thumbs])) if (map.has(old)) map.set(id, map.get(old)), map.delete(old);
+        for (const map of /** @type {Map<string, any>[]} */ ([histories, previews, thumbs, formulaDrafts])) if (map.has(old)) map.set(id, map.get(old)), map.delete(old);
         if (chart === doc) library.active = id;
         if (drawnChart === old) drawnChart = id;
         if (history.state?.chart === old) history.replaceState({ ...history.state, chart: id }, "");
@@ -11765,10 +11788,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!stored) return notice("Nothing stored to download");
         download(`bitview-charts-as-stored-${new Date().toLocaleDateString("en-CA")}.json`, new Blob([stored], { type: "application/json" }));
       }
-      /** What's being typed where it shows (a drawing's text or label, a name), kept now: before a save, a page left. */
-      function flushEdits() {
-        endTyping();
-        naming?.finish();
+      /**
+       * What's being typed where it shows (a drawing's text or label, a name), kept now: before a save, a page left. `open`:
+       * the page only hidden, a name or a drawing's text left open as it is, to go on with (esc taking it back still).
+       */
+      function flushEdits(open = false) {
+        // (Those left with the window ended too, as the window's return would: a title trimmed.)
+        if (!open) (endTyping(), naming?.finish(), ((ends) => (leftOpen.clear(), ends.forEach((end) => end())))([...leftOpen.values()]));
         applyFormulaLeft();
         const formula = /** @type {HTMLTextAreaElement | null} */ (document.getElementById("formula"));
         if (formula && document.activeElement === formula && selected) applyFormula(selected, formula.value);
@@ -11863,8 +11889,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const current = isPreview(chart) ? chart : library.charts.find((doc) => doc.id === chart.id) ?? library.presets.find((doc) => doc.id === chart.id || (chart.preset !== undefined && doc.preset === chart.preset)) ?? chart;
         drawThumbs();
         if ($("palette").open) showPalette();
-        if (current === chart) return renderCharts();
+        if (current === chart) return (pruneDrafts(), renderCharts());
         chart = /** @type {Chart} */ (current);
+        pruneDrafts();
         edits.past = [];
         edits.future = [];
         revision++;
@@ -11878,14 +11905,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       addEventListener("pageshow", (event) => event.persisted && takeIn());
 
       /**
-       * `run` as the page is left; by touch, as it's hidden too: a phone closes an app put away when it likes, with no word
-       * to the page (a computer's tab put away runs on, a field being typed in still open as it's back).
-       * @param {() => void} run
+       * `run` as the page is left; by touch, as it's hidden too (`hidden`): a phone closes an app put away when it likes,
+       * with no word to the page (a computer's tab put away runs on, a field being typed in still open as it's back).
+       * @param {(hidden: boolean) => void} run
        */
       function onLeave(run) {
-        addEventListener("pagehide", run);
-        if (TOUCH) document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && run());
+        addEventListener("pagehide", () => run(false));
+        if (TOUCH) document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && run(true));
       }
+      /**
+       * Fields left as the window was (a phone's app switched, another app in front), each with how it ends as it's left:
+       * the window back, ended so then unless the focus came back to it (as it does, usually), a frame on.
+       * @type {Map<Element, () => void>}
+       */
+      const leftOpen = new Map();
+      /** Whether `field`'s focus went with the window: if so, `end` waits for its return (see leftOpen). */
+      const leftWith = (/** @type {Element} */ field, /** @type {() => void} */ end) => !document.hasFocus() && Boolean(leftOpen.set(field, end));
+      addEventListener("focus", (event) => event.target === window && requestAnimationFrame(() => {
+        const ends = [...leftOpen].filter(([field]) => document.activeElement !== field);
+        leftOpen.clear();
+        for (const [, end] of ends) end();
+      }));
       /**
        * A write put off a moment (`wait`, ms), all asked for meanwhile written once; the page left (or hidden) first,
        * written then. @param {() => void} write @returns {() => void} asking for it
@@ -11899,9 +11939,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
       }
       // Leaving (or hidden): what's being typed kept, and what's not yet written written now (as a save would, full storage
-      // too). (Back, a name being typed is a name kept: its field gone, as a click elsewhere leaves it.)
-      onLeave(() => {
-        flushEdits();
+      // too). Hidden (a phone's app switched), what's typed in place stays open as it is, to go on with (the focus comes
+      // back to it; the app closed meanwhile, that alone is lost).
+      onLeave((hidden) => {
+        flushEdits(hidden);
         if (!saveTimer && !unsaved) return;
         clearTimeout(saveTimer);
         saveTimer = 0;
@@ -12006,6 +12047,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!chartChanged) (chartChanged = true), queueMicrotask(() => (chartChanged = false));
         if (!keepMenu) hideMenu();
         if (!layerById(selected)) selected = "";
+        // (A formula left unfinished over one that's since changed (⌘K, an undo, the layer gone): let go for good.)
+        pruneDrafts();
         chosen = new Set([...chosen].filter((id) => drawingById(id)));
         for (const id of layerPicks) if (!layerById(id)) layerPicks.delete(id);
         if (!layerById(layerPickLast)) layerPickLast = [...layerPicks][0] ?? "";
@@ -14618,7 +14661,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }).join("");
           if (legendShown.get(element) === html) continue;
           legendShown.set(element, html);
+          // (Its focus kept: ↵ on an item selects its layer, which writes the legend again.)
+          const focus = focusKey(element);
           element.innerHTML = html;
+          restoreFocus(element, focus);
           // (Mid-drag, a color or a width changed, not what it holds: no need to measure it again.)
           if (!holding) fitSoon(element);
         }
@@ -17014,7 +17060,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let hovering = { id: "", handle: -1, over: "" };
       /** A drawing being placed, as it shows until it's let go (then it's the chart's). @type {Drawing | null} */
       let draft = null;
-      /** A text being typed in its field (not drawn under it): the drawing, whether it's new; a line's label being typed (its line still drawn). */
+      /** A text being typed in its field (not drawn under it): the drawing, whether it's new; a line's label being typed (its line still drawn); `cancel`: let go by esc, as it was. */
       let writing = null, typingIn = "", labelTyping = "";
       /** Drawn for a picture: nothing selected or pointed at. */
       let capturing = false;
@@ -18196,8 +18242,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         field.hidden = false;
       }
       /**
-       * Typing a text where it's drawn: ↵ or esc (or a click away) keeps it, ⇧↵ starts a line; emptied, it goes. ↵ or esc
-       * gives the focus `back` (what opened it by keys: the plot, the belt's button).
+       * Typing a text where it's drawn: ↵ (or a click away) keeps it, ⇧↵ starts a line, esc leaves it as it was (a new one
+       * not made), as esc does to what's typed elsewhere; emptied, it goes. ↵ or esc gives the focus `back` (what opened it
+       * by keys: the plot, the belt's button).
        * @param {Drawing} drawing @param {HTMLElement | null} back
        */
       function startTyping(drawing, back = null) {
@@ -18214,8 +18261,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         repaintDrawings();
       }
       /**
-       * Typing a line's label where it sits (`at`: where it goes, a share of the way along): ↵ or esc keeps it (the focus
-       * `back`, as a text's); emptied, it goes.
+       * Typing a line's label where it sits (`at`: where it goes, a share of the way along): ↵ keeps it, esc leaves it as
+       * it was (the focus `back`, as a text's); emptied, it goes.
        * @param {Drawing} drawing @param {HTMLElement | null} back
        */
       function startLabel(drawing, at = drawing.at, back = null) {
@@ -18250,6 +18297,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       function endTyping() {
         if (!writing) return;
+        if (writing.cancel) {
+          writing = null;
+          typingIn = labelTyping = "";
+          $("draw-text").hidden = true;
+          return repaintDrawings();
+        }
         if (writing.label) {
           const { drawing } = writing, label = labelText(/** @type {HTMLTextAreaElement} */ ($("draw-text")).value);
           writing = null;
@@ -18274,12 +18327,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         editById(drawing.id, (item) => (item.text = text));
       }
       $("draw-text").addEventListener("input", placeField);
-      $("draw-text").addEventListener("blur", endTyping);
+      // (The window left (a phone's app switched), it stays as it is till the window's back: see leftOpen.)
+      $("draw-text").addEventListener("blur", () => leftWith($("draw-text"), endTyping) || endTyping());
       $("draw-text").addEventListener("keydown", (event) => {
         // (Enter mid-composition is the input method's. A label is one line: ⇧Enter puts it down too.)
         if (composing(event) || !((event.key === "Enter" && (!event.shiftKey || writing?.label)) || event.key === "Escape")) return;
         event.preventDefault();
         const back = writing?.back;
+        if (event.key === "Escape" && writing) writing.cancel = true;
         $("draw-text").blur();
         // (The belt's button drawn again as it's kept: the one in its place.)
         const to = back?.isConnected ? back : back?.id ? document.getElementById(back.id) : null;
@@ -19791,8 +19846,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           event.stopPropagation();
           finish(event.key === "Enter", true);
         });
-        // (Left, it's kept; taken out with what it's in, drawn anew, it's put back there: see keepNaming.)
-        input.addEventListener("blur", () => queueMicrotask(() => input.isConnected && document.activeElement !== input && finish(true, false)));
+        // (Left, it's kept; taken out with what it's in, drawn anew, it's put back there: see keepNaming. The window left (a
+        // phone's app switched), it stays as it is till the window's back: see leftOpen.)
+        const left = () => queueMicrotask(() => input.isConnected && document.activeElement !== input && finish(true, false));
+        input.addEventListener("blur", () => leftWith(input, left) || left());
       }
       /** A chart renamed by its id, as it is now (not as it was when the name began). */
       function renameById(/** @type {string} */ id, /** @type {string} */ title) {
@@ -23296,7 +23353,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <h3>${signal ? "Signal" : "Formula"}</h3>
               <div class="formula-editor" id="formula-editor">
                 <pre id="formula-mirror" aria-hidden="true"></pre>
-                <textarea id="formula" rows="1" aria-controls="suggest" aria-autocomplete="list" maxlength="500" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" enterkeyhint="done" aria-label="Formula" aria-describedby="formula-status formula-call">${escape(layer.formula)}</textarea>
+                <textarea id="formula" rows="1" aria-controls="suggest" aria-autocomplete="list" maxlength="500" spellcheck="false" autocapitalize="off" autocorrect="off" autocomplete="off" enterkeyhint="done" aria-label="Formula" aria-describedby="formula-status formula-call">${escape(((draft) => (draft?.over === layer.formula ? draft.text : layer.formula))(formulaDrafts.get(chart.id)?.get(layer.id)))}</textarea>
                 <div class="assist" popover="manual">
                   <div id="formula-call" class="call-help" aria-live="polite" hidden></div>
                   <ul id="suggest" class="suggest" role="listbox" hidden></ul>
@@ -24163,7 +24220,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         let message = "", node = null;
         try {
           node = parse(text);
-          message = text.trim() === (layer.formula ?? "").trim() ? result?.detail ?? result?.error ?? "" : formulaError(text);
+          message = text.trim() === (layer.formula ?? "").trim() ? result?.detail ?? result?.error ?? "" : formulaError(text) || loopError(layer, text);
         } catch (error) {
           message = error.message;
         }
@@ -24493,7 +24550,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (field.id !== "formula") return;
         $("formula-editor")?.classList.remove("typing");
         // (After the press that left it, if one did: the panel drawn anew now would lose the control pressed. Before
-        // anything leaves the chart, though: see leaveField.)
+        // anything leaves the chart, though: see leaveField. Left with the window too: one that reads applied, else kept
+        // as typed, a draft (see formulaDrafts), nothing lost.)
         formulaLeft = { id: selected, text: field.value };
         formulaTyped++;
         afterPress(applyFormulaLeft);
@@ -24507,17 +24565,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * A layer's formula as typed, applied once it's left (or the page is) if it reads, as ⌘K's formula page does; one
-       * that doesn't leaves the layer with the last that did (applied as it was typed), the field showing it again.
+       * that doesn't leaves the layer with the last that did, and is kept as it was typed, its error said (see
+       * formulaDrafts): a tap away loses nothing.
        */
       function applyFormula(/** @type {string} */ id, /** @type {string} */ text) {
         const layer = layerById(id);
-        if (layer?.formula === undefined || layer.formula === text) return;
-        if (!formulaError(text) && !loopError(layer, text)) return editById(id, (item) => (item.formula = text), { coalesce: `formula:${id}` });
+        if (layer?.formula === undefined) return;
+        if (layer.formula === text) return void formulaDrafts.get(chart.id)?.delete(id);
+        if (!formulaError(text) && !loopError(layer, text)) return (formulaDrafts.get(chart.id)?.delete(id), editById(id, (item) => (item.formula = text), { coalesce: `formula:${id}` }));
+        if (!formulaDrafts.has(chart.id)) formulaDrafts.set(chart.id, new Map());
+        formulaDrafts.get(chart.id)?.set(id, { text, over: layer.formula });
         const field = /** @type {HTMLTextAreaElement | null} */ ($("formula"));
         if (!field || selected !== id || document.activeElement === field) return;
-        // (Shown again as it is: no draw of what was typed left to come, nor the field's own input run.)
+        // (Its error said, typing done: no draw of what was typed left to come, nor the field's own input run. The panel
+        // drawn anew meanwhile (a click that left it, on a style), the field shows it again.)
         formulaTyped++;
-        field.value = layer.formula;
+        field.value = text;
         updateFormula(layer);
         $("formula-editor")?.classList.remove("typing");
       }
@@ -24526,6 +24589,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const layer = layerById(selected), problem = formulaError(field.value) || (layer ? loopError(layer, field.value) : "");
         if (problem && enter) return void ($("formula-editor")?.classList.remove("typing"), say(problem));
         if (problem && layer?.formula !== undefined) {
+          formulaDrafts.get(chart.id)?.delete(layer.id);
           formulaTyped++;
           field.value = layer.formula;
           updateFormula(layer);
@@ -27977,16 +28041,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       $("palette-input").addEventListener("keydown", (event) => {
         if (composing(event)) return;
-        // (The list's keys as they're said (↑↓, ⇧ by five; ↵, ⇧↵, ⌘↵): another chord's the field's, ⌘↑ to its start.)
+        // (The list's keys as they're said (↑↓, ⇧ by five; ↵, ⇧↵, ⌘↵): another chord's the field's, ⌘↑ to its start. A
+        // page left or entered by a key's press, not its repeat: ⌫ held empties the field and stops there.)
         const plain = !event.metaKey && !event.ctrlKey && !event.altKey;
         if (["ArrowDown", "ArrowUp", "ArrowRight", "Enter", "Tab"].includes(event.key)) palette.pending?.();
         if (event.key === "ArrowDown" && plain) move(event.shiftKey ? 5 : 1);
         else if (event.key === "ArrowUp" && plain) move(event.shiftKey ? -5 : -1);
         else if (event.key === "Enter" && !event.altKey) event.repeat || choose(event.shiftKey, event.metaKey || event.ctrlKey);
-        else if (event.key === "ArrowRight" && plain && !event.shiftKey && (palette.items[palette.active]?.kind === "folder" || palette.items[palette.active]?.page || palette.items[palette.active]?.leads) && event.target.selectionStart === event.target.value.length) choose();
-        else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && palette.pages.length) popPage();
-        else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && palette.path.length) goUp(palette.path.length - 1);
-        else if (event.key === "Backspace" && !event.target.value && (palette.adding || palette.formula)) leaveScope();
+        else if (event.key === "ArrowRight" && plain && !event.shiftKey && (palette.items[palette.active]?.kind === "folder" || palette.items[palette.active]?.page || palette.items[palette.active]?.leads) && event.target.selectionStart === event.target.value.length) event.repeat || choose();
+        else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && palette.pages.length) event.repeat || popPage();
+        else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && palette.path.length) event.repeat || goUp(palette.path.length - 1);
+        else if (event.key === "Backspace" && !event.target.value && (palette.adding || palette.formula)) event.repeat || leaveScope();
         else if (event.key === "Tab" && !event.shiftKey && palette.items[palette.active]?.kind === "insert") choose();
         else if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "y" && quickWorks()) quickToggle();
         // (esc puts Quick Look away, ⌘K staying: here, as a key, not as the dialog's cancel, which a browser lets be
@@ -28744,18 +28809,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // (Its font come late, measured again.)
       document.fonts.addEventListener("loadingdone", fitTitle);
       // A title is trimmed once it's done: stray spaces don't make a name.
-      $("title").addEventListener("blur", (event) => {
+      function leaveTitle() {
+        const field = /** @type {HTMLInputElement} */ ($("title")), title = field.value.trim();
         // (Only what was typed: one focused and left as it was isn't an edit (another tab's rename, taken in meanwhile, stays).)
-        const title = event.target.value.trim();
-        if (title !== chart.title && event.target.value !== typedFrom.get(event.target)) commit((doc) => (doc.title = title), { coalesce: "title", redraw: "none" });
+        if (title !== chart.title && field.value !== typedFrom.get(field)) commit((doc) => (doc.title = title), { coalesce: "title", redraw: "none" });
         // (Left, it's untouched again: a rename taken in while it's not focused (a tab in the background) shows.)
-        typedFrom.set(event.target, event.target.value);
-      });
+        typedFrom.set(field, field.value);
+      }
+      // (The window left (a phone's app switched), it's as it was till the window's back: see leftOpen.)
+      $("title").addEventListener("blur", () => leftWith($("title"), leaveTitle) || leaveTitle());
       // Single-line fields: Enter is done, Escape takes back what was typed; both leave the field.
       const FIELDS = "#title, #label, .number-input, .level-name";
       const typedFrom = new WeakMap();
+      // (Left with the window (a phone's app switched), back in it: what it was typed from stays, esc's to take back. See
+      // leftOpen: #title's own blur says so.)
+      document.addEventListener("focusout", (event) => event.target instanceof HTMLInputElement && event.target.matches(FIELDS) && event.target.id !== "title" && leftWith(event.target, () => {}));
       document.addEventListener("focusin", (event) => {
-        if (event.target instanceof HTMLInputElement && event.target.matches(FIELDS)) typedFrom.set(event.target, event.target.value);
+        if (!(event.target instanceof HTMLInputElement) || !event.target.matches(FIELDS) || leftOpen.has(event.target)) return;
+        typedFrom.set(event.target, event.target.value);
       });
       document.addEventListener("keydown", (event) => {
         const field = event.target;
@@ -30249,7 +30320,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Out of the field being typed into: what it holds kept (or, a text emptied, gone), and a formula left by a press
        * applied, there and then: on the chart it was typed on (another's opening).
        */
-      const leaveField = () => (naming?.finish(), typing(document.activeElement) && /** @type {HTMLElement} */ (document.activeElement).blur(), applyFormulaLeft());
+      const leaveField = () => (flushEdits(), typing(document.activeElement) && /** @type {HTMLElement} */ (document.activeElement).blur(), applyFormulaLeft());
       /** Typing into a field (a tick isn't one: keys still do what they do). */
       const typing = (target) => (target instanceof HTMLInputElement && !["checkbox", "radio", "button"].includes(target.type)) || target instanceof HTMLTextAreaElement || target?.isContentEditable;
       // The keyboard, by touch. iOS lays it over the page (its viewport the same: what's under it, hidden) and, a field
@@ -30329,6 +30400,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         select(chart.layers[clamp(index < 0 ? (delta > 0 ? 0 : chart.layers.length - 1) : index + delta, 0, chart.layers.length - 1)].id);
       }
       document.addEventListener("keydown", (event) => {
+        // (A key composing a character, an IME's (⌃K among them), is the composition's: none here.)
+        if (composing(event)) return;
         const mod = event.metaKey || event.ctrlKey;
         const key = event.key.toLowerCase();
         if (flyout) {
@@ -30352,6 +30425,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (document.querySelector("dialog[open]")) return;
         // An open menu has the keys (its own, and its arrows): the chart's don't act behind it. Esc closes it.
         if (!$("menu").hidden && event.key !== "Escape") return;
+        // A search's button with the focus (an empty chart's "Search N series", the phone's Search): what's typed there
+        // searches, as in its field, rather than acting as a shortcut.
+        const search = /** @type {HTMLElement | null} */ (closest(event, "[data-typing]"));
+        if (search && event.key.length === 1 && event.key !== " " && !mod && !event.altKey) {
+          event.preventDefault();
+          openPalette({ add: search.dataset.action === "add-series", query: event.key, typing: true });
+          const input = $("palette-input");
+          return void input.setSelectionRange(input.value.length, input.value.length);
+        }
         if (mod && /^[1-9]$/.test(event.key) && !event.shiftKey && !event.altKey) {
           event.preventDefault();
           go(numbered()[Number(event.key) - 1]);
