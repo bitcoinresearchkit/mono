@@ -2574,6 +2574,49 @@
             overflow: visible;
           }
 
+          /* Its mark, the switch: pointed at, an eye in its place (a click hides it; with ⌥, it alone shown in its pane);
+             hidden, a crossed eye always (a click brings it back). Its own target, a little past the mark, for a finger. */
+          .legend-eye {
+            display: grid;
+            flex-shrink: 0;
+            place-items: center;
+            margin: -4px;
+            border-radius: var(--radius-sm);
+            padding: 4px;
+
+            > * {
+              grid-area: 1 / 1;
+            }
+
+            .eye {
+              display: grid;
+              place-items: center;
+              width: 16px;
+              height: 12px;
+              color: var(--ink);
+              visibility: hidden;
+            }
+
+            &.off .eye {
+              color: var(--muted);
+            }
+
+            &:hover:where(.can-hover *) {
+              background: var(--press);
+            }
+          }
+
+          &:hover:where(.can-hover *) .legend-eye,
+          .legend-eye.off {
+            .series-mark {
+              visibility: hidden;
+            }
+
+            .eye {
+              visibility: visible;
+            }
+          }
+
           .name {
             overflow: hidden;
             text-overflow: ellipsis;
@@ -14069,7 +14112,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               : layer.hidden || !result?.values || (layer.type === "signal" && !signalShown(layer)) ? '<span class="legend-value"></span>'
               : `<span class="legend-value" data-value="${layer.id}" style="min-width: ${valueSlot(layer, 12)}px"></span>`;
             return `<button type="button" class="${layer.hidden || (layer.type === "signal" && !signalShown(layer)) ? "hidden" : ""} ${layer.id === selected || layerPicks.has(layer.id) ? "selected" : ""}" data-select="${layer.id}">
-              <span class="legend-name">${seriesMark(layer)}<span class="name">${escape(labelOf(layer))}</span></span>${value}
+              <span class="legend-name"><span class="legend-eye${layer.hidden ? " off" : ""}" data-toggle="${layer.id}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : ` · ${keyText("⌥-click: only it in its pane")}`}">${seriesMark(layer)}<span class="eye">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</span></span><span class="name">${escape(labelOf(layer))}</span></span>${value}
             </button>`;
           }).join("");
           if (legendShown.get(element) === html) continue;
@@ -22162,7 +22205,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                   <span class="row-text"><span class="name">${escape(labelOf(layer))}</span>${sub}</span>
                   <span class="row-figures"${layer.type === "cloud" && result?.low ? ` style="min-width: ${valueSlot(layer, rowSizes.value, true)}px"` : ""}><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.type === "cloud" ? " data-lines" : ""}`}></span>${layer.type === "cloud" || layer.type === "signal" ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}</span>
                 </button>
-                <button type="button" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"} ${keyText("(⌥-click: alone in its pane)")}">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>
+                <button type="button" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : ` ${keyText("(⌥-click: alone in its pane)")}`}">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>
               </div>`;
             })(layer)]))];
           return { key: pane.id, open: `<section class="pane-group" data-pane="${pane.id}">`, rows };
@@ -22367,8 +22410,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function soloLayer(/** @type {string} */ id) {
         const layer = layerById(id);
         if (!layer) return;
-        // (The only one in its pane: shown or hidden, as a click does.)
-        if (!chart.layers.some((other) => other.pane === layer.pane && other.id !== id)) return toggleHidden(id);
+        // (The only one in its pane, or a signal (alone, its layer hidden, it shows nothing): shown or hidden, as a click
+        // does.)
+        if (layer.type === "signal" || !chart.layers.some((other) => other.pane === layer.pane && other.id !== id)) return toggleHidden(id);
         const alone = aloneInPane(layer);
         commit((doc) => doc.layers.forEach((other) => other.pane === layer.pane && (other.hidden = alone || other.id === id ? undefined : true)), { look: true });
       }
@@ -22470,7 +22514,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * back on it once redrawn). @param {Layer} layer
        */
       /** The layer's eye, by its name in its settings. */
-      const eyeOf = (/** @type {Layer} */ layer) => `<button type="button" id="inspector-eye" data-hidden="${Boolean(layer.hidden)}" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"} ${keyText("(⌥-click: alone in its pane)")}" data-kbd="H">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>`;
+      const eyeOf = (/** @type {Layer} */ layer) => `<button type="button" id="inspector-eye" data-hidden="${Boolean(layer.hidden)}" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : ` ${keyText("(⌥-click: alone in its pane)")}`}" data-kbd="H">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>`;
       const actionsOf = (/** @type {Layer} */ layer) => `<section class="layer-actions">${layerActions(layer.id, "panel").map((row, i) => `<button type="button" id="act-${row.key}" class="nav-item${row.danger ? " danger" : ""}" data-act="${i}"${row.page ? ' aria-haspopup="menu"' : ""}${row.disabled ? ` aria-disabled="true" data-tip="${escape(row.disabled)}"` : ""}${row.kbd?.startsWith("⌘") ? ` data-kbd="${[...row.kbd].join(" ")}"` : ""}>${row.icon ?? ""}<span class="label">${escape(row.label)}</span>${row.kbd ? `<kbd${row.kbd.startsWith("⌘") ? ' class="mod"' : ""}>${escape(keyText(row.kbd))}</kbd>` : ""}</button>`).join("")}</section>`;
       /** The panel waiting to be drawn again, a color's hex being typed in it (see renderInspector). */
       let inspectorDue = false;
