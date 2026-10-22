@@ -192,6 +192,11 @@ export function studioPresets(client, facts) {
    * @param {{ workings?: boolean }} [options] @returns {SectionNode}
    */
   const section = (name, items, options = {}) => ({ name, items: /** @type {(ChartNode | SectionNode)[]} */ (items.filter(Boolean)), ...(options.workings ? { workings: true } : {}) });
+  /**
+   * A family's member: its folders, or, with one alone (0-sat outputs: their UTXOs only), that one's charts, not a
+   * folder in a folder. @param {string} name @param {(ChartNode | SectionNode | null | undefined | false)[]} items @returns {SectionNode}
+   */
+  const member = (name, items) => ((kept) => section(name, kept.length === 1 && "items" in kept[0] ? kept[0].items : kept))(/** @type {(ChartNode | SectionNode)[]} */ (items.filter(Boolean)));
 
   /** A node's windows (`_24h`… and any other spans), in order. @param {any} node */
   const windowsOf = (node) => entries(node).filter(([key, value]) => /^_\d+[hdwmy]$/.test(key) && (isLeaf(value) || value.btc));
@@ -325,7 +330,8 @@ export function studioPresets(client, facts) {
         ...change(capital.delta, "Change", titled("Capital change")),
       ]),
       utxos && section("UTXOs", [
-        utxos.count && chart("Count", titled("UTXO count"), [series(own(utxos.count), "UTXOs", { color: "sky" })], { log: [1] }),
+        // (All coins' count is UTXOs › Count itself: its one home.)
+        utxos.count && !whole && chart("Count", titled("UTXO count"), [series(own(utxos.count), "UTXOs", { color: "sky" })], { log: [1] }),
         ...change(utxos.count?.delta, "Change", titled("UTXO count change")),
         ...flow(utxos.spentCount, "Spent", titled("UTXOs spent")),
       ]),
@@ -528,7 +534,7 @@ export function studioPresets(client, facts) {
     ];
     return [
       ...(comparisons.length ? [section("Compare", comparisons)] : []),
-      ...members.map(([key, c]) => ((n) => section(n.name, options.charts ? options.charts(key, c, n.who) : cohort(c, n.who, key === "all", options.of)))(naming(key))),
+      ...members.map(([key, c]) => ((n) => member(n.name, options.charts ? options.charts(key, c, n.who) : cohort(c, n.who, key === "all", options.of)))(naming(key))),
     ];
   };
   /** The client's name for a member (its table's `long`), in sentence case. @param {Record<string, { long: string }>} table @param {string} key */
@@ -588,7 +594,8 @@ export function studioPresets(client, facts) {
       section("Moving averages", [averages(m.sma, "SMA"), averages(m.ema, "EMA")]),
       section("Range", [
         ...entries(m.range.max).map(([key]) => chart(`${windowAdjective(key)} high and low`, `Price's ${windowAdjective(key)} high and low`, [price(), series(m.range.max[key], "High", { color: "green" }), series(m.range.min[key], "Low", { color: "red" }), { cloud: ["B", "C"], label: "Range", color: "sky", opacity: 0.1 }])),
-        chart("True range", "Price's daily true range", [series(m.range.trueRange, "True range", { color: "sky" })], { log: [1] }),
+        // (`trueRange` is the absolute change of the price from one block to the next, a day's its last: not a daily range.)
+        chart("Block-to-block change", "Price's absolute change from one block to the next", [series(m.range.trueRange, "Change", { color: "sky" })], { log: [1] }),
       ]),
       section("Technical", [
         chart("RSI", "Relative strength index of the price", [price(), { formula: "rsi(A)", label: "RSI", pane: 2, color: "violet", levels: [{ value: 30, color: "green", dash: 3 }, { value: 70, color: "red", dash: 3 }] }]),
@@ -974,7 +981,8 @@ export function studioPresets(client, facts) {
       chart("Supply share", `Share of ${whose} coins in ${holders.toLowerCase()}`, [series(supply.share, "Share", { color: "sky" })]),
     ];
     return [
-      a.avgBalance && chart("Average balance", of("Average address balance"), amount(a.avgBalance, "Average balance"), { log: [1, 2] }),
+      // (Supply over funded addresses: empty ones aren't counted.)
+      a.avgBalance && chart("Average funded balance", of("Average balance of funded addresses"), amount(a.avgBalance, "Average balance"), { log: [1, 2] }),
       section("Count", [
         chart("Funded, empty and total", of("Address count"), [series(own(a.funded), "Funded", { color: "orange" }), series(a.empty, "Empty", { color: "gray" }), series(a.total, "Total", { color: "sky" })], { log: [1] }),
         ...change(a.funded.delta, "Change", of("Funded address change")),
@@ -1053,7 +1061,8 @@ export function studioPresets(client, facts) {
         ...parts(["Dormant supply", "Dormant supply by age band"], ["Dormant supply share", "Dormant supply share by age band"], list.map(([key, node], i) => series(node.dormant.supply.btc, name(key), { color: colors[i] }))),
       ]),
       ...list.map(([key, node]) => section(name(key), [
-        ...flow(node.coindaysConsumed, "Coin days consumed", `Coin days consumed: UTXOs ${name(key).toLowerCase()} old`),
+        // (The coin days spent outputs had built up while in this band, whatever their age when spent.)
+        ...flow(node.coindaysConsumed, "Coin days consumed", `Coin days consumed from the ${name(key).toLowerCase()} band`),
         chart("Wakefulness", `Wakefulness: UTXOs ${name(key).toLowerCase()} old`, [series(node.wakefulness, "Wakefulness", { color: "orange" }), series(node.awakeToDormant, "Awake to dormant", { color: "sky", pane: 2 })]),
         chart("Awake and dormant", `Awake and dormant supply: UTXOs ${name(key).toLowerCase()} old`, [series(node.awake.supply.btc, "Awake", { color: "orange", type: "area" }), series(node.dormant.supply.btc, "Dormant", { color: "gray", type: "area" }), series(node.awake.supply.usd, "Awake, value", { color: "green", type: "area", pane: 2 }), series(node.dormant.supply.usd, "Dormant, value", { color: "gray", type: "area", pane: 2 })], { stack: { 1: "stack", 2: "stack" } }),
       ])),
