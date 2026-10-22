@@ -13447,8 +13447,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * The chart's Inter, a tad heavier than the page's (its labels read better, on the lines and on their colored tags):
        * the page's own font file (no second copy of it), as "Inter Chart" from 500 up (a variable font: a canvas's
-       * regular text comes at 500, bold stays bold). The page's until it's loaded: the chart measures its labels in the
-       * font it's given, and a new one is what makes it measure them again.
+       * regular text comes at 500, bold stays bold), its digits tabular (a canvas has no font-variant-numeric: the face's
+       * own setting), every digit as wide: a price scale doesn't widen and narrow as its labels' digits change. The page's
+       * until it's loaded: the chart measures its labels in the font it's given, and a new one is what makes it measure
+       * them again.
        */
       let chartSans = css("--sans");
       const chartFont = (async () => {
@@ -13457,7 +13459,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (!(rule instanceof CSSFontFaceRule) || rule.style.getPropertyValue("font-family").replace(/["']/g, "").trim() !== "Inter") continue;
             const url = rule.style.getPropertyValue("src").match(/url\(["']?([^"')]+)["']?\)/)?.[1];
             if (!url) return false;
-            const face = new FontFace("Inter Chart", await (await fetch(url)).arrayBuffer(), { weight: "500 900" });
+            const face = new FontFace("Inter Chart", await (await fetch(url)).arrayBuffer(), { weight: "500 900", featureSettings: '"tnum" 1' });
             document.fonts.add(face);
             return Boolean(await face.load());
           }
@@ -13604,8 +13606,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       addEventListener("resize", releaseSize);
       // (Its layout table is no table to read: the chart's said by its plot's keys, see placePlotKeys.)
       view.chartElement().querySelector("table")?.setAttribute("role", "presentation");
-      // Its figures in Inter, as every figure here (a canvas has no tabular figures: an axis is as wide as its labels
-      // with every digit a "0", see widest), set again once the font has loaded: a canvas doesn't wait for it.
+      // Its figures in Inter, as every figure here (tabular, by the face's own setting: see chartFont), set again once the
+      // font has loaded: a canvas doesn't wait for it.
       chartFont.then((loaded) => {
         if (!loaded) return;
         chartSans = css("--chart-sans");
