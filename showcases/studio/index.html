@@ -11914,11 +11914,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (like === chart) saveView();
           like.range = doc.range;
           takeView(doc.id, like.id);
+          forgetSpans(like.id);
         }
         if (closedToast === shown) hideToast();
         leaveHome(() => {
           addPreview(shown);
-          if (shown === chart) (drawnChart = ""), refresh(true, true);
+          if (shown === chart) (drawnChart = ""), autoPrepare(shown), refresh(true, true);
           else openChart(shown);
         }, null, push);
         return shown;
@@ -12449,6 +12450,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Each chart's span at each fine interval, kept as it grows (and once the chart is left). @type {Map<string, Span>} */
       const spans = new Map();
+      /** A chart's chunks at hand let go of, at every interval (its view given anew: Auto picks the interval it asks for). @param {string} id */
+      const forgetSpans = (id) => {
+        for (const key of spans.keys()) if (key.startsWith(`${id}@`)) spans.delete(key);
+      };
       /** The chunks a range preset covers, from the latest (Max: the latest two). @returns {Span} */
       function presetSpan(index, range) {
         // (One that doesn't fit at this interval shows as Max: as many chunks as Max takes.)
@@ -14414,8 +14419,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * layer without one there, the point being placed keeps its own. None: nothing drawn there.
        */
       function keyPoint(/** @type {number} */ i) {
-        // (A value as drawn: on a log scale, none at or under zero.)
-        const at = (/** @type {Layer} */ item) => ((value) => (modeOf(chart, item) === 1 && !(value > 0) ? NaN : value))(built.get(item.id)?.shown?.[i] ?? NaN);
+        // (A value as drawn: on a log scale, none at or under zero (a cloud's low too: it's drawn only above).)
+        const at = (/** @type {Layer} */ item) => ((made) => ((value) => (modeOf(chart, item) === 1 && (!(value > 0) || (made?.low && !(made.low[i] > 0))) ? NaN : value))(made?.shown?.[i] ?? NaN))(built.get(item.id));
         const layer = placing?.host ?? [layerById(selected), ...chart.layers].find((item) => item && !item.hidden && item.type !== "signal" && drawn.get(item.id) && Number.isFinite(at(item)));
         const value = !layer ? NaN : tool && keyValue?.layer === layer.id ? keyValue.value : Number.isFinite(at(layer)) ? at(layer) : placing ? (draft?.points.at(-1)?.[1] ?? NaN) : NaN;
         return layer && Number.isFinite(value) ? { layer, value } : null;
@@ -18991,6 +18996,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // The filter: as typed; esc empties it, then leaves it.
       $("home-filter").addEventListener("input", () => renderHome());
       $("home-filter").addEventListener("keydown", (event) => {
+        if (composing(event)) return;
         if (event.key === "Escape") {
           event.preventDefault();
           if ($("home-filter").value) {
@@ -23017,7 +23023,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // drawn again (it shows the color as it is).
       document.addEventListener("keydown", (event) => {
         const field = /** @type {HTMLInputElement} */ (event.target);
-        if (!field.matches?.("#inspector .color-editor .hex") || (event.key !== "Enter" && event.key !== "Escape")) return;
+        if (!field.matches?.("#inspector .color-editor .hex") || composing(event) || (event.key !== "Enter" && event.key !== "Escape")) return;
         event.preventDefault();
         event.stopPropagation();
         const color = event.key === "Enter" ? readColor(field.value) : null, key = field.closest("[data-palette]")?.getAttribute("data-palette");
@@ -23680,7 +23686,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           event.stopPropagation();
           return event.target.click();
         }
-        if (event.target.id !== "formula") return;
+        if (event.target.id !== "formula" || composing(event)) return;
         if (event.key === "Escape" && (!$("suggest").hidden || !$("formula-call").hidden)) {
           suggest.controller?.abort();
           suggest.away = assistKey();
@@ -24203,10 +24209,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         select(added.id, false);
         toast(`Added ${formula} as ${added.letter}, marked on ${((on) => (on ? labelOf(on) : "no layer"))(layerById(added.ref ?? ""))}`, editAdded(added));
       }
-      /** A formula as a layer, in a new pane (or `pane`), selected. @param {string | null} [pane] */
-      /** A formula as a layer: in `pane` (on `side`, its layer's it's made from), else in a new one. */
+      /** Where a new pane would go, at the most panes, is the last, and it's a stack (a layer there would be summed into it). @param {string | null | undefined} pane */
+      const stackedOnly = (pane) => !(pane && chart.panes.some((item) => item.id === pane)) && chart.panes.length >= MAX_PANES && Boolean(chart.panes.at(-1)?.stack);
+      const STACKED_ONLY = `A chart holds up to ${MAX_PANES} panes, and the last is a stack: this needs one of its own`;
+      /** A formula as a layer, selected: in `pane` (on `side`, its layer's it's made from), else in a new one (at the most panes, the last). */
       function addFormulaLayer(formula, pane = null, side = /** @type {string | null} */ (null)) {
         if (!roomFor(chart)) return;
+        if (stackedOnly(pane)) return void notice(STACKED_ONLY);
         let added;
         commit((doc) => {
           const kept = pane && doc.panes.some((item) => item.id === pane);
@@ -24348,7 +24357,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function derive(/** @type {string} */ id, /** @type {string} */ starter) {
         const source = layerById(id);
         if (!source) return;
-        if (starter === "own") return openPalette({ formula: true, into: source.pane, query: source.letter, side: source.side });
+        // (Its own, in its pane on its side; over a stack, which would sum it in, a pane of its own.)
+        if (starter === "own") return ((stacked) => openPalette({ formula: true, into: stacked ? null : source.pane, query: source.letter, side: stacked ? null : source.side }))(Boolean(chart.panes.find((pane) => pane.id === source.pane)?.stack));
         const formulas = (STARTERS.find((item) => item.id === starter)?.formulas ?? []).map((text) => text.replaceAll("X", source.letter));
         if (!formulas.length) return;
         if (chart.layers.length + formulas.length > MAX_LAYERS) return void notice(`A chart holds up to ${MAX_LAYERS} layers`);
@@ -25337,7 +25347,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * its error is in the preview.
        */
       function addFromPalette(pane = palette.into, keep = false) {
-        const text = palette.query.trim(), editing = palette.editing ? layerById(palette.editing) : null, problem = formulaError(text) || (editing ? loopError(editing, text) : "");
+        const text = palette.query.trim(), editing = palette.editing ? layerById(palette.editing) : null, problem = formulaError(text) || (editing ? loopError(editing, text) : !asSignal(text) && stackedOnly(pane === "new" ? null : pane) ? STACKED_ONLY : "");
         if (problem) return notice(problem);
         if (keep && !palette.editing && !asSignal(text)) {
           // Added, and the formula stays, selected, to write the next one.
@@ -25416,7 +25426,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <div class="info"><h5>${editing ? "Layer" : "As layer"} ${escape(layer.letter)}</h5><dl>
               <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div>
               <div><dt>Latest</dt><dd id="spark-caption"></dd></div>
-              ${editing ? "" : `<div><dt>Goes in</dt><dd>${palette.into ? `Pane ${paneNumber(palette.into)}` : chart.panes.length < MAX_PANES ? "New pane" : `Pane ${chart.panes.length}`}</dd></div>`}
+              ${editing ? "" : `<div><dt>Goes in</dt><dd>${palette.into ? `Pane ${paneNumber(palette.into)}` : chart.panes.length < MAX_PANES ? "New pane" : stackedOnly(null) ? "Nowhere: the last pane is a stack" : `Pane ${chart.panes.length}`}</dd></div>`}
             </dl></div>`;
           drawSpark(Array.from(result.values), unit, ink(layer.color));
         })();
@@ -25815,6 +25825,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** ⌘K in ⌘K: the highlighted row's actions, over the footer. */
       function showActions(/** @type {HTMLElement} */ anchor = $("palette-actions")) {
+        // (Rows waiting for their frame drawn first: the actions are the lit row's of what's typed.)
+        palette.pending?.();
         quickHide();
         const item = palette.items[palette.active], actions = actionsFor(item);
         if (actions.length < 2) return;
@@ -26963,7 +26975,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (event.key === "ArrowDown" && plain) move(event.shiftKey ? 5 : 1);
         else if (event.key === "ArrowUp" && plain) move(event.shiftKey ? -5 : -1);
         else if (event.key === "Enter" && !event.altKey) event.repeat || choose(event.shiftKey, event.metaKey || event.ctrlKey);
-        else if (event.key === "ArrowRight" && (palette.items[palette.active]?.kind === "folder" || palette.items[palette.active]?.page || palette.items[palette.active]?.leads) && event.target.selectionStart === event.target.value.length) choose();
+        else if (event.key === "ArrowRight" && plain && !event.shiftKey && (palette.items[palette.active]?.kind === "folder" || palette.items[palette.active]?.page || palette.items[palette.active]?.leads) && event.target.selectionStart === event.target.value.length) choose();
         else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && palette.pages.length) popPage();
         else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && palette.path.length) goUp(palette.path.length - 1);
         else if (event.key === "Backspace" && !event.target.value && (palette.adding || palette.formula)) leaveScope();
@@ -26998,7 +27010,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         choose(false);
         if ($("palette").open) paletteKeys();
       });
-      $("palette-actions").addEventListener("click", () => (palette.pending?.(), showActions()));
+      $("palette-actions").addEventListener("click", () => showActions());
       // By a finger, a row held: its other actions (there's no foot's Actions by touch); moved, it's a scroll.
       {
         let rowHold = 0, rowHeld = false, at = /** @type {[number, number]} */ ([0, 0]);
@@ -28000,8 +28012,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const twin = library.charts.find((other) => sameChart(other, doc));
         if (!twin) return null;
         takeView(doc.id, twin.id);
-        // (At every interval: Auto picks the one the view asks for.)
-        for (const key of spans.keys()) if (key.startsWith(`${twin.id}@`)) spans.delete(key);
+        forgetSpans(twin.id);
         return twin;
       }
       /** A time as a link writes it: its date ("2021-11-10"), with its time where it has one ("2021-11-10T14:30:00Z"). */
@@ -30216,7 +30227,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("quick").addEventListener("pointerup", () => requestAnimationFrame(() => $("palette").open && $("palette-input").focus({ preventScroll: true })));
       // (Its ×, or around it: put away.)
       $("quick").addEventListener("click", (event) => {
-        if (closest(event, "[data-quick-open]")) return void (quick?.key && choose());
+        // (Rows waiting drawn first, and the look then theirs: what shows is what opens.)
+        if (closest(event, "[data-quick-open]")) return void (palette.pending ? palette.pending() : quick?.key && choose());
         if (event.target === $("quick") || closest(event, "[data-quick-close]")) quickHide();
       });
       $("palette-quick").addEventListener("click", () => (quickToggle(), $("palette-input").focus({ preventScroll: true })));
@@ -30244,7 +30256,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const doc of setAside) touched.add(doc), previewCharts.push(doc);
         if (shared) {
           const like = !library.charts.includes(shared) && previewLike(shared);
-          if (like) (like.range = shared.range), moveView(shared.id, like.id);
+          if (like) (like.range = shared.range), takeView(shared.id, like.id);
           if (like && toastOfPreview === shared) toastOfPreview = like;
           chart = like || shared;
           if (!library.charts.includes(chart)) addPreview(chart);
