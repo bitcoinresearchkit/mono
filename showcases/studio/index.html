@@ -24354,6 +24354,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (chart.layers.length + formulas.length > MAX_LAYERS) return void notice(`A chart holds up to ${MAX_LAYERS} layers`);
         // (Over a stack, it would add to it: a pane of its own then too.)
         const over = Boolean(STARTERS.find((item) => item.id === starter)?.over) && !chart.panes.find((pane) => pane.id === source.pane)?.stack;
+        // (One that needs a pane of its own, at the most panes: not put in the last one, a stack's maybe.)
+        if (!(over && chart.panes.some((item) => item.id === source.pane)) && chart.panes.length >= MAX_PANES) return void notice(`A chart holds up to ${MAX_PANES} panes: this needs one of its own`);
         /** @type {Layer | undefined} */
         let first;
         commit((doc) => {
@@ -28338,7 +28340,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           doc.layers.push(makeLayer({ ...Object.fromEntries(Object.entries(spec).filter(([, value]) => value !== undefined)), id }, doc));
         }
         // What layers are made from, by their ids here, and a cloud's edges (normalize leaves out what's not a layer).
-        for (const layer of doc.layers) if (layer.ref) layer.ref = layerIds.get(layer.ref);
+        // (A layer named that isn't one: none, to pick (not another put in its place).)
+        for (const layer of doc.layers) if (layer.ref) layer.ref = layerIds.get(layer.ref) ?? "";
         // (A signal said without its layer: marked on the first that can be.)
         for (const layer of doc.layers) if (layer.type === "signal" && layer.ref === undefined) layer.ref = markable(doc, layer)[0]?.id;
         for (const layer of doc.layers) if (layer.colorFrom) layer.colorFrom = layerIds.get(layer.colorFrom);
