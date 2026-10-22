@@ -534,3 +534,24 @@ by that area (a touch crisper).
 `tests.html` leaves `bvHalfFills` unset: its pictures the same as before the patch. Measured (Mullvad Browser,
 headless, 2x): HODL waves, a redraw 40.0 → 25.6 ms, panning ~25 → ~36 fps; a chart without fills (24 lines) as before
 (10.6 ms, 60 fps). Its pixels (Mullvad, 2x, HODL waves): 11.8% of the plot's differ, by 37 of 255 at most.
+
+## 31. A chart drawn again under the pointer only where its drawing can change
+
+As the pointer moves from one series to another (a band to the next in a stacked chart, every few pixels), the model
+(`Rd`, the hovered object set) asked for the series left and the one hovered (`Ta`, a light update: `new Y(2)`), and so
+drew the whole chart again (every pane, its price scales autoscaled again, both price axes, the time axis): for the
+hovered series drawn last (`hoveredSeriesOnTop`) and for a custom series' renderer, which is told whether it's hovered.
+Nothing else drawn depends on it: a built-in series' renderers aren't told (their `et` takes the target alone), a
+primitive's are given a constant (`Vt`, `setLineStyle`), the crosshair (its marker too) is drawn on the pane's top
+canvas (`Ya`, asked just before), and the pointer's cursor is set apart (`pg`). Studio's charts set
+`hoveredSeriesOnTop` false, so a sweep over HODL waves (24 bands) drew the chart again on every band crossed.
+
+- `Rd`: `bvH(t)`, `hoveredSeriesOnTop` or the series a custom one (`"Custom"===t?.wa`; a pane, `Si`, has none); the
+  series left (`Ta(i.uu)`) and the one hovered (`Ta(t.uu)`) asked for only where `bvH` holds of it.
+- Still drawn again: a hover onto or off a custom series (Studio's clouds draw the same either way; the library can't
+  know). No longer: a primitive that keeps the crosshair's `hoveredObjectId` and draws by it without `requestUpdate()`
+  (it was drawn again by this, by chance; Studio has none: its primitives have no `hitTest`).
+
+`tests.html` as before. Measured: Chromium, 65 moves over HODL waves, 104k `lineTo`s → 12.7k (one frame, the live price's;
+as many as with the pointer still); Mullvad Browser (headless, 2x), the crosshair swept over HODL waves, 102 → 110-119
+frames in 2 s.
