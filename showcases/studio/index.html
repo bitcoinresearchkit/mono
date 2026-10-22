@@ -10426,14 +10426,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         /** @returns {Node} */
         function expression(min) {
-          let left = primary();
+          let left = primary(), compared = false;
           for (;;) {
             const token = peek();
             const precedence = token?.t === "op" ? BINARY[token.v] : undefined;
             if (precedence === undefined || precedence < min) return left;
             at++;
-            // (Two comparisons in a row say nothing: 1 < A < 3 is (1 < A) < 3, a 0 or 1 under 3. Joined, they do.)
-            if (COMPARES.has(String(token.v)) && left.k === "bin" && COMPARES.has(left.op)) throw new Error("Join comparisons with & or |: A > 1 & A < 3");
+            // (Two comparisons in a row say nothing: 1 < A < 3 is (1 < A) < 3, a 0 or 1 under 3. Joined, they do; one in
+            // parentheses, compared, is meant: (A > 1) > 0.)
+            if (COMPARES.has(String(token.v)) && compared) throw new Error("Join comparisons with & or |: A > 1 & A < 3");
+            compared = COMPARES.has(String(token.v));
             left = { k: "bin", op: token.v, a: left, b: expression(token.v === "^" ? precedence : precedence + 1) };
           }
         }
@@ -11690,9 +11692,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const VIEWS = "bitview-studio:views";
       /**
        * The views left, as stored: read once (a grid of tiles asks for each, at each key typed), written through; another
-       * tab's write, read again. `viewsBase`: as read, to tell another tab's writes since from this one's.
+       * tab's write, read again. `viewsBase`: as read, to tell another tab's writes since from this one's. `viewsUnkept`: one
+       * not written, said (once till one is).
        */
-      let viewsLeft = /** @type {Record<string, any> | null} */ (null), viewsBase = /** @type {Record<string, any>} */ ({});
+      let viewsLeft = /** @type {Record<string, any> | null} */ (null), viewsBase = /** @type {Record<string, any>} */ ({}), viewsUnkept = false;
       const viewsNow = () => viewsLeft ?? ((viewsBase = storage.get(VIEWS, {})), (viewsLeft = { ...viewsBase }));
       /**
        * The views written. (Charts this tab doesn't know may be another's, its previews and presets: their views kept;
@@ -11713,7 +11716,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         const ids = Object.keys(all);
         if (ids.length > 100) for (const id of ids.sort((a, b) => (all[a]?.at ?? 0) - (all[b]?.at ?? 0)).slice(0, ids.length - 100)) delete all[id];
-        if (storage.set(VIEWS, all)) viewsBase = { ...all };
+        // (Storage full: the caches let go of first, then again; not written, said once till one is.)
+        if (storage.set(VIEWS, all) || (storage.drop(PREVIEWS, THUMBS), storage.set(VIEWS, all))) (viewsBase = { ...all }), (viewsUnkept = false);
+        else if (!viewsUnkept) (viewsUnkept = true), notice("Where charts were left isn't kept: storage full or blocked");
       };
       addEventListener("storage", (event) => event.key === VIEWS && (viewsLeft = null));
       // (Back from the browser's history, others' writes since unheard: read again.)
@@ -21579,13 +21584,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Presets edited here whose place is gone (the presets arranged anew since, by a newer Studio): each moved to the
        * preset that now shows the same series, its edits there (edited: Reset brings that one back as made); none does,
        * kept as a chart of the Library, its title and edits as they were (a series gone since says so there, and offers
-       * the closest). Nothing lost, nothing hidden; said once.
+       * the closest). Nothing lost, nothing hidden; said once (`told`: else by the caller, an import, which it tells how
+       * many it kept as charts).
        */
-      function adoptPresets() {
+      function adoptPresets(/** @type {Chart[]} */ among = library.presets, told = true) {
         // (Those left as they were opened aren't edits: prunePresets lets go of them, after. One another tab placed
         // already (deleted here, kept only while it's open) is that tab's.)
-        const lost = library.presets.filter((doc) => presetIndex(doc) < 0 && !pristine(doc) && !isDeleted(doc));
-        if (!lost.length || readOnly) return;
+        const lost = among.filter((doc) => presetIndex(doc) < 0 && !pristine(doc) && !isDeleted(doc));
+        if (!lost.length || readOnly) return 0;
         // (What a chart shows, its looks aside: its series and formulas, as a set; what's made from them (a cloud, a
         // trend) an edit of it.)
         const shows = (/** @type {Chart} */ doc) => JSON.stringify([...new Set(doc.layers.flatMap((layer) => layer.series ?? layer.formula ?? []))].sort());
@@ -21622,13 +21628,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
         }
         const stamp = (/** @type {number} */ at) => Math.max(at, Date.now() - 29 * 86400000);
+        let kept = 0;
         for (const doc of lost) {
           const i = to.get(doc), old = doc.id, replaced = library.presets.filter((other) => other !== doc && i !== undefined && other.preset === presetKey(i));
           library.presets = library.presets.filter((other) => other !== doc && !replaced.includes(other));
           // (Its copy as stored let go of, here and in any tab's next save, by its id as of its stamp, a month kept.)
           library.deleted[old] = Math.max(library.deleted[old] ?? 0, stamp(doc.updated));
-          // (The same id in every tab doing this at once: its copies one chart.)
-          const id = i === undefined ? `a${hashOf(old)}`.slice(0, 16) : presetIdOf(presetKey(i));
+          // (The same id in every tab doing this at once: its copies one chart; that id another chart's (another version of
+          // it, imported), one of its own.)
+          const fixed = i === undefined ? `a${hashOf(old)}`.slice(0, 16) : presetIdOf(presetKey(i));
+          const id = i === undefined && library.charts.some((other) => other.id === fixed) ? uid() : fixed;
           rekey(doc, id);
           // (Newer than its old copy's end, than any reset of where it goes, and than the copy there it replaces.)
           doc.updated = Math.max(Date.now(), doc.updated + 1, (library.deleted[id] ?? 0) + 1, ...replaced.map((other) => other.updated + 1));
@@ -21639,6 +21648,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             delete doc.preset;
             delete doc.base;
             library.charts.unshift(doc);
+            kept++;
           } else {
             Object.assign(doc, { preset: presetKey(i), base: templateHash(i) });
             library.presets.push(doc);
@@ -21648,7 +21658,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The open one drawn again under its new id: a draw of it still on its way, under its old one, gives way. Still
         // starting, the start draws it.)
         if (started && lost.includes(/** @type {Chart} */ (chart))) refresh(true);
-        const moved = to.size, kept = lost.length - moved;
+        const moved = to.size;
+        if (!told) return kept;
         toast(`The presets were arranged anew: ${[moved ? `${plural(moved, "edited preset")} moved to ${moved === 1 ? "its new place" : "their new places"}` : "", kept ? `${plural(kept, "edited preset")} kept as ${kept === 1 ? "a chart" : "charts"} in your Library` : ""].filter(Boolean).join(", ")}`);
       }
       /** A preset back as made (its edits let go of), with an Undo; open, it shows as it is. @param {Chart} doc */
@@ -27927,7 +27938,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!file) return;
         // (Charts, even all of them, are a few megabytes at most: a file far past that isn't, and would hang the page read.)
         if (file.size > 32e6) return notice(`That file is ${Math.round(file.size / 1e6)} MB: too large to be charts`);
-        await presetsSettled();
+        // (Loaded, not only read: its edited presets with no place here are adopted with it, under its Undo.)
+        await loadPresets().catch(() => {});
         try {
           const parsed = JSON.parse(await file.text());
           // Several, downloaded together (picked, or Download all): they join the top of your Library, shown picked on its
@@ -27953,12 +27965,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             });
             // The presets as edited there, with them (Download all's): each as it was there, but one edited here too, or open
             // here (here's kept).
+            let editsHere = 0;
             const edits = /** @type {Chart[]} */ ((Array.isArray(parsed.presets) ? parsed.presets : []).flatMap((/** @type {any} */ item) => {
               try {
                 if (typeof item?.preset !== "string" || item.preset.length > 2000 || chart?.preset === item.preset) return [];
                 if (library.presets.some((other) => other.preset === item.preset && presetEdited(other))) return [];
                 const doc = readChart(item), carried = doc.id;
                 Object.assign(doc, { id: presetIdOf(item.preset), preset: item.preset, updated: Date.now() });
+                // (One with no place here, the same as one of yours already (adopted from a file imported before): here, the
+                // view it carried let go of.)
+                if (presets && presetIndex(doc) < 0 && [...library.charts, ...library.presets].some((other) => sameChart(other, doc))) return (forgetView(carried), editsHere++, []);
                 moveView(carried, doc.id);
                 if (typeof item.base === "string" && /^[a-z0-9]{1,24}$/.test(item.base)) doc.base = item.base;
                 return [doc];
@@ -27994,6 +28010,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               parent ? (folder.parent = parent) : delete folder.parent;
             }
             // (Nothing new, charts nor folders: said, nothing changed.)
+            if (!docs.length && !edits.length && !folders.size && editsHere) return toast("It's all here already");
             if (!docs.length && !edits.length && !folders.size && already) return toast(`${already === 1 ? "That chart is" : `All ${grouped.format(already)} charts are`} here already`);
             if (!docs.length && !edits.length && !folders.size) throw new Error("No charts in it");
             library.presets = [...library.presets.filter((other) => !edits.some((doc) => doc.preset === other.preset)), ...edits];
@@ -28005,6 +28022,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             library.charts.unshift(...docs);
             library.folders.push(...folders.values());
             library.order = [...order, ...before];
+            // (Edited where this Studio's presets have no place: moved to the one showing the same, else kept as charts.)
+            const keptAsCharts = presets ? adoptPresets(edits, false) : 0, keptIds = edits.filter((doc) => library.charts.includes(doc)).map((doc) => doc.id);
             save();
             // (On your Library's page, where they are; picked to tell them from the charts already here (into none,
             // they're all there is).)
@@ -28014,10 +28033,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             drawThumbs();
             renderCharts();
             const skipped = parsed.charts.length - docs.length - already;
-            return toast(`Imported ${plural(docs.length, "chart")}${folders.size ? ` and ${plural(folders.size, "folder")}` : ""}${edits.length ? ` and ${plural(edits.length, "edited preset")}` : ""}${already ? `; ${grouped.format(already)} already here` : ""}${skipped === 1 ? "; 1 entry wasn't a chart" : skipped ? `; ${grouped.format(skipped)} entries weren't charts` : ""}`, { label: "Undo", run: () => {
+            const what = [docs.length ? plural(docs.length, "chart") : "", folders.size ? plural(folders.size, "folder") : "", edits.length ? `${plural(edits.length, "edited preset")}${keptAsCharts ? ` (${keptAsCharts} with no place here, kept as ${keptAsCharts === 1 ? "a chart" : "charts"})` : ""}` : ""].filter(Boolean);
+            return toast(`Imported ${new Intl.ListFormat("en-US").format(what)}${already ? `; ${grouped.format(already)} already here` : ""}${skipped === 1 ? "; 1 entry wasn't a chart" : skipped ? `; ${grouped.format(skipped)} entries weren't charts` : ""}`, { label: "Undo", run: () => {
               // (As a delete takes them, by their ids: another tab may have saved one anew since; the open one among them,
               // another opens.)
-              const ids = new Set(docs.map((doc) => doc.id));
+              // (Edited presets kept as charts, with them.)
+              const ids = new Set([...docs.map((doc) => doc.id), ...keptIds]);
               for (const doc of library.charts.filter((doc) => ids.has(doc.id))) (discard(doc), picked.delete(doc.id));
               for (const doc of edits) {
                 if (!library.presets.includes(doc)) continue;
