@@ -502,3 +502,31 @@ path drawn; 97% of a smooth curve's points left out, half a noisy one's. Measure
 redraw for a 5-bar pan, 8 years in view): "Realized price by age band" (24 lines) 44.7 → 11.9 ms, panning ~25 → ~57
 fps; HODL waves (24 stacked areas) 68.9 → 40.0 ms; Chromium 2.1 → 3.1 ms. Its pixels (Mullvad, 2x): 3.4% of the busy plot's differ, by a
 little (antialiasing), 0.4% by more than a quarter, none to be told apart by eye.
+
+## 30. A pane's fills drawn at half resolution, under its series (an option)
+
+Firefox fills on the CPU where WebGL is off (see 29): Studio's stacked areas (HODL waves, 24 translucent gradients each
+to the pane's floor) spent 22 ms of a 40 ms frame filling at 2x, half of it the gradients. With the chart's
+`bvHalfFills: true`, each pane's area and baseline fills (soft gradients, their edges under their lines) are drawn
+first, at half the pane's bitmap size, then laid on it at its size (only where one was drawn), and its series drawn on
+as before, their fills left out. The fills look the same (their gradients soft, their top edges under their lines);
+every series of a pane is drawn over every fill now, so a line or a series under an area stacked over it isn't tinted
+by that area (a touch crisper).
+
+- `bvFilled`, a module-level flag: whether the pane being drawn has its fills drawn already; `bvDrew`, whether any was.
+- `Ne` (the fills' renderer, area and baseline): `st` skipped while `bvFilled`; `bvFills(t,i,n)`, its own `st` (`bvDrew`
+  set where it has something to draw).
+- `C` (a composite renderer) and `Ue` (a series' fill and line): `bvFills` passed on (to all; to the fill).
+- The pane widget: `bvHalf(t)`, with the option: its own canvas at half the bitmap's size (`bvCanvas`, kept, in the
+  chart's color space, made again if that changes; cleared when the last frame drew on it), a rendering target on it
+  (`fn`, the pane's media size: its pixel ratios halved), every source's views drawn with `bvFills` alone (`Dw`, as `Sw`
+  walks them), the canvas laid on the pane's (`drawImage`, scaled) where a fill was drawn; `bvViews(t)`, in its paint
+  (`Rm`) after the background, the bottom views and the grid (`xw`): `bvHalf`, then the views (`Sw(t,Un)`) with
+  `bvFilled` set, the flag as it was after (another chart painted meanwhile, an exception).
+- The gradients' cache (`Fe.Nb`, 22): keyed by the target's vertical pixel ratio and bitmap height too (the half
+  target's), its bottom given as asked (media) or none (the bitmap's: the three callers pass `n.qb`, or nothing), no
+  longer told apart by its number.
+
+`tests.html` leaves `bvHalfFills` unset: its pictures the same as before the patch. Measured (Mullvad Browser,
+headless, 2x): HODL waves, a redraw 40.0 → 25.6 ms, panning ~25 → ~36 fps; a chart without fills (24 lines) as before
+(10.6 ms, 60 fps). Its pixels (Mullvad, 2x, HODL waves): 11.8% of the plot's differ, by 37 of 255 at most.

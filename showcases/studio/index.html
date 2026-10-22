@@ -13349,6 +13349,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const colors = chartColors(), line = { width: /** @type {const} */ (1), style: LC.LineStyle.Solid };
         const scale = { borderVisible: false, entireTextOnly: true, scaleMargins: { top: 0.17, bottom: 0.08 } };
         return {
+          // (Areas' fills, soft gradients, drawn at half resolution under every line: Firefox fills on the CPU; see LWC
+          // patch 30.)
+          bvHalfFills: true,
           layout: {
             ...colors.layout,
             background: { type: LC.ColorType.Solid, color: "transparent" },
