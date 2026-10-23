@@ -1,4 +1,7 @@
-use std::{env, fs, io, net::IpAddr, path::Path, process::exit, str::FromStr};
+use std::{
+    collections::HashSet, env, fmt::Display, fs, io, net::IpAddr, path::Path, process::exit,
+    result::Result as StdResult, str::FromStr,
+};
 
 use bitview_server::{
     CdnCacheMode, DEFAULT_BIND, DEFAULT_MAX_UTXOS, DEFAULT_MAX_WEIGHT, Port, ServerConfig, Website,
@@ -10,9 +13,8 @@ use lexopt::{
     Parser, ValueExt,
 };
 use owo_colors::OwoColorize;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use serde_json::{Value, to_value};
-use toml::from_str;
 
 use crate::{
     RunConfig,
@@ -22,8 +24,7 @@ use crate::{
 /// Default size, in bytes, of the shared vector cache (`vecdb::Budgeted::init_global`).
 pub const DEFAULT_CACHE_BUDGET: usize = 2 << 30;
 
-#[derive(Debug, Default, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
+#[derive(Debug, Default, Serialize)]
 pub struct Config {
     bitviewdir: Option<String>,
     serverbind: Option<IpAddr>,
@@ -43,6 +44,25 @@ pub struct Config {
 }
 
 impl Config {
+    /// The settings `config.toml` and the flags name, in the order they are written.
+    const KEYS: [&'static str; 15] = [
+        "bitviewdir",
+        "serverbind",
+        "serverport",
+        "website",
+        "cdn",
+        "maxweight",
+        "maxutxos",
+        "cachebudget",
+        "bitcoindir",
+        "blocksdir",
+        "rpcconnect",
+        "rpcport",
+        "rpccookiefile",
+        "rpcuser",
+        "rpcpassword",
+    ];
+
     pub fn import() -> Result<RunConfig> {
         let (config_args, dump) = Self::parse_args()?;
 
@@ -100,28 +120,97 @@ impl Config {
                     exit(0);
                 }
                 Long("dumpconfig") => dump = true,
-                Long("bitviewdir") => config.bitviewdir = Some(parse_value(&mut parser, &flag)?),
-                Long("serverbind") => config.serverbind = Some(parse_value(&mut parser, &flag)?),
-                Long("serverport") => config.serverport = Some(parse_value(&mut parser, &flag)?),
-                Long("website") => config.website = Some(parse_value(&mut parser, &flag)?),
-                Long("cdn") => config.cdn = Some(parse_value(&mut parser, &flag)?),
-                Long("maxweight") => config.maxweight = Some(parse_value(&mut parser, &flag)?),
-                Long("maxutxos") => config.maxutxos = Some(parse_value(&mut parser, &flag)?),
-                Long("cachebudget") => config.cachebudget = Some(parse_value(&mut parser, &flag)?),
-                Long("bitcoindir") => config.bitcoindir = Some(parse_value(&mut parser, &flag)?),
-                Long("blocksdir") => config.blocksdir = Some(parse_value(&mut parser, &flag)?),
-                Long("rpcconnect") => config.rpcconnect = Some(parse_value(&mut parser, &flag)?),
-                Long("rpcport") => config.rpcport = Some(parse_value(&mut parser, &flag)?),
-                Long("rpccookiefile") => {
-                    config.rpccookiefile = Some(parse_value(&mut parser, &flag)?)
+                Long(name) if Self::KEYS.contains(&name) => {
+                    let key = name.to_owned();
+                    let value = parser.value().map_err(parse_error)?;
+                    let value = value
+                        .string()
+                        .map_err(|error| Error::Parse(format!("{flag}: {error}")))?;
+                    // Worded as lexopt words a value its parsing rejects.
+                    config.set(&key, &value).map_err(|error| {
+                        Error::Parse(format!("{flag}: cannot parse argument {value:?}: {error}"))
+                    })?;
                 }
-                Long("rpcuser") => config.rpcuser = Some(parse_value(&mut parser, &flag)?),
-                Long("rpcpassword") => config.rpcpassword = Some(parse_value(&mut parser, &flag)?),
                 _ => return Err(parse_error(arg.unexpected())),
             }
         }
 
         Ok((config, dump))
+    }
+
+    /// Set KEY, one of KEYS, from its text, as its flag takes it.
+    fn set(&mut self, key: &str, value: &str) -> StdResult<(), String> {
+        fn parse<T: FromStr>(value: &str) -> StdResult<Option<T>, String>
+        where
+            T::Err: Display,
+        {
+            value
+                .parse()
+                .map(Some)
+                .map_err(|error: T::Err| error.to_string())
+        }
+        match key {
+            "bitviewdir" => self.bitviewdir = parse(value)?,
+            "serverbind" => self.serverbind = parse(value)?,
+            "serverport" => self.serverport = parse(value)?,
+            "website" => self.website = parse(value)?,
+            "cdn" => self.cdn = parse(value)?,
+            "maxweight" => self.maxweight = parse(value)?,
+            "maxutxos" => self.maxutxos = parse(value)?,
+            "cachebudget" => self.cachebudget = parse(value)?,
+            "bitcoindir" => self.bitcoindir = parse(value)?,
+            "blocksdir" => self.blocksdir = parse(value)?,
+            "rpcconnect" => self.rpcconnect = parse(value)?,
+            "rpcport" => self.rpcport = parse(value)?,
+            "rpccookiefile" => self.rpccookiefile = parse(value)?,
+            "rpcuser" => self.rpcuser = parse(value)?,
+            "rpcpassword" => self.rpcpassword = parse(value)?,
+            _ => unreachable!("{key} is not one of Config::KEYS"),
+        }
+        Ok(())
+    }
+
+    /// Read `config.toml`: a `key = value` line per setting, its value a TOML string,
+    /// integer or boolean, read then as its flag would be, with blank lines and `#` comments
+    /// around them.
+    fn parse_toml(contents: &str) -> StdResult<Self, String> {
+        let mut config = Self::default();
+        let mut seen = HashSet::new();
+        let contents = contents.strip_prefix('\u{feff}').unwrap_or(contents);
+        for (index, line) in contents.lines().enumerate() {
+            let at = |problem: String| format!("line {}: {problem}", index + 1);
+            let line = line.trim();
+            if line.is_empty() || line.starts_with('#') {
+                continue;
+            }
+            let (key, value) = line
+                .split_once('=')
+                .ok_or_else(|| at(format!("expected `key = value`, found `{line}`")))?;
+            let key = key.trim();
+            let key = key
+                .strip_prefix('"')
+                .and_then(|key| key.strip_suffix('"'))
+                .or_else(|| {
+                    key.strip_prefix('\'')
+                        .and_then(|key| key.strip_suffix('\''))
+                })
+                .unwrap_or(key);
+            if !Self::KEYS.contains(&key) {
+                return Err(at(format!(
+                    "unknown setting `{key}`, expected one of {}",
+                    Self::KEYS.join(", ")
+                )));
+            }
+            if !seen.insert(key) {
+                return Err(at(format!("`{key}` is set twice")));
+            }
+            let text =
+                toml_scalar(value.trim()).map_err(|problem| at(format!("{key}: {problem}")))?;
+            config
+                .set(key, &text)
+                .map_err(|error| at(format!("{key}: cannot parse {text:?}: {error}")))?;
+        }
+        Ok(config)
     }
 
     /// Print the settings given, in `config.toml` and as flags, the flags first, as
@@ -283,7 +372,7 @@ impl Config {
                 ));
             }
         };
-        from_str(&contents).map_err(|e| {
+        Self::parse_toml(&contents).map_err(|e| {
             io::Error::new(
                 io::ErrorKind::InvalidData,
                 format!("Invalid config {}: {e}", path.display()),
@@ -340,16 +429,104 @@ impl Config {
     }
 }
 
-fn parse_value<T>(parser: &mut Parser, flag: &str) -> Result<T>
-where
-    T: FromStr,
-    T::Err: Into<Box<dyn std::error::Error + Send + Sync>>,
-{
-    parser
-        .value()
-        .map_err(parse_error)?
-        .parse()
-        .map_err(|error| Error::Parse(format!("{flag}: {error}")))
+/// The text of a TOML value, as its setting's parsing reads it: a string's contents, basic
+/// or literal, triple-quoted too when it closes on its line, or a boolean or integer as
+/// written, an integer without the `+` sign, `_` separators and `0x`, `0o` or `0b` prefixes
+/// TOML allows. Only a comment may follow it.
+fn toml_scalar(text: &str) -> StdResult<String, String> {
+    let (value, rest) = if let Some(text) = text.strip_prefix("\"\"\"") {
+        let end = text.find("\"\"\"").ok_or(SPANNING)?;
+        (unescape(&text[..end])?, &text[end + 3..])
+    } else if let Some(text) = text.strip_prefix("'''") {
+        let end = text.find("'''").ok_or(SPANNING)?;
+        (text[..end].to_owned(), &text[end + 3..])
+    } else if let Some(text) = text.strip_prefix('"') {
+        // The closing quote is the first one no backslash escapes.
+        let mut escaped = false;
+        let end = text
+            .char_indices()
+            .find(|&(_, c)| {
+                let closes = c == '"' && !escaped;
+                escaped = c == '\\' && !escaped;
+                closes
+            })
+            .ok_or("unterminated string")?
+            .0;
+        (unescape(&text[..end])?, &text[end + 1..])
+    } else if let Some(text) = text.strip_prefix('\'') {
+        let end = text.find('\'').ok_or("unterminated string")?;
+        (text[..end].to_owned(), &text[end + 1..])
+    } else {
+        let end = text
+            .find(|c: char| c.is_whitespace() || c == '#')
+            .unwrap_or(text.len());
+        if end == 0 {
+            return Err("missing value".to_owned());
+        }
+        (bare_value(&text[..end])?, &text[end..])
+    };
+    let rest = rest.trim_start();
+    if !rest.is_empty() && !rest.starts_with('#') {
+        return Err(format!("unexpected `{rest}` after the value"));
+    }
+    Ok(value)
+}
+
+const SPANNING: &str = "strings spanning lines are not supported";
+
+/// A basic string's contents, its escapes resolved.
+fn unescape(text: &str) -> StdResult<String, String> {
+    let mut value = String::with_capacity(text.len());
+    let mut chars = text.chars();
+    while let Some(c) = chars.next() {
+        if c != '\\' {
+            value.push(c);
+            continue;
+        }
+        let escape = chars.next().ok_or("unterminated string")?;
+        match escape {
+            'b' => value.push('\u{8}'),
+            't' => value.push('\t'),
+            'n' => value.push('\n'),
+            'f' => value.push('\u{c}'),
+            'r' => value.push('\r'),
+            'e' => value.push('\u{1b}'),
+            '"' => value.push('"'),
+            '\\' => value.push('\\'),
+            'x' | 'u' | 'U' => {
+                let digits = match escape {
+                    'x' => 2,
+                    'u' => 4,
+                    _ => 8,
+                };
+                let hex: String = chars.by_ref().take(digits).collect();
+                let c = u32::from_str_radix(&hex, 16)
+                    .ok()
+                    .filter(|_| hex.len() == digits)
+                    .and_then(char::from_u32)
+                    .ok_or_else(|| format!("invalid escape `\\{escape}{hex}`"))?;
+                value.push(c);
+            }
+            other => return Err(format!("invalid escape `\\{other}`")),
+        }
+    }
+    Ok(value)
+}
+
+/// A boolean as written; an integer in decimal digits, as its setting's parsing reads it.
+fn bare_value(token: &str) -> StdResult<String, String> {
+    if !token.starts_with(|c: char| c.is_ascii_digit() || c == '+' || c == '-') {
+        return Ok(token.to_owned());
+    }
+    let number = token.strip_prefix('+').unwrap_or(token).replace('_', "");
+    for (prefix, radix) in [("0x", 16), ("0o", 8), ("0b", 2)] {
+        if let Some(digits) = number.strip_prefix(prefix) {
+            return u64::from_str_radix(digits, radix)
+                .map(|n| n.to_string())
+                .map_err(|error| format!("invalid integer `{token}`: {error}"));
+        }
+    }
+    Ok(number)
 }
 
 fn parse_error(error: lexopt::Error) -> Error {
