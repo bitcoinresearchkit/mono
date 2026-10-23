@@ -3410,6 +3410,20 @@
         letter-spacing: -0.026em;
       }
 
+      /* What Studio is, under the Charts page's name till your Library has a chart: one line, a phone's shorter. */
+      .home-lede {
+        margin: 2px 0 14px;
+        color: var(--soft);
+        font-size: 15px;
+        line-height: 22px;
+
+        @media (max-width: 760px) {
+          .lede-long {
+            display: none;
+          }
+        }
+      }
+
       /* The page's head: its name (a folder of yours, its menu beside it). */
       .home-head {
         position: relative;
@@ -9410,6 +9424,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                   <button id="home-redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo" aria-disabled="true"></button>
                 </span>
               </div>
+              <!-- (What Studio is, said till your Library has a chart: in one line, a phone's shorter.) -->
+              <p id="home-lede" class="home-lede" hidden><span class="lede-long">Charts of Bitcoin's on-chain data. </span>Open a preset, change it, share it as a link.</p>
               <div id="home-tools" class="home-tools">
               <label class="home-filter">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" stroke-linecap="round" /></svg>
@@ -14060,6 +14076,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const was = across && !later ? (view.bvFlush(), view.timeScale().getVisibleLogicalRange()) : null;
         stretchDrawn(null);
         const width = later ? chartSize.width : end.width, height = end.height;
+        // (Its height changing too (full screen): its prices held where they show as it's drawn at its end's size, then
+        // glided to where they fit once the motion's over (see holdPrices): its panes and their scales read as they show,
+        // before it's pinned to its end's size.)
+        const tall = !later && Math.abs(height - own.height) >= 1 && drawnChart === chart?.id && Boolean(resolved?.times.length);
+        // (A motion before this one holding them still: held anew from where they show, or glided off.)
+        if (tall) endScaleGlide();
+        else letPricesGo();
+        const marks = tall ? priceMarks(heldScales()) : [];
         stretchKept = later ? (chart?.id ?? null) : null;
         const side = across ? (leftAxis ? "left" : "right") : Math.abs(end.left - now.left) <= Math.abs(end.right - now.right) ? "left" : "right", edge = Math.abs(end.top - now.top) <= Math.abs(end.bottom - now.bottom) ? "top" : "bottom";
         sizeHeld = true;
@@ -14070,6 +14094,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // their start, not a long frame in.)
           for (const motion of inMotion) motion.pause();
           sizeChart(width, height);
+          if (tall) holdPrices(marks);
           if (across) keepStretch(was);
           // (Those another toggle has replaced meanwhile left be: started again, they'd come back.)
           // (Which are still paused, all read first, then each started: a read between writes would lay the page out again
@@ -14081,7 +14106,68 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (across) stretchAcross(run, now.width, width);
         // (Drawn at its end's size once the page is idle, not in the frames that end the motion (what fades in as it ends:
         // the sidebar's words, New folder): a heavy chart's draw is a long frame.)
-        Promise.allSettled(inMotion.map((motion) => motion.finished)).then(() => run === motionsSized && (later ? whenIdle(() => run === motionsSized && releaseSize(), { timeout: 200 }) : releaseSize()));
+        Promise.allSettled(inMotion.map((motion) => motion.finished)).then(() => {
+          if (run !== motionsSized) return;
+          if (later) return whenIdle(() => run === motionsSized && releaseSize(), { timeout: 200 });
+          // (Laid out at the end (its panes, its margins: next frame, see relayout): held again from where they show, then
+          // glided to where they fit.)
+          const holding = pricesHeld, held = priceMarks(holding);
+          releaseSize();
+          // (Still that hold (not let go meanwhile: a press, a draw), its panes drawn as laid out first.)
+          if (held.length) requestAnimationFrame(() => run === motionsSized && pricesHeld === holding && (view.bvFlush(), holdPrices(held), letPricesGo()));
+        });
+      }
+      /** Each pane's box on the screen, top to bottom. */
+      const paneBoxes = () => view.panes().map((pane) => pane.getHTMLElement()?.getBoundingClientRect() ?? null);
+      /** The scales holdPrices holds, as it held them: glided to where they fit once the motion's over (see letPricesGo). @type {ReturnType<typeof heldScales>} */
+      let pricesHeld = [];
+      /**
+       * Where each scale's range shows on the screen (`top`, its high's y; `foot`, its low's), by a series on it, as the
+       * chart maps them (its margins, its markers' room): a linear scale's or a log one's (a percentage's, an index's, in
+       * units of their own, follow the plot). @param {ReturnType<typeof heldScales>} held
+       */
+      function priceMarks(held) {
+        const boxes = paneBoxes();
+        return held.flatMap((scale) => {
+          const box = boxes[scale.i];
+          if (!box || scale.mode > 1 || (scale.mode === 1 && !(scale.range.from > 0))) return [];
+          // (By the first of its series that maps it: one with no data yet maps nothing.)
+          for (const series of view.panes()[scale.i]?.getSeries() ?? []) {
+            if (series.options().priceScaleId !== scale.side || series.options().visible === false) continue;
+            const top = series.priceToCoordinate(scale.range.to), foot = series.priceToCoordinate(scale.range.from);
+            if (top !== null && foot !== null && foot - top > 1) return [{ ...scale, series, top: box.top + top, foot: box.top + foot }];
+          }
+          return [];
+        });
+      }
+      /**
+       * The chart drawn at another height, or laid out anew (full screen, on or off): each scale's prices kept where they
+       * showed (`marks`, see priceMarks): as many to a pixel, its high where it was, between the edges it's drawn within
+       * now (measured as the chart maps the range it has: its margins and markers' room as they are). A log scale's by its
+       * logarithms. Nothing jumps as the motion starts or as it's laid out at its end. Pressed meanwhile, they follow the
+       * plot at once (see endScaleGlide). @param {ReturnType<typeof priceMarks>} marks
+       */
+      function holdPrices(marks) {
+        const boxes = paneBoxes();
+        pricesHeld = marks.flatMap(({ i, side, mode, range, series, top, foot }) => {
+          const scale = /** @type {any} */ (view.priceScale(side, i)), now = scale.bvRange(), box = boxes[i];
+          const edgeTop = now && box ? series.priceToCoordinate(now.to) : null, edgeFoot = now && box ? series.priceToCoordinate(now.from) : null;
+          if (edgeTop === null || edgeFoot === null || !box || !(edgeFoot - edgeTop > 1)) return [];
+          // (A log scale's as the chart's own: the logarithm of a price a ten-thousandth up, see LWC's logFormula.)
+          const log = mode === 1, f = (/** @type {number} */ x) => (log ? Math.log10(x + 1e-4) : x), g = (/** @type {number} */ x) => (log ? 10 ** x - 1e-4 : x);
+          const k = (foot - top) / (f(range.to) - f(range.from)), high = f(range.to) + (top - (box.top + edgeTop)) / k, low = high - (edgeFoot - edgeTop) / k;
+          const kept = { from: g(low), to: g(high) };
+          if (!(kept.to > kept.from) || !Number.isFinite(kept.to + kept.from)) return [];
+          scale.bvSetRange(kept);
+          return [{ i, side, mode, range: kept }];
+        });
+        scaleMoves = pricesHeld.map(({ i, side }) => view.priceScale(side, i));
+      }
+      /** The prices holdPrices held, glided from there to where they fit (a press meanwhile already let them go). */
+      function letPricesGo() {
+        const held = pricesHeld;
+        pricesHeld = [];
+        if (held.length) glideScales(held);
       }
       /**
        * The chart, drawn `width` wide, stretched to its box each frame (shown `shown` wide now) till `run` is over (see
@@ -16694,6 +16780,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function endScaleGlide() {
         cancelAnimationFrame(scaleGlide);
         scaleGliding = false;
+        pricesHeld = [];
         if (!scaleMoves.length) return;
         for (const scale of scaleMoves) scale.setAutoScale(true);
         scaleMoves = [];
@@ -19969,6 +20056,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Where your folders are: their page, a folder's; the way to have them all elsewhere, on their page.)
         $("home-new-folder").hidden = !yours;
         $("home-foot").hidden = !yours || Boolean(folder) || !anythingKept();
+        $("home-lede").hidden = !top || library.charts.length > 0;
         renderSideNav();
       }
       /** @typedef {{ name: string, at: Place }} Step */
