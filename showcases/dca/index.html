@@ -39,8 +39,8 @@
         --loss: light-dark(#cf281d, #ff5147);
         /* (Lines and their keys: the brand's green, a shade deeper on white to read as a graphic, 3:1.) */
         --line-up: light-dark(#00a32a, #00d632);
-        /* (The smart plan, wherever it shows.) */
-        --smart: light-dark(#0a5ce6, #4d9fff);
+        /* (The smart plan, wherever it shows: black, white at night; no hue of its own beside the green.) */
+        --smart: var(--ink);
         --gain-fill: light-dark(rgb(0 214 50 / 0.04), rgb(0 214 50 / 0.06));
         --loss-fill: light-dark(rgb(217 45 32 / 0.04), rgb(255 81 71 / 0.06));
         --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
@@ -472,8 +472,8 @@
           stroke: var(--loss);
         }
 
-        &.ink {
-          stroke: var(--ink);
+        &.price {
+          stroke: var(--soft);
           stroke-width: 1.75px;
         }
 
@@ -560,8 +560,8 @@
           border-top: 2px dotted var(--soft);
         }
 
-        .ink i {
-          border-top-color: var(--ink);
+        .price i {
+          border-top-color: var(--soft);
           border-top-width: 2px;
         }
 
@@ -608,7 +608,7 @@
           transition: transform 160ms var(--spring);
 
           @media (min-width: 720px) {
-            width: 136px;
+            width: 152px;
           }
 
           &:active {
@@ -847,7 +847,7 @@
         height: 1.45em;
         overflow: hidden;
         margin-top: 4px;
-        color: var(--smart);
+        color: var(--ink);
         font-size: 14px;
         font-weight: 500;
         white-space: nowrap;
@@ -928,6 +928,7 @@
 
         thead th:last-child {
           color: var(--smart);
+          font-weight: 600;
         }
       }
 
@@ -1133,8 +1134,8 @@
         display: inline-block;
         border-radius: 999px;
         padding: 1px 7px;
-        color: var(--smart);
-        background: color-mix(in srgb, var(--smart) 8%, transparent);
+        color: var(--app);
+        background: var(--smart);
         font-size: 12px;
         font-style: normal;
         font-weight: 600;
@@ -1673,8 +1674,8 @@
       // ── The chart: what it was worth against what went in, or the price against what a coin cost you ──
 
       const plots = $("plots"), svg = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("chart"))), still = matchMedia("(prefers-reduced-motion: reduce)");
-      /** @typedef {{ f: (i: number) => number, ink: "up" | "down" | "ink" | "dashed" | "smart", name: string, from?: (i: number) => number }} Series */
-      const INKS = { up: "var(--line-up)", down: "var(--loss)", ink: "var(--ink)", dashed: "var(--soft)", smart: "var(--smart)" };
+      /** @typedef {{ f: (i: number) => number, ink: "up" | "down" | "price" | "dashed" | "smart", name: string, from?: (i: number) => number }} Series */
+      const INKS = { up: "var(--line-up)", down: "var(--loss)", price: "var(--soft)", dashed: "var(--soft)", smart: "var(--smart)" };
       /** What the chart shows: x and y by the plan's day, its two series, the crosshair, and how to finish drawing it.
        * @type {{ x: (i: number) => number, ys: ((i: number) => number)[], series: Series[], marks: Element[], line: Element, ends: Element, finish: () => void } | null} */
       let drawn = null;
@@ -1700,7 +1701,7 @@
         /** @type {Series[]} */
         const series = state.view === "value"
           ? [{ f: spent, ink: "dashed", name: "Put in" }, { f: worth, ink: lost(worth(n - 1) / spent(n - 1)) ? "down" : "up", name: "Worth" }]
-          : [{ f: at, ink: "ink", name: "Price" }, { f: cost, ink: "up", name: "Cost" }];
+          : [{ f: at, ink: "price", name: "Price" }, { f: cost, ink: "up", name: "Cost" }];
         // (The smart plan's worth or cost too, drawn last.)
         const other = smart;
         // (Its worth with what went into it, which isn't the plain plan's.)
@@ -1728,7 +1729,8 @@
         const lines = series.map((s) => el("path", { class: `line ${s.ink}` }));
         const line = el("line", { y1: 0, y2: height }), marks = series.map((s) => el("circle", { r: 5, style: `fill: ${INKS[s.ink]}` }));
         const cross = el("g", { class: "cross", visibility: "hidden" }), ends = el("g", { class: "ends" });
-        const dots = series.map((s) => el("circle", { r: 4.5, cx: x(n - 1), style: `fill: ${INKS[s.ink]}` }));
+        // (The smart plan's end dot smaller, so the green one beside it stays whole.)
+        const dots = series.map((s) => el("circle", { r: s.ink === "smart" ? 3 : 4.5, cx: x(n - 1), style: `fill: ${INKS[s.ink]}${s.ink === "smart" ? "; stroke-width: 2px" : ""}` }));
         cross.append(line, ...marks);
         ends.append(...dots);
         svg.replaceChildren(clips, ...fills, ...lines, ends, cross);
@@ -1939,7 +1941,7 @@
             light: [[-1, "#8e1a12"], [-0.5, "#e0453a"], [-0.001, "#ffd6d2"], [0, "#d4f5dc"], [0.1, "#8fe6a3"], [1 / 3, "#00c22d"], [2 / 3, "#00801f"], [1, "#00390e"]],
             dark: [[-1, "#ff8a80"], [-0.5, "#e0453a"], [-0.001, "#3d1411"], [0, "#0b2913"], [0.1, "#0f5a22"], [1 / 3, "#008c22"], [2 / 3, "#00b82b"], [1, "#00d632"]],
           },
-          marks: [[0.25, "≤0.25×"], [0.5, "0.5×"], [1, "1×"], [10, "10×"], [1000, "≥1,000×"]],
+          marks: [[0.25, "≤0.25×"], [1, "1×"], [10, "10×"], [1000, "≥1,000×"]],
           label: "colored by what each ended up worth against what went in",
           read: (/** @type {number} */ m) => `${times(m)} · ${percent(m)}`,
           lede: "colored by what it ended up worth against what went in.",
@@ -1948,10 +1950,10 @@
           cells: (/** @type {Grid} */ grid) => grid.edges,
           place: (/** @type {number} */ r) => Math.max(-1, Math.min(1, Math.log(r) / Math.log(1.5))),
           stops: {
-            light: [[-1, "#8e1a12"], [-0.5, "#e0453a"], [-0.001, "#ffd6d2"], [0, "#dbe7ff"], [0.5, "#5b9bff"], [1, "#0a3a99"]],
-            dark: [[-1, "#ff8a80"], [-0.5, "#e0453a"], [-0.001, "#3d1411"], [0, "#0e213f"], [0.5, "#2f6fd6"], [1, "#a9cbff"]],
+            light: [[-1, "#8e1a12"], [-0.5, "#e0453a"], [-0.001, "#ffd6d2"], [0, "#d4f5dc"], [0.5, "#00b82b"], [1, "#00501a"]],
+            dark: [[-1, "#ff8a80"], [-0.5, "#e0453a"], [-0.001, "#3d1411"], [0, "#0b2913"], [0.5, "#00a827"], [1, "#00d632"]],
           },
-          marks: [[2 / 3, "≤−33%"], [0.8, "−20%"], [1, "same"], [1.25, "+25%"], [1.5, "≥+50%"]],
+          marks: [[2 / 3, "≤−33%"], [1, "same"], [1.5, "≥+50%"]],
           label: "colored by how much more bitcoin a dollar buying more when it was cheap got than buying the same each time",
           read: (/** @type {number} */ r) => `${edge(r)} a dollar`,
           lede: "colored by how much more bitcoin a dollar buying more when cheap got.",
