@@ -14545,8 +14545,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       async function draw(refit = false, fresh = false) {
         // (Auto, at an interval a layer can't be computed at now (a formula over all of history, added at hours): at the
         // one its view asks for among those it can, before anything's asked for.)
-        if (chart.auto && drawnChart === chart.id && !autoIntervals(chart).includes(chart.index)) {
-          chart.index = autoWanted();
+        const index = drawnChart === chart.id ? autoIndex(chart) : chart.index;
+        if (index !== chart.index) {
+          chart.index = index;
           renderInterval();
           save(false);
         }
@@ -16853,10 +16854,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A range's days (Max, all of history). @param {string} range */
       const rangeSpan = (range) => (range === "max" || !rangeDays(range) ? (Date.now() / 1000 - GENESIS) / 86400 : rangeDays(range));
-      /** The interval the open Auto chart's view asks for (none drawn, nothing in it: its range's). */
-      function autoWanted() {
-        return autoPick(chart, viewDays() ?? rangeSpan(chart.range), view.timeScale().width() || $("chart").clientWidth);
+      /** The interval the open view asks for of an Auto chart, the open one or a copy of it (none drawn, nothing in it: its range's). */
+      function autoWanted(doc = chart) {
+        return autoPick(doc, viewDays() ?? rangeSpan(doc.range), view.timeScale().width() || $("chart").clientWidth);
       }
+      /** An Auto chart's interval once a layer can't be computed at the one it's at: the one its view asks for, among those it can. */
+      const autoIndex = (/** @type {Chart} */ doc) => (doc.auto && !autoIntervals(doc).includes(doc.index) ? autoWanted(doc) : doc.index);
       /**
        * The days the view spans, by its bars at its interval: past the data's ends too (time all the same: scrolled to the
        * start, or past what a fine interval's loaded, it's no narrower than it shows). Nothing drawn, none.
@@ -25752,6 +25755,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The layers a formula can read, as it offers them: not its own, nor a cloud (a band, not a line), nor one reading it
        * (a loop). @param {Layer | null | undefined} self
        */
+      /**
+       * What a formula's page offers while it's empty, a layer to add: the starters of one line (an average, a change, a
+       * drawdown…) on the layer selected, else the first; with another of its unit (two prices), the one over the other;
+       * those that can be computed at the chart's interval.
+       * Each goes in the pane the page is for, if it's for one; else where derive puts a starter (over its layer, in its pane
+       * on its side, what's in its unit; else in a new pane): ↵ adds it, ⇥ writes it in, to change first.
+       */
+      function recipesFor() {
+        const inputs = chart.layers.filter((layer) => layer.type !== "cloud" && layer.type !== "signal");
+        const on = inputs.find((layer) => layer.id === selected) ?? inputs[0];
+        if (!on) return [];
+        // (Paired by units known: one just added isn't computed yet.)
+        const unitOf = (/** @type {Layer} */ layer) => ((result) => (result ? unitFor(layer, result) : null))(resolved?.results.get(layer.id)), pair = unitOf(on) && inputs.find((other) => other !== on && unitOf(other) === unitOf(on));
+        const recipe = (/** @type {string} */ formula, /** @type {string} */ text, over = false) => {
+          const [into, side] = palette.into ? [palette.into === "new" ? null : palette.into, formulaSide(palette.into)] : over && !onStack(on) ? [on.pane, on.side ?? null] : [null, null];
+          return { insert: formula, title: formula, text, recipe: true, into, side };
+        };
+        return [
+          ...(pair ? [recipe(`${on.letter} / ${pair.letter}`, `${labelOf(on)} over ${labelOf(pair)}`)] : []),
+          ...STARTERS.filter((starter) => starter.formulas.length === 1).map((starter) => recipe(starter.formulas[0].replaceAll("X", on.letter), `${starter.label} of ${labelOf(on)}`, starter.over)),
+        ].filter((item) => !unfitHere([item.insert]));
+      }
       const formulaInputs = (self) => chart.layers.filter((layer) => layer !== self && layer.type !== "cloud" && !readsOf(layer).has(self?.letter ?? "")).map((layer) => ({ insert: layer.letter, title: layer.letter, text: labelOf(layer), layer: layer.id }));
       /** Whether a formula's only fault is that it isn't finished. */
       const isUnfinished = (/** @type {string} */ text) => {
@@ -26501,12 +26526,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /**
        * Adding a formula is a page of ⌘K, as adding a series is: written there, previewed as it's written, added with ↵,
-       * dropped with esc. It starts on a likely one, selected, so ↵ takes it and typing replaces it.
+       * dropped with esc. It starts empty, its recipes leading (see recipesFor); on a chart with nothing to make one of, on
+       * an example, selected, so ↵ takes it and typing replaces it.
        */
       function addFormula(/** @type {string | null | undefined} */ into = null) {
         if (!roomFor(chart)) return;
         const letters = chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter);
-        openPalette({ formula: true, into, query: letters.length >= 2 ? `${letters[0]} / ${letters[1]}` : letters.length ? `sma(${letters[0]}, 200d)` : EXAMPLE });
+        openPalette({ formula: true, into, query: letters.length ? "" : EXAMPLE });
       }
       /** Adding a signal: its formula written in ⌘K's formula page, as a formula's is, started on one to change (its layer over its 200-day average). */
       function addSignal() {
@@ -26713,6 +26739,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { key: "own", icon: ICONS.pencil, label: "Write your own", aside: `From ${layer.letter}`, verb: "Write", apart: true, run: () => derive(id, "own") },
         ];
       }
+      /** Whether a layer's in a stack (what's added over it would be summed in). */
+      const onStack = (/** @type {Layer} */ layer) => Boolean(chart.panes.find((pane) => pane.id === layer.pane)?.stack);
       /**
        * A starter's formulas from a layer, added: in its pane when they're in its unit, else in a new one (a band's two
        * lines in one color), the first selected, its window to set in its formula. "own": ⌘K's formula page on its letter.
@@ -26721,12 +26749,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const source = layerById(id);
         if (!source) return;
         // (Its own, in its pane on its side; over a stack, which would sum it in, a pane of its own.)
-        if (starter === "own") return ((stacked) => openPalette({ formula: true, into: stacked ? null : source.pane, query: source.letter, side: stacked ? null : source.side }))(Boolean(chart.panes.find((pane) => pane.id === source.pane)?.stack));
+        if (starter === "own") return ((stacked) => openPalette({ formula: true, into: stacked ? null : source.pane, query: source.letter, side: stacked ? null : source.side }))(onStack(source));
         const formulas = (STARTERS.find((item) => item.id === starter)?.formulas ?? []).map((text) => text.replaceAll("X", source.letter));
         if (!formulas.length) return;
         if (chart.layers.length + formulas.length > MAX_LAYERS) return void notice(`A chart holds up to ${MAX_LAYERS} layers`);
         // (Over a stack, it would add to it: a pane of its own then too.)
-        const over = Boolean(STARTERS.find((item) => item.id === starter)?.over) && !chart.panes.find((pane) => pane.id === source.pane)?.stack;
+        const over = Boolean(STARTERS.find((item) => item.id === starter)?.over) && !onStack(source);
         // (One that needs a pane of its own, at the most panes: not put in the last one, a stack's maybe.)
         if (!(over && chart.panes.some((item) => item.id === source.pane)) && chart.panes.length >= MAX_PANES) return void notice(`A chart holds up to ${MAX_PANES} panes: this needs one of its own`);
         /** @type {Layer | undefined} */
@@ -27644,9 +27672,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const { start, token, items } = completionsAt(text, caret, self);
         palette.from = token ? start : caret;
         const top = text.trim() ? [{ kind: "formula", key: "formula" }] : [];
-        const pieces = (list) => list.map((item) => ({ kind: "insert", key: item.insert, group: item.layer ? "Layers" : item.series ? "Series" : "Functions", ...item }));
+        const pieces = (list) => list.map((item) => ({ kind: "insert", key: item.insert, group: item.recipe ? "Recipes" : item.layer ? "Layers" : item.series ? "Series" : "Functions", ...item }));
         const fits = token ? null : fitsAt(text, caret, self, input.selectionEnd ?? caret);
         const blocks = token ? [] : pieces(fits?.items ?? [
+          // (Not while a layer's formula is changed, nor for a signal: a recipe adds a line.)
+          ...(text.trim() || self || palette.signal ? [] : recipesFor()),
           ...formulaInputs(self),
           ...Object.entries(FUNCTIONS).map(([name, [, signature, what]]) => ({ insert: `${name}(`, title: signature, text: what })),
         ]);
@@ -27754,15 +27784,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (item.kind === "formula") {
           const text = palette.query.trim(), kept = formulaProblem.text === text && formulaProblem.editing === palette.editing ? formulaProblem.problem : "";
           const editing = palette.editing ? layerById(palette.editing) : null, problem = formulaError(text) || kept;
-          return `${asSignal(text) || editing?.type === "signal" ? ICONS.signal : ICONS.formula}<span class="item-name">${editing ? "Apply" : "Add"} <code>${escape(palette.query.trim())}</code></span>${problem ? `<span class="item-meta ${isUnfinished(palette.query.trim()) ? "" : "error"}">${escape(problem)}</span>` : `<span class="item-meta">${editing ? `To ${escape(editing.letter)}` : asSignal(text) ? ((on) => (on ? `Signal on ${escape(on.letter)}` : ""))(markFor(chart, text)) : palette.into ? `Pane ${paneNumber(palette.into)}` : "New pane"}</span>`}`;
+          return `${asSignal(text) || editing?.type === "signal" ? ICONS.signal : ICONS.formula}<span class="item-name">${editing ? "Apply" : "Add"} <code>${escape(palette.query.trim())}</code></span>${problem ? `<span class="item-meta ${isUnfinished(palette.query.trim()) ? "" : "error"}">${escape(problem)}</span>` : `<span class="item-meta">${editing ? `To ${escape(editing.letter)}` : asSignal(text) ? ((on) => (on ? `Signal on ${escape(on.letter)}` : ""))(markFor(chart, text)) : palette.into && palette.into !== "new" ? `Pane ${paneNumber(palette.into)}` : "New pane"}</span>`}`;
         }
         const layer = item.layer ? layerById(item.layer) : null;
         const icon = layer ? `<i class="dot" style="--c:${escape(ink(layer.color))}"></i>` : item.series ? ICONS.series : item.group === "Spans" ? ICONS.recent : item.group === "Percents" ? ICONS.ruler : ICONS.formula;
         return `${icon}<span class="item-name"><code>${escape(item.title ?? "")}</code></span>${item.text ? `<span class="item-meta">${escape(item.text)}</span>` : ""}`;
       }
-      /** A piece into the formula: over the word it completes, else at the caret (over what's selected). */
+      /** A piece into the formula: over the word it completes, else at the caret (over what's selected); a recipe, where it goes too. */
       function insertPiece(item) {
         const input = $("palette-input");
+        // (A recipe's place carried, unless the page is for a pane: then it's that one's already.)
+        if (item.recipe && !palette.into) Object.assign(palette.op, { into: item.into, side: item.side });
         const end = (input.selectionEnd ?? input.value.length) + (/^\w*/.exec(input.value.slice(input.selectionEnd ?? input.value.length))?.[0].length ?? 0);
         input.setRangeText(completion(item.insert, input.value.slice(end)), Math.min(palette.from, end), end, "end");
         input.focus();
@@ -27770,24 +27802,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         showPalette();
       }
       /**
-       * ↵ on the formula: if it reads, it becomes a layer (in the pane it's added to, or `pane`; "new": a new one; a
-       * signal, marked on `on`, else the layer it reads); if not, its error is in the preview. `keep`: ⌘K stays, the
-       * formula selected, to write the next one.
+       * ↵ on the formula, or on a `recipe` (its own, where it goes): if it reads, it becomes a layer (in the pane it's
+       * added to, or `pane`; "new": a new one; a signal, marked on `on`, else the layer it reads); if not, its error is in
+       * the preview. `keep`: ⌘K stays, the formula selected, to write the next one.
        */
-      function addFromPalette(pane = palette.into, keep = false, /** @type {string | undefined} */ on = undefined) {
-        const text = palette.query.trim(), editing = palette.editing ? layerById(palette.editing) : null, problem = formulaError(text) || (editing ? loopError(editing, text) : !asSignal(text) && stackedOnly(pane === "new" ? null : pane) ? STACKED_ONLY : "");
+      function addFromPalette(pane = palette.into, keep = false, /** @type {string | undefined} */ on = undefined, recipe = /** @type {any} */ (undefined)) {
+        const text = recipe?.insert ?? palette.query.trim(), side = recipe && pane === recipe.into ? recipe.side : formulaSide(pane), editing = palette.editing ? layerById(palette.editing) : null, problem = formulaError(text) || (editing ? loopError(editing, text) : !asSignal(text) && stackedOnly(pane === "new" ? null : pane) ? STACKED_ONLY : "");
         if (problem) return notice(problem);
         if (keep && !palette.editing) {
           // Added, and the formula stays, selected, to write the next one.
           if (asSignal(text)) addSignalLayer(text, on);
-          else addFormulaLayer(text, pane === "new" ? null : pane, formulaSide(pane));
+          else addFormulaLayer(text, pane === "new" ? null : pane, side);
+          // (Shown again: the recipes on the layer now selected, the one added.)
+          showPalette();
           paletteKeys(true);
           return;
         }
         $("palette").close();
         if (palette.editing) editById(palette.editing, (layer) => (layer.formula = text));
         else if (asSignal(text)) addSignalLayer(text, on);
-        else addFormulaLayer(text, pane === "new" ? null : pane, formulaSide(pane));
+        else addFormulaLayer(text, pane === "new" ? null : pane, side);
       }
       /** The side a formula from ⌘K goes on in `pane`: in its layer's pane, that layer's (see derive); else none (a layer's first, the right). */
       const formulaSide = (/** @type {string | null | undefined} */ pane) => (palette.op.kind === "formula" && pane === palette.op.into ? palette.op.side ?? null : null);
@@ -27800,10 +27834,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * The formula computed as it would be added, with this chart's data: its line in its color, its latest value, what it
        * uses, its unit. As it's typed (what's unchanged is reused: the formula alone is computed); a run overtaken by a
-       * newer one shows nothing.
+       * newer one shows nothing. A `recipe`'s, the same: where it goes, what it is.
        */
-      function previewFormula(panel) {
-        const text = palette.query.trim(), run = ++formulaRun;
+      function previewFormula(panel, recipe = /** @type {any} */ (undefined)) {
+        const text = recipe?.insert ?? palette.query.trim(), into = recipe ? recipe.into : palette.into === "new" ? null : palette.into, side = recipe ? recipe.side : formulaSide(into), key = recipe?.key ?? "formula", run = ++formulaRun;
         void (async () => {
           let node;
           try {
@@ -27817,14 +27851,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           let layer = palette.editing ? doc.layers.find((item) => item.id === palette.editing) : null;
           if (layer) layer.formula = text;
           else if (asSignal(text)) doc.layers.push((layer = makeLayer({ formula: text, type: "signal", ref: markFor(doc, text)?.id }, doc)));
-          else doc.layers.push((layer = makeLayer({ formula: text, pane: palette.into ?? newPaneIn(doc).id, ...(palette.into && formulaSide(palette.into) ? { side: formulaSide(palette.into) } : {}) }, doc)));
+          else doc.layers.push((layer = makeLayer({ formula: text, pane: into ?? newPaneIn(doc).id, ...(into && side ? { side } : {}) }, doc)));
           const editing = palette.editing !== null;
+          // (At the interval Auto would move to for it, as adding it would.)
+          doc.index = autoIndex(doc);
           const data = await resolve(doc).catch(() => null);
-          if (run !== formulaRun || palette.items[palette.active]?.kind !== "formula") return;
+          if (run !== formulaRun || palette.items[palette.active]?.key !== key) return;
           const result = data?.results.get(layer.id);
           if (!result || result.error) {
             const problem = result?.detail ?? result?.error ?? "It couldn't be computed";
             panel.innerHTML = `<h4><code>${escape(text)}</code></h4><div class="error-box">${escape(problem)}.</div>`;
+            if (recipe) return;
             // (Said on its row too, as a mistake in how it's written is, kept while it's the one typed (the row drawn
             // again, a completion offered, still says it): where there's no room for this side, a phone's, the row's the
             // only place it shows. Said aloud once.)
@@ -27850,12 +27887,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               </dl></div>`);
           }
           panel.innerHTML = `<h4><code>${escape(text)}</code></h4>
-            <p class="description">${uses.length ? `Uses ${escape(uses.join(", "))}` : "A constant"}.</p>
+            <p class="description">${recipe ? escape(recipe.text) : uses.length ? `Uses ${escape(uses.join(", "))}` : "A constant"}.</p>
             <svg class="spark" id="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>
             <div class="info"><h5>${editing ? "Layer" : "As layer"} ${escape(layer.letter)}</h5><dl>
               <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div>
               <div><dt>Latest</dt><dd id="spark-caption"></dd></div>
-              ${editing ? "" : `<div><dt>Goes in</dt><dd>${palette.into ? `Pane ${paneNumber(palette.into)}` : chart.panes.length < MAX_PANES ? "New pane" : stackedOnly(null) ? "Nowhere: the last pane is a stack" : `Pane ${chart.panes.length}`}</dd></div>`}
+              ${editing ? "" : `<div><dt>Goes in</dt><dd>${into ? `Pane ${paneNumber(into)}` : chart.panes.length < MAX_PANES ? "New pane" : stackedOnly(null) ? "Nowhere: the last pane is a stack" : `Pane ${chart.panes.length}`}</dd></div>`}
             </dl></div>`;
           drawSpark(Array.from(result.values), unit, ink(layer.color));
         })();
@@ -28046,7 +28083,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const twin = !home && item?.kind === "series" && chart.layers.some((layer) => layer.series === item.name);
         const adds = home ? "New chart with it" : twin ? "Add again" : palette.into === "new" && chart.layers.length ? "Add to a new pane" : "Add to chart";
         $("palette-primary").textContent = !item ? adds : item.kind === "widen" ? "Search" : item.kind === "command" ? (item.command.run ? "Run" : "Close") : item.kind === "chart" ? "Open chart" : item.kind === "folder" ? "Open folder" : palette.replacing ? "Use instead" : adds;
-        if (item?.kind === "insert") $("palette-primary").textContent = "Insert";
+        if (item?.kind === "insert") $("palette-primary").textContent = item.recipe ? adds : "Insert";
         if (item?.kind === "row") $("palette-primary").textContent = item.verb ?? (item.page ? "Open" : "Run");
         if (item?.kind === "formula" && palette.editing) $("palette-primary").textContent = "Apply";
         $("palette-more").hidden = actionsFor(item).length < 2;
@@ -28104,6 +28141,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else clearLook();
         if (!item) return void (panel.innerHTML = "");
         if (item.kind === "formula") return previewFormula(panel);
+        if (item.recipe) return previewFormula(panel, item);
         if (item.kind === "row") return previewRow(panel, item);
         if (item.kind === "insert" && !item.series) return void (panel.innerHTML = previewPiece(item));
         if (item.kind === "widen") return void (panel.innerHTML = `<h4 class="plain">Everything</h4><p class="description">The same words, out of this folder: commands, charts and presets too, with every series.</p>`);
@@ -28228,19 +28266,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const intoPanes = (put) => chart.panes.map((pane, i) => ({ label: `Add to pane ${i + 1}`, icon: ICONS.pane, aside: paneNames(pane), run: () => put(pane.id) }));
         // (A chart with all the panes it can hold: none new offered; ↵ adds to the last one.)
         const room = chart.panes.length < MAX_PANES;
-        if (item.kind === "formula") {
+        if (item.kind === "formula" || item.recipe) {
           if (palette.editing) return [];
-          const found = chart.panes.findIndex((pane) => pane.id === palette.into), into = found < 0 && !room ? chart.panes.length - 1 : found;
-          const going = { label: "Add and keep going", icon: ICONS.plus, kbd: "⌘↵", stay: true, run: () => addFromPalette(undefined, true) };
+          // (A recipe: its formula, where it goes, and ⇥ to write it in, to change first.)
+          const recipe = item.recipe ? item : undefined, text = recipe?.insert ?? palette.query.trim(), at = recipe ? recipe.into : palette.into;
+          const add = (/** @type {string | null | undefined} */ pane = at, keep = false, /** @type {string | undefined} */ on = undefined) => addFromPalette(pane, keep, on, recipe);
+          const found = chart.panes.findIndex((pane) => pane.id === at), into = found < 0 && !room ? chart.panes.length - 1 : found;
+          const going = [{ label: "Add and keep going", icon: ICONS.plus, kbd: "⌘↵", run: () => add(at, true) }, ...(recipe ? [{ label: "Change it first", icon: ICONS.pencil, kbd: "⇥", run: () => insertPiece(recipe) }] : [])];
           // (A signal: on a layer, the one it reads first; no pane of its own.)
-          if (asSignal(palette.query.trim())) {
-            const first = markFor(chart, palette.query.trim()), on = [...(first ? [first] : []), ...markable(chart, /** @type {any} */ ({})).filter((layer) => layer !== first)].map((layer, i) => ({ label: `Add on ${labelOf(layer)}`, icon: ICONS.signal, aside: layer.letter, ...(i ? {} : { kbd: "↵" }), run: () => addFromPalette(undefined, false, layer.id) }));
-            return [...on.slice(0, 1), going, ...on.slice(1)].map((action) => ({ ...action, stay: true }));
+          if (asSignal(text)) {
+            const first = markFor(chart, text), on = [...(first ? [first] : []), ...markable(chart, /** @type {any} */ ({})).filter((layer) => layer !== first)].map((layer, i) => ({ label: `Add on ${labelOf(layer)}`, icon: ICONS.signal, aside: layer.letter, ...(i ? {} : { kbd: "↵" }), run: () => add(at, false, layer.id) }));
+            return [...on.slice(0, 1), ...going, ...on.slice(1)].map((action) => ({ ...action, stay: true }));
           }
           // Open until the formula is added, as with ↵: an unfinished one stays, to be finished.
           return (into < 0
-            ? [{ label: "Add to a new pane", icon: ICONS.pane, kbd: "↵", run: () => addFromPalette("new") }, going, ...intoPanes((pane) => addFromPalette(pane))]
-            : [{ label: `Add to pane ${into + 1}`, icon: ICONS.pane, kbd: "↵", run: () => addFromPalette() }, going, ...(room ? [{ label: "Add to a new pane", icon: ICONS.pane, run: () => addFromPalette("new") }] : []), ...intoPanes((pane) => addFromPalette(pane)).filter((_, i) => i !== into)]
+            ? [{ label: "Add to a new pane", icon: ICONS.pane, kbd: "↵", run: () => add("new") }, ...going, ...intoPanes((pane) => add(pane))]
+            : [{ label: `Add to pane ${into + 1}`, icon: ICONS.pane, kbd: "↵", run: () => add() }, ...going, ...(room ? [{ label: "Add to a new pane", icon: ICONS.pane, run: () => add("new") }] : []), ...intoPanes((pane) => add(pane)).filter((_, i) => i !== into)]
           ).map((action) => ({ ...action, stay: true }));
         }
         if (item.kind === "series" && item.name && home) return [
@@ -29416,6 +29457,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!item) return;
         // (Quick Look put away first: what's done is done to the chart open, not the one looked at.)
         quickHide();
+        if (item.recipe) return addFromPalette(item.into, keep, undefined, item);
         if (item.kind === "insert") return insertPiece(item);
         if (item.kind === "formula") return addFromPalette(undefined, keep);
         if (item.kind === "widen") {
@@ -29487,7 +29529,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && palette.pages.length) event.repeat || popPage();
         else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && palette.path.length) event.repeat || goUp(palette.path.length - 1);
         else if (event.key === "Backspace" && !event.target.value && (palette.adding || palette.formula)) event.repeat || leaveScope();
-        else if (event.key === "Tab" && !event.shiftKey && palette.items[palette.active]?.kind === "insert") choose();
+        else if (event.key === "Tab" && !event.shiftKey && palette.items[palette.active]?.kind === "insert") insertPiece(palette.items[palette.active]);
         else if ((event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "y" && quickWorks()) quickToggle();
         // (esc puts Quick Look away, ⌘K staying: here, as a key, not as the dialog's cancel, which a browser lets be
         // stopped only once in a row.)
