@@ -194,7 +194,7 @@ Errors use `application/problem+json`:
         contact: Some(Contact {
             name: Some("Bitview".to_string()),
             url: Some("https://github.com/bitcoinresearchkit/mono".to_string()),
-            email: Some("hello@bitcoinresearchkit.org".to_string()),
+            email: Some("support@bitview.space".to_string()),
             ..Contact::default()
         }),
         license: Some(License {

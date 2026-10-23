@@ -11,5 +11,5 @@ instance.
 - Monthly: 0.01 BTC
 - Yearly: 0.1 BTC
 
-Contact [hosting@bitcoinresearchkit.org](mailto:hosting@bitcoinresearchkit.org)
+Contact [support@bitview.space](mailto:support@bitview.space)
 for availability and any uptime commitment.

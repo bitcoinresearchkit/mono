@@ -111,7 +111,7 @@ June 2027.
 [Discord](https://discord.gg/WACpShCB7M) ·
 [X](https://x.com/_nym21_) ·
 [Issues](https://github.com/bitcoinresearchkit/mono/issues) ·
-[Support](mailto:support@bitcoinresearchkit.org)
+[Support](mailto:support@bitview.space)
 
 ### Donations
 
