@@ -15142,9 +15142,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const at = range ? ((own.join - range.from) / (range.to - range.from)) * plot : NaN;
           if (!(at > 0 && at < plot)) return endReveal();
           // As the page's own wipe: a soft edge two fifths of the way wide, from the join out past the plot's edge, on its
-          // curve, taking as long as the way is far (the whole plot, about as long as the page's).
+          // curve, taking as long as the way is far: a short way at a panel's pace, the whole plot at a page's (a chart
+          // switched to wipes in at the same). Quick: it shows where the new joined, not a wait for it.
           const way = outward < 0 ? at : plot - at, soft = Math.max(24, way * 0.4);
-          duration ||= 300 + (750 * way) / plot;
+          duration ||= MOTION.panel + ((MOTION.page - MOTION.panel) * way) / plot;
           const t = Math.min(1, since() / duration);
           if (t >= 1) return endReveal();
           // (Its edge starts behind the join, all of the new hidden, the old side whole; the join is a hard stop.)
