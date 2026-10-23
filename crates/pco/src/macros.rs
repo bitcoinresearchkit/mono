@@ -20,7 +20,6 @@ build_dtype_macros!(
 
   Number,
   {
-    F16 => half::f16,
     F32 => f32,
     F64 => f64,
     I8 => i8,

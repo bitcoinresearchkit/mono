@@ -4,8 +4,6 @@
 
 use std::{any::type_name, collections::BTreeSet};
 
-use half::f16;
-
 use crate::{
   constants::Bitlen,
   data_types::{latent_priv::LatentPriv, Number},
@@ -63,13 +61,6 @@ sample!(
   f32 = 23,
   f64 = 52
 );
-
-impl Sample for f16 {
-  const PRECISION: Bitlen = 10;
-  fn from_f64(x: f64) -> Self {
-    f16::from_f64(x)
-  }
-}
 
 /// Bitwise equality, so NaNs and signed zeros count.
 fn check<T: Number>(desc: &str, got: &[T], want: &[T]) {
@@ -316,7 +307,7 @@ fn round_trips_match_the_input() {
   for i in 0..10_000 {
     let rng = &mut rng;
     let seen = &mut seen;
-    match rng.below(11) {
+    match rng.below(10) {
       0 => case::<u8>(i, rng, seen),
       1 => case::<u16>(i, rng, seen),
       2 => case::<u32>(i, rng, seen),
@@ -325,8 +316,7 @@ fn round_trips_match_the_input() {
       5 => case::<i16>(i, rng, seen),
       6 => case::<i32>(i, rng, seen),
       7 => case::<i64>(i, rng, seen),
-      8 => case::<f16>(i, rng, seen),
-      9 => case::<f32>(i, rng, seen),
+      8 => case::<f32>(i, rng, seen),
       _ => case::<f64>(i, rng, seen),
     }
   }
