@@ -17,11 +17,13 @@ mod inner;
 mod mempool_entry;
 mod mempool_state;
 mod methods;
+mod responses;
 mod rpc_call;
 mod txid_array_parser;
 
 pub use inner::ClientInner;
 pub use mempool_state::MempoolState;
+pub use responses::GetBlockHeaderVerbose;
 
 /// Explicit Core decode/policy rejections are invalid input, unlike an
 /// infrastructure error whose submission outcome may be unknown.

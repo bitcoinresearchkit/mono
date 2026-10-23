@@ -20,7 +20,6 @@ bitcoin = { workspace = true }
 brk_error = { workspace = true, features = ["corepc", "serde_json"] }
 brk_types = { workspace = true }
 corepc-jsonrpc = { workspace = true }
-corepc-types = { workspace = true }
 parking_lot = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }

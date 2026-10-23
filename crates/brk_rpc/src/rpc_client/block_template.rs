@@ -1,12 +1,43 @@
-use bitcoin::{Amount, Txid as BitcoinTxid, Weight as BitcoinWeight};
+use bitcoin::{
+    Amount, Transaction, Txid as BitcoinTxid, Weight as BitcoinWeight, Wtxid, consensus::encode,
+};
 use brk_error::{Error, Result};
 use brk_types::{Sats, SigOps, Txid, Weight};
-use corepc_types::v17::BlockTemplateTransaction;
 use rustc_hash::FxHashMap;
 
 use crate::BlockTemplateTx;
 
-use super::ClientInner;
+use super::{ClientInner, responses::BlockTemplateTransaction};
+
+/// A template transaction decoded for the audit, with what Core says of it.
+struct AuditRow {
+    data: Transaction,
+    txid: BitcoinTxid,
+    wtxid: Wtxid,
+    weight: BitcoinWeight,
+    fee: i64,
+    depends: Vec<u32>,
+}
+
+impl AuditRow {
+    /// Decoded as corepc-types' model was: the body, both ids, and each dependency and the
+    /// sigops count within `u32`.
+    fn decode(raw: &BlockTemplateTransaction) -> Option<Self> {
+        u32::try_from(raw.sigops).ok()?;
+        Some(Self {
+            data: encode::deserialize_hex::<Transaction>(&raw.data).ok()?,
+            txid: raw.txid.parse().ok()?,
+            wtxid: raw.hash.parse().ok()?,
+            weight: BitcoinWeight::from_wu(raw.weight),
+            fee: raw.fee,
+            depends: raw
+                .depends
+                .iter()
+                .map(|&index| u32::try_from(index).ok())
+                .collect::<Option<_>>()?,
+        })
+    }
+}
 
 impl ClientInner {
     /// Converts the wire rows without decoding any body: callers decode only
@@ -55,12 +86,9 @@ impl ClientInner {
     ) -> std::result::Result<(), &'static str> {
         let rows = transactions
             .iter()
-            .map(|raw| {
-                raw.clone()
-                    .into_model()
-                    .map_err(|_| "undecodable transaction")
-            })
-            .collect::<std::result::Result<Vec<_>, _>>()?;
+            .map(AuditRow::decode)
+            .collect::<Option<Vec<_>>>()
+            .ok_or("undecodable transaction")?;
         let mut positions = FxHashMap::default();
         for (index, row) in rows.iter().enumerate() {
             if positions.insert(row.txid, index).is_some() {
@@ -87,7 +115,7 @@ impl ClientInner {
                         .filter(|sum| *sum <= max_money)
                 })
                 .ok_or("transaction output value")?;
-            total_fee = u64::try_from(row.fee.to_sat())
+            total_fee = u64::try_from(row.fee)
                 .ok()
                 .and_then(|fee| total_fee.checked_add(fee))
                 .filter(|sum| *sum <= max_money)

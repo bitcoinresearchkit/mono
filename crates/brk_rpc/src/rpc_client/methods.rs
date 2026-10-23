@@ -6,18 +6,19 @@ use bitcoin::{
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, FeeRate, Height, MempoolEntryInfo, Txid};
 use corepc_jsonrpc::error::Error as JsonRpcError;
-use corepc_types::{
-    v17::{GetBlockCount, GetBlockHeaderVerbose, GetBlockTemplate},
-    v24::GetMempoolInfo,
-    v28::GetBlockchainInfo,
-};
 use rustc_hash::FxHashMap;
 use serde_json::{from_str, json, value::RawValue};
 use tracing::{debug, info};
 
 use super::{
-    Client, ClientInner, mempool_entry::MempoolEntry, mempool_state::MempoolState,
-    rpc_call::RpcCall, txid_array_parser::TxidArrayParser,
+    Client, ClientInner,
+    mempool_entry::MempoolEntry,
+    mempool_state::MempoolState,
+    responses::{
+        GetBlockCount, GetBlockHeaderVerbose, GetBlockTemplate, GetBlockchainInfo, GetMempoolInfo,
+    },
+    rpc_call::RpcCall,
+    txid_array_parser::TxidArrayParser,
 };
 use crate::BlockTemplateTx;
 
