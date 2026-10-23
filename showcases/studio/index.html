@@ -9330,8 +9330,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           </div>
           <div class="head-actions">
             <span id="saved" class="saved"></span>
-            <span id="preview-note" class="preview-note" hidden><span class="preview-said">A preview</span><button id="keep" class="btn small" type="button" data-tip="Keep puts it in your Library, as it is" data-kbd="⌘ S"><span data-icon="keep"></span>Keep</button></span>
-            <span id="preset-note" class="preview-note" hidden><button id="preset-reset" class="btn small ghost" type="button" data-tip="Back as the preset is: your edits let go of" hidden>Reset</button><button id="preset-copy" class="btn small" type="button" aria-label="Copy" data-tip="A copy of it, as it is, in your Library"><span data-icon="duplicate"></span><span class="label">Copy</span></button></span>
+            <span id="preview-note" class="preview-note" hidden><span class="preview-said">A preview</span><button id="keep" class="btn small" type="button" data-tip="Save puts it in your Library, as it is" data-kbd="⌘ S"><span data-icon="keep"></span>Save</button></span>
+            <span id="preset-note" class="preview-note" hidden><button id="preset-reset" class="btn small ghost" type="button" data-tip="Back as the preset is: your edits let go of" hidden>Reset</button><button id="preset-copy" class="btn small" type="button" aria-label="Save a copy" data-tip="A copy of it, as it is, in your Library"><span data-icon="duplicate"></span><span class="label">Save a copy</span></button></span>
             <button id="undo" class="cap" type="button" aria-label="Undo" data-tip="Undo" data-kbd="⌘ Z" data-icon="undo"></button>
             <button id="redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo" aria-disabled="true"></button>
             <span class="divider"></span>
@@ -11575,7 +11575,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const touchPreview = (doc) => void (touched.add(doc), asideDirty.add(doc));
       /**
        * A preview a link opened, kept aside as it is (marked not edited): its link's gone from the address bar once read,
-       * so a reload, or a tab the phone put away, finds it again (till it's kept or closed). @param {Chart} doc
+       * so a reload, or a tab the phone put away, finds it again (till it's saved or closed). @param {Chart} doc
        */
       const keepAsideOpened = (doc) => void (isPreview(doc) && !drafts.has(doc) && (asideDirty.add(doc), save()));
 
@@ -12918,7 +12918,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function keepChart(doc = chart) {
         if (!isPreview(doc)) return;
         keepPreview(true, doc);
-        libraryStep(`Kept “${titleOf(doc)}”`, () => {
+        libraryStep(`Saved “${titleOf(doc)}”`, () => {
           const now = library.charts.find((other) => other.id === doc.id);
           if (!now) return;
           discard(now);
@@ -20170,7 +20170,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const query = $("home-filter").value.trim();
         if (!grid.hidden && onPreviews) {
           const previewed = query ? previewsShown() : listedPreviews();
-          parts.push(previewed.length ? { kind: "grid", docs: previewed, previews: true } : { kind: "note", html: query ? `No previews match “${escape(query)}”` : "<p>No previews: a chart a link opens shows here, till it's kept or closed.</p>" });
+          parts.push(previewed.length ? { kind: "grid", docs: previewed, previews: true } : { kind: "note", html: query ? `No previews match “${escape(query)}”` : "<p>No previews: a chart a link opens shows here, till it's saved or closed.</p>" });
         } else if (!grid.hidden && query) {
           const found = filtered().filter((doc) => !folderId || isIn(doc.folder, folderId)), previewed = top ? previewsShown() : [];
           if (previewed.length) parts.push({ kind: "head", name: "Previews", count: previewed.length }, { kind: "grid", docs: previewed, previews: true });
@@ -20180,14 +20180,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const previewed = listedPreviews(), all = listed();
           if (previewed.length) parts.push({ kind: "shelf", name: "Previews", place: { previews: true }, docs: previewed.slice(0, SHELF), count: previewed.length, previews: true });
           // (None yet, its shelf all the same, named as the presets' is: what's empty, and how to fill it, in it.)
-          parts.push({ kind: "shelf", name: "Library", place: { folder: "" }, folder: "", docs: [...all.filter((doc) => !doc.folder), ...all.filter((doc) => doc.folder)].slice(0, SHELF), count: all.length, ...(all.length || library.folders.length ? {} : { empty: `<div class="shelf-empty library-empty"><p>${previewed.length ? "None saved yet: Keep a preview to have it here." : "No charts yet. Start a new chart, or open a preset and copy it."}</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div></div>` }) });
+          parts.push({ kind: "shelf", name: "Library", place: { folder: "" }, folder: "", docs: [...all.filter((doc) => !doc.folder), ...all.filter((doc) => doc.folder)].slice(0, SHELF), count: all.length, ...(all.length || library.folders.length ? {} : { empty: `<div class="shelf-empty library-empty"><p>${previewed.length ? "None saved yet: Save a preview to have it here." : "No charts yet. Start a new chart, or open a preset and save a copy."}</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div></div>` }) });
         } else if (!grid.hidden) {
           const items = childrenOf(folderId), counts = chartCounts();
           const own = items.flatMap((item) => ("layers" in item ? [item] : []));
           // (Its folders first, as the sidebar has them; then its own charts.)
           for (const folder of items.flatMap((item) => ("layers" in item ? [] : [item]))) parts.push({ kind: "shelf", name: folder.name, place: { folder: folder.id }, folder: folder.id, docs: treeOf(folder.id).flatMap(({ item }) => ("layers" in item ? [item] : [])).slice(0, SHELF), count: counts.get(folder.id) ?? 0 });
           if (own.length) parts.push({ kind: "grid", docs: own });
-          if (!items.length) parts.push({ kind: "note", html: folderId ? `<p>${TOUCH ? "Nothing in it yet. Hold a chart, then tap Move" : "Nothing in it yet: drag charts onto it in the sidebar, or move them from their menu"}</p>` : `<p>No charts yet. Start a new chart, or open a preset and copy it.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`, card: true });
+          if (!items.length) parts.push({ kind: "note", html: folderId ? `<p>${TOUCH ? "Nothing in it yet. Hold a chart, then tap Move" : "Nothing in it yet: drag charts onto it in the sidebar, or move them from their menu"}</p>` : `<p>No charts yet. Start a new chart, or open a preset and save a copy.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`, card: true });
         }
         const visible = parts.flatMap((part) => (part.kind === "grid" || part.kind === "shelf" ? part.docs : []));
         shownYours = visible.filter((doc) => !isPreview(doc));
@@ -21614,7 +21614,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** A preview's row: a new chart's, empty, only that; another's, its × (but the open one with nothing to go back to). */
         const previewRow = (/** @type {Chart} */ doc) => `<div class="chart-row preview" data-preview-row="${doc.id}">${drafts.has(doc)
           ? `<button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="A new chart: in your Library once something's in it">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>`
-          : `<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}: a preview, not in your Library (Keep${doc === chart ? " or ⌘S" : ""} adds it${touched.has(doc) ? ", your edits with it" : ""})">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escape(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
+          : `<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}: a preview, not in your Library (Save${doc === chart ? " or ⌘S" : ""} adds it${touched.has(doc) ? ", your edits with it" : ""})">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escape(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
         // (A draft, the empty chart in place of none, listed only while it's the one open: under the page, not one.)
         const listed = listedPreviews(), draft = home ? undefined : previewCharts.find((doc) => drafts.has(doc)), counts = chartCounts();
         // (The presets under them as the page has them: named before they've arrived, nothing to change once they have.)
@@ -23725,7 +23725,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else openChart(copy);
         renderCharts();
         const same = asThen([copy]);
-        if (!quiet) toast(`Copied “${titleOf(copy)}” to ${copy.folder ? `“${folderPath(copy.folder)}”` : "your Library"}`, { label: "Undo", run: () => {
+        if (!quiet) toast(`Saved a copy of “${titleOf(copy)}” to ${copy.folder ? `“${folderPath(copy.folder)}”` : "your Library"}`, { label: "Undo", run: () => {
           if (!library.charts.some((other) => other.id === copy.id)) return;
           if (!same()) return keptAsEdited([copy]);
           if (chart === copy) openChart(presets?.[i] ? presetChart(i) : previousChart() ?? newDraft());
@@ -23756,7 +23756,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         newFolder([`c:${copy.id}`], undefined, { step: false });
         const folder = library.folders.find((item) => item.id === copy.folder), same = asThen([copy]);
         // (Said, with one Undo: the copy and its new folder gone, back to the preset.)
-        toast(`Copied “${titleOf(copy)}” to a new folder`, { label: "Undo", folder: folder?.id, run: () => {
+        toast(`Saved a copy of “${titleOf(copy)}” to a new folder`, { label: "Undo", folder: folder?.id, run: () => {
           if (!same()) return keptAsEdited([copy]);
           const made = folder && folderById(folderNow(folder.id)), listed = library.charts.find((other) => other.id === copy.id);
           if (!listed && !made) return;
@@ -23777,8 +23777,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return [
           ...(where === "tile" || where === "palette" ? [{ key: "open", icon: ICONS.next, label: "Open", run: () => pickPreset(i) }] : []),
           ...(head ? [{ key: "rename", icon: ICONS.pencil, label: "Rename", run: () => (/** @type {HTMLInputElement} */ ($("title")).focus(), /** @type {HTMLInputElement} */ ($("title")).select()) }] : []),
-          { key: "copy", icon: ICONS.duplicate, label: "Copy", aside: "Into your Library", run: () => void copyPreset(i) },
-          { key: "copy-to", icon: ICONS.folder, label: "Copy to…", page: () => choicePage("Copy to", () => copyChoices(i)) },
+          { key: "copy", icon: ICONS.duplicate, label: "Save a copy", aside: "Into your Library", run: () => void copyPreset(i) },
+          { key: "copy-to", icon: ICONS.folder, label: "Save a copy to…", page: () => choicePage("Save a copy to", () => copyChoices(i)) },
           ...(head && chart.layers.length ? [{ ...legendAction(), apart: true }, { key: "export", icon: ICONS.download, label: "Export", aside: "Image, data, file", page: () => listPage("Export", exportRows) }] : []),
           ...(doc && presetEdited(doc) ? [{ key: "reset", icon: ICONS.undo, label: "Reset", aside: "As the preset is", apart: !head, run: () => resetPreset(doc) }] : []),
         ];
@@ -27181,7 +27181,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return /** @type {Command[]} */ ([
           { title: "Add a layer", text: "Search every series, or browse them by topic; a formula, a cloud, a trend.", words: "add series catalog browse explore folders metric data", icon: "plus", kbd: "A", run: () => openPalette({ add: true }), suggested: true, keepOpen: true },
           { title: "New chart", text: "A blank chart of yours, in your Library, to start from series or a file.", words: "create blank empty", icon: "plus", kbd: "N", run: newChart, suggested: true, anywhere: true },
-          ...(isPreview(chart) && !home && chart.layers.length ? [{ title: "Keep this chart", text: "A preview: into your Library, with your edits (till then, they're this preview's alone).", words: "keep save preview add charts", icon: "keep", run: () => keepChart(), suggested: true }] : []),
+          ...(isPreview(chart) && !home && chart.layers.length ? [{ title: "Save this chart", text: "A preview: into your Library, with your edits (till then, they're this preview's alone).", words: "keep save preview add charts", icon: "keep", run: () => keepChart(), suggested: true }] : []),
           ...(isPreview(chart) && !home && chart.layers.length && previousChart() ? [{ title: "Close this preview", text: `${titleOf(chart)}: not in your Library, let go of.`, words: "close preview discard dismiss", icon: "close", run: () => closePreview() }] : []),
           { title: "New folder", text: "For charts that go together, named at once.", words: "create folder group organize", icon: "folderAdd", run: () => newFolder(), anywhere: true },
           // Each folder, by its name: its page (expand or collapse it, rename it, delete it, its charts).
@@ -27275,7 +27275,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(!isYours(chart) ? [] : [{ title: "Duplicate this chart", text: "A copy, right under it in your list.", words: "copy clone", icon: "duplicate", run: () => chartPick(chart.id, "duplicate") }]),
           ...(!isYours(chart) ? [] : [{ title: "Delete this chart", text: "With an Undo.", words: "remove trash", icon: "trash", danger: true, run: () => deleteChart(chart) }]),
           ...(chart.preset === undefined || presetIndex(chart) < 0 ? [] : [
-            { title: "Copy this preset", text: `${titleOf(chart)}: a copy of it, as it is, in your Library, opened.`, words: "copy preset save keep mine duplicate", icon: "duplicate", run: () => copyPreset(presetIndex(chart)) },
+            { title: "Save a copy of this preset", text: `${titleOf(chart)}: a copy of it, as it is, in your Library, opened.`, words: "copy preset save keep mine duplicate", icon: "duplicate", run: () => copyPreset(presetIndex(chart)) },
             ...(presetEdited(chart) ? [{ title: "Reset this preset", text: "As the preset is: your edits to it let go of, with an Undo.", words: "reset preset revert original undo edits", icon: "undo", run: () => resetPreset(chart) }] : []),
           ]),
           ...(chart.layers.some((layer) => layer.hidden) ? [{ title: "Show every layer", text: "The hidden ones too.", words: "unhide visible all", icon: "eye", run: showEvery }] : []),
@@ -28667,7 +28667,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(phoneHead && (edits.future.length || libraryRedo() || toastRedo?.mark === revision) ? [{ key: "redo", icon: ICONS.redo, label: "Redo", group: "redo", run: redoLast }] : []),
           ...(inPalette || tile ? [{ key: "open", icon: ICONS.next, label: "Open", kbd: inPalette ? "↵" : undefined, run: () => go(chartById(id)) }] : []),
           ...(tile && !preview && !picked.has(id) ? [{ key: "select", icon: ICONS.checkbox, label: "Select", run: () => pickChart(id) }] : []),
-          ...(preview && doc.layers.length ? [{ key: "keep", icon: ICONS.keep, label: "Keep", aside: inPalette ? undefined : "Into your Library", run: () => keepChart(doc) }] : []),
+          ...(preview && doc.layers.length ? [{ key: "keep", icon: ICONS.keep, label: "Save", aside: inPalette ? undefined : "Into your Library", run: () => keepChart(doc) }] : []),
           { key: "rename", icon: ICONS.pencil, label: "Rename", ...(inPalette ? { page: () => renameChartPage(doc) } : head ? { run: () => (/** @type {HTMLInputElement} */ ($("title")).focus(), /** @type {HTMLInputElement} */ ($("title")).select()) } : { run: act("rename") }) },
           ...(preview ? [] : [{ key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", run: act("duplicate") }]),
           ...(peers.indexOf(doc) > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", kbd: "⌥↑", stay: true, run: () => stepChart(id, -1) }] : []),
@@ -28712,7 +28712,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               { key: "export", icon: ICONS.download, label: "Export", aside: "An image, the data, the chart file", group: "Out of it", page: () => listPage("Export", exportRows) },
             ] : []),
             ...(!isYours(chart) ? [] : [{ key: "folder", icon: ICONS.folder, label: "Folder", aside: chart.folder ? folderPath(chart.folder) : "None", group: "Chart file", page: () => folderPage([chart.id]) }]),
-            ...(isPreview(chart) && chart.layers.length ? [{ key: "keep", icon: ICONS.keep, label: "Keep", aside: "A preview: into your Library as it is", verb: "Keep", group: "Chart file", run: () => keepChart() }] : []),
+            ...(isPreview(chart) && chart.layers.length ? [{ key: "keep", icon: ICONS.keep, label: "Save", aside: "A preview: into your Library as it is", verb: "Save", group: "Chart file", run: () => keepChart() }] : []),
             ...(!isYours(chart) ? [] : [{ key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", verb: "Duplicate", group: "Chart file", run: () => chartPick(chart.id, "duplicate") }]),
             ...(!isYours(chart) ? [] : [{ key: "delete", icon: ICONS.trash, label: "Delete", verb: "Delete", group: "Chart file", danger: true, run: () => deleteChart(chart) }]),
             .../** @type {any[]} */ (chart.preset !== undefined && presetIndex(chart) >= 0 ? presetActions(presetIndex(chart), "palette").filter((row) => row.key !== "open").map((row) => ({ ...row, group: "Preset" })) : []),
@@ -31362,8 +31362,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("home-redo").setAttribute("aria-disabled", String(!forth));
         const edited = isPreview(chart) && touched.has(chart), keep = $("keep");
         keep.classList.toggle("edited", edited);
-        keep.dataset.tip = edited ? "Your edits aren't in your Library yet: Keep puts it there, with them" : "Keep puts it in your Library, as it is";
-        if (edited) keep.setAttribute("aria-label", "Keep, edited");
+        keep.dataset.tip = edited ? "Your edits aren't in your Library yet: Save puts it there, with them" : "Save puts it in your Library, as it is";
+        if (edited) keep.setAttribute("aria-label", "Save, edited");
         else keep.removeAttribute("aria-label");
       }
       /** A toast's Undo, which ⌘Z presses while it's up and nothing has changed since (a deleted chart comes back too); its Redo, ⌘⇧Z. */
@@ -31952,7 +31952,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (mod && key === "s") {
           event.preventDefault();
           flushEdits();
-          if (isPreview(chart) && !home) return chart.layers.length ? keepChart() : toast("Nothing to keep yet: add a layer");
+          if (isPreview(chart) && !home) return chart.layers.length ? keepChart() : toast("Nothing to save yet: add a layer");
           return save(true);
         }
         if (mod && key === "z" && !typing(event.target)) {
@@ -32450,7 +32450,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // the chart steps on from it).)
           if (shared !== null && !picturing) history.replaceState(home ? { ...(history.state?.home ? history.state : {}), ...homeState() } : { chart: (twin ?? doc).id }, "", `${location.pathname}${location.search}`);
           if (shared !== null) reading.hash = "";
-          if (!picturing) toast(twin ? `Opened a shared chart you have already${lost}` : `Opened a shared chart: Keep it to have it in your Library${lost}`, twin ? undefined : { label: "Keep", run: () => void (toastOfPreview && keepChart(toastOfPreview)) }), (toastOfPreview = twin ? null : doc);
+          if (!picturing) toast(twin ? `Opened a shared chart you have already${lost}` : `Opened a shared chart: Save it to have it in your Library${lost}`, twin ? undefined : { label: "Save", run: () => void (toastOfPreview && keepChart(toastOfPreview)) }), (toastOfPreview = twin ? null : doc);
           return twin ?? doc;
         } catch (error) {
           // (Written by hand, why: to tell whoever wrote it; a newer link meanwhile, or a chart opened, nothing.)
