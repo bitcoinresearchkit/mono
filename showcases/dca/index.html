@@ -842,7 +842,7 @@
         margin-top: 4px;
       }
 
-      /* The smart plan beside the plain one: the verdict, then a table of the two. (One line, held.) */
+      /* The smart plan's worth and return under the plain one's. (One line, held.) */
       .versus {
         height: 1.45em;
         overflow: hidden;
@@ -1350,6 +1350,8 @@
       const gained = (/** @type {number} */ multiple) => multiple > 1 + 1e-9;
       const lost = (/** @type {number} */ multiple) => multiple < 1 - 1e-9;
       const tone = (/** @type {number} */ multiple) => (gained(multiple) ? "gain" : lost(multiple) ? "loss" : "");
+      /** A change's arrow, as the app marks one: up, down, or none when even. */
+      const arrow = (/** @type {number} */ multiple) => (gained(multiple) ? "▲ " : lost(multiple) ? "▼ " : "");
       /** The smart plan's bitcoin a dollar over the plain plan's, in words: "24.2% more bitcoin", "8.1% less bitcoin". */
       const edge = (/** @type {number} */ ratio) => (gained(ratio) || lost(ratio) ? `${percent(ratio).replace(/^[+−]/, "")} ${gained(ratio) ? "more" : "less"} bitcoin` : "the same bitcoin");
 
@@ -1626,9 +1628,11 @@
         drawMap();
       }
 
-      /** The plan in a few words, over the value as of its last day: "$100 every week since 24 Oct 2022". */
+      /** The plan in a few words, over the value as of its last day: "$100 every week since 24 Oct 2022"; a plan of one
+       * day, its one buy: "$100 on 1 Jan 2024". */
       const sentence = () =>
-        `${usd(plan.amount)} every ${plan.every} ${plan.to === last ? `since ${dated(plan.from)}` : `from ${dated(plan.from)} to ${dated(plan.to)}`}`;
+        plan.from === plan.to ? `${usd(plan.amount)} on ${dated(plan.from)}`
+          : `${usd(plan.amount)} every ${plan.every} ${plan.to === last ? `since ${dated(plan.from)}` : `from ${dated(plan.from)} to ${dated(plan.to)}`}`;
 
       /** The plan's breakdown; its words and value are point()'s, as of the day pointed at. */
       function tell() {
@@ -1861,10 +1865,13 @@
         $("coins").textContent = btc(plan.held[at]);
         $("delta").className = `change ${tone(m)}`;
         // (Even within float error: no change, not a few femtodollars.)
-        $("delta").textContent = `${gained(m) ? "▲ " : lost(m) ? "▼ " : ""}${usd(gained(m) || lost(m) ? Math.abs(worth - spent) : 0)} (${percent(m).replace(/^[+−]/, "")})`;
+        $("delta").textContent = `${arrow(m)}${usd(gained(m) || lost(m) ? Math.abs(worth - spent) : 0)} (${percent(m).replace(/^[+−]/, "")})`;
         $("keys").innerHTML = drawn.series.map((s) => `<span class="${s.ink}"><i></i>${s.ink === "smart" ? '<span class="smart-name">Smart</span>' : s.name} <b>${usd(s.f(at))}</b>${s.from ? ` from ${usd(s.from(at))}` : ""}</span>`).join("");
-        // The bitcoin a dollar the smart plan got against the plain one, as of the same day.
-        if (smart) $("versus").innerHTML = `<em class="badge">Smart</em> ${edge(smart.held[at] / smart.spent[at] / (plan.held[at] / spent))} a dollar`;
+        // The smart plan's own worth and return, as the value above is the plain plan's, as of the same day.
+        if (smart) {
+          const smartWorth = smart.held[at] * price[day], smartMultiple = smartWorth / smart.spent[at];
+          $("versus").innerHTML = `<em class="badge">Smart</em> <b>${usd(smartWorth)}</b> <span class="${tone(smartMultiple)}">${arrow(smartMultiple)}${percent(smartMultiple).replace(/^[+−]/, "")}</span>`;
+        }
       }
 
       // Read by pointer or touch (a horizontal drag; a vertical one scrolls the page), or by keys once focused.
@@ -2223,8 +2230,9 @@
           $("mvrv-since").textContent = comparable ? `MVRV from ${dated(mvrvFirst)}` : "MVRV unavailable";
           if (!comparable) {
             mvrv.fill(NaN);
-            const why = `Unavailable: ${ratios ? "MVRV has days missing" : "MVRV couldn't be read"}.`;
-            $("verdict").textContent = $("versus").textContent = why;
+            const why = ratios ? "MVRV has days missing" : "MVRV couldn't be read";
+            $("verdict").textContent = `Unavailable: ${why}.`;
+            $("versus").innerHTML = `<em class="badge">Smart</em> unavailable: ${why}`;
             /** @type {HTMLButtonElement} */ (document.querySelector('[data-atlas="edge"]')).disabled = true;
           }
           $("since").textContent = dated(first);
