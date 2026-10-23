@@ -99,6 +99,12 @@
         outline-offset: 2px;
       }
 
+      /* (A ring only for keys: a field or picker tapped or clicked counts as reached by keys in some browsers, Safari's
+         picker and every date field among them. `data-pointer` is the page's: a pointer was last used, not keys.) */
+      :root[data-pointer] :focus-visible {
+        outline: none;
+      }
+
       /* (Figures of one width where numbers change, so they don't jitter; only there: a tabular hyphen is wide.) */
       .worth,
       .coins,
@@ -852,7 +858,7 @@
             }
           }
 
-          &:has(input:focus-visible) span {
+          :root:not([data-pointer]) &:has(input:focus-visible) span {
             outline: 2px solid var(--focus);
             outline-offset: 2px;
           }
@@ -1334,6 +1340,12 @@
       const DAY = 86_400_000, ORIGIN = Date.UTC(2009, 0, 1);
       const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       const SVG = "http://www.w3.org/2000/svg";
+      // How focus was last reached, a pointer's or keys' (for the rings, and how a date field shows itself).
+      addEventListener("pointerdown", () => (document.documentElement.dataset.pointer = ""), { capture: true });
+      // (A shortcut isn't using keys, as browsers' own rings have it.)
+      addEventListener("keydown", (event) => {
+        if (!(event.metaKey || event.ctrlKey || event.altKey)) delete document.documentElement.dataset.pointer;
+      }, { capture: true });
 
       /** @typedef {"day" | "week" | "month"} Every */
 
@@ -1643,12 +1655,8 @@
         // (A click, or Enter, opens the browser's calendar: the field itself is invisible. Reached by keys, not a pointer, it
         // shows itself to be edited until focus leaves.)
         input.addEventListener("click", () => input.showPicker?.());
-        input.addEventListener("pointerdown", () => (input.dataset.pointer = "1"));
-        input.addEventListener("focus", () => /** @type {HTMLElement} */ (input.parentElement).classList.toggle("editing", !input.dataset.pointer));
-        input.addEventListener("blur", () => {
-          delete input.dataset.pointer;
-          /** @type {HTMLElement} */ (input.parentElement).classList.remove("editing");
-        });
+        input.addEventListener("focus", () => /** @type {HTMLElement} */ (input.parentElement).classList.toggle("editing", !("pointer" in document.documentElement.dataset)));
+        input.addEventListener("blur", () => /** @type {HTMLElement} */ (input.parentElement).classList.remove("editing"));
         input.addEventListener("keydown", (event) => {
           if (event.key !== "Enter") return;
           event.preventDefault();
@@ -1756,6 +1764,10 @@
         return node;
       };
 
+      /** How far in from each side the first and last days sit: a dot's reach (a crosshair's 5px and its 1.5px ring), so
+       * a dot on either end stays in its card. */
+      const INSET = 7;
+
       /** No axes: the numbers are the value above and the keys below, at the day pointed at. Worth is green, or red when
        * the plan ends below what went in; faintly between the two lines, green where the plan stood above (worth over
        * what went in, the price over your cost), red below. A new plan's lines glide from the old ones (`animate`). */
@@ -1786,7 +1798,7 @@
         else [lo, hi] = flat ? [lo / 2, hi * 1.5] : [Math.max(0, lo - (hi - lo) * 0.05), hi + (hi - lo) * 0.05];
         const span = state.log ? Math.log(hi / lo) : hi - lo;
         const y = (/** @type {number} */ v) => pad + (height - 2 * pad) * (1 - (state.log ? Math.log(v / lo) : v - lo) / span);
-        const x = (/** @type {number} */ i) => (n === 1 ? width / 2 : (i / (n - 1)) * width);
+        const x = (/** @type {number} */ i) => (n === 1 ? width / 2 : INSET + (i / (n - 1)) * (width - 2 * INSET));
         const ys = series.map((s) => (/** @type {number} */ i) => y(s.f(i)));
         svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
         const under = [el("path"), el("path")], clips = el("defs"), fills = [el("path", { class: "above", "clip-path": "url(#chart-up)" }), el("path", { class: "below", "clip-path": "url(#chart-down)" })];
@@ -1804,8 +1816,8 @@
         // rest: where days outnumber columns, a column's lowest and highest day in the order they came (as drawing every
         // day looks); else each day on the column nearest it and the line between days on the rest, twice a column. A
         // one-day plan: its point, in one column.
-        const columns = n === 1 ? 1 : Math.max(2, Math.round(width));
-        const colX = (/** @type {number} */ j) => (columns === 1 ? width / 2 : (j / (columns - 1)) * width);
+        const columns = n === 1 ? 1 : Math.max(2, Math.round(width - 2 * INSET));
+        const colX = (/** @type {number} */ j) => (columns === 1 ? width / 2 : INSET + (j / (columns - 1)) * (width - 2 * INSET));
         // (After the columns, the last day's own value: where the line's end dot sits.)
         const sample = (/** @type {(i: number) => number} */ yOf) => {
           const out = new Float64Array(columns * 2 + 1);
@@ -1936,21 +1948,41 @@
         }
       }
 
+      /** Whether a move over `target` reads what's under it: a mouse's or a pen's always; a finger's once it's moved more
+       * across than down, as until then it may be scrolling the page (a scroll that starts on the chart or the map never
+       * flashes a day or a plan). */
+      function readsAcross(/** @type {HTMLElement} */ target) {
+        /** Where a finger came down, till it's moved more across than down. @type {{ x: number, y: number } | null} */
+        let down = null;
+        target.addEventListener("pointerdown", (event) => (down = event.pointerType === "touch" ? { x: event.clientX, y: event.clientY } : null));
+        for (const type of ["pointerleave", "pointercancel"]) target.addEventListener(type, () => (down = null));
+        return (/** @type {PointerEvent} */ event) => {
+          if (down && Math.abs(event.clientX - down.x) <= Math.abs(event.clientY - down.y)) return false;
+          down = null;
+          return true;
+        };
+      }
+
       // Read by pointer or touch (a horizontal drag; a vertical one scrolls the page), or by keys once focused.
       /** The day read by keys, kept while the chart has focus. @type {number | null} */
       let scrub = null;
       const dayAt = (/** @type {PointerEvent} */ event) => {
         const box = plots.getBoundingClientRect(), n = plan.to - plan.from;
-        return Math.round(Math.min(1, Math.max(0, (event.clientX - box.left) / box.width)) * n);
+        return Math.round(Math.min(1, Math.max(0, (event.clientX - box.left - INSET) / (box.width - 2 * INSET))) * n);
       };
-      for (const type of ["pointermove", "pointerdown"]) {
-        plots.addEventListener(type, (event) => {
-          settle();
-          point(dayAt(/** @type {PointerEvent} */ (event)));
-        });
-      }
-      plots.addEventListener("pointerleave", () => point(scrub));
-      plots.addEventListener("pointercancel", () => point(scrub));
+      const chartReads = readsAcross(plots);
+      plots.addEventListener("pointerdown", (event) => {
+        // (A finger reads once it's moved across: see readsAcross.)
+        if (event.pointerType === "touch") return;
+        settle();
+        point(dayAt(event));
+      });
+      plots.addEventListener("pointermove", (event) => {
+        if (!chartReads(event)) return;
+        settle();
+        point(dayAt(event));
+      });
+      for (const type of ["pointerleave", "pointercancel"]) plots.addEventListener(type, () => point(scrub));
       plots.addEventListener("keydown", (event) => {
         const n = plan.to - plan.from, step = event.shiftKey ? 30 : 1;
         const to = /** @type {Record<string, number>} */ ({ ArrowLeft: (scrub ?? n) - step, ArrowRight: (scrub ?? n) + step, Home: 0, End: n })[event.key];
@@ -2202,7 +2234,9 @@
         return d <= longest ? { s, d } : y >= edge(longest + 1) - 8 ? { s, d: longest } : null;
       }
       const pick = (/** @type {{ s: number, d: number }} */ spot) => setDates(firstOf(map.start + spot.s), firstOf(map.start + spot.s + spot.d + 1) - 1);
+      const mapReads = readsAcross(canvas);
       canvas.addEventListener("pointermove", (event) => {
+        if (!mapReads(event)) return;
         // (One selection: the pointer moves the keys' cursor too, so Enter picks what's outlined.)
         pointed = at(event);
         if (pointed) cursor = pointed;
