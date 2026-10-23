@@ -9840,6 +9840,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** What a signal's marks can be on: a layer of one value drawn as itself (not a cloud, not a signal). @param {Chart} doc @param {Layer} signal */
       const markable = (doc, signal) => doc.layers.filter((other) => other !== signal && other.type !== "cloud" && other.type !== "signal");
       /**
+       * The layer a new signal is marked on: the first its formula reads that can be (by its letter, else by the series it
+       * names, in its order), else the first that can be; of those, a shown one before a hidden one (its marks seen).
+       * @param {Chart} doc @param {string} formula @returns {Layer | undefined}
+       */
+      const markFor = (doc, formula) => {
+        const can = markable(doc, /** @type {any} */ ({})).sort((a, b) => Number(Boolean(a.hidden)) - Number(Boolean(b.hidden)));
+        try {
+          const node = parse(formula), by = (/** @type {Set<string>} */ read, /** @type {"letter" | "series"} */ key) => ((found) => found.find((layer) => !layer.hidden) ?? found[0])([...read].flatMap((name) => can.filter((layer) => layer[key] === name)));
+          return by(refsOf(node), "letter") ?? by(refsOf(node, "series"), "series") ?? can[0];
+        } catch {
+          return can[0];
+        }
+      };
+      /**
        * How a signal shows: marks where it turns up (a condition: true), over its layer (pointing down at it), under it
        * (pointing up), on it, a down one mirrored; or, shaded, its stretches up or down, its layer's pane's height.
        */
@@ -9881,12 +9895,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {Layer} layer @param {ArrayLike<number> | undefined} values @param {ArrayLike<number> | null | undefined} [own] (null: none)
        */
       const marksOf = (layer, values, own = resolved?.results.get(layer.ref ?? "")?.values) => {
-        // (As markSignals draws them: only where its layer has a value (above 0 on a log scale); shaded, its turns.)
+        // (As markSignals draws them: only where its layer has a value (above 0 on a log scale).)
         const target = chart?.layers.find((item) => item.id === layer.ref), log = target ? modeOf(chart, target) === 1 : false;
-        if (layer.place === "shade") return changesOf(values).flatMap((change) => (change.to ? [change.at] : []));
+        const drawn = (/** @type {number} */ i) => own != null && Number.isFinite(own[i]) && (!log || own[i] > 0);
+        // (Shaded, its turns; with its results, their dots on its layer where each stretch ends.)
+        if (layer.place === "shade") return changesOf(values).flatMap((change) => (change.to || (layer.results && own && drawn(change.at) && stretchResult(change, own) !== undefined) ? [change.at] : []));
         // (Its layer without values (not loaded, failed): none drawn.)
         if (!own) return [];
-        const drawn = (/** @type {number} */ i) => Number.isFinite(own[i]) && (!log || own[i] > 0);
         return changesOf(values).flatMap((change) => (drawn(change.at) && (change.to || (layer.results && stretchResult(change, own) !== undefined)) ? [change.at] : []));
       };
       /**
@@ -14048,7 +14063,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const layer of doc.layers) {
           // (Candles zoomed out to their close line: on the line, the candles unseen.)
           const close = layer.ref ? closes.get(layer.ref) : null;
-          const on = layer.type === "signal" && !layer.hidden && layer.place !== "shade" && layer.ref ? (close && !candlesFit ? close.series : drawn.get(layer.ref)) : null, values = data.results.get(layer.id)?.values;
+          // (Shaded, no marks: its results alone, where its stretches end.)
+          const shade = layer.place === "shade", on = layer.type === "signal" && !layer.hidden && (!shade || layer.results) && layer.ref ? (close && !candlesFit ? close.series : drawn.get(layer.ref)) : null, values = data.results.get(layer.id)?.values;
           // (Only where its layer has a value drawn: a mark in a gap would sit on another date.)
           const target = doc.layers.find((item) => item.id === layer.ref), own = data.results.get(layer.ref ?? "")?.values, log = target ? modeOf(doc, target) === 1 : false;
           if (!on || !values || !own) continue;
@@ -14060,8 +14076,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const change of changesOf(values)) {
             const i = change.at, result = layer.results ? stretchResult(change, own) : undefined, text = result === undefined ? {} : { text: resultText(result) };
             if (!Number.isFinite(own[i]) || (log && !(own[i] > 0))) continue;
-            if (change.to > 0) list.push({ time: data.times[i], position, shape, color, id: layer.id, ...text });
-            else if (change.to < 0) list.push({ time: data.times[i], position: downPosition, shape: downShape, color: down, id: layer.id, ...text });
+            if (change.to > 0 && !shade) list.push({ time: data.times[i], position, shape, color, id: layer.id, ...text });
+            else if (change.to < 0 && !shade) list.push({ time: data.times[i], position: downPosition, shape: downShape, color: down, id: layer.id, ...text });
             else if (result !== undefined) list.push({ time: data.times[i], position: "inBar", shape: "circle", size: 0.5, color: change.was > 0 ? color : down, id: layer.id, ...text });
           }
         }
@@ -17775,7 +17791,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * A cloud as the chart draws it: from its lows up to its highs (or from its pane's bottom, up to its top: `bottom`,
-       * `top`), filled in its color, run by run (a gap in its data, a gap in it; a point alone, a sliver), over the bars
+       * `top`), filled in its color, run by run (a gap in its data, a gap in it; a point alone, a sliver; a shade's, its bar's room), over the bars
        * in view; where its two cross (`side`, which is over, changes from one column to the next), pinched to the point
        * their lines cross at, a color of its own from there. One of the chart's own series: its scale fits its values
        * (not its edges), its pane orders it.
@@ -17795,14 +17811,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const { context, mediaSize, horizontalPixelRatio: h, verticalPixelRatio: v } = scope;
               let color = options.color;
               const from = Math.max(0, range.from), to = Math.min(data.bars.length, range.to);
-              // (A column each bar at most, and a crossing between each two.)
-              if (xs.length < (to - from) * 2) [xs, highs, lows, ats] = [0, 0, 0, 0].map(() => new Float64Array((to - from) * 4));
+              // (A column each bar at most, and a crossing between each two; a shaded stretch's two ends.)
+              if (xs.length < (to - from) * 2 + 2) [xs, highs, lows, ats] = [0, 0, 0, 0].map(() => new Float64Array((to - from) * 4 + 2));
+              // (`midway`, a shaded signal's: a stretch from where its first bar's room begins to where its last one's ends,
+              // halfway to the next: one bar alone, a bar wide; bars narrower than a pixel, a pixel, as a sliver is.)
+              const half = options.midway ? (Math.max(data.barSpacing, 1) * h) / 2 : 0;
               const y = (/** @type {number} */ price) => /** @type {number} */ (toY(price));
               const topAt = (/** @type {number} */ k) => (options.top ? 0 : Number.isNaN(ats[k]) ? y(highs[k]) : ats[k]) * v, bottomAt = (/** @type {number} */ k) => (options.bottom ? mediaSize.height : Number.isNaN(ats[k]) ? y(lows[k]) : ats[k]) * v;
               // A run of columns, filled: its highs along, its lows back (a column alone, a sliver; one the run before
               // ended on, `shared`, drawn with it already).
               let k = 0, shared = false;
-              const fill = () => {
+              const fill = (ended = true) => {
+                if (ended && half && k) (xs[k] = xs[k - 1] + half), (highs[k] = highs[k - 1]), (lows[k] = lows[k - 1]), (ats[k++] = NaN);
                 context.fillStyle = color;
                 if (k === 1 && !shared) context.fillRect(xs[0] - h / 2, topAt(0), h, bottomAt(0) - topAt(0));
                 else if (k > 1) {
@@ -17814,10 +17834,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 }
                 (k = 0), (shared = false);
               };
-              /** The run so far filled, the next from its last point (a run of that point alone, the next's: nothing drawn twice). */
+              /** The run so far filled (to that point, a shade's not past it: it's where the next begins), the next from its last point (a run of that point alone, the next's: nothing drawn twice). */
               const restart = () => {
                 const [x0, high0, low0, at0] = [xs[k - 1], highs[k - 1], lows[k - 1], ats[k - 1]], drawn = k > 1;
-                if (drawn) fill();
+                if (drawn) fill(false);
                 (xs[0] = x0), (highs[0] = high0), (lows[0] = low0), (ats[0] = at0), (k = 1), (shared ||= drawn);
               };
               // (A date with nothing isn't among the bars: one not next to the last breaks the run. `side`: which of its two
@@ -17852,7 +17872,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 if (k && xs[k - 1] === column && Number.isNaN(ats[k - 1])) {
                   if (row.high > highs[k - 1]) highs[k - 1] = row.high;
                   if (row.low < lows[k - 1]) lows[k - 1] = row.low;
-                } else (xs[k] = column), (highs[k] = row.high), (lows[k] = row.low), (ats[k++] = NaN);
+                } else {
+                  if (half && !k) (xs[k] = column - half), (highs[k] = row.high), (lows[k] = row.low), (ats[k++] = NaN);
+                  (xs[k] = column), (highs[k] = row.high), (lows[k] = row.low), (ats[k++] = NaN);
+                }
               }
               fill();
             }),
@@ -25414,13 +25437,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!roomFor(chart)) return;
         openPalette({ formula: true, signal: true, query: `${on.letter} > sma(${on.letter}, 200d)` });
       }
-      /** A signal as a layer: marked on the first layer that can be (another picked in its panel), selected. */
-      function addSignalLayer(/** @type {string} */ formula) {
+      /** A signal as a layer: marked on `on`, else the layer it reads (see markFor; another picked in its panel), selected. */
+      function addSignalLayer(/** @type {string} */ formula, /** @type {string | undefined} */ on = undefined) {
         if (!roomFor(chart)) return;
         /** @type {Layer | undefined} */
         let added;
         commit((doc) => {
-          added = makeLayer({ formula, type: "signal", ref: markable(doc, /** @type {any} */ ({}))[0]?.id }, doc);
+          added = makeLayer({ formula, type: "signal", ref: (doc.layers.find((layer) => layer.id === on) ?? markFor(doc, formula))?.id }, doc);
           doc.layers.push(added);
         });
         if (!added) return;
@@ -26605,7 +26628,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (item.kind === "formula") {
           const text = palette.query.trim(), kept = formulaProblem.text === text && formulaProblem.editing === palette.editing ? formulaProblem.problem : "";
           const editing = palette.editing ? layerById(palette.editing) : null, problem = formulaError(text) || kept;
-          return `${asSignal(text) || editing?.type === "signal" ? ICONS.signal : ICONS.formula}<span class="item-name">${editing ? "Apply" : "Add"} <code>${escape(palette.query.trim())}</code></span>${problem ? `<span class="item-meta ${isUnfinished(palette.query.trim()) ? "" : "error"}">${escape(problem)}</span>` : `<span class="item-meta">${editing ? `To ${escape(editing.letter)}` : asSignal(text) ? ((on) => (on ? `Signal on ${escape(on.letter)}` : ""))(markable(chart, /** @type {any} */ ({}))[0]) : palette.into ? `Pane ${paneNumber(palette.into)}` : "New pane"}</span>`}`;
+          return `${asSignal(text) || editing?.type === "signal" ? ICONS.signal : ICONS.formula}<span class="item-name">${editing ? "Apply" : "Add"} <code>${escape(palette.query.trim())}</code></span>${problem ? `<span class="item-meta ${isUnfinished(palette.query.trim()) ? "" : "error"}">${escape(problem)}</span>` : `<span class="item-meta">${editing ? `To ${escape(editing.letter)}` : asSignal(text) ? ((on) => (on ? `Signal on ${escape(on.letter)}` : ""))(markFor(chart, text)) : palette.into ? `Pane ${paneNumber(palette.into)}` : "New pane"}</span>`}`;
         }
         const layer = item.layer ? layerById(item.layer) : null;
         const icon = layer ? `<i class="dot" style="--c:${escape(ink(layer.color))}"></i>` : item.series ? ICONS.series : item.group === "Spans" ? ICONS.recent : item.group === "Percents" ? ICONS.ruler : ICONS.formula;
@@ -26621,21 +26644,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         showPalette();
       }
       /**
-       * ↵ on the formula: if it reads, it becomes a layer (in the pane it's added to, or `pane`; "new": a new one); if not,
-       * its error is in the preview.
+       * ↵ on the formula: if it reads, it becomes a layer (in the pane it's added to, or `pane`; "new": a new one; a
+       * signal, marked on `on`, else the layer it reads); if not, its error is in the preview. `keep`: ⌘K stays, the
+       * formula selected, to write the next one.
        */
-      function addFromPalette(pane = palette.into, keep = false) {
+      function addFromPalette(pane = palette.into, keep = false, /** @type {string | undefined} */ on = undefined) {
         const text = palette.query.trim(), editing = palette.editing ? layerById(palette.editing) : null, problem = formulaError(text) || (editing ? loopError(editing, text) : !asSignal(text) && stackedOnly(pane === "new" ? null : pane) ? STACKED_ONLY : "");
         if (problem) return notice(problem);
-        if (keep && !palette.editing && !asSignal(text)) {
+        if (keep && !palette.editing) {
           // Added, and the formula stays, selected, to write the next one.
-          addFormulaLayer(text, pane === "new" ? null : pane, formulaSide(pane));
+          if (asSignal(text)) addSignalLayer(text, on);
+          else addFormulaLayer(text, pane === "new" ? null : pane, formulaSide(pane));
           paletteKeys(true);
           return;
         }
         $("palette").close();
         if (palette.editing) editById(palette.editing, (layer) => (layer.formula = text));
-        else if (asSignal(text)) addSignalLayer(text);
+        else if (asSignal(text)) addSignalLayer(text, on);
         else addFormulaLayer(text, pane === "new" ? null : pane, formulaSide(pane));
       }
       /** The side a formula from ⌘K goes on in `pane`: in its layer's pane, that layer's (see derive); else none (a layer's first, the right). */
@@ -26665,7 +26690,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Edited, the layer itself with the new formula; added, a new layer in a new pane.
           let layer = palette.editing ? doc.layers.find((item) => item.id === palette.editing) : null;
           if (layer) layer.formula = text;
-          else if (asSignal(text)) doc.layers.push((layer = makeLayer({ formula: text, type: "signal", ref: markable(doc, /** @type {any} */ ({}))[0]?.id }, doc)));
+          else if (asSignal(text)) doc.layers.push((layer = makeLayer({ formula: text, type: "signal", ref: markFor(doc, text)?.id }, doc)));
           else doc.layers.push((layer = makeLayer({ formula: text, pane: palette.into ?? newPaneIn(doc).id, ...(palette.into && formulaSide(palette.into) ? { side: formulaSide(palette.into) } : {}) }, doc)));
           const editing = palette.editing !== null;
           const data = await resolve(doc).catch(() => null);
@@ -27077,6 +27102,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (palette.editing) return [];
           const found = chart.panes.findIndex((pane) => pane.id === palette.into), into = found < 0 && !room ? chart.panes.length - 1 : found;
           const going = { label: "Add and keep going", icon: ICONS.plus, kbd: "⌘↵", stay: true, run: () => addFromPalette(undefined, true) };
+          // (A signal: on a layer, the one it reads first; no pane of its own.)
+          if (asSignal(palette.query.trim())) {
+            const first = markFor(chart, palette.query.trim()), on = [...(first ? [first] : []), ...markable(chart, /** @type {any} */ ({})).filter((layer) => layer !== first)].map((layer, i) => ({ label: `Add on ${labelOf(layer)}`, icon: ICONS.signal, aside: layer.letter, ...(i ? {} : { kbd: "↵" }), run: () => addFromPalette(undefined, false, layer.id) }));
+            return [...on.slice(0, 1), going, ...on.slice(1)].map((action) => ({ ...action, stay: true }));
+          }
           // Open until the formula is added, as with ↵: an unfinished one stays, to be finished.
           return (into < 0
             ? [{ label: "Add to a new pane", icon: ICONS.pane, kbd: "↵", run: () => addFromPalette("new") }, going, ...intoPanes((pane) => addFromPalette(pane))]
@@ -27369,7 +27399,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!layer || !values || !resolved) return [];
           const times = resolved.times, changes = changesOf(values), signed = changes.some((change) => change.to < 0 || change.was < 0), marked = new Set(marksOf(layer, values));
           return changes.flatMap((change) => {
-            const i = change.at, result = layer.results && own && layer.place !== "shade" ? stretchResult(change, own) : undefined;
+            const i = change.at, result = layer.results && own ? stretchResult(change, own) : undefined;
             if (!marked.has(i)) return [];
             const said = [change.to < 0 ? "Down" : change.to > 0 ? (signed ? "Up" : "") : "Off", result === undefined ? "" : resultText(result), on ? `${labelOf(on)} ${format(valueAt(on, { at: i, rest: false }), unitFor(on, resolved?.results.get(on.id)))}` : ""].filter(Boolean);
             return [{ key: `at:${times[i]}`, icon: ICONS.calendar, label: dateLabel(times[i], fineDrawn()), aside: said.join(" · ") || undefined, run: () => goToTime(times[i]) }];
