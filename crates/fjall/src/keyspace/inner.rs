@@ -1,6 +1,6 @@
 use std::sync::atomic::AtomicBool;
 
-use flume::Sender;
+use crossbeam_channel::Sender;
 use lsm_tree::{Result as TreeResult, Tree};
 
 use crate::{locked_file::LockedFileGuard, worker_pool::WorkerMessage};

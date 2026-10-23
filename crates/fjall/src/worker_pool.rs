@@ -1,6 +1,6 @@
 use std::thread::{self, Builder, JoinHandle};
 
-use flume::{Receiver, Sender, unbounded};
+use crossbeam_channel::{Receiver, Sender, unbounded};
 use log::error as LogError;
 
 use crate::{Keyspace, Result};

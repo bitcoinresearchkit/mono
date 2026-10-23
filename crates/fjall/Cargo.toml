@@ -15,4 +15,4 @@ path = "src/lib.rs"
 [dependencies]
 lsm-tree = { workspace = true }
 log = { workspace = true }
-flume = { version = "0.12.0", default-features = false }
+crossbeam-channel = "0.5.17"
