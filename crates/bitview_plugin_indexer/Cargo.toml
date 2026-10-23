@@ -19,7 +19,7 @@ brk_reader = { workspace = true }
 brk_store = { workspace = true }
 bitview_traversable = { workspace = true }
 brk_types = { workspace = true, features = ["storage"] }
-crossbeam = { version = "0.8.5", features = ["crossbeam-channel"] }
+crossbeam-channel = "0.5.17"
 fjall = { workspace = true }
 rayon = { workspace = true }
 rustc-hash = { workspace = true }

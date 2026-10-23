@@ -10,7 +10,7 @@ use brk_error::{Error, Result};
 use brk_rpc::Client;
 use brk_types::{BlkPosition, BlockHash, Height, ReadBlock};
 use canonical::CanonicalRange;
-use crossbeam::channel::IntoIter;
+use crossbeam_channel::IntoIter;
 use reader_inner::ReaderInner;
 use xor_index::XORIndex;
 

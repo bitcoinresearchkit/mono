@@ -3,7 +3,7 @@ use std::{sync::Arc, thread};
 use brk_error::{Error, Result};
 use brk_rpc::Client;
 use brk_types::Height;
-use crossbeam::channel::bounded;
+use crossbeam_channel::bounded;
 
 use crate::{
     BlkIndexToBlkPath, BlockReceiver, ReaderInner, XORBytes, bisect, canonical::CanonicalRange,

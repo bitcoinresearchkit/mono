@@ -12,7 +12,7 @@ use brk_error::{Error, Result};
 use brk_exit::Exit;
 use brk_reader::{Reader, XORBytes};
 use brk_types::{BlkPosition, BlockHash, Height};
-use crossbeam::channel::{Receiver, bounded};
+use crossbeam_channel::{Receiver, bounded};
 use tracing::{debug, error, info, warn};
 use vecdb::{
     AnyExportableVec, AnyVec, Database, ReadOnlyClone, ReadableVec, Ro, Rw, StorageMode,

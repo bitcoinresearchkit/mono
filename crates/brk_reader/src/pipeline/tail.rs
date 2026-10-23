@@ -3,7 +3,7 @@ use std::{fs::File, os::unix::fs::FileExt, sync::Arc};
 use bitcoin::block::Header;
 use brk_error::{Error, Result};
 use brk_types::{BlkPosition, Height, ReadBlock};
-use crossbeam::channel::Sender;
+use crossbeam_channel::Sender;
 
 use crate::{
     BlkIndexToBlkPath, OUT_OF_ORDER_FILE_BACKOFF, ReaderInner, XORIndex, bisect,

@@ -15,7 +15,7 @@ bitcoin = { workspace = true }
 brk_error = { workspace = true }
 brk_rpc = { workspace = true }
 brk_types = { workspace = true }
-crossbeam = { version = "0.8.5", features = ["crossbeam-channel"] }
+crossbeam-channel = "0.5.17"
 derive_more = { workspace = true }
 libc = { workspace = true }
 parking_lot = { workspace = true }

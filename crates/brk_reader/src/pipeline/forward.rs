@@ -15,7 +15,7 @@ use std::{
 use bitcoin::block::Header;
 use brk_error::{Error, Result};
 use brk_types::{BlkPosition, Height, ReadBlock};
-use crossbeam::channel::{Receiver, Sender, bounded};
+use crossbeam_channel::{Receiver, Sender, bounded};
 use parking_lot::{Condvar, Mutex};
 use rustc_hash::FxHashSet;
 use tracing::error;

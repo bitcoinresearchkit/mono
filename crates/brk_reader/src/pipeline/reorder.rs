@@ -1,6 +1,6 @@
 use brk_error::{Error, Result};
 use brk_types::ReadBlock;
-use crossbeam::channel::Sender;
+use crossbeam_channel::Sender;
 use rustc_hash::FxHashMap;
 
 use super::forward::MAX_OUTSTANDING_BYTES;
