@@ -10,7 +10,8 @@ use lexopt::{
     Parser, ValueExt,
 };
 use owo_colors::OwoColorize;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+use serde_json::{Value, to_value};
 use toml::from_str;
 
 use crate::{
@@ -21,7 +22,7 @@ use crate::{
 /// Default size, in bytes, of the shared vector cache (`vecdb::Budgeted::init_global`).
 pub const DEFAULT_CACHE_BUDGET: usize = 2 << 30;
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     bitviewdir: Option<String>,
@@ -43,11 +44,15 @@ pub struct Config {
 
 impl Config {
     pub fn import() -> Result<RunConfig> {
-        let config_args = Self::parse_args()?;
+        let (config_args, dump) = Self::parse_args()?;
 
-        let runner = Self::read(&default_bitview_dir().join("config.toml"))?
-            .with_overrides(config_args)
-            .runner()?;
+        let config =
+            Self::read(&default_bitview_dir().join("config.toml"))?.with_overrides(config_args);
+        if dump {
+            config.dump()?;
+            exit(0);
+        }
+        let runner = config.runner()?;
         fs::create_dir_all(&runner.server.data_path)?;
 
         Ok(runner)
@@ -73,8 +78,10 @@ impl Config {
         }
     }
 
-    fn parse_args() -> Result<Self> {
+    /// The flags' settings, and whether `--dumpconfig` asks for the settings to be printed.
+    fn parse_args() -> Result<(Self, bool)> {
         let mut config = Self::default();
+        let mut dump = false;
         let mut parser = Parser::from_env();
         let command = Self::command_name();
 
@@ -92,6 +99,7 @@ impl Config {
                     println!("{command} {}", env!("CARGO_PKG_VERSION"));
                     exit(0);
                 }
+                Long("dumpconfig") => dump = true,
                 Long("bitviewdir") => config.bitviewdir = Some(parse_value(&mut parser, &flag)?),
                 Long("serverbind") => config.serverbind = Some(parse_value(&mut parser, &flag)?),
                 Long("serverport") => config.serverport = Some(parse_value(&mut parser, &flag)?),
@@ -113,7 +121,23 @@ impl Config {
             }
         }
 
-        Ok(config)
+        Ok((config, dump))
+    }
+
+    /// Print the settings given, in `config.toml` and as flags, the flags first, as
+    /// `config.toml` lines, defaults left out: each is a string, a number or a boolean, which
+    /// JSON writes as TOML does.
+    fn dump(&self) -> Result<()> {
+        let Value::Object(settings) = to_value(self).map_err(|e| Error::Parse(e.to_string()))?
+        else {
+            unreachable!("a struct serializes to an object");
+        };
+        for (key, value) in settings {
+            if !value.is_null() {
+                println!("{key} = {value}");
+            }
+        }
+        Ok(())
     }
 
     fn command_name() -> String {
@@ -144,6 +168,10 @@ impl Config {
         println!("{}", "OPTIONS:".bold());
         println!("    -h, --help                Print help");
         println!("    -V, --version             Print version");
+        println!(
+            "    --dumpconfig              Print the settings given, file and flags, as {} lines",
+            "config.toml".bright_black()
+        );
         println!();
         println!(
             "    --bitviewdir {}       Output directory {}",
