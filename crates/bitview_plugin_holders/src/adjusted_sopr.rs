@@ -1,17 +1,50 @@
+use std::ops::Deref;
+
 use bitview_cohort::AgeAggregateId;
-use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::Multiple;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFiatPerBlockCumulativeWithSums, LazyWindowStartVec, RollingWindows, ops::Quotient,
-    shapes::Windows,
+    LazyFiatPerBlockCumulativeWithSums, LazyIndexedVec, RollingWindows, ops::Quotient,
 };
 use brk_error::Result;
 use brk_exit::Exit;
-use brk_types::{Cents, Height, Version};
-use vecdb::{ComputeVec, Database, Rw, StorageMode};
+use brk_types::{Cents, Height};
+use vecdb::{ComputeVec, Rw, StorageMode};
 
-use crate::columns::Columns;
+use crate::{
+    realized::Realized,
+    section::{CohortCompute, Imports, Section},
+};
+
+/// The realized flows of a cohort holding outputs under an hour old, beside the SOPR without
+/// them (the others' equals their SOPR).
+#[derive(Traversable)]
+pub struct AdjustedRealized<M: StorageMode = Rw> {
+    #[traversable(flatten)]
+    pub realized: Realized<M>,
+    /// Adjusted SOPR (aSOPR): SOPR without the outputs spent within an hour of their creation.
+    pub adjusted_sopr: AdjustedSopr<M>,
+}
+
+impl<M: StorageMode> Deref for AdjustedRealized<M> {
+    type Target = Realized<M>;
+    fn deref(&self) -> &Realized<M> {
+        &self.realized
+    }
+}
+
+impl Section for AdjustedRealized {
+    fn import(id: AgeAggregateId, cx: &Imports) -> Result<Self> {
+        Ok(Self {
+            realized: Realized::import(id, cx)?,
+            adjusted_sopr: AdjustedSopr::import(id, cx)?,
+        })
+    }
+    fn compute(&mut self, cx: &CohortCompute) -> Result<()> {
+        self.realized.compute(cx)?;
+        self.adjusted_sopr.compute(cx.from, cx.exit)
+    }
+}
 
 #[derive(Traversable)]
 pub struct AdjustedSopr<M: StorageMode = Rw> {
@@ -24,33 +57,49 @@ pub struct AdjustedSopr<M: StorageMode = Rw> {
     pub value_destroyed: LazyFiatPerBlockCumulativeWithSums<Cents>,
 }
 impl AdjustedSopr {
-    pub(crate) fn import(
-        db: &Database,
-        id: AgeAggregateId,
-        v: Version,
-        c: &Columns,
-        mappings: &Mappings,
-        windows: &Windows<&LazyWindowStartVec>,
-    ) -> Result<Self> {
+    fn import(id: AgeAggregateId, cx: &Imports) -> Result<Self> {
+        let Imports {
+            db,
+            v,
+            mappings,
+            windows,
+            ..
+        } = *cx;
+        let c = id.select(cx.columns);
+        // Every group with aSOPR holds the under-an-hour band, and both sum the bands' cumulative
+        // cents: the outputs it keeps are exactly the group's less that band's.
+        let kept = |metric: &str, total, under_1h| {
+            let name = id.metric_name(metric);
+            let cumulative = LazyIndexedVec::new(
+                &format!("{name}_cumulative_cents_source"),
+                v,
+                total,
+                under_1h,
+                |_, total: Cents, under_1h: Cents| total - under_1h,
+            );
+            LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
+                &name,
+                v,
+                &cumulative,
+                mappings,
+                windows,
+            )
+        };
         Ok(Self {
             ratio: RollingWindows::import(db, &id.metric_name("adjusted_sopr"), v, mappings)?,
-            value_created: LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
-                &id.metric_name("adjusted_value_created"),
-                v,
-                &c.adjusted_volume,
-                mappings,
-                windows,
+            value_created: kept(
+                "adjusted_value_created",
+                &c.volume_cents,
+                cx.under_1h_volume,
             ),
-            value_destroyed: LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
-                &id.metric_name("adjusted_value_destroyed"),
-                v,
-                &c.adjusted_value_destroyed,
-                mappings,
-                windows,
+            value_destroyed: kept(
+                "adjusted_value_destroyed",
+                &c.value_destroyed,
+                cx.under_1h_value_destroyed,
             ),
         })
     }
-    pub(crate) fn compute(&mut self, from: Height, exit: &Exit) -> Result<()> {
+    fn compute(&mut self, from: Height, exit: &Exit) -> Result<()> {
         for ((target, created), destroyed) in self
             .ratio
             .as_mut_array()

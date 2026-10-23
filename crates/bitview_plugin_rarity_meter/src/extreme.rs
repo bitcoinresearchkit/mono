@@ -65,7 +65,7 @@ where
     T: NumericValue + JsonSchema,
 {
     /// The metric itself, under its own id.
-    pub block: LazyPerBlock<T>,
+    pub value: LazyPerBlock<T>,
     /// The source value at this percentile of the accepted observations before the represented
     /// one (the series' model sets the history).
     #[traversable(flatten)]
@@ -87,7 +87,7 @@ where
     ) -> Result<Self> {
         let name = format!("{}_rarity", source.name());
         Ok(Self {
-            block: LazyPerBlock::from_height_source::<Ident>(
+            value: LazyPerBlock::from_height_source::<Ident>(
                 source.name(),
                 version,
                 source,
@@ -106,7 +106,7 @@ where
         config: Config,
         exit: &Exit,
     ) -> Result<()> {
-        let source = &self.block.height.clone();
+        let source = &self.value.height.clone();
         let source_end = source.len();
         let start = prepare_computed(
             self.iter_any_stored_mut().collect::<Vec<_>>(),

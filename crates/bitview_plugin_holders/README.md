@@ -1,9 +1,12 @@
 # Holders
 
 Owns the overlapping all, STH, LTH, under-four-month, under-six-month,
-over-four-month and over-six-month cohorts. Every filter has the same metric
-layout, constructor and computation: supply, counts, activity, realized and
-unrealized accounting, cost-basis statistics and relative metrics.
+over-four-month and over-six-month cohorts. Every filter has the same
+constructor and computation: supply, counts, activity, realized and unrealized
+accounting and cost-basis statistics, typed by its kind where the layout
+differs: all has no share of all (100% throughout), and LTH and the over-four-
+and over-six-month cohorts no aSOPR (they hold no output under an hour old, so
+it equals their SOPR).
 
 Accounting totals are collected in batches from Age's completed disjoint bands.
 Exact raw capital products are summed before computing weighted prices. They

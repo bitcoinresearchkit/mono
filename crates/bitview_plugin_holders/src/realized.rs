@@ -1,17 +1,14 @@
 use bitview_cohort::AgeAggregateId;
-use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::{Multiple, PartsPerMillion32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyFiatPerBlockCumulativeWithSums, LazyWindowStartVec, RatioRollingWindows, RollingWindows,
-    ops::Quotient, shapes::Windows,
+    LazyFiatPerBlockCumulativeWithSums, RatioRollingWindows, RollingWindows, ops::Quotient,
 };
 use brk_error::Result;
-use brk_exit::Exit;
-use brk_types::{Cents, CentsSigned, Height, Version};
-use vecdb::{ComputeVec, Database, Rw, StorageMode};
+use brk_types::{Cents, CentsSigned};
+use vecdb::{ComputeVec, Rw, StorageMode};
 
-use crate::{activity::Activity, adjusted_sopr::AdjustedSopr, columns::Columns};
+use crate::section::{CohortCompute, Imports, Section};
 
 #[derive(Traversable)]
 pub struct Realized<M: StorageMode = Rw> {
@@ -38,20 +35,19 @@ pub struct Realized<M: StorageMode = Rw> {
     /// window divided by their creation-time value (value destroyed); undefined (null) when
     /// that value is zero.
     pub sopr: RollingWindows<Multiple, M>,
-    /// Adjusted SOPR (aSOPR): SOPR without the outputs spent within an hour of their creation.
-    pub adjusted_sopr: AdjustedSopr<M>,
     /// Gross realized profit and loss over the window divided by the realized cap.
     pub sell_side_risk_ratio: RatioRollingWindows<PartsPerMillion32, M>,
 }
-impl Realized {
-    pub(crate) fn import(
-        db: &Database,
-        id: AgeAggregateId,
-        v: Version,
-        c: &Columns,
-        mappings: &Mappings,
-        windows: &Windows<&LazyWindowStartVec>,
-    ) -> Result<Self> {
+impl Section for Realized {
+    fn import(id: AgeAggregateId, cx: &Imports) -> Result<Self> {
+        let Imports {
+            db,
+            v,
+            mappings,
+            windows,
+            ..
+        } = *cx;
+        let c = id.select(cx.columns);
         let flow = |metric: &str, source| {
             LazyFiatPerBlockCumulativeWithSums::from_cumulative_cents_source(
                 &id.metric_name(metric),
@@ -81,7 +77,6 @@ impl Realized {
             value_destroyed: flow("value_destroyed", &c.value_destroyed),
             peak_regret: flow("realized_peak_regret", &c.peak_regret),
             sopr: RollingWindows::import(db, &id.metric_name("sopr"), v, mappings)?,
-            adjusted_sopr: AdjustedSopr::import(db, id, v, c, mappings, windows)?,
             sell_side_risk_ratio: RatioRollingWindows::import(
                 db,
                 &id.metric_name("sell_side_risk_ratio"),
@@ -90,13 +85,14 @@ impl Realized {
             )?,
         })
     }
-    pub(crate) fn compute(
-        &mut self,
-        from: Height,
-        c: &Columns,
-        activity: &Activity,
-        exit: &Exit,
-    ) -> Result<()> {
+    fn compute(&mut self, cx: &CohortCompute) -> Result<()> {
+        let CohortCompute {
+            from,
+            c,
+            activity,
+            exit,
+            ..
+        } = *cx;
         for ((target, profit), loss) in self
             .profit_to_loss
             .as_mut_array()
@@ -125,7 +121,6 @@ impl Realized {
                 exit,
             )?;
         }
-        self.adjusted_sopr.compute(from, exit)?;
         for (target, pnl) in self
             .sell_side_risk_ratio
             .as_mut_array()

@@ -34,7 +34,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Separate open, high, low, and close views of BRK's block-level BTC/USD
     /// price series for each supported time period. Heights before 340,000 use
     /// baked historical exchange prices; later heights use an on-chain oracle
-    /// that estimates price from round-USD transaction-output patterns.
+    /// that estimates price from round-USD transaction-output patterns. Zero
+    /// before the first exchange price (block 74,641, August 2010).
     #[traversable(flatten)]
     split: SplitPrice,
     /// Open-high-low-close (OHLC) candles formed from block-level Bitcoin spot

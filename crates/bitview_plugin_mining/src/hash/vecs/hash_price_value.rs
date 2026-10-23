@@ -14,7 +14,7 @@ where
     T: ComputedVecValue + JsonSchema,
 {
     /// Per PH/s of hash rate per day, where one PH/s is 10^15 hashes per second.
-    pub block: PerBlock<T, M>,
+    pub value: PerBlock<T, M>,
     /// Running all-time low of the per-PH/s series, skipping zero and null values;
     /// null until the first positive value exists.
     pub atl: PerBlock<T, M>,
@@ -35,13 +35,13 @@ where
     ) -> Result<()> {
         self.atl
             .height
-            .compute_all_time_low::<T>(max_from, &self.block.height, exit)?;
+            .compute_all_time_low::<T>(max_from, &self.value.height, exit)?;
         self.rebound
             .fixed
             .height
             .compute_binary::<T, T, RelativeChange<PartsPerMillionSigned32>>(
                 max_from,
-                &self.block.height,
+                &self.value.height,
                 &self.atl.height,
                 exit,
             )?;

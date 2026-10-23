@@ -37,7 +37,7 @@ has to be deleted by hand.
 
 #### API: series and responses
 
-- Cohort ids follow one rule: a cohort whose value names itself is bare (`sth`, `p2tr`, `veteran`, `awake`), any
+- Cohort ids follow one rule: a cohort whose value names itself is bare (`sth`, `p2tr`, `awake`), any
   other is its attribute and its value. Age bands and the age cutoffs are `age_<band>` (`age_2y_to_3y_supply`,
   `age_under_1h_supply`, `age_under_4m_mvrv`; were `utxos_2y_to_3y_old_supply`, `utxos_under_4m_old_mvrv`), UTXO
   amount bands `amount_<band>` (`amount_1k_to_10k_sats_supply`; was `utxos_1k_sats_to_10k_sats_supply`), and
@@ -115,8 +115,7 @@ has to be deleted by hand.
   and a coinbase input's `outpoint`, `spent_txout_index` and `type_index` (its `output_type` stays `unknown`)
 - One unit per quantity: the `_cents` copies of USD series, the `_sats` copies of BTC amounts and the sats-per-USD
   copies of prices (`*_price_sats` and every other price's `_sats`) are gone from the API and the clients (they stay the
-  exact storage; the USD and BTC series print the same values exactly); `sats_per_dollar` replaces `price_sats` and the
-  true range is in USD (was cents). Unitless numbers have one form, the one they are read in: shares, rates and changes
+  exact storage; the USD and BTC series print the same values exactly); `sats_per_dollar` replaces `price_sats`. Unitless numbers have one form, the one they are read in: shares, rates and changes
   in percent; ratios (spot ÷ price, SOPR, MVRV, NUPL, liveliness, sell-side risk, every `X_to_Y`) as a ratio; the `_ppm`
   copies and the `_ratio` copies of percent values are gone. The Cointime and Coinflow in-loss shares and the Bedrock
   loss thresholds are in percent (were decimals); sell-side risk is a ratio (was percent beside a `_ratio` copy: same
@@ -138,7 +137,7 @@ has to be deleted by hand.
   ratio are `sth_median_realized_price`, `sth_median_realized_price_ratio`, `median_capitalized_price`, ... Extremes are
   named by their input's id, `supply_in_loss`, `realized_profit_sum_24h`, `realized_loss_sum_24h`,
   `realized_peak_regret_sum_24h`, `sell_side_risk_ratio_24h` (were `coins_in_loss`, `profit_taking`, `capitulation`,
-  `peak_regret`, `seller_exhaustion`). Each is its input (`block`, under the input's own id: `supply_in_loss`,
+  `peak_regret`, `seller_exhaustion`). Each is its input (`value`, under the input's own id: `supply_in_loss`,
   `realized_profit_sum_24h`, ...) and the input's historical percentile bands, the components' rarity percentiles
   (`supply_in_loss_rarity_p99_9`, ...), in place of three tail thresholds and a tail share (were
   `rarity_meter_coins_in_loss_threshold_pct0_1`, ... and `rarity_meter_coins_in_loss_tail`). The bands describe the
@@ -156,8 +155,9 @@ has to be deleted by hand.
   scores are null before height 210,000, where calibration starts (were computed from zero bands)
 - Bedrock's modes are `awake`, `mobile` and, last, `unweighted`, the baseline the weighted ones improve on (were
   `raw`, `cointime`, `coinflow`; ids `bedrock_awake_floor_p95`, ...); the horizon modes `coinflow_1m` ...
-  `coinflow_8y` are gone. Each mode publishes `floor`, `cost_basis_above_floor` (was `level`: the creation-price
-  percentiles of the supply at or above its 95th-percentile floor) and `supply_in_loss_share_threshold` (was
+  `coinflow_8y` are gone. Each mode publishes `floor`, `cost_basis_above_p95_floor` (ids
+  `bedrock_awake_cost_basis_above_p95_floor_p10`, ...; was `level`: the creation-price percentiles of the supply at or
+  above its 95th-percentile floor) and `supply_in_loss_share_threshold` (was
   `loss_threshold`). `bedrock.cost_basis` is gone: the awake and mobile cohorts' cost-basis percentiles
   (`awake_cost_basis_by_coin_p5`, ...; were `bedrock_cointime_cost_basis_per_coin_pct05`, ...) take its place.
   Calibration uses block observations: each mode's loss thresholds are percentiles of its finite loss shares from
@@ -165,32 +165,35 @@ has to be deleted by hand.
   (was daily, once 365 days were)
 - One word per concept in paths and ids: `avg` for a mean (was `average`), `median` for the 50th percentile in every
   percentile set (was `pct50`), `p` and the percentile for the others, unpadded, an underscore for its decimal point
-  (`p5`, `p99_9`, `bedrock_awake_floor_capital_p99_5_to_p99_9`; were `pct05`, `pct99_9`; the rarity bands' price ids
+  (`p5`, `p99_9`, `bedrock_awake_entry_capital_p99_5_to_p99_9`; were `pct05`, `pct99_9`; the rarity bands' price ids
   `p1`, `p2`, `p5`, were `pct01`, ...), which the clients keep in their keys (`p0_1`, `p99_9`, `p99_5ToP99_9`; were
   `pct01`, `pct999`), `percent` for a window's relative change (`sth_supply_delta_1m_percent`, was
   `sth_supply_delta_1m_rate`), `by_coin` and `by_dollar` for a cost basis weighted by coin or by dollar
   (`cost_basis.by_coin.median`, `sth_cost_basis_by_dollar_p5`; were `per_coin`, `per_dollar`), `rbf_signaling` for a
   transaction signaling opt-in RBF (below; was `explicitly_rbf`), an OP_RETURN protocol's one-word name
   (`op_return.protocols.{veriblock, coinspark}`, ids `op_return_veriblock_*`, `op_return_coinspark_*`, and the
-  `op_return_protocol` values; were `veri_block`, `coin_spark`), and `block` for a node's own per-block series beside
-  its derived children (was `base`)
+  `op_return_protocol` values; were `veri_block`, `coin_spark`), and `value` for a level's own series beside its
+  derived children, `block` for a flow's per-block amount (was `base`)
 - Flows (amounts or counts summed per block: transfer volume, rewards, realized profit, coin days destroyed, ...) lose
   their per-block window averages (`*_average_<window>`), which were the window `sum` divided by its block count: they
   keep `block`, `sum` and `cumulative`. Distributions (block size, fees per block, ...) keep `avg` beside `min`, `max`
   and the percentiles. Per-block averages without a sum (address activity counts, block interval) sit
   under `avg` (were the window keys directly under the series)
-- A series with derived siblings (a price beside its `ratio`, a USD value beside its `delta` or `share`) sits under
-  `block` (was `usd`): `market.sma.200d.block`, `holders.sth.capital.in_profit.block`, `supply.market_cap.block`
+- A level with derived siblings (a price beside its `ratio`, a count beside its `delta`, a value beside its `share`)
+  sits under `value` (was `usd`): `market.sma.200d.value`, `holders.sth.utxos.count.value`,
+  `holders.sth.capital.in_profit.value`, `supply.market_cap.value`, `blocks.difficulty.value`, `cointime.reserve_risk.value`; a flow's per-block amount beside its `cumulative` and `sum` sits under `block`
 - Market: moving averages sit at the root (`market.sma.200d`, `market.ema.200d`; were under `moving_average`), price
   returns at `market.returns.<window>` (were under `periods`; ids `price_return_<window>` unchanged); the all-time
   high's years copies are gone (`days_since` stays; `days_between_max`, id `days_between_price_ath_max`, was
-  `max_days_between`, id `max_days_between_price_ath`); `mayer_multiple` names the 200-day SMA ratio
+  `max_days_between`, id `max_days_between_price_ath`); `mayer_multiple` names the 200-day SMA ratio; the EMAs gain the
+  SMAs' 50-day window (`price_ema_50d`, `price_ema_50d_ratio`)
 - Market indicators that are standard chart formulas over published prices are gone (Bitview Studio rebuilds them):
   RSI and stochastic RSI (which smoothed overlapping 24-hour returns, not bar closes), MACD with its 12- and 26-day
   EMAs, volatility, the 24-hour return's window averages and deviations, CAGR, the lookback prices
   (`price_past_<window>`), Pi Cycle with the 111- and 350-day SMAs and the doubled 350-day SMA, the 200-day SMA's 2.4
-  and 0.8 bands, the choppiness index, the two-week true-range sum and the two-week price range. The true range and
-  the 1-week, 1-month and 1-year price ranges stay
+  and 0.8 bands, the choppiness index, the two-week true-range sum, the two-week price range and the true range itself
+  (`price_true_range`: the absolute block-to-block price change, which a TA true range isn't). The 1-week, 1-month
+  and 1-year price ranges stay
 - The `indicators` plugin is gone: Puell Multiple, NVT, Thermocap Multiple, Gini, RHODL Ratio, Dormancy Flow, Seller
   Exhaustion Constant and the supply-adjusted coin days destroyed, coin years destroyed and dormancy are short formulas
   over published series (Bitview Studio rebuilds them); Stock-to-Flow is gone without a replacement. RHODL lacked its
@@ -198,16 +201,19 @@ has to be deleted by hand.
   definition
 - The `capital_sentiment` plugin is gone: its phases, score and long/short strategy are an opinionated reading of
   spot against the published all, short- and long-term capitalized prices and the 1-year SMA
-- Mining: hash price and hash value are per PH/s only, as `mining.hashrate.{price, value}.{block, atl, rebound}`, ids
-  `hash_price`, `hash_price_atl`, ... (were `hash_price_ths`, `hash_price_phs` and their `*_min`), typed `HashPrice`
+- Mining: hash price and hash value are per PH/s only, as `mining.hash_price` and `mining.hash_value`, each
+  `{value, atl, rebound}` (were under `mining.hashrate.price` and `.value`), ids `hash_price`, `hash_price_atl`, ... (were `hash_price_ths`, `hash_price_phs` and their `*_min`), typed `HashPrice`
   (USD) and `HashValue` (sats) per PH/s per day (were `StoredF32`); `fees.share`/`subsidy.share` (were `dominance`);
   output volume leaves the tree (the transaction volume minus fees, not a reward; the block endpoints still report
-  it); unclaimed rewards gain window sums; the network hash-rate ids say `hashrate` like every other one (`hashrate`,
-  `hashrate_sma_1w`, `hashrate_ath`, `hashrate_drawdown`; were `hash_rate*`)
+  it); unclaimed rewards gain window sums; the network hash rate is `mining.hashrate.{value, sma, ath, drawdown}` (was
+  `mining.hashrate.rate`), its ids saying `hashrate` like every other one (`hashrate`, `hashrate_sma_1w`,
+  `hashrate_ath`, `hashrate_drawdown`; were `hash_rate*`)
 - Transactions: `transactions.per_second` (ids `tx_per_second_<window>`; were `tx_per_sec_<window>` at
   `transactions.volume.tx_per_sec`); the transaction volume (input value of non-coinbase transactions) is
-  `transactions.volume`, id `tx_volume` (was `transactions.volume.transfer_volume` with ids `transfer_volume_bis*`):
-  the holders' `all` cohort's `transfer_volume` is a different quantity (spent UTXO value). The transactions plugin's
+  `transactions.transfer_volume`, id `transfer_volume` (was `transactions.volume.transfer_volume` with ids
+  `transfer_volume_bis*`), shared with the holders' `all` cohort's `transfer_volume`, the same quantity (every
+  non-coinbase input spends one UTXO; its dollars are the transactions plugin's, each block's spent value priced
+  once, a few cents from the holders' sum of the age bands' rounded cents). The transactions plugin's
   counts by version, feature, pattern, policy and CPFP role share one id template, `<kind>_tx_count`: `v1_tx_count`,
   `other_version_tx_count`, `annex_tx_count`, `dust_output_tx_count`, `coinjoin_tx_count`, `nonstandard_tx_count`,
   `cpfp_parent_tx_count`, `inscription_tx_count` (were `tx_v1`, `tx_other_version`, `tx_count_annex`,
@@ -216,8 +222,8 @@ has to be deleted by hand.
   SegWit, opt-in RBF, dust outputs, EPOBC and single-input and single-output transactions,
   `transactions.features.<feature>` (were under `features.count`), and inscription transactions at
   `transactions.inscription`
-- Blocks: difficulty is `blocks.difficulty.block` (was `.value`); `blocks.count` holds `block`, `cumulative` and the
-  window sums directly (were under `total`) and the constant `blocks.count.target.<window>` series are gone;
+- Blocks: `blocks.count` holds `cumulative` and the window sums directly (were under `total`; the per-block count,
+  `block_count`, always one, is gone, as are the constant `blocks.count.target.<window>` series);
   `blocks.lookback` (window-start heights, `height_<window>_ago`) leaves the tree
 - Block size and weight: `blocks.size.block` (id `block_size`) and `blocks.weight.block` (`block_weight`) sit beside
   their cumulative and rolling statistics (the per-block values were only the indexer's); blocks are measured in
@@ -225,8 +231,8 @@ has to be deleted by hand.
   own columns lose their wraps: `indexer.blocks.size` (id `block_size`, was `blocks.size.base` with id `total_size`),
   `indexer.blocks.weight` (was `blocks.weight.base`), `indexer.blocks.timestamp` (was `blocks.time.timestamp`), and
   `segwit_tx_count` (was `segwit_txs`) beside `segwit_tx_size` and `segwit_tx_weight` (were `segwit_size`,
-  `segwit_weight`); `p2ms_legacy_sigop_cost` and `unknown_legacy_sigop_cost` at
-  `indexer.scripts.{p2ms,unknown}.legacy_sigop_cost` (BIP-141 cost; were `legacy_sigops`), and `post_op_return_bytes`
+  `segwit_weight`); `p2ms_legacy_sigop_cost` and `unknown_script_legacy_sigop_cost` at
+  `indexer.scripts.{p2ms,unknown_script}.legacy_sigop_cost` (BIP-141 cost; were `legacy_sigops`), and `post_op_return_bytes`
   (was `op_return_post_op_return_bytes`)
 - These per-transaction series take the `tx_` stem: `tx_size` at `indexer.transactions.size` (was `total_size`, the same
   id as the block size), `tx_sigop_cost` at `.sigop_cost` (was `total_sigop_cost`), `tx_locktime` at `.locktime` (was
@@ -236,7 +242,8 @@ has to be deleted by hand.
 - Per-transaction values sit beside their per-block statistics: `transactions.vsize.{tx, min, max, p10, p25,
   median, p75, p90}` (were `transactions.size.vsize.{tx_index, block.median, ...}`), ids `tx_vsize` and
   `tx_vsize_median`, ...; likewise `transactions.fees.fee` (`tx_fee_median`, was `fee_median`) and
-  `transactions.fees.effective_fee_rate`. The six-block statistics (`tx_vsize_6b_median`, `fee_6b_median`, ...) and
+  `transactions.fees.effective_fee_rate` (`tx_effective_fee_rate_median`, was `effective_fee_rate_median`), and the
+  raw rate is `tx_fee_rate` (was `fee_rate`). The six-block statistics (`tx_vsize_6b_median`, `fee_6b_median`, ...) and
   the transaction weight statistics (`tx_weight_*`; vsize stays) are gone
 - The indexer's per-block transaction counts take the `<kind>_tx_count` template: `rbf_signaling_tx_count`,
   `one_input_tx_count`, `one_output_tx_count`, `fake_pubkey_tx_count`, and per output type `p2pkh_tx_count`, ...,
@@ -246,8 +253,8 @@ has to be deleted by hand.
   `indexer.op_return.protocol`, id `op_return_protocol` (was `kind`)
 - Ids that were index names say what they map: `spent_txout_index` (an input's spent output, was `txout_index`),
   `input_tx_index` (was `tx_index`), `spending_txin_index` (an output's spending input at
-  `outputs.spending_txin_index`, was `txin_index` at `outputs.spent.txin_index`), `empty_output_tx_index`,
-  `p2ms_output_tx_index`, `unknown_output_tx_index` and `op_return_tx_index` at `.tx_index` (were id `tx_index` at
+  `outputs.spending_txin_index`, was `txin_index` at `outputs.spent.txin_index`), `empty_script_output_tx_index`,
+  `p2ms_output_tx_index`, `unknown_script_output_tx_index` and `op_return_tx_index` at `.tx_index` (were id `tx_index` at
   `.to_tx_index`); per-output and per-input values are `output_value` and `input_value` (were both `value`)
 - `input_value` and `output_value` are per record, one value per input and per output (were each transaction's input
   and output totals, at `transactions.fees.{input_value, output_value}`; the totals are gone)
@@ -288,7 +295,7 @@ has to be deleted by hand.
   annex, the sighash types, opt-in RBF and dust outputs)
 - Mappings: address types sit at `mappings.addresses.<type>.{identity, address}` with ids `<type>_address` (were
   `mappings.addr.<type>.{identity, addr}`, ids `<type>_addr`); the P2MS, empty, unknown and OP_RETURN output indexes
-  at `mappings.outputs.<type>.identity`. A block's period ids say what they map: `block_day1`, `block_week1`, ...
+  at `mappings.scripts.<type>.identity`. A block's period ids say what they map: `block_day1`, `block_week1`, ...
   (were the index names `day1`, ...) and `difficulty_epoch`, `halving_epoch` (shared with `blocks`; were `epoch`,
   `halving`); each period's start time sits at `mappings.timestamp.period_start` (id `timestamp`, was
   `.resolutions`)
@@ -303,7 +310,7 @@ has to be deleted by hand.
 - Input and output types are member-first: `outputs.types.<type>.{count, share, tx_count, tx_share}` and the same
   under `inputs.types` (were `by_type.<metric>.<type>`), with ids `p2tr_output_count`, `p2tr_output_share_cumulative`,
   `p2tr_output_tx_count`, `p2tr_output_tx_share_cumulative` and `p2tr_input_*` (were `tx_count_with_p2tr_output`,
-  `p2tr_prevout_count`, `tx_share_with_p2tr_prevout`, ...); `empty` and `unknown` drop `_outputs` in these ids. Input
+  `p2tr_prevout_count`, `tx_share_with_p2tr_prevout`, ...). Input
   shares divide by non-coinbase inputs (were all inputs, coinbase included), as does the reused-address input share.
   The `all` members (`output_count_bis`, `input_count_bis`, `tx_count_bis`, `non_coinbase_tx_count`) are gone.
   `outputs.spendable_count` and `outputs.op_return_value` sit at the outputs root (were under `by_type` and `value`)
@@ -318,7 +325,7 @@ has to be deleted by hand.
   `frameworks.cointime.age_range.coindays_created`; also at `cointime.age_ranges.<range>`) and
   `activity.transfer_volume.{in_profit, in_loss}`; the epochs', classes' and entry cohorts' volume in profit and in
   loss is gone (`epoch_0_transfer_volume_in_profit*`, `class_2009_transfer_volume_in_loss*`,
-  `veteran_transfer_volume_in_profit*`, ...; the age ranges and holders keep the split). Ids are unchanged, but for
+  `veteran_transfer_volume_in_profit*` (now `entry_discount_`), ...; the age ranges and holders keep the split). Ids are unchanged, but for
   `supply.share`, `cost_basis` and `capital` (below) and the halving epochs' and years' prefixes:
   `halving_epoch_0_supply`, `vintage_2009_supply`, ... (were `epoch_0_supply`, `class_2009_supply`). The 0-sat band
   (`utxos.amounts._0_sats`) holds its counts only: its amounts, values and cost basis, zero or null by definition, are
@@ -356,10 +363,17 @@ has to be deleted by hand.
   `spendable_output_to_respent_addr_share` are gone (a second denominator). Balance bands' supply share divides by the
   supply all addresses hold (was circulating supply). Active reused and respent counts and shares exist per address
   type too (were for all addresses only)
-- Entry cohorts are member-first at `entry.rookie` and `entry.veteran`, like their ids (were
-  `cohorts.<metric>.entry.{premium, discount}`), and the clients' `ENTRY_NAMES` keys follow. The empty and unknown
-  output-type cohorts' ids say `empty_output_` and `unknown_output_` (`empty_output_supply`,
-  `unknown_output_realized_cap`, ...; were `empty_outputs_` and `unknown_outputs_`)
+- Entry cohorts are member-first at `entry.discount` and `entry.premium` (were `cohorts.<metric>.entry.{discount,
+  premium}`), their ids `entry_discount_*` and `entry_premium_*`, attribute then value (`entry_discount_supply`,
+  `entry_premium_realized_price`; were `veteran_*` and `rookie_*`), and the clients' `ENTRY_NAMES` keys follow
+- Empty and unknown scripts are `empty_script` and `unknown_script` everywhere, as the transaction features already
+  said: in every type family (`inputs.types.empty_script`, `outputs.types.unknown_script`, `utxos.types.empty_script`;
+  ids `empty_script_input_count`, `unknown_script_output_tx_share_1m`, `empty_script_supply`,
+  `unknown_script_realized_cap`, ...), the indexer and mappings (`indexer.scripts.empty_script`,
+  `mappings.scripts.unknown_script`; ids `first_empty_script_output_index`, `unknown_script_output_tx_index`, ...) and
+  the indexes, `empty_script_output_index` and `unknown_script_output_index` (were keys `empty` and `unknown`, ids
+  `empty_input_count`, `unknown_output_count`, `first_empty_output_index`, ..., in the UTXO cohorts
+  `empty_outputs_supply`, ..., and indexes `empty_output_index` and `unknown_output_index`)
 - A cohort's share of all supply is `supply.share` in holders, age, UTXO, entry and address cohorts (ids
   `*_supply_share`; were `cohorts.supply.dominance.<family>.<member>`, ids `*_supply_dominance`)
 - OP_RETURN is member-first: `op_return.protocols.<protocol>.*` and `op_return.policies.<policy>.*` (were
@@ -394,8 +408,8 @@ has to be deleted by hand.
   mobile.supply, immobile.supply}` (were metric-first under `cointime.age_range`, `coinflow.age_range` and
   `frameworks.cointime.age_range`; the `frameworks` root is gone). `cointime.cap` is `cointime.caps`; VOCDD sits in
   `cointime.reserve_risk.vocdd` (was `cointime.value.vocdd`; `vocdd_median_1y` is gone, see Reserve Risk under Bug
-  Fixes), the HODL bank at `cointime.reserve_risk.hodl_bank` has every index (was height only), and Reserve Risk itself
-  is `cointime.reserve_risk.block` (was `.value`); `hodled_or_lost_supply` sits at `cointime.supply.hodled_or_lost`,
+  Fixes), the HODL bank at `cointime.reserve_risk.hodl_bank` has every index (was height only);
+  `hodled_or_lost_supply` sits at `cointime.supply.hodled_or_lost`,
   beside the vaulted supply it names (was `supply.hodled_or_lost`)
 - Cointime and Coinflow names: the weighted realized capitalization and price are `capital.realized_cap` and
   `cost_basis.by_coin.realized_price`, ids `awake_realized_cap`, `awake_realized_price`, `mobile_realized_cap`,
@@ -417,7 +431,9 @@ has to be deleted by hand.
   series beside its quantity (no `relative`): `realized.sopr.{24h, 1w, 1m, 1y}` (ids `sth_sopr_24h`, ... unchanged;
   were `realized.sopr` and `realized.sopr_ratio_extended`), `realized.adjusted_sopr.{<window>, value_created,
   value_destroyed}`, ids `sth_adjusted_sopr_24h`, `sth_adjusted_value_created`, `sth_adjusted_value_destroyed` (were
-  `realized.adjusted_sopr.{ratio, transfer_volume, value_destroyed}`, ids `sth_asopr_24h`, `sth_adj_value_*`),
+  `realized.adjusted_sopr.{ratio, transfer_volume, value_destroyed}`, ids `sth_asopr_24h`, `sth_adj_value_*`), only
+  in `all`, `sth`, `under_4m` and `under_6m` (`lth`, `over_4m` and `over_6m` hold no output under an hour old, so
+  their aSOPR was their SOPR: `lth_adjusted_sopr_24h`, `age_over_4m_adjusted_value_created`, ... are gone),
   `realized.sell_side_risk_ratio`, `realized.profit_to_loss` (ids `sth_realized_profit_to_loss_24h`, ...; were
   `..._profit_to_loss_ratio_24h`), `activity.dormancy` and `supply.{in_profit, in_loss}.share` (were under
   `relative.supply`); the transfer volume in profit and in loss sits under the volume,
@@ -438,10 +454,11 @@ has to be deleted by hand.
 - SOPR, MVRV and NUPL are published for the holders' cohorts (MVRV also for Cointime's and Coinflow's weighted cohorts
   and prices); those of age ranges, epochs, classes, UTXO amounts and types and entry cohorts are gone, each one
   division of the cohort's published series (Bitview Studio rebuilds them): `class_2009_sopr_24h`, `epoch_0_mvrv`,
-  `utxos_1btc_to_10btc_nupl`, `p2pkh_nupl`, `rookie_nupl`, ...
+  `utxos_1btc_to_10btc_nupl`, `p2pkh_nupl`, `rookie_nupl` (now `entry_premium_`), ...
 - Capital mirrors supply in every cohort family: the cohort's unspent outputs valued at their creation price (the
   realized cap), `capital` beside `supply` with the same shape; `realized` keeps the flows. Holders: `capital.{total,
-  realized_cap, share, in_profit.{block, share}, in_loss.{block, share}, delta}` (were `realized_cap` with its `delta`,
+  realized_cap, share, in_profit.{value, share}, in_loss.{value, share}, delta}` (`all` without `share`, as without
+  `supply.share`: 100% throughout; `supply_share` and `capital_share` are gone) (were `realized_cap` with its `delta`,
   and `invested_capital_in_*` with their shares); age ranges, epochs and classes and entry cohorts: `capital.{total,
   realized_cap, delta, share, in_profit, in_loss}`; UTXO amounts and types and address balance bands: `capital.{total,
   realized_cap, delta, share}`; Cointime and Coinflow members: `capital.{total, realized_cap}` beside `supply.{total,
@@ -470,7 +487,7 @@ has to be deleted by hand.
 - Mean creation prices sit with the other creation-price statistics, each name analysts use beside its descriptive
   series, in holders, entry, age cohorts, UTXO cohorts, Cointime and Coinflow: `cost_basis.by_coin.avg` with its
   jargon `realized_price` and, where they exist, `avg.{ratio, mvrv}` and `median_realized_price` beside the percentiles;
-  `cost_basis.by_dollar.avg.{block, ratio}` with `capitalized_price` and `median_capitalized_price`. Ids:
+  `cost_basis.by_dollar.avg.{value, ratio}` with `capitalized_price` and `median_capitalized_price`. Ids:
   `sth_cost_basis_by_coin_avg[_ratio]`, `sth_cost_basis_by_dollar_avg[_ratio]` and the jargon `sth_realized_price`,
   `sth_mvrv`, `sth_capitalized_price`, `sth_median_realized_price` and `sth_median_capitalized_price` (second ids for
   `cost_basis.by_coin.median` and `cost_basis.by_dollar.median`). They were `realized.{price, mvrv,
@@ -607,7 +624,7 @@ has to be deleted by hand.
   type named after the type that defines it (`Pool` for every pool, `Flow<A>`, `Share`, `Windows<A>`, `Band`,
   `CreationCohort`) and each top-level section after itself (`Holders`, `Bedrock`), with the tree section prefixed where
   two structures would share a name (`HoldersActivity`), or, among structures in one section that each always sit under
-  their own field, after that field (`FloorSupply`, `FloorCapital`; `MappingsDay1` where the field's name is taken),
+  their own field, after that field (`EntrySupply`, `EntryCapital`; `MappingsDay1` where the field's name is taken),
   `Series` after a name the API already uses (`UtxoSetSeries`) and the path's name where no type defines
   one; Rust types live in `bitview_client::tree` (were `SeriesTree_Blocks` or `_1m1w1y24hPattern6`). Clients shrink from
   1.26 MB to 313 KB (JS), 1.05 MB to 274 KB (Python) and 1.95 MB to 157 KB (Rust), with a third of v0.12.2's series
@@ -775,9 +792,8 @@ has to be deleted by hand.
   LazyPerBlockCumulativeAverage, LazySpotValuePerBlockWithDeltas, WithAddrTypes}` and `BlockCountTarget{24h,1w,1m,1y}`,
   `PerBlockCumulativeAverage::reset`, `LazyPerBlockCumulativeRolling::from_lazy_source`,
   `bitview_plugin_blocks::CountVecs` (`blocks.count` is the count itself), the transactions plugin's `volume` struct
-  (`volume` is the value, `per_second` its sibling) and the mining rewards' `output_volume`; renamed fields
-  `difficulty.value` (now `block`), Cointime's `reserve_risk.value` (now `block`) and `value.vocdd` (now
-  `reserve_risk.vocdd`)
+  (`transfer_volume` is the value, `per_second` its sibling) and the mining rewards' `output_volume`; renamed field
+  `value.vocdd` (now `reserve_risk.vocdd`)
 - Removed from `bitview_compute` without a public successor, among others: the cached, columnar and daily families
   (`CachedPerBlock`, `CachedWindowStartVec`, `ColumnarPerBlock`, `LazyColumnPerBlock`, `DailyMetric`, `DailyView`, ...),
   `ByDcaCagr`, `ByDcaPeriod`, `PercentilePrices`, `PerBlockAggregated`, `PerBlockFull`, `LazyWindowVec`, `walk_blocks`,
@@ -966,8 +982,7 @@ has to be deleted by hand.
   name)
 - `bitview_cohort` collections build with `from_fn`/`try_from_fn` over their member id (were `new`/`try_new` over a
   `Filter` and name); `UTXOGroups`, `UTXOGroupsWithoutAmount`, `UTXOGroupsWithoutAmountOrType` and `UTXOAllAndSth` are
-  gone. `ByEntry` and `EntryPrice` name their members `veteran`/`Veteran` and `rookie`/`Rookie` (were
-  `discount`/`Discount` and `premium`/`Premium`). `AmountRange<T, Z = T>` types its zero band apart (`Z`, for a family
+  gone. `AmountRange<T, Z = T>` types its zero band apart (`Z`, for a family
   whose zero band holds less), with `split`, `split_mut` and `try_from_fns`; `ByEpoch` and `Class` are
   `ByHalvingEpoch` and `Vintage`
 - Analytics type families: the new `bitview_cohort::{AddressType, AddressTypeId}` are the six analytics address types;
@@ -1050,9 +1065,9 @@ has to be deleted by hand.
 
 - `GET /api/series/{name}` returns `unit`, what the value type measures (e.g. "A duration in days."), and `nullable`,
   the indexes whose values can be `null`; the catalog carries `nullable` too. Every series value type has a description
-- Bedrock floor supply and capital, `bedrock.<mode>.{floor_supply, floor_capital}.{p95_to_p98, p98_to_p99,
-  p99_to_p99_5, p99_5_to_p99_9, below_p99_9}` (ids `bedrock_awake_floor_supply_p95_to_p98`, ..., in BTC and `_usd`,
-  and `bedrock_awake_floor_capital_p95_to_p98`, ..., in USD): the supply created while spot sat in each
+- Bedrock entry supply and capital, `bedrock.<mode>.{entry_supply, entry_capital}.{p95_to_p98, p98_to_p99,
+  p99_to_p99_5, p99_5_to_p99_9, below_p99_9}` (ids `bedrock_awake_entry_supply_p95_to_p98`, ..., in BTC and `_usd`,
+  and `bedrock_awake_entry_capital_p95_to_p98`, ..., in USD): the supply created while spot sat in each
   band of the mode's floors at its creation block, less what has been spent since, and its capital (each unspent
   output at its creation price), counted from the second halving (block 420,000), before which calibration dominates
   the floors
@@ -1529,7 +1544,7 @@ has to be deleted by hand.
   failed, and finishes its report before a shutdown exits
 - The generated LLM docs (`llms.txt`, `llms-full.txt`) name nullable types, nullable arrays with their item type (they
   read `object`), and `llms-full.txt` no longer repeats a curl block per endpoint
-- Descriptions corrected: mining fee/reward buckets (averages of their blocks), the veteran cohort (an undefined
+- Descriptions corrected: mining fee/reward buckets (averages of their blocks), the entry discount cohort (an undefined
   capitalized price), Bedrock floors (some supply with a positive creation price) and URPD buckets (`realized_cap`
   and `unrealized_pnl` use grid creation prices within 0.05% of each coin's, rounded to the cent per bucket, and
   weighted supply under a weight)

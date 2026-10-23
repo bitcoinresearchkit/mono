@@ -10,7 +10,7 @@ use vecdb::{Database, Rw, StorageMode};
 #[derive(Traversable)]
 pub struct Part<T: Clone, M: StorageMode = Rw> {
     #[traversable(flatten)]
-    pub block: T,
+    pub value: T,
     /// Share of the cohort's total.
     pub share: PercentPerBlock<PartsPerMillion32, M>,
 }
@@ -20,10 +20,10 @@ impl<T: Clone> Part<T> {
         name: &str,
         v: Version,
         mappings: &Mappings,
-        block: T,
+        value: T,
     ) -> Result<Self> {
         Ok(Self {
-            block,
+            value,
             share: PercentPerBlock::import(db, &format!("{name}_share"), v, mappings)?,
         })
     }

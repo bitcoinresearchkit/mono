@@ -12,7 +12,7 @@ impl PriceBandId {
     pub fn suffix(self) -> String {
         match self {
             Self::Floor(id) => format!("floor_{}", id.name()),
-            Self::AboveFloor(id) => format!("cost_basis_above_floor_{}", id.name()),
+            Self::AboveFloor(id) => format!("cost_basis_above_p95_floor_{}", id.name()),
         }
     }
 }

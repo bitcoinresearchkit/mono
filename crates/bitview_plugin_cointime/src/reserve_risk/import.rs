@@ -33,7 +33,7 @@ impl Vecs {
             |_, hodl_bank: Float64, spot| Float64::new(f64::from(Dollars::from(spot)) / *hodl_bank),
         );
         Ok(Vecs {
-            block: LazyPerBlock::from_height_source::<Narrow>(
+            value: LazyPerBlock::from_height_source::<Narrow>(
                 "reserve_risk",
                 reserve_risk_version,
                 &value_source,

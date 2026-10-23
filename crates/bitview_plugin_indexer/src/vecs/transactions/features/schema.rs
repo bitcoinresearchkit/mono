@@ -5,11 +5,11 @@ macro_rules! with_transaction_features {
                 /// Transactions that create or, outside coinbase, spend at least one P2PK-shaped output with a 33- or
                 /// 65-byte key field.
                 p2pk: has_p2pk, P2PK = 0;
+                /// Transactions that create or, outside coinbase, spend at least one pay-to-public-key-hash output.
+                p2pkh: has_p2pkh, P2PKH = 2;
                 /// Transactions that create or, outside coinbase, spend at least one bare multisig output recognized
                 /// by Bitcoin script parsing.
                 p2ms: has_p2ms, P2MS = 1;
-                /// Transactions that create or, outside coinbase, spend at least one pay-to-public-key-hash output.
-                p2pkh: has_p2pkh, P2PKH = 2;
                 /// Transactions that create or, outside coinbase, spend at least one pay-to-script-hash output.
                 p2sh: has_p2sh, P2SH = 3;
                 /// Transactions that create or, outside coinbase, spend at least one version-0
@@ -23,14 +23,14 @@ macro_rules! with_transaction_features {
                 /// Transactions that create or, outside coinbase, spend at least one pay-to-Anchor output matching
                 /// `OP_1 PUSHBYTES_2 0x4e73`.
                 p2a: has_p2a, P2A = 7;
-                /// Transactions that create at least one output whose locking script begins with `OP_RETURN`.
-                op_return: has_op_return, OP_RETURN = 8;
                 /// Transactions that create or, outside coinbase, spend at least one output with an empty locking
                 /// script.
                 empty_script: has_empty_script, EMPTY = 9;
                 /// Transactions that create or, outside coinbase, spend at least one output not matching another
                 /// recognized locking-script type.
                 unknown_script: has_unknown_script, UNKNOWN = 10;
+                /// Transactions that create at least one output whose locking script begins with `OP_RETURN`.
+                op_return: has_op_return, OP_RETURN = 8;
                 /// Transactions that create a P2PK output whose shaped public key is invalid, or a bare multisig
                 /// output containing an invalid or recognized burn public key.
                 fake_pubkey: has_fake_pubkey, FAKE_PUBKEY = 11;

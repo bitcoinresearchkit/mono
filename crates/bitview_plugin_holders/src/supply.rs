@@ -1,24 +1,24 @@
+use std::ops::Deref;
+
 use bitview_cohort::AgeAggregateId;
-use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::{PartsPerMillion32, PartsPerMillionSigned64};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyRollingDeltasAmountFromHeight, LazySpotValuePerBlock, LazyWindowStartVec, PercentPerBlock,
-    ops::Quotient, shapes::Windows,
+    LazyRollingDeltasAmountFromHeight, LazySpotValuePerBlock, PercentPerBlock, ops::Quotient,
 };
 use brk_error::Result;
-use brk_exit::Exit;
-use brk_types::{Cents, Height, Sats, SatsSigned, Version};
-use vecdb::{ComputeVec, Database, ReadableBoxedVec, Rw, StorageMode};
+use brk_types::{Sats, SatsSigned};
+use vecdb::{ComputeVec, Rw, StorageMode};
 
-use crate::{columns::Columns, part::Part};
+use crate::{
+    part::Part,
+    section::{CohortCompute, Imports, Section},
+};
 
 #[derive(Traversable)]
 pub struct Supply<M: StorageMode = Rw> {
     /// Total unspent supply.
     pub total: LazySpotValuePerBlock,
-    /// Share of all unspent supply.
-    pub share: PercentPerBlock<PartsPerMillion32, M>,
     /// Supply in profit: creation price at or below the spot price.
     pub in_profit: Part<LazySpotValuePerBlock, M>,
     /// Supply in loss: creation price above the spot price.
@@ -26,16 +26,27 @@ pub struct Supply<M: StorageMode = Rw> {
     /// Change in the cohort's supply over a trailing window.
     pub delta: LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
 }
-impl Supply {
-    pub(crate) fn import(
-        db: &Database,
-        id: AgeAggregateId,
-        v: Version,
-        c: &Columns,
-        mappings: &Mappings,
-        windows: &Windows<&LazyWindowStartVec>,
-        spot: &ReadableBoxedVec<Height, Cents>,
-    ) -> Result<Self> {
+
+/// The supply of a cohort but all, beside its share of all unspent supply (all's is 100%).
+#[derive(Traversable)]
+pub struct SharedSupply<M: StorageMode = Rw> {
+    #[traversable(flatten)]
+    pub supply: Supply<M>,
+    /// Share of all unspent supply.
+    pub share: PercentPerBlock<PartsPerMillion32, M>,
+}
+
+impl Section for Supply {
+    fn import(id: AgeAggregateId, cx: &Imports) -> Result<Self> {
+        let Imports {
+            db,
+            v,
+            mappings,
+            windows,
+            spot,
+            ..
+        } = *cx;
+        let c = id.select(cx.columns);
         // All unspent outputs are the circulating supply, and their value is the market cap.
         let total = if id == AgeAggregateId::All {
             LazySpotValuePerBlock::from_sats_source_named(
@@ -67,7 +78,6 @@ impl Supply {
         };
         Ok(Self {
             total,
-            share: PercentPerBlock::import(db, &id.metric_name("supply_share"), v, mappings)?,
             in_profit: part("supply_in_profit", &c.supply_profit)?,
             in_loss: part("supply_in_loss", &c.supply_loss)?,
             delta: LazyRollingDeltasAmountFromHeight::new(
@@ -79,19 +89,8 @@ impl Supply {
             ),
         })
     }
-    pub(crate) fn compute(
-        &mut self,
-        from: Height,
-        c: &Columns,
-        all_supply: &ReadableBoxedVec<Height, Sats>,
-        exit: &Exit,
-    ) -> Result<()> {
-        self.share
-            .fixed
-            .height
-            .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
-                from, &c.supply, all_supply, exit,
-            )?;
+    fn compute(&mut self, cx: &CohortCompute) -> Result<()> {
+        let CohortCompute { from, c, exit, .. } = *cx;
         self.in_profit
             .share
             .fixed
@@ -111,6 +110,40 @@ impl Supply {
                 &c.supply_loss,
                 &c.supply,
                 exit,
+            )?;
+        Ok(())
+    }
+}
+
+impl<M: StorageMode> Deref for SharedSupply<M> {
+    type Target = Supply<M>;
+    fn deref(&self) -> &Supply<M> {
+        &self.supply
+    }
+}
+
+impl Section for SharedSupply {
+    fn import(id: AgeAggregateId, cx: &Imports) -> Result<Self> {
+        Ok(Self {
+            supply: Supply::import(id, cx)?,
+            share: PercentPerBlock::import(
+                cx.db,
+                &id.metric_name("supply_share"),
+                cx.v,
+                cx.mappings,
+            )?,
+        })
+    }
+    fn compute(&mut self, cx: &CohortCompute) -> Result<()> {
+        self.supply.compute(cx)?;
+        self.share
+            .fixed
+            .height
+            .compute_binary::<_, _, Quotient<PartsPerMillion32>>(
+                cx.from,
+                &cx.c.supply,
+                cx.all_supply,
+                cx.exit,
             )?;
         Ok(())
     }

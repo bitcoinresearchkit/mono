@@ -46,7 +46,7 @@ impl Query {
             .ok_or(Error::Internal("Reversed hashrate day window"))?;
         let step = days.div_ceil(max_points.max(1)).max(1);
 
-        let mut hr_cursor = plugins.mining.hashrate.rate.block.day1.cursor();
+        let mut hr_cursor = plugins.mining.hash.hashrate.value.day1.cursor();
         let mut ts_cursor = plugins.mappings.timestamp.day1.cursor();
 
         let mut hashrates = Vec::with_capacity(days.div_ceil(step));
@@ -87,9 +87,9 @@ impl Query {
         let day = plugins.mappings.height.day1.collect_one(height).data()?;
         Ok(*plugins
             .mining
+            .hash
             .hashrate
-            .rate
-            .block
+            .value
             .day1
             .collect_one(day)
             .flatten()

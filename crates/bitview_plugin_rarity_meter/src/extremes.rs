@@ -46,7 +46,7 @@ impl Extremes {
         Ok(Extremes {
             supply_in_loss: Extreme::import(
                 db,
-                &all.supply.in_loss.block.btc.height,
+                &all.supply.in_loss.value.btc.height,
                 version,
                 mappings,
             )?,

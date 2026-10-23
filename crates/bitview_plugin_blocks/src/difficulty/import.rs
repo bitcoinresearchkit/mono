@@ -68,7 +68,7 @@ impl Vecs {
         );
 
         Self {
-            block: Resolutions::from_source("difficulty", &difficulty_source, version, mappings),
+            value: Resolutions::from_source("difficulty", &difficulty_source, version, mappings),
             block_height: LazyVec::new(
                 "difficulty",
                 version,

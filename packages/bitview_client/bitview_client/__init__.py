@@ -51,7 +51,7 @@ UrpdAggregation = Literal["raw", "lin200", "lin500", "lin1000", "log10", "log50"
 # An index within its type (0 for the first P2WPKH address).
 TypeIndex = int
 # Index of an output with an unrecognized script.
-UnknownOutputIndex = TypeIndex
+UnknownScriptOutputIndex = TypeIndex
 # Index of a P2WSH address.
 P2WSHAddressIndex = TypeIndex
 # Index of a P2WPKH address.
@@ -73,7 +73,7 @@ P2AAddressIndex = TypeIndex
 # Index of an OP_RETURN output.
 OpReturnIndex = TypeIndex
 # Index of an output with an empty script.
-EmptyOutputIndex = TypeIndex
+EmptyScriptOutputIndex = TypeIndex
 # A transaction ID: its hash.
 Txid = str
 # Raw transaction version (i32) from Bitcoin protocol.
@@ -178,10 +178,10 @@ Limit = int
 # A JSON Schema type: what a series' values are on the wire.
 JsonType = Literal["null", "boolean", "integer", "number", "string", "array", "object"]
 # A name REST queries accept for an index: its canonical name or one of its aliases
-IndexAlias = Literal["10mn", "10y", "12h", "1d", "1h", "1m", "1mo", "1w", "1y", "30mn", "3d", "3m", "3mo", "4h", "6m", "6mo", "aaddr", "blk", "block", "d", "daily", "date", "dateindex", "day", "day1", "day3", "decade", "decadeindex", "diff", "difficulty", "difficultyepoch", "empty_output_index", "emptyout", "epoch", "h", "halv", "halving", "halvingepoch", "height", "hour", "hour1", "hour12", "hour4", "hourly", "m", "minute10", "minute30", "month", "month1", "month3", "month6", "monthindex", "monthly", "msout", "op", "op_return", "op_return_index", "opreturn", "p2a_address_index", "p2aaddr", "p2ms_output_index", "p2msout", "p2pk33_address_index", "p2pk33addr", "p2pk65_address_index", "p2pk65addr", "p2pkh_address_index", "p2pkhaddr", "p2sh_address_index", "p2shaddr", "p2tr_address_index", "p2traddr", "p2wpkh_address_index", "p2wpkhaddr", "p2wsh_address_index", "p2wshaddr", "pk33addr", "pk65addr", "pkhaddr", "q", "quarter", "quarterindex", "quarterly", "s", "semester", "semesterindex", "shaddr", "traddr", "tx", "tx_index", "txi", "txin", "txin_index", "txo", "txout", "txout_index", "unknown_output_index", "unknownout", "w", "week", "week1", "weekindex", "weekly", "wpkhaddr", "wshaddr", "y", "year", "year1", "year10", "yearindex", "yearly"]
+IndexAlias = Literal["10mn", "10y", "12h", "1d", "1h", "1m", "1mo", "1w", "1y", "30mn", "3d", "3m", "3mo", "4h", "6m", "6mo", "aaddr", "blk", "block", "d", "daily", "date", "dateindex", "day", "day1", "day3", "decade", "decadeindex", "diff", "difficulty", "difficultyepoch", "empty_script_output_index", "emptyout", "epoch", "h", "halv", "halving", "halvingepoch", "height", "hour", "hour1", "hour12", "hour4", "hourly", "m", "minute10", "minute30", "month", "month1", "month3", "month6", "monthindex", "monthly", "msout", "op", "op_return", "op_return_index", "opreturn", "p2a_address_index", "p2aaddr", "p2ms_output_index", "p2msout", "p2pk33_address_index", "p2pk33addr", "p2pk65_address_index", "p2pk65addr", "p2pkh_address_index", "p2pkhaddr", "p2sh_address_index", "p2shaddr", "p2tr_address_index", "p2traddr", "p2wpkh_address_index", "p2wpkhaddr", "p2wsh_address_index", "p2wshaddr", "pk33addr", "pk65addr", "pkhaddr", "q", "quarter", "quarterindex", "quarterly", "s", "semester", "semesterindex", "shaddr", "traddr", "tx", "tx_index", "txi", "txin", "txin_index", "txo", "txout", "txout_index", "unknown_script_output_index", "unknownout", "w", "week", "week1", "weekindex", "weekly", "wpkhaddr", "wshaddr", "y", "year", "year1", "year10", "yearindex", "yearly"]
 # Aggregation dimension for querying series. Includes time-based (date, week, month, year),
 # block-based (height, tx_index), and address/output type indexes.
-Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height", "tx_index", "txin_index", "txout_index", "empty_output_index", "op_return_index", "p2a_address_index", "p2ms_output_index", "p2pk33_address_index", "p2pk65_address_index", "p2pkh_address_index", "p2sh_address_index", "p2tr_address_index", "p2wpkh_address_index", "p2wsh_address_index", "unknown_output_index"]
+Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height", "tx_index", "txin_index", "txout_index", "empty_script_output_index", "op_return_index", "p2a_address_index", "p2ms_output_index", "p2pk33_address_index", "p2pk65_address_index", "p2pkh_address_index", "p2sh_address_index", "p2tr_address_index", "p2wpkh_address_index", "p2wsh_address_index", "unknown_script_output_index"]
 TreeNode = Union[dict[str, "TreeNode"], "SeriesLeafWithSchema"]
 # Index of a 4-hour period.
 Hour4 = int
@@ -2243,7 +2243,7 @@ _i20 = ('txin_index',)
 _i21 = ('txin_index',)
 _i22 = ('txout_index',)
 _i23 = ('txout_index',)
-_i24 = ('empty_output_index',)
+_i24 = ('empty_script_output_index',)
 _i25 = ('op_return_index',)
 _i26 = ('p2a_address_index',)
 _i27 = ('p2ms_output_index',)
@@ -2254,7 +2254,7 @@ _i31 = ('p2sh_address_index',)
 _i32 = ('p2tr_address_index',)
 _i33 = ('p2wpkh_address_index',)
 _i34 = ('p2wsh_address_index',)
-_i35 = ('unknown_output_index',)
+_i35 = ('unknown_script_output_index',)
 
 def _endpoint(c: BitviewClient, n: str, i: Index) -> Union[SeriesEndpoint[Any], DateSeriesEndpoint[Any]]:
     """The endpoint for any index: with date helpers for a date-based one."""
@@ -2567,7 +2567,7 @@ class SeriesPattern23(Generic[T]):
 
 class _SeriesPattern24By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def empty_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'empty_output_index')
+    def empty_script_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'empty_script_output_index')
 
 class SeriesPattern24(Generic[T]):
     by: _SeriesPattern24By[T]
@@ -2699,7 +2699,7 @@ class SeriesPattern34(Generic[T]):
 
 class _SeriesPattern35By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def unknown_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'unknown_output_index')
+    def unknown_script_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'unknown_script_output_index')
 
 class SeriesPattern35(Generic[T]):
     by: _SeriesPattern35By[T]
@@ -2761,6 +2761,8 @@ C = TypeVar('C')
 D = TypeVar('D')
 E = TypeVar('E')
 F = TypeVar('F')
+G = TypeVar('G')
+H = TypeVar('H')
 
 class Meter(_Node):
     p0_1: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p0_1')
@@ -2787,7 +2789,7 @@ class Meter(_Node):
 
 
 class Extreme(_Node, Generic[A]):
-    block: SeriesPattern1[A] = _at(SeriesPattern1, '*')
+    value: SeriesPattern1[A] = _at(SeriesPattern1, '*')
     p0_1: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p0_1')
     p0_5: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p0_5')
     p1: SeriesPattern1[A] = _at(SeriesPattern1, '*_rarity_p1')
@@ -2888,7 +2890,7 @@ class AllMedianRealizedPriceMedian(_Node):
 
 
 class MedianComponent(_Node, Generic[A]):
-    block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
+    value: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
     ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_ratio')
     p0_1: A = _at(0, 'rarity_p0_1')
     p0_5: A = _at(0, 'rarity_p0_5')
@@ -2990,7 +2992,7 @@ class RarityMeter(_Node):
     cycle: Meter = _at(Meter, 'cycle_*_meter')
 
 
-class FloorCapital(_Node):
+class EntryCapital(_Node):
     p95_to_p98: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p95_to_p98')
     p98_to_p99: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p98_to_p99')
     p99_to_p99_5: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_p99_to_p99_5')
@@ -3019,14 +3021,14 @@ class Percentiles(_Node, Generic[A]):
 
 
 class CointimePriceWithRatio(_Node):
-    block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
+    value: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
     ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_ratio')
     aviv: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'aviv')
     aviv_nupl: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'aviv_nupl')
 
 
 class CointimePriceWithMvrv(_Node):
-    block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_price')
+    value: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_price')
     ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_price_ratio')
     mvrv: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_mvrv')
 
@@ -3080,7 +3082,7 @@ class Density(_Node):
 
 
 class PriceWithMvrv(_Node):
-    block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_avg')
+    value: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_cost_basis_by_coin_avg')
     ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_cost_basis_by_coin_avg_ratio')
     mvrv: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_mvrv')
 
@@ -3119,7 +3121,7 @@ class Unrealized(_Node):
 
 
 class Part(_Node):
-    block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
+    value: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
 
 
@@ -3177,13 +3179,13 @@ class AddressesWindows(_Node):
 
 
 class MarketPriceWithRatio(_Node):
-    block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
+    value: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
     ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_ratio')
     mayer_multiple: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'mayer_multiple')
 
 
 class PriceWithRatio(_Node):
-    block: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
+    value: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
     ratio: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_ratio')
 
 
@@ -3228,24 +3230,7 @@ class HoldersCostBasis(_Node):
     capital_density: Density = _at(Density, '*_capital_density')
 
 
-class Ema(_Node):
-    _1w: PriceWithRatio = _at(PriceWithRatio, '*_1w')
-    _8d: PriceWithRatio = _at(PriceWithRatio, '*_8d')
-    _13d: PriceWithRatio = _at(PriceWithRatio, '*_13d')
-    _21d: PriceWithRatio = _at(PriceWithRatio, '*_21d')
-    _1m: PriceWithRatio = _at(PriceWithRatio, '*_1m')
-    _34d: PriceWithRatio = _at(PriceWithRatio, '*_34d')
-    _55d: PriceWithRatio = _at(PriceWithRatio, '*_55d')
-    _89d: PriceWithRatio = _at(PriceWithRatio, '*_89d')
-    _144d: PriceWithRatio = _at(PriceWithRatio, '*_144d')
-    _200d: PriceWithRatio = _at(PriceWithRatio, '*_200d')
-    _1y: PriceWithRatio = _at(PriceWithRatio, '*_1y')
-    _2y: PriceWithRatio = _at(PriceWithRatio, '*_2y')
-    _200w: PriceWithRatio = _at(PriceWithRatio, '*_200w')
-    _4y: PriceWithRatio = _at(PriceWithRatio, '*_4y')
-
-
-class Sma(_Node):
+class Ema(_Node, Generic[A]):
     _1w: PriceWithRatio = _at(PriceWithRatio, '*_1w')
     _8d: PriceWithRatio = _at(PriceWithRatio, '*_8d')
     _13d: PriceWithRatio = _at(PriceWithRatio, '*_13d')
@@ -3256,7 +3241,7 @@ class Sma(_Node):
     _55d: PriceWithRatio = _at(PriceWithRatio, '*_55d')
     _89d: PriceWithRatio = _at(PriceWithRatio, '*_89d')
     _144d: PriceWithRatio = _at(PriceWithRatio, '*_144d')
-    _200d: MarketPriceWithRatio = _at(MarketPriceWithRatio, '*_200d')
+    _200d: A = _at(0, '*_200d')
     _1y: PriceWithRatio = _at(PriceWithRatio, '*_1y')
     _2y: PriceWithRatio = _at(PriceWithRatio, '*_2y')
     _200w: PriceWithRatio = _at(PriceWithRatio, '*_200w')
@@ -3272,7 +3257,6 @@ class PriceMinMax(_Node):
 class MarketRange(_Node):
     min: PriceMinMax = _at(PriceMinMax, '*_min')
     max: PriceMinMax = _at(PriceMinMax, '*_max')
-    true_range: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_true_range')
 
 
 class ByLookbackPeriod(_Node):
@@ -3302,8 +3286,8 @@ class Market(_Node):
     ath: Ath = _at(Ath, '*')
     returns: ByLookbackPeriod = _at(ByLookbackPeriod, '*_return')
     range: MarketRange = _at(MarketRange, '*')
-    sma: Sma = _at(Sma, '*_sma')
-    ema: Ema = _at(Ema, '*_ema')
+    sma: Ema[MarketPriceWithRatio] = _at((Ema, MarketPriceWithRatio), '*_sma')
+    ema: Ema[PriceWithRatio] = _at((Ema, PriceWithRatio), '*_ema')
 
 
 class UtxoSetSeries(_Node):
@@ -3312,7 +3296,7 @@ class UtxoSetSeries(_Node):
 
 
 class HashPriceValue(_Node, Generic[A]):
-    block: SeriesPattern1[A] = _at(SeriesPattern1, '*')
+    value: SeriesPattern1[A] = _at(SeriesPattern1, '*')
     atl: SeriesPattern1[A] = _at(SeriesPattern1, '*_atl')
     rebound: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_rebound')
 
@@ -3325,16 +3309,10 @@ class HashRateSma(_Node):
 
 
 class Rate(_Node):
-    block: SeriesPattern1[Optional[Hashrate]] = _at(SeriesPattern1, '*')
+    value: SeriesPattern1[Optional[Hashrate]] = _at(SeriesPattern1, '*')
     sma: HashRateSma = _at(HashRateSma, '*_sma')
     ath: SeriesPattern1[Optional[Hashrate]] = _at(SeriesPattern1, '*_ath')
     drawdown: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_drawdown')
-
-
-class MiningHashrate(_Node):
-    rate: Rate = _at(Rate, 'hashrate')
-    price: HashPriceValue[Optional[HashPrice]] = _at(HashPriceValue, '*_price')
-    value: HashPriceValue[Optional[HashValue]] = _at(HashPriceValue, '*_value')
 
 
 class PerTxDistribution(_Node, Generic[A]):
@@ -3353,7 +3331,7 @@ class Value(_Node):
     usd: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_usd')
 
 
-class FloorSupply(_Node):
+class EntrySupply(_Node):
     p95_to_p98: Value = _at(Value, '*_p95_to_p98')
     p98_to_p99: Value = _at(Value, '*_p98_to_p99')
     p99_to_p99_5: Value = _at(Value, '*_p99_to_p99_5')
@@ -3364,9 +3342,9 @@ class FloorSupply(_Node):
 class Mode(_Node):
     supply_in_loss_share_threshold: Percentiles[Optional[Percent]] = _at(Percentiles, '*_supply_in_loss_share_threshold')
     floor: Percentiles[Optional[Dollars]] = _at(Percentiles, '*_floor')
-    cost_basis_above_floor: Levels = _at(Levels, '*_cost_basis_above_floor')
-    floor_supply: FloorSupply = _at(FloorSupply, '*_floor_supply')
-    floor_capital: FloorCapital = _at(FloorCapital, '*_floor_capital')
+    cost_basis_above_p95_floor: Levels = _at(Levels, '*_cost_basis_above_p95_floor')
+    entry_supply: EntrySupply = _at(EntrySupply, '*_entry_supply')
+    entry_capital: EntryCapital = _at(EntryCapital, '*_entry_capital')
 
 
 class Bedrock(_Node):
@@ -3412,6 +3390,16 @@ class CoinflowRange(_Node):
 class CointimeCohort(_Node):
     awake: Awake = _at(Awake, '*_awake')
     dormant: Side = _at(Side, '*_dormant_supply')
+
+
+class AgeAggregate(_Node, Generic[A]):
+    all: A = _at(0, '')
+    sth: A = _at(0, 'sth')
+    lth: A = _at(0, 'lth')
+    under_4m: A = _at(0, '*_under_4m')
+    under_6m: A = _at(0, '*_under_6m')
+    over_4m: A = _at(0, '*_over_4m')
+    over_6m: A = _at(0, '*_over_6m')
 
 
 class BandSupply(_Node):
@@ -3535,8 +3523,10 @@ class Rewards(_Node):
 
 
 class Mining(_Node):
-    rewards: Rewards = _at(Rewards, '*')
-    hashrate: MiningHashrate = _at(MiningHashrate, 'hash')
+    rewards: Rewards = _at(Rewards, 'coinbase')
+    hashrate: Rate = _at(Rate, 'hashrate')
+    hash_price: HashPriceValue[Optional[HashPrice]] = _at(HashPriceValue, '*_price')
+    hash_value: HashPriceValue[Optional[HashValue]] = _at(HashPriceValue, '*_value')
 
 
 class FeesSeries(_Node):
@@ -3553,7 +3543,7 @@ class BlocksHalving(_Node):
 
 
 class BlocksDifficulty(_Node):
-    block: SeriesPattern1[Optional[Difficulty]] = _at(SeriesPattern1, '*')
+    value: SeriesPattern1[Optional[Difficulty]] = _at(SeriesPattern1, '*')
     hashrate: SeriesPattern1[Optional[Hashrate]] = _at(SeriesPattern1, '*_hashrate')
     adjustment: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_adjustment')
     epoch: SeriesPattern1[Epoch] = _at(SeriesPattern1, '*_epoch')
@@ -3578,26 +3568,33 @@ class Delta(_Node, Generic[A]):
     percent: AddressesWindows = _at(AddressesWindows, '*')
 
 
-class LthSupply(_Node):
-    total: Value = _at(Value, '*')
-    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
-    in_profit: PredicateSupply = _at(PredicateSupply, '*_in_profit')
-    in_loss: PredicateSupply = _at(PredicateSupply, '*_in_loss')
-    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_delta')
-
-
-class Capital(_Node):
+class SharedCapital(_Node):
     total: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_capital')
     realized_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*_realized_cap')
-    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_capital_share')
     in_profit: Part = _at(Part, '*_capital_in_profit')
     in_loss: Part = _at(Part, '*_capital_in_loss')
     delta: Delta[Optional[Dollars]] = _at(Delta, '*_capital_delta')
+    share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_capital_share')
 
 
-class AllSupply(_Node):
-    total: SpotValue = _at(SpotValue, 'circulating_*')
+class SharedSupply(_Node):
+    total: Value = _at(Value, '*')
+    in_profit: PredicateSupply = _at(PredicateSupply, '*_in_profit')
+    in_loss: PredicateSupply = _at(PredicateSupply, '*_in_loss')
+    delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_delta')
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_share')
+
+
+class Capital(_Node):
+    total: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, '*')
+    realized_cap: SeriesPattern1[Optional[Dollars]] = _at(SeriesPattern1, 'realized_cap')
+    in_profit: Part = _at(Part, '*_in_profit')
+    in_loss: Part = _at(Part, '*_in_loss')
+    delta: Delta[Optional[Dollars]] = _at(Delta, '*_delta')
+
+
+class HoldersSupply(_Node):
+    total: SpotValue = _at(SpotValue, 'circulating_*')
     in_profit: PredicateSupply = _at(PredicateSupply, '*_in_profit')
     in_loss: PredicateSupply = _at(PredicateSupply, '*_in_loss')
     delta: Delta[Optional[Bitcoin]] = _at(Delta, '*_delta')
@@ -3625,7 +3622,7 @@ class CreationSupply(_Node):
 
 
 class WithDelta(_Node, Generic[A, B]):
-    block: SeriesPattern1[A] = _at(SeriesPattern1, '*')
+    value: SeriesPattern1[A] = _at(SeriesPattern1, '*')
     delta: Delta[B] = _at(Delta, '*_delta')
 
 
@@ -3664,13 +3661,596 @@ class AgeCreationSupply(_Node):
     matured: ValueFlow = _at(ValueFlow, '*_matured_supply')
 
 
-class BlockCount(_Node):
+class DataBytesSeries(_Node):
+    block: SeriesPattern18[Bytes] = _at(SeriesPattern18, '*_bytes')
+    cumulative: SeriesPattern1[Bytes] = _at(SeriesPattern1, '*_bytes_cumulative')
+    sum: Windows[Bytes] = _at(Windows, '*_bytes_sum')
+    chain_share: Share = _at(Share, '*_chain_share')
+
+
+class Inscription(_Node):
+    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
+    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
+    cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
+    sum: Windows[Count] = _at(Windows, '*_tx_count_sum')
+    share: Share = _at(Share, '*_tx_share')
+    fees: FeesSeries = _at(FeesSeries, '*')
+
+
+class TransactionsFlagged(_Node):
+    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'is_*')
+    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
+    cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
+    sum: Windows[Count] = _at(Windows, '*_tx_count_sum')
+    share: Share = _at(Share, '*_tx_share')
+
+
+class Patterns(_Node):
+    coinjoin: TransactionsFlagged = _at(TransactionsFlagged, '*')
+    consolidation: TransactionsFlagged = _at(TransactionsFlagged, 'consolidation')
+    batch_payout: TransactionsFlagged = _at(TransactionsFlagged, 'batch_payout')
+
+
+class Fees(_Node):
+    fee: PerTxDistribution[Sats] = _at(PerTxDistribution, '*_fee')
+    fee_rate: SeriesPattern19[Optional[FeeRate]] = _at(SeriesPattern19, '*_fee_rate')
+    effective_fee_rate: PerTxDistribution[Optional[FeeRate]] = _at(PerTxDistribution, '*_effective_fee_rate')
+    cpfp_parent: TransactionsFlagged = _at(TransactionsFlagged, 'cpfp_parent')
+    cpfp_child: TransactionsFlagged = _at(TransactionsFlagged, 'cpfp_child')
+
+
+class TxCount(_Node):
+    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_count')
+    cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_count_cumulative')
+    sum: Windows[Count] = _at(Windows, '*_count_sum')
+    share: Share = _at(Share, '*_share')
+
+
+class Flagged(_Node):
+    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
+    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
+    cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
+    sum: Windows[Count] = _at(Windows, '*_tx_count_sum')
+    share: Share = _at(Share, '*_tx_share')
+
+
+class Signatures(_Node):
+    annex: Flagged = _at(Flagged, 'annex')
+    sighash_all: Flagged = _at(Flagged, '*_all')
+    sighash_none: Flagged = _at(Flagged, '*_none')
+    sighash_single: Flagged = _at(Flagged, '*_single')
+    sighash_default: Flagged = _at(Flagged, '*_default')
+    sighash_anyone_can_pay: Flagged = _at(Flagged, '*_anyone_can_pay')
+
+
+class TransactionsScripts(_Node):
+    p2pk: Flagged = _at(Flagged, 'p2pk')
+    p2pkh: Flagged = _at(Flagged, 'p2pkh')
+    p2ms: Flagged = _at(Flagged, 'p2ms')
+    p2sh: Flagged = _at(Flagged, 'p2sh')
+    p2wpkh: Flagged = _at(Flagged, 'p2wpkh')
+    p2wsh: Flagged = _at(Flagged, 'p2wsh')
+    p2tr: Flagged = _at(Flagged, 'p2tr')
+    p2a: Flagged = _at(Flagged, 'p2a')
+    empty_script: Flagged = _at(Flagged, 'empty_*')
+    unknown_script: Flagged = _at(Flagged, 'unknown_*')
+    fake_pubkey: Flagged = _at(Flagged, 'fake_pubkey')
+    fake_scripthash: Flagged = _at(Flagged, 'fake_scripthash')
+
+
+class Features(_Node):
+    scripts: TransactionsScripts = _at(TransactionsScripts, 'script')
+    signatures: Signatures = _at(Signatures, 'sighash')
+    segwit: TxCount = _at(TxCount, 'segwit_*')
+    rbf_signaling: TransactionsFlagged = _at(TransactionsFlagged, 'rbf_signaling')
+    dust_output: Flagged = _at(Flagged, 'dust_output')
+    epobc: TransactionsFlagged = _at(TransactionsFlagged, 'epobc')
+    one_input: TxCount = _at(TxCount, 'one_input_*')
+    one_output: TxCount = _at(TxCount, 'one_output_*')
+
+
+class Flow(_Node, Generic[A]):
+    block: SeriesPattern18[A] = _at(SeriesPattern18, '*')
+    cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
+    sum: Windows[A] = _at(Windows, '*_sum')
+
+
+class ReserveRisk(_Node):
+    value: SeriesPattern1[Optional[Float]] = _at(SeriesPattern1, '*')
+    hodl_bank: SeriesPattern1[Optional[Float]] = _at(SeriesPattern1, 'hodl_bank')
+    vocdd: Flow[Optional[DollarDaysPerCoin]] = _at(Flow, 'vocdd')
+
+
+class CointimeValue(_Node):
+    destroyed: Flow[Optional[DollarBlocks]] = _at(Flow, '*_destroyed')
+    created: Flow[Optional[DollarBlocks]] = _at(Flow, '*_created')
+    stored: Flow[Optional[DollarBlocks]] = _at(Flow, '*_stored')
+
+
+class CointimeRange(_Node):
+    coindays_created: Flow[Optional[CoinDays]] = _at(Flow, '*_coindays_created')
+    coindays_consumed: Flow[Optional[CoinDays]] = _at(Flow, '*_coindays_consumed')
+    wakefulness: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_wakefulness')
+    awake_to_dormant: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_awake_to_dormant')
+    awake: Side = _at(Side, '*_awake_supply')
+    dormant: Side = _at(Side, '*_dormant_supply')
+
+
+class CointimeActivity(_Node):
+    coinblocks_created: Flow[Optional[CoinBlocks]] = _at(Flow, '*_created')
+    coinblocks_destroyed: Flow[Optional[CoinBlocks]] = _at(Flow, '*_destroyed')
+    coinblocks_stored: Flow[Optional[CoinBlocks]] = _at(Flow, '*_stored')
+    liveliness: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'liveliness')
+    vaultedness: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'vaultedness')
+    liveliness_to_vaultedness: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'liveliness_to_vaultedness')
+    concurrent_liveliness: Windows[Optional[Ratio]] = _at(Windows, 'concurrent_liveliness')
+
+
+class HoldersRealized(_Node):
+    profit: Flow[Optional[Dollars]] = _at(Flow, '*_realized_profit')
+    loss: Flow[Optional[Dollars]] = _at(Flow, '*_realized_loss')
+    net_pnl: Flow[Optional[Dollars]] = _at(Flow, '*_net_realized_pnl')
+    gross_pnl: Flow[Optional[Dollars]] = _at(Flow, '*_gross_realized_pnl')
+    profit_to_loss: Windows[Optional[Multiple]] = _at(Windows, '*_realized_profit_to_loss')
+    value_destroyed: Flow[Optional[Dollars]] = _at(Flow, '*_value_destroyed')
+    peak_regret: Flow[Optional[Dollars]] = _at(Flow, '*_realized_peak_regret')
+    sopr: Windows[Optional[Multiple]] = _at(Windows, '*_sopr')
+    sell_side_risk_ratio: Windows[Optional[Ratio]] = _at(Windows, '*_sell_side_risk_ratio')
+
+
+class AdjustedSopr(_Node):
+    _24h: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_sopr_24h')
+    _1w: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_sopr_1w')
+    _1m: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_sopr_1m')
+    _1y: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_sopr_1y')
+    value_created: Flow[Optional[Dollars]] = _at(Flow, '*_value_created')
+    value_destroyed: Flow[Optional[Dollars]] = _at(Flow, '*_value_destroyed')
+
+
+class AdjustedRealized(_Node):
+    profit: Flow[Optional[Dollars]] = _at(Flow, '*_realized_profit')
+    loss: Flow[Optional[Dollars]] = _at(Flow, '*_realized_loss')
+    net_pnl: Flow[Optional[Dollars]] = _at(Flow, '*_net_realized_pnl')
+    gross_pnl: Flow[Optional[Dollars]] = _at(Flow, '*_gross_realized_pnl')
+    profit_to_loss: Windows[Optional[Multiple]] = _at(Windows, '*_realized_profit_to_loss')
+    value_destroyed: Flow[Optional[Dollars]] = _at(Flow, '*_value_destroyed')
+    peak_regret: Flow[Optional[Dollars]] = _at(Flow, '*_realized_peak_regret')
+    sopr: Windows[Optional[Multiple]] = _at(Windows, '*_sopr')
+    sell_side_risk_ratio: Windows[Optional[Ratio]] = _at(Windows, '*_sell_side_risk_ratio')
+    adjusted_sopr: AdjustedSopr = _at(AdjustedSopr, '*_adjusted')
+
+
+class HoldersActivity(_Node):
+    transfer_volume: HoldersValueFlow = _at(HoldersValueFlow, '*_transfer_volume')
+    coindays_destroyed: Flow[Optional[CoinDays]] = _at(Flow, '*_coindays_destroyed')
+    dormancy: Windows[Optional[Days]] = _at(Windows, '*_dormancy')
+
+
+class Realized(_Node):
+    profit: Flow[Optional[Dollars]] = _at(Flow, '*_profit')
+    loss: Flow[Optional[Dollars]] = _at(Flow, '*_loss')
+
+
+class Balance(_Node):
+    funded: WithDelta[Count, CountSigned] = _at(WithDelta, '*_address_count')
+    supply: CohortSupply = _at(CohortSupply, '*_supply')
+    capital: CapitalViews = _at(CapitalViews, '*')
+    utxos: BalanceUtxos = _at(BalanceUtxos, '*_utxo_count')
+    activity: Activity = _at(Activity, '*_transfer_volume')
+    realized: Realized = _at(Realized, '*_realized')
+
+
+class CreationActivity(_Node):
+    transfer_volume: ValueFlow = _at(ValueFlow, '*_transfer_volume')
+    coindays_destroyed: Flow[Optional[CoinDays]] = _at(Flow, '*_coindays_destroyed')
+
+
+class CreationRealized(_Node):
+    profit: Flow[Optional[Dollars]] = _at(Flow, '*_realized_profit')
+    loss: Flow[Optional[Dollars]] = _at(Flow, '*_realized_loss')
+    net_pnl: Flow[Optional[Dollars]] = _at(Flow, '*_net_realized_pnl')
+    value_destroyed: Flow[Optional[Dollars]] = _at(Flow, '*_value_destroyed')
+
+
+class AgeCreationActivity(_Node):
+    transfer_volume: HoldersValueFlow = _at(HoldersValueFlow, '*_transfer_volume')
+    coindays_destroyed: Flow[Optional[CoinDays]] = _at(Flow, '*_coindays_destroyed')
+    coindays_created: Flow[Optional[CoinDays]] = _at(Flow, '*_coindays_created')
+
+
+class CohortUtxos(_Node):
+    count: WithDelta[Count, CountSigned] = _at(WithDelta, '*_utxo_count')
+    spent_count: Flow[Count] = _at(Flow, '*_spent_utxo_count')
+
+
+class Metrics(_Node):
+    supply: HoldersSupply = _at(HoldersSupply, '*')
+    capital: Capital = _at(Capital, 'capital')
+    utxos: CohortUtxos = _at(CohortUtxos, '')
+    activity: HoldersActivity = _at(HoldersActivity, '')
+    realized: AdjustedRealized = _at(AdjustedRealized, '')
+    unrealized: Unrealized = _at(Unrealized, '')
+    cost_basis: HoldersCostBasis = _at(HoldersCostBasis, '')
+
+
+class Cohort(_Node):
+    supply: CohortSupply = _at(CohortSupply, '*_supply')
+    capital: CapitalViews = _at(CapitalViews, '*')
+    utxos: CohortUtxos = _at(CohortUtxos, '*')
+    activity: Activity = _at(Activity, '*_transfer_volume')
+    realized: Realized = _at(Realized, '*_realized')
+    cost_basis: CohortCostBasis = _at(CohortCostBasis, '*')
+
+
+class UtxosSpendableType(_Node):
+    p2pk: Cohort = _at(Cohort, 'p2pk')
+    p2pkh: Cohort = _at(Cohort, 'p2pkh')
+    p2ms: Cohort = _at(Cohort, 'p2ms')
+    p2sh: Cohort = _at(Cohort, 'p2sh')
+    p2wpkh: Cohort = _at(Cohort, 'p2wpkh')
+    p2wsh: Cohort = _at(Cohort, 'p2wsh')
+    p2tr: Cohort = _at(Cohort, 'p2tr')
+    p2a: Cohort = _at(Cohort, 'p2a')
+    empty_script: Cohort = _at(Cohort, 'empty_*')
+    unknown_script: Cohort = _at(Cohort, 'unknown_*')
+
+
+class Zero(_Node):
+    utxos: CohortUtxos = _at(CohortUtxos, '*')
+
+
+class AmountRange(_Node, Generic[A, B]):
+    _0_sats: A = _at(0, '*_0_sats')
+    _1_to_10_sats: B = _at(1, '*_1_to_10_sats')
+    _10_to_100_sats: B = _at(1, '*_10_to_100_sats')
+    _100_to_1k_sats: B = _at(1, '*_100_to_1k_sats')
+    _1k_to_10k_sats: B = _at(1, '*_1k_to_10k_sats')
+    _10k_to_100k_sats: B = _at(1, '*_10k_to_100k_sats')
+    _100k_to_1m_sats: B = _at(1, '*_100k_to_1m_sats')
+    _1m_to_10m_sats: B = _at(1, '*_1m_to_10m_sats')
+    _10m_to_100m_sats: B = _at(1, '*_10m_to_100m_sats')
+    _1_to_10_btc: B = _at(1, '*_1_to_10_btc')
+    _10_to_100_btc: B = _at(1, '*_10_to_100_btc')
+    _100_to_1k_btc: B = _at(1, '*_100_to_1k_btc')
+    _1k_to_10k_btc: B = _at(1, '*_1k_to_10k_btc')
+    _10k_to_100k_btc: B = _at(1, '*_10k_to_100k_btc')
+    over_100k_btc: B = _at(1, '*_over_100k_btc')
+
+
+class Utxos(_Node):
+    amounts: AmountRange[Zero, Cohort] = _at((AmountRange, Zero, Cohort), '*')
+    types: UtxosSpendableType = _at(UtxosSpendableType, 'script')
+
+
+class CreationCohort(_Node, Generic[A, B, C, D, E, F]):
+    supply: A = _at(0, '*_supply')
+    capital: B = _at(1, '*')
+    utxos: CohortUtxos = _at(CohortUtxos, '*')
+    activity: C = _at(2, '*')
+    realized: D = _at(3, '*')
+    unrealized: E = _at(4, '*')
+    cost_basis: F = _at(5, '*')
+
+
+class Entry(_Node):
+    discount: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_discount')
+    premium: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_premium')
+
+
+class Holders(_Node):
+    all: Metrics = _at(Metrics, 'supply')
+    sth: CreationCohort[SharedSupply, SharedCapital, HoldersActivity, AdjustedRealized, Unrealized, HoldersCostBasis] = _at((CreationCohort, SharedSupply, SharedCapital, HoldersActivity, AdjustedRealized, Unrealized, HoldersCostBasis), 'sth')
+    lth: CreationCohort[SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis] = _at((CreationCohort, SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis), 'lth')
+    under_4m: CreationCohort[SharedSupply, SharedCapital, HoldersActivity, AdjustedRealized, Unrealized, HoldersCostBasis] = _at((CreationCohort, SharedSupply, SharedCapital, HoldersActivity, AdjustedRealized, Unrealized, HoldersCostBasis), '*_under_4m')
+    under_6m: CreationCohort[SharedSupply, SharedCapital, HoldersActivity, AdjustedRealized, Unrealized, HoldersCostBasis] = _at((CreationCohort, SharedSupply, SharedCapital, HoldersActivity, AdjustedRealized, Unrealized, HoldersCostBasis), '*_under_6m')
+    over_4m: CreationCohort[SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis] = _at((CreationCohort, SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis), '*_over_4m')
+    over_6m: CreationCohort[SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis] = _at((CreationCohort, SharedSupply, SharedCapital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis), '*_over_6m')
+
+
+class Vintage(_Node):
+    _2009: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2009')
+    _2010: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2010')
+    _2011: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2011')
+    _2012: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2012')
+    _2013: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2013')
+    _2014: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2014')
+    _2015: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2015')
+    _2016: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2016')
+    _2017: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2017')
+    _2018: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2018')
+    _2019: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2019')
+    _2020: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2020')
+    _2021: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2021')
+    _2022: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2022')
+    _2023: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2023')
+    _2024: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2024')
+    _2025: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2025')
+    _2026: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2026')
+    _2027: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2027')
+
+
+class ByHalvingEpoch(_Node):
+    _0: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_0')
+    _1: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_1')
+    _2: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2')
+    _3: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_3')
+    _4: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_4')
+    _5: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_5')
+
+
+class Range(_Node):
+    supply: AgeCreationSupply = _at(AgeCreationSupply, '*')
+    capital: CreationCapital = _at(CreationCapital, '*')
+    utxos: CohortUtxos = _at(CohortUtxos, '*')
+    activity: AgeCreationActivity = _at(AgeCreationActivity, '*')
+    realized: CreationRealized = _at(CreationRealized, '*')
+    unrealized: CreationUnrealized = _at(CreationUnrealized, '*')
+    cost_basis: CohortCostBasis = _at(CohortCostBasis, '*')
+
+
+class AgeRange(_Node, Generic[A]):
+    under_1h: A = _at(0, '*_under_1h')
+    _1h_to_1d: A = _at(0, '*_1h_to_1d')
+    _1d_to_1w: A = _at(0, '*_1d_to_1w')
+    _1w_to_1m: A = _at(0, '*_1w_to_1m')
+    _1m_to_2m: A = _at(0, '*_1m_to_2m')
+    _2m_to_3m: A = _at(0, '*_2m_to_3m')
+    _3m_to_4m: A = _at(0, '*_3m_to_4m')
+    _4m_to_5m: A = _at(0, '*_4m_to_5m')
+    _5m_to_6m: A = _at(0, '*_5m_to_6m')
+    _6m_to_9m: A = _at(0, '*_6m_to_9m')
+    _9m_to_1y: A = _at(0, '*_9m_to_1y')
+    _1y_to_18m: A = _at(0, '*_1y_to_18m')
+    _18m_to_2y: A = _at(0, '*_18m_to_2y')
+    _2y_to_3y: A = _at(0, '*_2y_to_3y')
+    _3y_to_4y: A = _at(0, '*_3y_to_4y')
+    _4y_to_5y: A = _at(0, '*_4y_to_5y')
+    _5y_to_6y: A = _at(0, '*_5y_to_6y')
+    _6y_to_7y: A = _at(0, '*_6y_to_7y')
+    _7y_to_8y: A = _at(0, '*_7y_to_8y')
+    _8y_to_10y: A = _at(0, '*_8y_to_10y')
+    _10y_to_12y: A = _at(0, '*_10y_to_12y')
+    _12y_to_15y: A = _at(0, '*_12y_to_15y')
+    over_15y: A = _at(0, '*_over_15y')
+
+
+class Coinflow(_Node):
+    age_ranges: AgeRange[CoinflowRange] = _at((AgeRange, CoinflowRange), '*')
+    cohorts: AgeAggregate[CoinflowCohort] = _at((AgeAggregate, CoinflowCohort), '*')
+
+
+class Cointime(_Node):
+    activity: CointimeActivity = _at(CointimeActivity, 'coinblocks')
+    age_ranges: AgeRange[CointimeRange] = _at((AgeRange, CointimeRange), '*')
+    cohorts: AgeAggregate[CointimeCohort] = _at((AgeAggregate, CointimeCohort), '*')
+    supply: CointimeSupply = _at(CointimeSupply, 'supply')
+    value: CointimeValue = _at(CointimeValue, 'cointime_value')
+    caps: Caps = _at(Caps, 'cap')
+    prices: Prices = _at(Prices, 'vaulted')
+    adjusted: Adjusted = _at(Adjusted, 'cointime_adjusted')
+    reserve_risk: ReserveRisk = _at(ReserveRisk, 'reserve_risk')
+
+
+class Age(_Node):
+    ranges: AgeRange[Range] = _at((AgeRange, Range), '*')
+    halving_epochs: ByHalvingEpoch = _at(ByHalvingEpoch, 'halving_epoch')
+    vintages: Vintage = _at(Vintage, 'vintage')
+
+
+class Bucket(_Node):
+    output_count: Flow[Count] = _at(Flow, '*_output_count')
+    data_bytes: DataBytesSeries = _at(DataBytesSeries, '*_data')
+    tx_count: Flow[Count] = _at(Flow, '*_tx_count')
+    tx_share: Share = _at(Share, '*_tx_share')
+    tx_vsize: Flow[VSize] = _at(Flow, '*_tx_vsize')
+    fees: FeesSeries = _at(FeesSeries, '*')
+
+
+class Policy(_Node):
+    pre_v30_standard: Bucket = _at(Bucket, '*_pre_v30_standard')
+    pre_v30_nonstandard: Bucket = _at(Bucket, '*_pre_v30_nonstandard')
+    oversized: Bucket = _at(Bucket, '*_oversized')
+    multiple: Bucket = _at(Bucket, '*_multiple')
+
+
+class ByKind(_Node):
+    runes: Bucket = _at(Bucket, '*_runes')
+    witness_commitment: Bucket = _at(Bucket, '*_witness_commitment')
+    veriblock: Bucket = _at(Bucket, '*_veriblock')
+    omni: Bucket = _at(Bucket, '*_omni')
+    stacks: Bucket = _at(Bucket, '*_stacks')
+    blockstack: Bucket = _at(Bucket, '*_blockstack')
+    colu: Bucket = _at(Bucket, '*_colu')
+    open_assets: Bucket = _at(Bucket, '*_open_assets')
+    komodo: Bucket = _at(Bucket, '*_komodo')
+    coinspark: Bucket = _at(Bucket, '*_coinspark')
+    poet: Bucket = _at(Bucket, '*_poet')
+    docproof: Bucket = _at(Bucket, '*_docproof')
+    factom: Bucket = _at(Bucket, '*_factom')
+    eternity_wall: Bucket = _at(Bucket, '*_eternity_wall')
+    memo: Bucket = _at(Bucket, '*_memo')
+    bitproof: Bucket = _at(Bucket, '*_bitproof')
+    ascribe: Bucket = _at(Bucket, '*_ascribe')
+    stampery: Bucket = _at(Bucket, '*_stampery')
+    bare_hash: Bucket = _at(Bucket, '*_bare_hash')
+    text: Bucket = _at(Bucket, '*_text')
+    empty: Bucket = _at(Bucket, '*_empty')
+    unknown: Bucket = _at(Bucket, '*_unknown')
+
+
+class OpReturn(_Node):
+    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
+    output_count: Flow[Count] = _at(Flow, '*_output_count')
+    data_bytes: DataBytesSeries = _at(DataBytesSeries, '*_data')
+    tx_count: Flow[Count] = _at(Flow, '*_tx_count')
+    tx_share: Share = _at(Share, '*_tx_share')
+    tx_vsize: Flow[VSize] = _at(Flow, '*_tx_vsize')
+    fees: FeesSeries = _at(FeesSeries, '*')
+    protocols: ByKind = _at(ByKind, '*')
+    policies: Policy = _at(Policy, '*')
+
+
+class OutputTypeSeries(_Node):
+    count: Flow[Count] = _at(Flow, '*_count')
+    share: Share = _at(Share, '*_share')
+    tx_count: Flow[Count] = _at(Flow, '*_tx_count')
+    tx_share: Share = _at(Share, '*_tx_share')
+
+
+class ByType(_Node):
+    p2pk: OutputTypeSeries = _at(OutputTypeSeries, 'p2pk_*')
+    p2pkh: OutputTypeSeries = _at(OutputTypeSeries, 'p2pkh_*')
+    p2ms: OutputTypeSeries = _at(OutputTypeSeries, 'p2ms_*')
+    p2sh: OutputTypeSeries = _at(OutputTypeSeries, 'p2sh_*')
+    p2wpkh: OutputTypeSeries = _at(OutputTypeSeries, 'p2wpkh_*')
+    p2wsh: OutputTypeSeries = _at(OutputTypeSeries, 'p2wsh_*')
+    p2tr: OutputTypeSeries = _at(OutputTypeSeries, 'p2tr_*')
+    p2a: OutputTypeSeries = _at(OutputTypeSeries, 'p2a_*')
+    empty_script: OutputTypeSeries = _at(OutputTypeSeries, 'empty_script_*')
+    unknown_script: OutputTypeSeries = _at(OutputTypeSeries, 'unknown_script_*')
+    op_return: OutputTypeSeries = _at(OutputTypeSeries, 'op_return_*')
+
+
+class SpendableType(_Node):
+    p2pk: OutputTypeSeries = _at(OutputTypeSeries, 'p2pk_*')
+    p2pkh: OutputTypeSeries = _at(OutputTypeSeries, 'p2pkh_*')
+    p2ms: OutputTypeSeries = _at(OutputTypeSeries, 'p2ms_*')
+    p2sh: OutputTypeSeries = _at(OutputTypeSeries, 'p2sh_*')
+    p2wpkh: OutputTypeSeries = _at(OutputTypeSeries, 'p2wpkh_*')
+    p2wsh: OutputTypeSeries = _at(OutputTypeSeries, 'p2wsh_*')
+    p2tr: OutputTypeSeries = _at(OutputTypeSeries, 'p2tr_*')
+    p2a: OutputTypeSeries = _at(OutputTypeSeries, 'p2a_*')
+    empty_script: OutputTypeSeries = _at(OutputTypeSeries, 'empty_script_*')
+    unknown_script: OutputTypeSeries = _at(OutputTypeSeries, 'unknown_script_*')
+
+
+class Fullness(_Node):
+    value: SeriesPattern18[Optional[Percent]] = _at(SeriesPattern18, '*')
+    avg: Windows[Optional[Percent]] = _at(Windows, '*_avg')
+    min: Windows[Optional[Percent]] = _at(Windows, '*_min')
+    max: Windows[Optional[Percent]] = _at(Windows, '*_max')
+    p10: Windows[Optional[Percent]] = _at(Windows, '*_p10')
+    p25: Windows[Optional[Percent]] = _at(Windows, '*_p25')
+    median: Windows[Optional[Percent]] = _at(Windows, '*_median')
+    p75: Windows[Optional[Percent]] = _at(Windows, '*_p75')
+    p90: Windows[Optional[Percent]] = _at(Windows, '*_p90')
+
+
+class FlowStats(_Node, Generic[A, B]):
+    block: SeriesPattern18[A] = _at(SeriesPattern18, '*')
+    cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
+    sum: Windows[A] = _at(Windows, '*_sum')
+    avg: Windows[B] = _at(Windows, '*_avg')
+    min: Windows[A] = _at(Windows, '*_min')
+    max: Windows[A] = _at(Windows, '*_max')
+    p10: Windows[A] = _at(Windows, '*_p10')
+    p25: Windows[A] = _at(Windows, '*_p25')
+    median: Windows[A] = _at(Windows, '*_median')
+    p75: Windows[A] = _at(Windows, '*_p75')
+    p90: Windows[A] = _at(Windows, '*_p90')
+
+
+class Outputs(_Node):
+    spending_txin_index: SeriesPattern23[TxInIndex] = _at(SeriesPattern23, 'spending_txin_index')
+    count: FlowStats[Count, Optional[CountFract]] = _at(FlowStats, '*_count')
+    per_second: Windows[Optional[PerSecond]] = _at(Windows, 'outputs_per_second')
+    spendable_count: Flow[Count] = _at(Flow, 'spendable_*_count')
+    types: ByType = _at(ByType, '*')
+    op_return_value: ValueFlow = _at(ValueFlow, 'op_return_value')
+
+
+class Inputs(_Node):
+    count: FlowStats[Count, Optional[CountFract]] = _at(FlowStats, '*_count')
+    per_second: Windows[Optional[PerSecond]] = _at(Windows, 'inputs_per_second')
+    types: SpendableType = _at(SpendableType, '*')
+
+
+class Averaged(_Node, Generic[A, B]):
+    block: SeriesPattern18[A] = _at(SeriesPattern18, '*')
+    avg: Windows[B] = _at(Windows, '*_avg')
+
+
+class EventCount(_Node, Generic[A]):
+    count: A = _at(0, '*_count')
+    share: Share = _at(Share, '*_share')
+
+
+class ReuseEvents(_Node):
+    outputs: EventCount[Flow[Count]] = _at((EventCount, Flow), '*_output_to_respent_address')
+    inputs: EventCount[Flow[Count]] = _at((EventCount, Flow), '*_input_from_respent_address')
+    active: EventCount[Averaged[Count, Optional[CountFract]]] = _at((EventCount, Averaged), '*_active_respent_address')
+
+
+class Respent(_Node):
+    count: RespentCount = _at(RespentCount, '*')
+    supply: PredicateSupply = _at(PredicateSupply, '*_respent_address_supply')
+    events: ReuseEvents = _at(ReuseEvents, '*')
+
+
+class AddressesReuseEvents(_Node):
+    outputs: EventCount[Flow[Count]] = _at((EventCount, Flow), '*_output_to_reused_address')
+    inputs: EventCount[Flow[Count]] = _at((EventCount, Flow), '*_input_from_reused_address')
+    active: EventCount[Averaged[Count, Optional[CountFract]]] = _at((EventCount, Averaged), '*_active_reused_address')
+
+
+class Reused(_Node):
+    count: ReusedCount = _at(ReusedCount, '*')
+    supply: PredicateSupply = _at(PredicateSupply, '*_reused_address_supply')
+    events: AddressesReuseEvents = _at(AddressesReuseEvents, '*')
+
+
+class AddressesActivity(_Node):
+    reactivated: Averaged[Count, Optional[CountFract]] = _at(Averaged, '*_reactivated_address_count')
+    sending: Averaged[Count, Optional[CountFract]] = _at(Averaged, '*_sending_address_count')
+    receiving: Averaged[Count, Optional[CountFract]] = _at(Averaged, '*_receiving_address_count')
+    bidirectional: Averaged[Count, Optional[CountFract]] = _at(Averaged, '*_bidirectional_address_count')
+    active: Averaged[Count, Optional[CountFract]] = _at(Averaged, '*_active_address_count')
+
+
+class AddressSeries(_Node):
+    funded: WithDelta[Count, CountSigned] = _at(WithDelta, '*_funded_address_count')
+    empty: SeriesPattern1[Count] = _at(SeriesPattern1, '*_empty_address_count')
+    total: SeriesPattern1[Count] = _at(SeriesPattern1, '*_total_address_count')
+    new: NewAddressCount = _at(NewAddressCount, '*_new_address_count')
+    activity: AddressesActivity = _at(AddressesActivity, '*')
+    avg_balance: Value = _at(Value, '*_address_balance_avg')
+    reused: Reused = _at(Reused, '*')
+    respent: Respent = _at(Respent, '*')
+    exposed: Exposed = _at(Exposed, '*')
+
+
+class AddressType(_Node):
+    p2pk: AddressSeries = _at(AddressSeries, '*')
+    p2pkh: AddressSeries = _at(AddressSeries, 'p2pkh')
+    p2sh: AddressSeries = _at(AddressSeries, 'p2sh')
+    p2wpkh: AddressSeries = _at(AddressSeries, 'p2wpkh')
+    p2wsh: AddressSeries = _at(AddressSeries, 'p2wsh')
+    p2tr: AddressSeries = _at(AddressSeries, 'p2tr')
+
+
+class Addresses(_Node):
+    funded: WithDelta[Count, CountSigned] = _at(WithDelta, 'funded_*_count')
+    empty: SeriesPattern1[Count] = _at(SeriesPattern1, 'empty_*_count')
+    total: SeriesPattern1[Count] = _at(SeriesPattern1, 'total_*_count')
+    new: NewAddressCount = _at(NewAddressCount, 'new_*_count')
+    activity: AddressesActivity = _at(AddressesActivity, '')
+    avg_balance: Value = _at(Value, '*_balance_avg')
+    reused: Reused = _at(Reused, '')
+    respent: Respent = _at(Respent, '')
+    exposed: Exposed = _at(Exposed, '')
+    supply: CohortSupply = _at(CohortSupply, '*_supply')
+    capital: CapitalViews = _at(CapitalViews, '*')
+    types: AddressType = _at(AddressType, 'p2pk')
+    balances: AmountRange[ZeroBalance, Balance] = _at((AmountRange, ZeroBalance, Balance), 'balance')
+
+
+class CumulativeFlow(_Node):
     cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_cumulative')
     sum: Windows[Count] = _at(Windows, '*_sum')
 
 
 class Pool(_Node):
-    block_count: BlockCount = _at(BlockCount, '*_block_count')
+    block_count: CumulativeFlow = _at(CumulativeFlow, '*_block_count')
     block_share: Share = _at(Share, '*_block_share')
     coinbase: Coinbase = _at(Coinbase, '*_coinbase')
     fees: PoolFees = _at(PoolFees, '*_fees_avg')
@@ -3847,561 +4427,12 @@ class Pools(_Node):
     dmnd: Pool = _at(Pool, '*_dmnd')
 
 
-class DataBytesSeries(_Node):
-    block: SeriesPattern18[Bytes] = _at(SeriesPattern18, '*_bytes')
-    cumulative: SeriesPattern1[Bytes] = _at(SeriesPattern1, '*_bytes_cumulative')
-    sum: Windows[Bytes] = _at(Windows, '*_bytes_sum')
-    chain_share: Share = _at(Share, '*_chain_share')
-
-
-class Inscription(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
-    cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
-    sum: Windows[Count] = _at(Windows, '*_tx_count_sum')
-    share: Share = _at(Share, '*_tx_share')
-    fees: FeesSeries = _at(FeesSeries, '*')
-
-
-class TransactionsFlagged(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'is_*')
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
-    cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
-    sum: Windows[Count] = _at(Windows, '*_tx_count_sum')
-    share: Share = _at(Share, '*_tx_share')
-
-
-class Patterns(_Node):
-    coinjoin: TransactionsFlagged = _at(TransactionsFlagged, '*')
-    consolidation: TransactionsFlagged = _at(TransactionsFlagged, 'consolidation')
-    batch_payout: TransactionsFlagged = _at(TransactionsFlagged, 'batch_payout')
-
-
-class Fees(_Node):
-    fee: PerTxDistribution[Sats] = _at(PerTxDistribution, 'tx_*')
-    fee_rate: SeriesPattern19[Optional[FeeRate]] = _at(SeriesPattern19, '*_rate')
-    effective_fee_rate: PerTxDistribution[Optional[FeeRate]] = _at(PerTxDistribution, 'effective_*_rate')
-    cpfp_parent: TransactionsFlagged = _at(TransactionsFlagged, 'cpfp_parent')
-    cpfp_child: TransactionsFlagged = _at(TransactionsFlagged, 'cpfp_child')
-
-
-class TxCount(_Node):
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_count')
-    cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_count_cumulative')
-    sum: Windows[Count] = _at(Windows, '*_count_sum')
-    share: Share = _at(Share, '*_share')
-
-
-class Flagged(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
-    block: SeriesPattern18[Count] = _at(SeriesPattern18, '*_tx_count')
-    cumulative: SeriesPattern1[Count] = _at(SeriesPattern1, '*_tx_count_cumulative')
-    sum: Windows[Count] = _at(Windows, '*_tx_count_sum')
-    share: Share = _at(Share, '*_tx_share')
-
-
-class Signatures(_Node):
-    annex: Flagged = _at(Flagged, 'annex')
-    sighash_all: Flagged = _at(Flagged, '*_all')
-    sighash_none: Flagged = _at(Flagged, '*_none')
-    sighash_single: Flagged = _at(Flagged, '*_single')
-    sighash_default: Flagged = _at(Flagged, '*_default')
-    sighash_anyone_can_pay: Flagged = _at(Flagged, '*_anyone_can_pay')
-
-
-class TransactionsScripts(_Node):
-    p2pk: Flagged = _at(Flagged, 'p2pk')
-    p2ms: Flagged = _at(Flagged, 'p2ms')
-    p2pkh: Flagged = _at(Flagged, 'p2pkh')
-    p2sh: Flagged = _at(Flagged, 'p2sh')
-    p2wpkh: Flagged = _at(Flagged, 'p2wpkh')
-    p2wsh: Flagged = _at(Flagged, 'p2wsh')
-    p2tr: Flagged = _at(Flagged, 'p2tr')
-    p2a: Flagged = _at(Flagged, 'p2a')
-    empty_script: Flagged = _at(Flagged, 'empty_*')
-    unknown_script: Flagged = _at(Flagged, 'unknown_*')
-    fake_pubkey: Flagged = _at(Flagged, 'fake_pubkey')
-    fake_scripthash: Flagged = _at(Flagged, 'fake_scripthash')
-
-
-class Features(_Node):
-    scripts: TransactionsScripts = _at(TransactionsScripts, 'script')
-    signatures: Signatures = _at(Signatures, 'sighash')
-    segwit: TxCount = _at(TxCount, 'segwit_*')
-    rbf_signaling: TransactionsFlagged = _at(TransactionsFlagged, 'rbf_signaling')
-    dust_output: Flagged = _at(Flagged, 'dust_output')
-    epobc: TransactionsFlagged = _at(TransactionsFlagged, 'epobc')
-    one_input: TxCount = _at(TxCount, 'one_input_*')
-    one_output: TxCount = _at(TxCount, 'one_output_*')
-
-
-class FlowStats(_Node, Generic[A, B]):
-    block: SeriesPattern18[A] = _at(SeriesPattern18, '*')
-    cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
-    sum: Windows[A] = _at(Windows, '*_sum')
-    avg: Windows[B] = _at(Windows, '*_avg')
-    min: Windows[A] = _at(Windows, '*_min')
-    max: Windows[A] = _at(Windows, '*_max')
-    p10: Windows[A] = _at(Windows, '*_p10')
-    p25: Windows[A] = _at(Windows, '*_p25')
-    median: Windows[A] = _at(Windows, '*_median')
-    p75: Windows[A] = _at(Windows, '*_p75')
-    p90: Windows[A] = _at(Windows, '*_p90')
-
-
-class Averaged(_Node, Generic[A, B]):
-    block: SeriesPattern18[A] = _at(SeriesPattern18, '*')
-    avg: Windows[B] = _at(Windows, '*_avg')
-
-
-class AddressesActivity(_Node):
-    reactivated: Averaged[Count, Optional[CountFract]] = _at(Averaged, '*_reactivated_address_count')
-    sending: Averaged[Count, Optional[CountFract]] = _at(Averaged, '*_sending_address_count')
-    receiving: Averaged[Count, Optional[CountFract]] = _at(Averaged, '*_receiving_address_count')
-    bidirectional: Averaged[Count, Optional[CountFract]] = _at(Averaged, '*_bidirectional_address_count')
-    active: Averaged[Count, Optional[CountFract]] = _at(Averaged, '*_active_address_count')
-
-
-class Flow(_Node, Generic[A]):
-    block: SeriesPattern18[A] = _at(SeriesPattern18, '*')
-    cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
-    sum: Windows[A] = _at(Windows, '*_sum')
-
-
-class ReserveRisk(_Node):
-    block: SeriesPattern1[Optional[Float]] = _at(SeriesPattern1, '*')
-    hodl_bank: SeriesPattern1[Optional[Float]] = _at(SeriesPattern1, 'hodl_bank')
-    vocdd: Flow[Optional[DollarDaysPerCoin]] = _at(Flow, 'vocdd')
-
-
-class CointimeValue(_Node):
-    destroyed: Flow[Optional[DollarBlocks]] = _at(Flow, '*_destroyed')
-    created: Flow[Optional[DollarBlocks]] = _at(Flow, '*_created')
-    stored: Flow[Optional[DollarBlocks]] = _at(Flow, '*_stored')
-
-
-class CointimeRange(_Node):
-    coindays_created: Flow[Optional[CoinDays]] = _at(Flow, '*_coindays_created')
-    coindays_consumed: Flow[Optional[CoinDays]] = _at(Flow, '*_coindays_consumed')
-    wakefulness: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, '*_wakefulness')
-    awake_to_dormant: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_awake_to_dormant')
-    awake: Side = _at(Side, '*_awake_supply')
-    dormant: Side = _at(Side, '*_dormant_supply')
-
-
-class CointimeActivity(_Node):
-    coinblocks_created: Flow[Optional[CoinBlocks]] = _at(Flow, '*_created')
-    coinblocks_destroyed: Flow[Optional[CoinBlocks]] = _at(Flow, '*_destroyed')
-    coinblocks_stored: Flow[Optional[CoinBlocks]] = _at(Flow, '*_stored')
-    liveliness: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'liveliness')
-    vaultedness: SeriesPattern1[Optional[Ratio]] = _at(SeriesPattern1, 'vaultedness')
-    liveliness_to_vaultedness: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, 'liveliness_to_vaultedness')
-    concurrent_liveliness: Windows[Optional[Ratio]] = _at(Windows, 'concurrent_liveliness')
-
-
-class AdjustedSopr(_Node):
-    _24h: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_sopr_24h')
-    _1w: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_sopr_1w')
-    _1m: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_sopr_1m')
-    _1y: SeriesPattern1[Optional[Multiple]] = _at(SeriesPattern1, '*_sopr_1y')
-    value_created: Flow[Optional[Dollars]] = _at(Flow, '*_value_created')
-    value_destroyed: Flow[Optional[Dollars]] = _at(Flow, '*_value_destroyed')
-
-
-class HoldersRealized(_Node):
-    profit: Flow[Optional[Dollars]] = _at(Flow, '*_realized_profit')
-    loss: Flow[Optional[Dollars]] = _at(Flow, '*_realized_loss')
-    net_pnl: Flow[Optional[Dollars]] = _at(Flow, '*_net_realized_pnl')
-    gross_pnl: Flow[Optional[Dollars]] = _at(Flow, '*_gross_realized_pnl')
-    profit_to_loss: Windows[Optional[Multiple]] = _at(Windows, '*_realized_profit_to_loss')
-    value_destroyed: Flow[Optional[Dollars]] = _at(Flow, '*_value_destroyed')
-    peak_regret: Flow[Optional[Dollars]] = _at(Flow, '*_realized_peak_regret')
-    sopr: Windows[Optional[Multiple]] = _at(Windows, '*_sopr')
-    adjusted_sopr: AdjustedSopr = _at(AdjustedSopr, '*_adjusted')
-    sell_side_risk_ratio: Windows[Optional[Ratio]] = _at(Windows, '*_sell_side_risk_ratio')
-
-
-class HoldersActivity(_Node):
-    transfer_volume: HoldersValueFlow = _at(HoldersValueFlow, '*_transfer_volume')
-    coindays_destroyed: Flow[Optional[CoinDays]] = _at(Flow, '*_coindays_destroyed')
-    dormancy: Windows[Optional[Days]] = _at(Windows, '*_dormancy')
-
-
-class EventCount(_Node, Generic[A]):
-    count: A = _at(0, '*_count')
-    share: Share = _at(Share, '*_share')
-
-
-class ReuseEvents(_Node):
-    outputs: EventCount[Flow[Count]] = _at((EventCount, Flow), '*_output_to_respent_address')
-    inputs: EventCount[Flow[Count]] = _at((EventCount, Flow), '*_input_from_respent_address')
-    active: EventCount[Averaged[Count, Optional[CountFract]]] = _at((EventCount, Averaged), '*_active_respent_address')
-
-
-class Respent(_Node):
-    count: RespentCount = _at(RespentCount, '*')
-    supply: PredicateSupply = _at(PredicateSupply, '*_respent_address_supply')
-    events: ReuseEvents = _at(ReuseEvents, '*')
-
-
-class AddressesReuseEvents(_Node):
-    outputs: EventCount[Flow[Count]] = _at((EventCount, Flow), '*_output_to_reused_address')
-    inputs: EventCount[Flow[Count]] = _at((EventCount, Flow), '*_input_from_reused_address')
-    active: EventCount[Averaged[Count, Optional[CountFract]]] = _at((EventCount, Averaged), '*_active_reused_address')
-
-
-class Reused(_Node):
-    count: ReusedCount = _at(ReusedCount, '*')
-    supply: PredicateSupply = _at(PredicateSupply, '*_reused_address_supply')
-    events: AddressesReuseEvents = _at(AddressesReuseEvents, '*')
-
-
-class AddressSeries(_Node):
-    funded: WithDelta[Count, CountSigned] = _at(WithDelta, '*_funded_address_count')
-    empty: SeriesPattern1[Count] = _at(SeriesPattern1, '*_empty_address_count')
-    total: SeriesPattern1[Count] = _at(SeriesPattern1, '*_total_address_count')
-    new: NewAddressCount = _at(NewAddressCount, '*_new_address_count')
-    activity: AddressesActivity = _at(AddressesActivity, '*')
-    avg_balance: Value = _at(Value, '*_address_balance_avg')
-    reused: Reused = _at(Reused, '*')
-    respent: Respent = _at(Respent, '*')
-    exposed: Exposed = _at(Exposed, '*')
-
-
-class AddressType(_Node):
-    p2pk: AddressSeries = _at(AddressSeries, '*')
-    p2pkh: AddressSeries = _at(AddressSeries, 'p2pkh')
-    p2sh: AddressSeries = _at(AddressSeries, 'p2sh')
-    p2wpkh: AddressSeries = _at(AddressSeries, 'p2wpkh')
-    p2wsh: AddressSeries = _at(AddressSeries, 'p2wsh')
-    p2tr: AddressSeries = _at(AddressSeries, 'p2tr')
-
-
-class Realized(_Node):
-    profit: Flow[Optional[Dollars]] = _at(Flow, '*_profit')
-    loss: Flow[Optional[Dollars]] = _at(Flow, '*_loss')
-
-
-class Balance(_Node):
-    funded: WithDelta[Count, CountSigned] = _at(WithDelta, '*_address_count')
-    supply: CohortSupply = _at(CohortSupply, '*_supply')
-    capital: CapitalViews = _at(CapitalViews, '*')
-    utxos: BalanceUtxos = _at(BalanceUtxos, '*_utxo_count')
-    activity: Activity = _at(Activity, '*_transfer_volume')
-    realized: Realized = _at(Realized, '*_realized')
-
-
-class CreationActivity(_Node):
-    transfer_volume: ValueFlow = _at(ValueFlow, '*_transfer_volume')
-    coindays_destroyed: Flow[Optional[CoinDays]] = _at(Flow, '*_coindays_destroyed')
-
-
-class CreationRealized(_Node):
-    profit: Flow[Optional[Dollars]] = _at(Flow, '*_realized_profit')
-    loss: Flow[Optional[Dollars]] = _at(Flow, '*_realized_loss')
-    net_pnl: Flow[Optional[Dollars]] = _at(Flow, '*_net_realized_pnl')
-    value_destroyed: Flow[Optional[Dollars]] = _at(Flow, '*_value_destroyed')
-
-
-class AgeCreationActivity(_Node):
-    transfer_volume: HoldersValueFlow = _at(HoldersValueFlow, '*_transfer_volume')
-    coindays_destroyed: Flow[Optional[CoinDays]] = _at(Flow, '*_coindays_destroyed')
-    coindays_created: Flow[Optional[CoinDays]] = _at(Flow, '*_coindays_created')
-
-
-class CohortUtxos(_Node):
-    count: WithDelta[Count, CountSigned] = _at(WithDelta, '*_utxo_count')
-    spent_count: Flow[Count] = _at(Flow, '*_spent_utxo_count')
-
-
-class Cohort(_Node):
-    supply: CohortSupply = _at(CohortSupply, '*_supply')
-    capital: CapitalViews = _at(CapitalViews, '*')
-    utxos: CohortUtxos = _at(CohortUtxos, '*')
-    activity: Activity = _at(Activity, '*_transfer_volume')
-    realized: Realized = _at(Realized, '*_realized')
-    cost_basis: CohortCostBasis = _at(CohortCostBasis, '*')
-
-
-class UtxosSpendableType(_Node):
-    p2pk: Cohort = _at(Cohort, 'p2pk')
-    p2pkh: Cohort = _at(Cohort, 'p2pkh')
-    p2ms: Cohort = _at(Cohort, 'p2ms')
-    p2sh: Cohort = _at(Cohort, 'p2sh')
-    p2wpkh: Cohort = _at(Cohort, 'p2wpkh')
-    p2wsh: Cohort = _at(Cohort, 'p2wsh')
-    p2tr: Cohort = _at(Cohort, 'p2tr')
-    p2a: Cohort = _at(Cohort, 'p2a')
-    unknown: Cohort = _at(Cohort, 'unknown_*')
-    empty: Cohort = _at(Cohort, 'empty_*')
-
-
-class Zero(_Node):
-    utxos: CohortUtxos = _at(CohortUtxos, '*')
-
-
-class AmountRange(_Node, Generic[A, B]):
-    _0_sats: A = _at(0, '*_0_sats')
-    _1_to_10_sats: B = _at(1, '*_1_to_10_sats')
-    _10_to_100_sats: B = _at(1, '*_10_to_100_sats')
-    _100_to_1k_sats: B = _at(1, '*_100_to_1k_sats')
-    _1k_to_10k_sats: B = _at(1, '*_1k_to_10k_sats')
-    _10k_to_100k_sats: B = _at(1, '*_10k_to_100k_sats')
-    _100k_to_1m_sats: B = _at(1, '*_100k_to_1m_sats')
-    _1m_to_10m_sats: B = _at(1, '*_1m_to_10m_sats')
-    _10m_to_100m_sats: B = _at(1, '*_10m_to_100m_sats')
-    _1_to_10_btc: B = _at(1, '*_1_to_10_btc')
-    _10_to_100_btc: B = _at(1, '*_10_to_100_btc')
-    _100_to_1k_btc: B = _at(1, '*_100_to_1k_btc')
-    _1k_to_10k_btc: B = _at(1, '*_1k_to_10k_btc')
-    _10k_to_100k_btc: B = _at(1, '*_10k_to_100k_btc')
-    over_100k_btc: B = _at(1, '*_over_100k_btc')
-
-
-class Addresses(_Node):
-    funded: WithDelta[Count, CountSigned] = _at(WithDelta, 'funded_*_count')
-    empty: SeriesPattern1[Count] = _at(SeriesPattern1, 'empty_*_count')
-    total: SeriesPattern1[Count] = _at(SeriesPattern1, 'total_*_count')
-    new: NewAddressCount = _at(NewAddressCount, 'new_*_count')
-    activity: AddressesActivity = _at(AddressesActivity, '')
-    avg_balance: Value = _at(Value, '*_balance_avg')
-    reused: Reused = _at(Reused, '')
-    respent: Respent = _at(Respent, '')
-    exposed: Exposed = _at(Exposed, '')
-    supply: CohortSupply = _at(CohortSupply, '*_supply')
-    capital: CapitalViews = _at(CapitalViews, '*')
-    types: AddressType = _at(AddressType, 'p2pk')
-    balances: AmountRange[ZeroBalance, Balance] = _at((AmountRange, ZeroBalance, Balance), 'balance')
-
-
-class Utxos(_Node):
-    amounts: AmountRange[Zero, Cohort] = _at((AmountRange, Zero, Cohort), '*')
-    types: UtxosSpendableType = _at(UtxosSpendableType, 'output')
-
-
-class CreationCohort(_Node, Generic[A, B, C, D, E, F]):
-    supply: A = _at(0, '*_supply')
-    capital: B = _at(1, '*')
-    utxos: CohortUtxos = _at(CohortUtxos, '*')
-    activity: C = _at(2, '*')
-    realized: D = _at(3, '*')
-    unrealized: E = _at(4, '*')
-    cost_basis: F = _at(5, '*')
-
-
-class Entry(_Node):
-    veteran: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*')
-    rookie: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), 'rookie')
-
-
-class Holders(_Node, Generic[A, B]):
-    all: A = _at(0, '')
-    sth: B = _at(1, 'sth')
-    lth: B = _at(1, 'lth')
-    under_4m: B = _at(1, '*_under_4m')
-    under_6m: B = _at(1, '*_under_6m')
-    over_4m: B = _at(1, '*_over_4m')
-    over_6m: B = _at(1, '*_over_6m')
-
-
-class Vintage(_Node):
-    _2009: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2009')
-    _2010: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2010')
-    _2011: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2011')
-    _2012: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2012')
-    _2013: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2013')
-    _2014: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2014')
-    _2015: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2015')
-    _2016: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2016')
-    _2017: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2017')
-    _2018: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2018')
-    _2019: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2019')
-    _2020: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2020')
-    _2021: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2021')
-    _2022: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2022')
-    _2023: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2023')
-    _2024: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2024')
-    _2025: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2025')
-    _2026: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2026')
-    _2027: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2027')
-
-
-class ByHalvingEpoch(_Node):
-    _0: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_0')
-    _1: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_1')
-    _2: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_2')
-    _3: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_3')
-    _4: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_4')
-    _5: CreationCohort[CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis] = _at((CreationCohort, CreationSupply, CreationCapital, CreationActivity, CreationRealized, CreationUnrealized, CohortCostBasis), '*_5')
-
-
-class Range(_Node):
-    supply: AgeCreationSupply = _at(AgeCreationSupply, '*')
-    capital: CreationCapital = _at(CreationCapital, '*')
-    utxos: CohortUtxos = _at(CohortUtxos, '*')
-    activity: AgeCreationActivity = _at(AgeCreationActivity, '*')
-    realized: CreationRealized = _at(CreationRealized, '*')
-    unrealized: CreationUnrealized = _at(CreationUnrealized, '*')
-    cost_basis: CohortCostBasis = _at(CohortCostBasis, '*')
-
-
-class AgeRange(_Node, Generic[A]):
-    under_1h: A = _at(0, '*_under_1h')
-    _1h_to_1d: A = _at(0, '*_1h_to_1d')
-    _1d_to_1w: A = _at(0, '*_1d_to_1w')
-    _1w_to_1m: A = _at(0, '*_1w_to_1m')
-    _1m_to_2m: A = _at(0, '*_1m_to_2m')
-    _2m_to_3m: A = _at(0, '*_2m_to_3m')
-    _3m_to_4m: A = _at(0, '*_3m_to_4m')
-    _4m_to_5m: A = _at(0, '*_4m_to_5m')
-    _5m_to_6m: A = _at(0, '*_5m_to_6m')
-    _6m_to_9m: A = _at(0, '*_6m_to_9m')
-    _9m_to_1y: A = _at(0, '*_9m_to_1y')
-    _1y_to_18m: A = _at(0, '*_1y_to_18m')
-    _18m_to_2y: A = _at(0, '*_18m_to_2y')
-    _2y_to_3y: A = _at(0, '*_2y_to_3y')
-    _3y_to_4y: A = _at(0, '*_3y_to_4y')
-    _4y_to_5y: A = _at(0, '*_4y_to_5y')
-    _5y_to_6y: A = _at(0, '*_5y_to_6y')
-    _6y_to_7y: A = _at(0, '*_6y_to_7y')
-    _7y_to_8y: A = _at(0, '*_7y_to_8y')
-    _8y_to_10y: A = _at(0, '*_8y_to_10y')
-    _10y_to_12y: A = _at(0, '*_10y_to_12y')
-    _12y_to_15y: A = _at(0, '*_12y_to_15y')
-    over_15y: A = _at(0, '*_over_15y')
-
-
-class Coinflow(_Node):
-    age_ranges: AgeRange[CoinflowRange] = _at((AgeRange, CoinflowRange), '*')
-    cohorts: Holders[CoinflowCohort, CoinflowCohort] = _at((Holders, CoinflowCohort, CoinflowCohort), '*')
-
-
-class Cointime(_Node):
-    activity: CointimeActivity = _at(CointimeActivity, 'coinblocks')
-    age_ranges: AgeRange[CointimeRange] = _at((AgeRange, CointimeRange), '*')
-    cohorts: Holders[CointimeCohort, CointimeCohort] = _at((Holders, CointimeCohort, CointimeCohort), '*')
-    supply: CointimeSupply = _at(CointimeSupply, 'supply')
-    value: CointimeValue = _at(CointimeValue, 'cointime_value')
-    caps: Caps = _at(Caps, 'cap')
-    prices: Prices = _at(Prices, 'vaulted')
-    adjusted: Adjusted = _at(Adjusted, 'cointime_adjusted')
-    reserve_risk: ReserveRisk = _at(ReserveRisk, 'reserve_risk')
-
-
-class Age(_Node):
-    ranges: AgeRange[Range] = _at((AgeRange, Range), '*')
-    halving_epochs: ByHalvingEpoch = _at(ByHalvingEpoch, 'halving_epoch')
-    vintages: Vintage = _at(Vintage, 'vintage')
-
-
-class Bucket(_Node):
-    output_count: Flow[Count] = _at(Flow, '*_output_count')
-    data_bytes: DataBytesSeries = _at(DataBytesSeries, '*_data')
-    tx_count: Flow[Count] = _at(Flow, '*_tx_count')
-    tx_share: Share = _at(Share, '*_tx_share')
-    tx_vsize: Flow[VSize] = _at(Flow, '*_tx_vsize')
-    fees: FeesSeries = _at(FeesSeries, '*')
-
-
-class Policy(_Node):
-    pre_v30_standard: Bucket = _at(Bucket, '*_pre_v30_standard')
-    pre_v30_nonstandard: Bucket = _at(Bucket, '*_pre_v30_nonstandard')
-    oversized: Bucket = _at(Bucket, '*_oversized')
-    multiple: Bucket = _at(Bucket, '*_multiple')
-
-
-class ByKind(_Node):
-    runes: Bucket = _at(Bucket, '*_runes')
-    witness_commitment: Bucket = _at(Bucket, '*_witness_commitment')
-    veriblock: Bucket = _at(Bucket, '*_veriblock')
-    omni: Bucket = _at(Bucket, '*_omni')
-    stacks: Bucket = _at(Bucket, '*_stacks')
-    blockstack: Bucket = _at(Bucket, '*_blockstack')
-    colu: Bucket = _at(Bucket, '*_colu')
-    open_assets: Bucket = _at(Bucket, '*_open_assets')
-    komodo: Bucket = _at(Bucket, '*_komodo')
-    coinspark: Bucket = _at(Bucket, '*_coinspark')
-    poet: Bucket = _at(Bucket, '*_poet')
-    docproof: Bucket = _at(Bucket, '*_docproof')
-    factom: Bucket = _at(Bucket, '*_factom')
-    eternity_wall: Bucket = _at(Bucket, '*_eternity_wall')
-    memo: Bucket = _at(Bucket, '*_memo')
-    bitproof: Bucket = _at(Bucket, '*_bitproof')
-    ascribe: Bucket = _at(Bucket, '*_ascribe')
-    stampery: Bucket = _at(Bucket, '*_stampery')
-    bare_hash: Bucket = _at(Bucket, '*_bare_hash')
-    text: Bucket = _at(Bucket, '*_text')
-    empty: Bucket = _at(Bucket, '*_empty')
-    unknown: Bucket = _at(Bucket, '*_unknown')
-
-
-class OpReturn(_Node):
-    flag: SeriesPattern19[Boolean] = _at(SeriesPattern19, 'has_*')
-    output_count: Flow[Count] = _at(Flow, '*_output_count')
-    data_bytes: DataBytesSeries = _at(DataBytesSeries, '*_data')
-    tx_count: Flow[Count] = _at(Flow, '*_tx_count')
-    tx_share: Share = _at(Share, '*_tx_share')
-    tx_vsize: Flow[VSize] = _at(Flow, '*_tx_vsize')
-    fees: FeesSeries = _at(FeesSeries, '*')
-    protocols: ByKind = _at(ByKind, '*')
-    policies: Policy = _at(Policy, '*')
-
-
-class OutputTypeSeries(_Node):
-    count: Flow[Count] = _at(Flow, '*_count')
-    share: Share = _at(Share, '*_share')
-    tx_count: Flow[Count] = _at(Flow, '*_tx_count')
-    tx_share: Share = _at(Share, '*_tx_share')
-
-
-class ByType(_Node):
-    p2pk: OutputTypeSeries = _at(OutputTypeSeries, 'p2pk_*')
-    p2pkh: OutputTypeSeries = _at(OutputTypeSeries, 'p2pkh_*')
-    p2ms: OutputTypeSeries = _at(OutputTypeSeries, 'p2ms_*')
-    p2sh: OutputTypeSeries = _at(OutputTypeSeries, 'p2sh_*')
-    p2wpkh: OutputTypeSeries = _at(OutputTypeSeries, 'p2wpkh_*')
-    p2wsh: OutputTypeSeries = _at(OutputTypeSeries, 'p2wsh_*')
-    p2tr: OutputTypeSeries = _at(OutputTypeSeries, 'p2tr_*')
-    p2a: OutputTypeSeries = _at(OutputTypeSeries, 'p2a_*')
-    unknown: OutputTypeSeries = _at(OutputTypeSeries, 'unknown_*')
-    empty: OutputTypeSeries = _at(OutputTypeSeries, 'empty_*')
-    op_return: OutputTypeSeries = _at(OutputTypeSeries, 'op_return_*')
-
-
-class Outputs(_Node):
-    spending_txin_index: SeriesPattern23[TxInIndex] = _at(SeriesPattern23, 'spending_txin_index')
-    count: FlowStats[Count, Optional[CountFract]] = _at(FlowStats, '*_count')
-    per_second: Windows[Optional[PerSecond]] = _at(Windows, 'outputs_per_second')
-    spendable_count: Flow[Count] = _at(Flow, 'spendable_*_count')
-    types: ByType = _at(ByType, '*')
-    op_return_value: ValueFlow = _at(ValueFlow, 'op_return_value')
-
-
-class SpendableType(_Node):
-    p2pk: OutputTypeSeries = _at(OutputTypeSeries, 'p2pk_*')
-    p2pkh: OutputTypeSeries = _at(OutputTypeSeries, 'p2pkh_*')
-    p2ms: OutputTypeSeries = _at(OutputTypeSeries, 'p2ms_*')
-    p2sh: OutputTypeSeries = _at(OutputTypeSeries, 'p2sh_*')
-    p2wpkh: OutputTypeSeries = _at(OutputTypeSeries, 'p2wpkh_*')
-    p2wsh: OutputTypeSeries = _at(OutputTypeSeries, 'p2wsh_*')
-    p2tr: OutputTypeSeries = _at(OutputTypeSeries, 'p2tr_*')
-    p2a: OutputTypeSeries = _at(OutputTypeSeries, 'p2a_*')
-    unknown: OutputTypeSeries = _at(OutputTypeSeries, 'unknown_*')
-    empty: OutputTypeSeries = _at(OutputTypeSeries, 'empty_*')
-
-
-class Inputs(_Node):
-    count: FlowStats[Count, Optional[CountFract]] = _at(FlowStats, '*_count')
-    per_second: Windows[Optional[PerSecond]] = _at(Windows, 'inputs_per_second')
-    types: SpendableType = _at(SpendableType, '*')
-
-
 class Blocks(_Node):
-    count: Flow[Count] = _at(Flow, '*_count')
+    count: CumulativeFlow = _at(CumulativeFlow, '*_count')
     interval: Averaged[Seconds, Optional[SecondsFract]] = _at(Averaged, '*_interval')
     size: FlowStats[Bytes, Optional[BytesFract]] = _at(FlowStats, '*_size')
     weight: FlowStats[Weight, Optional[WeightFract]] = _at(FlowStats, '*_weight')
-    fullness: SeriesPattern18[Optional[Percent]] = _at(SeriesPattern18, '*_fullness')
+    fullness: Fullness = _at(Fullness, '*_fullness')
     difficulty: BlocksDifficulty = _at(BlocksDifficulty, 'difficulty')
     halving: BlocksHalving = _at(BlocksHalving, 'halving')
 
@@ -4525,28 +4556,33 @@ class MappingsOpReturn(_Node):
     identity: SeriesPattern25[OpReturnIndex] = _at(SeriesPattern25, '*')
 
 
-class MappingsUnknown(_Node):
-    identity: SeriesPattern35[UnknownOutputIndex] = _at(SeriesPattern35, '*')
+class MappingsUnknownScript(_Node):
+    identity: SeriesPattern35[UnknownScriptOutputIndex] = _at(SeriesPattern35, '*')
 
 
-class Empty(_Node):
-    identity: SeriesPattern24[EmptyOutputIndex] = _at(SeriesPattern24, '*')
+class EmptyScript(_Node):
+    identity: SeriesPattern24[EmptyScriptOutputIndex] = _at(SeriesPattern24, '*')
 
 
 class MappingsP2ms(_Node):
     identity: SeriesPattern27[P2MSOutputIndex] = _at(SeriesPattern27, '*')
 
 
-class Output(_Node):
+class Script(_Node):
     p2ms: MappingsP2ms = _at(MappingsP2ms, 'p2ms_output_*')
-    empty: Empty = _at(Empty, 'empty_output_*')
-    unknown: MappingsUnknown = _at(MappingsUnknown, 'unknown_output_*')
+    empty_script: EmptyScript = _at(EmptyScript, 'empty_script_output_*')
+    unknown_script: MappingsUnknownScript = _at(MappingsUnknownScript, 'unknown_script_output_*')
     op_return: MappingsOpReturn = _at(MappingsOpReturn, 'op_return_*')
 
 
 class MappingsP2a(_Node):
     identity: SeriesPattern26[P2AAddressIndex] = _at(SeriesPattern26, '*_index')
     address: SeriesPattern26[Address] = _at(SeriesPattern26, '*')
+
+
+class MappingsP2tr(_Node):
+    identity: SeriesPattern32[P2TRAddressIndex] = _at(SeriesPattern32, '*_index')
+    address: SeriesPattern32[Address] = _at(SeriesPattern32, '*')
 
 
 class MappingsP2wsh(_Node):
@@ -4559,11 +4595,6 @@ class MappingsP2wpkh(_Node):
     address: SeriesPattern33[Address] = _at(SeriesPattern33, '*')
 
 
-class MappingsP2tr(_Node):
-    identity: SeriesPattern32[P2TRAddressIndex] = _at(SeriesPattern32, '*_index')
-    address: SeriesPattern32[Address] = _at(SeriesPattern32, '*')
-
-
 class MappingsP2sh(_Node):
     identity: SeriesPattern31[P2SHAddressIndex] = _at(SeriesPattern31, '*_index')
     address: SeriesPattern31[Address] = _at(SeriesPattern31, '*')
@@ -4574,50 +4605,14 @@ class MappingsP2pkh(_Node):
     address: SeriesPattern30[Address] = _at(SeriesPattern30, '*')
 
 
-class MappingsP2pk65(_Node):
-    identity: SeriesPattern29[P2PK65AddressIndex] = _at(SeriesPattern29, '*_index')
-    address: SeriesPattern29[Address] = _at(SeriesPattern29, '*')
-
-
 class MappingsP2pk33(_Node):
     identity: SeriesPattern28[P2PK33AddressIndex] = _at(SeriesPattern28, '*_index')
     address: SeriesPattern28[Address] = _at(SeriesPattern28, '*')
 
 
-class MappingsAddresses(_Node):
-    p2pk33: MappingsP2pk33 = _at(MappingsP2pk33, 'p2pk33_*')
-    p2pk65: MappingsP2pk65 = _at(MappingsP2pk65, 'p2pk65_*')
-    p2pkh: MappingsP2pkh = _at(MappingsP2pkh, 'p2pkh_*')
-    p2sh: MappingsP2sh = _at(MappingsP2sh, 'p2sh_*')
-    p2tr: MappingsP2tr = _at(MappingsP2tr, 'p2tr_*')
-    p2wpkh: MappingsP2wpkh = _at(MappingsP2wpkh, 'p2wpkh_*')
-    p2wsh: MappingsP2wsh = _at(MappingsP2wsh, 'p2wsh_*')
-    p2a: MappingsP2a = _at(MappingsP2a, 'p2a_*')
-
-
-class Mappings(_Node):
-    addresses: MappingsAddresses = _at(MappingsAddresses, 'address')
-    outputs: Output = _at(Output, 'index')
-    height: MappingsHeight = _at(MappingsHeight, 'block')
-    epoch: MappingsEpoch = _at(MappingsEpoch, 'first_height')
-    halving: MappingsHalving = _at(MappingsHalving, 'first_height')
-    minute10: MappingsMinute10 = _at(MappingsMinute10, 'first_height')
-    minute30: MappingsMinute30 = _at(MappingsMinute30, 'first_height')
-    hour1: MappingsHour1 = _at(MappingsHour1, 'first_height')
-    hour4: MappingsHour4 = _at(MappingsHour4, 'first_height')
-    hour12: MappingsHour12 = _at(MappingsHour12, 'first_height')
-    day1: MappingsDay1 = _at(MappingsDay1, '*')
-    day3: MappingsDay3 = _at(MappingsDay3, '*')
-    week1: MappingsWeek1 = _at(MappingsWeek1, '*')
-    month1: MappingsMonth1 = _at(MappingsMonth1, '*')
-    month3: MappingsMonth3 = _at(MappingsMonth3, '*')
-    month6: MappingsMonth6 = _at(MappingsMonth6, '*')
-    year1: MappingsYear1 = _at(MappingsYear1, '*')
-    year10: MappingsYear10 = _at(MappingsYear10, '*')
-    tx_index: MappingsTxIndex = _at(MappingsTxIndex, 'tx')
-    txin_index: TxinIndex = _at(TxinIndex, 'txin_index')
-    txout_index: TxoutIndex = _at(TxoutIndex, 'txout_index')
-    timestamp: Timestamps = _at(Timestamps, 'timestamp')
+class MappingsP2pk65(_Node):
+    identity: SeriesPattern29[P2PK65AddressIndex] = _at(SeriesPattern29, '*_index')
+    address: SeriesPattern29[Address] = _at(SeriesPattern29, '*')
 
 
 class IndexerOpReturn(_Node):
@@ -4627,10 +4622,15 @@ class IndexerOpReturn(_Node):
     post_op_return_bytes: SeriesPattern25[Bytes] = _at(SeriesPattern25, 'post_*_bytes')
 
 
-class IndexerUnknown(_Node):
-    first_index: SeriesPattern18[UnknownOutputIndex] = _at(SeriesPattern18, 'first_*_output_index')
+class IndexerUnknownScript(_Node):
+    first_index: SeriesPattern18[UnknownScriptOutputIndex] = _at(SeriesPattern18, 'first_*_output_index')
     tx_index: SeriesPattern35[TxIndex] = _at(SeriesPattern35, '*_output_tx_index')
     legacy_sigop_cost: SeriesPattern35[SigOps] = _at(SeriesPattern35, '*_legacy_sigop_cost')
+
+
+class ScriptType(_Node):
+    first_index: SeriesPattern18[EmptyScriptOutputIndex] = _at(SeriesPattern18, 'first_*_index')
+    tx_index: SeriesPattern24[TxIndex] = _at(SeriesPattern24, '*_tx_index')
 
 
 class IndexerP2ms(_Node):
@@ -4639,15 +4639,10 @@ class IndexerP2ms(_Node):
     legacy_sigop_cost: SeriesPattern27[SigOps] = _at(SeriesPattern27, '*_legacy_sigop_cost')
 
 
-class ScriptType(_Node):
-    first_index: SeriesPattern18[EmptyOutputIndex] = _at(SeriesPattern18, 'first_*_index')
-    tx_index: SeriesPattern24[TxIndex] = _at(SeriesPattern24, '*_tx_index')
-
-
 class Scripts(_Node):
-    empty: ScriptType = _at(ScriptType, '*')
     p2ms: IndexerP2ms = _at(IndexerP2ms, 'p2ms')
-    unknown: IndexerUnknown = _at(IndexerUnknown, 'unknown')
+    empty_script: ScriptType = _at(ScriptType, 'empty_*_output')
+    unknown_script: IndexerUnknownScript = _at(IndexerUnknownScript, 'unknown_*')
 
 
 class IndexerP2a(_Node):
@@ -4690,15 +4685,40 @@ class IndexerP2pk65(_Node):
     bytes: SeriesPattern29[P2PK65Bytes] = _at(SeriesPattern29, '*_bytes')
 
 
-class Addrs(_Node):
-    p2pk65: IndexerP2pk65 = _at(IndexerP2pk65, '*')
-    p2pk33: IndexerP2pk33 = _at(IndexerP2pk33, 'p2pk33')
-    p2pkh: IndexerP2pkh = _at(IndexerP2pkh, 'p2pkh')
-    p2sh: IndexerP2sh = _at(IndexerP2sh, 'p2sh')
-    p2wpkh: IndexerP2wpkh = _at(IndexerP2wpkh, 'p2wpkh')
-    p2wsh: IndexerP2wsh = _at(IndexerP2wsh, 'p2wsh')
-    p2tr: IndexerP2tr = _at(IndexerP2tr, 'p2tr')
-    p2a: IndexerP2a = _at(IndexerP2a, 'p2a')
+class Addrs(_Node, Generic[A, B, C, D, E, F, G, H]):
+    p2pk65: A = _at(0, 'p2pk65_*')
+    p2pk33: B = _at(1, 'p2pk33_*')
+    p2pkh: C = _at(2, 'p2pkh_*')
+    p2sh: D = _at(3, 'p2sh_*')
+    p2wpkh: E = _at(4, 'p2wpkh_*')
+    p2wsh: F = _at(5, 'p2wsh_*')
+    p2tr: G = _at(6, 'p2tr_*')
+    p2a: H = _at(7, 'p2a_*')
+
+
+class Mappings(_Node):
+    addresses: Addrs[MappingsP2pk65, MappingsP2pk33, MappingsP2pkh, MappingsP2sh, MappingsP2wpkh, MappingsP2wsh, MappingsP2tr, MappingsP2a] = _at((Addrs, MappingsP2pk65, MappingsP2pk33, MappingsP2pkh, MappingsP2sh, MappingsP2wpkh, MappingsP2wsh, MappingsP2tr, MappingsP2a), 'address')
+    scripts: Script = _at(Script, 'index')
+    height: MappingsHeight = _at(MappingsHeight, 'block')
+    epoch: MappingsEpoch = _at(MappingsEpoch, 'first_height')
+    halving: MappingsHalving = _at(MappingsHalving, 'first_height')
+    minute10: MappingsMinute10 = _at(MappingsMinute10, 'first_height')
+    minute30: MappingsMinute30 = _at(MappingsMinute30, 'first_height')
+    hour1: MappingsHour1 = _at(MappingsHour1, 'first_height')
+    hour4: MappingsHour4 = _at(MappingsHour4, 'first_height')
+    hour12: MappingsHour12 = _at(MappingsHour12, 'first_height')
+    day1: MappingsDay1 = _at(MappingsDay1, '*')
+    day3: MappingsDay3 = _at(MappingsDay3, '*')
+    week1: MappingsWeek1 = _at(MappingsWeek1, '*')
+    month1: MappingsMonth1 = _at(MappingsMonth1, '*')
+    month3: MappingsMonth3 = _at(MappingsMonth3, '*')
+    month6: MappingsMonth6 = _at(MappingsMonth6, '*')
+    year1: MappingsYear1 = _at(MappingsYear1, '*')
+    year10: MappingsYear10 = _at(MappingsYear10, '*')
+    tx_index: MappingsTxIndex = _at(MappingsTxIndex, 'tx')
+    txin_index: TxinIndex = _at(TxinIndex, 'txin_index')
+    txout_index: TxoutIndex = _at(TxoutIndex, 'txout_index')
+    timestamp: Timestamps = _at(Timestamps, 'timestamp')
 
 
 class IndexerOutputs(_Node):
@@ -4733,13 +4753,13 @@ class Transactions(_Node):
     count: FlowStats[Count, Optional[CountFract]] = _at(FlowStats, '*_count')
     features: Features = _at(Features, '*')
     vsize: PerTxDistribution[VSize] = _at(PerTxDistribution, '*_vsize')
-    fees: Fees = _at(Fees, 'fee')
+    fees: Fees = _at(Fees, '*')
     inscription: Inscription = _at(Inscription, 'inscription')
     patterns: Patterns = _at(Patterns, 'coinjoin')
     nonstandard: TransactionsFlagged = _at(TransactionsFlagged, 'nonstandard')
     sigop_cost: Flow[SigOps] = _at(Flow, 'block_sigop_cost')
     versions: VersionCount[TxCount] = _at((VersionCount, TxCount), '*')
-    volume: ValueFlow = _at(ValueFlow, '*_volume')
+    transfer_volume: ValueFlow = _at(ValueFlow, 'transfer_volume')
     per_second: Windows[Optional[PerSecond]] = _at(Windows, '*_per_second')
 
 
@@ -4755,16 +4775,16 @@ class Feature(_Node):
 
 class TransactionFeatures(_Node):
     p2pk: Feature = _at(Feature, 'p2pk')
-    p2ms: Feature = _at(Feature, 'p2ms')
     p2pkh: Feature = _at(Feature, 'p2pkh')
+    p2ms: Feature = _at(Feature, 'p2ms')
     p2sh: Feature = _at(Feature, 'p2sh')
     p2wpkh: Feature = _at(Feature, 'p2wpkh')
     p2wsh: Feature = _at(Feature, 'p2wsh')
     p2tr: Feature = _at(Feature, 'p2tr')
     p2a: Feature = _at(Feature, 'p2a')
-    op_return: Feature = _at(Feature, 'op_return')
     empty_script: Feature = _at(Feature, 'empty_script')
     unknown_script: Feature = _at(Feature, 'unknown_script')
+    op_return: Feature = _at(Feature, 'op_return')
     fake_pubkey: Feature = _at(Feature, 'fake_pubkey')
     fake_scripthash: Feature = _at(Feature, 'fake_scripthash')
     inscription: Feature = _at(Feature, 'inscription')
@@ -4812,8 +4832,8 @@ class Indexer(_Node):
     transactions: IndexerTransactions = _at(IndexerTransactions, '*')
     inputs: IndexerInputs = _at(IndexerInputs, 'index')
     outputs: IndexerOutputs = _at(IndexerOutputs, 'output')
-    addresses: Addrs = _at(Addrs, 'p2pk65')
-    scripts: Scripts = _at(Scripts, 'empty_output')
+    addresses: Addrs[IndexerP2pk65, IndexerP2pk33, IndexerP2pkh, IndexerP2sh, IndexerP2wpkh, IndexerP2wsh, IndexerP2tr, IndexerP2a] = _at((Addrs, IndexerP2pk65, IndexerP2pk33, IndexerP2pkh, IndexerP2sh, IndexerP2wpkh, IndexerP2wsh, IndexerP2tr, IndexerP2a), '')
+    scripts: Scripts = _at(Scripts, 'script')
     op_return: IndexerOpReturn = _at(IndexerOpReturn, 'op_return')
 
 
@@ -4825,7 +4845,7 @@ class SeriesTree(_Node):
     inputs: Inputs = _at(Inputs, 'input')
     outputs: Outputs = _at(Outputs, 'output')
     transactions: Transactions = _at(Transactions, 'tx')
-    mining: Mining = _at(Mining, 'coinbase')
+    mining: Mining = _at(Mining, 'hash')
     op_return: OpReturn = _at(OpReturn, 'op_return')
     pools: Pools = _at(Pools, 'pool')
     utxo_set: UtxoSetSeries = _at(UtxoSetSeries, 'circulating_supply')
@@ -4833,8 +4853,8 @@ class SeriesTree(_Node):
     age: Age = _at(Age, 'age')
     utxos: Utxos = _at(Utxos, 'amount')
     addresses: Addresses = _at(Addresses, 'address')
-    holders: Holders[CreationCohort[AllSupply, Capital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis], CreationCohort[LthSupply, Capital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis]] = _at((Holders, (CreationCohort, AllSupply, Capital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis), (CreationCohort, LthSupply, Capital, HoldersActivity, HoldersRealized, Unrealized, HoldersCostBasis)), 'age')
-    entry: Entry = _at(Entry, 'veteran')
+    holders: Holders = _at(Holders, 'age')
+    entry: Entry = _at(Entry, 'entry')
     profitability: Profitability = _at(Profitability, 'sth')
     supply: Supply = _at(Supply, 'circulating_supply')
     cointime: Cointime = _at(Cointime, 'age')
@@ -4868,7 +4888,7 @@ class BitviewClient(BitviewClientBase):
       "tx_index",
       "txin_index",
       "txout_index",
-      "empty_output_index",
+      "empty_script_output_index",
       "op_return_index",
       "p2a_address_index",
       "p2ms_output_index",
@@ -4879,7 +4899,7 @@ class BitviewClient(BitviewClientBase):
       "p2tr_address_index",
       "p2wpkh_address_index",
       "p2wsh_address_index",
-      "unknown_output_index"
+      "unknown_script_output_index"
     ]
 
     POOL_ID_TO_POOL_NAME = {
@@ -5196,15 +5216,15 @@ class BitviewClient(BitviewClientBase):
     }
 
     ENTRY_NAMES = {
-      "veteran": {
-        "id": "veteran",
-        "short": "Veteran",
-        "long": "Veteran Coins"
+      "discount": {
+        "id": "discount",
+        "short": "Discount",
+        "long": "Discount Coins"
       },
-      "rookie": {
-        "id": "rookie",
-        "short": "Rookie",
-        "long": "Rookie Coins"
+      "premium": {
+        "id": "premium",
+        "short": "Premium",
+        "long": "Premium Coins"
       }
     }
 
@@ -5249,15 +5269,15 @@ class BitviewClient(BitviewClientBase):
         "short": "P2A",
         "long": "Pay to Anchor"
       },
-      "unknown": {
-        "id": "unknown_output",
-        "short": "Unknown",
-        "long": "Unknown Output Type"
-      },
-      "empty": {
-        "id": "empty_output",
+      "empty_script": {
+        "id": "empty_script",
         "short": "Empty",
-        "long": "Empty Output"
+        "long": "Empty Script"
+      },
+      "unknown_script": {
+        "id": "unknown_script",
+        "short": "Unknown",
+        "long": "Unknown Script"
       }
     }
 

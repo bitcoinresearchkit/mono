@@ -3,7 +3,7 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
 use brk_error::Result;
 
-use super::{STORAGE, Vecs, hashrate, rewards};
+use super::{STORAGE, Vecs, hash, rewards};
 
 impl Vecs {
     pub fn import(
@@ -15,12 +15,12 @@ impl Vecs {
         let version = STORAGE.schema_version();
 
         let rewards = rewards::Vecs::import(&db, version, mappings, window_starts)?;
-        let hashrate = hashrate::Vecs::import(&db, version, mappings)?;
+        let hash = hash::Vecs::import(&db, version, mappings)?;
 
         let this = Self {
             db,
             rewards,
-            hashrate,
+            hash,
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

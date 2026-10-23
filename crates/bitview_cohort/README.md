@@ -20,7 +20,7 @@ Each collection holds one value per member and is built from its identifier with
 | `AmountRange` | `AmountRangeId` | 15 disjoint amount buckets, `0_sats` to `over_100k_btc` |
 | `ByHalvingEpoch` | `HalvingEpochId` | halving epochs |
 | `Vintage` | `VintageId` | creation years (vintages) |
-| `ByEntry` | `EntryPrice` | entry-price group: veteran (bought at a discount) or rookie |
+| `ByEntry` | `EntryPrice` | entry-price group: discount (at or below the capitalized price) or premium |
 | `SpendableType` | `SpendableTypeId` | spendable output types, P2PK merged across key sizes |
 | `ByType` | `OutputTypeId` | the spendable types plus OP_RETURN (`UnspendableType`) |
 | `AddressType` | `AddressTypeId` | address types as analytics count them: P2PK merged, P2A excluded |
@@ -34,10 +34,10 @@ and include P2A, are `bitview_primitives::ByAddrType`/`AddrTypeId`.
 `CohortId` identifies a supported cohort and supplies its canonical name. It composes the same selectors the
 collections use; there is no separate filter representation or caller-supplied cohort name.
 
-`CohortContext` names series. A cohort whose value names itself is bare (`sth`, `p2tr`, `veteran`); any other is its
+`CohortContext` names series. A cohort whose value names itself is bare (`sth`, `p2tr`); any other is its
 attribute and its value: age bands and cutoffs `age_<band>` (`age_2y_to_3y`, `age_under_4m`), `Utxo` amounts
 `amount_<band>` (`amount_1k_to_10k_sats`), `Balance` amounts `balance_<band>` (address balance cohorts use
-`AmountRange` in this context). Durations keep their unit on both ends; amounts write theirs once. `All` adds
+`AmountRange` in this context), entry prices `entry_<side>` (`entry_discount`). Durations keep their unit on both ends; amounts write theirs once. `All` adds
 nothing.
 
 ```rust,ignore

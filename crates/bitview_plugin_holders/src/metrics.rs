@@ -1,51 +1,86 @@
-use bitview_cohort::AgeAggregateId;
+use bitview_cohort::{AgeAggregateId, BuildMember, UpdateMember};
 use bitview_distribution::metrics::UtxoViews;
-use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyWindowStartVec, shapes::Windows};
-use brk_error::Result;
-use brk_exit::Exit;
-use brk_types::{Cents, Height, Sats, Version};
-use vecdb::{AnyStoredVec, Database, ReadableBoxedVec, ReadableVec, Rw, StorageMode};
+use brk_error::{Error, Result};
+use brk_types::{Cents, Height};
+use vecdb::{ReadableVec, Rw, StorageMode};
 
 use crate::{
     activity::Activity,
-    capital::Capital,
-    columns::Columns,
-    cost_basis::{CostBasis, CostBasisVecs},
+    adjusted_sopr::AdjustedRealized,
+    capital::{Capital, SharedCapital},
+    cost_basis::CostBasis,
     realized::Realized,
-    supply::Supply,
+    section::{CohortCompute, Imports, Rest, Section},
+    supply::{SharedSupply, Supply},
     unrealized::Unrealized,
 };
 
+/// The sections that differ by holder group: what [`Metrics`] holds as its supply, capital and
+/// realized flows.
+pub trait Kind {
+    type Supply<M: StorageMode>;
+    type Capital<M: StorageMode>;
+    type Realized<M: StorageMode>;
+}
+
+/// All coins: no shares of all (100% throughout).
+pub struct All;
+/// The groups holding outputs under an hour old but not all (`sth`, `under_4m`, `under_6m`):
+/// shares of all and aSOPR.
+pub struct Young;
+/// The groups holding no output under an hour old (`lth`, `over_4m`, `over_6m`): shares of all,
+/// no aSOPR (it equals their SOPR).
+pub struct Old;
+
+impl Kind for All {
+    type Supply<M: StorageMode> = Supply<M>;
+    type Capital<M: StorageMode> = Capital<M>;
+    type Realized<M: StorageMode> = AdjustedRealized<M>;
+}
+impl Kind for Young {
+    type Supply<M: StorageMode> = SharedSupply<M>;
+    type Capital<M: StorageMode> = SharedCapital<M>;
+    type Realized<M: StorageMode> = AdjustedRealized<M>;
+}
+impl Kind for Old {
+    type Supply<M: StorageMode> = SharedSupply<M>;
+    type Capital<M: StorageMode> = SharedCapital<M>;
+    type Realized<M: StorageMode> = Realized<M>;
+}
+
+/// A holder group's series, its sections by its [`Kind`].
 #[derive(Traversable)]
-pub struct Metrics<M: StorageMode = Rw> {
-    pub supply: Supply<M>,
-    pub capital: Capital<M>,
+pub struct Metrics<K: Kind, M: StorageMode = Rw> {
+    pub supply: K::Supply<M>,
+    pub capital: K::Capital<M>,
     utxos: UtxoViews,
     pub activity: Activity<M>,
-    pub realized: Realized<M>,
+    pub realized: K::Realized<M>,
     unrealized: Unrealized,
     pub cost_basis: CostBasis<M>,
-    #[traversable(hidden)]
-    pub(crate) columns: Columns<M>,
 }
-impl Metrics {
-    pub(crate) fn import(
-        db: &Database,
-        id: AgeAggregateId,
-        v: Version,
-        mappings: &Mappings,
-        windows: &Windows<&LazyWindowStartVec>,
-        spot: &ReadableBoxedVec<Height, Cents>,
-        sources: &CostBasisVecs,
-    ) -> Result<Self> {
-        let columns = Columns::import(db, id, v)?;
-        let c = &columns;
-        let cost_basis = CostBasis::import(db, id, v, c, mappings, sources)?;
+
+impl<K: Kind> BuildMember<Imports<'_>> for Metrics<K>
+where
+    K::Supply<Rw>: Section,
+    K::Capital<Rw>: Section,
+    K::Realized<Rw>: Section,
+{
+    type Error = Error;
+    fn build(id: AgeAggregateId, cx: &Imports) -> Result<Self> {
+        let Imports {
+            db,
+            v,
+            mappings,
+            windows,
+            cost_basis,
+            ..
+        } = *cx;
+        let c = id.select(cx.columns);
         Ok(Self {
-            supply: Supply::import(db, id, v, c, mappings, windows, spot)?,
-            capital: Capital::import(db, id, v, c, mappings, windows)?,
+            supply: Section::import(id, cx)?,
+            capital: Section::import(id, cx)?,
             utxos: UtxoViews::new(
                 |metric| id.metric_name(metric),
                 v,
@@ -56,46 +91,50 @@ impl Metrics {
                 windows,
             ),
             activity: Activity::import(db, id, v, c, mappings, windows)?,
-            realized: Realized::import(db, id, v, c, mappings, windows)?,
+            realized: Section::import(id, cx)?,
             unrealized: Unrealized::new(id, v, c, mappings),
-            cost_basis,
-            columns,
+            cost_basis: CostBasis::import(db, id, v, c, mappings, cost_basis)?,
         })
     }
-    pub(crate) fn compute_rest(
-        &mut self,
-        from: Height,
-        all_supply: &ReadableBoxedVec<Height, Sats>,
-        all_capital: &ReadableBoxedVec<Height, Cents>,
-        spot: &impl ReadableVec<Height, Cents>,
-        exit: &Exit,
-    ) -> Result<()> {
+}
+
+impl<K: Kind, S: ReadableVec<Height, Cents>> UpdateMember<Rest<'_, S>> for Metrics<K>
+where
+    K::Supply<Rw>: Section,
+    K::Capital<Rw>: Section,
+    K::Realized<Rw>: Section,
+{
+    type Error = Error;
+    /// Derives the group's series from its columns after the block loop.
+    fn update(&mut self, id: AgeAggregateId, rest: &Rest<S>) -> Result<()> {
+        let Rest {
+            from,
+            columns,
+            all_supply,
+            all_capital,
+            spot,
+            exit,
+        } = *rest;
         let Self {
             supply,
             capital,
             activity,
             realized,
             cost_basis,
-            columns: c,
             ..
         } = self;
-        supply.compute(from, c, all_supply, exit)?;
-        capital.compute(from, c, all_capital, exit)?;
         activity.compute(from, exit)?;
-        realized.compute(from, c, activity, exit)?;
+        let cx = CohortCompute {
+            from,
+            c: id.select(columns),
+            all_supply,
+            all_capital,
+            activity,
+            exit,
+        };
+        supply.compute(&cx)?;
+        capital.compute(&cx)?;
+        realized.compute(&cx)?;
         cost_basis.compute(from, spot, exit)
-    }
-    /// The columns the block loop writes.
-    pub(crate) fn state_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.columns.iter_any_stored_mut()
-    }
-    /// The outputs [`Self::compute_rest`] derives from the columns.
-    pub(crate) fn derived_vecs_mut(&mut self) -> impl Iterator<Item = &mut dyn AnyStoredVec> {
-        self.supply
-            .iter_any_stored_mut()
-            .chain(self.capital.iter_any_stored_mut())
-            .chain(self.activity.iter_any_stored_mut())
-            .chain(self.realized.iter_any_stored_mut())
-            .chain(self.cost_basis.iter_any_stored_mut())
     }
 }

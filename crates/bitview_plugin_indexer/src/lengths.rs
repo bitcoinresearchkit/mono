@@ -29,9 +29,9 @@ impl IndexerLengths for Lengths {
             .first_txout_index
             .debug_checked_push(height, self.txout_index);
         vecs.scripts
-            .empty
+            .empty_script
             .first_index
-            .debug_checked_push(height, self.empty_output_index);
+            .debug_checked_push(height, self.empty_script_output_index);
         vecs.scripts
             .p2ms
             .first_index
@@ -40,9 +40,9 @@ impl IndexerLengths for Lengths {
             .first_index
             .debug_checked_push(height, self.op_return_index);
         vecs.scripts
-            .unknown
+            .unknown_script
             .first_index
-            .debug_checked_push(height, self.unknown_output_index);
+            .debug_checked_push(height, self.unknown_script_output_index);
         push_addr_first_indexes(self, vecs);
     }
 
@@ -81,9 +81,9 @@ impl IndexerLengths for Lengths {
 
 fn collect_at(height: Height, vecs: &Vecs) -> Option<Lengths> {
     let mut lengths = Lengths {
-        empty_output_index: next_index(
-            &vecs.scripts.empty.first_index,
-            &vecs.scripts.empty.to_tx_index,
+        empty_script_output_index: next_index(
+            &vecs.scripts.empty_script.first_index,
+            &vecs.scripts.empty_script.to_tx_index,
             height,
         )?,
         height,
@@ -108,9 +108,9 @@ fn collect_at(height: Height, vecs: &Vecs) -> Option<Lengths> {
             height,
         )?,
         txout_index: next_index(&vecs.outputs.first_txout_index, &vecs.outputs.value, height)?,
-        unknown_output_index: next_index(
-            &vecs.scripts.unknown.first_index,
-            &vecs.scripts.unknown.to_tx_index,
+        unknown_script_output_index: next_index(
+            &vecs.scripts.unknown_script.first_index,
+            &vecs.scripts.unknown_script.to_tx_index,
             height,
         )?,
         ..Lengths::default()

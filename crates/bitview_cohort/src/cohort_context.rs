@@ -9,14 +9,15 @@ pub enum CohortContext {
 }
 
 impl CohortContext {
-    /// The canonical name: a cohort whose value names itself (`sth`, `p2tr`, `veteran`) bare,
-    /// otherwise its attribute and its value (`age_2y_to_3y`, `amount_1k_to_10k_sats`,
-    /// `balance_1k_to_10k_sats`).
+    /// The canonical name: a cohort whose value names itself (`sth`, `p2tr`) bare, otherwise its
+    /// attribute and its value (`age_2y_to_3y`, `amount_1k_to_10k_sats`, `balance_1k_to_10k_sats`,
+    /// `entry_discount`).
     pub fn full_name(&self, id: CohortId) -> String {
         match (self, id) {
             (_, CohortId::Age(age)) => age.full_name(),
             (CohortContext::Utxo, CohortId::Amount(_)) => format!("amount_{}", id.name()),
             (CohortContext::Balance, CohortId::Amount(_)) => format!("balance_{}", id.name()),
+            (_, CohortId::Entry(_)) => format!("entry_{}", id.name()),
             _ => id.name().to_owned(),
         }
     }

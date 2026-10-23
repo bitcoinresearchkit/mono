@@ -38,10 +38,10 @@ impl Vecs {
             total_cumulative: PcoVec::import(db, "fee_total_cumulative", fee_version)?,
             coinbase_value: PcoVec::import(db, "coinbase_value", fee_version)?,
             fee: PerTxDistribution::import(db, "tx_fee", fee_version, mappings)?,
-            fee_rate: PcoVec::import(db, "fee_rate", fee_version)?,
+            fee_rate: PcoVec::import(db, "tx_fee_rate", fee_version)?,
             effective_fee_rate: PerTxDistribution::import(
                 db,
-                "effective_fee_rate",
+                "tx_effective_fee_rate",
                 fee_version + CHUNK_VERSION,
                 mappings,
             )?,

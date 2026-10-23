@@ -246,9 +246,9 @@ impl Query {
         };
         let daily_hashrate = plugins
             .mining
+            .hash
             .hashrate
-            .rate
-            .block
+            .value
             .day1
             .read_sorted_at(&days);
         let first_height = &plugins.mappings.day1.first_height;

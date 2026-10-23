@@ -45,11 +45,11 @@ pub struct Scripts<M: StorageMode = Rw> {
     /// Transactions that create or, outside coinbase, spend at least one P2PK-shaped output with a 33- or 65-byte key
     /// field.
     pub p2pk: Flagged<FlagView, Windowed<M>>,
+    /// Transactions that create or, outside coinbase, spend at least one pay-to-public-key-hash output.
+    pub p2pkh: Flagged<FlagView, Windowed<M>>,
     /// Transactions that create or, outside coinbase, spend at least one bare multisig output recognized by Bitcoin
     /// script parsing.
     pub p2ms: Flagged<FlagView, Windowed<M>>,
-    /// Transactions that create or, outside coinbase, spend at least one pay-to-public-key-hash output.
-    pub p2pkh: Flagged<FlagView, Windowed<M>>,
     /// Transactions that create or, outside coinbase, spend at least one pay-to-script-hash output.
     pub p2sh: Flagged<FlagView, Windowed<M>>,
     /// Transactions that create or, outside coinbase, spend at least one version-0 pay-to-witness-public-key-hash

@@ -1,6 +1,5 @@
 use bitview_compute::{ExtremaWindow, Retained};
 use bitview_traversable::Traversable;
-use bitview_vecs::LazyFiatPerBlock;
 use brk_types::Cents;
 use vecdb::{Rw, StorageMode};
 
@@ -16,9 +15,5 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// window, including the represented block. Windows start no earlier than the
     /// first exchange price (block 74,641); null before it.
     pub max: PriceMinMaxVecs<M>,
-    /// Absolute difference in USD per BTC between the represented and
-    /// previous blocks' spot prices. The genesis block is zero; this is not an
-    /// open-high-low-close price range.
-    pub true_range: LazyFiatPerBlock<Cents>,
     pub(super) extrema: M::WriteOnly<[Retained<ExtremaWindow<Cents>>; 3]>,
 }

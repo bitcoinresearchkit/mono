@@ -11,7 +11,7 @@ use vecdb::{Budgeted, ImportableVec, IndexVec, PcoVec, ReadableCloneableVec};
 
 use crate::{
     STORAGE, Vecs,
-    addr::{OutputVecs, Vecs as AddressesVecs},
+    addr::{ScriptVecs, Vecs as AddressesVecs},
     chain_counts::ChainCounts,
     height::Vecs as HeightVecs,
     height_lookup::HeightLookup,
@@ -28,7 +28,7 @@ impl Vecs {
         let version = STORAGE.schema_version();
 
         let addresses = AddressesVecs::new(version, indexer);
-        let outputs = OutputVecs::new(version, indexer);
+        let scripts = ScriptVecs::new(version, indexer);
         let monotonic =
             PcoVec::<Height, Timestamp, Budgeted>::import(&db, "timestamp_monotonic", version)?;
         let chain_counts = ChainCounts::new(version, indexer);
@@ -169,7 +169,7 @@ impl Vecs {
             tx_heights: HeightLookup::init(&indexer.vecs().transactions.first_tx_index),
             output_heights: HeightLookup::init(&indexer.vecs().outputs.first_txout_index),
             addresses,
-            outputs,
+            scripts,
             height,
             epoch,
             halving,

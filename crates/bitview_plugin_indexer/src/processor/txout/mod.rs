@@ -162,22 +162,22 @@ pub fn finalize_outputs(
                     }
                     OutputType::Empty => {
                         scripts
-                            .empty
+                            .empty_script
                             .to_tx_index
-                            .debug_checked_push(lengths.empty_output_index, tx_index);
-                        lengths.empty_output_index.copy_then_increment()
+                            .debug_checked_push(lengths.empty_script_output_index, tx_index);
+                        lengths.empty_script_output_index.copy_then_increment()
                     }
                     OutputType::Unknown => {
-                        let index = lengths.unknown_output_index;
+                        let index = lengths.unknown_script_output_index;
                         scripts
-                            .unknown
+                            .unknown_script
                             .to_tx_index
                             .debug_checked_push(index, tx_index);
                         scripts
-                            .unknown
+                            .unknown_script
                             .legacy_sigop_cost
                             .debug_checked_push(index, legacy_sigop_cost);
-                        lengths.unknown_output_index.copy_then_increment()
+                        lengths.unknown_script_output_index.copy_then_increment()
                     }
                     _ => unreachable!(),
                 },

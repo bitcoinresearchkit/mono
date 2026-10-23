@@ -17,16 +17,16 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// proved per ten-minute target) over the trailing 24 hours and divides by
     /// the 144 blocks expected at Bitcoin's ten-minute target, so a window
     /// spanning a difficulty adjustment weighs each block by its own difficulty.
-    pub rate: RateVecs<M>,
+    pub hashrate: RateVecs<M>,
     /// Hashprice: estimated miner revenue over the trailing 24-hour window, with each
     /// coinbase output valued in USD at its block's spot price, divided by the
     /// represented block's estimated network hash rate. It estimates daily USD
     /// revenue per PH/s of mining hash rate, before costs. Null until the window
     /// is fully priced (it starts at or after the first exchange price, block 74,641).
-    pub price: HashPriceValueVecs<HashPrice, M>,
+    pub hash_price: HashPriceValueVecs<HashPrice, M>,
     /// Coinbase output value in satoshis over the trailing 24-hour window,
     /// divided by the represented block's estimated network hash rate. It
     /// estimates daily revenue in satoshis per PH/s of mining hash rate, before
     /// costs.
-    pub value: HashPriceValueVecs<HashValue, M>,
+    pub hash_value: HashPriceValueVecs<HashValue, M>,
 }

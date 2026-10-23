@@ -23,7 +23,7 @@ mod vintage;
 
 pub use address_type::*;
 pub use age::Age;
-pub use age_aggregate::{AgeAggregate, AgeAggregateId};
+pub use age_aggregate::{AgeAggregate, AgeAggregateId, BuildMember, UpdateMember};
 pub use age_range::*;
 pub use amount_range::*;
 pub use by_entry::*;

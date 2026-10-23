@@ -230,8 +230,8 @@ export function studioPresets(client, facts) {
   const usd = (n) => (isLeaf(n) ? undefined : n?.usd);
   /** An amount as layers: its bitcoin, and its dollars' value below when it has them. @param {any} node @param {string} label */
   const amount = (node, label) => [series(btc(node), label, { color: "orange" }), ...(usd(node) ? [series(usd(node), "Value", { color: "green", pane: 2 })] : [])];
-  /** A series' node, or its `block` (a node with its own series under `block`, beside others). @param {any} n */
-  const own = (n) => (isLeaf(n) ? n : n?.block);
+  /** A series' node, or its `value` (a level with its own series under `value`, beside others). @param {any} n */
+  const own = (n) => (isLeaf(n) ? n : n?.value);
   /** A baseline at `base`: green above, red below (a ratio's base 1, a change's 0). @param {number} [base] @returns {Layer} */
   const around = (base = 0) => ({ type: "baseline", color: "green", colorBelow: "red", ...(base ? { base } : {}) });
   const baseline = around(0);
@@ -442,8 +442,8 @@ export function studioPresets(client, facts) {
     return /** @type {Record<string, [any, any]>} */ ({
       realizedPrice: [cost?.byCoin.realizedPrice, cost?.byCoin.avg.mvrv],
       capitalizedPrice: [cost?.byDollar.capitalizedPrice, cost?.byDollar.avg.ratio],
-      vaultedPrice: [ct.prices.vaulted.block, ct.prices.vaulted.ratio],
-      trueMarketMean: [ct.prices.trueMarketMean.block, ct.prices.trueMarketMean.ratio],
+      vaultedPrice: [ct.prices.vaulted.value, ct.prices.vaulted.ratio],
+      trueMarketMean: [ct.prices.trueMarketMean.value, ct.prices.trueMarketMean.ratio],
     })[key];
   };
   /**
@@ -557,7 +557,7 @@ export function studioPresets(client, facts) {
     return [...build(pick(["all", "sth", "lth"]), "holder group"), ...(cutoffs.length ? [section("Age cutoffs", build(cutoffs, "age cutoff"))] : [])];
   };
   /** Where an entry cohort came in, by its key, against the capitalized price then. @type {Record<string, string>} */
-  const ENTERED = { veteran: "at or below", rookie: "above" };
+  const ENTERED = { discount: "at or below", premium: "above" };
   const holderName = (/** @type {string} */ key) => ({ name: HOLDERS[key]?.[0] ?? key, who: HOLDERS[key]?.[1] ?? key, of: (/** @type {string} */ coins) => `${coins}${HOLDERS[key]?.[2] ?? `, ${key}`}` });
 
   // ── The tree ──────────────────────────────────────────────────────────────
@@ -596,8 +596,6 @@ export function studioPresets(client, facts) {
       section("Moving averages", [averages(m.sma, "SMA"), averages(m.ema, "EMA")]),
       section("Range", [
         ...entries(m.range.max).map(([key]) => chart(`${windowAdjective(key)} high and low`, `Price's ${windowAdjective(key)} high and low`, [price(), series(m.range.max[key], "High", { color: "green" }), series(m.range.min[key], "Low", { color: "red" }), { cloud: ["B", "C"], label: "Range", color: "sky", opacity: 0.1 }])),
-        // (`trueRange` is the absolute change of the price from one block to the next, a day's its last: not a daily range.)
-        chart("Block-to-block change", "Price's absolute change from one block to the next", [series(m.range.trueRange, "Change", { color: "sky" })], { log: [1] }),
       ]),
       section("Technical", [
         chart("RSI", "Relative strength index of the price", [price(), { formula: "rsi(A)", label: "RSI", pane: 2, color: "violet", levels: [{ value: 30, color: "green", dash: 3 }, { value: 70, color: "red", dash: 3 }] }]),
@@ -625,17 +623,17 @@ export function studioPresets(client, facts) {
       // (How far market cap is over realized cap, in market cap's deviations over all history: over 7, its tops.)
       chart("MVRV Z-score", "MVRV Z-score", [price(), { formula: `(${t.holders.all.supply.total.usd.name} - ${t.holders.all.capital.realizedCap.name}) / stdev(${t.holders.all.supply.total.usd.name})`, label: "MVRV Z-score", pane: 2, format: "number", ...baseline, levels: [{ value: 7, color: "red", dash: 3, name: "Top zone" }] }]),
       chart("NUPL", "Net unrealized profit and loss (NUPL)", [price(), series(t.holders.all.unrealized.nupl, "NUPL", { pane: 2, ...baseline, levels: [0.25, 0.5, 0.75].map((value) => ({ value, color: "gray", dash: 3 })) })]),
-      chart("On-chain prices", "Realized, true market mean, Cointime and capitalized prices", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: "orange" }), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" }), series(ct.prices.cointime.block, "Cointime price", { color: "violet" }), series(t.holders.all.costBasis.byDollar.capitalizedPrice, "Capitalized price", { color: "green" })]),
+      chart("On-chain prices", "Realized, true market mean, Cointime and capitalized prices", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: "orange" }), series(ct.prices.trueMarketMean.value, "True market mean", { color: "sky" }), series(ct.prices.cointime.value, "Cointime price", { color: "violet" }), series(t.holders.all.costBasis.byDollar.capitalizedPrice, "Capitalized price", { color: "green" })]),
       cloudsChart(),
       chart("Cointime caps", "Cointime capitalizations", [...[["thermo", "Thermo cap"], ["investor", "Investor cap"], ["active", "Active cap"], ["vaulted", "Vaulted cap"], ["cointime", "Cointime cap"]].map(([key, label], i) => series(ct.caps[key], label, { color: ["orange", "green", "red", "sky", "violet"][i] })), series(ct.caps.investorness, "Investorness", { pane: 2, color: "green" }), series(ct.caps.producerness, "Producerness", { pane: 2, color: "orange" })], { log: [1] }),
-      chart("Reserve risk", "Reserve risk", [price(), series(ct.reserveRisk.block, "Reserve risk", { pane: 2, color: "orange" }), series(ct.reserveRisk.hodlBank, "HODL bank", { pane: 3, color: "sky" })], { log: [2, 3] }),
+      chart("Reserve risk", "Reserve risk", [price(), series(ct.reserveRisk.value, "Reserve risk", { pane: 2, color: "orange" }), series(ct.reserveRisk.hodlBank, "HODL bank", { pane: 3, color: "sky" })], { log: [2, 3] }),
       // (By its short name, as MVRV and NUPL are, the long one in its title: long, it and its all-time twin read alike, cut short.)
       ...flow(ct.reserveRisk.vocdd, "VOCDD", "Value of coin days destroyed (VOCDD)"),
       section("Cointime prices", [
-        chart("Compare", "Cointime prices", [price(), ...[["vaulted", "Vaulted price"], ["active", "Active price"], ["cointime", "Cointime price"]].map(([key, label], i) => series(ct.prices[key].block, label, { color: ["green", "red", "violet"][i] })), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" })]),
-        ...[["vaulted", "Vaulted price"], ["active", "Active price"], ["cointime", "Cointime price"]].map(([key, label]) => chart(label, label, [price(), series(ct.prices[key].block, label, { color: "sky" }), series(ct.prices[key].mvrv, "MVRV", { pane: 2, ...around(1) })], { log: [2] })),
+        chart("Compare", "Cointime prices", [price(), ...[["vaulted", "Vaulted price"], ["active", "Active price"], ["cointime", "Cointime price"]].map(([key, label], i) => series(ct.prices[key].value, label, { color: ["green", "red", "violet"][i] })), series(ct.prices.trueMarketMean.value, "True market mean", { color: "sky" })]),
+        ...[["vaulted", "Vaulted price"], ["active", "Active price"], ["cointime", "Cointime price"]].map(([key, label]) => chart(label, label, [price(), series(ct.prices[key].value, label, { color: "sky" }), series(ct.prices[key].mvrv, "MVRV", { pane: 2, ...around(1) })], { log: [2] })),
         timeAboveChart(),
-        chart("True market mean", "True market mean and AVIV", [price(), series(ct.prices.trueMarketMean.block, "True market mean", { color: "sky" }), series(ct.prices.trueMarketMean.aviv, "AVIV", { pane: 2, ...around(1) }), series(ct.prices.trueMarketMean.avivNupl, "AVIV NUPL", { pane: 3, ...baseline })], { log: [2] }),
+        chart("True market mean", "True market mean and AVIV", [price(), series(ct.prices.trueMarketMean.value, "True market mean", { color: "sky" }), series(ct.prices.trueMarketMean.aviv, "AVIV", { pane: 2, ...around(1) }), series(ct.prices.trueMarketMean.avivNupl, "AVIV NUPL", { pane: 3, ...baseline })], { log: [2] }),
       ]),
       section("Rarity meter", [
         ...entries(t.rarityMeter).filter(([key]) => ["full", "local", "cycle"].includes(key)).map(([key, node]) => section(`${key[0].toUpperCase()}${key.slice(1)}`, [
@@ -652,14 +650,14 @@ export function studioPresets(client, facts) {
       ]),
     ]),
     section("Supply", [
-      chart("Circulating", "Circulating supply", [series(sup.circulating, "Supply", { color: "orange" }), series(sup.marketCap.block, "Market cap", { color: "green", pane: 2 })], { log: [2] }),
+      chart("Circulating", "Circulating supply", [series(sup.circulating, "Supply", { color: "orange" }), series(sup.marketCap.value, "Market cap", { color: "green", pane: 2 })], { log: [2] }),
       chart("Inflation", "Inflation rate", [series(sup.inflationRate, "Inflation rate", { color: "orange" }), series(ct.adjusted.inflationRate, "Cointime-adjusted", { color: "violet" })], { log: [1] }),
       ...flow(sup.burned, "Burned", "Bitcoin burned"),
       chart("Velocity", "Velocity", [series(sup.velocity.btc, "In bitcoin", { color: "orange" }), series(sup.velocity.usd, "In dollars", { color: "green" }), series(ct.adjusted.velocity.btc, "Cointime-adjusted, in bitcoin", { color: "violet", hidden: true }), series(ct.adjusted.velocity.usd, "Cointime-adjusted, in dollars", { color: "sky", hidden: true })]),
     ]),
     section("Holders", [
       ...holderSets(entries(t.holders), (members, by) => family(members, holderName, { by })),
-      // (The veteran and rookie coins: all coins split by the price they came in at, at or below or above the
+      // (The discount and premium coins: all coins split by the price they came in at, at or below or above the
       // capitalized price then.)
       section("Entry price", family(entries(t.entry), (key) => ({ name: named(client.ENTRY_NAMES, key), who: `${named(client.ENTRY_NAMES, key)}, entered ${ENTERED[key] ?? key} the capitalized price at the time` }), { by: "entry price", disjoint: true })),
     ]),
@@ -687,25 +685,25 @@ export function studioPresets(client, facts) {
     ]),
     section("Mining", [
       section("Hashing", [
-        chart("Hash rate", "Hash rate", [series(own(mining.hashrate.rate), "Hash rate", { color: "orange" }), ...windows(mining.hashrate.rate.sma, "Average", { show: ["_1m"] }), series(mining.hashrate.rate.ath, "All-time high", { color: "green", dash: 3, hidden: true }), series(blocks.difficulty.hashrate, "From difficulty", { color: "gray", hidden: true }), series(mining.hashrate.rate.drawdown, "Drawdown", { pane: 2, color: "red", type: "area" })], { log: [1] }),
+        chart("Hash rate", "Hash rate", [series(own(mining.hashrate), "Hash rate", { color: "orange" }), ...windows(mining.hashrate.sma, "Average", { show: ["_1m"] }), series(mining.hashrate.ath, "All-time high", { color: "green", dash: 3, hidden: true }), series(blocks.difficulty.hashrate, "From difficulty", { color: "gray", hidden: true }), series(mining.hashrate.drawdown, "Drawdown", { pane: 2, color: "red", type: "area" })], { log: [1] }),
         // (Its 1- and 2-month averages, the 30- and 60-day of the convention: capitulation while the first is under, shaded;
         // no marks where it crosses back, the averages crossing too often to read.)
         chart("Hash ribbons", "Hash ribbons", [
           price(),
-          series(mining.hashrate.rate.sma._1m, "1-month average", { pane: 2, color: "sky" }),
-          series(mining.hashrate.rate.sma._2m, "2-month average", { pane: 2, color: "violet" }),
+          series(mining.hashrate.sma._1m, "1-month average", { pane: 2, color: "sky" }),
+          series(mining.hashrate.sma._2m, "2-month average", { pane: 2, color: "violet" }),
           { formula: "B < C", type: "signal", ref: "B", place: "shade", label: "Capitulation", color: "red" },
         ], { log: [2] }),
         // (A day's revenue per PH/s: in dollars, its hash price, the one asked for, first; below in satoshis, its hash value;
         // each over its all-time low, then how far above it each is.)
         chart("Hash price and value", "Hash price and hash value", [
-          series(own(mining.hashrate.price), "Hash price", { color: "green" }), series(mining.hashrate.price.atl, "Hash price's all-time low", { color: "red", dash: 3 }),
-          series(own(mining.hashrate.value), "Hash value", { pane: 2, color: "orange" }), series(mining.hashrate.value.atl, "Hash value's all-time low", { pane: 2, color: "red", dash: 3 }),
+          series(own(mining.hashPrice), "Hash price", { color: "green" }), series(mining.hashPrice.atl, "Hash price's all-time low", { color: "red", dash: 3 }),
+          series(own(mining.hashValue), "Hash value", { pane: 2, color: "orange" }), series(mining.hashValue.atl, "Hash value's all-time low", { pane: 2, color: "red", dash: 3 }),
         ], { log: [1, 2] }),
-        chart("Rebound", "Hash price and hash value above their all-time lows", [series(mining.hashrate.price.rebound, "Hash price", { color: "green" }), series(mining.hashrate.value.rebound, "Hash value", { color: "orange" })]),
+        chart("Rebound", "Hash price and hash value above their all-time lows", [series(mining.hashPrice.rebound, "Hash price", { color: "green" }), series(mining.hashValue.rebound, "Hash value", { color: "orange" })]),
       ]),
       section("Difficulty", [
-        chart("History", "Difficulty", [series(blocks.difficulty.block, "Difficulty", { color: "orange", shape: "steps" }), series(blocks.difficulty.adjustment, "Adjustment", { pane: 2, type: "histogram", color: "green", colorBelow: "red" })], { log: [1] }),
+        chart("History", "Difficulty", [series(blocks.difficulty.value, "Difficulty", { color: "orange", shape: "steps" }), series(blocks.difficulty.adjustment, "Adjustment", { pane: 2, type: "histogram", color: "green", colorBelow: "red" })], { log: [1] }),
         chart("Next adjustment", "Until the next difficulty adjustment", [series(blocks.difficulty.blocksToRetarget, "Blocks", { color: "sky" }), series(blocks.difficulty.daysToRetarget, "Days", { color: "orange", pane: 2 })]),
         chart("Epoch", "Difficulty epoch", [series(blocks.difficulty.epoch, "Epoch", { color: "gray" })]),
       ]),
@@ -746,7 +744,7 @@ export function studioPresets(client, facts) {
       section("Transactions", [
         ...stats(tx.count, "Count", "Transactions"),
         chart("Per second", "Transactions per second", windows(tx.perSecond, "")),
-        ...flow(tx.volume, "Volume", "Transaction volume"),
+        ...flow(tx.transferVolume, "Volume", "Transaction volume"),
         chart("Vsize", "Transaction vsize", percentileStats(tx.vsize), { log: [1] }),
         chart("Fee", "Transaction fee", percentileStats(tx.fees.fee), { log: [1] }),
         chart("Fee rate", "Transaction fee rate", percentileStats(tx.fees.effectiveFeeRate), { log: [1] }),
@@ -821,10 +819,10 @@ export function studioPresets(client, facts) {
         // the floor, soil down to the first floor, bedrock through the floors, the deepest down to the bottom.
         const edges = [
           [m.ath.high, "All-time high"],
-          ...entries(node.costBasisAboveFloor).reverse().map(([key, value]) => [value, `${percentileLabel(percentile(key))} cost basis`]),
+          ...entries(node.costBasisAboveP95Floor).reverse().map(([key, value]) => [value, `${percentileLabel(percentile(key))} cost basis`]),
           ...entries(node.floor).map(([key, value]) => [value, `${percentileLabel(percentile(key))} floor`]),
         ];
-        const bands = entries(node.floorSupply), colors = ramp(bands.length, 140, 200);
+        const bands = entries(node.entrySupply), colors = ramp(bands.length, 140, 200);
         return section(modeName(mode), [
           chart("Floors", `Bedrock floors, ${mode}`, [price(), ...entries(node.floor).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 140, 200)[i] }))]),
           // (The price first: in front.)
@@ -838,8 +836,8 @@ export function studioPresets(client, facts) {
             ...bands.map(([key, value], i) => series(value.btc, floorBandLabel(key), { color: colors[i], type: "area" })),
             ...bands.map(([key, value], i) => series(value.usd, `${floorBandLabel(key)}, value`, { color: colors[i], type: "area", pane: 2 })),
           ], { stack: { 1: "stack", 2: "stack" } }),
-          chart("Capital between floors", `Capital of the supply created between Bedrock floors, ${mode}`, entries(node.floorCapital).map(([key, value], i) => series(value, floorBandLabel(key), { color: colors[i], type: "area" })), { stack: { 1: "stack" } }),
-          chart("Cost basis above the floor", `Cost basis above the Bedrock floor, ${mode}`, [price(), ...entries(node.costBasisAboveFloor).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 25, 160)[i], width: key === "median" ? 2 : 1 }))]),
+          chart("Capital between floors", `Capital of the supply created between Bedrock floors, ${mode}`, entries(node.entryCapital).map(([key, value], i) => series(value, floorBandLabel(key), { color: colors[i], type: "area" })), { stack: { 1: "stack" } }),
+          chart("Cost basis above the floor", `Cost basis above the Bedrock floor, ${mode}`, [price(), ...entries(node.costBasisAboveP95Floor).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 25, 160)[i], width: key === "median" ? 2 : 1 }))]),
           chart("Supply-in-loss thresholds", `Bedrock's supply-in-loss thresholds, ${mode}`, entries(node.supplyInLossShareThreshold).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 25, 100)[i] }))),
         ]);
       }),
@@ -957,7 +955,7 @@ export function studioPresets(client, facts) {
   /** The price against the awake capitalized price and the true market mean, and the share of days it closed at or
    * above each. */
   function timeAboveChart() {
-    const lines = /** @type {[any, string, string][]} */ ([[ct.cohorts.all.awake.costBasis.byDollar.capitalizedPrice, "Awake capitalized price", "orange"], [ct.prices.trueMarketMean.block, "True market mean", "sky"]]);
+    const lines = /** @type {[any, string, string][]} */ ([[ct.cohorts.all.awake.costBasis.byDollar.capitalizedPrice, "Awake capitalized price", "orange"], [ct.prices.trueMarketMean.value, "True market mean", "sky"]]);
     return chart("Time above", "Time above the awake capitalized price and true market mean", [
       price(),
       ...lines.map(([node, label, color]) => series(node, label, { color })),

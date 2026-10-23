@@ -6772,7 +6772,7 @@
                 "tx_index",
                 "txin_index",
                 "txout_index",
-                "empty_output_index",
+                "empty_script_output_index",
                 "op_return_index",
                 "p2a_address_index",
                 "p2ms_output_index",
@@ -6783,7 +6783,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index"
+                "unknown_script_output_index"
               ],
               "type": "string"
             },
@@ -6820,7 +6820,7 @@
                 "diff",
                 "difficulty",
                 "difficultyepoch",
-                "empty_output_index",
+                "empty_script_output_index",
                 "emptyout",
                 "epoch",
                 "h",
@@ -6885,7 +6885,7 @@
                 "txo",
                 "txout",
                 "txout_index",
-                "unknown_output_index",
+                "unknown_script_output_index",
                 "unknownout",
                 "w",
                 "week",
@@ -10998,7 +10998,7 @@
                 "tx_index",
                 "txin_index",
                 "txout_index",
-                "empty_output_index",
+                "empty_script_output_index",
                 "op_return_index",
                 "p2a_address_index",
                 "p2ms_output_index",
@@ -11009,7 +11009,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index"
+                "unknown_script_output_index"
               ],
               "examples": [
                 "day1"
@@ -11098,7 +11098,7 @@
                 "tx_index",
                 "txin_index",
                 "txout_index",
-                "empty_output_index",
+                "empty_script_output_index",
                 "op_return_index",
                 "p2a_address_index",
                 "p2ms_output_index",
@@ -11109,7 +11109,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index"
+                "unknown_script_output_index"
               ],
               "type": "string"
             },
@@ -11257,7 +11257,7 @@
                 "tx_index",
                 "txin_index",
                 "txout_index",
-                "empty_output_index",
+                "empty_script_output_index",
                 "op_return_index",
                 "p2a_address_index",
                 "p2ms_output_index",
@@ -11268,7 +11268,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index"
+                "unknown_script_output_index"
               ],
               "examples": [
                 "day1"
@@ -11361,7 +11361,7 @@
                 "tx_index",
                 "txin_index",
                 "txout_index",
-                "empty_output_index",
+                "empty_script_output_index",
                 "op_return_index",
                 "p2a_address_index",
                 "p2ms_output_index",
@@ -11372,7 +11372,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index"
+                "unknown_script_output_index"
               ],
               "type": "string"
             },
@@ -11606,7 +11606,7 @@
                 "tx_index",
                 "txin_index",
                 "txout_index",
-                "empty_output_index",
+                "empty_script_output_index",
                 "op_return_index",
                 "p2a_address_index",
                 "p2ms_output_index",
@@ -11617,7 +11617,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index"
+                "unknown_script_output_index"
               ],
               "type": "string"
             },
@@ -11723,7 +11723,7 @@
                 "tx_index",
                 "txin_index",
                 "txout_index",
-                "empty_output_index",
+                "empty_script_output_index",
                 "op_return_index",
                 "p2a_address_index",
                 "p2ms_output_index",
@@ -11734,7 +11734,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index"
+                "unknown_script_output_index"
               ],
               "examples": [
                 "day1"
@@ -11821,7 +11821,7 @@
                 "tx_index",
                 "txin_index",
                 "txout_index",
-                "empty_output_index",
+                "empty_script_output_index",
                 "op_return_index",
                 "p2a_address_index",
                 "p2ms_output_index",
@@ -11832,7 +11832,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index"
+                "unknown_script_output_index"
               ],
               "examples": [
                 "day1"
@@ -11922,7 +11922,7 @@
                 "tx_index",
                 "txin_index",
                 "txout_index",
-                "empty_output_index",
+                "empty_script_output_index",
                 "op_return_index",
                 "p2a_address_index",
                 "p2ms_output_index",
@@ -11933,7 +11933,7 @@
                 "p2tr_address_index",
                 "p2wpkh_address_index",
                 "p2wsh_address_index",
-                "unknown_output_index"
+                "unknown_script_output_index"
               ],
               "examples": [
                 "day1"

@@ -10,7 +10,7 @@ use crate::{IndexSources, LazyRollingAvgsFromHeight, LazyRollingSumsFromHeight, 
 #[derive(Clone, Traversable)]
 pub struct RollingTotals<T: NumericValue + JsonSchema + Quantity> {
     pub sum: LazyRollingSumsFromHeight<T>,
-    avg: LazyRollingAvgsFromHeight<T>,
+    pub(crate) avg: LazyRollingAvgsFromHeight<T>,
 }
 
 impl<T: NumericValue + JsonSchema + Quantity> RollingTotals<T> {

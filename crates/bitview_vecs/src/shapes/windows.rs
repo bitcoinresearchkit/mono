@@ -45,7 +45,7 @@ impl<A> Windows<A> {
         }
     }
 
-    pub(crate) fn map_with_suffix<B>(&self, mut f: impl FnMut(&str, &A) -> B) -> Windows<B> {
+    pub fn map_with_suffix<B>(&self, mut f: impl FnMut(&str, &A) -> B) -> Windows<B> {
         Windows {
             _24h: f(Self::SUFFIXES[0], &self._24h),
             _1w: f(Self::SUFFIXES[1], &self._1w),

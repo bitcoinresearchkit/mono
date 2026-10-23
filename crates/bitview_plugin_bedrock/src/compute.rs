@@ -172,14 +172,14 @@ impl ComputePlugin for Vecs {
         )?;
         self.calibration = Some(calibration);
         self.replay = replay;
-        self.compute_floor_supply(start, urpd, context)
+        self.compute_entry_supply(start, urpd, context)
     }
 }
 
 impl Vecs {
     /// The floor bands' holdings, from the floors the replay stored: their own group, so each
     /// resumes from where it was written.
-    fn compute_floor_supply(
+    fn compute_entry_supply(
         &mut self,
         max_from: usize,
         urpd: ReplayInputs<'_>,
@@ -201,10 +201,10 @@ impl Vecs {
             max_from,
             context.exit(),
         )?;
-        let mut floor_supply = mem::take(&mut self.floor_supply);
-        floor_supply.resume(&range, &self.modes, urpd)?;
-        floor_supply.compute(range, urpd.history, &mut self.modes, context.exit())?;
-        self.floor_supply = floor_supply;
+        let mut entry_supply = mem::take(&mut self.entry_supply);
+        entry_supply.resume(&range, &self.modes, urpd)?;
+        entry_supply.compute(range, urpd.history, &mut self.modes, context.exit())?;
+        self.entry_supply = entry_supply;
         Ok(())
     }
 }

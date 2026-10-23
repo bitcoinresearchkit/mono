@@ -11,8 +11,8 @@ macro_rules! with_flagged_features {
         $callback!(
             scripts: [
                 p2pk,
-                p2ms,
                 p2pkh,
+                p2ms,
                 p2sh,
                 p2wpkh,
                 p2wsh,

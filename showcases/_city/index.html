@@ -345,7 +345,7 @@
       const OUTLINE = 0.42;
       const MAX_BLOCK_WEIGHT = 4_000_000;
       const MAX_BLOCK_VSIZE = 1_000_000;
-      const SERIES = "timestamp,block_pool,block_weight,tx_count,effective_fee_rate_median";
+      const SERIES = "timestamp,block_pool,block_weight,tx_count,tx_effective_fee_rate_median";
       const HISTORY_BATCH = 720;
       const TIP_POLL_MS = 10_000;
       const IN_MS = 700;
@@ -2366,7 +2366,7 @@
         const fees = new Float32Array(n);
         for (let from = 0; from < n; from += TX_BATCH) {
           const to = Math.min(n, from + TX_BATCH);
-          const response = await client.getSeriesBulk("tx_size,fee_rate", "tx_index", start + from, start + to);
+          const response = await client.getSeriesBulk("tx_size,tx_fee_rate", "tx_index", start + from, start + to);
           const [size, fee] = /** @type {{ data: number[] }[]} */ (response);
           sizes.set(size.data, from);
           fees.set(fee.data, from);

@@ -1,16 +1,9 @@
 use bitview_plugin::ImportContext;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::PartsPerMillion32;
-use bitview_vecs::LazyPercentVec;
 use brk_error::Result;
-use brk_types::{Height, Weight, Weight32};
 
-use super::{BlockRolling, DifficultyVecs, HalvingVecs, IntervalVecs, STORAGE, Vecs, count};
-
-fn block_fullness(_: Height, weight: Weight32) -> PartsPerMillion32 {
-    PartsPerMillion32::from(Weight::from(weight).fullness())
-}
+use super::{BlockRolling, DifficultyVecs, Fullness, HalvingVecs, IntervalVecs, STORAGE, Vecs, count};
 
 impl Vecs {
     pub fn import(
@@ -23,6 +16,21 @@ impl Vecs {
         let window_starts = mappings.lookback.window_starts();
         let blocks = &indexer.vecs().blocks;
 
+        let weight = BlockRolling::import(
+            &db,
+            "block_weight",
+            version,
+            &blocks.weight,
+            mappings,
+            &window_starts,
+        )?;
+        let fullness = Fullness::new(
+            version,
+            &*blocks.weight,
+            weight.avg(),
+            weight.distribution(),
+            mappings,
+        );
         let this = Self {
             count: count::block_count(version, indexer, mappings, &window_starts),
             interval: IntervalVecs::import(&db, version, mappings, &window_starts)?,
@@ -34,20 +42,8 @@ impl Vecs {
                 mappings,
                 &window_starts,
             )?,
-            weight: BlockRolling::import(
-                &db,
-                "block_weight",
-                version,
-                &blocks.weight,
-                mappings,
-                &window_starts,
-            )?,
-            fullness: LazyPercentVec::from_indexed_source(
-                "block_fullness",
-                version,
-                &*blocks.weight,
-                block_fullness,
-            ),
+            weight,
+            fullness,
             difficulty: DifficultyVecs::new(version, indexer, mappings),
             halving: HalvingVecs::new(version, mappings),
             db,

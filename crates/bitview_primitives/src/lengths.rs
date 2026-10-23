@@ -1,9 +1,9 @@
 use brk_types::{Height, OutputType, TxIndex};
 
 use crate::{
-    EmptyOutputIndex, Index, OpReturnIndex, P2AAddressIndex, P2MSOutputIndex, P2PK33AddressIndex,
+    EmptyScriptOutputIndex, Index, OpReturnIndex, P2AAddressIndex, P2MSOutputIndex, P2PK33AddressIndex,
     P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex,
-    P2WSHAddressIndex, TxInIndex, TxOutIndex, TypeIndex, UnknownOutputIndex,
+    P2WSHAddressIndex, TxInIndex, TxOutIndex, TypeIndex, UnknownScriptOutputIndex,
 };
 
 /// Pipeline-wide length/count snapshot.
@@ -12,7 +12,7 @@ use crate::{
 /// `position >= lengths.f`.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Lengths {
-    pub empty_output_index: EmptyOutputIndex,
+    pub empty_script_output_index: EmptyScriptOutputIndex,
     pub height: Height,
     pub op_return_index: OpReturnIndex,
     pub p2ms_output_index: P2MSOutputIndex,
@@ -27,7 +27,7 @@ pub struct Lengths {
     pub tx_index: TxIndex,
     pub txin_index: TxInIndex,
     pub txout_index: TxOutIndex,
-    pub unknown_output_index: UnknownOutputIndex,
+    pub unknown_script_output_index: UnknownScriptOutputIndex,
 }
 
 macro_rules! lengths_addr_dispatch {
@@ -80,10 +80,10 @@ impl Lengths {
             Index::TxIndex => self.tx_index.into(),
             Index::TxInIndex => self.txin_index.into(),
             Index::TxOutIndex => self.txout_index.into(),
-            Index::EmptyOutputIndex => self.empty_output_index.into(),
+            Index::EmptyScriptOutputIndex => self.empty_script_output_index.into(),
             Index::OpReturnIndex => self.op_return_index.into(),
             Index::P2MSOutputIndex => self.p2ms_output_index.into(),
-            Index::UnknownOutputIndex => self.unknown_output_index.into(),
+            Index::UnknownScriptOutputIndex => self.unknown_script_output_index.into(),
             Index::P2AAddressIndex => self.p2a_addr_index.into(),
             Index::P2PK33AddressIndex => self.p2pk33_addr_index.into(),
             Index::P2PK65AddressIndex => self.p2pk65_addr_index.into(),
@@ -112,10 +112,10 @@ impl Lengths {
 
     pub fn to_type_index(mut self, output_type: OutputType) -> TypeIndex {
         match output_type {
-            OutputType::Empty => *self.empty_output_index,
+            OutputType::Empty => *self.empty_script_output_index,
             OutputType::OpReturn => *self.op_return_index,
             OutputType::P2MS => *self.p2ms_output_index,
-            OutputType::Unknown => *self.unknown_output_index,
+            OutputType::Unknown => *self.unknown_script_output_index,
             _ => *self.addr_index_mut(output_type).unwrap(),
         }
     }
@@ -125,10 +125,10 @@ impl Lengths {
         self.tx_index = self.tx_index.min(other.tx_index);
         self.txin_index = self.txin_index.min(other.txin_index);
         self.txout_index = self.txout_index.min(other.txout_index);
-        self.empty_output_index = self.empty_output_index.min(other.empty_output_index);
+        self.empty_script_output_index = self.empty_script_output_index.min(other.empty_script_output_index);
         self.op_return_index = self.op_return_index.min(other.op_return_index);
         self.p2ms_output_index = self.p2ms_output_index.min(other.p2ms_output_index);
-        self.unknown_output_index = self.unknown_output_index.min(other.unknown_output_index);
+        self.unknown_script_output_index = self.unknown_script_output_index.min(other.unknown_script_output_index);
         self.clamp_addr_indexes_to(other);
     }
 

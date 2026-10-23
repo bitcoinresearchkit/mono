@@ -17,6 +17,9 @@ Only what's left. An item done is removed: its history is in the commits and log
 Served by the server at DOMAIN/studio/ (bitview.space, next.bitview.space; studio.bitview.space redirects there).
 
 - Deploy the MCP page only once `main` has `showcases/assets/fonts` (its fonts load from there through jsDelivr).
+- Presets for the well-known indicators nothing shows yet, as formulas over published series (the server keeps
+  formulas out): NVT (market cap over the 24-hour transfer volume in dollars), Thermocap multiple (market cap over
+  `thermo_cap`) and RHODL (the 1-day-to-1-week band's realized cap over the 1-to-2-year bands', age-weighted).
 
 ## Showcases
 
@@ -29,8 +32,6 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
 
 ## Back end
 
-- Indexer version 45 (2026-10-20: OP_RETURN markers, EPOBC) reindexes every machine with an index (this Mac, the Mac mini, production) from scratch on first start; plan the downtime. The feature-region rename (`_notes/tree-review-20261020/rename_regions.py`) is no longer needed.
-
-- OP_RETURN's transactions are one number computed twice: `op_return_tx_count`/`_tx_share` (the OP_RETURN plugin) and `op_return_output_tx_count`/`_tx_share` (outputs by type), same definition; and both plugins name their output count `op_return_output_count`. One plugin should take the other's. Studio pairs them meanwhile (`SAME` in `showcases/studio/presets.js`).
+- Indexer version 45 (2026-10-20: OP_RETURN markers, EPOBC) reindexes the Mac mini and production from scratch on first start; plan the downtime. This Mac is on 45 already: its regions were renamed in place for the 2026-10-23 renames (`_notes/tree-review-20261023/rename_regions.py`), which a fresh index doesn't need.
 
 - Once next.bitview.space serves the dollar windows missing until priced (`bitview_vecs::PricedWindow`), drop Studio's Puell multiple guard (`lag`, in `showcases/studio/presets.js`): it hides its 10Y decade point and needs 4h+.

@@ -13,12 +13,13 @@ mod live;
 mod metrics;
 mod part;
 mod realized;
+mod section;
 mod sources;
 mod supply;
 mod unrealized;
 
 pub use dependencies::Dependencies;
-pub use metrics::Metrics;
+pub use metrics::{All, Kind, Metrics, Old, Young};
 
 use bitview_cohort::AgeAggregate;
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
@@ -26,6 +27,7 @@ use bitview_traversable::Traversable;
 use brk_types::{Cents, Height, Sats, Version};
 use vecdb::{Database, ReadableBoxedVec, Rw, StorageMode};
 
+use columns::Columns;
 use cost_basis::CostBasisVecs;
 use live::LiveState;
 
@@ -38,7 +40,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
     #[traversable(flatten)]
-    pub cohorts: AgeAggregate<Metrics<M>>,
+    pub cohorts: AgeAggregate<Metrics<Young, M>, Metrics<All, M>, Metrics<Old, M>>,
+    /// What the block loop writes for each group, its series' sources.
+    #[traversable(hidden)]
+    columns: AgeAggregate<Columns<M>>,
     #[traversable(hidden)]
     cost_basis: Box<CostBasisVecs<M>>,
     #[traversable(skip)]

@@ -37,7 +37,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub inflation_rate: LazyPercentPerBlock<PartsPerMillionSigned64>,
     velocity: velocity::Vecs,
     /// Circulating supply valued at the represented block's Bitcoin spot price.
-    #[traversable(wrap = "market_cap", rename = "block")]
+    #[traversable(wrap = "market_cap", rename = "value")]
     market_cap: LazyFiatPerBlock<Cents>,
     /// Absolute and relative change in market capitalization from the last
     /// block before each supported trailing monotonic-time window.

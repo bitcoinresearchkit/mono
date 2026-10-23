@@ -3,6 +3,7 @@ mod compute;
 mod count;
 mod dependencies;
 mod difficulty;
+mod fullness;
 mod halving;
 mod has;
 mod import;
@@ -13,13 +14,14 @@ pub use difficulty::Vecs as DifficultyVecs;
 pub use has::HasBlocks;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
-use bitview_primitives::{Bytes32, Count, PartsPerMillion32};
+use bitview_primitives::{Bytes32, Count};
 use bitview_traversable::Traversable;
-use bitview_vecs::{LazyPerBlockCumulativeRolling, LazyPercentVec};
+use bitview_vecs::LazyCumulativeRolling;
 use brk_types::{Version, Weight32};
 use vecdb::{Database, Rw, StorageMode};
 
 use block_rolling::BlockRolling;
+use fullness::Fullness;
 use halving::Vecs as HalvingVecs;
 use interval::Vecs as IntervalVecs;
 
@@ -32,10 +34,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
 
-    /// Number of indexed blocks. The per-block value is one, the cumulative
-    /// count is height plus one because genesis is included, and rolling sums
-    /// count the blocks in each supported trailing window.
-    count: LazyPerBlockCumulativeRolling<Count>,
+    /// Number of indexed blocks: the cumulative count is height plus one because
+    /// genesis is included, and rolling sums count the blocks in each supported
+    /// trailing window.
+    count: LazyCumulativeRolling<Count>,
     interval: IntervalVecs<M>,
     /// Serialized block size in bytes, including witness data: its 80-byte header,
     /// transaction-count CompactSize, and every serialized transaction.
@@ -43,8 +45,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// BIP-141 block weight in weight units: non-witness bytes count as four
     /// weight units and witness bytes count as one.
     weight: BlockRolling<Weight32, M>,
-    /// Block weight as a share of the 4,000,000-weight-unit consensus limit.
-    fullness: LazyPercentVec<PartsPerMillion32, Weight32>,
+    fullness: Fullness,
     pub difficulty: DifficultyVecs,
     halving: HalvingVecs,
 }

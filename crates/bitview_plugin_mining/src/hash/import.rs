@@ -16,8 +16,8 @@ impl Vecs {
         let v9 = Version::new(9);
 
         Ok(Vecs {
-            rate: RateVecs {
-                block: PerBlock::import(db, "hashrate", version + v6, mappings)?,
+            hashrate: RateVecs {
+                value: PerBlock::import(db, "hashrate", version + v6, mappings)?,
                 sma: HashRateSmaVecs {
                     _1w: PerBlock::import(db, "hashrate_sma_1w", version, mappings)?,
                     _1m: PerBlock::import(db, "hashrate_sma_1m", version, mappings)?,
@@ -28,13 +28,13 @@ impl Vecs {
                 ath: PerBlock::import(db, "hashrate_ath", version, mappings)?,
                 drawdown: PercentPerBlock::import(db, "hashrate_drawdown", version, mappings)?,
             },
-            price: HashPriceValueVecs {
-                block: PerBlock::import(db, "hash_price", version + v9, mappings)?,
+            hash_price: HashPriceValueVecs {
+                value: PerBlock::import(db, "hash_price", version + v9, mappings)?,
                 atl: PerBlock::import(db, "hash_price_atl", version + v9, mappings)?,
                 rebound: PercentPerBlock::import(db, "hash_price_rebound", version + v9, mappings)?,
             },
-            value: HashPriceValueVecs {
-                block: PerBlock::import(db, "hash_value", version + v8, mappings)?,
+            hash_value: HashPriceValueVecs {
+                value: PerBlock::import(db, "hash_value", version + v8, mappings)?,
                 atl: PerBlock::import(db, "hash_value_atl", version + v8, mappings)?,
                 rebound: PercentPerBlock::import(db, "hash_value_rebound", version + v8, mappings)?,
             },

@@ -3,24 +3,27 @@ use crate::{AgeRangeId, LTH_AGE_RANGE_IDS, STH_AGE_RANGE_IDS};
 #[cfg(feature = "storage")]
 use bitview_traversable::Traversable;
 
-/// Overlapping age filters sharing the same metric layout.
+/// Overlapping age filters. A family whose members differ types them apart: `All`, the all
+/// filter's type, and `Old`, the type of those holding no output under an hour old (`lth`,
+/// `over_4m`, `over_6m`), are `T`, the others' (`sth`, `under_4m`, `under_6m`), unless a
+/// family's all or old members hold less.
 #[derive(Debug, Default, Clone, Copy, PartialEq)]
 #[cfg_attr(feature = "storage", derive(Traversable))]
-pub struct AgeAggregate<T> {
+pub struct AgeAggregate<T, All = T, Old = T> {
     /// Uses all UTXOs.
-    pub all: T,
+    pub all: All,
     /// Uses short-term-holder UTXOs younger than 150 days.
     pub sth: T,
     /// Uses long-term-holder UTXOs at least 150 days old.
-    pub lth: T,
+    pub lth: Old,
     /// Younger than 120 days.
     pub under_4m: T,
     /// Younger than 180 days.
     pub under_6m: T,
     /// At least 120 days old.
-    pub over_4m: T,
+    pub over_4m: Old,
     /// At least 180 days old.
-    pub over_6m: T,
+    pub over_6m: Old,
 }
 
 define_cohort_id!(
@@ -86,6 +89,84 @@ impl AgeAggregateId {
             Self::All => metric.to_owned(),
             _ => format!("{}_{metric}", self.full_name()),
         }
+    }
+}
+
+/// Builds a member of an [`AgeAggregate`] from a context its members share, whatever the
+/// member's type: one implementation serves a family typed apart.
+pub trait BuildMember<Cx>: Sized {
+    type Error;
+    fn build(id: AgeAggregateId, cx: &Cx) -> Result<Self, Self::Error>;
+}
+
+/// Updates a member of an [`AgeAggregate`] from a context its members share, whatever the
+/// member's type.
+pub trait UpdateMember<Cx> {
+    type Error;
+    fn update(&mut self, id: AgeAggregateId, cx: &Cx) -> Result<(), Self::Error>;
+}
+
+impl<T, All, Old> AgeAggregate<T, All, Old> {
+    /// Each member built from `cx`.
+    pub fn try_build<Cx, E>(cx: &Cx) -> Result<Self, E>
+    where
+        T: BuildMember<Cx, Error = E>,
+        All: BuildMember<Cx, Error = E>,
+        Old: BuildMember<Cx, Error = E>,
+    {
+        Ok(Self {
+            all: All::build(AgeAggregateId::All, cx)?,
+            sth: T::build(AgeAggregateId::Sth, cx)?,
+            lth: Old::build(AgeAggregateId::Lth, cx)?,
+            under_4m: T::build(AgeAggregateId::Under4M, cx)?,
+            under_6m: T::build(AgeAggregateId::Under6M, cx)?,
+            over_4m: Old::build(AgeAggregateId::Over4M, cx)?,
+            over_6m: Old::build(AgeAggregateId::Over6M, cx)?,
+        })
+    }
+
+    /// Each member updated from `cx`, all seven in parallel.
+    #[cfg(feature = "storage")]
+    pub fn par_try_update<Cx: Sync, E: Send>(&mut self, cx: &Cx) -> Result<(), E>
+    where
+        T: UpdateMember<Cx, Error = E> + Send,
+        All: UpdateMember<Cx, Error = E> + Send,
+        Old: UpdateMember<Cx, Error = E> + Send,
+    {
+        use rayon::prelude::*;
+        let Self {
+            all,
+            sth,
+            lth,
+            under_4m,
+            under_6m,
+            over_4m,
+            over_6m,
+        } = self;
+        let young = [
+            (AgeAggregateId::Sth, sth),
+            (AgeAggregateId::Under4M, under_4m),
+            (AgeAggregateId::Under6M, under_6m),
+        ];
+        let old = [
+            (AgeAggregateId::Lth, lth),
+            (AgeAggregateId::Over4M, over_4m),
+            (AgeAggregateId::Over6M, over_6m),
+        ];
+        let (all, (young, old)) = rayon::join(
+            || all.update(AgeAggregateId::All, cx),
+            || {
+                rayon::join(
+                    || {
+                        young
+                            .into_par_iter()
+                            .try_for_each(|(id, m)| m.update(id, cx))
+                    },
+                    || old.into_par_iter().try_for_each(|(id, m)| m.update(id, cx)),
+                )
+            },
+        );
+        all.and(young).and(old)
     }
 }
 

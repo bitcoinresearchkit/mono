@@ -19,8 +19,6 @@ pub(crate) struct Columns<M: StorageMode = Rw> {
     pub volume_profit_cents: CachedSeries<Height, Cents, M>,
     pub volume_loss_sats: CachedSeries<Height, Sats, M>,
     pub volume_loss_cents: CachedSeries<Height, Cents, M>,
-    pub adjusted_volume: CachedSeries<Height, Cents, M>,
-    pub adjusted_value_destroyed: CachedSeries<Height, Cents, M>,
     pub cdd: CachedSeries<Height, CoinDays, M>,
     pub cap: CachedSeries<Height, Cents, M>,
     pub profit: CachedSeries<Height, Cents, M>,
@@ -82,16 +80,6 @@ impl Columns {
                 &id.metric_name("transfer_volume_in_loss_cumulative_cents"),
                 version,
             )?,
-            adjusted_volume: import_cached(
-                db,
-                &id.metric_name("adjusted_value_created_cumulative_cents"),
-                version,
-            )?,
-            adjusted_value_destroyed: import_cached(
-                db,
-                &id.metric_name("adjusted_value_destroyed_cumulative_cents"),
-                version,
-            )?,
             cdd: import_cached(
                 db,
                 &id.metric_name("coindays_destroyed_cumulative"),
@@ -126,11 +114,7 @@ impl Columns {
             unrealized_loss: import_cached(db, &id.metric_name("unrealized_loss_cents"), version)?,
             supply_profit: import_cached(db, &id.metric_name("supply_in_profit_sats"), version)?,
             supply_loss: import_cached(db, &id.metric_name("supply_in_loss_sats"), version)?,
-            price: import_cached(
-                db,
-                &id.metric_name("cost_basis_by_coin_avg_cents"),
-                version,
-            )?,
+            price: import_cached(db, &id.metric_name("cost_basis_by_coin_avg_cents"), version)?,
             capitalized_price: import_cached(
                 db,
                 &id.metric_name("cost_basis_by_dollar_avg_cents"),
@@ -181,9 +165,6 @@ impl Columns {
         self.volume_profit_cents.push(d.volume_profit_cents);
         self.volume_loss_sats.push(d.volume_loss_sats);
         self.volume_loss_cents.push(d.volume_loss_cents);
-        self.adjusted_volume.push(d.adjusted_volume);
-        self.adjusted_value_destroyed
-            .push(d.adjusted_value_destroyed);
         self.cdd.push(d.cdd);
         // From the exact sum, rounded once (the bands' rounded caps would add their errors).
         self.cap.push(d.cap_raw.to_cents());

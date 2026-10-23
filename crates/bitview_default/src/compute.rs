@@ -317,7 +317,7 @@ impl DefaultPlugins {
                         mappings,
                         price,
                         inflation_rate: &supply.inflation_rate,
-                        volume_1y: &transactions.volume.sum._1y,
+                        volume_1y: &transactions.transfer_volume.sum._1y,
                         age,
                         holders,
                     },

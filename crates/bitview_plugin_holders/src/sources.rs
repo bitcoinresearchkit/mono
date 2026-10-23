@@ -93,12 +93,6 @@ impl<'a> Sources<'a> {
             let r = id.select(&self.age.ranges);
             band.fill(AccountingTotals::default());
             with_columns!(r, read_into);
-            if id != AgeRangeId::Under1H {
-                for row in &mut band {
-                    row.adjusted_volume = row.volume_cents;
-                    row.adjusted_value_destroyed = row.value_destroyed;
-                }
-            }
             for (target, &row) in result.iter_mut().zip(&band) {
                 for entry in target.containing_mut(id) {
                     *entry += row;

@@ -5,7 +5,7 @@ use brk_error::Result;
 use brk_types::{Cents, Height, Version};
 use vecdb::{Database, ReadableBoxedVec};
 
-use crate::{FloorVecs, ModeVecs, Modes, Percentiles, PriceBands, STORAGE, Vecs};
+use crate::{EntryVecs, ModeVecs, Modes, Percentiles, PriceBands, STORAGE, Vecs};
 
 impl ModeVecs {
     pub fn import(
@@ -45,7 +45,7 @@ impl ModeVecs {
                 mappings,
             )
         });
-        let floor = FloorVecs::import(db, name, version, mappings, spot_price)?;
+        let floor = EntryVecs::import(db, name, version, mappings, spot_price)?;
         Ok(Self {
             supply_in_loss_share_threshold,
             prices,
@@ -80,7 +80,7 @@ impl Vecs {
             modes,
             calibration: None,
             replay: Default::default(),
-            floor_supply: Default::default(),
+            entry_supply: Default::default(),
         };
         STORAGE.finalize_database(&this.db)?;
         Ok(this)

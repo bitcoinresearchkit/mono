@@ -7,7 +7,7 @@ use vecdb::{ReadableBoxedVec, ReadableCloneableVec};
 use super::SupplyChange;
 
 /// A cohort's supply views over its stored sats: the supply, its change over each window and its
-/// share. `name` is the supply series name (`veteran_supply`).
+/// share. `name` is the supply series name (`entry_discount_supply`).
 #[derive(Clone, Traversable)]
 pub struct SupplyViews {
     /// Supply: amount of bitcoin held in the cohort's unspent transaction outputs.

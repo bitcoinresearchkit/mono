@@ -13,38 +13,42 @@ pub struct PriceBands<T> {
     /// Creation-price percentiles of the mode-weighted supply at or above the
     /// mode's 95th-percentile floor. Unavailable when that floor or the
     /// conditional supply subset is unavailable.
-    pub cost_basis_above_floor: Levels<T>,
+    pub cost_basis_above_p95_floor: Levels<T>,
 }
 
 impl<T> PriceBands<T> {
     pub fn try_from_fn<E>(mut create: impl FnMut(PriceBandId) -> Result<T, E>) -> Result<Self, E> {
         Ok(Self {
             floor: Percentiles::try_from_fn(|id| create(PriceBandId::Floor(id)))?,
-            cost_basis_above_floor: Levels::try_from_fn(|id| create(PriceBandId::AboveFloor(id)))?,
+            cost_basis_above_p95_floor: Levels::try_from_fn(|id| {
+                create(PriceBandId::AboveFloor(id))
+            })?,
         })
     }
 
     pub fn from_fn(mut create: impl FnMut(PriceBandId) -> T) -> Self {
         Self {
             floor: Percentiles::from_fn(|id| create(PriceBandId::Floor(id))),
-            cost_basis_above_floor: Levels::from_fn(|id| create(PriceBandId::AboveFloor(id))),
+            cost_basis_above_p95_floor: Levels::from_fn(|id| create(PriceBandId::AboveFloor(id))),
         }
     }
 
     pub fn select(&self, id: PriceBandId) -> &T {
         match id {
             PriceBandId::Floor(id) => self.floor.select(id),
-            PriceBandId::AboveFloor(id) => self.cost_basis_above_floor.select(id),
+            PriceBandId::AboveFloor(id) => self.cost_basis_above_p95_floor.select(id),
         }
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &T> {
-        self.floor.iter().chain(self.cost_basis_above_floor.iter())
+        self.floor
+            .iter()
+            .chain(self.cost_basis_above_p95_floor.iter())
     }
 
     pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut T> {
         self.floor
             .iter_mut()
-            .chain(self.cost_basis_above_floor.iter_mut())
+            .chain(self.cost_basis_above_p95_floor.iter_mut())
     }
 }

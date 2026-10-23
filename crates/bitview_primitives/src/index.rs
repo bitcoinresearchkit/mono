@@ -9,11 +9,11 @@ use serde::{
 };
 
 use crate::{
-    Date, Day1, Day3, EmptyOutputIndex, Epoch, HOUR1_INTERVAL, HOUR4_INTERVAL, HOUR12_INTERVAL,
+    Date, Day1, Day3, EmptyScriptOutputIndex, Epoch, HOUR1_INTERVAL, HOUR4_INTERVAL, HOUR12_INTERVAL,
     Halving, Hour1, Hour4, Hour12, MINUTE10_INTERVAL, MINUTE30_INTERVAL, Minute10, Minute30,
     Month1, Month3, Month6, OpReturnIndex, P2AAddressIndex, P2MSOutputIndex, P2PK33AddressIndex,
     P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex,
-    P2WSHAddressIndex, TxInIndex, TxOutIndex, UnknownOutputIndex, Week1, Year1, Year10,
+    P2WSHAddressIndex, TxInIndex, TxOutIndex, UnknownScriptOutputIndex, Week1, Year1, Year10,
 };
 
 /// 2009-01-01 00:00:00 UTC — epoch for fixed-interval time indexes.
@@ -149,8 +149,8 @@ with_resolution_fields!(indexes, calendars {
     TxInIndex,
     #[serde(rename = "txout_index")]
     TxOutIndex,
-    #[serde(rename = "empty_output_index")]
-    EmptyOutputIndex,
+    #[serde(rename = "empty_script_output_index")]
+    EmptyScriptOutputIndex,
     #[serde(rename = "op_return_index")]
     OpReturnIndex,
     #[serde(rename = "p2a_address_index")]
@@ -171,8 +171,8 @@ with_resolution_fields!(indexes, calendars {
     P2WPKHAddressIndex,
     #[serde(rename = "p2wsh_address_index")]
     P2WSHAddressIndex,
-    #[serde(rename = "unknown_output_index")]
-    UnknownOutputIndex,
+    #[serde(rename = "unknown_script_output_index")]
+    UnknownScriptOutputIndex,
 ]);
 
 impl Index {

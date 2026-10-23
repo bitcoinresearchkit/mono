@@ -1,7 +1,7 @@
 mod compute;
 mod dependencies;
 mod has;
-mod hashrate;
+mod hash;
 mod import;
 mod rewards;
 
@@ -13,7 +13,7 @@ use bitview_traversable::Traversable;
 use brk_types::Version;
 use vecdb::{Database, Rw, StorageMode};
 
-use hashrate::Vecs as HashrateVecs;
+use hash::Vecs as HashVecs;
 use rewards::Vecs as RewardsVecs;
 
 const STORAGE: PluginStorage = PluginStorage::new(PluginId::new("mining"), Version::new(11));
@@ -26,5 +26,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     db: Database,
 
     pub rewards: RewardsVecs<M>,
-    pub hashrate: HashrateVecs<M>,
+    #[traversable(flatten)]
+    pub hash: HashVecs<M>,
 }

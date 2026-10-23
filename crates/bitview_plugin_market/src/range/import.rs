@@ -1,8 +1,8 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_vecs::{LazyFiatPerBlock, LazyLookbackVec, Price};
+use bitview_vecs::Price;
 use brk_error::Result;
-use brk_types::{Cents, Height, Version};
-use vecdb::{Database, ReadableCloneableVec};
+use brk_types::Version;
+use vecdb::Database;
 
 use super::{Vecs, price_min_max_vecs::PriceMinMaxVecs};
 
@@ -11,20 +11,8 @@ impl Vecs {
         db: &Database,
         version: Version,
         mappings: &MappingsVecs,
-        spot_price: &impl ReadableCloneableVec<Height, Cents>,
     ) -> Result<Self> {
         let version = version + Version::ONE;
-        let true_range_source = LazyLookbackVec::new(
-            "price_true_range_source",
-            version,
-            spot_price,
-            1,
-            |current, previous| {
-                let previous = previous.unwrap_or(current);
-                Cents::from(u64::from(current).abs_diff(u64::from(previous)))
-            },
-        );
-
         Ok(Vecs {
             min: PriceMinMaxVecs {
                 _1w: Price::import(db, "price_min_1w", version, mappings)?,
@@ -36,12 +24,6 @@ impl Vecs {
                 _1m: Price::import(db, "price_max_1m", version, mappings)?,
                 _1y: Price::import(db, "price_max_1y", version, mappings)?,
             },
-            true_range: LazyFiatPerBlock::from_cents_source(
-                "price_true_range",
-                version,
-                &true_range_source,
-                mappings,
-            ),
             extrema: Default::default(),
         })
     }

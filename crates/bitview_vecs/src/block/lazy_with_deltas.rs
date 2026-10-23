@@ -17,7 +17,7 @@ where
 {
     #[deref]
     #[deref_mut]
-    block: LazyPerBlock<S>,
+    value: LazyPerBlock<S>,
     delta: LazyRollingDeltasFromHeight<S, C, B>,
 }
 
@@ -35,14 +35,14 @@ where
         indexes: &IndexSources,
         window_starts: &Windows<&impl ReadableCloneableVec<Height, Height>>,
     ) -> Self {
-        let block = LazyPerBlock::from_height_source::<Ident>(name, version, source, indexes);
+        let value = LazyPerBlock::from_height_source::<Ident>(name, version, source, indexes);
         let delta = LazyRollingDeltasFromHeight::new(
             &format!("{name}_delta"),
             version + delta_version_offset,
-            &block.height,
+            &value.height,
             window_starts,
             indexes,
         );
-        Self { block, delta }
+        Self { value, delta }
     }
 }

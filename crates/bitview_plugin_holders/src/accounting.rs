@@ -14,8 +14,6 @@ pub(crate) struct AccountingTotals {
     pub volume_profit_cents: Cents,
     pub volume_loss_sats: Sats,
     pub volume_loss_cents: Cents,
-    pub adjusted_volume: Cents,
-    pub adjusted_value_destroyed: Cents,
     pub cdd: CoinDays,
     pub cap_raw: CentsSats,
     pub capitalized_cap_raw: CentsSquaredSats,

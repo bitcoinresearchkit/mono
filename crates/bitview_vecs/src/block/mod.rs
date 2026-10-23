@@ -15,7 +15,7 @@ pub use cumulative_rolling::{PerBlockCumulativeRolling, PricedPerBlockCumulative
 pub use density_vecs::{Density, DensityVecs};
 pub use full_from_cumulative::PerBlockFullFromCumulative;
 pub use lazy::LazyPerBlock;
-pub use lazy_cumulative_rolling::LazyPerBlockCumulativeRolling;
+pub use lazy_cumulative_rolling::{LazyCumulativeRolling, LazyPerBlockCumulativeRolling};
 pub use lazy_with_deltas::LazyPerBlockWithDeltas;
 pub use percentiles_vecs::PercentilesVecs;
 pub use rolling::PerBlockRolling;

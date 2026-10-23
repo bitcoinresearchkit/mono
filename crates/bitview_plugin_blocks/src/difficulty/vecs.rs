@@ -8,11 +8,11 @@ use vecdb::LazyVec;
 pub struct Vecs {
     /// Mining difficulty encoded by the block header: Bitcoin's maximum target
     /// divided by the block's proof-of-work target.
-    pub block: Resolutions<Difficulty>,
-    // The indexer's per-block difficulty: the height index of `block`, one series.
+    pub value: Resolutions<Difficulty>,
+    // The indexer's per-block difficulty: the height index of `value`, one series.
     /// Mining difficulty encoded by the block header: Bitcoin's maximum target
     /// divided by the block's proof-of-work target.
-    #[traversable(rename = "block")]
+    #[traversable(rename = "value")]
     pub(crate) block_height: LazyVec<Height, Difficulty, Difficulty>,
     /// Theoretical hash rate implied by difficulty at the ten-minute target:
     /// difficulty multiplied by 2^32 and divided by 600, in hashes per second.

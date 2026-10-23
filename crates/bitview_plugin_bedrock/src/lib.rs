@@ -6,9 +6,9 @@ mod calibration;
 mod compute;
 mod cumulative_bucket;
 mod dependencies;
+mod entry_supply;
+mod entry_vecs;
 mod floor_bands;
-mod floor_supply;
-mod floor_vecs;
 mod import;
 mod levels;
 mod mode_result;
@@ -29,9 +29,9 @@ use vecdb::{Database, Rw, StorageMode};
 use block_result::BlockResult;
 use calibration::Calibration;
 use cumulative_bucket::CumulativeBucket;
+use entry_supply::{EntrySupply, Holding};
+use entry_vecs::EntryVecs;
 use floor_bands::{FloorBandId, FloorBands};
-use floor_supply::{FloorSupply, Holding};
-use floor_vecs::FloorVecs;
 use levels::{LevelId, Levels};
 use mode_result::ModeResult;
 use mode_vecs::ModeVecs;
@@ -50,7 +50,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     db: Database,
     calibration: M::WriteOnly<Option<Calibration>>,
     replay: M::WriteOnly<Replay>,
-    floor_supply: M::WriteOnly<FloorSupply>,
+    entry_supply: M::WriteOnly<EntrySupply>,
 
     #[traversable(flatten)]
     modes: Modes<ModeVecs<M>>,

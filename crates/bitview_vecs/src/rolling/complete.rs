@@ -21,7 +21,7 @@ where
     #[traversable(flatten)]
     rolling: RollingTotals<T::Sum>,
     #[traversable(flatten)]
-    distribution: RollingDistribution<T::Sum, M>,
+    pub(crate) distribution: RollingDistribution<T::Sum, M>,
 }
 
 impl<T> RollingComplete<T>

@@ -1,6 +1,6 @@
 //! Stored cumulative source and rolling statistics for externally supplied block values.
 
-use bitview_compute::{NumericValue, Quantity};
+use bitview_compute::{DistributionStats, NumericValue, Quantity};
 use bitview_traversable::Traversable;
 use brk_error::Result;
 use brk_exit::Exit;
@@ -11,7 +11,10 @@ use vecdb::{
     VecValue,
 };
 
-use crate::{IndexSources, PerBlock, RollingComplete, WindowStarts, shapes::Windows};
+use crate::{
+    IndexSources, LazyRollingAvgsFromHeight, PerBlock, RollingComplete, RollingWindows, WindowStarts,
+    shapes::Windows,
+};
 
 #[derive(Traversable)]
 pub struct PerBlockRolling<T, M: StorageMode = Rw>
@@ -55,6 +58,16 @@ where
 
     pub fn cumulative_source(&self) -> &(impl ReadableCloneableVec<Height, T::Sum> + use<T>) {
         self.cumulative.resolutions.height_source()
+    }
+
+    /// The per-block means over each trailing window, in the quantity's mean type.
+    pub fn avg(&self) -> &LazyRollingAvgsFromHeight<T::Sum> {
+        &self.rolling.avg
+    }
+
+    /// The distribution statistics over each trailing window.
+    pub fn distribution(&self) -> &DistributionStats<RollingWindows<T::Sum>> {
+        &self.rolling.distribution
     }
 
     /// Computes from per-block values of `S`: the distribution in `T`, the cumulative widened into `T::Sum`.

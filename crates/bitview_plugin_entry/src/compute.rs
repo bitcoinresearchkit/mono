@@ -21,7 +21,7 @@ fn supply(amount: Amount) -> SupplyState {
     }
 }
 
-/// Veteran at or below the previous block's capitalized price, and while it is undefined (no
+/// Discount at or below the previous block's capitalized price, and while it is undefined (no
 /// priced capital yet).
 fn classify(price: Cents, previous: Cents) -> EntryPrice {
     EntryPrice::from_is_discount(previous.is_nan() || price <= previous)

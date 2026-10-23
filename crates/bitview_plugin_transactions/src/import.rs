@@ -61,9 +61,9 @@ impl Vecs {
             window_starts,
         )?;
         let versions = versions::Vecs::import(&db, version, mappings, window_starts, all_txs)?;
-        let volume = ValuePerBlockCumulativeRolling::import(
+        let transfer_volume = ValuePerBlockCumulativeRolling::import(
             &db,
-            "tx_volume",
+            "transfer_volume",
             version,
             mappings,
             window_starts,
@@ -82,7 +82,7 @@ impl Vecs {
             nonstandard,
             sigop_cost,
             versions,
-            volume,
+            transfer_volume,
             per_second,
         };
         STORAGE.finalize_database(&this.db)?;

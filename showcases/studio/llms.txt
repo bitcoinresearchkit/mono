@@ -98,19 +98,19 @@ Each section's page lists its charts; each chart's own address is in https://bit
 - Price (62): https://bitview.space/studio/presets/price/
   - All-time high (2): https://bitview.space/studio/presets/price/all-time-high/
   - Returns (16): https://bitview.space/studio/presets/price/returns/
-  - Moving averages (31): https://bitview.space/studio/presets/price/moving-averages/
-  - Range (4): https://bitview.space/studio/presets/price/range/
+  - Moving averages (32): https://bitview.space/studio/presets/price/moving-averages/
+  - Range (3): https://bitview.space/studio/presets/price/range/
   - Technical (7): https://bitview.space/studio/presets/price/technical/
 - Valuation (62): https://bitview.space/studio/presets/valuation/
   - Cointime prices (6): https://bitview.space/studio/presets/valuation/cointime-prices/
   - Rarity meter (44): https://bitview.space/studio/presets/valuation/rarity-meter/
 - Supply (5): https://bitview.space/studio/presets/supply/
-- Holders (357): https://bitview.space/studio/presets/holders/
+- Holders (351): https://bitview.space/studio/presets/holders/
   - Compare (15): https://bitview.space/studio/presets/holders/compare/
   - All coins (37): https://bitview.space/studio/presets/holders/all-coins/
   - Short-term holders (39): https://bitview.space/studio/presets/holders/short-term-holders/
-  - Long-term holders (39): https://bitview.space/studio/presets/holders/long-term-holders/
-  - Age cutoffs (171): https://bitview.space/studio/presets/holders/age-cutoffs/
+  - Long-term holders (37): https://bitview.space/studio/presets/holders/long-term-holders/
+  - Age cutoffs (167): https://bitview.space/studio/presets/holders/age-cutoffs/
   - Entry price (56): https://bitview.space/studio/presets/holders/entry-price/
 - Coin age (1107): https://bitview.space/studio/presets/coin-age/
   - Age bands (614): https://bitview.space/studio/presets/coin-age/age-bands/

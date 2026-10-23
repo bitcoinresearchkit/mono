@@ -10,21 +10,21 @@ use super::{FloorBands, Holding};
 
 /// A mode's holdings by the band of its floors spot sat in when they were created.
 #[derive(Traversable)]
-pub struct FloorVecs<M: StorageMode = Rw> {
+pub struct EntryVecs<M: StorageMode = Rw> {
     /// Supply created since the second halving (block 420,000) while spot sat in this band of
     /// the mode's floors at its creation block, less what has been spent since.
-    pub floor_supply: FloorBands<LazySpotValuePerBlock>,
+    pub entry_supply: FloorBands<LazySpotValuePerBlock>,
     /// Capital of the supply created since the second halving (block 420,000) while spot sat in
     /// this band of the mode's floors at its creation block and not spent since: each unspent
     /// output at its creation price (the band's realized cap).
-    pub floor_capital: FloorBands<LazyFiatPerBlock<Cents>>,
+    pub entry_capital: FloorBands<LazyFiatPerBlock<Cents>>,
     #[traversable(hidden)]
     supply_stored: FloorBands<CachedSeries<Height, Sats, M>>,
     #[traversable(hidden)]
     capital_stored: FloorBands<CachedSeries<Height, Cents, M>>,
 }
 
-impl FloorVecs {
+impl EntryVecs {
     pub fn import(
         db: &Database,
         name: &str,
@@ -35,30 +35,30 @@ impl FloorVecs {
         let supply_stored = FloorBands::try_from_fn(|id| {
             import_cached(
                 db,
-                &format!("{name}_floor_supply_{}_sats", id.name()),
+                &format!("{name}_entry_supply_{}_sats", id.name()),
                 version,
             )
         })?;
         let capital_stored = FloorBands::try_from_fn(|id| {
             import_cached(
                 db,
-                &format!("{name}_floor_capital_{}_cents", id.name()),
+                &format!("{name}_entry_capital_{}_cents", id.name()),
                 version,
             )
         })?;
         Ok(Self {
-            floor_supply: FloorBands::from_fn(|id| {
+            entry_supply: FloorBands::from_fn(|id| {
                 LazySpotValuePerBlock::from_sats_source(
-                    &format!("{name}_floor_supply_{}", id.name()),
+                    &format!("{name}_entry_supply_{}", id.name()),
                     version,
                     supply_stored.select(id),
                     mappings,
                     spot_price,
                 )
             }),
-            floor_capital: FloorBands::from_fn(|id| {
+            entry_capital: FloorBands::from_fn(|id| {
                 LazyFiatPerBlock::from_cents_source(
-                    &format!("{name}_floor_capital_{}", id.name()),
+                    &format!("{name}_entry_capital_{}", id.name()),
                     version,
                     capital_stored.select(id),
                     mappings,

@@ -3,8 +3,8 @@ use bitview_plugin_mappings::Vecs as Mappings;
 use bitview_primitives::PartsPerMillion32;
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    CostBasisMeans, CostBasisByCoin, CostBasisByDollar, Density, LazyPerBlock,
-    LazyPercentPerBlock, PerBlock, Price,
+    CostBasisByCoin, CostBasisByDollar, CostBasisMeans, Density, LazyPerBlock, LazyPercentPerBlock,
+    PerBlock, Price,
 };
 use brk_error::Result;
 use brk_exit::Exit;
@@ -53,10 +53,7 @@ impl CostBasis {
         let price = |metric, source: &Price<PerBlock<Cents>>| {
             Price::from_height_source(&name(metric), sources_v, &source.cents.height, mappings)
         };
-        let CostBasisMeans {
-            by_coin,
-            by_dollar,
-        } = CostBasisMeans::import(
+        let CostBasisMeans { by_coin, by_dollar } = CostBasisMeans::import(
             db,
             name,
             v,

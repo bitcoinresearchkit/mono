@@ -98,9 +98,9 @@ impl DefaultPlugins {
                 let mining = mining_handle.join().unwrap()?;
                 // Pool hash rates read mining's network estimates; the import itself is light.
                 let pools = timed_import(POOLS_ID, || {
-                    let rate = &mining.hashrate.rate;
+                    let rate = &mining.hash.hashrate;
                     let network = Windows {
-                        _24h: &rate.block.height,
+                        _24h: &rate.value.height,
                         _1w: &rate.sma._1w.height,
                         _1m: &rate.sma._1m.height,
                         _1y: &rate.sma._1y.height,
@@ -164,6 +164,7 @@ impl DefaultPlugins {
                 &window_starts,
                 &price,
                 &utxo_set.supply.read_only_boxed_clone(),
+                &age,
             )
         })?;
         let all_chain = holders.all_chain_sources();

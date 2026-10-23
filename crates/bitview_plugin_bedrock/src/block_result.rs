@@ -101,7 +101,7 @@ impl BlockResult {
             .map_or(0, |i| buckets[i].supplies[mode]);
         let total = denominator - before;
         let tail = &buckets[p95_floor..];
-        result.prices.cost_basis_above_floor = Levels::from_fn(|percentile| {
+        result.prices.cost_basis_above_p95_floor = Levels::from_fn(|percentile| {
             let target = total as f64 * *LEVEL_PERCENTILES.select(percentile);
             let index =
                 tail.partition_point(|bucket| ((bucket.supplies[mode] - before) as f64) < target);

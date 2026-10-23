@@ -24,7 +24,7 @@ impl ComputePlugin for Vecs {
         self.rewards
             .compute(indexer, &mappings.lookback, transactions, prices, exit)?;
 
-        self.hashrate.compute(
+        self.hash.compute(
             indexer,
             &mappings.lookback,
             &blocks.difficulty,

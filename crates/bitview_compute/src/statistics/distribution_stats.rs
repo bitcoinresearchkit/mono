@@ -36,6 +36,19 @@ impl<A> DistributionStats<A> {
         ]
     }
 
+    /// Each statistic mapped with its suffix (`min`, `median`, ...).
+    pub fn map_with_suffix<B>(&self, mut f: impl FnMut(&str, &A) -> B) -> DistributionStats<B> {
+        DistributionStats {
+            min: f(Self::SUFFIXES[0], &self.min),
+            max: f(Self::SUFFIXES[1], &self.max),
+            p10: f(Self::SUFFIXES[2], &self.p10),
+            p25: f(Self::SUFFIXES[3], &self.p25),
+            median: f(Self::SUFFIXES[4], &self.median),
+            p75: f(Self::SUFFIXES[5], &self.p75),
+            p90: f(Self::SUFFIXES[6], &self.p90),
+        }
+    }
+
     pub fn try_from_fn<E>(mut f: impl FnMut(&str) -> StdResult<A, E>) -> StdResult<Self, E> {
         Ok(Self {
             min: f(Self::SUFFIXES[0])?,

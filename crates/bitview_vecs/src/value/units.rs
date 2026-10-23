@@ -24,6 +24,7 @@ pub struct SpotValue<S, B, U> {
     /// Reported in satoshis.
     #[traversable(hidden)]
     pub sats: S,
-    /// Reported in US dollars: the amount at the spot price (its market cap).
+    /// Reported in US dollars: the amount at the spot price (its market cap), zero before the
+    /// first exchange price (block 74,641, August 2010).
     pub usd: U,
 }

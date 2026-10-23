@@ -15,7 +15,7 @@ impl Vecs {
         all_chain: &AllChainSources,
         transactions: &TransactionsVecs,
     ) -> Self {
-        let volume = &transactions.volume.sum._1y;
+        let volume = &transactions.transfer_volume.sum._1y;
         let btc_source = LazyIndexedVec::new(
             "velocity_btc_source",
             version,

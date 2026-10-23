@@ -305,7 +305,7 @@ impl Query {
         let utxo_set_sizes = plugins.utxo_set.count.height.collect_range_at(begin, end);
         let input_volumes = plugins
             .transactions
-            .volume
+            .transfer_volume
             .block
             .sats
             .collect_range_at(begin, end);

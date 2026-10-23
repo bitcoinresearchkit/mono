@@ -16,7 +16,7 @@ pub fn difficulty_epochs(
     let end_epoch = Epoch::from(Height::from(end_height)).to_usize();
     let mut height_cursor = plugins.mappings.epoch.first_height.cursor();
     let mut timestamp_cursor = plugins.mappings.timestamp.epoch.cursor();
-    let mut difficulty_cursor = plugins.blocks.difficulty.block.epoch.cursor();
+    let mut difficulty_cursor = plugins.blocks.difficulty.value.epoch.cursor();
 
     let count = end_epoch
         .checked_sub(start_epoch)

@@ -29,7 +29,7 @@ impl ComputePlugin for Vecs {
             nonstandard,
             sigop_cost,
             versions,
-            volume,
+            transfer_volume,
             ..
         } = self;
         let exit = context.exit();
@@ -75,7 +75,7 @@ impl ComputePlugin for Vecs {
                     indexer,
                     mappings,
                     &mut vsize.distribution,
-                    &mut volume.cumulative.sats.height,
+                    &mut transfer_volume.cumulative.sats.height,
                     exit,
                 )?;
                 let (inscription, (policy, volume)) = join(
@@ -86,7 +86,7 @@ impl ComputePlugin for Vecs {
                     || {
                         join(
                             || policy::compute(nonstandard, indexer, mappings, fees, exit),
-                            || volume.compute_cents(start, price, exit),
+                            || transfer_volume.compute_cents(start, price, exit),
                         )
                     },
                 );

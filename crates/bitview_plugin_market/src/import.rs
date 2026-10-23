@@ -17,7 +17,7 @@ impl Vecs {
         let spot_price = prices.spot.cents.resolutions.height_source();
         let ath = ath::Vecs::import(&db, version, mappings, spot_price)?;
         let returns = returns::import(version, mappings, prices);
-        let range = range::Vecs::import(&db, version, mappings, spot_price)?;
+        let range = range::Vecs::import(&db, version, mappings)?;
         let moving_average = moving_average::Vecs::import(&db, version, mappings)?;
 
         let this = Self {

@@ -49,6 +49,8 @@ ema_periods! {
     _1m: "1m" = 30,
     /// Uses a trailing 34-day span.
     _34d: "34d" = 34,
+    /// Uses a trailing 50-day span.
+    _50d: "50d" = 50,
     /// Uses a trailing 55-day span.
     _55d: "55d" = 55,
     /// Uses a trailing 89-day span.

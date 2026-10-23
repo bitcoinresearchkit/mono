@@ -11,7 +11,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// values mean spot is cheaper relative to the accumulated holder reserve;
     /// higher values mean it is more expensive. Undefined (null) when the HODL
     /// bank is zero.
-    pub block: LazyPerBlock<Float, Float64>,
+    pub value: LazyPerBlock<Float, Float64>,
     /// HODL bank: running sum of spot price in USD minus the 30-day VOCDD
     /// median, each block weighted by the time since the previous block in days
     /// (on monotonic timestamps). It represents the model's accumulated holder

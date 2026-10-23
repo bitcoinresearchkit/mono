@@ -19,15 +19,14 @@ impl SpendableTypeId {
             OutputType::P2WSH => Some(Self::P2WSH),
             OutputType::P2TR => Some(Self::P2TR),
             OutputType::P2A => Some(Self::P2A),
-            OutputType::Unknown => Some(Self::Unknown),
-            OutputType::Empty => Some(Self::Empty),
+            OutputType::Empty => Some(Self::EmptyScript),
+            OutputType::Unknown => Some(Self::UnknownScript),
             OutputType::OpReturn => None,
         }
     }
 
-    /// The type's member key, the word per-entry series ids build on (`p2pk_output_count`,
-    /// `empty_output_count`); type cohort names spell out `empty_output` and `unknown_output`
-    /// (`empty_output_supply`).
+    /// The type's member key, the word its series ids build on (`p2pk_output_count`,
+    /// `empty_script_output_count`, `empty_script_supply`).
     pub const fn key(self) -> &'static str {
         match self {
             Self::P2PK => "p2pk",
@@ -38,8 +37,8 @@ impl SpendableTypeId {
             Self::P2WSH => "p2wsh",
             Self::P2TR => "p2tr",
             Self::P2A => "p2a",
-            Self::Unknown => "unknown",
-            Self::Empty => "empty",
+            Self::EmptyScript => "empty_script",
+            Self::UnknownScript => "unknown_script",
         }
     }
 
@@ -57,8 +56,8 @@ pub const SPENDABLE_TYPE_NAMES: SpendableType<CohortName> = SpendableType {
     p2wsh: CohortName::new("p2wsh", "P2WSH", "Pay to Witness Script Hash"),
     p2tr: CohortName::new("p2tr", "P2TR", "Pay to Taproot"),
     p2a: CohortName::new("p2a", "P2A", "Pay to Anchor"),
-    unknown: CohortName::new("unknown_output", "Unknown", "Unknown Output Type"),
-    empty: CohortName::new("empty_output", "Empty", "Empty Output"),
+    empty_script: CohortName::new("empty_script", "Empty", "Empty Script"),
+    unknown_script: CohortName::new("unknown_script", "Unknown", "Unknown Script"),
 };
 
 #[derive(Default, Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -80,10 +79,10 @@ pub struct SpendableType<T> {
     p2tr: T,
     /// Uses pay-to-Anchor outputs.
     p2a: T,
-    /// Uses outputs that do not match another recognized locking-script type.
-    unknown: T,
     /// Uses outputs with an empty locking script.
-    empty: T,
+    empty_script: T,
+    /// Uses outputs that do not match another recognized locking-script type.
+    unknown_script: T,
 }
 
 // Spendable output types as analytics count them: P2PK is one type whatever its key's size
@@ -97,8 +96,8 @@ define_cohort_id!(SpendableTypeId for SpendableType {
     P2WSH => p2wsh,
     P2TR => p2tr,
     P2A => p2a,
-    Unknown => unknown,
-    Empty => empty,
+    EmptyScript => empty_script,
+    UnknownScript => unknown_script,
 });
 
 impl<T> SpendableType<T> {

@@ -519,7 +519,7 @@ impl Model {
     /// and of shapes sharing a name, one keeps it (a section, else the most used, then the
     /// shallowest) while the others take their section as a prefix (`HoldersActivity`), except that
     /// clashing shapes of one section that each always sit under their own field are named after it
-    /// (`FloorSupply`, `FloorCapital`; with the section when that name is taken: `MappingsDay1`). A
+    /// (`EntrySupply`, `EntryCapital`; with the section when that name is taken: `MappingsDay1`). A
     /// name still shared or not an identifier is left to the path rule, as are the root and shapes
     /// no type names.
     fn type_names(

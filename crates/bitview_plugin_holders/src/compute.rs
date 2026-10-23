@@ -7,11 +7,11 @@ use bitview_vecs::Density;
 use brk_error::Result;
 use brk_exit::Exit;
 use brk_types::{Height, Version};
-use rayon::prelude::*;
 use vecdb::{AnyStoredVec, AnyVec, ReadableCloneableVec};
 
 use crate::{
-    Dependencies, Vecs, cost_basis::CostBasisBlockData, live::LiveState, sources::Sources,
+    Dependencies, Vecs, cost_basis::CostBasisBlockData, live::LiveState, section::Rest,
+    sources::Sources,
 };
 
 impl ComputePlugin for Vecs {
@@ -92,9 +92,7 @@ impl ComputePlugin for Vecs {
                     }
                 }));
                 for id in AgeAggregateId::ALL {
-                    id.select_mut(&mut self.cohorts)
-                        .columns
-                        .push(id.select(row), spot);
+                    id.select_mut(&mut self.columns).push(id.select(row), spot);
                 }
             }
             self.save(chunk.end, false, exit)?;
@@ -104,10 +102,14 @@ impl ComputePlugin for Vecs {
             }
         }
         drop(cursor);
-        let all_capital = self.cohorts.all.columns.cap.read_only_boxed_clone();
-        let all_supply = &self.all_supply;
-        self.cohorts.par_iter_mut().try_for_each(|metrics| {
-            metrics.compute_rest(Height::from(start), all_supply, &all_capital, spot, exit)
+        let all_capital = self.columns.all.cap.read_only_boxed_clone();
+        self.cohorts.par_try_update(&Rest {
+            from: Height::from(start),
+            columns: &self.columns,
+            all_supply: &self.all_supply,
+            all_capital: &all_capital,
+            spot,
+            exit,
         })?;
         self.save(end, true, exit)?;
         self.db.flush();
@@ -122,20 +124,13 @@ impl Vecs {
     fn state_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
         self.cost_basis
             .iter_any_stored_mut()
-            .chain(
-                self.cohorts
-                    .iter_mut()
-                    .flat_map(|metrics| metrics.state_vecs_mut()),
-            )
+            .chain(self.columns.iter_any_stored_mut())
             .collect()
     }
 
     /// The outputs each cohort derives from the block loop's after it.
     fn derived_vecs_mut(&mut self) -> Vec<&mut dyn AnyStoredVec> {
-        self.cohorts
-            .iter_mut()
-            .flat_map(|metrics| metrics.derived_vecs_mut())
-            .collect()
+        self.cohorts.iter_any_stored_mut().collect()
     }
 
     /// Saves the block loop's outputs, or with `derived` the outputs derived from them (the

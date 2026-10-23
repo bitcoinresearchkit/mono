@@ -2,8 +2,8 @@ use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_primitives::{Count, Float64, Hashrate, PartsPerMillion32, PoolSlug};
 use bitview_traversable::Traversable;
 use bitview_vecs::{
-    LazyCumulativeValuePerBlock, LazyIndexedVec, LazyPerBlock, LazyPercentPerBlock,
-    LazyPercentRollingWindows, LazyRollingSumsAmountFromHeight, LazyRollingSumsFromHeight,
+    LazyCumulativeRolling, LazyCumulativeValuePerBlock, LazyIndexedVec, LazyPerBlock,
+    LazyPercentPerBlock, LazyPercentRollingWindows, LazyRollingSumsAmountFromHeight,
     LazyWindowStartVec, PricedRows, ops::Quotient, priced_starts, shapes::Windows,
 };
 use brk_types::{Bitcoin, Cents, Dollars, Height, Sats};
@@ -16,7 +16,7 @@ use crate::pool_heights::{Column, PoolCumulativeVec, PoolHeights};
 #[derive(Clone, Traversable)]
 pub struct PoolVecs {
     /// Blocks attributed to the pool.
-    pub block_count: BlockCount,
+    pub block_count: LazyCumulativeRolling<Count>,
     /// Share of all blocks attributed to the pool: from genesis through the represented block
     /// (`cumulative`) or over a trailing window.
     block_share: BlockShare,
@@ -28,13 +28,6 @@ pub struct PoolVecs {
     /// Estimated hash rate over a trailing window, in hashes per second: the pool's share of the
     /// window's blocks times the network hash-rate estimate for the same window.
     hashrate: Windows<LazyPerBlock<Hashrate>>,
-}
-
-#[derive(Clone, Traversable)]
-pub struct BlockCount {
-    /// Through the represented block, from genesis.
-    pub cumulative: LazyPerBlock<Count>,
-    pub sum: LazyRollingSumsFromHeight<Count>,
 }
 
 #[derive(Clone, Traversable)]
@@ -112,22 +105,13 @@ impl PoolVecs {
             pool_heights.clone(),
         );
 
-        let blocks_name = name("block_count");
-        let block_count = BlockCount {
-            cumulative: LazyPerBlock::from_height_source::<Ident>(
-                &format!("{blocks_name}_cumulative"),
-                version,
-                &blocks,
-                mappings,
-            ),
-            sum: LazyRollingSumsFromHeight::new(
-                &format!("{blocks_name}_sum"),
-                version,
-                &blocks,
-                window_starts,
-                mappings,
-            ),
-        };
+        let block_count = LazyCumulativeRolling::from_cumulative_source(
+            &name("block_count"),
+            version,
+            &blocks,
+            window_starts,
+            mappings,
+        );
 
         let share_name = name("block_share");
         let block_share = BlockShare {

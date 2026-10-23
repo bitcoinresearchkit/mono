@@ -282,9 +282,9 @@ typed_index!(
 );
 typed_index!(
     /// Index of an output with an empty script.
-    EmptyOutputIndex, "empty_output_index", ["emptyout", "empty_output_index"], 0
+    EmptyScriptOutputIndex, "empty_script_output_index", ["emptyout", "empty_script_output_index"], 0
 );
 typed_index!(
     /// Index of an output with an unrecognized script.
-    UnknownOutputIndex, "unknown_output_index", ["unknownout", "unknown_output_index"], 200_000
+    UnknownScriptOutputIndex, "unknown_script_output_index", ["unknownout", "unknown_script_output_index"], 200_000
 );

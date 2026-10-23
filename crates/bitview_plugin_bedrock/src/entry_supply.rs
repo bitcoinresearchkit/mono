@@ -75,7 +75,7 @@ impl SubAssign for Change {
 /// Each mode's holdings by the floor band spot sat in when they were created, from
 /// [`FLOOR_SUPPLY_START`], less what has been spent since.
 #[derive(Default)]
-pub struct FloorSupply {
+pub struct EntrySupply {
     /// Each block's spot price from [`FLOOR_SUPPLY_START`]: its outputs' creation price.
     prices: Vec<Cents>,
     /// Each block's band per mode from [`FLOOR_SUPPLY_START`]: where its outputs are held.
@@ -85,7 +85,7 @@ pub struct FloorSupply {
     held_end: usize,
 }
 
-impl FloorSupply {
+impl EntrySupply {
     /// Prepares the pass over `range`: drops what a rewind invalidated, classifies each block up to
     /// its end from the stored floors and spot prices (all of them after a restart), and, unless
     /// the last pass ended at its start, restores the holdings there from the UTXO set.

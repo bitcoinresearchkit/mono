@@ -7,7 +7,7 @@ use vecdb::{Rw, StorageMode};
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
     /// Running all-time high of the Bitcoin spot price through the represented
-    /// block.
+    /// block. Zero before the first exchange price (block 74,641, August 2010).
     pub high: Price<PerBlock<Cents, M>>,
     /// Bitcoin spot price divided by its running all-time high, minus one. Zero
     /// marks an all-time high; negative values measure the drawdown below it.

@@ -18,7 +18,7 @@ impl Readers {
         Self {
             scripts: ScriptReaders {
                 p2ms_legacy_sigop_cost: vecs.scripts.p2ms.legacy_sigop_cost.reader(),
-                unknown_legacy_sigop_cost: vecs.scripts.unknown.legacy_sigop_cost.reader(),
+                unknown_script_legacy_sigop_cost: vecs.scripts.unknown_script.legacy_sigop_cost.reader(),
             },
             addrs: vecs.addrs.addr_readers(),
         }
