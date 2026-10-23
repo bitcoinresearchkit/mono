@@ -13,5 +13,5 @@ brk_error = { workspace = true, features = ["serde_json"] }
 brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 brk_types = { workspace = true }
-owo-colors = { workspace = true, features = ["supports-colors"] }
+owo-colors = { workspace = true }
 serde_json = { workspace = true }

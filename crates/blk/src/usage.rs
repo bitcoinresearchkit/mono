@@ -1,4 +1,10 @@
-use owo_colors::{OwoColorize, Stream};
+use std::{
+    env,
+    io::{IsTerminal, stdout},
+    sync::OnceLock,
+};
+
+use owo_colors::OwoColorize;
 
 use crate::fields::{self, Fields};
 
@@ -165,11 +171,26 @@ fn ex(cmd: &str, note: &str) {
 }
 
 fn bold(s: &str) -> String {
-    s.if_supports_color(Stream::Stdout, |t| t.bold())
-        .to_string()
+    if colors() { s.bold().to_string() } else { s.to_owned() }
 }
 
 fn dim(s: &str) -> String {
-    s.if_supports_color(Stream::Stdout, |t| t.bright_black())
-        .to_string()
+    if colors() { s.bright_black().to_string() } else { s.to_owned() }
+}
+
+/// Whether stdout takes colors, as supports-color decides: FORCE_COLOR, or else CLICOLOR_FORCE,
+/// turns them on; otherwise a terminal has them, but for NO_COLOR or a dumb TERM.
+fn colors() -> bool {
+    static COLORS: OnceLock<bool> = OnceLock::new();
+    *COLORS.get_or_init(|| {
+        let var = |name| env::var(name).ok();
+        let forced = match var("FORCE_COLOR").as_deref() {
+            Some(value) => !matches!(value, "false" | "0"),
+            None => var("CLICOLOR_FORCE").is_some_and(|value| value != "0"),
+        };
+        forced
+            || (var("NO_COLOR").is_none_or(|value| value == "0")
+                && var("TERM").as_deref() != Some("dumb")
+                && stdout().is_terminal())
+    })
 }
