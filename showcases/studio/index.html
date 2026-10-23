@@ -961,7 +961,7 @@
       }
 
       /* (A row of a group lit by its glide (see glideRows): its ground the glide's, pointed at; pressed, chosen, on, its own.) */
-      :is(.side-foot > .nav-item, .head-actions > .cap, #interval, #ranges > button, .palette-foot .foot-action, .layer-row, .belt :is(.cap, .btn)):hover:where(.can-hover *):not(:active, [aria-pressed="true"], [aria-checked="true"], [aria-current], .selected, .picked, .lit) {
+      :is(.side-foot > .nav-item, .head-actions > .cap, .home-undo > .cap, #interval, #ranges > button, .palette-foot .foot-action, .layer-row, .layer-actions > .nav-item, .belt :is(.cap, .btn)):hover:where(.can-hover *):not(:active, [aria-pressed="true"], [aria-checked="true"], [aria-current], .selected, .picked, .lit) {
         background: none;
       }
 
@@ -1659,7 +1659,10 @@
           }
         }
 
-        /* (Going, eased in and out: out at once, it'd read as a cut.) */
+        /* (Going, eased in and out, however it goes (closed, its transition's the closed one's; leaving first, in
+           Safari): out at once, it'd read as a cut.) */
+        dialog:not([open]),
+        #quick:not(:popover-open),
         :is(dialog, #quick)[data-leaving] {
           transition-timing-function: var(--ease-layout);
         }
@@ -3925,7 +3928,7 @@
         &:focus {
           outline: none;
           background: var(--field);
-          box-shadow: inset 0 0 0 1px var(--line-strong);
+          box-shadow: var(--field-focus);
         }
       }
 
@@ -5056,18 +5059,24 @@
       }
 
       .color-pick {
-        /* Bitview's colors, ten to a row across it (by touch too: wide enough), a click each. */
+        /* Bitview's colors, ten to a row across it, a click each; by touch, five to a row, as a menu's (packed, each
+           as wide as a finger needs: the same colors, the same aim). */
         .swatch-grid {
           grid-template-columns: repeat(10, minmax(0, 1fr));
           gap: 2px;
           padding: 10px;
+
+          @media (pointer: coarse) {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 4px;
+          }
 
           button {
             width: auto;
             height: 26px;
 
             @media (pointer: coarse) {
-              height: 34px;
+              height: 36px;
             }
           }
 
@@ -7358,7 +7367,7 @@
         padding: 0 6px;
         color: var(--ink);
         background: var(--raise);
-        box-shadow: inset 0 0 0 1px var(--line-strong);
+        box-shadow: var(--field-focus);
         font: 590 13px var(--sans);
         outline: none;
       }
@@ -9369,7 +9378,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <div class="panel-head">
                 <h2>Layers <span id="layer-count" class="count"></span></h2>
                 <span class="spacer"></span>
-                <button class="cap small sheet-close" type="button" data-action="close-sheet" aria-label="Close" data-icon="close"></button>
+                <button class="cap small sheet-close" type="button" data-action="close-sheet" aria-label="Close" data-tip="Close" data-icon="close"></button>
               </div>
               <div id="layer-list" class="layer-list"></div>
               <div id="layers-bar" class="pick-bar layers-bar" role="group" aria-label="Selected layers" hidden>
@@ -9448,7 +9457,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" stroke-linecap="round" /></svg>
         <button id="palette-scope" class="scope" type="button" hidden></button>
         <input id="palette-input" type="text" role="combobox" aria-label="Search series, charts and commands" aria-describedby="palette-call" aria-expanded="true" aria-controls="palette-list" aria-autocomplete="list" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" />
-        <button class="cap small" type="button" data-action="close-palette" aria-label="Close" data-icon="close"></button>
+        <button class="cap small" type="button" data-action="close-palette" aria-label="Close" data-tip="Close" data-kbd="esc" data-icon="close"></button>
       </div>
       <div id="palette-call" class="call-help" aria-live="polite" hidden></div>
       <div class="palette-body">
@@ -9484,7 +9493,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       <div class="dialog-head">
         <h2>How links work</h2>
         <span class="spacer"></span>
-        <button class="cap small" type="button" data-action="close-guide" aria-label="Close" data-icon="close"></button>
+        <button class="cap small" type="button" data-action="close-guide" aria-label="Close" data-tip="Close" data-kbd="esc" data-icon="close"></button>
       </div>
       <div id="guide-body" class="guide-body"></div>
     </dialog>
@@ -9493,7 +9502,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       <div class="dialog-head">
         <h2>Shortcuts</h2>
         <span class="spacer"></span>
-        <button class="cap small" type="button" data-action="close-shortcuts" aria-label="Close" data-icon="close"></button>
+        <button class="cap small" type="button" data-action="close-shortcuts" aria-label="Close" data-tip="Close" data-kbd="esc" data-icon="close"></button>
       </div>
       <div class="keys-setting">
         <span><span id="single-keys-label">Single-key shortcuts</span><span id="single-keys-text">A letter, a digit or a sign alone; off, only those with ⌘ or ⌥ act</span></span>
@@ -15395,9 +15404,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         group.addEventListener("pointerleave", () => light(null));
       }
       // Every group of rows a pointer goes along, as the sidebar's list, the menus and ⌘K: the sidebar's foot, the chart's
-      // tools, its foot's interval and ranges, ⌘K's foot, the layers, the drawing tools.
+      // tools and the Charts page's Undo and Redo, its foot's interval and ranges, ⌘K's foot, the layers, a layer's
+      // actions, the drawing tools.
       glideRows(/** @type {HTMLElement} */ (document.querySelector(".side-foot")), ".nav-item");
       glideRows(/** @type {HTMLElement} */ ($("undo").parentElement), ".head-actions > .cap");
+      glideRows(/** @type {HTMLElement} */ (document.querySelector(".home-undo")), ".cap");
+      glideRows($("inspector"), ".layer-actions > .nav-item");
       glideRows($("stage-foot"), "#interval, #ranges > button");
       glideRows(/** @type {HTMLElement} */ (document.querySelector(".palette-foot")), ".foot-action");
       glideRows($("layer-list"), ".layer-row");
@@ -22291,9 +22303,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (pick === "download") downloadChart(doc);
         else if (pick === "delete") deleteChart(doc);
       }
-      /** Charts copied, each right under its original (nothing opens), with an Undo. @param {Chart[]} docs */
-      function duplicateCharts(docs) {
+      /**
+       * Charts copied, each right under its original (nothing opens), with an Undo. `was`: the copies an Undo let go of,
+       * these made again in their place (a Redo): the steps that knew them find these (see chartAgain).
+       * @param {Chart[]} docs @param {Chart[] | null} [was]
+       */
+      function duplicateCharts(docs, was = null) {
         const copies = docs.map(duplicateChart);
+        was?.forEach((old, i) => copies[i] && chartAgain.set(old.id, copies[i].id));
         save();
         renderCharts();
         const same = asThen(copies);
@@ -22306,6 +22323,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (open >= 0) openChart(chartById(docs[open].id) ?? previousChart() ?? library.charts[0] ?? newDraft());
           save();
           renderCharts();
+          // (Redone: copied again, those still there, in the copies' place.)
+          return () => {
+            const left = docs.flatMap((doc, i) => ((now) => (now ? [{ doc: now, copy: copies[i] }] : []))(library.charts.find((other) => other.id === chartNow(doc.id))));
+            if (left.length) duplicateCharts(left.map(({ doc }) => doc), left.map(({ copy }) => copy));
+          };
         } });
         return copies;
       }
@@ -22932,10 +22954,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return [{ preset, doc }];
         });
         recommendedDrawn = recommendedKey();
-        // (Not read: no row, nor its head.)
-        /** @type {HTMLElement} */ ($("templates").closest(".starts")).hidden = !list && Boolean(presetsFailed);
-        // (Each a preset's tile, as the gallery's.)
+        // (Each a preset's tile, as the gallery's; not read, said, with a way to try again, as the presets' page says it.)
         $("templates").innerHTML = list ? recommendedCards.map(({ preset, doc }, i) => presetTileHtml(preset, doc, i)).join("")
+          : presetsFailed ? `<p class="gallery-note">The presets couldn't be read. <button type="button" class="btn ghost small" data-gallery-retry>Try again</button></p>`
           : RECOMMENDED.map(() => '<div class="tile waiting" aria-hidden="true"><span class="tile-open"><span class="tile-head"><span class="tile-name">&nbsp;</span></span><span class="tile-legend"></span><span class="tile-plot pending"></span></span></div>').join("");
         // (Those drawn before, gone now, let go of first.)
         cardsSeen.disconnect();
@@ -23563,8 +23584,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A preset copied into your Library (`folder`: into it; none, at the top), as it shows here, first there, and opened;
        * said, with an Undo (back to the preset; `quiet`: not, a new folder's own). @returns {Chart}
        */
-      function copyPreset(/** @type {number} */ i, /** @type {string | undefined} */ folder = undefined, quiet = false) {
+      function copyPreset(/** @type {number} */ i, /** @type {string | undefined} */ folder = undefined, quiet = false, /** @type {string | undefined} */ was = undefined) {
         const from = presetDoc(i), copy = /** @type {Chart} */ ({ ...structuredClone(from), id: uid(), updated: Date.now() });
+        // (Made again by a Redo, in place of the copy its Undo let go of: the steps that knew that one find this one.)
+        if (was) chartAgain.set(was, copy.id);
         delete copy.preset;
         delete copy.base;
         // (Where it's looked at, too.)
@@ -23591,6 +23614,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           discard(copy);
           save();
           renderCharts();
+          // (Redone: copied again, where it went (that folder, made again since, as it is now), in the copy's place.)
+          return () => presets?.[i] && copyPreset(i, folder && folderNow(folder), false, copy.id);
         } });
         return copy;
       }
@@ -23599,24 +23624,30 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return [
           { key: "top", icon: ICONS.grid, label: "Library", run: () => void copyPreset(i) },
           ...treeOf().flatMap(({ item }) => ("layers" in item ? [] : [{ key: item.id, icon: ICONS.folder, label: folderPath(item.id), run: () => void copyPreset(i, item.id) }])),
-          { key: "new", icon: ICONS.plus, label: "New folder", apart: true, run: () => {
-            if ($("palette").open) dismissPalette();
-            const copy = copyPreset(i, undefined, true);
-            newFolder([`c:${copy.id}`], undefined, { step: false });
-            const folder = library.folders.find((item) => item.id === copy.folder), same = asThen([copy]);
-            // (Said, with one Undo: the copy and its new folder gone, back to the preset.)
-            toast(`Copied “${titleOf(copy)}” to a new folder`, { label: "Undo", folder: folder?.id, run: () => {
-              if (!same()) return keptAsEdited([copy]);
-              const made = folder && folderById(folderNow(folder.id)), listed = library.charts.find((other) => other.id === copy.id);
-              if (!listed && !made) return;
-              if (chart === listed && presets?.[i]) openChart(presetChart(i));
-              if (listed) discard(listed);
-              if (made && !childrenOf(made.id).length) (library.folders = library.folders.filter((item) => item !== made)), (library.deleted[made.id] = Date.now());
-              save();
-              renderCharts();
-            } });
-          } },
+          { key: "new", icon: ICONS.plus, label: "New folder", apart: true, run: () => copyToNewFolder(i) },
         ];
+      }
+      /**
+       * A preset copied into a new folder of its own, named there: one step, one Undo for both (no Redo: the folder made
+       * again would need its name and its place among its own, a path of its own for a rare step).
+       * @param {number} i
+       */
+      function copyToNewFolder(i) {
+        if ($("palette").open) dismissPalette();
+        const copy = copyPreset(i, undefined, true);
+        newFolder([`c:${copy.id}`], undefined, { step: false });
+        const folder = library.folders.find((item) => item.id === copy.folder), same = asThen([copy]);
+        // (Said, with one Undo: the copy and its new folder gone, back to the preset.)
+        toast(`Copied “${titleOf(copy)}” to a new folder`, { label: "Undo", folder: folder?.id, run: () => {
+          if (!same()) return keptAsEdited([copy]);
+          const made = folder && folderById(folderNow(folder.id)), listed = library.charts.find((other) => other.id === copy.id);
+          if (!listed && !made) return;
+          if (chart === listed && presets?.[i]) openChart(presetChart(i));
+          if (listed) discard(listed);
+          if (made && !childrenOf(made.id).length) (library.folders = library.folders.filter((item) => item !== made)), (library.deleted[made.id] = Date.now());
+          save();
+          renderCharts();
+        } });
       }
       /**
        * A preset's actions, where they show (`where`, as a chart's): open it, copy it into your charts (or into a folder),
@@ -25779,7 +25810,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (lineTag) {
           const layer = layerById(selected);
           // (No line, no value on the axis: nothing to turn on.)
-          if (!layer || !lineAt(layer, lineTag) || lineLook(layer, lineTag).line === false) return;
+          if (!layer || !lineAt(layer, lineTag)) return;
+          // (Not to be had: why, said, as every control that can't be pressed says it (a finger has no tip).)
+          if (lineLook(layer, lineTag).line === false) return notice("No line, no value on the axis");
           refocus(`[data-line-tag="${lineTag}"]`);
           const on = !lineLook(layer, lineTag).tag;
           setLineLook(selected, lineTag, "tag", on || undefined);
@@ -31560,6 +31593,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (marker) return marker.dataset.markers?.startsWith("drawings") ? hideDrawings(!drawingsHidden) : toggleHalvings();
         const paneEye = closest(event, "[data-pane-eye]");
         if (paneEye) return hideLayers(chart.layers.filter((layer) => layer.pane === paneEye.dataset.paneEye).map((layer) => layer.id));
+        if (closest(event, "#templates [data-gallery-retry]")) return retryPresets();
         const template = closest(event, "[data-template]");
         const card = template && recommendedCards[Number(template.dataset.template)];
         if (card) return pickPreset(card.preset);
