@@ -9848,8 +9848,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const placeName = (place) => ((text) => (place === "shade" ? "Shaded while up or down" : place === "on" ? "On the layer" : `${text} the layer`))(MARK_PLACES.find(([id]) => id === place)?.[1] ?? "");
       /** What can flip a trend: a layer of one value (not made from layers), not one of those it's made from. @param {Chart} doc @param {Layer} trend */
       const refsFor = (doc, trend) => doc.layers.filter((layer) => !layer.from && layer.type !== "signal" && !trend.from?.includes(layer.id) && !readsOf(layer, doc).has(trend.letter));
-      /** A trend's reference by default: a price in its pane (candles, a series named so), else the first of those there, else the first. @param {Chart} doc @param {Layer} trend */
-      const refFor = (doc, trend) => ((refs) => (refs.find((layer) => layer.pane === trend.pane && (layer.type === "candles" || /^price/.test(layer.series ?? ""))) ?? refs.find((layer) => layer.pane === trend.pane) ?? refs[0])?.id)(refsFor(doc, trend));
+      /** A trend's reference by default: a price on its scale (candles, a series named so), else the first of those there; none there, none. @param {Chart} doc @param {Layer} trend */
+      const refFor = (doc, trend) => ((refs) => (refs.find((layer) => layer.type === "candles" || /^price/.test(layer.series ?? "")) ?? refs[0])?.id)(refsFor(doc, trend).filter((layer) => oneScale(layer, trend)));
       /** A type's name: a series' or a formula's, or one made from layers. */
       /** An unnamed formula's line (its name is its formula): what it is, in what once known. @param {Layer} layer */
       const formulaLine = (layer) => (layer.type === "signal" ? signalLine(layer) : ((result) => (result?.values ? `Formula · ${UNIT_NAMES[unitFor(layer, result)] ?? "Number"}` : "Formula"))(resolved?.results.get(layer.id)));
@@ -11092,21 +11092,42 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * What a layer made from layers lacks, said (none: nothing): a cloud, its two (layers, edges); a trend, two layers,
        * and a third on the chart, outside them, to flip it (one rule: where it's offered, added, drawn).
-       * @param {{ type?: string, from?: string[], id?: string }} layer @param {Chart} [doc]
+       * @param {{ type?: string, from?: string[], id?: string, ref?: string }} layer @param {Chart} [doc]
        */
-      const fromShort = (layer, doc = chart) => ((layer.from?.length ?? 0) < 2 ? (layer.type === "cloud" ? "Pick what it's between" : "Select two layers") : layer.type !== "trend" || doc?.layers.some((other) => !other.from && !layer.from?.includes(other.id)) ? "" : TREND_FLIP);
-      const TREND_FLIP = "Needs a third layer, a price, to flip it";
-      /** A trend's room on the chart: three layers not made from layers (two it rides, one to flip it), else why not. */
-      const trendShort = () => (chart.layers.filter((layer) => !layer.from && layer.type !== "signal").length >= 3 ? "" : "Needs three layers: two it rides, a third to flip it");
+      const fromShort = (layer, doc = chart) => {
+        const ids = layer.from ?? [], members = (doc?.layers ?? []).filter((other) => ids.includes(other.id)), first = members[0];
+        // (Their values read as one: on one scale, what flips a trend too.)
+        return ids.length < 2 ? (layer.type === "cloud" ? "Pick what it's between" : "Select two layers") : members.some((other) => !oneScale(other, first)) ? ONE_SCALE : layer.type !== "trend" || doc?.layers.some((other) => !other.from && other.type !== "signal" && !ids.includes(other.id) && (!first || oneScale(other, first))) ? "" : layer.ref && doc?.layers.some((other) => other.id === layer.ref) ? FLIP_APART : TREND_FLIP;
+      };
+      /** Whether two layers are on one scale (their pane, their side): a cloud or a trend reads its layers' values as one. @param {Layer} a @param {Layer} b */
+      const oneScale = (a, b) => a.pane === b.pane && a.side === b.side;
+      /** A cloud's or a trend's first layer (not an edge), none if it has none. @param {Chart} doc @param {{ from?: string[] }} layer */
+      const placedBy = (doc, layer) => doc.layers.find((other) => other.id === layer.from?.find((id) => !EDGES.includes(id))) ?? null;
+      /** Whether a layer goes where its layers go: a cloud or a trend of any (one of its pane's edges alone, or of none, is put). @param {Layer | null | undefined} layer */
+      const follows = (layer) => Boolean(layer?.from?.some((id) => !EDGES.includes(id)));
+      /**
+       * Whether a layer can be one a cloud or a trend (`self`, made; none: to be made) is between: not made from layers, not
+       * a signal, not one reading it (a loop), on one scale with `on` (one it'd be with: its first, the other of a cloud's
+       * two; none, any). @param {Layer} item
+       */
+      const memberable = (item, /** @type {Layer | null} */ self = null, /** @type {Layer | null} */ on = null) => !item.from && item.type !== "signal" && item !== self && !(self && readsOf(item).has(self.letter)) && (!on || oneScale(item, on));
+      /** Whether some of a cloud's or a trend's layers (what flips it too) are on another scale than it: their values not one's. @param {Chart} doc @param {Layer} layer */
+      const offScale = (doc, layer) => [...(layer.from ?? []), ...(layer.type === "trend" && layer.ref ? [layer.ref] : [])].some((id) => ((other) => other && !oneScale(other, layer))(doc.layers.find((item) => item.id === id)));
+      const TREND_FLIP = "Needs a third layer, a price, to flip it", ONE_SCALE = "Not on one scale", FLIP_APART = "What flips it is on another scale";
+      /** A trend's room on the chart: three layers not made from layers on one scale (two it rides, one to flip it), else why not. */
+      const trendShort = () => {
+        const bases = chart.layers.filter((layer) => !layer.from && layer.type !== "signal");
+        return bases.length < 3 ? "Needs three layers: two it rides, a third to flip it" : bases.some((layer) => bases.filter((other) => oneScale(other, layer)).length >= 3) ? "" : "Needs three layers in one pane, on one side";
+      };
       /**
        * Why a layer made from layers isn't drawn in its pane, if it isn't: it's its layers' values side by side, not a
        * stack's running totals; a cloud's, not their changes from where each starts (a percent or indexed scale: a trend
-       * line's one value reads there as any line's).
+       * line's one value reads there as any line's); its layers' values one's, on one scale.
        */
       const fromUnfit = (/** @type {Chart} */ doc, /** @type {Layer} */ layer) => {
         const pane = doc.panes.find((item) => item.id === layer.pane);
         // (A cloud of its pane's two edges reads no values: anywhere.)
-        return !layer.from || edgesOf(layer).length > 1 ? "" : pane?.stack ? "Not in a stack" : layer.type === "cloud" && paneMode(pane) >= 2 ? "Not on this scale" : "";
+        return !layer.from || edgesOf(layer).length > 1 ? "" : offScale(doc, layer) ? ONE_SCALE : pane?.stack ? "Not in a stack" : layer.type === "cloud" && paneMode(pane) >= 2 ? "Not on this scale" : "";
       };
 
       const MAX_LAYERS = 40, MAX_PANES = 12;
@@ -11155,8 +11176,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function normalize(doc) {
         // (A legend is on or off: "still", once a third way, is on.)
         if (doc.legend !== "off") delete doc.legend;
-        // (A pane's order with fewer than two layers is none: nothing then says it, nothing could turn it back.)
-        for (const pane of doc.panes) if (pane.reverse && doc.layers.filter((layer) => layer.pane === pane.id).length < 2) delete pane.reverse;
         // A series follows its path: renamed in a newer client, it takes the new name; its path is learned (or
         // relearned) from the catalog once that is indexed.
         for (const layer of doc.layers) {
@@ -11200,21 +11219,35 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const layer of doc.layers) if (layer.colors !== undefined && (!(layer.type === "histogram" ? layer.colors === 1 || layer.colors === 4 : TWO_KEPT.has(layer.type) && layer.colors === 1 && layer.colorBelow !== undefined) || layer.colorFrom || layer.byLevels || layer.byLayers)) delete layer.colors;
         // (A signal's layer gone: none, said so (""), so a reload doesn't mark it on another; a trend's, none.)
         for (const layer of doc.layers) if (layer.ref && !(layer.type === "trend" ? refsFor(doc, layer) : layer.type === "signal" ? markable(doc, layer) : []).some((other) => other.id === layer.ref)) layer.type === "signal" ? (layer.ref = "") : delete layer.ref;
-        // A signal: marks on its layer, in its pane, on its side (its layer gone, none till another's picked: never moved
-        // to another on its own); nothing of a line's look.
+        // A signal: marks on its layer (in its pane, on its side: below; its layer gone, none till another's picked: never
+        // moved to another on its own); nothing of a line's look.
         for (const layer of doc.layers) {
           if (layer.type !== "signal") {
             delete layer.results;
             continue;
           }
-          const on = doc.layers.find((other) => other.id === layer.ref);
-          if (on) Object.assign(layer, { pane: on.pane, side: on.side });
           for (const key of ["shape", "levels", "colorFrom", "byLevels", "colors", "priceLine", "base", "format", "fill", "baseLine", "underName"]) delete layer[key];
           if (layer.place === "above" || !MARK_PLACES.some(([place]) => place === layer.place)) delete layer.place;
         }
         if (!doc.panes.length) doc.panes.push({ id: uid(), mode: 1 });
         const ids = new Set(doc.panes.map((pane) => pane.id));
         for (const layer of doc.layers) if (!ids.has(layer.pane)) layer.pane = doc.panes[0].id;
+        // A cloud or a trend where its layers are (it reads their values as one), in another pane behind them (a trend in
+        // front, the other way round where a pane's last is in front), as one added; theirs apart, where it was (it says
+        // so). A signal on its layer's.
+        for (const layer of doc.layers.filter((item) => item.from)) {
+          const members = doc.layers.filter((other) => layer.from?.includes(other.id)), first = members[0];
+          if (!first || members.some((other) => !oneScale(other, first)) || oneScale(layer, first)) continue;
+          const moved = layer.pane !== first.pane;
+          Object.assign(layer, { pane: first.pane, side: first.side });
+          if (!moved) continue;
+          doc.layers.splice(doc.layers.indexOf(layer), 1);
+          const behind = (layer.type === "cloud") !== Boolean(doc.panes.find((pane) => pane.id === first.pane)?.reverse);
+          doc.layers.splice(behind ? doc.layers.indexOf(/** @type {Layer} */ (members.at(-1))) + 1 : doc.layers.indexOf(first), 0, layer);
+        }
+        for (const layer of doc.layers) if (layer.type === "signal") ((on) => on && Object.assign(layer, { pane: on.pane, side: on.side }))(doc.layers.find((other) => other.id === layer.ref));
+        // (A pane's order with fewer than two layers is none: nothing then says it, nothing could turn it back.)
+        for (const pane of doc.panes) if (pane.reverse && doc.layers.filter((layer) => layer.pane === pane.id).length < 2) delete pane.reverse;
         const used = new Set(doc.layers.map((layer) => layer.pane));
         doc.panes = doc.layers.length ? doc.panes.filter((pane) => used.has(pane.id)) : doc.panes.slice(0, 1);
         const seen = new Set();
@@ -23180,7 +23213,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         land: dropLayers,
       });
       /** Layers dropped (in their order) before or after a layer, in its pane, or into a new one; everything gliding there, the first from where it was dropped. */
-      function dropLayers(/** @type {string[]} */ ids, /** @type {Landing} */ at, /** @type {number} */ y) {
+      function dropLayers(/** @type {string[]} */ asked, /** @type {Landing} */ at, /** @type {number} */ y) {
+        const ids = movers(asked, "item" in at ? layerById(at.item.dataset.layer ?? "")?.pane ?? null : null);
+        if (!ids.length) return;
         const list = $("layer-list"), was = LIST_PARTS.map(([selector, key]) => placesOf(all$(selector, list), key));
         const first = /** @type {HTMLElement | null} */ (list.querySelector(`.layer-row[data-layer="${ids[0]}"]`));
         if (first) was[0].set(ids[0], y - first.offsetHeight / 2);
@@ -23302,10 +23337,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         toggle.setAttribute("aria-label", hide ? "Hide" : "Show");
         toggle.dataset.tip = hide ? "Hide" : "Show";
         /** @type {HTMLButtonElement} */ (bar.querySelector('[data-layers-batch="duplicate"]')).disabled = chart.layers.length + layers.length > MAX_LAYERS;
-        // (A cloud of two only: with more, or fewer, a tap says why.)
-        const cloud = /** @type {HTMLElement} */ (bar.querySelector('[data-layers-batch="cloud"]')), two = layers.filter((layer) => !layer.from && layer.type !== "signal").length === 2;
-        cloud.setAttribute("aria-disabled", String(!two));
-        cloud.dataset.tip = two ? "A cloud between them" : "A cloud is between two layers";
+        // (A cloud of two only, on one scale: else a tap says why.)
+        const cloud = /** @type {HTMLElement} */ (bar.querySelector('[data-layers-batch="cloud"]')), bases = layers.filter((layer) => !layer.from && layer.type !== "signal"), apart = bases.length === 2 && fromShort({ type: "cloud", from: bases.map((layer) => layer.id) });
+        cloud.setAttribute("aria-disabled", String(bases.length !== 2 || Boolean(apart)));
+        cloud.dataset.tip = bases.length !== 2 ? "A cloud is between two layers" : apart || "A cloud between them";
       }
       /** What the bar (or a picked row's right-click, ⌘K, a key) does to the layers picked. @param {string} action @param {HTMLElement} [anchor] */
       function layersBatch(action, anchor) {
@@ -23345,8 +23380,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Whether a layer is the only one shown in its pane (beside others hidden). */
       const aloneInPane = (/** @type {Layer} */ layer) => !layer.hidden && chart.layers.some((other) => other.pane === layer.pane && other.id !== layer.id) && chart.layers.every((other) => other.pane !== layer.pane || other.id === layer.id || other.hidden);
-      /** Moves layers to a pane (`into`), or to a new one, at its end in their order. @param {string[]} ids @param {string | null} into */
-      function moveLayers(ids, into) {
+      /**
+       * Of layers to move to a pane (`into`; null: a new one), those that move themselves: a cloud or a trend goes where
+       * its layers go (in its own pane, it's put in its place as any). One asked to without them, said.
+       */
+      function movers(/** @type {string[]} */ ids, /** @type {string | null} */ into) {
+        const going = ids.filter((id) => ((layer) => !follows(layer) || layer?.pane === into)(layerById(id)));
+        const left = ids.map(layerById).find((layer) => layer && !going.includes(layer.id) && layer.from?.some((id) => !EDGES.includes(id) && !ids.includes(id)));
+        if (left) notice(going.length ? `${labelOf(left)} stays with its layers` : `${labelOf(left)} goes where its layers go: move them`);
+        return going;
+      }
+      /** Moves layers to a pane (`into`), or to a new one, at its end in their order. @param {string[]} asked @param {string | null} into */
+      function moveLayers(asked, into) {
+        const ids = movers(asked, into);
+        if (!ids.length) return;
         commit((doc) => {
           const pane = into ? doc.panes.find((item) => item.id === into) : newPaneIn(doc);
           if (!pane) return;
@@ -23387,7 +23434,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { key: "hide", icon: hide ? ICONS.eyeOff : ICONS.eye, label: `${hide ? "Hide" : "Show"} ${n}`, kbd: "H", run: () => layersBatch("hide") },
           { key: "duplicate", icon: ICONS.duplicate, label: `Duplicate ${n}`, kbd: "⌘D", ...(chart.layers.length + layers.length > MAX_LAYERS ? { disabled: `A chart holds ${MAX_LAYERS} layers at most` } : {}), run: () => layersBatch("duplicate") },
           { key: "move", icon: ICONS.pane, label: "Move to pane", page: () => choicePage("Move to pane", () => paneChoices(layers.map((layer) => layer.id))) },
-          { key: "cloud", icon: ICONS.cloud, label: "A cloud between them", ...(layers.filter((layer) => !layer.from && layer.type !== "signal").length === 2 ? {} : { disabled: "A cloud is between two layers, not made from layers" }), run: () => layersBatch("cloud") },
+          { key: "cloud", icon: ICONS.cloud, label: "A cloud between them", ...(((bases) => (bases.length !== 2 ? { disabled: "A cloud is between two layers, not made from layers" } : fromShort({ type: "cloud", from: bases.map((layer) => layer.id) }) ? { disabled: ONE_SCALE } : {}))(layers.filter((layer) => !layer.from && layer.type !== "signal"))), run: () => layersBatch("cloud") },
           { key: "trend", icon: ICONS.riding, label: "A trend between them", ...(Object.keys(two).length ? two : ((why) => (why ? { disabled: why } : {}))(fromShort({ type: "trend", from: layers.filter((layer) => !layer.from && layer.type !== "signal").map((layer) => layer.id) }))), run: () => layersBatch("trend") },
           { key: "remove", icon: ICONS.trash, label: `Remove ${n}`, kbd: "⌫", danger: true, run: () => layersBatch("remove") },
         ];
@@ -23488,12 +23535,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const layerPane = /** @type {Pane} */ (chart.panes.find((pane) => pane.id === layer.pane)), stackOfPane = layerPane?.stack ?? "", ordered = chart.layers.filter((item) => item.pane === layer.pane).length > 1;
         // (Under one made from layers: what it lacks, else a trend's way, and why it isn't drawn here.)
         const fromError = layer.from ? fromShort(layer) || result?.error : "";
-        const fromSays = layer.from && !fromError ? ((unfit) => [layer.type === "trend" ? TREND_SAYS : "", unfit === "Not in a stack" ? "not drawn in a stacked pane" : unfit ? "not drawn on a percent or indexed scale" : ""].filter(Boolean).join("; "))(fromUnfit(chart, layer)) : "";
+        const fromSays = layer.from && !fromError ? ((unfit) => [layer.type === "trend" ? TREND_SAYS : "", unfit === "Not in a stack" ? "not drawn in a stacked pane" : unfit === ONE_SCALE ? `not drawn: ${FLIP_APART.toLowerCase()}` : unfit ? "not drawn on a percent or indexed scale" : ""].filter(Boolean).join("; "))(fromUnfit(chart, layer)) : "";
         const sourceSection = layer.from
           ? `<section>
               <h3>${typeName(layer.type)}</h3>
               ${layer.type === "cloud" ? ["Between", "And"].map((name, k) => ((member) => `<div class="field"><span>${name}</span><button type="button" class="preset" data-cloud-of="${k}" aria-haspopup="menu" aria-label="${name}: ${escape(member?.label ?? "none")}">${member ? `${member.icon}<span class="name">${escape(member.label)}</span>` : `<span class="name">Pick one</span>`}${CHEVRON}</button></div>`)(memberShown(layer.from?.[k]))).join("")
-                : `<div class="field"><span>Between<span class="color-now">${plural(fromLetters(layer, chart).length, "layer")}</span></span><div class="trend-of" role="group" aria-label="What it's on">${chart.layers.filter((item) => !item.from && item.type !== "signal" && item.id !== layer.ref).map((item) => ((on) => `<button type="button" data-trend-of="${item.id}" aria-pressed="${on}">${letterChip(item)}<span class="name">${escape(labelOf(item))}</span></button>`)(Boolean(layer.from?.includes(item.id)))).join("")}</div></div>
+                : `<div class="field"><span>Between<span class="color-now">${plural(fromLetters(layer, chart).length, "layer")}</span></span><div class="trend-of" role="group" aria-label="What it's on">${chart.layers.filter((item) => (memberable(item, layer, placedBy(chart, layer)) || Boolean(layer.from?.includes(item.id))) && item.id !== layer.ref).map((item) => ((on) => `<button type="button" data-trend-of="${item.id}" aria-pressed="${on}">${letterChip(item)}<span class="name">${escape(labelOf(item))}</span></button>`)(Boolean(layer.from?.includes(item.id)))).join("")}</div></div>
               <div class="field"><span>Flips when it touches</span><button type="button" class="preset" id="trend-ref" aria-haspopup="menu" data-tip="The layer whose touching it flips it (a candle's wick counts)">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>`}
               ${fromError || fromSays ? `<p class="from-status ${fromError ? "error" : ""}" role="status">${escape(fromError || `${capitalize(fromSays)}.`)}</p>` : ""}
             </section>`
@@ -23554,8 +23601,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           </section>
           ${signal ? "" : `<section>
             <h3>Layout</h3>
-            <div class="field"><span>Pane</span><button type="button" id="pane" class="preset" data-action="pane-menu" aria-haspopup="menu" aria-label="Pane: ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}"><span class="name">Pane ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}</span>${CHEVRON}</button></div>
-            <div class="field"><span>Axis</span><div class="tabs" role="group" aria-label="Axis side">${[["left", "Left"], ["right", "Right"]].map(([side, text]) => `<button type="button" data-side="${side}" aria-pressed="${layer.side === side}">${text}</button>`).join("")}</div></div>
+            ${follows(layer) ? "" : `<div class="field"><span>Pane</span><button type="button" id="pane" class="preset" data-action="pane-menu" aria-haspopup="menu" aria-label="Pane: ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}"><span class="name">Pane ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}</span>${CHEVRON}</button></div>
+            <div class="field"><span>Axis</span><div class="tabs" role="group" aria-label="Axis side">${[["left", "Left"], ["right", "Right"]].map(([side, text]) => `<button type="button" data-side="${side}" aria-pressed="${layer.side === side}">${text}</button>`).join("")}</div></div>`}
             <div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escape(formatName(layer, result))}"><span class="name">${escape(formatName(layer, result))}</span>${CHEVRON}</button></div>
             <p class="shared-head">Pane ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}'s, for every layer in it</p>
             <div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" data-tip="${mode < 2 ? `${tip} scale` : tip}" ${modesFor(/** @type {Pane} */ (chart.panes.find((pane) => pane.id === layer.pane))).includes(mode) ? "" : "disabled"}>${chip}</button>`).join("")}</div></div>
@@ -24593,7 +24640,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function lettersRead(layer, doc) {
         const letters = new Set();
         if (layer.formula !== undefined) try { for (const letter of refsOf(parse(layer.formula))) letters.add(letter); } catch {}
-        for (const id of [...(layer.from ?? []), ...(layer.ref ? [layer.ref] : [])]) {
+        // (A signal's ref is the layer it's marked on, not one it reads; a trend's, the one that flips it: read.)
+        for (const id of [...(layer.from ?? []), ...(layer.ref && layer.type !== "signal" ? [layer.ref] : [])]) {
           const made = doc.layers.find((item) => item.id === id);
           if (made) letters.add(made.letter);
         }
@@ -25215,7 +25263,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(layer.type !== "signal" && chart.layers.some((other) => other.pane === layer.pane && other.id !== id) ? [{ key: "solo", icon: ICONS.eye, label: alone ? "Show every layer in its pane" : "Show only this in its pane", aside: inPalette && !alone ? "The others there hidden" : undefined, verb: "Show", stay: true, run: () => soloLayer(id) }] : []),
           // (Its right-click beside others picked: its copy alone, the picks as they are.)
           { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", kbd: "⌘D", verb: "Duplicate", ...(chart.layers.length < MAX_LAYERS ? {} : { disabled: `A chart holds ${MAX_LAYERS} layers at most` }), run: () => (menu && layerPicks.size ? duplicateLayers([id]) : duplicateLayer(id)) },
-          ...(menu ? [{ key: "move", icon: ICONS.pane, label: "Move to pane", page: () => choicePage("Move to pane", () => paneChoices([id])) }] : []),
+          // (A cloud or a trend goes where its layers go.)
+          ...(menu && !follows(layer) ? [{ key: "move", icon: ICONS.pane, label: "Move to pane", page: () => choicePage("Move to pane", () => paneChoices([id])) }] : []),
           // (Its data, as the chart has it, at its interval: any layer's, a formula's too; a series', where it comes from.)
           { key: "data", icon: ICONS.table, label: "Download data", aside: "CSV", verb: "Download", ...(resolved?.results.get(id)?.values ? {} : { disabled: "Its data isn't here yet" }), run: () => exportData([layer]) },
           ...(layer.series ? [{ key: "api", icon: ICONS.link, label: "Open in the API", aside: "As JSON", verb: "Open", run: () => window.open(`${client.baseUrl}/api/series/${encodeURIComponent(/** @type {string} */ (layer.series))}/${chart.index}`, "_blank", "noopener") }] : []),
@@ -25425,7 +25474,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function addFrom(/** @type {"cloud" | "trend"} */ type, /** @type {string[]} */ ids) {
         const members = fromOf(chart, ids, type);
         const short = type === "cloud" && membersOf(chart, ids, true).length !== 2 ? "Pick what it's between" : fromShort({ type, from: members });
-        if (short) return void notice(short === TREND_FLIP ? "A trend flips when another layer touches it: add one (a price)" : type === "cloud" ? "A cloud is between two layers" : "A trend is on one of two layers or more");
+        if (short) return void notice(short === ONE_SCALE ? `A ${type} reads its layers as one: put them in one pane, on one side` : short === TREND_FLIP ? "A trend flips when another layer touches it: add one (a price)" : type === "cloud" ? "A cloud is between two layers" : "A trend is on one of two layers or more");
         if (!roomFor(chart)) return;
         /** @type {Layer | undefined} */
         let added;
@@ -25447,12 +25496,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         toast(`Added the ${labelOf(added).replace(/^(Cloud|Trend)/, (noun) => noun.toLowerCase())}${unfit ? `; ${unfit === "Not in a stack" ? "its pane stacks, so it isn't drawn" : "its pane's scale doesn't draw it"}` : ""}`, editAdded(added));
       }
       /**
-       * What a cloud can be between, as choices (the one it has, `except`, aside): the chart's layers not made from layers,
-       * then its pane's top and its bottom.
+       * What a cloud can be between, as choices (the one it has, `except`, aside): the chart's layers not made from layers
+       * on that one's scale (an edge's, any; those it's between kept), then its pane's top and its bottom.
        * @returns {{ key: string, icon: string, label: string, group: string, words?: string, preview?: (panel: HTMLElement) => void }[]}
        */
-      const cloudMembers = (except = "") => [
-        ...chart.layers.filter((layer) => !layer.from && layer.type !== "signal" && layer.id !== except).map((layer) => ({ key: layer.id, icon: letterChip(layer), label: labelOf(layer), group: "Layers", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id) })),
+      const cloudMembers = (except = "", /** @type {Layer | null} */ self = null) => [
+        ...chart.layers.filter((layer) => layer.id !== except && (memberable(layer, self, layerById(except) ?? null) || Boolean(self?.from?.includes(layer.id)))).map((layer) => ({ key: layer.id, icon: letterChip(layer), label: labelOf(layer), group: "Layers", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id) })),
         ...EDGES.filter((edge) => edge !== except).map((edge) => ({ key: edge, icon: edgeIcon(edge), label: EDGE_NAMES[edge], words: "edge pane", group: "Edges" })),
       ];
       /** One of a cloud's two, as its fields say it: a layer by its letter and name, an edge by its icon and name; none, null. */
@@ -25477,7 +25526,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Its second before its first: nothing to pick, it says why.)
         if (k && !cloud.from?.[0]) return [{ key: "none", label: "None to pick", aside: "Pick the first one first", disabled: "Pick the first one first" }];
         const set = (/** @type {Layer} */ item, /** @type {Chart} */ doc, /** @type {string} */ member) => (item.from = fromOf(doc, Object.assign([...(item.from ?? [])], { [k]: member }), "cloud"));
-        return cloudMembers(cloud.from?.[1 - k]).map(({ key, icon, label, group }) => ({ key, icon, label, group, current: cloud.from?.[k] === key, run: () => cloud.from?.[k] === key || editById(id, (/** @type {Layer} */ item, /** @type {Chart} */ doc) => set(item, doc, key)) }));
+        return cloudMembers(cloud.from?.[1 - k], cloud).map(({ key, icon, label, group }) => ({ key, icon, label, group, current: cloud.from?.[k] === key, run: () => cloud.from?.[k] === key || editById(id, (/** @type {Layer} */ item, /** @type {Chart} */ doc) => set(item, doc, key)) }));
       }
       /**
        * ⌘K's page for a trend: the chart's layers (none made from layers, nor what flips it) to tick, then one on those;
@@ -25488,7 +25537,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const ticked = new Set();
         return { title: id ? "Between" : "Add a trend", placeholder: "Search the layers", rows: () => {
           // (A trend's reference isn't one of them: it's what flips it.)
-          const made = id ? layerById(id) : null, layers = chart.layers.filter((layer) => !layer.from && layer.type !== "signal" && layer.id !== made?.ref), has = (/** @type {string} */ member) => (made ? Boolean(made.from?.includes(member)) : ticked.has(member));
+          const made = id ? layerById(id) : null, has = (/** @type {string} */ member) => (made ? Boolean(made.from?.includes(member)) : ticked.has(member)), first = made ? placedBy(chart, made) : chart.layers.find((layer) => ticked.has(layer.id)) ?? null, layers = chart.layers.filter((layer) => (memberable(layer, made, first) || has(layer.id)) && layer.id !== made?.ref);
           const members = layers.map((layer) => layer.id), short = fromShort({ type: "trend", from: fromOf(chart, ticked) });
           /** @param {string[]} ids */
           const put = (ids) => {
@@ -25502,7 +25551,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return { kind: "row", key: layer.id, icon: letterChip(layer), label: labelOf(layer), group: "Layers", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id), aside: on ? "In it" : "", current: on, verb: on ? "Deselect" : "Select", stay: true, run: toggle,
               actions: () => [
                 { label: on ? "Deselect" : "Select", icon: ICONS.checkbox, kbd: "↵", stay: true, run: toggle },
-                { label: "Select all", icon: ICONS.checkbox, stay: true, run: () => put(members) },
+                { label: "Select all", icon: ICONS.checkbox, stay: true, run: () => put(layers.filter((other) => oneScale(other, layer)).map((other) => other.id)) },
                 { label: "Deselect all", icon: ICONS.close, stay: true, run: () => put([]) },
                 ...(made ? [] : [add]),
               ] };
@@ -25522,7 +25571,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function refChoices(/** @type {string} */ id) {
         const trend = layerById(id);
         if (!trend) return [];
-        return (trend.type === "signal" ? markable(chart, trend) : refsFor(chart, trend)).map((layer) => ({ key: layer.id, icon: letterChip(layer), label: labelOf(layer), current: trend.ref === layer.id, run: () => trend.ref === layer.id || editById(id, (item) => (item.ref = layer.id)) }));
+        return (trend.type === "signal" ? markable(chart, trend) : refsFor(chart, trend).filter((layer) => oneScale(layer, trend) || layer.id === trend.ref)).map((layer) => ({ key: layer.id, icon: letterChip(layer), label: labelOf(layer), current: trend.ref === layer.id, run: () => trend.ref === layer.id || editById(id, (item) => (item.ref = layer.id)) }));
       }
       /**
        * Formulas from a layer: the starters (each its first formula, on its letter), or one's own.
@@ -26211,7 +26260,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { title: `Duplicate ${n}`, text: "Each copy under its original.", words: "selected picked layers copy duplicate", icon: "duplicate", kbd: "⌘D", run: () => layersBatch("duplicate"), suggested: true },
             ...chart.panes.filter((pane) => layers.some((layer) => layer.pane !== pane.id)).map((pane) => ({ title: `Move ${n} to pane ${chart.panes.indexOf(pane) + 1}`, text: paneNames(pane), words: "selected picked layers move pane", icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), pane.id) })),
             ...(chart.panes.length < MAX_PANES ? [{ title: `Move ${n} to a new pane`, text: "A pane of their own, under the others.", words: "selected picked layers move pane new", icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), null), suggested: true }] : []),
-            ...(layers.filter((layer) => !layer.from && layer.type !== "signal").length > 1 ? [{ title: "A cloud between them", ...(layers.filter((layer) => !layer.from && layer.type !== "signal").length === 2 ? { text: "Filled between the two, in the color of the one over.", run: () => layersBatch("cloud"), suggested: true } : { text: "A cloud is between two layers." }), words: "selected picked layers cloud band envelope fill between shade cross", icon: "cloud" }, ((why) => ({ title: "A trend between them", text: why ? `${why}.` : "On the lowest of them until a price touches it, then on the highest until it touches that.", words: "selected picked layers trend support resistance bound ride", icon: "riding", ...(why ? {} : { run: () => layersBatch("trend") }) }))(fromShort({ type: "trend", from: layers.filter((layer) => !layer.from && layer.type !== "signal").map((layer) => layer.id) }))] : []),
+            ...(layers.filter((layer) => !layer.from && layer.type !== "signal").length > 1 ? [{ title: "A cloud between them", ...(((bases) => (bases.length !== 2 ? { text: "A cloud is between two layers." } : fromShort({ type: "cloud", from: bases.map((layer) => layer.id) }) ? { text: `${ONE_SCALE}.` } : { text: "Filled between the two, in the color of the one over.", run: () => layersBatch("cloud"), suggested: true }))(layers.filter((layer) => !layer.from && layer.type !== "signal"))), words: "selected picked layers cloud band envelope fill between shade cross", icon: "cloud" }, ((why) => ({ title: "A trend between them", text: why ? `${why}.` : "On the lowest of them until a price touches it, then on the highest until it touches that.", words: "selected picked layers trend support resistance bound ride", icon: "riding", ...(why ? {} : { run: () => layersBatch("trend") }) }))(fromShort({ type: "trend", from: layers.filter((layer) => !layer.from && layer.type !== "signal").map((layer) => layer.id) }))] : []),
             { title: `Remove ${n}`, text: "With an Undo.", words: "selected picked layers remove delete", icon: "trash", kbd: "⌫", danger: true, run: () => layersBatch("remove"), suggested: true },
             { title: "Clear the selection", text: `${n} selected.`, words: "selected picked layers deselect clear", icon: "close", kbd: "esc", run: () => clearLayerPicks(), suggested: true },
           ])(plural(layers.length, "layer"), layers.some((layer) => !layer.hidden)))(pickedLayers())),
@@ -27744,8 +27793,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...layerActions(id, "palette").map((row) => ({ ...row, group: "Layer" })),
           ];
           // (One made from layers: what's a series' or a formula's isn't its; a cloud's, what's a line's either.)
-          const NOT_ITS = new Set(["type", "fill", "base", "levels", "to-formula", "to-series", "shape", ...(layer.type === "cloud" ? ["width", "dash", "price-line", "derive"] : [])]);
-          // (A signal: its formula, where its marks are, its color; no line's look, nor a place of its own: its layer's.)
+          const NOT_ITS = new Set(["type", "fill", "base", "levels", "to-formula", "to-series", "shape", ...(follows(layer) ? ["pane", "side"] : []), ...(layer.type === "cloud" ? ["width", "dash", "price-line", "derive"] : [])]);
+          // (A cloud's or a trend's place its layers'; a signal: its formula, where its marks are, its color; no line's
+          // look, nor a place of its own: its layer's.)
           const NOT_A_SIGNAL = new Set(["type", "fill", "base", "levels", "to-series", "shape", "colors", "color-from", "width", "dash", "price-line", "pane", "side", "scale", "stack", "order", "up", "down", "format"]);
           return (layer.type === "signal" ? rows.filter((row) => !NOT_A_SIGNAL.has(row.key)) : layer.from ? rows.filter((row) => !NOT_ITS.has(row.key)).map((row) => (row.key === "name" ? { ...row, group: typeName(layer.type) } : row)) : rows).map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, id), ...row }));
         } };
