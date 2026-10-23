@@ -13,6 +13,5 @@
 # Re-excluded below the whitelist: local snapshot baselines, local assistant
 # settings (reachable through the showcases -> modules symlink) and logs.
 crates/bitview_devtools/snapshots
-showcases/studio/dist
 **/.claude
 **/*.log

@@ -2,8 +2,8 @@
 /**
  * Studio's presets: its ready-made charts, in a tree of its own, made from a client's series tree (this repo's, so a
  * path it doesn't have fails where it's written), and the chain's facts (what has happened: no charts of a pool that
- * never found a block, or of what's still to come). Every other series Studio can chart (by date) is in one of them; the
- * build checks that (build.mjs) and puts them in the page; the dev page makes them as it loads.
+ * never found a block, or of what's still to come). Every other series Studio can chart (by date) is meant to be in one
+ * of them; the page makes them as it loads.
  *
  * A preset: `p` its place (its sections, then its own name), `t` its title, `c` its chart as a link writes it (its
  * layers, its panes; the page reads it as it reads a link).
@@ -1151,58 +1151,3 @@ export function studioPresets(client, facts) {
   return presets;
 }
 
-/**
- * The server's aliases: two keys of one node naming the same series under two ids, the well-known name first (a cohort's
- * `realizedPrice` is its average cost basis by coin, `avg`; `mvrv` is that average's `ratio`). The presets chart the
- * well-known one.
- */
-const TWINS = [["realizedCap", "total"], ["realizedPrice", "avg"], ["capitalizedPrice", "avg"], ["medianRealizedPrice", "median"], ["medianCapitalizedPrice", "median"], ["mvrv", "ratio"], ["mayerMultiple", "ratio"], ["aviv", "ratio"], ["vaulted", "hodledOrLost"]];
-/**
- * One number computed twice, at two places in the tree (paths from the series' root), the one charted first: the
- * transactions creating an OP_RETURN output, by the OP_RETURN plugin and among outputs by type.
- */
-const SAME = [[["opReturn", "txCount"], ["outputs", "types", "opReturn", "txCount"]], [["opReturn", "txShare"], ["outputs", "types", "opReturn", "txShare"]]];
-/** Each alias' twin, both ways, by name, in a client's tree (and SAME's). @param {any} tree @returns {Map<string, string>} */
-function twins(tree) {
-  const map = new Map(), stack = [tree];
-  /** Two nodes' leaves at the same places, each the other's twin (an amount's bitcoin, its bitcoin). @param {any} a @param {any} b */
-  const pair = (a, b) => {
-    if (isLeaf(a) && isLeaf(b)) map.set(a.name, b.name).set(b.name, a.name);
-    else if (a && b && typeof a === "object" && typeof b === "object" && !isLeaf(a) && !isLeaf(b)) for (const key of Object.keys(a)) pair(a[key], b[key]);
-  };
-  for (const [one, other] of SAME) pair(one.reduce((node, key) => node?.[key], tree), other.reduce((node, key) => node?.[key], tree));
-  while (stack.length) {
-    const node = stack.pop();
-    if (!node || typeof node !== "object" || isLeaf(node)) continue;
-    // (A leaf's twin may be a node's per-block leaf: `realizedPrice` and `avg.block`.)
-    for (const [known, generic] of TWINS) pair(node[known], isLeaf(node[known]) && !isLeaf(node[generic]) ? node[generic]?.block : node[generic]);
-    for (const value of Object.values(node)) stack.push(value);
-  }
-  return map;
-}
-
-/**
- * The series Studio can chart (by date) in a client's tree that no preset shows (as a layer's series), by name: the
- * build stops at any. (Not the indexes' own, `indexer` and `mappings`: a block's fields, an interval's first height,
- * date and start, the plumbing between indexes.) The price's candles count for its parts, and an alias' twin for it.
- * What never happened or hasn't yet (notYet, by `facts`) has no presets: its series aren't missed.
- * @param {any} client @param {Preset[]} presets @param {Facts} [facts] @returns {string[]}
- */
-export function leftOut(client, presets, facts) {
-  const shown = new Set(presets.flatMap((preset) => preset.c.layers.map((layer) => layer.series).filter(Boolean)));
-  const absent = notYet(client.series, facts);
-  for (const [name, twin] of twins(client.series)) if (shown.has(twin)) shown.add(name);
-  const missing = new Set();
-  // (Nor the price's own parts, open, high, low, close and spot: its candles, in every preset with the price, show them.)
-  const { indexer: _, mappings: __, price: { ohlc: ___, open, high, low, close, spot, ...priced }, ...rest } = client.series;
-  const data = { ...rest, price: priced };
-  const stack = [data];
-  while (stack.length) {
-    const node = stack.pop();
-    if (absent.has(node)) continue;
-    if (isLeaf(node)) {
-      if (byDate(node) && !shown.has(node.name)) missing.add(node.name);
-    } else if (node && typeof node === "object") for (const value of Object.values(node)) stack.push(value);
-  }
-  return [...missing].sort();
-}

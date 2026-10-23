@@ -6726,6 +6726,8 @@
       @media (min-width: 700px) and (min-height: 1000px) {
         .shelf.lead .shelf-row {
           grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          /* (Each row as tall as the others: See all alone in the last one too.) */
+          grid-auto-rows: 1fr;
           grid-auto-flow: row;
           overflow-x: visible;
         }
@@ -9879,7 +9881,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const secondColor = (layer) => ((other) => (other && other !== layer.color ? other : layer.color === "red" ? "green" : "red"))(layer.type === "cloud" ? ownerOf(layer)?.layers.find((item) => item.id === layer.from?.[1])?.color : undefined);
       /**
        * A layer's look before its last type change and as that type left it (its colors, whose colors it takes, colored by
-       * its levels), this session (not kept with it), by its id. @type {Map<string, { to: string, before: Record<string, any>, after: Record<string, any> }>}
+       * its levels), this session (not kept with it), by its chart's id and its own (a chart's copy has its layers' ids).
+       * @type {Map<string, { to: string, before: Record<string, any>, after: Record<string, any> }>}
        */
       const looksLeft = new Map();
       const LOOK_KEYS = /** @type {const} */ (["color", "colorBelow", "colorFrom", "byLevels"]);
@@ -9891,7 +9894,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const retype = (/** @type {Layer} */ layer, /** @type {Layer["type"]} */ type) => {
         if (type === layer.type) return;
         // (Its memory the type it's left's own: one of another (an undo since) holds nothing.)
-        const look = /** @type {Record<string, any>} */ (layer), was = looksLeft.get(layer.id);
+        const look = /** @type {Record<string, any>} */ (layer), key = `${chart?.id}:${layer.id}`, was = looksLeft.get(key);
         if (was?.to === layer.type) for (const key of LOOK_KEYS) if (look[key] === was.after[key]) was.before[key] === undefined ? delete look[key] : (look[key] = was.before[key]);
         const before = Object.fromEntries(LOOK_KEYS.map((key) => [key, look[key]]));
         if (type === "baseline") (layer.color = "green"), delete layer.colorBelow;
@@ -9901,7 +9904,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!COLORED_FROM.has(type)) delete after.colorFrom;
         if (!BY_LEVELS.has(type)) delete after.byLevels;
         // (Kept for the chart's own layer alone: a copy's, ⌘K's look at it, keeps nothing.)
-        if (chart?.layers.includes(layer)) looksLeft.set(layer.id, { to: type, before, after });
+        if (chart?.layers.includes(layer)) looksLeft.set(key, { to: type, before, after });
         // (Colored by its levels again: one added meanwhile, its color.)
         if (layer.byLevels && BY_LEVELS.has(type)) colorLevels(layer);
       };
@@ -11707,9 +11710,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Within the month deletions are kept, or it'd be pruned before another tab hears.)
         library.deleted[doc.id] = Math.max(doc.updated, Date.now() - 29 * 86400000, library.deleted[doc.id] ?? 0);
       };
-      /** A deleted chart back (its Undo): edited now, after its deletion, wherever that's known; its folder gone since, at the top. @param {Chart} doc */
+      /** A deleted chart back (its Undo): edited now, after its deletion, wherever that's known; its folder made again since, in that one; gone, at the top. @param {Chart} doc */
       const recover = (doc) => {
         stampEdit(doc);
+        if (doc.folder) doc.folder = folderNow(doc.folder);
         if (doc.folder && !library.folders.some((folder) => folder.id === doc.folder)) delete doc.folder;
         delete library.deleted[doc.id];
       };
@@ -12204,7 +12208,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         to.push(JSON.stringify(chart));
         // The chart as it was, all of it (what it didn't have then, it hasn't now); the range is a view, as a pan is: it
         // stays as it is.
-        const was = JSON.parse(state), folder = chart.folder, stamped = chart.updated, blank = chart.blank, at = chart.index, auto = chart.auto;
+        const was = JSON.parse(state), folder = chart.folder, stamped = chart.updated, blank = chart.blank, at = chart.index, auto = chart.auto, types = new Map(chart.layers.map((layer) => [layer.id, layer.type]));
         // (A step of the range alone (see setRange): its range back, shown; any other keeps the view as it is.)
         // (Compared as undo leaves the rest: its folder, id, blank, and the interval Auto's at, kept as they are now.)
         const bare = (/** @type {Record<string, any>} */ doc) => JSON.stringify(Object.keys(doc).filter((key) => !["range", "updated", "folder", "id", "blank", ...(auto && was.auto ? ["index"] : [])].includes(key)).sort().map((key) => [key, doc[key]]));
@@ -12215,6 +12219,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         Object.assign(chart, was, { range: ranged ? was.range : chart.range, id: chart.id });
         // (Auto then and now: the interval it's at stays, the view's, not a step's.)
         if (auto && was.auto) chart.index = at;
+        // (The looks remembered by the layers whose type this changed let go of: they were the steps' since, not this one's.)
+        for (const layer of chart.layers) if (types.get(layer.id) !== layer.type) looksLeft.delete(`${chart.id}:${layer.id}`);
         // (A preview's step, kept aside as its edits are: reloaded, it's as it is now.)
         if (isPreview(chart) && !ranged) asideDirty.add(chart);
         if (folder) chart.folder = folder;
@@ -13339,7 +13345,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const dailyOf = (/** @type {string} */ name) => (indexCatalog(), DAILY(name).find((other) => catalogIndex?.has(other) && !byBlock.has(other)) ?? null);
 
       /**
-       * @typedef {{ values?: Vector, ohlc?: (number[] | null)[], low?: Vector, breaks?: Uint8Array, sides?: Uint8Array, unit: string, error?: string, detail?: string, info?: any, unavailable?: boolean, missing?: boolean }} Result
+       * @typedef {{ values?: Vector, ohlc?: (number[] | null)[], low?: Vector, breaks?: Uint8Array, sides?: Uint8Array, unit: string, error?: string, detail?: string, info?: any, unavailable?: boolean, missing?: boolean, blank?: Vector }} Result
        *   `low`: a cloud's lows (its highs, its values); `breaks`: a trend's flips; `sides`: which it's on, a trend's (see
        *   trendOf), or a cloud's two is over (see cloudOf).
        * `error` as short as says what to do (the legend, a row), `detail` the sentence why (the editor, a preview, a tip)
@@ -13521,7 +13527,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const inputs = [...refsOf(node)].map((letter) => {
             const target = byLetter.get(letter);
             const result = !target || target === layer || target.type === "cloud" ? null : computed(target);
-            return result?.values ? idOf(result.values) : result?.error ?? "-";
+            // (A blank one by its own none-at-each-date: the same message as an error's, but not one.)
+            return result?.values ? idOf(result.values) : result?.blank ? idOf(result.blank) : result?.error ?? "-";
           });
           const key = [frame.id, layer.formula, doc.index, ...inputs, ...[...refsOf(node, "series")].map((name) => (bySeries.get(name)?.values ? idOf(bySeries.get(name)?.values) : "-"))].join("|");
           return kept(layer, key, () => {
@@ -13537,19 +13544,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               if (target === layer) throw new Error(`${name} can't refer to itself`);
               if (target.type === "cloud") throw new Error(`${name} is a cloud: a range, not one value`);
               const result = computed(target);
+              // (One with no value anywhere: none at each date, for this to make what it can of (an "or" of it, its other side).)
+              if (result?.blank) return result.blank;
               if (!result?.values) throw result?.error ? failing(`${name} has no data (${quiet(result.detail ?? result.error)})`, `${name} has no data`) : new Error(`${name} has no data`);
               return result.values;
             }, doc.index, false, memo);
             if (!length) throw new Error("Name a series, or add one, to give the formula a timeline");
             const values = typeof value === "number" ? new Float64Array(length).fill(value) : value;
-            // (No value at any date, all of history loaded (a finer interval's may be in what it hasn't yet): said, rather
-            // than a blank layer.)
-            if (!FINE.has(doc.index) && !values.some(Number.isFinite)) throw failing("It has no value at any date: what it reads has none where it's computed (a log of 0 or less, a root of a negative, a division by 0), or a when() holds nowhere", "No values");
             const unit = unitOfNode(node, (name, kind) => {
               if (kind === "series") return bySeries.get(name)?.unit ?? null;
               const target = byLetter.get(name);
               return !target || target.type === "cloud" ? null : computed(target)?.unit ?? null;
             }) ?? "number";
+            // (No value at any date, all of history loaded (a finer interval's may be in what it hasn't yet): said, rather
+            // than a blank layer: no values (what draws, scales, exports or is made of layers takes none), its none at each date
+            // (an infinity isn't one either) kept apart (`blank`) for a formula reading it alone (an "or" of it decides by
+            // its other side).)
+            // (The layers it reads with no value anywhere, named: what it lacks is theirs.)
+            const blanks = [...refsOf(node)].filter((letter) => ((target) => target && target !== layer && target.type !== "cloud" && computed(target)?.blank)(byLetter.get(letter)));
+            if (!FINE.has(doc.index) && !values.some(Number.isFinite)) return { blank: new Float64Array(values.length).fill(NaN), unit, ...(blanks.length ? { error: `${blanks[0]} has no data`, detail: `${blanks.join(", ")} ${blanks.length > 1 ? "have" : "has"} no value at any date` } : { error: "No values", detail: "It has no value at any date: what it reads has none where it's computed (a log of 0 or less, a root of a negative, a division by 0), or a when() holds nowhere" }) };
             return { values, unit };
           });
         });
@@ -21622,10 +21635,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Back as a folder anew, its deletion standing: wherever that's been heard, this one isn't it.)
           // (What was in it, still where the delete put it; the folder that was around it gone since, wherever that took
           // them: the folder back with them there.)
-          const again = /** @type {Folder} */ ({ ...folder, id: uid() }), gone = Boolean(folder.parent && !folderById(folder.parent));
+          // (Its folder made again since under another id: that one.)
+          const up = folder.parent ? folderNow(folder.parent) : undefined, again = /** @type {Folder} */ ({ ...folder, id: uid() }), gone = Boolean(up && !folderById(up));
           folderAgain.set(folder.id, again.id);
-          const back = itemsOf(keysNow(members.map(sideKey))).filter((item) => gone || parentOf(item) === folder.parent);
-          const parent = gone ? (back[0] ? parentOf(back[0]) : undefined) : folder.parent;
+          const back = itemsOf(keysNow(members.map(sideKey))).filter((item) => gone || parentOf(item) === up);
+          const parent = gone ? (back[0] ? parentOf(back[0]) : undefined) : up;
           parent ? (again.parent = parent) : delete again.parent;
           if (gone) back.splice(0, back.length, ...back.filter((item) => parentOf(item) === parent));
           const now = childrenOf(again.parent), first = now.findIndex((item) => back.includes(item));
@@ -21901,7 +21915,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Gone back to the Charts page for it: back into it.)
             else if (away && home) void leaveHome(reopen);
             else reopen();
-            return () => ((now) => now && deleteChart(now))(library.charts.find((other) => other.id === doc.id));
+            // (Again, only as it came back: edited since, here or in another tab, it's kept, said.)
+            const same = asThen([doc]);
+            return () => (same() ? ((now) => now && deleteChart(now))(library.charts.find((other) => other.id === doc.id)) : keptAsEdited([doc]));
           },
           undone: `“${titleOf(doc)}” is back`,
         });
@@ -22607,13 +22623,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderCharts();
           // (An address that waited for them, opened now.)
           if (pendingRoute && started) {
-            const asked = pendingRoute, route = routeOf(asked);
+            // (Still on the step it was asked from, there; gone on since (a retry later, elsewhere), where it is now: a
+            // missed one only said.)
+            const asked = pendingRoute, route = routeOf(asked), here = Boolean(history.state?.route);
             pendingRoute = "";
             // (Its step let go of the address first: the step it leads to, after it, has none either.)
             const { route: _, ...state } = history.state ?? {};
-            history.replaceState(state, "", `/${location.search}`);
-            if (route) "preset" in route ? openPreset(route.preset) : goTo({ path: route.path });
-            else missedRoute(asked);
+            if (here) history.replaceState(state, "", `/${location.search}`);
+            if (here && route) "preset" in route ? openPreset(route.preset) : goTo({ path: route.path });
+            else if (here) missedRoute(asked);
+            else if (!route) notice(missedSaid(asked));
           }
           return list;
         })().catch((error) => {
@@ -22682,7 +22701,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       // ── Addresses: the presets' page, each section, each preset, to be found ──────────────────
 
-      /* addresses: the build runs this same code for the sitemap (build.mjs reads it between these marks) */
       /**
        * Each place of the presets' an address of its own, for search engines and links: their page /presets/, a section
        * /presets/valuation/, a preset /presets/valuation/mvrv (a section's ending in a slash, as a folder's does: the page
@@ -22723,7 +22741,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
         return { presets: presetsAt, sections, at };
       }
-      /* /addresses */
       /** Whether the page is Studio's own, served at its root (which serves the page at every address): an address of the presets' read as it starts; elsewhere (a file, another server, a page in a folder), none. */
       const ROUTED = location.protocol === "https:" && /^studio\.bitview\.space$/.test(location.hostname) && /^\/(?:$|presets(?:\/|$)|chart\/)/.test(location.pathname);
       /** The presets' addresses, made once they're read. */
@@ -25587,7 +25604,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         commit((doc) => {
           for (const layer of originals) {
             // (One of two colors, or colored by another layer or its levels, kept as it looks: a color of its own, the next.)
-            const paired = layer.type === "candles" || colorModeOf(layer) !== "one";
+            const paired = layer.type === "candles" || colorModeOf(layer) !== "one" || (layer.type === "signal" && (layer.colorBelow !== undefined || signedSignal(layer)));
             const copy = { ...structuredClone(layer), id: uid(), letter: nextLetter(doc), color: paired ? layer.color : nextColor(doc), label: layer.label ? `${layer.label} copy` : undefined };
             doc.layers.splice(doc.layers.findIndex((item) => item.id === layer.id) + 1, 0, copy);
             copies.push(copy.id);
@@ -26860,7 +26877,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (span && p?.k === "num" && p.unit) return `${signature}: p first, the span last`;
           if (span && !Number.isNaN(written(span)) && !(written(span) > 0)) return `${signature}: the window is a span of time, like 30d, 4w, 6mo or 2y`;
           if (p && !p.unit && !Number.isNaN(written(p)) && !(written(p) >= 0 && written(p) <= 100)) return `${signature}: p is a percent, from 0 to 100`;
-          for (const arg of node.args) if (windowError(arg)) return windowError(arg);
+          // (Each once: twice, a nest of them doubles at each level.)
+          for (const arg of node.args) {
+            const error = windowError(arg);
+            if (error) return error;
+          }
           return "";
         }
         return windowError(node.a) || windowError(node.b);
@@ -27669,7 +27690,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function stepSignal(/** @type {1 | -1} */ by) {
         const range = view.timeScale().getVisibleLogicalRange();
         if (!resolved || !range) return;
-        const middle = (range.from + range.to) / 2, turns = [...new Set(chart.layers.filter((layer) => signalShown(layer)).flatMap((layer) => marksOf(layer, resolved?.results.get(layer.id)?.values)))].sort((a, b) => a - b);
+        // (From where the view's going, a glide under way: pressed again on the way, the next on, not the same again.)
+        const middle = glideTarget ? (glideTarget.from + glideTarget.to) / 2 : (range.from + range.to) / 2, turns = [...new Set(chart.layers.filter((layer) => signalShown(layer)).flatMap((layer) => marksOf(layer, resolved?.results.get(layer.id)?.values)))].sort((a, b) => a - b);
         const at = by > 0 ? turns.find((i) => i > middle + 0.01) : turns.findLast((i) => i < middle - 0.01);
         // (Minutes and hours: what's loaded only, said.)
         if (at === undefined) return notice(`${by > 0 ? "No signal after this" : "No signal before this"}${fineDrawn() ? " in what's loaded" : ""}`);
@@ -29773,10 +29795,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * (base32: the fewest modules; compressing failed, the copy's, written out). @param {Chart} doc
        */
       function linksOf(doc) {
-        // (A preset as it's made, shown as it opens (its range, the view at it): its address, which opens it, itself,
-        // wherever. Moved, zoomed, at another range: the link, with the view.)
+        // (A preset as it's made, shown as it opens (its range, the view at it, its own drawing there: one still loading
+        // may come back to a view of its own): its address, which opens it, itself, wherever. Moved, zoomed, at another
+        // range: the link, with the view.)
         const i = doc.preset !== undefined && !presetEdited(doc) ? presetIndex(doc) : -1;
-        const at = i >= 0 && (doc !== chart || (presetShown && chart.range === freshPreset(i).range)) ? addresses()?.presets[i] : null;
+        const at = i >= 0 && (doc !== chart || (settled() && presetShown && chart.range === freshPreset(i).range)) ? addresses()?.presets[i] : null;
         if (at) return { copy: Promise.resolve(`${ORIGIN}${at}`), short: Promise.resolve(`${ORIGIN}${at}`) };
         const bytes = packedBytes(doc), copy = shareLink(doc, bytes);
         return { copy, short: bytes.then((packed) => `${location.href.replace(/[?#].*$/, "")}#c=${toBase32(packed)}`, () => copy) };
@@ -30634,6 +30657,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function toast(text, action, done = true) {
         toasts++;
+        unsay();
         // (Another said: not the closed preview's any more.)
         closedToast = null;
         const element = $("toast");
@@ -30643,7 +30667,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const said = /** @type {HTMLElement | null} */ (host.querySelector(":scope > [data-said]"));
         if (said) {
           said.textContent = "";
-          requestAnimationFrame(() => (said.textContent = toastSaid = action ? `${text}. ${action.label}${action.label === "Undo" ? `, ${keyText("⌘Z")}` : action.label === "Redo" ? `, ${keyText("⇧⌘Z")}` : ""}` : text));
+          cancelAnimationFrame(sayingFrame);
+          sayingFrame = requestAnimationFrame(() => ((saidOn = said), (said.textContent = toastSaid = action ? `${text}. ${action.label}${action.label === "Undo" ? `, ${keyText("⌘Z")}` : action.label === "Redo" ? `, ${keyText("⇧⌘Z")}` : ""}` : text)));
         }
         const undoes = action?.label === "Undo";
         // (A Library step: kept, as long as the Library's are.)
@@ -30714,10 +30739,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         toastOfPreview = null;
         syncUndo();
       }
-      /** What the last toast put on the status line. */
-      let toastSaid = "";
-      /** The toast's words off the status line where it showed: gone with it (words said there since, kept). */
-      const unsay = () => ((line) => line && line.textContent === toastSaid && (line.textContent = ""))(/** @type {HTMLElement | null} */ ($("toast").parentElement?.querySelector(":scope > [data-said]")));
+      /** What the last toast put on a status line, and that line (the page's, or a dialog's, the toast moved out since). */
+      let toastSaid = "", saidOn = /** @type {HTMLElement | null} */ (null);
+      /** The frame a toast's words wait for (another toast, or the toast gone, before it: not said). */
+      let sayingFrame = 0;
+      /** The toast's words off the status line it said them on: gone with it (words said there since, kept); not yet said, never. */
+      const unsay = () => (cancelAnimationFrame(sayingFrame), saidOn?.textContent === toastSaid && (saidOn.textContent = ""));
       /** A pointer that hovers (a mouse's; a tap's :hover sticks where it was, on iOS). */
       const hoverable = matchMedia("(hover: hover)");
       function hideToastLater() {
