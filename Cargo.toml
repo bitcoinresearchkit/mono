@@ -35,7 +35,7 @@ inherits = "release"
 debug = true
 
 [workspace.dependencies]
-arc-swap = "1.9.2"
+arc-swap = "1.9.3"
 aide = { version = "0.16.0-alpha.4", features = ["axum-json", "axum-query"] }
 axum = { version = "0.8.9", default-features = false, features = ["http1", "json", "query", "tokio", "tracing"] }
 bitcoin = { version = "0.32.102", features = ["serde"] }
@@ -95,14 +95,14 @@ brk_types = { version = "0.12.2", path = "crates/brk_types" }
 byteview = { package = "brk_byteview", version = "0.12.2", path = "crates/byteview" }
 color-eyre = "0.6.5"
 corepc-jsonrpc = { package = "jsonrpc", version = "0.19.0", default-features = false }
-corepc-types = { version = "0.15.0", features = ["std"], default-features = false }
+corepc-types = { version = "0.16.0", features = ["std"], default-features = false }
 derive_more = { version = "2.1.1", features = ["add_assign", "deref", "deref_mut"] }
 fjall = { package = "brk_fjall", path = "crates/fjall", version = "0.12.2" }
 include_dir = "0.7"
 indexmap = { version = "2.14.2", features = ["serde"] }
 itoa = "1.0.18"
 http-body = "1.1.0"
-jiff = { version = "0.2.37", features = ["perf-inline", "tz-system"], default-features = false }
+jiff = { version = "0.2.38", features = ["perf-inline", "tz-system"], default-features = false }
 libc = "0.2"
 log = "0.4.34"
 lsm-tree = { package = "brk_lsm_tree", path = "crates/lsm-tree", version = "0.12.2" }
@@ -117,21 +117,21 @@ rayon = "1.12.0"
 rapidhash = "4.5.1"
 rustc-hash = "2.1.3"
 ryu = "1.0.23"
-schemars = { version = "1.2.2", features = ["indexmap2"] }
+schemars = { version = "1.2.3", features = ["indexmap2"] }
 serde = "1.0.229"
-serde_json = { version = "1.0.151", features = ["float_roundtrip", "preserve_order"] }
+serde_json = { version = "1.0.154", features = ["float_roundtrip", "preserve_order"] }
 sha2 = "0.11"
-smallvec = "1.16.1"
+smallvec = "1.16.3"
 statedb = { path = "crates/statedb", version = "0.12.2" }
 strum = { version = "0.28", features = ["derive"] }
 tempfile = "3.27.0"
 thiserror = "2.0.21"
-tokio = { version = "1.53.1", features = ["rt-multi-thread"] }
+tokio = { version = "1.54.1", features = ["rt-multi-thread"] }
 tower = { version = "0.5.3", features = ["util"] }
 tower-http = { version = "0.7.1", features = ["catch-panic", "compression-br", "compression-gzip", "compression-zstd", "cors", "normalize-path", "timeout", "trace"] }
 tower-layer = "0.3"
 tracing = { version = "0.1", default-features = false, features = ["std"] }
-ureq = { version = "3.4.2", features = ["json"] }
+ureq = { version = "3.5.0", features = ["json"] }
 vecdb = { path = "crates/vecdb", version = "0.12.2", features = ["derive", "serde", "pco"] }
 vecdb_derive = { path = "crates/vecdb_derive", version = "0.12.2" }
 

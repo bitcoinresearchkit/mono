@@ -13,7 +13,7 @@ readme = "README.md"
 [dependencies]
 libc = { workspace = true }
 log = { workspace = true }
-memmap2 = "0.9.11"
+memmap2 = "0.9.12"
 parking_lot = { workspace = true }
 thiserror = { workspace = true }
 rustc-hash = { workspace = true }
