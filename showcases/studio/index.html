@@ -2972,16 +2972,9 @@
         padding: 3px;
         background: var(--raise);
         box-shadow: var(--pop);
-        transition: opacity var(--fade), translate var(--dur-small) var(--ease), visibility var(--dur-small), display var(--dur-small) allow-discrete;
+        transition: opacity var(--fade);
+        /* (Put away, a copy of it goes as it came, down a little as it fades: see fadeOut and renderBelt.) */
         animation: belt-in var(--dur-small) var(--ease);
-
-        /* (Put away as it came: down a little as it fades, out of reach meanwhile.) */
-        &[hidden] {
-          visibility: hidden;
-          opacity: 0;
-          translate: 0 4px;
-          pointer-events: none;
-        }
 
         &.busy {
           opacity: 0.4;
@@ -3613,11 +3606,9 @@
         border-left: 1px solid var(--line);
         transition: width var(--dur-layout) var(--ease-layout), border-width var(--dur-layout) var(--ease-layout);
 
-        /* (Its views at its own width, held to its outer edge: opening or shutting, they come and go with its inner edge, as a
-           drawer's, never cut mid-line.) */
+        /* (Its views at its own width, held to its inner edge: opening or shutting, they slide in and out with it, as a
+           drawer's, from beyond the card's edge.) */
         > .panel-view {
-          align-self: flex-end;
-          width: 100%;
           min-width: calc(var(--panel-width) - 1px);
         }
       }
@@ -7704,6 +7695,12 @@
            again at every change in it, a legend's values each frame of a scrub among them.) */
         .stage[data-belt-shown] .stage-foot > * {
           visibility: hidden;
+          opacity: 0;
+        }
+
+        /* (Back as the belt's gone: faded in.) */
+        .stage-foot > * {
+          transition: opacity var(--dur-micro) var(--ease);
         }
 
         /* (The header as an iOS bar: its controls, and 4px about them.) */
@@ -9696,6 +9693,44 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const isCatalogPath = (path) => typeof path === "string" && /^\w{1,80}(\.\w{1,80}){0,15}$/.test(path);
       const reduced = matchMedia("(prefers-reduced-motion: reduce)");
       /** The stylesheet's motion, for what moves from here: its lengths in milliseconds, and its curve. */
+      /**
+       * A motion's clock, called once a frame (its own frames, timed here: the view's glides, the logo, …): the frame's time,
+       * unless the browser rounds it (resisting fingerprinting: 16.67 ms; two frames of a 120 Hz screen sharing one, the
+       * motion would stand still in one, leap in the next): then on from the last by the frames' own pace, never past the
+       * clock's next tick. @returns {(now?: number) => number}
+       */
+      function motionClock() {
+        let first = -1, last = 0, frames = 0, seen = -1, rounded = false;
+        return (now = performance.now()) => {
+          // (Rounded, as two frames given one time show; else the frame's own time, always.)
+          rounded ||= now === seen;
+          seen = now;
+          // (Its first frame, or one after a while without (a still logo waking, a tab back in sight): its pace measured
+          // anew from there.)
+          if (first < 0 || now - last > 100) return ((first = last = now), (frames = 0), now);
+          frames++;
+          if (!rounded) return (last = now);
+          // (On by the frames' own pace, within the tick the rounded time stands for: behind it by more, the clock's own
+          // taken again (a rounded time ahead, jumped to at once, leaves the next frame next to standing still); ahead,
+          // held at its end, never back.)
+          const pace = now > first ? Math.min(1000 / 60, (now - first) / frames) : 1000 / 120, next = last + pace;
+          return (last = next < now - 1000 / 60 ? now : Math.min(next, now + 1000 / 60));
+        };
+      }
+      /**
+       * A motion's time since it began, by its clock: its first frame counted a step on (shown moved, never where it began:
+       * a time rounded, or one before the motion was asked for, would stand it still a frame; one motion taking over
+       * another, halt it). @returns {(now?: number) => number}
+       */
+      function motionTime() {
+        const clock = motionClock();
+        let start = -1;
+        return (now) => {
+          now = clock(now);
+          if (start < 0) start = now - 1000 / 120;
+          return now - start;
+        };
+      }
       const MOTION = { micro: parseFloat(css("--dur-micro")), small: parseFloat(css("--dur-small")), panel: parseFloat(css("--dur-panel")), page: parseFloat(css("--dur-page")), ease: css("--ease"), layout: parseFloat(css("--dur-layout")), easeLayout: css("--ease-layout") };
       const phone = matchMedia("(max-width: 760px), (max-height: 500px)");
       /** A layer row's value and change sizes, as the stylesheet sets them now (a phone's are larger): their room measured at them. */
@@ -12966,11 +13001,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           let x = start, frame = 0;
           grip.setPointerCapture(event.pointerId);
           grip.classList.add("dragging");
-          // (At most once a frame, where the hand is then.)
+          // (The chart stretched as it's dragged, drawn once it's let go: see holdChart.)
+          holdChart();
+          // (At most once a frame, where the hand is then; held again if let go meanwhile (the window resized, a motion
+          // over).)
           const move = (/** @type {PointerEvent} */ moved) => {
             if (moved.pointerId !== pointer) return;
             x = moved.clientX;
-            frame ||= requestAnimationFrame(() => ((frame = 0), setWidth(which, from + sign * (x - start))));
+            frame ||= requestAnimationFrame(() => ((frame = 0), holdChart(), setWidth(which, from + sign * (x - start)), stretchNow()));
           };
           const end = (/** @type {PointerEvent} */ lost) => {
             if (lost.pointerId !== pointer) return;
@@ -12978,6 +13016,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             grip.removeEventListener("pointermove", move);
             grip.removeEventListener("lostpointercapture", end);
             grip.classList.remove("dragging");
+            releaseSize();
             savePrefs();
           };
           grip.addEventListener("pointermove", move);
@@ -13202,7 +13241,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (span < 1e-6) return void (speed = 0);
           landing = { back: stretch <= 3, from: angle, to, h, stretch, speed, at: performance.now(), length: Math.min(0.7, (2.7 * span) / Math.max(speed, 1e-3)) };
         });
+        const clock = motionClock();
         const frame = (now) => {
+          now = clock(now);
           // (Out of sight, a phone's, or motion reduced: at rest, full.)
           if (phone.matches || reduced.matches) {
             looping = false;
@@ -13965,7 +14006,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * the left one's), its pinned side, the clipping let go of meanwhile (each element's own, as it was), and the room
        * after its data's last value and before its first (Max's) as drawn, a range showing (`ranged`: drawn again as a
        * range at the motion's end, else its bars kept at its edges).
-       * @type {{ to: number, sides: number, left: number, leftAxis: boolean, clipped: [HTMLElement, string][], room: number, lead: number, ranged: boolean } | null}
+       * @type {{ legends: [HTMLElement, number, number][], to: number, sides: number, left: number, leftAxis: boolean, clipped: [HTMLElement, string][], room: number, lead: number, ranged: boolean } | null}
        */
       let drawnStretch = null;
       function sizeOnce() {
@@ -14019,27 +14060,49 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // (Stretched, by its scales as drawn (at its end's width, or as it was); a motion started mid-motion, as drawn
         // too.)
-        if (across) {
-          const left = view.priceScale("left").width(), right = view.priceScale("right").width(), element = view.chartElement();
-          // (Its own clipping let go of meanwhile (the library's, at the chart's and each cell's edge): the card's own clips
-          // at the box.)
-          const clipped = /** @type {[HTMLElement, string][]} */ ([element, ...all$("tr > td > div", element)].map((item) => [item, item.style.overflow]));
-          for (const [item] of clipped) item.style.overflow = "visible";
-          // (Stretched as it'll be drawn once it's over: a range showing (a preset's), drawn again at that width, the room
-          // after its last value as wide as the chart makes it, and Max's before its first kept; else its bars at its edges
-          // the same (see stretchDrawn).)
-          const ranged = presetShown && !glideTarget && Boolean(resolved?.times.length), at = (/** @type {number | undefined} */ time) => (ranged && time !== undefined ? view.timeScale().timeToCoordinate(/** @type {any} */ (time)) : null);
-          // (Max's room before the first value anything shown has, as applyRange keeps it.)
-          const first = at(resolved && chart ? resolved.times[Math.min(firstShown(chart, resolved), resolved.times.length - 1)] : undefined), last = at(resolved?.times.at(-1));
-          drawnStretch = { to: width - left - right, sides: left + right, left, leftAxis: left > 0 && !(right > 0), clipped, room: last === null ? 0 : Math.max(0, width - left - right - last), lead: first !== null && first > 0.5 ? first : 0, ranged };
-          stretchDrawn(now.width);
-          const frame = () => run === motionsSized && drawnStretch && (stretchDrawn(box.getBoundingClientRect().width), requestAnimationFrame(frame));
-          requestAnimationFrame(frame);
-        }
+        if (across) stretchAcross(run, now.width, width);
         // (Drawn at its end's size once the page is idle, not in the frames that end the motion (what fades in as it ends:
         // the sidebar's words, New folder): a heavy chart's draw is a long frame.)
         Promise.allSettled(inMotion.map((motion) => motion.finished)).then(() => run === motionsSized && (later ? whenIdle(() => run === motionsSized && releaseSize(), { timeout: 200 }) : releaseSize()));
       }
+      /**
+       * The chart, drawn `width` wide, stretched to its box each frame (shown `shown` wide now) till `run` is over (see
+       * stretchDrawn): a motion's, a grip's drag.
+       */
+      function stretchAcross(/** @type {number} */ run, /** @type {number} */ shown, /** @type {number} */ width) {
+        const box = $("chart");
+        const left = view.priceScale("left").width(), right = view.priceScale("right").width(), element = view.chartElement();
+        // (Its own clipping let go of meanwhile (the library's, at the chart's and each cell's edge): the card's own clips
+        // at the box.)
+        const clipped = /** @type {[HTMLElement, string][]} */ ([element, ...all$("tr > td > div", element)].map((item) => [item, item.style.overflow]));
+        for (const [item] of clipped) item.style.overflow = "visible";
+        // (Stretched as it'll be drawn once it's over: a range showing (a preset's), drawn again at that width, the room
+        // after its last value as wide as the chart makes it, and Max's before its first kept; else its bars at its edges
+        // the same (see stretchDrawn).)
+        const ranged = presetShown && !glideTarget && Boolean(resolved?.times.length), at = (/** @type {number | undefined} */ time) => (ranged && time !== undefined ? view.timeScale().timeToCoordinate(/** @type {any} */ (time)) : null);
+        // (Max's room before the first value anything shown has, as applyRange keeps it.)
+        const first = at(resolved && chart ? resolved.times[Math.min(firstShown(chart, resolved), resolved.times.length - 1)] : undefined), last = at(resolved?.times.at(-1));
+        drawnStretch = { legends: all$(".legend", element).map((legend) => /** @type {[HTMLElement, number, number]} */ ([legend, legend.offsetLeft, legend.offsetWidth])), to: width - left - right, sides: left + right, left, leftAxis: left > 0 && !(right > 0), clipped, room: last === null ? 0 : Math.max(0, width - left - right - last), lead: first !== null && first > 0.5 ? first : 0, ranged };
+        stretchDrawn(shown);
+        const frame = () => run === motionsSized && drawnStretch && (stretchDrawn(box.getBoundingClientRect().width), requestAnimationFrame(frame));
+        requestAnimationFrame(frame);
+      }
+      /**
+       * The chart held as it's drawn while its width's changed by hand (a grip dragged): its drawing stretched to its box
+       * each frame, as a width-only motion's (see sizeOnce), drawn at its width once let go (releaseSize): not drawn anew
+       * each frame, a heavy chart's long ones.
+       */
+      function holdChart() {
+        if (sizeHeld || !resolved?.times.length || !chart || drawnChart !== chart.id) return;
+        const run = ++motionsSized, leftAxis = view.priceScale("left").width() > 0 && !(view.priceScale("right").width() > 0);
+        stretchKept = chart.id;
+        sizeHeld = true;
+        chartHeight = chartSize.height;
+        Object.assign(view.chartElement().style, { position: "absolute", left: "", right: "", top: "0", bottom: "", [leftAxis ? "left" : "right"]: "0", width: `${chartSize.width}px`, height: `${chartSize.height}px` });
+        stretchAcross(run, $("chart").getBoundingClientRect().width, chartSize.width);
+      }
+      /** Stretched to its box as laid out now: a grip's frame, its width just set (the stretch's own frame read it before). */
+      const stretchNow = () => drawnStretch && stretchDrawn($("chart").getBoundingClientRect().width);
       /**
        * The chart as drawn at its end's width (`drawnStretch.to`, its plot's), stretched to its box `shown` wide, as the box is
        * laid out this frame (one clock: the browser's own animations of a transform can run a frame or two off the box's):
@@ -14054,6 +14117,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           drawnStretch = null;
           for (const item of [...canvases, ...edged, ...rules]) Object.assign(item.style, { transform: "", transformOrigin: "" });
           for (const side of ["left", "right"]) element.style.removeProperty(`--stretch-${side}`);
+          for (const legend of all$(".legend", element)) legend.style.clipPath = "";
           delete element.dataset.stretching;
           return;
         }
@@ -14074,6 +14138,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (What's at the plot's moving edge, moved with it: the legends, and a left scale (pinned left, the edge doesn't
         // move).)
         if (!leftAxis) for (const item of left ? edged : all$(".legend", element)) item.style.transform = `translateX(${to - from}px)`;
+        // (A legend running past the plot as it shows (narrower than drawn), cut at its edge, not over the price scale: by
+        // where each was as the stretch began.)
+        if (!leftAxis) for (const [legend, at, wide] of drawnStretch.legends) legend.style.clipPath = at + wide > from ? `inset(0 ${at + wide - from}px 0 0)` : "";
       }
       /**
        * A view kept at the chart's width now: its stretch of time (a preset showing, its window at this width), its bars
@@ -14832,8 +14899,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Where the old first point sits in the new data (before its start, negative: the oldest let go).
           const offset = data.times[0] > drawnTimes[0] ? -lowerBound(drawnTimes, data.times[0]) : lowerBound(data.times, drawnTimes[0]);
           morphFrom = { from: offset, to: offset + drawnPoints - 1, ...overviewScale, at: performance.now() };
-          if (offset > 0) reveal(offset - 0.5, -1);
-          else if (offset + drawnPoints < data.times.length) reveal(offset + drawnPoints - 0.5, 1);
+          // (More come the way one's going (a second chunk as the first shows): it goes on, its join where its data is
+          // now, all past it what it shows; the other way, a reveal of its own.)
+          if (inReveal) inReveal.join += offset;
+          const outward = offset > 0 ? -1 : offset + drawnPoints < data.times.length ? 1 : 0;
+          if (outward && inReveal?.outward !== outward) reveal(outward < 0 ? offset - 0.5 : offset + drawnPoints - 0.5, outward);
         }
         drawnIndex = doc.index;
         drawnRange = doc.range;
@@ -14870,21 +14940,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let revealing = 0;
       /** The panes' drawings (their canvases: the legends and the axes beside them stay as they are), masked or not. */
       const maskPlots = (/** @type {string} */ mask) => view.panes().forEach((pane) => pane.getHTMLElement()?.children[1]?.firstElementChild?.querySelectorAll("canvas").forEach((canvas) => (canvas.style.maskImage = canvas.style.webkitMaskImage = mask)));
-      const endReveal = () => (revealing++, maskPlots(""));
+      /** The reveal in flight: where its join is (moved with the data as more comes), the way it goes. */
+      let inReveal = /** @type {{ join: number, outward: -1 | 1 } | null} */ (null);
+      const endReveal = () => (revealing++, (inReveal = null), maskPlots(""));
       function reveal(/** @type {number} */ join, /** @type {-1 | 1} */ outward) {
-        const started = performance.now(), id = ++revealing;
+        const id = ++revealing, since = motionTime(), own = (inReveal = { join, outward });
         let duration = 0;
         const step = () => {
           if (id !== revealing) return;
           // Placed by the view's own window (the chart's coordinates lag a frame behind a new one).
           const range = view.timeScale().getVisibleLogicalRange(), plot = view.timeScale().width();
-          const at = range ? ((join - range.from) / (range.to - range.from)) * plot : NaN;
+          const at = range ? ((own.join - range.from) / (range.to - range.from)) * plot : NaN;
           if (!(at > 0 && at < plot)) return endReveal();
           // As the page's own wipe: a soft edge two fifths of the way wide, from the join out past the plot's edge, on its
           // curve, taking as long as the way is far (the whole plot, about as long as the page's).
           const way = outward < 0 ? at : plot - at, soft = Math.max(24, way * 0.4);
           duration ||= 300 + (750 * way) / plot;
-          const t = Math.min(1, (performance.now() - started) / duration);
+          const t = Math.min(1, since() / duration);
           if (t >= 1) return endReveal();
           // (Its edge starts behind the join, all of the new hidden, the old side whole; the join is a hard stop.)
           const front = at + outward * ((way + soft) * wiped(t) - soft), shown = Math.min(1, (outward * (front - at) + soft) / soft);
@@ -14974,28 +15046,36 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let gliding = 0;
       /** Where a glide in flight is going, and the preset it goes to (null for zooms). */
       let glideTarget = null, glidePreset = null;
+      /** The range a glide last set, till the chart has taken it (its next frame: read before, it says the one before). */
+      let glideLast = /** @type {{ from: number, to: number } | null} */ (null);
       function stopGlide() {
         cancelAnimationFrame(gliding);
         glideTarget = glidePreset = null;
+        glideLast = null;
       }
+      /** The view's range as it's being moved to: a glide's last step, else the chart's own (a move from it starts there, not a step back). */
+      const viewRange = () => glideLast ?? view.timeScale().getVisibleLogicalRange();
       /** Moves the view to a window over a moment, easing out, instead of jumping. */
       function glide(target, preset = null) {
+        // (From where the one going was, before it's stopped: a view moved otherwise (rebuilt, panned) stops it too.)
+        const from = viewRange();
         stopGlide();
         if (!(target.from < target.to)) return;
         target = within(target);
         target = ontoData(target) ?? target;
-        const from = view.timeScale().getVisibleLogicalRange();
         // Mid-rebuild (an interval swapping its data) the chart can report no window, or an inverted one: jump instead.
         if (!from || !(from.from < from.to) || reduced.matches) return view.timeScale().setVisibleLogicalRange(target);
         glideTarget = target;
         glidePreset = preset;
-        const start = performance.now();
+        const since = motionTime();
         const step = (now) => {
-          // (A frame's time can be before the glide began: from 0, not past it backwards (a zoom out would turn over).)
-          const t = Math.min(1, Math.max(0, (now - start) / MOTION.page)), eased = 1 - (1 - t) ** 3;
+          const t = Math.min(1, since(now) / MOTION.page), eased = 1 - (1 - t) ** 3;
           const next = { from: from.from + (target.from - from.from) * eased, to: from.to + (target.to - from.to) * eased };
           if (!(next.from < next.to)) return stopGlide();
           view.timeScale().setVisibleLogicalRange(next);
+          // (Kept till the chart's taken it, a frame on.)
+          glideLast = next;
+          requestAnimationFrame(() => glideLast === next && (glideLast = null));
           if (t < 1) gliding = requestAnimationFrame(step);
           else glideTarget = glidePreset = null;
         };
@@ -15015,7 +15095,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Closer or wider around the view's middle; showing the latest, it stays at the right edge (as the chart's wheel does). */
       function zoom(factor) {
-        const range = view.timeScale().getVisibleLogicalRange();
+        const range = viewRange();
         if (!range) return;
         const width = Math.min(mostBars(), Math.max(10, (range.to - range.from) * factor)), center = (range.from + range.to) / 2;
         // (At the latest: it stays where it is, its room after it as wide as ever.)
@@ -16618,11 +16698,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const move of moves) if (moves.some((other) => other !== move && other.i === move.i)) move.veil = null;
         /** @param {number} a @param {number} b @param {number} k @param {boolean} log */
         const between = (a, b, k, log) => (log && a > 0 && b > 0 ? 10 ** (Math.log10(a) + (Math.log10(b) - Math.log10(a)) * k) : a + (b - a) * k);
-        let start = 0;
+        let started = false;
+        const since = motionTime();
         const step = (/** @type {number} */ now) => {
+          now = since(now);
           try {
-            if (!start) {
-              start = now;
+            if (!started) {
+              started = true;
               for (const move of moves) {
                 move.to = move.scale.bvAutoRange() ?? move.range;
                 move.scale.bvSetRange(move.range);
@@ -16640,7 +16722,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // (From here on, a view moved is moved by something else.)
               scaleGliding = true;
             }
-            const t = Math.min(1, (now - start) / MOTION.small), k = eased(t);
+            const t = Math.min(1, now / MOTION.small), k = eased(t);
             if (t >= 1) return endScaleGlide();
             for (const { scale, range, to, log, series, veil, ends } of moves) {
               scale.bvSetRange({ from: between(range.from, to.from, k, log), to: between(range.to, to.to, k, log) });
@@ -16726,10 +16808,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("navigator").dataset.tip = `Drag to pan, drag an edge to zoom, ${CLICK} to jump`;
       $("navigator").addEventListener("pointerdown", (event) => {
         if (event.button !== 0 || brushDrag) return;
-        stopGlide();
-        const n = resolved?.times.length ?? 0;
+        // (Taken mid-glide: on from its last step, read before it's stopped (by the glide that jumps, else here).)
+        const n = resolved?.times.length ?? 0, last = viewRange();
         const range = view.timeScale().getVisibleLogicalRange();
-        if (n < 2 || !range) return;
+        if (n < 2 || !range || !last) return stopGlide();
         const rect = $("navigator").getBoundingClientRect();
         const x = event.clientX - rect.left;
         // Hit-tested on the overview as it's painted (mid-move, too), which then lands where it was going.
@@ -16738,14 +16820,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         let mode = "pan";
         if (Math.abs(x - left) <= grip) mode = "left";
         else if (Math.abs(x - painted) <= grip) mode = "right";
-        let start = range;
+        let start = last;
         if (mode === "pan" && (x < left || x > painted)) {
-          // Jump: center the same window where the person clicked (and drag on from there).
-          const half = (range.to - range.from) / 2;
+          // Jump: center the same window where the person clicked, gliding there (as every move of the view's goes), and
+          // drag on from there.
+          const half = (last.to - last.from) / 2;
           start = within({ from: at(x) - half, to: at(x) + half });
           start = ontoData(start) ?? start;
-          view.timeScale().setVisibleLogicalRange(start);
-        }
+          glide(start);
+        } else stopGlide();
         brushDrag = { mode, x, perPixel: (n - 1) / rect.width, range: start, pointer: event.pointerId, times: resolved?.times, width: rect.width };
         $("navigator").setPointerCapture(event.pointerId);
         $("brush").classList.add("dragging");
@@ -16764,6 +16847,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return;
         }
         if (event.pointerId !== brushDrag.pointer) return;
+        // (Dragged on as its jump glides: from where the view is now, the glide given up; a click's jitter, not a drag.)
+        if (glideTarget) {
+          if (Math.abs(x - brushDrag.x) < 3) return;
+          const now = viewRange();
+          stopGlide();
+          if (now) Object.assign(brushDrag, { x, range: now });
+          return;
+        }
         // (The timeline or the strip changed under it (another interval, a block, a resize): taken up again from here, not
         // moved by the old one's bars a pixel.)
         if (brushDrag.times !== resolved?.times || brushDrag.width !== rect.width) {
@@ -17734,8 +17825,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function renderBelt() {
         const belt = $("belt"), drawings = tool ? [] : /** @type {Drawing[]} */ ([...chosen].map(drawingById).filter(Boolean)), drawing = drawings.length === 1 ? drawings[0] : undefined;
         const was = belt.hidden || belt.classList.contains("held") || reduced.matches ? null : belt.getBoundingClientRect();
-        belt.hidden = home || !chart.layers.length || !(prefs.belt.on || tool || selectingArea || magnifying || drawings.length || beltKeys);
-        /** @type {HTMLElement} */ (belt.closest(".stage")).toggleAttribute("data-belt-shown", !belt.hidden);
+        const hide = home || !chart.layers.length || !(prefs.belt.on || tool || selectingArea || magnifying || drawings.length || beltKeys);
+        // (Put away, it goes as everything put away goes (see fadeOut); what it stood in for (a phone's foot) back once it's
+        // gone, not under it as it goes.)
+        // (Shown again as it goes, its copy's gone: one, never two.)
+        if (!hide) cutFade(belt);
+        const going = hide && !belt.hidden ? fadeOut(belt, [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "translateY(4px)" }]) : undefined;
+        belt.hidden = hide;
+        const stage = /** @type {HTMLElement} */ (belt.closest(".stage"));
+        stage.toggleAttribute("data-belt-shown", !hide || fading.has(belt));
+        going?.then(() => belt.hidden && !fading.has(belt) && stage.removeAttribute("data-belt-shown"));
         // (Its button gone, the magnifier with it.)
         if (belt.hidden && magnifying) return setMagnifier(false);
         $("draw-toggle").setAttribute("aria-pressed", String(prefs.belt.on));
@@ -19990,7 +20089,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             : `<div class="${part.card ? "shelf-empty library-empty" : "home-none"}">${part.html}</div>`)).join("");
           for (const slot of all$("[data-slot]", grid)) slot.replaceWith(/** @type {HTMLElement} */ (old.get(/** @type {string} */ (slot.dataset.slot))));
           restoreFocus(grid, focus);
-          allShelfSteps();
+          shelvesSoon();
         }
         drawnLayout = layout;
         drawnTiles.clear();
@@ -20178,7 +20277,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (kept) placeGallery(kept);
         restoreFocus($("gallery"), focus);
         for (const frame of all$(".pending[data-plot]", $("gallery"))) galleryTilesSeen.observe(frame);
-        allShelfSteps();
+        shelvesSoon();
       }
       /** The gallery as last drawn (where, the search, how much of it, the presets as read, the theme), its place, and how many it found. */
       let galleryDrawn = "", gallerySpot = "", galleryFound = 0;
@@ -20194,6 +20293,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const gap = parseFloat(getComputedStyle(row).columnGap) || 0, unit = tile.getBoundingClientRect().width + gap, page = Math.max(1, Math.floor((row.clientWidth - 8 + gap) / unit + 0.01));
         row.scrollTo({ left: (Math.round(row.scrollLeft / unit) + dir * page) * unit, behavior: reduced.matches ? "auto" : "smooth" });
       }
+      /** Every shelf's steps and edges, once the page's writes this frame are in (one layout, not one a write), before it's shown. */
+      let shelvesFrame = 0;
+      const shelvesSoon = () => (shelvesFrame ||= requestAnimationFrame(() => ((shelvesFrame = 0), allShelfSteps())));
       /** Every shelf's steps and edges (all read first, then written: one layout, not one a shelf). */
       function allShelfSteps() {
         const rows = all$(".shelf-row", $("home")), sizes = rows.map((row) => ({ at: row.scrollLeft, size: row.clientWidth, full: row.scrollWidth }));
@@ -20907,6 +21009,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         requestAnimationFrame(wait);
       }
       const slides = new WeakMap();
+      // (The screen turned or resized mid-slide: each sheet's slide in flight is where it was going at once, laid out for
+      // the screen it's on, not slid on by the old one's way. One stopped already stays so: finished, it'd be back.)
+      addEventListener("resize", () => {
+        for (const sheet of [$("panel"), $("menu"), ...all$("dialog")]) {
+          const slide = slides.get(sheet);
+          if (slide?.playState === "running" || slide?.playState === "paused") slide.finish();
+        }
+      });
       /**
        * A sheet's height changed by `change` (its foot the screen's), moving from where it showed (`from`, its top; where
        * it is, else) by its transform alone, which the screen moves on its own, the page busy or not (its height, laid out
@@ -20973,6 +21083,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const sheetGoes = (/** @type {number} */ by, /** @type {number} */ speed, /** @type {number} */ height) => restOf(by, speed) > height / 3;
       /** How far a sheet pulled `past` its tallest shows past it: less and less, as iOS's own edges give (55%, then less). */
       const stretched = (/** @type {number} */ past) => (1 - 1 / ((past * 0.55) / innerHeight + 1)) * innerHeight;
+      /** How far a sheet's pulled for it to show `shown` past its tallest (stretched's own way back). */
+      const unstretched = (/** @type {number} */ shown) => ((1 / (1 - Math.min(shown, innerHeight - 1) / innerHeight) - 1) * innerHeight) / 0.55;
       /**
        * A sheet let go to close: on down from where it showed (`from`, its top) past the screen's foot, at the finger's
        * speed (px/ms). Closed (`close`) at once, all that follows its closing now, its slide over its own way out (its dim's
@@ -22290,6 +22402,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /**
+       * Where an element is once every motion moving it is over (its own, and its boxes' around it: a slide, a glide): each
+       * at its end a moment, read, and back where it was, nothing drawn between.
+       */
+      function restRect(/** @type {HTMLElement} */ element) {
+        const moving = [];
+        // (One that never ends (none here), as it is.)
+        for (let at = /** @type {HTMLElement | null} */ (element); at; at = at.parentElement) for (const motion of at.getAnimations()) if ((motion.playState === "running" || motion.playState === "paused") && Number.isFinite(Number(motion.effect?.getComputedTiming().endTime))) moving.push(motion);
+        const was = moving.map((motion) => motion.currentTime);
+        try {
+          for (const motion of moving) motion.currentTime = Number(motion.effect?.getComputedTiming().endTime);
+          return element.getBoundingClientRect();
+        } finally {
+          moving.forEach((motion, i) => (motion.currentTime = was[i]));
+        }
+      }
+      /**
        * Items reordered by dragging them, one way for every list (the sidebar's charts, the grid's tiles, the layers): by
        * the mouse, once it's moved a few pixels from a press; by touch, held still first (that picks the item, where items
        * are picked, as a phone's photos do), then moved: a quick swipe still scrolls. A picked item takes every picked one
@@ -22312,6 +22440,31 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const pin = (/** @type {Event} */ event) => (press?.held || drag) && event.preventDefault();
         /** @type {{ ids: string[], ghost: HTMLElement, x: number, y: number, at: Landing | null, scroller: HTMLElement, box: DOMRect, frame: number, touch: boolean, width: number, height: number, top: number } | null} */
         let drag = null;
+        /** The pill let go where it lands, till it's flown there (see settleGhost). @type {HTMLElement | null} */
+        let kept = null;
+        /**
+         * Landed, one item seen landing: the pill flies to where the first lands and goes there as they come (faded in
+         * where they are), not two of it at once (the pill fading where it was let go, the item already in its place).
+         * Once they're laid out there (the next frame).
+         */
+        const settleGhost = (/** @type {string[]} */ ids) => {
+          const ghost = kept;
+          kept = null;
+          if (!ghost) return;
+          if (reduced.matches) return ghost.remove();
+          // (Not seen in their place a frame before they come.)
+          const hidden = /** @type {HTMLElement[]} */ (ids.map(itemNamed).filter(Boolean));
+          for (const item of hidden) item.style.opacity = "0";
+          requestAnimationFrame(() => {
+            for (const item of hidden) item.style.opacity = "";
+            // (Where the first comes to rest, on the way its row slides there (see slide): the pill along with it.)
+            const items = /** @type {HTMLElement[]} */ (ids.map(itemNamed).filter(Boolean)), to = items[0] && restRect(items[0]);
+            const away = to ? `translate(${to.left + 8}px, ${to.top + (to.height - ghost.offsetHeight) / 2}px)` : `${ghost.style.transform} scale(0.96)`;
+            const timing = { duration: MOTION.panel, easing: MOTION.ease };
+            for (const item of items) item.animate({ opacity: [0, 1] }, timing);
+            ghost.animate({ transform: [ghost.style.transform, away], opacity: [1, 0] }, { ...timing, fill: "forwards" }).finished.then(() => ghost.remove(), () => ghost.remove());
+          });
+        };
         /** The item an id names now (the list may have been drawn anew since the press). */
         const itemNamed = (/** @type {string} */ id) => all$(how.item, list).find((element) => how.idOf(element) === id);
         const unmark = () => [list, ...all$(".drop-before, .drop-after, .drop-target", list)].forEach((element) => (element.classList.remove("drop-before", "drop-after", "drop-down", "drop-target"), element.style.removeProperty("--drop-depth")));
@@ -22324,9 +22477,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (carrying === endDrag) carrying = null;
           if (!drag) return;
           cancelAnimationFrame(drag.frame);
-          // (Let go, the pill goes quickly; put back (esc, let go nowhere), back to where it came from as it goes.)
+          // (Let go somewhere, the pill's kept for where it lands, once it's there (see settleGhost); put back (esc, let go
+          // nowhere), back to where it came from as it goes.)
           const ghost = drag.ghost, from = back && itemNamed(drag.ids[0])?.getBoundingClientRect();
-          if (reduced.matches) ghost.remove();
+          if (landed && !back) kept = ghost;
+          else if (reduced.matches) ghost.remove();
           else {
             const away = from ? `translate(${from.left + 8}px, ${from.top + (from.height - drag.height) / 2}px)` : `${ghost.style.transform} scale(0.96)`;
             ghost.animate({ transform: [ghost.style.transform, away], opacity: [1, 0] }, { duration: from ? MOTION.small : MOTION.micro, easing: MOTION.ease, fill: "forwards" }).finished.then(() => ghost.remove(), () => ghost.remove());
@@ -22464,6 +22619,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const began = press.began;
           endDrag(true, !carried?.at);
           if (carried?.at) how.land(carried.ids, carried.at, carried.y);
+          if (carried?.at) settleGhost(carried.ids);
           // A hold that became a drag moved it: it picked nothing (picking was on before, it stays).
           if (carried && began) how.unpick?.();
         });
@@ -29263,19 +29419,38 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // goes; else it comes back.
       {
         const menu = $("menu");
-        // (How far down it showed as it was taken: sliding in or away, from there; its top as it shows.)
-        let base = 0, shown = 0;
+        // (How far down it showed as it was taken: sliding in or away, from there; its top as it shows; its height as taken,
+        // and whether it's pulled up past it.)
+        let base = 0, shown = 0, height = 0, pulled = false;
         dragSheet(menu, {
           pulls: () => menu.classList.contains("as-sheet") && !menu.hidden,
           grab: (event) => {
             if (!menu.classList.contains("as-sheet") || (event && !closest(event, ".menu-handle"))) return false;
-            base = sheetTaken(menu);
+            // (Taken as it goes back down from a stretch: still as stretched as it shows, the finger's from there.)
+            const back = slides.get(menu), top = menu.getBoundingClientRect().top;
+            if (back && back.id !== "away" && (back.playState === "running" || back.playState === "paused")) {
+              back.cancel();
+              menu.style.height = menu.style.maxHeight = "";
+            }
+            const past = Math.max(0, menu.getBoundingClientRect().top - top);
+            base = past ? -unstretched(past) : sheetTaken(menu);
+            height = menu.offsetHeight;
+            if (past) (menu.style.maxHeight = "none"), (menu.style.height = `${height + past}px`);
             menu.style.transition = "none";
             return true;
           },
-          move: (by) => ((menu.style.transform = `translateY(${Math.max(0, by + base)}px)`), (shown = menu.getBoundingClientRect().top)),
-          back: () => (menu.style.transition = menu.style.transform = ""),
-          release: (by, speed) => Math.abs(by) >= 4 && sheetGoes(Math.max(0, by + base), speed, menu.offsetHeight) && slideAway(menu, hideMenu, shown, speed),
+          // (Up past its top, it stretches, less and less, as the layers' sheet does; down, it follows the finger.)
+          move: (moved) => {
+            const by = moved + base;
+            pulled = by < 0;
+            menu.style.maxHeight = pulled ? "none" : "";
+            menu.style.height = pulled ? `${height + stretched(-by)}px` : "";
+            menu.style.transform = pulled ? "" : `translateY(${by}px)`;
+            shown = menu.getBoundingClientRect().top;
+          },
+          back: () => (menu.style.transition = menu.style.transform = menu.style.height = menu.style.maxHeight = ""),
+          // (Let go stretched, back to its height from where it showed; else gone if it'd come to rest low enough.)
+          release: (by, speed) => (pulled ? sizeSheet(menu, () => {}, shown, speed) : Math.abs(by) >= 4 && sheetGoes(Math.max(0, by + base), speed, menu.offsetHeight) && slideAway(menu, hideMenu, shown, speed)),
         });
       }
       // The shortcuts' and the guide's sheets, a phone's: dragged down by their handle, or their lines at their top, they
@@ -29519,7 +29694,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * What's put away (a menu, a tip) seen going as it came: a copy of it as it was, where it was, playing its way out
        * (out of reach, unread), the thing itself gone at once, as everything here knows it (a browser that doesn't play
-       * `display` out, Firefox, would drop it at once). @param {HTMLElement} element @param {Keyframe[]} frames
+       * `display` out, Firefox, would drop it at once). Done once its copy's gone (at once, none made).
+       * @param {HTMLElement} element @param {Keyframe[]} frames @returns {Promise<void> | undefined}
        */
       function fadeOut(element, frames, duration = MOTION.micro, placed = false, easing = MOTION.easeLayout) {
         // (Hidden already, its way out is under way: left be. Shown, a copy going before is gone first.)
@@ -29544,9 +29720,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (source.scrollTop || source.scrollLeft) (into.scrollTop = source.scrollTop), (into.scrollLeft = source.scrollLeft);
           if (source instanceof HTMLCanvasElement && into instanceof HTMLCanvasElement && source.width && source.height) into.getContext("2d")?.drawImage(source, 0, 0);
         });
-        const gone = () => (copy.remove(), fading.get(element) === copy && fading.delete(element));
+        // (Moving as it was, its own and what's in it (a glide to a new place), on from where they'd got: not at their ends.)
+        for (const animation of element.getAnimations({ subtree: true })) {
+          const effect = animation.effect, into = effect instanceof KeyframeEffect && !effect.pseudoElement ? to[from.indexOf(/** @type {HTMLElement} */ (effect.target))] : undefined;
+          if (!into || animation instanceof CSSAnimation || animation instanceof CSSTransition || animation.playState === "idle") continue;
+          const twin = into.animate(/** @type {KeyframeEffect} */ (effect).getKeyframes(), effect.getTiming());
+          twin.currentTime = animation.currentTime;
+          if (animation.playState === "paused") twin.pause();
+        }
+        const gone = () => {
+          copy.remove();
+          if (fading.get(element) === copy) fading.delete(element);
+        };
         fading.set(element, copy);
-        copy.animate(frames, { duration, easing, fill: "forwards" }).finished.then(gone, gone);
+        return copy.animate(frames, { duration, easing, fill: "forwards" }).finished.then(gone, gone);
       }
       /** What's on its way out, by what it's a copy of (see fadeOut). @type {Map<HTMLElement, HTMLElement>} */
       const fading = new Map();

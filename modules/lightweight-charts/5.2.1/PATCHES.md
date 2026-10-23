@@ -572,3 +572,17 @@ whether or not their times changed.
 `tests.html`: "Points kept" (the patched library alone: a series alone set again, another added, the first set again,
 then with fewer; the view and the other's latest point there). Studio: an undo of a formula in a pane of its own over
 one layer, at Max, keeps the view (−258 to 6,309 bars, as before the step).
+
+## 33. A pan anchored where it was pressed
+
+The library tells a drag from a click by 5 px of travel (`Rp`), then began the pan from where the pointer was at its
+next move: the chart trailed the pointer by that travel for the whole drag (8 px on a slow drag, 24 on a fast one). The
+pan now starts from where the press was, so its first frame catches up and it stays under the pointer.
+
+- The pane's press handlers, `Fp` (mouse) and `Op` (touch): the press kept (`bvPress`: its client and local x, y).
+- `cw()` (a pressed move): its anchor (`Hm`) taken from the press, not the move; the scroll begun at the press's local
+  x, y (`Ud`, `nu`), not the move's. `dw()` (the drag's end) lets the press go, as does `$p()` (a pinch's start): a
+  finger dragging on after a pinch pans from where it is then, as before.
+
+Measured: Mullvad Browser (headless, 2x), a 60 px drag in 2 px steps: the chart's travel equals the pointer's from the
+first frame past the threshold (it was 8 px short throughout).
