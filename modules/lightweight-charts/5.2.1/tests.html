@@ -10,7 +10,7 @@
      window.result once done): the log scale's marks over thousands of ranges, then the patched library drawing exactly
      what the unpatched one does (5.2.1 as published, from unpkg) through series of operations, picture by picture
      (the plot only, its axes left out: log marks and the axes' tags differ, as patched; horizontal grid lines off, price
-     scales one width), rounded corners, the view kept on its data, and canvases measured together. -->
+     scales one width), rounded corners, the view kept on its data, canvases measured together, and points kept. -->
 <pre id="out">Running…</pre>
 <div id="a" class="c"></div><div id="b" class="c"></div>
 <script type="module">
@@ -377,5 +377,33 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   window.__charts[0].remove(); window.__charts[1].remove(); window.__charts = [];
   say(`Canvases measured together: ${sizedChecks} checks, ${sized.length} failing`);
   for (const f of sized.slice(0, 10)) say(`  ✗ ${f}`);
-  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length };
+
+  // 6. Points kept by a series set again once it's been alone (patch 32, the patched library alone: the published one
+  // loses them, every one of the time scale's at once, or another series' own), and let go once it's taken off whole.
+  const lost = [];
+  {
+    document.getElementById("a").innerHTML = ""; window.__charts = [];
+    seed = 91;
+    const c = base(B, document.getElementById("a")), ts = c.timeScale();
+    const first = walk(3000, 100, 0.02), other = walk(3000, 90, 0.02), fewer = walk(2000, 100, 0.02);
+    const s1 = c.addSeries(B.LineSeries, { color: "#fff" });
+    s1.setData(first);
+    s1.setData(first.map((point) => ({ ...point, value: point.value * 1.01 })));
+    c.addSeries(B.LineSeries, { color: "#f80" }).setData(other);
+    s1.setData(first);
+    if (!ts.getVisibleLogicalRange()) lost.push("set again beside another: no view, the time scale's points gone");
+    s1.setData(fewer);
+    if (ts.timeToCoordinate(other[other.length - 1].time) === null) lost.push("set again, fewer: the other's latest point gone");
+    c.remove(); window.__charts = [];
+    // (A series alone set again, then all its rows taken off: none left on the time scale.)
+    const alone = base(B, document.getElementById("a")), only = alone.addSeries(B.LineSeries, { color: "#fff" });
+    only.setData(first);
+    only.setData(first);
+    only.pop(first.length);
+    if (alone.timeScale().getVisibleLogicalRange()) lost.push("alone, set again, then taken off whole: its points left on the time scale");
+    alone.remove(); window.__charts = [];
+  }
+  say(`Points kept: 3 checks, ${lost.length} failing`);
+  for (const f of lost) say(`  ✗ ${f}`);
+  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length };
 </script>

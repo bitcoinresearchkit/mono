@@ -555,3 +555,20 @@ canvas (`Ya`, asked just before), and the pointer's cursor is set apart (`pg`). 
 `tests.html` as before. Measured: Chromium, 65 moves over HODL waves, 104k `lineTo`s → 12.7k (one frame, the live price's;
 as many as with the pointer still); Mullvad Browser (headless, 2x), the crosshair swept over HODL waves, 102 → 110-119
 frames in 2 s.
+
+## 32. A series set again once it's been alone: its points kept
+
+A bug of the published library. A series alone set again makes its points anew (the map of them cleared and filled);
+with the same times, the time scale saw nothing changed and the sorted points stayed the old ones. The next series set
+again took its rows off those, held by no one, so every point was let go: the time scale emptied, a view set then was
+set against no points (Studio: undoing a step that left one layer, the view lands a day wide, shifted by all its bars
+once they're back), and one set again with fewer let go of another series' own. The sorted points are now the ones made,
+whether or not their times changed.
+
+- `class ms` (the data layer), `cM()` (the sorted points replaced): `this.lM=t` before its `return -1` too.
+- `wM()` (a series' latest rows taken off): emptied, its points sent as emptied (`Math.max(0, …)`, as `setData([])` sends
+  them), not left to the time scale holding the same array (it may hold the old one now).
+
+`tests.html`: "Points kept" (the patched library alone: a series alone set again, another added, the first set again,
+then with fewer; the view and the other's latest point there). Studio: an undo of a formula in a pane of its own over
+one layer, at Max, keeps the view (−258 to 6,309 bars, as before the step).
