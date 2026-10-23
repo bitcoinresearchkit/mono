@@ -285,10 +285,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/Transaction"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Address": {
@@ -638,8 +638,8 @@
               "$ref": "#/$defs/Address"
             },
             "after_txid": {
-              "$ref": "#/$defs/Txid",
-              "description": "Last txid from the previous page (return transactions strictly older than this)"
+              "description": "Last txid from the previous page (return transactions strictly older than this)",
+              "$ref": "#/$defs/Txid"
             }
           },
           "additionalProperties": false,
@@ -671,10 +671,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/Transaction"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Address": {
@@ -1028,9 +1028,9 @@
               "$ref": "#/$defs/OutputType"
             },
             "prefix": {
+              "description": "First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw\naddress payload bytes.",
               "type": "string",
-              "pattern": "^[0-9a-f]{1,16}$",
-              "description": "First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw\naddress payload bytes."
+              "pattern": "^[0-9a-f]{1,16}$"
             }
           },
           "additionalProperties": false,
@@ -1165,10 +1165,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/Transaction"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Address": {
@@ -1536,10 +1536,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/Transaction"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Address": {
@@ -1907,10 +1907,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/Utxo"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
@@ -2336,8 +2336,8 @@
           "type": "object",
           "properties": {
             "time_period": {
-              "$ref": "#/$defs/TimePeriod",
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`."
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.",
+              "$ref": "#/$defs/TimePeriod"
             }
           },
           "additionalProperties": false,
@@ -2365,10 +2365,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/BlockFeeRatesEntry"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockFeeRatesEntry": {
@@ -2493,8 +2493,8 @@
           "type": "object",
           "properties": {
             "time_period": {
-              "$ref": "#/$defs/TimePeriod",
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`."
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.",
+              "$ref": "#/$defs/TimePeriod"
             }
           },
           "additionalProperties": false,
@@ -2522,10 +2522,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/BlockFeesEntry"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockFeesEntry": {
@@ -2662,8 +2662,8 @@
           "type": "object",
           "properties": {
             "time_period": {
-              "$ref": "#/$defs/TimePeriod",
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`."
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.",
+              "$ref": "#/$defs/TimePeriod"
             }
           },
           "additionalProperties": false,
@@ -2691,10 +2691,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/BlockRewardsEntry"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockRewardsEntry": {
@@ -2784,8 +2784,8 @@
           "type": "object",
           "properties": {
             "time_period": {
-              "$ref": "#/$defs/TimePeriod",
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`."
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.",
+              "$ref": "#/$defs/TimePeriod"
             }
           },
           "additionalProperties": false,
@@ -3085,8 +3085,8 @@
               "$ref": "#/$defs/BlockHash"
             },
             "index": {
-              "$ref": "#/$defs/BlockTxIndex",
-              "description": "Transaction index within the block (0-based)"
+              "description": "Transaction index within the block (0-based)",
+              "$ref": "#/$defs/BlockTxIndex"
             }
           },
           "additionalProperties": false,
@@ -3150,8 +3150,8 @@
               "$ref": "#/$defs/BlockHash"
             },
             "start_index": {
-              "$ref": "#/$defs/BlockTxIndex",
-              "description": "Starting transaction index within the block (0-based)"
+              "description": "Starting transaction index within the block (0-based)",
+              "$ref": "#/$defs/BlockTxIndex"
             }
           },
           "additionalProperties": false,
@@ -3182,10 +3182,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/Transaction"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Address": {
@@ -4148,10 +4148,10 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/BlockInfo"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
@@ -4311,10 +4311,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/BlockInfo"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
@@ -4458,10 +4458,10 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/BlockInfoV1"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Address": {
@@ -5068,10 +5068,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/BlockInfoV1"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Address": {
@@ -6038,10 +6038,10 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/DifficultyAdjustmentEntry"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "DifficultyAdjustmentEntry": {
@@ -6099,8 +6099,8 @@
           "type": "object",
           "properties": {
             "time_period": {
-              "$ref": "#/$defs/TimePeriod",
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`."
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.",
+              "$ref": "#/$defs/TimePeriod"
             }
           },
           "additionalProperties": false,
@@ -6128,10 +6128,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/DifficultyAdjustmentEntry"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "DifficultyAdjustmentEntry": {
@@ -6197,10 +6197,10 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/ReplacementNode"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "FeeRate": {
@@ -6461,8 +6461,8 @@
           "type": "object",
           "properties": {
             "time_period": {
-              "$ref": "#/$defs/TimePeriod",
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`."
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.",
+              "$ref": "#/$defs/TimePeriod"
             }
           },
           "additionalProperties": false,
@@ -6614,12 +6614,12 @@
           "type": "object",
           "properties": {
             "timestamp": {
-              "$ref": "#/$defs/Timestamp",
-              "description": "UNIX timestamp: the latest close at or before it"
+              "description": "UNIX timestamp: the latest close at or before it",
+              "$ref": "#/$defs/Timestamp"
             },
             "currency": {
-              "$ref": "#/$defs/Currency",
-              "description": "Quote currency: USD, the only one served"
+              "description": "Quote currency: USD, the only one served",
+              "$ref": "#/$defs/Currency"
             }
           },
           "additionalProperties": false,
@@ -6745,10 +6745,10 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/IndexInfo"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Index": {
@@ -7034,10 +7034,10 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/MempoolBlock"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "FeeRate": {
@@ -7159,10 +7159,10 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/MempoolRecentTx"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "MempoolRecentTx": {
@@ -7238,8 +7238,8 @@
           "type": "object",
           "properties": {
             "point": {
-              "$ref": "#/$defs/HeightOrDate",
-              "description": "Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)"
+              "description": "Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)",
+              "$ref": "#/$defs/HeightOrDate"
             }
           },
           "additionalProperties": false,
@@ -7284,14 +7284,14 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "type": "integer",
-            "minimum": 0,
-            "format": "uint32"
+            "format": "uint32",
+            "minimum": 0
           },
-          "type": "array",
-          "maxItems": 2400,
           "minItems": 2400,
+          "maxItems": 2400,
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
@@ -7324,14 +7324,14 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "type": "integer",
-            "minimum": 0,
-            "format": "uint32"
+            "format": "uint32",
+            "minimum": 0
           },
-          "type": "array",
-          "maxItems": 2400,
           "minItems": 2400,
+          "maxItems": 2400,
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
@@ -7356,8 +7356,8 @@
           "type": "object",
           "properties": {
             "point": {
-              "$ref": "#/$defs/HeightOrDate",
-              "description": "Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)"
+              "description": "Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)",
+              "$ref": "#/$defs/HeightOrDate"
             }
           },
           "additionalProperties": false,
@@ -7402,15 +7402,15 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "type": "integer",
-            "maximum": 65535,
+            "format": "uint16",
             "minimum": 0,
-            "format": "uint16"
+            "maximum": 65535
           },
-          "type": "array",
-          "maxItems": 2400,
           "minItems": 2400,
+          "maxItems": 2400,
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
@@ -7443,15 +7443,15 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "type": "integer",
-            "maximum": 65535,
+            "format": "uint16",
             "minimum": 0,
-            "format": "uint16"
+            "maximum": 65535
           },
-          "type": "array",
-          "maxItems": 2400,
           "minItems": 2400,
+          "maxItems": 2400,
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
@@ -8194,10 +8194,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/BlockInfoV1"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Address": {
@@ -8985,10 +8985,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/BlockInfoV1"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Address": {
@@ -9764,10 +9764,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/PoolHashrateEntry"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "PoolHashrateEntry": {
@@ -9834,8 +9834,8 @@
           "type": "object",
           "properties": {
             "time_period": {
-              "$ref": "#/$defs/TimePeriod",
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`."
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.",
+              "$ref": "#/$defs/TimePeriod"
             }
           },
           "additionalProperties": false,
@@ -10167,10 +10167,10 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/PoolInfo"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "PoolInfo": {
@@ -10397,10 +10397,10 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/PoolHashrateEntry"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "PoolHashrateEntry": {
@@ -10462,8 +10462,8 @@
           "type": "object",
           "properties": {
             "time_period": {
-              "$ref": "#/$defs/TimePeriod",
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`."
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.",
+              "$ref": "#/$defs/TimePeriod"
             }
           },
           "additionalProperties": false,
@@ -10491,10 +10491,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/PoolHashrateEntry"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "PoolHashrateEntry": {
@@ -10707,10 +10707,10 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/ReplacementNode"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "FeeRate": {
@@ -10849,10 +10849,10 @@
           "type": "object",
           "properties": {
             "block_count": {
-              "type": "integer",
-              "minimum": 0,
-              "format": "uint",
               "description": "Number of recent blocks to include",
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0,
               "examples": [
                 100
               ]
@@ -10946,16 +10946,16 @@
               "$ref": "#/$defs/Index"
             },
             "start": {
-              "$ref": "#/$defs/RangeIndex",
-              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`"
+              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`",
+              "$ref": "#/$defs/RangeIndex"
             },
             "end": {
-              "$ref": "#/$defs/RangeIndex",
-              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`"
+              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`",
+              "$ref": "#/$defs/RangeIndex"
             },
             "limit": {
-              "$ref": "#/$defs/Limit",
-              "description": "Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`"
+              "description": "Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`",
+              "$ref": "#/$defs/Limit"
             },
             "format": {
               "$ref": "#/$defs/Format"
@@ -11205,16 +11205,16 @@
               "$ref": "#/$defs/Index"
             },
             "start": {
-              "$ref": "#/$defs/RangeIndex",
-              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`"
+              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`",
+              "$ref": "#/$defs/RangeIndex"
             },
             "end": {
-              "$ref": "#/$defs/RangeIndex",
-              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`"
+              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`",
+              "$ref": "#/$defs/RangeIndex"
             },
             "limit": {
-              "$ref": "#/$defs/Limit",
-              "description": "Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`"
+              "description": "Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`",
+              "$ref": "#/$defs/Limit"
             },
             "format": {
               "$ref": "#/$defs/Format"
@@ -11328,10 +11328,10 @@
         "outputSchema": {
           "anyOf": [
             {
+              "type": "array",
               "items": {
                 "$ref": "#/$defs/SeriesData"
-              },
-              "type": "array"
+              }
             },
             {
               "type": "string",
@@ -11851,8 +11851,8 @@
         },
         "outputSchema": {
           "type": "integer",
-          "minimum": 0,
           "format": "uint",
+          "minimum": 0,
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "annotations": {
@@ -12084,11 +12084,11 @@
           "type": "object",
           "properties": {
             "txId[]": {
+              "description": "Transaction IDs to look up (max 250 per request).",
+              "type": "array",
               "items": {
                 "$ref": "#/$defs/Txid"
-              },
-              "type": "array",
-              "description": "Transaction IDs to look up (max 250 per request)."
+              }
             }
           },
           "additionalProperties": false,
@@ -12110,10 +12110,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/Timestamp"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Timestamp": {
@@ -12519,8 +12519,8 @@
           "type": "object",
           "properties": {
             "index": {
-              "$ref": "#/$defs/TxIndex",
-              "description": "Global transaction index across the chain"
+              "description": "Global transaction index across the chain",
+              "$ref": "#/$defs/TxIndex"
             }
           },
           "additionalProperties": false,
@@ -12753,8 +12753,8 @@
               "$ref": "#/$defs/Txid"
             },
             "vout": {
-              "$ref": "#/$defs/Vout",
-              "description": "Output index"
+              "description": "Output index",
+              "$ref": "#/$defs/Vout"
             }
           },
           "additionalProperties": false,
@@ -12954,10 +12954,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/TxOutspend"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockHash": {
@@ -13397,12 +13397,12 @@
               "$ref": "#/$defs/UrpdCohort"
             },
             "agg": {
-              "$ref": "#/$defs/UrpdAggregation",
-              "description": "Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias."
+              "description": "Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.",
+              "$ref": "#/$defs/UrpdAggregation"
             },
             "weight": {
-              "$ref": "#/$defs/UrpdWeight",
-              "description": "Supply weighting. Default: none (unweighted)."
+              "description": "Supply weighting. Default: none (unweighted).",
+              "$ref": "#/$defs/UrpdWeight"
             }
           },
           "additionalProperties": false,
@@ -13698,16 +13698,16 @@
               "$ref": "#/$defs/UrpdCohort"
             },
             "point": {
-              "$ref": "#/$defs/HeightOrDate",
-              "description": "Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)"
+              "description": "Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)",
+              "$ref": "#/$defs/HeightOrDate"
             },
             "agg": {
-              "$ref": "#/$defs/UrpdAggregation",
-              "description": "Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias."
+              "description": "Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.",
+              "$ref": "#/$defs/UrpdAggregation"
             },
             "weight": {
-              "$ref": "#/$defs/UrpdWeight",
-              "description": "Supply weighting. Default: none (unweighted)."
+              "description": "Supply weighting. Default: none (unweighted).",
+              "$ref": "#/$defs/UrpdWeight"
             }
           },
           "additionalProperties": false,
@@ -14038,8 +14038,8 @@
           "type": "object",
           "properties": {
             "point": {
-              "$ref": "#/$defs/HeightOrDate",
-              "description": "Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)"
+              "description": "Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)",
+              "$ref": "#/$defs/HeightOrDate"
             }
           },
           "additionalProperties": false,
@@ -14219,10 +14219,10 @@
           "type": "object",
           "properties": {
             "page": {
-              "type": "integer",
-              "minimum": 0,
-              "format": "uint",
               "description": "Zero-based page number (default: 0)",
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0,
               "examples": [
                 0,
                 1,
@@ -14230,10 +14230,10 @@
               ]
             },
             "per_page": {
-              "type": "integer",
-              "minimum": 0,
-              "format": "uint",
               "description": "Results per page (default: 1000, max: 1000)",
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0,
               "examples": [
                 100,
                 1000
@@ -14329,10 +14329,10 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/UrpdCohort"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "UrpdCohort": {
@@ -14394,15 +14394,15 @@
           "type": "object",
           "properties": {
             "q": {
-              "type": "string",
               "description": "Words to find in series names and descriptions (`realized price`, `mvrv`), in any order",
+              "type": "string",
               "examples": [
                 "realized price"
               ]
             },
             "limit": {
-              "$ref": "#/$defs/Limit",
-              "description": "Maximum number of results, 100 when omitted"
+              "description": "Maximum number of results, 100 when omitted",
+              "$ref": "#/$defs/Limit"
             }
           },
           "additionalProperties": false,
@@ -14425,10 +14425,10 @@
           }
         },
         "outputSchema": {
+          "type": "array",
           "items": {
             "$ref": "#/$defs/SeriesName"
           },
-          "type": "array",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "SeriesName": {
@@ -14468,8 +14468,8 @@
           "type": "object",
           "properties": {
             "address": {
-              "type": "string",
               "description": "Bitcoin address to validate (can be any string)",
+              "type": "string",
               "examples": [
                 "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
                 "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",

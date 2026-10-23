@@ -1,10 +1,6 @@
-use std::{collections::BTreeMap, io};
+use std::{collections::BTreeMap, io, mem::take};
 
-use oas3::{
-    Map as OasMap, Spec, from_json,
-    spec::{MediaType, ObjectOrReference, Operation, ParameterIn},
-};
-use serde_json::{Map, Value, from_str, json, to_string, to_value};
+use serde_json::{Map, Value, from_str, json};
 
 use crate::Ty;
 
@@ -21,10 +17,27 @@ pub(crate) use response_kind::ResponseKind;
 /// Schemas by type name.
 pub(crate) type TypeSchemas = BTreeMap<String, Value>;
 
-/// The oas3 spec and the component schemas (as written: oas3's cleanup does not apply to them).
+/// What the generators read of the OpenAPI document: its title and version, and its paths, in
+/// the document's order.
+pub(crate) struct Spec {
+    pub(crate) info: Info,
+    paths: Map<String, Value>,
+}
+
+pub(crate) struct Info {
+    pub(crate) title: String,
+    pub(crate) version: String,
+}
+
+/// The HTTP methods an OpenAPI path item may hold, in the order endpoints are listed.
+const METHODS: [&str; 8] = [
+    "get", "put", "post", "delete", "options", "head", "patch", "trace",
+];
+
+/// The spec and the component schemas, as written: only the paths are cleaned.
 pub(crate) fn parse_openapi_json(json: &str) -> io::Result<(Spec, TypeSchemas)> {
-    let mut value: Value =
-        from_str(json).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let invalid = |message: String| io::Error::new(io::ErrorKind::InvalidData, message);
+    let mut value: Value = from_str(json).map_err(|e| invalid(e.to_string()))?;
     let schemas = value
         .get("components")
         .and_then(|c| c.get("schemas"))
@@ -32,87 +45,119 @@ pub(crate) fn parse_openapi_json(json: &str) -> io::Result<(Spec, TypeSchemas)> 
         .map(|schemas| schemas.clone().into_iter().collect())
         .unwrap_or_default();
 
-    clean_for_oas3(&mut value);
-    let cleaned_json =
-        to_string(&value).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-    let spec =
-        from_json(&cleaned_json).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
-    Ok((spec, schemas))
+    clean(&mut value);
+    let text = |pointer: &str| {
+        value
+            .pointer(pointer)
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+            .ok_or_else(|| invalid(format!("the OpenAPI document has no {pointer}")))
+    };
+    let info = Info {
+        title: text("/info/title")?,
+        version: text("/info/version")?,
+    };
+    let paths = match value.get_mut("paths") {
+        Some(Value::Object(paths)) => take(paths),
+        _ => Map::new(),
+    };
+    Ok((Spec { info, paths }, schemas))
 }
 
-/// Make the spec readable by oas3: drop `$ref` siblings other than `summary` and `description`,
-/// and turn boolean schemas (`"schema": true`) into empty objects.
-fn clean_for_oas3(value: &mut Value) {
+/// Drop `$ref` siblings other than `summary` and `description`, and keys set to null, which say
+/// nothing (as `"default": null`), and turn boolean schemas (`"schema": true`) into empty objects.
+fn clean(value: &mut Value) {
     match value {
         Value::Object(map) => {
             if map.contains_key("$ref") {
                 map.retain(|k, _| k == "$ref" || k == "summary" || k == "description");
             } else {
+                map.retain(|_, v| !v.is_null());
                 if let Some(schema) = map.get_mut("schema")
                     && schema.is_boolean()
                 {
                     *schema = Value::Object(Map::new());
                 }
                 for v in map.values_mut() {
-                    clean_for_oas3(v);
+                    clean(v);
                 }
             }
         }
         Value::Array(arr) => {
             for v in arr {
-                clean_for_oas3(v);
+                clean(v);
             }
         }
         _ => {}
     }
 }
 
+/// An object of the spec, unless it is a `$ref`, which the generators skip.
+fn object(value: &Value) -> Option<&Map<String, Value>> {
+    value.as_object().filter(|object| !object.contains_key("$ref"))
+}
+
+fn text(object: &Map<String, Value>, key: &str) -> Option<String> {
+    object.get(key)?.as_str().map(str::to_owned)
+}
+
+fn flag(object: &Map<String, Value>, key: &str) -> bool {
+    object.get(key).and_then(Value::as_bool).unwrap_or(false)
+}
+
+/// An object's media types by name, in the document's order.
+fn media_types(object: &Map<String, Value>) -> Map<String, Value> {
+    object
+        .get("content")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default()
+}
+
 /// Extract all endpoints from OpenAPI spec. Every operation needs an `operationId`: it names the
 /// generated methods, commands and MCP tools.
 pub(crate) fn extract_endpoints(spec: &Spec, schemas: &TypeSchemas) -> io::Result<Vec<Endpoint>> {
     let mut endpoints = Vec::new();
-
-    let Some(paths) = &spec.paths else {
-        return Ok(endpoints);
-    };
-
-    for (path, path_item) in paths {
-        for (method, operation) in path_item.methods() {
-            endpoints.push(extract_endpoint(path, method.as_str(), operation, schemas)?);
+    for (path, path_item) in &spec.paths {
+        for method in METHODS {
+            if let Some(operation) = path_item.get(method).and_then(Value::as_object) {
+                endpoints.push(extract_endpoint(
+                    path,
+                    &method.to_ascii_uppercase(),
+                    operation,
+                    schemas,
+                )?);
+            }
         }
     }
-
     Ok(endpoints)
 }
 
 fn extract_endpoint(
     path: &str,
     method: &str,
-    operation: &Operation,
+    operation: &Map<String, Value>,
     schemas: &TypeSchemas,
 ) -> io::Result<Endpoint> {
-    let operation_id = operation.operation_id.clone().ok_or_else(|| {
+    let operation_id = text(operation, "operationId").ok_or_else(|| {
         io::Error::new(
             io::ErrorKind::InvalidData,
             format!("{method} {path} has no operationId"),
         )
     })?;
     let path_params = extract_path_parameters(path, operation);
-    let query_params = extract_parameters(operation, ParameterIn::Query);
+    let query_params = extract_parameters(operation, "query");
 
-    let content =
-        operation
-            .responses
-            .as_ref()
-            .and_then(|responses| match responses.get("200")? {
-                ObjectOrReference::Object(response) => Some(&response.content),
-                ObjectOrReference::Ref { .. } => None,
-            });
+    let content = operation
+        .get("responses")
+        .and_then(|responses| object(responses.get("200")?))
+        .map(media_types);
+    let content = content.as_ref();
     let response_kind = extract_response_kind(content, schemas);
     // The complete JSON response schema, for MCP output schemas.
     let json_response_schema = content
-        .and_then(|content| content.get("application/json")?.schema.as_ref())
-        .and_then(|schema| to_value(schema).ok());
+        .and_then(|content| content.get("application/json")?.get("schema"))
+        .cloned();
     let supports_csv = content.is_some_and(|content| content.contains_key("text/csv"));
     let request_body = extract_request_body(operation);
 
@@ -120,27 +165,24 @@ fn extract_endpoint(
         method: method.to_string(),
         path: path.to_string(),
         operation_id,
-        summary: operation.summary.clone(),
-        description: operation.description.clone(),
+        summary: text(operation, "summary"),
+        description: text(operation, "description"),
         path_params,
         query_params,
         request_body,
         response_kind,
         json_response_schema,
-        deprecated: operation.deprecated.unwrap_or(false),
-        mcp_ignored: operation.extensions.get("mcp-ignore") == Some(&Value::Bool(true)),
+        deprecated: flag(operation, "deprecated"),
+        mcp_ignored: operation.get("x-mcp-ignore") == Some(&Value::Bool(true)),
         supports_csv,
     })
 }
 
 /// Extract the request body shape and media type, if any.
 /// Prefers `text/plain` over `application/json` when an operation accepts both.
-fn extract_request_body(operation: &Operation) -> Option<RequestBody> {
-    let req = operation.request_body.as_ref()?;
-    let req = match req {
-        ObjectOrReference::Object(rb) => rb,
-        ObjectOrReference::Ref { .. } => return None,
-    };
+fn extract_request_body(operation: &Map<String, Value>) -> Option<RequestBody> {
+    let req = object(operation.get("requestBody")?)?;
+    let media_types = media_types(req);
 
     let (content_type, content) = [
         "text/plain; charset=utf-8",
@@ -149,12 +191,12 @@ fn extract_request_body(operation: &Operation) -> Option<RequestBody> {
     ]
     .into_iter()
     .find_map(|content_type| {
-        req.content
+        media_types
             .get(content_type)
             .map(|content| (content_type, content))
     })
     .or_else(|| {
-        req.content
+        media_types
             .iter()
             .next()
             .map(|(content_type, content)| (content_type.as_str(), content))
@@ -169,17 +211,17 @@ fn extract_request_body(operation: &Operation) -> Option<RequestBody> {
     Some(RequestBody {
         ty,
         content_type: content_type.to_owned(),
-        required: req.required.unwrap_or(false),
+        required: flag(req, "required"),
     })
 }
 
 /// Extract path parameters in the order they appear in the path URL.
-fn extract_path_parameters(path: &str, operation: &Operation) -> Vec<Parameter> {
+fn extract_path_parameters(path: &str, operation: &Map<String, Value>) -> Vec<Parameter> {
     let path_order: Vec<&str> = path
         .split('/')
         .filter_map(|segment| segment.strip_prefix('{').and_then(|s| s.strip_suffix('}')))
         .collect();
-    let mut params = extract_parameters(operation, ParameterIn::Path);
+    let mut params = extract_parameters(operation, "path");
     params.sort_by_key(|p| {
         path_order
             .iter()
@@ -189,33 +231,33 @@ fn extract_path_parameters(path: &str, operation: &Operation) -> Vec<Parameter> 
     params
 }
 
-fn extract_parameters(operation: &Operation, location: ParameterIn) -> Vec<Parameter> {
+fn extract_parameters(operation: &Map<String, Value>, location: &str) -> Vec<Parameter> {
     operation
-        .parameters
-        .iter()
-        .filter_map(|p| match p {
-            ObjectOrReference::Object(param) if param.location == location => {
-                // A parameter without a schema is a string.
-                let schema = param
-                    .schema
-                    .as_ref()
-                    .and_then(|schema| to_value(schema).ok())
-                    .unwrap_or_else(|| json!({ "type": "string" }));
-                Some(Parameter {
-                    name: param.name.clone(),
-                    required: param.required.unwrap_or(false),
-                    ty: Ty::parse(&schema),
-                    description: param.description.clone(),
-                    schema,
-                })
+        .get("parameters")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(object)
+        .filter(|param| param.get("in").and_then(Value::as_str) == Some(location))
+        .map(|param| {
+            // A parameter without a schema is a string.
+            let schema = param
+                .get("schema")
+                .cloned()
+                .unwrap_or_else(|| json!({ "type": "string" }));
+            Parameter {
+                name: text(param, "name").unwrap_or_default(),
+                required: flag(param, "required"),
+                ty: Ty::parse(&schema),
+                description: text(param, "description"),
+                schema,
             }
-            _ => None,
         })
         .collect()
 }
 
 fn extract_response_kind(
-    content: Option<&OasMap<String, MediaType>>,
+    content: Option<&Map<String, Value>>,
     schemas: &TypeSchemas,
 ) -> ResponseKind {
     let Some(content) = content else {
@@ -244,6 +286,6 @@ fn extract_response_kind(
     ResponseKind::Text { ty, numeric }
 }
 
-fn content_ty(content: &MediaType) -> Option<Ty> {
-    Some(Ty::parse(&to_value(content.schema.as_ref()?).ok()?))
+fn content_ty(content: &Value) -> Option<Ty> {
+    Some(Ty::parse(content.get("schema")?))
 }

@@ -6,11 +6,10 @@ use std::{
 };
 
 use bitview_catalog::TreeNode;
-use oas3::Spec;
 use serde_json::Value;
 
 use super::write_if_changed;
-use crate::{Endpoint, ResponseKind, Ty, TypeSchemas, collect_schema_refs};
+use crate::{Endpoint, ResponseKind, Ty, TypeSchemas, collect_schema_refs, openapi::Spec};
 
 mod manifest;
 
