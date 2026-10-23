@@ -2744,6 +2744,60 @@
         gap: 2px;
         pointer-events: none;
 
+        /* A stack of many: its key (its bands' colors in order, named at its ends), how many, and the one pointed at. */
+        &.keyed {
+          align-items: center;
+          gap: 10px;
+
+          button.legend-all,
+          button.legend-on {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            padding: 4px 8px 4px 6px;
+          }
+
+          .legend-all {
+            color: var(--soft);
+          }
+
+          .legend-share {
+            font-weight: 590;
+            font-variant-numeric: tabular-nums;
+          }
+
+          /* (On its line, after its share: none of a value's own room under its name.) */
+          .legend-on .legend-value {
+            min-height: 0;
+            padding-left: 0;
+            color: var(--soft);
+          }
+        }
+
+        .legend-key {
+          display: flex;
+          flex-shrink: 0;
+          align-items: center;
+          gap: 8px;
+          padding-left: 6px;
+          color: var(--soft);
+          font-size: 12px;
+          font-weight: 510;
+          white-space: nowrap;
+        }
+
+        .key-strip {
+          display: flex;
+          height: 8px;
+          border-radius: 2px;
+          overflow: hidden;
+
+          i {
+            width: 6px;
+            background: var(--c);
+          }
+        }
+
         /* Only a row that scrolls takes the wheel; otherwise the chart under it keeps its zoom. */
         &.overflows {
           pointer-events: auto;
@@ -14348,8 +14402,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (id === spotlit) return;
         spotlit = id;
         const lighted = id && drawn.has(id) && drawn.size > 1 && !layerById(id)?.hidden ? id : null;
+        // (Among its own pane's: the others' panes as they are (a band lit, the price over it still read).)
+        const pane = lighted ? layerById(lighted)?.pane : undefined, among = (/** @type {string} */ layerId) => Boolean(lighted) && layerId !== lighted && layerById(layerId)?.pane === pane;
         for (const [layerId, series] of drawn) {
-          const faint = Boolean(lighted) && layerId !== lighted, close = closes.get(layerId);
+          const faint = among(layerId), close = closes.get(layerId);
           if (fadedNow.has(layerId) === faint) continue;
           if (faint) {
             fadedNow.set(layerId, { own: tagsOf(series), close: tagsOf(close?.series) });
@@ -14363,19 +14419,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
         }
         for (const tag of levelTags) {
-          const faint = Boolean(lighted) && !tag.layers.has(/** @type {string} */ (lighted));
+          const faint = Boolean(lighted) && !tag.layers.has(/** @type {string} */ (lighted)) && [...tag.layers].some((layerId) => layerById(layerId)?.pane === pane);
           if (tag.faint === faint) continue;
           tag.faint = faint;
           tag.line.applyOptions({ axisLabelVisible: tag.label && !faint, color: faint ? fadedColor(tag.color) : tag.color });
         }
         for (const [layerId, bars] of barsBelow) {
-          const faint = Boolean(lighted) && layerId !== lighted;
+          const faint = among(layerId);
           if (bars.faint === faint) continue;
           bars.faint = faint;
           drawn.get(layerId)?.setData(bars.points.map((point) => (point.color ? { ...point, color: faint ? bars.faded : bars.color } : point)));
         }
         for (const [layerId, painted] of paintedPoints) {
-          const faint = Boolean(lighted) && layerId !== lighted;
+          const faint = among(layerId);
           if (painted.faint === faint) continue;
           painted.faint = faint;
           drawn.get(layerId)?.setData(faint ? painted.points.map(fadedPoint) : painted.points);
@@ -14431,11 +14487,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The layer a series on the chart draws, candles or their close line. */
       const layerOfSeries = (series) => [...drawn].find(([, other]) => other === series)?.[0] ?? [...closes].find(([, close]) => close.series === series)?.[0] ?? null;
+      /** Whether the pointer's a finger's (no band lit by it), and whether it's on a legend over the plot (the band kept). */
+      let touching = false, onLegend = false;
+      for (const type of ["pointerdown", "pointermove"]) document.addEventListener(type, (event) => (touching = /** @type {PointerEvent} */ (event).pointerType === "touch"), { capture: true, passive: true });
       document.addEventListener("pointerover", (event) => {
+        onLegend = Boolean(closest(event, "#chart .legend"));
         // (Not while something's carried: the rows passed over aren't pointed at. A finger points at nothing: what it
         // touched, a row it scrolled the list by, would stay lit once it's lifted.)
         if (document.body.classList.contains("carrying")) return;
-        spotlight(event.pointerType === "touch" ? null : (closest(event, ".layer-row")?.dataset.layer ?? closest(event, ".legend [data-select]")?.dataset.select ?? null));
+        spotlight(event.pointerType === "touch" ? null : (closest(event, ".layer-row")?.dataset.layer ?? closest(event, ".legend [data-select]")?.dataset.select ?? (closest(event, "#chart") ? bandLit : null)));
       });
       /** @type {Resolved | null} */
       let resolved = null;
@@ -15311,14 +15371,92 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         marginsSet = "";
         relayout();
       }
+      /** From how many layers a stacked pane's legend is its key, not each of them: too many to read across its room. */
+      const BANDS_FROM = 12;
+      /** A stacked pane's layers, foot to top, as it stacks them (see stackOf: the panel's order, reversed if it's reversed). */
+      function bandsOf(/** @type {Pane} */ pane) {
+        const layers = chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden && !layer.from && layer.type !== "signal");
+        return pane.reverse ? layers.reverse() : layers;
+      }
+      /** Whether a pane's legend is its key: a stack of so many layers (see BANDS_FROM). */
+      const keyedPane = (/** @type {Pane} */ pane) => Boolean(pane.stack) && bandsOf(pane).length >= BANDS_FROM;
+      /** The band the pointer's on, in a keyed pane: its readout in the legend, it lit among its pane's (see bandAt). */
+      let bandLit = /** @type {string | null} */ (null);
+      /**
+       * The band of a keyed pane under a point on the chart (the crosshair's, a click's): the one whose foot and top, as
+       * stacked at its date, hold the price there. The library names a series only near its line, not across its fill.
+       * @param {any} param
+       */
+      function bandAt(param) {
+        const pane = param?.point && param.paneIndex !== undefined ? chart.panes[param.paneIndex] : undefined;
+        if (!pane || !keyedPane(pane) || !resolved || param.logical === undefined) return null;
+        const stacked = stackOf(chart, resolved), at = Math.round(param.logical);
+        for (const layer of bandsOf(pane)) {
+          // (Each on its own scale: a stack's left and right sides are stacked apart.)
+          const price = drawn.get(layer.id)?.coordinateToPrice(param.point.y), made = stacked.get(layer.id), top = made?.values[at], foot = made ? made.under[at] * (made.scale?.[at] ?? 1) : NaN;
+          if (typeof price === "number" && Number.isFinite(top) && Number.isFinite(foot) && price >= Math.min(foot, top) && price <= Math.max(foot, top)) return layer.id;
+        }
+        return null;
+      }
+      /** A band's share of its stack at a point (a 100% pane's), as drawn: its top less its foot. */
+      function shareAt(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ { at, rest }) {
+        const made = resolved ? stackOf(chart, resolved).get(layer.id) : undefined;
+        if (!made?.scale || at < 0) return NaN;
+        if (rest) while (at > 0 && !Number.isFinite(made.values[at])) at--;
+        return made.values[at] - made.under[at] * made.scale[at];
+      }
+      /**
+       * A keyed pane's legend: its bands' colors in their order, foot to top, named at its ends; how many, the panel's list
+       * of them a click away; and the band the pointer's on (else the one selected), its share first in a 100% stack.
+       * @param {Pane} pane
+       */
+      function keyHtml(pane) {
+        const bands = bandsOf(pane);
+        const strip = bands.map((layer) => `<i style="--c:${escape(ink(colorNow(layer) ?? layer.color))}"></i>`).join("");
+        return `<span class="legend-key" aria-hidden="true"><span>${escape(labelOf(bands[0]))}</span><span class="key-strip">${strip}</span><span>${escape(labelOf(/** @type {Layer} */ (bands.at(-1))))}</span></span>`
+          + `<button type="button" class="legend-all" data-action="pane-layers" data-pane="${pane.id}">${bands.length} layers<span aria-hidden="true"> · </span>View all</button>`
+          + `<button type="button" class="legend-on" hidden><span class="legend-name"></span>${pane.stack === "percent" ? '<span class="legend-share"></span>' : ""}<span class="legend-value"></span></button>`;
+      }
+      /** A keyed legend's band, the pointer's else the selected one: its button the same, what it names set in place (a focus on it stays), its values written as they are (see updateReadout). */
+      function paintBand(/** @type {HTMLElement} */ element, /** @type {Pane} */ pane) {
+        const bands = bandsOf(pane), on = [bandLit, selected].map((id) => bands.find((layer) => layer.id === id)).find(Boolean);
+        const button = /** @type {HTMLElement | null} */ (element.querySelector(".legend-on"));
+        if (!button) return;
+        button.hidden = !on;
+        if (!on) return void (delete button.dataset.select);
+        // (Selected or picked, as markPicks marks a legend's; its mark and name as they are now (renamed, recolored).)
+        button.classList.toggle("selected", on.id === selected || layerPicks.has(on.id));
+        const name = `${seriesMark(on)}<span class="name">${escape(labelOf(on))}</span>`, named = /** @type {HTMLElement} */ (button.querySelector(".legend-name"));
+        if (named.innerHTML !== name) named.innerHTML = name;
+        if (button.dataset.select === on.id) return;
+        // (Another band: its values its own, written with the readout.)
+        button.dataset.select = on.id;
+        const share = /** @type {HTMLElement | null} */ (button.querySelector(".legend-share")), value = /** @type {HTMLElement} */ (button.querySelector(".legend-value"));
+        if (share) (share.dataset.share = on.id), (share.textContent = "");
+        value.dataset.value = on.id;
+        value.textContent = "";
+      }
+      /** Every keyed legend's band, as the pointer or the selection has it now (its values with the next readout). */
+      function paintBands() {
+        for (const element of legends()) {
+          const pane = chart?.panes.find((item) => item.id === element.dataset.pane);
+          if (pane && keyedPane(pane)) paintBand(element, pane);
+        }
+        // (The lit one found anew: a readout's button names another band now.)
+        lightLegend(litLayer, true);
+        valuesSoon();
+      }
       /**
        * Each pane's caption, and the chart's readout: every layer by name and color with its value, under the crosshair
-       * while hovering (the date shows on the time axis), else at the view's end; a click selects.
+       * while hovering (the date shows on the time axis), else at the view's end; a click selects. A stack of many, its
+       * key instead (see keyHtml).
        */
       function updateLegends() {
         if (!chart) return;
         for (const element of legends()) {
-          const html = chart.layers.filter((layer) => layer.pane === element.dataset.pane).map((layer) => {
+          const pane = chart.panes.find((item) => item.id === element.dataset.pane);
+          element.classList.toggle("keyed", Boolean(pane && keyedPane(pane)));
+          const html = pane && keyedPane(pane) ? keyHtml(pane) : chart.layers.filter((layer) => layer.pane === element.dataset.pane).map((layer) => {
             const result = resolved?.results.get(layer.id);
             const value = result?.error ? `<span class="legend-error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>`
               : fromUnfit(chart, layer) ? `<span class="legend-error">${fromUnfit(chart, layer)}</span>`
@@ -15328,11 +15466,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <span class="legend-name"><span class="legend-eye${layer.hidden ? " off" : ""}" data-toggle="${layer.id}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${seriesMark(layer)}<span class="eye">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</span></span><span class="name">${escape(labelOf(layer))}</span></span>${value}
             </button>`;
           }).join("");
-          if (legendShown.get(element) === html) continue;
+          if (legendShown.get(element) === html) {
+            if (pane && keyedPane(pane)) paintBand(element, pane);
+            continue;
+          }
           legendShown.set(element, html);
-          // (Its focus kept: ↵ on an item selects its layer, which writes the legend again.)
+          // (Its focus kept: ↵ on an item selects its layer, which writes the legend again; a key's band painted first,
+          // its readout found by its band.)
           const focus = focusKey(element);
           element.innerHTML = html;
+          if (pane && keyedPane(pane)) paintBand(element, pane);
           restoreFocus(element, focus);
           // (Mid-drag, a color or a width changed, not what it holds: no need to measure it again.)
           if (!holding) fitSoon(element);
@@ -15578,6 +15721,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (band) element.style.setProperty("--c", color);
             else element.style.removeProperty("--c");
           }
+        }
+        for (const element of all$("[data-share]")) {
+          const layer = layerById(element.dataset.share), text = layer ? format(shareAt(layer, point), "percent") : "";
+          if (element.textContent !== text) element.textContent = text;
         }
       }
       /**
@@ -15894,14 +16041,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       view.subscribeCrosshairMove((param) => {
         const time = param.time === undefined ? null : /** @type {number} */ (param.time);
-        lightLegend(param.point && param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null);
+        // (In a keyed pane, the band under it: its readout in the key, it lit among its pane's. On the legend over the plot,
+        // the one it was (the readout stays under the pointer); a finger's, none (it selects by a tap).)
+        const band = touching ? null : bandAt(param) ?? (onLegend ? bandLit : null);
+        if (band !== bandLit) {
+          const was = bandLit;
+          bandLit = band;
+          paintBands();
+          if (spotlit === was || band) spotlight(band);
+        }
+        lightLegend(band ?? (param.point && param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null));
         if (time === hoverTime) return;
         hoverTime = time;
         valuesSoon();
       });
       view.subscribeClick((param) => {
-        if (!param.hoveredSeries) return;
-        const id = layerOfSeries(param.hoveredSeries);
+        // (A band of a keyed pane, anywhere in it; else a line, near it.)
+        const id = bandAt(param) ?? (param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null);
         if (id) select(id);
       });
 
@@ -24150,12 +24306,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** The panel shown with the list (a layer open in it closes; a phone's sheet opens, a closed panel peeks). */
       function showList() {
+        // (Let go of, as deselect lets go: its row, its legend's, its settings drawn so.)
         if (selected) {
+          lastOpen = selected;
           selected = "";
+          renderLayers();
           renderInspector();
+          updateLegends();
         }
         if (phone.matches) document.body.dataset.sheet = "panel";
         else if (document.body.dataset.panel === "closed") document.body.toggleAttribute("data-peek", true);
+      }
+      /** A pane's layers in the panel's list (a keyed pane's View all): the list shown, that pane's at its top. */
+      function paneLayers(/** @type {string} */ id) {
+        showList();
+        requestAnimationFrame(() => /** @type {HTMLElement | null} */ ($("layer-list").querySelector(`.pane-group[data-pane="${CSS.escape(id)}"]`))?.scrollIntoView({ block: "start", behavior: reduced.matches ? "auto" : "smooth" }));
       }
       /** Picks a layer: added or taken off; with `range`, every one from the last picked (or the one open) to it. */
       function pickLayer(/** @type {string} */ id, range = false) {
@@ -31789,6 +31954,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         else if (action === "full") setFull();
         else if (action === "draw") toggleBelt();
+        else if (action === "pane-layers") paneLayers(/** @type {string} */ (target.dataset.pane));
         else if (action === "close-palette") dismissPalette(true);
         else if (action === "close-shortcuts") leave($("shortcuts"));
         else if (action === "close-guide") leave($("guide"));
