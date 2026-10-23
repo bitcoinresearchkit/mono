@@ -9,4 +9,4 @@ repository.workspace = true
 publish = false
 
 [dependencies]
-plotters = "0.3.7"
+plotters = { version = "0.3.7", default-features = false, features = ["svg_backend", "line_series"] }
