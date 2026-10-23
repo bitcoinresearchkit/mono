@@ -22529,12 +22529,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderCharts();
           // (An address that waited for them, opened now.)
           if (pendingRoute && started) {
-            const route = routeOf(pendingRoute);
+            const asked = pendingRoute, route = routeOf(asked);
             pendingRoute = "";
             // (Its step let go of the address first: the step it leads to, after it, has none either.)
             const { route: _, ...state } = history.state ?? {};
             history.replaceState(state, "", `/${location.search}`);
             if (route) "preset" in route ? openPreset(route.preset) : goTo({ path: route.path });
+            else missedRoute(asked);
           }
           return list;
         })().catch((error) => {
@@ -22659,6 +22660,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const book = addresses(), address = pathname.replace(/^\/chart\//, "/presets/").replace(/\/{2,}$/, "/");
         return book?.at.get(address) ?? book?.at.get(address.endsWith("/") ? address.slice(0, -1) : `${address}/`) ?? null;
       };
+      /** An address of the presets' naming none of them (renamed, or gone): their page (its step), saying so. @param {string} address */
+      function missedRoute(address) {
+        // (Still on the page it opened on, there in its step, as goTo leaves a page; a chart opened meanwhile, said alone.)
+        if (home) {
+          /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
+          galleryShown = GALLERY_PAGE;
+          clearPicks();
+          placeHome({ path: [] });
+          history.replaceState(homeState(), "");
+          renderCharts();
+          homeScroll().scrollTop = 0;
+        }
+        notice(missedSaid(address));
+      }
+      /** An address that names nothing, said, whatever it holds (a % that isn't one, as written). @param {string} address */
+      const missedSaid = (address) => `Nothing of the presets' at ${((text) => {
+        try {
+          return decodeURI(text);
+        } catch {
+          return text;
+        }
+      })(address)} any more: here they all are`;
       /** Where the page is, as an address (its canonical one): a preset's, a place of the presets', else the page's own ("/": your charts are no one else's); null, not known till they're read. */
       function addressNow() {
         // (The presets' addresses made only where the page is one of theirs: the page's own, none.)
@@ -26390,7 +26413,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(!isYours(chart) ? [] : [{ title: "Move to a folder", text: `${titleOf(chart)}: now ${chart.folder ? folderPath(chart.folder) : "in none"}.`, words: "folder move organize group put", icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
           ...(empty || !SHARES_IMAGES ? [] : [{ title: "Share image", text: "The chart's picture, to Photos, a message, anywhere.", words: "share image picture png screenshot photos save send message", icon: "share", run: () => exportAs("share") }]),
           ...(empty ? [] : [{ title: "Copy as image", text: "The chart, to paste anywhere.", words: "copy image picture png screenshot clipboard share paste", icon: "copy", run: () => exportAs("copy") }]),
-          ...(empty ? [] : [{ title: "Download image", text: "A PNG of the chart as it shows, with its title.", words: "png picture screenshot export save", icon: "image", run: () => exportAs("png"), suggested: true }]),
+          ...(empty ? [] : [{ title: "Download image", text: "A PNG of the chart as it shows (on a phone, wider), with its title.", words: "png picture screenshot export save", icon: "image", run: () => exportAs("png"), suggested: true }]),
           ...(empty ? [] : [{ title: "Download data", text: "A CSV of every layer's values (the hidden ones too), one row per date.", words: "csv spreadsheet export save", icon: "table", run: () => exportAs("csv") }]),
           { title: "Download chart file", text: "A JSON file you can import again later.", words: "export json save backup", icon: "file", run: () => exportAs("json") },
           ...(anythingKept() ? [{ title: "Download all charts", text: "One file of them all, folders and all, to import anywhere else.", words: "export everything backup move computer device browser phone library save json", icon: "download", run: () => downloadAll(), anywhere: true }] : []),
@@ -29419,19 +29442,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               return chain;
             }));
             const holds = held(docs.map((doc) => doc.folder)), heldThere = held(parsed.charts.map((item) => folders.get(item?.folder)?.id));
-            // (An empty one already here: the same path of names.)
-            const pathThere = (/** @type {Folder} */ folder) => {
+            // (One here already, by the same path of names (a backup imported again, a folder with more in it since): that
+            // one, what's in it put in yours; not made again.)
+            const namesOf = (/** @type {Folder} */ folder, /** @type {(id: string) => Folder | undefined} */ up, /** @type {number} */ most) => {
               const names = [];
-              for (let at = /** @type {Folder | undefined} */ (folder), steps = 0; at && steps <= made.size; at = at.parent ? made.get(at.parent) : undefined, steps++) names.unshift(at.name);
-              return names.join(" › ");
+              for (let at = /** @type {Folder | undefined} */ (folder), steps = 0; at && steps <= most; at = at.parent ? up(at.parent) : undefined, steps++) names.unshift(at.name);
+              return JSON.stringify(names);
             };
-            const paths = new Set(library.folders.map((folder) => folderPath(folder.id)));
-            for (const [from, folder] of folders) if (!holds.has(folder.id) && (heldThere.has(folder.id) || paths.has(pathThere(folder)))) folders.delete(from);
+            const pathThere = (/** @type {Folder} */ folder) => namesOf(folder, (id) => made.get(id), made.size), here = new Map(), into = new Map();
+            for (const folder of library.folders) ((key) => here.has(key) || here.set(key, folder.id))(namesOf(folder, folderById, library.folders.length));
+            for (const folder of folders.values()) ((id) => id && into.set(folder.id, id))(here.get(pathThere(folder)));
+            for (const doc of docs) if (doc.folder && into.has(doc.folder)) doc.folder = into.get(doc.folder);
+            for (const [from, folder] of folders) if (into.has(folder.id) || (!holds.has(folder.id) && heldThere.has(folder.id))) folders.delete(from);
             const kept = new Set([...folders.values()].map((folder) => folder.id));
             for (const folder of folders.values()) {
               let parent = folder.parent;
-              while (parent && !kept.has(parent)) parent = made.get(parent)?.parent;
-              parent ? (folder.parent = parent) : delete folder.parent;
+              while (parent && !kept.has(parent) && !into.has(parent)) parent = made.get(parent)?.parent;
+              parent ? (folder.parent = into.get(parent) ?? parent) : delete folder.parent;
             }
             // (Nothing new, charts nor folders: said, nothing changed.)
             if (!docs.length && !edits.length && !folders.size && editsHere) return toast("It's all here already");
@@ -29654,6 +29681,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * (base32: the fewest modules; compressing failed, the copy's, written out). @param {Chart} doc
        */
       function linksOf(doc) {
+        // (A preset as it's made, shown as it opens (its range, the view at it): its address, which opens it, itself,
+        // wherever. Moved, zoomed, at another range: the link, with the view.)
+        const i = doc.preset !== undefined && !presetEdited(doc) ? presetIndex(doc) : -1;
+        const at = i >= 0 && (doc !== chart || (presetShown && chart.range === freshPreset(i).range)) ? addresses()?.presets[i] : null;
+        if (at) return { copy: Promise.resolve(`${ORIGIN}${at}`), short: Promise.resolve(`${ORIGIN}${at}`) };
         const bytes = packedBytes(doc), copy = shareLink(doc, bytes);
         return { copy, short: bytes.then((packed) => `${location.href.replace(/[?#].*$/, "")}#c=${toBase32(packed)}`, () => copy) };
       }
@@ -29976,7 +30008,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (kind === "open") return openImage();
         const name = fileName("png");
         const failed = (/** @type {unknown} */ error = null) => notice(error instanceof Error && error.message === UNREADABLE ? UNREADABLE : "Couldn't make the image");
-        chartImage().then((canvas) => canvas.toBlob((blob) => (blob ? (download(name, blob), toast("Downloaded the image")) : failed())), failed);
+        chartImage(pictureSize()).then((canvas) => canvas.toBlob((blob) => (blob ? (download(name, blob), toast("Downloaded the image")) : failed())), failed);
       }
       /**
        * The chart's picture alone, in a tab of its own (titled with the chart's): to look at, save, or show (an assistant
@@ -29989,7 +30021,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!tab) return void notice("Couldn't open a tab: allow pop-ups here, or download the image");
         const failed = (/** @type {unknown} */ error = null) => (tab.close(), notice(error instanceof Error && error.message === UNREADABLE ? UNREADABLE : "Couldn't make the image"));
         tab.document.title = `${titleOf(chart)} · Bitview Studio`;
-        chartImage().then((canvas) => canvas.toBlob((blob) => {
+        chartImage(pictureSize()).then((canvas) => canvas.toBlob((blob) => {
           if (!blob || tab.closed) return blob ? undefined : failed();
           const url = URL.createObjectURL(new File([blob], fileName("png"), { type: "image/png" })), page = tab.document, image = page.createElement("img");
           openedImages.push(url);
@@ -30011,7 +30043,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function shareImage() {
         if (!canvasReadable()) return void notice(UNREADABLE);
         const name = fileName("png");
-        chartImage()
+        chartImage(pictureSize())
           .then((canvas) => new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("No image"))), "image/png")))
           .then((blob) => navigator.share({ files: [new File([/** @type {Blob} */ (blob)], name, { type: "image/png" })], title: titleOf(chart) }))
           .catch((/** @type {unknown} */ error) => error instanceof Error && error.name !== "AbortError" && notice(error.message === UNREADABLE ? UNREADABLE : "Couldn't share the image"));
@@ -30019,7 +30051,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The image on the clipboard, given the picture while it's still being drawn (so the click that asked counts). */
       function copyImage() {
         if (!canvasReadable()) return void notice(UNREADABLE);
-        const png = chartImage().then((canvas) => new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("No image"))), "image/png")));
+        const png = chartImage(pictureSize()).then((canvas) => new Promise((resolve, reject) => canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error("No image"))), "image/png")));
         navigator.clipboard.write([new ClipboardItem({ "image/png": png })]).then(() => toast("Copied the image: paste it anywhere"), () => notice("Couldn't copy the image"));
       }
       /**
@@ -30045,6 +30077,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       }
       const UNREADABLE = "This browser keeps the page from reading its own drawing (a privacy setting): allow it for this site to have the picture";
+      /**
+       * The size a picture of yours is taken at: as the chart shows in a window wide enough; narrower, or upright (a
+       * phone's), a picture's own, 16:9, as one's shared, not a strip as tall as the screen.
+       */
+      const pictureSize = () => ((box) => (box.width >= 640 && box.width > box.height ? {} : { width: 1200, height: 675 }))($("chart").getBoundingClientRect());
       /**
        * The picture of the chart, as it shows: its title; each pane's legend where it stands; the source, the interval,
        * the view's dates and the date of the values the legends show. None where the browser would give noise for it.
@@ -31931,9 +31968,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const draft = previewCharts.findIndex((doc) => drafts.has(doc));
           if (draft >= 0) previewCharts.splice(draft, 1);
         }
-        // (An address of a section, there; one that's nothing, the Charts page; the presets unread, kept till they are.)
-        if (asked) homeAt = routed && "path" in routed ? { path: routed.path } : { top: true };
+        // (An address of a section, there; one that's nothing, the presets' page, said; the presets unread, kept till they are.)
+        if (asked) homeAt = routed && "path" in routed ? { path: routed.path } : presets ? { path: [] } : { top: true };
         if (asked && !routed && !presets) pendingRoute = asked;
+        else if (asked && !routed) setTimeout(() => notice(missedSaid(asked)));
         // (Blank charts left elsewhere (a tab closed on one): let go of, the one open here aside.)
         for (const doc of library.charts.filter((doc) => doc !== chart && emptyYours(doc))) dropEmpty(doc);
         home = !shared && Boolean(asked ? !(routed && "preset" in routed) : there ? there.home : first || prefs.home);
