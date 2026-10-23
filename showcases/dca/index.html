@@ -34,7 +34,7 @@
         --brand: #00d632;
         --on-brand: #000000;
         --gain: light-dark(#007f2d, #00d632);
-        --loss: light-dark(#d92d20, #ff5147);
+        --loss: light-dark(#cf281d, #ff5147);
         /* (Lines and their keys: the brand's green, a shade deeper on white to read as a graphic, 3:1.) */
         --line-up: light-dark(#00a32a, #00d632);
         /* (The smart plan, wherever it shows.) */
@@ -42,6 +42,9 @@
         --gain-fill: light-dark(rgb(0 214 50 / 0.12), rgb(0 214 50 / 0.13));
         --loss-fill: light-dark(rgb(217 45 32 / 0.1), rgb(255 81 71 / 0.15));
         --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+        /* (A press gives a little and springs back; a choice slides.) */
+        --spring: cubic-bezier(0.3, 0.7, 0.4, 1.4);
+        --slide: cubic-bezier(0.2, 0.8, 0.2, 1);
       }
 
       * {
@@ -68,6 +71,15 @@
         font: inherit;
         color: inherit;
         letter-spacing: inherit;
+      }
+
+      /* (A press shows itself, not a browser's tap flash over it.) */
+      button,
+      input,
+      label,
+      .plot,
+      canvas {
+        -webkit-tap-highlight-color: transparent;
       }
 
       :focus-visible {
@@ -99,7 +111,11 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        height: 64px;
+        height: 56px;
+
+        @media (min-width: 720px) {
+          height: 64px;
+        }
       }
 
       .brand {
@@ -132,8 +148,8 @@
       }
 
       h1 {
-        margin-top: 20px;
-        font-size: 34px;
+        margin-top: 8px;
+        font-size: 30px;
         line-height: 1.05;
 
         @media (min-width: 720px) {
@@ -149,10 +165,14 @@
 
       .lede {
         max-width: 56ch;
-        margin: 10px 0 0;
+        margin: 8px 0 0;
         color: var(--soft);
-        font-size: 16px;
+        font-size: 15px;
         font-weight: 500;
+
+        @media (min-width: 720px) {
+          font-size: 16px;
+        }
       }
 
       .note {
@@ -173,7 +193,7 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         gap: 12px;
-        margin-top: 24px;
+        margin-top: 20px;
 
         /* (On a desk: the value, the plan and its breakdown beside it; the smart plan across under both.) */
         @media (min-width: 960px) {
@@ -268,22 +288,37 @@
         font-size: 14px;
         font-weight: 700;
         cursor: pointer;
+        transition:
+          transform 160ms var(--spring),
+          background-color 120ms,
+          color 120ms;
 
-        /* (A finger's reach, unseen.) */
+        &:active:not(:disabled) {
+          transform: scale(0.94);
+          transition-duration: 60ms;
+        }
+
+        &:disabled {
+          opacity: 0.4;
+          cursor: default;
+        }
+
+        /* (A finger's reach, unseen: 44px tall whatever the pill's height.) */
         &::before {
           content: "";
           position: absolute;
-          inset: -5px -2px;
+          inset: min(-5px, calc((100% - 44px) / 2)) -2px;
         }
 
         @media (hover: hover) {
-          &:hover {
+          &:hover:not(:disabled) {
             color: var(--ink);
             background: var(--hover);
           }
         }
 
-        &[aria-pressed="true"] {
+        &[aria-pressed="true"],
+        &[aria-pressed="true"]:hover {
           color: var(--app);
           background: var(--ink);
         }
@@ -302,7 +337,7 @@
 
       .plot {
         position: relative;
-        margin: 6px -4px 0;
+        margin: 18px -4px 0;
         border-radius: 8px;
         touch-action: pan-y;
         cursor: crosshair;
@@ -371,6 +406,27 @@
         }
       }
 
+      /* (Each line's last day, "now", while nothing is pointed at.) */
+      .ends circle {
+        stroke: var(--card);
+        stroke-width: 3px;
+      }
+
+      /* The day pointed at, over the crosshair. */
+      .tag {
+        position: absolute;
+        top: -10px;
+        left: 0;
+        border-radius: 999px;
+        padding: 2px 9px;
+        color: var(--app);
+        background: var(--ink);
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+        pointer-events: none;
+      }
+
       .chart-head {
         display: flex;
         justify-content: flex-end;
@@ -432,6 +488,10 @@
 
         .smart i {
           border-top-color: var(--smart);
+        }
+
+        .smart-name {
+          color: var(--smart);
         }
       }
 
@@ -504,23 +564,58 @@
           font-weight: 600;
         }
 
+        .chips {
+          display: flex;
+          justify-content: center;
+          gap: 6px;
+          margin-top: 14px;
+
+          .pill {
+            height: 30px;
+            padding: 0 12px;
+            background: var(--raised);
+            font-size: 13px;
+          }
+
+          .pill[aria-pressed="true"] {
+            background: var(--ink);
+          }
+        }
+
+        /* (The choice a green thumb that slides to it, --at: 0, 1 or 2.) */
         .every {
+          position: relative;
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 4px;
-          margin-top: 18px;
+          margin-top: 16px;
           border-radius: 20px;
           padding: 4px;
           background: var(--raised);
 
+          &::before {
+            content: "";
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: calc((100% - 16px) / 3);
+            height: 36px;
+            border-radius: 16px;
+            background: var(--brand);
+            transform: translateX(calc(var(--at, 1) * (100% + 4px)));
+            transition: transform 240ms var(--slide);
+          }
+
           .pill {
+            z-index: 1;
             height: 36px;
             border-radius: 16px;
           }
 
-          .pill[aria-pressed="true"] {
+          .pill[aria-pressed="true"],
+          .pill[aria-pressed="true"]:hover {
             color: var(--on-brand);
-            background: var(--brand);
+            background: none;
           }
         }
       }
@@ -601,8 +696,9 @@
         margin-top: 4px;
       }
 
-      /* The smart plan beside the plain one: the verdict, then a table of the two. */
+      /* The smart plan beside the plain one: the verdict, then a table of the two. (One line, held.) */
       .versus {
+        height: 1.45em;
         overflow: hidden;
         margin-top: 4px;
         color: var(--smart);
@@ -861,8 +957,42 @@
         font-weight: 500;
       }
 
-      .wait {
-        color: var(--faint);
+      /* Loading: bones where numbers will be, pulsing (still with reduced motion). */
+      .bone {
+        display: inline-block;
+        width: var(--w, 4.5em);
+        height: 0.72em;
+        border-radius: 6px;
+        background: var(--hover);
+        vertical-align: -0.02em;
+        animation: pulse 1.2s ease-in-out infinite alternate;
+      }
+
+      @keyframes pulse {
+        to {
+          opacity: 0.35;
+        }
+      }
+
+      /* The smart plan's mark, under the value. */
+      .badge {
+        display: inline-block;
+        border-radius: 999px;
+        padding: 1px 7px;
+        color: var(--smart);
+        background: color-mix(in srgb, var(--smart) 8%, transparent);
+        font-size: 12px;
+        font-style: normal;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before {
+          animation: none !important;
+          transition: none !important;
+        }
       }
     </style>
   </head>
@@ -877,13 +1007,13 @@
 
       <main>
         <h1>Dollar-cost averaging</h1>
-        <p class="lede">The same dollars of bitcoin on a schedule, whatever the price: what any plan since 2010 would be worth.</p>
+        <p class="lede">Buying the same dollars of bitcoin on a schedule: what any plan since 2010 would be worth.</p>
         <p class="note" id="failed" role="alert"></p>
 
         <div class="board" id="calculator" aria-busy="true" inert>
           <section class="card value" aria-label="What it's worth">
             <p class="sentence" id="sentence">Reading the daily price.</p>
-            <span class="worth" id="worth"><span class="wait">$…</span></span>
+            <span class="worth" id="worth"><span class="bone" style="--w: 4.6ch"></span></span>
             <div class="change" id="delta">&nbsp;</div>
             <div class="versus" id="versus">&nbsp;</div>
             <div class="chart-head">
@@ -895,6 +1025,7 @@
             </div>
             <div class="plot" id="plots" tabindex="0" aria-label="The plan day by day: arrows move a day (Shift: a month), Home and End go to its ends">
               <svg id="chart" aria-hidden="true"></svg>
+              <span class="tag" id="tag" hidden></span>
             </div>
             <div class="keys" id="keys"><span>&nbsp;</span></div>
             <div class="pills ranges" role="group" aria-label="The last years up to the last day">
@@ -915,7 +1046,14 @@
               <h2 id="plan-title">Your plan</h2>
               <label class="amount">$<input id="amount" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Dollars each time" value="100" /></label>
               <p class="each">of bitcoin each time</p>
-              <div class="every" role="group" aria-label="How often">
+              <div class="chips" role="group" aria-label="Quick amounts">
+                <button type="button" class="pill" data-amount="10">$10</button>
+                <button type="button" class="pill" data-amount="25">$25</button>
+                <button type="button" class="pill" data-amount="50">$50</button>
+                <button type="button" class="pill" data-amount="100">$100</button>
+                <button type="button" class="pill" data-amount="1000">$1K</button>
+              </div>
+              <div class="every" role="group" aria-label="How often" style="--at: 1">
                 <button type="button" class="pill" data-every="day">Daily</button>
                 <button type="button" class="pill" data-every="week">Weekly</button>
                 <button type="button" class="pill" data-every="month">Monthly</button>
@@ -930,11 +1068,11 @@
             <section class="card facts" aria-labelledby="facts-title">
               <h2 id="facts-title">Breakdown</h2>
               <dl class="rows">
-                <div data-fact="bought"><dt>Bitcoin bought<small>&nbsp;</small></dt><dd>…</dd></div>
-                <div data-fact="spent"><dt>Put in<small>&nbsp;</small></dt><dd>…</dd></div>
-                <div data-fact="cost"><dt>Average cost<small>&nbsp;</small></dt><dd>…</dd></div>
-                <div data-fact="lump"><dt>All on day one<small>&nbsp;</small></dt><dd>…</dd></div>
-                <div data-fact="low"><dt>Lowest point<small>&nbsp;</small></dt><dd>…</dd></div>
+                <div data-fact="bought"><dt>Bitcoin bought<small>&nbsp;</small></dt><dd><span class="bone"></span></dd></div>
+                <div data-fact="spent"><dt>Put in<small>&nbsp;</small></dt><dd><span class="bone"></span></dd></div>
+                <div data-fact="cost"><dt>Average cost<small>&nbsp;</small></dt><dd><span class="bone"></span></dd></div>
+                <div data-fact="lump"><dt>All on day one<small>&nbsp;</small></dt><dd><span class="bone"></span></dd></div>
+                <div data-fact="low"><dt>Lowest point<small>&nbsp;</small></dt><dd><span class="bone"></span></dd></div>
               </dl>
             </section>
 
@@ -951,11 +1089,11 @@
                 <tr><th scope="col"><span class="vh">Fact</span></th><th scope="col">Plain</th><th scope="col">Smart</th></tr>
               </thead>
               <tbody>
-                <tr data-vs="spent"><th scope="row">Put in</th><td></td><td></td></tr>
-                <tr data-vs="bought"><th scope="row">Bitcoin bought</th><td></td><td></td></tr>
-                <tr data-vs="cost"><th scope="row">Average cost</th><td></td><td></td></tr>
-                <tr data-vs="worth"><th scope="row">Worth</th><td></td><td></td></tr>
-                <tr data-vs="return"><th scope="row">Return</th><td></td><td></td></tr>
+                <tr data-vs="spent"><th scope="row">Put in</th><td><span class="bone"></span></td><td><span class="bone"></span></td></tr>
+                <tr data-vs="bought"><th scope="row">Bitcoin bought</th><td><span class="bone"></span></td><td><span class="bone"></span></td></tr>
+                <tr data-vs="cost"><th scope="row">Average cost</th><td><span class="bone"></span></td><td><span class="bone"></span></td></tr>
+                <tr data-vs="worth"><th scope="row">Worth</th><td><span class="bone"></span></td><td><span class="bone"></span></td></tr>
+                <tr data-vs="return"><th scope="row">Return</th><td><span class="bone"></span></td><td><span class="bone"></span></td></tr>
               </tbody>
             </table>
           </section>
@@ -1230,6 +1368,8 @@
         }
         fitAmount();
         for (const button of document.querySelectorAll("[data-every]")) button.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (button).dataset.every === state.every));
+        /** @type {HTMLElement} */ (document.querySelector(".every")).style.setProperty("--at", String(["day", "week", "month"].indexOf(state.every)));
+        for (const button of document.querySelectorAll("[data-amount]")) button.setAttribute("aria-pressed", String(Number(/** @type {HTMLElement} */ (button).dataset.amount) === state.amount));
         for (const button of document.querySelectorAll("[data-top]")) button.setAttribute("aria-pressed", String(state.from === Number(/** @type {HTMLElement} */ (button).dataset.top) && state.to === last));
         for (const button of document.querySelectorAll("[data-view]")) button.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (button).dataset.view === state.view));
         fromInput.min = toInput.min = iso(first);
@@ -1249,6 +1389,14 @@
         fitAmount();
         readForm();
       });
+      // (A quick amount is typed for you: the amount field takes it, as if keyed in.)
+      for (const button of document.querySelectorAll("[data-amount]")) {
+        button.addEventListener("click", () => {
+          amountInput.value = /** @type {string} */ (/** @type {HTMLElement} */ (button).dataset.amount);
+          fitAmount();
+          readForm();
+        });
+      }
       for (const button of document.querySelectorAll("[data-every]")) {
         button.addEventListener("click", () => {
           state.every = /** @type {Every} */ (/** @type {HTMLElement} */ (button).dataset.every);
@@ -1354,7 +1502,7 @@
       /** @typedef {{ f: (i: number) => number, ink: "up" | "down" | "ink" | "dashed" | "smart", name: string, from?: (i: number) => number }} Series */
       const INKS = { up: "var(--line-up)", down: "var(--loss)", ink: "var(--ink)", dashed: "var(--soft)", smart: "var(--smart)" };
       /** What the chart shows: x and y by the plan's day, its two series, the crosshair, and how to finish drawing it.
-       * @type {{ x: (i: number) => number, ys: ((i: number) => number)[], series: Series[], marks: Element[], line: Element, finish: () => void } | null} */
+       * @type {{ x: (i: number) => number, ys: ((i: number) => number)[], series: Series[], marks: Element[], line: Element, ends: Element, finish: () => void } | null} */
       let drawn = null;
       /** The two lines as on screen, two points a pixel column: where a glide starts. */
       let onScreen = /** @type {Float64Array[] | null} */ (null), glide = 0;
@@ -1405,17 +1553,21 @@
         clips.querySelectorAll("clipPath").forEach((clip, k) => clip.append(under[k]));
         const lines = series.map((s) => el("path", { class: `line ${s.ink}` }));
         const line = el("line", { y1: 0, y2: height }), marks = series.map((s) => el("circle", { r: 5, style: `fill: ${INKS[s.ink]}` }));
-        const cross = el("g", { class: "cross", visibility: "hidden" });
+        const cross = el("g", { class: "cross", visibility: "hidden" }), ends = el("g", { class: "ends" });
+        const dots = series.map((s) => el("circle", { r: 4.5, cx: x(n - 1), style: `fill: ${INKS[s.ink]}` }));
         cross.append(line, ...marks);
-        svg.replaceChildren(clips, ...fills, ...lines, cross);
+        ends.append(...dots);
+        svg.replaceChildren(clips, ...fills, ...lines, ends, cross);
         // The lines as two points a pixel column, at rest and in a glide alike, so a glide starts and ends on the shape at
         // rest: where days outnumber columns, a column's lowest and highest day in the order they came (as drawing every
         // day looks); else each day on the column nearest it and the line between days on the rest, twice a column. A
         // one-day plan: its point, in one column.
         const columns = n === 1 ? 1 : Math.max(2, Math.round(width));
         const colX = (/** @type {number} */ j) => (columns === 1 ? width / 2 : (j / (columns - 1)) * width);
+        // (After the columns, the last day's own value: where the line's end dot sits.)
         const sample = (/** @type {(i: number) => number} */ yOf) => {
-          const out = new Float64Array(columns * 2);
+          const out = new Float64Array(columns * 2 + 1);
+          out[columns * 2] = yOf(n - 1);
           if (n > columns) {
             for (let j = 0; j < columns; j++) {
               const from = Math.floor((j * n) / columns), to = Math.max(from + 1, Math.floor(((j + 1) * n) / columns));
@@ -1449,6 +1601,7 @@
             return d;
           };
           lines.forEach((path, k) => path.setAttribute("d", along(k)));
+          dots.forEach((dot, k) => dot.setAttribute("cy", shape[k][columns * 2].toFixed(1)));
           const edge = along(1 - good), between = `${along(good)}L${along(1 - good, true).slice(1)}Z`;
           fills.forEach((fill) => fill.setAttribute("d", between));
           under[0].setAttribute("d", `${edge}L${width},0L0,0Z`);
@@ -1462,7 +1615,7 @@
           paint(target);
           onScreen = target;
         };
-        drawn = { x, ys, series, marks, line, finish };
+        drawn = { x, ys, series, marks, line, ends, finish };
         cancelAnimationFrame(glide);
         if (animate && from && !still.matches) {
           const start = performance.now();
@@ -1508,6 +1661,15 @@
         if (!drawn) return;
         const n = plan.to - plan.from, at = i ?? n, day = plan.from + at, spent = plan.spent[at], worth = plan.held[at] * price[day], m = worth / spent;
         drawn.line.parentElement?.setAttribute("visibility", i === null ? "hidden" : "visible");
+        drawn.ends.setAttribute("visibility", i === null ? "visible" : "hidden");
+        // The day pointed at, over the crosshair, kept inside the chart.
+        const tag = $("tag");
+        tag.hidden = i === null;
+        if (i !== null) {
+          tag.textContent = dated(day);
+          const half = tag.offsetWidth / 2, width = plots.clientWidth;
+          tag.style.transform = `translateX(${Math.min(width - half, Math.max(half, drawn.x(at))) - half}px)`;
+        }
         if (i !== null) {
           const x = String(drawn.x(at));
           drawn.line.setAttribute("x1", x);
@@ -1523,9 +1685,9 @@
         $("delta").className = `change ${tone(m)}`;
         // (Even within float error: no change, not a few femtodollars.)
         $("delta").textContent = `${gained(m) ? "▲ " : lost(m) ? "▼ " : ""}${usd(gained(m) || lost(m) ? Math.abs(worth - spent) : 0)} (${percent(m).replace(/^[+−]/, "")})`;
-        $("keys").innerHTML = drawn.series.map((s) => `<span class="${s.ink}"><i></i>${s.name} <b>${usd(s.f(at))}</b>${s.from ? ` from ${usd(s.from(at))}` : ""}</span>`).join("");
+        $("keys").innerHTML = drawn.series.map((s) => `<span class="${s.ink}"><i></i>${s.ink === "smart" ? '<span class="smart-name">Smart</span>' : s.name} <b>${usd(s.f(at))}</b>${s.from ? ` from ${usd(s.from(at))}` : ""}</span>`).join("");
         // The bitcoin a dollar the smart plan got against the plain one, as of the same day.
-        if (smart) $("versus").textContent = `Smart: ${edge(smart.held[at] / smart.spent[at] / (plan.held[at] / spent))} a dollar`;
+        if (smart) $("versus").innerHTML = `<em class="badge">Smart</em> ${edge(smart.held[at] / smart.spent[at] / (plan.held[at] / spent))} a dollar`;
       }
 
       // Read by pointer or touch (a horizontal drag; a vertical one scrolls the page), or by keys once focused.
@@ -1716,7 +1878,7 @@
         // (A row of plans at a time: length d + 1 months, from edge(d + 1) down to edge(d).)
         for (let d = 0; d < map.rows; d++) context.drawImage(pixels, 0, map.rows - 1 - d, map.cols, 1, MARGIN.left, edge(d + 1), plotW, edge(d) - edge(d + 1));
         // Axes: the starts' years across, the lengths up (a label only where it has room).
-        context.font = `600 11px ${getComputedStyle(document.body).getPropertyValue("--sans")}`;
+        context.font = `600 12px ${getComputedStyle(document.body).getPropertyValue("--sans")}`;
         context.fillStyle = ink("--soft");
         context.textAlign = "center";
         const yearStep = cw * 12 < 34 ? 2 : 1;
@@ -1903,8 +2065,8 @@
           $("note").textContent = unusable;
         } catch (error) {
           // (Said outside the calculator and the map, which stay inert without prices.)
-          $("worth").textContent = "";
           $("sentence").textContent = "";
+          for (const bone of document.querySelectorAll(".bone")) bone.replaceWith("—");
           $("failed").textContent = `The daily price couldn't be read: ${error instanceof Error ? error.message : error}. Reload to try again.`;
           $("calculator").setAttribute("aria-busy", "false");
         }
