@@ -187,7 +187,7 @@ Errors use `application/problem+json`:
 ### Links
 
 - [GitHub](https://github.com/bitcoinresearchkit/mono)
-- [Bitview Studio](https://studio.bitview.space) - Charts of any series, built on this API"#
+- [Bitview Studio](https://bitview.space/studio/) - Charts of any series, built on this API"#
                 .to_string(),
         ),
         version: format!("v{VERSION}"),

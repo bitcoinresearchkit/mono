@@ -99,19 +99,28 @@ impl Website {
         }
     }
 
-    /// The file `path` names, else the `index.html` of the folder it names (`""` is the root's).
+    /// The file `path` names, else the `index.html` of the folder it names (`""` is the root's). A path
+    /// naming neither, without an extension, gets the page of the nearest folder above it that has one,
+    /// never the root's: an app's own addresses (Studio's presets, `studio/presets/...`), while a
+    /// missing file (`studio/x.js`) or an unknown address at the root stays not found.
     pub(crate) fn get_file(&self, path: &str) -> Result<File, Error> {
         // `router` registers no route for a disabled website.
         debug_assert!(self.is_enabled());
         let path = Path::new(path);
-        let page = path.join("index.html");
+        let above = path
+            .ancestors()
+            .skip(1)
+            .take_while(|folder| !folder.as_os_str().is_empty())
+            .filter(|_| path.extension().is_none());
+        let mut candidates = [path.to_path_buf(), path.join("index.html")]
+            .into_iter()
+            .chain(above.map(|folder| folder.join("index.html")));
         let file = match self.filesystem_path() {
-            None => EMBEDDED
-                .get_file(path)
-                .or_else(|| EMBEDDED.get_file(&page))
-                .map(File::embedded),
-            Some(base) => [base.join(path), base.join(&page)]
-                .into_iter()
+            None => {
+                candidates.find_map(|candidate| EMBEDDED.get_file(candidate).map(File::embedded))
+            }
+            Some(base) => candidates
+                .map(|candidate| base.join(candidate))
                 .find(|file| file.is_file())
                 .and_then(|file| match fs::read(&file) {
                     Ok(contents) => Some(File::fresh(contents, &file)),

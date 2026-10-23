@@ -1,7 +1,7 @@
 <!doctype html>
 <!--
   Bitview Studio: charts of Bitcoin's on-chain data, from links. A link carries a chart as JSON, URL-encoded or as it is:
-  https://studio.bitview.space/#chart={"title": "Cost basis", "range": "4y", "layers": [{"series": "price"},
+  https://bitview.space/studio/#chart={"title": "Cost basis", "range": "4y", "layers": [{"series": "price"},
   {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}, {"cloud": ["A", "B"]}]}
   It opens as a preview. Layers are a series (exact name), a formula of other layers by letter (A, B... in order), or a
   cloud between two layers; drawings, panes and a date window are written the same way. As an image: Export, then Open
@@ -31,7 +31,7 @@
       // Its manifest, made here (the page is one file): its name, its icons, opening where it's served, as an app.
       {
         // (Studio's own, wherever it's opened from (a preset's address, a section's): the app is the studio, from its start.)
-        const here = /^studio\.bitview\.space$/.test(location.hostname) ? `${location.origin}/` : location.href.replace(/[?#].*$/, ""), icon = (/** @type {string} */ rel) => /** @type {HTMLLinkElement | null} */ (document.querySelector(`link[rel="${rel}"]`))?.href;
+        const here = /^\/studio(?:\/|$)/.test(location.pathname) ? `${location.origin}/studio/` : location.href.replace(/[?#].*$/, ""), icon = (/** @type {string} */ rel) => /** @type {HTMLLinkElement | null} */ (document.querySelector(`link[rel="${rel}"]`))?.href;
         // (Its launch screen in the theme it opens in: dark unless light is chosen, or the system's.)
         const theme = (() => { try { return JSON.parse(localStorage.getItem("bitview-studio:prefs") ?? "{}").theme; } catch { return undefined; } })();
         const ground = theme === "light" || (theme === "system" && matchMedia("(prefers-color-scheme: light)").matches) ? "#f6f6f7" : "#08090a";
@@ -42,21 +42,20 @@
     <title>Bitview Studio: charts of Bitcoin's on-chain data</title>
     <!-- Found and shared: how a link to it previews, what it is (its canonical address, each place's own, added once it
          knows where it is: see showAddress). -->
-    <link rel="alternate" type="text/markdown" href="https://studio.bitview.space/llms.txt" title="Bitview Studio, for assistants" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Bitview Studio" />
     <meta property="og:title" content="Bitview Studio: charts of Bitcoin's on-chain data" />
     <meta property="og:description" content="Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link. Free, in the browser." />
-    <meta property="og:image" content="https://studio.bitview.space/og.png" />
+    <meta property="og:image" content="https://bitview.space/studio/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="A chart in Bitview Studio: Bitcoin's price and its on-chain measures over its history" />
     <meta name="twitter:card" content="summary_large_image" />
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Bitview Studio","url":"https://studio.bitview.space/","description":"Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link.","applicationCategory":"FinanceApplication","operatingSystem":"Any (a web browser)","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"image":"https://studio.bitview.space/og.png","publisher":{"@type":"Organization","name":"Bitview","url":"https://bitview.space"}}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Bitview Studio","url":"https://bitview.space/studio/","description":"Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link.","applicationCategory":"FinanceApplication","operatingSystem":"Any (a web browser)","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"image":"https://bitview.space/studio/og.png","publisher":{"@type":"Organization","name":"Bitview","url":"https://bitview.space"}}</script>
     <style>
       @font-face {
         font-family: Inter;
-        src: url("../assets/fonts/InterVariable.woff2") format("woff2");
+        src: url("/assets/fonts/InterVariable.woff2") format("woff2");
         font-weight: 100 900;
         font-display: swap;
       }
@@ -64,7 +63,7 @@
       /* Lilex starts at 500 so mono keeps up with Inter (lighter weights clamp there). */
       @font-face {
         font-family: Lilex;
-        src: url("../assets/fonts/Lilex.woff2") format("woff2");
+        src: url("/assets/fonts/Lilex.woff2") format("woff2");
         font-weight: 500 700;
         font-display: swap;
       }
@@ -9184,7 +9183,7 @@
         const kept = /"charts":\[\{/.test(localStorage.getItem("bitview-studio:v2") ?? "") || localStorage.getItem("bitview-studio:preview") !== null;
         // (An address of the presets': their page's or a section's, ending in a slash, the page; a preset's, without, its
         // chart (an old one's, /chart/, too).)
-        const routed = !/^studio\.bitview\.space$/.test(location.hostname) ? null : /^\/presets(?:\/.*)?\/$|^\/presets$/.test(location.pathname) ? true : /^\/(?:presets|chart)\//.test(location.pathname) ? false : null;
+        const routed = /^\/studio\/presets(?:\/.*)?\/$|^\/studio\/presets$/.test(location.pathname) ? true : /^\/studio\/(?:presets|chart)\//.test(location.pathname) ? false : null;
         if (!/[#&](?:chart|image|c)=/.test(location.hash) && (there ? there.home : routed ?? (!kept || (prefs.home ?? true)))) document.body.toggleAttribute("data-home", true);
       } catch {}
     </script>
@@ -9214,13 +9213,13 @@
           <p>Charts of Bitcoin's on-chain data from bitview.space, drawn in the browser (with JavaScript on).</p>
           <h2>In short</h2>
           <ul>
-            <li>A chart is a link: https://studio.bitview.space/#chart= followed by its JSON (below), such as {"layers": [{"series": "price"}, {"series": "realized_price"}]}.</li>
+            <li>A chart is a link: https://bitview.space/studio/#chart= followed by its JSON (below), such as {"layers": [{"series": "price"}, {"series": "realized_price"}]}.</li>
             <li>Its picture alone: the same link with #image= in place of #chart=, a page that is, once drawn, that picture (with only screenshots to work with, take one of it).</li>
-            <li>Thousands of ready-made charts (presets), each at an address of its own: https://studio.bitview.space/presets/ and its place, such as https://studio.bitview.space/presets/valuation/mvrv; their sections at the same, ending in a slash, such as https://studio.bitview.space/presets/valuation/; every one listed in https://studio.bitview.space/sitemap.xml.</li>
+            <li>Thousands of ready-made charts (presets), each at an address of its own: https://bitview.space/studio/presets/ and its place, such as https://bitview.space/studio/presets/valuation/mvrv; their sections at the same, ending in a slash, such as https://bitview.space/studio/presets/valuation/.</li>
             <li>From a script in the page: await studio.open(chart); await studio.ready(); await studio.png({ width: 1200, height: 760, scale: 2 }), its picture as a PNG data URL, in one result (see "From a script").</li>
           </ul>
           <h2>Opening a chart from a link</h2>
-          <p>A link carries a whole chart: https://studio.bitview.space/#chart= followed by the chart as JSON, URL-encoded or as it is. It opens as a preview: whoever opens it sees the chart, and keeps it or not. All a chart can be is written this way. For example (before encoding):</p>
+          <p>A link carries a whole chart: https://bitview.space/studio/#chart= followed by the chart as JSON, URL-encoded or as it is. It opens as a preview: whoever opens it sees the chart, and keeps it or not. All a chart can be is written this way. For example (before encoding):</p>
           <pre>{"title": "Price and realized price", "range": "4y", "layers": [{"series": "price"}, {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}]}</pre>
           <h2>A chart</h2>
           <ul>
@@ -9262,7 +9261,7 @@
           <p>"drawings": [{"kind": "trend", "layer": "A", "points": [["2021-04-14", 64000], ["2021-11-10", 69000]]}]: each on a layer (by its letter, on its scale), its points each a date and a value. Kinds: trend (a line through two points), hline and vline (a line across, or down, through one point: an hline's date and a vline's value can be any), rect and ellipse (by two corners), ruler (a measure between two points), text (at one point, with its "text": up to 500 characters, centered there, "\n" for a new line) and brush (a free stroke, up to 300 points). Up to 100 drawings.</p>
           <p>Each can have a "color" (yellow if none), "width" (0.5 to 5, by halves; 1.5 if none), "dash" and "opacity", as a layer's; a ruler is drawn in its own colors and lines (no opacity, width or dash), a text without width or dash. A trend line can have a "start" and an "end" (its first point's and its second's): "arrow", an arrowhead there, or "extend", on past that point to the chart's edge (none: it ends at its point). A trend, hline or vline can have a "label" (up to 80 characters) and where along it ("at", 0 to 1: 0.5 for a trend, 1 for an hline, 0 for a vline if none). A text or a line's label can have a "size" (11, 13, 16 or 22) and a "back" (outline, soft, soft-outline or solid).</p>
           <h2>As a picture</h2>
-          <p>A chart shown as an image is its picture, not a screenshot of the page. Three ways to it: from a script in the page, await studio.png() (below), at a size of its own; from a link, https://studio.bitview.space/#image= followed by the chart's JSON, a page that is, once the chart is drawn across the whole window, its picture alone (one image, its alt text the chart's title; a click on it, the chart); by hand, Export (in the chart's ⋯ menu, More, in its header), then Open image (the picture alone, in a tab of its own), Download image (PNG), or Copy as image (to the clipboard of whoever uses the browser: an embedded browser may not allow it). The picture is the chart with its title, its legends and a footer (its source, interval and dates).</p>
+          <p>A chart shown as an image is its picture, not a screenshot of the page. Three ways to it: from a script in the page, await studio.png() (below), at a size of its own; from a link, https://bitview.space/studio/#image= followed by the chart's JSON, a page that is, once the chart is drawn across the whole window, its picture alone (one image, its alt text the chart's title; a click on it, the chart); by hand, Export (in the chart's ⋯ menu, More, in its header), then Open image (the picture alone, in a tab of its own), Download image (PNG), or Copy as image (to the clipboard of whoever uses the browser: an embedded browser may not allow it). The picture is the chart with its title, its legends and a footer (its source, interval and dates).</p>
           <h2>From a script</h2>
           <p>For a script run in the page (a browser's console, an assistant driving a browser), window.studio:</p>
           <ul>
@@ -9617,10 +9616,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
     <script id="presets" type="application/gzip"></script>
     <script type="module">
       // @ts-check
-      import { BitviewClient } from "../modules/bitview-client/index.js";
-      import XKCD from "../modules/xkcd-colors/index.js";
-      import * as LC from "../modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs";
-      import { QuickMatch, QuickMatchConfig } from "../modules/quickmatch-js/src/index.js";
+      import { BitviewClient } from "/modules/bitview-client/index.js";
+      import XKCD from "/modules/xkcd-colors/index.js";
+      import * as LC from "/modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs";
+      import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
       // Responses are kept here alone, as the page uses them (the client's copies, in memory and on disk, would be more).
       // (The server that serves the page; the page built on its own names its server.)
@@ -23041,9 +23040,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @returns {Promise<Preset[]>}
        */
       async function presetsKept() {
-        const presetsUrl = new URL("../studio/presets.js", location.href).href, clientUrl = new URL("../modules/bitview-client/index.js", location.href).href;
+        const presetsUrl = new URL("/studio/presets.js", location.origin).href, clientUrl = new URL("/modules/bitview-client/index.js", location.origin).href;
         const here = async () => {
-          const made = await import("../studio/presets.js");
+          const made = await import("/studio/presets.js");
           // (The chain's facts from this server; without them, every preset, those of what never happened too.)
           return made.studioPresets(client, await made.chainFacts(location.origin).catch(() => undefined));
         };
@@ -23137,7 +23136,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             pendingRoute = "";
             // (Its step let go of the address first: the step it leads to, after it, has none either.)
             const { route: _, ...state } = history.state ?? {};
-            if (here) history.replaceState(state, "", `/${location.search}`);
+            if (here) history.replaceState(state, "", `${BASE}/${location.search}`);
             if (here && route) "preset" in route ? openPreset(route.preset) : goTo({ path: route.path });
             else if (here) missedRoute(asked);
             else if (!route) notice(missedSaid(asked));
@@ -23249,8 +23248,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
         return { presets: presetsAt, sections, at };
       }
-      /** Whether the page is Studio's own, served at its root (which serves the page at every address): an address of the presets' read as it starts; elsewhere (a file, another server, a page in a folder), none. */
-      const ROUTED = location.protocol === "https:" && /^studio\.bitview\.space$/.test(location.hostname) && /^\/(?:$|presets(?:\/|$)|chart\/)/.test(location.pathname);
+      /** Where Studio's served on a domain: DOMAIN/studio/, its own addresses (the presets') under it. */
+      const BASE = "/studio";
+      /** Whether the page is Studio's own, at BASE (its server serving the page at every address under it): an address of the presets' read as it starts; elsewhere (a file, another server's), none. */
+      const ROUTED = /^\/studio\/(?:$|presets(?:\/|$)|chart\/)/.test(location.pathname);
       /** The presets' addresses, made once they're read. */
       let addressBook = /** @type {{ for: Preset[] | null, book: ReturnType<typeof addressesOf> | null }} */ ({ for: null, book: null });
       const addresses = () => (!presets ? null : addressBook.for === presets ? addressBook.book : (addressBook = { for: presets, book: addressesOf(presets) }).book);
@@ -23260,7 +23261,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * place that's a section's now, that section).
        */
       const routeOf = (/** @type {string} */ pathname) => {
-        const book = addresses(), address = pathname.replace(/^\/chart\//, "/presets/").replace(/\/{2,}$/, "/");
+        const book = addresses(), address = pathname.slice(BASE.length).replace(/^\/chart\//, "/presets/").replace(/\/{2,}$/, "/");
         return book?.at.get(address) ?? book?.at.get(address.endsWith("/") ? address.slice(0, -1) : `${address}/`) ?? null;
       };
       /** An address of the presets' naming none of them (renamed, or gone): their page (its step), saying so. @param {string} address */
@@ -23295,8 +23296,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const i = presetIndex(chart);
         return i >= 0 ? book.presets[i] : "/";
       }
-      /** The address the page is known by: the live one's (the preview's, any other, point there). */
-      const ORIGIN = "https://studio.bitview.space";
+      /** The address the page is known by: the live one's (next's, any other, point there). */
+      const ORIGIN = "https://bitview.space/studio";
       /**
        * The page as it's found, as it is now: its title, its description and its canonical address (each place's own): a
        * preset's, named by what it charts and where it's kept; a section's, by what's in it; the presets' page; your own,
@@ -23331,7 +23332,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Its canonical address made once it knows where it is: none before, rather than the root's at every address.)
         let link = /** @type {HTMLLinkElement | null} */ (document.querySelector('link[rel="canonical"]'));
         if (!link) document.head.append((link = Object.assign(document.createElement("link"), { rel: "canonical" })));
-        const canonical = `${ORIGIN}${address ?? location.pathname}`;
+        const canonical = `${ORIGIN}${address ?? (ROUTED ? location.pathname.slice(BASE.length) : "/")}`;
         if (link.href !== canonical) link.href = canonical;
       }
       /** Whether start() has made the page what it shows first (till then, the address is the one asked for). */
@@ -26503,7 +26504,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {typeof normalizeQuery} normalize @param {typeof sayQuery} say (handed over as their source)
        */
       async function seriesSearch(quickmatch, catalog, dated, normalize, say) {
-        const { QuickMatch, QuickMatchConfig } = /** @type {typeof import("../modules/quickmatch-js/src/index.js")} */ (await import(quickmatch));
+        const { QuickMatch, QuickMatchConfig } = /** @type {typeof import("/modules/quickmatch-js/src/index.js")} */ (await import(quickmatch));
         const byBytes = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
         const index = (async () => {
           const response = await fetch(catalog);
@@ -26656,7 +26657,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (finder.started) return;
         finder.started = true;
         if (typeof Worker !== "function") return;
-        const quickmatch = new URL("../modules/quickmatch-js/src/index.js", location.href).href;
+        const quickmatch = new URL("/modules/quickmatch-js/src/index.js", location.origin).href;
         const source = URL.createObjectURL(new Blob([`(${seriesSearch})(${JSON.stringify(quickmatch)}, ${JSON.stringify(`${client.baseUrl}/api/series`)}, ${JSON.stringify(INTERVAL_ORDER)}, ${normalizeQuery}, ${sayQuery});`], { type: "text/javascript" }));
         // (Workers turned off for the page: none, and bitview.space answers; never the page's start failing with it.)
         let worker;
@@ -30074,7 +30075,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       async function qrCode(/** @type {string} */ text) {
         if (new TextEncoder().encode(text).length > QR_MOST) return null;
         try {
-          const { generate } = await (qrModule ??= /** @type {any} */ (/** @type {unknown} */ (import("../modules/lean-qr/2.7.3/index.mjs").catch((error) => {
+          const { generate } = await (qrModule ??= /** @type {any} */ (/** @type {unknown} */ (import("/modules/lean-qr/2.7.3/index.mjs").catch((error) => {
             qrModule = null;
             throw error;
           }))));
@@ -30970,7 +30971,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         context.fillStyle = softColor;
         context.fillText("Studio", at, baseline);
         at += context.measureText("Studio").width;
-        // (Where it was made: this page's own address, studio.bitview.space as it's served; one only this machine or its
+        // (Where it was made: this page's own domain, as it's served; one only this machine or its
         // network knows (a file, localhost, a private address), the data's.)
         const local = !location.hostname || location.hostname === "localhost" || /^(?:127\.|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|\[::1\]|\[f[cd])/i.test(location.hostname) || location.hostname.endsWith(".local");
         const where = ` · ${local ? SERVER_HOST : location.host}`;
@@ -32722,7 +32723,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // back), what it names: the presets read first (the page out of sight meanwhile); one they don't have, the Charts page.
         const there = shared ? null : history.state, resumed = there?.chart ? chartById(there.chart) : null;
         // (A step back whose chart is gone (a reload with nothing kept): the address, as a visit's.)
-        const asked = !shared && (!there || (there.chart && !resumed) || there.route) && ROUTED && location.pathname !== "/" ? location.pathname : "";
+        const asked = !shared && (!there || (there.chart && !resumed) || there.route) && ROUTED && location.pathname !== `${BASE}/` ? location.pathname : "";
         if (asked) await loadPresets().catch(() => {});
         const routed = asked ? routeOf(asked) : null;
         chart = resumed || (routed && "preset" in routed ? presetChart(routed.preset) : chart);
@@ -32743,7 +32744,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Asked by an address, its step is where it led (one waiting for the presets says so: a reload waits again).)
         if (!there || asked) history.replaceState({ ...(home ? homeState() : { chart: chart.id }), ...(pendingRoute ? { route: true } : {}) }, "");
         // (The address it was opened at, read: let go of, as a chart's link is (one waiting for the presets, once read).)
-        if (asked && !pendingRoute) history.replaceState(history.state, "", `/${location.search}`);
+        if (asked && !pendingRoute) history.replaceState(history.state, "", `${BASE}/${location.search}`);
         library.active = chart.id;
         rememberViewed(chart.id);
         normalize(chart);

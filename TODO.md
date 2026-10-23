@@ -14,11 +14,10 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Studio on the new server
 
-Built against next.bitview.space, on studio.bitview.space (each build of a commit deploys it).
+Served by the server at DOMAIN/studio/ (bitview.space, next.bitview.space; studio.bitview.space redirects there).
 
-- Release together: the built Studio imports `/modules/bitview-client/index.js`, which only the new server serves, and
-  the old Studio reads the website's import map, which the new server lacks. Upgrade the server and redeploy Studio at
-  once. Deploy the MCP page only once `main` has `showcases/assets/fonts` (its fonts load from there through jsDelivr).
+- Deploy the MCP page only once `main` has `showcases/assets/fonts` (its fonts load from there through jsDelivr).
+- The presets' sitemap, robots.txt and Studio's llms.txt went with its build: none are served now.
 
 ## Showcases
 
