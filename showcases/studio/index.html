@@ -14618,6 +14618,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // are the same: new data, a restyle. Otherwise they fit their data again.
         const panesShape = doc.panes.map((pane) => `${pane.id}:${pane.mode}:${pane.stack ?? ""}:${pane.reverse ? 1 : ""}`).join();
         const keep = sameView && panesShape === drawnPanes;
+        // (A pane added or taken away, the chart's own: the chart as it was fades out over it laid out anew (its panes
+        // cut to their new heights), as everything here changes, never a cut.)
+        const paneIds = (/** @type {string} */ shape) => shape.split(",").map((pane) => pane.split(":")[0]).join();
+        if (drawnChart === doc.id && drawnPanes && paneIds(drawnPanes) !== paneIds(panesShape) && !reduced.matches && !document.body.hasAttribute("data-picture")) fadeOut($("chart"), [{ opacity: 1 }, { opacity: 0 }], MOTION.panel, true, MOTION.ease);
         const glidingTo = glideTarget;
         stopGlide();
         const was = new Map(drawn), wasCloses = new Map(closes);
@@ -20175,6 +20179,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function goTo(/** @type {Place} */ place) {
         quickHide();
         const same = JSON.stringify(place) === JSON.stringify(homeAt);
+        // (The page left fades out over the one coming in (see pageIn), as it was, scrolled where it was: never a frame
+        // of neither.)
+        if (home && !same && !reduced.matches) fadeOut(homeScroll(), [{ opacity: 1 }, { opacity: 0 }], MOTION.small, true, MOTION.ease);
         /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
         if (!same) {
           if (home) {
@@ -20700,12 +20707,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         step();
       });
       /**
-       * A change of place, where the browser can show it: what `update` shows grows out of `before`, into what it returns
-       * (a card into the chart, or back); the rest crossfades. Resolves once it's over.
+       * A change of place: what `update` shows grows out of `before`, into what it returns (a card into the chart, or
+       * back); the rest crossfades. Where the browser can't show that (Firefox before 144: Mullvad's), what's `left`
+       * fades out over what comes, a copy of it as it was (see fadeOut), never a cut. Resolves once it's over.
        * @param {HTMLElement | null} before @param {() => (HTMLElement | null | undefined) | Promise<HTMLElement | null | undefined>} update
+       * @param {HTMLElement[]} [left]
        */
-      function morph(before, update) {
-        if (reduced.matches || !document.startViewTransition) return Promise.resolve(update()).then(() => {});
+      /** What the last change of place left, fading out where the browser has no transition of its own (see morph). @type {HTMLElement[]} */
+      let morphLeft = [];
+      function morph(before, update, left = []) {
+        if (reduced.matches) return Promise.resolve(update()).then(() => {});
+        if (!document.startViewTransition) {
+          // (What the last one left, coming back before its copy's gone: its copy gone at once, not over it.)
+          for (const element of morphLeft) cutFade(element);
+          morphLeft = left;
+          for (const element of left) fadeOut(element, [{ opacity: 1 }, { opacity: 0 }], MOTION.panel, true, MOTION.ease);
+          return Promise.resolve(update()).then(() => {});
+        }
         if (before) before.style.viewTransitionName = "stage";
         /** @type {HTMLElement | null | undefined} */
         let after = null;
@@ -20783,7 +20801,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (seen) tileOpen(chart.id)?.focus({ preventScroll: true });
           else if (focusLeaves && (document.activeElement === document.body || onChart())) $("home-title").focus({ preventScroll: true });
           return draft || !seen ? null : card;
-        });
+        }, all$(":scope > :is(.card-head, .card-body)", $("main")));
       }
       /**
        * Leaves the grid: `show` opens the chart to go to (or leaves the one under the grid), and it grows out of
@@ -20817,7 +20835,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Drawn first (its data is usually at hand, from its tile), to grow into itself.
           await until(settled, 400);
           return $("main");
-        }).then(() => chart.auto && rest());
+        }, [$("home")]).then(() => chart.auto && rest());
       }
       /**
        * Opens a chart someone picked; from the grid, its card grows into it (`push`: a new step, for Back).
@@ -23996,11 +24014,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function dropLayers(/** @type {string[]} */ asked, /** @type {Landing} */ at, /** @type {number} */ y) {
         const ids = movers(asked, "item" in at ? layerById(at.item.dataset.layer ?? "")?.pane ?? null : null);
         if (!ids.length) return;
-        const list = $("layer-list"), was = LIST_PARTS.map(([selector, key]) => placesOf(all$(selector, list), key));
-        const first = /** @type {HTMLElement | null} */ (list.querySelector(`.layer-row[data-layer="${ids[0]}"]`));
-        if (first) was[0].set(ids[0], y - first.offsetHeight / 2);
         const toRow = "item" in at ? at.item.dataset.layer : null, after = "item" in at && at.after;
-        commit((doc) => {
+        slideLayers(ids[0], y, () => commit((doc) => {
           const target = toRow ? doc.layers.find((layer) => layer.id === toRow) : null, moving = doc.layers.filter((layer) => ids.includes(layer.id));
           if (toRow && !target) return;
           const pane = target ? target.pane : newPaneIn(doc).id;
@@ -24008,8 +24023,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const layer of moving) layer.pane = pane;
           if (target) doc.layers.splice(doc.layers.indexOf(target) + (after ? 1 : 0), 0, ...moving);
           else doc.layers.push(...moving);
-        });
-        LIST_PARTS.forEach(([selector, key, options], k) => slide(all$(selector, list), key, was[k], { ...options, moved: k === 0 ? ids[0] : null }));
+        }));
+      }
+      /**
+       * The layer list changed by `change`, its parts gliding from where they were to where they are (`moved`, the one
+       * moved, over the others; `y`: where it was let go, a drop's), by a drop or by keys alike.
+       * @param {string} moved @param {number | null} y @param {() => void} change
+       */
+      function slideLayers(moved, y, change) {
+        const list = $("layer-list"), was = LIST_PARTS.map(([selector, key]) => placesOf(all$(selector, list), key));
+        const row = /** @type {HTMLElement | null} */ (list.querySelector(`.layer-row[data-layer="${moved}"]`));
+        if (row && y !== null) was[0].set(moved, y - row.offsetHeight / 2);
+        change();
+        LIST_PARTS.forEach(([selector, key, options], k) => slide(all$(selector, list), key, was[k], { ...options, moved: k === 0 ? moved : null }));
       }
       /** The parts of the layer list a drop moves: rows, pane heads, the lines between panes, the markers and the adds below. */
       const LIST_PARTS = /** @type {[string, (element: HTMLElement) => string | undefined, { fade?: boolean, pseudo?: string }][]} */ ([
@@ -25969,12 +25995,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const dashChoices = (/** @type {number | undefined} */ now, /** @type {(dash: number) => { run: () => void, look?: (doc: Chart) => void }} */ does) => DASHES.map(([dash, text, length, gap]) => ({ key: String(dash), icon: dashGlyph(length, gap), label: text, current: now === dash, ...does(dash) }));
       /** A layer one place up or down among its pane's (listed, and drawn, before or after its neighbor). */
       function moveLayer(id, by) {
-        editById(id, (layer, doc) => {
+        slideLayers(id, null, () => editById(id, (layer, doc) => {
           const mates = doc.layers.filter((item) => item.pane === layer.pane), other = mates[mates.indexOf(layer) + by];
           if (!other) return;
           const a = doc.layers.indexOf(layer), b = doc.layers.indexOf(other);
           [doc.layers[a], doc.layers[b]] = [doc.layers[b], doc.layers[a]];
-        });
+        }));
       }
       /** A line across's color or style (a level's, by index, or the base's), on a layer; at its default, forgotten. */
       const setLineLook = (id, key, part, value, options = undefined) => commit((doc) => lineLookOn(doc, id, key, part, value), options);
@@ -29460,7 +29486,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * them), it named `label`. A row pressed picks (`onPick`), or opens its submenu beside it (a menu's: it stays).
        */
       function fillMenu(/** @type {HTMLElement} */ element, /** @type {HTMLElement} */ host, /** @type {string} */ html, /** @type {string} */ label, /** @type {(data: DOMStringMap) => void} */ onPick) {
-        if (element.parentElement !== host) host.append(element);
+        // (Moved, its copy fading where it was gone first: its id is found where it is, never in a copy before it.)
+        if (element.parentElement !== host) (cutFade(element), host.append(element));
         element.innerHTML = html;
         drawKeys(element);
         if (!element.querySelector(":scope > .share-pop")) {
@@ -29799,10 +29826,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Hidden already, its way out is under way: left be. Shown, a copy going before is gone first.)
         if (element.hidden) return;
         cutFade(element);
-        if (reduced.matches || !element.getClientRects().length) return;
+        // (Not seen (no box, or hidden by what it's in): nothing to see go.)
+        if (reduced.matches || !element.checkVisibility({ visibilityProperty: true })) return;
         const copy = /** @type {HTMLElement} */ (element.cloneNode(true)), style = getComputedStyle(element), after = getComputedStyle(element, "::after");
         const from = [element, ...all$("*", element)], to = [copy, ...all$("*", copy)];
-        for (const named of [copy, ...all$("[id]", copy)]) named.removeAttribute("id");
+        // (Its ids kept, as its styles and its drawings' references (an SVG's url(#…)) need them: after it, it's never the
+        // one an id finds while it's there.)
         copy.inert = true;
         copy.setAttribute("aria-hidden", "true");
         // (Its way in not played again, nor any transition of its own (a sheet's from its start): it's going.)
@@ -29810,7 +29839,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         copy.style.transition = "none";
         // (`placed`: where it was in its own frame (a transformed one's, a sheet's, a dialog's), over what takes its place
         // (a panel's view: shown, and its room at its end, by its own id's style).)
-        if (placed) Object.assign(copy.style, { position: "absolute", left: `${element.offsetLeft}px`, top: `${element.offsetTop}px`, width: `${element.offsetWidth}px`, height: `${element.offsetHeight}px`, margin: "0", display: style.display, zIndex: "3", pointerEvents: "none", ...(after.content !== "none" ? { paddingBottom: `calc(${style.paddingBottom} + ${after.height})` } : {}) });
+        if (placed) Object.assign(copy.style, { position: "absolute", left: `${element.offsetLeft}px`, top: `${element.offsetTop}px`, width: `${element.offsetWidth}px`, height: `${element.offsetHeight}px`, margin: "0", display: style.display, visibility: "visible", zIndex: "3", pointerEvents: "none", ...(after.content !== "none" ? { paddingBottom: `calc(${style.paddingBottom} + ${after.height})` } : {}) });
         element.after(copy);
         // (Scrolled as it was, its own and what's in it; its drawings (a canvas) as they were.)
         from.forEach((source, i) => {
@@ -29831,7 +29860,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (fading.get(element) === copy) fading.delete(element);
         };
         fading.set(element, copy);
-        return copy.animate(frames, { duration, easing, fill: "forwards" }).finished.then(gone, gone);
+        // (From where it shows: caught on its way in (a menu shut as it opens), its opacity and its place as they are
+        // then, not as it'd be once in.)
+        const shows = /** @type {Keyframe} */ ({ ...frames[0] });
+        for (const property of ["opacity", "transform", "translate", "scale"]) if (property in shows) shows[property] = style.getPropertyValue(property);
+        return copy.animate([shows, ...frames.slice(1)], { duration, easing, fill: "forwards" }).finished.then(gone, gone);
       }
       /** What's on its way out, by what it's a copy of (see fadeOut). @type {Map<HTMLElement, HTMLElement>} */
       const fading = new Map();
@@ -31330,7 +31363,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         closedToast = null;
         const element = $("toast");
         const host = topDialog() ?? document.body;
-        if (element.parentElement !== host) host.append(element);
+        // (Moved, its copy fading where it was gone first: its id is found where it is, never in a copy before it.)
+        if (element.parentElement !== host) (cutFade(element), host.append(element));
         // Said where it shows, by the status line that's always there (one moved in, or made, is often not read).
         const said = /** @type {HTMLElement | null} */ (host.querySelector(":scope > [data-said]"));
         if (said) {
@@ -31347,6 +31381,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         toastStep = chartChanged ? { chart, depth: edits.past.length } : null;
         // (No ✓ where there's an Undo: a removal, a move, isn't a success to tick; ✓ elsewhere says what's chosen.)
         const redoes = action?.label === "Redo";
+        // (One said as another shows: that one fading out as this one comes, each as wide as its words, never one cut to
+        // the other.)
+        const replacing = element.classList.contains("visible") && !reduced.matches;
+        if (replacing) fadeOut(element, [{ opacity: 1 }, { opacity: 0 }]);
+        else cutFade(element);
         element.innerHTML = `${done && !undoes && !redoes ? `<i aria-hidden="true">${ICONS.check}</i>` : ""}<span>${escape(text)}</span>${action ? `<button type="button" class="btn small" ${undoes ? 'data-kbd="⌘ Z"' : redoes ? 'data-kbd="⇧ ⌘ Z"' : ""}>${escape(action.label)}</button>` : ""}`;
         const mark = revision;
         const press = () => {
@@ -31367,6 +31406,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         syncUndo();
         placeToast(host);
         element.classList.add("visible");
+        if (replacing) element.animate({ opacity: [0, 1] }, { duration: MOTION.micro, easing: MOTION.easeLayout });
         // Up long enough to read (longer for more words, an Undo or a notice the longest), and while it's pointed at or
         // focused: then its time starts again.
         toastFor = Math.max(action ? 6000 : done ? 2600 : 4500, 1500 + text.length * 55);
@@ -31667,7 +31707,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           event.preventDefault();
           leave(/** @type {HTMLDialogElement} */ (dialog));
         });
-        dialog.addEventListener("close", () => $("toast").parentElement === dialog && (all$("dialog[open]").at(-1) ?? document.body).append($("toast")));
+        dialog.addEventListener("close", () => $("toast").parentElement === dialog && (cutFade($("toast")), (all$("dialog[open]").at(-1) ?? document.body).append($("toast"))));
         // (Closed: no series being added or replaced any more.)
         if (dialog.id === "palette") dialog.addEventListener("close", () => palette.op.kind !== "formula" && (palette.op = { kind: "browse" }));
       }
