@@ -127,6 +127,8 @@ replaceOnce(`import { BitviewClient } from "../modules/bitview-client/index.js";
   `      });`,
 ].join("\n")}\n`);
 replaceOnce("new BitviewClient({ baseUrl: location.origin", `new BitviewClient({ baseUrl: "${SERVER}"`);
+// (The dev page's presets' worker's client, the served one: unused here, the presets packed in the page.)
+replaceOnce(`new URL("../modules/bitview-client/index.js", location.href).href`, JSON.stringify(`${SERVER}${CLIENT}`));
 // Asked for at once (the page's head, not after its 2 MB are read): its server's connection, and its client.
 replaceOnce(`    <title>Bitview Studio: charts of Bitcoin's on-chain data</title>`, `    <link rel="preconnect" href="${SERVER}" crossorigin />\n    <link rel="modulepreload" href="${SERVER}${CLIENT}" crossorigin />\n    <title>Bitview Studio: charts of Bitcoin's on-chain data</title>`);
 
