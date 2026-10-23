@@ -284,12 +284,4 @@ console.log(`${relative(process.cwd(), out)}: ${(Buffer.byteLength(html) / 1024)
   console.log(`Beside it: llms.txt (${(markdown.length / 1024).toFixed(0)} KB), sitemap.xml (${urls.length} addresses), robots.txt, og.png, version.txt`);
 }
 
-// The page built, on studio.bitview.space (see deploy.mjs) when it's a commit's: a build elsewhere (an out given), not.
-if (!process.argv[2]) {
-  try {
-    await (await import("./deploy.mjs")).deploy(true);
-  } catch (error) {
-    console.warn(`Not deployed: ${/** @type {Error} */ (error).message.split("\n")[0]}`);
-  }
-}
 
