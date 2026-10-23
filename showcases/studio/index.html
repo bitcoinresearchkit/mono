@@ -2282,6 +2282,18 @@
         }
       }
 
+      /* A tablet's header: the title's room first: the drawing tools and Add in its ⋯ (their keys as ever), Keep alone
+         saying it's a preview (its tip says so). */
+      @media (760px < width <= 1100px) and (height > 500px) {
+        .card-head :is(#draw-toggle, #add, .preview-said) {
+          display: none;
+        }
+
+        #redo + .divider {
+          display: none;
+        }
+      }
+
       body[data-empty] :is(#draw-toggle, #share, #add, #panel-toggle, .head-actions .divider) {
         display: none;
       }
@@ -23033,7 +23045,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("preset-reset").addEventListener("click", () => resetPreset(chart));
       $("chart-more").addEventListener("click", (event) => {
         const button = /** @type {HTMLElement} */ (event.currentTarget);
-        menuOf(button, chartActions(chart.id, "head"));
+        menuOf(button, headMenu());
       });
       $("home-new-folder").addEventListener("click", (event) => {
         event.preventDefault();
@@ -28621,6 +28633,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       ] });
       /** Where charts go, as ⌘K's page. @param {string[]} ids @returns {Page} */
       const folderPage = (ids) => choicePage("Move to folder", () => folderChoices(chartKeys(ids)));
+      /** A tablet's header (as the stylesheet's .card-head on tablets): the drawing tools and Add in its ⋯. */
+      const tabletHead = matchMedia("(760px < width <= 1100px) and (height > 500px)");
+      // (One of them focused as the window comes to a tablet's size: ⋯, where they are now.)
+      tabletHead.addEventListener("change", () => tabletHead.matches && document.activeElement?.matches("#add, #draw-toggle") && $("chart-more").focus({ preventScroll: true }));
+      /** The chart header's ⋯: a tablet's, the tools its header leaves to it first (see .card-head on tablets), then the chart's. */
+      const headMenu = () => [
+        ...(tabletHead.matches && chart.layers.length ? [
+          // (Back to ⋯ once the search is put away, as it'd be to Add.)
+          { key: "add", icon: ICONS.plus, label: "Add a layer", kbd: "A", group: "tools", run: () => ($("chart-more").focus({ preventScroll: true }), openPalette({ add: true })) },
+          { key: "draw", icon: ICONS.draw, label: prefs.belt.on ? "Hide the drawing tools" : "Drawing tools", kbd: "D", group: "tools", run: toggleBelt },
+        ] : []),
+        ...chartActions(chart.id, "head"),
+      ];
       /**
        * A chart's actions, where they show (`where`): "row", its sidebar row's ⋯ or right-click; "head", the header's ⋯
        * (it's the one open: renamed in its title; the legend and Export too; on a phone, Redo first: no room for it
@@ -29901,7 +29926,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         // The chart's ⋯ the same, and its place (the folder before its name): pointed at a moment, its menu.
         const more = $("chart-more");
-        hoverMenu(more, () => more, (anchor) => menuOf(anchor, chartActions(chart.id, "head"), null, "", { hover: true }));
+        hoverMenu(more, () => more, (anchor) => menuOf(anchor, headMenu(), null, "", { hover: true }));
         hoverMenu($("chart-path"), (event) => /** @type {HTMLElement | null} */ (closest(event, "#chart-place")), (anchor) => menuOf(anchor, chartPathRows(), null, "", { hover: true }));
       }
       /**
