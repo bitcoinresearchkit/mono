@@ -16,7 +16,6 @@ use brk_logger::init;
 use brk_mempool::Mempool;
 use brk_reader::Reader;
 use brk_rpc::Client;
-use rlimit::{Resource, getrlimit, setrlimit};
 use tokio::{
     runtime::{Builder, Runtime},
     task::JoinHandle,
@@ -72,13 +71,25 @@ where
 /// requires `CAP_SYS_RESOURCE` and would fail on containers and unprivileged
 /// macOS processes.
 pub fn raise_fd_limit() {
-    const TARGET_NOFILE: u64 = 15_000;
-    let (soft, hard) = getrlimit(Resource::NOFILE).unwrap_or((0, 0));
-    let new_soft = soft.max(TARGET_NOFILE).min(hard);
-    if new_soft > soft
-        && let Err(e) = setrlimit(Resource::NOFILE, new_soft, hard)
-    {
-        warn!("failed to raise NOFILE rlimit: {e}");
+    const TARGET_NOFILE: libc::rlim_t = 15_000;
+    let mut limit = libc::rlimit {
+        rlim_cur: 0,
+        rlim_max: 0,
+    };
+    // SAFETY: `getrlimit` fills the `rlimit` it is given.
+    if unsafe { libc::getrlimit(libc::RLIMIT_NOFILE, &mut limit) } != 0 {
+        return;
+    }
+    let new_soft = limit.rlim_cur.max(TARGET_NOFILE).min(limit.rlim_max);
+    if new_soft > limit.rlim_cur {
+        limit.rlim_cur = new_soft;
+        // SAFETY: `setrlimit` only reads the `rlimit` it is given.
+        if unsafe { libc::setrlimit(libc::RLIMIT_NOFILE, &limit) } != 0 {
+            warn!(
+                "failed to raise NOFILE rlimit: {}",
+                std::io::Error::last_os_error()
+            );
+        }
     }
 }
 

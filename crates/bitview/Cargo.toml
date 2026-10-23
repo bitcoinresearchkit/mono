@@ -30,7 +30,7 @@ brk_reader = { workspace = true }
 brk_rpc = { workspace = true }
 lexopt = "0.3"
 owo-colors = { workspace = true }
-rlimit = "0.11.0"
+libc = { workspace = true }
 serde = { workspace = true }
 tokio = { workspace = true }
 toml = "1.1.8"
