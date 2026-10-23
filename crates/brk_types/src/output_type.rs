@@ -1,3 +1,4 @@
+use std::fmt;
 #[cfg(feature = "storage")]
 use std::mem;
 #[cfg(feature = "storage")]
@@ -17,19 +18,15 @@ use brk_error::Error;
 #[cfg(feature = "schemars")]
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use strum::Display;
 
 use crate::AddressBytes;
 
 #[cfg(feature = "storage")]
 use vecdb::{Bytes, Formattable, Pco};
 
-#[derive(
-    Debug, Clone, Copy, Display, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash,
-)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "lowercase")]
-#[strum(serialize_all = "lowercase")]
 #[repr(u8)]
 /// An output's script type (P2PKH, P2WPKH, P2SH, P2TR…).
 pub enum OutputType {
@@ -47,35 +44,71 @@ pub enum OutputType {
     Unknown,
 }
 
-#[derive(Debug, Clone, Copy, Display, PartialEq, Eq, Serialize, Deserialize, Hash)]
+impl fmt::Display for OutputType {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(
+            match self {
+                Self::P2PK65 => "p2pk65",
+                Self::P2PK33 => "p2pk33",
+                Self::P2PKH => "p2pkh",
+                Self::P2MS => "p2ms",
+                Self::P2SH => "p2sh",
+                Self::OpReturn => "opreturn",
+                Self::P2WPKH => "p2wpkh",
+                Self::P2WSH => "p2wsh",
+                Self::P2TR => "p2tr",
+                Self::P2A => "p2a",
+                Self::Empty => "empty",
+                Self::Unknown => "unknown",
+            },
+            f,
+        )
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "lowercase")]
-#[strum(serialize_all = "lowercase")]
 /// Output type names used by Esplora and mempool.space.
 pub enum OutputTypeNormalized {
     P2PK,
     P2PKH,
     #[serde(rename = "multisig")]
-    #[strum(serialize = "multisig")]
     P2MS,
     P2SH,
     #[serde(rename = "op_return")]
-    #[strum(serialize = "op_return")]
     OpReturn,
     #[serde(rename = "v0_p2wpkh")]
-    #[strum(serialize = "v0_p2wpkh")]
     P2WPKH,
     #[serde(rename = "v0_p2wsh")]
-    #[strum(serialize = "v0_p2wsh")]
     P2WSH,
     #[serde(rename = "v1_p2tr")]
-    #[strum(serialize = "v1_p2tr")]
     P2TR,
     #[serde(rename = "anchor")]
-    #[strum(serialize = "anchor")]
     P2A,
     Empty,
     Unknown,
+}
+
+impl fmt::Display for OutputTypeNormalized {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(
+            match self {
+                Self::P2PK => "p2pk",
+                Self::P2PKH => "p2pkh",
+                Self::P2MS => "multisig",
+                Self::P2SH => "p2sh",
+                Self::OpReturn => "op_return",
+                Self::P2WPKH => "v0_p2wpkh",
+                Self::P2WSH => "v0_p2wsh",
+                Self::P2TR => "v1_p2tr",
+                Self::P2A => "anchor",
+                Self::Empty => "empty",
+                Self::Unknown => "unknown",
+            },
+            f,
+        )
+    }
 }
 
 impl OutputType {

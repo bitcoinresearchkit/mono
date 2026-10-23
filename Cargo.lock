@@ -1037,7 +1037,6 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
- "strum",
  "vecdb",
 ]
 
@@ -1157,7 +1156,6 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
- "strum",
 ]
 
 [[package]]
@@ -1460,7 +1458,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "strum",
  "vecdb",
 ]
 
@@ -1997,12 +1994,6 @@ name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
-
-[[package]]
-name = "heck"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2304e00983f87ffb38b55b444b5e3b60a884b5d30c0fca7d82fe33449bbe55ea"
 
 [[package]]
 name = "hex-conservative"
@@ -3149,27 +3140,6 @@ version = "0.12.2"
 dependencies = [
  "brk_pco",
  "zerocopy",
-]
-
-[[package]]
-name = "strum"
-version = "0.28.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9628de9b8791db39ceda2b119bbe13134770b56c138ec1d3af810d045c04f9bd"
-dependencies = [
- "strum_macros",
-]
-
-[[package]]
-name = "strum_macros"
-version = "0.28.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab85eea0270ee17587ed4156089e10b9e6880ee688791d45a905f5b1ca36f664"
-dependencies = [
- "heck",
- "proc-macro2",
- "quote",
- "syn 2.0.119",
 ]
 
 [[package]]

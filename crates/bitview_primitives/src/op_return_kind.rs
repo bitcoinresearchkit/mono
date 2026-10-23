@@ -1,9 +1,9 @@
+use std::fmt;
 #[cfg(feature = "storage")]
 use std::mem;
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use strum::{AsRefStr, Display};
 #[cfg(feature = "storage")]
 use vecdb::{Bytes, Error, Formattable, Pco, Result};
 
@@ -69,8 +69,6 @@ macro_rules! op_return_kinds {
             Debug,
             Clone,
             Copy,
-            AsRefStr,
-            Display,
             PartialEq,
             Eq,
             PartialOrd,
@@ -81,10 +79,24 @@ macro_rules! op_return_kinds {
             Hash,
         )]
         #[serde(rename_all = "snake_case")]
-        #[strum(serialize_all = "snake_case")]
         #[repr(u8)]
         pub enum OpReturnKind {
             $($kind,)+
+        }
+
+        /// The snake_case name, the serialized form.
+        impl AsRef<str> for OpReturnKind {
+            fn as_ref(&self) -> &str {
+                match self {
+                    $(Self::$kind => stringify!($name),)+
+                }
+            }
+        }
+
+        impl fmt::Display for OpReturnKind {
+            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+                fmt::Display::fmt(self.as_ref(), f)
+            }
         }
 
         pub const OP_RETURN_KIND_COUNT: usize = [$(OpReturnKind::$kind),+].len();

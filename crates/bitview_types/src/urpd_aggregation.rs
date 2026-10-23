@@ -1,16 +1,14 @@
+use std::fmt;
+
 use brk_types::Cents;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use strum::Display;
 
 /// Aggregation strategy for URPD buckets.
 /// Options: raw (no aggregation), lin200/lin500/lin1000 (linear $200/$500/$1000),
 /// log10/log50/log100/log200/log500/log1000/log2000 (logarithmic with 10/50/100/200/500/1000/2000 buckets per decade).
-#[derive(
-    Debug, Display, Clone, Copy, Default, PartialEq, Eq, Hash, Deserialize, Serialize, JsonSchema,
-)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Deserialize, Serialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
-#[strum(serialize_all = "lowercase")]
 pub enum UrpdAggregation {
     #[default]
     Raw,
@@ -24,6 +22,27 @@ pub enum UrpdAggregation {
     Log500,
     Log1000,
     Log2000,
+}
+
+impl fmt::Display for UrpdAggregation {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(
+            match self {
+                Self::Raw => "raw",
+                Self::Lin200 => "lin200",
+                Self::Lin500 => "lin500",
+                Self::Lin1000 => "lin1000",
+                Self::Log10 => "log10",
+                Self::Log50 => "log50",
+                Self::Log100 => "log100",
+                Self::Log200 => "log200",
+                Self::Log500 => "log500",
+                Self::Log1000 => "log1000",
+                Self::Log2000 => "log2000",
+            },
+            f,
+        )
+    }
 }
 
 impl UrpdAggregation {
