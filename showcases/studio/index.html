@@ -1643,6 +1643,27 @@
           }
         }
 
+        /* (Where a backdrop can't fade (Firefox): a modal dialog's dim, and Quick Look's, drawn by itself, as wide as the
+           screen, coming and going with it, and changing as it does (⌘K looking); its backdrop, none.) */
+        @supports not (overlay: auto) {
+          :is(dialog:modal, #quick:popover-open) {
+            box-shadow: var(--pop), 0 0 0 200vmax var(--dim, transparent);
+
+            &::backdrop {
+              background: none;
+            }
+          }
+
+          dialog.palette {
+            transition: background var(--dur-small) var(--ease), box-shadow var(--dur-small) var(--ease), opacity var(--dur-micro) var(--ease), transform var(--dur-micro) var(--ease), visibility var(--dur-micro);
+          }
+        }
+
+        /* (Going, eased in and out: out at once, it'd read as a cut.) */
+        :is(dialog, #quick)[data-leaving] {
+          transition-timing-function: var(--ease-layout);
+        }
+
         dialog:not([open]),
         #quick:not(:popover-open),
         :is(dialog, #quick)[data-leaving] {
@@ -1656,8 +1677,9 @@
           }
         }
 
+        /* (Going, a copy of it plays its way out, see fadeOut: itself, gone at once.) */
         .menu {
-          transition: opacity var(--dur-micro) var(--ease), transform var(--dur-micro) var(--ease), visibility var(--dur-micro), display var(--dur-micro) allow-discrete;
+          transition: opacity var(--dur-micro) var(--ease), transform var(--dur-micro) var(--ease);
 
           &[hidden] {
             visibility: hidden;
@@ -1817,12 +1839,14 @@
               position: relative;
             }
 
-            .search > [data-icon],
-            .chart-item > .chart-mark {
+            /* (Only where a key takes its place: a row with none, a preview's, a preset's, keeps its own.) */
+            .search:has(> kbd.mod) > [data-icon],
+            .chart-item:has(> kbd.mod) > .chart-mark {
               opacity: 0;
             }
 
-            /* Centered on its button (the rail's buttons are its column's width). */
+            /* Centered on its button (the rail's buttons are its column's width), sharp (its words' blur, see the rail, not
+               its). */
             :is(.search, .chart-item) > kbd.mod {
               position: absolute;
               top: 50%;
@@ -1830,6 +1854,7 @@
               left: 50%;
               visibility: visible;
               opacity: 1;
+              filter: none;
               transform: translate(-50%, -50%);
             }
           }
@@ -2008,6 +2033,7 @@
         color: var(--text);
         background: var(--card);
         box-shadow: var(--pop);
+        --dim: var(--backdrop);
 
         &:popover-open {
           display: flex;
@@ -2016,7 +2042,7 @@
         }
 
         &::backdrop {
-          background: var(--backdrop);
+          background: var(--dim);
         }
       }
 
@@ -3711,6 +3737,11 @@
         animation: slide var(--dur-small) var(--ease);
       }
 
+      /* (The list, the panel's first, comes back from the left: a layer's settings went to the right.) */
+      body:not([data-inspect]) #layers-view {
+        animation-name: slide-back;
+      }
+
       .panel-head {
         display: flex;
         align-items: center;
@@ -5323,9 +5354,11 @@
         color: var(--text);
         background: var(--raise);
         box-shadow: var(--pop);
+        /* (Its dim, the page behind it.) */
+        --dim: var(--scrim);
 
         &::backdrop {
-          background: var(--scrim);
+          background: var(--dim);
           animation: appear var(--dur-small) var(--ease);
         }
 
@@ -5374,6 +5407,13 @@
         }
       }
 
+      @keyframes slide-back {
+        from {
+          opacity: 0;
+          transform: translateX(-8px);
+        }
+      }
+
       .dialog-head {
         display: flex;
         align-items: center;
@@ -5401,9 +5441,10 @@
         margin-top: 12dvh;
         background: var(--raise);
         transition: background var(--dur-small) var(--ease);
+        --dim: var(--backdrop);
 
         &::backdrop {
-          background: var(--backdrop);
+          background: var(--dim);
           transition: background var(--dur-small) var(--ease);
         }
 
@@ -5415,10 +5456,7 @@
         /* Looking clears the preview and backdrop to show the chart (search, list and foot stay solid to read). */
         &[data-looking] {
           background: none;
-
-          &::backdrop {
-            background: none;
-          }
+          --dim: transparent;
 
           .palette-search,
           .palette-foot,
@@ -7889,8 +7927,8 @@
           max-height: 70dvh;
           border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
           padding: 7px calc(6px + env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
-          /* (In and out from the foot, as the layers sheet: put away, it slides down before it's gone, out of reach.) */
-          transition: transform var(--dur-layout) var(--ease-layout), display var(--dur-layout) allow-discrete;
+          /* (In and out from the foot, as the layers sheet: put away, it slides down (a copy of it, see fadeOut).) */
+          transition: transform var(--dur-layout) var(--ease-layout);
           animation: none;
 
           &[hidden] {
@@ -20925,6 +20963,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function slideAway(sheet, close, from, speed) {
         const later = sheet instanceof HTMLDialogElement;
         slides.get(sheet)?.cancel();
+        // (A menu's sheet: closed at once, its copy sliding on (see fadeOut) from where it was let go, as fast.)
+        if (sheet === $("menu") && !reduced.matches) {
+          const top = sheet.getBoundingClientRect().top - new DOMMatrix(getComputedStyle(sheet).transform).m42, by = document.documentElement.clientHeight + 16 - from;
+          return void hideMenu({ frames: [{ transform: `translateY(${from - top}px)` }, { transform: "translateY(calc(100% + 16px))" }], duration: MOTION.layout, easing: `cubic-bezier(0.4, ${clamp((0.4 * Math.max(0, speed) * MOTION.layout) / by, 0, 1).toFixed(3)}, 0.2, 1)` });
+        }
         if (!later) close();
         // (Typed into, let go of as it goes, the keyboard down with it: iOS draws a field's caret apart, left behind.)
         else if (sheet.contains(document.activeElement) && typing(document.activeElement)) /** @type {HTMLElement} */ (document.activeElement).blur();
@@ -23966,6 +24009,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (document.activeElement?.matches?.("#inspector .color-editor .hex")) return void (inspectorDue = true);
         inspectorDue = false;
         const layer = layerById(selected);
+        // (From the list to a layer's settings or back: the one left going as the other comes (no empty frame between),
+        // the list on the left, a layer's settings on the right.)
+        if (document.body.hasAttribute("data-inspect") !== Boolean(layer) && panelShown()) {
+          cutFade(layer ? $("inspector") : $("layers-view"));
+          fadeOut(layer ? $("layers-view") : $("inspector"), [{ opacity: 1, transform: "none" }, { opacity: 0, transform: `translateX(${layer ? -8 : 8}px)` }], MOTION.micro, true);
+        }
         document.body.toggleAttribute("data-inspect", Boolean(layer));
         const panel = $("inspector");
         if (!layer) {
@@ -27764,7 +27813,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A way in, by what it is, not what it shows at its end (the chart's title: the chart's own row has it). */
       const wayText = (item) => `${item.label ?? ""} ${item.words ?? ""} ${SYNONYMS[item.key] ?? ""}`;
       /** Into a page: what was typed, and the row that led there, come back with ⌫. @param {Page} page */
-      function pushPage(page) {
+      function pushPage(page, turn = true) {
         const from = palette.pages.at(-1) ?? palette.root;
         from.query = palette.query;
         from.landOn = palette.items[palette.active]?.key ?? null;
@@ -27772,9 +27821,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Its search as it comes, a field's value, or what a search already had: see allOf.)
         palette.query = page.input?.value ?? page.query ?? "";
         $("palette-input").value = palette.query;
-        showPalette();
+        if (turn) turnPage(1);
+        else showPalette();
         paletteKeys(true);
       }
+      /**
+       * ⌘K's list turned to another page: the page left going as the next comes (deeper on, from the right; back, from
+       * the left), no frame of neither. @param {1 | -1} way
+       */
+      function turnPage(way) {
+        pageLeaves(way);
+        showPalette();
+        pageComes(way);
+      }
+      /** ⌘K's list as it is, going (see turnPage). @param {1 | -1} way */
+      const pageLeaves = (way) => $("palette").open && fadeOut(pageSide(), [{ opacity: 1, transform: "none" }, { opacity: 0, transform: `translateX(${-8 * way}px)` }], MOTION.micro, true);
+      /** ⌘K's list as it's now, coming (see turnPage). @param {1 | -1} way */
+      const pageComes = (way) => $("palette").open && !reduced.matches && pageSide().animate([{ opacity: 0, transform: `translateX(${8 * way}px)` }, { opacity: 1, transform: "none" }], { duration: MOTION.small, easing: MOTION.ease });
+      /** A page's side of ⌘K: its path and its list, turned together (the path comes and goes with a page, the list under it). */
+      const pageSide = () => /** @type {HTMLElement} */ ($("palette-list").parentElement);
       /** Back up to `depth` pages (0: the search), on the row that led on. */
       function popPage(depth = palette.pages.length - 1) {
         palette.pages = palette.pages.slice(0, Math.max(0, depth));
@@ -27782,7 +27847,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         palette.query = back.query ?? "";
         palette.landOn = back.landOn ?? null;
         $("palette-input").value = palette.query;
-        showPalette();
+        turnPage(-1);
         paletteKeys();
       }
       /** A page: its rows, as filtered by what's typed; a name to type, its one row says what ↵ makes of it. */
@@ -28747,8 +28812,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       /** ⌘K, straight on a page. @param {Page} page */
       function openPage(page) {
+        // (Opened on it: ⌘K's own way in, no page turned; open already, the page it shows leaves.)
+        const was = $("palette").open;
+        if (was) pageLeaves(1);
         openPalette();
-        pushPage(page);
+        pushPage(page, false);
+        if (was) pageComes(1);
       }
 
       /** A new chart that starts with a series. */
@@ -28966,6 +29035,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const key = button.querySelector("kbd")?.textContent;
           if (key) button.dataset.key = key;
         }
+        cutFade(menu);
         menu.hidden = false;
         unexpand(menuOwner);
         menuOwner = anchor;
@@ -29228,6 +29298,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const motion of $("submenu").getAnimations()) if (motion instanceof CSSTransition) motion.finish();
         const sub = $("submenu"), host = /** @type {HTMLElement} */ ($("menu").parentElement);
         fillMenu(sub, host, html, calledBy(row), onPick);
+        cutFade(sub);
         sub.hidden = false;
         subRow?.removeAttribute("aria-expanded");
         (subRow = row).setAttribute("aria-expanded", "true");
@@ -29250,6 +29321,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         clearTimeout(cascadeTimer);
         cascadeWait = null;
         const sub = $("submenu"), had = sub.contains(document.activeElement);
+        fadeOut(sub, [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(0.96)" }]);
         sub.hidden = true;
         subRow?.removeAttribute("aria-expanded");
         if (had && subRow?.isConnected) subRow.focus({ preventScroll: true });
@@ -29418,7 +29490,44 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         hoverMenu(more, () => more, (anchor) => menuOf(anchor, chartActions(chart.id, "head"), null, "", { hover: true }));
         hoverMenu($("chart-path"), (event) => /** @type {HTMLElement | null} */ (closest(event, "#chart-place")), (anchor) => menuOf(anchor, chartPathRows(), null, "", { hover: true }));
       }
-      function hideMenu() {
+      /**
+       * What's put away (a menu, a tip) seen going as it came: a copy of it as it was, where it was, playing its way out
+       * (out of reach, unread), the thing itself gone at once, as everything here knows it (a browser that doesn't play
+       * `display` out, Firefox, would drop it at once). @param {HTMLElement} element @param {Keyframe[]} frames
+       */
+      function fadeOut(element, frames, duration = MOTION.micro, placed = false, easing = MOTION.easeLayout) {
+        // (Hidden already, its way out is under way: left be. Shown, a copy going before is gone first.)
+        if (element.hidden) return;
+        cutFade(element);
+        if (reduced.matches || !element.getClientRects().length) return;
+        const copy = /** @type {HTMLElement} */ (element.cloneNode(true)), style = getComputedStyle(element), after = getComputedStyle(element, "::after");
+        const from = [element, ...all$("*", element)], to = [copy, ...all$("*", copy)];
+        for (const named of [copy, ...all$("[id]", copy)]) named.removeAttribute("id");
+        copy.inert = true;
+        copy.setAttribute("aria-hidden", "true");
+        // (Its way in not played again, nor any transition of its own (a sheet's from its start): it's going.)
+        copy.style.animation = "none";
+        copy.style.transition = "none";
+        // (`placed`: where it was in its own frame (a transformed one's, a sheet's, a dialog's), over what takes its place
+        // (a panel's view: shown, and its room at its end, by its own id's style).)
+        if (placed) Object.assign(copy.style, { position: "absolute", left: `${element.offsetLeft}px`, top: `${element.offsetTop}px`, width: `${element.offsetWidth}px`, height: `${element.offsetHeight}px`, margin: "0", display: style.display, zIndex: "3", pointerEvents: "none", ...(after.content !== "none" ? { paddingBottom: `calc(${style.paddingBottom} + ${after.height})` } : {}) });
+        element.after(copy);
+        // (Scrolled as it was, its own and what's in it; its drawings (a canvas) as they were.)
+        from.forEach((source, i) => {
+          const into = /** @type {HTMLElement} */ (to[i]);
+          if (source.scrollTop || source.scrollLeft) (into.scrollTop = source.scrollTop), (into.scrollLeft = source.scrollLeft);
+          if (source instanceof HTMLCanvasElement && into instanceof HTMLCanvasElement && source.width && source.height) into.getContext("2d")?.drawImage(source, 0, 0);
+        });
+        const gone = () => (copy.remove(), fading.get(element) === copy && fading.delete(element));
+        fading.set(element, copy);
+        copy.animate(frames, { duration, easing, fill: "forwards" }).finished.then(gone, gone);
+      }
+      /** What's on its way out, by what it's a copy of (see fadeOut). @type {Map<HTMLElement, HTMLElement>} */
+      const fading = new Map();
+      /** Shown again (or on to a neighbor's, as a tip), its copy going is gone at once: one, never two. @param {HTMLElement} element */
+      const cutFade = (element) => (fading.get(element)?.remove(), fading.delete(element));
+      /** @param {{ frames: Keyframe[], duration: number, easing: string } | null} away its way out, if not its own (a sheet flung, see slideAway) */
+      function hideMenu(away = null) {
         flyout = false;
         hideSubmenu();
         menuPick = menuBack = null;
@@ -29433,6 +29542,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           fade.finished.then(() => done(true), () => done(false));
         } else if (!scrimFade) menuScrim.remove();
         menuModal(false);
+        // (As it came: a popover settling back out; a sheet down.)
+        // (A sheet from where it is; flung, as fast as it was.)
+        if (away) fadeOut($("menu"), away.frames, away.duration, false, away.easing);
+        else fadeOut($("menu"), $("menu").classList.contains("as-sheet") ? [{ transform: getComputedStyle($("menu")).transform }, { transform: "translateY(100%)" }] : [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(0.96)" }], $("menu").classList.contains("as-sheet") ? MOTION.layout : MOTION.micro);
         $("menu").hidden = true;
         unexpand(ownerNow());
         // (Only a menu that was open: closing again keeps who opened the last.)
@@ -30704,6 +30817,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const [head, ...more] = target.dataset.tip.split("\n");
         tip.innerHTML = `<span>${escape(head)}${more.length ? `<span class="tip-more">${more.map(escape).join("<br>")}</span>` : ""}</span>${keys}`;
         drawKeys(tip);
+        cutFade(tip);
         tip.hidden = false;
         if (target.getAttribute("aria-label") !== target.dataset.tip) {
           described?.removeAttribute("aria-describedby");
@@ -30728,8 +30842,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function hideTip() {
         clearTimeout(tipTimer);
         tipTimer = 0;
-        // (Set only when it changes: set again, the page's style is looked at again.)
-        if (!tip.hidden) (tipClosed = performance.now()), (tip.hidden = true);
+        // (Set only when it changes: set again, the page's style is looked at again. Going, it fades.)
+        if (!tip.hidden) (fadeOut(tip, [{ opacity: 1 }, { opacity: 0 }]), (tipClosed = performance.now()), (tip.hidden = true));
         tipTarget = null;
         described?.removeAttribute("aria-describedby");
         described = null;
