@@ -906,7 +906,7 @@
             </div>
             <div class="tops">
               <span class="label">From a top</span>
-              <div class="pills" id="tops" role="group" aria-label="From a cycle's top to the last day"></div>
+              <div class="pills" id="tops" role="group" aria-label="From a cycle's top, or the latest all-time high, to the last day"></div>
             </div>
           </section>
 
@@ -1559,7 +1559,8 @@
 
       // ── Cycle tops ──
 
-      /** Each cycle's top: an all-time high the price later fell at least 75% from before topping it. */
+      /** Each cycle's top: an all-time high the price later fell at least 75% from before topping it; and the latest
+       * all-time high, the current cycle's top so far, unless it's the last day (a plan from it would be one day). */
       function tops() {
         const out = [];
         let top = first, low = price[first];
@@ -1569,7 +1570,8 @@
             [top, low] = [day, price[day]];
           } else low = Math.min(low, price[day]);
         }
-        if (low <= price[top] / 4) out.push(top);
+        // (The latest high: a cycle's top once it's fallen 75%, the current one's before; either way, once.)
+        if (top !== last) out.push(top);
         return out;
       }
 
@@ -1889,7 +1891,7 @@
           for (const id of ["calculator", "atlas"]) $(id).inert = false;
           const unusable = readAddress();
           $("tops").replaceChildren(...tops().map((day) => {
-            const [y, m] = ymd(day), button = Object.assign(document.createElement("button"), { type: "button", className: "pill", textContent: `${MONTHS[m]} ${y}`, title: `From the top of ${dated(day)}, ${usd(price[day])}, to the last day` });
+            const [y, m] = ymd(day), button = Object.assign(document.createElement("button"), { type: "button", className: "pill", textContent: `${MONTHS[m]} ’${String(y).slice(2)}`, title: `From the top of ${dated(day)}, ${usd(price[day])}, to the last day` });
             button.dataset.top = String(day);
             button.addEventListener("click", () => setDates(day, last));
             return button;
