@@ -7795,6 +7795,25 @@
           white-space: nowrap;
         }
 
+        /* A formula's row saying what's wrong: the error under it, whole (how to put it right; beside it, cut, and no
+           preview shows here). */
+        .palette-list li[data-kind="formula"]:has(> .item-meta.error) {
+          flex-wrap: wrap;
+          row-gap: 2px;
+          height: auto;
+          min-height: 36px;
+          padding-block: 6px;
+
+          > .item-meta.error {
+            flex-basis: 100%;
+            max-width: none;
+            padding-inline-start: 26px;
+            line-height: 16px;
+            white-space: normal;
+            overflow-wrap: anywhere;
+          }
+        }
+
         /* A series' row: the name people read, the API's name under it (beside it, there's no room). */
         .palette-list li[data-kind="series"] {
           display: grid;
@@ -9285,7 +9304,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <div><dt>Show or hide the layers panel</dt><dd><kbd>P</kbd></dd></div>
             <div><dt>Collapse or expand the sidebar</dt><dd><kbd>\</kbd></dd></div>
             <div><dt>Full screen, or back</dt><dd><kbd>⇧F</kbd></dd></div>
-            <div><dt>Close, cancel the tool, deselect</dt><dd><kbd>esc</kbd></dd></div>
+            <div><dt>Close, cancel the tool, deselect; then out of full screen</dt><dd><kbd>esc</kbd></dd></div>
           </dl>
           <h3>Charts</h3>
           <dl>
@@ -9340,6 +9359,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <div><dt>Zoom out or in</dt><dd><kbd>−</kbd><kbd>+</kbd></dd></div>
             <div><dt>Log or linear scale</dt><dd><kbd>L</kbd></dd></div>
             <div><dt>Measure a change with the ruler</dt><dd><kbd>M</kbd></dd></div>
+            <div><dt>A signal's previous or next mark</dt><dd><kbd>,</kbd><kbd>.</kbd></dd></div>
+          </dl>
+          <h3>Reading the chart by keys</h3>
+          <dl>
+            <div><dt>Reach it</dt><dd><kbd>⇥</kbd></dd></div>
+            <div><dt>Date by date, ten at a time with ⇧</dt><dd><kbd>←</kbd><kbd>→</kbd></dd></div>
+            <div><dt>The first and last shown</dt><dd><kbd>Home</kbd><kbd>End</kbd></dd></div>
+            <div><dt>With a drawing tool (but the brush): place a point there</dt><dd><kbd>↵</kbd></dd></div>
+            <div><dt>With a drawing tool (but the brush): move it off the line</dt><dd><kbd>↑</kbd><kbd>↓</kbd></dd></div>
           </dl>
           <h3>On the navigator</h3>
           <dl>
@@ -9358,6 +9386,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <div><dt>Draw without snapping to the data</dt><dd><kbd>⌥</kbd> and draw</dd></div>
             <div><dt>Edit a text, or label a line (then drag the label along it)</dt><dd>double-click it</dd></div>
             <div><dt>Select several: one more, or a box around them</dt><dd><kbd>⇧</kbd> and click, <kbd>⌘</kbd> and drag</dd></div>
+            <div><dt>Select drawings by a box, the tool</dt><dd><kbd>D</kbd> then <kbd>S</kbd></dd></div>
             <div><dt>Select every drawing</dt><dd><kbd>⌘A</kbd></dd></div>
             <div><dt>Hide or show the drawings</dt><dd><kbd>⇧H</kbd></dd></div>
             <div><dt>Move the selected drawings, further with ⇧</dt><dd><kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd></dd></div>
@@ -16015,13 +16044,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         clearTimeout(autoTimer);
         autoTimer = setTimeout(autoCheck, 120);
       };
-      /** The pointers down on the chart (a pinch's two: pressed till both are up). */
-      const pressed = new Set();
+      /** The pointers down on the chart (a pinch's two: pressed till both are up); of them, the fingers. */
+      const pressed = new Set(), fingers = new Set();
       // (A scale gliding follows the plot again before the chart takes the press: a drag on its axis is the drag's.)
-      $("chart").addEventListener("pointerdown", (event) => (pressed.add(event.pointerId), (pressing = true), endScaleGlide()), true);
+      $("chart").addEventListener("pointerdown", (event) => (pressed.add(event.pointerId), event.pointerType === "touch" && fingers.add(event.pointerId), (pressing = true), endScaleGlide()), true);
       // (A press on the chart lets a ruler's measure go: the next one, or none.)
       $("chart").addEventListener("pointerdown", () => clearMeasure(), true);
-      for (const type of ["pointerup", "pointercancel"]) addEventListener(type, (event) => (pressed.delete(event.pointerId), pressing && !pressed.size && (rest(), (pressing = false))));
+      for (const type of ["pointerup", "pointercancel"]) addEventListener(type, (event) => ((id) => (pressed.delete(id), fingers.delete(id), pressing && !pressed.size && (rest(), (pressing = false))))(/** @type {PointerEvent} */ (event).pointerId));
+      // (The window let go of, a finger's up may never come: none down after it.)
+      addEventListener("blur", () => fingers.clear());
       /**
        * The end of what a fine interval holds that the view is close to (in the chunk at that end, or half a view from
        * it, the wider), with more beyond it: -1 the older, 1 the newer, 0 neither.
@@ -17990,7 +18021,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A press the chart doesn't also take (it would pan): its mousedown or touchstart, swallowed. */
       let swallow = false;
       /** The pointer a gesture under way is (a drawing placed, moved, a box drawn): another finger's moves nothing. */
-      let gesturePointer = -1;
+      let gesturePointer = -1, gestureTouch = false;
       /** A press held that's drawing, moving drawings or drawing a box. */
       const gesturing = () => Boolean(placing?.held || moving || boxing || lensAt?.touch);
       function take(event) {
@@ -18001,6 +18032,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (document.activeElement instanceof HTMLElement && !$("chart").contains(document.activeElement)) document.activeElement.blur();
         swallow = true;
         gesturePointer = event.pointerId;
+        gestureTouch = event.pointerType === "touch";
         $("chart").setPointerCapture(event.pointerId);
       }
       for (const type of ["mousedown", "touchstart"]) $("chart").addEventListener(type, (event) => {
@@ -18022,13 +18054,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("chart").addEventListener("dblclick", () => lensAt && lookAt(lensAt));
       $("chart").addEventListener("wheel", () => lensAt && lookAt(lensAt), { passive: true });
       $("chart").addEventListener("pointerdown", (event) => {
-        // (A second finger, while one draws or moves: neither a drawing's nor the chart's, which would pinch or pan.)
+        // (A second finger, while one draws or moves: neither a drawing's nor the chart's, which would pinch or pan. A
+        // finger's move, another finger down too: the move let go, the drawing as it was, nothing pinched.)
         if (gesturing() && event.pointerId !== gesturePointer) {
           event.preventDefault();
           event.stopPropagation();
           swallow = true;
+          if (moving && gestureTouch && event.pointerType === "touch") stopDrawing();
           return;
         }
+        // (A finger come down while another is on the chart (panning it): the chart's, its pinch, whatever's under it.)
+        if (event.pointerType === "touch" && [...fingers].some((id) => id !== event.pointerId)) return;
         if (writing) $("draw-text").blur();
         // (A legend takes its own presses: a click on a name, ⌘ or ⇧ too, is the layer's, not a drawing's.)
         if (event.button !== 0 || !resolved?.times.length || closest(event, ".legend, #full")) return;
@@ -23233,8 +23269,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * Full screen, on or off: the chart alone (see .app[data-full]; the panel closed, P opening it for the while), on
        * the screen's whole where the browser gives it (asked in the same click, as it must be; not when the window is the
-       * screen already, or says so: Mullvad's does), else the window's. Out by its button, ⇧F or ⌘K, never by Escape
-       * here; a browser's own way out leaves it too (Firefox's Escape, a held one in Chromium).
+       * screen already, or says so: Mullvad's does), else the window's. Out by its button, ⇧F or ⌘K, or Escape once
+       * there's nothing else it puts away (a tool, a selection, a menu); a browser's own way out leaves it too (Firefox's
+       * Escape, a held one in Chromium).
        */
       function setFull(on = !fullOn()) {
         if (on === fullOn()) return;
@@ -26475,8 +26512,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { title: "Zoom out", text: "Wider, around the middle of the view (or its right edge, at the latest).", words: "wider further shrink", icon: "charts", kbd: "−", run: () => zoom(1.6) },
           ]),
           ...(chart.layers.some((layer) => signalShown(layer)) ? [
-            { title: "Next signal", text: "A signal's next mark, after the middle of the view.", words: "signal mark next forward jump occurrence", icon: "calendar", run: () => stepSignal(1) },
-            { title: "Previous signal", text: "A signal's last mark, before the middle of the view.", words: "signal mark previous back jump occurrence", icon: "calendar", run: () => stepSignal(-1) },
+            { title: "Next signal", text: "A signal's next mark, after the middle of the view.", words: "signal mark next forward jump occurrence", icon: "calendar", kbd: ".", run: () => stepSignal(1) },
+            { title: "Previous signal", text: "A signal's last mark, before the middle of the view.", words: "signal mark previous back jump occurrence", icon: "calendar", kbd: ",", run: () => stepSignal(-1) },
           ] : []),
           ...(empty ? [] : [{ title: "Go to a date", text: "A year, a month or a day: the chart shows it.", words: "jump date time when navigate calendar", icon: "calendar", kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }]),
           { title: "Rename this chart", text: "Its title, typed here.", words: "title name", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
@@ -31103,6 +31140,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else if (!home && tablet.matches && panelShown()) togglePanel(false);
           // A new chart left empty: Escape takes it back, as its Cancel button does.
           else if (!home && !chart.layers.length && (isPreview(chart) || emptyYours(chart))) leaveEmpty();
+          // (Full screen's panel, opened for the while (P), put away first; nothing else to put away: out of full screen,
+          // as anywhere (a press, not its repeat: one held unwinds the rest, not this too).)
+          else if (!home && fullOn() && panelShown()) togglePanel(false);
+          else if (fullOn() && !event.repeat) setFull(false);
         } else if ((event.key === "ArrowDown" || event.key === "ArrowUp") && event.shiftKey) extendPicks(event.key === "ArrowDown" ? 1 : -1);
         else if (event.key === "ArrowDown" || event.key === "ArrowUp") selectBy(event.key === "ArrowDown" ? 1 : -1);
         else if ((event.key === "Backspace" || event.key === "Delete") && (chosen.size || layerPicks.size || selected)) chosen.size ? removeDrawings([...chosen]) : layerPicks.size ? layersBatch("remove") : removeLayer(selected);
@@ -31121,6 +31162,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else notice(`${text} is more than fits at ${INTERVAL_LABEL[chart.index]}`);
         }
         else if (event.key === "[" || event.key === "]") stepInterval(event.key === "]" ? 1 : -1);
+        // (A signal's marks stepped through, as a player's frames: before, after the middle of the view.)
+        else if ((event.key === "," || event.key === ".") && chart.layers.length) chart.layers.some((layer) => signalShown(layer)) ? stepSignal(event.key === "." ? 1 : -1) : notice("No signal shown to step through");
         else return;
         event.preventDefault();
       });
