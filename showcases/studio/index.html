@@ -6867,6 +6867,15 @@
         }
       }
 
+      /* (A shelf's tiles past its first laid out and drawn only while in sight, till they've been near it (see nearTiles:
+         on its own, the browser drew one coming in from an edge a frame late): a page of shelves is mostly tiles out of
+         sight (the presets' 161, a few in sight), each a mini chart and its words. Reached by Tab or a search all the
+         same. Its first, always drawn, sets the row's height, the others stretched to it.) */
+      .shelf:not(.lead) .shelf-row > .tile + .tile:not(.near) {
+        content-visibility: auto;
+        contain-intrinsic-size: auto 0px;
+      }
+
       @media (max-width: 760px), (max-height: 500px) {
         .shelf-row {
           grid-auto-columns: min(82%, 320px);
@@ -20076,7 +20085,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const html = visible.map(tileHtml), tiles = all$(".tile", grid);
         const layout = JSON.stringify(parts.map((part) => (part.kind === "shelf" ? [part.kind, JSON.stringify(part.place), part.name, part.count, part.docs.length, part.empty ?? ""] : part.kind === "grid" ? [part.kind, Boolean(part.previews), part.docs.length] : part.kind === "head" ? [part.kind, part.name, part.count] : [part.kind, part.html])));
         if (layout === drawnLayout && tiles.length === visible.length && tiles.every((tile, i) => tile.dataset.homeCard === visible[i].id)) {
-          tiles.forEach((tile, i) => drawnTiles.get(visible[i].id) !== html[i] && (tile.outerHTML = html[i]));
+          tiles.forEach((tile, i) => drawnTiles.get(visible[i].id) !== html[i] && swapTile(tile, html[i]));
         } else {
           // (The focus comes back to its like. A tile drawn as it was is moved, not written again: a search typed, its
           // charts' mini charts aren't made anew.)
@@ -20296,10 +20305,60 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Every shelf's steps and edges, once the page's writes this frame are in (one layout, not one a write), before it's shown. */
       let shelvesFrame = 0;
       const shelvesSoon = () => (shelvesFrame ||= requestAnimationFrame(() => ((shelvesFrame = 0), allShelfSteps())));
-      /** Every shelf's steps and edges (all read first, then written: one layout, not one a shelf). */
+      /** Every shelf's steps and edges (all read first, then written: one layout, not one a shelf), its far tiles watched. */
       function allShelfSteps() {
         const rows = all$(".shelf-row", $("home")), sizes = rows.map((row) => ({ at: row.scrollLeft, size: row.clientWidth, full: row.scrollWidth }));
         rows.forEach((row, k) => fitShelf(row, sizes[k].at, sizes[k].size, sizes[k].full));
+        nearTiles(rows);
+      }
+      /** Each shelf whose tiles are watched, and what watches those not near yet. @type {WeakMap<HTMLElement, IntersectionObserver>} */
+      const rowsNear = new WeakMap();
+      /**
+       * Shelves two screens' height from sight in the page's own scroller (the window's would see them only once in it,
+       * clipped by it), made again as that height changes (a margin's percentage is of its width): their tiles watched
+       * as they scroll (see nearTiles).
+       */
+      let shelvesNear = /** @type {IntersectionObserver | null} */ (null), nearReach = 0;
+      /**
+       * The shelves' tiles past their first, drawn (`near`) once they're near sight: the shelf two screens' height from
+       * it, each tile two rows' width from it as the row scrolls. On in time for a step or a fling, never one shown blank; drawn,
+       * they stay so. The shelves on the page now watched, not those it had (written anew, gone).
+       * @param {HTMLElement[]} rows
+       */
+      function nearTiles(rows) {
+        // (Out of sight (another page's), none: watched once it's back, see showHome.)
+        const scroller = homeScroll(), reach = scroller.clientHeight;
+        if (!reach) return;
+        if (!shelvesNear || reach !== nearReach) {
+          shelvesNear?.disconnect();
+          nearReach = reach;
+          shelvesNear = new IntersectionObserver((entries, own) => {
+            for (const entry of entries) if (entry.isIntersecting && !rowsNear.has(/** @type {HTMLElement} */ (entry.target))) (own.unobserve(entry.target), tilesNear(/** @type {HTMLElement} */ (entry.target)));
+          }, { root: scroller, rootMargin: `${2 * reach}px 0px` });
+        }
+        const shelves = /** @type {IntersectionObserver} */ (shelvesNear);
+        shelves.disconnect();
+        for (const row of rows) if (!rowsNear.has(row)) shelves.observe(row);
+      }
+      /** A shelf's tile written anew where it was (a chart's changed): drawn as it was, or watched as it was. @param {HTMLElement} tile @param {string} html */
+      function swapTile(tile, html) {
+        const made = document.createElement("template");
+        made.innerHTML = html;
+        const fresh = /** @type {HTMLElement} */ (made.content.firstElementChild), watch = tile.parentElement && rowsNear.get(tile.parentElement);
+        if (tile.classList.contains("near")) fresh.classList.add("near");
+        else if (watch) (watch.unobserve(tile), watch.observe(fresh));
+        tile.replaceWith(fresh);
+      }
+      function tilesNear(/** @type {HTMLElement} */ row) {
+        // (Those two rows' widths from sight now, at once: an observer's first word comes a frame on, and a page scrolled
+        // fast is past a screen's height by then. The others as the row scrolls, as far ahead: the browser scrolls on
+        // its own, a slow frame or two of the page's meanwhile.)
+        const tiles = /** @type {HTMLElement[]} */ ([...row.children]), unit = tiles.length > 1 ? tiles[1].getBoundingClientRect().left - tiles[0].getBoundingClientRect().left : 0;
+        const near = new IntersectionObserver((entries) => {
+          for (const entry of entries) if (entry.isIntersecting) (entry.target.classList.add("near"), near.unobserve(entry.target));
+        }, { root: row, rootMargin: "0px 200%" });
+        rowsNear.set(row, near);
+        tiles.slice(1).forEach((tile, i) => ((i + 1) * unit < row.scrollLeft + 3 * row.clientWidth && (i + 2) * unit > row.scrollLeft - 2 * row.clientWidth ? tile.classList.add("near") : near.observe(tile)));
       }
       /** A shelf as it's scrolled: its steps there while it scrolls, each off at its end; its edges faded where there's more, as a strip's. */
       function fitShelf(/** @type {HTMLElement} */ row, /** @type {number} */ at, /** @type {number} */ size, /** @type {number} */ full) {
@@ -20697,6 +20756,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (An empty preview left simply goes.)
           if (draft) openChart(previousChart() ?? newDraft());
           document.body.toggleAttribute("data-home", true);
+          // (Its shelves as they are now: sized for a window resized meanwhile, watched for a screen of another height.)
+          shelvesSoon();
           // (A toast up stays, where it shows on this page: over its foot, not the chart's.)
           if ($("toast").classList.contains("visible")) placeToast();
           refresh("none");
