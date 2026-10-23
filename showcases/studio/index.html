@@ -4906,13 +4906,21 @@
         }
       }
 
-      .guide-ref {
-        margin: 0 0 8px;
-        color: var(--muted);
-        font-size: 12px;
-        font-weight: 590;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
+      /* The rest of the reference, folded under its short: a help's chevron, its summary a heading. */
+      .guide-more {
+        margin-top: 18px;
+        border-top: 1px solid var(--line);
+        padding-top: 14px;
+        color: var(--text);
+        font-size: inherit;
+
+        > summary {
+          color: var(--muted);
+          font-size: 12px;
+          font-weight: 590;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
       }
 
       /* Custom's hex, under its surface: typed, it's picked; picked on the surface, it follows. */
@@ -31787,16 +31795,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }, toastFor);
       }
 
-      /** The page's links guide: this chart's link, then the reference (the dialog opens on itself). */
       /**
        * The guide's examples in its lines, set as code: a script's call, a chart's JSON (a list of it too), a link's start,
        * a formula's function called (a block's, as it is).
        */
-      const CODE_IN = new RegExp(String.raw`(?:await )?studio\.\w+\((?:[^()<]|\([^()<]*\))*\)|\[(?:\{(?:[^{}<]|\{[^{}<]*\})*\}(?:, )?)+\]|\{(?:[^{}<]|\{[^{}<]*\})*\}|https:\/\/studio\.bitview\.space\/#[a-z]+=|#(?:chart|image|c)=|\b(?:${Object.keys(FUNCTIONS).join("|")})\([^()<]*\)`, "g");
+      const CODE_IN = new RegExp(String.raw`(?:await )?studio\.\w+\((?:[^()<]|\([^()<]*\))*\)|\[(?:\{(?:[^{}<]|\{[^{}<]*\})*\}(?:, )?)+\]|\{(?:[^{}<]|\{[^{}<]*\})*\}|https:\/\/bitview\.space\/studio\/#[a-z]+=|#(?:chart|image|c)=|\b(?:${Object.keys(FUNCTIONS).join("|")})\([^()<]*\)`, "g");
       const codeIn = (/** @type {string} */ html) => html.split(/(<pre[\s\S]*?<\/pre>)/).map((part, i) => (i % 2 ? part : part.replace(CODE_IN, (match) => `<code>${match}</code>`))).join("");
+      /**
+       * The page's links guide: for people, a few words and this chart's link at hand, and its reference in short; the
+       * rest of the reference, for scripts and assistants, folded under it (llms.txt has all of it: see seo.mjs). The
+       * dialog opens on itself.
+       */
       function showGuide() {
         const open = !home && chart.layers.length > 0;
-        $("guide-body").innerHTML = `<section class="guide-start"><p>A chart's link opens it, for anyone, as it is here: its layers, their look, its view. It holds the chart itself (as JSON): nothing's stored on a server. Your Library, and the presets as you've edited them, are kept in this browser.</p>${open ? `<div class="guide-actions"><button type="button" class="btn small" data-guide="link">${ICONS.link}Copy this chart's link</button><button type="button" class="btn small" data-guide="json">${ICONS.copy}Copy its JSON</button></div>` : ""}</section><h2 class="guide-ref">For scripts and assistants</h2>${codeIn($("about").innerHTML.replace(/<h1>[\s\S]*?<\/h1>/, ""))}`;
+        // (The reference from its first section, "In short", to the next, then the rest: its title and its line for a
+        // page without JavaScript left out.)
+        const parts = [...$("about").children], [first, next] = parts.filter((part) => part.tagName === "H2").map((head) => parts.indexOf(head));
+        const html = (/** @type {Element[]} */ list) => codeIn(list.map((part) => part.outerHTML).join("")), rest = next === undefined ? [] : parts.slice(next);
+        $("guide-body").innerHTML = `<section class="guide-start"><p>A chart's link opens it, for anyone, as it is here: its layers, their look, its view. It holds the chart itself (as JSON): nothing's stored on a server. Your Library, and the presets as you've edited them, are kept in this browser.</p>${open ? `<div class="guide-actions"><button type="button" class="btn small" data-guide="link">${ICONS.link}Copy this chart's link</button><button type="button" class="btn small" data-guide="json">${ICONS.copy}Copy its JSON</button></div>` : ""}</section>${html(parts.slice(first, next))}${rest.length ? `<details class="help guide-more"><summary>For scripts and assistants</summary>${html(rest)}</details>` : ""}`;
         arrive($("guide"));
         if (!$("guide").open) $("guide").showModal();
         $("guide").focus();
