@@ -1,7 +1,9 @@
 use std::{
-    env, fs,
+    env,
+    error::Error,
+    fs,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, ExitCode},
 };
 
 use aide::axum::ApiRouter;
@@ -9,10 +11,6 @@ use bitview_bindgen::{ClientOutputPaths, generate_clients};
 use bitview_devtools::import;
 use bitview_query::Vecs;
 use bitview_server::{ApiRoutes, finish_openapi};
-use color_eyre::{
-    eyre::{Result, bail},
-    install,
-};
 use serde_json::{json, to_string, to_string_pretty};
 
 #[cfg(unix)]
@@ -36,15 +34,25 @@ const GENERATED_OUTPUTS: &[&str] = &[
     "crates/bitview_mcp/generated/manifest.json",
 ];
 
+type Result<T> = std::result::Result<T, Box<dyn Error + Send + Sync>>;
+
 #[derive(Clone, Copy)]
 enum OutputScope {
     All,
     Rust,
 }
 
-fn main() -> Result<()> {
-    install()?;
+fn main() -> ExitCode {
+    match run() {
+        Ok(()) => ExitCode::SUCCESS,
+        Err(error) => {
+            eprintln!("Error: {error}");
+            ExitCode::FAILURE
+        }
+    }
+}
 
+fn run() -> Result<()> {
     let args = env::args().skip(1).collect::<Vec<_>>();
     match args.as_slice() {
         [] => generate(false, OutputScope::All),
@@ -73,11 +81,10 @@ fn main() -> Result<()> {
                 exit(command.status()?.code().unwrap_or(1));
             }
         }
-        _ => {
-            bail!(
-                "usage: cargo bindgen [-- --check | -- --rust [--check] | -- --run [-- daemon arguments]]"
-            )
-        }
+        _ => Err(
+            "usage: cargo bindgen [-- --check | -- --rust [--check] | -- --run [-- daemon arguments]]"
+                .into(),
+        ),
     }
 }
 
@@ -187,10 +194,11 @@ fn verify_outputs(generated_root: &Path, workspace_root: &Path, scope: OutputSco
         })
         .collect();
     if !stale.is_empty() {
-        bail!(
+        return Err(format!(
             "generated outputs are stale:\n{}\nrun `cargo bindgen`",
             stale.join("\n")
-        );
+        )
+        .into());
     }
     Ok(())
 }
