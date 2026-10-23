@@ -12,7 +12,7 @@
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/dca/" />
     <meta property="og:site_name" content="Bitview" />
-    <meta property="og:title" content="Bitcoin, a little at a time: dollar-cost averaging on Bitview" />
+    <meta property="og:title" content="Dollar-cost averaging on Bitview" />
     <meta property="og:description" content="What buying the same dollars of bitcoin every day, week or month since 2010 would be worth, beside the same plan buying more when bitcoin was cheap, and how every start and length turned out." />
     <meta property="og:image" content="https://bitview.space/dca/og.png" />
     <meta property="og:image:width" content="1200" />
@@ -137,7 +137,7 @@
         }
       }
 
-      /* ── Header: the brand and the page's name ── */
+      /* ── Header: the way home and Share, as an app's bar; under it the screen's title ── */
 
       .top {
         display: flex;
@@ -152,6 +152,7 @@
 
       .brand {
         display: flex;
+        margin-right: auto;
         align-items: center;
         gap: 10px;
         font-size: 16px;
@@ -163,31 +164,22 @@
         }
       }
 
-      .crumb {
-        color: var(--faint);
-
-        & + span {
-          margin-right: auto;
-          color: var(--soft);
-        }
-      }
-
       h1,
       h2 {
         margin: 0;
       }
 
-      /* (A statement, as Cash App sets its own: regular weight, large, tight.) */
+      /* (A screen's title, as an app's: what it is, plainly, the cards right under it.) */
       h1 {
-        margin-top: 12px;
-        font-size: 38px;
-        font-weight: 400;
-        line-height: 1;
-        letter-spacing: -0.035em;
+        margin-top: 4px;
+        font-size: 28px;
+        font-weight: 650;
+        line-height: 1.1;
+        letter-spacing: -0.03em;
 
         @media (min-width: 720px) {
-          margin-top: 24px;
-          font-size: 56px;
+          margin-top: 8px;
+          font-size: 32px;
         }
       }
 
@@ -229,14 +221,14 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         gap: 12px;
-        margin-top: 24px;
+        margin-top: 16px;
 
         /* (On a desk: the value, the plan and its breakdown beside it, both ending together, the value's chart taking
            the difference; the smart plan across under both.) */
         @media (min-width: 960px) {
           grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
           gap: 16px;
-          margin-top: 24px;
+          margin-top: 20px;
 
           .card.smart {
             grid-column: 1 / -1;
@@ -1205,14 +1197,11 @@
     <div class="page">
       <header class="top">
         <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-        <span class="crumb" aria-hidden="true">/</span>
-        <span>DCA</span>
         <button type="button" class="pill share" id="share" disabled>Share</button>
       </header>
 
       <main>
-        <h1>Bitcoin, a little at a time</h1>
-        <p class="lede">Dollar-cost averaging: the same dollars of bitcoin on a schedule, whatever the price. What any plan since 2010 would be worth.</p>
+        <h1>Dollar-cost averaging</h1>
         <p class="note" id="failed" role="alert"></p>
 
         <div class="board" id="calculator" aria-busy="true" inert>
