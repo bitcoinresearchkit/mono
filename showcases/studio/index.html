@@ -1703,10 +1703,9 @@
           .nav-item > :not([data-icon], .chart-mark),
           .live > :not(i) {
             opacity: 0;
-            filter: blur(3px);
             pointer-events: none;
-            /* (Going back to the rail, the words blur away before its edge reaches them.) */
-            transition: opacity var(--words-out) var(--ease), filter var(--words-out) var(--ease);
+            /* (Going back to the rail, the words fade before its edge reaches them.) */
+            transition: opacity var(--words-out) var(--ease);
           }
 
           /* A group's head, its mark alone (the rest faded, out of reach: buttons), its rule short as Charts' is: at the
@@ -1715,9 +1714,8 @@
             :is(.head-name, .count, .turn, .chart-more, .list-head-add) {
               visibility: hidden;
               opacity: 0;
-              filter: blur(3px);
               pointer-events: none;
-              transition: opacity var(--words-out) var(--ease), filter var(--words-out) var(--ease), visibility 0s var(--words-out);
+              transition: opacity var(--words-out) var(--ease), visibility 0s var(--words-out);
             }
 
             &::before {
@@ -1860,9 +1858,10 @@
           }
         }
 
-        /* Opening, the words come out of a blur once there's room for them: as the sidebar settles, not cut by its edge. */
+        /* Opening, the words come once there's room for them: as the sidebar settles, not cut by its edge (opacity alone,
+           what a screen draws cheapest, a long list of them at once). */
         .sidebar :is(.brand > :not(.logo), .search > :not([data-icon]), .nav-item > :not([data-icon], .chart-mark), .live > :not(i), .list-head :is(.head-name, .count, .list-head-add)) {
-          transition: opacity var(--words-in) var(--ease) var(--words-wait), filter var(--words-in) var(--ease) var(--words-wait);
+          transition: opacity var(--words-in) var(--ease) var(--words-wait);
         }
 
         /* (The widest words a little later, the search's, the live line's: once there's nearly room for them; a folder's
@@ -1891,7 +1890,6 @@
         /* (Opening, a head's New folder out of sight till the sidebar's open: at its edge, it'd ride over the head's name.) */
         body[data-sliding]:not([data-sidebar="collapsed"]) .sidebar .list-head-add {
           opacity: 0;
-          filter: blur(3px);
           transition: none;
         }
 
@@ -1905,6 +1903,12 @@
           .chart-list {
             scrollbar-color: transparent transparent;
           }
+        }
+
+        /* (The list's scrollbar while it's pointed at, as the system's own come as they're needed: not as the sidebar's
+           width changes, the list's size with it.) */
+        .chart-list:not(:hover) {
+          scrollbar-color: transparent transparent;
         }
 
         /* The list's other rows hold their shape while the sidebar slides (their words gone or not yet come, their icons
@@ -13933,7 +13937,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return false;
       })().catch(() => false);
-      const view = LC.createChart($("chart"), { autoSize: true, ...chartOptions() });
+      // (Sized by the page, not by the library's own watch on its box: switching that on and off around a motion is an
+      // options change, the whole chart drawn again, a long frame on a heavy one. See `resized`.)
+      const view = LC.createChart($("chart"), { autoSize: false, width: $("chart").clientWidth, height: $("chart").clientHeight, ...chartOptions() });
+      /** The size the chart's drawn at, as last given it (its element's is its box's, whatever it's drawn at). */
+      let chartSize = { width: $("chart").clientWidth, height: $("chart").clientHeight };
+      // (Its element filling its box from the start, as after every resize: see sizeChart.)
+      Object.assign(view.chartElement().style, { width: "100%", height: "100%" });
+      /** The chart drawn at a size, at once (as the library's own watch did: no frame of what it was). */
+      // (Its element filling its box after, whatever the library makes it (a pixel short, rounded): no strip under it.)
+      const sizeChart = (/** @type {number} */ width, /** @type {number} */ height) => ((chartSize = { width, height }), view.resize(width, height, true), !sizeHeld && !exporting && Object.assign(view.chartElement().style, { width: "100%", height: "100%" }));
       /**
        * A layout's motion (the sidebar's, the panel's, full screen's, a peek's): the chart sized once for it, not at each
        * of its frames (each a new size: its canvases made anew, every series drawn again; Firefox shows a third of them).
@@ -13963,11 +13976,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const { width, height } = box.getBoundingClientRect();
           if (sizeHeld || Math.abs(width - chartWidth()) < 1 || !resolved?.times.length || !chart || drawnChart !== chart.id) return;
           const was = (view.bvFlush(), view.timeScale().getVisibleLogicalRange());
-          view.applyOptions({ autoSize: false });
-          view.resize(width, height, true);
+          sizeChart(width, height);
           keepStretch(was);
           Object.assign(view.chartElement().style, { width: "100%", height: "100%" });
-          view.applyOptions({ autoSize: true });
           return;
         }
         // (Its box now and the chart's own size: the same, unless a motion before this one's still holding it.)
@@ -13982,16 +13993,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (a motion's in flight, as stretched).)
         const across = Math.abs(end.width - now.width) >= 1 && Boolean(resolved?.times.length) && Boolean(chart) && drawnChart === chart?.id;
         const leftAxis = view.priceScale("left").width() > 0 && !(view.priceScale("right").width() > 0);
-        const was = across ? (view.bvFlush(), view.timeScale().getVisibleLogicalRange()) : null;
         // (Only its width changing (the sidebar's, the panel's): the drawing as it is, stretched from the first frame,
-        // nothing held back; drawn at its end's width once the motion's over (releaseSize), a long frame there unseen.
-        // Its height too (full screen): drawn at its end's size first.)
-        const later = across && Math.abs(end.height - own.height) < 1;
+        // nothing held back, nothing drawn (a draw waiting, the live price's, flushed now, would hold the motion's first
+        // frame as long as a heavy chart takes); drawn at its end's width once the motion's over (releaseSize). Its height
+        // too (full screen): drawn at its end's size first.)
+        const later = across && Math.abs(end.height - chartSize.height) < 1;
+        const was = across && !later ? (view.bvFlush(), view.timeScale().getVisibleLogicalRange()) : null;
         stretchDrawn(null);
-        const width = later ? own.width : end.width, height = end.height;
+        const width = later ? chartSize.width : end.width, height = end.height;
         stretchKept = later ? (chart?.id ?? null) : null;
         const side = across ? (leftAxis ? "left" : "right") : Math.abs(end.left - now.left) <= Math.abs(end.right - now.right) ? "left" : "right", edge = Math.abs(end.top - now.top) <= Math.abs(end.bottom - now.bottom) ? "top" : "bottom";
-        view.applyOptions({ autoSize: false });
         sizeHeld = true;
         chartHeight = height;
         Object.assign(view.chartElement().style, { position: "absolute", left: "", right: "", top: "", bottom: "", [side]: "0", [edge]: "0", width: `${width}px`, height: `${height}px` });
@@ -13999,7 +14010,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Drawn at its new size now, the motions held at their start meanwhile: they start on the next frame, from
           // their start, not a long frame in.)
           for (const motion of inMotion) motion.pause();
-          view.resize(width, height, true);
+          sizeChart(width, height);
           if (across) keepStretch(was);
           // (Those another toggle has replaced meanwhile left be: started again, they'd come back.)
           // (Which are still paused, all read first, then each started: a read between writes would lay the page out again
@@ -14025,7 +14036,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const frame = () => run === motionsSized && drawnStretch && (stretchDrawn(box.getBoundingClientRect().width), requestAnimationFrame(frame));
           requestAnimationFrame(frame);
         }
-        Promise.allSettled(inMotion.map((motion) => motion.finished)).then(() => run === motionsSized && releaseSize());
+        // (Drawn at its end's size once the page is idle, not in the frames that end the motion (what fades in as it ends:
+        // the sidebar's words, New folder): a heavy chart's draw is a long frame.)
+        Promise.allSettled(inMotion.map((motion) => motion.finished)).then(() => run === motionsSized && (later ? whenIdle(() => run === motionsSized && releaseSize(), { timeout: 200 }) : releaseSize()));
       }
       /**
        * The chart as drawn at its end's width (`drawnStretch.to`, its plot's), stretched to its box `shown` wide, as the box is
@@ -14082,13 +14095,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // its stretch of time kept.)
         Object.assign(view.chartElement().style, { position: "", left: "", right: "", top: "", bottom: "", width: "100%", height: "100%" });
         // (Its view as it is now, a pan or a zoom meanwhile kept; another chart opened meanwhile drew itself.)
+        const { width, height } = $("chart").getBoundingClientRect();
         if (stretchKept && stretchKept === chart?.id && drawnChart === chart.id) {
-          const { width, height } = $("chart").getBoundingClientRect(), was = (view.bvFlush(), view.timeScale().getVisibleLogicalRange());
-          view.resize(width, height, true);
+          const was = (view.bvFlush(), view.timeScale().getVisibleLogicalRange());
+          sizeChart(width, height);
           keepStretch(was);
-        }
+        } else if (width !== chartSize.width || height !== chartSize.height) sizeChart(width, height);
         stretchKept = null;
-        view.applyOptions({ autoSize: true });
         chartHeight = $("chart").getBoundingClientRect().height;
         relayout();
       }
@@ -15215,7 +15228,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (unseen) collapse();
             return;
           }
-          place(row, !shown || dropped);
+          // (Reached by keys, it's there at once, as a step is: gliding, edged, it'd cross the rows between (a pointer's moves
+          // glide, as the pointer does).)
+          place(row, !shown || dropped || keyed);
           list.dataset.glide = keyed ? "keyed" : "on";
           (lit = row), (keyedNow = keyed), (shown = true), (dropped = false);
         };
@@ -15237,17 +15252,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         menu.addEventListener("focusin", (event) => {
           const row = rowOf(event);
           if (!row) light(null);
-          else if (row.matches(":focus-visible")) light(row);
+          else if (row.matches(":focus-visible")) light(row, true);
         });
         // (Keys walking it, on the row focused already (Home on the first): it, once they're taken in.)
-        menu.addEventListener("keydown", (event) => ["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key) && setTimeout(() => focused() && light(focused())));
+        menu.addEventListener("keydown", (event) => ["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key) && setTimeout(() => focused() && light(focused(), true)));
         menu.addEventListener("focusout", (event) => !menu.contains(/** @type {Node | null} */ (event.relatedTarget)) && !menu.matches(":hover") && light(null));
       }
+      /** Whether ⌘K's row was last moved to by the pointer (see move): its highlight glides there; by keys, at once. */
+      let pointedOption = false;
       // ⌘K: the row ↵ runs, however it's come to (the arrows, the pointer, the list written anew); a finger's ⌘K has none
       // (its keyboard in use, it has).
       {
         const list = $("palette-list"), light = glides(list), coarse = matchMedia("(hover: none) and (pointer: coarse)");
-        new MutationObserver(() => (!coarse.matches || keyboard()) && light(list.querySelector('[aria-selected="true"]'), true)).observe(list, { childList: true, subtree: true, attributeFilter: ["aria-selected"] });
+        new MutationObserver(() => (!coarse.matches || keyboard()) && light(list.querySelector('[aria-selected="true"]'), !pointedOption)).observe(list, { childList: true, subtree: true, attributeFilter: ["aria-selected"] });
       }
       // The sidebar's charts and folders: the one pointed at (between rows, it stays; on a section's head, none; folding, none:
       // the highlight would show whole over a row half shown); a row written anew (a folder opened, a chart), its own, by its key.
@@ -15917,7 +15934,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       const resized = new ResizeObserver((entries) => {
         // (Its size held through a layout's motion: the chart's own height, not its box's, till it follows it again.)
-        for (const entry of entries) if (entry.target === $("chart") && !sizeHeld) chartHeight = entry.contentRect.height;
+        // (The chart at its box's size, as the library's own watch would (see `view`): not while a motion holds it, nor
+        // while a picture's made of it.)
+        for (const entry of entries) if (entry.target === $("chart") && !sizeHeld) {
+          chartHeight = entry.contentRect.height;
+          if (!exporting && (entry.contentRect.width !== chartSize.width || entry.contentRect.height !== chartSize.height)) sizeChart(entry.contentRect.width, entry.contentRect.height);
+        }
         relayout();
       });
       resized.observe($("chart"));
@@ -26906,6 +26928,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return keys.sort((a, b) => (ranks.get(a) ?? last) - (ranks.get(b) ?? last));
       }
       function showPalette() {
+        // (Its list written anew (typed into, opened, a page turned): its row lit as keys light it, till the pointer moves.)
+        pointedOption = false;
         const query = palette.query.trim();
         clearTimeout(palette.timer);
         palette.pending = null;
@@ -27507,6 +27531,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const n = palette.items.length;
         // (From none lit: as from before the first, ↑ from past the last.)
         palette.active = stepIn(palette.active, delta, n, Math.abs(delta) === 1);
+        // (Moved by the pointer (no scroll asked), lit as a pointer lights, gliding; else by keys, at once.)
+        pointedOption = !scroll;
         drawOptions(palette.active + PALETTE_PAGE / 2);
         $("palette-list").querySelector('[aria-selected="true"]')?.setAttribute("aria-selected", "false");
         const row = $(`option-${palette.active}`);
@@ -30585,8 +30611,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         try {
           if (sized) Object.assign(element.style, { right: "auto", bottom: "auto", width: `${width}px`, height: `${height}px` });
           for (const [legend] of strips) Object.assign(legend.style, { flexWrap: "wrap", overflow: "visible", rowGap: "2px" });
-          view.applyOptions({ autoSize: false });
-          view.resize(width, height, true);
+          sizeChart(width, height);
           chartHeight = height;
           sizePanes();
           if (sized && resolved && drawnChart === chart.id) {
@@ -30596,7 +30621,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           marginsSet = "";
           fitMargins();
-          view.resize(width, height, true);
+          sizeChart(width, height);
           // All of it read now: while the marks load, another chart can open. (The drawings as they are, none selected.)
           capturing = true;
           repaintDrawings();
@@ -30629,9 +30654,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else element.setAttribute("style", style);
           chartHeight = heightWas;
           // (The chart library's own frame back to its container's size, and following it again.)
-          view.resize(element.clientWidth, element.clientHeight, true);
+          sizeChart(element.clientWidth, element.clientHeight);
           [wrapper.style.width, wrapper.style.height] = wrapped;
-          view.applyOptions({ autoSize: true });
           sizePanes();
           if (sized && resolved && drawnChart === chart.id) fitSpacing(chart, resolved.times.length);
           if (sized && logical) view.timeScale().setVisibleLogicalRange(logical);
