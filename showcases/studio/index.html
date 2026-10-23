@@ -156,6 +156,10 @@
         /* Layout moves ease in and out, so even a long one starts without a leap. */
         --ease-layout: cubic-bezier(0.4, 0, 0.2, 1);
         --dur-layout: 280ms;
+        /* (A sliding sidebar's words: gone in its first third; back over its last part, once it's mostly open.) */
+        --words-out: 90ms;
+        --words-wait: 120ms;
+        --words-in: 160ms;
         --dur-page: 380ms;
         /* Corners by size: keys and chips, small controls, controls, popovers, cards and bars, sheets and dialogs. */
         --radius-xs: 4px;
@@ -951,8 +955,14 @@
         }
       }
 
-      body.carrying .glides::before {
+      /* (Carried, or the sidebar sliding, its rows changing shape under it: none.) */
+      body:is(.carrying, [data-sliding]) .glides::before {
         opacity: 0;
+      }
+
+      /* (A row of a group lit by its glide (see glideRows): its ground the glide's, pointed at; pressed, chosen, on, its own.) */
+      :is(.side-foot > .nav-item, .head-actions > .cap, #interval, #ranges > button, .palette-foot .foot-action, .layer-row, .belt :is(.cap, .btn)):hover:where(.can-hover *):not(:active, [aria-pressed="true"], [aria-checked="true"], [aria-current], .selected, .picked, .lit) {
+        background: none;
       }
 
       .chart-list {
@@ -1671,9 +1681,10 @@
           .nav-item > :not([data-icon], .chart-mark),
           .live > :not(i) {
             opacity: 0;
+            filter: blur(3px);
             pointer-events: none;
-            /* (Going back to the rail, the words fade as it narrows.) */
-            transition: opacity var(--fade);
+            /* (Going back to the rail, the words blur away before its edge reaches them.) */
+            transition: opacity var(--words-out) var(--ease), filter var(--words-out) var(--ease);
           }
 
           /* A group's head, its mark alone (the rest faded, out of reach: buttons), its rule short as Charts' is: at the
@@ -1682,8 +1693,9 @@
             :is(.head-name, .count, .turn, .chart-more, .list-head-add) {
               visibility: hidden;
               opacity: 0;
+              filter: blur(3px);
               pointer-events: none;
-              transition: opacity var(--fade), visibility 0s var(--fade);
+              transition: opacity var(--words-out) var(--ease), filter var(--words-out) var(--ease), visibility 0s var(--words-out);
             }
 
             &::before {
@@ -1773,10 +1785,11 @@
             visibility: hidden;
           }
 
-          /* The rail's icons stay where the open sidebar puts them (collapsing and expanding move nothing). */
+          /* The rail's icons stay where the open sidebar puts them (collapsing and expanding move nothing). (The list's
+             rows that show it, the open chart's, a folder's charts coming into line, New chart: as it narrows; the others,
+             once it's a rail: see there.) */
           .search,
-          .chart-row .chart-item,
-          .folder-row .folder-item,
+          :is(.chart-row, .folder-row):is(.active, .in-folder, .new-row) > :is(.chart-item, .folder-item),
           .side-action,
           .side-foot .nav-item,
           .live {
@@ -1822,19 +1835,64 @@
           }
         }
 
+        /* Opening, the words come out of a blur once there's room for them: as the sidebar settles, not cut by its edge. */
         .sidebar :is(.brand > :not(.logo), .search > :not([data-icon]), .nav-item > :not([data-icon], .chart-mark), .live > :not(i), .list-head :is(.head-name, .count, .list-head-add)) {
+          transition: opacity var(--words-in) var(--ease) var(--words-wait), filter var(--words-in) var(--ease) var(--words-wait);
+        }
+
+        /* (The widest words a little later, the search's, the live line's: once there's nearly room for them; a folder's
+           count, at the row's far end, once the edge has passed it.) */
+        .sidebar :is(.search > :not([data-icon]), .live > :not(i)) {
+          --words-wait: 170ms;
+          --words-in: 110ms;
+        }
+
+        .sidebar .folder-count {
+          --words-wait: 190ms;
+          --words-in: 90ms;
+        }
+
+        /* (A row's mark at its far end, an edited preview's dot, an edited preset's pencil: out of sight while the sidebar
+           slides (its row's shape changing under it), back as it settles.) */
+        .sidebar :is([data-preview-row] .chart-item, .preset-row).edited::after {
           transition: opacity var(--dur-small) var(--ease);
+        }
+
+        body[data-sliding] .sidebar :is([data-preview-row] .chart-item, .preset-row).edited::after {
+          opacity: 0;
+          transition: none;
         }
 
         /* (Opening, a head's New folder out of sight till the sidebar's open: at its edge, it'd ride over the head's name.) */
         body[data-sliding]:not([data-sidebar="collapsed"]) .sidebar .list-head-add {
           opacity: 0;
+          filter: blur(3px);
           transition: none;
         }
 
-        /* (Sliding open or shut: a name clipped as it comes, its "…" not redrawn each frame.) */
-        body[data-sliding] .sidebar .label {
-          text-overflow: clip;
+        /* (Sliding open or shut: a name clipped as it comes, its "…" not redrawn each frame; the list's scrollbar out of
+           sight, its size changing.) */
+        body[data-sliding] .sidebar {
+          .label {
+            text-overflow: clip;
+          }
+
+          .chart-list {
+            scrollbar-color: transparent transparent;
+          }
+        }
+
+        /* The list's other rows hold their shape while the sidebar slides (their words gone or not yet come, their icons
+           where they stay): laid out once, not each frame (a long list, every frame's cost), squares once it's a rail,
+           its own width meanwhile the open one's. */
+        body[data-sidebar="collapsed"]:not([data-sliding]) .sidebar :is(.chart-row, .folder-row) > :is(.chart-item, .folder-item) {
+          width: 30px;
+          margin-left: 6px;
+          padding: 0 0 0 7px;
+        }
+
+        body[data-sliding] .sidebar .chart-list {
+          width: var(--side);
         }
 
         /* Collapsing and expanding, every part eases with the sidebar's width (the fields and rows to the rail's squares
@@ -1848,6 +1906,11 @@
 
           .search {
             transition: width var(--dur-layout) var(--ease-layout), height var(--dur-layout) var(--ease-layout), margin var(--dur-layout) var(--ease-layout), padding var(--dur-layout) var(--ease-layout), box-shadow var(--fade), color var(--fade);
+          }
+
+          /* (The list's rows that hold their shape: see above.) */
+          .chart-list :is(.chart-row, .folder-row):not(.active, .in-folder, .new-row) > .nav-item {
+            transition: background var(--fade), color var(--fade);
           }
 
           .side-rule::after,
@@ -3520,7 +3583,11 @@
         border-left: 1px solid var(--line);
         transition: width var(--dur-layout) var(--ease-layout), border-width var(--dur-layout) var(--ease-layout);
 
+        /* (Its views at its own width, held to its outer edge: opening or shutting, they come and go with its inner edge, as a
+           drawer's, never cut mid-line.) */
         > .panel-view {
+          align-self: flex-end;
+          width: 100%;
           min-width: calc(var(--panel-width) - 1px);
         }
       }
@@ -6358,6 +6425,13 @@
 
         &:not(:has(kbd)) {
           padding-right: 9px;
+        }
+
+        /* (Its lines after the first, quieter: more about what the first names.) */
+        .tip-more {
+          display: block;
+          margin-top: 2px;
+          color: var(--muted);
         }
 
         kbd {
@@ -12919,13 +12993,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // folder's, on its toggle.)
         const putAway = prefs.sidebar === "collapsed" && document.activeElement?.closest(".sidebar") && !document.activeElement.matches(".nav-item, .list-head-name, .search, .brand a, #sidebar-toggle") ? document.activeElement : null;
         applySidebar();
+        // (No motion to it (transitions held off meanwhile: a width dragged): no slide to wait on.)
+        if (!widthMoving()) document.body.removeAttribute("data-sliding");
         // (The list's one stop for Tab on a row in sight.)
         roveList();
         keepFocus(putAway, () => $("sidebar-toggle"));
       }
       // (Slid, once its width's done moving: one turned back midway is cancelled, the one taking its place still going
       // (held a frame as the chart's sized for it: paused, see sizeOnce).)
-      const slid = (/** @type {TransitionEvent} */ event) => event.target === $("sidebar") && event.propertyName === "width" && !$("sidebar").getAnimations().some((motion) => motion instanceof CSSTransition && motion.transitionProperty === "width" && (motion.playState === "running" || motion.playState === "paused")) && document.body.removeAttribute("data-sliding");
+      const widthMoving = () => $("sidebar").getAnimations().some((motion) => motion instanceof CSSTransition && motion.transitionProperty === "width" && (motion.playState === "running" || motion.playState === "paused"));
+      const slid = (/** @type {TransitionEvent} */ event) => event.target === $("sidebar") && event.propertyName === "width" && !widthMoving() && document.body.removeAttribute("data-sliding");
       $("sidebar").addEventListener("transitionend", slid);
       $("sidebar").addEventListener("transitioncancel", slid);
       applySidebar();
@@ -13830,10 +13907,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * follows its box again.
        */
       let motionsSized = 0, sizeHeld = false;
+      /** The chart a motion only stretched, to draw at its end's width once it's over (see sizeOnce). @type {string | null} */
+      let stretchKept = null;
       /**
        * The chart as drawn, stretched to its box mid-motion (see stretchDrawn): its plot's width drawn, its scales' (`left`,
-       * the left one's), its pinned side, and the clipping let go of meanwhile (each element's own, as it was).
-       * @type {{ to: number, sides: number, left: number, leftAxis: boolean, clipped: [HTMLElement, string][] } | null}
+       * the left one's), its pinned side, the clipping let go of meanwhile (each element's own, as it was), and the room
+       * after its data's last value and before its first (Max's) as drawn, a range showing (`ranged`: drawn again as a
+       * range at the motion's end, else its bars kept at its edges).
+       * @type {{ to: number, sides: number, left: number, leftAxis: boolean, clipped: [HTMLElement, string][], room: number, lead: number, ranged: boolean } | null}
        */
       let drawnStretch = null;
       function sizeOnce() {
@@ -13864,14 +13945,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const across = Math.abs(end.width - now.width) >= 1 && Boolean(resolved?.times.length) && Boolean(chart) && drawnChart === chart?.id;
         const leftAxis = view.priceScale("left").width() > 0 && !(view.priceScale("right").width() > 0);
         const was = across ? (view.bvFlush(), view.timeScale().getVisibleLogicalRange()) : null;
+        // (Only its width changing (the sidebar's, the panel's): the drawing as it is, stretched from the first frame,
+        // nothing held back; drawn at its end's width once the motion's over (releaseSize), a long frame there unseen.
+        // Its height too (full screen): drawn at its end's size first.)
+        const later = across && Math.abs(end.height - own.height) < 1;
         stretchDrawn(null);
-        const width = end.width, height = end.height;
+        const width = later ? own.width : end.width, height = end.height;
+        stretchKept = later ? (chart?.id ?? null) : null;
         const side = across ? (leftAxis ? "left" : "right") : Math.abs(end.left - now.left) <= Math.abs(end.right - now.right) ? "left" : "right", edge = Math.abs(end.top - now.top) <= Math.abs(end.bottom - now.bottom) ? "top" : "bottom";
         view.applyOptions({ autoSize: false });
         sizeHeld = true;
         chartHeight = height;
         Object.assign(view.chartElement().style, { position: "absolute", left: "", right: "", top: "", bottom: "", [side]: "0", [edge]: "0", width: `${width}px`, height: `${height}px` });
-        if (width !== own.width || height !== own.height) {
+        if (!later && (width !== own.width || height !== own.height)) {
           // (Drawn at its new size now, the motions held at their start meanwhile: they start on the next frame, from
           // their start, not a long frame in.)
           for (const motion of inMotion) motion.pause();
@@ -13882,7 +13968,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // for each of them, hundreds with a long Library's rows.)
           requestAnimationFrame((time) => inMotion.filter((motion) => motion.playState === "paused").forEach((motion) => (motion.startTime = time - Number(at[inMotion.indexOf(motion)] ?? 0))));
         }
-        // (Stretched, by its scales as drawn at its end's width; a motion started mid-motion, its end size already drawn,
+        // (Stretched, by its scales as drawn (at its end's width, or as it was); a motion started mid-motion, as drawn
         // too.)
         if (across) {
           const left = view.priceScale("left").width(), right = view.priceScale("right").width(), element = view.chartElement();
@@ -13890,7 +13976,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // at the box.)
           const clipped = /** @type {[HTMLElement, string][]} */ ([element, ...all$("tr > td > div", element)].map((item) => [item, item.style.overflow]));
           for (const [item] of clipped) item.style.overflow = "visible";
-          drawnStretch = { to: width - left - right, sides: left + right, left, leftAxis: left > 0 && !(right > 0), clipped };
+          // (Stretched as it'll be drawn once it's over: a range showing (a preset's), drawn again at that width, the room
+          // after its last value as wide as the chart makes it, and Max's before its first kept; else its bars at its edges
+          // the same (see stretchDrawn).)
+          const ranged = presetShown && !glideTarget && Boolean(resolved?.times.length), at = (/** @type {number | undefined} */ time) => (ranged && time !== undefined ? view.timeScale().timeToCoordinate(/** @type {any} */ (time)) : null);
+          // (Max's room before the first value anything shown has, as applyRange keeps it.)
+          const first = at(resolved && chart ? resolved.times[Math.min(firstShown(chart, resolved), resolved.times.length - 1)] : undefined), last = at(resolved?.times.at(-1));
+          drawnStretch = { to: width - left - right, sides: left + right, left, leftAxis: left > 0 && !(right > 0), clipped, room: last === null ? 0 : Math.max(0, width - left - right - last), lead: first !== null && first > 0.5 ? first : 0, ranged };
           stretchDrawn(now.width);
           const frame = () => run === motionsSized && drawnStretch && (stretchDrawn(box.getBoundingClientRect().width), requestAnimationFrame(frame));
           requestAnimationFrame(frame);
@@ -13914,10 +14006,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           delete element.dataset.stretching;
           return;
         }
-        const { to, sides, left, leftAxis, clipped } = drawnStretch, from = Math.max(1, shown - sides);
+        const { to, sides, left, leftAxis, clipped, room, lead, ranged } = drawnStretch, from = Math.max(1, shown - sides);
         // (A pane's cells new meanwhile, their clipping let go of too.)
         for (const item of all$("tr > td > div", element)) if (!clipped.some(([held]) => held === item)) (clipped.push([item, item.style.overflow]), (item.style.overflow = "visible"));
-        for (const canvas of canvases) Object.assign(canvas.style, { transformOrigin: leftAxis ? "left" : "right", transform: `scaleX(${from / to})` });
+        // (As it's drawn once the motion's over, nothing moving then: a range's data stretched between Max's room before
+        // its first value and the room after its last (as wide as the chart makes it at each width, rightGap), those
+        // kept; else all of it.)
+        // (Too little between them to stretch (one value: the chart fits it instead), the whole of it.)
+        const held = ranged && to - lead - room > 1, gap = held ? rightGap(from) : 0, k = held ? (from - lead - gap) / (to - lead - room) : from / to;
+        for (const canvas of canvases) Object.assign(canvas.style, { transformOrigin: leftAxis ? "left" : "right", transform: leftAxis ? `translateX(${held ? lead * (1 - k) : 0}px) scaleX(${k})` : `translateX(${held ? k * room - gap : 0}px) scaleX(${k})` });
         // (The panes' rules (a separator's cell, across the scales' room too) from the chart's pinned edge; the last
         // pane's, along the plot.)
         for (const rule of rules) Object.assign(rule.style, { transformOrigin: leftAxis ? "left" : "right", transform: `scaleX(${(from + sides) / (to + sides)})` });
@@ -13943,8 +14040,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!sizeHeld) return;
         sizeHeld = false;
         stretchDrawn(null);
-        // (Back in its box, the whole of it, as the library made it.)
+        // (Back in its box, the whole of it, as the library made it: drawn there now, if the motion only stretched it,
+        // its stretch of time kept.)
         Object.assign(view.chartElement().style, { position: "", left: "", right: "", top: "", bottom: "", width: "100%", height: "100%" });
+        // (Its view as it is now, a pan or a zoom meanwhile kept; another chart opened meanwhile drew itself.)
+        if (stretchKept && stretchKept === chart?.id && drawnChart === chart.id) {
+          const { width, height } = $("chart").getBoundingClientRect(), was = (view.bvFlush(), view.timeScale().getVisibleLogicalRange());
+          view.resize(width, height, true);
+          keepStretch(was);
+        }
+        stretchKept = null;
         view.applyOptions({ autoSize: true });
         chartHeight = $("chart").getBoundingClientRect().height;
         relayout();
@@ -14105,7 +14210,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let drawnVersion = 0;
       let drawnIndex = "";
       /** The interval of the data on screen: during a switch, the old one (its data the one drawn till the new one's in). */
-      const shownIndex = () => drawnIndex || chart.index;
+      const shownIndex = () => drawnIndex || chart?.index || "day1";
       /** Whether what's drawn is at a fine interval (its dates written with their times): during a switch, the old data's. */
       const fineDrawn = () => FINE.has(shownIndex());
       /** A point's date as its interval (the one drawn, else `index`) has it: a month's, its month ("Oct 2023"); a year's, its year; a day's, its day; finer, its time too. @param {number} time @param {string} [index] */
@@ -14969,7 +15074,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               : layer.hidden || !result?.values || (layer.type === "signal" && !signalShown(layer)) ? '<span class="legend-value"></span>'
               : `<span class="legend-value" data-value="${layer.id}" style="min-width: ${valueSlot(layer, 12)}px"></span>`;
             return `<button type="button" class="${layer.hidden || (layer.type === "signal" && !signalShown(layer)) ? "hidden" : ""} ${layer.id === selected || layerPicks.has(layer.id) ? "selected" : ""}" data-select="${layer.id}">
-              <span class="legend-name"><span class="legend-eye${layer.hidden ? " off" : ""}" data-toggle="${layer.id}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : ` · ${keyText("⌥-click: alone in its pane")}`}">${seriesMark(layer)}<span class="eye">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</span></span><span class="name">${escape(labelOf(layer))}</span></span>${value}
+              <span class="legend-name"><span class="legend-eye${layer.hidden ? " off" : ""}" data-toggle="${layer.id}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${seriesMark(layer)}<span class="eye">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</span></span><span class="name">${escape(labelOf(layer))}</span></span>${value}
             </button>`;
           }).join("");
           if (legendShown.get(element) === html) continue;
@@ -15122,6 +15227,37 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (event.target !== $("chart-list")) sideLight(null);
       });
       $("chart-list").addEventListener("pointerleave", () => sideLight(null));
+      /**
+       * A group's rows lit by one highlight, gliding from row to row as a mouse goes along them (see glides): between them,
+       * it stays; out of the group, it goes; on one that can't be pressed, none. @param {HTMLElement} group @param {string} rows
+       */
+      function glideRows(group, rows) {
+        // (A row written anew (a layer's, a tool's), the one that's it now: by its id, else what names it.)
+        const light = glides(group, {
+          again: (gone) => {
+            const key = gone.id ? `#${CSS.escape(gone.id)}` : ((name) => name && `[${name.name}="${CSS.escape(name.value)}"]`)([...gone.attributes].find(({ name }) => name.startsWith("data-") && !["data-tip", "data-kbd", "data-icon", "data-folding"].includes(name)));
+            const row = key ? /** @type {HTMLElement | null} */ (group.querySelector(key)) : null;
+            return row?.matches(rows) ? row : null;
+          },
+        });
+        group.addEventListener("pointerover", (event) => {
+          if (event.pointerType !== "mouse") return;
+          const row = closest(event, rows);
+          if (row && group.contains(row)) light(row.matches(':disabled, [aria-disabled="true"]') ? null : row);
+          // (Between its rows, it stays (their own groups' gaps too); on another of the group's controls (Keep, the live
+          // line, the navigator), none.)
+          else if (((control) => control && control !== group && group.contains(control))(closest(event, "button, a, input, select, [tabindex], [data-tip]"))) light(null);
+        });
+        group.addEventListener("pointerleave", () => light(null));
+      }
+      // Every group of rows a pointer goes along, as the sidebar's list, the menus and ⌘K: the sidebar's foot, the chart's
+      // tools, its foot's interval and ranges, ⌘K's foot, the layers, the drawing tools.
+      glideRows(/** @type {HTMLElement} */ (document.querySelector(".side-foot")), ".nav-item");
+      glideRows(/** @type {HTMLElement} */ ($("undo").parentElement), ".head-actions > .cap");
+      glideRows($("stage-foot"), "#interval, #ranges > button");
+      glideRows(/** @type {HTMLElement} */ (document.querySelector(".palette-foot")), ".foot-action");
+      glideRows($("layer-list"), ".layer-row");
+      glideRows($("belt"), ".belt :is(.cap, .btn)");
       /** The layer whose line the pointer is on: its legend item and panel row light up, the legend scrolling to it if it must. */
       let litLayer = null;
       /** Each layer's legend items and panel row, by its id: found again only when one's missing or gone from the page. */
@@ -15685,6 +15821,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (layoutFrame) return;
         layoutFrame = requestAnimationFrame(() => {
           layoutFrame = 0;
+          // (A layout's motion, the chart's size held: only the belt follows its box; the navigator stretches as the chart
+          // does (its brush in shares), the rest laid out once it ends (releaseSize).)
+          if (sizeHeld) return void placeBelt();
           // (The lens shows what the chart draws next: after this frame's changes.)
           if (lensAt) lookAt(lensAt);
           // A preset showing shows as much of it as the new width fits.
@@ -19551,8 +19690,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const title = escape(titleOf(doc)), on = picked.has(doc.id), preview = isPreview(doc);
         const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => `<span><i style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</span>`).join("");
         return `<div class="tile ${on ? "picked" : ""} ${preview ? "preview" : ""} ${preview && touched.has(doc) ? "edited" : ""}" data-home-card="${doc.id}">
-            <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</span>${plotHtml(doc)}</button>
-            <button type="button" class="cap small tile-more" data-tile-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button>
+            <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</span>${plotHtml(doc)}</button>
+            <button type="button" class="cap small tile-more" data-tile-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button>
             ${preview ? "" : `<input type="checkbox" class="pick-check tile-check" style="--tick:${escape(tickOn("ink"))}" aria-label="Select ${title}" ${on ? "checked" : ""} />`}
           </div>`;
       }
@@ -19666,10 +19805,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const folder = folderById(place.folder);
         return [group("library"), ...(folder ? [...foldersAbove(folder), folder] : []).map((step) => ({ name: step.name, at: { folder: step.id } }))];
       }
+      /** A preset chart's sections, by its own key (read as stored: anything but a list of names, none). @param {Chart} doc */
+      function presetPathOf(doc) {
+        try {
+          const path = doc.preset === undefined ? null : JSON.parse(doc.preset);
+          return Array.isArray(path) && path.length && path.every((name) => typeof name === "string") ? /** @type {string[]} */ (path).slice(0, -1) : null;
+        } catch {
+          return null;
+        }
+      }
       /** Where the open chart is: a preset's section, your folder (or the Library's top), the previews; a new chart, not yet anywhere, nowhere. @returns {Place | null} */
       function chartPlace() {
         const i = presetIndex(chart);
+        // (A preset's, before the presets are read: its own key says where it is (its sections, then its name).)
         return i >= 0 ? { path: /** @type {Preset[]} */ (presets)[i].p.slice(0, -1) }
+          : !presets && presetPathOf(chart) ? { path: /** @type {string[]} */ (presetPathOf(chart)) }
           : isPreview(chart) && !drafts.has(chart) ? { previews: true }
           : library.charts.includes(chart) ? { folder: chart.folder ?? "" }
           : null;
@@ -19679,7 +19829,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Where the open chart is, before its name (see .chart-path): the section, folder or group it's in, its menu's anchor (see chartPathRows). */
       function renderChartPath() {
         const place = chartPlace(), steps = place ? stepsTo(place) : [], parent = steps.at(-1);
-        const html = parent ? `<button type="button" id="chart-place" dir="auto" aria-haspopup="menu" aria-label="In ${escape(steps.map((step) => step.name).join(", "))}">${escape(parent.name)}</button><span class="sep" aria-hidden="true">›</span>` : "";
+        const html = parent ? `<button type="button" id="chart-place" dir="auto" aria-haspopup="menu" aria-label="In ${escape(steps.map((step) => step.name).join(", "))}" data-tip="In ${escape(steps.map((step) => step.name).join(" › "))}">${escape(parent.name)}</button><span class="sep" aria-hidden="true">›</span>` : "";
         $("chart-path").hidden = !html;
         if (html !== chartPathDrawn) $("chart-path").innerHTML = chartPathDrawn = html;
       }
@@ -19692,15 +19842,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const place = chartPlace();
         if (!place) return [];
         const steps = stepsTo(place), at = /** @type {Step} */ (steps.at(-1)).name;
-        const page = (/** @type {Step} */ step, icon = ICONS.folder) => ({ icon, label: step.name, run: () => goTo(step.at) });
-        const doc = (/** @type {Chart} */ item) => ({ group: at, label: titleOf(item), current: item === chart, run: () => go(chartById(item.id)) });
+        // (Every row in the ticked one's column: the open chart's tick, the others' room for it.)
+        const page = (/** @type {Step} */ step, icon = ICONS.folder) => ({ icon, label: step.name, current: false, run: () => goTo(step.at) });
+        // (Each chart by its mini chart, as the sidebar has it.)
+        const doc = (/** @type {Chart} */ item) => ({ group: at, icon: chartMark(item), label: titleOf(item), current: item === chart, run: () => go(chartById(item.id)) });
         /** @type {Action[]} */
         const inside = "path" in place
           ? (presetNodeAt(place.path)?.items ?? []).map((item) => (typeof item === "number"
-            ? { group: at, label: ((edited) => (edited ? titleOf(edited) : /** @type {Preset[]} */ (presets)[item].t))(keptPreset(item)), current: item === presetIndex(chart), run: () => pickPreset(item) }
+            ? { group: at, icon: presetMark(item), label: ((edited) => (edited ? titleOf(edited) : /** @type {Preset[]} */ (presets)[item].t))(keptPreset(item)), current: item === presetIndex(chart), run: () => pickPreset(item) }
             : { group: at, ...page({ name: /** @type {string} */ (item.path.at(-1)), at: { path: item.path } }) }))
           : "folder" in place ? childrenOf(place.folder || undefined).map((item) => ("layers" in item ? doc(item) : { group: at, ...page({ name: item.name, at: { folder: item.id } }) }))
           : listedPreviews().map(doc);
+        // (Its presets' marks not drawn yet, drawn now, as the sidebar's rows in sight are.)
+        if ("path" in place) for (const item of presetNodeAt(place.path)?.items ?? []) if (typeof item === "number" && !presetMarks.has(presetMarkKey(item))) presetMarksAsked.add(item);
+        drawPresetMarks();
         return [...steps.map((step) => page(step, ICONS.folderOpen)), ...inside];
       }
       $("chart-path").addEventListener("click", (/** @type {MouseEvent} */ event) => {
@@ -19791,7 +19946,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * it says (else, that it has none).
        * @param {{ name: string, place: Place, folder?: string, count: number, previews?: boolean, empty?: string }} shelf @param {string} tiles
        */
-      const folderShelfHtml = ({ name, place, folder, count, previews, empty }, tiles) => `<section class="shelf${previews ? " previews" : ""}"><div class="shelf-head"${folder === undefined ? "" : ` data-grid-folder="${folder}"`}><button type="button" class="shelf-title" data-place="${escape(JSON.stringify(place))}">${folder ? ICONS.folder : ""}${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>${folder ? `<button type="button" class="cap small shelf-more" data-folder-menu="${folder}" aria-haspopup="menu" aria-label="More for ${escape(name)}">${ICONS.more}</button>` : ""}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${tiles ? `${tiles}${seeAll(place, count)}` : empty || `<p class="shelf-empty">No charts in it yet</p>`}</div></section>`;
+      const folderShelfHtml = ({ name, place, folder, count, previews, empty }, tiles) => `<section class="shelf${previews ? " previews" : ""}"><div class="shelf-head"${folder === undefined ? "" : ` data-grid-folder="${folder}"`}><button type="button" class="shelf-title" data-place="${escape(JSON.stringify(place))}">${folder ? ICONS.folder : ""}${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>${folder ? `<button type="button" class="cap small shelf-more" data-folder-menu="${folder}" aria-haspopup="menu" aria-label="More for ${escape(name)}" data-tip="More">${ICONS.more}</button>` : ""}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${tiles ? `${tiles}${seeAll(place, count)}` : empty || `<p class="shelf-empty">No charts in it yet</p>`}</div></section>`;
       /** A chart's tile: what the chart grows out of and shrinks into. */
       const cardOf = (id) => /** @type {HTMLElement | null} */ ($("home-grid").querySelector(`[data-home-card="${id}"]`));
       const tileOpen = (id) => /** @type {HTMLElement | null} */ (cardOf(id)?.querySelector(".tile-open") ?? null);
@@ -19900,7 +20055,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function presetTileHtml(/** @type {number} */ i, doc = presetDoc(i), card = -1) {
         const title = escape(titleOf(doc));
         const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => `<span><i style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</span>`).join("");
-        return `<div class="tile preset-tile ${doc.preset !== undefined && presetEdited(doc) ? "edited" : ""}" data-preset="${i}"><button type="button" class="tile-open" ${card < 0 ? `data-open-preset="${i}"` : `data-template="${card}"`} aria-label="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend}</span>${plotHtml(doc, true, card < 0 ? "tile-plot" : "template-plot tile-plot")}</button><button type="button" class="cap small tile-more" data-preset-menu="${i}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button></div>`;
+        return `<div class="tile preset-tile ${doc.preset !== undefined && presetEdited(doc) ? "edited" : ""}" data-preset="${i}"><button type="button" class="tile-open" ${card < 0 ? `data-open-preset="${i}"` : `data-template="${card}"`} aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend}</span>${plotHtml(doc, true, card < 0 ? "tile-plot" : "template-plot tile-plot")}</button><button type="button" class="cap small tile-more" data-preset-menu="${i}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button></div>`;
       }
       /** The gallery's lists as drawn, each by its place there (its grid's Show more finds its own by it). */
       let listsDrawn = 0;
@@ -21100,7 +21255,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const keys = numbered();
         const row = (/** @type {Chart} */ doc, depth = 0) => ((i) => `<div class="chart-row ${depth ? "in-folder" : ""}" data-chart-row="${doc.id}" style="--depth: ${depth}">
             <button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}" ${i >= 0 ? `data-kbd="⌘ ${i + 1}"` : ""}>${chartMark(doc)}<span class="label ${doc.title ? "" : "derived"}">${escape(titleOf(doc))}</span>${i >= 0 ? `<kbd class="mod">${keyText(`⌘${i + 1}`)}</kbd>` : ""}</button>
-            <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escape(titleOf(doc))}">${ICONS.more}</button>
+            <button type="button" class="cap small chart-more" data-chart-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${escape(titleOf(doc))}" data-tip="More">${ICONS.more}</button>
           </div>`)(keys.indexOf(doc));
         /** @type {[string, string][]} */
         const parts = [
@@ -21120,7 +21275,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const folder = item, holds = Boolean(current?.folder && isIn(current.folder, folder.id));
             return /** @type {[string, string]} */ ([`folder:${folder.id}`, `<div class="folder-row ${depth ? "in-folder" : ""} ${folder.closed ? "closed" : ""} ${folder.closed && holds ? "holds" : ""}" data-folder-row="${folder.id}" style="--depth: ${depth}">
               <button type="button" class="nav-item folder-item" data-folder-item="${folder.id}" aria-expanded="${!folder.closed}" data-tip="${escape(folder.name)}"><span class="chart-mark folder-glyph">${folder.closed ? ICONS.folder : ICONS.folderOpen}</span><span class="label">${escape(folder.name)}</span><span class="folder-count">${shortCount(counts.get(folder.id) ?? 0)}</span></button>
-              <button type="button" class="cap small chart-more" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}">${ICONS.more}</button>
+              <button type="button" class="cap small chart-more" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}" data-tip="More">${ICONS.more}</button>
             </div>`]);
           })]),
           ...presetParts(),
@@ -21181,7 +21336,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const sideHead = (group, count, holds) => {
         const [name, place] = GROUP_OF[group], shut = groupShut(group);
         // (Your Library's: its New folder too, folders being its own.)
-        return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""} ${group === "library" ? "adds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}" aria-label="${name}, ${count}" data-tip="${name}"><span class="head-mark">${ICONS[GROUP_MARK[group]]}</span><span class="head-name">${name}</span><span class="count">${shortCount(count)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span></button><button type="button" class="cap small chart-more" data-group-menu="${group}" aria-haspopup="menu" aria-label="More for ${name}">${ICONS.more}</button>${group === "library" ? `<button type="button" class="cap small list-head-add" data-new-folder aria-label="New folder" data-tip="New folder">${ICONS.folderAdd}</button>` : ""}</div>`];
+        return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""} ${group === "library" ? "adds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}" aria-label="${name}, ${count}" data-tip="${name}"><span class="head-mark">${ICONS[GROUP_MARK[group]]}</span><span class="head-name">${name}</span><span class="count">${shortCount(count)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span></button><button type="button" class="cap small chart-more" data-group-menu="${group}" aria-haspopup="menu" aria-label="More for ${name}" data-tip="More">${ICONS.more}</button>${group === "library" ? `<button type="button" class="cap small list-head-add" data-new-folder aria-label="New folder" data-tip="New folder">${ICONS.folderAdd}</button>` : ""}</div>`];
       };
       /** A group's menu in the sidebar (its ⋯, a right-click): its page; open or close it there. @param {Group} group @returns {Action[]} */
       const groupRows = (group) => [
@@ -21242,9 +21397,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // (By the preset, as made; edited here, by its copy as it is: nothing else changes it.)
       const presetMarkKey = (/** @type {number} */ i) => ((doc) => (doc ? `${doc.id}@${doc.updated}` : presetKey(i)))(keptPreset(i));
       /** A preset's mark, as its row shows it: drawn, else the empty one till it is. */
-      const presetMark = (/** @type {number} */ i) => markOf(presetMarks.get(presetMarkKey(i)) ?? []);
+      const presetMark = (/** @type {number} */ i) => markOf(presetMarks.get(presetMarkKey(i)) ?? []).replace("<svg ", `<svg data-preset-mark="${i}" `);
       /** The preset rows in sight, their marks drawn one at a time; one gone out of sight before its turn, let go of. */
       const presetMarkQueue = /** @type {Set<number>} */ (new Set());
+      /** The presets a menu shows, their marks to draw (apart from the sidebar's rows in sight, which it clears). */
+      const presetMarksAsked = /** @type {Set<number>} */ (new Set());
       const presetRowsSeen = new IntersectionObserver((entries) => {
         for (const { target, isIntersecting } of entries) {
           const i = Number(/** @type {HTMLElement} */ (target).dataset.presetRow);
@@ -21254,16 +21411,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         drawPresetMarks();
       }, { root: $("chart-list") });
       const drawPresetMarks = serial(async () => {
-        for (const i of presetMarkQueue) {
+        for (const i of [...presetMarkQueue, ...presetMarksAsked]) {
           presetMarkQueue.delete(i);
+          presetMarksAsked.delete(i);
           if (!presets?.[i] || presetMarks.has(presetMarkKey(i))) continue;
           const doc = presetDoc(i), key = presetMarkKey(i);
           const drawing = doc.layers.length ? await drawThumb(structuredClone(doc)).catch(() => null) : { lines: [] };
           if (!drawing) continue;
           presetMarks.set(key, drawing.lines);
           for (const [old] of presetMarks) if (presetMarks.size > 400) presetMarks.delete(old);
-          const mark = $("chart-list").querySelector(`[data-preset-row="${i}"] .chart-mark`);
-          if (mark) mark.outerHTML = presetMark(i);
+          // (Wherever it shows: its row, a menu of its section's.)
+          for (const mark of all$(`[data-preset-mark="${i}"]`)) mark.outerHTML = presetMark(i);
         }
       });
       /**
@@ -21287,13 +21445,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // (In its folders, by its own name, the folders saying the rest; its title on hover. Retitled here, by that.)
               const preset = /** @type {Preset[]} */ (presets)[item], doc = keptPreset(item), edited = Boolean(doc && presetEdited(doc));
               const title = escape(doc ? titleOf(doc) : preset.t), label = doc && titleOf(doc) !== preset.t ? title : escape(/** @type {string} */ (preset.p.at(-1)));
-              parts.push([`preset:${item}`, `<div class="chart-row preset-row in-folder ${edited ? "edited" : ""}" data-preset-row="${item}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-preset="${item}" data-tip="${title}${edited ? ": edited here" : ""}">${presetMark(item)}<span class="label">${label}</span></button><button type="button" class="cap small chart-more" data-preset-menu="${item}" aria-haspopup="menu" aria-label="More for ${title}">${ICONS.more}</button></div>`]);
+              parts.push([`preset:${item}`, `<div class="chart-row preset-row in-folder ${edited ? "edited" : ""}" data-preset-row="${item}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-preset="${item}" data-tip="${title}${edited ? ": edited here" : ""}">${presetMark(item)}<span class="label">${label}</span></button><button type="button" class="cap small chart-more" data-preset-menu="${item}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button></div>`]);
               continue;
             }
             const section = item, shown = open.has(section.key), name = /** @type {string} */ (section.path.at(-1)), key = escape(section.key);
             parts.push([`section:${section.key}`, `<div class="folder-row section-row ${depth ? "in-folder" : ""} ${shown ? "" : "closed"} ${!shown && holding.has(section.key) ? "holds" : ""}" data-section-row="${key}" style="--depth: ${depth}">
               <button type="button" class="nav-item folder-item" data-section-item="${key}" aria-expanded="${shown}" data-tip="${escape(name)}"><span class="chart-mark folder-glyph">${shown ? ICONS.folderOpen : ICONS.folder}</span><span class="label">${escape(name)}</span><span class="folder-count">${shortCount(section.count)}</span></button>
-              <button type="button" class="cap small chart-more" data-section-menu="${key}" aria-haspopup="menu" aria-label="More for ${escape(name)}">${ICONS.more}</button>
+              <button type="button" class="cap small chart-more" data-section-menu="${key}" aria-haspopup="menu" aria-label="More for ${escape(name)}" data-tip="More">${ICONS.more}</button>
             </div>`]);
             if (shown) walk(section, depth + 1);
           }
@@ -21488,7 +21646,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function renderTheme() {
         const [, name, icon] = THEMES.find(([id]) => id === prefs.theme) ?? THEMES[2];
         $("theme-icon").innerHTML = ICONS[icon];
-        $("theme").dataset.tip = `Theme: ${name}`;
+        $("theme").dataset.tip = "Theme";
         $("theme-name").textContent = name;
         $("home-theme").innerHTML = `${ICONS[icon]}Theme: ${name}`;
       }
@@ -21582,6 +21740,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function foldRows(elements, closing, was = () => undefined) {
         const now = elements.map((element) => (element.getAnimations().length ? element.getBoundingClientRect().height : undefined));
+        // (One turned back: its opacity as it is (held a while, see below), not as its height would have it.)
+        const seen = elements.map((element) => (element.getAnimations().length ? Number(getComputedStyle(element).opacity) : undefined));
         for (const element of elements) for (const animation of element.getAnimations()) animation.cancel();
         // (Its gap from the one above, as wide as its list has it, goes and comes with it: a list's, read once.)
         const gaps = new Map();
@@ -21591,14 +21751,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return { full: element.offsetHeight, gap: gaps.get(list) };
         });
         return elements.map((element, i) => {
-          const { full, gap } = measured[i], from = was(element) ?? now[i] ?? (closing ? full : 0), shown = full ? from / full : 1;
+          const { full, gap } = measured[i], from = was(element) ?? now[i] ?? (closing ? full : 0), shown = seen[i] ?? (full ? from / full : 1);
           Object.assign(element.style, { overflow: "clip", overflowClipMargin: "1px", alignItems: "flex-end" });
           element.inert = closing;
-          const animation = element.animate({
-            height: [`${from}px`, `${closing ? 0 : full}px`],
-            marginTop: closing ? ["0px", gap] : [gap, "0px"],
-            opacity: [shown, closing ? 0 : 1],
-          }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none" });
+          // (Seen only once it's nearly out: a row partly shown is its words sliced. Folding, gone by a third.)
+          const animation = element.animate([
+            { height: `${from}px`, marginTop: closing ? "0px" : gap, opacity: shown },
+            { opacity: closing ? 0 : shown, offset: closing ? 0.35 : 0.6 },
+            { height: `${closing ? 0 : full}px`, marginTop: closing ? gap : "0px", opacity: closing ? 0 : 1 },
+          ], { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none" });
           // (Folding, it's no row to light: see glides. Unmarked once this fold's done, unless another's begun meanwhile.)
           element.dataset.folding = "";
           foldOf.set(element, animation);
@@ -23467,7 +23628,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                   <span class="row-text"><span class="name">${escape(labelOf(layer))}</span>${sub}</span>
                   <span class="row-figures"${layer.type === "cloud" && result?.low ? ` style="min-width: ${valueSlot(layer, rowSizes.value, true)}px"` : ""}><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.type === "cloud" ? " data-lines" : ""}`}></span>${layer.type === "cloud" || layer.type === "signal" ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}</span>
                 </button>
-                <button type="button" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : ` ${keyText("(⌥-click: alone in its pane)")}`}">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>
+                <button type="button" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>
               </div>`;
             })(layer)]))];
           return { key: pane.id, open: `<section class="pane-group" data-pane="${pane.id}">`, rows };
@@ -23796,7 +23957,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * back on it once redrawn). @param {Layer} layer
        */
       /** The layer's eye, by its name in its settings. */
-      const eyeOf = (/** @type {Layer} */ layer) => `<button type="button" id="inspector-eye" data-hidden="${Boolean(layer.hidden)}" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : ` ${keyText("(⌥-click: alone in its pane)")}`}" data-kbd="H">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>`;
+      const eyeOf = (/** @type {Layer} */ layer) => `<button type="button" id="inspector-eye" data-hidden="${Boolean(layer.hidden)}" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}" data-kbd="H">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>`;
       const actionsOf = (/** @type {Layer} */ layer) => `<section class="layer-actions">${layerActions(layer.id, "panel").map((row, i) => `<button type="button" id="act-${row.key}" class="nav-item${row.danger ? " danger" : ""}" data-act="${i}"${row.page ? ' aria-haspopup="menu"' : ""}${row.disabled ? ` aria-disabled="true" data-tip="${escape(row.disabled)}"` : ""}${row.kbd?.startsWith("⌘") ? ` data-kbd="${[...row.kbd].join(" ")}"` : ""}>${row.icon ?? ""}<span class="label">${escape(row.label)}</span>${row.kbd ? `<kbd${row.kbd.startsWith("⌘") ? ' class="mod"' : ""}>${escape(keyText(row.kbd))}</kbd>` : ""}</button>`).join("")}</section>`;
       /** The panel waiting to be drawn again, a color's hex being typed in it (see renderInspector). */
       let inspectorDue = false;
@@ -24184,7 +24345,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * field, a color another's); joined under its surface, the two one control. @param {string} target @param {string} color
        */
       const hexField = (target, color) => `<label class="hex-field"><span class="hex-box"><input class="hex" data-hex="${escape(target)}" value="${color ? escape(ink(color)) : ""}" maxlength="40" spellcheck="false" autocomplete="off" aria-label="Hex color" /><span class="color-now">${color ? escape(colorName(color)) : ""}</span></span></label>`;
-      const swatchGrid = (/** @type {string} */ current) => `<div class="swatch-grid" role="radiogroup" aria-label="Bitview's colors">${SWATCHES.map((color) => `<button type="button" role="radio" data-pick-color="${escape(color)}" aria-checked="${current === color}" aria-label="${escape(colorName(color))}"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button>`).join("")}</div>`;
+      const swatchGrid = (/** @type {string} */ current) => `<div class="swatch-grid" role="radiogroup" aria-label="Bitview's colors">${SWATCHES.map((color) => `<button type="button" role="radio" data-pick-color="${escape(color)}" aria-checked="${current === color}" aria-label="${escape(colorName(color))}" data-tip="${escape(colorName(color))}"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button>`).join("")}</div>`;
       /** The surface: every hue across, lightness down, the color's place ringed (`target`: what it picks for, see planeTarget). */
       function planeHtml(/** @type {string} */ color, /** @type {string} */ target, name = "Color") {
         const { u, t } = placeOf(color), said = planeSays(color, u);
@@ -29171,7 +29332,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const sidebar = $("sidebar");
         const shut = () => {
           clearTimeout(flyTimer);
-          if (from && flyout && ownerNow() === from) hideMenu();
+          // (What opened it written anew meanwhile (the chart's place): its flyout goes all the same.)
+          if (from && flyout && (ownerNow() === from || !from.isConnected)) hideMenu();
           from = null;
           flyout = false;
         };
@@ -29220,27 +29382,41 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // (Pressed, the folder opens: its flyout goes.)
         $("chart-list").addEventListener("click", (event) => closest(event, "[data-folder-row]") && shut(), true);
-        // The chart's ⋯ the same: pointed at a moment, its menu; pressed then, the menu's kept (a press with none shown
-        // opens it, as before).
+        /**
+         * A button whose menu (`open`) shows as it's pointed at a moment; pressed then, the menu's kept (a press with none
+         * shown opens it, as its own click does). Found in `host` by `anchorOf` (one written anew, as the chart's place).
+         * @param {HTMLElement} host @param {(event: Event) => HTMLElement | null} anchorOf @param {(anchor: HTMLElement) => void} open
+         */
+        const hoverMenu = (host, anchorOf, open) => {
+          host.addEventListener("pointerover", (event) => {
+            const anchor = anchorOf(event);
+            if (event.pointerType !== "mouse" || phone.matches || !anchor) return;
+            // (A folder's flyout still showing, on its way out: it goes now, not left behind.)
+            if (flyout && from !== anchor) shut();
+            clearTimeout(flyTimer);
+            if (!$("menu").hidden) return;
+            lookSoon(anchor, HOVER.button, () => (hideTip(), open(anchor)), async () => !anchor.hidden);
+          });
+          host.addEventListener("pointerout", (event) => {
+            const anchor = anchorOf(event);
+            if (event.pointerType === "mouse" && anchor && from === anchor && flyout && !(event.relatedTarget instanceof Element && anchor.contains(event.relatedTarget))) goSoon();
+          });
+          host.addEventListener("click", (event) => {
+            const anchor = anchorOf(event);
+            if (!anchor) return;
+            if (from === anchor || !flyout) clearTimeout(flyTimer);
+            if (from !== anchor || !flyout || ownerNow() !== anchor) return;
+            event.stopImmediatePropagation();
+            flyout = false;
+            from = null;
+            // (Kept, as a press opens one: the focus in it, for its keys.)
+            /** @type {HTMLElement | null} */ ($("menu").querySelector("button:not(:disabled)"))?.focus({ preventScroll: true });
+          }, true);
+        };
+        // The chart's ⋯ the same, and its place (the folder before its name): pointed at a moment, its menu.
         const more = $("chart-more");
-        more.addEventListener("pointerenter", (event) => {
-          if (event.pointerType !== "mouse" || phone.matches) return;
-          // (A folder's flyout still showing, on its way out: it goes now, not left behind.)
-          if (flyout && from !== more) shut();
-          clearTimeout(flyTimer);
-          if (!$("menu").hidden) return;
-          lookSoon(more, HOVER.button, () => (hideTip(), menuOf(more, chartActions(chart.id, "head"), null, "", { hover: true })), async () => !more.hidden);
-        });
-        more.addEventListener("pointerleave", (event) => event.pointerType === "mouse" && from === more && flyout && goSoon());
-        more.addEventListener("click", (event) => {
-          if (from === more || !flyout) clearTimeout(flyTimer);
-          if (from !== more || !flyout || ownerNow() !== more) return;
-          event.stopImmediatePropagation();
-          flyout = false;
-          from = null;
-          // (Kept, as a press opens one: the focus in it, for its keys.)
-          /** @type {HTMLElement | null} */ ($("menu").querySelector("button:not(:disabled)"))?.focus({ preventScroll: true });
-        }, true);
+        hoverMenu(more, () => more, (anchor) => menuOf(anchor, chartActions(chart.id, "head"), null, "", { hover: true }));
+        hoverMenu($("chart-path"), (event) => /** @type {HTMLElement | null} */ (closest(event, "#chart-place")), (anchor) => menuOf(anchor, chartPathRows(), null, "", { hover: true }));
       }
       function hideMenu() {
         flyout = false;
@@ -30504,22 +30680,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       const tip = $("tip");
       let tipTarget = null, tipTimer = 0, tipClosed = 0;
+      /** What the pointer's over: in the open sidebar, an item's icon has its tip, its name shown whole doesn't. */
+      let tipPointed = /** @type {Element | null} */ (null);
       /** The item a shown tip describes (as its description, to a screen reader, where its label doesn't say it already). */
       let described = /** @type {HTMLElement | null} */ (null);
+      function tipWanted(/** @type {HTMLElement} */ target) {
+        const name = target.querySelector(".name, .label, .head-name, .tile-name");
+        const repeats = Boolean(name) && name.scrollWidth <= name.clientWidth && name.textContent.trim() === target.dataset.tip;
+        const keys = Boolean(target.dataset.kbd && answers(target.dataset.kbd));
+        return !repeats || (target.closest(".sidebar") ? railed() || Boolean(tipPointed && target.contains(tipPointed) && tipPointed.closest("[data-icon], .chart-mark, .head-mark")) : keys);
+      }
       function showTip(target) {
         if (!target.isConnected || (ownerNow() === target && !$("menu").hidden)) return;
-        // The expanded sidebar says what its items do, and a tip repeating a label shown in full adds nothing:
-        // only a name cut short, or hidden on the rail, needs one.
-        const rail = railed() && Boolean(target.closest(".sidebar"));
-        const name = target.querySelector(".name, .label");
-        const full = Boolean(name) && name.scrollWidth <= name.clientWidth;
-        if (!rail && target.matches(".sidebar :is(.brand, .search, .nav-item, .list-head-name)") && (!name || full)) return;
-        if (!rail && full && name.textContent.trim() === target.dataset.tip) return;
+        // A tip names what only an icon or a value shows, or gives its keys: words shown whole, the same, nothing more
+        // to say. The open sidebar names its items: there, an item's icon pointed at says it (as the rail does), its
+        // name pointed at doesn't, unless it's cut short.
+        if (!tipWanted(target)) return;
+        const keys = target.dataset.kbd && answers(target.dataset.kbd) ? keycaps(target.dataset.kbd) : "";
         // Inside a modal dialog, the tip must live in the dialog's top layer to be seen.
         const host = target.closest("dialog") ?? document.body;
         if (tip.parentElement !== host) host.append(tip);
-        const keys = target.dataset.kbd && answers(target.dataset.kbd) ? keycaps(target.dataset.kbd) : "";
-        tip.innerHTML = `<span>${escape(target.dataset.tip)}</span>${keys}`;
+        // (A tip of several lines: its first, what it is; the others, quieter, more about it.)
+        const [head, ...more] = target.dataset.tip.split("\n");
+        tip.innerHTML = `<span>${escape(head)}${more.length ? `<span class="tip-more">${more.map(escape).join("<br>")}</span>` : ""}</span>${keys}`;
         drawKeys(tip);
         tip.hidden = false;
         if (target.getAttribute("aria-label") !== target.dataset.tip) {
@@ -30544,6 +30727,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       function hideTip() {
         clearTimeout(tipTimer);
+        tipTimer = 0;
         // (Set only when it changes: set again, the page's style is looked at again.)
         if (!tip.hidden) (tipClosed = performance.now()), (tip.hidden = true);
         tipTarget = null;
@@ -30558,6 +30742,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const target = /** @type {HTMLElement} */ (event.target);
         if (!(target instanceof HTMLElement) || !target.dataset.tip || target === tipTarget || !tabbing || !target.matches(":focus-visible") || typing(target)) return;
         hideTip();
+        tipPointed = null;
         tipTarget = target;
         tip.classList.add("warm");
         showTip(target);
@@ -30567,14 +30752,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (None by touch, nor while a press drags: the navigator's, a slider's.)
         if (event.pointerType === "touch" || event.buttons) return;
         const target = closest(event, "[data-tip]");
-        if (target === tipTarget) return;
+        tipPointed = /** @type {Element} */ (event.target);
+        // (The same one, its tip shown or coming: from its icon to its name, gone where it's not wanted there; onto its
+        // icon from its name, its tip, if it hadn't one.)
+        if (target === tipTarget && (!tip.hidden || tipTimer)) return void (target && !tipWanted(target) && hideTip());
         hideTip();
         if (!target?.dataset.tip) return;
         tipTarget = target;
         // Once one tip has shown, neighbors show at once.
         const warm = performance.now() - tipClosed < 500;
         tip.classList.toggle("warm", warm);
-        tipTimer = setTimeout(() => showTip(target), warm ? 0 : 550);
+        tipTimer = setTimeout(() => ((tipTimer = 0), showTip(target)), warm ? 0 : 550);
       });
       document.addEventListener("pointerout", (event) => !event.relatedTarget && hideTip());
       for (const type of ["pointerdown", "keydown", "wheel", "scroll"]) document.addEventListener(type, hideTip, { capture: true, passive: true });
@@ -30871,10 +31059,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const offline = () => !navigator.onLine || Date.now() - answeredAt > 60_000;
       /** Live, with the last block the server's series include and when it came. */
       function updateStatus() {
-        const points = resolved?.times.length ?? 0;
         const at = liveAt ? new Date(liveAt * 1000) : null;
-        // The price once it's known, the block; the block's time (no room for it beside a price) in the tip. (That time by
-        // this person's own clock, unlike the chart's dates, all UTC: how long ago the last block came, as they'd read it.)
+        // The price once it's known, the block; how long ago the block came (no room for it beside a price) in the tip.
         const lost = offline();
         // (Nothing heard from the server yet, and not given up on: still connecting, as the page began (back online
         // after "Offline", too).)
@@ -30882,13 +31068,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $("live").classList.remove("offline");
           $("live").classList.add("waiting");
           $("stamp").textContent = $("home-live").textContent = "Connecting";
-          $("live").dataset.tip = `${SERVER_HOST}: connecting`;
+          liveTip(`Connecting to ${SERVER_HOST}`);
           return;
         }
         $("live").classList.toggle("offline", lost);
         $("live").classList.remove("waiting");
         $("stamp").textContent = $("home-live").textContent = [lost ? "Offline" : "Live", !lost && livePrice ? dollarsAndCents(livePrice) : "", liveHeight ? `#${grouped.format(liveHeight)}` : "", !livePrice && at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · ");
-        $("live").dataset.tip = [lost ? `${SERVER_HOST} isn't answering: trying again` : SERVER_HOST, !lost && livePrice ? `live price ${dollarsAndCents(livePrice)}` : "", liveHeight ? `data up to block ${grouped.format(liveHeight)}${at ? `, ${`${at.getDate()} ${MONTHS[at.getMonth()]}, ${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`}` : ""}` : "", points ? `${grouped.format(points)} points at ${INTERVAL_LABEL[shownIndex()]}` : "", lost ? "" : "new blocks show within seconds"].filter(Boolean).join(" · ");
+        const block = liveHeight ? `Last block ${grouped.format(liveHeight)}${at ? `, ${ago(at.getTime())}` : ""}` : "";
+        liveTip(lost ? (navigator.onLine ? `${SERVER_HOST} isn't answering` : "This device is offline") : `Live from ${SERVER_HOST}`, ...(lost ? [block, "Trying again every 15 seconds"] : [livePrice ? `Price ${dollarsAndCents(livePrice)}, as it trades` : "", block, "A new block shows within seconds"]));
+      }
+      /** The live line's tip, a line each (its first, what it is): the one open, said again. @param {...string} lines */
+      function liveTip(...lines) {
+        const said = lines.filter(Boolean).join("\n");
+        if ($("live").dataset.tip === said) return;
+        $("live").dataset.tip = said;
+        if (tipTarget === $("live") && !$("tip").hidden) showTip($("live"));
       }
 
       // ── Rendering the page ────────────────────────────────────────────────────
@@ -31409,7 +31603,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           checking = false;
         }
         answeredAt = Date.now();
-        if ($("live").classList.contains("offline")) updateStatus();
+        // (Each answer: back from offline, and how long ago the last block came, said anew.)
+        updateStatus();
         const height = health.computedHeight;
         if (!Number.isInteger(height) || height === liveHeight) return;
         const first = !liveHeight;
