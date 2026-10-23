@@ -37,6 +37,8 @@
         --loss: light-dark(#d92d20, #ff5147);
         /* (Lines and their keys: the brand's green, a shade deeper on white to read as a graphic, 3:1.) */
         --line-up: light-dark(#00a32a, #00d632);
+        /* (The smart plan, wherever it shows.) */
+        --smart: light-dark(#0a5ce6, #4d9fff);
         --gain-fill: light-dark(rgb(0 214 50 / 0.12), rgb(0 214 50 / 0.13));
         --loss-fill: light-dark(rgb(217 45 32 / 0.1), rgb(255 81 71 / 0.15));
         --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
@@ -173,11 +175,16 @@
         gap: 12px;
         margin-top: 24px;
 
+        /* (On a desk: the value, the plan and its breakdown beside it; the smart plan across under both.) */
         @media (min-width: 960px) {
           grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
           align-items: start;
           gap: 16px;
           margin-top: 32px;
+
+          .card.smart {
+            grid-column: 1 / -1;
+          }
         }
       }
 
@@ -341,6 +348,10 @@
           stroke-width: 1.75px;
         }
 
+        &.smart {
+          stroke: var(--smart);
+        }
+
         &.dashed {
           stroke: var(--soft);
           stroke-width: 1.75px;
@@ -372,16 +383,24 @@
         }
       }
 
-      /* (One line, below the chart: as the day pointed at changes, nothing above it moves.) */
+      /* (Below the chart, so as the day pointed at changes nothing above it moves; one line, or with the comparison's
+         third key, two held on a phone.) */
       .keys {
         display: flex;
-        gap: 18px;
+        flex-wrap: wrap;
+        gap: 2px 18px;
         overflow: hidden;
+        height: 1.45em;
         margin-top: 10px;
         white-space: nowrap;
         color: var(--soft);
         font-size: 13px;
         font-weight: 600;
+
+        /* (Three keys with the smart plan's: two lines held on a phone.) */
+        @media (max-width: 719px) {
+          height: calc(2.9em + 2px);
+        }
 
         b {
           color: var(--ink);
@@ -409,6 +428,10 @@
 
         .down i {
           border-top-color: var(--loss);
+        }
+
+        .smart i {
+          border-top-color: var(--smart);
         }
       }
 
@@ -578,6 +601,108 @@
         margin-top: 4px;
       }
 
+      /* The smart plan beside the plain one: the verdict, then a table of the two. */
+      .versus {
+        overflow: hidden;
+        margin-top: 4px;
+        color: var(--smart);
+        font-size: 15px;
+        font-weight: 700;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+
+      /* (Its words, then its table; on a desk, side by side. The card only: `smart` also names the smart plan's key.) */
+      .card.smart {
+        @media (min-width: 960px) {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+          align-items: start;
+          gap: 40px;
+        }
+
+        h2 {
+          color: var(--smart);
+        }
+
+        .rule {
+          margin: 6px 0 0;
+          color: var(--soft);
+          font-size: 13px;
+          font-weight: 500;
+        }
+
+        /* (Lines held for the longest verdict: three on a phone, two on a desk.) */
+        .verdict {
+          min-height: 4.35em;
+          margin: 10px 0 0;
+          color: var(--soft);
+          font-weight: 600;
+
+          @media (min-width: 720px) {
+            min-height: 2.9em;
+          }
+
+          b {
+            color: var(--ink);
+            font-weight: 800;
+          }
+        }
+      }
+
+      /* (Amounts whole on one line each; the labels wrap, and on a phone it all sets a size down.) */
+      .vs {
+        width: 100%;
+        margin-top: 10px;
+        border-collapse: collapse;
+
+        @media (max-width: 719px) {
+          font-size: 14px;
+        }
+
+        th,
+        td {
+          border-top: 1px solid var(--line);
+          padding: 12px 0;
+          text-align: right;
+          white-space: nowrap;
+        }
+
+        th[scope="row"] {
+          text-align: left;
+          font-weight: 600;
+          white-space: normal;
+        }
+
+        thead th {
+          border-top: 0;
+          padding-top: 0;
+          color: var(--soft);
+          font-size: 13px;
+          font-weight: 600;
+        }
+
+        td {
+          padding-left: 8px;
+          font-weight: 700;
+        }
+
+        td:last-child,
+        thead th:last-child {
+          color: var(--smart);
+        }
+      }
+
+      /* Said to a screen reader only. */
+      .vh {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
       /* ── The map: every start, every length ── */
 
       .atlas {
@@ -585,6 +710,20 @@
 
         @media (min-width: 960px) {
           margin-top: 16px;
+        }
+      }
+
+      .map-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px 16px;
+
+        .pill {
+          height: 30px;
+          padding: 0 12px;
+          font-size: 13px;
         }
       }
 
@@ -746,6 +885,7 @@
             <p class="sentence" id="sentence">Reading the daily price.</p>
             <span class="worth" id="worth"><span class="wait">$…</span></span>
             <div class="change" id="delta">&nbsp;</div>
+            <div class="versus" id="versus">&nbsp;</div>
             <div class="chart-head">
               <div class="pills" role="group" aria-label="Chart">
                 <button type="button" class="pill" data-view="value">Value</button>
@@ -797,12 +937,39 @@
                 <div data-fact="low"><dt>Lowest point<small>&nbsp;</small></dt><dd>…</dd></div>
               </dl>
             </section>
+
           </div>
+
+          <section class="card smart" id="smart" aria-labelledby="smart-title">
+            <div class="words">
+              <h2 id="smart-title">Smart plan</h2>
+              <p class="rule">The same plan, buying more when bitcoin is cheap against what holders paid: 2× under the realized price, 1× to twice it, ½× to three times, ¼× above.</p>
+              <p class="verdict" id="verdict">&nbsp;</p>
+            </div>
+            <table class="vs" id="vs">
+              <thead>
+                <tr><th scope="col"><span class="vh">Fact</span></th><th scope="col">Plain</th><th scope="col">Smart</th></tr>
+              </thead>
+              <tbody>
+                <tr data-vs="spent"><th scope="row">Put in</th><td></td><td></td></tr>
+                <tr data-vs="bought"><th scope="row">Bitcoin bought</th><td></td><td></td></tr>
+                <tr data-vs="cost"><th scope="row">Average cost</th><td></td><td></td></tr>
+                <tr data-vs="worth"><th scope="row">Worth</th><td></td><td></td></tr>
+                <tr data-vs="return"><th scope="row">Return</th><td></td><td></td></tr>
+              </tbody>
+            </table>
+          </section>
         </div>
 
         <section class="card atlas" id="atlas" aria-labelledby="map-title" inert>
-          <h2 id="map-title">Every start, every length</h2>
-          <p class="lede">Each square is a plan that began on the first of a month and ran for a whole number of months, colored by what it ended up worth against what went in.</p>
+          <div class="map-head">
+            <h2 id="map-title">Every start, every length</h2>
+            <div class="pills" role="group" aria-label="The map shows">
+              <button type="button" class="pill" data-atlas="returns">Return</button>
+              <button type="button" class="pill" data-atlas="edge">Smart vs plain</button>
+            </div>
+          </div>
+          <p class="lede" id="map-lede">Each square is a plan that began on the first of a month and ran for a whole number of months, colored by what it ended up worth against what went in.</p>
           <div class="findings"><p id="wins">&nbsp;</p><p id="sure">&nbsp;</p></div>
           <div class="map">
             <div class="map-bar">
@@ -813,12 +980,12 @@
               </div>
             </div>
             <div class="canvas">
-              <canvas id="map" tabindex="0" role="img" aria-label="Plans by starting month (across) and length (up), colored by their return. Arrows move, Enter shows one in the calculator."></canvas>
+              <canvas id="map" tabindex="0" role="img" aria-label="Plans by starting month (across) and length (up). Arrows move, Enter shows one in the calculator."></canvas>
             </div>
           </div>
         </section>
 
-        <p class="fine">Each buy is at that day's closing price (UTC), with no fees; the last day is at the latest price. A monthly plan buys on its first day's date each month, or a shorter month's last day. Prices are this server's daily price, from <span id="since">its first day</span>.</p>
+        <p class="fine">Each buy is at that day's closing price (UTC), with no fees; the last day is at the latest price. A monthly plan buys on its first day's date each month, or a shorter month's last day. The smart plan buys the amount times 2, 1, ½ or ¼ by that day's MVRV, the price over the realized price (what every coin last moved at, on average): under 1, under 2, under 3, or above; 1× before MVRV begins. That rule was picked up front, not fitted to the past, but any look back is hindsight. Prices and MVRV are this server's daily series: prices from <span id="since">their first day</span>, <span id="mvrv-since">MVRV from its first</span>.</p>
       </main>
     </div>
 
@@ -891,11 +1058,17 @@
       const gained = (/** @type {number} */ multiple) => multiple > 1 + 1e-9;
       const lost = (/** @type {number} */ multiple) => multiple < 1 - 1e-9;
       const tone = (/** @type {number} */ multiple) => (gained(multiple) ? "gain" : lost(multiple) ? "loss" : "");
+      /** The smart plan's bitcoin a dollar over the plain plan's, in words: "24.2% more bitcoin", "8.1% less bitcoin". */
+      const edge = (/** @type {number} */ ratio) => (gained(ratio) || lost(ratio) ? `${percent(ratio).replace(/^[+−]/, "")} ${gained(ratio) ? "more" : "less"} bitcoin` : "the same bitcoin");
 
       // ── The price: each day's, from the first day with one ──
 
       /** @type {Float64Array} */
       let price = new Float64Array();
+      /** Each day's MVRV, the price over the realized price; NaN before it begins. @type {Float64Array} */
+      let mvrv = new Float64Array();
+      /** Whether MVRV was read whole, from its first day on: the comparison needs it. */
+      let comparable = false;
       let first = 0, last = 0;
 
       /** The days a plan buys on, from its first: every day, every 7th, or each month on the first day's date (a shorter
@@ -908,14 +1081,24 @@
 
       /** @typedef {{ from: number, to: number, every: Every, amount: number, spent: Float64Array, held: Float64Array, buys: number }} Run */
 
-      /** A plan day by day over [from, to]: the dollars in and the bitcoin held at each day's end. */
-      function run(/** @type {number} */ from, /** @type {number} */ to, /** @type {Every} */ every, /** @type {number} */ amount) {
+      /** The smart plan's rule, picked up front: a buy is the amount times 2 under an MVRV of 1, 1 under 2, ½ under 3,
+       * ¼ above; 1 before MVRV begins (it's whole from there on, or the comparison is off). Never nothing, so every day
+       * of a plan has a worth and a cost. */
+      const smartly = (/** @type {number} */ day) => {
+        const m = mvrv[day];
+        return Number.isNaN(m) ? 1 : m < 1 ? 2 : m < 2 ? 1 : m < 3 ? 0.5 : 0.25;
+      };
+
+      /** A plan day by day over [from, to]: the dollars in and the bitcoin held at each day's end; each buy the amount
+       * times `weigh` of its day (the plain plan: 1). */
+      function run(/** @type {number} */ from, /** @type {number} */ to, /** @type {Every} */ every, /** @type {number} */ amount, weigh = (/** @type {number} */ _day) => 1) {
         const n = to - from + 1, spent = new Float64Array(n), held = new Float64Array(n), days = buyDays(from, every);
         let next = /** @type {number} */ (days.next().value), dollars = 0, coins = 0, buys = 0;
         for (let i = 0; i < n; i++) {
           if (from + i === next) {
-            dollars += amount;
-            coins += amount / price[next];
+            const dollarsNow = amount * weigh(next);
+            dollars += dollarsNow;
+            coins += dollarsNow / price[next];
             buys++;
             next = /** @type {number} */ (days.next().value);
           }
@@ -925,42 +1108,49 @@
         return /** @type {Run} */ ({ from, to, every, amount, spent, held, buys });
       }
 
-      /** @typedef {{ start: number, cols: number, rows: number, cells: Float64Array }} Grid */
+      /** @typedef {{ start: number, cols: number, rows: number, cells: Float64Array, edges: Float64Array }} Grid */
 
       /** Every plan from a month's first day for whole months, each its worth over what went in at its last day (the day
-       * before a month's first); by start (column) and length in months (row 0: one month). The amount doesn't matter. */
+       * before a month's first), and the bitcoin a dollar the smart rule got over its own; by start (column) and length in
+       * months (row 0: one month). The amount doesn't matter. */
       function grid(/** @type {Every} */ every) {
         const start = monthOf(first) + (ymd(first)[2] === 1 ? 0 : 1);
         let cols = 0;
         while (firstOf(start + cols + 1) - 1 <= last) cols++;
-        const rows = cols, cells = new Float64Array(cols * rows).fill(NaN);
+        const rows = cols, cells = new Float64Array(cols * rows).fill(NaN), edges = new Float64Array(cols * rows).fill(NaN);
         for (let s = 0; s < cols; s++) {
           const days = buyDays(firstOf(start + s), every);
-          let next = /** @type {number} */ (days.next().value), dollars = 0, coins = 0;
+          let next = /** @type {number} */ (days.next().value), dollars = 0, coins = 0, smartDollars = 0, smartCoins = 0;
           for (let d = 1; s + d <= cols; d++) {
             const end = firstOf(start + s + d) - 1;
             for (; next <= end; next = /** @type {number} */ (days.next().value)) {
+              const weight = smartly(next);
               dollars++;
               coins += 1 / price[next];
+              smartDollars += weight;
+              smartCoins += weight / price[next];
             }
             cells[s * rows + d - 1] = (coins * price[end]) / dollars;
+            edges[s * rows + d - 1] = smartCoins / smartDollars / (coins / dollars);
           }
         }
-        return /** @type {Grid} */ ({ start, cols, rows, cells });
+        return /** @type {Grid} */ ({ start, cols, rows, cells, edges });
       }
 
       // ── The plan's state, in the address (to: left out while it's the last day) ──
 
-      const state = { amount: 100, every: /** @type {Every} */ ("week"), from: 0, to: 0, log: false, view: /** @type {"value" | "cost"} */ ("value") };
-      /** @type {Run} */
+      const state = { amount: 100, every: /** @type {Every} */ ("week"), from: 0, to: 0, log: false, view: /** @type {"value" | "cost"} */ ("value"), atlas: /** @type {"returns" | "edge"} */ ("returns") };
+      /** The plan, and the smart plan over the same days (none without MVRV). @type {Run} */
       let plan;
+      /** @type {Run | null} */
+      let smart = null;
       /** @type {Grid} */
       let map;
 
       /** The plan a link asks for; a part that isn't usable stays the default, and the page says which. */
       function readAddress() {
         const query = new URLSearchParams(location.search), unused = [];
-        const amount = query.get("amount"), every = query.get("every"), from = query.get("from"), to = query.get("to"), view = query.get("view");
+        const amount = query.get("amount"), every = query.get("every"), from = query.get("from"), to = query.get("to"), view = query.get("view"), atlas = query.get("map");
         if (amount !== null) amountProblem(Number(amount)) ? unused.push("amount") : (state.amount = Number(amount));
         if (every !== null) every === "day" || every === "week" || every === "month" ? (state.every = every) : unused.push("schedule");
         const toDay = to === null ? last : linkDay(to), fromDay = from === null ? NaN : linkDay(from);
@@ -970,6 +1160,7 @@
         state.from = fromDay >= first && fromDay <= state.to ? fromDay : Math.max(first, yearsBefore(state.to, 4) + 1);
         state.log = query.get("scale") === "log";
         if (view !== null) view === "value" || view === "cost" ? (state.view = view) : unused.push("chart");
+        if (atlas !== null) atlas === "returns" || (atlas === "smart" && comparable) ? (state.atlas = atlas === "smart" ? "edge" : "returns") : unused.push("map");
         return unused.length ? `This link's ${unused.join(", ")} couldn't be used, so ${unused.length > 1 ? "the defaults stand" : "the default stands"} in.` : "";
       }
       /** A link's date: a real day written as YYYY-MM-DD, else NaN (2024-02-31 isn't one). */
@@ -983,6 +1174,7 @@
         if (state.to !== last) query.set("to", iso(state.to));
         if (state.log) query.set("scale", "log");
         if (state.view === "cost") query.set("view", "cost");
+        if (state.atlas === "edge") query.set("map", "smart");
         history.replaceState(null, "", `?${query}`);
       }
 
@@ -1046,6 +1238,7 @@
           button.setAttribute("aria-pressed", String(state.from === spanStart(years)));
         }
         $("log").setAttribute("aria-pressed", String(state.log));
+        for (const button of document.querySelectorAll("[data-atlas]")) button.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (button).dataset.atlas === state.atlas));
       }
 
       /** The first day of the last `years` up to the plan's last day (0: all of them). */
@@ -1079,6 +1272,15 @@
       for (const button of document.querySelectorAll("[data-years]")) {
         button.addEventListener("click", () => setDates(spanStart(Number(/** @type {HTMLElement} */ (button).dataset.years)), state.to));
       }
+      for (const button of document.querySelectorAll("[data-atlas]")) {
+        button.addEventListener("click", () => {
+          state.atlas = /** @type {"returns" | "edge"} */ (/** @type {HTMLElement} */ (button).dataset.atlas);
+          writeAddress();
+          fillForm();
+          paintGrid();
+          drawMap();
+        });
+      }
       $("log").addEventListener("click", () => {
         state.log = !state.log;
         update();
@@ -1088,6 +1290,7 @@
 
       function update() {
         plan = run(state.from, state.to, state.every, state.amount);
+        smart = comparable ? run(state.from, state.to, state.every, state.amount, smartly) : null;
         writeAddress();
         fillForm();
         tell();
@@ -1123,17 +1326,32 @@
         fact("bought", btc(held), `${grouped(plan.buys)} buy${plan.buys > 1 ? "s" : ""}`);
         fact("spent", usd(spent), `worth ${times(multiple)} that ${latest ? "now" : "at the end"}`);
         fact("cost", usd(cost), `a coin, against ${usd(end)} ${latest ? "now" : "at the end"}`);
-        fact("lump", `<span class="${tone(lump / spent)}">${percent(lump / spent)}</span>`, `${usd(lump)} from the same ${usd(spent)}`);
+        fact("lump", `<span class="${tone(lump / spent)}">${percent(lump / spent)}</span>`, `${usd(lump)} from ${usd(spent)}`);
         if (lost(low)) fact("low", `<span class="loss">${percent(low)}</span>`, `on ${dated(lowDay)}`);
         else fact("low", "None", "never below what went in");
+        // The smart plan beside the plain one: the bitcoin a dollar each got, then their facts side by side.
+        $("vs").hidden = !smart;
+        if (smart) {
+          const smartSpent = smart.spent[n], smartHeld = smart.held[n], perDollar = smartHeld / smartSpent / (held / spent);
+          $("verdict").innerHTML = `${latest ? "By today" : `By ${dated(plan.to)}`}, buying more when it was cheap got <b class="${tone(perDollar)}">${edge(perDollar)}</b> for each dollar.`;
+          const row = (/** @type {string} */ name, /** @type {string} */ plain, /** @type {string} */ smarter) => {
+            const [a, b] = document.querySelectorAll(`[data-vs="${name}"] td`);
+            [a.innerHTML, b.innerHTML] = [plain, smarter];
+          };
+          row("spent", usd(spent), usd(smartSpent));
+          row("bought", btc(held), btc(smartHeld));
+          row("cost", usd(cost), usd(smartSpent / smartHeld));
+          row("worth", usd(worth), usd(smartHeld * end));
+          row("return", percent(multiple), percent((smartHeld * end) / smartSpent));
+        }
         $("calculator").setAttribute("aria-busy", "false");
       }
 
       // ── The chart: what it was worth against what went in, or the price against what a coin cost you ──
 
       const plots = $("plots"), svg = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("chart"))), still = matchMedia("(prefers-reduced-motion: reduce)");
-      /** @typedef {{ f: (i: number) => number, ink: "up" | "down" | "ink" | "dashed", name: string }} Series */
-      const INKS = { up: "var(--line-up)", down: "var(--loss)", ink: "var(--ink)", dashed: "var(--soft)" };
+      /** @typedef {{ f: (i: number) => number, ink: "up" | "down" | "ink" | "dashed" | "smart", name: string, from?: (i: number) => number }} Series */
+      const INKS = { up: "var(--line-up)", down: "var(--loss)", ink: "var(--ink)", dashed: "var(--soft)", smart: "var(--smart)" };
       /** What the chart shows: x and y by the plan's day, its two series, the crosshair, and how to finish drawing it.
        * @type {{ x: (i: number) => number, ys: ((i: number) => number)[], series: Series[], marks: Element[], line: Element, finish: () => void } | null} */
       let drawn = null;
@@ -1159,7 +1377,11 @@
         /** @type {Series[]} */
         const series = state.view === "value"
           ? [{ f: spent, ink: "dashed", name: "Put in" }, { f: worth, ink: lost(worth(n - 1) / spent(n - 1)) ? "down" : "up", name: "Worth" }]
-          : [{ f: at, ink: "ink", name: "Price" }, { f: cost, ink: "up", name: "Your cost" }];
+          : [{ f: at, ink: "ink", name: "Price" }, { f: cost, ink: "up", name: "Cost" }];
+        // (The smart plan's worth or cost too, drawn last.)
+        const other = smart;
+        // (Its worth with what went into it, which isn't the plain plan's.)
+        if (other) series.push(state.view === "value" ? { f: (i) => other.held[i] * at(i), ink: "smart", name: "Smart", from: (i) => other.spent[i] } : { f: (i) => other.spent[i] / other.held[i], ink: "smart", name: "Smart" });
         const good = state.view === "value" ? 1 : 0;
         let lo = Infinity, hi = 0;
         for (const s of series)
@@ -1231,7 +1453,8 @@
           under[0].setAttribute("d", `${edge}L${width},0L0,0Z`);
           under[1].setAttribute("d", `${edge}L${width},${height}L0,${height}Z`);
         };
-        const target = ys.map(sample), from = onScreen?.[0].length === target[0].length ? onScreen : null;
+        // (A glide only between the same lines at the same width: a redraw without MVRV or after a resize is at once.)
+        const target = ys.map(sample), from = onScreen?.length === target.length && onScreen[0].length === target[0].length ? onScreen : null;
         const finish = () => {
           cancelAnimationFrame(glide);
           glide = 0;
@@ -1299,7 +1522,9 @@
         $("delta").className = `change ${tone(m)}`;
         // (Even within float error: no change, not a few femtodollars.)
         $("delta").textContent = `${gained(m) ? "▲ " : lost(m) ? "▼ " : ""}${usd(gained(m) || lost(m) ? Math.abs(worth - spent) : 0)} (${percent(m).replace(/^[+−]/, "")})`;
-        $("keys").innerHTML = drawn.series.map((s) => `<span class="${s.ink}"><i></i>${s.name} <b>${usd(s.f(at))}</b></span>`).join("");
+        $("keys").innerHTML = drawn.series.map((s) => `<span class="${s.ink}"><i></i>${s.name} <b>${usd(s.f(at))}</b>${s.from ? ` from ${usd(s.from(at))}` : ""}</span>`).join("");
+        // The bitcoin a dollar the smart plan got against the plain one, as of the same day.
+        if (smart) $("versus").textContent = `Smart: ${edge(smart.held[at] / smart.spent[at] / (plan.held[at] / spent))} a dollar`;
       }
 
       // Read by pointer or touch (a horizontal drag; a vertical one scrolls the page), or by keys once focused.
@@ -1363,12 +1588,37 @@
       const canvas = /** @type {HTMLCanvasElement} */ ($("map")), dark = matchMedia("(prefers-color-scheme: dark)");
       // (Room above and to the right for the ring of a plan reaching past the whole months: the longest, this month's.)
       const MARGIN = { left: 34, right: 18, top: 12, bottom: 22 };
-      /** Colors by position: −1 a quarter of what went in, 0 even, 1 a thousand times. */
-      const STOPS = {
-        light: [[-1, "#8e1a12"], [-0.5, "#e0453a"], [-0.001, "#ffd6d2"], [0, "#d4f5dc"], [0.1, "#8fe6a3"], [1 / 3, "#00c22d"], [2 / 3, "#00801f"], [1, "#00390e"]],
-        dark: [[-1, "#ff8a80"], [-0.5, "#e0453a"], [-0.001, "#3d1411"], [0, "#0b2913"], [0.1, "#0f5a22"], [1 / 3, "#00a827"], [2 / 3, "#00d632"], [1, "#b8ffc8"]],
+      /** What the map colors, each with its scale (`place`, −1 to 1), colors by place, legend and words: each plan's
+       * worth over what went in (a quarter to a thousand times); or, comparing, the bitcoin a dollar the smart rule got
+       * over the plain plan's (a third less to half as much again). */
+      const MEASURES = {
+        returns: {
+          cells: (/** @type {Grid} */ grid) => grid.cells,
+          place: (/** @type {number} */ m) => (m < 1 ? Math.max(-1, Math.log2(m) / 2) : Math.min(1, Math.log10(m) / 3)),
+          stops: {
+            light: [[-1, "#8e1a12"], [-0.5, "#e0453a"], [-0.001, "#ffd6d2"], [0, "#d4f5dc"], [0.1, "#8fe6a3"], [1 / 3, "#00c22d"], [2 / 3, "#00801f"], [1, "#00390e"]],
+            dark: [[-1, "#ff8a80"], [-0.5, "#e0453a"], [-0.001, "#3d1411"], [0, "#0b2913"], [0.1, "#0f5a22"], [1 / 3, "#00a827"], [2 / 3, "#00d632"], [1, "#b8ffc8"]],
+          },
+          marks: [[0.25, "≤0.25×"], [0.5, "0.5×"], [1, "1×"], [10, "10×"], [1000, "≥1,000×"]],
+          label: "colored by what each ended up worth against what went in",
+          read: (/** @type {number} */ m) => `${times(m)} · ${percent(m)}`,
+          lede: "colored by what it ended up worth against what went in.",
+        },
+        edge: {
+          cells: (/** @type {Grid} */ grid) => grid.edges,
+          place: (/** @type {number} */ r) => Math.max(-1, Math.min(1, Math.log(r) / Math.log(1.5))),
+          stops: {
+            light: [[-1, "#8e1a12"], [-0.5, "#e0453a"], [-0.001, "#ffd6d2"], [0, "#dbe7ff"], [0.5, "#5b9bff"], [1, "#0a3a99"]],
+            dark: [[-1, "#ff8a80"], [-0.5, "#e0453a"], [-0.001, "#3d1411"], [0, "#0e213f"], [0.5, "#2f6fd6"], [1, "#a9cbff"]],
+          },
+          marks: [[2 / 3, "≤−33%"], [0.8, "−20%"], [1, "same"], [1.25, "+25%"], [1.5, "≥+50%"]],
+          label: "colored by how much more bitcoin a dollar buying more when it was cheap got than buying the same each time",
+          read: (/** @type {number} */ r) => `${edge(r)} a dollar`,
+          lede: "colored by how much more bitcoin each dollar got buying more when it was cheap, against buying the same each time.",
+        },
       };
-      const scheme = () => STOPS[dark.matches ? "dark" : "light"];
+      const measure = () => MEASURES[state.atlas];
+      const scheme = () => /** @type {[number, string][]} */ (measure().stops[dark.matches ? "dark" : "light"]);
       /** A color token as the scheme in use resolves it (a canvas can't read light-dark()). */
       const probe = document.createElement("i");
       const ink = (/** @type {string} */ token) => {
@@ -1378,10 +1628,9 @@
         probe.remove();
         return color;
       };
-      const place = (/** @type {number} */ multiple) => (multiple < 1 ? Math.max(-1, Math.log2(multiple) / 2) : Math.min(1, Math.log10(multiple) / 3));
       const rgb = (/** @type {string} */ hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
       function color(/** @type {number} */ t) {
-        const stops = /** @type {[number, string][]} */ (scheme());
+        const stops = scheme();
         const k = Math.max(1, stops.findIndex(([at]) => at >= t));
         const [a, ca] = stops[k - 1], [b, cb] = stops[k], f = Math.min(1, Math.max(0, (t - a) / (b - a)));
         const [x, y] = [rgb(ca), rgb(cb)];
@@ -1394,22 +1643,25 @@
         pixels.width = map.cols;
         pixels.height = map.rows;
         const context = /** @type {CanvasRenderingContext2D} */ (pixels.getContext("2d")), image = context.createImageData(map.cols, map.rows);
+        const { place, marks, lede } = measure(), cells = measure().cells(map);
         for (let s = 0; s < map.cols; s++)
           for (let d = 0; d < map.rows; d++) {
-            const m = map.cells[s * map.rows + d];
+            const m = cells[s * map.rows + d];
             if (Number.isNaN(m)) continue;
             const at = ((map.rows - 1 - d) * map.cols + s) * 4, [r, g, b] = color(place(m));
             image.data.set([r, g, b, 255], at);
           }
         context.putImageData(image, 0, 0);
-        const stops = /** @type {[number, string][]} */ (scheme());
+        const stops = scheme();
         $("ramp").style.background = `linear-gradient(to right, ${stops.map(([t, c]) => `${c} ${((t + 1) / 2) * 100}%`).join(", ")})`;
-        $("marks").innerHTML = [0.25, 0.5, 1, 10, 1000].map((m) => `<span style="left: ${((place(m) + 1) / 2) * 100}%">${m >= 1000 ? "1,000" : m}×</span>`).join("");
+        $("marks").innerHTML = marks.map(([m, label]) => `<span style="left: ${((place(/** @type {number} */ (m)) + 1) / 2) * 100}%">${label}</span>`).join("");
+        $("map-lede").textContent = `Each square is a plan that began on the first of a month and ran for a whole number of months, ${lede}`;
+        canvas.setAttribute("aria-label", `Plans by starting month (across) and length (up), ${measure().label}. Arrows move, Enter shows one in the calculator.`);
         findings();
       }
 
       function findings() {
-        const { cols, rows, cells } = map;
+        const { cols, rows } = map, cells = measure().cells(map);
         let wins = 0, all = 0;
         for (const m of cells) if (!Number.isNaN(m)) [all, wins] = [all + 1, wins + (gained(m) ? 1 : 0)];
         // (The shortest length from which every plan, of it or longer, gained: row `sure` and every row above it.)
@@ -1421,7 +1673,9 @@
           sure = d;
         }
         const every = { day: "every day", week: "every week", month: "every month" }[state.every];
-        $("wins").innerHTML = `Buying ${every}, <b>${Math.round((wins / all) * 100)}%</b> of the ${grouped(all)} plans here ended worth more than went in.`;
+        $("wins").innerHTML = state.atlas === "edge"
+          ? `Buying more when it was cheap got more bitcoin a dollar than buying the same ${every} in <b>${Math.round((wins / all) * 100)}%</b> of the ${grouped(all)} plans here.`
+          : `Buying ${every}, <b>${Math.round((wins / all) * 100)}%</b> of the ${grouped(all)} plans here ended worth more than went in.`;
         $("sure").innerHTML = sure < rows ? `Every plan of <b>${lasting(sure + 1)}</b> or longer did, whatever month it began.` : "";
       }
 
@@ -1501,9 +1755,9 @@
 
       /** The words above the map: the plan pointed at, else the calculator's. */
       function describe(/** @type {{ s: number, d: number } | null} */ shown) {
-        const result = (/** @type {number} */ m) => `<span class="${tone(m)}">${times(m)} · ${percent(m)}</span>`;
+        const result = (/** @type {number} */ m) => `<span class="${tone(m)}">${measure().read(m)}</span>`;
         if (!shown) {
-          const n = plan.to - plan.from, m = (plan.held[n] * price[plan.to]) / plan.spent[n];
+          const n = plan.to - plan.from, m = smart && state.atlas === "edge" ? smart.held[n] / smart.spent[n] / (plan.held[n] / plan.spent[n]) : (plan.held[n] * price[plan.to]) / plan.spent[n];
           $("cell").innerHTML = ringAt()
             ? `<strong>Your plan, the ring</strong>${result(m)}<span>Pick a square to try another.</span>`
             : `<strong>Your plan</strong>${result(m)}<span>It starts before the map's first month.</span>`;
@@ -1511,7 +1765,7 @@
         }
         const k = map.start + shown.s, d = shown.d + 1, picked = state.from === firstOf(k) && state.to === firstOf(k + d) - 1;
         const length = [Math.floor(d / 12) && `${Math.floor(d / 12)}y`, d % 12 && `${d % 12}m`].filter(Boolean).join(" ");
-        $("cell").innerHTML = `<strong>${MONTHS[k % 12]} ${Math.floor(k / 12)} for ${length}</strong>${result(map.cells[shown.s * map.rows + shown.d])}`
+        $("cell").innerHTML = `<strong>${MONTHS[k % 12]} ${Math.floor(k / 12)} for ${length}</strong>${result(measure().cells(map)[shown.s * map.rows + shown.d])}`
           + (picked ? `<span>Your plan now. <a href="#calculator">See it ↑</a></span>` : `<span>${matchMedia("(hover: hover)").matches ? "Click" : "Tap"} to try it.</span>`);
       }
 
@@ -1590,10 +1844,16 @@
 
       async function load() {
         try {
-          const response = await fetch("/api/series/price/day1");
-          const body = await response.json().catch(() => null);
-          if (!response.ok) throw new Error(body?.error?.message ?? `The server answered ${response.status}.`);
-          const data = /** @type {(number | null)[]} */ (body.data), start = /** @type {number} */ (body.start);
+          const read = async (/** @type {string} */ id, /** @type {AbortSignal | undefined} */ signal = undefined) => {
+            const response = await fetch(`/api/series/${id}/day1`, { signal });
+            const body = await response.json().catch(() => null);
+            if (!response.ok) throw new Error(body?.error?.message ?? `The server answered ${response.status}.`);
+            return /** @type {{ start: number, data: (number | null)[] }} */ (body);
+          };
+          // (Prices are needed; MVRV only for the smart plan, which without it is unavailable, and says so. MVRV within 8
+          // seconds, or it counts as unread: a stalled answer never holds the plain calculator.)
+          const [prices, ratios] = await Promise.all([read("price"), read("mvrv", AbortSignal.timeout(8000)).catch(() => null)]);
+          const data = prices.data, start = prices.start;
           // (Prices are whole from the day after the last one missing on.)
           let gap = data.length - 1;
           while (gap >= 0 && (data[gap] ?? 0) > 0) gap--;
@@ -1601,6 +1861,18 @@
           last = start + data.length - 1;
           price = new Float64Array(last + 1);
           for (let day = first; day <= last; day++) price[day] = /** @type {number} */ (data[day - start]);
+          mvrv = new Float64Array(last + 1).fill(NaN);
+          ratios?.data.forEach((m, k) => m && m > 0 && ratios.start + k <= last && (mvrv[ratios.start + k] = m));
+          // (The rule reads MVRV from its first day on: with a day missing after it, the comparison is unavailable.)
+          const mvrvFirst = mvrv.findIndex((m) => !Number.isNaN(m));
+          comparable = mvrvFirst >= 0 && mvrv.subarray(mvrvFirst, last + 1).every((m) => !Number.isNaN(m));
+          $("mvrv-since").textContent = comparable ? `MVRV from ${dated(mvrvFirst)}` : "MVRV unavailable";
+          if (!comparable) {
+            mvrv.fill(NaN);
+            const why = `Unavailable: ${ratios ? "MVRV has days missing" : "MVRV couldn't be read"}.`;
+            $("verdict").textContent = $("versus").textContent = why;
+            /** @type {HTMLButtonElement} */ (document.querySelector('[data-atlas="edge"]')).disabled = true;
+          }
           $("since").textContent = dated(first);
           for (const id of ["calculator", "atlas"]) $(id).inert = false;
           const unusable = readAddress();
