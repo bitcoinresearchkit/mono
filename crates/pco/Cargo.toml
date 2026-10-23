@@ -30,4 +30,3 @@ doctest = false
 better_io = "0.2.0"
 dtype_dispatch = "0.2.1"
 half = "2.7.1"
-rand_xoshiro = "0.8.1"

@@ -1,10 +1,5 @@
 use std::{cmp::max, collections::HashMap};
 
-use rand_xoshiro::{
-  rand_core::{Rng, SeedableRng},
-  Xoroshiro128PlusPlus,
-};
-
 use crate::{constants::CLASSIC_MEMORIZABLE_BINS_LOG, data_types::Latent};
 
 pub const MIN_SAMPLE: usize = 10;
@@ -22,6 +17,43 @@ fn calc_sample_n(n: usize) -> Option<usize> {
     Some(MIN_SAMPLE + (n - MIN_SAMPLE) / SAMPLE_RATIO)
   } else {
     None
+  }
+}
+
+/// Xoroshiro128++, seeded as rand_xoshiro's `seed_from_u64` seeds it: its two state words are
+/// SplitMix64's first two outputs. Sampling draws the same indices from it, so compression stays
+/// byte for byte the same.
+struct Xoroshiro128PlusPlus {
+  s0: u64,
+  s1: u64,
+}
+
+impl Xoroshiro128PlusPlus {
+  fn seed_from_u64(seed: u64) -> Self {
+    let mut state = seed;
+    let mut splitmix = || {
+      state = state.wrapping_add(0x9e3779b97f4a7c15);
+      let mut z = state;
+      z = (z ^ (z >> 30)).wrapping_mul(0xbf58476d1ce4e5b9);
+      z = (z ^ (z >> 27)).wrapping_mul(0x94d049bb133111eb);
+      z ^ (z >> 31)
+    };
+    Self {
+      s0: splitmix(),
+      s1: splitmix(),
+    }
+  }
+
+  fn next_u64(&mut self) -> u64 {
+    let result = self
+      .s0
+      .wrapping_add(self.s1)
+      .rotate_left(17)
+      .wrapping_add(self.s0);
+    self.s1 ^= self.s0;
+    self.s0 = self.s0.rotate_left(49) ^ self.s1 ^ (self.s1 << 21);
+    self.s1 = self.s1.rotate_left(28);
+    result
   }
 }
 
