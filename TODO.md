@@ -17,7 +17,6 @@ Only what's left. An item done is removed: its history is in the commits and log
 Served by the server at DOMAIN/studio/ (bitview.space, next.bitview.space; studio.bitview.space redirects there).
 
 - Deploy the MCP page only once `main` has `showcases/assets/fonts` (its fonts load from there through jsDelivr).
-- The presets' sitemap, robots.txt and Studio's llms.txt went with its build: none are served now.
 
 ## Showcases
 

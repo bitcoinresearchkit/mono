@@ -1,0 +1,159 @@
+# Bitview Studio
+
+Charts of Bitcoin's on-chain data from bitview.space, drawn in the browser (with JavaScript on).
+
+## In short
+- A chart is a link: https://bitview.space/studio/#chart= followed by its JSON (below), such as {"layers": [{"series": "price"}, {"series": "realized_price"}]}.
+- Its picture alone: the same link with #image= in place of #chart=, a page that is, once drawn, that picture (with only screenshots to work with, take one of it).
+- Thousands of ready-made charts (presets), each at an address of its own: https://bitview.space/studio/presets/ and its place, such as https://bitview.space/studio/presets/valuation/mvrv; their sections at the same, ending in a slash, such as https://bitview.space/studio/presets/valuation/; every one listed in https://bitview.space/studio/sitemap.xml.
+- From a script in the page: await studio.open(chart); await studio.ready(); await studio.png({ width: 1200, height: 760, scale: 2 }), its picture as a PNG data URL, in one result (see "From a script").
+
+## Opening a chart from a link
+
+A link carries a whole chart: https://bitview.space/studio/#chart= followed by the chart as JSON, URL-encoded or as it is. It opens as a preview: whoever opens it sees the chart, and keeps it or not. All a chart can be is written this way. For example (before encoding):
+
+```js
+{"title": "Price and realized price", "range": "4y", "layers": [{"series": "price"}, {"series": "realized_price", "color": "orange"}, {"formula": "A / B", "pane": 2}]}
+```
+
+## A chart
+- "layers" (the one thing needed): its layers, in order (see below).
+- "title".
+- "index": its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10 (day1 if none), or "auto" (the interval follows the zoom: weeks over years, hours over days).
+- "range": what it shows: 3m, 1y, 4y, 8y or max (8y if none; max: all of history at day1 or coarser; at a finer interval, as far back as fits on the screen). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".
+- "panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front. Without them, the first pane is logarithmic and the others linear.
+- "halvings": true: a line at each halving, and at the next three, estimated (a block each ten minutes).
+- "legend": "off": no legend over the panes.
+- "drawings" (see below).
+
+## A layer
+
+One of:
+- {"series": "realized_price"}: a series, by its exact name.
+- {"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes). date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 & date < 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo or y; some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).
+- {"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns up or down: above 0 is up, below 0 down, 0 off (> < >= <= are 1 or 0, joined with & and |: a condition is up where true; (B > 3.5) - (B < 1) is up, down or off). "place", "below" or "on" (above if none): where an up mark goes, a down one mirrored (above and below swapped), in "colorBelow" (red if none); or "shade": its stretches shaded, its layer's pane's height, down ones in "colorBelow". "results": true: on each mark that ends a stretch, what it made by layer A (A's change over it, up; the opposite, down), a dot where one ends off; their total, compounded, in its line.
+- {"cloud": ["B", "C"]}: filled between those two layers, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them); "color" alone, that one all along; "color" and "colorBelow", those two (where B is over, where C is). Either of the two (or both) can be "top" or "bottom", its pane's edge: from the layer up to the pane's top, or from its bottom up to it, in one color: {"cloud": ["A", "top"]}. Two exactly: for more layers, formulas first, {"formula": "max(B, max(C, D))"} and {"formula": "min(B, min(C, D))"}, then a cloud between those two.
+- {"trend": ["B", "C"], "ref": "A"}: a line on the lowest of those layers until layer A (a price, say) touches it, then on the highest until A touches that, and so on (a candle's wick counts); width and dash as a line's.
+
+Then, each if wanted:
+- "label": its name.
+- "color": one of Bitview's (gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink, the page's text color) a six-digit hex such as #ff8800, or oklch as Studio writes it, "oklch(0.7 0.15 45)", each as the dark theme (the default) shows it: the light one turns every color's lightness over, white showing as black; "colorBelow": a baseline's or bars' second color, under their base, a trend's on support, or a cloud's where its second layer is over (its own color if none).
+- "colorFrom": "B" on a line, dots, an area, bars, a cloud or a trend: its colors taken from layer B date by date, as B is drawn (a baseline's above or below its base, bars' too, a trend's on resistance or support, by its levels if it's colored by them, else B's one color).
+- "byLevels": true on a line, dots, an area or bars with levels: colored by them, date by date: above each level, that level's color (give each one its "color"); under them all, its own.
+- "colors": 1 or 4 on bars: their one color; or four: above and below their base, each side's own where a bar grows from it ("color", "colorBelow"), fainter where it fades back toward it ("colorFading" above, "colorBelowFading" below; each side's own, fainter, if none). Unset, their two: "color" above, "colorBelow" under. 1 on a trend or a cloud with a "colorBelow": its one color, that second kept.
+- "type": line, dots, area, histogram (bars), baseline, or candles (for an OHLC series such as price_ohlc); left out, the series' own look.
+- "width": 0.5 to 5, by halves (1.5 if none); "dash": its line (0 solid, 1 dotted, 2 dashed, 3 long dashes, 4 sparse dots); "shape": straight, steps or curved; "opacity": 0.1 to 1, by tenths (1 if none; a cloud's 0.2, solid at 1).
+- "fill": "above", an area filled from its line up; "base": a baseline's or bars' base value (0 if none); "baseLine": {"color": "gray", "dash": 4}, that base's line ("tag": true shows its value on the axis; "line": false draws none).
+- "levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional; "tag": true shows its value on the axis; "line": false draws none, the level only naming or coloring its band). A level's "name" names the values from it up to the next level, read in its color in place of the number (the legend, the panel); "underName" on the layer names those under them all: {"levels": [{"value": -1, "name": "Limbo", "color": "orange", "line": false}, {"value": 1, "name": "Bull", "color": "green", "line": false}], "underName": "Bear", "color": "red", "byLevels": true} (without "byLevels", the names alone, the line in its color).
+- "priceLine": true: a line across at its latest value.
+- "format": how its values read (by its unit if none): usd, btc, sats, percent, ratio, count, number, days, seconds, persecond, perday, bytes, vbytes, weight, sigops, hashrate, difficulty, feerate, hashprice, hashvalue, coindays, coinblocks, dollarblocks or dollardays.
+- "pane": 1, 2 and so on, top to bottom (1 if none); "side": its axis, left or right; "hidden": true.
+- "letter": the letter formulas read it by. Copy link writes every layer's once one isn't the letter its place gives (a layer removed leaves the others' as they were): keep them.
+
+## Drawings
+
+"drawings": [{"kind": "trend", "layer": "A", "points": [["2021-04-14", 64000], ["2021-11-10", 69000]]}]: each on a layer (by its letter, on its scale), its points each a date and a value. Kinds: trend (a line through two points), hline and vline (a line across, or down, through one point: an hline's date and a vline's value can be any), rect and ellipse (by two corners), ruler (a measure between two points), text (at one point, with its "text": up to 500 characters, centered there, "\n" for a new line) and brush (a free stroke, up to 300 points). Up to 100 drawings.
+
+Each can have a "color" (yellow if none), "width" (0.5 to 5, by halves; 1.5 if none), "dash" and "opacity", as a layer's; a ruler is drawn in its own colors and lines (no opacity, width or dash), a text without width or dash. A trend line can have a "start" and an "end" (its first point's and its second's): "arrow", an arrowhead there, or "extend", on past that point to the chart's edge (none: it ends at its point). A trend, hline or vline can have a "label" (up to 80 characters) and where along it ("at", 0 to 1: 0.5 for a trend, 1 for an hline, 0 for a vline if none). A text or a line's label can have a "size" (11, 13, 16 or 22) and a "back" (outline, soft, soft-outline or solid).
+
+## As a picture
+
+A chart shown as an image is its picture, not a screenshot of the page. Three ways to it: from a script in the page, await studio.png() (below), at a size of its own; from a link, https://bitview.space/studio/#image= followed by the chart's JSON, a page that is, once the chart is drawn across the whole window, its picture alone (one image, its alt text the chart's title; a click on it, the chart); by hand, Export (in the chart's ... menu, More, in its header), then Open image (the picture alone, in a tab of its own), Download image (PNG), or Copy as image (to the clipboard of whoever uses the browser: an embedded browser may not allow it). The picture is the chart with its title, its legends and a footer (its source, interval and dates).
+
+## From a script
+
+For a script run in the page (a browser's console, an assistant driving a browser), window.studio:
+- await studio.open(chart): a chart as a link writes it (an object, or its JSON), opened as its link opens it; rejected with why if it can't be read.
+- await studio.ready(): once the chart open is drawn whole (its data in, its reveal and fades at their end: a screenshot then shows all of it); rejected with why not (no chart, no layers, still loading after a minute).
+- await studio.png(options): its picture, as Export makes it (its title, legends and dates), as a data URL ("data:image/png;base64," and its base64), in one result, the same whatever the window. If your tool says the output was too long and saved it to a file, decode the base64 from that file: that's the picture, no need to retype it. Options, each if wanted: width and height, in CSS pixels (1200 and 760 if none); scale, 1 or 2 (pixels for each, 1 if none); type, "image/png" (if none), "image/webp" or "image/jpeg", with quality, 0.01 to 1 (0.9 if none); part, only if long output gets cut off and nothing is saved: 0, 1 and so on, each call with part 0's options, the picture in parts, each {part, parts, mime, base64}, partSize characters of its base64 (45000 if none: each part, all told, under 50,000); part 0 makes the picture of the chart as it is, the others are from that same picture, however long after: join their base64, "data:" + mime + ";base64," before it. Sizes, at 1200 by 760, for a chart of a few lines: a PNG about 130,000 to 160,000 characters (three or four parts), a WebP about 50,000, a JPEG about 100,000; at scale 2, about 330,000, 130,000 and 270,000.
+- studio.chart(): the chart open, as a link writes it.
+- await studio.errors(): once it's drawn, its layers that show nothing, and why, as [{"layer": "B", "error": "...", "closest": "..."}]: a series name Bitview doesn't have (with the closest it has), a series it has only by block (with its day's, if it has one), a formula it can't read.
+- await studio.search(words, count): series names for those words (count of them, 10 if not given, 1 to 50), the best first, as Studio's search finds them, only those it can chart (by date; words as people say them do: "200 day moving average", "transaction count"). No browsing needed: the page knows the catalog, and asks bitview.space only for its first seconds, until its own search is up. It answers within a few seconds, the page shown or not, else it's rejected with why.
+
+What a chart can't hold is left out, or at its default, without a word: past 40 layers, left out; an interval or a range it doesn't know, day1 or 8y.
+
+```js
+await studio.open({"title": "Cost basis", "layers": [{"series": "price"}, {"series": "realized_price"}]});
+await studio.ready();
+const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
+// One result: "data:image/png;base64,...". Saved to a file by your tool as too long? Decode the base64 from that file.
+// Only if long output is cut off and nothing is saved: the same options with part: 0, then part: 1, 2...
+// ({ part, parts, mime, base64 } each; at scale 2, a PNG is six to eight).
+```
+
+## Changing a chart
+
+A link is the whole chart, not a change to one: to change it, write it again, changed. Letters follow the layers' order, so a layer added last leaves the formulas' letters as they were. A link copied from Studio (its Copy link, its Share) is compressed, as short as a link gets: it opens, but can't be read (as a Share QR code's, "#c=", compressed in capitals and digits). To change a chart shared that way, open it and read it with studio.chart() (the chart as a link writes it, its JSON), then write it again, changed; a link written out, as here, opens the same. A chart's "view", if any, is where it was zoomed and scrolled: keep it, change it, or leave it out to show the chart's "range".
+
+## Series names
+
+Only exact names, as Bitview's API has them now (the names on this page are examples, and can change): one it doesn't have shows as missing, with the closest offered. How to find them is at https://bitview.space/llms.txt, which follows the API as it is. Only series by date can be charted (some are only by block).
+
+An assistant without web access can't look names up: whoever uses it can, or can add Bitview's MCP server to it as a connector (https://mcp.bitview.space/, no sign-in), for the search and the data as tools.
+
+## The presets' sections
+
+Each section's page lists its charts; each chart's own address is in https://bitview.space/studio/sitemap.xml.
+
+- Price (62): https://bitview.space/studio/presets/price/
+  - All-time high (2): https://bitview.space/studio/presets/price/all-time-high/
+  - Returns (16): https://bitview.space/studio/presets/price/returns/
+  - Moving averages (31): https://bitview.space/studio/presets/price/moving-averages/
+  - Range (4): https://bitview.space/studio/presets/price/range/
+  - Technical (7): https://bitview.space/studio/presets/price/technical/
+- Valuation (62): https://bitview.space/studio/presets/valuation/
+  - Cointime prices (6): https://bitview.space/studio/presets/valuation/cointime-prices/
+  - Rarity meter (44): https://bitview.space/studio/presets/valuation/rarity-meter/
+- Supply (5): https://bitview.space/studio/presets/supply/
+- Holders (357): https://bitview.space/studio/presets/holders/
+  - Compare (15): https://bitview.space/studio/presets/holders/compare/
+  - All coins (37): https://bitview.space/studio/presets/holders/all-coins/
+  - Short-term holders (39): https://bitview.space/studio/presets/holders/short-term-holders/
+  - Long-term holders (39): https://bitview.space/studio/presets/holders/long-term-holders/
+  - Age cutoffs (171): https://bitview.space/studio/presets/holders/age-cutoffs/
+  - Entry price (56): https://bitview.space/studio/presets/holders/entry-price/
+- Coin age (1107): https://bitview.space/studio/presets/coin-age/
+  - Age bands (614): https://bitview.space/studio/presets/coin-age/age-bands/
+  - Halving epochs (116): https://bitview.space/studio/presets/coin-age/halving-epochs/
+  - Vintages (376): https://bitview.space/studio/presets/coin-age/vintages/
+- Profitability (237): https://bitview.space/studio/presets/profitability/
+  - All coins (79): https://bitview.space/studio/presets/profitability/all-coins/
+  - Short-term holders (79): https://bitview.space/studio/presets/profitability/short-term-holders/
+  - Long-term holders (79): https://bitview.space/studio/presets/profitability/long-term-holders/
+- UTXOs (367): https://bitview.space/studio/presets/utxos/
+  - By amount (213): https://bitview.space/studio/presets/utxos/by-amount/
+  - By type (153): https://bitview.space/studio/presets/utxos/by-type/
+- Addresses (419): https://bitview.space/studio/presets/addresses/
+  - Count (4): https://bitview.space/studio/presets/addresses/count/
+  - Reused (11): https://bitview.space/studio/presets/addresses/reused/
+  - Respent (11): https://bitview.space/studio/presets/addresses/respent/
+  - Exposed (3): https://bitview.space/studio/presets/addresses/exposed/
+  - Supply (3): https://bitview.space/studio/presets/addresses/supply/
+  - Capital (2): https://bitview.space/studio/presets/addresses/capital/
+  - By type (184): https://bitview.space/studio/presets/addresses/by-type/
+  - By balance (200): https://bitview.space/studio/presets/addresses/by-balance/
+- Mining (971): https://bitview.space/studio/presets/mining/
+  - Hashing (4): https://bitview.space/studio/presets/mining/hashing/
+  - Difficulty (3): https://bitview.space/studio/presets/mining/difficulty/
+  - Halvings (2): https://bitview.space/studio/presets/mining/halvings/
+  - Rewards (12): https://bitview.space/studio/presets/mining/rewards/
+  - Pools (950): https://bitview.space/studio/presets/mining/pools/
+- Network (526): https://bitview.space/studio/presets/network/
+  - Blocks (9): https://bitview.space/studio/presets/network/blocks/
+  - Transactions (90): https://bitview.space/studio/presets/network/transactions/
+  - Inputs (47): https://bitview.space/studio/presets/network/inputs/
+  - Outputs (49): https://bitview.space/studio/presets/network/outputs/
+  - OP_RETURN (331): https://bitview.space/studio/presets/network/op-return/
+- Cointime (183): https://bitview.space/studio/presets/cointime/
+  - Activity (8): https://bitview.space/studio/presets/cointime/activity/
+  - Value (6): https://bitview.space/studio/presets/cointime/value/
+  - Age bands (97): https://bitview.space/studio/presets/cointime/age-bands/
+  - Awake coins (71): https://bitview.space/studio/presets/cointime/awake-coins/
+- Coinflow (170): https://bitview.space/studio/presets/coinflow/
+  - Age bands (99): https://bitview.space/studio/presets/coinflow/age-bands/
+  - Mobile coins (71): https://bitview.space/studio/presets/coinflow/mobile-coins/
+- Bedrock (23): https://bitview.space/studio/presets/bedrock/
+  - Compare (5): https://bitview.space/studio/presets/bedrock/compare/
+  - Awake (6): https://bitview.space/studio/presets/bedrock/awake/
+  - Mobile (6): https://bitview.space/studio/presets/bedrock/mobile/
+  - Unweighted (6): https://bitview.space/studio/presets/bedrock/unweighted/

@@ -42,6 +42,7 @@
     <title>Bitview Studio: charts of Bitcoin's on-chain data</title>
     <!-- Found and shared: how a link to it previews, what it is (its canonical address, each place's own, added once it
          knows where it is: see showAddress). -->
+    <link rel="alternate" type="text/markdown" href="https://bitview.space/studio/llms.txt" title="Bitview Studio, for assistants" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Bitview Studio" />
     <meta property="og:title" content="Bitview Studio: charts of Bitcoin's on-chain data" />
@@ -9215,7 +9216,7 @@
           <ul>
             <li>A chart is a link: https://bitview.space/studio/#chart= followed by its JSON (below), such as {"layers": [{"series": "price"}, {"series": "realized_price"}]}.</li>
             <li>Its picture alone: the same link with #image= in place of #chart=, a page that is, once drawn, that picture (with only screenshots to work with, take one of it).</li>
-            <li>Thousands of ready-made charts (presets), each at an address of its own: https://bitview.space/studio/presets/ and its place, such as https://bitview.space/studio/presets/valuation/mvrv; their sections at the same, ending in a slash, such as https://bitview.space/studio/presets/valuation/.</li>
+            <li>Thousands of ready-made charts (presets), each at an address of its own: https://bitview.space/studio/presets/ and its place, such as https://bitview.space/studio/presets/valuation/mvrv; their sections at the same, ending in a slash, such as https://bitview.space/studio/presets/valuation/; every one listed in https://bitview.space/studio/sitemap.xml.</li>
             <li>From a script in the page: await studio.open(chart); await studio.ready(); await studio.png({ width: 1200, height: 760, scale: 2 }), its picture as a PNG data URL, in one result (see "From a script").</li>
           </ul>
           <h2>Opening a chart from a link</h2>
@@ -23208,6 +23209,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       // ── Addresses: the presets' page, each section, each preset, to be found ──────────────────
 
+      /* addresses: read by seo.mjs too, for the sitemap */
       /**
        * Each place of the presets' an address of its own, for search engines and links: their page /presets/, a section
        * /presets/valuation/, a preset /presets/valuation/mvrv (a section's ending in a slash, as a folder's does: the page
@@ -23248,6 +23250,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
         return { presets: presetsAt, sections, at };
       }
+      /* /addresses */
       /** Where Studio's served on a domain: DOMAIN/studio/, its own addresses (the presets') under it. */
       const BASE = "/studio";
       /** Whether the page is Studio's own, at BASE (its server serving the page at every address under it): an address of the presets' read as it starts; elsewhere (a file, another server's), none. */
