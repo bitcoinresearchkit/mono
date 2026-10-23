@@ -685,7 +685,8 @@ export function studioPresets(client, facts) {
     ]),
     section("Mining", [
       section("Hashing", [
-        chart("Hash rate", "Hash rate", [series(own(mining.hashrate), "Hash rate", { color: "orange" }), ...windows(mining.hashrate.sma, "Average", { show: ["_1m"] }), series(mining.hashrate.ath, "All-time high", { color: "green", dash: 3, hidden: true }), series(blocks.difficulty.hashrate, "From difficulty", { color: "gray", hidden: true }), series(mining.hashrate.drawdown, "Drawdown", { pane: 2, color: "red", type: "area" })], { log: [1] }),
+        // (The day's, noisy, under its average: thin and faint, the average the line to read.)
+        chart("Hash rate", "Hash rate", [series(own(mining.hashrate), "Hash rate", { color: "orange", width: 1, opacity: 0.4 }), ...windows(mining.hashrate.sma, "Average", { show: ["_1m"], extra: { width: 2 } }), series(mining.hashrate.ath, "All-time high", { color: "green", dash: 3, hidden: true }), series(blocks.difficulty.hashrate, "From difficulty", { color: "gray", hidden: true }), series(mining.hashrate.drawdown, "Drawdown", { pane: 2, color: "red", type: "area" })], { log: [1] }),
         // (Its 1- and 2-month averages, the 30- and 60-day of the convention: capitulation while the first is under, shaded;
         // no marks where it crosses back, the averages crossing too often to read.)
         chart("Hash ribbons", "Hash ribbons", [
