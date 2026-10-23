@@ -8,9 +8,6 @@ use std::{
 #[cfg(target_os = "linux")]
 use std::{fs, io::ErrorKind};
 
-#[cfg(target_os = "macos")]
-use libproc::pid_rusage::{RUsageInfoV4, pidrusage};
-
 /// Samples this process's memory, disk I/O and CPU time, plus system swap.
 pub struct ProcessMonitor {
     pid: u32,
@@ -81,8 +78,24 @@ impl ProcessMonitor {
 
     #[cfg(target_os = "macos")]
     fn sample(&self) -> io::Result<Sample> {
-        let info = pidrusage::<RUsageInfoV4>(self.pid as i32)
-            .map_err(|_| Error::other("Failed to read process usage"))?;
+        let mut info = MaybeUninit::<libc::rusage_info_v4>::zeroed();
+        // SAFETY: `RUSAGE_INFO_V4` fills a `rusage_info_v4`.
+        let result = unsafe {
+            libc::proc_pid_rusage(
+                self.pid as i32,
+                libc::RUSAGE_INFO_V4,
+                info.as_mut_ptr().cast(),
+            )
+        };
+        if result != 0 {
+            let error = Error::last_os_error();
+            return Err(Error::new(
+                error.kind(),
+                format!("Failed to read process usage: {error}"),
+            ));
+        }
+        // SAFETY: initialized by the successful call above.
+        let info = unsafe { info.assume_init() };
         Ok(Sample {
             physical: info.ri_phys_footprint,
             peak: info.ri_lifetime_max_phys_footprint,
