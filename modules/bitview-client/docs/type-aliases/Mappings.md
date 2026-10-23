@@ -8,7 +8,7 @@
 
 > **Mappings** = `object`
 
-Defined in: [modules/bitview-client/index.js:6424](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6424)
+Defined in: [modules/bitview-client/index.js:6642](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6642)
 
 ## Type Parameters
 
@@ -16,7 +16,7 @@ Defined in: [modules/bitview-client/index.js:6424](https://github.com/bitcoinres
 
 ### addresses
 
-> **addresses**: [`MappingsAddresses`](MappingsAddresses.md)
+> **addresses**: [`Addrs`](Addrs.md)\<[`MappingsP2pk65`](MappingsP2pk65.md), [`MappingsP2pk33`](MappingsP2pk33.md), [`MappingsP2pkh`](MappingsP2pkh.md), [`MappingsP2sh`](MappingsP2sh.md), [`MappingsP2wpkh`](MappingsP2wpkh.md), [`MappingsP2wsh`](MappingsP2wsh.md), [`MappingsP2tr`](MappingsP2tr.md), [`MappingsP2a`](MappingsP2a.md)\>
 
 ### day1
 
@@ -70,9 +70,9 @@ Defined in: [modules/bitview-client/index.js:6424](https://github.com/bitcoinres
 
 > **month6**: [`MappingsMonth6`](MappingsMonth6.md)
 
-### outputs
+### scripts
 
-> **outputs**: [`Output`](Output.md)
+> **scripts**: [`Script`](Script.md)
 
 ### timestamp
 

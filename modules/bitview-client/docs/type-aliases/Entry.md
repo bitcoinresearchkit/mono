@@ -8,16 +8,16 @@
 
 > **Entry** = `object`
 
-Defined in: [modules/bitview-client/index.js:5534](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5534)
+Defined in: [modules/bitview-client/index.js:5004](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5004)
 
 ## Type Parameters
 
 ## Type Declaration
 
-### rookie
+### discount
 
-> **rookie**: [`CreationCohort`](CreationCohort.md)\<[`CreationSupply`](CreationSupply.md), [`CreationCapital`](CreationCapital.md), [`CreationActivity`](CreationActivity.md), [`CreationRealized`](CreationRealized.md), [`CreationUnrealized`](CreationUnrealized.md), [`CohortCostBasis`](CohortCostBasis.md)\>
+> **discount**: [`CreationCohort`](CreationCohort.md)\<[`CreationSupply`](CreationSupply.md), [`CreationCapital`](CreationCapital.md), [`CreationActivity`](CreationActivity.md), [`CreationRealized`](CreationRealized.md), [`CreationUnrealized`](CreationUnrealized.md), [`CohortCostBasis`](CohortCostBasis.md)\>
 
-### veteran
+### premium
 
-> **veteran**: [`CreationCohort`](CreationCohort.md)\<[`CreationSupply`](CreationSupply.md), [`CreationCapital`](CreationCapital.md), [`CreationActivity`](CreationActivity.md), [`CreationRealized`](CreationRealized.md), [`CreationUnrealized`](CreationUnrealized.md), [`CohortCostBasis`](CohortCostBasis.md)\>
+> **premium**: [`CreationCohort`](CreationCohort.md)\<[`CreationSupply`](CreationSupply.md), [`CreationCapital`](CreationCapital.md), [`CreationActivity`](CreationActivity.md), [`CreationRealized`](CreationRealized.md), [`CreationUnrealized`](CreationUnrealized.md), [`CohortCostBasis`](CohortCostBasis.md)\>

@@ -8,7 +8,7 @@
 
 > **Vintage** = `object`
 
-Defined in: [modules/bitview-client/index.js:5585](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5585)
+Defined in: [modules/bitview-client/index.js:5053](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5053)
 
 ## Type Parameters
 

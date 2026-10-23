@@ -8,15 +8,23 @@
 
 > **Mining** = `object`
 
-Defined in: [modules/bitview-client/index.js:4149](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4149)
+Defined in: [modules/bitview-client/index.js:4126](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4126)
 
 ## Type Parameters
 
 ## Type Declaration
 
+### hashPrice
+
+> **hashPrice**: [`HashPriceValue`](HashPriceValue.md)\<[`HashPrice`](HashPrice.md) \| `null`\>
+
 ### hashrate
 
-> **hashrate**: [`MiningHashrate`](MiningHashrate.md)
+> **hashrate**: [`Rate`](Rate.md)
+
+### hashValue
+
+> **hashValue**: [`HashPriceValue`](HashPriceValue.md)\<[`HashValue`](HashValue.md) \| `null`\>
 
 ### rewards
 

@@ -8,15 +8,15 @@
 
 > **ByType** = `object`
 
-Defined in: [modules/bitview-client/index.js:5891](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5891)
+Defined in: [modules/bitview-client/index.js:5359](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5359)
 
 ## Type Parameters
 
 ## Type Declaration
 
-### empty
+### emptyScript
 
-> **empty**: [`OutputTypeSeries`](OutputTypeSeries.md)
+> **emptyScript**: [`OutputTypeSeries`](OutputTypeSeries.md)
 
 ### opReturn
 
@@ -54,6 +54,6 @@ Defined in: [modules/bitview-client/index.js:5891](https://github.com/bitcoinres
 
 > **p2wsh**: [`OutputTypeSeries`](OutputTypeSeries.md)
 
-### unknown
+### unknownScript
 
-> **unknown**: [`OutputTypeSeries`](OutputTypeSeries.md)
+> **unknownScript**: [`OutputTypeSeries`](OutputTypeSeries.md)

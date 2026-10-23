@@ -2,11 +2,11 @@
 
 ***
 
-[bitview-client](../globals.md) / EmptyOutputIndex
+[bitview-client](../globals.md) / EmptyScriptOutputIndex
 
-# Type Alias: EmptyOutputIndex
+# Type Alias: EmptyScriptOutputIndex
 
-> **EmptyOutputIndex** = [`TypeIndex`](TypeIndex.md)
+> **EmptyScriptOutputIndex** = [`TypeIndex`](TypeIndex.md)
 
 Defined in: [modules/bitview-client/index.js:522](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L522)
 

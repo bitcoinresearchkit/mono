@@ -8,7 +8,7 @@
 
 > **WithDelta**\<`A`, `B`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:4345](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4345)
+Defined in: [modules/bitview-client/index.js:4339](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4339)
 
 ## Type Parameters
 
@@ -22,10 +22,10 @@ Defined in: [modules/bitview-client/index.js:4345](https://github.com/bitcoinres
 
 ## Type Declaration
 
-### block
-
-> **block**: [`SeriesPattern1`](SeriesPattern1.md)\<`A`\>
-
 ### delta
 
 > **delta**: [`Delta`](Delta.md)\<`B`\>
+
+### value
+
+> **value**: [`SeriesPattern1`](SeriesPattern1.md)\<`A`\>

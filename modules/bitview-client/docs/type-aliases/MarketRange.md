@@ -8,7 +8,7 @@
 
 > **MarketRange** = `object`
 
-Defined in: [modules/bitview-client/index.js:3582](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3582)
+Defined in: [modules/bitview-client/index.js:3548](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3548)
 
 ## Type Parameters
 
@@ -21,7 +21,3 @@ Defined in: [modules/bitview-client/index.js:3582](https://github.com/bitcoinres
 ### min
 
 > **min**: [`PriceMinMax`](PriceMinMax.md)
-
-### trueRange
-
-> **trueRange**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Dollars`](Dollars.md) \| `null`\>

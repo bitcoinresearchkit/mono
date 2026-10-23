@@ -14,10 +14,10 @@ Defined in: [modules/bitview-client/index.js:3260](https://github.com/bitcoinres
 
 ## Type Declaration
 
-### block
-
-> **block**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Dollars`](Dollars.md) \| `null`\>
-
 ### share
 
 > **share**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Percent`](Percent.md) \| `null`\>
+
+### value
+
+> **value**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Dollars`](Dollars.md) \| `null`\>

@@ -8,7 +8,7 @@
 
 > **BlocksDifficulty** = `object`
 
-Defined in: [modules/bitview-client/index.js:4192](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4192)
+Defined in: [modules/bitview-client/index.js:4171](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4171)
 
 ## Type Parameters
 
@@ -17,10 +17,6 @@ Defined in: [modules/bitview-client/index.js:4192](https://github.com/bitcoinres
 ### adjustment
 
 > **adjustment**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Percent`](Percent.md) \| `null`\>
-
-### block
-
-> **block**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Difficulty`](Difficulty.md) \| `null`\>
 
 ### blocksToRetarget
 
@@ -37,3 +33,7 @@ Defined in: [modules/bitview-client/index.js:4192](https://github.com/bitcoinres
 ### hashrate
 
 > **hashrate**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Hashrate`](Hashrate.md) \| `null`\>
+
+### value
+
+> **value**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Difficulty`](Difficulty.md) \| `null`\>

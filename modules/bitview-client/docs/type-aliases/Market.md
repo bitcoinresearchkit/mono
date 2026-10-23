@@ -8,7 +8,7 @@
 
 > **Market** = `object`
 
-Defined in: [modules/bitview-client/index.js:3645](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3645)
+Defined in: [modules/bitview-client/index.js:3610](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3610)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [modules/bitview-client/index.js:3645](https://github.com/bitcoinres
 
 ### ema
 
-> **ema**: [`Ema`](Ema.md)
+> **ema**: [`Ema`](Ema.md)\<[`PriceWithRatio`](PriceWithRatio.md)\>
 
 ### range
 
@@ -32,4 +32,4 @@ Defined in: [modules/bitview-client/index.js:3645](https://github.com/bitcoinres
 
 ### sma
 
-> **sma**: [`Sma`](Sma.md)
+> **sma**: [`Ema`](Ema.md)\<[`MarketPriceWithRatio`](MarketPriceWithRatio.md)\>

@@ -8,27 +8,27 @@
 
 > **Mode** = `object`
 
-Defined in: [modules/bitview-client/index.js:3782](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3782)
+Defined in: [modules/bitview-client/index.js:3734](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3734)
 
 ## Type Parameters
 
 ## Type Declaration
 
-### costBasisAboveFloor
+### costBasisAboveP95Floor
 
-> **costBasisAboveFloor**: [`Levels`](Levels.md)
+> **costBasisAboveP95Floor**: [`Levels`](Levels.md)
+
+### entryCapital
+
+> **entryCapital**: [`EntryCapital`](EntryCapital.md)
+
+### entrySupply
+
+> **entrySupply**: [`EntrySupply`](EntrySupply.md)
 
 ### floor
 
 > **floor**: [`Percentiles`](Percentiles.md)\<[`Dollars`](Dollars.md) \| `null`\>
-
-### floorCapital
-
-> **floorCapital**: [`FloorCapital`](FloorCapital.md)
-
-### floorSupply
-
-> **floorSupply**: [`FloorSupply`](FloorSupply.md)
 
 ### supplyInLossShareThreshold
 

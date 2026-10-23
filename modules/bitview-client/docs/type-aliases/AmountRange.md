@@ -8,7 +8,7 @@
 
 > **AmountRange**\<`A`, `B`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:5442](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5442)
+Defined in: [modules/bitview-client/index.js:4945](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4945)
 
 ## Type Parameters
 

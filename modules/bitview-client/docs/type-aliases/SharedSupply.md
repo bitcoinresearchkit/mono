@@ -2,13 +2,13 @@
 
 ***
 
-[bitview-client](../globals.md) / LthSupply
+[bitview-client](../globals.md) / SharedSupply
 
-# Type Alias: LthSupply
+# Type Alias: SharedSupply
 
-> **LthSupply** = `object`
+> **SharedSupply** = `object`
 
-Defined in: [modules/bitview-client/index.js:4249](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4249)
+Defined in: [modules/bitview-client/index.js:4247](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4247)
 
 ## Type Parameters
 

@@ -8,7 +8,7 @@
 
 > **Transactions** = `object`
 
-Defined in: [modules/bitview-client/index.js:6702](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6702)
+Defined in: [modules/bitview-client/index.js:6744](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6744)
 
 ## Type Parameters
 
@@ -46,13 +46,13 @@ Defined in: [modules/bitview-client/index.js:6702](https://github.com/bitcoinres
 
 > **sigopCost**: [`Flow`](Flow.md)\<[`SigOps`](SigOps.md)\>
 
+### transferVolume
+
+> **transferVolume**: [`ValueFlow`](ValueFlow.md)
+
 ### versions
 
 > **versions**: [`VersionCount`](VersionCount.md)\<[`TxCount`](TxCount.md)\>
-
-### volume
-
-> **volume**: [`ValueFlow`](ValueFlow.md)
 
 ### vsize
 

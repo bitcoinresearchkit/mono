@@ -18,10 +18,6 @@ Defined in: [modules/bitview-client/index.js:2786](https://github.com/bitcoinres
 
 ## Type Declaration
 
-### block
-
-> **block**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Dollars`](Dollars.md) \| `null`\>
-
 ### median
 
 > **median**: `A`
@@ -101,3 +97,7 @@ Defined in: [modules/bitview-client/index.js:2786](https://github.com/bitcoinres
 ### ratio
 
 > **ratio**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Multiple`](Multiple.md) \| `null`\>
+
+### value
+
+> **value**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Dollars`](Dollars.md) \| `null`\>

@@ -22,10 +22,10 @@ Defined in: [modules/bitview-client/index.js:3049](https://github.com/bitcoinres
 
 > **avivNupl**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Ratio`](Ratio.md) \| `null`\>
 
-### block
-
-> **block**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Dollars`](Dollars.md) \| `null`\>
-
 ### ratio
 
 > **ratio**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Multiple`](Multiple.md) \| `null`\>
+
+### value
+
+> **value**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Dollars`](Dollars.md) \| `null`\>

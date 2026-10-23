@@ -4,44 +4,76 @@
 
 [bitview-client](../globals.md) / Addrs
 
-# Type Alias: Addrs
+# Type Alias: Addrs\<A, B, C, D, E, F, G, H\>
 
-> **Addrs** = `object`
+> **Addrs**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:6614](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6614)
+Defined in: [modules/bitview-client/index.js:6604](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6604)
 
 ## Type Parameters
+
+### A
+
+`A`
+
+### B
+
+`B`
+
+### C
+
+`C`
+
+### D
+
+`D`
+
+### E
+
+`E`
+
+### F
+
+`F`
+
+### G
+
+`G`
+
+### H
+
+`H`
 
 ## Type Declaration
 
 ### p2a
 
-> **p2a**: [`IndexerP2a`](IndexerP2a.md)
+> **p2a**: `H`
 
 ### p2pk33
 
-> **p2pk33**: [`IndexerP2pk33`](IndexerP2pk33.md)
+> **p2pk33**: `B`
 
 ### p2pk65
 
-> **p2pk65**: [`IndexerP2pk65`](IndexerP2pk65.md)
+> **p2pk65**: `A`
 
 ### p2pkh
 
-> **p2pkh**: [`IndexerP2pkh`](IndexerP2pkh.md)
+> **p2pkh**: `C`
 
 ### p2sh
 
-> **p2sh**: [`IndexerP2sh`](IndexerP2sh.md)
+> **p2sh**: `D`
 
 ### p2tr
 
-> **p2tr**: [`IndexerP2tr`](IndexerP2tr.md)
+> **p2tr**: `G`
 
 ### p2wpkh
 
-> **p2wpkh**: [`IndexerP2wpkh`](IndexerP2wpkh.md)
+> **p2wpkh**: `E`
 
 ### p2wsh
 
-> **p2wsh**: [`IndexerP2wsh`](IndexerP2wsh.md)
+> **p2wsh**: `F`

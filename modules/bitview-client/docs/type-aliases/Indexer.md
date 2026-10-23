@@ -8,7 +8,7 @@
 
 > **Indexer** = `object`
 
-Defined in: [modules/bitview-client/index.js:6860](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6860)
+Defined in: [modules/bitview-client/index.js:6902](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6902)
 
 ## Type Parameters
 
@@ -16,7 +16,7 @@ Defined in: [modules/bitview-client/index.js:6860](https://github.com/bitcoinres
 
 ### addresses
 
-> **addresses**: [`Addrs`](Addrs.md)
+> **addresses**: [`Addrs`](Addrs.md)\<[`IndexerP2pk65`](IndexerP2pk65.md), [`IndexerP2pk33`](IndexerP2pk33.md), [`IndexerP2pkh`](IndexerP2pkh.md), [`IndexerP2sh`](IndexerP2sh.md), [`IndexerP2wpkh`](IndexerP2wpkh.md), [`IndexerP2wsh`](IndexerP2wsh.md), [`IndexerP2tr`](IndexerP2tr.md), [`IndexerP2a`](IndexerP2a.md)\>
 
 ### blocks
 

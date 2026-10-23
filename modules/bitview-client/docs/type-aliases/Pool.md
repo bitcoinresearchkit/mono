@@ -8,7 +8,7 @@
 
 > **Pool** = `object`
 
-Defined in: [modules/bitview-client/index.js:4445](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4445)
+Defined in: [modules/bitview-client/index.js:5678](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5678)
 
 ## Type Parameters
 
@@ -16,7 +16,7 @@ Defined in: [modules/bitview-client/index.js:4445](https://github.com/bitcoinres
 
 ### blockCount
 
-> **blockCount**: [`BlockCount`](BlockCount.md)
+> **blockCount**: [`CumulativeFlow`](CumulativeFlow.md)
 
 ### blockShare
 

@@ -2,13 +2,13 @@
 
 ***
 
-[bitview-client](../globals.md) / FloorSupply
+[bitview-client](../globals.md) / EntrySupply
 
-# Type Alias: FloorSupply
+# Type Alias: EntrySupply
 
-> **FloorSupply** = `object`
+> **EntrySupply** = `object`
 
-Defined in: [modules/bitview-client/index.js:3765](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3765)
+Defined in: [modules/bitview-client/index.js:3717](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3717)
 
 ## Type Parameters
 

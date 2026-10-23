@@ -8,7 +8,7 @@
 
 > **Capital** = `object`
 
-Defined in: [modules/bitview-client/index.js:4267](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4267)
+Defined in: [modules/bitview-client/index.js:4264](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4264)
 
 ## Type Parameters
 
@@ -29,10 +29,6 @@ Defined in: [modules/bitview-client/index.js:4267](https://github.com/bitcoinres
 ### realizedCap
 
 > **realizedCap**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Dollars`](Dollars.md) \| `null`\>
-
-### share
-
-> **share**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Percent`](Percent.md) \| `null`\>
 
 ### total
 

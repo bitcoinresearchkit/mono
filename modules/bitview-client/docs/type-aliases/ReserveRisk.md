@@ -8,19 +8,19 @@
 
 > **ReserveRisk** = `object`
 
-Defined in: [modules/bitview-client/index.js:5060](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5060)
+Defined in: [modules/bitview-client/index.js:4626](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4626)
 
 ## Type Parameters
 
 ## Type Declaration
 
-### block
-
-> **block**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Float`](Float.md) \| `null`\>
-
 ### hodlBank
 
 > **hodlBank**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Float`](Float.md) \| `null`\>
+
+### value
+
+> **value**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Float`](Float.md) \| `null`\>
 
 ### vocdd
 

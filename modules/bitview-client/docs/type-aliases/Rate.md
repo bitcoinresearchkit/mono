@@ -8,7 +8,7 @@
 
 > **Rate** = `object`
 
-Defined in: [modules/bitview-client/index.js:3701](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3701)
+Defined in: [modules/bitview-client/index.js:3666](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3666)
 
 ## Type Parameters
 
@@ -18,10 +18,6 @@ Defined in: [modules/bitview-client/index.js:3701](https://github.com/bitcoinres
 
 > **ath**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Hashrate`](Hashrate.md) \| `null`\>
 
-### block
-
-> **block**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Hashrate`](Hashrate.md) \| `null`\>
-
 ### drawdown
 
 > **drawdown**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Percent`](Percent.md) \| `null`\>
@@ -29,3 +25,7 @@ Defined in: [modules/bitview-client/index.js:3701](https://github.com/bitcoinres
 ### sma
 
 > **sma**: [`HashRateSma`](HashRateSma.md)
+
+### value
+
+> **value**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Hashrate`](Hashrate.md) \| `null`\>

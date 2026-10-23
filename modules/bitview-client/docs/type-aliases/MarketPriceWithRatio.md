@@ -14,10 +14,6 @@ Defined in: [modules/bitview-client/index.js:3388](https://github.com/bitcoinres
 
 ## Type Declaration
 
-### block
-
-> **block**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Dollars`](Dollars.md) \| `null`\>
-
 ### mayerMultiple
 
 > **mayerMultiple**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Multiple`](Multiple.md) \| `null`\>
@@ -25,3 +21,7 @@ Defined in: [modules/bitview-client/index.js:3388](https://github.com/bitcoinres
 ### ratio
 
 > **ratio**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Multiple`](Multiple.md) \| `null`\>
+
+### value
+
+> **value**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Dollars`](Dollars.md) \| `null`\>

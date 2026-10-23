@@ -8,7 +8,7 @@
 
 > **Coinflow** = `object`
 
-Defined in: [modules/bitview-client/index.js:5708](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5708)
+Defined in: [modules/bitview-client/index.js:5176](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5176)
 
 ## Type Parameters
 
@@ -20,4 +20,4 @@ Defined in: [modules/bitview-client/index.js:5708](https://github.com/bitcoinres
 
 ### cohorts
 
-> **cohorts**: [`Holders`](Holders.md)\<[`CoinflowCohort`](CoinflowCohort.md), [`CoinflowCohort`](CoinflowCohort.md)\>
+> **cohorts**: [`AgeAggregate`](AgeAggregate.md)\<[`CoinflowCohort`](CoinflowCohort.md)\>

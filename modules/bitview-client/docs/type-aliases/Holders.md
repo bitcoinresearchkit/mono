@@ -4,48 +4,40 @@
 
 [bitview-client](../globals.md) / Holders
 
-# Type Alias: Holders\<A, B\>
+# Type Alias: Holders
 
-> **Holders**\<`A`, `B`\> = `object`
+> **Holders** = `object`
 
-Defined in: [modules/bitview-client/index.js:5551](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5551)
+Defined in: [modules/bitview-client/index.js:5020](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5020)
 
 ## Type Parameters
-
-### A
-
-`A`
-
-### B
-
-`B`
 
 ## Type Declaration
 
 ### all
 
-> **all**: `A`
+> **all**: [`Metrics`](Metrics.md)
 
 ### lth
 
-> **lth**: `B`
+> **lth**: [`CreationCohort`](CreationCohort.md)\<[`SharedSupply`](SharedSupply.md), [`SharedCapital`](SharedCapital.md), [`HoldersActivity`](HoldersActivity.md), [`HoldersRealized`](HoldersRealized.md), [`Unrealized`](Unrealized.md), [`HoldersCostBasis`](HoldersCostBasis.md)\>
 
 ### over4m
 
-> **over4m**: `B`
+> **over4m**: [`CreationCohort`](CreationCohort.md)\<[`SharedSupply`](SharedSupply.md), [`SharedCapital`](SharedCapital.md), [`HoldersActivity`](HoldersActivity.md), [`HoldersRealized`](HoldersRealized.md), [`Unrealized`](Unrealized.md), [`HoldersCostBasis`](HoldersCostBasis.md)\>
 
 ### over6m
 
-> **over6m**: `B`
+> **over6m**: [`CreationCohort`](CreationCohort.md)\<[`SharedSupply`](SharedSupply.md), [`SharedCapital`](SharedCapital.md), [`HoldersActivity`](HoldersActivity.md), [`HoldersRealized`](HoldersRealized.md), [`Unrealized`](Unrealized.md), [`HoldersCostBasis`](HoldersCostBasis.md)\>
 
 ### sth
 
-> **sth**: `B`
+> **sth**: [`CreationCohort`](CreationCohort.md)\<[`SharedSupply`](SharedSupply.md), [`SharedCapital`](SharedCapital.md), [`HoldersActivity`](HoldersActivity.md), [`AdjustedRealized`](AdjustedRealized.md), [`Unrealized`](Unrealized.md), [`HoldersCostBasis`](HoldersCostBasis.md)\>
 
 ### under4m
 
-> **under4m**: `B`
+> **under4m**: [`CreationCohort`](CreationCohort.md)\<[`SharedSupply`](SharedSupply.md), [`SharedCapital`](SharedCapital.md), [`HoldersActivity`](HoldersActivity.md), [`AdjustedRealized`](AdjustedRealized.md), [`Unrealized`](Unrealized.md), [`HoldersCostBasis`](HoldersCostBasis.md)\>
 
 ### under6m
 
-> **under6m**: `B`
+> **under6m**: [`CreationCohort`](CreationCohort.md)\<[`SharedSupply`](SharedSupply.md), [`SharedCapital`](SharedCapital.md), [`HoldersActivity`](HoldersActivity.md), [`AdjustedRealized`](AdjustedRealized.md), [`Unrealized`](Unrealized.md), [`HoldersCostBasis`](HoldersCostBasis.md)\>

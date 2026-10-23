@@ -8,7 +8,7 @@
 
 > **Blocks** = `object`
 
-Defined in: [modules/bitview-client/index.js:5975](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5975)
+Defined in: [modules/bitview-client/index.js:6038](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6038)
 
 ## Type Parameters
 
@@ -16,7 +16,7 @@ Defined in: [modules/bitview-client/index.js:5975](https://github.com/bitcoinres
 
 ### count
 
-> **count**: [`Flow`](Flow.md)\<[`Count`](Count.md)\>
+> **count**: [`CumulativeFlow`](CumulativeFlow.md)
 
 ### difficulty
 
@@ -24,7 +24,7 @@ Defined in: [modules/bitview-client/index.js:5975](https://github.com/bitcoinres
 
 ### fullness
 
-> **fullness**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Percent`](Percent.md) \| `null`\>
+> **fullness**: [`Fullness`](Fullness.md)
 
 ### halving
 

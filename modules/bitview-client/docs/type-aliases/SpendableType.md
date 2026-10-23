@@ -8,15 +8,15 @@
 
 > **SpendableType** = `object`
 
-Defined in: [modules/bitview-client/index.js:5938](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5938)
+Defined in: [modules/bitview-client/index.js:5387](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5387)
 
 ## Type Parameters
 
 ## Type Declaration
 
-### empty
+### emptyScript
 
-> **empty**: [`OutputTypeSeries`](OutputTypeSeries.md)
+> **emptyScript**: [`OutputTypeSeries`](OutputTypeSeries.md)
 
 ### p2a
 
@@ -50,6 +50,6 @@ Defined in: [modules/bitview-client/index.js:5938](https://github.com/bitcoinres
 
 > **p2wsh**: [`OutputTypeSeries`](OutputTypeSeries.md)
 
-### unknown
+### unknownScript
 
-> **unknown**: [`OutputTypeSeries`](OutputTypeSeries.md)
+> **unknownScript**: [`OutputTypeSeries`](OutputTypeSeries.md)

@@ -8,7 +8,7 @@
 
 > **Rewards** = `object`
 
-Defined in: [modules/bitview-client/index.js:4136](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4136)
+Defined in: [modules/bitview-client/index.js:4111](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4111)
 
 ## Type Parameters
 

@@ -2,11 +2,11 @@
 
 ***
 
-[bitview-client](../globals.md) / FloorCapital
+[bitview-client](../globals.md) / EntryCapital
 
-# Type Alias: FloorCapital
+# Type Alias: EntryCapital
 
-> **FloorCapital** = `object`
+> **EntryCapital** = `object`
 
 Defined in: [modules/bitview-client/index.js:2990](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2990)
 

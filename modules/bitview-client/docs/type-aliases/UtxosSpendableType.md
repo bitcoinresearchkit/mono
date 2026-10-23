@@ -8,15 +8,15 @@
 
 > **UtxosSpendableType** = `object`
 
-Defined in: [modules/bitview-client/index.js:5400](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5400)
+Defined in: [modules/bitview-client/index.js:4903](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4903)
 
 ## Type Parameters
 
 ## Type Declaration
 
-### empty
+### emptyScript
 
-> **empty**: [`Cohort`](Cohort.md)
+> **emptyScript**: [`Cohort`](Cohort.md)
 
 ### p2a
 
@@ -50,6 +50,6 @@ Defined in: [modules/bitview-client/index.js:5400](https://github.com/bitcoinres
 
 > **p2wsh**: [`Cohort`](Cohort.md)
 
-### unknown
+### unknownScript
 
-> **unknown**: [`Cohort`](Cohort.md)
+> **unknownScript**: [`Cohort`](Cohort.md)

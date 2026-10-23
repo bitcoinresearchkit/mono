@@ -8,7 +8,7 @@
 
 > **ScriptType** = `object`
 
-Defined in: [modules/bitview-client/index.js:6496](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6496)
+Defined in: [modules/bitview-client/index.js:6472](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6472)
 
 ## Type Parameters
 
@@ -16,7 +16,7 @@ Defined in: [modules/bitview-client/index.js:6496](https://github.com/bitcoinres
 
 ### firstIndex
 
-> **firstIndex**: [`SeriesPattern18`](SeriesPattern18.md)\<[`EmptyOutputIndex`](EmptyOutputIndex.md)\>
+> **firstIndex**: [`SeriesPattern18`](SeriesPattern18.md)\<[`EmptyScriptOutputIndex`](EmptyScriptOutputIndex.md)\>
 
 ### txIndex
 

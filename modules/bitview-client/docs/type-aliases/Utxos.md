@@ -8,7 +8,7 @@
 
 > **Utxos** = `object`
 
-Defined in: [modules/bitview-client/index.js:5500](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5500)
+Defined in: [modules/bitview-client/index.js:4970](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4970)
 
 ## Type Parameters
 

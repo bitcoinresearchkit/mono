@@ -8,15 +8,11 @@
 
 > **HoldersRealized** = `object`
 
-Defined in: [modules/bitview-client/index.js:5152](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5152)
+Defined in: [modules/bitview-client/index.js:4698](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4698)
 
 ## Type Parameters
 
 ## Type Declaration
-
-### adjustedSopr
-
-> **adjustedSopr**: [`AdjustedSopr`](AdjustedSopr.md)
 
 ### grossPnl
 

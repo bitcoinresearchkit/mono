@@ -4,13 +4,17 @@
 
 [bitview-client](../globals.md) / Ema
 
-# Type Alias: Ema
+# Type Alias: Ema\<A\>
 
-> **Ema** = `object`
+> **Ema**\<`A`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:3508](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3508)
+Defined in: [modules/bitview-client/index.js:3510](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3510)
 
 ## Type Parameters
+
+### A
+
+`A`
 
 ## Type Declaration
 
@@ -36,7 +40,7 @@ Defined in: [modules/bitview-client/index.js:3508](https://github.com/bitcoinres
 
 ### \_200d
 
-> **\_200d**: [`PriceWithRatio`](PriceWithRatio.md)
+> **\_200d**: `A`
 
 ### \_200w
 
@@ -57,6 +61,10 @@ Defined in: [modules/bitview-client/index.js:3508](https://github.com/bitcoinres
 ### \_4y
 
 > **\_4y**: [`PriceWithRatio`](PriceWithRatio.md)
+
+### \_50d
+
+> **\_50d**: [`PriceWithRatio`](PriceWithRatio.md)
 
 ### \_55d
 

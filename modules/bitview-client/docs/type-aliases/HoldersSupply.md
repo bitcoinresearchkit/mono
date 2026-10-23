@@ -2,13 +2,13 @@
 
 ***
 
-[bitview-client](../globals.md) / AllSupply
+[bitview-client](../globals.md) / HoldersSupply
 
-# Type Alias: AllSupply
+# Type Alias: HoldersSupply
 
-> **AllSupply** = `object`
+> **HoldersSupply** = `object`
 
-Defined in: [modules/bitview-client/index.js:4285](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4285)
+Defined in: [modules/bitview-client/index.js:4280](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4280)
 
 ## Type Parameters
 
@@ -25,10 +25,6 @@ Defined in: [modules/bitview-client/index.js:4285](https://github.com/bitcoinres
 ### inProfit
 
 > **inProfit**: [`PredicateSupply`](PredicateSupply.md)
-
-### share
-
-> **share**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Percent`](Percent.md) \| `null`\>
 
 ### total
 

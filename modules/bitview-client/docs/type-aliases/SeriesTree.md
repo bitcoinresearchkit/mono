@@ -8,7 +8,7 @@
 
 > **SeriesTree** = `object`
 
-Defined in: [modules/bitview-client/index.js:6897](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6897)
+Defined in: [modules/bitview-client/index.js:6939](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6939)
 
 ## Type Parameters
 
@@ -44,7 +44,7 @@ Defined in: [modules/bitview-client/index.js:6897](https://github.com/bitcoinres
 
 ### holders
 
-> **holders**: [`Holders`](Holders.md)\<[`CreationCohort`](CreationCohort.md)\<[`AllSupply`](AllSupply.md), [`Capital`](Capital.md), [`HoldersActivity`](HoldersActivity.md), [`HoldersRealized`](HoldersRealized.md), [`Unrealized`](Unrealized.md), [`HoldersCostBasis`](HoldersCostBasis.md)\>, [`CreationCohort`](CreationCohort.md)\<[`LthSupply`](LthSupply.md), [`Capital`](Capital.md), [`HoldersActivity`](HoldersActivity.md), [`HoldersRealized`](HoldersRealized.md), [`Unrealized`](Unrealized.md), [`HoldersCostBasis`](HoldersCostBasis.md)\>\>
+> **holders**: [`Holders`](Holders.md)
 
 ### indexer
 

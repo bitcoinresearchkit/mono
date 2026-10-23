@@ -8,7 +8,7 @@
 
 > **Cointime** = `object`
 
-Defined in: [modules/bitview-client/index.js:5726](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5726)
+Defined in: [modules/bitview-client/index.js:5194](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5194)
 
 ## Type Parameters
 
@@ -32,7 +32,7 @@ Defined in: [modules/bitview-client/index.js:5726](https://github.com/bitcoinres
 
 ### cohorts
 
-> **cohorts**: [`Holders`](Holders.md)\<[`CointimeCohort`](CointimeCohort.md), [`CointimeCohort`](CointimeCohort.md)\>
+> **cohorts**: [`AgeAggregate`](AgeAggregate.md)\<[`CointimeCohort`](CointimeCohort.md)\>
 
 ### prices
 

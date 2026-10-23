@@ -22,9 +22,9 @@ Defined in: [modules/bitview-client/index.js:2445](https://github.com/bitcoinres
 
 > **by**: `object`
 
-#### by.empty\_output\_index
+#### by.empty\_script\_output\_index
 
-> `readonly` **empty\_output\_index**: [`SeriesEndpoint`](../interfaces/SeriesEndpoint.md)\<`T`\>
+> `readonly` **empty\_script\_output\_index**: [`SeriesEndpoint`](../interfaces/SeriesEndpoint.md)\<`T`\>
 
 ### get
 
