@@ -18,15 +18,17 @@
         font-display: swap;
       }
 
-      /* A money app: white or black, one heavy sans, one green; big numbers first, everything else in rounded cards,
-         pills and rows. */
+      /* A money app, as Cash App draws its own: a light-gray page and white cards (black and near-black at night); one
+         sans, regular for statements and semibold for money; big numbers centered; soft-gray pills, black for an
+         action; green for the line and gains only. */
       :root {
         color-scheme: light dark;
-        --app: light-dark(#ffffff, #000000);
-        --card: light-dark(#f4f4f4, #151515);
-        --raised: light-dark(#ffffff, #232323);
+        --app: light-dark(#f2f2f2, #000000);
+        --card: light-dark(#ffffff, #151515);
+        --raised: light-dark(#f2f2f2, #242424);
+        --pressed: light-dark(#dcdcdc, #3d3d3d);
         --ink: light-dark(#000000, #ffffff);
-        --soft: light-dark(#6e6e73, #9a9a9f);
+        --soft: light-dark(#6b6b6b, #9a9a9f);
         --faint: light-dark(#c7c7cc, #3a3a3c);
         --line: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.1));
         --hover: light-dark(rgb(0 0 0 / 0.05), rgb(255 255 255 / 0.07));
@@ -39,8 +41,8 @@
         --line-up: light-dark(#00a32a, #00d632);
         /* (The smart plan, wherever it shows.) */
         --smart: light-dark(#0a5ce6, #4d9fff);
-        --gain-fill: light-dark(rgb(0 214 50 / 0.12), rgb(0 214 50 / 0.13));
-        --loss-fill: light-dark(rgb(217 45 32 / 0.1), rgb(255 81 71 / 0.15));
+        --gain-fill: light-dark(rgb(0 214 50 / 0.04), rgb(0 214 50 / 0.06));
+        --loss-fill: light-dark(rgb(217 45 32 / 0.04), rgb(255 81 71 / 0.06));
         --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
         /* (A press gives a little and springs back; a choice slides.) */
         --spring: cubic-bezier(0.3, 0.7, 0.4, 1.4);
@@ -55,8 +57,7 @@
         margin: 0;
         color: var(--ink);
         background: var(--app);
-        font: 500 16px/1.45 var(--sans);
-        font-feature-settings: "cv11", "ss01", "tnum";
+        font: 450 16px/1.45 var(--sans);
         letter-spacing: -0.011em;
         -webkit-font-smoothing: antialiased;
       }
@@ -85,6 +86,20 @@
       :focus-visible {
         outline: 2px solid var(--focus);
         outline-offset: 2px;
+      }
+
+      /* (Figures of one width where numbers change, so they don't jitter; only there: a tabular hyphen is wide.) */
+      .worth,
+      .coins,
+      .change,
+      .versus,
+      .keys,
+      .tag,
+      .amount,
+      .rows dd,
+      .vs td,
+      .cell {
+        font-variant-numeric: tabular-nums;
       }
 
       .gain {
@@ -143,35 +158,39 @@
       h1,
       h2 {
         margin: 0;
-        font-weight: 800;
-        letter-spacing: -0.035em;
       }
 
+      /* (A statement, as Cash App sets its own: regular weight, large, tight.) */
       h1 {
-        margin-top: 8px;
-        font-size: 30px;
-        line-height: 1.05;
+        margin-top: 12px;
+        font-size: 38px;
+        font-weight: 400;
+        line-height: 1;
+        letter-spacing: -0.035em;
 
         @media (min-width: 720px) {
-          margin-top: 32px;
-          font-size: 48px;
+          margin-top: 24px;
+          font-size: 56px;
         }
       }
 
       h2 {
-        font-size: 22px;
-        line-height: 1.15;
+        font-size: 20px;
+        font-weight: 600;
+        line-height: 1.2;
+        letter-spacing: -0.02em;
       }
 
       .lede {
-        max-width: 56ch;
-        margin: 8px 0 0;
+        max-width: 52ch;
+        margin: 12px 0 0;
         color: var(--soft);
-        font-size: 15px;
-        font-weight: 500;
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1.4;
 
         @media (min-width: 720px) {
-          font-size: 16px;
+          font-size: 18px;
         }
       }
 
@@ -193,14 +212,14 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         gap: 12px;
-        margin-top: 20px;
+        margin-top: 24px;
 
-        /* (On a desk: the value, the plan and its breakdown beside it; the smart plan across under both.) */
+        /* (On a desk: the value, the plan and its breakdown beside it, both ending together, the value's chart taking
+           the difference; the smart plan across under both.) */
         @media (min-width: 960px) {
           grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
-          align-items: start;
           gap: 16px;
-          margin-top: 32px;
+          margin-top: 24px;
 
           .card.smart {
             grid-column: 1 / -1;
@@ -211,7 +230,13 @@
       .side {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
+        align-content: start;
         gap: 12px;
+
+        /* (A tablet: the plan and its breakdown side by side under the value.) */
+        @media (min-width: 720px) and (max-width: 959px) {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
 
         @media (min-width: 960px) {
           gap: 16px;
@@ -219,7 +244,7 @@
       }
 
       .card {
-        border-radius: 24px;
+        border-radius: 20px;
         padding: 20px;
         background: var(--card);
 
@@ -228,46 +253,88 @@
         }
       }
 
-      .label {
-        color: var(--soft);
-        font-size: 14px;
-        font-weight: 600;
-      }
-
-      /* The value: as of the day pointed at, else the plan's last day. */
+      /* The value, centered as the app's Bitcoin screen has it: what it's for, the number, the bitcoin, the change; as
+         of the day pointed at, else the plan's last day. Its chart runs to the card's edges. */
       .value {
-        /* (Lines held for the longest plan's words, three on a phone, so nothing below moves as plans change.) */
+        border-radius: 28px;
+        text-align: center;
+
+        @media (min-width: 960px) {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .corners {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+
+          .pill {
+            height: 30px;
+            padding: 0 12px;
+            font-size: 13px;
+          }
+        }
+
+        /* (Lines held for the longest plan's words, two on a phone, at the foot of their box.) */
         .sentence {
-          min-height: 4.35em;
-          margin: 0;
+          display: flex;
+          align-items: flex-end;
+          justify-content: center;
+          min-height: 2.9em;
+          margin: 14px 0 0;
           color: var(--soft);
           font-size: 14px;
-          font-weight: 600;
+          font-weight: 400;
 
           @media (min-width: 720px) {
-            min-height: 2.9em;
+            min-height: 1.45em;
           }
         }
 
         .worth {
           display: block;
-          margin-top: 6px;
-          font-size: clamp(44px, 11vw, 72px);
-          font-weight: 800;
-          line-height: 1;
-          letter-spacing: -0.045em;
+          margin-top: 4px;
+          font-size: clamp(48px, 12.5vw, 64px);
+          font-weight: 650;
+          line-height: 1.05;
+          letter-spacing: -0.04em;
           white-space: nowrap;
+        }
+
+        .coins {
+          margin: 2px 0 0;
+          color: var(--soft);
+          font-size: 14px;
+          font-weight: 400;
         }
 
         /* (One line, whatever day is pointed at: the chart below never moves under a finger.) */
         .change {
           overflow: hidden;
           margin-top: 10px;
-          font-size: 17px;
-          font-weight: 700;
+          font-size: 16px;
+          font-weight: 600;
           white-space: nowrap;
           text-overflow: ellipsis;
         }
+
+        .plot {
+          margin-inline: -20px;
+
+          @media (min-width: 720px) {
+            margin-inline: -24px;
+          }
+
+          @media (min-width: 960px) {
+            flex: 1 1 auto;
+          }
+        }
+
+        .keys {
+          justify-content: center;
+        }
+
       }
 
       .pills {
@@ -283,10 +350,10 @@
         border: 0;
         border-radius: 17px;
         padding: 0 14px;
-        background: transparent;
-        color: var(--soft);
+        background: var(--raised);
+        color: var(--ink);
         font-size: 14px;
-        font-weight: 700;
+        font-weight: 600;
         cursor: pointer;
         transition:
           transform 160ms var(--spring),
@@ -312,11 +379,11 @@
 
         @media (hover: hover) {
           &:hover:not(:disabled) {
-            color: var(--ink);
-            background: var(--hover);
+            background: color-mix(in srgb, var(--raised), var(--ink) 6%);
           }
         }
 
+        /* (Chosen: black, white at night: a state that reads at a glance, 3:1 and more against any card.) */
         &[aria-pressed="true"],
         &[aria-pressed="true"]:hover {
           color: var(--app);
@@ -324,14 +391,34 @@
         }
       }
 
+      /* An action: black (white at night). */
+      .share,
+      .share:hover:not(:disabled) {
+        color: var(--app);
+        background: var(--ink);
+      }
+
+      /* (The ranges and the tops' picker: one row where there's room; on a phone, two lines of one width.) */
+      .spans {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 6px 8px;
+        margin-top: 16px;
+      }
+
       .ranges {
+        flex: 0 1 312px;
         flex-wrap: nowrap;
-        justify-content: space-between;
-        margin-top: 14px;
+        justify-content: center;
+        gap: 8px;
 
         .pill {
           flex: 1;
+          height: 32px;
           padding: 0;
+          font-size: 13px;
         }
       }
 
@@ -344,14 +431,20 @@
         user-select: none;
         -webkit-user-select: none;
 
+        /* (Its height: a phone's, a tablet's; on a desk, the room its card has, at least 260px.) */
         svg {
           display: block;
           width: 100%;
-          height: 240px;
+          height: 200px;
           overflow: visible;
 
           @media (min-width: 720px) {
-            height: 300px;
+            height: 240px;
+          }
+
+          @media (min-width: 960px) {
+            height: 100%;
+            min-height: 260px;
           }
         }
       }
@@ -372,6 +465,7 @@
 
         &.up {
           stroke: var(--line-up);
+          stroke-width: 3px;
         }
 
         &.down {
@@ -385,12 +479,13 @@
 
         &.smart {
           stroke: var(--smart);
+          stroke-width: 1.75px;
         }
 
         &.dashed {
           stroke: var(--soft);
-          stroke-width: 1.75px;
-          stroke-dasharray: 2 5;
+          stroke-width: 1.5px;
+          stroke-dasharray: 3 5;
         }
       }
 
@@ -427,18 +522,6 @@
         pointer-events: none;
       }
 
-      .chart-head {
-        display: flex;
-        justify-content: flex-end;
-        margin-top: 14px;
-
-        .pill {
-          height: 30px;
-          padding: 0 12px;
-          font-size: 13px;
-        }
-      }
-
       /* (Below the chart, so as the day pointed at changes nothing above it moves; one line, or with the comparison's
          third key, two held on a phone.) */
       .keys {
@@ -451,7 +534,7 @@
         white-space: nowrap;
         color: var(--soft);
         font-size: 13px;
-        font-weight: 600;
+        font-weight: 400;
 
         /* (Three keys with the smart plan's: two lines held on a phone.) */
         @media (max-width: 719px) {
@@ -460,7 +543,7 @@
 
         b {
           color: var(--ink);
-          font-weight: 700;
+          font-weight: 600;
         }
 
         i {
@@ -495,24 +578,66 @@
         }
       }
 
-      /* (Its label, then one row of equal pills, as the ranges are.) */
-      .tops {
-        margin-top: 12px;
-        border-top: 1px solid var(--line);
-        padding-top: 12px;
+      /* The cycle tops: one picker pill beside the ranges (under them on a phone, as wide), black once the plan is from
+         one; a fixed width, so options arriving never resize it; 44px tall to a finger, 32px to the eye. */
+      .picker {
+        position: relative;
+        flex: 0 1 312px;
 
-        /* (Its height held while the tops are found.) */
-        .pills {
-          flex-wrap: nowrap;
-          min-height: 30px;
-          margin-top: 6px;
+        @media (min-width: 720px) {
+          flex: none;
         }
 
-        .pill {
-          flex: 1;
-          height: 30px;
-          padding: 0;
+        select {
+          width: 100%;
+          height: 44px;
+          border: 6px solid transparent;
+          border-inline-width: 0;
+          border-radius: 22px;
+          padding: 0 30px;
+          color: var(--ink);
+          background: var(--raised) padding-box;
+          text-align: center;
+          text-align-last: center;
+          font: inherit;
           font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+          appearance: none;
+          -webkit-appearance: none;
+          transition: transform 160ms var(--spring);
+
+          @media (min-width: 720px) {
+            width: 136px;
+          }
+
+          &:active {
+            transform: scale(0.94);
+            transition-duration: 60ms;
+          }
+
+          &.on {
+            color: var(--app);
+            background: var(--ink) padding-box;
+          }
+        }
+
+        /* (Its chevron, inside its right end.) */
+        &::after {
+          content: "";
+          position: absolute;
+          right: 15px;
+          top: 50%;
+          width: 6px;
+          height: 6px;
+          border-right: 1.5px solid currentColor;
+          border-bottom: 1.5px solid currentColor;
+          transform: translateY(-75%) rotate(45deg);
+          pointer-events: none;
+        }
+
+        &:has(.on)::after {
+          color: var(--app);
         }
       }
 
@@ -522,15 +647,21 @@
         container-type: inline-size;
 
         .amount {
+          position: relative;
           display: flex;
           align-items: baseline;
           justify-content: center;
-          height: 62px;
+          height: 56px;
           margin: 8px 0 4px;
-          font-size: min(56px, 150cqi / var(--chars, 4));
-          font-weight: 800;
+          font-size: min(44px, 150cqi / var(--chars, 4));
+
+          @media (min-width: 720px) {
+            font-size: min(48px, 150cqi / var(--chars, 4));
+          }
+
+          font-weight: 650;
           line-height: 1.1;
-          letter-spacing: -0.045em;
+          letter-spacing: -0.04em;
 
           input {
             min-width: 1.4ch;
@@ -554,14 +685,25 @@
             text-decoration: underline 3px var(--brand);
             text-underline-offset: 8px;
           }
+
+          .twin {
+            position: absolute;
+            visibility: hidden;
+            white-space: pre;
+          }
         }
 
+        /* (Or what's wrong with the plan as typed, in its place: nothing below moves.) */
         .each {
           margin: 0;
           color: var(--soft);
           text-align: center;
           font-size: 14px;
-          font-weight: 600;
+          font-weight: 400;
+
+          &.wrong {
+            color: var(--loss);
+          }
         }
 
         .chips {
@@ -573,12 +715,7 @@
           .pill {
             height: 30px;
             padding: 0 12px;
-            background: var(--raised);
             font-size: 13px;
-          }
-
-          .pill[aria-pressed="true"] {
-            background: var(--ink);
           }
         }
 
@@ -601,7 +738,7 @@
             width: calc((100% - 16px) / 3);
             height: 36px;
             border-radius: 16px;
-            background: var(--brand);
+            background: var(--ink);
             transform: translateX(calc(var(--at, 1) * (100% + 4px)));
             transition: transform 240ms var(--slide);
           }
@@ -610,11 +747,13 @@
             z-index: 1;
             height: 36px;
             border-radius: 16px;
+            background: none;
+            color: var(--soft);
           }
 
           .pill[aria-pressed="true"],
           .pill[aria-pressed="true"]:hover {
-            color: var(--on-brand);
+            color: var(--app);
             background: none;
           }
         }
@@ -639,7 +778,7 @@
 
         dt {
           min-width: 0;
-          font-weight: 600;
+          font-weight: 500;
 
           /* (One line, so a row never grows as plans change.) */
           small {
@@ -656,7 +795,7 @@
         dd {
           margin: 0;
           text-align: right;
-          font-weight: 700;
+          font-weight: 600;
           white-space: nowrap;
 
           small {
@@ -667,19 +806,26 @@
           }
         }
 
-        /* (A fixed width, so a date in any locale's form, or none while loading, takes the same room.) */
+        /* (A row's value, as the app lists details: plain and right-aligned, a fixed width so a date in any locale's form,
+           or none while loading, takes the same room; a soft fill under a pointer.) */
         input[type="date"] {
           width: 9em;
           min-height: 36px;
-          text-align: center;
+          text-align: right;
           border: 0;
-          border-radius: 12px;
-          padding: 0 12px;
-          background: var(--raised);
-          font-weight: 700;
+          border-radius: 10px;
+          padding: 0 8px;
+          background: transparent;
+          font-weight: 500;
           cursor: pointer;
           -webkit-appearance: none;
           appearance: none;
+
+          @media (hover: hover) {
+            &:hover {
+              background: var(--raised);
+            }
+          }
 
           &[aria-invalid="true"] {
             color: var(--loss);
@@ -702,8 +848,8 @@
         overflow: hidden;
         margin-top: 4px;
         color: var(--smart);
-        font-size: 15px;
-        font-weight: 700;
+        font-size: 14px;
+        font-weight: 500;
         white-space: nowrap;
         text-overflow: ellipsis;
       }
@@ -717,10 +863,6 @@
           gap: 40px;
         }
 
-        h2 {
-          color: var(--smart);
-        }
-
         .rule {
           margin: 6px 0 0;
           color: var(--soft);
@@ -731,17 +873,18 @@
         /* (Lines held for the longest verdict: three on a phone, two on a desk.) */
         .verdict {
           min-height: 4.35em;
-          margin: 10px 0 0;
-          color: var(--soft);
-          font-weight: 600;
+          margin: 12px 0 0;
+          font-size: 18px;
+          font-weight: 400;
+          line-height: 1.3;
+          letter-spacing: -0.015em;
 
           @media (min-width: 720px) {
             min-height: 2.9em;
           }
 
           b {
-            color: var(--ink);
-            font-weight: 800;
+            font-weight: 650;
           }
         }
       }
@@ -766,7 +909,7 @@
 
         th[scope="row"] {
           text-align: left;
-          font-weight: 600;
+          font-weight: 500;
           white-space: normal;
         }
 
@@ -780,10 +923,9 @@
 
         td {
           padding-left: 8px;
-          font-weight: 700;
+          font-weight: 600;
         }
 
-        td:last-child,
         thead th:last-child {
           color: var(--smart);
         }
@@ -802,7 +944,20 @@
       /* ── The map: every start, every length ── */
 
       .atlas {
+        border-radius: 24px;
         margin-top: 12px;
+
+        /* (Its intro short: three lines held on a phone, two above.) */
+        #map-lede {
+          min-height: 60px;
+          margin-top: 6px;
+          font-size: 14px;
+          line-height: 20px;
+
+          @media (min-width: 720px) {
+            min-height: 40px;
+          }
+        }
 
         @media (min-width: 960px) {
           margin-top: 16px;
@@ -833,25 +988,24 @@
           gap: 24px;
         }
 
-        /* (Lines held for the longest sentence: four on a phone, two on a desk.) */
+        /* (Lines held for the longest statement: three on a phone, two on a desk.) */
         p {
-          min-height: 5em;
+          min-height: 3.9em;
           margin: 0;
-          color: var(--soft);
-          font-size: 20px;
-          font-weight: 700;
-          line-height: 1.25;
-          letter-spacing: -0.025em;
+          color: var(--ink);
+          font-size: 18px;
+          font-weight: 400;
+          line-height: 1.3;
+          letter-spacing: -0.015em;
 
           @media (min-width: 720px) {
-            min-height: 2.5em;
-            font-size: 24px;
+            min-height: 2.6em;
+            font-size: 20px;
           }
         }
 
         b {
-          color: var(--ink);
-          font-weight: 800;
+          font-weight: 650;
         }
       }
 
@@ -881,17 +1035,17 @@
         }
 
         strong {
-          font-weight: 700;
+          font-weight: 600;
         }
 
         > span:last-child {
           color: var(--soft);
-          font-size: 13.5px;
-          font-weight: 600;
+          font-size: 13px;
+          font-weight: 400;
         }
 
         > span:nth-child(2) {
-          font-weight: 700;
+          font-weight: 600;
         }
 
         a {
@@ -901,11 +1055,11 @@
       }
 
       .legend {
-        width: min(100%, 360px);
+        width: min(100%, 240px);
 
         .ramp {
-          height: 10px;
-          border-radius: 5px;
+          height: 8px;
+          border-radius: 4px;
         }
 
         .marks {
@@ -914,7 +1068,7 @@
           margin-top: 4px;
           color: var(--soft);
           font-size: 11px;
-          font-weight: 600;
+          font-weight: 400;
 
           span {
             position: absolute;
@@ -983,7 +1137,7 @@
         background: color-mix(in srgb, var(--smart) 8%, transparent);
         font-size: 12px;
         font-style: normal;
-        font-weight: 800;
+        font-weight: 600;
         letter-spacing: 0.01em;
       }
 
@@ -1006,38 +1160,38 @@
       </header>
 
       <main>
-        <h1>Dollar-cost averaging</h1>
-        <p class="lede">Buying the same dollars of bitcoin on a schedule: what any plan since 2010 would be worth.</p>
+        <h1>Bitcoin, a little at a time</h1>
+        <p class="lede">Dollar-cost averaging: the same dollars of bitcoin on a schedule, whatever the price. What any plan since 2010 would be worth.</p>
         <p class="note" id="failed" role="alert"></p>
 
         <div class="board" id="calculator" aria-busy="true" inert>
           <section class="card value" aria-label="What it's worth">
-            <p class="sentence" id="sentence">Reading the daily price.</p>
-            <span class="worth" id="worth"><span class="bone" style="--w: 4.6ch"></span></span>
-            <div class="change" id="delta">&nbsp;</div>
-            <div class="versus" id="versus">&nbsp;</div>
-            <div class="chart-head">
+            <div class="corners">
               <div class="pills" role="group" aria-label="Chart">
                 <button type="button" class="pill" data-view="value">Value</button>
                 <button type="button" class="pill" data-view="cost">Cost</button>
-                <button type="button" class="pill" id="log" aria-pressed="false">Log</button>
               </div>
+              <button type="button" class="pill" id="log" aria-pressed="false">Log</button>
             </div>
+            <p class="sentence" id="sentence">Reading the daily price.</p>
+            <span class="worth" id="worth"><span class="bone" style="--w: 4.6ch"></span></span>
+            <p class="coins" id="coins">&nbsp;</p>
+            <div class="change" id="delta">&nbsp;</div>
+            <div class="versus" id="versus">&nbsp;</div>
             <div class="plot" id="plots" tabindex="0" aria-label="The plan day by day: arrows move a day (Shift: a month), Home and End go to its ends">
               <svg id="chart" aria-hidden="true"></svg>
               <span class="tag" id="tag" hidden></span>
             </div>
             <div class="keys" id="keys"><span>&nbsp;</span></div>
-            <div class="pills ranges" role="group" aria-label="The last years up to the last day">
-              <button type="button" class="pill" data-years="1">1Y</button>
-              <button type="button" class="pill" data-years="2">2Y</button>
-              <button type="button" class="pill" data-years="4">4Y</button>
-              <button type="button" class="pill" data-years="8">8Y</button>
-              <button type="button" class="pill" data-years="0">All</button>
-            </div>
-            <div class="tops">
-              <span class="label">From a top</span>
-              <div class="pills" id="tops" role="group" aria-label="From a cycle's top, or the latest all-time high, to the last day"></div>
+            <div class="spans">
+              <div class="pills ranges" role="group" aria-label="The last years up to the last day">
+                <button type="button" class="pill" data-years="1">1Y</button>
+                <button type="button" class="pill" data-years="2">2Y</button>
+                <button type="button" class="pill" data-years="4">4Y</button>
+                <button type="button" class="pill" data-years="8">8Y</button>
+                <button type="button" class="pill" data-years="0">All</button>
+              </div>
+              <label class="picker"><select id="tops" aria-label="From a cycle's top, or the latest all-time high, to the last day"><option value="">From a top</option></select></label>
             </div>
           </section>
 
@@ -1045,7 +1199,7 @@
             <section class="card plan" aria-labelledby="plan-title">
               <h2 id="plan-title">Your plan</h2>
               <label class="amount">$<input id="amount" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Dollars each time" value="100" /></label>
-              <p class="each">of bitcoin each time</p>
+              <p class="each" id="note" role="status">of bitcoin each time</p>
               <div class="chips" role="group" aria-label="Quick amounts">
                 <button type="button" class="pill" data-amount="10">$10</button>
                 <button type="button" class="pill" data-amount="25">$25</button>
@@ -1062,7 +1216,6 @@
                 <div><dt><label for="from">Starts</label></dt><dd><input id="from" type="date" required /></dd></div>
                 <div><dt><label for="to">Ends</label></dt><dd><input id="to" type="date" required /></dd></div>
               </dl>
-              <p class="note" id="note" role="status"></p>
             </section>
 
             <section class="card facts" aria-labelledby="facts-title">
@@ -1107,7 +1260,7 @@
               <button type="button" class="pill" data-atlas="edge">Smart vs plain</button>
             </div>
           </div>
-          <p class="lede" id="map-lede">Each square is a plan that began on the first of a month and ran for a whole number of months, colored by what it ended up worth against what went in.</p>
+          <p class="lede" id="map-lede">&nbsp;</p>
           <div class="findings"><p id="wins">&nbsp;</p><p id="sure">&nbsp;</p></div>
           <div class="map">
             <div class="map-bar">
@@ -1321,13 +1474,22 @@
 
       const amountInput = /** @type {HTMLInputElement} */ ($("amount"));
       const fromInput = /** @type {HTMLInputElement} */ ($("from")), toInput = /** @type {HTMLInputElement} */ ($("to"));
-      /** The amount's field as wide as its digits, and their size down from 56px as they'd outgrow the card. */
+      // (A hidden twin of the amount's text, styled as the field is: its width is the field's.)
+      const twin = Object.assign(document.createElement("span"), { className: "twin" });
+      twin.setAttribute("aria-hidden", "true");
+      /** @type {HTMLElement} */ (amountInput.parentElement).append(twin);
+      /** The amount's field as wide as its text, and its size down from 48px as it would outgrow the card. */
       const fitAmount = () => {
-        amountInput.style.width = `${Math.max(2, amountInput.value.length) + 0.4}ch`;
+        // (Its size first, then the field exactly as wide as its text at that size, so the amount sits centered.)
         /** @type {HTMLElement} */ (amountInput.parentElement).style.setProperty("--chars", String(Math.max(4, amountInput.value.length + 1.4)));
+        twin.textContent = amountInput.value || "0";
+        amountInput.style.width = `${Math.ceil(twin.getBoundingClientRect().width) + 1}px`;
       };
-      // (Sized from the start, so the card doesn't change once prices arrive.)
+      // (Sized from the start, so the card doesn't change once prices arrive; again once the fonts it's measured in are in,
+      // and whenever the card's width, which sets its size, changes.)
       fitAmount();
+      document.fonts.ready.then(fitAmount);
+      new ResizeObserver(fitAmount).observe(/** @type {HTMLElement} */ (document.querySelector(".plan")));
 
       /** What's wrong with an amount ("": nothing): a cent to a billion dollars. */
       const amountProblem = (/** @type {number} */ amount) => (amount >= 0.01 && amount <= 1e9 ? "" : "Enter dollars from 0.01 to 1,000,000,000.");
@@ -1340,6 +1502,12 @@
           : "";
       const typed = (/** @type {HTMLInputElement} */ input) => (input.value ? dayOf(input.value) : NaN);
 
+      /** The plan card's line under the amount: what's wrong, if anything, else what the amount is. */
+      const say = (/** @type {string} */ problem) => {
+        $("note").textContent = problem || "of bitcoin each time";
+        $("note").classList.toggle("wrong", Boolean(problem));
+      };
+
       /** Reads the form: each part that's valid joins the plan; one that isn't keeps what's typed, marked and said why,
        * until it's fixed or a control (a span, a square) replaces it. */
       function readForm() {
@@ -1348,7 +1516,8 @@
         amountInput.setAttribute("aria-invalid", String(Boolean(amountWrong)));
         // (The days are one plan: wrong together, both keep what's typed.)
         for (const input of [fromInput, toInput]) input.setAttribute("aria-invalid", String(Boolean(datesWrong)));
-        $("note").textContent = [amountWrong, datesWrong].filter(Boolean).join(" ");
+        // (One line: the first problem said, every wrong field marked.)
+        say(amountWrong || datesWrong);
         if (!amountWrong) state.amount = amount;
         if (!datesWrong) [state.from, state.to] = [from, to];
         update();
@@ -1370,7 +1539,10 @@
         for (const button of document.querySelectorAll("[data-every]")) button.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (button).dataset.every === state.every));
         /** @type {HTMLElement} */ (document.querySelector(".every")).style.setProperty("--at", String(["day", "week", "month"].indexOf(state.every)));
         for (const button of document.querySelectorAll("[data-amount]")) button.setAttribute("aria-pressed", String(Number(/** @type {HTMLElement} */ (button).dataset.amount) === state.amount));
-        for (const button of document.querySelectorAll("[data-top]")) button.setAttribute("aria-pressed", String(state.from === Number(/** @type {HTMLElement} */ (button).dataset.top) && state.to === last));
+        // (The tops' picker shows the top the plan is from, if it's one, to the last day; else its prompt.)
+        const topsPicker = /** @type {HTMLSelectElement} */ ($("tops")), fromTop = state.to === last && [...topsPicker.options].some((o) => o.value === String(state.from));
+        topsPicker.value = fromTop ? String(state.from) : "";
+        topsPicker.classList.toggle("on", fromTop);
         for (const button of document.querySelectorAll("[data-view]")) button.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (button).dataset.view === state.view));
         fromInput.min = toInput.min = iso(first);
         fromInput.max = toInput.max = iso(last);
@@ -1418,6 +1590,12 @@
         // (A click opens the calendar, as the hidden indicator would.)
         input.addEventListener("click", () => input.showPicker?.());
       }
+      $("tops").addEventListener("change", () => {
+        // (Its prompt chosen changes nothing: the picker shows the plan's own state again.)
+        const day = Number(/** @type {HTMLSelectElement} */ ($("tops")).value);
+        if (day) setDates(day, last);
+        else fillForm();
+      });
       for (const button of document.querySelectorAll("[data-years]")) {
         button.addEventListener("click", () => setDates(spanStart(Number(/** @type {HTMLElement} */ (button).dataset.years)), state.to));
       }
@@ -1447,13 +1625,9 @@
         drawMap();
       }
 
-      /** The plan in words, as of its last day. */
-      const sentence = () => {
-        const every = { day: "every day", week: "every week", month: "every month" }[plan.every];
-        return plan.to === last
-          ? `If you'd bought ${usd(plan.amount)} of bitcoin ${every} since ${dated(plan.from)}, you'd have`
-          : `If you'd bought ${usd(plan.amount)} of bitcoin ${every} from ${dated(plan.from)} to ${dated(plan.to)}, you'd have had`;
-      };
+      /** The plan in a few words, over the value as of its last day: "$100 every week since 24 Oct 2022". */
+      const sentence = () =>
+        `${usd(plan.amount)} every ${plan.every} ${plan.to === last ? `since ${dated(plan.from)}` : `from ${dated(plan.from)} to ${dated(plan.to)}`}`;
 
       /** The plan's breakdown; its words and value are point()'s, as of the day pointed at. */
       function tell() {
@@ -1681,7 +1855,8 @@
         }
         setWorth(worth, roll);
         const buys = Math.round(spent / plan.amount);
-        $("sentence").textContent = i === null ? sentence() : `On ${dated(day)}, ${grouped(buys)} buy${buys > 1 ? "s" : ""} in, you'd have had`;
+        $("sentence").textContent = i === null ? sentence() : `On ${dated(day)}, ${grouped(buys)} buy${buys > 1 ? "s" : ""} in`;
+        $("coins").textContent = btc(plan.held[at]);
         $("delta").className = `change ${tone(m)}`;
         // (Even within float error: no change, not a few femtodollars.)
         $("delta").textContent = `${gained(m) ? "▲ " : lost(m) ? "▼ " : ""}${usd(gained(m) || lost(m) ? Math.abs(worth - spent) : 0)} (${percent(m).replace(/^[+−]/, "")})`;
@@ -1762,7 +1937,7 @@
           place: (/** @type {number} */ m) => (m < 1 ? Math.max(-1, Math.log2(m) / 2) : Math.min(1, Math.log10(m) / 3)),
           stops: {
             light: [[-1, "#8e1a12"], [-0.5, "#e0453a"], [-0.001, "#ffd6d2"], [0, "#d4f5dc"], [0.1, "#8fe6a3"], [1 / 3, "#00c22d"], [2 / 3, "#00801f"], [1, "#00390e"]],
-            dark: [[-1, "#ff8a80"], [-0.5, "#e0453a"], [-0.001, "#3d1411"], [0, "#0b2913"], [0.1, "#0f5a22"], [1 / 3, "#00a827"], [2 / 3, "#00d632"], [1, "#b8ffc8"]],
+            dark: [[-1, "#ff8a80"], [-0.5, "#e0453a"], [-0.001, "#3d1411"], [0, "#0b2913"], [0.1, "#0f5a22"], [1 / 3, "#008c22"], [2 / 3, "#00b82b"], [1, "#00d632"]],
           },
           marks: [[0.25, "≤0.25×"], [0.5, "0.5×"], [1, "1×"], [10, "10×"], [1000, "≥1,000×"]],
           label: "colored by what each ended up worth against what went in",
@@ -1779,7 +1954,7 @@
           marks: [[2 / 3, "≤−33%"], [0.8, "−20%"], [1, "same"], [1.25, "+25%"], [1.5, "≥+50%"]],
           label: "colored by how much more bitcoin a dollar buying more when it was cheap got than buying the same each time",
           read: (/** @type {number} */ r) => `${edge(r)} a dollar`,
-          lede: "colored by how much more bitcoin each dollar got buying more when it was cheap, against buying the same each time.",
+          lede: "colored by how much more bitcoin a dollar buying more when cheap got.",
         },
       };
       const measure = () => MEASURES[state.atlas];
@@ -1820,7 +1995,7 @@
         const stops = scheme();
         $("ramp").style.background = `linear-gradient(to right, ${stops.map(([t, c]) => `${c} ${((t + 1) / 2) * 100}%`).join(", ")})`;
         $("marks").innerHTML = marks.map(([m, label]) => `<span style="left: ${((place(/** @type {number} */ (m)) + 1) / 2) * 100}%">${label}</span>`).join("");
-        $("map-lede").textContent = `Each square is a plan that began on the first of a month and ran for a whole number of months, ${lede}`;
+        $("map-lede").textContent = `Every plan from a month's first day, by start and length, ${lede}`;
         canvas.setAttribute("aria-label", `Plans by starting month (across) and length (up), ${measure().label}. Arrows move, Enter shows one in the calculator.`);
         findings();
       }
@@ -1841,17 +2016,17 @@
       /** What the map says, by its measure: how many plans gained (ended worth more, or got more bitcoin a dollar with the
        * rule), and from what length every plan ended worth more than went in (with the rule: against the plain plans'). */
       function findings() {
-        const cells = measure().cells(map), every = { day: "every day", week: "every week", month: "every month" }[state.every];
+        const cells = measure().cells(map), every = { day: "daily", week: "weekly", month: "monthly" }[state.every];
         let wins = 0, all = 0;
         for (const m of cells) if (!Number.isNaN(m)) [all, wins] = [all + 1, wins + (gained(m) ? 1 : 0)];
-        const share = `<b>${Math.round((wins / all) * 100)}%</b> of the ${grouped(all)} plans here`, plain = sureFrom(map.cells), rows = map.rows;
+        const share = `<b>${Math.round((wins / all) * 100)}%</b> of the ${grouped(all)} ${every} plans`, plain = sureFrom(map.cells), rows = map.rows;
         if (state.atlas === "edge") {
           const smarter = sureFrom(map.smartCells);
-          $("wins").innerHTML = `Buying more when it was cheap got more bitcoin a dollar than buying the same ${every} in ${share}.`;
-          $("sure").innerHTML = smarter < rows ? `Every smart plan of <b>${lasting(smarter + 1)}</b> or longer ended worth more than went in (plain: ${plain < rows ? lasting(plain + 1) : "none"}).` : "";
+          $("wins").innerHTML = `In ${share}, buying more when cheap got more bitcoin a dollar.`;
+          $("sure").innerHTML = smarter < rows ? `Every smart plan of <b>${lasting(smarter + 1)}</b> or longer ended worth more (plain: ${plain < rows ? lasting(plain + 1) : "none"}).` : "";
         } else {
-          $("wins").innerHTML = `Buying ${every}, ${share} ended worth more than went in.`;
-          $("sure").innerHTML = plain < rows ? `Every plan of <b>${lasting(plain + 1)}</b> or longer did, whatever month it began.` : "";
+          $("wins").innerHTML = `${share[0].toUpperCase()}${share.slice(1)} ended worth more than went in.`;
+          $("sure").innerHTML = plain < rows ? `Every plan of <b>${lasting(plain + 1)}</b> or longer did.` : "";
         }
       }
 
@@ -1878,7 +2053,7 @@
         // (A row of plans at a time: length d + 1 months, from edge(d + 1) down to edge(d).)
         for (let d = 0; d < map.rows; d++) context.drawImage(pixels, 0, map.rows - 1 - d, map.cols, 1, MARGIN.left, edge(d + 1), plotW, edge(d) - edge(d + 1));
         // Axes: the starts' years across, the lengths up (a label only where it has room).
-        context.font = `600 12px ${getComputedStyle(document.body).getPropertyValue("--sans")}`;
+        context.font = `400 12px ${getComputedStyle(document.body).getPropertyValue("--sans")}`;
         context.fillStyle = ink("--soft");
         context.textAlign = "center";
         const yearStep = cw * 12 < 34 ? 2 : 1;
@@ -1904,7 +2079,7 @@
           context.lineWidth = 3;
           context.strokeStyle = ink("--card");
           context.beginPath();
-          context.arc(rx, ry, 6, 0, Math.PI * 2);
+          context.arc(rx, ry, 8, 0, Math.PI * 2);
           context.stroke();
           context.lineWidth = 1.75;
           context.strokeStyle = ink("--ink");
@@ -2000,18 +2175,19 @@
 
       // ── Sizes and schemes ──
 
-      // (Redrawn when the page's width changes; its height follows what's drawn.)
-      let queued = false, drawnWidth = 0;
-      new ResizeObserver(() => {
-        if (queued || !plan || document.body.clientWidth === drawnWidth) return;
-        drawnWidth = document.body.clientWidth;
+      // (Each redrawn when its own box changes size, once a frame: the chart's height follows its card on a desk.)
+      let queued = false;
+      const sizes = new ResizeObserver(() => {
+        if (queued || !plan) return;
         queued = true;
         requestAnimationFrame(() => {
           queued = false;
           drawCharts();
           drawMap();
         });
-      }).observe(document.body);
+      });
+      sizes.observe(svg);
+      sizes.observe(canvas);
       dark.addEventListener("change", () => {
         if (!plan) return;
         paintGrid();
@@ -2052,17 +2228,15 @@
           $("since").textContent = dated(first);
           for (const id of ["calculator", "atlas"]) $(id).inert = false;
           const unusable = readAddress();
-          $("tops").replaceChildren(...tops().map((day) => {
-            const [y, m] = ymd(day), button = Object.assign(document.createElement("button"), { type: "button", className: "pill", textContent: `${MONTHS[m]} ’${String(y).slice(2)}`, title: `From the top of ${dated(day)}, ${usd(price[day])}, to the last day` });
-            button.dataset.top = String(day);
-            button.addEventListener("click", () => setDates(day, last));
-            return button;
+          $("tops").append(...tops().map((day) => {
+            const [y, m] = ymd(day);
+            return Object.assign(document.createElement("option"), { value: String(day), textContent: `From ${MONTHS[m]} ’${String(y).slice(2)}`, title: `The top of ${dated(day)}, ${usd(price[day])}` });
           }));
           shareButton.disabled = false;
           map = grid(state.every);
           paintGrid();
           update();
-          $("note").textContent = unusable;
+          say(unusable);
         } catch (error) {
           // (Said outside the calculator and the map, which stay inert without prices.)
           $("sentence").textContent = "";
