@@ -14622,7 +14622,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         glidePreset = preset;
         const start = performance.now();
         const step = (now) => {
-          const t = Math.min(1, (now - start) / MOTION.page), eased = 1 - (1 - t) ** 3;
+          // (A frame's time can be before the glide began: from 0, not past it backwards (a zoom out would turn over).)
+          const t = Math.min(1, Math.max(0, (now - start) / MOTION.page)), eased = 1 - (1 - t) ** 3;
           const next = { from: from.from + (target.from - from.from) * eased, to: from.to + (target.to - from.to) * eased };
           if (!(next.from < next.to)) return stopGlide();
           view.timeScale().setVisibleLogicalRange(next);
@@ -16043,9 +16044,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {Chart} doc
        */
       function autoIntervals(doc) {
-        const supported = supportedIntervals(doc), windows = doc.layers.flatMap((layer) => (layer.formula ? windowsOf(layer.formula) : []));
-        return INTERVAL_ORDER.filter((id) => supported(id) && windows.every(({ days, two }) => (!FINE.has(id) || (Number.isFinite(days) && windowPoints(days, id) < CHUNK)) && (!two || windowPoints(days, id) >= 2)));
+        const supported = supportedIntervals(doc), formulas = doc.layers.flatMap((layer) => (layer.formula ? [layer.formula] : []));
+        return INTERVAL_ORDER.filter((id) => supported(id) && formulas.every((formula) => computableAt(formula, id)));
       }
+      /** Whether a formula can be computed at an interval: its windows (all of history among them) within what a fine one holds, two points at least where it needs them. */
+      const computableAt = (/** @type {string} */ formula, /** @type {string} */ id) => windowsOf(formula).every(({ days, two }) => (!FINE.has(id) || (Number.isFinite(days) && windowPoints(days, id) < CHUNK)) && (!two || windowPoints(days, id) >= 2));
+      /**
+       * Why formulas a click adds can't be computed at the chart's interval, if they can't: the interval they'd need. Auto
+       * goes to one they can be at; not Auto, the chart stays where it's put. @param {string[]} formulas
+       */
+      const unfitHere = (formulas) => {
+        if (chart.auto || formulas.every((formula) => computableAt(formula, chart.index))) return "";
+        const supported = supportedIntervals(chart), from = INTERVAL_ORDER.slice(INTERVAL_ORDER.indexOf(chart.index) + 1).find((id) => supported(id) && formulas.every((formula) => computableAt(formula, id)));
+        return `Not at ${INTERVAL_LABEL[chart.index]}${from ? `: ${INTERVAL_LABEL[from]} and up, or Auto` : ""}`;
+      };
       /** The most points `width` pixels show well: a line, a point and a half a pixel; candles, one per six. @param {Chart} doc @param {number} width */
       const autoMost = (doc, width) => width * (doc.layers.some((layer) => !layer.hidden && layer.type === "candles") ? 1 / 6 : 1.5);
       /**
@@ -25468,21 +25480,42 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         toast(`Added ${formula} as ${added.letter}`, editAdded(added));
       }
 
+      /** A layer's `n`th halving cycle, from its start. @param {Layer} layer @param {number} n */
+      const cycleFormula = (layer, n) => `rebase(when(${layer.letter}, halving_epoch == ${n}))`;
       /**
        * A layer's halving cycles side by side, each from its start at 1× (rebase(when(A, halving_epoch == n))): a layer a
-       * cycle mined, named by its years, each its own color, in a pane of their own on a log scale. Formulas, there to
-       * read and change. @param {string} id
+       * cycle mined, named by its years, each its own color, in a pane of their own on a log scale, all of history in
+       * view. Formulas, there to read and change; not at an interval they can't be at. @param {string} id
        */
       function compareCycles(id) {
         const layer = layerById(id), starts = [GENESIS, ...minedHalvings()], year = (/** @type {number} */ time) => new Date(time * 1000).getUTCFullYear();
         if (!layer) return;
         if (chart.layers.length + starts.length > MAX_LAYERS) return void notice(`A chart holds up to ${MAX_LAYERS} layers: its ${starts.length} cycles need ${starts.length}`);
         if (chart.panes.length >= MAX_PANES) return void notice(`A chart holds up to ${MAX_PANES} panes: the cycles need one of their own`);
+        const unfit = unfitHere([cycleFormula(layer, 0)]);
+        if (unfit) return void notice(unfit);
+        let switched = false;
         commit((doc) => {
           const pane = newPaneIn(doc);
           pane.mode = 1;
-          starts.forEach((start, n) => doc.layers.push(makeLayer({ formula: `rebase(when(${layer.letter}, halving_epoch == ${n}))`, label: `${year(start)}–${starts[n + 1] ? year(starts[n + 1]) : "now"}`, pane: pane.id }, doc)));
+          starts.forEach((start, n) => doc.layers.push(makeLayer({ formula: cycleFormula(layer, n), label: `${year(start)}–${starts[n + 1] ? year(starts[n + 1]) : "now"}`, pane: pane.id }, doc)));
+          // (Under Auto, at the interval all of history asks for with them in, its view kept there for it, as a Go to
+          // it is: drawn once, there.)
+          const want = doc.auto ? autoPick(doc, rangeSpan("max"), view.timeScale().width()) : doc.index;
+          if (want === doc.index) return;
+          const all = viewsNow();
+          all[doc.id] = { index: want, from: [starts[0], 0], to: [Date.now() / 1000, 0], at: Date.now() };
+          putViews(all);
+          spans.delete(`${doc.id}@${want}`);
+          (doc.index = want), (switched = true);
         });
+        // (Else, once they're drawn, all of history in view, the first cycle from its start: the view moved there, not
+        // its range. An edit since (an undo), not.)
+        if (!switched) {
+          const go = ++dateGoes, at = revision;
+          const drawn = () => revision === at && (!settled() ? afterDrawn(go, drawn) : applyRange({ ...chart, range: "max" }, /** @type {Resolved} */ (resolved), true));
+          afterDrawn(go, drawn);
+        }
         toast(`Added ${labelOf(layer)}'s ${starts.length} halving cycles, each from its start`);
       }
       /** Whether a trend is offered here: a layer that isn't made from layers (short of more, it says why: trendShort). */
@@ -25604,7 +25637,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const layer = layerById(id);
         if (!layer) return [];
         return [
-          ...STARTERS.map((starter) => ({ key: starter.id, icon: ICONS.formula, label: starter.label, aside: `${starter.formulas[0].replaceAll("X", layer.letter)}${starter.formulas.length > 1 ? " …" : ""}`, mono: true, run: () => derive(id, starter.id) })),
+          ...STARTERS.map((starter) => ({ key: starter.id, icon: ICONS.formula, label: starter.label, aside: `${starter.formulas[0].replaceAll("X", layer.letter)}${starter.formulas.length > 1 ? " …" : ""}`, mono: true, ...((why) => (why ? { disabled: why } : {}))(unfitHere(starter.formulas.map((formula) => formula.replaceAll("X", layer.letter)))), run: () => derive(id, starter.id) })),
           { key: "own", icon: ICONS.pencil, label: "Write your own", aside: `From ${layer.letter}`, verb: "Write", apart: true, run: () => derive(id, "own") },
         ];
       }
@@ -26548,7 +26581,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (document.activeElement !== input || !palette.formula || !$("palette").open) return;
         if (`${input.value} ${input.selectionStart} ${input.selectionEnd}` !== formulaAt) showFormula();
       });
-      /** A formula that reads, of at least one layer of this chart, every layer it names there. */
+      /** A formula that reads, of this chart's layers (every one it names there) or of series by their names (every one known). */
       function isOwnFormula(/** @type {string} */ text) {
         if (!/[-+*/()^<>&|=!]/.test(plainOperators(text))) return false;
         let letters, dated;
@@ -26560,8 +26593,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return false;
         }
         if (!letters.every((letter) => chart.layers.some((layer) => layer.letter === letter))) return false;
-        // (A condition on series by their names, mvrv > 3.5, or on the date, date >= 2020-05-11, too: a signal of them.)
-        return letters.length > 0 || (isCondition(text) && markable(chart, /** @type {any} */ ({})).length > 0 && (dated || seriesNamed(text).some((name) => isSeriesName(name) && (!catalogIndex || catalogIndex.has(name)))));
+        // (Of series by their names, every one there, price / realized_price; a condition on them, mvrv > 3.5, or on the
+        // date, date >= 2020-05-11, too: a signal of them.)
+        // (Series alone, only names the catalog has: before it's indexed, a search, "short-term" isn't short - term.)
+        const names = seriesNamed(text), known = (/** @type {string} */ name) => isSeriesName(name) && (!catalogIndex || catalogIndex.has(name));
+        return letters.length > 0 || (isCondition(text) ? markable(chart, /** @type {any} */ ({})).length > 0 && (dated || names.some(known)) : names.length > 0 && names.every((name) => isSeriesName(name) && Boolean(catalogIndex?.has(name))));
       }
       /** Whether a formula is a condition (a comparison, or two joined): typed in ⌘K, it's added as a signal. */
       const isCondition = (/** @type {string} */ text) => {
@@ -27794,7 +27830,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(layer.series ? [
               { key: "copy-name", icon: ICONS.copy, label: "Copy the series name", verb: "Copy", group: first, run: () => copyName(/** @type {string} */ (layer.series)) },
             ] : []),
-            ...(!layer.from && layer.type !== "signal" ? [{ key: "cycles", icon: ICONS.pane, label: "Compare halving cycles", aside: "Each from its start", words: "cycles halving compare periods rebase normalize epochs", verb: "Compare", group: first, run: () => compareCycles(id) }] : []),
+            ...(!layer.from && layer.type !== "signal" ? [{ key: "cycles", icon: ICONS.pane, label: "Compare halving cycles", words: "cycles halving compare periods rebase normalize epochs", verb: "Compare", group: first, ...((why) => (why ? { aside: why, disabled: why } : { aside: "Each from its start" }))(unfitHere([cycleFormula(layer, 0)])), run: () => compareCycles(id) }] : []),
             { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: first, page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined), { redraw: "none" })) },
             { key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => retype(item, type)) }))) },
             ...(layer.type === "baseline" || layer.type === "histogram" ? [{ key: "base", icon: ICONS.ruler, label: "Base", aside: format(baseOf(layer), unit), group: "Style", page: () => numberPage({ title: "Base", value: String(baseOf(layer)), fallback: 0, apply: (n) => editById(id, (item) => (item.base = n || undefined)) }) }] : []),
