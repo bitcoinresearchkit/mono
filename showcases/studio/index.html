@@ -5598,6 +5598,22 @@
             white-space: nowrap;
           }
 
+          /* (By touch, a row's actions: its ⋯ at its end, as tall as a finger needs, past the row's own padding; its
+             keyboard in use, its foot's Actions instead, see keyboardKey.) */
+          .row-more {
+            flex-shrink: 0;
+            align-self: stretch;
+            width: 36px;
+            height: auto;
+            min-height: 36px;
+            margin-inline: auto -8px;
+            color: var(--muted);
+
+            :root[data-keyboard] & {
+              display: none;
+            }
+          }
+
           .item-meta {
             min-width: 0;
             max-width: 45%;
@@ -5825,9 +5841,7 @@
       /* Touch has no keys: every key shown, and the hint about them, goes; the buttons stay. The shortcuts sheet, opened
          from a keyboard, keeps them: they're what it says. (Over every rule that places a key, hence the weight.) */
       @media (hover: none) {
-        kbd:not(.shortcuts kbd),
-        .sequence:not(.shortcuts *),
-        .empty-inner .keys-sheet {
+        :root:not([data-keyboard]) :is(kbd:not(.shortcuts kbd), .sequence:not(.shortcuts *), .empty-inner .keys-sheet) {
           display: none !important;
         }
       }
@@ -5842,12 +5856,13 @@
       /* ⌘K by a finger: no keyboard's foot (↵, actions, esc), no row lit before one's touched; a row's other actions,
          held (as cards and layers are picked). */
       @media (hover: none) and (pointer: coarse) {
-        .palette-foot {
+        /* (Its keyboard in use (an iPad's), as anywhere: see keyboardKey.) */
+        :root:not([data-keyboard]) .palette-foot {
           display: none;
         }
 
         /* (A finger's: no highlight, the row it presses lit as it does.) */
-        .palette-list::before {
+        :root:not([data-keyboard]) .palette-list::before {
           display: none;
         }
 
@@ -7494,6 +7509,12 @@
             display: none;
           }
 
+          /* (Its way out, at its end: the interval, the ranges and the navigator back.) */
+          .belt-done {
+            flex-shrink: 0;
+            margin-inline-start: 6px;
+          }
+
           .belt-row {
             display: flex;
             flex: 1;
@@ -7817,7 +7838,7 @@
         /* A series' row: the name people read, the API's name under it (beside it, there's no room). */
         .palette-list li[data-kind="series"] {
           display: grid;
-          grid-template-columns: auto minmax(0, 1fr) auto;
+          grid-template-columns: auto minmax(0, 1fr) auto auto;
           column-gap: 10px;
           row-gap: 0;
           height: auto;
@@ -7836,6 +7857,13 @@
             grid-column: 2;
             max-width: none;
             line-height: 16px;
+          }
+
+          /* (Its ⋯, by touch: a column of its own, past its mark, through the row's padding: the row's whole height.) */
+          .row-more {
+            grid-column: 4;
+            grid-row: 1 / span 2;
+            margin-block: -6px;
           }
 
           .item-mark {
@@ -8250,6 +8278,14 @@
              axis in sight while they're changed.) */
           body[data-sheet="panel"] .card {
             padding-right: var(--column);
+          }
+
+          /* (Too narrow for both, the chart 280px beside the column (past the rail): the column over the chart's right,
+             not leaving it a strip.) */
+          @media (max-width: 665px) {
+            body[data-sheet="panel"] .card {
+              padding-right: env(safe-area-inset-right);
+            }
           }
 
           /* (Nothing over the sheet's foot there but a selection's bar: room for it while it shows. Its lists to the
@@ -11804,6 +11840,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * next drawing takes, whatever its tool (the last one set, on a tool or on a drawing).
        */
       const prefs = readPrefs(storage.get(PREFS, {}));
+      // (A phone's drawing tools put away at each start: there, they take the place of the chart's foot, the interval and
+      // the ranges.)
+      if (phone.matches) prefs.belt.on = false;
       /** Each preference as this tab last wrote or took it: only what it changed since is written (another tab's kept). */
       const prefsSeen = Object.fromEntries(Object.entries(prefs).map(([key, value]) => [key, JSON.stringify(value)]));
       function savePrefs() {
@@ -14985,10 +15024,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         menu.addEventListener("keydown", (event) => ["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key) && setTimeout(() => focused() && light(focused())));
         menu.addEventListener("focusout", (event) => !menu.contains(/** @type {Node | null} */ (event.relatedTarget)) && !menu.matches(":hover") && light(null));
       }
-      // ⌘K: the row ↵ runs, however it's come to (the arrows, the pointer, the list written anew); a finger's ⌘K has none.
+      // ⌘K: the row ↵ runs, however it's come to (the arrows, the pointer, the list written anew); a finger's ⌘K has none
+      // (its keyboard in use, it has).
       {
         const list = $("palette-list"), light = glides(list), coarse = matchMedia("(hover: none) and (pointer: coarse)");
-        new MutationObserver(() => !coarse.matches && light(list.querySelector('[aria-selected="true"]'), true)).observe(list, { childList: true, subtree: true, attributeFilter: ["aria-selected"] });
+        new MutationObserver(() => (!coarse.matches || keyboard()) && light(list.querySelector('[aria-selected="true"]'), true)).observe(list, { childList: true, subtree: true, attributeFilter: ["aria-selected"] });
       }
       // The sidebar's charts and folders: the one pointed at (between rows, it stays; on a section's head, none; folding, none:
       // the highlight would show whole over a row half shown); a row written anew (a folder opened, a chart), its own, by its key.
@@ -17465,7 +17505,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const html = `<button type="button" class="grip" id="belt-grip" aria-haspopup="menu" aria-label="Move the drawing tools" data-tip="Drag it to any side of the chart">${ICONS.grip}</button>
           <div class="belt-row">${drawings.length ? "" : `<div class="belt-tools" role="group" aria-label="Tools">${tools}</div>`}
           ${context ? `${drawings.length ? "" : '<i class="belt-rule"></i>'}<div class="belt-context" role="group" aria-label="${escape(tool ? `Next ${TOOLS[tool].noun}` : drawing ? drawingNames().get(drawing.id) ?? "" : `${drawings.length} drawings`)}">${context}</div>` : ""}</div>
-          ${how ? '<p class="belt-caption"><span></span><kbd>esc</kbd></p>' : ""}`;
+          ${how ? '<p class="belt-caption"><span></span><kbd>esc</kbd></p>' : ""}${phone.matches ? '<button type="button" class="btn small belt-done" data-belt="done">Done</button>' : ""}`;
         // (Its words set in place: the plot taking the focus or giving it up, as a belt's button is pressed, changes only
         // them, and the button pressed stays the one clicked.)
         const writeHow = () => {
@@ -17508,7 +17548,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         beltStop = /** @type {HTMLElement} */ (event.target).id;
         rovingBelt();
       });
-      phone.addEventListener("change", rovingBelt);
+      phone.addEventListener("change", () => (renderBelt(), rovingBelt()));
       /** The belt from its last shape to this one (its place, its size), what's in it coming in: no jump. */
       function reshapeBelt(/** @type {DOMRect} */ was) {
         const belt = $("belt"), now = belt.getBoundingClientRect();
@@ -17750,6 +17790,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (each && event.detail === 2 && Object.hasOwn(TOOLS, each) && each !== "text") return setTool(/** @type {DrawingKind} */ (each), true);
         if (each) return pickTool(each);
         if (part === "hide") return hideDrawings(!drawingsHidden);
+        // (A phone's: the tools put away (D's keys with them), the chart's foot back.)
+        if (part === "done") return void (putDown(), chooseDrawings([]), (beltKeys = false), $("belt").classList.remove("keys"), prefs.belt.on ? toggleBelt() : renderBelt());
         if (!look) return;
         if (part === "ends") return endsPopover(button);
         const words = tool ? prefs.pen : wordsIn([...chosen].map(drawingById));
@@ -26310,10 +26352,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let byKeys = false;
       /** Whether the last thing done was a finger's (a mouse on a touch device isn't). */
       let byTouch = false;
-      addEventListener("keydown", () => ((byKeys = true), (byTouch = false)), true);
+      addEventListener("keydown", (event) => ((byKeys = true), (byTouch = false), TOUCH && keyboardKey(event) && keyed(true)), true);
       // (A touch heard at all, as WebKit needs to show a control pressed, :active, under a finger.)
       addEventListener("touchstart", () => {}, { passive: true });
-      addEventListener("pointerdown", (event) => ((byKeys = false), (byTouch = event.pointerType === "touch")), true);
+      addEventListener("pointerdown", (event) => ((byKeys = false), (byTouch = event.pointerType === "touch"), keyed(false)), true);
+      /**
+       * A key only a keyboard sends (an arrow, ⇥, esc, one held with ⌘, ⌃ or ⌥), not a screen's (letters, as a phone's
+       * types them): a touch device's keyboard (an iPad's, no trackpad) in use, said by the page (`data-keyboard`) till a
+       * finger's down again; ⌘K by its keys then, its foot and the row they light.
+       */
+      const keyboardKey = (/** @type {KeyboardEvent} */ event) => event.metaKey || event.ctrlKey || event.altKey || /^(Arrow|Tab$|Escape$|Page|Home$|End$|F\d)/.test(event.key);
+      const keyed = (/** @type {boolean} */ on) => on !== keyboard() && document.documentElement.toggleAttribute("data-keyboard", on);
+      /** Whether keys a keyboard sends are what's in use (no touch device: always; one, its keyboard's, see keyboardKey). */
+      const keyboard = () => !TOUCH || document.documentElement.hasAttribute("data-keyboard");
       /** A pane's number, as the panel counts them (from 1). */
       const paneNumber = (/** @type {string} */ id) => chart.panes.findIndex((pane) => pane.id === id) + 1;
       /**
@@ -26493,8 +26544,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your Library and the presets, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
           { title: "Studio's version", text: `Built ${BUILD}.`, words: "about version build release updated date commit", icon: "recent", run: () => notice(`Bitview Studio, built ${BUILD}`), anywhere: true },
-          ...(TOUCH ? [] : [{ title: "Shortcuts", text: "Every key Bitview Studio answers to.", words: "keyboard keys help hotkeys", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
-          ...(TOUCH ? [] : [true, false].map((on) => ({ title: `Single-key shortcuts: ${on ? "On" : "Off"}`, text: on ? "A letter, a digit or a sign alone acts (A adds a series, P the panel…)." : `Only shortcuts with ${keyText("⌘")} or ${keyText("⌥")} act: typing a letter by mistake does nothing.`, words: "single key keys keyboard shortcuts letters hotkeys accessibility disable enable turn", icon: "keyboard", anywhere: true, ...(prefs.keys === on ? { current: true } : { run: () => setSingleKeys(on) }) }))),
+          ...(!keyboard() ? [] : [{ title: "Shortcuts", text: "Every key Bitview Studio answers to.", words: "keyboard keys help hotkeys", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
+          ...(!keyboard() ? [] : [true, false].map((on) => ({ title: `Single-key shortcuts: ${on ? "On" : "Off"}`, text: on ? "A letter, a digit or a sign alone acts (A adds a series, P the panel…)." : `Only shortcuts with ${keyText("⌘")} or ${keyText("⌥")} act: typing a letter by mistake does nothing.`, words: "single key keys keyboard shortcuts letters hotkeys accessibility disable enable turn", icon: "keyboard", anywhere: true, ...(prefs.keys === on ? { current: true } : { run: () => setSingleKeys(on) }) }))),
           { title: "How links work", text: "A chart is a link: what one holds, and how to write it by hand or have an assistant write it (the guide, here).", words: "about guide docs documentation help link links json api script assistant ai llms", icon: "link", run: showGuide, anywhere: true },
           libraryUndo() || toastUndo?.mark === revision || (!home && edits.past.length) ? { title: "Undo", text: libraryUndo() ? `${libraryUndo()?.text}.` : toastUndo?.mark === revision ? "What the last toast offered to undo." : "Back one change.", words: "revert back", icon: "undo", kbd: "⌘Z", run: undoLast, anywhere: true } : { title: "Undo", text: "Nothing to undo.", words: "revert back", icon: "undo", anywhere: true },
           // The charts picked in the grid: what its bar does.
@@ -27082,7 +27133,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         while (start > 0 && group && palette.items[start - 1].group === group) start--;
         let groupId = `palette-group-${start}`;
         const shown = new Set(home ? [] : chart.layers.map((layer) => layer.series));
-        return palette.items.slice(from, to).map((item, at) => {
+        // (By touch, a row with more than ↵ does: its ⋯ at its end, its actions (as holding it opens them).)
+        const more = (/** @type {any} */ item, /** @type {number} */ i, /** @type {string} */ html) => (TOUCH && actionsFor(item).length > 1 ? `${html.slice(0, -5)}<button type="button" class="cap small row-more" data-row-more="${i}" tabindex="-1" aria-label="More it does">${ICONS.more}</button></li>` : html);
+        return palette.items.slice(from, to).map((item, at) => more(item, from + at, (() => {
           const i = from + at;
           const header = item.group && item.group !== group ? `<li class="group" role="presentation" id="${(groupId = `palette-group-${i}`)}">${escape((group = item.group))}</li>` : "";
           const described = item.group ? ` aria-describedby="${groupId}"` : "";
@@ -27099,7 +27152,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const meta = item.kind === "folder" ? `<span class="item-mark"><span class="item-next" aria-hidden="true">${ICONS.next}</span></span>` : item.kind === "command" ? (item.command.current ? `<span class="item-mark" role="img" aria-label="In effect">${ICONS.check}</span>` : item.command.kbd && item.command.run && answers(item.command.kbd) ? `${keycaps(item.command.kbd)}` : "") : doc ? `<span class="item-meta">${plural(doc.layers.length, "layer")}</span>` : "";
           const idle = item.kind === "command" && !item.command.run && !item.command.current;
           return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}" ${idle ? 'class="dim" aria-disabled="true"' : ""}>${icon}<span class="item-name">${name}</span>${meta}</li>`;
-        }).join("");
+        })())).join("");
       }
       /** ⌘K's rows written up to `to` (scrolled to, moved to), after those there (and before its closing note). */
       function drawOptions(/** @type {number} */ to) {
@@ -28537,9 +28590,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (list.scrollTop + list.clientHeight > list.scrollHeight - 400) drawOptions((palette.drawn ?? 0) + PALETTE_PAGE);
       }, { passive: true });
       $("palette-list").addEventListener("click", (event) => {
-        const option = closest(event, "[data-option]");
+        const option = closest(event, "[data-option]"), more = closest(event, "[data-row-more]");
         if (!option) return;
         if (palette.pending) return palette.pending();
+        // (Its ⋯: its row lit (as the arrows light it: kept as results come), its actions by it.)
+        if (more) return void (move(Number(more.dataset.rowMore) - palette.active, false), showActions(more));
         palette.active = Number(option.dataset.option);
         choose(event.shiftKey);
       });
@@ -31846,7 +31901,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // ── Quick Look: ⌘K's highlighted chart, big ────────────────────────────────
 
       /** Quick Look works by a keyboard: none by touch, nor on a phone. */
-      const quickWorks = () => !TOUCH && !phone.matches;
+      const quickWorks = () => keyboard() && !phone.matches;
       phone.addEventListener("change", () => phone.matches && quickHide());
       /** Whether a ⌘K row is a chart to look at. */
       const canLook = (/** @type {any} */ item) => Boolean(lookableAt(item));
