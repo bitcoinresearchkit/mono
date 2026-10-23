@@ -1108,16 +1108,16 @@
         return /** @type {Run} */ ({ from, to, every, amount, spent, held, buys });
       }
 
-      /** @typedef {{ start: number, cols: number, rows: number, cells: Float64Array, edges: Float64Array }} Grid */
+      /** @typedef {{ start: number, cols: number, rows: number, cells: Float64Array, smartCells: Float64Array, edges: Float64Array }} Grid */
 
       /** Every plan from a month's first day for whole months, each its worth over what went in at its last day (the day
-       * before a month's first), and the bitcoin a dollar the smart rule got over its own; by start (column) and length in
-       * months (row 0: one month). The amount doesn't matter. */
+       * before a month's first), the smart plan's too, and the bitcoin a dollar the smart rule got over the plain plan's; by
+       * start (column) and length in months (row 0: one month). The amount doesn't matter. */
       function grid(/** @type {Every} */ every) {
         const start = monthOf(first) + (ymd(first)[2] === 1 ? 0 : 1);
         let cols = 0;
         while (firstOf(start + cols + 1) - 1 <= last) cols++;
-        const rows = cols, cells = new Float64Array(cols * rows).fill(NaN), edges = new Float64Array(cols * rows).fill(NaN);
+        const rows = cols, [cells, smartCells, edges] = [0, 1, 2].map(() => new Float64Array(cols * rows).fill(NaN));
         for (let s = 0; s < cols; s++) {
           const days = buyDays(firstOf(start + s), every);
           let next = /** @type {number} */ (days.next().value), dollars = 0, coins = 0, smartDollars = 0, smartCoins = 0;
@@ -1131,10 +1131,11 @@
               smartCoins += weight / price[next];
             }
             cells[s * rows + d - 1] = (coins * price[end]) / dollars;
+            smartCells[s * rows + d - 1] = (smartCoins * price[end]) / smartDollars;
             edges[s * rows + d - 1] = smartCoins / smartDollars / (coins / dollars);
           }
         }
-        return /** @type {Grid} */ ({ start, cols, rows, cells, edges });
+        return /** @type {Grid} */ ({ start, cols, rows, cells, smartCells, edges });
       }
 
       // ── The plan's state, in the address (to: left out while it's the last day) ──
@@ -1660,11 +1661,9 @@
         findings();
       }
 
-      function findings() {
-        const { cols, rows } = map, cells = measure().cells(map);
-        let wins = 0, all = 0;
-        for (const m of cells) if (!Number.isNaN(m)) [all, wins] = [all + 1, wins + (gained(m) ? 1 : 0)];
-        // (The shortest length from which every plan, of it or longer, gained: row `sure` and every row above it.)
+      /** The shortest length (rows above it too) at which every plan gained, by its cells; `rows` when none is. */
+      function sureFrom(/** @type {Float64Array} */ cells) {
+        const { cols, rows } = map;
         let sure = rows;
         for (let d = rows - 1; d >= 0; d--) {
           let short = false;
@@ -1672,11 +1671,24 @@
           if (short) break;
           sure = d;
         }
-        const every = { day: "every day", week: "every week", month: "every month" }[state.every];
-        $("wins").innerHTML = state.atlas === "edge"
-          ? `Buying more when it was cheap got more bitcoin a dollar than buying the same ${every} in <b>${Math.round((wins / all) * 100)}%</b> of the ${grouped(all)} plans here.`
-          : `Buying ${every}, <b>${Math.round((wins / all) * 100)}%</b> of the ${grouped(all)} plans here ended worth more than went in.`;
-        $("sure").innerHTML = sure < rows ? `Every plan of <b>${lasting(sure + 1)}</b> or longer did, whatever month it began.` : "";
+        return sure;
+      }
+
+      /** What the map says, by its measure: how many plans gained (ended worth more, or got more bitcoin a dollar with the
+       * rule), and from what length every plan ended worth more than went in (with the rule: against the plain plans'). */
+      function findings() {
+        const cells = measure().cells(map), every = { day: "every day", week: "every week", month: "every month" }[state.every];
+        let wins = 0, all = 0;
+        for (const m of cells) if (!Number.isNaN(m)) [all, wins] = [all + 1, wins + (gained(m) ? 1 : 0)];
+        const share = `<b>${Math.round((wins / all) * 100)}%</b> of the ${grouped(all)} plans here`, plain = sureFrom(map.cells), rows = map.rows;
+        if (state.atlas === "edge") {
+          const smarter = sureFrom(map.smartCells);
+          $("wins").innerHTML = `Buying more when it was cheap got more bitcoin a dollar than buying the same ${every} in ${share}.`;
+          $("sure").innerHTML = smarter < rows ? `Every smart plan of <b>${lasting(smarter + 1)}</b> or longer ended worth more than went in (plain: ${plain < rows ? lasting(plain + 1) : "none"}).` : "";
+        } else {
+          $("wins").innerHTML = `Buying ${every}, ${share} ended worth more than went in.`;
+          $("sure").innerHTML = plain < rows ? `Every plan of <b>${lasting(plain + 1)}</b> or longer did, whatever month it began.` : "";
+        }
       }
 
       /** @type {{ s: number, d: number } | null} */
