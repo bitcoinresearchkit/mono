@@ -8,6 +8,6 @@
 
 > **Halving** = `number`
 
-Defined in: [modules/bitview-client/index.js:651](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L651)
+Defined in: [modules/bitview-client/index.js:611](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L611)
 
 ## Type Parameters

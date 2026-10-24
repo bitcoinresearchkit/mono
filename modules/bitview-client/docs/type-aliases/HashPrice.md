@@ -8,6 +8,6 @@
 
 > **HashPrice** = `number`
 
-Defined in: [modules/bitview-client/index.js:656](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L656)
+Defined in: [modules/bitview-client/index.js:616](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L616)
 
 ## Type Parameters

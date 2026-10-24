@@ -8,6 +8,6 @@
 
 > **Bytes** = `number`
 
-Defined in: [modules/bitview-client/index.js:372](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L372)
+Defined in: [modules/bitview-client/index.js:332](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L332)
 
 ## Type Parameters

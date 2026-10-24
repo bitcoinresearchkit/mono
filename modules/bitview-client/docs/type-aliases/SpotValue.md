@@ -8,7 +8,7 @@
 
 > **SpotValue** = `object`
 
-Defined in: [modules/bitview-client/index.js:3361](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3361)
+Defined in: [modules/bitview-client/index.js:3373](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3373)
 
 ## Type Parameters
 

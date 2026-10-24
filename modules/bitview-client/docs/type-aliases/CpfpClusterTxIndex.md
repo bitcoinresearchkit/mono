@@ -8,6 +8,6 @@
 
 > **CpfpClusterTxIndex** = `number`
 
-Defined in: [modules/bitview-client/index.js:465](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L465)
+Defined in: [modules/bitview-client/index.js:425](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L425)
 
 ## Type Parameters

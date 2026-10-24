@@ -8,7 +8,7 @@
 
 > **Cointime** = `object`
 
-Defined in: [modules/bitview-client/index.js:5284](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5284)
+Defined in: [modules/bitview-client/index.js:5296](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5296)
 
 ## Type Parameters
 

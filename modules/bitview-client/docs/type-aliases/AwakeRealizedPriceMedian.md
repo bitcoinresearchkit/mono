@@ -8,7 +8,7 @@
 
 > **AwakeRealizedPriceMedian** = `object`
 
-Defined in: [modules/bitview-client/index.js:2735](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2735)
+Defined in: [modules/bitview-client/index.js:2747](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2747)
 
 ## Type Parameters
 

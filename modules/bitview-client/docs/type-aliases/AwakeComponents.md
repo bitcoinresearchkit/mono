@@ -8,7 +8,7 @@
 
 > **AwakeComponents** = `object`
 
-Defined in: [modules/bitview-client/index.js:2988](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2988)
+Defined in: [modules/bitview-client/index.js:3000](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3000)
 
 ## Type Parameters
 

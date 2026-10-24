@@ -6,7 +6,7 @@
 
 # Interface: SeriesSelection
 
-Defined in: [modules/bitview-client/index.js:1281](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1281)
+Defined in: [modules/bitview-client/index.js:1293](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1293)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1281](https://github.com/bitcoinres
 
 > `optional` **end?**: [`RangeIndex`](../type-aliases/RangeIndex.md) \| `null`
 
-Defined in: [modules/bitview-client/index.js:1285](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1285)
+Defined in: [modules/bitview-client/index.js:1297](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1297)
 
 Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
 
@@ -24,7 +24,7 @@ Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negati
 
 > `optional` **format?**: [`Format`](../type-aliases/Format.md)
 
-Defined in: [modules/bitview-client/index.js:1287](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1287)
+Defined in: [modules/bitview-client/index.js:1299](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1299)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: [modules/bitview-client/index.js:1287](https://github.com/bitcoinres
 
 > **index**: [`Index`](../type-aliases/Index.md)
 
-Defined in: [modules/bitview-client/index.js:1283](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1283)
+Defined in: [modules/bitview-client/index.js:1295](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1295)
 
 ***
 
@@ -40,7 +40,7 @@ Defined in: [modules/bitview-client/index.js:1283](https://github.com/bitcoinres
 
 > `optional` **limit?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:1286](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1286)
+Defined in: [modules/bitview-client/index.js:1298](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1298)
 
 Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
 
@@ -50,7 +50,7 @@ Maximum number of values to return (ignored if `end` is set); omitted, the rest 
 
 > **series**: `string`
 
-Defined in: [modules/bitview-client/index.js:1282](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1282)
+Defined in: [modules/bitview-client/index.js:1294](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1294)
 
 ***
 
@@ -58,6 +58,6 @@ Defined in: [modules/bitview-client/index.js:1282](https://github.com/bitcoinres
 
 > `optional` **start?**: [`RangeIndex`](../type-aliases/RangeIndex.md) \| `null`
 
-Defined in: [modules/bitview-client/index.js:1284](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1284)
+Defined in: [modules/bitview-client/index.js:1296](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1296)
 
 Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`

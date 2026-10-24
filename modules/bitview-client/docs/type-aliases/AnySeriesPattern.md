@@ -8,6 +8,6 @@
 
 > **AnySeriesPattern** = [`SeriesPattern`](../interfaces/SeriesPattern.md)\<`any`\>
 
-Defined in: [modules/bitview-client/index.js:1945](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1945)
+Defined in: [modules/bitview-client/index.js:1957](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1957)
 
 ## Type Parameters

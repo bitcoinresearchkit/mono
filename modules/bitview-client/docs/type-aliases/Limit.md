@@ -8,6 +8,6 @@
 
 > **Limit** = `number`
 
-Defined in: [modules/bitview-client/index.js:775](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L775)
+Defined in: [modules/bitview-client/index.js:735](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L735)
 
 ## Type Parameters

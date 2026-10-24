@@ -8,6 +8,6 @@
 
 > **Float** = `number`
 
-Defined in: [modules/bitview-client/index.js:645](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L645)
+Defined in: [modules/bitview-client/index.js:605](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L605)
 
 ## Type Parameters

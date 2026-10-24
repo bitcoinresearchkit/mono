@@ -8,7 +8,7 @@
 
 > **AgeCreationSupply** = `object`
 
-Defined in: [modules/bitview-client/index.js:4500](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4500)
+Defined in: [modules/bitview-client/index.js:4512](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4512)
 
 ## Type Parameters
 

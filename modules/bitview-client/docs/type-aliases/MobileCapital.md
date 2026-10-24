@@ -8,7 +8,7 @@
 
 > **MobileCapital** = `object`
 
-Defined in: [modules/bitview-client/index.js:3201](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3201)
+Defined in: [modules/bitview-client/index.js:3213](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3213)
 
 ## Type Parameters
 

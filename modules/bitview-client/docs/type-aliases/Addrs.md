@@ -8,7 +8,7 @@
 
 > **Addrs**\<`A`, `B`, `C`, `D`, `E`, `F`, `G`, `H`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:6694](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6694)
+Defined in: [modules/bitview-client/index.js:6706](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6706)
 
 ## Type Parameters
 

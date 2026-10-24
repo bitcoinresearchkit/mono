@@ -8,7 +8,7 @@
 
 > **CreationCohort**\<`A`, `B`, `C`, `D`, `E`, `F`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:5077](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5077)
+Defined in: [modules/bitview-client/index.js:5089](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5089)
 
 ## Type Parameters
 

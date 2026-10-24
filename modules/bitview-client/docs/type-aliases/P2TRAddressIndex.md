@@ -8,6 +8,6 @@
 
 > **P2TRAddressIndex** = [`TypeIndex`](TypeIndex.md)
 
-Defined in: [modules/bitview-client/index.js:961](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L961)
+Defined in: [modules/bitview-client/index.js:967](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L967)
 
 ## Type Parameters
