@@ -28566,12 +28566,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The palette's list, grouped; `pending` adds a searching row, `note` a closing remark. */
       /** Whether ⌘K's item does something with ↵ (dimmed, it doesn't: a row not now, a series by block only, a command saying why). @param {any} item */
       const actionable = (item) => !(item.kind === "row" && (item.disabled || item.dim || (!item.run && !item.page))) && !(item.kind === "series" && byBlock.has(item.name)) && !(item.kind === "command" && !item.command.run);
-      /** Whether ⌘K's item can be lit first: it acts, and isn't one that destroys found by a keyword alone (its name doesn't start with what's typed). @param {any} item */
-      const litFirst = (item) => {
-        if (!actionable(item)) return false;
-        const danger = item.kind === "command" ? item.command.danger : item.kind === "row" && item.danger, name = item.kind === "command" ? item.command.title : item.label ?? "";
-        return !danger || String(name).toLowerCase().startsWith(palette.query.trim().toLowerCase().split(/\s+/)[0] ?? "");
-      };
+      /** Whether ⌘K's item can be lit first: it acts, and doesn't destroy (that one's an arrow away: ↵ alone never runs it). @param {any} item */
+      const litFirst = (item) => actionable(item) && !dangerous(item);
       function renderPalette(pending = false, note = "") {
         updateCallHelp();
         const searching = Boolean(palette.query.trim());
@@ -28592,8 +28588,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return;
         }
         palette.active = Math.min(palette.active, Math.max(0, palette.items.length - 1));
-        // (A list lit at its top, that row doing nothing: the first that does, safely, lit instead; destroying by a keyword
-        // alone, it stays where it is, unlit, for an arrow to light.)
+        // (A list lit at its top, that row doing nothing: the first that does lit instead; one that destroys, it stays where
+        // it is, unlit, for an arrow to light.)
         // (A page asking for a value keeps its row lit as it's typed: its preview stays.)
         if (!palette.moved && palette.active === 0 && !palette.pages.at(-1)?.input && !litFirst(palette.items[0])) palette.active = actionable(palette.items[0]) ? -1 : palette.items.findIndex(litFirst);
         // A new list starts at its top (set before it's written: after, it would lay the list out at once); the same list
@@ -28999,14 +28995,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return total;
       }
-      /** What removes or deletes, asked for by name: one of its kind's verbs typed, a word starting it ("del", "remove"). */
-      const DANGER_VERBS = ["remove", "delete", "clear", "erase", "trash", "discard"];
+      /** What removes or deletes: found as anything is, never lit for ↵ at once (see litFirst), nor among the recently used. */
       const dangerous = (/** @type {any} */ item) => Boolean(item.danger ?? item.command?.danger);
-      const askedFor = (/** @type {string[]} */ words) => words.some((word) => word.length >= 2 && DANGER_VERBS.some((verb) => verb.startsWith(word)));
       /** What a row of ⌘K is called: a chart's title, a command's, a row's label (where a slip in typing still finds it). */
       const nameOf = (/** @type {any} */ item) => (item.kind === "chart" ? titleOf(chartById(item.key) ?? { title: "" }) : item.command?.title ?? item.label ?? "");
       /** What's found, best first, then what's used most lately, then as listed (what removes, only when asked for). */
-      const rank = (list, textOf, words) => list.map((item, i) => /** @type {[any, number, number]} */ ([item, fitScore(textOf(item), words, nameOf(item)), i])).filter(([item, score]) => score > 0 && (!dangerous(item) || askedFor(words))).sort((a, b) => b[1] - a[1] || useScore(b[0].key) - useScore(a[0].key) || a[2] - b[2]).map(([item]) => item);
+      const rank = (list, textOf, words) => list.map((item, i) => /** @type {[any, number, number]} */ ([item, fitScore(textOf(item), words, nameOf(item)), i])).filter(([, score]) => score > 0).sort((a, b) => b[1] - a[1] || useScore(b[0].key) - useScore(a[0].key) || a[2] - b[2]).map(([item]) => item);
       /** What a row is found by: its label, its aside, its words, what else it's called; a chart, by its title. */
       const rowText = (item) => (item.kind === "chart" ? titleOf(chartById(item.key) ?? { title: "" }) : `${item.label ?? ""} ${item.aside ?? ""} ${item.words ?? ""} ${SYNONYMS[item.key] ?? ""}`);
       /** A way in, by what it is, not what it shows at its end (the chart's title: the chart's own row has it). */
