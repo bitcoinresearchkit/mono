@@ -2793,10 +2793,12 @@
           align-items: center;
           gap: 10px;
 
+          /* (Centered, not on their baseline: the readout's mark would lift its line, and the key and its count with it,
+             each time it shows.) */
           button.legend-all,
           button.legend-on {
             display: flex;
-            align-items: baseline;
+            align-items: center;
             gap: 8px;
             padding: 4px 8px 4px 6px;
           }
