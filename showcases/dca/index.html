@@ -6,18 +6,18 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f2f2" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
-    <title>DCA · Bitview</title>
-    <meta name="description" content="What buying the same dollars of bitcoin every day, week or month since 2010 would be worth, beside the same plan buying more when bitcoin was cheap, and how every start and length turned out." />
+    <title>Smart DCA · Bitview</title>
+    <meta name="description" content="Dollar-cost averaging that buys more bitcoin when it's cheap against what holders paid (MVRV): what any plan since 2010 would be worth, beside the plain plan buying the same each time, and how every start and length turned out." />
     <!-- (How a shared link previews: a plan's link shows the page's card, whatever the plan.) -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/dca/" />
     <meta property="og:site_name" content="Bitview" />
-    <meta property="og:title" content="Dollar-cost averaging on Bitview" />
-    <meta property="og:description" content="What buying the same dollars of bitcoin every day, week or month since 2010 would be worth, beside the same plan buying more when bitcoin was cheap, and how every start and length turned out." />
+    <meta property="og:title" content="Smart DCA on Bitview" />
+    <meta property="og:description" content="Dollar-cost averaging that buys more bitcoin when it's cheap against what holders paid (MVRV): what any plan since 2010 would be worth, beside the plain plan buying the same each time, and how every start and length turned out." />
     <meta property="og:image" content="https://bitview.space/dca/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="A plan of $100 of bitcoin every week since 2018, its worth and its chart, beside the smart plan's" />
+    <meta property="og:image:alt" content="A smart plan of $100 of bitcoin every week since 2018, its worth and its chart, beside the plain plan's" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png" />
@@ -50,8 +50,9 @@
         --loss: light-dark(#cf281d, #ff5147);
         /* (Lines and their keys: the brand's green, a shade deeper on white to read as a graphic, 3:1.) */
         --line-up: light-dark(#00a32a, #00d632);
-        /* (The smart plan, wherever it shows: black, white at night; no hue of its own beside the green.) */
-        --smart: var(--ink);
+        /* (The plain plan, the smart one's baseline, wherever it shows: black, white at night; no hue of its own beside the
+           green, the smart plan's.) */
+        --plain: var(--ink);
         --gain-fill: light-dark(rgb(0 214 50 / 0.04), rgb(0 214 50 / 0.06));
         --loss-fill: light-dark(rgb(217 45 32 / 0.04), rgb(255 81 71 / 0.06));
         --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
@@ -224,7 +225,7 @@
         margin-top: 16px;
 
         /* (On a desk: the value, the plan and its breakdown beside it, both ending together, the value's chart taking
-           the difference; the smart plan across under both.) */
+           the difference; smart against plain across under both.) */
         @media (min-width: 960px) {
           grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
           gap: 16px;
@@ -486,8 +487,8 @@
           stroke-width: 1.75px;
         }
 
-        &.smart {
-          stroke: var(--smart);
+        &.plain {
+          stroke: var(--plain);
           stroke-width: 1.75px;
         }
 
@@ -531,7 +532,7 @@
         pointer-events: none;
       }
 
-      /* (Below the chart, so as the day pointed at changes nothing above it moves; one line, or with the comparison's
+      /* (Below the chart, so as the day pointed at changes nothing above it moves; one line, or with the plain plan's
          third key, two held on a phone.) */
       .keys {
         display: flex;
@@ -545,7 +546,7 @@
         font-size: 13px;
         font-weight: 400;
 
-        /* (Three keys with the smart plan's: two lines held on a phone.) */
+        /* (Three keys with the plain plan's: two lines held on a phone.) */
         @media (max-width: 719px) {
           height: calc(2.9em + 2px);
         }
@@ -578,12 +579,12 @@
           border-top-color: var(--loss);
         }
 
-        .smart i {
-          border-top-color: var(--smart);
+        .plain i {
+          border-top-color: var(--plain);
         }
 
-        .smart-name {
-          color: var(--smart);
+        .plain-name {
+          color: var(--plain);
         }
       }
 
@@ -884,7 +885,7 @@
         margin-top: 4px;
       }
 
-      /* The smart plan's worth and return under the plain one's. (One line, held.) */
+      /* The plain plan's worth and return under the smart one's. (One line, held.) */
       .versus {
         height: 1.45em;
         overflow: hidden;
@@ -896,7 +897,7 @@
         text-overflow: ellipsis;
       }
 
-      /* (Its words, then its table; on a desk, side by side. The card only: `smart` also names the smart plan's key.) */
+      /* (Its words, then its table; on a desk, side by side.) */
       .card.smart {
         @media (min-width: 960px) {
           display: grid;
@@ -968,9 +969,8 @@
           font-weight: 600;
         }
 
-        thead th:last-child {
-          color: var(--smart);
-          font-weight: 600;
+        thead th:nth-child(2) {
+          color: var(--ink);
         }
       }
 
@@ -1171,13 +1171,13 @@
         }
       }
 
-      /* The smart plan's mark, under the value. */
+      /* The plain plan's mark, under the value. */
       .badge {
         display: inline-block;
         border-radius: 999px;
         padding: 1px 7px;
         color: var(--app);
-        background: var(--smart);
+        background: var(--plain);
         font-size: 12px;
         font-style: normal;
         font-weight: 600;
@@ -1201,7 +1201,7 @@
       </header>
 
       <main>
-        <h1>Dollar-cost averaging</h1>
+        <h1>Smart DCA</h1>
         <p class="note" id="failed" role="alert"></p>
 
         <div class="board" id="calculator" aria-busy="true" inert>
@@ -1238,8 +1238,8 @@
           <div class="side">
             <section class="card plan" aria-labelledby="plan-title">
               <h2 id="plan-title">Your plan</h2>
-              <label class="amount">$<input id="amount" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Dollars each time" value="100" /></label>
-              <p class="each" id="note" role="status">of bitcoin each time</p>
+              <label class="amount">$<input id="amount" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="Dollars a buy" value="100" /></label>
+              <p class="each" id="note" role="status">a buy, more when cheap, less when dear</p>
               <div class="chips" role="group" aria-label="Quick amounts">
                 <button type="button" class="pill" data-amount="10">$10</button>
                 <button type="button" class="pill" data-amount="25">$25</button>
@@ -1273,13 +1273,13 @@
 
           <section class="card smart" id="smart" aria-labelledby="smart-title">
             <div class="words">
-              <h2 id="smart-title">Smart plan</h2>
-              <p class="rule">The same plan, buying more when bitcoin is cheap against what holders paid: 2× under the realized price, 1× to twice it, ½× to three times, ¼× above.</p>
+              <h2 id="smart-title">Smart vs plain</h2>
+              <p class="rule">The smart plan buys more when bitcoin is cheap against what holders paid: 2× the amount under the realized price, 1× to twice it, ½× to three times, ¼× above. The plain plan buys the amount each time.</p>
               <p class="verdict" id="verdict">&nbsp;</p>
             </div>
             <table class="vs" id="vs">
               <thead>
-                <tr><th scope="col"><span class="vh">Fact</span></th><th scope="col">Plain</th><th scope="col">Smart</th></tr>
+                <tr><th scope="col"><span class="vh">Fact</span></th><th scope="col">Smart</th><th scope="col">Plain</th></tr>
               </thead>
               <tbody>
                 <tr data-vs="spent"><th scope="row">Put in</th><td><span class="bone"></span></td><td><span class="bone"></span></td></tr>
@@ -1322,9 +1322,10 @@
 
     <script type="module">
       // @ts-check
-      // A plan buys the same dollars of bitcoin every day, week or month: what went in, what it bought, what it was
-      // worth; and every plan that began on a month's first day, of every whole number of months, colored by how it
-      // ended. All from one series, the server's daily price (day1: days since 1 Jan 2009, UTC), computed here.
+      // A plan buys bitcoin every day, week or month: the smart plan more when it's cheap against what holders paid (by
+      // MVRV), its baseline, the plain plan, the same dollars each time. What went in, what it bought, what it was worth;
+      // and every plan that began on a month's first day, of every whole number of months, colored by how it ended. All
+      // from two series, the server's daily price and MVRV (day1: days since 1 Jan 2009, UTC), computed here.
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       const DAY = 86_400_000, ORIGIN = Date.UTC(2009, 0, 1);
       const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -1480,10 +1481,15 @@
       // ── The plan's state, in the address (to: left out while it's the last day) ──
 
       const state = { amount: 100, every: /** @type {Every} */ ("week"), from: 0, to: 0, log: false, view: /** @type {"value" | "cost"} */ ("value"), atlas: /** @type {"returns" | "edge"} */ ("returns") };
-      /** The plan, and the smart plan over the same days (none without MVRV). @type {Run} */
+      /** The plain plan, and the smart plan over the same days (none without MVRV). @type {Run} */
       let plan;
       /** @type {Run | null} */
       let smart = null;
+      /** What the page leads with, the smart plan (without MVRV, the plain one), and its baseline, the plain plan (none
+       * without MVRV). @type {Run} */
+      let lead;
+      /** @type {Run | null} */
+      let base = null;
       /** @type {Grid} */
       let map;
 
@@ -1552,7 +1558,7 @@
 
       /** The plan card's line under the amount: what's wrong, if anything, else what the amount is. */
       const say = (/** @type {string} */ problem) => {
-        $("note").textContent = problem || "of bitcoin each time";
+        $("note").textContent = problem || (comparable ? "a buy, more when cheap, less when dear" : "of bitcoin each time");
         $("note").classList.toggle("wrong", Boolean(problem));
       };
 
@@ -1680,6 +1686,7 @@
       function update() {
         plan = run(state.from, state.to, state.every, state.amount);
         smart = comparable ? run(state.from, state.to, state.every, state.amount, smartly) : null;
+        [lead, base] = smart ? [smart, plan] : [plan, null];
         writeAddress();
         fillForm();
         tell();
@@ -1687,22 +1694,25 @@
         drawMap();
       }
 
-      /** The plan in a few words, over the value as of its last day: "$100 every week since 24 Oct 2022"; a plan of one
-       * day, its one buy: "$100 on 1 Jan 2024". */
-      const sentence = () =>
-        plan.from === plan.to ? `${usd(plan.amount)} on ${dated(plan.from)}`
-          : `${usd(plan.amount)} every ${plan.every} ${plan.to === last ? `since ${dated(plan.from)}` : `from ${dated(plan.from)} to ${dated(plan.to)}`}`;
+      /** The plan the page leads with in a few words, over the value as of its last day: "$100 a week, more when cheap, less
+       * when dear, since 24 Oct 2022" (without MVRV: "$100 every week since 24 Oct 2022"); a plan of one day, its one buy,
+       * what it took: "$50 on 1 Jan 2024". */
+      const sentence = () => {
+        if (lead.from === lead.to) return `${usd(lead.spent[0])} on ${dated(lead.from)}`;
+        const when = lead.to === last ? `since ${dated(lead.from)}` : `${dated(lead.from)} – ${dated(lead.to)}`;
+        return base ? `${usd(lead.amount)} a ${lead.every}, more when cheap, less when dear, ${when}` : `${usd(lead.amount)} every ${lead.every} ${when}`;
+      };
 
-      /** The plan's breakdown; its words and value are point()'s, as of the day pointed at. */
+      /** The breakdown of the plan the page leads with; its words and value are point()'s, as of the day pointed at. */
       function tell() {
-        const n = plan.to - plan.from, spent = plan.spent[n], held = plan.held[n], end = price[plan.to], worth = held * end;
-        const multiple = worth / spent, cost = spent / held, latest = plan.to === last;
-        const lump = (spent / price[plan.from]) * end;
+        const n = lead.to - lead.from, spent = lead.spent[n], held = lead.held[n], end = price[lead.to], worth = held * end;
+        const multiple = worth / spent, cost = spent / held, latest = lead.to === last;
+        const lump = (spent / price[lead.from]) * end;
         // (The lowest the plan's worth stood against what had gone in, and when.)
-        let low = Infinity, lowDay = plan.from;
+        let low = Infinity, lowDay = lead.from;
         for (let i = 0; i <= n; i++) {
-          const m = (plan.held[i] * price[plan.from + i]) / plan.spent[i];
-          if (m < low) [low, lowDay] = [m, plan.from + i];
+          const m = (lead.held[i] * price[lead.from + i]) / lead.spent[i];
+          if (m < low) [low, lowDay] = [m, lead.from + i];
         }
 
         const fact = (/** @type {string} */ name, /** @type {string} */ value, /** @type {string} */ more) => {
@@ -1710,26 +1720,26 @@
           /** @type {HTMLElement} */ (box.querySelector("dd")).innerHTML = value;
           /** @type {HTMLElement} */ (box.querySelector("small")).textContent = more;
         };
-        fact("bought", btc(held), `${grouped(plan.buys)} buy${plan.buys > 1 ? "s" : ""}`);
+        fact("bought", btc(held), `${grouped(lead.buys)} buy${lead.buys > 1 ? "s" : ""}`);
         fact("spent", usd(spent), `worth ${times(multiple)} that ${latest ? "now" : "at the end"}`);
         fact("cost", usd(cost), `a coin, against ${usd(end)} ${latest ? "now" : "at the end"}`);
         fact("lump", `<span class="${tone(lump / spent)}">${percent(lump / spent)}</span>`, `${usd(lump)} from ${usd(spent)}`);
         if (lost(low)) fact("low", `<span class="loss">${percent(low)}</span>`, `on ${dated(lowDay)}`);
         else fact("low", "None", "never below what went in");
-        // The smart plan beside the plain one: the bitcoin a dollar each got, then their facts side by side.
-        $("vs").hidden = !smart;
-        if (smart) {
-          const smartSpent = smart.spent[n], smartHeld = smart.held[n], perDollar = smartHeld / smartSpent / (held / spent);
-          $("verdict").innerHTML = `${latest ? "By today" : `By ${dated(plan.to)}`}, buying more when it was cheap got <b class="${tone(perDollar)}">${edge(perDollar)}</b> for each dollar.`;
-          const row = (/** @type {string} */ name, /** @type {string} */ plain, /** @type {string} */ smarter) => {
+        // The smart plan against its baseline, the plain one: the bitcoin a dollar each got, then their facts side by side.
+        $("vs").hidden = !base;
+        if (base) {
+          const baseSpent = base.spent[n], baseHeld = base.held[n], perDollar = held / spent / (baseHeld / baseSpent);
+          $("verdict").innerHTML = `${latest ? "By today" : `By ${dated(lead.to)}`}, buying more when it was cheap got <b class="${tone(perDollar)}">${edge(perDollar)}</b> for each dollar.`;
+          const row = (/** @type {string} */ name, /** @type {string} */ smarter, /** @type {string} */ plain) => {
             const [a, b] = document.querySelectorAll(`[data-vs="${name}"] td`);
-            [a.innerHTML, b.innerHTML] = [plain, smarter];
+            [a.innerHTML, b.innerHTML] = [smarter, plain];
           };
-          row("spent", usd(spent), usd(smartSpent));
-          row("bought", btc(held), btc(smartHeld));
-          row("cost", usd(cost), usd(smartSpent / smartHeld));
-          row("worth", usd(worth), usd(smartHeld * end));
-          row("return", percent(multiple), percent((smartHeld * end) / smartSpent));
+          row("spent", usd(spent), usd(baseSpent));
+          row("bought", btc(held), btc(baseHeld));
+          row("cost", usd(cost), usd(baseSpent / baseHeld));
+          row("worth", usd(worth), usd(baseHeld * end));
+          row("return", percent(multiple), percent((baseHeld * end) / baseSpent));
         }
         $("calculator").setAttribute("aria-busy", "false");
       }
@@ -1737,12 +1747,13 @@
       // ── The chart: what it was worth against what went in, or the price against what a coin cost you ──
 
       const plots = $("plots"), svg = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("chart"))), still = matchMedia("(prefers-reduced-motion: reduce)");
-      /** @typedef {{ f: (i: number) => number, ink: "up" | "down" | "price" | "dashed" | "smart", name: string, from?: (i: number) => number }} Series */
-      const INKS = { up: "var(--line-up)", down: "var(--loss)", price: "var(--soft)", dashed: "var(--soft)", smart: "var(--smart)" };
-      /** What the chart shows: x and y by the plan's day, its two series, the crosshair, and how to finish drawing it.
+      /** @typedef {{ f: (i: number) => number, ink: "up" | "down" | "price" | "dashed" | "plain", name: string, from?: (i: number) => number }} Series */
+      const INKS = { up: "var(--line-up)", down: "var(--loss)", price: "var(--soft)", dashed: "var(--soft)", plain: "var(--plain)" };
+      /** What the chart shows: x and y by the plan's day, its series (two, and the baseline's third), the crosshair, and
+       * how to finish drawing it.
        * @type {{ x: (i: number) => number, ys: ((i: number) => number)[], series: Series[], marks: Element[], line: Element, ends: Element, finish: () => void } | null} */
       let drawn = null;
-      /** The two lines as on screen, two points a pixel column: where a glide starts. */
+      /** The lines as on screen, two points a pixel column: where a glide starts. */
       let onScreen = /** @type {Float64Array[] | null} */ (null), glide = 0;
       const GLIDE = 250;
       const eased = (/** @type {number} */ t) => 1 - (1 - t) ** 3;
@@ -1757,22 +1768,22 @@
        * a dot on either end stays in its card. */
       const INSET = 7;
 
-      /** No axes: the numbers are the value above and the keys below, at the day pointed at. Worth is green, or red when
-       * the plan ends below what went in; faintly between the two lines, green where the plan stood above (worth over
-       * what went in, the price over your cost), red below. A new plan's lines glide from the old ones (`animate`). */
+      /** No axes: the numbers are the value above and the keys below, at the day pointed at. The plan the page leads with:
+       * worth is green, or red when the plan ends below what went in; faintly between its two lines, green where the plan
+       * stood above (worth over what went in, the price over your cost), red below. Its baseline's line, thin, under it. A
+       * new plan's lines glide from the old ones (`animate`). */
       function drawCharts(animate = false) {
-        const n = plan.to - plan.from + 1, width = plots.clientWidth, height = svg.getBoundingClientRect().height, pad = 12;
-        const at = (/** @type {number} */ i) => price[plan.from + i], worth = (/** @type {number} */ i) => plan.held[i] * at(i);
-        const spent = (/** @type {number} */ i) => plan.spent[i], cost = (/** @type {number} */ i) => plan.spent[i] / plan.held[i];
+        const n = lead.to - lead.from + 1, width = plots.clientWidth, height = svg.getBoundingClientRect().height, pad = 12;
+        const at = (/** @type {number} */ i) => price[lead.from + i], worth = (/** @type {number} */ i) => lead.held[i] * at(i);
+        const spent = (/** @type {number} */ i) => lead.spent[i], cost = (/** @type {number} */ i) => lead.spent[i] / lead.held[i];
         // (The first series is under the fill's edge, the second drawn on top; `good` is the one green above.)
         /** @type {Series[]} */
         const series = state.view === "value"
           ? [{ f: spent, ink: "dashed", name: "Put in" }, { f: worth, ink: lost(worth(n - 1) / spent(n - 1)) ? "down" : "up", name: "Worth" }]
           : [{ f: at, ink: "price", name: "Price" }, { f: cost, ink: "up", name: "Cost" }];
-        // (The smart plan's worth or cost too, drawn last.)
-        const other = smart;
-        // (Its worth with what went into it, which isn't the plain plan's.)
-        if (other) series.push(state.view === "value" ? { f: (i) => other.held[i] * at(i), ink: "smart", name: "Smart", from: (i) => other.spent[i] } : { f: (i) => other.spent[i] / other.held[i], ink: "smart", name: "Smart" });
+        // (The baseline's worth or cost too, third; its worth with what went into it, which isn't the smart plan's.)
+        const other = base;
+        if (other) series.push(state.view === "value" ? { f: (i) => other.held[i] * at(i), ink: "plain", name: "Plain", from: (i) => other.spent[i] } : { f: (i) => other.spent[i] / other.held[i], ink: "plain", name: "Plain" });
         const good = state.view === "value" ? 1 : 0;
         let lo = Infinity, hi = 0;
         for (const s of series)
@@ -1796,11 +1807,12 @@
         const lines = series.map((s) => el("path", { class: `line ${s.ink}` }));
         const line = el("line", { y1: 0, y2: height }), marks = series.map((s) => el("circle", { r: 5, style: `fill: ${INKS[s.ink]}` }));
         const cross = el("g", { class: "cross", visibility: "hidden" }), ends = el("g", { class: "ends" });
-        // (The smart plan's end dot smaller, so the green one beside it stays whole.)
-        const dots = series.map((s) => el("circle", { r: s.ink === "smart" ? 3 : 4.5, cx: x(n - 1), style: `fill: ${INKS[s.ink]}${s.ink === "smart" ? "; stroke-width: 2px" : ""}` }));
+        // (The baseline's end dot smaller, so the green one beside it stays whole.)
+        const dots = series.map((s) => el("circle", { r: s.ink === "plain" ? 3 : 4.5, cx: x(n - 1), style: `fill: ${INKS[s.ink]}${s.ink === "plain" ? "; stroke-width: 2px" : ""}` }));
         cross.append(line, ...marks);
         ends.append(...dots);
-        svg.replaceChildren(clips, ...fills, ...lines, ends, cross);
+        // (The baseline's line under the plan's own, which is on top.)
+        svg.replaceChildren(clips, ...fills, ...[0, 2, 1].flatMap((k) => lines[k] ?? []), ends, cross);
         // The lines as two points a pixel column, at rest and in a glide alike, so a glide starts and ends on the shape at
         // rest: where days outnumber columns, a column's lowest and highest day in the order they came (as drawing every
         // day looks); else each day on the column nearest it and the line between days on the rest, twice a column. A
@@ -1833,7 +1845,7 @@
           }
           return out;
         };
-        /** Draws the two lines, the fill between them and its clips, from their samples. */
+        /** Draws the lines, the fill between the first two and its clips, from their samples. */
         const paint = (/** @type {Float64Array[]} */ shape) => {
           const along = (/** @type {number} */ k, reverse = false) => {
             let d = "";
@@ -1902,7 +1914,7 @@
       /** The value, its change and the keys at a day of the plan (null: its last day, no crosshair). */
       function point(/** @type {number | null} */ i, roll = false) {
         if (!drawn) return;
-        const n = plan.to - plan.from, at = i ?? n, day = plan.from + at, spent = plan.spent[at], worth = plan.held[at] * price[day], m = worth / spent;
+        const n = lead.to - lead.from, at = i ?? n, day = lead.from + at, spent = lead.spent[at], worth = lead.held[at] * price[day], m = worth / spent;
         drawn.line.parentElement?.setAttribute("visibility", i === null ? "hidden" : "visible");
         drawn.ends.setAttribute("visibility", i === null ? "visible" : "hidden");
         // The day pointed at, over the crosshair, kept inside the chart.
@@ -1923,17 +1935,18 @@
           });
         }
         setWorth(worth, roll);
-        const buys = Math.round(spent / plan.amount);
+        // (The buys so far, the plain plan's: the smart plan's amounts vary, its days don't.)
+        const buys = Math.round(plan.spent[at] / plan.amount);
         $("sentence").textContent = i === null ? sentence() : `On ${dated(day)}, ${grouped(buys)} buy${buys > 1 ? "s" : ""} in`;
-        $("coins").textContent = btc(plan.held[at]);
+        $("coins").textContent = btc(lead.held[at]);
         $("delta").className = `change ${tone(m)}`;
         // (Even within float error: no change, not a few femtodollars.)
         $("delta").textContent = `${arrow(m)}${usd(gained(m) || lost(m) ? Math.abs(worth - spent) : 0)} (${percent(m).replace(/^[+−]/, "")})`;
-        $("keys").innerHTML = drawn.series.map((s) => `<span class="${s.ink}"><i></i>${s.ink === "smart" ? '<span class="smart-name">Smart</span>' : s.name} <b>${usd(s.f(at))}</b>${s.from ? ` from ${usd(s.from(at))}` : ""}</span>`).join("");
-        // The smart plan's own worth and return, as the value above is the plain plan's, as of the same day.
-        if (smart) {
-          const smartWorth = smart.held[at] * price[day], smartMultiple = smartWorth / smart.spent[at];
-          $("versus").innerHTML = `<em class="badge">Smart</em> <b>${usd(smartWorth)}</b> <span class="${tone(smartMultiple)}">${arrow(smartMultiple)}${percent(smartMultiple).replace(/^[+−]/, "")}</span>`;
+        $("keys").innerHTML = drawn.series.map((s) => `<span class="${s.ink}"><i></i>${s.ink === "plain" ? '<span class="plain-name">Plain</span>' : s.name} <b>${usd(s.f(at))}</b>${s.from ? ` from ${usd(s.from(at))}` : ""}</span>`).join("");
+        // The baseline's own worth and return, as the value above is the smart plan's, as of the same day.
+        if (base) {
+          const baseWorth = base.held[at] * price[day], baseMultiple = baseWorth / base.spent[at];
+          $("versus").innerHTML = `<em class="badge">Plain</em> <b>${usd(baseWorth)}</b> <span class="${tone(baseMultiple)}">${arrow(baseMultiple)}${percent(baseMultiple).replace(/^[+−]/, "")}</span>`;
         }
       }
 
@@ -2020,12 +2033,12 @@
       const canvas = /** @type {HTMLCanvasElement} */ ($("map")), dark = matchMedia("(prefers-color-scheme: dark)");
       // (Room above and to the right for the ring of a plan reaching past the whole months: the longest, this month's.)
       const MARGIN = { left: 34, right: 18, top: 12, bottom: 22 };
-      /** What the map colors, each with its scale (`place`, −1 to 1), colors by place, legend and words: each plan's
-       * worth over what went in (a quarter to a thousand times); or, comparing, the bitcoin a dollar the smart rule got
-       * over the plain plan's (a third less to half as much again). */
+      /** What the map colors, each with its scale (`place`, −1 to 1), colors by place, legend and words: each smart plan's
+       * worth over what went in (a quarter to a thousand times; without MVRV, each plain plan's); or, comparing, the
+       * bitcoin a dollar the smart rule got over the plain plan's (a third less to half as much again). */
       const MEASURES = {
         returns: {
-          cells: (/** @type {Grid} */ grid) => grid.cells,
+          cells: (/** @type {Grid} */ grid) => (comparable ? grid.smartCells : grid.cells),
           place: (/** @type {number} */ m) => (m < 1 ? Math.max(-1, Math.log2(m) / 2) : Math.min(1, Math.log10(m) / 3)),
           stops: {
             light: [[-1, "#8e1a12"], [-0.5, "#e0453a"], [-0.001, "#ffd6d2"], [0, "#d4f5dc"], [0.1, "#8fe6a3"], [1 / 3, "#00c22d"], [2 / 3, "#00801f"], [1, "#00390e"]],
@@ -2087,7 +2100,7 @@
         const stops = scheme();
         $("ramp").style.background = `linear-gradient(to right, ${stops.map(([t, c]) => `${c} ${((t + 1) / 2) * 100}%`).join(", ")})`;
         $("marks").innerHTML = marks.map(([m, label]) => `<span style="left: ${((place(/** @type {number} */ (m)) + 1) / 2) * 100}%">${label}</span>`).join("");
-        $("map-lede").textContent = `Every plan from a month's first day, by start and length, ${lede}`;
+        $("map-lede").textContent = `Every ${comparable ? "smart " : ""}plan from a month's first day, by start and length, ${lede}`;
         canvas.setAttribute("aria-label", `Plans by starting month (across) and length (up), ${measure().label}. Arrows move, Enter shows one in the calculator.`);
         findings();
       }
@@ -2105,20 +2118,22 @@
         return sure;
       }
 
-      /** What the map says, by its measure: how many plans gained (ended worth more, or got more bitcoin a dollar with the
-       * rule), and from what length every plan ended worth more than went in (with the rule: against the plain plans'). */
+      /** What the map says, by its measure: how many smart plans gained (ended worth more, or got more bitcoin a dollar
+       * than the plain plans), and from what length every one ended worth more than went in (comparing: against the plain
+       * plans'). Without MVRV, the plain plans. */
       function findings() {
-        const cells = measure().cells(map), every = { day: "daily", week: "weekly", month: "monthly" }[state.every];
+        const cells = measure().cells(map), every = { day: "daily", week: "weekly", month: "monthly" }[state.every], kind = comparable ? "smart " : "";
         let wins = 0, all = 0;
         for (const m of cells) if (!Number.isNaN(m)) [all, wins] = [all + 1, wins + (gained(m) ? 1 : 0)];
-        const share = `<b>${Math.round((wins / all) * 100)}%</b> of the ${grouped(all)} ${every} plans`, plain = sureFrom(map.cells), rows = map.rows;
+        const share = `<b>${Math.round((wins / all) * 100)}%</b> of the ${grouped(all)} ${every} ${kind}plans`, rows = map.rows;
         if (state.atlas === "edge") {
-          const smarter = sureFrom(map.smartCells);
+          const smarter = sureFrom(map.smartCells), plain = sureFrom(map.cells);
           $("wins").innerHTML = `In ${share}, buying more when cheap got more bitcoin a dollar.`;
           $("sure").innerHTML = smarter < rows ? `Every smart plan of <b>${lasting(smarter + 1)}</b> or longer ended worth more (plain: ${plain < rows ? lasting(plain + 1) : "none"}).` : "";
         } else {
+          const sure = sureFrom(cells);
           $("wins").innerHTML = `${share[0].toUpperCase()}${share.slice(1)} ended worth more than went in.`;
-          $("sure").innerHTML = plain < rows ? `Every plan of <b>${lasting(plain + 1)}</b> or longer did.` : "";
+          $("sure").innerHTML = sure < rows ? `Every ${kind}plan of <b>${lasting(sure + 1)}</b> or longer did.` : "";
         }
       }
 
@@ -2200,7 +2215,7 @@
       function describe(/** @type {{ s: number, d: number } | null} */ shown) {
         const result = (/** @type {number} */ m) => `<span class="${tone(m)}">${measure().read(m)}</span>`;
         if (!shown) {
-          const n = plan.to - plan.from, m = smart && state.atlas === "edge" ? smart.held[n] / smart.spent[n] / (plan.held[n] / plan.spent[n]) : (plan.held[n] * price[plan.to]) / plan.spent[n];
+          const n = lead.to - lead.from, m = base && state.atlas === "edge" ? lead.held[n] / lead.spent[n] / (base.held[n] / base.spent[n]) : (lead.held[n] * price[lead.to]) / lead.spent[n];
           $("cell").innerHTML = ringAt()
             ? `<strong>Your plan, the ring</strong>${result(m)}<span>Pick a square to try another.</span>`
             : `<strong>Your plan</strong>${result(m)}<span>It starts before the map's first month.</span>`;
