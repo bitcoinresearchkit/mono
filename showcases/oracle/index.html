@@ -1,0 +1,1379 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f2ec" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0c0b" />
+    <title>Oracle · Bitview</title>
+    <meta name="description" content="Bitcoin's price, read from the chain alone: no exchange, no feed. Block by block, with the evidence it was read from, and how it works, simply." />
+    <meta property="og:title" content="Oracle · Bitview" />
+    <meta property="og:description" content="Bitcoin's price, read from the chain alone: no exchange, no feed. Block by block, with the evidence it was read from, and how it works, simply." />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png" />
+    <style>
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.woff2") format("woff2");
+        font-weight: 400 700;
+        font-display: swap;
+      }
+
+      /* An instrument, printed: one monospace, paper by day and near-black by night, hairlines between parts. The
+         evidence in the ink's own gray, its strength as its opacity; the answer, and only the answer, in Bitview's
+         orange. The first screen is the answer and its week; the how is below, for whoever scrolls. */
+      :root {
+        color-scheme: light dark;
+        --app: light-dark(#f3f2ec, #0a0c0b);
+        --plate: light-dark(#f8f7f2, #0e1110);
+        --ink: light-dark(#151916, #e3e8e4);
+        --text: light-dark(#2f3631, #b9c2bc);
+        --soft: light-dark(#454d47, #a3ada6);
+        --faint: light-dark(#5f6862, #7b8580);
+        --line: light-dark(rgb(21 25 22 / 0.15), rgb(227 232 228 / 0.13));
+        --grid: light-dark(rgb(21 25 22 / 0.07), rgb(227 232 228 / 0.06));
+        --focus: light-dark(rgb(21 25 22 / 0.6), rgb(227 232 228 / 0.6));
+        --heat: var(--ink);
+        --answer: light-dark(rgb(206 82 16), rgb(255 128 52));
+        --gain: light-dark(#0a7d3e, #6ef096);
+        --loss: light-dark(#c4302b, #ff6a5c);
+        --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
+        --gutter: max(20px, env(safe-area-inset-left));
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--app);
+        -webkit-text-size-adjust: 100%;
+        scroll-behavior: smooth;
+
+        @media (prefers-reduced-motion: reduce) {
+          scroll-behavior: auto;
+        }
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background: var(--app);
+        font: 450 14px/1.7 var(--mono);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: inherit;
+        text-underline-offset: 3px;
+      }
+
+      button {
+        font: inherit;
+        color: inherit;
+        cursor: pointer;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: 3px;
+      }
+
+      :root[data-pointer] :focus-visible {
+        outline: none;
+      }
+
+      .shell {
+        width: min(100% - 2 * var(--gutter), 1120px);
+        margin-inline: auto;
+      }
+
+      /* ── The first screen: the bar, the price, the week filling the rest, a quiet way down ── */
+      .stage {
+        display: flex;
+        flex-direction: column;
+        height: 100svh;
+        min-height: 560px;
+      }
+
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-top: max(18px, env(safe-area-inset-top));
+        font-size: 13px;
+
+        .brand {
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          color: var(--ink);
+          font-weight: 600;
+          text-decoration: none;
+
+          img {
+            width: 17px;
+            height: 17px;
+          }
+        }
+
+        .tip {
+          margin-left: auto;
+          color: var(--faint);
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+        }
+      }
+
+      .hero {
+        padding: clamp(20px, 5vh, 52px) 0 0;
+      }
+
+      .eyebrow {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0;
+        color: var(--soft);
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+
+        i {
+          flex: none;
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: var(--answer);
+          box-shadow: 0 0 0 4px color-mix(in srgb, var(--answer) 18%, transparent);
+        }
+      }
+
+      h1 {
+        margin: 12px 0 0;
+        color: var(--ink);
+        font-size: clamp(52px, min(11vw, 14vh), 120px);
+        font-weight: 500;
+        line-height: 0.95;
+        letter-spacing: -0.045em;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .change {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 12px;
+        margin: 12px 0 0;
+        font-size: 14px;
+        font-variant-numeric: tabular-nums;
+
+        &.gain .delta {
+          color: var(--gain);
+        }
+
+        &.loss .delta {
+          color: var(--loss);
+        }
+
+        .when {
+          color: var(--faint);
+        }
+      }
+
+      /* The week, edge to edge, as tall as the screen leaves it. */
+      .week {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-height: 260px;
+        margin: clamp(12px, 3vh, 28px) 0 0;
+      }
+
+      .chart {
+        position: relative;
+        flex: 1;
+        touch-action: pan-y;
+        cursor: crosshair;
+
+        canvas,
+        svg {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+        }
+      }
+
+      .gridline {
+        stroke: var(--grid);
+      }
+
+      .axis-text {
+        fill: var(--faint);
+        font: 11px var(--mono);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .price-line {
+        fill: none;
+        stroke: var(--answer);
+        stroke-width: 1.6;
+        stroke-linejoin: round;
+      }
+
+      .end {
+        fill: var(--answer);
+      }
+
+      .end-glow {
+        fill: var(--answer);
+        opacity: 0.2;
+      }
+
+      .cross line {
+        stroke: var(--soft);
+        stroke-dasharray: 2 3;
+      }
+
+      .cross circle {
+        fill: var(--answer);
+        stroke: var(--app);
+        stroke-width: 2;
+      }
+
+      .foot {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px 24px;
+        padding: 12px 0 max(14px, env(safe-area-inset-bottom));
+        border-top: 1px solid var(--line);
+        color: var(--faint);
+        font-size: 12px;
+      }
+
+      .legend {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        margin: 0;
+
+        .swatch {
+          flex: none;
+          width: 28px;
+          height: 8px;
+          translate: 0 -1px;
+          background: linear-gradient(90deg, transparent, var(--heat));
+          opacity: 0.6;
+        }
+      }
+
+      .more {
+        display: inline-flex;
+        flex: none;
+        align-items: center;
+        gap: 8px;
+        color: var(--soft);
+        text-decoration: none;
+        white-space: nowrap;
+
+        &:hover {
+          color: var(--ink);
+        }
+
+        span {
+          animation: nudge 2.4s ease-in-out infinite;
+
+          @media (prefers-reduced-motion: reduce) {
+            animation: none;
+          }
+        }
+      }
+
+      @keyframes nudge {
+        0%,
+        60%,
+        100% {
+          translate: 0 0;
+        }
+        30% {
+          translate: 0 3px;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .legend {
+          display: none;
+        }
+
+        .foot {
+          justify-content: center;
+        }
+      }
+
+      /* ── The chapters: a number, a title, a few lines, a figure ── */
+      .chapter {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 0 48px;
+        padding: clamp(64px, 12vh, 112px) 0 0;
+        scroll-margin-top: 24px;
+
+        @media (min-width: 900px) {
+          grid-template-columns: 250px minmax(0, 1fr);
+        }
+
+        > header {
+          margin-bottom: 18px;
+        }
+
+        .n {
+          display: block;
+          color: var(--answer);
+          font-size: 12px;
+          letter-spacing: 0.08em;
+        }
+
+        h2 {
+          margin: 8px 0 0;
+          color: var(--ink);
+          font-size: clamp(22px, 3.2vw, 28px);
+          font-weight: 500;
+          line-height: 1.2;
+          letter-spacing: -0.02em;
+          text-wrap: balance;
+        }
+
+        p {
+          max-width: 62ch;
+          margin: 0 0 18px;
+          text-wrap: pretty;
+        }
+
+        b {
+          color: var(--ink);
+          font-weight: 600;
+        }
+      }
+
+      /* ── 01: the instrument. The latest payments by amount, the fingerprint's 19 teeth over them, and below, how
+         well it fits wherever it's held. ── */
+      .instrument {
+        margin-top: 6px;
+        border: 1px solid var(--line);
+        background: var(--plate);
+      }
+
+      .readout {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 28px;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        font-variant-numeric: tabular-nums;
+
+        .k {
+          margin-right: 10px;
+          color: var(--faint);
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+        }
+
+        output {
+          color: var(--ink);
+          font-size: 18px;
+          font-weight: 600;
+        }
+
+        .fit {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .meter {
+          position: relative;
+          width: 120px;
+          height: 6px;
+          background: var(--grid);
+
+          i {
+            position: absolute;
+            inset: 0 auto 0 0;
+            background: var(--soft);
+          }
+        }
+
+        &[data-locked] .meter i {
+          background: var(--answer);
+        }
+
+        output.pct {
+          min-width: 4ch;
+          font-size: 14px;
+        }
+
+        button {
+          margin-left: auto;
+          padding: 6px 12px;
+          border: 1px solid var(--line);
+          background: none;
+          font-size: 13px;
+          touch-action: manipulation;
+
+          &:hover {
+            border-color: var(--soft);
+          }
+        }
+      }
+
+      .plate {
+        position: relative;
+        height: clamp(260px, 36vh, 340px);
+        cursor: grab;
+        touch-action: pan-y;
+        user-select: none;
+        -webkit-user-select: none;
+
+        &.dragging {
+          cursor: grabbing;
+        }
+
+        svg {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+        }
+      }
+
+      .bars rect {
+        fill: var(--heat);
+        opacity: 0.45;
+      }
+
+      .hit {
+        fill: var(--ink);
+      }
+
+      [data-locked] .hit {
+        fill: var(--answer);
+      }
+
+      .tooth {
+        stroke: var(--ink);
+        stroke-width: 1;
+        stroke-dasharray: 1 3;
+        opacity: 0.4;
+      }
+
+      .tooth.major {
+        opacity: 0.7;
+      }
+
+      .tooth-label {
+        fill: var(--soft);
+        font: 11px var(--mono);
+      }
+
+      [data-locked] .tooth {
+        stroke: var(--answer);
+      }
+
+      [data-locked] .tooth-label {
+        fill: var(--answer);
+      }
+
+      .fit-area {
+        fill: var(--heat);
+        opacity: 0.12;
+      }
+
+      .fit-line {
+        fill: none;
+        stroke: var(--soft);
+        stroke-width: 1.2;
+      }
+
+      .window {
+        fill: var(--answer);
+        opacity: 0.1;
+      }
+
+      .here {
+        stroke: var(--ink);
+        stroke-width: 1.5;
+      }
+
+      [data-locked] .here {
+        stroke: var(--answer);
+      }
+
+      .rule {
+        stroke: var(--line);
+      }
+
+      .sums {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        margin: 0;
+        border-top: 1px solid var(--line);
+
+        div {
+          padding: 12px 16px;
+
+          + div {
+            border-left: 1px solid var(--line);
+          }
+        }
+
+        dt {
+          color: var(--faint);
+          font-size: 12px;
+        }
+
+        dd {
+          margin: 2px 0 0;
+          color: var(--ink);
+          font-size: 15px;
+          font-weight: 600;
+          font-variant-numeric: tabular-nums;
+
+          small {
+            margin-left: 6px;
+            color: var(--faint);
+            font-size: 11px;
+            font-weight: 450;
+          }
+        }
+
+        @media (max-width: 640px) {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+
+          div:nth-child(3) {
+            border-left: 0;
+          }
+
+          div:nth-child(n + 3) {
+            border-top: 1px solid var(--line);
+          }
+        }
+      }
+
+      .caption {
+        margin: 12px 0 0;
+        color: var(--faint);
+        font-size: 12px;
+      }
+
+      /* ── 02: the twelve blocks, by weight ── */
+      .weights {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        align-items: end;
+        gap: 6px;
+        height: 150px;
+        margin: 4px 0 0;
+        padding: 0;
+        list-style: none;
+
+        li {
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+          height: 100%;
+          text-align: center;
+          font-size: 11px;
+          color: var(--faint);
+          font-variant-numeric: tabular-nums;
+        }
+
+        i {
+          display: block;
+          height: var(--h);
+          margin-top: 4px;
+          background: var(--heat);
+          opacity: 0.55;
+        }
+
+        li:first-child i {
+          background: var(--answer);
+          opacity: 1;
+        }
+
+        @media (max-width: 560px) {
+          span {
+            font-size: 9px;
+            letter-spacing: -0.05em;
+          }
+        }
+      }
+
+      .weights-axis {
+        display: flex;
+        justify-content: space-between;
+        margin: 0 0 22px;
+        padding-top: 6px;
+        border-top: 1px solid var(--line);
+        color: var(--faint);
+        font-size: 12px;
+      }
+
+      /* ── 03: what it skips ── */
+      .skips {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+        gap: 1px;
+        margin: 6px 0 0;
+        padding: 0;
+        list-style: none;
+        border: 1px solid var(--line);
+        background: var(--line);
+
+        li {
+          padding: 14px 16px 16px;
+          background: var(--app);
+        }
+
+        b {
+          display: block;
+          margin-bottom: 4px;
+        }
+
+        span {
+          color: var(--soft);
+          font-size: 13px;
+        }
+      }
+
+      /* ── 04: how close ── */
+      .headline {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 6px 18px;
+
+        strong {
+          color: var(--ink);
+          font-size: clamp(48px, 9vw, 84px);
+          font-weight: 500;
+          line-height: 1;
+          letter-spacing: -0.04em;
+        }
+
+        span {
+          max-width: 36ch;
+          color: var(--soft);
+        }
+      }
+
+      .years {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        align-items: end;
+        gap: 6px;
+        height: 190px;
+        margin: 8px 0 0;
+        padding: 0;
+        list-style: none;
+
+        li {
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+          height: 100%;
+          font-size: 11px;
+          text-align: center;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .v {
+          color: var(--soft);
+        }
+
+        i {
+          display: block;
+          height: var(--h);
+          margin-top: 4px;
+          background: var(--heat);
+          opacity: 0.5;
+        }
+
+        .partial i {
+          opacity: 0.25;
+        }
+
+        @media (max-width: 560px) {
+          .v {
+            font-size: 9px;
+            letter-spacing: -0.05em;
+          }
+        }
+      }
+
+      .years-axis {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 6px;
+        margin: 0;
+        padding-top: 6px;
+        border-top: 1px solid var(--line);
+        color: var(--faint);
+        font-size: 11px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .facts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+        gap: 1px;
+        margin: 28px 0 0;
+        border: 1px solid var(--line);
+        background: var(--line);
+
+        div {
+          padding: 14px 16px;
+          background: var(--app);
+        }
+
+        dt {
+          color: var(--faint);
+          font-size: 12px;
+        }
+
+        dd {
+          margin: 2px 0 0;
+          color: var(--ink);
+          font-size: 17px;
+          font-weight: 600;
+        }
+      }
+
+      .note {
+        margin-top: 14px;
+        color: var(--faint);
+        font-size: 12px;
+      }
+
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      footer {
+        margin-top: clamp(64px, 12vh, 120px);
+        padding: 20px 0 calc(32px + env(safe-area-inset-bottom));
+        border-top: 1px solid var(--line);
+        color: var(--faint);
+        font-size: 12px;
+
+        p {
+          margin: 0;
+          max-width: 80ch;
+        }
+      }
+
+      @media (max-width: 640px) {
+        body {
+          font-size: 13.5px;
+        }
+
+        .readout {
+          gap: 8px 18px;
+
+          .meter {
+            width: 80px;
+          }
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <header class="bar shell">
+        <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+        <span class="tip" id="tip"></span>
+      </header>
+
+      <section class="hero shell" aria-labelledby="price">
+        <p class="eyebrow"><i aria-hidden="true"></i><span id="kicker">BTC/USD · from the chain, no exchange</span></p>
+        <h1 id="price">$…</h1>
+        <p class="change" id="change">&nbsp;</p>
+      </section>
+
+      <figure class="week" aria-label="The past 7 days, block by block">
+        <div class="chart" id="chart" tabindex="0" aria-label="The price block by block over the past 7 days: arrows move a block (Shift: several), Home and End go to the ends">
+          <canvas id="heat" aria-hidden="true"></canvas>
+          <svg id="lines" aria-hidden="true"></svg>
+        </div>
+        <figcaption class="foot shell">
+          <span class="legend"><span class="swatch" aria-hidden="true"></span>Behind the line, each block's evidence: how well round dollars fit each price.</span>
+          <a class="more" href="#how">How it reads the chain <span aria-hidden="true">↓</span></a>
+        </figcaption>
+      </figure>
+    </div>
+
+    <p class="sr" id="said" aria-live="polite"></p>
+
+    <main class="shell" id="how">
+      <section class="chapter" aria-labelledby="c1">
+        <header><span class="n">01</span><h2 id="c1">Round dollars leave a fingerprint</h2></header>
+        <div>
+          <p>People pay <b>$10</b>, <b>$20</b>, <b>$100</b>, rarely $13.70. In sats, those round amounts sit at the same distances from one another whatever the price: a fingerprint of 19 teeth, from $1 to $10,000.</p>
+          <p>Below are the latest payments, counted by amount. Drag the fingerprint across them: where its teeth all land on spikes, that's the price. Elsewhere it fits in part at best, most at double or half the price, where $50 payments pass for $100 ones.</p>
+          <div class="instrument">
+            <div class="readout" id="readout">
+              <div><span class="k">At</span><output id="tried">$…</output></div>
+              <div class="fit"><span class="k">Fit</span><span class="meter" aria-hidden="true"><i id="meter"></i></span><output class="pct" id="pct"></output></div>
+              <button type="button" id="lock">Fit it</button>
+            </div>
+            <div class="plate" id="plate" role="slider" tabindex="0" aria-label="The fingerprint's place: arrows move it, Home fits it">
+              <svg id="spectrum" aria-hidden="true"></svg>
+            </div>
+            <dl class="sums" id="sums" aria-label="Round amounts in sats at this price"></dl>
+          </div>
+          <p class="caption">Gray: the latest payments by amount in sats, smallest on the left (the latest blocks and the mempool); lit, the counts under the teeth. At the bottom: how well the fingerprint fits wherever it's held; shaded, the only part the oracle looks at.</p>
+        </div>
+      </section>
+
+      <section class="chapter" aria-labelledby="c2">
+        <header><span class="n">02</span><h2 id="c2">Again, every block</h2></header>
+        <div>
+          <p>Each new block, it counts again: its payments and those of the 11 before, the newest weighing most.</p>
+          <ol class="weights" id="weights" aria-label="Each of the last 12 blocks' weight, newest first"></ol>
+          <div class="weights-axis" aria-hidden="true"><span>newest block</span><span>12th</span></div>
+          <p>And it looks only near its last answer, never more than about <b>16% higher</b> or <b>13% lower</b>: never as far as the echoes at double or half the price. One odd block can't throw it far; the line moves a block at a time.</p>
+        </div>
+      </section>
+
+      <section class="chapter" aria-labelledby="c3">
+        <header><span class="n">03</span><h2 id="c3">What isn't a purchase, it skips</h2></header>
+        <div>
+          <p>Only outputs that look like someone paying someone count.</p>
+          <ul class="skips">
+            <li><b>The miner's reward</b><span>New coins, not a payment.</span></li>
+            <li><b>Transactions with data</b><span>Any with an OP_RETURN output: records, not purchases.</span></li>
+            <li><b>Payouts to many</b><span>More than 250 outputs: an exchange or a pool paying out.</span></li>
+            <li><b>Taproot outputs</b><span>Mostly protocol traffic, which drowns the signal.</span></li>
+            <li><b>Dust</b><span>Under 1,000 sats: too small to be a payment.</span></li>
+            <li><b>Round bitcoin amounts</b><span>0.01 BTC, 50,000 sats: round in bitcoin, so not in dollars.</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="chapter" aria-labelledby="c4">
+        <header><span class="n">04</span><h2 id="c4">And it's close</h2></header>
+        <div>
+          <p class="headline"><strong>0.15%</strong><span>median distance from the exchanges' price range, block by block, over 596,251 blocks since January 2015.</span></p>
+          <ol class="years" id="years" aria-label="Median distance by year"></ol>
+          <div class="years-axis" id="years-axis" aria-hidden="true"></div>
+          <dl class="facts">
+            <div><dt>95% of blocks</dt><dd>within 1.2%</dd></div>
+            <div><dt>99% of blocks</dt><dd>within 3.4%</dd></div>
+            <div><dt>Since 2022</dt><dd>none off by 10%</dd></div>
+            <div><dt>Exchanges asked</dt><dd>none</dd></div>
+          </dl>
+          <p class="note">Measured against exchanges' high and low at each block through block 952,314, so 2026 is partial (its lighter bar); a block inside that range counts as 0%. It was weakest in 2015 and 2017, when fewer payments made a fainter fingerprint.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="shell">
+      <p>Read live from this server: <a href="/api/oracle/price">its price</a>, its blocks' payments and its mempool's, by <a href="https://crates.io/crates/brk_oracle">brk_oracle</a>. Inspired by <a href="https://utxo.live/oracle/">UTXOracle</a>.</p>
+    </footer>
+
+    <script type="module">
+      // @ts-check
+      // Bitcoin's price from the chain alone, read from this server's oracle, and shown as the oracle sees it: each
+      // block's payments as a histogram of amounts, scored the oracle's own way at each candidate price.
+      const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
+      addEventListener("pointerdown", () => (document.documentElement.dataset.pointer = ""), { capture: true });
+      addEventListener("keydown", (e) => {
+        if (!(e.metaKey || e.ctrlKey || e.altKey)) delete document.documentElement.dataset.pointer;
+      }, { capture: true });
+
+      // ── The oracle's constants (brk_oracle: scale.rs, stencil.rs, config.rs) ──
+      const PER_DECADE = 200;
+      /** The fingerprint: 19 round-dollar amounts, and their bins' distance from $100's. */
+      const AMOUNTS = [1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 100, 150, 200, 300, 500, 1000, 2000, 5000, 10000];
+      const OFFSETS = [-400, -340, -305, -260, -200, -165, -140, -120, -105, -60, 0, 35, 60, 95, 140, 200, 260, 340, 400];
+      const MAJOR = new Set([1, 10, 100, 1000, 10000]);
+      /** Its search around its last answer: 12 bins below (a higher price), 11 above. */
+      const BELOW = 12, ABOVE = 11;
+      /** Its average over the last 12 blocks, the newest weighted most. */
+      const ALPHA = 2 / 7, WINDOW = 12;
+
+      /** The bin $`amount` lands in at a price; the price $100 landing in a bin says. */
+      const binOf = (/** @type {number} */ amount, /** @type {number} */ price) => Math.log10((amount / price) * 1e8) * PER_DECADE;
+      const priceOf = (/** @type {number} */ bin) => 10 ** (10 - bin / PER_DECADE);
+
+      /** How the oracle scores candidates for a histogram, its last answer at `prev` (a bin): each tooth's count over
+       * that tooth's peak in the search window, summed. `at` reads between bins. */
+      function scorer(/** @type {number[]} */ h, /** @type {number} */ prev, reach = { below: BELOW, above: ABOVE }) {
+        const c0 = Math.round(prev) - reach.below, c1 = Math.round(prev) + reach.above;
+        const peaks = OFFSETS.map((o) => {
+          let peak = 0;
+          for (let c = c0; c <= c1; c++) peak = Math.max(peak, h[c + o] ?? 0);
+          return peak;
+        });
+        const whole = (/** @type {number} */ c) => {
+          let total = 0;
+          for (let k = 0; k < OFFSETS.length; k++) if (peaks[k]) total += (h[c + OFFSETS[k]] ?? 0) / peaks[k];
+          return total;
+        };
+        const at = (/** @type {number} */ c) => {
+          const b = Math.floor(c), u = c - b;
+          return whole(b) * (1 - u) + whole(b + 1) * u;
+        };
+        let best = 0;
+        for (let c = c0; c <= c1; c++) best = Math.max(best, whole(c));
+        return { at, best, c0, c1 };
+      }
+
+      const grouped = (/** @type {number} */ n) => Math.round(n).toLocaleString("en-US");
+      const dollars = (/** @type {number} */ a) => (a >= 1000 ? `$${a / 1000}k` : `$${a}`);
+      const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const clock = (/** @type {number} */ unix) => {
+        const at = new Date(unix * 1000);
+        return `${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}`;
+      };
+      const day = (/** @type {number} */ unix) => {
+        const at = new Date(unix * 1000);
+        return `${at.getDate()} ${MONTHS[at.getMonth()]}`;
+      };
+      const ago = (/** @type {number} */ unix) => {
+        const minutes = Math.max(0, Math.round((Date.now() / 1000 - unix) / 60));
+        return minutes < 1 ? "just now" : minutes < 60 ? `${minutes} min ago` : `${Math.floor(minutes / 60)} h ${minutes % 60} min ago`;
+      };
+      const read = (/** @type {string} */ path, kind = "json") => fetch(path, { signal: AbortSignal.timeout(15_000) }).then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return kind === "json" ? r.json() : r.text();
+      });
+      const still = matchMedia("(prefers-reduced-motion: reduce)");
+      /** A color as the scheme resolves it: a canvas can't read light-dark(). */
+      const probe = document.createElement("i");
+      function resolved(/** @type {string} */ value) {
+        probe.style.color = value;
+        document.body.append(probe);
+        const rgb = (getComputedStyle(probe).color.match(/[\d.]+/g) ?? ["128", "128", "128"]).slice(0, 3).join(",");
+        probe.remove();
+        return rgb;
+      }
+
+      // ── State ──
+
+      /** The week: the blocks of the last 7 days (read from enough to cover a fast week); one histogram in 6, at
+       * heights that are multiples of 6 so a new block adds one, not six (a block is under a pixel wide on a desk). */
+      const WEEK = 7 * 86400, FETCH = 1300, EVERY = 6;
+      let tip = 0, tipHash = "", live = 0;
+      /** Each block's price by height, for the previous block's answer. @type {Map<number, number>} */
+      let priceAt = new Map();
+      /** The blocks shown: height, price, time. @type {{ h: number, p: number, t: number }[]} */
+      let points = [];
+      /** Each block's histogram (the oracle's 12-block average at it), by height. @type {Map<number, number[]>} */
+      const hist = new Map();
+      /** @type {number[]} */
+      let liveHist = [];
+
+      // ── The price at the top: now, or the block pointed at ──
+
+      let shown = 0, rolling = 0;
+      function setPrice(/** @type {number} */ next, roll = true) {
+        cancelAnimationFrame(rolling);
+        const from = shown || next, start = performance.now();
+        const step = (/** @type {number} */ now) => {
+          const t = !roll || still.matches || !shown ? 1 : Math.min(1, (now - start) / 500), v = from + (next - from) * (1 - (1 - t) ** 3);
+          $("price").textContent = `$${grouped(v)}`;
+          shown = t === 1 ? next : v;
+          if (t < 1) rolling = requestAnimationFrame(step);
+        };
+        step(start);
+      }
+      /** The price and its change over the week, at a block (null: now). */
+      function tell(/** @type {number | null} */ k) {
+        // (The live point, one past the last block, reads as now.)
+        if (k !== null && k >= points.length) k = null;
+        if (!live && k === null) return;
+        if (!points.length) {
+          setPrice(live, false);
+          return;
+        }
+        const first = points[0].p, at = k === null ? live : points[k].p, m = at / first - 1;
+        setPrice(at, k === null);
+        const up = m > 0.00005, down = m < -0.00005;
+        $("change").className = `change ${up ? "gain" : down ? "loss" : ""}`;
+        const delta = `${up ? "▲ " : down ? "▼ " : ""}$${grouped(Math.abs(at - first))} (${Math.abs(m * 100).toFixed(2)}%)`;
+        const when = k === null ? "past 7 days" : `since ${day(points[0].t)}`;
+        $("change").replaceChildren(Object.assign(document.createElement("span"), { className: "delta", textContent: delta }), Object.assign(document.createElement("span"), { className: "when", textContent: when }));
+        $("kicker").textContent = k === null ? "BTC/USD · from the chain, no exchange" : `Block ${grouped(points[k].h)} · ${day(points[k].t)}, ${clock(points[k].t)}`;
+      }
+      function showTip() {
+        const last = points.at(-1);
+        if (last) $("tip").textContent = `block ${grouped(last.h)} · ${ago(last.t)}`;
+      }
+
+      // ── Reading ──
+
+      async function readWeek() {
+        const [prices, times] = await Promise.all([read(`/api/series/price/height?start=-${FETCH}`), read(`/api/series/timestamp/height?start=-${FETCH}`)]);
+        tip = prices.end - 1;
+        // (Each price with its own block's time, by height: the two answers can end a block apart.)
+        const all = prices.data.map((/** @type {number} */ p, /** @type {number} */ i) => ({ h: prices.start + i, p, t: times.data[prices.start + i - times.start] }));
+        priceAt = new Map(all.filter((pt) => pt.p > 0).map((pt) => [pt.h, pt.p]));
+        const newest = all.findLast((pt) => pt.t !== undefined)?.t ?? 0;
+        points = all.filter((pt) => pt.p > 0 && pt.t !== undefined && pt.t > newest - WEEK);
+        for (const h of hist.keys()) if (h < (points[0]?.h ?? 0)) hist.delete(h);
+        showTip();
+        draw();
+        drawHeat();
+        tell(pointed);
+        // (The histograms, one block in EVERY, the newest first, in batches.)
+        const want = points.filter((pt) => pt.h % EVERY === 0).map((pt) => pt.h).filter((h) => !hist.has(h)).reverse();
+        for (let i = 0; i < want.length; i += 24) {
+          const batch = want.slice(i, i + 24);
+          const answers = await Promise.allSettled(batch.map((h) => read(`/api/oracle/histogram/payments/${h}`)));
+          answers.forEach((a, k) => a.status === "fulfilled" && hist.set(batch[k], a.value));
+          drawHeat();
+        }
+      }
+      async function readLive() {
+        const [p, h] = await Promise.allSettled([read("/api/oracle/price", "text"), read("/api/oracle/histogram/payments/live")]);
+        if (p.status === "fulfilled") live = Number(p.value);
+        else if (!live) $("kicker").textContent = "Can't reach this server's oracle; trying again";
+        if (h.status === "fulfilled") liveHist = h.value;
+        if (pointed === null) tell(null);
+        draw();
+        drawHeat();
+        instrument();
+      }
+
+      // ── The week's chart, edge to edge ──
+
+      const chart = $("chart"), canvas = /** @type {HTMLCanvasElement} */ ($("heat")), svg = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("lines")));
+      const PAD = { top: 10, right: 72, bottom: 26 };
+      /** The frame: x of a block's index (the live point one past the last), y of a price (log). */
+      function frame() {
+        const w = chart.clientWidth, h = chart.clientHeight, n = points.length;
+        const prices = [...points.map((pt) => pt.p), live || points.at(-1)?.p || 1];
+        let lo = Math.min(...prices), hi = Math.max(...prices);
+        // (At least ±4% around the middle, so the evidence has room; a little past the line.)
+        const mid = Math.sqrt(lo * hi);
+        [lo, hi] = [Math.min(lo / 1.02, mid / 1.04), Math.max(hi * 1.02, mid * 1.04)];
+        const x = (/** @type {number} */ k) => (k / Math.max(1, n)) * (w - PAD.right);
+        const y = (/** @type {number} */ p) => PAD.top + (1 - Math.log(p / lo) / Math.log(hi / lo)) * (h - PAD.top - PAD.bottom);
+        const priceAt = (/** @type {number} */ py) => lo * (hi / lo) ** (1 - (py - PAD.top) / (h - PAD.top - PAD.bottom));
+        return { w, h, n, lo, hi, x, y, priceAt };
+      }
+
+      /** Behind the line: each block's score at each price, the oracle's way, in square cells; the cells nearest its
+       * best brightest, the rest left dark. Only inside its search window: it looked nowhere else. (From the
+       * histograms as served, in whole counts where the oracle's are fractional: its scores, very nearly.) */
+      function drawHeat() {
+        const f = frame(), ratio = devicePixelRatio || 1;
+        canvas.width = Math.round(f.w * ratio);
+        canvas.height = Math.round(f.h * ratio);
+        const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
+        ctx.scale(ratio, ratio);
+        if (!f.n) return;
+        const heat = resolved("var(--heat)");
+        const column = (/** @type {number[]} */ values, /** @type {number} */ prev, /** @type {number} */ x0, /** @type {number} */ x1) => {
+          const score = scorer(values, prev);
+          if (!score.best) return;
+          const side = Math.max(3, x1 - x0);
+          for (let top = PAD.top; top + side <= f.h - PAD.bottom + 0.5; top += side) {
+            const c = binOf(100, f.priceAt(top + side / 2));
+            if (c < score.c0 || c > score.c1) continue;
+            const v = score.at(c) / score.best;
+            if (v < 0.5) continue;
+            ctx.fillStyle = `rgba(${heat},${(((v - 0.5) / 0.5) ** 1.8 * 0.8).toFixed(3)})`;
+            ctx.fillRect(x0, top, side - 1, side - 1);
+          }
+        };
+        // (A column per histogram read, or as many blocks as make it 5px wide.)
+        const stride = EVERY * Math.max(1, Math.ceil(5 / ((f.x(1) - f.x(0)) * EVERY)));
+        points.forEach((pt, k) => {
+          const values = pt.h % stride === 0 && hist.get(pt.h), prev = priceAt.get(pt.h - 1);
+          if (values && prev) column(values, binOf(100, prev), f.x(Math.max(0, k - stride + 1)), f.x(k + 1));
+        });
+        if (liveHist.length) column(liveHist, binOf(100, points[f.n - 1].p), f.x(f.n), f.x(f.n) + 6);
+      }
+
+      /** The line, its grid and labels, the live end; the crosshair kept where it was. */
+      let pointed = /** @type {number | null} */ (null);
+      function draw() {
+        const f = frame();
+        if (!f.n) return;
+        svg.setAttribute("viewBox", `0 0 ${f.w} ${f.h}`);
+        const raw = (f.hi - f.lo) / 4, power = 10 ** Math.floor(Math.log10(raw)), step = [1, 2, 2.5, 5, 10].map((m) => m * power).find((s) => s >= raw) ?? power * 10;
+        let grid = "";
+        for (let p = Math.ceil(f.lo / step) * step; p <= f.hi; p += step)
+          grid += `<line class="gridline" x1="0" x2="${f.w - PAD.right + 8}" y1="${f.y(p)}" y2="${f.y(p)}"/><text class="axis-text" x="${f.w - 16}" y="${f.y(p) + 4}" text-anchor="end">$${p >= 1000 ? `${Number((p / 1000).toFixed(1))}k` : grouped(p)}</text>`;
+        const times = [];
+        let lastX = -Infinity;
+        for (let k = 1; k < f.n; k++) {
+          const a = new Date(points[k].t * 1000), b = new Date(points[k - 1].t * 1000);
+          if (a.getDate() !== b.getDate() && f.x(k) > 24 && f.x(k) < f.w - PAD.right - 24 && f.x(k) - lastX > 64 && (lastX = f.x(k)))
+            times.push(`<text class="axis-text" x="${f.x(k)}" y="${f.h - 7}" text-anchor="middle">${day(points[k].t)}</text>`);
+        }
+        const path = points.map((pt, k) => `${k ? "L" : "M"}${f.x(k).toFixed(1)},${f.y(pt.p).toFixed(1)}`).join("") + (live ? `L${f.x(f.n).toFixed(1)},${f.y(live).toFixed(1)}` : "");
+        const endX = f.x(live ? f.n : f.n - 1), endY = f.y(live || points[f.n - 1].p);
+        svg.innerHTML = `${grid}${times.join("")}<path class="price-line" d="${path}"/><circle class="end-glow" cx="${endX}" cy="${endY}" r="9"/><circle class="end" cx="${endX}" cy="${endY}" r="3.5"/><g class="cross" id="cross" visibility="hidden"><line y1="${PAD.top}" y2="${f.h - PAD.bottom}"/><circle r="4.5"/></g>`;
+        if (pointed !== null) point(pointed);
+      }
+
+      /** The block pointed at (null: none): the crosshair on it, its price at the top. */
+      function point(/** @type {number | null} */ k) {
+        pointed = k === null ? null : Math.max(0, Math.min(points.length - (live ? 0 : 1), k));
+        const cross = /** @type {SVGGElement | null} */ (svg.querySelector("#cross"));
+        if (!cross) return;
+        cross.setAttribute("visibility", pointed === null ? "hidden" : "visible");
+        if (pointed !== null) {
+          const f = frame(), x = String(f.x(pointed)), line = /** @type {SVGLineElement} */ (cross.querySelector("line")), dot = /** @type {SVGCircleElement} */ (cross.querySelector("circle"));
+          line.setAttribute("x1", x);
+          line.setAttribute("x2", x);
+          dot.setAttribute("cx", x);
+          dot.setAttribute("cy", String(f.y(points[pointed]?.p ?? live)));
+        }
+        tell(pointed);
+      }
+
+      /** Pointer input across an element: a touch that starts here scrolls the page unless it moves more across than
+       * down; a mouse acts on hover. */
+      function across(/** @type {HTMLElement} */ el, /** @type {{ move: (e: PointerEvent) => void, start?: (e: PointerEvent) => void, end?: () => void, hover?: boolean }} */ on) {
+        let down = /** @type {{ x: number, y: number } | null} */ (null), active = false;
+        el.addEventListener("pointerdown", (e) => {
+          down = { x: e.clientX, y: e.clientY };
+          if (e.pointerType === "touch") return;
+          active = true;
+          el.setPointerCapture(e.pointerId);
+          on.start?.(e);
+          on.move(e);
+        });
+        el.addEventListener("pointermove", (e) => {
+          if (!active && down && e.pointerType === "touch") {
+            if (Math.abs(e.clientX - down.x) <= Math.abs(e.clientY - down.y)) return;
+            active = true;
+            el.setPointerCapture(e.pointerId);
+            on.start?.(e);
+          }
+          if (active || (on.hover && e.pointerType === "mouse")) on.move(e);
+        });
+        for (const type of ["pointerup", "pointercancel"])
+          el.addEventListener(type, () => {
+            if (active) on.end?.();
+            down = null;
+            active = false;
+          });
+      }
+
+      across(chart, {
+        hover: true,
+        move: (e) => {
+          const f = frame(), box = chart.getBoundingClientRect();
+          point(Math.round(((e.clientX - box.left) / (f.w - PAD.right)) * f.n));
+        },
+      });
+      chart.addEventListener("pointerleave", (e) => e.pointerType === "mouse" && point(null));
+      chart.addEventListener("keydown", (e) => {
+        const n = points.length, step = e.shiftKey ? 36 : 1, from = pointed ?? n - 1;
+        const to = /** @type {Record<string, number>} */ ({ ArrowLeft: from - step, ArrowRight: from + step, Home: 0, End: n - 1 })[e.key];
+        if (to === undefined) return;
+        e.preventDefault();
+        point(to);
+        const k = pointed ?? points.length, pt = points[k];
+        $("said").textContent = pt ? `Block ${grouped(pt.h)}, ${day(pt.t)} ${clock(pt.t)}: $${grouped(pt.p)}` : `Now: $${grouped(live)}`;
+      });
+      chart.addEventListener("blur", () => point(null));
+      // (A finger lifted lets go of the block, so the price at the top goes live again.)
+      chart.addEventListener("pointerup", (e) => e.pointerType === "touch" && point(null));
+
+      // ── 01: the instrument ──
+
+      const plate = $("plate"), spectrum = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("spectrum")));
+      /** How far the fingerprint can be dragged from the price, in bins (a factor of about 4 each way). */
+      const REACH = 120;
+      /** The bins the plate spans around the price's $100 bin: $1 to $10k and some room. */
+      const SPAN = 470;
+      /** The fingerprint's place, in bins from where the oracle put it (0: fitted). */
+      let shift = 0;
+      /** The fit wherever the fingerprint is held: each tooth's count over the tallest it meets anywhere within reach
+       * (the oracle's own normalization holds only inside its window, so it can't rank places beyond it); and the
+       * oracle's window, around its last answer, the last block's price. */
+      let wide = scorer([], 0), own = scorer([], 0), most = 0;
+
+      function instrument() {
+        const last = points.at(-1)?.p;
+        if (!live || !liveHist.length || !last) return;
+        const center = binOf(100, live);
+        own = scorer(liveHist, binOf(100, last));
+        wide = scorer(liveHist, center, { below: REACH, above: REACH });
+        most = 0;
+        for (let c = center - REACH; c <= center + REACH; c += 0.5) most = Math.max(most, wide.at(c));
+        drawPlate();
+      }
+
+      /** The plate: the counts as bars (sats, log), the 19 teeth where the fingerprint is held, and under them the
+       * fit at every place the $100 tooth could be, the oracle's window shaded. */
+      function drawPlate() {
+        if (!live || !liveHist.length || !most) return;
+        const w = plate.clientWidth, h = plate.clientHeight, center = binOf(100, live), here = center + shift;
+        const lo = center - SPAN, hi = center + SPAN, strip = 76, base = h - strip - 22, top = 30;
+        const x = (/** @type {number} */ b) => ((b - lo) / (hi - lo)) * w;
+        let peak = 0;
+        for (let b = Math.floor(lo); b < hi; b++) peak = Math.max(peak, liveHist[b] ?? 0);
+        const bw = Math.max(1, w / (hi - lo)), bar = (/** @type {number} */ b, cls = "") => {
+          const v = liveHist[b] ?? 0;
+          if (!v || !peak) return "";
+          const bh = (v / peak) * (base - top - 8);
+          return `<rect${cls} x="${x(b - 0.5).toFixed(1)}" y="${(base - bh).toFixed(1)}" width="${bw.toFixed(2)}" height="${bh.toFixed(1)}"/>`;
+        };
+        let bars = "";
+        for (let b = Math.floor(lo); b < hi; b++) bars += bar(b);
+        // The teeth: a tick each at the top, a hairline down, and the count each lands on lit.
+        let teeth = "";
+        OFFSETS.forEach((o, k) => {
+          const at = here + o, tx = x(at).toFixed(1), major = MAJOR.has(AMOUNTS[k]);
+          teeth += `<line class="tooth${major ? " major" : ""}" x1="${tx}" x2="${tx}" y1="${top - 6}" y2="${base}"/>${bar(Math.round(at), ' class="hit"')}`;
+          if (major) teeth += `<text class="tooth-label" x="${tx}" y="${top - 12}" text-anchor="middle">${dollars(AMOUNTS[k])}</text>`;
+        });
+        // (The sats scale: each power of ten.)
+        let rule = `<line class="rule" x1="0" x2="${w}" y1="${base + 0.5}" y2="${base + 0.5}"/>`;
+        for (let d = Math.ceil(lo / PER_DECADE); d * PER_DECADE < hi; d++) {
+          const tx = x(d * PER_DECADE), sats = 10 ** d;
+          rule += `<line class="rule" x1="${tx}" x2="${tx}" y1="${base}" y2="${base + 5}"/><text class="axis-text" x="${tx}" y="${base + 17}" text-anchor="middle">${sats >= 1e6 ? `${sats / 1e6}M` : sats >= 1e3 ? `${sats / 1e3}k` : sats}</text>`;
+        }
+        // The fit wherever the fingerprint could be held, across the strip at the bottom, the price it'd say under
+        // each peak: the true one, and its echoes at double and half (where $50 payments pass for $100 ones).
+        const s0 = h - strip + 18, s1 = h - 8, fx = (/** @type {number} */ c) => 8 + ((c - center + REACH) / (2 * REACH)) * (w - 16);
+        let fit = "";
+        {
+          const pts = [];
+          for (let c = center - REACH; c <= center + REACH; c += 0.5) pts.push(`${fx(c).toFixed(1)},${(s1 - (wide.at(c) / most) * (s1 - s0)).toFixed(1)}`);
+          const marks = [-60, 0, 60].map((d) => `<text class="axis-text" x="${fx(center + d)}" y="${s0 - 6}" text-anchor="middle">${d ? `$${grouped(priceOf(center + d))}` : "price"}</text>`).join("");
+          fit = `<line class="rule" x1="0" x2="${w}" y1="${h - strip + 0.5}" y2="${h - strip + 0.5}"/><text class="axis-text" x="8" y="${s0 - 6}">fit</text>${marks}<rect class="window" x="${fx(own.c0)}" width="${fx(own.c1) - fx(own.c0)}" y="${s0}" height="${s1 - s0}"/><polygon class="fit-area" points="${fx(center - REACH)},${s1} ${pts.join(" ")} ${fx(center + REACH)},${s1}"/><polyline class="fit-line" points="${pts.join(" ")}"/><line class="here" x1="${fx(here)}" x2="${fx(here)}" y1="${s0 - 2}" y2="${s1}"/>`;
+        }
+        spectrum.setAttribute("viewBox", `0 0 ${w} ${h}`);
+        spectrum.innerHTML = `<g class="bars">${bars}</g>${rule}${fit}${teeth}`;
+        // The readout: the price this place says, how well it fits, the round amounts in sats there.
+        const price = priceOf(here), fitted = Math.abs(shift) < 0.5, score = wide.at(here) / most;
+        $("tried").textContent = `$${grouped(price)}`;
+        $("meter").style.width = `${Math.round(score * 100)}%`;
+        $("pct").textContent = `${Math.round(score * 100)}%`;
+        $("readout").toggleAttribute("data-locked", fitted);
+        plate.toggleAttribute("data-locked", fitted);
+        plate.setAttribute("aria-valuenow", String(Math.round(price)));
+        plate.setAttribute("aria-valuemin", String(Math.round(priceOf(center + REACH))));
+        plate.setAttribute("aria-valuemax", String(Math.round(priceOf(center - REACH))));
+        plate.setAttribute("aria-valuetext", `$${grouped(price)}, fit ${Math.round(score * 100)}%${fitted ? ": the price" : ""}`);
+        $("sums").replaceChildren(...[10, 100, 1000, 10000].map((a) => {
+          const div = document.createElement("div");
+          div.innerHTML = `<dt>${dollars(a)}</dt><dd>${grouped((a / price) * 1e8)}<small>sats</small></dd>`;
+          return div;
+        }));
+      }
+
+      let gliding = 0;
+      function glideTo(/** @type {number} */ target, ms = 900) {
+        cancelAnimationFrame(gliding);
+        const from = shift, start = performance.now();
+        const step = (/** @type {number} */ now) => {
+          const t = still.matches ? 1 : Math.min(1, (now - start) / ms);
+          shift = from + (target - from) * (1 - (1 - t) ** 3);
+          drawPlate();
+          if (t < 1) gliding = requestAnimationFrame(step);
+        };
+        gliding = requestAnimationFrame(step);
+      }
+      const clampShift = (/** @type {number} */ s) => Math.max(-REACH, Math.min(REACH, s));
+
+      // Dragging moves the teeth with the pointer; let go, they stay where they are.
+      let grab = { x: 0, shift: 0 };
+      across(plate, {
+        start: (e) => {
+          cancelAnimationFrame(gliding);
+          grab = { x: e.clientX, shift };
+          plate.classList.add("dragging");
+        },
+        move: (e) => {
+          if (!plate.classList.contains("dragging")) return;
+          shift = clampShift(grab.shift + ((e.clientX - grab.x) / plate.clientWidth) * 2 * SPAN);
+          drawPlate();
+        },
+        end: () => plate.classList.remove("dragging"),
+      });
+      plate.addEventListener("keydown", (e) => {
+        const step = e.shiftKey ? 10 : 1;
+        const to = /** @type {Record<string, number>} */ ({ ArrowLeft: shift - step, ArrowRight: shift + step, Home: 0 })[e.key];
+        if (to === undefined) return;
+        e.preventDefault();
+        cancelAnimationFrame(gliding);
+        shift = clampShift(Math.round(to));
+        drawPlate();
+      });
+      $("lock").addEventListener("click", () => glideTo(0));
+
+      // ── 02 and 04: the weights and the years ──
+
+      $("weights").replaceChildren(...Array.from({ length: WINDOW }, (_, age) => {
+        const weight = ALPHA * (1 - ALPHA) ** age, li = document.createElement("li");
+        li.innerHTML = `<span>${(weight * 100).toFixed(1)}%</span><i style="--h:${((weight / ALPHA) * 100).toFixed(1)}%"></i>`;
+        li.setAttribute("aria-label", `${age ? `${age} blocks back` : "The newest block"}: ${(weight * 100).toFixed(1)}%`);
+        return li;
+      }));
+      /** Median distance from the exchanges' range, by year (brk_oracle's README, through block 952,314). */
+      const YEARS = [[2015, 0.26], [2016, 0.33], [2017, 0.45], [2018, 0.18], [2019, 0.16], [2020, 0.1], [2021, 0.07], [2022, 0.07], [2023, 0.1], [2024, 0.1], [2025, 0.11], [2026, 0.1]];
+      $("years").replaceChildren(...YEARS.map(([year, median]) => {
+        const li = document.createElement("li");
+        if (year === 2026) li.className = "partial";
+        li.innerHTML = `<span class="v">${median.toFixed(2)}%</span><i style="--h:${((median / 0.45) * 100).toFixed(1)}%"></i>`;
+        li.setAttribute("aria-label", `${year}${year === 2026 ? " so far" : ""}: ${median.toFixed(2)}%`);
+        return li;
+      }));
+      $("years-axis").replaceChildren(...YEARS.map(([year]) => Object.assign(document.createElement("span"), { textContent: `’${String(year).slice(2)}` })));
+
+      // ── Start, then keep it live ──
+
+      new ResizeObserver(() => {
+        draw();
+        drawHeat();
+      }).observe(chart);
+      new ResizeObserver(() => drawPlate()).observe(plate);
+      matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawHeat);
+      // The fingerprint starts off the price, and fits itself once it's in view.
+      shift = still.matches ? 0 : 70;
+      // (The live price first; the week, its histograms included, comes as it comes.)
+      const week = readWeek().catch(() => {});
+      await readLive();
+      await Promise.race([week, new Promise((r) => setTimeout(r, 4000))]);
+      instrument();
+      new IntersectionObserver((entries, observer) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          observer.disconnect();
+          setTimeout(() => glideTo(0, 1400), 300);
+        }
+      }, { threshold: 0.6 }).observe(plate);
+      setInterval(readLive, 10_000);
+      setInterval(showTip, 30_000);
+      // A new tip, or the same height with another block (a reorganization): the last blocks' histograms read again.
+      tipHash = await read("/api/blocks/tip/hash", "text").catch(() => "");
+      setInterval(async () => {
+        const hash = await read("/api/blocks/tip/hash", "text").catch(() => tipHash);
+        if (hash === tipHash) return;
+        tipHash = hash;
+        for (const h of hist.keys()) if (h > tip - 12) hist.delete(h);
+        await readWeek().catch(() => {});
+        instrument();
+      }, 30_000);
+    </script>
+  </body>
+</html>
