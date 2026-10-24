@@ -5976,7 +5976,7 @@
           try {
             const client = await clientReady;
             const price = Number(
-              await client.getOraclePrice({ cache: false, signal: controller.signal }),
+              await client.getLivePrice({ cache: false, signal: controller.signal }),
             );
             if (!(price > 0) || price === state.livePrice) return;
             state.livePrice = price;

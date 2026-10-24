@@ -538,9 +538,9 @@ pub static COMMANDS: &[Command] = &[
     Command {
         name: "get-live-price",
         method: "GET",
-        path: "/api/mempool/price",
+        path: "/api/oracle/price",
         summary: "Live BTC/USD price",
-        description: "Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available.",
+        description: "Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available. Confirmed per-height history is available at `GET /api/series/price/height`.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -678,18 +678,6 @@ pub static COMMANDS: &[Command] = &[
         path: "/api/oracle/histogram/payments/live",
         summary: "Live payment output histogram",
         description: "Live smoothed histogram of oracle-eligible payment outputs, binned by output value on the oracle log scale. It combines the committed oracle window with the complete mempool's eligible outputs from a matching chain publication. A flat array of log-scale bins.",
-        path_parameters: &[
-        ],
-        query_parameters: &[
-        ],
-        request_body: None,
-    },
-    Command {
-        name: "get-oracle-price",
-        method: "GET",
-        path: "/api/oracle/price",
-        summary: "Live BTC/USD price",
-        description: "Current BTC/USD price in dollars. Same value as `GET /api/mempool/price`. Confirmed per-height history is available at `GET /api/series/price/height`.",
         path_parameters: &[
         ],
         query_parameters: &[

@@ -96,7 +96,7 @@ const TAGS: [(&str, &str); 12] = [
         Histograms come in two flavors, each available at the live tip (mempool-blended) \
         or at any confirmed height: `raw` bins every output by value with no filtering, \
         while `ema` is the smoothed round-dollar window the price is read from. The live \
-        price is also at `/api/mempool/price`. Confirmed per-height price history is at \
+        price is at `/api/oracle/price`, confirmed per-height price history at \
         `/api/series/price/height`.",
     ),
     (

@@ -14,7 +14,7 @@ use crate::{
     request_state::RequestState,
 };
 
-pub async fn serve_live_price(
+async fn serve_live_price(
     headers: HeaderMap,
     _: Empty,
     RequestState(state): RequestState,
@@ -29,14 +29,15 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         .api_route(
             "/api/oracle/price",
             get_with(serve_live_price, |op| {
-                op.id("get_oracle_price")
+                op.id("get_live_price")
                     .tag(tags::ORACLE)
                     .mcp_ignore()
                     .summary("Live BTC/USD price")
                     .description(
-                        "Current BTC/USD price in dollars. Same value as \
-                        `GET /api/mempool/price`. Confirmed per-height history is available at \
-                        `GET /api/series/price/height`.",
+                        "Current BTC/USD price in dollars, derived from on-chain round-dollar \
+                        output patterns in the oracle's recent-block window, with the mempool's \
+                        outputs blended in when available. Confirmed per-height history is \
+                        available at `GET /api/series/price/height`.",
                     )
                     .json_response::<Dollars>()
                     .not_modified()

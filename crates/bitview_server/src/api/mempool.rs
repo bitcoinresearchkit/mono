@@ -2,13 +2,12 @@ use aide::axum::{ApiRouter, routing::get_with};
 use axum::{extract::Path, http::HeaderMap, response::Response};
 use bitview_types::ReplacementNode;
 use brk_types::{
-    Dollars, MempoolBlockContent, MempoolBlockDiff, MempoolInfo, MempoolRecentTx, Txid, Version,
+    MempoolBlockContent, MempoolBlockDiff, MempoolInfo, MempoolRecentTx, Txid, Version,
 };
 
 use super::{mempool_block, mempool_txids};
 use crate::{
     AppState,
-    api::oracle::serve_live_price,
     api::tags,
     error::Result,
     extended::TransformResponseExtended,
@@ -149,25 +148,6 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .json_response::<MempoolBlockDiff>()
                     .not_modified()
                     .not_found()
-            },
-        ),
-    )
-    .api_route(
-        "/api/mempool/price",
-        get_with(
-            serve_live_price,
-            |op| {
-                op.id("get_live_price")
-                    .tag(tags::MEMPOOL)
-                    .mcp_ignore()
-                    .summary("Live BTC/USD price")
-                    .description(
-                        "Current BTC/USD price in dollars, derived from on-chain round-dollar \
-                        output patterns in the oracle's recent-block window, with the mempool's \
-                        outputs blended in when available.",
-                    )
-                    .json_response::<Dollars>()
-                    .not_modified()
             },
         ),
     )

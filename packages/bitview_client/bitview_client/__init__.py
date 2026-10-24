@@ -6550,14 +6550,6 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/mempool-blocks/{index}/diff/{since}`"""
         return self.get_json(f'/api/mempool-blocks/{_segment(index)}/diff/{_segment(since)}')
 
-    def get_live_price(self) -> Dollars:
-        """Live BTC/USD price.
-
-        Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available.
-
-        Endpoint: `GET /api/mempool/price`"""
-        return self.get_json('/api/mempool/price')
-
     def get_tx_by_index(self, index: TxIndex) -> Txid:
         """Txid by index.
 
@@ -6710,10 +6702,10 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/utxo-set/{point}/diff`"""
         return self.get_json(f'/api/utxo-set/{_segment(point)}/diff')
 
-    def get_oracle_price(self) -> Dollars:
+    def get_live_price(self) -> Dollars:
         """Live BTC/USD price.
 
-        Current BTC/USD price in dollars. Same value as `GET /api/mempool/price`. Confirmed per-height history is available at `GET /api/series/price/height`.
+        Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available. Confirmed per-height history is available at `GET /api/series/price/height`.
 
         Endpoint: `GET /api/oracle/price`"""
         return self.get_json('/api/oracle/price')

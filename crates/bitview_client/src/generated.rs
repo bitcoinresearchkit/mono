@@ -3495,15 +3495,6 @@ impl BitviewClient {
         ))
     }
 
-    /// Live BTC/USD price
-    ///
-    /// Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available.
-    ///
-    /// Endpoint: `GET /api/mempool/price`
-    pub fn get_live_price(&self) -> Result<Dollars> {
-        self.base.get_json(&format!("/api/mempool/price"))
-    }
-
     /// Txid by index
     ///
     /// Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.
@@ -3701,10 +3692,10 @@ impl BitviewClient {
 
     /// Live BTC/USD price
     ///
-    /// Current BTC/USD price in dollars. Same value as `GET /api/mempool/price`. Confirmed per-height history is available at `GET /api/series/price/height`.
+    /// Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available. Confirmed per-height history is available at `GET /api/series/price/height`.
     ///
     /// Endpoint: `GET /api/oracle/price`
-    pub fn get_oracle_price(&self) -> Result<Dollars> {
+    pub fn get_live_price(&self) -> Result<Dollars> {
         self.base.get_json(&format!("/api/oracle/price"))
     }
 

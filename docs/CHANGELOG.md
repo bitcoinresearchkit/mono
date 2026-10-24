@@ -74,6 +74,9 @@ has to be deleted by hand.
   `/api/mempool/hash` is gone (the diff carries `hash`, and `If-None-Match` answers 304 while unchanged). Types
   `MempoolBlockContent`, `MempoolBlockDiff`, `MempoolBlockDiffEntry`, `RetainedRun` and `MempoolBlockHash` (were
   `BlockTemplate`, `BlockTemplateDiff`, `BlockTemplateDiffEntry` and `NextBlockHash`)
+- The live price is `/api/oracle/price` alone, `get_live_price` (`getLivePrice()`) in every client: `/api/mempool/price`
+  is gone (the same handler, in Esplora's `/mempool` space without being an Esplora route), and the oracle route's
+  operation was `get_oracle_price`
 - Typed every series value by what it measures, replacing the representation-named `Stored*` types (`StoredBool`,
   `StoredU8`...`StoredU64`, `StoredI8`, `StoredI64`, `StoredF32`, `StoredF64`) and `Weight64`: `Boolean`, `Score`,
   `Count`/`CountSigned`, `Seconds`, `Ratio` (a plain quotient or share: NUPL, sell-side risk, liveliness, velocity),

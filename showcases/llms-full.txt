@@ -6,7 +6,7 @@
 - Base URL: https://bitview.space
 - MCP endpoint: https://mcp.bitview.space/
 - Metrics: 21154
-- Operations: 99
+- Operations: 98
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
 
@@ -373,14 +373,6 @@ Mempool statistics
 
 Returns: JSON `MempoolInfo`
 
-#### GET `/api/mempool/price`
-
-Live BTC/USD price
-
-Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available.
-
-Returns: JSON `Dollars`
-
 #### GET `/api/mempool/recent`
 
 Recent mempool transactions
@@ -676,7 +668,7 @@ Returns: JSON `integer[]`
 
 Live BTC/USD price
 
-Current BTC/USD price in dollars. Same value as `GET /api/mempool/price`. Confirmed per-height history is available at `GET /api/series/price/height`.
+Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available. Confirmed per-height history is available at `GET /api/series/price/height`.
 
 Returns: JSON `Dollars`
 

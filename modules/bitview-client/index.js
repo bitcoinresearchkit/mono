@@ -9231,20 +9231,6 @@ anything else answers 400, as mempool.space does
   }
 
   /**
-   * Live BTC/USD price
-   *
-   * Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available.
-   *
-   * Endpoint: `GET /api/mempool/price`
-   * @param {{ signal?: AbortSignal, onValue?: (value: Dollars) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<Dollars>}
-   */
-  async getLivePrice({ signal, onValue, cache, memCache } = {}) {
-    const path = `/api/mempool/price`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
-  }
-
-  /**
    * Txid by index
    *
    * Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.
@@ -9525,13 +9511,13 @@ anything else answers 400, as mempool.space does
   /**
    * Live BTC/USD price
    *
-   * Current BTC/USD price in dollars. Same value as `GET /api/mempool/price`. Confirmed per-height history is available at `GET /api/series/price/height`.
+   * Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available. Confirmed per-height history is available at `GET /api/series/price/height`.
    *
    * Endpoint: `GET /api/oracle/price`
    * @param {{ signal?: AbortSignal, onValue?: (value: Dollars) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Dollars>}
    */
-  async getOraclePrice({ signal, onValue, cache, memCache } = {}) {
+  async getLivePrice({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/oracle/price`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
