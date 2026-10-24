@@ -38,11 +38,13 @@
         --pick: light-dark(#fbe9dc, #33221a);
         --pick-strong: light-dark(#f6d7bf, #47291a);
         --hover: light-dark(#f4f1ea, #1c1e23);
+        --raise: light-dark(#ffffff, #2b2d34);
         --plot: light-dark(#d4570a, #f2873a);
         --grid: light-dark(#eeebe4, #1f2126);
         --sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         --mono: Lilex, ui-monospace, SFMono-Regular, Menlo, monospace;
         --radius: 10px;
+        --plot-height: 300px;
       }
 
       * {
@@ -105,6 +107,9 @@
       /* ── The bar: the brand, where we are, the search ── */
 
       .bar {
+        position: sticky;
+        top: 0;
+        z-index: 3;
         display: grid;
         grid-template-columns: auto minmax(0, 1fr) auto;
         align-items: center;
@@ -194,6 +199,36 @@
         input:not(:placeholder-shown) ~ kbd {
           display: none;
         }
+
+        /* (What's typed cleared at a tap, as a phone's search fields do.) */
+        .clear {
+          position: absolute;
+          top: 50%;
+          right: 4px;
+          display: none;
+          place-items: center;
+          width: 28px;
+          height: 28px;
+          translate: 0 -50%;
+          border-radius: 7px;
+          color: var(--faint);
+
+          &:hover {
+            color: var(--ink);
+          }
+
+          svg {
+            position: static;
+            translate: none;
+            width: 16px;
+            height: 16px;
+            color: inherit;
+          }
+        }
+
+        input:not(:placeholder-shown) ~ .clear {
+          display: grid;
+        }
       }
 
       .count {
@@ -202,18 +237,10 @@
         white-space: nowrap;
       }
 
-      @media (max-width: 720px) {
-        .bar {
-          grid-template-columns: auto minmax(0, 1fr);
-          gap: 12px;
-        }
-
-        .brand span,
-        .count {
-          display: none;
-        }
-
-        .search kbd {
+      /* (A key's hint only where there are keys to press.) */
+      @media (hover: none) {
+        .search kbd,
+        .keys {
           display: none;
         }
       }
@@ -249,6 +276,11 @@
           font-weight: 600;
           letter-spacing: 0.06em;
           text-transform: uppercase;
+
+          /* (Its count said on a phone, where no row beside it says it.) */
+          span {
+            display: none;
+          }
         }
 
         ul {
@@ -306,41 +338,53 @@
         }
       }
 
-      .column:focus-within .row[aria-current="true"],
-      .results .row[aria-selected="true"] {
+      .column:focus-within .row[aria-current="true"] {
         background: var(--pick-strong);
       }
 
-      /* A series: what it is, its history, how to have it. */
+      /* (A touch screen's rows a finger tall; its search's letters as large as a phone takes without zooming in.) */
+      @media (pointer: coarse) {
+        .row {
+          min-height: 44px;
+        }
+
+        .search input {
+          font-size: 16px;
+        }
+      }
+
+      /* After the columns: a series, what this is at the top, or the room left. Each takes what the whole columns
+         beside it leave (fit(), in the script), at least its least. */
+      .series,
+      .home,
+      .rest {
+        flex: 1 0 0;
+      }
+
+      /* A series: its history, how to have it, what it is. */
       .series {
-        flex: 1 0 560px;
-        min-width: 0;
+        min-width: 480px;
         overflow-y: auto;
         padding: 28px clamp(20px, 3vw, 40px) 48px;
       }
 
       .home {
-        flex: 1 0 420px;
+        min-width: 360px;
         display: grid;
-        align-content: center;
-        justify-items: start;
-        gap: 10px;
-        padding: 40px clamp(24px, 4vw, 56px);
-        color: var(--soft);
-
-        h1 {
-          margin: 0;
-          color: var(--ink);
-          font-size: clamp(26px, 3vw, 38px);
-          font-weight: 600;
-          letter-spacing: -0.03em;
-          line-height: 1.1;
-        }
+        place-content: center;
+        padding: 40px;
+        color: var(--faint);
+        text-align: center;
 
         p {
-          max-width: 34rem;
           margin: 0;
-          text-wrap: pretty;
+        }
+
+        kbd {
+          padding: 1px 6px;
+          border: 1px solid var(--line-strong);
+          border-radius: 5px;
+          font: 11px var(--mono);
         }
       }
 
@@ -374,19 +418,58 @@
         text-wrap: balance;
       }
 
-      .id-line {
-        display: flex;
-        flex-wrap: wrap;
+      /* A text that copies itself at a press: an id, an address. Its icon says when it has. */
+      .copyable {
+        display: inline-flex;
         align-items: center;
         gap: 8px;
-        margin-top: 10px;
+        max-width: 100%;
+        min-height: 28px;
+        padding: 3px 8px 3px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--well);
+        text-align: left;
 
         code {
-          padding: 3px 8px;
-          border-radius: 6px;
-          background: var(--well);
+          min-width: 0;
+          font-size: 12.5px;
           overflow-wrap: anywhere;
         }
+
+        svg {
+          flex: none;
+          width: 14px;
+          height: 14px;
+          color: var(--faint);
+        }
+
+        .done {
+          display: none;
+        }
+
+        &:hover {
+          border-color: var(--line-strong);
+
+          svg {
+            color: var(--ink);
+          }
+        }
+
+        &.copied {
+          .done {
+            display: block;
+            color: var(--accent);
+          }
+
+          .undone {
+            display: none;
+          }
+        }
+      }
+
+      .series > .copyable {
+        margin-top: 12px;
       }
 
       .chip {
@@ -414,14 +497,23 @@
           color: var(--accent-ink);
         }
 
+        &:disabled {
+          opacity: 0.45;
+          cursor: default;
+          pointer-events: none;
+        }
+
+        /* (Light, a shade darker than the accent: its white words read at 4.8:1.) */
         &.primary {
-          border-color: var(--accent);
-          background: var(--accent);
+          --fill: light-dark(#c24e06, var(--accent));
+          border-color: var(--fill);
+          background: var(--fill);
           color: light-dark(#fff, #1c0c00);
 
+          /* (Hovered, further from its words: darker light, lighter dark.) */
           &:hover {
+            --fill: light-dark(#ad4505, #f59a57);
             color: light-dark(#fff, #1c0c00);
-            filter: brightness(1.06);
           }
         }
 
@@ -431,81 +523,91 @@
         }
       }
 
-      .about {
-        max-width: 44rem;
-        margin: 16px 0 0;
-        color: var(--soft);
-        text-wrap: pretty;
-      }
-
-      .facts {
+      /* One of a few, picked: an interval, a range. A well, the one picked raised in it; more than fit, slid along. */
+      .seg {
+        position: relative;
         display: flex;
-        flex-wrap: wrap;
-        gap: 6px 22px;
-        margin: 14px 0 0;
+        gap: 2px;
+        width: fit-content;
+        max-width: 100%;
+        padding: 2px;
+        overflow-x: auto;
+        border-radius: 9px;
+        background: var(--well);
+        scrollbar-width: none;
 
-        div {
-          display: grid;
+        &::-webkit-scrollbar {
+          display: none;
         }
 
-        dt {
-          color: var(--faint);
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.05em;
-          text-transform: uppercase;
-        }
+        button {
+          flex: none;
+          height: 28px;
+          padding: 0 10px;
+          border-radius: 7px;
+          color: var(--soft);
+          font-size: 12.5px;
+          white-space: nowrap;
 
-        dd {
-          margin: 0;
+          &:hover {
+            color: var(--ink);
+          }
+
+          &[aria-pressed="true"] {
+            background: var(--raise);
+            box-shadow: 0 0 0 1px var(--line), 0 1px 2px rgb(0 0 0 / 0.1);
+            color: var(--ink);
+            font-weight: 500;
+          }
         }
       }
 
       .card {
-        margin-top: 22px;
+        margin-top: 20px;
         border: 1px solid var(--line);
         border-radius: var(--radius);
         background: var(--pane);
       }
 
       .card-head {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 12px 14px 0;
+        padding: 10px 10px 0;
       }
 
-      .group {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-      }
-
+      /* Its history's rows, each its own height whatever's in them: what's read and its scale, the plot, its range or a
+         note. Loading, failed or empty, a place as tall. */
       .readout {
         display: flex;
-        align-items: baseline;
-        gap: 10px;
-        min-height: 30px;
-        padding: 8px 14px 0;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        height: 62px;
+        padding: 12px 10px 0 14px;
+
+        div {
+          display: grid;
+          min-width: 0;
+        }
 
         b {
           font-size: 20px;
           font-weight: 600;
           letter-spacing: -0.02em;
+          line-height: 1.2;
+          white-space: nowrap;
         }
 
         span {
+          overflow: hidden;
           color: var(--faint);
           font-size: 12.5px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
       }
 
       .plot {
         position: relative;
-        height: 300px;
-        margin: 4px 0 6px;
+        height: var(--plot-height);
         touch-action: pan-y;
 
         canvas {
@@ -515,8 +617,37 @@
         }
       }
 
+      .under {
+        display: flex;
+        align-items: center;
+        height: 48px;
+        padding: 0 10px;
+
+        p {
+          margin: 0 4px;
+          color: var(--faint);
+          font-size: 12px;
+        }
+      }
+
+      .message {
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 12px;
+        height: calc(62px + var(--plot-height) + 48px);
+        padding: 0 16px;
+        color: var(--soft);
+        text-align: center;
+
+        p {
+          margin: 0;
+        }
+      }
+
       .card-foot {
-        padding: 0 14px 12px;
+        margin: 0;
+        padding: 10px 14px 12px;
         color: var(--faint);
         font-size: 12px;
       }
@@ -547,14 +678,63 @@
       .actions {
         display: flex;
         flex-wrap: wrap;
+        align-items: center;
         gap: 8px;
-        margin-top: 18px;
+        margin-top: 14px;
       }
 
-      .message {
-        padding: 40px 16px;
+      /* What it is, below: the server's words (its `code` as code), its unit and type. */
+      .about {
+        max-width: 44rem;
+        margin: 28px 0 0;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
         color: var(--soft);
-        text-align: center;
+        text-wrap: pretty;
+
+        code {
+          padding: 0 4px;
+          border-radius: 4px;
+          background: var(--well);
+          color: var(--ink);
+          font-size: 0.88em;
+        }
+
+        &:empty {
+          display: none;
+        }
+      }
+
+      .facts {
+        display: grid;
+        grid-template-columns: max-content minmax(0, 1fr);
+        align-items: baseline;
+        gap: 6px 20px;
+        max-width: 44rem;
+        margin: 14px 0 0;
+
+        dt {
+          color: var(--faint);
+          font-size: 11px;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+        }
+
+        dd {
+          margin: 0;
+          text-wrap: pretty;
+        }
+      }
+
+      /* (For a screen reader only: what a press did.) */
+      .said {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
       }
 
       /* Search: its results where the columns were. */
@@ -592,28 +772,58 @@
         }
       }
 
-      /* A phone: one column at a time, a way back to the one before. */
+      /* (The result Enter opens, marked while typing: the field left, Enter there no longer.) */
+      body:has(#q:focus) .results .row[aria-selected="true"] {
+        background: var(--pick-strong);
+      }
+
+      /* A phone: the page scrolls under the bar, one column at a time, a way back to the one before. */
       .back {
         display: none;
       }
 
-      @media (max-width: 860px) {
-        main {
-          display: block;
-          overflow-x: hidden;
-          overflow-y: auto;
+      @media (max-width: 739px) {
+        :root {
+          --plot-height: 240px;
         }
 
-        main > .column:not(:last-child),
-        main:has(> .series) > .column,
-        main:has(> .home) > .home {
+        html,
+        body {
+          height: auto;
+        }
+
+        /* (What's scrolled into sight, a row moved to, clear of the bar.) */
+        html {
+          scroll-padding-top: 56px;
+        }
+
+        body {
+          display: block;
+        }
+
+        .bar {
+          grid-template-columns: auto minmax(0, 1fr);
+          gap: 12px;
+        }
+
+        .brand span,
+        .count {
           display: none;
         }
 
-        main:has(> .home) > .column {
+        main {
           display: block;
+          overflow: visible;
         }
 
+        main > .column:not(:nth-last-child(1 of .column)),
+        main > .home,
+        main > .rest,
+        main:has(> .series) > .column {
+          display: none;
+        }
+
+        /* (A folder's name as its title, as a phone's lists have it, and how many series it holds.) */
         .column {
           width: auto;
           overflow: visible;
@@ -621,7 +831,31 @@
           background: none;
 
           h2 {
-            background: var(--app);
+            position: static;
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 6px 16px 12px;
+            background: none;
+            color: var(--ink);
+            font-size: 26px;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+            text-transform: none;
+
+            &:first-child {
+              padding-top: 20px;
+            }
+
+            span {
+              display: inline;
+              flex: none;
+              color: var(--faint);
+              font-size: 13px;
+              font-weight: 400;
+              letter-spacing: 0;
+            }
           }
 
           ul {
@@ -634,7 +868,9 @@
         }
 
         .series {
-          padding: 18px 16px 40px;
+          min-width: 0;
+          overflow: visible;
+          padding: 10px 16px 40px;
         }
 
         /* (The way back names the folder; the crumbs would say it again.) */
@@ -666,17 +902,14 @@
         }
 
         .column .back {
-          margin: 10px 8px 0;
-        }
-
-        .plot {
-          height: 240px;
+          margin: 10px 10px 0;
         }
       }
 
       @media (prefers-reduced-motion: no-preference) {
         .row,
-        .chip {
+        .chip,
+        .seg button {
           transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
         }
       }
@@ -689,10 +922,12 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
         <input type="search" id="q" placeholder="Search every series" aria-label="Search every series" aria-controls="found-list" autocomplete="off" spellcheck="false" />
         <kbd>/</kbd>
+        <button type="button" class="clear" id="clear" aria-label="Clear the search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" /></svg></button>
       </form>
       <span class="count num" id="count"></span>
     </header>
     <main id="main"></main>
+    <p class="said" id="said" aria-live="polite"></p>
     <script type="module">
       // @ts-check
       // Every series Bitview computes, as its client names them (the server's own module), browsed folder by folder;
@@ -707,7 +942,8 @@
       const ICON = {
         chevron: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>`,
         back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 6-6 6 6 6" /></svg>`,
-        copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h9" /></svg>`,
+        copy: `<svg class="undone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h9" /></svg>`,
+        copied: `<svg class="done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>`,
         chart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15l4-5 3 3 5-6" /></svg>`,
       };
 
@@ -794,7 +1030,7 @@
       // ── Values, with their units ──
       /** @type {Record<string, [string, string, boolean?]>} a value type's prefix, suffix, and whether its scale is SI (k, M, G…) */
       const UNITS = {
-        Dollars: ["$", ""], Bitcoin: ["", " BTC"], Sats: ["", " sat"], Percent: ["", "%"], Multiple: ["", "×"], Ratio: ["", "×"], Bytes: ["", "B", true], BytesFract: ["", "B", true],
+        Dollars: ["$", ""], OHLCDollars: ["$", ""], Bitcoin: ["", " BTC"], Sats: ["", " sat"], Percent: ["", "%"], Multiple: ["", "×"], Ratio: ["", "×"], Bytes: ["", "B", true], BytesFract: ["", "B", true],
         VSize: ["", "vB", true], Weight: ["", "WU", true], WeightFract: ["", "WU", true], Days: ["", " days"], Hashrate: ["", "H/s", true], FeeRate: ["", " sat/vB"], PerSecond: ["", "/s"], SecondsFract: ["", " s"],
       };
       const SI = ["", "k", "M", "G", "T", "P", "E", "Z", "Y"], SHORT = ["", "K", "M", "B", "T", "Q"];
@@ -813,9 +1049,12 @@
           if (Number(mantissa.toPrecision(digits)) >= 1000 && step < letters.length - 1) (step++, (mantissa /= 1000));
           text = `${mantissa.toPrecision(digits).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "")}${si && suffix && !/^ /.test(suffix) ? " " : ""}${letters[step]}`;
         } else if (abs >= 1000) text = grouped.format(Math.round(abs));
-        else if (abs === 0) text = "0";
-        else if (abs < 1e-4) text = abs.toExponential(digits - 2);
-        else text = abs.toPrecision(digits).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "");
+        else {
+          // (Below a thousand, its digits as a number writes them: 0.00001, not 1.00e-5, an exponent only below a
+          // millionth; 999.96 rounded up, 1,000.)
+          const rounded = Number(abs.toPrecision(digits));
+          text = rounded >= 1000 ? grouped.format(rounded) : String(rounded);
+        }
         return `${sign}${prefix}${text}${si && suffix && !/^ /.test(suffix) && !/[kMGTPEZY]$/.test(text) ? " " : ""}${suffix}`;
       }
       const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -863,7 +1102,9 @@
 
       // ── Drawing the page ──
       const main = $("main");
-      const narrow = matchMedia("(max-width: 860px)");
+      const narrow = matchMedia("(max-width: 739px)");
+      /** What scrolls a phone's page: the page itself, under its bar. */
+      const page = /** @type {HTMLElement} */ (document.scrollingElement);
       /** Where each view was scrolled (a phone's page, by what it shows), to come back to it there. @type {Map<string, number>} */
       const scrolled = new Map();
       /** What the page shows, as a key: a folder's path, or a series. */
@@ -874,7 +1115,7 @@
         if (!at.query) searching?.abort();
         if (at.query || !nodeAt(at.path).name) showing?.abort();
         // (The view left, its scroll kept for coming back: a search's, none.)
-        if (lastKey) scrolled.set(lastKey, main.scrollTop);
+        if (lastKey) scrolled.set(lastKey, scrollOf(page));
         if (at.query) {
           lastKey = "";
           return renderResults();
@@ -885,12 +1126,13 @@
         // (Kept through the redraw: each column's scroll, by its folder; the series' own; what had the focus.)
         const columnsScrolled = new Map([...main.querySelectorAll(".column")].map((column) => [/** @type {HTMLElement} */ (column).dataset.folder, column.scrollTop]));
         const article = /** @type {HTMLElement | null} */ (main.querySelector(".series")), sameSeries = leaf && leaf.name === lastSeries;
-        const seriesScrolled = article?.scrollTop ?? 0, viewHeight = document.getElementById("view")?.offsetHeight ?? 0, scalesHeight = document.getElementById("scales")?.offsetHeight ?? 0;
+        const seriesScrolled = article ? scrollOf(article) : 0, intervalsSlid = document.getElementById("intervals")?.scrollLeft ?? 0;
         const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest?.("[data-path], [data-index], [data-range], [data-log], [data-copy]") ?? null);
         const focusAt = focused && main.contains(focused) ? [...Object.entries(focused.dataset)].find(([name]) => ["path", "index", "range", "log", "copy"].includes(name)) : null;
         const parts = folders.map((folder, depth) => columnHtml(folder, at.path[depth], depth));
-        // (After the columns: the series open, or at the top, what this is.)
-        main.innerHTML = parts.join("") + (leaf ? seriesHtml(leaf) : at.path.length ? "" : homeHtml());
+        // (After the columns: the series open, at the top what this is, else the room left.)
+        main.innerHTML = parts.join("") + (leaf ? seriesHtml(leaf) : at.path.length ? `<div class="rest"></div>` : homeHtml());
+        fit();
         document.title = `${leaf ? `${humanize(/** @type {string} */ (leaf.name))} · ` : nodes.length ? `${nodes.at(-1)?.label} · ` : ""}Explorer · Bitview`;
         // (Each column where it was, else scrolled, on its own, to its open row if that's out of sight.)
         for (const column of /** @type {NodeListOf<HTMLElement>} */ (main.querySelectorAll(".column"))) {
@@ -898,20 +1140,24 @@
           const row = /** @type {HTMLElement | null} */ (column.querySelector('[aria-current="true"]'));
           if (row && (row.offsetTop < column.scrollTop || row.offsetTop + row.offsetHeight > column.scrollTop + column.clientHeight)) column.scrollTop = row.offsetTop - column.clientHeight / 2;
         }
-        // (The same series at another interval: its history's place as tall as it was till it's drawn again, so where the
-        // page was scrolled to holds, not clamped to "Loading…".)
-        const drawnAgain = /** @type {HTMLElement | null} */ (main.querySelector(".series"));
-        if (sameSeries) {
-          $("view").style.minHeight = `${viewHeight}px`;
-          $("scales").style.minHeight = `${scalesHeight}px`;
+        // (Its intervals slid as they were, the same series's; another's, to its interval if that's out of sight.)
+        const drawnAgain = /** @type {HTMLElement | null} */ (main.querySelector(".series")), intervals = document.getElementById("intervals");
+        if (intervals) {
+          intervals.scrollLeft = sameSeries ? intervalsSlid : 0;
+          const pressed = /** @type {HTMLElement | null} */ (intervals.querySelector('[aria-pressed="true"]'));
+          if (pressed && pressed.offsetLeft + pressed.offsetWidth > intervals.scrollLeft + intervals.clientWidth) intervals.scrollLeft = pressed.offsetLeft + pressed.offsetWidth - intervals.clientWidth + 2;
         }
         // (Its actions written now, before its place is scrolled back to.)
         if (leaf) showSeries(leaf);
-        // (Wide, the last column or the series in sight; narrow, the page where this view was left, else its top.)
-        main.scrollLeft = main.scrollWidth;
+        // (Narrow, the page where this view was left, else its top; wide, the same series as it was. Short of that, till
+        // it's drawn, what's drawn in its place shorter: gone on to once it is.)
         lastKey = shownKey();
-        if (narrow.matches) main.scrollTop = scrolled.get(lastKey) ?? 0;
-        if (sameSeries && drawnAgain) drawnAgain.scrollTop = seriesScrolled;
+        restore = null;
+        const [scroller, want] = narrow.matches ? [page, scrolled.get(lastKey) ?? 0] : sameSeries && drawnAgain ? [drawnAgain, seriesScrolled] : [null, 0];
+        if (scroller) {
+          scroller.scrollTop = want;
+          if (scroller.scrollTop < want) restore = { scroller, want, at: scroller.scrollTop };
+        }
         lastSeries = leaf?.name ?? "";
         // (The focus back where it was, on what's drawn anew; one hidden now (a phone's folder left), the first row shown.)
         if (focusAt) {
@@ -920,6 +1166,24 @@
         }
       }
       let lastSeries = "";
+      /** A view scrolled short of where it was (its series not drawn yet), to go on to once it is. @type {{ scroller: HTMLElement, want: number, at: number } | null} */
+      let restore = null;
+      /** Where a view is scrolled: still short of where it was to go, untouched, where it was to go. */
+      const scrollOf = (/** @type {HTMLElement} */ scroller) => (restore?.scroller === scroller && scroller.scrollTop === restore.at ? restore.want : scroller.scrollTop);
+      /**
+       * Wide, the columns shown whole: as many of the last as fit beside what's after them (at its least), it taking the
+       * rest of the width, the ones before scrolled past to the left (a slide along brings them back).
+       */
+      function fit() {
+        const after = /** @type {HTMLElement | null} */ (main.querySelector(":scope > .series, :scope > .home, :scope > .rest"));
+        const columns = main.querySelectorAll(":scope > .column"), width = main.clientWidth, column = /** @type {HTMLElement | undefined} */ (columns[0])?.offsetWidth ?? 0;
+        if (!after || !column || narrow.matches) return after?.style.removeProperty("flex-basis");
+        const least = parseFloat(getComputedStyle(after).minWidth) || 0;
+        const shown = Math.max(1, Math.min(columns.length, Math.floor((width - least) / column)));
+        after.style.flexBasis = `${Math.max(least, width - shown * column)}px`;
+        main.scrollLeft = main.scrollWidth;
+      }
+      new ResizeObserver(() => fit()).observe(main);
       /** A folder's column: its folders and series, the one open marked; a phone's way back above. */
       function columnHtml(/** @type {Node} */ folder, /** @type {string | undefined} */ open, /** @type {number} */ depth) {
         // (One Tab stop a column: its open row, else its first; the arrows move within it.)
@@ -933,10 +1197,12 @@
           </button></li>`;
         }).join("");
         const back = depth ? `<button type="button" class="back" data-path="${escape(JSON.stringify(folder.path.slice(0, -1)))}">${ICON.back}${escape(depth > 1 ? nodeAt(folder.path.slice(0, -1)).label : "All series")}</button>` : "";
-        return `<section class="column" data-folder="${escape(JSON.stringify(folder.path))}" aria-label="${escape(folder.label || "All series")}">${back}<h2>${escape(folder.label || "All series")}</h2><ul role="list">${rows}</ul></section>`;
+        // (The top's count is the series', each once; a folder's, what's in it.)
+        const count = grouped.format(depth ? folder.count : byName.size);
+        return `<section class="column" data-folder="${escape(JSON.stringify(folder.path))}" aria-label="${escape(folder.label || "All series")}">${back}<h2>${escape(folder.label || "All series")} <span class="num">${count} series</span></h2><ul role="list">${rows}</ul></section>`;
       }
       function homeHtml() {
-        return `<section class="home"><h1>${grouped.format(byName.size)} series, from every block.</h1><p>What Bitview computes from the chain, as its API names it: open a folder, or search with <kbd>/</kbd>. Each series says what it is, draws its history, and shows how to fetch it.</p></section>`;
+        return `<section class="home"><p>Open a folder, or search<span class="keys"> with <kbd>/</kbd></span>.</p></section>`;
       }
       function crumbsHtml(/** @type {string[]} */ path) {
         return `<ol class="crumbs">${trail(path).slice(0, -1).map((node) => `<li><button type="button" data-path="${escape(JSON.stringify(node.path))}">${escape(node.label)}</button></li>`).join("")}</ol>`;
@@ -948,19 +1214,24 @@
           <button type="button" class="back" data-path="${escape(JSON.stringify(leaf.path.slice(0, -1)))}">${ICON.back}${escape(nodeAt(leaf.path.slice(0, -1)).label || "All series")}</button>
           ${crumbsHtml(leaf.path)}
           <h1 id="series-title">${escape(humanize(name))}</h1>
-          <div class="id-line"><code>${escape(name)}</code><button type="button" class="chip" data-copy="${escape(name)}">${ICON.copy}Copy id</button></div>
-          <p class="about" id="about">${known.has(name) ? escape(known.get(name).description ?? "") : "&nbsp;"}</p>
-          <dl class="facts" id="facts">${known.has(name) ? factsHtml(known.get(name), indexes.length) : ""}</dl>
+          ${copyableHtml(name, name, "Copy the id")}
           <div class="card">
             <div class="card-head">
-              <div class="group" role="group" aria-label="Interval">${indexes.map((id) => `<button type="button" class="chip" data-index="${id}" aria-pressed="${id === index}">${escape(INTERVAL_LABEL[id] ?? humanizeKey(id))}</button>`).join("")}</div>
-              <div class="group" role="group" aria-label="Scale" id="scales"></div>
+              <div class="seg" role="group" aria-label="Interval" id="intervals">${indexes.map((id) => `<button type="button" data-index="${id}" aria-pressed="${id === index}">${escape(INTERVAL_LABEL[id] ?? humanizeKey(id))}</button>`).join("")}</div>
             </div>
             <div id="view"><div class="message">Loading…</div></div>
           </div>
           <div class="actions" id="actions"></div>
+          <p class="about" id="about">${known.has(name) ? prose(known.get(name).description ?? "") : "&nbsp;"}</p>
+          <dl class="facts" id="facts">${known.has(name) ? factsHtml(known.get(name)) : ""}</dl>
         </article>`;
       }
+      /** A text shown as code that copies itself (or what it stands for) at a press; too long, broken after a _ or /. */
+      const copyableHtml = (/** @type {string} */ shown, /** @type {string} */ copied, /** @type {string} */ label, id = "") =>
+        `<button type="button" class="copyable"${id ? ` id="${id}"` : ""} data-copy="${escape(copied)}" aria-label="${escape(`${label}, ${shown}`)}" title="${escape(label)}"><code>${wrappable(shown)}</code>${ICON.copy}${ICON.copied}</button>`;
+      const wrappable = (/** @type {string} */ text) => escape(text).replace(/[_/?&]/g, "$&<wbr>");
+      /** The server's words: what's between backticks as code. */
+      const prose = (/** @type {string} */ text) => escape(text).replace(/`([^`]+)`/g, "<code>$1</code>");
 
       // ── A series: its facts, its history ──
       /** @type {AbortController | null} */
@@ -969,39 +1240,66 @@
       const infos = new Map();
       /** Each series' facts once they've come: written with its page at once (its height as it'll be). @type {Map<string, any>} */
       const known = new Map();
-      const factsHtml = (/** @type {any} */ info, /** @type {number} */ intervals) =>
-        [["Unit", info.unit], ["Value type", info.type], ["Intervals", String(intervals)]].filter(([, value]) => value).map(([label, value]) => `<div><dt>${label}</dt><dd>${escape(String(value))}</dd></div>`).join("");
+      const factsHtml = (/** @type {any} */ info) =>
+        [["Unit", info.unit], ["Value type", info.type]].filter(([, value]) => value).map(([label, value]) => `<dt>${label}</dt><dd>${escape(String(value))}</dd>`).join("");
       const json = (/** @type {string} */ path, /** @type {AbortSignal} */ signal) =>
         fetch(path, { signal }).then((response) => (response.ok ? response.json() : response.json().then((body) => Promise.reject(new Error(body?.error?.message ?? `The server answered ${response.status}.`)), () => Promise.reject(new Error(`The server answered ${response.status}.`)))));
       const said = (/** @type {unknown} */ error) => (error instanceof TypeError ? "This server couldn't be reached." : /** @type {Error} */ (error).message);
+      /** A series' actions: to Studio, its values as JSON and CSV, its API address (aim() points them at what's drawn). */
+      function actionsHtml(/** @type {string} */ name, /** @type {string} */ index, /** @type {string[]} */ indexes) {
+        return [
+          indexes.includes("day1") ? `<a class="chip primary" href="/studio/#chart=${encodeURIComponent(JSON.stringify({ layers: [{ series: name }] }))}">${ICON.chart}Chart in Studio</a>` : "",
+          `<a class="chip" id="as-json">JSON</a>`,
+          `<a class="chip" id="as-csv" download="${escape(name)}-${index}.csv">CSV</a>`,
+          copyableHtml("", "", "Copy the API address", "as-api"),
+        ].join("");
+      }
+      /** The actions pointed at an ask: its links and API address changed in place (one with the focus keeps it). */
+      function aim(/** @type {string} */ api, /** @type {string} */ query) {
+        $("as-json").setAttribute("href", api + query);
+        $("as-csv").setAttribute("href", `${api}${query ? `${query}&` : "?"}format=csv`);
+        const address = $("as-api");
+        address.dataset.copy = location.origin + api + query;
+        address.setAttribute("aria-label", `Copy the API address, ${api + query}`);
+        /** @type {HTMLElement} */ (address.querySelector("code")).innerHTML = wrappable(api + query);
+      }
+      /** A long history's latest few: enough to see what a value is, and all a table of text shows. */
+      const FEW = 12;
       async function showSeries(/** @type {Node} */ leaf) {
         showing?.abort();
         showing = new AbortController();
         const signal = showing.signal, name = /** @type {string} */ (leaf.name), indexes = /** @type {string[]} */ (leaf.indexes);
         const index = at.index && indexes.includes(at.index) ? at.index : firstInterval(indexes);
-        const api = `/api/series/${encodeURIComponent(name)}/${index}`;
-        $("actions").innerHTML = [
-          indexes.includes("day1") ? `<a class="chip primary" href="/studio/#chart=${encodeURIComponent(JSON.stringify({ layers: [{ series: name }] }))}">${ICON.chart}Chart in Studio</a>` : "",
-          `<a class="chip" href="${api}">JSON</a>`,
-          `<a class="chip" href="${api}?format=csv" download="${escape(name)}-${index}.csv">CSV</a>`,
-          `<button type="button" class="chip" data-copy="${escape(location.origin + api)}">${ICON.copy}Copy API address</button>`,
-        ].join("");
+        const api = `/api/series/${encodeURIComponent(name)}/${index}`, fine = !dateBased(index) || /^(minute|hour)/.test(index);
+        // (A long history's actions at first for its latest few, an ask the server takes whatever a value weighs.)
+        $("actions").innerHTML = actionsHtml(name, index, indexes);
+        aim(api, fine ? `?start=-${FEW}` : "");
         if (!infos.has(name)) infos.set(name, json(`/api/series/${encodeURIComponent(name)}`, new AbortController().signal).catch((error) => (infos.delete(name), Promise.reject(error))));
         /** @type {Promise<any>} */ (infos.get(name)).then((info) => {
           known.set(name, info);
           if (signal.aborted) return;
-          $("about").textContent = info.description ?? "";
-          $("facts").innerHTML = factsHtml(info, indexes.length);
+          $("about").innerHTML = prose(info.description ?? "");
+          $("facts").innerHTML = factsHtml(info);
         }, () => !signal.aborted && ($("about").textContent = ""));
         try {
-          const dated = dateBased(index), fine = !dated || /^(minute|hour)/.test(index);
-          const answer = await json(`${api}${fine ? `?start=-${MOST}` : ""}`, signal);
+          let answer;
+          if (fine) {
+            // (A long history: its latest few first. Numbers, then the latest 20,000 of them (as the server weighs an
+            // ask by its size: a candle's four apiece, a quarter as many points); text, those few are the table.)
+            answer = await json(`${api}?start=-${FEW}`, signal);
+            const sample = /** @type {any[]} */ (answer.data).find((value) => value !== null), apiece = Array.isArray(sample) ? sample.length : typeof sample === "string" ? 0 : 1;
+            const query = apiece ? `?start=-${Math.floor(MOST / apiece)}` : `?start=-${FEW}`;
+            if (signal.aborted) return;
+            aim(api, query);
+            if (apiece) answer = await json(`${api}${query}`, signal);
+          } else answer = await json(api, signal);
           if (signal.aborted) return;
           drawSeries(answer, index);
+          // (Drawn taller than its place was, a table of text: scrolled on to where it was, if not scrolled since.)
+          if (restore && restore.scroller.isConnected && restore.scroller.scrollTop === restore.at) restore.scroller.scrollTop = restore.want;
+          restore = null;
         } catch (error) {
           if (signal.aborted) return;
-          $("view").style.removeProperty("min-height");
-          $("scales").style.removeProperty("min-height");
           $("view").innerHTML = `<div class="message"><p>${escape(said(error))}</p><button type="button" class="chip" data-retry>Try again</button></div>`;
         }
       }
@@ -1014,15 +1312,11 @@
       const ranged = (/** @type {string} */ index) => ["day1", "day3", "week1"].includes(index);
       let range = "all";
       function drawSeries(/** @type {any} */ answer, /** @type {string} */ index) {
-        // (Drawn: its place as tall as it is now.)
-        $("view").style.removeProperty("min-height");
-        $("scales").style.removeProperty("min-height");
         const values = /** @type {any[]} */ (answer.data).map((v) => (Array.isArray(v) ? v[3] : v));
         const numeric = values.some((v) => typeof v === "number");
         if (!numeric) {
           plot = null;
-          $("scales").innerHTML = "";
-          const last = values.map((value, i) => [answer.start + i, value]).slice(-12).reverse();
+          const last = values.map((value, i) => [answer.start + i, value]).slice(-FEW).reverse();
           $("view").innerHTML = values.length
             ? `<table class="values"><tbody>${last.map(([i, value]) => `<tr><th>${escape(placeOf(index, i))}</th><td class="mono">${escape(String(value ?? "—"))}</td></tr>`).join("")}</tbody></table><p class="card-foot">The latest of ${grouped.format(answer.end)}.</p>`
             : `<div class="message">Nothing yet.</div>`;
@@ -1037,7 +1331,6 @@
         });
         if (!ys.length) {
           plot = null;
-          $("scales").innerHTML = "";
           $("view").innerHTML = `<div class="message">Nothing yet.</div>`;
           return;
         }
@@ -1045,12 +1338,17 @@
         const above = ys.filter((y) => y > 0), loggable = above.length > 1 && ys.every((y) => y >= 0);
         const spread = loggable ? Math.log10(Math.max(...above) / Math.min(...above)) : 0;
         plot = { xs, ys, index, type: answer.type, start: answer.start, total: answer.end, log: loggable && spread > 2, from: 0 };
-        const dated = dateBased(index);
-        $("scales").innerHTML = [
-          ...(ranged(index) ? RANGES.map(([id, label]) => `<button type="button" class="chip" data-range="${id}" aria-pressed="${id === range}">${label}</button>`) : []),
-          `<button type="button" class="chip" data-log aria-pressed="${plot.log}"${loggable ? "" : " disabled title=\"Some values are below zero\""}>Log</button>`,
-        ].join("");
-        $("view").innerHTML = `<div class="readout" id="readout"></div><div class="plot"><canvas id="canvas" role="img"></canvas></div>${answer.start > 0 && !dated ? `<p class="card-foot">The latest ${grouped.format(values.length)} of ${grouped.format(answer.end)}.</p>` : /^(minute|hour)/.test(index) ? `<p class="card-foot">The latest ${grouped.format(values.length)} points.</p>` : ""}`;
+        // (Under the plot: how far back, for a daily or weekly history; else how much of a long one is drawn.)
+        const under = ranged(index)
+          ? `<div class="seg" role="group" aria-label="Range">${RANGES.map(([id, label]) => `<button type="button" data-range="${id}" aria-pressed="${id === range}">${label}</button>`).join("")}</div>`
+          : answer.start > 0 && !dateBased(index)
+            ? `<p>The latest ${grouped.format(values.length)} of ${grouped.format(answer.end)}.</p>`
+            : /^(minute|hour)/.test(index)
+              ? `<p>The latest ${grouped.format(values.length)} points.</p>`
+              : "";
+        $("view").innerHTML = `<div class="readout"><div id="readout"></div><button type="button" class="chip" data-log aria-pressed="${plot.log}"${loggable ? "" : ' disabled title="Some values are below zero"'}>Log</button></div>
+          <div class="plot"><canvas id="canvas" role="img"></canvas></div>
+          <div class="under">${under}</div>`;
         plotSized.disconnect();
         plotSized.observe(/** @type {HTMLElement} */ ($("canvas").parentElement));
         setRange(range);
@@ -1067,7 +1365,7 @@
           const first = plot.xs.findIndex((x) => client.indexToDate(/** @type {any} */ (/** @type {any} */ (plot).index), x).getTime() >= cutoff);
           plot.from = Math.max(0, first);
         }
-        for (const chip of $("scales").querySelectorAll("[data-range]")) chip.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (chip).dataset.range === id));
+        for (const chip of $("view").querySelectorAll("[data-range]")) chip.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (chip).dataset.range === id));
         paint();
         readout(null);
       }
@@ -1305,7 +1603,7 @@
         const query = q.value.trim();
         if (!query) q.removeAttribute("aria-activedescendant");
         // (Typing replaces the address's search; it doesn't add a step back for every letter.)
-        at = { path: at.path, query };
+        at = { ...at, query };
         write(at, true);
         render();
       });
@@ -1320,10 +1618,15 @@
           /** @type {HTMLElement | undefined} */ ([...$("found-list").querySelectorAll(".row")][picked])?.click();
         } else if (event.key === "Escape") {
           q.value = "";
-          go({ path: at.path }, true);
+          go({ path: at.path, index: at.index }, true);
         }
       });
       $("search-form").addEventListener("submit", (event) => event.preventDefault());
+      $("clear").addEventListener("click", () => {
+        q.value = "";
+        go({ path: at.path, index: at.index }, true);
+        q.focus();
+      });
       addEventListener("keydown", (event) => {
         if (event.key === "/" && document.activeElement !== q && !(event.target instanceof HTMLInputElement)) {
           event.preventDefault();
@@ -1353,12 +1656,12 @@
         if (target.closest("[data-retry]")) return render();
         const copy = /** @type {HTMLElement | null} */ (target.closest("[data-copy]"));
         if (copy) {
-          // (Its own words kept once: a second click while it says "Copied" doesn't make that its words.)
-          copy.dataset.words ??= copy.innerHTML;
+          // (Done: its icon a tick a moment, said to a screen reader.)
           const done = () => {
-            copy.innerHTML = `${ICON.copy}Copied`;
+            copy.classList.add("copied");
+            $("said").textContent = "Copied";
             clearTimeout(Number(copy.dataset.timer));
-            copy.dataset.timer = String(setTimeout(() => (copy.innerHTML = /** @type {string} */ (copy.dataset.words)), 1400));
+            copy.dataset.timer = String(setTimeout(() => (copy.classList.remove("copied"), ($("said").textContent = "")), 1400));
           };
           // (No clipboard to write to (a page over plain http, as a node's on a LAN): the text written and selected,
           // copied the old way.)
@@ -1372,17 +1675,29 @@
           }
         }
       });
-      // (Reading the chart: a pointer over it, a finger on it.)
+      // (Reading the chart: a pointer over it, a finger sliding along it (one swiping up or down scrolls the page, read
+      // nothing); left or lifted, the latest again.)
+      /** A finger on the chart: where it went down, and whether it has gone along more than up or down (then it reads). */
+      let finger = /** @type {{ x: number, y: number, along: boolean } | null} */ (null);
       main.addEventListener("pointermove", (event) => {
         const canvas = /** @type {any} */ (/** @type {HTMLElement} */ (event.target).closest?.("canvas"));
         if (!canvas?.pointAt || !plot) return;
         if (event.pointerType !== "mouse" && !event.buttons) return;
+        if (event.pointerType === "touch") {
+          if (!finger) return;
+          const along = Math.abs(event.clientX - finger.x), across = Math.abs(event.clientY - finger.y);
+          if (!finger.along && !(along > 6 && along > across)) return;
+          finger.along = true;
+        }
         readout(canvas.pointAt(event.clientX));
       });
       main.addEventListener("pointerdown", (event) => {
         const canvas = /** @type {any} */ (/** @type {HTMLElement} */ (event.target).closest?.("canvas"));
-        if (canvas?.pointAt && plot) readout(canvas.pointAt(event.clientX));
+        if (!canvas?.pointAt || !plot) return;
+        if (event.pointerType === "touch") finger = { x: event.clientX, y: event.clientY, along: false };
+        else readout(canvas.pointAt(event.clientX));
       });
+      for (const type of ["pointerup", "pointercancel"]) main.addEventListener(type, () => (finger = null));
       main.addEventListener("pointerleave", () => plot && hovered !== null && readout(null), true);
 
       // ── Keys in the columns: ↑ ↓ within one, → into a folder, ← back out ──
