@@ -90,6 +90,10 @@
         /* (What an installed app's status bar takes at the top, for the script to read.) */
         --safe-top: env(safe-area-inset-top);
         --sheet-half: 0.56;
+        /* (Their heights on whole pixels: a sheet's top between two, Safari can leave a pixel's row of it unpainted, the
+           page behind showing through under its handle.) */
+        --sheet-half-height: round(calc(var(--sheet-half) * 100dvh), 1px);
+        --sheet-whole-height: round(calc(var(--sheet-whole) * 100dvh), 1px);
         --app: light-dark(#f6f6f7, #08090a);
         --card: light-dark(#ffffff, #0e0f11);
         --raise: light-dark(#ffffff, #17181b);
@@ -7976,7 +7980,7 @@
           left: 0;
           z-index: 12;
           width: auto;
-          max-height: calc(var(--sheet-whole) * 100dvh);
+          max-height: var(--sheet-whole-height);
           border: 0;
           border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
           padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left);
@@ -8014,20 +8018,20 @@
            of reach until it's back down. */
         @media not all and (max-height: 500px) and (min-width: 568px) {
           .panel {
-            height: calc(var(--sheet-half) * 100dvh);
+            height: var(--sheet-half-height);
             max-height: none;
             /* (Its height back to half once it's out of sight, not as it goes.) */
             transition: transform var(--dur-layout) var(--ease-layout), height 0s var(--dur-layout), visibility 0s var(--dur-layout);
           }
 
           body[data-sheet-size="full"] .panel {
-            height: calc(var(--sheet-whole) * 100dvh);
+            height: var(--sheet-whole-height);
           }
 
           /* (The chart in what the half sheet leaves, every pane in sight: what's changed in it shows as it's changed; the
              sheet whole, as it was behind the dim. Its legends a line each, as on a phone on its side.) */
           body[data-sheet="panel"] .card {
-            padding-bottom: calc(var(--sheet-half) * 100dvh);
+            padding-bottom: var(--sheet-half-height);
           }
 
           body[data-sheet="panel"] .legend button {
@@ -8830,7 +8834,7 @@
            sight). Its list to the screen's foot, the home indicator's room the end of its scroll: rows go on under it, none
            cut short above an empty strip. */
         .palette {
-          height: calc(var(--sheet-whole) * 100dvh);
+          height: var(--sheet-whole-height);
           max-height: none;
           padding: 7px env(safe-area-inset-right) 0 env(safe-area-inset-left);
         }
@@ -8840,7 +8844,7 @@
         .shortcuts {
           inset: auto 0 0;
           height: auto;
-          max-height: calc(var(--sheet-whole) * 100dvh);
+          max-height: var(--sheet-whole-height);
           padding: 0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 
           /* (From the very top, held there.) */
@@ -8914,7 +8918,7 @@
 
         @media not all and (max-height: 500px) and (min-width: 568px) {
           .palette[data-half] {
-            height: calc(var(--sheet-half) * 100dvh);
+            height: var(--sheet-half-height);
           }
         }
 
