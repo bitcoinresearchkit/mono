@@ -27750,16 +27750,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Where a series was last added from in "Add a layer", this session: the next one starts there. */
       let addedFrom = /** @type {{ chart: string, path: string[], key: string } | null} */ (null);
       /**
-       * Where ⌘K was when it was put away (esc, its close buttons, a click beside it): opened again to resume, within a
-       * minute and a half and on the same chart, it opens right there, on the same page, search and row. Closed by a preset
-       * it opened (from the presets' pages or its search), it's put away too, and opened again within ten minutes,
-       * whichever chart's open, it's back there, that preset lit: the next a ↓ away. Closed by another action (a chart
-       * opened, a command run: no ↵ away from running it again), or come back to later, it starts over at the search.
+       * Where ⌘K was left: put away (esc, its close buttons, a click beside it), or closed by a series it added or a preset
+       * it opened. Opened again, it's right there, on the same page, search and row (that series or preset lit: the next a
+       * ↓ away, the search selected: typed over, it starts over): on the chart it was left on, a preset's wherever the next
+       * opens. Closed by anything else (a command run: no ↵ away from running it again), it starts over at the search.
+       * Whenever: no clock decides it.
        */
       let putAway = /** @type {any} */ (null);
       /** Whether ⌘K is opening a preset, browsing what's of no chart (the presets' pages, or its search). */
       const presetPicked = () => palette.op.kind === "browse" && palette.pages.every((page) => page.global) && ((item) => item?.kind === "row" && /^(?:preset|recommended):/.test(item.key ?? ""))(palette.items[palette.active]);
-      const putAside = (anywhere = false) => (putAway = { at: Date.now(), chart: chart.id, home, browsing: palette.op.kind === "browse", anywhere, state: { path: palette.path.slice(), pages: palette.pages, root: palette.root, query: palette.query, landOn: palette.items[palette.active]?.key ?? null } });
+      /** Whether ⌘K is adding a series it's browsing to (its search, a folder). */
+      const seriesPicked = () => palette.op.kind === "browse" && palette.items[palette.active]?.kind === "series";
+      const putAside = (anywhere = false) => (putAway = { chart: chart.id, home, browsing: palette.op.kind === "browse", anywhere, state: { path: palette.path.slice(), pages: palette.pages, root: palette.root, query: palette.query, landOn: palette.items[palette.active]?.key ?? null } });
       /** Whether ⌘K is being put away (esc, its close buttons, a click beside it), not closed by what it ran. */
       let dismissing = false;
       /** ⌘K put away: at once (for what follows), or `leaving`, by the person (see leave). */
@@ -27771,9 +27773,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else $("palette").close();
       }
       $("palette").addEventListener("cancel", () => ((dismissing = true), putAside()));
-      // (Closed by a preset it opened: where it was kept, for anywhere.)
+      // (Closed by a series it added, or a preset it opened (for wherever the next opens): where it was kept.)
       $("palette").addEventListener("close", () => {
-        if (!dismissing && !$("palette").open && presetPicked()) putAside(true);
+        if (!dismissing && !$("palette").open && (presetPicked() || seriesPicked())) putAside(presetPicked());
         dismissing = false;
       });
       /**
@@ -27783,7 +27785,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function openPalette({ add = false, replace = null, query = "", formula = false, editing = /** @type {string | null} */ (null), into = /** @type {string | null} */ (null), path = /** @type {string[] | null} */ (null), landOn = /** @type {string | null} */ (null), resume = false, typing = false, signal = false, side = /** @type {string | null} */ (null) } = {}) {
         // (Resumed only where it was browsing: adding, replacing or a formula start again.)
-        const spot = resume && putAway?.browsing && (putAway.anywhere ? Date.now() - putAway.at < 600_000 : putAway.chart === chart.id && putAway.home === home && Date.now() - putAway.at < 90_000) ? putAway.state : null;
+        const spot = resume && putAway?.browsing && (putAway.anywhere || (putAway.chart === chart.id && putAway.home === home)) ? putAway.state : null;
         // (Adding to a chart with no room: said now, not once a series is picked.)
         if (add && !roomFor(chart)) return;
         putAway = null;
