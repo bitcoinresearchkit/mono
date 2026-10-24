@@ -30780,21 +30780,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           flyTimer = window.setTimeout(() => !$("menu").matches(":hover") && !$("submenu").matches(":hover") && !from?.matches(":hover") && shut(), HOVER.go);
         };
         $("chart-list").addEventListener("pointerover", (event) => {
-          // (The rail's alone: its closed folder shows nothing else of what's in it; open, the sidebar shows it all, a
-          // click away.)
+          // (The rail's alone: a folder there is its icon, its name and its page out of sight: its menu says them.)
           if (event.pointerType !== "mouse" || !railed()) return;
-          const row = /** @type {HTMLElement | null} */ (closest(event, "[data-folder-row]")?.querySelector(".folder-item") ?? null);
+          const row = /** @type {HTMLElement | null} */ (closest(event, "#chart-list .folder-item"));
           if (row && row === from && flyout) return clearTimeout(flyTimer);
           clearTimeout(flyTimer);
-          const folder = row ? folderById(/** @type {string} */ (row.dataset.folderItem)) : null;
-          if (!row || !folder?.closed) return void (from && goSoon());
+          if (!row) return void (from && goSoon());
           if (!$("menu").hidden && !flyout) return;
-          // (Its charts at any depth, as the sidebar has them; one in a folder in it, that folder named beside it.)
-          const docs = () => treeOf(folder.id).flatMap(({ item }) => ("layers" in item ? [item] : []));
           // (Over a sidebar still widening: once it's done, beside the row where it ends.)
           const widened = async () => (await Promise.all(sidebar.getAnimations().map((animation) => animation.finished)).catch(() => {}), railed());
-          // (Its page first: on the rail, the way to it beside its ⋯'s, out of sight there.)
-          lookSoon(row, HOVER.row, () => menuOf(row, [{ key: "view", icon: ICONS.grid, label: "View", aside: "Its page", run: () => goTo({ folder: folder.id }) }, ...docs().map((doc, k) => ({ ...(k ? {} : { apart: true }), key: doc.id, icon: chartMark(doc), label: titleOf(doc), ...(doc.folder !== folder.id ? { aside: folderPath(/** @type {string} */ (doc.folder)).slice(folderPath(folder.id).length + 3) } : {}), run: () => go(chartById(doc.id)) }))], null, "right", { title: folder.name, hover: true }), widened);
+          lookSoon(row, HOVER.row, () => railMenu(row, true), widened);
         });
         $("chart-list").addEventListener("pointerleave", (event) => event.pointerType === "mouse" && from && goSoon());
         // (Pressed, or right-clicked, before it shows: it doesn't.)
@@ -30804,7 +30799,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $(id).addEventListener("pointerenter", () => flyout && clearTimeout(flyTimer));
           $(id).addEventListener("pointerleave", (event) => flyout && event.pointerType === "mouse" && goSoon());
         }
-        // (Pressed, the folder opens: its flyout goes.)
+        // (Pressed, its menu as pressed takes the flyout's place, see railMenu.)
         $("chart-list").addEventListener("click", (event) => closest(event, "[data-folder-row]") && shut(), true);
         /**
          * A button whose menu (`open`) shows as it's pointed at a moment; pressed then, the menu's kept (a press with none
@@ -32677,6 +32672,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else draw(refit);
       }
 
+      /**
+       * A folder's menu on the rail, or a section's of the presets (there, it's its icon: no ⋯, no name): its name over
+       * its page and its opening or closing here, then a folder's charts (at any depth, one in a folder in it that
+       * folder named beside it). As the pointer rests on it, or pressed (a finger's way).
+       */
+      function railMenu(/** @type {HTMLElement} */ item, hover = false) {
+        const folder = item.dataset.folderItem ? folderById(item.dataset.folderItem) : null, key = item.dataset.sectionItem;
+        if (key) return menuOf(item, sectionRows(key), null, "right", { title: /** @type {string} */ (JSON.parse(key).at(-1)), hover });
+        if (!folder) return;
+        const docs = treeOf(folder.id).flatMap(({ item: each }) => ("layers" in each ? [each] : []));
+        menuOf(item, [
+          { key: "view", icon: ICONS.grid, label: "View", aside: "Its page", run: () => goTo({ folder: folder.id }) },
+          { key: "toggle", icon: folder.closed ? ICONS.folderOpen : ICONS.folder, label: folder.closed ? "Expand" : "Collapse", run: () => toggleFolder(folder.id) },
+          ...docs.map((doc, k) => ({ ...(k ? {} : { apart: true }), key: doc.id, icon: chartMark(doc), label: titleOf(doc), ...(doc.folder !== folder.id ? { aside: folderPath(/** @type {string} */ (doc.folder)).slice(folderPath(folder.id).length + 3) } : {}), run: () => go(chartById(doc.id)) })),
+        ], null, "right", { title: folder.name, hover });
+      }
+
       // ── Global clicks and keys ────────────────────────────────────────────────
 
       document.addEventListener("click", (event) => {
@@ -32686,9 +32698,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const menuFor = closest(event, "[data-chart-menu], [data-scale-menu], [data-pane-menu], [data-folder-menu]");
         if (menuFor) return menuFor.dataset.chartMenu ? chartMenu(menuFor, menuFor.dataset.chartMenu) : menuFor.dataset.paneMenu ? paneActions(menuFor, menuFor.dataset.paneMenu) : menuFor.dataset.folderMenu ? folderActions(menuFor, menuFor.dataset.folderMenu) : scaleMenu(menuFor, menuFor.dataset.scaleMenu);
         // A folder in the sidebar: each click opens or closes it there (one under way turns back from where it is: clicks
-        // as fast as they come); its page, its ⋯'s View; renamed from there too. A section of the presets the same.
+        // as fast as they come); its page, its ⋯'s View; renamed from there too. A section of the presets the same. On the
+        // rail, its menu (see railMenu).
         const folderItem = closest(event, "[data-folder-item]");
-        if (folderItem) return toggleFolder(/** @type {string} */ (folderItem.dataset.folderItem));
+        if (folderItem) return railed() ? railMenu(folderItem) : toggleFolder(/** @type {string} */ (folderItem.dataset.folderItem));
         const sectionMenu = closest(event, "[data-section-menu]");
         if (sectionMenu) return menuOf(sectionMenu, sectionRows(/** @type {string} */ (sectionMenu.dataset.sectionMenu)));
         const groupItem = closest(event, "[data-group-item]");
@@ -32696,7 +32709,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const groupMenu = closest(event, "[data-group-menu]");
         if (groupMenu) return menuOf(groupMenu, groupRows(/** @type {Group} */ (groupMenu.dataset.groupMenu)));
         const sectionItem = closest(event, "[data-section-item]");
-        if (sectionItem) return toggleSection(/** @type {string} */ (sectionItem.dataset.sectionItem));
+        if (sectionItem) return railed() ? railMenu(sectionItem) : toggleSection(/** @type {string} */ (sectionItem.dataset.sectionItem));
         const sidePreset = closest(event, "#chart-list [data-open-preset]");
         if (sidePreset) return pickPreset(Number(sidePreset.dataset.openPreset));
         const check = closest(event, "[data-pick-layer]");
