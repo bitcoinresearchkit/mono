@@ -536,6 +536,20 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
+        name: "get-logs",
+        method: "GET",
+        path: "/api/server/logs",
+        summary: "Logs",
+        description: "The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, pass the answer's `started_unix_ms` and its last line's `seq` as `after`: the lines since then, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted. Its answers are not cached.",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+            Parameter { api_name: "started_unix_ms", name: "started-unix-ms", required: false, value_name: "integer", repeatable: false, description: Some("The `started_unix_ms` of the last answer: `after` counts in that process's log.") },
+            Parameter { api_name: "after", name: "after", required: false, value_name: "integer", repeatable: false, description: Some("Only the lines after this `seq`, when `started_unix_ms` is this process's; otherwise every kept line.") },
+        ],
+        request_body: None,
+    },
+    Command {
         name: "get-mempool",
         method: "GET",
         path: "/api/mempool",

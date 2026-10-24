@@ -1093,6 +1093,7 @@ dependencies = [
  "bitview_types",
  "bitview_website",
  "brk_error",
+ "brk_logger",
  "brk_oracle",
  "brk_rpc",
  "brk_types",
@@ -1326,6 +1327,7 @@ version = "0.12.2"
 dependencies = [
  "jiff",
  "owo-colors",
+ "parking_lot",
  "tracing",
  "tracing-log",
  "tracing-subscriber",

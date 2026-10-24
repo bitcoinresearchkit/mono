@@ -8,7 +8,7 @@
 
 > **Timestamps** = `object`
 
-Defined in: [modules/bitview-client/index.js:6199](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6199)
+Defined in: [modules/bitview-client/index.js:6223](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6223)
 
 ## Type Parameters
 

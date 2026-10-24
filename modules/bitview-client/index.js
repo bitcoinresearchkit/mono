@@ -728,6 +728,30 @@ asking the node
  *
  * @typedef {number} Limit
  */
+/** @typedef {("error"|"warn"|"info"|"debug"|"trace")} LogLevel */
+/**
+ * One line of the server's log.
+ *
+ * @typedef {Object} LogLine
+ * @property {number} seq - Its place in this process's log, from 0 with no gaps.
+ * @property {number} unixMs - When it was logged, in Unix milliseconds.
+ * @property {LogLevel} level
+ * @property {string} text - What the log files show after the level: a request's status, path and duration, or a message and its fields.
+ */
+/**
+ * The server's last log lines, oldest first.
+ *
+ * @typedef {Object} Logs
+ * @property {number} startedUnixMs - When this server process began its log, in Unix milliseconds: a `seq` counts within it.
+ * @property {LogLine[]} lines
+ */
+/**
+ * Where a reader of the log left off.
+ *
+ * @typedef {Object} LogsQuery
+ * @property {?number=} startedUnixMs - The `started_unix_ms` of the last answer: `after` counts in that process's log.
+ * @property {?number=} after - Only the lines after this `seq`, when `started_unix_ms` is this process's; otherwise every kept line.
+ */
 /**
  * Block info in a mempool.space like format for fee estimation.
  *
@@ -7953,6 +7977,27 @@ class BitviewClient extends BitviewClientBase {
    */
   async getSyncStatus({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/server/sync`;
+    return this.getJson(path, { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Logs
+   *
+   * The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, pass the answer's `started_unix_ms` and its last line's `seq` as `after`: the lines since then, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted. Its answers are not cached.
+   *
+   * Endpoint: `GET /api/server/logs`
+   *
+   * @param {number=} [started_unix_ms] - The `started_unix_ms` of the last answer: `after` counts in that process's log.
+   * @param {number=} [after] - Only the lines after this `seq`, when `started_unix_ms` is this process's; otherwise every kept line.
+   * @param {{ signal?: AbortSignal, onValue?: (value: Logs) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Logs>}
+   */
+  async getLogs(started_unix_ms, after, { signal, onValue, cache, memCache } = {}) {
+    const params = new URLSearchParams();
+    if (started_unix_ms !== undefined) params.set('started_unix_ms', String(started_unix_ms));
+    if (after !== undefined) params.set('after', String(after));
+    const query = params.toString();
+    const path = `/api/server/logs${query ? '?' + query : ''}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 

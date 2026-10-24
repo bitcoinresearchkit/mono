@@ -8,7 +8,7 @@
 
 > **TxCount** = `object`
 
-Defined in: [modules/bitview-client/index.js:4630](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4630)
+Defined in: [modules/bitview-client/index.js:4654](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4654)
 
 ## Type Parameters
 

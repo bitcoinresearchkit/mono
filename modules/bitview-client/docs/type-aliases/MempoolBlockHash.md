@@ -8,6 +8,6 @@
 
 > **MempoolBlockHash** = `string`
 
-Defined in: [modules/bitview-client/index.js:794](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L794)
+Defined in: [modules/bitview-client/index.js:818](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L818)
 
 ## Type Parameters

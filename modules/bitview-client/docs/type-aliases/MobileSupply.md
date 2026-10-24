@@ -8,7 +8,7 @@
 
 > **MobileSupply** = `object`
 
-Defined in: [modules/bitview-client/index.js:3896](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3896)
+Defined in: [modules/bitview-client/index.js:3920](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3920)
 
 ## Type Parameters
 

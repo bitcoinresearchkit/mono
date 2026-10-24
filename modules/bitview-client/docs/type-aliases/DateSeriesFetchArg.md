@@ -8,7 +8,7 @@
 
 > **DateSeriesFetchArg**\<`T`\> = [`ClientFetchOptions`](../interfaces/ClientFetchOptions.md)\<[`DateSeriesData`](DateSeriesData.md)\<`T`\>\> \| ((`value`) => `void`)
 
-Defined in: [modules/bitview-client/index.js:1938](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1938)
+Defined in: [modules/bitview-client/index.js:1962](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1962)
 
 ## Type Parameters
 

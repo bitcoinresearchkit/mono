@@ -8,6 +8,6 @@
 
 > **TxInIndex** = `number`
 
-Defined in: [modules/bitview-client/index.js:1367](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1367)
+Defined in: [modules/bitview-client/index.js:1391](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1391)
 
 ## Type Parameters

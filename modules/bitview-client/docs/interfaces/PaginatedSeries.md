@@ -6,7 +6,7 @@
 
 # Interface: PaginatedSeries
 
-Defined in: [modules/bitview-client/index.js:991](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L991)
+Defined in: [modules/bitview-client/index.js:1015](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1015)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:991](https://github.com/bitcoinrese
 
 > **currentPage**: `number`
 
-Defined in: [modules/bitview-client/index.js:992](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L992)
+Defined in: [modules/bitview-client/index.js:1016](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1016)
 
 Current page number (0-indexed)
 
@@ -24,7 +24,7 @@ Current page number (0-indexed)
 
 > **hasMore**: `boolean`
 
-Defined in: [modules/bitview-client/index.js:996](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L996)
+Defined in: [modules/bitview-client/index.js:1020](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1020)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: [modules/bitview-client/index.js:996](https://github.com/bitcoinrese
 
 > **maxPage**: `number`
 
-Defined in: [modules/bitview-client/index.js:993](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L993)
+Defined in: [modules/bitview-client/index.js:1017](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1017)
 
 Maximum valid page index (0-indexed)
 
@@ -42,7 +42,7 @@ Maximum valid page index (0-indexed)
 
 > **perPage**: `number`
 
-Defined in: [modules/bitview-client/index.js:995](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L995)
+Defined in: [modules/bitview-client/index.js:1019](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1019)
 
 ***
 
@@ -50,7 +50,7 @@ Defined in: [modules/bitview-client/index.js:995](https://github.com/bitcoinrese
 
 > **series**: `string`[]
 
-Defined in: [modules/bitview-client/index.js:997](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L997)
+Defined in: [modules/bitview-client/index.js:1021](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1021)
 
 ***
 
@@ -58,4 +58,4 @@ Defined in: [modules/bitview-client/index.js:997](https://github.com/bitcoinrese
 
 > **totalCount**: `number`
 
-Defined in: [modules/bitview-client/index.js:994](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L994)
+Defined in: [modules/bitview-client/index.js:1018](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1018)

@@ -6,7 +6,7 @@
 
 # Interface: ValidateAddressParam
 
-Defined in: [modules/bitview-client/index.js:1580](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1580)
+Defined in: [modules/bitview-client/index.js:1604](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1604)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1580](https://github.com/bitcoinres
 
 > **address**: `string`
 
-Defined in: [modules/bitview-client/index.js:1581](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1581)
+Defined in: [modules/bitview-client/index.js:1605](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1605)
 
 Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);
 anything else answers 400, as mempool.space does

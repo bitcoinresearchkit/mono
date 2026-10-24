@@ -8,7 +8,7 @@
 
 > **OpReturnValue** = `object`
 
-Defined in: [modules/bitview-client/index.js:4118](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4118)
+Defined in: [modules/bitview-client/index.js:4142](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4142)
 
 ## Type Parameters
 

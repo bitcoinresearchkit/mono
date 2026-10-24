@@ -6,6 +6,8 @@ use format::Formatter;
 use hook::HookLayer;
 use rate_limit::RateLimitedFile;
 pub use rate_limit::{LEVEL_NAMES, log_file_date};
+pub use tail::{Line, Recent, recent, started};
+use tail::TailLayer;
 use tracing::{Event, Level, error, field};
 use tracing_log::LogTracer;
 use tracing_subscriber::{
@@ -16,6 +18,7 @@ use tracing_subscriber::{
 mod format;
 mod hook;
 mod rate_limit;
+mod tail;
 
 const MAX_LOG_AGE_DAYS: u64 = 7;
 
@@ -55,7 +58,8 @@ pub fn init_with_default_level(dir: Option<&Path>, default_level: &str) -> io::R
     let registry = TracingSubscriberRegistry()
         .with(filter)
         .with(fmt::layer().event_format(Formatter::<true>))
-        .with(HookLayer);
+        .with(HookLayer)
+        .with(TailLayer);
 
     if let Some(dir) = dir {
         let writer = RateLimitedFile::new(dir)?;

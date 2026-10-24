@@ -6,7 +6,7 @@
 
 # Interface: Urpd
 
-Defined in: [modules/bitview-client/index.js:1457](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1457)
+Defined in: [modules/bitview-client/index.js:1481](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1481)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1457](https://github.com/bitcoinres
 
 > **aggregation**: [`UrpdAggregation`](../type-aliases/UrpdAggregation.md)
 
-Defined in: [modules/bitview-client/index.js:1463](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1463)
+Defined in: [modules/bitview-client/index.js:1487](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1487)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:1463](https://github.com/bitcoinres
 
 > **buckets**: [`UrpdBuckets`](UrpdBuckets.md)
 
-Defined in: [modules/bitview-client/index.js:1466](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1466)
+Defined in: [modules/bitview-client/index.js:1490](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1490)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [modules/bitview-client/index.js:1466](https://github.com/bitcoinres
 
 > **close**: `number`
 
-Defined in: [modules/bitview-client/index.js:1464](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1464)
+Defined in: [modules/bitview-client/index.js:1488](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1488)
 
 Price at `height`, in USD. Anchor for `unrealized_pnl`.
 
@@ -40,7 +40,7 @@ Price at `height`, in USD. Anchor for `unrealized_pnl`.
 
 > **cohort**: [`UrpdCohort`](../type-aliases/UrpdCohort.md)
 
-Defined in: [modules/bitview-client/index.js:1461](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1461)
+Defined in: [modules/bitview-client/index.js:1485](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1485)
 
 ***
 
@@ -48,7 +48,7 @@ Defined in: [modules/bitview-client/index.js:1461](https://github.com/bitcoinres
 
 > **date**: `string`
 
-Defined in: [modules/bitview-client/index.js:1460](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1460)
+Defined in: [modules/bitview-client/index.js:1484](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1484)
 
 UTC date of the represented block's monotonic timestamp.
 
@@ -58,7 +58,7 @@ UTC date of the represented block's monotonic timestamp.
 
 > **hash**: `string`
 
-Defined in: [modules/bitview-client/index.js:1459](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1459)
+Defined in: [modules/bitview-client/index.js:1483](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1483)
 
 Hash of block `height`.
 
@@ -68,7 +68,7 @@ Hash of block `height`.
 
 > **height**: `number`
 
-Defined in: [modules/bitview-client/index.js:1458](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1458)
+Defined in: [modules/bitview-client/index.js:1482](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1482)
 
 Exact published block represented by this distribution.
 
@@ -78,7 +78,7 @@ Exact published block represented by this distribution.
 
 > **supply**: `number`
 
-Defined in: [modules/bitview-client/index.js:1465](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1465)
+Defined in: [modules/bitview-client/index.js:1489](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1489)
 
 Sum of `buckets.supply`, in BTC.
 
@@ -88,4 +88,4 @@ Sum of `buckets.supply`, in BTC.
 
 > **weight**: [`UrpdWeight`](../type-aliases/UrpdWeight.md)
 
-Defined in: [modules/bitview-client/index.js:1462](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1462)
+Defined in: [modules/bitview-client/index.js:1486](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1486)

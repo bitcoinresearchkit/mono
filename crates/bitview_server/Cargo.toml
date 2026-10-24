@@ -24,6 +24,7 @@ axum = { workspace = true }
 http-body = { workspace = true }
 brk_error = { workspace = true, features = ["jiff", "serde_json", "tokio", "vecdb"] }
 brk_oracle = { workspace = true, features = ["schemars"] }
+brk_logger = { workspace = true }
 bitview_query = { workspace = true, default-features = false }
 bitview_types = { workspace = true }
 bitview_catalog = { workspace = true }

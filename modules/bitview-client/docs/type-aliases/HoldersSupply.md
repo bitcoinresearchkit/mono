@@ -8,7 +8,7 @@
 
 > **HoldersSupply** = `object`
 
-Defined in: [modules/bitview-client/index.js:4402](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4402)
+Defined in: [modules/bitview-client/index.js:4426](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4426)
 
 ## Type Parameters
 

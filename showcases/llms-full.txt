@@ -6,7 +6,7 @@
 - Base URL: https://bitview.space
 - MCP endpoint: https://mcp.bitview.space/
 - Metrics: 21154
-- Operations: 98
+- Operations: 99
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
 
@@ -845,6 +845,18 @@ Returns allocated file bytes (file lengths on non-Unix platforms) for BRK and Bi
 
 Returns: JSON `DiskUsage`
 
+#### GET `/api/server/logs`
+
+Logs
+
+The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, pass the answer's `started_unix_ms` and its last line's `seq` as `after`: the lines since then, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted. Its answers are not cached.
+
+Parameters:
+- `started_unix_ms` (query, integer, optional): The `started_unix_ms` of the last answer: `after` counts in that process's log.
+- `after` (query, integer, optional): Only the lines after this `seq`, when `started_unix_ms` is this process's; otherwise every kept line.
+
+Returns: JSON `Logs`
+
 #### GET `/api/server/sync`
 
 Sync status
@@ -1487,6 +1499,22 @@ Returns: JSON `ServerVersion`
 ### `Limit`
 
 `integer`
+
+### `LogLevel`
+
+`error | warn | info | debug | trace`
+
+### `LogLine`
+
+- `seq`: `integer` (required) — Its place in this process's log, from 0 with no gaps.
+- `unix_ms`: `integer` (required) — When it was logged, in Unix milliseconds.
+- `level`: `LogLevel` (required)
+- `text`: `string` (required) — What the log files show after the level: a request's status, path and duration, or a message and its fields.
+
+### `Logs`
+
+- `started_unix_ms`: `integer` (required) — When this server process began its log, in Unix milliseconds: a `seq` counts within it.
+- `lines`: `LogLine[]` (required)
 
 ### `MempoolBlock`
 

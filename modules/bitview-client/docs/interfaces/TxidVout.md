@@ -6,7 +6,7 @@
 
 # Interface: TxidVout
 
-Defined in: [modules/bitview-client/index.js:1430](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1430)
+Defined in: [modules/bitview-client/index.js:1454](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1454)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1430](https://github.com/bitcoinres
 
 > **txid**: `string`
 
-Defined in: [modules/bitview-client/index.js:1431](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1431)
+Defined in: [modules/bitview-client/index.js:1455](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1455)
 
 ***
 
@@ -22,6 +22,6 @@ Defined in: [modules/bitview-client/index.js:1431](https://github.com/bitcoinres
 
 > **vout**: `number`
 
-Defined in: [modules/bitview-client/index.js:1432](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1432)
+Defined in: [modules/bitview-client/index.js:1456](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1456)
 
 Output index

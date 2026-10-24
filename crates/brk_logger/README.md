@@ -11,6 +11,10 @@ Default filters turn off bitcoin, corepc, tracing, aide, fjall, lsm_tree and tow
 rmcp to warnings. `register_hook` installs the process's single hook, which receives every event
 the filter admits.
 
+The last 1,000 lines stay in memory: `recent` returns them, or those after a given line. Each line
+has a `seq` counting the process's lines from 0, so a reader asking again gets each line once, and
+a jump in `seq` shows lines that left memory before it asked.
+
 ## Environment variables
 
 - `LOG` - log level (default: `info` in release, `debug` in dev). Example: `LOG=debug bitviewd`

@@ -6,7 +6,7 @@
 
 # Interface: TimePeriodParam
 
-Defined in: [modules/bitview-client/index.js:1322](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1322)
+Defined in: [modules/bitview-client/index.js:1346](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1346)
 
 ## Properties
 
@@ -14,6 +14,6 @@ Defined in: [modules/bitview-client/index.js:1322](https://github.com/bitcoinres
 
 > **timePeriod**: [`TimePeriod`](../type-aliases/TimePeriod.md)
 
-Defined in: [modules/bitview-client/index.js:1323](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1323)
+Defined in: [modules/bitview-client/index.js:1347](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1347)
 
 Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.

@@ -8,7 +8,7 @@
 
 > **SharedCapital** = `object`
 
-Defined in: [modules/bitview-client/index.js:4351](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4351)
+Defined in: [modules/bitview-client/index.js:4375](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4375)
 
 ## Type Parameters
 

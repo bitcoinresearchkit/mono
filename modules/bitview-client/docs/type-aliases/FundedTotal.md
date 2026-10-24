@@ -8,7 +8,7 @@
 
 > **FundedTotal** = `object`
 
-Defined in: [modules/bitview-client/index.js:3404](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3404)
+Defined in: [modules/bitview-client/index.js:3428](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3428)
 
 ## Type Parameters
 

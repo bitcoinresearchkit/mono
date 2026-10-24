@@ -8,7 +8,7 @@
 
 > **IndexerP2ms** = `object`
 
-Defined in: [modules/bitview-client/index.js:6608](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6608)
+Defined in: [modules/bitview-client/index.js:6632](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6632)
 
 ## Type Parameters
 

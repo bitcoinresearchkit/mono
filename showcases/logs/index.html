@@ -1,0 +1,841 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0c10" />
+    <title>Logs · Bitview</title>
+    <meta name="description" content="This Bitview server's log, live: every block it reads, everything it computes, every request it answers." />
+    <meta property="og:title" content="Logs · Bitview" />
+    <meta property="og:description" content="This Bitview server's log, live: every block it reads, everything it computes, every request it answers." />
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
+    <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png" />
+    <style>
+      @font-face {
+        font-family: Inter;
+        src: url("/assets/fonts/InterVariable.woff2") format("woff2");
+        font-weight: 100 900;
+        font-display: swap;
+      }
+
+      @font-face {
+        font-family: Lilex;
+        src: url("/assets/fonts/Lilex.woff2") format("woff2");
+        font-weight: 400 700;
+        font-display: swap;
+      }
+
+      /* A control room's wall: the pulse of the server across the top, its lines below, newest first. Cool paper by
+         day, blue-black by night; color only where something needs a look (warnings, errors) and on new blocks. */
+      :root {
+        color-scheme: light dark;
+        --app: light-dark(#f5f6f8, #0a0c10);
+        --panel: light-dark(#fbfcfd, #0f1218);
+        --ink: light-dark(#10141b, #e6e9ef);
+        --text: light-dark(#323946, #b6bdca);
+        --soft: light-dark(#5d6574, #8b93a3);
+        --faint: light-dark(#6e7684, #6b7383);
+        --line: light-dark(rgb(16 20 27 / 0.12), rgb(230 233 239 / 0.1));
+        --hover: light-dark(rgb(16 20 27 / 0.035), rgb(230 233 239 / 0.04));
+        --request: light-dark(rgb(16 20 27 / 0.22), rgb(230 233 239 / 0.2));
+        --warn: light-dark(#9a5b00, #f0b54a);
+        --warn-bg: light-dark(rgb(240 165 30 / 0.1), rgb(240 181 74 / 0.08));
+        --error: light-dark(#c0262d, #ff6b6b);
+        --error-bg: light-dark(rgb(220 40 50 / 0.07), rgb(255 107 107 / 0.08));
+        --ok: light-dark(#1c7a46, #5fd394);
+        --block: light-dark(#c4520f, #ff8a3d);
+        --sans: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
+        --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
+        --gutter: max(16px, env(safe-area-inset-left));
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--app);
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        color: var(--text);
+        background: var(--app);
+        font: 400 14px/1.5 var(--sans);
+        -webkit-font-smoothing: antialiased;
+        overflow-anchor: none;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      /* For screen readers only: a line's severity, which the eye gets from its color. */
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      button,
+      input {
+        font: inherit;
+        color: inherit;
+      }
+
+      button {
+        cursor: pointer;
+      }
+
+      :root[data-pointer] :focus-visible {
+        outline: none;
+      }
+
+      :focus-visible {
+        outline: 2px solid var(--ink);
+        outline-offset: 2px;
+      }
+
+      .shell {
+        width: min(100% - 2 * var(--gutter), 1180px);
+        margin-inline: auto;
+      }
+
+      /* The bar: home, the title, the connection. */
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: color-mix(in srgb, var(--app) 88%, transparent);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-bottom: 1px solid var(--line);
+        padding-top: env(safe-area-inset-top);
+      }
+
+      .bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 52px;
+
+        .home {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: var(--ink);
+          text-decoration: none;
+          font-weight: 600;
+          letter-spacing: -0.01em;
+
+          svg {
+            width: 18px;
+            height: 21px;
+            color: var(--block);
+          }
+        }
+
+        .sep {
+          color: var(--faint);
+        }
+
+        h1 {
+          margin: 0;
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--ink);
+        }
+      }
+
+      .state {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font: 500 12px/1 var(--mono);
+        color: var(--soft);
+        white-space: nowrap;
+
+        &::before {
+          content: "";
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: var(--faint);
+        }
+
+        &[data-state="live"] {
+          color: var(--ink);
+
+          &::before {
+            background: var(--ok);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent);
+          }
+        }
+
+        &[data-state="paused"]::before {
+          background: var(--warn);
+        }
+
+        &[data-state="offline"]::before {
+          background: var(--error);
+        }
+      }
+
+      /* The pulse: lines per five seconds over ten minutes, stacked by kind. */
+      .pulse {
+        padding: 20px 0 14px;
+        border-bottom: 1px solid var(--line);
+
+        .head {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: 16px;
+          flex-wrap: wrap;
+          margin-bottom: 12px;
+        }
+
+        .rate {
+          margin: 0;
+          font: 600 clamp(26px, 6vw, 34px) / 1 var(--sans);
+          letter-spacing: -0.03em;
+          color: var(--ink);
+          font-variant-numeric: tabular-nums;
+
+          small {
+            font-size: 14px;
+            font-weight: 500;
+            letter-spacing: 0;
+            color: var(--soft);
+          }
+        }
+
+        .key {
+          display: flex;
+          gap: 14px;
+          margin: 0;
+          padding: 0;
+          list-style: none;
+          font: 12px/1 var(--mono);
+          color: var(--soft);
+
+          li {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+          }
+
+          i {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+          }
+        }
+
+        svg {
+          display: block;
+          width: 100%;
+          height: 64px;
+        }
+
+        .axis {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 6px;
+          font: 11px/1 var(--mono);
+          color: var(--faint);
+        }
+      }
+
+      .k-work {
+        background: var(--ink);
+        fill: var(--ink);
+      }
+
+      .k-request {
+        background: var(--request);
+        fill: var(--request);
+      }
+
+      .k-warn {
+        background: var(--warn);
+        fill: var(--warn);
+      }
+
+      .k-error {
+        background: var(--error);
+        fill: var(--error);
+      }
+
+      /* The controls: what to show, a filter, pause. */
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        padding: 12px 0;
+      }
+
+      .seg {
+        display: inline-flex;
+        padding: 2px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+
+        button {
+          border: 0;
+          border-radius: 6px;
+          padding: 5px 10px;
+          background: none;
+          color: var(--soft);
+          font-size: 13px;
+          font-weight: 500;
+          touch-action: manipulation;
+
+          &[aria-pressed="true"] {
+            background: var(--ink);
+            color: var(--app);
+          }
+        }
+      }
+
+      .count {
+        font: 12px/1 var(--mono);
+        margin-left: 4px;
+        opacity: 0.75;
+      }
+
+      .filter {
+        flex: 1 1 180px;
+        min-width: 0;
+        height: 32px;
+        padding: 0 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        font: 13px var(--mono);
+
+        &::placeholder {
+          color: var(--faint);
+        }
+      }
+
+      .pause {
+        height: 32px;
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+        touch-action: manipulation;
+
+        &[aria-pressed="true"] {
+          border-color: var(--warn);
+          color: var(--warn);
+        }
+      }
+
+      /* The lines, newest first. */
+      .feed {
+        margin: 0 0 40px;
+        padding: 0;
+        list-style: none;
+        font: 12.5px/1.55 var(--mono);
+        border-top: 1px solid var(--line);
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 9ch 1fr;
+        gap: 14px;
+        padding: 3px 10px;
+        border-left: 2px solid transparent;
+        border-bottom: 1px solid transparent;
+
+        &:hover {
+          background: var(--hover);
+        }
+
+        time {
+          color: var(--faint);
+          font-variant-numeric: tabular-nums;
+        }
+
+        .text {
+          min-width: 0;
+          color: var(--text);
+          overflow-wrap: anywhere;
+          white-space: pre-wrap;
+        }
+
+        &.warn {
+          border-left-color: var(--warn);
+          background: var(--warn-bg);
+
+          .text {
+            color: var(--warn);
+          }
+        }
+
+        &.error {
+          border-left-color: var(--error);
+          background: var(--error-bg);
+
+          .text {
+            color: var(--error);
+          }
+        }
+
+        &.debug .text {
+          color: var(--soft);
+        }
+      }
+
+      /* A request: its status, its path, how long it took. */
+      .request .text {
+        display: grid;
+        grid-template-columns: 3ch 1fr auto;
+        gap: 12px;
+        color: var(--soft);
+
+        b {
+          font-weight: 500;
+          color: var(--ok);
+        }
+
+        .path {
+          color: var(--text);
+        }
+
+        .took {
+          color: var(--faint);
+          text-align: right;
+        }
+      }
+
+      .request.redirect .text b {
+        color: var(--soft);
+      }
+
+      .request.refused .text b {
+        color: var(--warn);
+      }
+
+      .request.error .text b,
+      .request.error .text .path {
+        color: var(--error);
+      }
+
+      /* A new block: the feed's chapters. */
+      .block {
+        margin-top: 10px;
+        padding-block: 8px;
+        border-top: 1px solid var(--line);
+
+        .text {
+          color: var(--ink);
+        }
+
+        .height {
+          color: var(--block);
+          font-weight: 600;
+        }
+      }
+
+      /* What the feed says about itself: lines skipped, a restart. */
+      .note {
+        padding: 8px 10px;
+        color: var(--faint);
+        font-style: italic;
+        text-align: center;
+      }
+
+      .empty {
+        padding: 48px 0;
+        text-align: center;
+        color: var(--faint);
+        font: 13px var(--mono);
+      }
+
+      footer {
+        border-top: 1px solid var(--line);
+        padding: 20px 0 calc(28px + env(safe-area-inset-bottom));
+        color: var(--faint);
+        font-size: 13px;
+
+        p {
+          margin: 0;
+          max-width: 64ch;
+        }
+
+        a {
+          color: var(--soft);
+        }
+      }
+
+      @media (max-width: 640px) {
+        .feed {
+          font-size: 12px;
+        }
+
+        .row {
+          grid-template-columns: 8ch 1fr;
+          gap: 10px;
+          padding: 4px 6px;
+        }
+
+        .request .text {
+          gap: 8px;
+        }
+
+        .pulse .key {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="bar shell">
+        <a class="home" href="/" aria-label="Bitview, home">
+          <svg viewBox="0 0 173.2 200" aria-hidden="true"><polygon fill="currentColor" points="86.6,0 173.2,50 86.6,100 0,50" /><polygon fill="currentColor" opacity="0.72" points="0,50 86.6,100 86.6,200 0,150" /><polygon fill="currentColor" opacity="0.5" points="173.2,50 173.2,150 86.6,200 86.6,100" /></svg>
+          <span>Bitview</span>
+        </a>
+        <span class="sep" aria-hidden="true">/</span>
+        <h1>Logs</h1>
+        <span class="state" id="state" data-state="connecting" role="status">Connecting</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="pulse shell" aria-labelledby="rate">
+        <div class="head">
+          <p class="rate" id="rate">–<small> lines a minute</small></p>
+          <ul class="key" aria-label="Kinds">
+            <li><i class="k-work"></i>Work</li>
+            <li><i class="k-request"></i>Requests</li>
+            <li><i class="k-warn"></i>Warnings</li>
+            <li><i class="k-error"></i>Errors</li>
+          </ul>
+        </div>
+        <svg id="pulse" viewBox="0 0 120 64" preserveAspectRatio="none" role="img" aria-label="Lines logged every five seconds over the last ten minutes"></svg>
+        <div class="axis" aria-hidden="true"><span>10 min ago</span><span>5 min</span><span>now</span></div>
+      </section>
+
+      <div class="shell">
+        <div class="controls">
+          <div class="seg" role="group" aria-label="Show">
+            <button type="button" data-show="all" aria-pressed="true">All</button>
+            <button type="button" data-show="work" aria-pressed="false">Work</button>
+            <button type="button" data-show="requests" aria-pressed="false">Requests</button>
+            <button type="button" data-show="problems" aria-pressed="false">Problems<span class="count" id="problems"></span></button>
+          </div>
+          <input class="filter" id="filter" type="search" placeholder="Filter" aria-label="Filter lines" autocomplete="off" spellcheck="false" />
+          <button class="pause" id="pause" type="button" aria-pressed="false">Pause</button>
+        </div>
+
+        <ol class="feed" id="feed" aria-label="Log lines, newest first"></ol>
+        <p class="empty" id="empty">Waiting for the first line…</p>
+      </div>
+    </main>
+
+    <footer>
+      <div class="shell">
+        <p>Everything this server logs, looked at every two seconds; at its busiest, some lines go by unseen. Requests show their status, path and time; who made them is never logged. Read it yourself: <a href="/api#tag/server/GET/api/server/logs"><code>GET /api/server/logs</code></a>.</p>
+      </div>
+    </footer>
+
+    <script>
+      const KEEP = 2000; // rows in the page
+      const BUCKET = 5000; // ms per pulse bar
+      const BARS = 120; // ten minutes
+      const REQUEST = /^(\d{3}) (\S+)(?: (\S+))?$/;
+      const BLOCK = /^Updated to block (\d+)/;
+
+      const feed = document.getElementById("feed");
+      const empty = document.getElementById("empty");
+      const stateEl = document.getElementById("state");
+      const rateEl = document.getElementById("rate");
+      const pulse = document.getElementById("pulse");
+      const filterEl = document.getElementById("filter");
+      const pauseEl = document.getElementById("pause");
+      const problemsEl = document.getElementById("problems");
+
+      const view = { show: "all", filter: "", paused: false };
+      const EVERY = 2000; // ms between looks
+      let started = null; // the server process the lines come from
+      let lastSeq = null;
+      let pending = []; // lines waiting for the next frame, or for resume
+      let frame = 0;
+      let problems = 0;
+      const buckets = new Map(); // bucket start (ms) -> counts by kind
+
+      const timeFormat = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+      const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "medium" });
+      const numberFormat = new Intl.NumberFormat();
+
+      // A line's kind, from the log's own shapes: an access line is `status path [latency]`. A request is judged by its
+      // status, not its level (every 4xx is logged as an error): only a 5xx is the server's problem.
+      function kindOf(line) {
+        const request = REQUEST.exec(line.text);
+        if (request) return request[1][0] === "5" ? "error" : "request";
+        if (line.level === "error") return "error";
+        if (line.level === "warn") return "warn";
+        return "work";
+      }
+
+      function shown(row) {
+        const { kind, request } = row.dataset;
+        if (view.show === "work" && request) return false;
+        if (view.show === "requests" && !request) return false;
+        if (view.show === "problems" && kind !== "warn" && kind !== "error") return false;
+        return !view.filter || row.textContent.toLowerCase().includes(view.filter);
+      }
+
+      function rowFor(line) {
+        const li = document.createElement("li");
+        const kind = kindOf(line);
+        li.className = `row ${kind}`;
+        if (line.level === "debug") li.classList.add("debug");
+        li.dataset.kind = kind;
+        li.dataset.seq = line.seq;
+        const time = document.createElement("time");
+        const date = new Date(line.unix_ms);
+        time.dateTime = date.toISOString();
+        time.title = dateFormat.format(date);
+        time.textContent = timeFormat.format(date);
+        const text = document.createElement("span");
+        text.className = "text";
+        const request = REQUEST.exec(line.text);
+        const block = BLOCK.exec(line.text);
+        if (request) {
+          const [, status, path, took] = request;
+          li.dataset.request = "1";
+          li.classList.add("request");
+          if (status[0] === "3") li.classList.add("redirect");
+          if (status[0] === "4") li.classList.add("refused");
+          const b = document.createElement("b");
+          b.textContent = status;
+          const p = document.createElement("span");
+          p.className = "path";
+          p.textContent = path;
+          const t = document.createElement("span");
+          t.className = "took";
+          t.textContent = took ? short(took) : "";
+          t.title = took ?? "";
+          text.append(b, p, t);
+        } else if (block) {
+          li.classList.add("block");
+          const h = document.createElement("span");
+          h.className = "height";
+          h.textContent = `Block ${numberFormat.format(Number(block[1]))}`;
+          text.append(h, line.text.slice(block[0].length).replace(/^ \S+/, ""));
+          text.title = line.text;
+        } else {
+          text.textContent = line.text;
+        }
+        if (kind === "warn" || kind === "error") {
+          const severity = document.createElement("span");
+          severity.className = "sr";
+          severity.textContent = kind === "warn" ? "Warning: " : "Error: ";
+          text.prepend(severity);
+        }
+        li.append(time, text);
+        return li;
+      }
+
+      // A duration as Rust prints it (`115.416µs`, `1.180934s`), to three significant digits.
+      function short(took) {
+        const parts = /^([\d.]+)(ns|µs|ms|s)$/.exec(took);
+        return parts ? `${Number(Number(parts[1]).toPrecision(3))}${parts[2]}` : took;
+      }
+
+      function noteRow(message) {
+        const li = document.createElement("li");
+        li.className = "note";
+        li.textContent = message;
+        return li;
+      }
+
+      function count(line, kind) {
+        const at = Math.floor(line.unix_ms / BUCKET) * BUCKET;
+        let bucket = buckets.get(at);
+        if (!bucket) buckets.set(at, (bucket = { work: 0, request: 0, warn: 0, error: 0 }));
+        bucket[kind]++;
+      }
+
+      // The page's lines, newest on top; the reader's place kept when they're further down.
+      function flush() {
+        frame = 0;
+        if (view.paused) return showPaused();
+        if (!pending.length) return;
+        const fragment = document.createDocumentFragment();
+        for (let i = pending.length - 1; i >= 0; i--) {
+          const row = pending[i];
+          // (The view as it is now: it may have changed while the row waited.)
+          if (row.classList.contains("row")) row.hidden = !shown(row);
+          fragment.append(row);
+        }
+        pending = [];
+        // The line at the top of the window stays put when the reader is further down.
+        const header = document.querySelector("header").getBoundingClientRect().bottom;
+        const anchor = scrollY > feed.offsetTop - 120 ? document.elementFromPoint(innerWidth / 2, header + 8)?.closest("#feed > li") : null;
+        const before = anchor?.getBoundingClientRect().top;
+        feed.prepend(fragment);
+        while (feed.children.length > KEEP) feed.lastElementChild.remove();
+        if (anchor?.isConnected) scrollBy(0, anchor.getBoundingClientRect().top - before);
+        empty.hidden = feed.children.length > 0;
+        problemsEl.textContent = problems ? ` ${numberFormat.format(problems)}` : "";
+        drawPulse();
+      }
+
+      function queue(element) {
+        pending.push(element);
+        // Paused long, the oldest waiting lines go: the page holds no more than it shows.
+        if (pending.length > KEEP) pending.splice(0, pending.length - KEEP);
+        if (!frame) frame = requestAnimationFrame(flush);
+      }
+
+      function take(line) {
+        if (lastSeq !== null && line.seq > lastSeq + 1) {
+          const missed = line.seq - lastSeq - 1;
+          queue(noteRow(`${numberFormat.format(missed)} ${missed === 1 ? "line" : "lines"} not shown: the server logged faster than this page asks`));
+        }
+        lastSeq = line.seq;
+        const kind = kindOf(line);
+        if (kind === "warn" || kind === "error") problems++;
+        count(line, kind);
+        queue(rowFor(line));
+      }
+
+      // Bars of the last ten minutes, each stacked: work, requests, warnings, errors.
+      const NS = "http://www.w3.org/2000/svg";
+      function drawPulse() {
+        const now = Math.floor(Date.now() / BUCKET) * BUCKET;
+        const first = now - (BARS - 1) * BUCKET;
+        for (const at of buckets.keys()) if (at < first) buckets.delete(at);
+        // Square-root heights: a burst (a restart's first lines) leaves the ordinary minutes readable.
+        let max = 1;
+        let total = 0;
+        for (const [at, b] of buckets) {
+          const sum = b.work + b.request + b.warn + b.error;
+          max = Math.max(max, sum);
+          if (at > now - 60000) total += sum;
+        }
+        const bars = [];
+        for (let i = 0; i < BARS; i++) {
+          const b = buckets.get(first + i * BUCKET);
+          if (!b) continue;
+          const sum = b.work + b.request + b.warn + b.error;
+          const height = Math.sqrt(sum / max) * 62;
+          let y = 64;
+          for (const kind of ["work", "request", "warn", "error"]) {
+            if (!b[kind]) continue;
+            // The bar's height shared by kind; a lone warning or error still shows.
+            const h = Math.max((b[kind] / sum) * height, 1.2);
+            y -= h;
+            const rect = document.createElementNS(NS, "rect");
+            rect.setAttribute("class", `k-${kind}`);
+            rect.setAttribute("x", i + 0.12);
+            rect.setAttribute("y", y);
+            rect.setAttribute("width", 0.76);
+            rect.setAttribute("height", h);
+            bars.push(rect);
+          }
+        }
+        pulse.replaceChildren(...bars);
+        rateEl.firstChild.textContent = numberFormat.format(total);
+      }
+
+      function showPaused() {
+        if (!view.paused) return;
+        const waiting = pending.filter((el) => el.classList.contains("row")).length;
+        pauseEl.textContent = waiting ? `Resume · ${numberFormat.format(waiting)} new` : "Resume";
+      }
+
+      function showState() {
+        const [state, label] = view.paused ? ["paused", "Paused"] : online ? ["live", "Live"] : online === false ? ["offline", "Offline"] : ["connecting", "Connecting"];
+        stateEl.dataset.state = state;
+        stateEl.textContent = label;
+      }
+
+      // Every two seconds, the lines since the last ones; none while the page isn't seen.
+      let online = null; // unknown until the first answer
+      async function poll() {
+        const since = started !== null && lastSeq !== null ? `?started_unix_ms=${started}&after=${lastSeq}` : "";
+        try {
+          const response = await fetch(`/api/server/logs${since}`, { cache: "no-store" });
+          if (!response.ok) throw new Error(`${response.status}`);
+          const logs = await response.json();
+          if (started !== null && logs.started_unix_ms !== started) {
+            queue(noteRow("The server restarted"));
+            lastSeq = null;
+          }
+          started = logs.started_unix_ms;
+          for (const line of logs.lines) take(line);
+          online = true;
+        } catch {
+          online = false;
+        }
+        showState();
+      }
+
+      let polling = false;
+      let next = 0;
+      async function loop() {
+        clearTimeout(next);
+        if (polling || document.hidden) return;
+        polling = true;
+        await poll();
+        polling = false;
+        if (!document.hidden) next = setTimeout(loop, EVERY);
+      }
+      document.addEventListener("visibilitychange", () => (document.hidden ? clearTimeout(next) : loop()));
+      loop();
+
+      // The pulse moves on even when nothing is logged.
+      setInterval(drawPulse, 1000);
+
+      for (const button of document.querySelectorAll("[data-show]")) {
+        button.addEventListener("click", () => {
+          view.show = button.dataset.show;
+          for (const other of document.querySelectorAll("[data-show]")) other.setAttribute("aria-pressed", other === button);
+          for (const row of feed.children) if (row.classList.contains("row")) row.hidden = !shown(row);
+        });
+      }
+
+      filterEl.addEventListener("input", () => {
+        view.filter = filterEl.value.trim().toLowerCase();
+        for (const row of feed.children) if (row.classList.contains("row")) row.hidden = !shown(row);
+      });
+
+      pauseEl.addEventListener("click", () => {
+        view.paused = !view.paused;
+        pauseEl.setAttribute("aria-pressed", view.paused);
+        showState();
+        if (view.paused) showPaused();
+        else {
+          pauseEl.textContent = "Pause";
+          flush();
+        }
+      });
+
+      // Focus rings for keyboards only.
+      addEventListener("pointerdown", () => document.documentElement.setAttribute("data-pointer", ""), true);
+      addEventListener("keydown", () => document.documentElement.removeAttribute("data-pointer"), true);
+    </script>
+  </body>
+</html>

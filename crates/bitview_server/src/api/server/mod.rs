@@ -7,7 +7,7 @@ use axum::{
     http::HeaderMap,
     response::{IntoResponse, Response},
 };
-use bitview_types::{DiskUsage, Health, HealthStatus, ServerVersion, SyncStatus};
+use bitview_types::{DiskUsage, Health, HealthStatus, Logs, ServerVersion, SyncStatus};
 use jiff::Timestamp;
 
 use super::AppState;
@@ -21,6 +21,7 @@ use crate::{
 };
 
 mod disk;
+mod logs;
 
 pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
     router.api_route(
@@ -95,6 +96,22 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .not_modified()
             },
         ),
+    )
+    .api_route(
+        "/api/server/logs",
+        get_with(logs::get, |op| {
+            op.id("get_logs")
+                .tag(tags::SERVER)
+                .mcp_ignore()
+                .summary("Logs")
+                .description(
+                    "The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) \
+                    and everything else it logs. To read on, pass the answer's `started_unix_ms` and its last line's `seq` as `after`: \
+                    the lines since then, each once. A jump in `seq` shows lines that left memory before the next request; \
+                    another `started_unix_ms` shows the server restarted. Its answers are not cached.",
+                )
+                .json_response::<Logs>()
+        }),
     )
     .api_route(
         "/api/server/disk",

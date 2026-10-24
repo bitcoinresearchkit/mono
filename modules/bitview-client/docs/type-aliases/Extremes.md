@@ -8,7 +8,7 @@
 
 > **Extremes** = `object`
 
-Defined in: [modules/bitview-client/index.js:2720](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2720)
+Defined in: [modules/bitview-client/index.js:2744](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2744)
 
 ## Type Parameters
 

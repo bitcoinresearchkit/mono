@@ -6,7 +6,7 @@
 
 # Interface: SeriesNameWithIndex
 
-Defined in: [modules/bitview-client/index.js:1278](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1278)
+Defined in: [modules/bitview-client/index.js:1302](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1302)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1278](https://github.com/bitcoinres
 
 > **index**: [`Index`](../type-aliases/Index.md)
 
-Defined in: [modules/bitview-client/index.js:1280](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1280)
+Defined in: [modules/bitview-client/index.js:1304](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1304)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [modules/bitview-client/index.js:1280](https://github.com/bitcoinres
 
 > **series**: `string`
 
-Defined in: [modules/bitview-client/index.js:1279](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1279)
+Defined in: [modules/bitview-client/index.js:1303](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1303)

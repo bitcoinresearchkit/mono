@@ -8,7 +8,7 @@
 
 > **IndexerBlocks** = `object`
 
-Defined in: [modules/bitview-client/index.js:7001](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7001)
+Defined in: [modules/bitview-client/index.js:7025](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7025)
 
 ## Type Parameters
 

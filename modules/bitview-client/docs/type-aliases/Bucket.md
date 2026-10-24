@@ -8,7 +8,7 @@
 
 > **Bucket** = `object`
 
-Defined in: [modules/bitview-client/index.js:5376](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5376)
+Defined in: [modules/bitview-client/index.js:5400](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5400)
 
 ## Type Parameters
 

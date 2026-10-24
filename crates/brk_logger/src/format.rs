@@ -86,6 +86,16 @@ const fn status_color(status: u64) -> AnsiColors {
     }
 }
 
+/// An event as the log files show it after its level: its message and fields, or an access line's
+/// status, uri and latency.
+pub fn text(event: &Event<'_>) -> String {
+    let mut visitor = FieldVisitor::<false>::default();
+    event.record(&mut visitor);
+    let mut text = String::new();
+    let _ = visitor.write_to(&mut text);
+    text
+}
+
 #[derive(Default)]
 struct FieldVisitor<const ANSI: bool> {
     message: String,

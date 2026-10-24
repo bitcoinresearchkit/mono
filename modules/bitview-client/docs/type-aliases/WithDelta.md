@@ -8,7 +8,7 @@
 
 > **WithDelta**\<`A`, `B`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:4461](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4461)
+Defined in: [modules/bitview-client/index.js:4485](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4485)
 
 ## Type Parameters
 

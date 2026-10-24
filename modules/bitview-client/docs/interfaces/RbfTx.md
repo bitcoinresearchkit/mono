@@ -6,7 +6,7 @@
 
 # Interface: RbfTx
 
-Defined in: [modules/bitview-client/index.js:1157](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1157)
+Defined in: [modules/bitview-client/index.js:1181](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1181)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1157](https://github.com/bitcoinres
 
 > **fee**: `number`
 
-Defined in: [modules/bitview-client/index.js:1159](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1159)
+Defined in: [modules/bitview-client/index.js:1183](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1183)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:1159](https://github.com/bitcoinres
 
 > `optional` **fullRbf?**: `boolean` \| `null`
 
-Defined in: [modules/bitview-client/index.js:1165](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1165)
+Defined in: [modules/bitview-client/index.js:1189](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1189)
 
 Only populated on the root `tx` of an RBF response. `true` iff
 this tx displaced at least one non-signaling predecessor.
@@ -33,7 +33,7 @@ this tx displaced at least one non-signaling predecessor.
 
 > **rate**: `number`
 
-Defined in: [modules/bitview-client/index.js:1162](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1162)
+Defined in: [modules/bitview-client/index.js:1186](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1186)
 
 ***
 
@@ -41,7 +41,7 @@ Defined in: [modules/bitview-client/index.js:1162](https://github.com/bitcoinres
 
 > **rbf**: `boolean`
 
-Defined in: [modules/bitview-client/index.js:1164](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1164)
+Defined in: [modules/bitview-client/index.js:1188](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1188)
 
 BIP-125 signaling: at least one input has sequence < 0xffffffff-1.
 
@@ -51,7 +51,7 @@ BIP-125 signaling: at least one input has sequence < 0xffffffff-1.
 
 > **time**: `number`
 
-Defined in: [modules/bitview-client/index.js:1163](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1163)
+Defined in: [modules/bitview-client/index.js:1187](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1187)
 
 ***
 
@@ -59,7 +59,7 @@ Defined in: [modules/bitview-client/index.js:1163](https://github.com/bitcoinres
 
 > **txid**: `string`
 
-Defined in: [modules/bitview-client/index.js:1158](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1158)
+Defined in: [modules/bitview-client/index.js:1182](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1182)
 
 ***
 
@@ -67,7 +67,7 @@ Defined in: [modules/bitview-client/index.js:1158](https://github.com/bitcoinres
 
 > **value**: `number`
 
-Defined in: [modules/bitview-client/index.js:1161](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1161)
+Defined in: [modules/bitview-client/index.js:1185](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1185)
 
 Sum of output amounts.
 
@@ -77,4 +77,4 @@ Sum of output amounts.
 
 > **vsize**: `number`
 
-Defined in: [modules/bitview-client/index.js:1160](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1160)
+Defined in: [modules/bitview-client/index.js:1184](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1184)

@@ -21,6 +21,7 @@ mod height_or_date_param;
 mod height_param;
 #[cfg(feature = "chain")]
 mod historical_price_param;
+mod logs_query;
 #[cfg(feature = "chain")]
 mod mempool_block_param;
 #[cfg(feature = "chain")]
@@ -71,6 +72,7 @@ pub use height_or_date_param::*;
 pub use height_param::*;
 #[cfg(feature = "chain")]
 pub use historical_price_param::*;
+pub use logs_query::*;
 #[cfg(feature = "chain")]
 pub use mempool_block_param::*;
 #[cfg(feature = "chain")]

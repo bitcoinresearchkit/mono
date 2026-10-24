@@ -6,7 +6,7 @@
 
 # Interface: TxOutspend
 
-Defined in: [modules/bitview-client/index.js:1393](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1393)
+Defined in: [modules/bitview-client/index.js:1417](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1417)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1393](https://github.com/bitcoinres
 
 > **spent**: `boolean`
 
-Defined in: [modules/bitview-client/index.js:1394](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1394)
+Defined in: [modules/bitview-client/index.js:1418](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1418)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:1394](https://github.com/bitcoinres
 
 > `optional` **status?**: [`TxStatus`](TxStatus.md) \| `null`
 
-Defined in: [modules/bitview-client/index.js:1397](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1397)
+Defined in: [modules/bitview-client/index.js:1421](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1421)
 
 Status of the spending transaction (only present if spent)
 
@@ -32,7 +32,7 @@ Status of the spending transaction (only present if spent)
 
 > `optional` **txid?**: `string` \| `null`
 
-Defined in: [modules/bitview-client/index.js:1395](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1395)
+Defined in: [modules/bitview-client/index.js:1419](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1419)
 
 Transaction ID of the spending transaction (only present if spent)
 
@@ -42,6 +42,6 @@ Transaction ID of the spending transaction (only present if spent)
 
 > `optional` **vin?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:1396](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1396)
+Defined in: [modules/bitview-client/index.js:1420](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1420)
 
 Input index in the spending transaction (only present if spent)

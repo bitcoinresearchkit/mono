@@ -8,6 +8,6 @@
 
 > **TxVersionRaw** = `number`
 
-Defined in: [modules/bitview-client/index.js:1418](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1418)
+Defined in: [modules/bitview-client/index.js:1442](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1442)
 
 ## Type Parameters

@@ -8,6 +8,6 @@
 
 > **PerSecond** = `number`
 
-Defined in: [modules/bitview-client/index.js:1012](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1012)
+Defined in: [modules/bitview-client/index.js:1036](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1036)
 
 ## Type Parameters

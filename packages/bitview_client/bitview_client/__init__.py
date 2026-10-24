@@ -178,6 +178,7 @@ MempoolBlockIndex = int
 # `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
 # A decimal string, since JavaScript numbers can't hold every 64-bit value.
 MempoolBlockHash = str
+LogLevel = Literal["error", "warn", "info", "debug", "trace"]
 # Maximum number of results to return; each parameter states what omitting it means.
 Limit = int
 # A JSON Schema type: what a series' values are on the wire.
@@ -624,6 +625,41 @@ class MempoolBlockDiffParam(TypedDict):
     """
     index: MempoolBlockIndex
     since: MempoolBlockHash
+
+class LogsQuery(TypedDict, total=False):
+    """
+    Where a reader of the log left off.
+
+    Attributes:
+        started_unix_ms: The `started_unix_ms` of the last answer: `after` counts in that process's log.
+        after: Only the lines after this `seq`, when `started_unix_ms` is this process's; otherwise every kept line.
+    """
+    started_unix_ms: Optional[int]
+    after: Optional[int]
+
+class LogLine(TypedDict):
+    """
+    One line of the server's log.
+
+    Attributes:
+        seq: Its place in this process's log, from 0 with no gaps.
+        unix_ms: When it was logged, in Unix milliseconds.
+        text: What the log files show after the level: a request's status, path and duration, or a message and its fields.
+    """
+    seq: int
+    unix_ms: int
+    level: LogLevel
+    text: str
+
+class Logs(TypedDict):
+    """
+    The server's last log lines, oldest first.
+
+    Attributes:
+        started_unix_ms: When this server process began its log, in Unix milliseconds: a `seq` counts within it.
+    """
+    started_unix_ms: int
+    lines: List[LogLine]
 
 class SeriesNameWithIndex(TypedDict):
     series: SeriesName
@@ -5800,6 +5836,19 @@ class BitviewClient(BitviewClientBase):
 
         Endpoint: `GET /api/server/sync`"""
         return self.get_json('/api/server/sync')
+
+    def get_logs(self, started_unix_ms: Optional[int] = None, after: Optional[int] = None) -> Logs:
+        """Logs.
+
+        The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, pass the answer's `started_unix_ms` and its last line's `seq` as `after`: the lines since then, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted. Its answers are not cached.
+
+        Endpoint: `GET /api/server/logs`"""
+        params: List[Tuple[str, Any]] = []
+        if started_unix_ms is not None: params.append(('started_unix_ms', started_unix_ms))
+        if after is not None: params.append(('after', after))
+        query = urlencode(params)
+        path = f'/api/server/logs{"?" + query if query else ""}'
+        return self.get_json(path)
 
     def get_disk_usage(self) -> DiskUsage:
         """Disk usage.

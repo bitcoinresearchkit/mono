@@ -6,7 +6,7 @@
 
 # Interface: TxStatus
 
-Defined in: [modules/bitview-client/index.js:1400](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1400)
+Defined in: [modules/bitview-client/index.js:1424](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1424)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1400](https://github.com/bitcoinres
 
 > `optional` **blockHash?**: `string` \| `null`
 
-Defined in: [modules/bitview-client/index.js:1403](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1403)
+Defined in: [modules/bitview-client/index.js:1427](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1427)
 
 Block hash (only present if confirmed)
 
@@ -24,7 +24,7 @@ Block hash (only present if confirmed)
 
 > `optional` **blockHeight?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:1402](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1402)
+Defined in: [modules/bitview-client/index.js:1426](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1426)
 
 Block height (only present if confirmed)
 
@@ -34,7 +34,7 @@ Block height (only present if confirmed)
 
 > `optional` **blockTime?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:1404](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1404)
+Defined in: [modules/bitview-client/index.js:1428](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1428)
 
 Block timestamp (only present if confirmed)
 
@@ -44,4 +44,4 @@ Block timestamp (only present if confirmed)
 
 > **confirmed**: `boolean`
 
-Defined in: [modules/bitview-client/index.js:1401](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1401)
+Defined in: [modules/bitview-client/index.js:1425](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1425)

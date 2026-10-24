@@ -8,7 +8,7 @@
 
 > **Supply** = `object`
 
-Defined in: [modules/bitview-client/index.js:4475](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4475)
+Defined in: [modules/bitview-client/index.js:4499](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4499)
 
 ## Type Parameters
 
