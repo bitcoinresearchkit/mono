@@ -7,10 +7,12 @@ use serde_json::{Map, Number, Value, from_str};
 mod http_operation;
 mod operation;
 mod parameter;
+mod pattern;
 
 pub use http_operation::HttpOperation;
 pub use operation::Operation;
 pub use parameter::{Parameter, ParameterLocation};
+pub(crate) use pattern::Pattern;
 
 const MANIFEST_JSON: &str = include_str!("../generated/manifest.json");
 const MAX_SCHEMA_DEPTH: usize = 32;
@@ -67,6 +69,24 @@ impl Catalog {
 }
 
 impl Operation {
+    /// Whether a text body is a number (`Height`): its output schema, or the one it references,
+    /// is an integer or number.
+    pub fn text_is_number(&self) -> bool {
+        let Some(root) = self.tool.output_schema.as_deref() else {
+            return false;
+        };
+        let schema = root
+            .get("$ref")
+            .and_then(Value::as_str)
+            .and_then(|reference| reference.strip_prefix("#/$defs/"))
+            .and_then(|name| root.get("$defs")?.get(name)?.as_object())
+            .unwrap_or(root);
+        matches!(
+            schema.get("type").and_then(Value::as_str),
+            Some("integer" | "number")
+        )
+    }
+
     pub fn validate_arguments(&self, arguments: &Value) -> Result<(), String> {
         let root = self.tool.input_schema.as_ref();
         validate_schema(root, root, arguments, 0)
@@ -173,6 +193,11 @@ fn validate_string(schema: &Map<String, Value>, value: &str) -> Result<(), Strin
         && length > max
     {
         return Err(format!("string is longer than {max} characters"));
+    }
+    if let Some(pattern) = schema.get("pattern").and_then(Value::as_str)
+        && !Pattern::compile(pattern)?.matches(value)
+    {
+        return Err(format!("string does not match {pattern}"));
     }
     Ok(())
 }

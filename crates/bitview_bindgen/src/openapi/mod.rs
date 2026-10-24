@@ -64,23 +64,20 @@ pub(crate) fn parse_openapi_json(json: &str) -> io::Result<(Spec, TypeSchemas)> 
     Ok((Spec { info, paths }, schemas))
 }
 
-/// Drop `$ref` siblings other than `summary` and `description`, and keys set to null, which say
-/// nothing (as `"default": null`), and turn boolean schemas (`"schema": true`) into empty objects.
+/// Drop keys set to null, which say nothing (as `"default": null`), and turn boolean schemas
+/// (`"schema": true`) into empty objects. A `$ref`'s siblings stay: OpenAPI 3.1 applies them
+/// (`"default": "raw"` beside `UrpdAggregation`).
 fn clean(value: &mut Value) {
     match value {
         Value::Object(map) => {
-            if map.contains_key("$ref") {
-                map.retain(|k, _| k == "$ref" || k == "summary" || k == "description");
-            } else {
-                map.retain(|_, v| !v.is_null());
-                if let Some(schema) = map.get_mut("schema")
-                    && schema.is_boolean()
-                {
-                    *schema = Value::Object(Map::new());
-                }
-                for v in map.values_mut() {
-                    clean(v);
-                }
+            map.retain(|_, v| !v.is_null());
+            if let Some(schema) = map.get_mut("schema")
+                && schema.is_boolean()
+            {
+                *schema = Value::Object(Map::new());
+            }
+            for v in map.values_mut() {
+                clean(v);
             }
         }
         Value::Array(arr) => {
@@ -158,6 +155,15 @@ fn extract_endpoint(
     let json_response_schema = content
         .and_then(|content| content.get("application/json")?.get("schema"))
         .cloned();
+    // A text body's schema (`BlockHash`, `Height`), for the MCP output schemas of text tools.
+    let text_response_schema = content
+        .and_then(|content| {
+            content
+                .get("text/plain; charset=utf-8")
+                .or_else(|| content.get("text/plain"))?
+                .get("schema")
+        })
+        .cloned();
     let supports_csv = content.is_some_and(|content| content.contains_key("text/csv"));
     let request_body = extract_request_body(operation);
 
@@ -172,6 +178,7 @@ fn extract_endpoint(
         request_body,
         response_kind,
         json_response_schema,
+        text_response_schema,
         deprecated: flag(operation, "deprecated"),
         mcp_ignored: operation.get("x-mcp-ignore") == Some(&Value::Bool(true)),
         supports_csv,

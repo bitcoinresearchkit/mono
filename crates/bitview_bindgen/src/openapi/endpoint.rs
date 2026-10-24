@@ -19,6 +19,8 @@ pub struct Endpoint {
     pub(crate) response_kind: ResponseKind,
     /// Raw JSON schema for the application/json 200 response, when present.
     pub(crate) json_response_schema: Option<Value>,
+    /// Raw JSON schema for the text/plain 200 response, when present.
+    pub(crate) text_response_schema: Option<Value>,
     pub(crate) deprecated: bool,
     /// `x-mcp-ignore: true`: no MCP tool.
     pub(crate) mcp_ignored: bool,

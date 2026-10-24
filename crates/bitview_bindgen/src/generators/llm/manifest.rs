@@ -59,6 +59,7 @@ struct ManifestHttpOperation {
 #[derive(Serialize)]
 struct ManifestParameter {
     name: String,
+    argument: String,
     location: ParameterLocation,
 }
 
@@ -164,7 +165,17 @@ fn tool_description(endpoint: &Endpoint) -> Option<String> {
 
 fn build_output_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result<Option<Value>> {
     let Some(json_schema) = endpoint.json_response_schema.clone() else {
-        return Ok(None);
+        // A text body is the value of its schema's type: a string (`BlockHash`), or a number
+        // (`Height`) the bridge parses.
+        return endpoint
+            .text_response_schema
+            .clone()
+            .map(|schema| {
+                let mut schema = standalone_schema(schema, schemas)?;
+                strip_output_annotations(&mut schema);
+                Ok(schema)
+            })
+            .transpose();
     };
 
     // Series endpoints can return either JSON or CSV depending on `format`.
@@ -251,6 +262,7 @@ fn strip_output_annotations(schema: &mut Value) {
 fn manifest_parameter(parameter: &Parameter, location: ParameterLocation) -> ManifestParameter {
     ManifestParameter {
         name: parameter.name.clone(),
+        argument: parameter.arg.clone(),
         location,
     }
 }
@@ -272,9 +284,23 @@ fn build_input_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result<
                 .entry("description")
                 .or_insert_with(|| Value::String(description.clone()));
         }
-        properties.insert(parameter.name.clone(), schema);
+        // MCP clients refuse other names (Claude: `^[a-zA-Z0-9_.-]{1,64}$`), so `txId[]` is
+        // offered as `txids`.
+        let argument = &parameter.arg;
+        if argument.is_empty()
+            || argument.len() > 64
+            || !argument
+                .bytes()
+                .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'_' | b'.' | b'-'))
+        {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("MCP argument name `{argument}` is not [a-zA-Z0-9_.-]{{1,64}}"),
+            ));
+        }
+        properties.insert(argument.clone(), schema);
         if parameter.required {
-            required.push(Value::String(parameter.name.clone()));
+            required.push(Value::String(argument.clone()));
         }
     }
 
@@ -381,7 +407,55 @@ fn standalone_schema(mut root: Value, schemas: &TypeSchemas) -> io::Result<Value
             Value::Object(definitions.into_iter().collect()),
         );
     }
+    strip_custom_formats(&mut root);
     Ok(root)
+}
+
+/// The `format`s JSON Schema 2020-12 defines. Clients' validators warn on any other (`uint32`,
+/// `double`: schemars' Rust types), once per use; the type and bounds say what they mean.
+const JSON_SCHEMA_FORMATS: [&str; 19] = [
+    "date-time",
+    "date",
+    "time",
+    "duration",
+    "email",
+    "idn-email",
+    "hostname",
+    "idn-hostname",
+    "ipv4",
+    "ipv6",
+    "uri",
+    "uri-reference",
+    "iri",
+    "iri-reference",
+    "uuid",
+    "uri-template",
+    "json-pointer",
+    "relative-json-pointer",
+    "regex",
+];
+
+/// Drop every `format` JSON Schema doesn't define, leaving values (`default`, `examples`,
+/// `enum`, `const`) as they are.
+fn strip_custom_formats(schema: &mut Value) {
+    match schema {
+        Value::Object(object) => {
+            if object
+                .get("format")
+                .and_then(Value::as_str)
+                .is_some_and(|format| !JSON_SCHEMA_FORMATS.contains(&format))
+            {
+                object.remove("format");
+            }
+            for (key, value) in object.iter_mut() {
+                if !matches!(key.as_str(), "default" | "examples" | "enum" | "const") {
+                    strip_custom_formats(value);
+                }
+            }
+        }
+        Value::Array(values) => values.iter_mut().for_each(strip_custom_formats),
+        _ => {}
+    }
 }
 
 /// Point every component reference at its local `$defs` copy and queue the component to copy.

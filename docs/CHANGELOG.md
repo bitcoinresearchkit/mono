@@ -1249,6 +1249,14 @@ has to be deleted by hand.
   slot until a response's last byte is sent, and passes upstream JSON through as text content, so integers beyond
   64 bits stay exact
 - `bitview_mcp` exposes the UTXO set diff (`get_utxo_set_diff`); the full UTXO set endpoints stay out
+- `bitview_mcp` tool schemas keep what sits beside a reference (the URPD `agg` and `weight` defaults, the time-period
+  examples; bindgen dropped all but descriptions), and keep only the formats JSON Schema defines (`date`,
+  `date-time`; `uint32`, `double` and the like made clients' validators warn once per use). Arguments are checked
+  against their `pattern`s too (hashes, txids, dates, series names, hash prefixes), and argument names are
+  `[a-zA-Z0-9_.-]`: `get_transaction_times` takes `txids` (was `txId[]`, which Claude refused, dropping the tool),
+  still sent as `txId[]`. The eight text tools (block and tip hashes, tip height, txids, block header, transaction
+  hex, merkleblock proof) have output schemas, and their structured result is the value: a string, or a number for
+  the tip height
 - `bitview_mcp` logs tool calls only at debug level (a call whose upstream response had no CDN cache status logged a
   warning naming the tool), and its privacy page says so. Its pages carry a content ETag and revalidate after a second
   (were cached five minutes without one), and the logo's URL carries the release, so its year-long cache never

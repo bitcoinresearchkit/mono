@@ -27,7 +27,7 @@ use rmcp::{
         StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
     },
 };
-use serde_json::{Value, from_slice, json};
+use serde_json::{Number, Value, from_slice, from_str, json};
 use tokio::{
     sync::{OwnedSemaphorePermit, Semaphore},
     task::spawn_blocking,
@@ -188,6 +188,7 @@ impl ServerHandler for BitviewMcp {
             .validate_arguments(&arguments)
             .map_err(|error| McpError::invalid_params(error, None))?;
         let has_output_schema = operation.tool.output_schema.is_some();
+        let text_is_number = operation.text_is_number();
         let url = self
             .state
             .upstream
@@ -206,7 +207,7 @@ impl ServerHandler for BitviewMcp {
             match state.upstream.fetch(url) {
                 Ok(response) => {
                     log_cache_status(&name, &response);
-                    render(response, has_output_schema)
+                    render(response, has_output_schema, text_is_number)
                 }
                 Err(error) => tool_error(error),
             }
@@ -280,7 +281,11 @@ fn log_cache_status(tool: &str, response: &UpstreamResponse) {
     }
 }
 
-fn render(response: UpstreamResponse, has_output_schema: bool) -> CallToolResponse {
+fn render(
+    response: UpstreamResponse,
+    has_output_schema: bool,
+    text_is_number: bool,
+) -> CallToolResponse {
     if !(200..300).contains(&response.status) {
         let detail = String::from_utf8_lossy(
             &response.body[..response.body.len().min(MAX_UPSTREAM_ERROR_BYTES)],
@@ -323,7 +328,11 @@ fn render(response: UpstreamResponse, has_output_schema: bool) -> CallToolRespon
     if content_type.starts_with("text/") {
         return match String::from_utf8(response.body) {
             Ok(text) => {
-                let structured = has_output_schema.then(|| Value::String(text.clone()));
+                // The structured result is the text's value: a number (`Height`) or the string.
+                let structured = has_output_schema.then(|| match from_str::<Number>(text.trim()) {
+                    Ok(number) if text_is_number => Value::Number(number),
+                    _ => Value::String(text.clone()),
+                });
                 let mut result = CallToolResult::success(vec![ContentBlock::text(text)]);
                 result.structured_content = structured;
                 result.with_meta(meta).into()

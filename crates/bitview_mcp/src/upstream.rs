@@ -38,7 +38,7 @@ impl Upstream {
         let mut query = String::new();
 
         for parameter in &operation.http.parameters {
-            let Some(value) = arguments.get(parameter.name.as_str()) else {
+            let Some(value) = arguments.get(parameter.argument.as_str()) else {
                 continue;
             };
             if value.is_null() {
@@ -51,7 +51,7 @@ impl Upstream {
                     let [value] = values.as_slice() else {
                         return Err(format!(
                             "path parameter {} must contain one scalar value",
-                            parameter.name
+                            parameter.argument
                         ));
                     };
                     path = path.replace(
