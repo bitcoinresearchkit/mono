@@ -4292,7 +4292,7 @@
       // Data -------------------------------------------------------------------
 
       const clientReady = import("../modules/bitview-client/index.js").then(
-        ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000 }),
+        ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN }),
       );
 
       /** @param {number} start @param {number} end @param {boolean} cache @returns {Promise<Block[]>} */

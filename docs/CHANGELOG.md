@@ -685,6 +685,9 @@ has to be deleted by hand.
 - Gone as well: `supply_state` (`supply.state`, the UTXO count and value per height; `utxo_count` and
   `circulating_supply` serve them), the cohorts' half supplies (`*_supply_half`, a chart helper) and negated losses
   (`*_realized_loss_neg*`, `*_unrealized_loss_neg`)
+- Every response carries its CORS headers, a panic's 500 included (it had none, so browsers saw a CORS failure), and
+  browsers may reuse a preflight for a day (`Access-Control-Max-Age: 86400`; was the browser default of seconds). A
+  successful `POST /api/tx` is `no-store` like its errors (had no `Cache-Control`)
 - Concurrent live price requests share one rebuild of the oracle's window: while it runs, the others answer 503
   `state_updating` (each request rebuilt it)
 - Error messages: an invalid address reads "Invalid address", an address without confirmed transactions "Address has
@@ -696,6 +699,9 @@ has to be deleted by hand.
 
 #### `bitview-client` (JS), `bitview_client` (Python and Rust)
 
+- The JavaScript client's default timeout is 30 s like Python's and Rust's (was 5 s, which also cut downloads such
+  as the 9.3 MB projected block short on slow connections, since the server's 5 s limit only covers producing a
+  response)
 - The JavaScript client's responses have camelCase field names as real keys, renamed once after parsing (were hidden
   getters beside the snake_case keys, lost on spread, `structuredClone` and `JSON.stringify`, and three times the
   JSON parse on the 9.3 MB projected block: 18.4 ms, now 4.2 ms). Map keys are data and stay as sent with

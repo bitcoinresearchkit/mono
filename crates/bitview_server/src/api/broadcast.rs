@@ -2,11 +2,15 @@
 
 use crate::request_state::RequestState;
 use aide::OperationInput;
-use axum::{extract::FromRequestParts, http::request::Parts};
+use axum::{
+    extract::FromRequestParts,
+    http::request::Parts,
+    response::{IntoResponse, Response},
+};
 use bitcoin::Weight as BitcoinWeight;
 use tokio::sync::OwnedSemaphorePermit;
 
-use crate::{AppState, Error, error::Result, params::Empty};
+use crate::{AppState, Error, error::Result, extended::HeaderMapExtended, params::Empty};
 
 // Serialized transaction bytes cannot exceed the block weight, and hex doubles them. The bound
 // includes surrounding whitespace, which is trimmed before validation.
@@ -52,13 +56,14 @@ pub async fn serve(
     _: Empty,
     RequestState(state): RequestState,
     body: String,
-) -> Result<String> {
+) -> Result<Response> {
     let hex = validate_hex(&body)?;
-    let result = state
-        .node
-        .send_raw_transaction(hex)
-        .await
-        .map(|txid| txid.to_string());
+    let result = state.node.send_raw_transaction(hex).await;
     drop(permit.0);
-    result.map_err(Error::from)
+    // A submission's answer is never reused, like its errors.
+    let mut response = result.map_err(Error::from)?.to_string().into_response();
+    let headers = response.headers_mut();
+    headers.insert_cache_control("no-store");
+    headers.insert_cdn_cache_control("no-store");
+    Ok(response)
 }

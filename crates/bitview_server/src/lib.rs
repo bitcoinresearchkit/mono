@@ -83,6 +83,9 @@ pub(crate) const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// Per-request timeout. Hits return 504 Gateway Timeout.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);
 
+/// How long browsers may reuse a CORS preflight.
+const PREFLIGHT_MAX_AGE: Duration = Duration::from_secs(24 * 60 * 60);
+
 /// Avoid spending compression work on responses too small to benefit materially.
 const MIN_COMPRESSED_RESPONSE_BYTES: u64 = 1024;
 
@@ -207,7 +210,6 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
         .layer(from_fn(json_error::respond))
         .layer(compression_layer())
         .layer(from_fn(unacceptable_encoding::reject))
-        .layer(CorsLayer::permissive())
         .layer(CatchPanicLayer::custom(|panic: Box<dyn Any + Send>| {
             let msg = panic
                 .downcast_ref::<String>()
@@ -216,6 +218,8 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
                 .unwrap_or("Unknown panic");
             Error::internal(msg).into_response()
         }))
+        // Outside the panic catcher, so its 500 reaches browsers too; preflights hold a day.
+        .layer(CorsLayer::permissive().max_age(PREFLIGHT_MAX_AGE))
         .layer(from_fn(response_time::respond));
 
     let (router, openapi) = finish_openapi(router);

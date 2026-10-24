@@ -1665,7 +1665,7 @@ const _ADDRESS_PAYLOAD_LENGTHS = new Map([
 /**
  * @typedef {Object} BitviewClientOptions
  * @property {string} baseUrl
- * @property {number} [timeout] - Request timeout in milliseconds
+ * @property {number} [timeout] - Request timeout in milliseconds, the download included. Default: 30000
  * @property {string|boolean} [browserCache] - Enable browser Cache API with default name (true), custom name (string), or disable (false). No effect in Node.js. Default: true
  * @property {number|boolean} [memCache] - LRU capacity of the in-memory parsed-response cache, which lets 304 responses skip the JSON parse: true/undefined → 1000, false/0 → disabled
  */
@@ -2057,7 +2057,7 @@ class BitviewClientBase {
     const url = _parseBaseUrl(this.baseUrl);
     this.url = url.href.endsWith('/') ? url.href.slice(0, -1) : url.href;
     this.domain = url.hostname;
-    this.timeout = isString ? 5000 : (options.timeout ?? 5000);
+    this.timeout = isString ? 30_000 : (options.timeout ?? 30_000);
     /** @type {Promise<Cache | null>} */
     this._browserCachePromise = _openBrowserCache(isString ? undefined : options.browserCache);
     /** @type {Cache | null} */

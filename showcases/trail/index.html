@@ -641,7 +641,7 @@
         // The server that serves the page.
         const ORIGIN = location.origin;
         const clientReady = import("../modules/bitview-client/index.js").then(
-          ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN, timeout: 30_000, browserCache: false, memCache: false }),
+          ({ BitviewClient }) => new BitviewClient({ baseUrl: ORIGIN, browserCache: false, memCache: false }),
         );
         const PRICE_TRAIL_LIFT = 6;
         const PRICE_TRAIL_CORNER_RADIUS = 6;
