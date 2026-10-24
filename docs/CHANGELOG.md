@@ -695,7 +695,8 @@ has to be deleted by hand.
 - Series descriptions: NUPL equals 1 - 1/MVRV with no lower bound (said bounded), the rolling block-fullness series
   say what fullness is, OP_RETURN byte counts include push opcodes and push-length prefixes, coinbase inputs'
   `output_type` is `unknown_script` (said `unknown`), Bedrock's floors and their percentiles are on creation prices
-  rounded to four significant digits of cents, and SOPR and aSOPR state their ratio in US dollars
+  rounded to four significant digits of cents, SOPR and aSOPR state their ratio in US dollars, and every MVRV's
+  description stands alone (said "spot divided by the price, the same series as the ratio")
 - Every response carries its CORS headers, a panic's 500 included (it had none, so browsers saw a CORS failure), and
   browsers may reuse a preflight for a day (`Access-Control-Max-Age: 86400`; was the browser default of seconds). A
   successful `POST /api/tx` is `no-store` like its errors (had no `Cache-Control`)
