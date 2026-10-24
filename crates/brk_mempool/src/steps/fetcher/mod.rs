@@ -1,19 +1,17 @@
 pub mod fetched;
 
+use crate::State;
 use brk_error::Result;
 use brk_rpc::Client;
 use brk_types::{MempoolEntryInfo, Timestamp, Txid, VSize};
 pub use fetched::Fetched;
 use rustc_hash::FxHashSet;
-use tracing::warn;
-
-use crate::State;
 
 /// Bounds the non-template transactions fetched per cycle (the RPC client
 /// separately chunks its batches). New template transactions are not subject
 /// to this cap: they're bounded by the block weight limit Core enforces on its
 /// own template.
-const MAX_TX_FETCHES_PER_CYCLE: usize = 10_000;
+pub(crate) const MAX_TX_FETCHES_PER_CYCLE: usize = 10_000;
 
 /// Scales with churn rather than mempool size: `getblocktemplate` +
 /// `getrawmempool false` + `getmempoolinfo` in one mixed batch, then
@@ -54,12 +52,7 @@ pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
         .take(MAX_TX_FETCHES_PER_CYCLE)
         .copied()
         .collect();
-    if new_txids.len() == MAX_TX_FETCHES_PER_CYCLE {
-        warn!(
-            cap = MAX_TX_FETCHES_PER_CYCLE,
-            "mempool new-tx fetch hit the per-cycle cap"
-        );
-    }
+    let capped = new_txids.len() == MAX_TX_FETCHES_PER_CYCLE;
 
     let (mut new_entries, mut new_txs) = client.fetch_new_pool_data(&template_txids, &new_txids)?;
     let fetched: FxHashSet<Txid> = new_entries
@@ -122,5 +115,6 @@ pub fn fetch(client: &Client, mempool: &State) -> Result<Fetched> {
         new_txs,
         block_template_txids,
         template_only,
+        capped,
     })
 }

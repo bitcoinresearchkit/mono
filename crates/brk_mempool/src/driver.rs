@@ -10,11 +10,15 @@ use std::{
 use brk_error::{Error, Result};
 use brk_types::{BlockHash, TxOut, Txid, Vout};
 use rustc_hash::FxHashMap;
-use tracing::error;
+use tracing::{error, info, warn};
 
 use crate::{
     Mempool, State,
-    steps::{Fetched, applier, fetcher, preparer, prevouts},
+    steps::{
+        Fetched, applier,
+        fetcher::{self, MAX_TX_FETCHES_PER_CYCLE},
+        preparer, prevouts,
+    },
 };
 
 const PERIOD: Duration = Duration::from_millis(1000);
@@ -31,8 +35,10 @@ impl Mempool {
         F: Fn(&[(Txid, Vout)]) -> FxHashMap<(Txid, Vout), TxOut> + Send,
     {
         let gate = || Some(published_tip());
+        let loading = Instant::now();
         loop {
             let started = Instant::now();
+            let loaded = self.read_only.load().tip().is_some();
             let outcome = catch_unwind(AssertUnwindSafe(|| {
                 match self.tick_with(&resolver, gate) {
                     // A block arrived mid-fetch: the next cycle observes the new tip.
@@ -44,6 +50,13 @@ impl Mempool {
                 error!(
                     "mempool update panicked; restoring completed state: {}",
                     Self::panic_msg(&payload)
+                );
+            }
+            if !loaded && let Some(pool) = &self.read_only.load().pool {
+                info!(
+                    "Loaded mempool ({} transactions) in {:?}",
+                    pool.info.count,
+                    loading.elapsed()
                 );
             }
             while let Some(rest) = PERIOD.checked_sub(started.elapsed()) {
@@ -100,7 +113,16 @@ impl Mempool {
             new_txs,
             block_template_txids,
             template_only,
+            capped,
         } = fetcher::fetch(&self.client, &self.state)?;
+        // The first load fills the cap every cycle until the pool publishes; after it, a full
+        // cycle means a flood of new transactions.
+        if capped && self.read_only.load().tip().is_some() {
+            warn!(
+                cap = MAX_TX_FETCHES_PER_CYCLE,
+                "mempool new-tx fetch hit the per-cycle cap"
+            );
+        }
         if rpc.tip_hash != tip_before {
             return Err(Error::StateUpdating);
         }

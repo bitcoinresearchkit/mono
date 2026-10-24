@@ -1287,6 +1287,9 @@ has to be deleted by hand.
   still sent as `txId[]`. The eight text tools (block and tip hashes, tip height, txids, block header, transaction
   hex, merkleblock proof) have output schemas, and their structured result is the value: a string, or a number for
   the tip height
+- The mempool logs once when its first load completes (`Loaded mempool (48113 transactions) in 15.2s`); the
+  per-cycle fetch cap warns only after it, when more than 10,000 new transactions arrive at once (it warned on every
+  cycle of a normal startup)
 - `bitview_mcp` logs tool calls only at debug level (a call whose upstream response had no CDN cache status logged a
   warning naming the tool), and its privacy page says so. Its pages carry a content ETag and revalidate after a second
   (were cached five minutes without one), and the logo's URL carries the release, so its year-long cache never

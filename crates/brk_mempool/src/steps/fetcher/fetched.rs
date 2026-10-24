@@ -22,4 +22,6 @@ pub struct Fetched {
     /// useful for projection, not for address balances/pages; such stale
     /// transactions never take an outpoint from a listed spender.
     pub template_only: FxHashSet<Txid>,
+    /// The new txids filled the per-cycle cap: more are left for the next cycles.
+    pub capped: bool,
 }
