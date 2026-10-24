@@ -2734,6 +2734,50 @@
         margin: auto;
       }
 
+      /* A stack of many's bands named after its latest point, each at its middle there (see placeGutters). */
+      .gutter {
+        position: absolute;
+        inset: 0 auto 0 0;
+        z-index: 2;
+        /* (Its room's (GUTTER), 8px either side.) */
+        width: 192px;
+        pointer-events: none;
+
+        /* (Its names along its dots, its figures in a column at its right.) */
+        .gutter-label {
+          position: absolute;
+          right: 0;
+          left: 0;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          max-width: 100%;
+          color: var(--text);
+          font: 510 11px/13px var(--sans);
+          white-space: nowrap;
+          transform: translateY(-50%);
+        }
+
+        i {
+          flex-shrink: 0;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--c);
+        }
+
+        .name {
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .value {
+          margin-left: auto;
+          color: var(--muted);
+          font-variant-numeric: tabular-nums;
+        }
+      }
+
       .legend {
         position: absolute;
         top: 4px;
@@ -12755,16 +12799,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * screen: a bar at its own time (as the time axis labels it), a moment between two bars as far between them (a
        * date both intervals have, at the same place: its label doesn't move).
        */
-      function viewOn(left, index, times) {
+      function viewOn(left, index, times, gap = rightGap()) {
         // (Left at the latest (its right edge on the last bar, or past it): at the latest again, bars come since or not,
         // as wide, as far past it. At its interval, by its bars from the last (its times may be before the chunks loaded
         // now); at another, placed by the calendar: up to the last.)
         if (left.latest && left.index === index) return { from: times.length - 1 + left.latest[0], to: times.length - 1 + left.latest[1] };
-        const view = viewAsLeft(left, index, times), shift = left.latest ? Math.max(0, times.length - 1 - view.to) : 0;
+        const view = viewAsLeft(left, index, times, gap), shift = left.latest ? Math.max(0, times.length - 1 - view.to) : 0;
         return shift > 0 ? { from: view.from + shift, to: view.to + shift } : view;
       }
-      /** A kept view as it was left, on the points at `index` (see viewOn). */
-      function viewAsLeft(left, index, times) {
+      /** A kept view as it was left, on the points at `index` (see viewOn), `gap` its room after the latest point. */
+      function viewAsLeft(left, index, times, gap = rightGap()) {
         if (left.index === index) return { from: logicalOf(left.from, times, index), to: logicalOf(left.to, times, index) };
         const { start, end } = viewTimes(left), last = /** @type {number} */ (times.at(-1)), lastIndex = indexAt(index, last);
         // A moment's place: on the data, between the point at or before it and the next; past it, counted by the calendar
@@ -12784,7 +12828,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // here (two days, at a week): thirty, ending where it did.
         // (Over as many bars as the chart shows at most; no chart to measure, none past the data.)
         const plot = view.timeScale().width(), bars = Math.min(mostBars(), Math.max(1, placeOf(end) - placeOf(start)));
-        const room = plot > rightGap() ? Math.max(0, (rightGap() * (bars + 1)) / (plot - rightGap()) - 0.5) : 0;
+        const room = plot > gap ? Math.max(0, (gap * (bars + 1)) / (plot - gap) - 0.5) : 0;
         const to = Math.min(placeOf(end), times.length - 1 + room), from = Math.min(placeOf(start), to - 30);
         return { from, to };
       }
@@ -14030,9 +14074,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /**
        * The room after the data's last value, in pixels, at any zoom (its line's end clear of the scale, as TradingView):
-       * a share of the chart's width, a phone's narrower, a large screen's no wider than 48.
+       * a share of the chart's width, a phone's narrower, a large screen's no wider than 48; a wide one's, with a stack of
+       * many, its gutter's (see placeGutters).
        */
-      const rightGap = (width = view.timeScale().width()) => Math.round(clamp(width * 0.06, 16, 48));
+      const rightGap = (width = view.timeScale().width()) => (guttered(width) ? GUTTER : plainGap(width));
+      /** The room after the latest point, any chart's (a preview's too, the open one's aside): see rightGap. */
+      const plainGap = (width = view.timeScale().width()) => Math.round(clamp(width * 0.06, 16, 48));
+      /** A stack of many's gutter: its width after the latest point, from how wide a plot it's made in. */
+      const GUTTER = 208, GUTTER_FROM = 720;
+      /** Whether the open chart names its stack of many's bands after its latest point: a wide plot, a keyed pane, its legends on. */
+      const guttered = (/** @type {number} */ width) => width >= GUTTER_FROM && chart?.legend !== "off" && Boolean(chart?.panes.some(keyedPane));
       /**
        * The least of the view its data keeps (a share of its width, all of the data when it holds less): a pan, a fling,
        * a zoom stops there, held by the chart itself as it moves (patch 13 of lightweight-charts), never a frame past it.
@@ -15162,6 +15213,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (holding && legends().length === chart.panes.length) updateLegends();
         else placeLegends();
         updateValues();
+        setGap();
       }
 
       /**
@@ -15427,6 +15479,82 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** From how many layers a stacked pane's legend is its key, not each of them: too many to read across its room. */
       const BANDS_FROM = 12;
+      /**
+       * The room after the latest point as the open chart has it now (a stack of many's gutter, or not: see rightGap), the
+       * view kept where it is (the library would scroll to it), and its gutters with it. As it's laid out, not as it moves.
+       */
+      function setGap() {
+        const width = view.timeScale().width(), gap = rightGap(width);
+        if (width && gap !== view.timeScale().options().rightOffsetPixels) {
+          const range = view.timeScale().getVisibleLogicalRange();
+          view.applyOptions({ timeScale: { rightOffsetPixels: gap } });
+          if (range) view.timeScale().setVisibleLogicalRange(range);
+        }
+        placeGutters();
+      }
+      /** Each gutter resized (its pane's height by its grip): its labels placed again. */
+      const gutterFit = new ResizeObserver(() => placeGutters());
+      /**
+       * Each gutter's bands' scales as its labels were placed on them (the prices at two heights of their pane, each band's
+       * own: a stack on both sides has two): a paint finding one moved (its axis dragged, reset, glided) places them again,
+       * a frame on. @type {Map<string, string>}
+       */
+      const gutterScales = new Map();
+      const scaleKey = (/** @type {any} */ series) => `${series.coordinateToPrice(0)}:${series.coordinateToPrice(100)}`;
+      let gutterFrame = 0;
+      /** Called each paint, from a band's drawings: its gutter placed again if its scale's moved. */
+      function gutterScaled(/** @type {string} */ id, /** @type {any} */ series) {
+        const placed = gutterScales.get(id);
+        if (placed === undefined || gutterFrame || scaleKey(series) === placed) return;
+        gutterFrame = requestAnimationFrame(() => ((gutterFrame = 0), placeGutters()));
+      }
+      /**
+       * A stack of many's gutter (on a wide plot, its room after the latest point: see rightGap), one in each keyed pane's
+       * plot, none elsewhere: each band tall enough there named, with its share (a 100% stack's) or its value, at its
+       * middle, foot to top, none over another; thin ones the key's and the readout's. It follows the latest point as the
+       * view moves, gone once that's out of view (its room the data's then).
+       */
+      function placeGutters() {
+        const width = view.timeScale().width(), on = Boolean(chart && resolved && drawnChart === chart.id && guttered(width));
+        const panes = view.panes(), wanted = new Set(), last = (resolved?.times.length ?? 0) - 1, x = last < 0 ? null : view.timeScale().logicalToCoordinate(last);
+        gutterScales.clear();
+        chart?.panes.forEach((pane, i) => {
+          const plot = on && keyedPane(pane) ? panes[i]?.getHTMLElement()?.children[1]?.firstElementChild : null;
+          if (!plot) return;
+          let gutter = /** @type {HTMLElement | null} */ (plot.querySelector(`:scope > .gutter[data-pane="${pane.id}"]`));
+          if (!gutter) {
+            gutter = Object.assign(document.createElement("div"), { className: "gutter" });
+            Object.assign(gutter.dataset, { pane: pane.id });
+            gutter.setAttribute("aria-hidden", "true");
+            plot.append(gutter);
+            gutterFit.observe(gutter);
+          }
+          wanted.add(gutter);
+          const shown = Boolean(resolved && x !== null && x >= 0 && x + GUTTER <= width + 8);
+          gutter.hidden = !shown;
+          if (!shown || !resolved || x === null) return;
+          gutter.style.transform = `translateX(${Math.round(x + 8)}px)`;
+          const stacked = stackOf(chart, resolved);
+          let html = "", free = -Infinity;
+          for (const layer of bandsOf(pane)) {
+            const made = stacked.get(layer.id), series = drawn.get(layer.id);
+            if (!made || !series) continue;
+            gutterScales.set(layer.id, scaleKey(series));
+            let at = last;
+            while (at > 0 && !Number.isFinite(made.values[at])) at--;
+            const top = made.values[at], foot = made.under[at] * (made.scale?.[at] ?? 1), high = series.priceToCoordinate(top), low = series.priceToCoordinate(foot);
+            if (high === null || low === null || Math.abs(low - high) < 13) continue;
+            // (Foot to top, so up the pane: each clear of the one under it.)
+            const y = Math.round((high + low) / 2);
+            if (free !== -Infinity && y > free) continue;
+            free = y - 13;
+            const value = pane.stack === "percent" ? format(top - foot, "percent") : format(top - foot, unitFor(layer, resolved.results.get(layer.id)));
+            html += `<span class="gutter-label" style="top: ${y}px; --c: ${escape(ink(colorNow(layer) ?? layer.color))}"><i></i><span class="name">${escape(labelOf(layer))}</span><span class="value">${escape(value)}</span></span>`;
+          }
+          if (gutter.innerHTML !== html) gutter.innerHTML = html;
+        });
+        for (const gutter of /** @type {HTMLElement[]} */ (all$("#chart .gutter"))) if (!wanted.has(gutter)) (gutterFit.unobserve(gutter), gutter.remove());
+      }
       /** A stacked pane's layers, foot to top, as it stacks them (see stackOf: the panel's order, reversed if it's reversed). */
       function bandsOf(/** @type {Pane} */ pane) {
         const layers = chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden && !layer.from && layer.type !== "signal");
@@ -15534,6 +15662,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Mid-drag, a color or a width changed, not what it holds: no need to measure it again.)
           if (!holding) fitSoon(element);
         }
+        // (Its bands named after the latest point too: renamed, recolored, as the legend is.)
+        placeGutters();
         lightLegend(litLayer, true);
         updateValues();
       }
@@ -16679,7 +16809,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           context.fillText(date.text, date.x, foot);
         }
       }
-      view.timeScale().subscribeSizeChange(() => (holdView(), relayout(), labelMarks()));
+      view.timeScale().subscribeSizeChange(() => (holdView(), relayout(), labelMarks(), placeGutters()));
       /**
        * The view as left, by the chart's box (see boxView) and as the plot had it: what each resize of the box keeps (see
        * holdView), however many come and go (it isn't the view a resize made); and the view a resize made last (by the
@@ -16758,6 +16888,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         fitCandles();
         fitDots();
         labelMarks();
+        placeGutters();
         valuesSoon();
         // (Mid-resize, a preset showing still is: the new width's layout puts it back, see relayout.)
         const shown = view.timeScale().width() !== laidWidth ? presetShown : showsPreset();
@@ -17844,6 +17975,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         updateAllViews() {
           this.priceTags = this.timeTags = null;
+          if (this.series) gutterScaled(this.layer, this.series);
           const line = timeLine(), series = this.series;
           // (Once a pane, the lowest pane's with their words: over its frontmost fill, a cloud's, an area's, bars, candles,
           // so none hides them; under the lines in front of it. No fill: under every series.)
@@ -19837,7 +19969,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const drawn = { seps: [], marks: [] };
         if (n < 2) return drawn;
         const left = leftView(doc.id);
-        const shown = left ? within(viewOn(left, doc.index, times), "to") : presetWindow(doc, data, most, 0, 0);
+        // (Another chart's: the room any chart has after its latest point, not the open one's gutter.)
+        const shown = left ? within(viewOn(left, doc.index, times, plainGap()), "to") : presetWindow(doc, data, most, 0, 0);
         const span = shown.to - shown.from;
         if (!(span >= 1)) return drawn;
         // No more points than bars in view: each one then holds a bar at least, so only missing data breaks a line.
@@ -31339,8 +31472,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             capturing = false;
             repaintDrawings();
           }
-          // (A tab drawing no frames: its legends still to place, the chart's, not the one before.)
+          // (A tab drawing no frames: its legends still to place, the chart's, not the one before; its gutters at its size.)
           layOutLegends();
+          placeGutters();
           scale = shot.width / width;
           // (The legends read at rest, the view's last point, as the foot dates them: not wherever the crosshair was.)
           const hovered = hoverTime;
@@ -31366,6 +31500,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           [wrapper.style.width, wrapper.style.height] = wrapped;
           sizePanes();
           if (sized && resolved && drawnChart === chart.id) fitSpacing(chart, resolved.times.length);
+          // (The room after the latest point the screen's again (a picture's, at its own width, may have had a gutter's).)
+          if (sized) view.applyOptions({ timeScale: { rightOffsetPixels: rightGap() } });
           if (sized && logical) view.timeScale().setVisibleLogicalRange(logical);
           marginsSet = "";
           fitMargins();
@@ -31501,6 +31637,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const style = getComputedStyle(element), inset = parseFloat(style.paddingLeft) * scale, at = box(element);
               pieces.push({ ...at, x: at.x + inset, width: at.width - inset, faded, text: element.textContent.trim(), font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ (["right", "end"].includes(style.textAlign) ? "right" : "left") });
             }
+          }
+        }
+        // (A stack of many's bands named after its latest point: each dot, name and figure, as drawn.)
+        for (const label of /** @type {HTMLElement[]} */ (all$("#chart .gutter:not([hidden]) .gutter-label"))) {
+          const dot = label.querySelector("i");
+          if (dot) pieces.push({ ...box(dot), svg: `<svg viewBox="0 0 6 6" width="6" height="6"><circle cx="3" cy="3" r="3" fill="${getComputedStyle(dot).backgroundColor}"/></svg>` });
+          for (const element of /** @type {HTMLElement[]} */ ([...label.querySelectorAll(".name, .value")])) {
+            const style = getComputedStyle(element);
+            pieces.push({ ...box(element), text: element.textContent?.trim() ?? "", font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ ("left") });
           }
         }
         for (const [button, className] of states) {
