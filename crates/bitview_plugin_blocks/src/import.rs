@@ -1,6 +1,7 @@
 use bitview_plugin::ImportContext;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
+use bitview_vecs::PerBlockCumulativeRolling;
 use brk_error::Result;
 
 use super::{BlockRolling, DifficultyVecs, Fullness, HalvingVecs, IntervalVecs, STORAGE, Vecs, count};
@@ -43,6 +44,13 @@ impl Vecs {
                 &window_starts,
             )?,
             weight,
+            sigop_cost: PerBlockCumulativeRolling::import(
+                &db,
+                "block_sigop_cost",
+                version,
+                mappings,
+                &window_starts,
+            )?,
             fullness,
             difficulty: DifficultyVecs::new(version, indexer, mappings),
             halving: HalvingVecs::new(version, mappings),

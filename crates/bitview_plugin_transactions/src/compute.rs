@@ -1,6 +1,5 @@
 use bitview_plugin::{ComputePlugin, UpdateContext, compute_items};
 use brk_error::Result;
-use brk_types::SigOps;
 use rayon::join;
 
 use super::{Vecs, policy};
@@ -27,7 +26,6 @@ impl ComputePlugin for Vecs {
             inscription,
             patterns,
             nonstandard,
-            sigop_cost,
             versions,
             transfer_volume,
             ..
@@ -39,7 +37,7 @@ impl ComputePlugin for Vecs {
         let (independent, fee_based) = join(
             // Stages reading only indexer and mappings columns.
             || {
-                let ((count, features), ((versions, sigops), patterns)) = join(
+                let ((count, features), (versions, patterns)) = join(
                     || {
                         join(
                             || count.compute(start, &mappings.lookback.window_starts(), exit),
@@ -48,26 +46,12 @@ impl ComputePlugin for Vecs {
                     },
                     || {
                         join(
-                            || {
-                                join(
-                                    || versions.compute(indexer, exit),
-                                    || {
-                                        sigop_cost.compute_cumulative_sum_from_indexes(
-                                            start,
-                                            &indexer.vecs().transactions.first_tx_index,
-                                            &mappings.height.tx_index_count,
-                                            &*indexer.vecs().transactions.total_sigop_cost,
-                                            SigOps::from,
-                                            exit,
-                                        )
-                                    },
-                                )
-                            },
+                            || versions.compute(indexer, exit),
                             || patterns.compute(indexer, mappings, exit),
                         )
                     },
                 );
-                count.and(features).and(versions).and(sigops).and(patterns)
+                count.and(features).and(versions).and(patterns)
             },
             // The fee pass (with the vsize distribution), then the stages reading its fees.
             || {

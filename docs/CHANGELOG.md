@@ -282,8 +282,8 @@ has to be deleted by hand.
 - These per-transaction series take the `tx_` stem: `tx_size` at `indexer.transactions.size` (was `total_size`, the same
   id as the block size), `tx_sigop_cost` at `.sigop_cost` (was `total_sigop_cost`), `tx_locktime` at `.locktime` (was
   `raw_locktime`), `tx_version` at `.version` (was `.tx_version`) and `tx_fee` (was `fee`). The block sum of sigop cost
-  is `transactions.sigop_cost.{block, cumulative, sum}`, ids `block_sigop_cost`, `block_sigop_cost_cumulative`,
-  `block_sigop_cost_sum_<W>` (were `transactions.sigops.total`, `total_sigop_cost*`)
+  is `blocks.sigop_cost.{block, cumulative, sum}`, beside block size and weight, ids `block_sigop_cost`,
+  `block_sigop_cost_cumulative`, `block_sigop_cost_sum_<W>` (were `transactions.sigops.total`, `total_sigop_cost*`)
 - Per-transaction values sit beside their per-block statistics: `transactions.vsize.{tx, min, max, p10, p25,
   median, p75, p90}` (were `transactions.size.vsize.{tx_index, block.median, ...}`), ids `tx_vsize` and
   `tx_vsize_median`, ...; likewise `transactions.fees.fee` (`tx_fee_median`, was `fee_median`) and

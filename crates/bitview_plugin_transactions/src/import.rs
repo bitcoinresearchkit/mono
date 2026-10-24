@@ -2,8 +2,7 @@ use bitview_plugin::ImportContext;
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
 use bitview_vecs::{
-    LazyPerSecondWindows, LazyWindowStartVec, PerBlockCumulativeRolling,
-    PerBlockFullFromCumulative, ValuePerBlockCumulativeRolling, shapes::Windows,
+    LazyPerSecondWindows, LazyWindowStartVec, PerBlockFullFromCumulative, ValuePerBlockCumulativeRolling, shapes::Windows,
 };
 use brk_error::Result;
 use brk_types::Version;
@@ -53,13 +52,6 @@ impl Vecs {
             window_starts,
             all_txs,
         )?;
-        let sigop_cost = PerBlockCumulativeRolling::import(
-            &db,
-            "block_sigop_cost",
-            version,
-            mappings,
-            window_starts,
-        )?;
         let versions = versions::Vecs::import(&db, version, mappings, window_starts, all_txs)?;
         let transfer_volume = ValuePerBlockCumulativeRolling::import(
             &db,
@@ -80,7 +72,6 @@ impl Vecs {
             inscription,
             patterns,
             nonstandard,
-            sigop_cost,
             versions,
             transfer_volume,
             per_second,

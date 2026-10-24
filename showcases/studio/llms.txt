@@ -139,8 +139,8 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Rewards (12): https://bitview.space/studio/presets/mining/rewards/
   - Pools (950): https://bitview.space/studio/presets/mining/pools/
 - Network (526): https://bitview.space/studio/presets/network/
-  - Blocks (9): https://bitview.space/studio/presets/network/blocks/
-  - Transactions (90): https://bitview.space/studio/presets/network/transactions/
+  - Blocks (11): https://bitview.space/studio/presets/network/blocks/
+  - Transactions (88): https://bitview.space/studio/presets/network/transactions/
   - Inputs (47): https://bitview.space/studio/presets/network/inputs/
   - Outputs (49): https://bitview.space/studio/presets/network/outputs/
   - OP_RETURN (331): https://bitview.space/studio/presets/network/op-return/

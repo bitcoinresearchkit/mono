@@ -16,8 +16,8 @@ pub use has::HasBlocks;
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::{Bytes32, Count};
 use bitview_traversable::Traversable;
-use bitview_vecs::LazyCumulativeRolling;
-use brk_types::{Version, Weight32};
+use bitview_vecs::{LazyCumulativeRolling, PerBlockCumulativeRolling};
+use brk_types::{SigOps, Version, Weight32};
 use vecdb::{Database, Rw, StorageMode};
 
 use block_rolling::BlockRolling;
@@ -45,6 +45,13 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// BIP-141 block weight in weight units: non-witness bytes count as four
     /// weight units and witness bytes count as one.
     weight: BlockRolling<Weight32, M>,
+    /// Block total of BIP-141 signature-operation cost, including coinbase:
+    /// legacy scriptPubKey, scriptSig, and P2SH redeem-script sigops cost four
+    /// units; P2WPKH and P2WSH sigops cost one. This is a static count, not the
+    /// number of signatures executed. Tapscript sigops are excluded because
+    /// BIP-342 uses a separate per-input budget. The post-SegWit block limit is
+    /// 80,000 cost units.
+    sigop_cost: PerBlockCumulativeRolling<SigOps, M>,
     fullness: Fullness,
     pub difficulty: DifficultyVecs,
     halving: HalvingVecs,

@@ -4727,6 +4727,31 @@ const _Features = _s({
 });
 
 /**
+ * @typedef {{
+ *   block: SeriesPattern18<?Percent>,
+ *   avg: Windows<?Percent>,
+ *   min: Windows<?Percent>,
+ *   max: Windows<?Percent>,
+ *   p10: Windows<?Percent>,
+ *   p25: Windows<?Percent>,
+ *   median: Windows<?Percent>,
+ *   p75: Windows<?Percent>,
+ *   p90: Windows<?Percent>,
+ * }} Fullness
+ */
+const _Fullness = _s({
+  block: [_i18, '*'],
+  avg: [_Windows, '*_avg'],
+  min: [_Windows, '*_min'],
+  max: [_Windows, '*_max'],
+  p10: [_Windows, '*_p10'],
+  p25: [_Windows, '*_p25'],
+  median: [_Windows, '*_median'],
+  p75: [_Windows, '*_p75'],
+  p90: [_Windows, '*_p90'],
+});
+
+/**
  * @template A
  * @typedef {{
  *   block: SeriesPattern18<A>,
@@ -5522,31 +5547,6 @@ const _SpendableType = _s({
 });
 
 /**
- * @typedef {{
- *   block: SeriesPattern18<?Percent>,
- *   avg: Windows<?Percent>,
- *   min: Windows<?Percent>,
- *   max: Windows<?Percent>,
- *   p10: Windows<?Percent>,
- *   p25: Windows<?Percent>,
- *   median: Windows<?Percent>,
- *   p75: Windows<?Percent>,
- *   p90: Windows<?Percent>,
- * }} Fullness
- */
-const _Fullness = _s({
-  block: [_i18, '*'],
-  avg: [_Windows, '*_avg'],
-  min: [_Windows, '*_min'],
-  max: [_Windows, '*_max'],
-  p10: [_Windows, '*_p10'],
-  p25: [_Windows, '*_p25'],
-  median: [_Windows, '*_median'],
-  p75: [_Windows, '*_p75'],
-  p90: [_Windows, '*_p90'],
-});
-
-/**
  * @template A, B
  * @typedef {{
  *   block: SeriesPattern18<A>,
@@ -6154,6 +6154,7 @@ const _Pools = _s({
  *   interval: Averaged<Seconds, ?SecondsFract>,
  *   size: FlowStats<Bytes, ?BytesFract>,
  *   weight: FlowStats<Weight, ?WeightFract>,
+ *   sigopCost: Flow<SigOps>,
  *   fullness: Fullness,
  *   difficulty: BlocksDifficulty,
  *   halving: Halving,
@@ -6164,6 +6165,7 @@ const _Blocks = _s({
   interval: [_Averaged, '*_interval'],
   size: [_FlowStats, '*_size'],
   weight: [_FlowStats, '*_weight'],
+  sigopCost: [_Flow, '*_sigop_cost'],
   fullness: [_Fullness, '*_fullness'],
   difficulty: [_BlocksDifficulty, 'difficulty'],
   halving: [_Halving, 'halving'],
@@ -6859,7 +6861,6 @@ const _VersionCount = (c, b, f0) => _n(c, b, {
  *   inscription: Inscription,
  *   patterns: Patterns,
  *   nonstandard: TransactionsFlagged,
- *   sigopCost: Flow<SigOps>,
  *   versions: VersionCount<TxCount>,
  *   transferVolume: ValueFlow,
  *   perSecond: Windows<?PerSecond>,
@@ -6873,7 +6874,6 @@ const _Transactions = _s({
   inscription: [_Inscription, 'inscription'],
   patterns: [_Patterns, 'coinjoin'],
   nonstandard: [_TransactionsFlagged, 'nonstandard'],
-  sigopCost: [_Flow, 'block_sigop_cost'],
   versions: [(c, b) => _VersionCount(c, b, _TxCount), '*'],
   transferVolume: [_ValueFlow, 'transfer_volume'],
   perSecond: [_Windows, '*_per_second'],

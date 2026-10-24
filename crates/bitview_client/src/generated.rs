@@ -1268,7 +1268,18 @@ pub mod tree {
         one_input: TxCount = "one_input_*",
         one_output: TxCount = "one_output_*",
     } }
-    shape! { Flow<A> at "series().op_return.output_count" {
+    shape! { Fullness at "series().blocks.fullness" {
+        block: SeriesPattern18<Option<Percent>> = "*",
+        avg: Windows<Option<Percent>> = "*_avg",
+        min: Windows<Option<Percent>> = "*_min",
+        max: Windows<Option<Percent>> = "*_max",
+        p10: Windows<Option<Percent>> = "*_p10",
+        p25: Windows<Option<Percent>> = "*_p25",
+        median: Windows<Option<Percent>> = "*_median",
+        p75: Windows<Option<Percent>> = "*_p75",
+        p90: Windows<Option<Percent>> = "*_p90",
+    } }
+    shape! { Flow<A> at "series().blocks.sigop_cost" {
         block: SeriesPattern18<A> = "*",
         cumulative: SeriesPattern1<A> = "*_cumulative",
         sum: Windows<A> = "*_sum",
@@ -1605,17 +1616,6 @@ pub mod tree {
         empty_script: OutputTypeSeries = "empty_script_*",
         unknown_script: OutputTypeSeries = "unknown_script_*",
     } }
-    shape! { Fullness at "series().blocks.fullness" {
-        block: SeriesPattern18<Option<Percent>> = "*",
-        avg: Windows<Option<Percent>> = "*_avg",
-        min: Windows<Option<Percent>> = "*_min",
-        max: Windows<Option<Percent>> = "*_max",
-        p10: Windows<Option<Percent>> = "*_p10",
-        p25: Windows<Option<Percent>> = "*_p25",
-        median: Windows<Option<Percent>> = "*_median",
-        p75: Windows<Option<Percent>> = "*_p75",
-        p90: Windows<Option<Percent>> = "*_p90",
-    } }
     shape! { FlowStats<A, B> at "series().blocks.size" {
         block: SeriesPattern18<A> = "*",
         cumulative: SeriesPattern1<A> = "*_cumulative",
@@ -1896,6 +1896,7 @@ pub mod tree {
         interval: Averaged<Seconds, Option<SecondsFract>> = "*_interval",
         size: FlowStats<Bytes, Option<BytesFract>> = "*_size",
         weight: FlowStats<Weight, Option<WeightFract>> = "*_weight",
+        sigop_cost: Flow<SigOps> = "*_sigop_cost",
         fullness: Fullness = "*_fullness",
         difficulty: BlocksDifficulty = "difficulty",
         halving: Halving = "halving",
@@ -2167,7 +2168,6 @@ pub mod tree {
         inscription: Inscription = "inscription",
         patterns: Patterns = "coinjoin",
         nonstandard: TransactionsFlagged = "nonstandard",
-        sigop_cost: Flow<SigOps> = "block_sigop_cost",
         versions: VersionCount<TxCount> = "*",
         transfer_volume: ValueFlow = "transfer_volume",
         per_second: Windows<Option<PerSecond>> = "*_per_second",

@@ -751,6 +751,7 @@ export function studioPresets(client, facts) {
         // (Their sums, every block's together, "total"; each block's, its average and percentiles.)
         ...stats(blocks.size, "Size", "Total block size", "Block size"),
         ...stats(blocks.weight, "Weight", "Total block weight", "Block weight"),
+        ...flow(blocks.sigopCost, "Signature operations", "Signature operation cost"),
       ]),
       section("Transactions", [
         ...stats(tx.count, "Count", "Transactions"),
@@ -760,7 +761,6 @@ export function studioPresets(client, facts) {
         transactionStats("Fee", "Transaction fee", tx.fees.fee),
         transactionStats("Fee rate", "Transaction fee rate", tx.fees.effectiveFeeRate),
         ...counted(tx.nonstandard, "Nonstandard", "Nonstandard transactions"),
-        ...flow(tx.sigopCost, "Signature operations", "Signature operation cost"),
         section("Features", [
           ...txKinds(entries(tx.features).filter(([, node]) => node.share), featureName, featureTx, "Share of transactions by feature"),
           section("Scripts", txKinds(entries(tx.features.scripts), featureName, featureTx, "Share of transactions by script")),

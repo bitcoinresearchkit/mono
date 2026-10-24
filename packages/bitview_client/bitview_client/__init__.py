@@ -3864,6 +3864,18 @@ class Features(_Node):
     one_output: TxCount = _at(TxCount, 'one_output_*')
 
 
+class Fullness(_Node):
+    block: SeriesPattern18[Optional[Percent]] = _at(SeriesPattern18, '*')
+    avg: Windows[Optional[Percent]] = _at(Windows, '*_avg')
+    min: Windows[Optional[Percent]] = _at(Windows, '*_min')
+    max: Windows[Optional[Percent]] = _at(Windows, '*_max')
+    p10: Windows[Optional[Percent]] = _at(Windows, '*_p10')
+    p25: Windows[Optional[Percent]] = _at(Windows, '*_p25')
+    median: Windows[Optional[Percent]] = _at(Windows, '*_median')
+    p75: Windows[Optional[Percent]] = _at(Windows, '*_p75')
+    p90: Windows[Optional[Percent]] = _at(Windows, '*_p90')
+
+
 class Flow(_Node, Generic[A]):
     block: SeriesPattern18[A] = _at(SeriesPattern18, '*')
     cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
@@ -4239,18 +4251,6 @@ class SpendableType(_Node):
     unknown_script: OutputTypeSeries = _at(OutputTypeSeries, 'unknown_script_*')
 
 
-class Fullness(_Node):
-    block: SeriesPattern18[Optional[Percent]] = _at(SeriesPattern18, '*')
-    avg: Windows[Optional[Percent]] = _at(Windows, '*_avg')
-    min: Windows[Optional[Percent]] = _at(Windows, '*_min')
-    max: Windows[Optional[Percent]] = _at(Windows, '*_max')
-    p10: Windows[Optional[Percent]] = _at(Windows, '*_p10')
-    p25: Windows[Optional[Percent]] = _at(Windows, '*_p25')
-    median: Windows[Optional[Percent]] = _at(Windows, '*_median')
-    p75: Windows[Optional[Percent]] = _at(Windows, '*_p75')
-    p90: Windows[Optional[Percent]] = _at(Windows, '*_p90')
-
-
 class FlowStats(_Node, Generic[A, B]):
     block: SeriesPattern18[A] = _at(SeriesPattern18, '*')
     cumulative: SeriesPattern1[A] = _at(SeriesPattern1, '*_cumulative')
@@ -4547,6 +4547,7 @@ class Blocks(_Node):
     interval: Averaged[Seconds, Optional[SecondsFract]] = _at(Averaged, '*_interval')
     size: FlowStats[Bytes, Optional[BytesFract]] = _at(FlowStats, '*_size')
     weight: FlowStats[Weight, Optional[WeightFract]] = _at(FlowStats, '*_weight')
+    sigop_cost: Flow[SigOps] = _at(Flow, '*_sigop_cost')
     fullness: Fullness = _at(Fullness, '*_fullness')
     difficulty: BlocksDifficulty = _at(BlocksDifficulty, 'difficulty')
     halving: Halving = _at(Halving, 'halving')
@@ -4872,7 +4873,6 @@ class Transactions(_Node):
     inscription: Inscription = _at(Inscription, 'inscription')
     patterns: Patterns = _at(Patterns, 'coinjoin')
     nonstandard: TransactionsFlagged = _at(TransactionsFlagged, 'nonstandard')
-    sigop_cost: Flow[SigOps] = _at(Flow, 'block_sigop_cost')
     versions: VersionCount[TxCount] = _at((VersionCount, TxCount), '*')
     transfer_volume: ValueFlow = _at(ValueFlow, 'transfer_volume')
     per_second: Windows[Optional[PerSecond]] = _at(Windows, '*_per_second')

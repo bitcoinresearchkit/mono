@@ -4768,6 +4768,8 @@
 <url><loc>https://bitview.space/studio/presets/network/blocks/weight</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/blocks/weight-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/blocks/weight-per-block</loc></url>
+<url><loc>https://bitview.space/studio/presets/network/blocks/signature-operations</loc></url>
+<url><loc>https://bitview.space/studio/presets/network/blocks/signature-operations-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/count</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/count-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/count-per-block</loc></url>
@@ -4779,8 +4781,6 @@
 <url><loc>https://bitview.space/studio/presets/network/transactions/fee-rate</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/nonstandard</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/nonstandard-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/network/transactions/signature-operations</loc></url>
-<url><loc>https://bitview.space/studio/presets/network/transactions/signature-operations-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/features/compare</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/features/segwit</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/features/segwit-all-time</loc></url>
