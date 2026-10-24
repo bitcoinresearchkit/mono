@@ -4,12 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f6f7" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08090a" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f1ec" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d0c0b" />
     <title>Bitview</title>
-    <meta name="description" content="Bitview's apps on this server (Studio, Series, Smart DCA, Globe, Calendar, The Satoshi Trail), the chain right now, and this node: its state and its API." />
+    <meta name="description" content="Bitview on this server: its apps (Studio, Series, DCA, Globe, Calendar, The Satoshi Trail, the API), fees and the mempool right now, and every way to use it." />
     <meta property="og:title" content="Bitview" />
-    <meta property="og:description" content="Bitview's apps, the chain right now, and this node: its state and its API." />
+    <meta property="og:description" content="Bitview's apps, fees and the mempool right now, and every way to use it." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/" />
     <meta property="og:image" content="https://bitview.space/assets/favicon/web-app-manifest-512x512.png" />
@@ -32,28 +32,31 @@
         font-display: swap;
       }
 
-      /* Studio's ground, inks and lines, by theme. */
+      /* Bitview's own mark, a cube, made the page's: a small one in the logo's orange heading each section, on warm paper
+         by day, warm black by night; one sans for words, a monospace for numbers and addresses. */
       :root {
         color-scheme: light dark;
-        --app: light-dark(#f6f6f7, #08090a);
-        --card: light-dark(#ffffff, #0e0f11);
-        --well: light-dark(#f6f6f7, #08090a);
-        --ink: light-dark(#0f1012, #f7f8f8);
-        --text: light-dark(#2b2f36, #d0d6e0);
-        --soft: light-dark(#5f6570, #8a8f98);
-        --muted: light-dark(#6b7079, #7c818a);
-        --line: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.06));
-        --line-strong: light-dark(rgb(0 0 0 / 0.13), rgb(255 255 255 / 0.1));
-        --focus: light-dark(rgb(0 0 0 / 0.45), rgb(255 255 255 / 0.5));
+        --app: light-dark(#f3f1ec, #0d0c0b);
+        --card: light-dark(#fbfaf7, #161411);
+        --well: light-dark(#f3f1ec, #0d0c0b);
+        --ink: light-dark(#16130f, #f6f3ee);
+        --text: light-dark(#3a342d, #d6cfc4);
+        --soft: light-dark(#625a50, #a1988a);
+        --muted: light-dark(#6f665b, #8a8175);
+        --line: light-dark(rgb(22 19 15 / 0.09), rgb(246 243 238 / 0.08));
+        --line-strong: light-dark(rgb(22 19 15 / 0.16), rgb(246 243 238 / 0.14));
+        --focus: light-dark(rgb(22 19 15 / 0.5), rgb(246 243 238 / 0.55));
         --live: light-dark(#0c7642, #3ccf7c);
-        /* The logo's orange. */
+        /* The logo's orange, and its cube's three faces. */
         --brand: oklch(64.34% 0.191 44.41);
-        /* (As small text: darker on the light, for its contrast.) */
         --brand-text: light-dark(oklch(52% 0.16 44.41), var(--brand));
-        --sheen: inset 0 1px 0 light-dark(rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.04));
+        --cube-top: oklch(80% 0.13 62);
+        --cube-left: oklch(65% 0.19 46);
+        --cube-right: oklch(54% 0.17 40);
+        --sheen: inset 0 1px 0 light-dark(rgb(255 255 255 / 0.8), rgb(255 255 255 / 0.03));
         --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
         --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
-        --radius: 12px;
+        --radius: 14px;
       }
 
       * {
@@ -95,12 +98,21 @@
         }
       }
 
-      /* ── The bar: the brand, and this node's state ── */
+      /* Said to a screen reader only. */
+      .vh {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
+      /* ── The bar: the brand, and this server's state ── */
 
       .top {
         display: flex;
         align-items: center;
-        gap: 4px;
         height: 64px;
       }
 
@@ -152,83 +164,59 @@
           font-weight: 500;
         }
 
-        /* (Not at the tip, or not reachable: the brand's orange, not the live green.) */
+        /* (Not at the tip, or its state unread: the brand's orange, not the live green.) */
         &.behind::before {
           background: var(--brand);
           box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand), transparent 80%);
         }
       }
 
-      /* ── Sections: the apps, the chain now, this node ── */
+      /* A short orientation: what's here, in fact, not a pitch. */
+      .intro {
+        max-width: 60ch;
+        margin: 12px 0 0;
+        color: var(--soft);
+        font-size: 15px;
 
-      main {
-        padding-top: 16px;
-
-        @media (min-width: 720px) {
-          padding-top: 24px;
+        b {
+          color: var(--ink);
+          font-weight: 500;
         }
       }
 
-      section + section {
-        padding-top: 56px;
+      /* ── Sections, each headed by a small cube ── */
+
+      section {
+        padding-top: 48px;
       }
 
       h2 {
         display: flex;
-        align-items: baseline;
-        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 4px 10px;
         margin: 0 0 16px;
         color: var(--ink);
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 600;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.015em;
 
-        small {
-          color: var(--muted);
-          font-size: 13px;
-          font-weight: 400;
-          letter-spacing: 0;
+        svg {
+          width: 13px;
+          height: 15px;
         }
       }
 
-      /* Every app, a tile each of one size: three a row on a desk, two on a tablet (six: none alone); on a phone, a row
-         each, its picture small beside its words, so the chain's in reach. */
-      .apps {
-        display: grid;
-        gap: 12px;
+      .mark .top-face {
+        fill: var(--cube-top);
+      }
 
-        @media (min-width: 640px) {
-          grid-template-columns: 1fr 1fr;
-        }
+      .mark .left-face {
+        fill: var(--cube-left);
+      }
 
-        @media (min-width: 960px) {
-          grid-template-columns: repeat(3, 1fr);
-        }
-
-        @media (max-width: 639px) {
-          gap: 8px;
-
-          .media {
-            display: grid;
-            grid-template-columns: 112px minmax(0, 1fr);
-            align-items: center;
-
-            > .shot {
-              height: 100%;
-              border-right: 1px solid var(--line);
-              border-bottom: 0;
-            }
-
-            > .body {
-              padding: 12px 14px;
-            }
-
-            p {
-              margin-top: 2px;
-              font-size: 13px;
-            }
-          }
-        }
+      .mark .right-face {
+        fill: var(--cube-right);
       }
 
       .surface {
@@ -237,98 +225,194 @@
         box-shadow: var(--sheen), 0 0 0 1px var(--line);
       }
 
-      /* ── The chain now: the latest blocks, beside fees, the mempool, the next adjustment and the price ── */
+      /* ── Apps: seven tiles, Studio across two: two rows of four on a desk, rows of two on a tablet (none alone); a row
+         each on a phone, its picture small beside its words ── */
 
-      /* (Columns that may be narrower than what's in them: a long address wraps, never widening the page.) */
-      .now {
+      .apps {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         gap: 12px;
 
-        @media (min-width: 900px) {
-          grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+        @media (min-width: 640px) {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+
+          .wide {
+            grid-column: span 2;
+          }
+        }
+
+        @media (min-width: 960px) {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
         }
       }
 
-      .panel {
-        padding: 16px 18px;
+      .card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border-radius: var(--radius);
+        background: var(--card);
+        box-shadow: var(--sheen), 0 0 0 1px var(--line);
+        transition: box-shadow 0.15s, translate 0.15s;
+
+        /* Pointed at or focused (its link's ring, the card's): lifted a little. */
+        &:has(.stretch:hover) {
+          box-shadow: var(--sheen), 0 0 0 1px var(--line-strong), 0 10px 24px -14px rgb(0 0 0 / 0.3);
+          translate: 0 -1px;
+        }
+
+        &:has(.stretch:focus-visible) {
+          box-shadow: var(--sheen), 0 0 0 2px var(--focus);
+        }
+
+        > .body {
+          display: flex;
+          flex: 1;
+          flex-direction: column;
+          padding: 16px 18px 18px;
+        }
 
         h3 {
-          margin: 0 0 8px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin: 0;
+          color: var(--ink);
+          font-size: 16px;
+          font-weight: 600;
+        }
+
+        p {
+          margin: 6px 0 0;
+          color: var(--soft);
+          font-size: 14px;
+          text-wrap: pretty;
+        }
+
+        .shot {
+          display: block;
+          width: 100%;
+          height: auto;
+          aspect-ratio: 16 / 10;
+          object-fit: cover;
+          border-bottom: 1px solid var(--line);
+          background: var(--well);
+        }
+
+        /* (Studio, across two: its picture, then beside it as tall, its words.) */
+        &.wide {
+          @media (min-width: 640px) {
+            display: grid;
+            grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+
+            .shot {
+              height: 100%;
+              border-right: 1px solid var(--line);
+              border-bottom: 0;
+            }
+
+            .body {
+              justify-content: center;
+              padding: 24px;
+            }
+
+            h3 {
+              font-size: 20px;
+            }
+
+            p {
+              font-size: 15px;
+            }
+          }
+        }
+
+        @media (max-width: 639px) {
+          display: grid;
+          grid-template-columns: 112px minmax(0, 1fr);
+          align-items: center;
+
+          .shot {
+            height: 100%;
+            border-right: 1px solid var(--line);
+            border-bottom: 0;
+          }
+
+          > .body {
+            padding: 12px 14px;
+          }
+
+          p {
+            margin-top: 2px;
+            font-size: 13px;
+          }
+        }
+      }
+
+      /* A card is one link, its title's stretched over it. */
+      .stretch {
+        outline: none;
+
+        &::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: inherit;
+        }
+      }
+
+      .go {
+        margin-left: auto;
+        color: var(--muted);
+        pointer-events: none;
+        transition: translate 0.15s, color 0.15s;
+
+        .card:has(.stretch:hover) & {
+          color: var(--brand-text);
+          translate: 2px 0;
+        }
+      }
+
+      /* ── Right now: fees, the mempool, the price, the next difficulty adjustment ── */
+
+      .readings {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+
+        @media (min-width: 960px) {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .fees,
+        .difficulty {
+          grid-column: 1 / -1;
+        }
+
+        @media (min-width: 960px) {
+          .fees {
+            grid-column: span 2;
+          }
+        }
+      }
+
+      .reading {
+        padding: 16px 18px;
+
+        h3,
+        dt {
+          margin: 0;
           color: var(--muted);
           font-size: 12px;
           font-weight: 500;
         }
-      }
 
-      .readings {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-      }
-
-      /* The latest blocks, newest first: its height, its pool, its transactions and median fee, how long ago. */
-      .blocks {
-        margin: 0;
-        padding: 0;
-        list-style: none;
-
-        li {
-          display: grid;
-          grid-template-columns: 7ch minmax(0, 1fr) auto;
-          grid-template-areas: "height pool age" "height detail age";
-          align-items: center;
-          gap: 0 12px;
-          border-top: 1px solid var(--line);
-          padding: 9px 0;
-
-          &:first-child {
-            border-top: 0;
-          }
-        }
-
-        .height {
-          grid-area: height;
-          color: var(--ink);
-          font-size: 14px;
-        }
-
-        .pool {
-          grid-area: pool;
-          overflow: hidden;
-          color: var(--ink);
-          font-weight: 500;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-        }
-
-        .detail {
-          grid-area: detail;
-          color: var(--muted);
-          font-size: 13px;
-        }
-
-        .age {
-          grid-area: age;
-          color: var(--soft);
-          font-size: 13px;
-          white-space: nowrap;
-        }
-      }
-
-      /* A reading: its name, its value, a line under it. */
-      .reading {
         dl {
           margin: 0;
         }
 
-        dt {
-          color: var(--muted);
-          font-size: 12px;
-        }
-
         dd {
-          margin: 2px 0 0;
+          margin: 4px 0 0;
           color: var(--ink);
           font-size: 22px;
           letter-spacing: -0.02em;
@@ -348,25 +432,22 @@
         }
 
         p {
-          margin: 4px 0 0;
           min-height: 1.5em;
+          margin: 4px 0 0;
           color: var(--soft);
           font-size: 13px;
         }
       }
 
-      /* The fees, by how soon: four in a row, the soonest first. */
-      .fees {
-        grid-column: 1 / -1;
+      /* The fees, by how soon: four, the soonest first (two by two on a phone). */
+      .fees dl {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 8px;
 
-        dl {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 8px;
-
-          @media (min-width: 480px) {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-          }
+        @media (min-width: 480px) {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
         }
 
         dd {
@@ -419,120 +500,6 @@
           color: var(--soft);
           font-size: 14px;
           text-wrap: pretty;
-        }
-      }
-
-      /* This server: its state, version, disk and time up, one quiet line. */
-      .server {
-        margin: 16px 0 0;
-        color: var(--muted);
-        font-size: 13px;
-
-        b {
-          color: var(--text);
-          font-weight: 500;
-        }
-
-        .ok {
-          color: var(--live);
-        }
-
-        .behind {
-          color: var(--brand-text);
-        }
-      }
-
-      /* A reading that didn't answer: its last one kept, its values dimmed (its words not, still read), and said so. */
-      [data-failed] :is(dd, .blocks, .reading p, .reply) {
-        opacity: 0.5;
-      }
-
-      .stale {
-        color: var(--brand-text);
-        font-weight: 500;
-      }
-
-      /* A short orientation under the bar: what's here, in fact, not a pitch. */
-      .intro {
-        max-width: 60ch;
-        margin: 0 0 28px;
-        color: var(--soft);
-        font-size: 15px;
-
-        b {
-          color: var(--ink);
-          font-weight: 500;
-        }
-      }
-
-      /* Said to a screen reader only. */
-      .vh {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip-path: inset(50%);
-        white-space: nowrap;
-      }
-
-      .card {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        border-radius: var(--radius);
-        padding: 20px;
-        background: var(--card);
-        box-shadow: var(--sheen), 0 0 0 1px var(--line);
-        transition: box-shadow 0.15s;
-
-        /* Pointed at or focused (its link's ring, the card's). */
-        &:has(.stretch:hover) {
-          box-shadow: var(--sheen), 0 0 0 1px var(--line-strong);
-        }
-
-        &:has(.stretch:focus-visible) {
-          box-shadow: var(--sheen), 0 0 0 2px var(--focus);
-        }
-
-        h3 {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin: 0;
-          color: var(--ink);
-          font-size: 16px;
-          font-weight: 600;
-        }
-
-        p {
-          margin: 8px 0 0;
-          color: var(--soft);
-          font-size: 14px;
-          text-wrap: pretty;
-        }
-      }
-
-      /* A card is one link, its title's stretched over it. */
-      .stretch {
-        outline: none;
-
-        &::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-        }
-      }
-
-      .go {
-        margin-left: auto;
-        color: var(--muted);
-        pointer-events: none;
-        transition: translate 0.15s, color 0.15s;
-
-        .card:has(.stretch:hover) & {
-          color: var(--ink);
-          translate: 2px 0;
         }
       }
 
@@ -600,30 +567,34 @@
         }
       }
 
-      /* A card with a picture: the picture, a line, then its words (the card's padding theirs). */
-      .media {
-        overflow: hidden;
-        padding: 0;
+      /* This server: its state, version, uptime and disk, one quiet line. */
+      .server {
+        margin: 16px 0 0;
+        color: var(--muted);
+        font-size: 13px;
 
-        > .body {
-          display: flex;
-          flex: 1;
-          flex-direction: column;
-          padding: 20px;
+        b {
+          color: var(--text);
+          font-weight: 500;
         }
 
-        > .shot {
-          border-bottom: 1px solid var(--line);
+        .ok {
+          color: var(--live);
+        }
+
+        .behind {
+          color: var(--brand-text);
         }
       }
 
-      .shot {
-        display: block;
-        width: 100%;
-        height: auto;
-        aspect-ratio: 16 / 10;
-        object-fit: cover;
-        background: var(--well);
+      /* A reading that didn't answer: its last one kept, its values dimmed (its words not, still read), and said so. */
+      [data-failed] :is(dd, .reading p, .reply) {
+        opacity: 0.5;
+      }
+
+      .stale {
+        color: var(--brand-text);
+        font-weight: 500;
       }
 
       footer {
@@ -631,7 +602,7 @@
         flex-wrap: wrap;
         align-items: center;
         gap: 8px 20px;
-        margin-top: 88px;
+        margin-top: 72px;
         border-top: 1px solid var(--line);
         padding: 24px 0 40px;
         color: var(--muted);
@@ -660,6 +631,13 @@
     </style>
   </head>
   <body>
+    <!-- The small cube heading each section, drawn once. -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <symbol id="mark" viewBox="0 0 26 30">
+        <g class="mark"><path class="top-face" d="M13 0L26 7.5L13 15L0 7.5Z" /><path class="left-face" d="M0 7.5L13 15V30L0 22.5Z" /><path class="right-face" d="M26 7.5L13 15V30L26 22.5Z" /></g>
+      </symbol>
+    </svg>
+
     <div class="page">
       <header class="top">
         <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
@@ -671,96 +649,96 @@
         <p class="intro">Every Bitcoin block, read and measured by this server: <b id="series-count">its</b> series, to chart, explore and fetch.</p>
 
         <section aria-labelledby="apps-title">
-          <h2 id="apps-title">Apps</h2>
+          <h2 id="apps-title"><svg aria-hidden="true"><use href="#mark" /></svg>Apps</h2>
           <div class="apps">
-            <article class="card media">
+            <article class="card wide">
               <img class="shot" src="/assets/previews/studio.jpg" alt="" width="800" height="500" />
               <div class="body">
                 <h3><a class="stretch" href="/studio/">Studio</a><span class="go" aria-hidden="true">→</span></h3>
                 <p>Chart any series: overlay, stack, derive with formulas, then keep, share or export.</p>
               </div>
             </article>
-            <article class="card media">
+            <article class="card">
               <img class="shot" src="/assets/previews/series.jpg" alt="" width="800" height="500" />
               <div class="body">
                 <h3><a class="stretch" href="/series/">Series</a><span class="go" aria-hidden="true">→</span></h3>
                 <p>Every series, folder by folder: what it is, its history, and how to fetch it.</p>
               </div>
             </article>
-            <article class="card media">
+            <article class="card">
               <img class="shot" src="/assets/previews/dca.jpg" alt="" width="800" height="500" />
               <div class="body">
-                <h3><a class="stretch" href="/dca/">Smart DCA</a><span class="go" aria-hidden="true">→</span></h3>
+                <h3><a class="stretch" href="/dca/">DCA</a><span class="go" aria-hidden="true">→</span></h3>
                 <p>Bitcoin on a schedule, more when it's cheap: any plan since 2010, beside the plain one.</p>
               </div>
             </article>
-            <article class="card media">
+            <article class="card">
               <img class="shot" src="/assets/previews/globe.jpg" alt="" width="800" height="500" loading="lazy" />
               <div class="body">
                 <h3><a class="stretch" href="/globe/">Globe</a><span class="go" aria-hidden="true">→</span></h3>
                 <p>Where blocks are mined, by their pools' home countries, live and since 2011.</p>
               </div>
             </article>
-            <article class="card media">
+            <article class="card">
               <img class="shot" src="/assets/previews/calendar.jpg" alt="" width="800" height="500" loading="lazy" />
               <div class="body">
                 <h3><a class="stretch" href="/calendar/">Calendar</a><span class="go" aria-hidden="true">→</span></h3>
                 <p>Every day's leading pool, and every block of any day.</p>
               </div>
             </article>
-            <article class="card media">
+            <article class="card">
               <img class="shot" src="/assets/previews/trail.jpg" alt="" width="800" height="500" loading="lazy" />
               <div class="body">
                 <h3><a class="stretch" href="/trail/">The Satoshi Trail</a><span class="go" aria-hidden="true">→</span></h3>
                 <p>Supply by the price it last moved at, through time, in two or three dimensions.</p>
               </div>
             </article>
+            <article class="card">
+              <img class="shot" src="/assets/previews/api.jpg" alt="" width="800" height="500" loading="lazy" />
+              <div class="body">
+                <h3><a class="stretch" href="/api/">API</a><span class="go" aria-hidden="true">→</span></h3>
+                <p>Every endpoint, documented, and tried live against this server.</p>
+              </div>
+            </article>
           </div>
         </section>
 
         <section aria-labelledby="now-title">
-          <h2 id="now-title">The chain now <small id="now-when"></small></h2>
-          <div class="now">
-            <div class="surface panel" id="blocks-panel">
-              <h3>Latest blocks</h3>
-              <ol class="blocks" id="blocks" aria-live="off"></ol>
+          <h2 id="now-title"><svg aria-hidden="true"><use href="#mark" /></svg>Right now</h2>
+          <div class="readings">
+            <div class="surface reading fees" id="fees-panel">
+              <h3>Fees, by how soon</h3>
+              <dl>
+                <div><dt>Next block</dt><dd class="num" id="fee-fast"></dd></div>
+                <div><dt>30 minutes</dt><dd class="num" id="fee-half"></dd></div>
+                <div><dt>An hour</dt><dd class="num" id="fee-hour"></dd></div>
+                <div><dt>Economy</dt><dd class="num" id="fee-economy"></dd></div>
+              </dl>
             </div>
-            <div class="readings">
-              <div class="surface panel reading fees" id="fees-panel">
-                <h3>Fees, by how soon</h3>
-                <dl>
-                  <div><dt>Next block</dt><dd class="num" id="fee-fast"></dd></div>
-                  <div><dt>30 minutes</dt><dd class="num" id="fee-half"></dd></div>
-                  <div><dt>An hour</dt><dd class="num" id="fee-hour"></dd></div>
-                  <div><dt>Economy</dt><dd class="num" id="fee-economy"></dd></div>
-                </dl>
-              </div>
-              <div class="surface panel reading" id="mempool-panel">
-                <dl><dt>Mempool</dt><dd class="num" id="mempool-count"></dd></dl>
-                <p id="mempool-more"></p>
-              </div>
-              <div class="surface panel reading" id="price-panel">
-                <dl><dt>Price</dt><dd class="num" id="price"></dd></dl>
-                <p>Derived from the chain by this server</p>
-              </div>
-              <div class="surface panel reading" id="difficulty-panel" style="grid-column: 1 / -1">
-                <dl><dt>Next difficulty adjustment</dt><dd class="num" id="difficulty"></dd></dl>
-                <p id="difficulty-more"></p>
-                <div class="progress" aria-hidden="true"><i id="difficulty-progress" style="width: 0"></i></div>
-              </div>
+            <div class="surface reading" id="mempool-panel">
+              <dl><dt>Mempool</dt><dd class="num" id="mempool-count"></dd></dl>
+              <p id="mempool-more"></p>
+            </div>
+            <div class="surface reading" id="price-panel">
+              <dl><dt>Price</dt><dd class="num" id="price"></dd></dl>
+              <p>Derived from the chain by this server</p>
+            </div>
+            <div class="surface reading difficulty" id="difficulty-panel">
+              <dl><dt>Next difficulty adjustment</dt><dd class="num" id="difficulty"></dd></dl>
+              <p id="difficulty-more"></p>
+              <div class="progress" aria-hidden="true"><i id="difficulty-progress" style="width: 0"></i></div>
             </div>
           </div>
         </section>
 
         <section aria-labelledby="use-title">
-          <h2 id="use-title">Use it</h2>
+          <h2 id="use-title"><svg aria-hidden="true"><use href="#mark" /></svg>Use it</h2>
           <div class="uses">
             <div class="surface use" id="api-panel">
-              <h3>API</h3>
-              <p>Every series, block, transaction and address on this server, over plain HTTP.</p>
+              <h3>From code</h3>
+              <p>Every series, block, transaction and address on this server, over plain HTTP, from any language.</p>
               <div class="proof"><code><a href="/api/series/price/day1/latest"><span class="verb">GET</span> <span id="origin"></span>/<wbr />api/<wbr />series/<wbr />price/<wbr />day1/<wbr />latest</a><span class="reply" id="reply"></span></code></div>
               <div class="links">
-                <a href="/api/">Docs</a>
                 <a href="/openapi.json">OpenAPI</a>
                 <a href="https://www.npmjs.com/package/bitview-client">JavaScript</a>
                 <a href="https://pypi.org/project/bitview-client/">Python</a>
@@ -804,8 +782,8 @@
 
     <script type="module">
       // @ts-check
-      // The suite's home on any server running it, bitview.space or your own: its apps; the chain now, from this server
-      // (its latest blocks, fees, mempool, the next difficulty adjustment, the price); the ways to use it; and its state.
+      // The suite's home on any server running it, bitview.space or your own: its apps; fees, the mempool, the price and
+      // the next difficulty adjustment right now; the ways to use it; its state.
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
 
       // Numbers as Studio writes them (its `precise`): thousands whole and grouped (82,156); under a thousand, four
@@ -837,13 +815,11 @@
         const days = Math.floor(s / 86_400);
         return `${days} day${days > 1 ? "s" : ""}`;
       };
-      const ago = (/** @type {number} */ unix) => (Date.now() / 1000 - unix < 45 ? "just now" : `${lasting(Date.now() / 1000 - unix)} ago`);
       /** A fee rate: "1 sat/vB", "12.5 sat/vB". */
       const rate = (/** @type {number} */ r) => `${r >= 10 ? Math.round(r) : Number(r.toFixed(1))}`;
 
       // ── Reading: every 30 seconds, one round at a time, each part shown as it answers ──
 
-      const escape = (/** @type {string} */ value) => value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
       /** A part answered (its reading shown) or didn't (its last kept, its values dimmed, "not answering" by its name). */
       function answered(/** @type {string} */ id, /** @type {boolean} */ ok) {
         const part = $(id), label = part.querySelector("h3, dt") ?? part;
@@ -852,18 +828,8 @@
         if (!ok) label.insertAdjacentHTML("beforeend", ` <span class="stale">· not answering</span>`);
       }
 
-      /** @type {{ height: number, timestamp: number, tx_count: number, extras?: { pool?: { name: string }, medianFee?: number } }[]} */
-      let blocks = [];
-      /** The latest blocks, their "ago"s true as of now. */
-      function showBlocks() {
-        $("blocks").innerHTML = blocks.slice(0, 6).map((b) => `<li><span class="height num">${grouped(b.height)}</span><span class="pool">${escape(b.extras?.pool?.name ?? "Unknown")}</span>
-          <span class="detail">${grouped(b.tx_count)} txs${b.extras?.medianFee !== undefined ? ` · ${rate(b.extras.medianFee)} sat/vB` : ""}</span><span class="age">${ago(b.timestamp)}</span></li>`).join("");
-        $("now-when").textContent = blocks.length ? `block ${grouped(blocks[0].height)}, ${ago(blocks[0].timestamp)}` : "";
-      }
-
-      /** Each part: what it reads, and how it shows it. @type {[string, string, (value: any) => void, string?][]} */
+      /** Each part: where it shows, what it reads, and how it shows it. @type {[string, string, (value: any) => void, string?][]} */
       const PARTS = [
-        ["blocks-panel", "/api/v1/blocks", (latest) => (blocks = latest)],
         ["fees-panel", "/api/v1/fees/recommended", (fees) => {
           for (const [id, key] of [["fee-fast", "fastestFee"], ["fee-half", "halfHourFee"], ["fee-hour", "hourFee"], ["fee-economy", "economyFee"]])
             $(id).innerHTML = `${rate(fees[key])} <small>sat/vB</small>`;
@@ -913,7 +879,7 @@
         const parts = PARTS.map(([id, path, show, kind]) => read(path, kind).then((value) => {
           show(value);
           answered(id, true);
-        }, () => answered(id, false)).finally(showBlocks));
+        }, () => answered(id, false)));
         const state = Promise.allSettled([read("/api/server/sync"), read("/health")]).then(([s, h]) => {
           [sync, health] = [s.status === "fulfilled" ? s.value : null, h.status === "fulfilled" ? h.value : null];
           stateRead = true;
