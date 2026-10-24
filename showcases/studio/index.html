@@ -5658,9 +5658,11 @@
           transition: background var(--dur-small) var(--ease);
         }
 
+        /* (Its column its own, not its open state's: closed, it fades out laid out as it was.) */
+        flex-direction: column;
+
         &[open] {
           display: flex;
-          flex-direction: column;
         }
 
         /* Looking clears the preview and backdrop to show the chart (search, list and foot stay solid to read). */
