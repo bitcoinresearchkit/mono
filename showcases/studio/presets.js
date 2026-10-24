@@ -315,7 +315,7 @@ export function studioPresets(client, facts) {
         inProfit?.share && chart("Share in profit", titled("Share of supply in profit"), [series(inProfit.share, "In profit", { color: "green", levels: [{ value: 50, color: "gray", dash: 3 }] }), series(inLoss.share, "In loss", { color: "red" })]),
         supply.share && !whole && chart(`Share of ${of} coins`, titled(`Share of ${of} coins and capital`), [series(supply.share, `Of ${of} coins`, { color: "orange" }), ...(capital?.share ? [series(capital.share, `Of ${of} capital`, { color: "green" })] : [])]),
         ...change(supply.delta, "Change", titled("Supply change")),
-        ...flow(supply.matured, "Matured", titled("Supply aging out")),
+        ...flow(supply.agedOut, "Aged out", titled("Supply aging out")),
       ]),
       c.funded && section("Addresses", [
         chart("Count", titled("Address count"), [series(own(c.funded), "Addresses", { color: "sky" })], { log: [1] }),
