@@ -27966,7 +27966,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { title: "Next signal", text: "A signal's next mark, after the middle of the view.", words: "signal mark next forward jump occurrence", icon: "calendar", kbd: ".", run: () => stepSignal(1) },
             { title: "Previous signal", text: "A signal's last mark, before the middle of the view.", words: "signal mark previous back jump occurrence", icon: "calendar", kbd: ",", run: () => stepSignal(-1) },
           ] : []),
-          ...(empty ? [] : [BY_NUMBER.has(chart.index) ? { title: "Go to a block", text: "A block's number: the chart shows its point.", words: "jump block height number navigate", icon: "hash" } : { title: "Go to a date", text: "A year, a month or a day: the chart shows it.", words: "jump date time when navigate calendar", icon: "calendar" }].map((row) => ({ ...row, kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }))),
+          ...(empty ? [] : [{ title: "Go to", text: "A date or a block: the chart shows it.", words: "jump date time when block height number navigate calendar", icon: "calendar", kbd: "G", keepOpen: true, run: () => pushPage(goPage()) }]),
           { title: "Rename this chart", text: "Its title, typed here.", words: "title name", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
           ...(!isYours(chart) ? [] : [{ title: "Duplicate this chart", text: "A copy, right under it in your list.", words: "copy clone", icon: "duplicate", run: () => chartPick(chart.id, "duplicate") }]),
           ...(!isYours(chart) ? [] : [{ title: "Delete this chart", text: "With an Undo.", words: "remove trash", icon: "trash", danger: true, run: () => deleteChart(chart) }]),
@@ -28101,12 +28101,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // A setting with its value after it ("price color orange"), and a date ("go to 2021", or just "nov 2021"): the
         // change itself, on top.
         const direct = everything && !home ? directRows(query, settings) : [], named = direct.filter((row) => row.named), unnamed = direct.filter((row) => !row.named);
-        // (By number, a block: "go to 840000", "block 840,000".)
-        const blocks = BY_NUMBER.has(chart.index), span = everything && !home && chart.layers.length ? (blocks ? readBlock : readDate)(query.replace(/^(go ?to|jump( to)?)\s+/i, "").replace(blocks ? /^block\s+/i : /^$/, "")) : null;
+        // (A block by its word here, "go to 840000", "block 840,000": a number alone is a search.)
+        const going = /^(go ?to|jump( to)?)\s+/i.test(query.trim()), typed = query.trim().replace(/^(go ?to|jump( to)?)\s+/i, "");
+        const place = everything && !home && chart.layers.length ? ((found) => (found && "block" in found && !going && !/^block\s/i.test(typed) ? null : found))(readPlace(typed)) : null;
         // (A formula typed here, not a date: one that reads, of this chart's layers, all there; added as a layer, first,
         // as ⌘K's formula row adds it. A search with a dash in it stays a search.)
-        const asFormula = everything && !home && !span && isOwnFormula(query.trim()) ? [{ kind: "formula", key: "formula", group: "Formula" }] : [];
-        const dated = span && !outOfData(span) ? [{ kind: "row", key: "go-to-date", icon: blocks ? ICONS.hash : ICONS.calendar, label: `Go to ${span.label}`, group: "Go to", verb: "Go", run: () => goToDate(span), preview: (/** @type {HTMLElement} */ panel) => previewDate(panel, span) }] : [];
+        const asFormula = everything && !home && !place && isOwnFormula(query.trim()) ? [{ kind: "formula", key: "formula", group: "Formula" }] : [];
+        const dated = place && !((near) => near && outOfData(near))(nearSpan(place)) ? [{ kind: "row", key: "go-to-date", icon: ICONS.calendar, label: `Go to ${placeLabel(place)}`, group: "Go to", verb: "Go", run: () => void goToPlace(place), preview: (/** @type {HTMLElement} */ panel) => void previewPlace(panel, place) }] : [];
         // (The add page's other layers: first where what's typed starts their name, "clo"; else after the series, "ratio".)
         const others = palette.adding && !palette.path.length ? rank(otherLayerRows(), rowText, words) : [];
         const leading = others.filter((row) => row.label.toLowerCase().startsWith(words[0])), trailing = others.filter((row) => !leading.includes(row));
@@ -29420,7 +29421,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { key: "title", icon: ICONS.pencil, label: "Title", aside: titleOf(chart), group: "Chart", page: () => renameChartPage(chart) },
             ...(any ? [
               { key: "interval", icon: ICONS.recent, label: "Interval", aside: CADENCE[chart.index], group: "Chart", page: intervalPage },
-              { key: "go-to", icon: ICONS.calendar, label: "Go to a date", aside: "A year, a month, a day", kbd: "G", group: "Chart", page: datePage },
+              { key: "go-to", icon: ICONS.calendar, label: "Go to", aside: "A date or a block", kbd: "G", group: "Chart", page: goPage },
               { key: "range", icon: ICONS.charts, label: "Range", aside: presetShown ? capitalize(periodOf(shownRange())) : "As you moved it", group: "Chart", page: () => choicePage("Range", () => rangesFor(chart.index).filter(([id]) => presetFits(id)).map(([id, text]) => ({ key: id, icon: ICONS.charts, label: text, aside: capitalize(periodOf(id)), current: presetShown && shownRange() === id, run: () => setRange(id) }))) },
               legendAction("Chart"),
               { key: "layers", icon: ICONS.series, label: "Layers", aside: plural(chart.layers.length, "layer"), group: "In it", page: layersPage },
@@ -29925,9 +29926,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (At a fine interval, a stretch not loaded yet loads first: nothing to light or count until then.)
         const away = Boolean(span && !why && fineDrawn() && !stretchOf(span).loaded);
         const points = span && !why && !away ? pointsOf(span) : null, wide = points && points.last - points.first + 1 > mostBars();
-        const blocks = BY_NUMBER.has(shownIndex());
-        panel.innerHTML = `<h4 class="plain">${span ? escape(capitalize(span.label)) : blocks ? "Go to a block" : "Go to a date"}</h4>
-          <p class="description">${escape(!span ? (blocks ? "Its point, centered at the zoom the chart has." : "A year or a month is shown whole; a day, centered at the zoom the chart has.") : why || (away ? "Loads first, then shows it." : span.day ? "Centered, at the zoom the chart has." : wide ? "Its middle: all of it takes a longer interval." : "Shown whole, edge to edge."))}</p>
+        panel.innerHTML = `<h4 class="plain">${span ? escape(capitalize(span.label)) : "Go to"}</h4>
+          <p class="description">${escape(!span ? "A year or a month is shown whole; a day or a block, centered at the zoom the chart has." : why || (away ? "Loads first, then shows it." : span.day ? "Centered, at the zoom the chart has." : wide ? "Its middle: all of it takes a longer interval." : "Shown whole, edge to edge."))}</p>
           <svg class="spark" id="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg><span id="spark-caption" hidden></span>
           ${span && !why && !away ? `<div class="info"><dl id="date-facts"></dl></div>` : ""}`;
         const source = overviewSource();
@@ -29939,23 +29939,82 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("spark").insertAdjacentHTML("afterbegin", `<rect x="${x(first)}" y="0" width="${Math.max(1.5, Number(x(last)) - Number(x(first)))}" height="100" style="fill: var(--line-strong)" />`);
         $("date-facts").innerHTML = `<div><dt>From</dt><dd>${escape(pointLabel(resolved.times[first]))}</dd></div><div><dt>To</dt><dd>${escape(pointLabel(resolved.times[last]))}</dd></div><div><dt>Points</dt><dd>${grouped.format(last - first + 1)}</dd></div>`;
       }
-      /** A block typed (840000, 840,000): the point that holds it, gone to as a day is. */
-      const readBlock = (/** @type {string} */ text) => (/^\d[\d, _]*$/.test(text.trim()) ? ((block) => ({ from: blockTime(block), to: blockTime(block + 1) - 1, label: `block ${grouped.format(block)}`, day: true }))(Number(text.replace(/\D/g, ""))) : null);
       /**
-       * Go to a date, typed in ⌘K's field (by number, a block): the span it names lit on the overview; ↵ takes the view
-       * there and closes ⌘K.
+       * What Go to reads: a date (a year, four digits; a month; a day: see readDate), else a block (any other number, 840000
+       * or 840,000; one of four digits, by its word: "block 2021").
+       * @returns {{ date: { from: number, to: number, day: boolean, label: string } } | { block: number } | null}
        */
-      const datePage = () => ((blocks) => inputPage({
-        title: blocks ? "Go to a block" : "Go to a date", value: "", placeholder: blocks ? "840000, 840,000…" : "2021, 2021-11, 10 nov 2021…", verb: "Go", icon: blocks ? ICONS.hash : ICONS.calendar, closes: true,
-        hint: (text) => ((span) => (span ? outOfData(span) : blocks ? "Type a block's number" : "Type a year, a month or a day"))((blocks ? readBlock : readDate)(text)),
-        read: (text) => {
-          const span = (blocks ? readBlock : readDate)(text);
-          return span && !outOfData(span) ? `Go to ${span.label}` : null;
-        },
+      function readPlace(/** @type {string} */ text) {
+        const typed = text.trim(), named = /^block\s+/i.test(typed), number = typed.replace(/^block\s+/i, "");
+        const date = named ? null : readDate(typed);
+        if (date) return { date };
+        return /^\d[\d, _]*$/.test(number) ? { block: Number(number.replace(/\D/g, "")) } : null;
+      }
+      const placeLabel = (/** @type {NonNullable<ReturnType<typeof readPlace>>} */ place) => ("date" in place ? place.date.label : `block ${grouped.format(place.block)}`);
+      /** A place on the chart's own terms, at once (a date by date, a block by number); across, null (see placeSpan). @param {NonNullable<ReturnType<typeof readPlace>>} place */
+      const nearSpan = (place) => (BY_NUMBER.has(shownIndex()) ? ("block" in place ? { from: blockTime(place.block), to: blockTime(place.block + 1) - 1, day: true, label: placeLabel(place) } : null) : "date" in place ? place.date : null);
+      /**
+       * A place on the chart's timeline (by date, or by number): its span; across, one request names it (by date, a
+       * block's own time; by number, the first block or epoch from a date on). A string: why it can't be gone to.
+       * @param {NonNullable<ReturnType<typeof readPlace>>} place
+       * @returns {Promise<{ from: number, to: number, day: boolean, label: string } | string>}
+       */
+      async function placeSpan(place) {
+        if ("block" in place && liveHeight && place.block > liveHeight) return `Block ${grouped.format(place.block)} isn't mined yet: the latest is ${grouped.format(liveHeight)}`;
+        const near = nearSpan(place), index = shownIndex();
+        if (near) return near;
+        const at = (/** @type {string} */ id, /** @type {number | string} */ where) => /** @type {any} */ (client.seriesEndpoint(STAMPS, /** @type {"height"} */ (id))).get(where).fetch();
+        if ("block" in place) {
+          const time = (await at("height", place.block)).data[0];
+          return typeof time === "number" ? { from: time, to: time, day: true, label: `${placeLabel(place)}, ${dateLabel(time, FINE.has(index))}` } : `No block ${grouped.format(place.block)} yet`;
+        }
+        // (A date by number: the first point from its start on (an epoch, the one it falls in); a month or a year, to the
+        // last begun before its end.)
+        const iso = (/** @type {number} */ time) => new Date(time * 1000).toISOString();
+        const [first, after] = await Promise.all([at(index, iso(place.date.from)), place.date.day ? null : at(index, iso(place.date.to + 1))]);
+        if (!first.data.length) return `No ${INTERVAL_LABEL[index].toLowerCase()} from ${place.date.label} on yet`;
+        const last = after?.data.length ? Math.max(first.start, after.data[0] <= place.date.to ? after.start : after.start - 1) : place.date.day ? first.start : indexAt(index, nowAt(index));
+        return { from: timeAt(index, first.start), to: timeAt(index, last + 1) - 1, day: place.date.day, label: `${place.date.label}, ${INTERVAL_LABEL[index].toLowerCase()} ${grouped.format(first.start)}${last > first.start ? ` to ${grouped.format(last)}` : ""}` };
+      }
+      /**
+       * Go to a place (see readPlace): there once found, else why not. (The latest Go, as goToDate counts them, on the
+       * chart it was asked on, on the same timeline: another asked, or the chart or its kind left meanwhile, it goes nowhere.)
+       */
+      async function goToPlace(/** @type {ReturnType<typeof readPlace>} */ place) {
+        if (!place) return;
+        const go = ++dateGoes, on = `${chart.id}:${BY_NUMBER.has(shownIndex())}`;
+        const span = await placeSpan(place).catch(() => "Bitview didn't answer: try again in a moment");
+        if (go !== dateGoes || on !== `${chart.id}:${BY_NUMBER.has(shownIndex())}`) return;
+        if (typeof span === "string") return notice(span);
+        if (outOfData(span)) return notice(outOfData(span));
+        goToDate(span, 0, go);
+      }
+      /** Go to's previews asked, each its own (see previewPlace). */
+      let placePreviews = 0;
+      /** Go to's preview: the span lit on the overview, found first when it's across (a block by date, a date by number). */
+      async function previewPlace(/** @type {HTMLElement} */ panel, /** @type {ReturnType<typeof readPlace>} */ place) {
+        const near = place && nearSpan(place);
+        if (!place || near) return previewDate(panel, near);
+        const mark = String(++placePreviews);
+        panel.innerHTML = `<h4 class="plain">${escape(capitalize(placeLabel(place)))}</h4><p class="description" data-finding="${mark}">Finding it…</p>`;
+        const span = await placeSpan(place).catch(() => "Bitview didn't answer");
+        // (Shown still: another preview meanwhile, or ⌘K closed, has the panel.)
+        if (!$("palette").open || !panel.querySelector(`[data-finding="${mark}"]`)) return;
+        if (typeof span === "string") panel.innerHTML = `<h4 class="plain">${escape(capitalize(placeLabel(place)))}</h4><p class="description">${escape(span)}</p>`;
+        else previewDate(panel, span);
+      }
+      /**
+       * Go to, typed in ⌘K's field: a date or a block (see readPlace), at any interval; the span it names lit on the
+       * overview; ↵ takes the view there and closes ⌘K.
+       */
+      const goPage = () => inputPage({
+        title: "Go to", value: "", placeholder: "2021, nov 2021, 10 nov 2021, 840000…", verb: "Go", icon: ICONS.calendar, closes: true,
+        hint: (text) => ((place) => (!place ? "Type a date or a block" : ((near) => (near ? outOfData(near) : ""))(nearSpan(place))))(readPlace(text)),
+        read: (text) => ((place) => (place && !((near) => near && outOfData(near))(nearSpan(place)) ? `Go to ${placeLabel(place)}` : null))(readPlace(text)),
         // (Then the navigator has the keys, on from there: ← → ↑ ↓; by touch, none.)
-        apply: (text) => (goToDate((blocks ? readBlock : readDate)(text)), !TOUCH && requestAnimationFrame(() => $("navigator").focus({ preventScroll: true }))),
-        preview: (panel, text) => previewDate(panel, (blocks ? readBlock : readDate)(text)),
-      }))(BY_NUMBER.has(chart.index));
+        apply: (text) => (void goToPlace(readPlace(text)), !TOUCH && requestAnimationFrame(() => $("navigator").focus({ preventScroll: true }))),
+        preview: (panel, text) => void previewPlace(panel, readPlace(text)),
+      });
       /** ⌘K, straight on a page. @param {Page} page */
       function openPage(page) {
         // (Opened on it: ⌘K's own way in, no page turned; open already, the page it shows leaves.)
@@ -32837,7 +32896,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (key === "l" && chart.layers.length) toggleLog(scalePane().id);
         else if (key === "m" && chart.layers.length) setTool(tool === "ruler" ? "" : "ruler");
         else if (key === "d" && chart.layers.length) focusBelt();
-        else if (key === "g" && chart.layers.length) openPage(datePage());
+        else if (key === "g" && chart.layers.length) openPage(goPage());
         else if (event.key === "-" || event.key === "_") zoom(1.6);
         else if (event.key === "=" || event.key === "+") zoom(1 / 1.6);
         else if (/^[1-5]$/.test(event.key) && rangesFor(chart.index)[Number(event.key) - 1]) {
