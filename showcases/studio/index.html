@@ -37,14 +37,18 @@
         const ground = theme === "light" || (theme === "system" && matchMedia("(prefers-color-scheme: light)").matches) ? "#f6f6f7" : "#08090a";
         const manifest = { id: here, name: "Bitview Studio", short_name: "Bitview Studio", start_url: here, scope: here.replace(/[^/]*$/, ""), display: "standalone", background_color: ground, theme_color: ground, icons: [{ src: icon("icon"), sizes: "any", type: "image/svg+xml" }, { src: icon("apple-touch-icon"), sizes: "180x180", type: "image/png" }] };
         /** @type {HTMLLinkElement} */ (document.getElementById("manifest")).href = `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`;
-        // (Added to an iPhone's home screen, its launch screen too, iOS's white else while the app starts: its ground, this
-        // phone's size, made once the page has loaded. Only Safari's own, where it's added: installed, it's already there.)
+        // Added to an iPhone's home screen, it opens orange (Bitview's, the logo's): its launch screen (iOS's white else
+        // while the app starts), this phone's size, made once the page has loaded, only in Safari, where it's added
+        // (installed, it's already there); then the page's first frames, orange too, fading into it as it's ready (see
+        // [data-launch]).
+        const orange = "#e65b00";
+        if (/** @type {any} */ (navigator).standalone) document.documentElement.dataset.launch = "";
         if (/** @type {any} */ (navigator).standalone === false) addEventListener("load", () => setTimeout(() => {
           const canvas = document.createElement("canvas"), context = canvas.getContext("2d"), link = document.createElement("link");
           canvas.width = Math.round(screen.width * devicePixelRatio);
           canvas.height = Math.round(screen.height * devicePixelRatio);
           if (!context) return;
-          context.fillStyle = ground;
+          context.fillStyle = orange;
           context.fillRect(0, 0, canvas.width, canvas.height);
           link.rel = "apple-touch-startup-image";
           link.href = canvas.toDataURL("image/png");
@@ -329,6 +333,42 @@
         a {
           text-decoration: none;
           animation: booting var(--dur-page) var(--ease) 12s both;
+        }
+      }
+
+      /* Opened from a home screen (see the manifest's script): orange over the page from its first frame, as its launch
+         screen was, fading as it's ready; not ready (its script held back), after a while all the same, the page's word
+         of it shown. Gone once faded (see the launch's script). */
+      html[data-launch]::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        background: #e65b00;
+        pointer-events: none;
+        animation: launch-out 450ms var(--ease) 6s forwards;
+      }
+
+      html[data-launch="out"]::after {
+        animation-name: launch-ready;
+        animation-delay: 0s;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html[data-launch]::after {
+          animation-duration: 1ms;
+        }
+      }
+
+      @keyframes launch-out {
+        to {
+          opacity: 0;
+        }
+      }
+
+      @keyframes launch-ready {
+        to {
+          opacity: 0;
         }
       }
 
@@ -7829,6 +7869,17 @@
             height: calc(env(safe-area-inset-top) + 12px);
             background: color-mix(in srgb, var(--card) 1%, transparent);
             pointer-events: none;
+          }
+
+          /* (Opened from the home screen, its bar orange as the launch's cover is, till it fades (then the page's, read at
+             once): over the cover while it's there, which iOS would find first and pass over (a pseudo-element, found as
+             the page itself), see [data-launch].) */
+          html[data-launch] .top-strip {
+            z-index: 101;
+          }
+
+          html[data-launch=""] .top-strip {
+            background: #e65b00;
           }
         }
 
@@ -34025,8 +34076,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const aside = storage.get(UNREAD, []), told = Array.isArray(aside) ? String(JSON.stringify(aside).length) : "";
         if (Array.isArray(aside) && aside.length && storage.get(`${UNREAD}:told`, "") !== told && storage.set(`${UNREAD}:told`, told)) notice(`${plural(aside.length, "saved chart")} couldn't be read here: kept aside`, { label: "Download", run: () => download("bitview-charts-kept-aside.json", new Blob([JSON.stringify({ v: 2, charts: aside }, null, 2)], { type: "application/json" })) });
       }
+      // (Its launch's orange, fading once the page ready is on the screen (two frames on: iOS shows a page's first frame
+      // late, a fade begun at once would be most of the way through), then gone, no layer left over the page.)
+      document.documentElement.addEventListener("animationend", (event) => event.target === document.documentElement && event.pseudoElement === "::after" && delete document.documentElement.dataset.launch);
+      const launched = () => "launch" in document.documentElement.dataset && requestAnimationFrame(() => requestAnimationFrame(() => "launch" in document.documentElement.dataset && (document.documentElement.dataset.launch = "out")));
       // (Shown whatever start makes of it: one failing shows what it got to, not a page held out of sight.)
-      navigate(start().finally(() => (document.documentElement.dataset.ready = "")));
+      navigate(start().finally(() => ((document.documentElement.dataset.ready = ""), launched())));
     </script>
   </body>
 </html>
