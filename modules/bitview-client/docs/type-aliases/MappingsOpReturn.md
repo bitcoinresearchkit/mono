@@ -16,4 +16,4 @@ Defined in: [modules/bitview-client/index.js:6395](https://github.com/bitcoinres
 
 ### identity
 
-> **identity**: [`SeriesPattern25`](SeriesPattern25.md)\<[`OpReturnIndex`](OpReturnIndex.md)\>
+> **identity**: [`SeriesPattern25`](SeriesPattern25.md)\<[`OpReturnOutputIndex`](OpReturnOutputIndex.md)\>

@@ -16,7 +16,7 @@ Defined in: [modules/bitview-client/index.js:6537](https://github.com/bitcoinres
 
 ### firstIndex
 
-> **firstIndex**: [`SeriesPattern18`](SeriesPattern18.md)\<[`OpReturnIndex`](OpReturnIndex.md)\>
+> **firstIndex**: [`SeriesPattern18`](SeriesPattern18.md)\<[`OpReturnOutputIndex`](OpReturnOutputIndex.md)\>
 
 ### postOpReturnBytes
 
