@@ -5509,6 +5509,24 @@
         color: light-dark(color-mix(in oklab, var(--c, var(--ink)), black 32%), var(--c, var(--ink)));
       }
 
+      /* (A value older than the view's end: when it's from, after it, quieter: see asOf.) */
+      [data-value][data-as-of]::after {
+        content: " · " attr(data-as-of);
+        color: var(--muted);
+        font-weight: 400;
+      }
+
+      /* (In the panel, under it: the layer's name keeps its room.) */
+      .row-value[data-as-of] {
+        text-align: right;
+
+        &::after {
+          content: attr(data-as-of);
+          display: block;
+          font-size: 11px;
+        }
+      }
+
       [data-value].named {
         display: inline-block;
         max-width: 9.5rem;
@@ -15702,12 +15720,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The point the readout describes: the one under the crosshair, else the view's last (`rest`). */
       const readPoint = () => (hoverTime === null ? { at: lastShown(), rest: true } : { at: indexOfTime(hoverTime), rest: false });
-      /** A layer's value at a point; at rest, its last one up to there (a series can end before the others). */
-      function valueAt(layer, { at, rest }) {
+      /** The point a layer's value is from: the one asked; at rest, its last up to there (a series can end before the others). */
+      function valuePointOf(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ { at, rest }) {
         const values = resolved?.results.get(layer.id)?.values;
-        if (!values || at < 0) return NaN;
+        if (!values || at < 0) return -1;
         if (rest) while (at > 0 && !Number.isFinite(values[at])) at--;
-        return values[at];
+        return at;
+      }
+      /** A layer's value at a point (see valuePointOf). */
+      function valueAt(layer, point) {
+        const at = valuePointOf(layer, point);
+        return at < 0 ? NaN : /** @type {Float64Array} */ (resolved?.results.get(layer.id)?.values)[at];
+      }
+      /**
+       * When a layer's value at rest is from, said where it's older than the view's end by more than a point (one behind is
+       * the live price's bar the others haven't yet): its point's date; else nothing.
+       */
+      function asOf(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ point) {
+        const at = valuePointOf(layer, point), times = resolved?.times;
+        return point.rest && at >= 0 && at < point.at - 1 && times ? pointLabel(times[at]) : "";
       }
       /**
        * A cloud's range at a point, as its legend writes it: its lower to its higher (`lines`: its higher over its lower,
@@ -16197,6 +16228,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A named band's value: its name, in its color.)
           const value = valueAt(layer, point), band = result.low ? null : bandOf(layer, value), text = band ? band.name : result.low ? rangeAt(layer, point, unitFor(layer, result), "lines" in element.dataset) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "—";
           if (element.textContent !== text) element.textContent = text;
+          // (Older than the rest: when it's from, after it.)
+          const since = Number.isFinite(value) || result.low ? asOf(layer, point) : "";
+          if ((element.dataset.asOf ?? "") !== since) since ? (element.dataset.asOf = since) : delete element.dataset.asOf;
           const color = band ? cssColor(band.color) : "";
           if ((element.dataset.band ?? "") !== color) {
             element.dataset.band = color;
@@ -16575,8 +16609,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function sayValue(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ point) {
         const result = resolved?.results.get(layer.id);
         if (!result || result.error) return (result?.error ?? "no data").toLowerCase();
-        const value = valueAt(layer, point);
-        return result.low ? rangeAt(layer, point, unitFor(layer, result)) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "no value";
+        const value = valueAt(layer, point), since = asOf(layer, point);
+        return `${result.low ? rangeAt(layer, point, unitFor(layer, result)) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "no value"}${since ? `, as of ${since}` : ""}`;
       }
       /** What the chart shows, in words: its interval and dates, each pane's layers with their values at the view's end. */
       function chartFacts() {
