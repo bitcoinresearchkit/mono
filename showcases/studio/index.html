@@ -4746,8 +4746,8 @@
 
       }
 
-      /* Share: the link's QR code across the popover, dark on white as scanners read it (the website's, square modules),
-         then the chart it opens and what was done, in line with the rows under them. */
+      /* Share: the chart its link opens and what was done with it, in line with the rows under them; then the link's QR code
+         across the popover, dark on white as scanners read it (the website's, square modules), what it's for under it. */
       .share-pop {
         width: min-content;
         min-width: 212px;
@@ -4761,7 +4761,7 @@
         }
 
         .share-text {
-          padding: 10px 8px 6px;
+          padding: 6px 8px 10px;
         }
 
         p {
@@ -4796,7 +4796,9 @@
         }
 
         .share-said {
+          padding: 6px 8px;
           color: var(--muted);
+          text-align: center;
         }
       }
 
@@ -8428,6 +8430,12 @@
               .share-text {
                 grid-column: 2;
                 padding: 2px 4px 8px;
+              }
+
+              .share-said {
+                grid-column: 2;
+                padding: 0 4px 8px;
+                text-align: left;
               }
 
               .share-done {
@@ -13006,8 +13014,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (document.activeElement === $("keep")) keepFocus(null, () => $("chart-more"), () => $("plot-keys"));
         library.charts.unshift(doc);
         dropPreview(doc);
-        // (Its toast asking for it to be kept: done.)
-        if (toastOfPreview === doc) hideToast();
         save(announce);
         renderCharts();
         clearLink();
@@ -14615,7 +14621,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const showLoading = pending > 0 && (first || !resolved);
         $("progress").hidden = !(pending > 0 && !showLoading);
         if (showLoading) {
-          $("loading-text").textContent = `Loading ${pending} series from ${SERVER_HOST}`;
+          // (How many, not from where: the live pill's tip says where, and an error, if it can't be reached.)
+          $("loading-text").textContent = `Loading ${grouped.format(pending)} series`;
           $("loading").hidden = false;
           $("navigator").classList.add("waiting");
         }
@@ -30566,8 +30573,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const done = SHEET_SHARE ? "" : copied ? "Link copied" : "Couldn't copy the link";
           const code = qr ? (SHEET_SHARE && phone.matches ? "Scan to open it on another phone" : "Scan to open it on a phone") : "Too long for a QR code";
           say([done, code].filter(Boolean).join(". "));
-          // (The code on its card, the chart it opens, what was done, then what else.)
-          showMenu(button, `<div class="share-pop">${qr ?? ""}<div class="share-text"><p class="share-title">${escape(titleOf(doc))}</p>${done ? `<p class="share-done${copied ? "" : " failed"}">${copied ? ICONS.check : ""}${done}</p>` : ""}<p class="share-said">${code}</p></div></div><div class="menu-rule"></div>${SHEET_SHARE ? `<button type="button" data-share="sheet">${ICONS.share}Share…</button>` : ""}${copied ? "" : `<button type="button" data-share="copy">${ICONS.copy}Copy link</button>`}<button type="button" data-share="open">${ICONS.link}Open in a new tab</button>`, async ({ share }) => {
+          // (The chart it opens and what was done, the link; under them its code, to scan; then what else.)
+          showMenu(button, `<div class="share-pop"><div class="share-text"><p class="share-title">${escape(titleOf(doc))}</p>${done ? `<p class="share-done${copied ? "" : " failed"}">${copied ? ICONS.check : ""}${done}</p>` : ""}</div>${qr ?? ""}<p class="share-said">${code}</p></div><div class="menu-rule"></div>${SHEET_SHARE ? `<button type="button" data-share="sheet">${ICONS.share}Share…</button>` : ""}${copied ? "" : `<button type="button" data-share="copy">${ICONS.copy}Copy link</button>`}<button type="button" data-share="open">${ICONS.link}Open in a new tab</button>`, async ({ share }) => {
             if (share === "open") window.open(url, "_blank", "noopener");
             else if (share === "copy") (await copyLink(Promise.resolve(url))) ? toast("Copied a link: it opens this chart for anyone") : notice("Couldn't copy the link");
             else if (share === "sheet") {
@@ -30578,7 +30585,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               }
             }
           });
-          // (The code first, in sight: the row taking the focus may be under it, as on a phone on its side.)
+          // (Its top first, in sight: the row taking the focus may be under the code, as on a phone on its side.)
           $("menu").scrollTop = 0;
         })();
       });
@@ -31727,8 +31734,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         syncUndo();
         if (saves === saved && toasts === said) notice(`Changed since: nothing to redo (${step.text})`);
       }
-      /** The preview the toast up asks to be kept (once kept, it's put away). */
-      let toastOfPreview = /** @type {Chart | null} */ (null);
       /** The step the toast up came with: its chart, and how many steps back it is once made (undone, it's put away). */
       let toastStep = /** @type {{ chart: Chart, depth: number } | null} */ (null);
       /**
@@ -31759,7 +31764,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A Library step: kept, as long as the Library's are.)
         const step = undoes && action && !action.chart ? libraryStep(text, action.run, action.undone) : null;
         if (step && action?.folder) step.folder = action.folder;
-        toastOfPreview = null;
         // (Said with an edit of the open chart, it's that edit's step; else, a deleted chart's, a copied link's, no step's.)
         toastStep = chartChanged ? { chart, depth: edits.past.length } : null;
         // (No ✓ where there's an Undo: a removal, a move, isn't a success to tick; ✓ elsewhere says what's chosen.)
@@ -31827,7 +31831,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("toast").classList.remove("visible");
         unsay();
         toastUndo = toastRedo = null;
-        toastOfPreview = null;
         syncUndo();
       }
       /** What the last toast put on a status line, and that line (the page's, or a dialog's, the toast moved out since). */
@@ -32729,7 +32732,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // the chart steps on from it).)
           if (shared !== null && !picturing) history.replaceState(home ? { ...(history.state?.home ? history.state : {}), ...homeState() } : { chart: (twin ?? doc).id }, "", `${location.pathname}${location.search}`);
           if (shared !== null) reading.hash = "";
-          if (!picturing) toast(twin ? `Opened a shared chart you have already${lost}` : `Opened a shared chart: Save it to have it in your Library${lost}`, twin ? undefined : { label: "Save", run: () => void (toastOfPreview && keepChart(toastOfPreview)) }), (toastOfPreview = twin ? null : doc);
+          // (A preview says so in its header, Save beside it: shown again only what that can't say, that it's one you have,
+          // or drawings of it lost; else said, for a screen reader, the header not being read out.)
+          if (!picturing) twin || lost ? toast(`Opened a shared chart${twin ? " you have already" : ""}${lost}`) : say("Opened a shared chart: a preview. Save puts it in your Library");
           return twin ?? doc;
         } catch (error) {
           // (Written by hand, why: to tell whoever wrote it; a newer link meanwhile, or a chart opened, nothing.)
@@ -32746,12 +32751,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function showLinked(/** @type {Chart} */ doc) {
         if (doc === chart) leaveHome(() => { drawnChart = ""; autoPrepare(doc); refresh(true, true); });
         else if (library.charts.includes(doc)) leaveHome(() => openChart(doc));
-        else {
-          // (The toast asking for it kept: the one shown's, a preview of it already there maybe.)
-          const shown = showPreview(doc);
-          if (toastOfPreview === doc) toastOfPreview = shown;
-          return shown;
-        }
+        else return showPreview(doc);
         return doc;
       }
       // A link pasted into this tab while it's open.
@@ -33178,7 +33178,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (shared) {
           const like = !library.charts.includes(shared) && previewLike(shared);
           if (like) (like.range = shared.range), takeView(shared.id, like.id);
-          if (like && toastOfPreview === shared) toastOfPreview = like;
           chart = like || shared;
           if (!library.charts.includes(chart)) addPreview(chart), keepAsideOpened(chart);
         }
