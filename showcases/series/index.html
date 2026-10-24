@@ -26,6 +26,7 @@
       :root {
         color-scheme: light dark;
         --app: light-dark(#fbfaf7, #0e0f11);
+        --dot: light-dark(#f5f3ed, #23262c);
         --pane: light-dark(#ffffff, #141519);
         --well: light-dark(#f3f1ec, #1b1d22);
         --ink: light-dark(#17181b, #eceae5);
@@ -38,6 +39,7 @@
         --pick: light-dark(#fbe9dc, #33221a);
         --pick-strong: light-dark(#f6d7bf, #47291a);
         --trail: light-dark(#efece5, #212329);
+        --solid: #c24e06;
         --hover: light-dark(#f4f1ea, #1c1e23);
         --raise: light-dark(#ffffff, #2b2d34);
         --plot: light-dark(#d4570a, #f2873a);
@@ -57,11 +59,12 @@
         height: 100%;
       }
 
+      /* (Behind the panes, plotting paper: a dot every 16px.) */
       body {
         margin: 0;
         display: grid;
         grid-template-rows: auto 1fr;
-        background: var(--app);
+        background: var(--app) radial-gradient(circle, var(--dot) 1px, transparent 1.2px) 0 0 / 16px 16px;
         color: var(--ink);
         font: 14px/1.5 var(--sans);
         font-feature-settings: "cv11", "ss01";
@@ -268,9 +271,8 @@
           padding: 12px 14px 9px;
           border-bottom: 1px solid var(--line);
           color: var(--faint);
-          font-size: 11px;
-          font-weight: 600;
-          letter-spacing: 0.06em;
+          font: 600 11px var(--mono);
+          letter-spacing: 0.04em;
           text-transform: uppercase;
 
           span {
@@ -345,7 +347,7 @@
           align-items: center;
           gap: 4px;
           color: var(--faint);
-          font-size: 12px;
+          font: 11.5px var(--mono);
         }
 
         .id {
@@ -363,8 +365,38 @@
         }
       }
 
+      /* (A column's row: its glyph, its name and count, a series' id under its name.) */
+      .column .row {
+        grid-template-columns: 16px minmax(0, 1fr) auto;
+        column-gap: 9px;
+
+        /* (On its name's line: a series' id under them both.) */
+        .glyph {
+          grid-row: 1;
+          align-self: center;
+          width: 16px;
+          height: 16px;
+          color: var(--faint);
+        }
+
+        .id {
+          grid-column: 2 / -1;
+        }
+      }
+
+      .row.end .glyph {
+        color: var(--accent);
+        opacity: 1;
+      }
+
+      /* (Where the keys are, the open end solid, as a Mac's list shows its selection.) */
       .column:focus-within .row.end {
-        background: var(--pick-strong);
+        background: var(--solid);
+        color: #fff;
+
+        :is(.side, .id, .glyph) {
+          color: #fff;
+        }
       }
 
       /* (A lit row's small words a shade darker, readable on its tint.) */
@@ -406,14 +438,6 @@
         overflow-y: auto;
         padding: 28px clamp(20px, 3vw, 40px) 48px;
 
-        h1 {
-          margin: 0;
-          font-size: clamp(22px, 2.4vw, 30px);
-          font-weight: 600;
-          letter-spacing: -0.025em;
-          line-height: 1.15;
-        }
-
         > p {
           margin: 6px 0 0;
           color: var(--faint);
@@ -430,26 +454,40 @@
       .tile {
         display: grid;
         align-content: start;
-        gap: 6px;
+        gap: 10px;
         min-width: 0;
-        padding: 12px 14px 14px;
+        padding: 14px 14px 16px;
         border: 1px solid var(--line);
-        border-radius: var(--radius);
+        border-radius: 12px;
         background: var(--pane);
         text-align: left;
 
+        /* (Its glyph, name and count: a way into it.) */
         > button {
           display: flex;
-          align-items: baseline;
-          justify-content: space-between;
-          gap: 10px;
+          align-items: center;
+          gap: 8px;
           padding: 0;
           text-align: left;
+
+          .glyph {
+            flex: none;
+            width: 16px;
+            height: 16px;
+            color: var(--accent);
+          }
+
+          &:hover b {
+            color: var(--accent-ink);
+          }
         }
 
         b {
+          flex: 1;
           overflow: hidden;
+          font-size: 14.5px;
           font-weight: 600;
+          letter-spacing: -0.01em;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
@@ -460,34 +498,37 @@
           font-size: 12px;
         }
 
-        > button:hover b {
-          color: var(--accent-ink);
-        }
-
-        /* (What's in it, each a way straight there.) */
+        /* (What's in it, each a small way straight there; how many more after them.) */
         p {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 5px;
           margin: 0;
-          color: var(--faint);
-          font-size: 12.5px;
-          line-height: 1.6;
 
-          /* (Each with its comma, never a line starting with one; a long name wrapping within the tile.) */
+          button,
           span {
+            max-width: 100%;
+            padding: 2px 8px;
+            overflow: hidden;
+            border-radius: 6px;
+            font-size: 12px;
+            line-height: 1.6;
+            text-overflow: ellipsis;
             white-space: nowrap;
           }
 
           button {
-            max-width: calc(100% - 0.5em);
-            padding: 0;
-            white-space: normal;
+            background: var(--well);
             color: var(--soft);
-            text-align: left;
 
             &:hover {
-              color: var(--ink);
-              text-decoration: underline;
-              text-underline-offset: 2px;
+              background: var(--pick);
+              color: var(--accent-ink);
             }
+          }
+
+          span {
+            color: var(--faint);
           }
         }
 
@@ -506,6 +547,10 @@
         b {
           color: var(--accent-ink);
         }
+      }
+
+      main.whole .crumbs {
+        display: none;
       }
 
       .crumbs {
@@ -529,12 +574,15 @@
         }
       }
 
-      .series h1 {
+      /* (A name in the ids' own face, the two one family.) */
+      .series h1,
+      .overview h1 {
         margin: 0;
-        font-size: clamp(22px, 2.4vw, 30px);
+        font-family: var(--mono);
+        font-size: clamp(21px, 2.2vw, 28px);
         font-weight: 600;
-        letter-spacing: -0.025em;
-        line-height: 1.15;
+        letter-spacing: -0.03em;
+        line-height: 1.2;
         text-wrap: balance;
       }
 
@@ -712,12 +760,10 @@
           min-width: 0;
         }
 
-        /* (The number read: the pane's largest after its name.) */
+        /* (The number read: the pane's largest after its name, as a meter shows it.) */
         b {
-          font-size: 24px;
-          font-weight: 600;
-          letter-spacing: -0.025em;
-          line-height: 1.15;
+          font: 600 26px/1.1 var(--mono);
+          letter-spacing: -0.04em;
           white-space: nowrap;
         }
 
@@ -1088,6 +1134,8 @@
 
       const ICON = {
         chevron: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 6 6 6-6 6" /></svg>`,
+        folder: `<svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4l2 2h8a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z" /></svg>`,
+        line: `<svg class="glyph" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4 16 4.5-5 3.5 3 6.5-7.5" /><path d="M4 20h16" opacity=".45" /></svg>`,
         back: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 6-6 6 6 6" /></svg>`,
         copy: `<svg class="undone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h9" /></svg>`,
         copied: `<svg class="done" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5" /></svg>`,
@@ -1351,6 +1399,8 @@
         const shown = Math.max(1, Math.min(columns.length, Math.floor((width - least) / column)));
         after.style.flexBasis = `${Math.max(least, width - shown * column)}px`;
         main.scrollLeft = main.scrollWidth;
+        // (Every column in sight: the series' crumbs would only say them again.)
+        main.classList.toggle("whole", shown >= columns.length);
       }
       new ResizeObserver(() => fit()).observe(main);
       /** A folder's column: its folders and series, the one open marked; a phone's way back above. */
@@ -1360,7 +1410,7 @@
         const rows = /** @type {Node[]} */ (folder.kids).map((kid, i) => {
           const current = kid.key === open;
           return `<li><button type="button" class="row${current && end ? " end" : ""}" tabindex="${i === stop ? 0 : -1}" data-path="${escape(JSON.stringify(kid.path))}" aria-current="${current}"${kid.name ? "" : ` aria-label="${escape(kid.label)}, ${kid.count} series"`}>
-            <span class="label">${escape(kid.label)}</span>
+            ${kid.name ? ICON.line : ICON.folder}<span class="label">${escape(kid.label)}</span>
             ${kid.name ? "" : `<span class="side num">${grouped.format(kid.count)}${ICON.chevron}</span>`}
             ${kid.name ? `<span class="id">${escape(kid.name)}</span>` : ""}
           </button></li>`;
@@ -1377,8 +1427,8 @@
         const tiles = /** @type {Node[]} */ (folder.kids).map((kid) => {
           if (kid.name) return `<button type="button" class="tile" data-path="${escape(JSON.stringify(kid.path))}"><b>${escape(kid.label)}</b><code>${escape(kid.name)}</code></button>`;
           const kids = /** @type {Node[]} */ (kid.kids), more = kids.length - FIRST;
-          return `<div class="tile"><button type="button" data-path="${escape(JSON.stringify(kid.path))}"><b>${escape(kid.label)}</b><span class="num">${grouped.format(kid.count)}</span></button>
-            <p>${kids.slice(0, FIRST).map((node, i, shown) => `<span>${link(node)}${i < shown.length - 1 || more > 0 ? "," : ""}</span>`).join(" ")}${more > 0 ? ` and ${more} more` : ""}</p></div>`;
+          return `<div class="tile"><button type="button" data-path="${escape(JSON.stringify(kid.path))}">${ICON.folder}<b>${escape(kid.label)}</b><span class="num">${grouped.format(kid.count)}</span></button>
+            <p>${kids.slice(0, FIRST).map(link).join("")}${more > 0 ? `<span class="num">+${more}</span>` : ""}</p></div>`;
         }).join("");
         const count = grouped.format(folder.path.length ? folder.count : byName.size);
         return `<section class="overview" aria-labelledby="overview-title"><h1 id="overview-title">${escape(folder.label || "All series")}</h1><p>${count} series, folder by folder<span class="keys">: ↑ ↓ along a column, → in, ← out, / to search</span></p><div class="tiles">${tiles}</div></section>`;
@@ -1629,12 +1679,16 @@
         const values = ticks(low, high, log), apart = (/** @type {string[]} */ texts) => new Set(texts).size === texts.length;
         let labels = values.map((v) => format(v, type, true));
         for (let digits = 5; !apart(labels) && digits <= 12; digits++) labels = values.map((v) => format(v, type, true, digits));
-        const widest = Math.max(0, ...labels.map((label) => ctx.measureText(label).width));
+        // (The latest's tag as wide as a label: room for it too.)
+        const latestText = ys.length - 1 >= from ? format(ys[ys.length - 1], type, true, 4) : "";
+        const widest = Math.max(0, ...[...labels, latestText].map((label) => ctx.measureText(label).width));
         const left = 14, right = box.width - Math.max(64, Math.ceil(widest) + 16), top = 10, bottom = box.height - 26;
         // (Placed by their index, not their count: a missing stretch keeps its width, a gap in the line.)
         const first = xs[from], span = /** @type {number} */ (xs.at(-1)) - first;
         const X = (/** @type {number} */ x) => left + (span > 0 ? ((x - first) / span) * (right - left) : (right - left) / 2);
         const Y = (/** @type {number} */ y) => bottom - ((scale(y) - low) / (high - low)) * (bottom - top);
+        // (Where the latest's tag will sit on the axis: no tick's label under it.)
+        const latestY = drawn(ys[ys.length - 1]) && ys.length - 1 >= from ? Y(ys[ys.length - 1]) : null;
         // Its grid and the value axis, at the right.
         ctx.fillStyle = color("--faint");
         ctx.strokeStyle = color("--grid");
@@ -1646,7 +1700,7 @@
           ctx.moveTo(left, Math.round(y) + 0.5);
           ctx.lineTo(right, Math.round(y) + 0.5);
           ctx.stroke();
-          ctx.fillText(labels[k], right + 8, y);
+          if (latestY === null || Math.abs(y - latestY) > 14) ctx.fillText(labels[k], right + 8, y);
         }
         // Its time axis: a mark where what it reads changes (a year, a month, a day), or round numbers.
         ctx.textBaseline = "alphabetic";
@@ -1676,6 +1730,36 @@
           ctx.closePath();
           ctx.fillStyle = wash;
           ctx.fill();
+        }
+        // The latest: a dot with a halo at its end, a dotted line across at its value, the value tagged on the axis.
+        const latest = ys.length - 1;
+        if (latestY !== null) {
+          const x = X(xs[latest]), y = latestY, text = latestText;
+          ctx.save();
+          ctx.setLineDash([2, 3]);
+          ctx.strokeStyle = ink("--plot", 0.5);
+          ctx.beginPath();
+          ctx.moveTo(left, Math.round(y) + 0.5);
+          ctx.lineTo(right, Math.round(y) + 0.5);
+          ctx.stroke();
+          ctx.restore();
+          ctx.fillStyle = ink("--plot", 0.2);
+          ctx.beginPath();
+          ctx.arc(x, y, 7, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = plotColor;
+          ctx.beginPath();
+          ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+          ctx.fill();
+          const w = Math.ceil(ctx.measureText(text).width) + 10, tagTop = Math.min(Math.max(y - 9, top - 4), bottom - 14);
+          ctx.fillStyle = color("--solid");
+          ctx.beginPath();
+          ctx.roundRect(right + 3, tagTop, w, 18, 4);
+          ctx.fill();
+          ctx.fillStyle = "#fff";
+          ctx.textBaseline = "middle";
+          ctx.fillText(text, right + 8, tagTop + 9.5);
+          ctx.textBaseline = "alphabetic";
         }
         // The point read, if any.
         if (hovered !== null && hovered >= from && drawn(ys[hovered])) {
