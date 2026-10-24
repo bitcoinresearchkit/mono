@@ -27644,7 +27644,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const typedParts = words.flatMap((typed) => typed.split("_")).filter(Boolean);
           const seriesByName = !palette.moved && names.some((name) => typedParts.every((typed) => name.split("_").some((part) => part.startsWith(typed))));
           const valueAlone = seriesByName ? unnamed.filter((row) => row.alone) : [], directRest = unnamed.filter((row) => !valueAlone.includes(row));
-          return [...leading, ...asFormula, ...named, ...dated, ...strong, ...directRest, ...(seriesByName ? own.slice(0, 3) : own), ...charts, ...presetRows, ...names.filter(isSeriesName).map((name) => ({ kind: "series", key: name, name, group: "Series" })), ...valueAlone, ...trailing, ...more];
+          // (A series' id typed whole, as pasted from the API: that series first, the rest where they'd be.)
+          const typedId = query.trim().toLowerCase().replace(/^add\s+(?=\S)/, ""), exact = names.includes(typedId) && isSeriesName(typedId);
+          const series = names.filter((name) => isSeriesName(name) && !(exact && name === typedId)).map((name) => ({ kind: "series", key: name, name, group: exact ? "More series" : "Series" }));
+          const rows = [...(exact ? [{ kind: "series", key: typedId, name: typedId, group: "Series" }] : []), ...leading, ...asFormula, ...named, ...dated, ...strong, ...directRest, ...(seriesByName ? own.slice(0, 3) : own), ...charts, ...presetRows, ...series, ...valueAlone, ...trailing, ...more];
+          return rows.length || !everything ? rows : browseInstead();
         }, landing);
       }
       /**
@@ -28103,7 +28107,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("palette-count").hidden = palette.pages.length > 0 || palette.formula;
         if (!$("palette-glow").hidden) $("palette-count").textContent = "";
         else if (palette.query.trim()) {
-          const found = palette.items.filter((row) => row.kind !== "widen").length, more = palette.items.filter((row) => row.kind === "series").length >= 80;
+          // (A row to look elsewhere (out of this folder, or to browse instead) isn't one found.)
+          const found = palette.items.filter((row) => row.kind !== "widen" && !row.elsewhere).length, more = palette.items.filter((row) => row.kind === "series").length >= 80;
           $("palette-count").textContent = found ? `${grouped.format(found)}${more ? "+" : ""} ${found === 1 && !more ? "result" : "results"}` : "No results";
           // (Said for a screen reader once the typing settles: one count a search, not one a key, nor again as the
           // highlight moves.)
@@ -28823,6 +28828,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ] : []),
         ];
       }
+      /** Nothing found: the two things searched, to browse instead (every series, by topic; the presets, by section), and other words to try. */
+      const browseInstead = () =>
+        [
+          ...(home ? [] : [{ key: "browse:series", icon: ICONS.series, label: "Browse every series", aside: "By topic", text: "Every series, in folders by topic", run: () => openPalette({ add: true, path: [] }) }]),
+          { key: "browse:presets", icon: ICONS.charts, label: "Browse the presets", aside: presets ? plural(presets.length, "chart") : "Loading…", text: "Ready-made charts, by section", page: () => presetsPage([]) },
+        ].map(({ text, ...row }) => ({ kind: "row", group: "Nothing matches. Browse instead", verb: "Open", elsewhere: true, preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">${escape(row.label)}</h4><p class="description">${text}. Or try other words: what a series measures, as you'd say it.</p>`), ...row }));
       function browseRows() {
         const any = chart.layers.length > 0;
         return [
