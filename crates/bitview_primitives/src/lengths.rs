@@ -106,8 +106,8 @@ impl Lengths {
             | Index::Month6
             | Index::Year1
             | Index::Year10
-            | Index::Halving
-            | Index::Epoch => return None,
+            | Index::HalvingEpoch
+            | Index::DifficultyEpoch => return None,
         })
     }
 

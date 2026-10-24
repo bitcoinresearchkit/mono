@@ -528,7 +528,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/series/indexes",
         summary: "List available indexes",
-        description: "Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only.",
+        description: "Returns every index a series can be read at, by the name series routes take.",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -859,9 +859,9 @@ pub static COMMANDS: &[Command] = &[
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`") },
-            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`") },
-            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`") },
+            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
+            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
+            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.") },
             Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: None },
         ],
         request_body: None,
@@ -877,9 +877,9 @@ pub static COMMANDS: &[Command] = &[
         query_parameters: &[
             Parameter { api_name: "series", name: "series", required: true, value_name: "SeriesList", repeatable: false, description: None },
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
-            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`") },
-            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`") },
-            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`") },
+            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
+            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
+            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.") },
             Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: None },
         ],
         request_body: None,
@@ -907,9 +907,9 @@ pub static COMMANDS: &[Command] = &[
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`") },
-            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`") },
-            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`") },
+            Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
+            Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
+            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.") },
             Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: None },
         ],
         request_body: None,
@@ -1147,7 +1147,7 @@ pub static COMMANDS: &[Command] = &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "UrpdCohort", repeatable: false, description: None },
         ],
         query_parameters: &[
-            Parameter { api_name: "agg", name: "agg", required: false, value_name: "UrpdAggregation", repeatable: false, description: Some("Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.") },
+            Parameter { api_name: "agg", name: "agg", required: false, value_name: "UrpdAggregation", repeatable: false, description: Some("Aggregation strategy. Default: raw (no aggregation).") },
             Parameter { api_name: "weight", name: "weight", required: false, value_name: "UrpdWeight", repeatable: false, description: Some("Supply weighting. Default: none (unweighted).") },
         ],
         request_body: None,
@@ -1163,7 +1163,7 @@ pub static COMMANDS: &[Command] = &[
             Parameter { api_name: "point", name: "point", required: true, value_name: "HeightOrDate", repeatable: false, description: Some("Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)") },
         ],
         query_parameters: &[
-            Parameter { api_name: "agg", name: "agg", required: false, value_name: "UrpdAggregation", repeatable: false, description: Some("Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.") },
+            Parameter { api_name: "agg", name: "agg", required: false, value_name: "UrpdAggregation", repeatable: false, description: Some("Aggregation strategy. Default: raw (no aggregation).") },
             Parameter { api_name: "weight", name: "weight", required: false, value_name: "UrpdWeight", repeatable: false, description: Some("Supply weighting. Default: none (unweighted).") },
         ],
         request_body: None,

@@ -26,8 +26,8 @@ impl ComputePlugin for Vecs {
             .compute_monotonic(indexer, starting_height, exit)?;
 
         self.lookback.update(starting_height);
-        self.epoch.update(starting_height);
-        self.halving.update(starting_height);
+        self.difficulty_epoch.update(starting_height);
+        self.halving_epoch.update(starting_height);
         self.minute10.update(starting_height);
         self.minute30.update(starting_height);
         self.hour1.update(starting_height);

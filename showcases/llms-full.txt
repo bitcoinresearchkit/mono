@@ -711,9 +711,9 @@ Fetch multiple series in a single request. Supports filtering by index and date 
 Parameters:
 - `series` (query, SeriesList, required)
 - `index` (query, Index, required)
-- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
-- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
-- `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
+- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+- `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
 - `format` (query, Format, optional)
 
 Returns: JSON `SeriesData[]`
@@ -730,9 +730,9 @@ Returns: JSON `DetailedSeriesCount`
 
 List available indexes
 
-Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only.
+Returns every index a series can be read at, by the name series routes take.
 
-Returns: JSON `IndexInfo[]`
+Returns: JSON `Index[]`
 
 #### GET `/api/series/list`
 
@@ -778,9 +778,9 @@ Rows selected by a range of positions, dates or timestamps, as JSON or CSV.
 Parameters:
 - `series` (path, SeriesName, required)
 - `index` (path, Index, required)
-- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
-- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
-- `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
+- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+- `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
 - `format` (query, Format, optional)
 
 Returns: JSON `SeriesData`
@@ -794,9 +794,9 @@ The data array without the `SeriesData` wrapper. Supports the same range and for
 Parameters:
 - `series` (path, SeriesName, required)
 - `index` (path, Index, required)
-- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
-- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
-- `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
+- `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+- `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+- `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
 - `format` (query, Format, optional)
 
 Returns: JSON `value[]`
@@ -1009,7 +1009,7 @@ URPD for the latest published block; `date` echoes the date served. Fields, unit
 
 Parameters:
 - `cohort` (path, UrpdCohort, required)
-- `agg` (query, UrpdAggregation, optional): Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
+- `agg` (query, UrpdAggregation, optional): Aggregation strategy. Default: raw (no aggregation).
 - `weight` (query, UrpdWeight, optional): Supply weighting. Default: none (unweighted).
 
 Returns: JSON `Urpd`
@@ -1023,7 +1023,7 @@ URPD for a cohort at a block height or the last block of a UTC day. Returns `{ h
 Parameters:
 - `cohort` (path, UrpdCohort, required)
 - `point` (path, HeightOrDate, required): Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-- `agg` (query, UrpdAggregation, optional): Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
+- `agg` (query, UrpdAggregation, optional): Aggregation strategy. Default: raw (no aggregation).
 - `weight` (query, UrpdWeight, optional): Supply weighting. Default: none (unweighted).
 
 Returns: JSON `Urpd`
@@ -1474,16 +1474,7 @@ Returns: JSON `ServerVersion`
 
 ### `Index`
 
-`minute10 | minute30 | hour1 | hour4 | hour12 | day1 | day3 | week1 | month1 | month3 | month6 | year1 | year10 | halving | epoch | height | tx_index | txin_index | txout_index | empty_script_output_index | op_return_index | p2a_address_index | p2ms_output_index | p2pk33_address_index | p2pk65_address_index | p2pkh_address_index | p2sh_address_index | p2tr_address_index | p2wpkh_address_index | p2wsh_address_index | unknown_script_output_index`
-
-### `IndexAlias`
-
-`10mn | 10y | 12h | 1d | 1h | 1m | 1mo | 1w | 1y | 30mn | 3d | 3m | 3mo | 4h | 6m | 6mo | aaddr | blk | block | d | daily | date | dateindex | day | day1 | day3 | decade | decadeindex | diff | difficulty | difficultyepoch | empty_script_output_index | emptyout | epoch | h | halv | halving | halvingepoch | height | hour | hour1 | hour12 | hour4 | hourly | m | minute10 | minute30 | month | month1 | month3 | month6 | monthindex | monthly | msout | op | op_return | op_return_index | opreturn | p2a_address_index | p2aaddr | p2ms_output_index | p2msout | p2pk33_address_index | p2pk33addr | p2pk65_address_index | p2pk65addr | p2pkh_address_index | p2pkhaddr | p2sh_address_index | p2shaddr | p2tr_address_index | p2traddr | p2wpkh_address_index | p2wpkhaddr | p2wsh_address_index | p2wshaddr | pk33addr | pk65addr | pkhaddr | q | quarter | quarterindex | quarterly | s | semester | semesterindex | shaddr | traddr | tx | tx_index | txi | txin | txin_index | txo | txout | txout_index | unknown_script_output_index | unknownout | w | week | week1 | weekindex | weekly | wpkhaddr | wshaddr | y | year | year1 | year10 | yearindex | yearly`
-
-### `IndexInfo`
-
-- `index`: `Index` (required) — The canonical index name
-- `aliases`: `IndexAlias[]` (required) — Every name REST queries accept for it; MCP tools take the canonical `index` only
+`minute10 | minute30 | hour1 | hour4 | hour12 | day1 | day3 | week1 | month1 | month3 | month6 | year1 | year10 | halving_epoch | difficulty_epoch | height | tx_index | txin_index | txout_index | empty_script_output_index | op_return_index | p2a_address_index | p2ms_output_index | p2pk33_address_index | p2pk65_address_index | p2pkh_address_index | p2sh_address_index | p2tr_address_index | p2wpkh_address_index | p2wsh_address_index | unknown_script_output_index`
 
 ### `JsonType`
 

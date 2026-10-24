@@ -1,9 +1,9 @@
 use std::{fmt::Write, ops::Range};
 
 use bitview_catalog::TreeNode;
-use bitview_primitives::{BlockHashPrefix, Date, Epoch, Halving, Index, SeriesName, TxOutIndex};
+use bitview_primitives::{BlockHashPrefix, Date, DifficultyEpoch, HalvingEpoch, Index, SeriesName, TxOutIndex};
 use bitview_types::{
-    DetailedSeriesCount, Format, IndexInfo, Limit, PaginatedSeries, Pagination, RangeIndex,
+    DetailedSeriesCount, Format, Limit, PaginatedSeries, Pagination, RangeIndex,
     SearchQuery, SeriesInfo, SeriesSelection,
 };
 use brk_types::{Height, Timestamp, TxIndex, Version};
@@ -313,8 +313,8 @@ impl Query {
         let v = self.indexer().vecs();
         let row = match index {
             Index::Height => usize::from(height),
-            Index::Epoch => usize::from(Epoch::from(height)),
-            Index::Halving => usize::from(Halving::from(height)),
+            Index::DifficultyEpoch => usize::from(DifficultyEpoch::from(height)),
+            Index::HalvingEpoch => usize::from(HalvingEpoch::from(height)),
             _ if index.is_date_based() => index.timestamp_to_index(
                 self.plugins()
                     .mappings
@@ -350,7 +350,7 @@ impl Query {
         match index {
             Index::Height => Some(Height::from(row)),
             // Their periods are fixed block counts: the block before the next one's first.
-            Index::Epoch | Index::Halving => {
+            Index::DifficultyEpoch | Index::HalvingEpoch => {
                 mappings.first_height_at(index, row + 1)?.decremented()
             }
             // Every block has transactions and outputs: the block holding `row`.
@@ -458,7 +458,7 @@ impl Query {
         self.vecs().series_count()
     }
 
-    pub fn indexes(&self) -> &'static [IndexInfo] {
+    pub fn indexes(&self) -> &'static [Index] {
         self.vecs().indexes()
     }
 
@@ -516,8 +516,8 @@ impl Query {
         }
         let to_index: fn(Height) -> usize = match index {
             Index::Height => usize::from,
-            Index::Epoch => |height| usize::from(Epoch::from(height)),
-            Index::Halving => |height| usize::from(Halving::from(height)),
+            Index::DifficultyEpoch => |height| usize::from(DifficultyEpoch::from(height)),
+            Index::HalvingEpoch => |height| usize::from(HalvingEpoch::from(height)),
             // Before the index's first period: its first row, as a height bound before genesis.
             _ if index.is_date_based()
                 && index.index_to_timestamp(0).is_some_and(|first| ts < first) =>

@@ -1,6 +1,6 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Count, Difficulty, Epoch, PartsPerMillionSigned32};
+use bitview_primitives::{Count, Difficulty, DifficultyEpoch, PartsPerMillionSigned32};
 use bitview_vecs::{
     LazyPerBlock, LazyPercentPerBlock, Resolutions,
     ops::{BlocksToDays, DifficultyToHashrate},
@@ -39,8 +39,8 @@ impl Vecs {
         let epoch_source = IndexVec::new(
             "difficulty_epoch_source",
             Version::ZERO,
-            mappings.height.epoch.read_only_clone(),
-            Epoch::from,
+            mappings.height.difficulty_epoch.read_only_clone(),
+            DifficultyEpoch::from,
         );
         let epoch = LazyPerBlock::from_height_source::<Ident>(
             "difficulty_epoch",
@@ -51,7 +51,7 @@ impl Vecs {
         let blocks_to_retarget_source = IndexVec::new(
             "blocks_to_retarget_source",
             version + v2,
-            mappings.height.epoch.read_only_clone(),
+            mappings.height.difficulty_epoch.read_only_clone(),
             blocks_left_to_retarget,
         );
         let blocks_to_retarget = LazyPerBlock::from_height_source::<Ident>(

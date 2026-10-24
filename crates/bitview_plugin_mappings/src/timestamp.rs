@@ -1,7 +1,7 @@
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{
-    Day1, Day3, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3, Month6,
-    Week1, Year1, Year10, with_resolution_fields,
+    Day1, Day3, DifficultyEpoch, HalvingEpoch, Hour1, Hour4, Hour12, Minute10, Minute30, Month1,
+    Month3, Month6, Week1, Year1, Year10, with_resolution_fields,
 };
 use bitview_traversable::Traversable;
 use bitview_vecs::{IndexSources, RangeMapVec, shapes::PerResolution};
@@ -60,11 +60,11 @@ macro_rules! define_timestamps {
                             sources.first_height.$field.clone(),
                             |idx| idx.to_timestamp(),
                         ),)*
-                        halving: BoundaryTimestampVec::new(
+                        halving_epoch: BoundaryTimestampVec::new(
                             raw_timestamps.clone(),
                             BLOCKS_PER_HALVING as usize,
                         ),
-                        epoch: BoundaryTimestampVec::new(
+                        difficulty_epoch: BoundaryTimestampVec::new(
                             raw_timestamps,
                             BLOCKS_PER_DIFF_EPOCH as usize,
                         ),

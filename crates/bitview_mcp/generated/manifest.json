@@ -7302,7 +7302,7 @@
       "tool": {
         "name": "get_indexes",
         "title": "List available indexes",
-        "description": "Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only.\n\nREST operation: `GET /api/series/indexes`.",
+        "description": "Returns every index a series can be read at, by the name series routes take.\n\nREST operation: `GET /api/series/indexes`.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -7312,7 +7312,7 @@
         "outputSchema": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/IndexInfo"
+            "$ref": "#/$defs/Index"
           },
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
@@ -7331,8 +7331,8 @@
                 "month6",
                 "year1",
                 "year10",
-                "halving",
-                "epoch",
+                "halving_epoch",
+                "difficulty_epoch",
                 "height",
                 "tx_index",
                 "txin_index",
@@ -7351,144 +7351,6 @@
                 "unknown_script_output_index"
               ],
               "type": "string"
-            },
-            "IndexAlias": {
-              "enum": [
-                "10mn",
-                "10y",
-                "12h",
-                "1d",
-                "1h",
-                "1m",
-                "1mo",
-                "1w",
-                "1y",
-                "30mn",
-                "3d",
-                "3m",
-                "3mo",
-                "4h",
-                "6m",
-                "6mo",
-                "aaddr",
-                "blk",
-                "block",
-                "d",
-                "daily",
-                "date",
-                "dateindex",
-                "day",
-                "day1",
-                "day3",
-                "decade",
-                "decadeindex",
-                "diff",
-                "difficulty",
-                "difficultyepoch",
-                "empty_script_output_index",
-                "emptyout",
-                "epoch",
-                "h",
-                "halv",
-                "halving",
-                "halvingepoch",
-                "height",
-                "hour",
-                "hour1",
-                "hour12",
-                "hour4",
-                "hourly",
-                "m",
-                "minute10",
-                "minute30",
-                "month",
-                "month1",
-                "month3",
-                "month6",
-                "monthindex",
-                "monthly",
-                "msout",
-                "op",
-                "op_return",
-                "op_return_index",
-                "opreturn",
-                "p2a_address_index",
-                "p2aaddr",
-                "p2ms_output_index",
-                "p2msout",
-                "p2pk33_address_index",
-                "p2pk33addr",
-                "p2pk65_address_index",
-                "p2pk65addr",
-                "p2pkh_address_index",
-                "p2pkhaddr",
-                "p2sh_address_index",
-                "p2shaddr",
-                "p2tr_address_index",
-                "p2traddr",
-                "p2wpkh_address_index",
-                "p2wpkhaddr",
-                "p2wsh_address_index",
-                "p2wshaddr",
-                "pk33addr",
-                "pk65addr",
-                "pkhaddr",
-                "q",
-                "quarter",
-                "quarterindex",
-                "quarterly",
-                "s",
-                "semester",
-                "semesterindex",
-                "shaddr",
-                "traddr",
-                "tx",
-                "tx_index",
-                "txi",
-                "txin",
-                "txin_index",
-                "txo",
-                "txout",
-                "txout_index",
-                "unknown_script_output_index",
-                "unknownout",
-                "w",
-                "week",
-                "week1",
-                "weekindex",
-                "weekly",
-                "wpkhaddr",
-                "wshaddr",
-                "y",
-                "year",
-                "year1",
-                "year10",
-                "yearindex",
-                "yearly"
-              ],
-              "type": "string"
-            },
-            "IndexInfo": {
-              "type": "object",
-              "properties": {
-                "index": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Index"
-                    }
-                  ]
-                },
-                "aliases": {
-                  "items": {
-                    "$ref": "#/$defs/IndexAlias"
-                  },
-                  "type": "array"
-                }
-              },
-              "required": [
-                "index",
-                "aliases"
-              ]
             }
           }
         },
@@ -11675,15 +11537,15 @@
               "$ref": "#/$defs/Index"
             },
             "start": {
-              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`",
+              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.",
               "$ref": "#/$defs/RangeIndex"
             },
             "end": {
-              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`",
+              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.",
               "$ref": "#/$defs/RangeIndex"
             },
             "limit": {
-              "description": "Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`",
+              "description": "Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.",
               "$ref": "#/$defs/Limit"
             },
             "format": {
@@ -11705,7 +11567,7 @@
               ]
             },
             "Index": {
-              "description": "Aggregation dimension for querying series. Includes time-based (date, week, month, year),\nblock-based (height, tx_index), and address/output type indexes.",
+              "description": "Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.",
               "type": "string",
               "enum": [
                 "minute10",
@@ -11721,8 +11583,8 @@
                 "month6",
                 "year1",
                 "year10",
-                "halving",
-                "epoch",
+                "halving_epoch",
+                "difficulty_epoch",
                 "height",
                 "tx_index",
                 "txin_index",
@@ -11821,8 +11683,8 @@
                 "month6",
                 "year1",
                 "year10",
-                "halving",
-                "epoch",
+                "halving_epoch",
+                "difficulty_epoch",
                 "height",
                 "tx_index",
                 "txin_index",
@@ -11934,15 +11796,15 @@
               "$ref": "#/$defs/Index"
             },
             "start": {
-              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`",
+              "description": "Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.",
               "$ref": "#/$defs/RangeIndex"
             },
             "end": {
-              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`",
+              "description": "Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.",
               "$ref": "#/$defs/RangeIndex"
             },
             "limit": {
-              "description": "Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`",
+              "description": "Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.",
               "$ref": "#/$defs/Limit"
             },
             "format": {
@@ -11964,7 +11826,7 @@
               ]
             },
             "Index": {
-              "description": "Aggregation dimension for querying series. Includes time-based (date, week, month, year),\nblock-based (height, tx_index), and address/output type indexes.",
+              "description": "Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.",
               "type": "string",
               "enum": [
                 "minute10",
@@ -11980,8 +11842,8 @@
                 "month6",
                 "year1",
                 "year10",
-                "halving",
-                "epoch",
+                "halving_epoch",
+                "difficulty_epoch",
                 "height",
                 "tx_index",
                 "txin_index",
@@ -12084,8 +11946,8 @@
                 "month6",
                 "year1",
                 "year10",
-                "halving",
-                "epoch",
+                "halving_epoch",
+                "difficulty_epoch",
                 "height",
                 "tx_index",
                 "txin_index",
@@ -12329,8 +12191,8 @@
                 "month6",
                 "year1",
                 "year10",
-                "halving",
-                "epoch",
+                "halving_epoch",
+                "difficulty_epoch",
                 "height",
                 "tx_index",
                 "txin_index",
@@ -12430,7 +12292,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Index": {
-              "description": "Aggregation dimension for querying series. Includes time-based (date, week, month, year),\nblock-based (height, tx_index), and address/output type indexes.",
+              "description": "Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.",
               "type": "string",
               "enum": [
                 "minute10",
@@ -12446,8 +12308,8 @@
                 "month6",
                 "year1",
                 "year10",
-                "halving",
-                "epoch",
+                "halving_epoch",
+                "difficulty_epoch",
                 "height",
                 "tx_index",
                 "txin_index",
@@ -12528,7 +12390,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Index": {
-              "description": "Aggregation dimension for querying series. Includes time-based (date, week, month, year),\nblock-based (height, tx_index), and address/output type indexes.",
+              "description": "Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.",
               "type": "string",
               "enum": [
                 "minute10",
@@ -12544,8 +12406,8 @@
                 "month6",
                 "year1",
                 "year10",
-                "halving",
-                "epoch",
+                "halving_epoch",
+                "difficulty_epoch",
                 "height",
                 "tx_index",
                 "txin_index",
@@ -12629,7 +12491,7 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "Index": {
-              "description": "Aggregation dimension for querying series. Includes time-based (date, week, month, year),\nblock-based (height, tx_index), and address/output type indexes.",
+              "description": "Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.",
               "type": "string",
               "enum": [
                 "minute10",
@@ -12645,8 +12507,8 @@
                 "month6",
                 "year1",
                 "year10",
-                "halving",
-                "epoch",
+                "halving_epoch",
+                "difficulty_epoch",
                 "height",
                 "tx_index",
                 "txin_index",
@@ -14127,7 +13989,7 @@
               "$ref": "#/$defs/UrpdCohort"
             },
             "agg": {
-              "description": "Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.",
+              "description": "Aggregation strategy. Default: raw (no aggregation).",
               "$ref": "#/$defs/UrpdAggregation"
             },
             "weight": {
@@ -14432,7 +14294,7 @@
               "$ref": "#/$defs/HeightOrDate"
             },
             "agg": {
-              "description": "Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.",
+              "description": "Aggregation strategy. Default: raw (no aggregation).",
               "$ref": "#/$defs/UrpdAggregation"
             },
             "weight": {

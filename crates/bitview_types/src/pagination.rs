@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 #[serde(deny_unknown_fields)]
 pub struct Pagination {
     /// Zero-based page number (default: 0)
-    #[serde(default, alias = "p")]
+    #[serde(default)]
     #[schemars(example = 0, example = 1, example = 2)]
     pub page: Option<usize>,
     /// Results per page (default: 1000, max: 1000)

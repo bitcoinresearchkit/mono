@@ -1,8 +1,8 @@
 use std::fmt::Debug;
 
 use bitview_primitives::{
-    Count, Date, Day1, Day3, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1,
-    Month3, Month6, Week1, Year1, Year10,
+    Count, Date, Day1, Day3, DifficultyEpoch, HalvingEpoch, Hour1, Hour4, Hour12, Minute10,
+    Minute30, Month1, Month3, Month6, Week1, Year1, Year10,
 };
 use bitview_traversable::Traversable;
 use bitview_vecs::LazyPreviousDeltaVec;
@@ -35,10 +35,10 @@ pub struct Vecs {
     /// timestamp, with period 1 beginning on 2009-01-03.
     pub day3: LazyVec<Height, Day3, Timestamp>,
     /// Zero-based difficulty epoch: block height divided by 2,016, rounded down.
-    pub epoch: IndexVec<Height, Epoch, ReadableBoxedVec<Height, Timestamp>>,
+    pub difficulty_epoch: IndexVec<Height, DifficultyEpoch, ReadableBoxedVec<Height, Timestamp>>,
     /// Zero-based halving epoch (block-subsidy era): block height divided by 210,000, rounded
     /// down; epoch zero begins at genesis.
-    pub halving: IndexVec<Height, Halving, ReadableBoxedVec<Height, Timestamp>>,
+    pub halving_epoch: IndexVec<Height, HalvingEpoch, ReadableBoxedVec<Height, Timestamp>>,
     /// Zero-based ISO week containing the block's monotonic timestamp, counted
     /// from ISO week 1 of 2009.
     pub week1: RangeMapLookupVec<Height, Week1>,

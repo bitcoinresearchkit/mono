@@ -42,9 +42,6 @@ impl TxInIndex {
     pub(crate) fn index_name() -> &'static str {
         "txin_index"
     }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["txi", "txin", "txin_index"]
-    }
 }
 
 brk_types::impl_integer_index!(TxInIndex, u64);

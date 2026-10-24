@@ -1,5 +1,5 @@
 use bitview_plugin_mappings::Vecs as MappingsVecs;
-use bitview_primitives::{Count, Halving};
+use bitview_primitives::{Count, HalvingEpoch};
 use bitview_vecs::{LazyPerBlock, ops::BlocksToDays};
 use brk_types::{Height, Version};
 use vecdb::{Ident, IndexVec, ReadOnlyClone};
@@ -17,8 +17,8 @@ impl Vecs {
         let epoch_source = IndexVec::new(
             "halving_epoch_source",
             Version::ZERO,
-            mappings.height.halving.read_only_clone(),
-            Halving::from,
+            mappings.height.halving_epoch.read_only_clone(),
+            HalvingEpoch::from,
         );
         let epoch = LazyPerBlock::from_height_source::<Ident>(
             "halving_epoch",
@@ -29,7 +29,7 @@ impl Vecs {
         let blocks_to_halving_source = IndexVec::new(
             "blocks_to_halving_source",
             version + v2,
-            mappings.height.halving.read_only_clone(),
+            mappings.height.halving_epoch.read_only_clone(),
             blocks_left_to_halving,
         );
         let blocks_to_halving = LazyPerBlock::from_height_source::<Ident>(

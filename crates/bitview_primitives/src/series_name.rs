@@ -1,7 +1,4 @@
-use std::{
-    borrow::Cow,
-    fmt::{Display, Formatter, Result},
-};
+use std::fmt::{Display, Formatter, Result};
 
 use derive_more::Deref;
 use schemars::JsonSchema;
@@ -17,17 +14,6 @@ use serde::{Deserialize, Serialize};
     example = &"realized_price"
 )]
 pub struct SeriesName(String);
-
-impl SeriesName {
-    /// Lookup key: `-` → `_`, lowercased. Borrows when already normalized.
-    pub fn normalize(&self) -> Cow<'_, str> {
-        if self.0.bytes().any(|b| b == b'-' || b.is_ascii_uppercase()) {
-            Cow::Owned(self.0.replace('-', "_").to_lowercase())
-        } else {
-            Cow::Borrowed(&self.0)
-        }
-    }
-}
 
 impl From<String> for SeriesName {
     #[inline]

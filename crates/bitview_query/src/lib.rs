@@ -15,7 +15,7 @@ use arc_swap::ArcSwapOption;
 
 use bitview_plugin_indexer::Indexer;
 #[cfg(any(feature = "series", feature = "price"))]
-use bitview_primitives::{Epoch, Halving, Index, Lengths};
+use bitview_primitives::{DifficultyEpoch, HalvingEpoch, Index, Lengths};
 use bitview_types::SyncStatus;
 use brk_mempool::ReadOnlyMempool;
 #[cfg(any(feature = "chain", feature = "price"))]
@@ -51,9 +51,9 @@ pub use r#impl::price::ResolvedHistoricalPrice;
 #[cfg(feature = "chain")]
 pub use r#impl::{
     MempoolBlockSource, MempoolTxids, ResolvedAddrChainTxs, ResolvedAddrMempoolTxs,
-    ResolvedAddrTxs, ResolvedAddrUtxos, ResolvedMempoolBlockDiff, ResolvedBlockTimestamp,
-    ResolvedBlocks, ResolvedBlocksV1, ResolvedConfirmedTx, ResolvedCpfp, ResolvedPoolBlocks,
-    ResolvedRbf, ResolvedTransaction, UtxoSetPoint,
+    ResolvedAddrTxs, ResolvedAddrUtxos, ResolvedBlockTimestamp, ResolvedBlocks, ResolvedBlocksV1,
+    ResolvedConfirmedTx, ResolvedCpfp, ResolvedMempoolBlockDiff, ResolvedPoolBlocks, ResolvedRbf,
+    ResolvedTransaction, UtxoSetPoint,
 };
 #[cfg(feature = "series")]
 pub use r#impl::{ResolvedQuery, SeriesAnchor, SeriesRead};
@@ -252,13 +252,13 @@ impl Query {
 
         let tip = safe.last_height();
         bounds.set(
-            Index::Epoch.name(),
-            tip.map(|height| usize::from(Epoch::from(height)) + 1)
+            Index::DifficultyEpoch.name(),
+            tip.map(|height| usize::from(DifficultyEpoch::from(height)) + 1)
                 .unwrap_or(0),
         );
         bounds.set(
-            Index::Halving.name(),
-            tip.map(|height| usize::from(Halving::from(height)) + 1)
+            Index::HalvingEpoch.name(),
+            tip.map(|height| usize::from(HalvingEpoch::from(height)) + 1)
                 .unwrap_or(0),
         );
 

@@ -32,8 +32,8 @@ const _I1: &[Index] = &[
     Index::Month6,
     Index::Year1,
     Index::Year10,
-    Index::Halving,
-    Index::Epoch,
+    Index::HalvingEpoch,
+    Index::DifficultyEpoch,
     Index::Height,
 ];
 const _I2: &[Index] = &[
@@ -50,8 +50,8 @@ const _I2: &[Index] = &[
     Index::Month6,
     Index::Year1,
     Index::Year10,
-    Index::Halving,
-    Index::Epoch,
+    Index::HalvingEpoch,
+    Index::DifficultyEpoch,
 ];
 const _I3: &[Index] = &[Index::Minute10];
 const _I4: &[Index] = &[Index::Minute30];
@@ -66,8 +66,8 @@ const _I12: &[Index] = &[Index::Month3];
 const _I13: &[Index] = &[Index::Month6];
 const _I14: &[Index] = &[Index::Year1];
 const _I15: &[Index] = &[Index::Year10];
-const _I16: &[Index] = &[Index::Halving];
-const _I17: &[Index] = &[Index::Epoch];
+const _I16: &[Index] = &[Index::HalvingEpoch];
+const _I17: &[Index] = &[Index::DifficultyEpoch];
 const _I18: &[Index] = &[Index::Height];
 const _I19: &[Index] = &[Index::TxIndex];
 const _I20: &[Index] = &[Index::TxInIndex];
@@ -101,8 +101,8 @@ accessor! { SeriesPattern1, SeriesPattern1By, _I1, T::Nullable {
     date month6: Month6 -> T::Nullable,
     date year1: Year1 -> T::Nullable,
     date year10: Year10 -> T::Nullable,
-    plain halving: Halving -> T,
-    plain epoch: Epoch -> T,
+    plain halving_epoch: HalvingEpoch -> T,
+    plain difficulty_epoch: DifficultyEpoch -> T,
     plain height: Height -> T,
 } }
 accessor! { SeriesPattern2, SeriesPattern2By, _I2, T {
@@ -119,8 +119,8 @@ accessor! { SeriesPattern2, SeriesPattern2By, _I2, T {
     date month6: Month6 -> T,
     date year1: Year1 -> T,
     date year10: Year10 -> T,
-    plain halving: Halving -> T,
-    plain epoch: Epoch -> T,
+    plain halving_epoch: HalvingEpoch -> T,
+    plain difficulty_epoch: DifficultyEpoch -> T,
 } }
 accessor! { SeriesPattern3, SeriesPattern3By, _I3, T {
     date minute10: Minute10 -> T,
@@ -162,10 +162,10 @@ accessor! { SeriesPattern15, SeriesPattern15By, _I15, T {
     date year10: Year10 -> T,
 } }
 accessor! { SeriesPattern16, SeriesPattern16By, _I16, T {
-    plain halving: Halving -> T,
+    plain halving_epoch: HalvingEpoch -> T,
 } }
 accessor! { SeriesPattern17, SeriesPattern17By, _I17, T {
-    plain epoch: Epoch -> T,
+    plain difficulty_epoch: DifficultyEpoch -> T,
 } }
 accessor! { SeriesPattern18, SeriesPattern18By, _I18, T {
     plain height: Height -> T,
@@ -251,14 +251,14 @@ impl SeriesValue for Day1 {
 impl SeriesValue for Day3 {
     type Nullable = Option<Day3>;
 }
+impl SeriesValue for DifficultyEpoch {
+    type Nullable = Option<DifficultyEpoch>;
+}
 impl SeriesValue for EmptyScriptOutputIndex {
     type Nullable = Option<EmptyScriptOutputIndex>;
 }
-impl SeriesValue for Epoch {
-    type Nullable = Option<Epoch>;
-}
-impl SeriesValue for Halving {
-    type Nullable = Option<Halving>;
+impl SeriesValue for HalvingEpoch {
+    type Nullable = Option<HalvingEpoch>;
 }
 impl SeriesValue for Height {
     type Nullable = Option<Height>;
@@ -1083,8 +1083,8 @@ pub mod tree {
         sum: OpReturnWindows = "*_fees_sum",
         chain_share: Share = "*_fee_chain_share",
     } }
-    shape! { BlocksHalving at "series().blocks.halving" {
-        epoch: SeriesPattern1<Halving> = "*_epoch",
+    shape! { Halving at "series().blocks.halving" {
+        epoch: SeriesPattern1<HalvingEpoch> = "*_epoch",
         blocks_to_halving: SeriesPattern1<Count> = "blocks_to_*",
         days_to_halving: SeriesPattern1<Option<Days>> = "days_to_*",
     } }
@@ -1092,7 +1092,7 @@ pub mod tree {
         value: SeriesPattern1<Option<Difficulty>> = "*",
         hashrate: SeriesPattern1<Option<Hashrate>> = "*_hashrate",
         adjustment: SeriesPattern1<Option<Percent>> = "*_adjustment",
-        epoch: SeriesPattern1<Epoch> = "*_epoch",
+        epoch: SeriesPattern1<DifficultyEpoch> = "*_epoch",
         blocks_to_retarget: SeriesPattern1<Count> = "blocks_to_retarget",
         days_to_retarget: SeriesPattern1<Option<Days>> = "days_to_retarget",
     } }
@@ -1898,7 +1898,7 @@ pub mod tree {
         weight: FlowStats<Weight, Option<WeightFract>> = "*_weight",
         fullness: Fullness = "*_fullness",
         difficulty: BlocksDifficulty = "difficulty",
-        halving: BlocksHalving = "halving",
+        halving: Halving = "halving",
     } }
     shape! { Price at "series().price" {
         open: SeriesPattern2<Option<Dollars>> = "*_open",
@@ -1971,10 +1971,10 @@ pub mod tree {
     shape! { MappingsMinute10 at "series().mappings.minute10" {
         first_height: SeriesPattern3<Height> = "*",
     } }
-    shape! { MappingsHalving at "series().mappings.halving" {
+    shape! { MappingsHalvingEpoch at "series().mappings.halving_epoch" {
         first_height: SeriesPattern16<Height> = "*",
     } }
-    shape! { MappingsEpoch at "series().mappings.epoch" {
+    shape! { MappingsDifficultyEpoch at "series().mappings.difficulty_epoch" {
         first_height: SeriesPattern17<Height> = "*",
     } }
     shape! { MappingsHeight at "series().mappings.height" {
@@ -1985,8 +1985,8 @@ pub mod tree {
         hour12: SeriesPattern18<Hour12> = "*_hour12",
         day1: SeriesPattern18<Day1> = "*_day1",
         day3: SeriesPattern18<Day3> = "*_day3",
-        epoch: SeriesPattern18<Epoch> = "difficulty_epoch",
-        halving: SeriesPattern18<Halving> = "halving_epoch",
+        difficulty_epoch: SeriesPattern18<DifficultyEpoch> = "difficulty_epoch",
+        halving_epoch: SeriesPattern18<HalvingEpoch> = "halving_epoch",
         week1: SeriesPattern18<Week1> = "*_week1",
         month1: SeriesPattern18<Month1> = "*_month1",
         month3: SeriesPattern18<Month3> = "*_month3",
@@ -2115,8 +2115,8 @@ pub mod tree {
         addresses: Addrs<MappingsP2pk65, MappingsP2pk33, MappingsP2pkh, MappingsP2sh, MappingsP2wpkh, MappingsP2wsh, MappingsP2tr, MappingsP2a> = "address",
         scripts: Script = "index",
         height: MappingsHeight = "block",
-        epoch: MappingsEpoch = "first_height",
-        halving: MappingsHalving = "first_height",
+        difficulty_epoch: MappingsDifficultyEpoch = "first_height",
+        halving_epoch: MappingsHalvingEpoch = "first_height",
         minute10: MappingsMinute10 = "first_height",
         minute30: MappingsMinute30 = "first_height",
         hour1: MappingsHour1 = "first_height",
@@ -2403,10 +2403,10 @@ impl BitviewClient {
 
     /// List available indexes
     ///
-    /// Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only.
+    /// Returns every index a series can be read at, by the name series routes take.
     ///
     /// Endpoint: `GET /api/series/indexes`
-    pub fn get_indexes(&self) -> Result<Vec<IndexInfo>> {
+    pub fn get_indexes(&self) -> Result<Vec<Index>> {
         self.base.get_json(&format!("/api/series/indexes"))
     }
 

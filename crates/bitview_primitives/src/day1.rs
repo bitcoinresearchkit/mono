@@ -27,9 +27,6 @@ impl Day1 {
     pub(crate) fn index_name() -> &'static str {
         "day1"
     }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["1d", "d", "day", "date", "daily", "day1", "dateindex"]
-    }
 }
 
 impl From<Day1> for u64 {

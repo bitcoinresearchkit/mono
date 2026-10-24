@@ -1,8 +1,8 @@
 use bitview_plugin::ImportContext;
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{
-    Date, Day1, Day3, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3,
-    Month6, Week1, Year1, Year10,
+    Date, Day1, Day3, DifficultyEpoch, HalvingEpoch, Hour1, Hour4, Hour12, Minute10, Minute30,
+    Month1, Month3, Month6, Week1, Year1, Year10,
 };
 use bitview_vecs::{IndexSources, LazyPreviousDeltaVec, shapes::PerResolution};
 use brk_error::Result;
@@ -38,13 +38,13 @@ impl Vecs {
             "difficulty_epoch",
             Version::ZERO,
             monotonic.read_only_boxed_clone(),
-            Epoch::from,
+            DifficultyEpoch::from,
         );
         let halving_source = IndexVec::new(
             "halving_epoch",
             Version::ZERO,
             monotonic_source.clone(),
-            Halving::from,
+            HalvingEpoch::from,
         );
         let epoch = ResolutionVecs::new(&epoch_source);
         let halving = ResolutionVecs::new(&halving_source);
@@ -122,8 +122,8 @@ impl Vecs {
             month6: month6.height_lookup(),
             year1: year1.height_lookup(),
             year10: year10.height_lookup(),
-            epoch: epoch_source,
-            halving: halving_source,
+            difficulty_epoch: epoch_source,
+            halving_epoch: halving_source,
             tx_index_count: LazyPreviousDeltaVec::new(
                 "tx_index_count",
                 version,
@@ -151,8 +151,8 @@ impl Vecs {
                 month6: month6.first_height.clone(),
                 year1: year1.first_height.clone(),
                 year10: year10.first_height.clone(),
-                halving: halving.first_height.clone(),
-                epoch: epoch.first_height.clone(),
+                halving_epoch: halving.first_height.clone(),
+                difficulty_epoch: epoch.first_height.clone(),
             },
             height_tx_index_count: height.tx_index_count.clone(),
         };
@@ -171,8 +171,8 @@ impl Vecs {
             addresses,
             scripts,
             height,
-            epoch,
-            halving,
+            difficulty_epoch: epoch,
+            halving_epoch: halving,
             minute10,
             minute30,
             hour1,

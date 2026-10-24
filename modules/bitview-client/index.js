@@ -457,9 +457,9 @@ legacy and P2SH-redeem sigops count as 4).
  */
 /**
  * @typedef {Object} DataRangeFormat
- * @property {(RangeIndex|null)=} start - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
- * @property {(RangeIndex|null)=} end - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
- * @property {(Limit|null)=} limit - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
+ * @property {(RangeIndex|null)=} start - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+ * @property {(RangeIndex|null)=} end - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+ * @property {(Limit|null)=} limit - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
  * @property {Format=} format
  */
 /**
@@ -529,6 +529,11 @@ mainnet, as mempool.space
  * @property {number} adjustment - Adjustment ratio (new/previous, e.g. 1.068 = +6.8%)
  */
 /**
+ * Index of a difficulty epoch (2,016 blocks).
+ *
+ * @typedef {number} DifficultyEpoch
+ */
+/**
  * @typedef {Object} DiskUsage
  * @property {string} brk - Human-readable brk data size (e.g., "48.8 GiB")
  * @property {number} brkBytes - brk data size in bytes
@@ -562,11 +567,6 @@ mainnet, as mempool.space
  * Index of an output with an empty script.
  *
  * @typedef {TypeIndex} EmptyScriptOutputIndex
- */
-/**
- * Index of a difficulty epoch (2,016 blocks).
- *
- * @typedef {number} Epoch
  */
 /**
  * The JSON body of every API error (`application/problem+json`).
@@ -608,7 +608,7 @@ mainnet, as mempool.space
 /**
  * Index of a halving epoch (210,000 blocks).
  *
- * @typedef {number} Halving
+ * @typedef {number} HalvingEpoch
  */
 /**
  * US dollars per PH/s of hash rate per day.
@@ -709,20 +709,9 @@ asking the node
  * @typedef {number} Hour4
  */
 /**
- * Aggregation dimension for querying series. Includes time-based (date, week, month, year),
- * block-based (height, tx_index), and address/output type indexes.
+ * Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.
  *
- * @typedef {("minute10"|"minute30"|"hour1"|"hour4"|"hour12"|"day1"|"day3"|"week1"|"month1"|"month3"|"month6"|"year1"|"year10"|"halving"|"epoch"|"height"|"tx_index"|"txin_index"|"txout_index"|"empty_script_output_index"|"op_return_index"|"p2a_address_index"|"p2ms_output_index"|"p2pk33_address_index"|"p2pk65_address_index"|"p2pkh_address_index"|"p2sh_address_index"|"p2tr_address_index"|"p2wpkh_address_index"|"p2wsh_address_index"|"unknown_script_output_index")} Index
- */
-/**
- * A name REST queries accept for an index: its canonical name or one of its aliases
- *
- * @typedef {("10mn"|"10y"|"12h"|"1d"|"1h"|"1m"|"1mo"|"1w"|"1y"|"30mn"|"3d"|"3m"|"3mo"|"4h"|"6m"|"6mo"|"aaddr"|"blk"|"block"|"d"|"daily"|"date"|"dateindex"|"day"|"day1"|"day3"|"decade"|"decadeindex"|"diff"|"difficulty"|"difficultyepoch"|"empty_script_output_index"|"emptyout"|"epoch"|"h"|"halv"|"halving"|"halvingepoch"|"height"|"hour"|"hour1"|"hour12"|"hour4"|"hourly"|"m"|"minute10"|"minute30"|"month"|"month1"|"month3"|"month6"|"monthindex"|"monthly"|"msout"|"op"|"op_return"|"op_return_index"|"opreturn"|"p2a_address_index"|"p2aaddr"|"p2ms_output_index"|"p2msout"|"p2pk33_address_index"|"p2pk33addr"|"p2pk65_address_index"|"p2pk65addr"|"p2pkh_address_index"|"p2pkhaddr"|"p2sh_address_index"|"p2shaddr"|"p2tr_address_index"|"p2traddr"|"p2wpkh_address_index"|"p2wpkhaddr"|"p2wsh_address_index"|"p2wshaddr"|"pk33addr"|"pk65addr"|"pkhaddr"|"q"|"quarter"|"quarterindex"|"quarterly"|"s"|"semester"|"semesterindex"|"shaddr"|"traddr"|"tx"|"tx_index"|"txi"|"txin"|"txin_index"|"txo"|"txout"|"txout_index"|"unknown_script_output_index"|"unknownout"|"w"|"week"|"week1"|"weekindex"|"weekly"|"wpkhaddr"|"wshaddr"|"y"|"year"|"year1"|"year10"|"yearindex"|"yearly")} IndexAlias
- */
-/**
- * @typedef {Object} IndexInfo
- * @property {Index} index - The canonical index name
- * @property {IndexAlias[]} aliases - Every name REST queries accept for it; MCP tools take the canonical `index` only
+ * @typedef {("minute10"|"minute30"|"hour1"|"hour4"|"hour12"|"day1"|"day3"|"week1"|"month1"|"month3"|"month6"|"year1"|"year10"|"halving_epoch"|"difficulty_epoch"|"height"|"tx_index"|"txin_index"|"txout_index"|"empty_script_output_index"|"op_return_index"|"p2a_address_index"|"p2ms_output_index"|"p2pk33_address_index"|"p2pk65_address_index"|"p2pkh_address_index"|"p2sh_address_index"|"p2tr_address_index"|"p2wpkh_address_index"|"p2wsh_address_index"|"unknown_script_output_index")} Index
  */
 /**
  * A JSON Schema type: what a series' values are on the wire.
@@ -1293,9 +1282,9 @@ undefined one (e.g. NaN).
  * @typedef {Object} SeriesSelection
  * @property {SeriesList} series
  * @property {Index} index
- * @property {(RangeIndex|null)=} start - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
- * @property {(RangeIndex|null)=} end - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
- * @property {(Limit|null)=} limit - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
+ * @property {(RangeIndex|null)=} start - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+ * @property {(RangeIndex|null)=} end - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+ * @property {(Limit|null)=} limit - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
  * @property {Format=} format
  */
 /**
@@ -1511,7 +1500,7 @@ capital, rounded to the cent once. Can be negative.
  */
 /**
  * @typedef {Object} UrpdQuery
- * @property {UrpdAggregation=} agg - Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
+ * @property {UrpdAggregation=} agg - Aggregation strategy. Default: raw (no aggregation).
  * @property {UrpdWeight=} weight - Supply weighting. Default: none (unweighted).
  */
 /**
@@ -2460,8 +2449,8 @@ function addressPayloadHashPrefix(payload, nibbles) {
   return _rapidHashV3(payload).toString(16).padStart(16, "0").slice(0, nibbles);
 }
 
-const _i1 = /** @type {const} */ (["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height"]);
-const _i2 = /** @type {const} */ (["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch"]);
+const _i1 = /** @type {const} */ (["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving_epoch", "difficulty_epoch", "height"]);
+const _i2 = /** @type {const} */ (["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving_epoch", "difficulty_epoch"]);
 const _i3 = /** @type {const} */ (["minute10"]);
 const _i4 = /** @type {const} */ (["minute30"]);
 const _i5 = /** @type {const} */ (["hour1"]);
@@ -2475,8 +2464,8 @@ const _i12 = /** @type {const} */ (["month3"]);
 const _i13 = /** @type {const} */ (["month6"]);
 const _i14 = /** @type {const} */ (["year1"]);
 const _i15 = /** @type {const} */ (["year10"]);
-const _i16 = /** @type {const} */ (["halving"]);
-const _i17 = /** @type {const} */ (["epoch"]);
+const _i16 = /** @type {const} */ (["halving_epoch"]);
+const _i17 = /** @type {const} */ (["difficulty_epoch"]);
 const _i18 = /** @type {const} */ (["height"]);
 const _i19 = /** @type {const} */ (["tx_index"]);
 const _i20 = /** @type {const} */ (["txin_index"]);
@@ -2521,8 +2510,8 @@ function _seriesPattern(client, name, indexes) {
   };
 }
 
-/** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T | null>, readonly minute30: DateSeriesEndpoint<T | null>, readonly hour1: DateSeriesEndpoint<T | null>, readonly hour4: DateSeriesEndpoint<T | null>, readonly hour12: DateSeriesEndpoint<T | null>, readonly day1: DateSeriesEndpoint<T | null>, readonly day3: DateSeriesEndpoint<T | null>, readonly week1: DateSeriesEndpoint<T | null>, readonly month1: DateSeriesEndpoint<T | null>, readonly month3: DateSeriesEndpoint<T | null>, readonly month6: DateSeriesEndpoint<T | null>, readonly year1: DateSeriesEndpoint<T | null>, readonly year10: DateSeriesEndpoint<T | null>, readonly halving: SeriesEndpoint<T>, readonly epoch: SeriesEndpoint<T>, readonly height: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern1 */
-/** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T>, readonly minute30: DateSeriesEndpoint<T>, readonly hour1: DateSeriesEndpoint<T>, readonly hour4: DateSeriesEndpoint<T>, readonly hour12: DateSeriesEndpoint<T>, readonly day1: DateSeriesEndpoint<T>, readonly day3: DateSeriesEndpoint<T>, readonly week1: DateSeriesEndpoint<T>, readonly month1: DateSeriesEndpoint<T>, readonly month3: DateSeriesEndpoint<T>, readonly month6: DateSeriesEndpoint<T>, readonly year1: DateSeriesEndpoint<T>, readonly year10: DateSeriesEndpoint<T>, readonly halving: SeriesEndpoint<T>, readonly epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern2 */
+/** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T | null>, readonly minute30: DateSeriesEndpoint<T | null>, readonly hour1: DateSeriesEndpoint<T | null>, readonly hour4: DateSeriesEndpoint<T | null>, readonly hour12: DateSeriesEndpoint<T | null>, readonly day1: DateSeriesEndpoint<T | null>, readonly day3: DateSeriesEndpoint<T | null>, readonly week1: DateSeriesEndpoint<T | null>, readonly month1: DateSeriesEndpoint<T | null>, readonly month3: DateSeriesEndpoint<T | null>, readonly month6: DateSeriesEndpoint<T | null>, readonly year1: DateSeriesEndpoint<T | null>, readonly year10: DateSeriesEndpoint<T | null>, readonly halving_epoch: SeriesEndpoint<T>, readonly difficulty_epoch: SeriesEndpoint<T>, readonly height: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern1 */
+/** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T>, readonly minute30: DateSeriesEndpoint<T>, readonly hour1: DateSeriesEndpoint<T>, readonly hour4: DateSeriesEndpoint<T>, readonly hour12: DateSeriesEndpoint<T>, readonly day1: DateSeriesEndpoint<T>, readonly day3: DateSeriesEndpoint<T>, readonly week1: DateSeriesEndpoint<T>, readonly month1: DateSeriesEndpoint<T>, readonly month3: DateSeriesEndpoint<T>, readonly month6: DateSeriesEndpoint<T>, readonly year1: DateSeriesEndpoint<T>, readonly year10: DateSeriesEndpoint<T>, readonly halving_epoch: SeriesEndpoint<T>, readonly difficulty_epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern2 */
 /** @template T @typedef {{ name: string, by: { readonly minute10: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern3 */
 /** @template T @typedef {{ name: string, by: { readonly minute30: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern4 */
 /** @template T @typedef {{ name: string, by: { readonly hour1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern5 */
@@ -2536,8 +2525,8 @@ function _seriesPattern(client, name, indexes) {
 /** @template T @typedef {{ name: string, by: { readonly month6: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern13 */
 /** @template T @typedef {{ name: string, by: { readonly year1: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern14 */
 /** @template T @typedef {{ name: string, by: { readonly year10: DateSeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern15 */
-/** @template T @typedef {{ name: string, by: { readonly halving: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern16 */
-/** @template T @typedef {{ name: string, by: { readonly epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern17 */
+/** @template T @typedef {{ name: string, by: { readonly halving_epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern16 */
+/** @template T @typedef {{ name: string, by: { readonly difficulty_epoch: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern17 */
 /** @template T @typedef {{ name: string, by: { readonly height: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern18 */
 /** @template T @typedef {{ name: string, by: { readonly tx_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern19 */
 /** @template T @typedef {{ name: string, by: { readonly txin_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern20 */
@@ -4251,12 +4240,12 @@ const _FeesSeries = _s({
 
 /**
  * @typedef {{
- *   epoch: SeriesPattern1<Halving>,
+ *   epoch: SeriesPattern1<HalvingEpoch>,
  *   blocksToHalving: SeriesPattern1<Count>,
  *   daysToHalving: SeriesPattern1<?Days>,
- * }} BlocksHalving
+ * }} Halving
  */
-const _BlocksHalving = _s({
+const _Halving = _s({
   epoch: [_i1, '*_epoch'],
   blocksToHalving: [_i1, 'blocks_to_*'],
   daysToHalving: [_i1, 'days_to_*'],
@@ -4267,7 +4256,7 @@ const _BlocksHalving = _s({
  *   value: SeriesPattern1<?Difficulty>,
  *   hashrate: SeriesPattern1<?Hashrate>,
  *   adjustment: SeriesPattern1<?Percent>,
- *   epoch: SeriesPattern1<Epoch>,
+ *   epoch: SeriesPattern1<DifficultyEpoch>,
  *   blocksToRetarget: SeriesPattern1<Count>,
  *   daysToRetarget: SeriesPattern1<?Days>,
  * }} BlocksDifficulty
@@ -6136,7 +6125,7 @@ const _Pools = _s({
  *   weight: FlowStats<Weight, ?WeightFract>,
  *   fullness: Fullness,
  *   difficulty: BlocksDifficulty,
- *   halving: BlocksHalving,
+ *   halving: Halving,
  * }} Blocks
  */
 const _Blocks = _s({
@@ -6146,7 +6135,7 @@ const _Blocks = _s({
   weight: [_FlowStats, '*_weight'],
   fullness: [_Fullness, '*_fullness'],
   difficulty: [_BlocksDifficulty, 'difficulty'],
-  halving: [_BlocksHalving, 'halving'],
+  halving: [_Halving, 'halving'],
 });
 
 /**
@@ -6348,18 +6337,18 @@ const _MappingsMinute10 = _s({
 /**
  * @typedef {{
  *   firstHeight: SeriesPattern16<Height>,
- * }} MappingsHalving
+ * }} MappingsHalvingEpoch
  */
-const _MappingsHalving = _s({
+const _MappingsHalvingEpoch = _s({
   firstHeight: [_i16, '*'],
 });
 
 /**
  * @typedef {{
  *   firstHeight: SeriesPattern17<Height>,
- * }} MappingsEpoch
+ * }} MappingsDifficultyEpoch
  */
-const _MappingsEpoch = _s({
+const _MappingsDifficultyEpoch = _s({
   firstHeight: [_i17, '*'],
 });
 
@@ -6372,8 +6361,8 @@ const _MappingsEpoch = _s({
  *   hour12: SeriesPattern18<Hour12>,
  *   day1: SeriesPattern18<Day1>,
  *   day3: SeriesPattern18<Day3>,
- *   epoch: SeriesPattern18<Epoch>,
- *   halving: SeriesPattern18<Halving>,
+ *   difficultyEpoch: SeriesPattern18<DifficultyEpoch>,
+ *   halvingEpoch: SeriesPattern18<HalvingEpoch>,
  *   week1: SeriesPattern18<Week1>,
  *   month1: SeriesPattern18<Month1>,
  *   month3: SeriesPattern18<Month3>,
@@ -6390,8 +6379,8 @@ const _MappingsHeight = _s({
   hour12: [_i18, '*_hour12'],
   day1: [_i18, '*_day1'],
   day3: [_i18, '*_day3'],
-  epoch: [_i18, 'difficulty_epoch'],
-  halving: [_i18, 'halving_epoch'],
+  difficultyEpoch: [_i18, 'difficulty_epoch'],
+  halvingEpoch: [_i18, 'halving_epoch'],
   week1: [_i18, '*_week1'],
   month1: [_i18, '*_month1'],
   month3: [_i18, '*_month3'],
@@ -6722,8 +6711,8 @@ const _Addrs = (c, b, f0, f1, f2, f3, f4, f5, f6, f7) => _n(c, b, {
  *   addresses: Addrs<MappingsP2pk65, MappingsP2pk33, MappingsP2pkh, MappingsP2sh, MappingsP2wpkh, MappingsP2wsh, MappingsP2tr, MappingsP2a>,
  *   scripts: Script,
  *   height: MappingsHeight,
- *   epoch: MappingsEpoch,
- *   halving: MappingsHalving,
+ *   difficultyEpoch: MappingsDifficultyEpoch,
+ *   halvingEpoch: MappingsHalvingEpoch,
  *   minute10: MappingsMinute10,
  *   minute30: MappingsMinute30,
  *   hour1: MappingsHour1,
@@ -6747,8 +6736,8 @@ const _Mappings = _s({
   addresses: [(c, b) => _Addrs(c, b, _MappingsP2pk65, _MappingsP2pk33, _MappingsP2pkh, _MappingsP2sh, _MappingsP2wpkh, _MappingsP2wsh, _MappingsP2tr, _MappingsP2a), 'address'],
   scripts: [_Script, 'index'],
   height: [_MappingsHeight, 'block'],
-  epoch: [_MappingsEpoch, 'first_height'],
-  halving: [_MappingsHalving, 'first_height'],
+  difficultyEpoch: [_MappingsDifficultyEpoch, 'first_height'],
+  halvingEpoch: [_MappingsHalvingEpoch, 'first_height'],
   minute10: [_MappingsMinute10, 'first_height'],
   minute30: [_MappingsMinute30, 'first_height'],
   hour1: [_MappingsHour1, 'first_height'],
@@ -7087,8 +7076,8 @@ class BitviewClient extends BitviewClientBase {
     "month6",
     "year1",
     "year10",
-    "halving",
-    "epoch",
+    "halving_epoch",
+    "difficulty_epoch",
     "height",
     "tx_index",
     "txin_index",
@@ -7981,11 +7970,11 @@ class BitviewClient extends BitviewClientBase {
   /**
    * List available indexes
    *
-   * Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only.
+   * Returns every index a series can be read at, by the name series routes take.
    *
    * Endpoint: `GET /api/series/indexes`
-   * @param {{ signal?: AbortSignal, onValue?: (value: IndexInfo[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<IndexInfo[]>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Index[]) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Index[]>}
    */
   async getIndexes({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/series/indexes`;
@@ -8059,9 +8048,9 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {SeriesName} series
    * @param {Index} index
-   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
-   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
-   * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
+   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
    * @param {Format=} [format]
    * @param {{ signal?: AbortSignal, onValue?: (value: AnySeriesData | string) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<AnySeriesData | string>}
@@ -8087,9 +8076,9 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {SeriesName} series
    * @param {Index} index
-   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
-   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
-   * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
+   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
    * @param {Format=} [format]
    * @param {{ signal?: AbortSignal, onValue?: (value: *[] | string) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<*[] | string>}
@@ -8164,9 +8153,9 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {SeriesList} series
    * @param {Index} index
-   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
-   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
-   * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
+   * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+   * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
    * @param {Format=} [format]
    * @param {{ signal?: AbortSignal, onValue?: (value: AnySeriesData[] | string) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<AnySeriesData[] | string>}
@@ -8207,7 +8196,7 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/urpd/{cohort}`
    *
    * @param {UrpdCohort} cohort
-   * @param {UrpdAggregation=} [agg] - Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
+   * @param {UrpdAggregation=} [agg] - Aggregation strategy. Default: raw (no aggregation).
    * @param {UrpdWeight=} [weight] - Supply weighting. Default: none (unweighted).
    * @param {{ signal?: AbortSignal, onValue?: (value: Urpd) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Urpd>}
@@ -8230,7 +8219,7 @@ class BitviewClient extends BitviewClientBase {
    *
    * @param {UrpdCohort} cohort
    * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-   * @param {UrpdAggregation=} [agg] - Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
+   * @param {UrpdAggregation=} [agg] - Aggregation strategy. Default: raw (no aggregation).
    * @param {UrpdWeight=} [weight] - Supply weighting. Default: none (unweighted).
    * @param {{ signal?: AbortSignal, onValue?: (value: Urpd) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Urpd>}

@@ -1,4 +1,4 @@
-use bitview_primitives::Epoch;
+use bitview_primitives::DifficultyEpoch;
 use bitview_types::DifficultyAdjustmentEntry;
 use brk_types::Height;
 use vecdb::{ReadableVec, VecIndex};
@@ -14,11 +14,11 @@ pub fn difficulty_epochs(
     start_height: usize,
     end_height: usize,
 ) -> Result<Vec<DifficultyAdjustmentEntry>> {
-    let start_epoch = Epoch::from(Height::from(start_height)).to_usize();
-    let end_epoch = Epoch::from(Height::from(end_height)).to_usize();
-    let mut height_cursor = plugins.mappings.epoch.first_height.cursor();
-    let mut timestamp_cursor = plugins.mappings.timestamp.epoch.cursor();
-    let mut difficulty_cursor = plugins.blocks.difficulty.value.epoch.cursor();
+    let start_epoch = DifficultyEpoch::from(Height::from(start_height)).to_usize();
+    let end_epoch = DifficultyEpoch::from(Height::from(end_height)).to_usize();
+    let mut height_cursor = plugins.mappings.difficulty_epoch.first_height.cursor();
+    let mut timestamp_cursor = plugins.mappings.timestamp.difficulty_epoch.cursor();
+    let mut difficulty_cursor = plugins.blocks.difficulty.value.difficulty_epoch.cursor();
 
     let count = end_epoch
         .checked_sub(start_epoch)

@@ -1,4 +1,4 @@
-use bitview_primitives::{Count, Days, Difficulty, Epoch, Hashrate, PartsPerMillionSigned32};
+use bitview_primitives::{Count, Days, Difficulty, DifficultyEpoch, Hashrate, PartsPerMillionSigned32};
 use bitview_traversable::Traversable;
 use bitview_vecs::{LazyPerBlock, LazyPercentPerBlock, Resolutions};
 use brk_types::Height;
@@ -25,7 +25,7 @@ pub struct Vecs {
     /// decreased. Unavailable for the first 2,016 blocks.
     pub(crate) adjustment: LazyPercentPerBlock<PartsPerMillionSigned32>,
     /// Zero-based difficulty epoch: block height divided by 2,016, rounded down.
-    pub(crate) epoch: LazyPerBlock<Epoch>,
+    pub(crate) epoch: LazyPerBlock<DifficultyEpoch>,
     /// Number of blocks from the represented height to the first block of the
     /// next difficulty epoch: 2,016 minus height modulo 2,016.
     pub(crate) blocks_to_retarget: LazyPerBlock<Count>,

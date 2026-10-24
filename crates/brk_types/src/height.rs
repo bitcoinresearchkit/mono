@@ -95,10 +95,6 @@ impl Height {
     pub fn index_name() -> &'static str {
         "height"
     }
-
-    pub fn index_aliases() -> &'static [&'static str] {
-        &["h", "height", "blk", "block"]
-    }
 }
 
 impl PartialEq<u64> for Height {

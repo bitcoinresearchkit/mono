@@ -1,4 +1,4 @@
-use bitview_primitives::Halving;
+use bitview_primitives::HalvingEpoch;
 #[cfg(feature = "storage")]
 use bitview_traversable::Traversable;
 use brk_types::Height;
@@ -46,7 +46,7 @@ define_cohort_id!(
 
 impl<T> ByHalvingEpoch<T> {
     pub fn get_mut(&mut self, height: Height) -> Option<&mut T> {
-        let halving = usize::from(Halving::from(height));
+        let halving = usize::from(HalvingEpoch::from(height));
         let id = HalvingEpochId::ALL.get(halving).copied();
         debug_assert!(
             id.is_some(),

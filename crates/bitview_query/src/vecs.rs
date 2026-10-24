@@ -8,9 +8,7 @@ use bitview_catalog::TreeNode;
 use bitview_plugin::PluginSet;
 use bitview_primitives::{Index, SeriesName};
 use bitview_traversable::Traversable;
-use bitview_types::{
-    DetailedSeriesCount, IndexInfo, PaginatedSeries, Pagination, SeriesCount, SeriesInfo,
-};
+use bitview_types::{DetailedSeriesCount, PaginatedSeries, Pagination, SeriesCount, SeriesInfo};
 use quickmatch::QuickMatch;
 use rustc_hash::{FxHashMap, FxHashSet};
 use vecdb::AnyExportableVec;
@@ -44,7 +42,7 @@ pub struct Vecs<'a> {
     shared: Vec<SharedSeries>,
     value_type_conflicts: Vec<&'a str>,
     series_names: Vec<&'a str>,
-    indexes: Vec<IndexInfo>,
+    indexes: Vec<Index>,
     counts: SeriesCount,
     counts_by_db: BTreeMap<String, SeriesCount>,
     catalog: TreeNode,
@@ -191,10 +189,6 @@ impl<'a> Vecs<'a> {
             .flat_map(Series::indexes)
             .collect::<BTreeSet<_>>()
             .into_iter()
-            .map(|index| IndexInfo {
-                index,
-                aliases: index.aliases().iter().map(|v| Cow::Borrowed(*v)).collect(),
-            })
             .collect();
 
         let matcher = QuickMatch::new(&series_names);
@@ -256,7 +250,7 @@ impl<'a> Vecs<'a> {
         }
     }
 
-    pub(crate) fn indexes(&self) -> &[IndexInfo] {
+    pub(crate) fn indexes(&self) -> &[Index] {
         &self.indexes
     }
 
@@ -270,7 +264,7 @@ impl<'a> Vecs<'a> {
     }
 
     pub(crate) fn lookup_entry(&self, series: &SeriesName, index: Index) -> SeriesEntryLookup<'a> {
-        let Some(series) = self.by_series.get(series.normalize().as_ref()) else {
+        let Some(series) = self.by_series.get(series.as_str()) else {
             return SeriesEntryLookup::Missing;
         };
 

@@ -17,8 +17,7 @@ impl Vecs<'_> {
         &self,
         series: &SeriesName,
     ) -> Option<ResolvedSeriesInfo<'_>> {
-        let normalized = series.normalize();
-        let series = self.by_series.get(normalized.as_ref())?;
+        let series = self.by_series.get(series.as_str())?;
         let value_type = series.first()?.vec.value_type_name();
         let unit = self.units.get(value_type);
         Some(ResolvedSeriesInfo {

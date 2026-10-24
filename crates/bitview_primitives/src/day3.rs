@@ -31,9 +31,6 @@ impl Day3 {
     pub(crate) fn index_name() -> &'static str {
         "day3"
     }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["3d", "day3"]
-    }
 }
 
 impl TryFrom<Date> for Day3 {

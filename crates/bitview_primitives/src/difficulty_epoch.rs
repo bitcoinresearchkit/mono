@@ -12,48 +12,45 @@ use vecdb::{Pco, PrintableIndex};
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize, JsonSchema,
 )]
 #[cfg_attr(feature = "storage", derive(Pco))]
-pub struct Epoch(u16);
+pub struct DifficultyEpoch(u16);
 
-brk_types::impl_integer_index!(Epoch, u16);
+brk_types::impl_integer_index!(DifficultyEpoch, u16);
 
-impl From<Height> for Epoch {
+impl From<Height> for DifficultyEpoch {
     #[inline]
     fn from(value: Height) -> Self {
         Self((u32::from(value) / BLOCKS_PER_DIFF_EPOCH) as u16)
     }
 }
 
-impl Epoch {
+impl DifficultyEpoch {
     pub(crate) fn index_name() -> &'static str {
-        "epoch"
-    }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["epoch", "difficulty", "difficultyepoch", "diff"]
+        "difficulty_epoch"
     }
 }
 #[cfg(feature = "storage")]
-impl PrintableIndex for Epoch {
+impl PrintableIndex for DifficultyEpoch {
     fn to_string() -> &'static str {
         Self::index_name()
     }
 }
 
-impl From<f64> for Epoch {
+impl From<f64> for DifficultyEpoch {
     #[inline]
     fn from(value: f64) -> Self {
         Self(value.round() as u16)
     }
 }
 
-impl From<Epoch> for f64 {
+impl From<DifficultyEpoch> for f64 {
     #[inline]
-    fn from(value: Epoch) -> Self {
+    fn from(value: DifficultyEpoch) -> Self {
         value.0 as f64
     }
 }
 
-impl FromCoarserIndex<Epoch> for Height {
-    fn max_from_unbounded(coarser: Epoch) -> usize {
+impl FromCoarserIndex<DifficultyEpoch> for Height {
+    fn max_from_unbounded(coarser: DifficultyEpoch) -> usize {
         (usize::from(coarser) + 1) * BLOCKS_PER_DIFF_EPOCH as usize - 1
     }
 }

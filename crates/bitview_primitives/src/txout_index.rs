@@ -39,9 +39,6 @@ impl TxOutIndex {
     pub(crate) fn index_name() -> &'static str {
         "txout_index"
     }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["txo", "txout", "txout_index"]
-    }
 }
 
 brk_types::impl_integer_index!(TxOutIndex, u64);

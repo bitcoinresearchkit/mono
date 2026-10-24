@@ -10,10 +10,8 @@ with_range_format! {
     #[derive(Clone, Debug, Deserialize, JsonSchema)]
     #[serde(deny_unknown_fields)]
     pub struct SeriesSelection {
-        #[serde(alias = "m", alias = "metrics")]
         pub series: SeriesList,
 
-        #[serde(alias = "i")]
         pub index: Index,
     }
 }

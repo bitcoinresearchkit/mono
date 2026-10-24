@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use bitview_primitives::Epoch;
+use bitview_primitives::DifficultyEpoch;
 use bitview_types::DifficultyAdjustment;
 use brk_types::{BLOCKS_PER_DIFF_EPOCH, Height};
 use vecdb::ReadableVec;
@@ -24,7 +24,7 @@ impl Query {
         let current_height = Query::tip_height(&pin)?;
         let current_height_u32: u32 = current_height.into();
 
-        let current_epoch = Epoch::from(current_height);
+        let current_epoch = DifficultyEpoch::from(current_height);
         let blocks_into_epoch = current_height_u32 % BLOCKS_PER_DIFF_EPOCH;
         let epoch_start_u32 = current_height_u32 - blocks_into_epoch;
         let epoch_start_height = Height::from(epoch_start_u32);
@@ -36,7 +36,7 @@ impl Query {
         let epoch_start_timestamp = plugins
             .mappings
             .timestamp
-            .epoch
+            .difficulty_epoch
             .collect_one(current_epoch)
             .data()?;
         let current_timestamp = indexer

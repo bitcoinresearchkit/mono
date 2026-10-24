@@ -120,7 +120,7 @@ const TAGS: [(&str, &str); 12] = [
         `realized_cap` (USD, the sum of each coin's creation price times its supply, so not \
         `price * supply` once aggregated), and `unrealized_pnl` (USD, = `close * supply - \
         realized_cap`, can be negative).\n\n\
-        Aggregate with the `agg` query parameter (alias `bucket`):\n\
+        Aggregate with the `agg` query parameter:\n\
         - `raw`: one bucket per rounded price (default).\n\
         - `lin200` / `lin500` / `lin1000`: linear buckets, $200 / $500 / $1000 wide.\n\
         - `log10` / `log50` / `log100` / `log200`: logarithmic buckets, N bins per price decade.\n\n\

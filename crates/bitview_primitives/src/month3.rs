@@ -25,17 +25,6 @@ impl Month3 {
     pub(crate) fn index_name() -> &'static str {
         "month3"
     }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &[
-            "quarter",
-            "q",
-            "quarterly",
-            "month3",
-            "quarterindex",
-            "3m",
-            "3mo",
-        ]
-    }
 }
 
 impl TryFrom<Date> for Month3 {

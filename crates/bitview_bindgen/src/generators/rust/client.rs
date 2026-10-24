@@ -31,7 +31,7 @@ pub(crate) fn generate_index_accessors(output: &mut String, patterns: &[IndexSet
             if j > 0 {
                 write!(output, ", ").unwrap();
             }
-            write!(output, "Index::{}", index).unwrap();
+            write!(output, "Index::{index:?}").unwrap();
         }
         writeln!(output, "];").unwrap();
     }
@@ -63,7 +63,7 @@ pub(crate) fn generate_index_accessors(output: &mut String, patterns: &[IndexSet
             };
             writeln!(
                 output,
-                "    {kind} {}: {index} -> {value},",
+                "    {kind} {}: {index:?} -> {value},",
                 index_to_field_name(index)
             )
             .unwrap();

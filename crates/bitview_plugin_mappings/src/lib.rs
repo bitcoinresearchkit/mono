@@ -25,8 +25,8 @@ use std::ops::Deref;
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::{
-    Day1, Day3, Epoch, Halving, Hour1, Hour4, Hour12, Minute10, Minute30, Month1, Month3, Month6,
-    TxInIndex, TxOutIndex, Week1, Year1, Year10,
+    Day1, Day3, DifficultyEpoch, HalvingEpoch, Hour1, Hour4, Hour12, Minute10, Minute30, Month1,
+    Month3, Month6, TxInIndex, TxOutIndex, Week1, Year1, Year10,
 };
 use bitview_traversable::Traversable;
 use bitview_vecs::IndexSources;
@@ -60,8 +60,8 @@ pub struct Vecs<M: StorageMode = Rw> {
     addresses: AddressesVecs,
     scripts: ScriptVecs,
     pub height: HeightVecs,
-    pub epoch: ResolutionVecs<Epoch, M>,
-    halving: ResolutionVecs<Halving, M>,
+    pub difficulty_epoch: ResolutionVecs<DifficultyEpoch, M>,
+    halving_epoch: ResolutionVecs<HalvingEpoch, M>,
     minute10: ResolutionVecs<Minute10, M>,
     minute30: ResolutionVecs<Minute30, M>,
     hour1: ResolutionVecs<Hour1, M>,

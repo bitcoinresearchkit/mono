@@ -37,6 +37,19 @@ has to be deleted by hand.
 
 #### API: series and responses
 
+- One name per thing: an index is read by its name alone (the 80 other spellings are gone: `1d`, `d`, `day`, `date`,
+  `daily`, `dateindex`, `h`, `blk`, `tx`, `opreturn`, `p2pkhaddr`, ...), query parameters by theirs (`start`, `end`,
+  `limit`, `series`, `index`, `page`, `agg`; were also `from`/`f`/`s`, `to`/`t`/`e`, `count`/`c`/`l`, `metrics`/`m`,
+  `i`, `p`, `bucket`) and a series by its exact id (`Price` and `price-close` were folded to `price`, `price_close`).
+  The errors name the fix: an unknown index lists every index, an unknown parameter the accepted ones, and an unknown
+  series the closest ids. `GET /api/series/indexes` lists the index names (was `IndexInfo` objects with their
+  `aliases`; `IndexInfo` and `IndexAlias` are gone)
+- The epoch indexes are `halving_epoch` and `difficulty_epoch` (were `halving` and `epoch`), as the series holding
+  each block's epochs (`halving_epoch`, `difficulty_epoch`): `Index::HalvingEpoch`, `Index::DifficultyEpoch`, the
+  types `HalvingEpoch` and `DifficultyEpoch` (were `Halving`, `Epoch`), the clients' `by.halving_epoch` and
+  `by.difficulty_epoch`, and the mappings at `mappings.{halving_epoch, difficulty_epoch}` and
+  `mappings.height.{halving_epoch, difficulty_epoch}` (were `.halving`, `.epoch`). Nothing stored is keyed by them
+  (their series are computed from height), so no data changes
 - Cohort ids follow one rule: a cohort whose value names itself is bare (`sth`, `p2tr`, `awake`), any
   other is its attribute and its value. Age bands and the age cutoffs are `age_<band>` (`age_2y_to_3y_supply`,
   `age_under_1h_supply`, `age_under_4m_mvrv`; were `utxos_2y_to_3y_old_supply`, `utxos_under_4m_old_mvrv`), UTXO

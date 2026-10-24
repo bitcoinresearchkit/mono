@@ -13,8 +13,8 @@ use bitview_catalog::TreeNode;
 use bitview_primitives::{Index, SeriesName};
 use bitview_query::{Error as QueryError, Output, Query as BrkQuery, ResolvedQuery};
 use bitview_types::{
-    DataRangeFormat, DetailedSeriesCount, Format, IndexInfo, PaginatedSeries, Pagination,
-    SearchQuery, SeriesData, SeriesInfo, SeriesNameWithIndex, SeriesSelection,
+    DataRangeFormat, DetailedSeriesCount, Format, PaginatedSeries, Pagination, SearchQuery,
+    SeriesData, SeriesInfo, SeriesNameWithIndex, SeriesSelection,
 };
 use brk_types::Version;
 use serde_json::{Value, to_vec};
@@ -260,9 +260,9 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 .tag(tags::SERIES)
                 .summary("List available indexes")
                 .description(
-                    "Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only."
+                    "Returns every index a series can be read at, by the name series routes take."
                 )
-                .json_response::<Vec<IndexInfo>>()
+                .json_response::<Vec<Index>>()
                 .not_modified(),
         ),
     )

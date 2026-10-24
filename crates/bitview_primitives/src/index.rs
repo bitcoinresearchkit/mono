@@ -4,16 +4,17 @@ use brk_error::Error;
 use brk_types::{Height, ONE_DAY_IN_SEC, Timestamp, TxIndex};
 use schemars::JsonSchema;
 use serde::{
-    Deserialize, Deserializer, Serialize,
+    Deserialize, Deserializer, Serialize, Serializer,
     de::{Error as DeError, Visitor},
 };
 
 use crate::{
-    Date, Day1, Day3, EmptyScriptOutputIndex, Epoch, HOUR1_INTERVAL, HOUR4_INTERVAL, HOUR12_INTERVAL,
-    Halving, Hour1, Hour4, Hour12, MINUTE10_INTERVAL, MINUTE30_INTERVAL, Minute10, Minute30,
-    Month1, Month3, Month6, OpReturnIndex, P2AAddressIndex, P2MSOutputIndex, P2PK33AddressIndex,
-    P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex,
-    P2WSHAddressIndex, TxInIndex, TxOutIndex, UnknownScriptOutputIndex, Week1, Year1, Year10,
+    Date, Day1, Day3, DifficultyEpoch, EmptyScriptOutputIndex, HOUR1_INTERVAL, HOUR4_INTERVAL,
+    HOUR12_INTERVAL, HalvingEpoch, Hour1, Hour4, Hour12, MINUTE10_INTERVAL, MINUTE30_INTERVAL,
+    Minute10, Minute30, Month1, Month3, Month6, OpReturnIndex, P2AAddressIndex, P2MSOutputIndex,
+    P2PK33AddressIndex, P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex,
+    P2WPKHAddressIndex, P2WSHAddressIndex, TxInIndex, TxOutIndex, UnknownScriptOutputIndex, Week1,
+    Year1, Year10,
 };
 
 /// 2009-01-01 00:00:00 UTC — epoch for fixed-interval time indexes.
@@ -57,8 +58,8 @@ macro_rules! with_resolution_fields {
                 year10: Year10 => Y10,
             }
             epochs {
-                halving: Halving => HE,
-                epoch: Epoch => DE,
+                halving_epoch: HalvingEpoch => HE,
+                difficulty_epoch: DifficultyEpoch => DE,
             }
             $($($rest)*)?
         }
@@ -75,10 +76,9 @@ macro_rules! indexes {
         other: [$($(#[$attr:meta])* $other:ident),+ $(,)?]
     ) => {
         /// Aggregation dimension for querying series. Includes time-based (date, week, month, year),
-        /// block-based (height, tx_index), and address/output type indexes.
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, JsonSchema)]
-        #[serde(rename_all = "lowercase")]
-        #[schemars(example = Index::Day1)]
+        /// block-based (height, tx_index), and address/output type indexes. Written by its name
+        /// (`Index::name`) everywhere: JSON, the OpenAPI enum and `Display`.
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub enum Index {
             $($period,)*
             $($epoch,)*
@@ -90,14 +90,6 @@ macro_rules! indexes {
 
             pub const fn all() -> [Self; Self::COUNT] {
                 [$(Self::$period,)* $(Self::$epoch,)* $(Self::$other,)+]
-            }
-
-            pub fn aliases(&self) -> &'static [&'static str] {
-                match self {
-                    $(Self::$period => $period::index_aliases(),)*
-                    $(Self::$epoch => $epoch::index_aliases(),)*
-                    $(Self::$other => $other::index_aliases(),)+
-                }
             }
 
             pub fn name(&self) -> &'static str {
@@ -143,35 +135,20 @@ with_resolution_fields!(indexes, calendars {
     Year10 => Months { size: 120, phase: 108 },
 } other: [
     Height,
-    #[serde(rename = "tx_index")]
     TxIndex,
-    #[serde(rename = "txin_index")]
     TxInIndex,
-    #[serde(rename = "txout_index")]
     TxOutIndex,
-    #[serde(rename = "empty_script_output_index")]
     EmptyScriptOutputIndex,
-    #[serde(rename = "op_return_index")]
     OpReturnIndex,
-    #[serde(rename = "p2a_address_index")]
     P2AAddressIndex,
-    #[serde(rename = "p2ms_output_index")]
     P2MSOutputIndex,
-    #[serde(rename = "p2pk33_address_index")]
     P2PK33AddressIndex,
-    #[serde(rename = "p2pk65_address_index")]
     P2PK65AddressIndex,
-    #[serde(rename = "p2pkh_address_index")]
     P2PKHAddressIndex,
-    #[serde(rename = "p2sh_address_index")]
     P2SHAddressIndex,
-    #[serde(rename = "p2tr_address_index")]
     P2TRAddressIndex,
-    #[serde(rename = "p2wpkh_address_index")]
     P2WPKHAddressIndex,
-    #[serde(rename = "p2wsh_address_index")]
     P2WSHAddressIndex,
-    #[serde(rename = "unknown_script_output_index")]
     UnknownScriptOutputIndex,
 ]);
 
@@ -245,22 +222,46 @@ impl Index {
 
 impl TryFrom<&str> for Index {
     type Error = Error;
+    /// The index named exactly `value`; an error naming every index otherwise.
     fn try_from(value: &str) -> Result<Self, Self::Error> {
         Self::all()
             .into_iter()
-            .find(|index| {
-                index
-                    .aliases()
-                    .iter()
-                    .any(|alias| alias.eq_ignore_ascii_case(value))
+            .find(|index| index.name() == value)
+            .ok_or_else(|| {
+                let names: Vec<&str> = Self::all().iter().map(Self::name).collect();
+                Error::Parse(format!(
+                    "unknown index `{value}`, expected one of {}",
+                    names.join(", ")
+                ))
             })
-            .ok_or_else(|| Error::Parse(format!("Invalid index: {value}")))
     }
 }
 
 impl fmt::Display for Index {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{self:?}")
+        f.write_str(self.name())
+    }
+}
+
+impl Serialize for Index {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.name())
+    }
+}
+
+impl JsonSchema for Index {
+    fn schema_name() -> std::borrow::Cow<'static, str> {
+        "Index".into()
+    }
+
+    fn json_schema(_: &mut schemars::SchemaGenerator) -> schemars::Schema {
+        let names: Vec<&str> = Self::all().iter().map(Self::name).collect();
+        schemars::json_schema!({
+            "description": "Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.",
+            "type": "string",
+            "enum": names,
+            "examples": ["day1"],
+        })
     }
 }
 

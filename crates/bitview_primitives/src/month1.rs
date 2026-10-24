@@ -25,9 +25,6 @@ impl Month1 {
     pub(crate) fn index_name() -> &'static str {
         "month1"
     }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["month", "m", "monthly", "month1", "monthindex", "1m", "1mo"]
-    }
 }
 
 impl From<Month1> for u64 {

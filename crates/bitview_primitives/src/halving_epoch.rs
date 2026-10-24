@@ -12,48 +12,45 @@ use vecdb::{Pco, PrintableIndex};
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize, JsonSchema,
 )]
 #[cfg_attr(feature = "storage", derive(Pco))]
-pub struct Halving(u8);
+pub struct HalvingEpoch(u8);
 
-brk_types::impl_integer_index!(Halving, u8);
+brk_types::impl_integer_index!(HalvingEpoch, u8);
 
-impl From<Height> for Halving {
+impl From<Height> for HalvingEpoch {
     #[inline]
     fn from(value: Height) -> Self {
         Self((u32::from(value) / BLOCKS_PER_HALVING) as u8)
     }
 }
 
-impl Halving {
+impl HalvingEpoch {
     pub(crate) fn index_name() -> &'static str {
-        "halving"
-    }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["halving", "halvingepoch", "halv"]
+        "halving_epoch"
     }
 }
 #[cfg(feature = "storage")]
-impl PrintableIndex for Halving {
+impl PrintableIndex for HalvingEpoch {
     fn to_string() -> &'static str {
         Self::index_name()
     }
 }
 
-impl From<f64> for Halving {
+impl From<f64> for HalvingEpoch {
     #[inline]
     fn from(value: f64) -> Self {
         Self(value.round() as u8)
     }
 }
 
-impl From<Halving> for f64 {
+impl From<HalvingEpoch> for f64 {
     #[inline]
-    fn from(value: Halving) -> Self {
+    fn from(value: HalvingEpoch) -> Self {
         value.0 as f64
     }
 }
 
-impl FromCoarserIndex<Halving> for Height {
-    fn max_from_unbounded(coarser: Halving) -> usize {
+impl FromCoarserIndex<HalvingEpoch> for Height {
+    fn max_from_unbounded(coarser: HalvingEpoch) -> usize {
         (usize::from(coarser) + 1) * BLOCKS_PER_HALVING as usize - 1
     }
 }

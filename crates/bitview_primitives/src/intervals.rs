@@ -9,12 +9,12 @@ use crate::INDEX_EPOCH;
 #[cfg(feature = "storage")]
 use vecdb::{Pco, PrintableIndex, VecIndex};
 
-/// A fixed-length period index counted from [`INDEX_EPOCH`], with its `Index` name and aliases.
+/// A fixed-length period index counted from [`INDEX_EPOCH`], with its `Index` name.
 macro_rules! fixed_interval {
     (
         $(#[$meta:meta])* $name:ident,
         $interval_vis:vis $interval:ident = $seconds:literal,
-        $index_name:literal, [$($alias:literal),+]
+        $index_name:literal
     ) => {
         $interval_vis const $interval: u32 = $seconds;
 
@@ -36,10 +36,6 @@ macro_rules! fixed_interval {
 
             pub(crate) fn index_name() -> &'static str {
                 $index_name
-            }
-
-            pub(crate) fn index_aliases() -> &'static [&'static str] {
-                &[$($alias),+]
             }
         }
 
@@ -86,21 +82,21 @@ macro_rules! fixed_interval {
 
 fixed_interval!(
     /// Index of a 10-minute period.
-    Minute10, pub(crate) MINUTE10_INTERVAL = 600, "minute10", ["10mn", "minute10"]
+    Minute10, pub(crate) MINUTE10_INTERVAL = 600, "minute10"
 );
 fixed_interval!(
     /// Index of a 30-minute period.
-    Minute30, pub(crate) MINUTE30_INTERVAL = 1800, "minute30", ["30mn", "minute30"]
+    Minute30, pub(crate) MINUTE30_INTERVAL = 1800, "minute30"
 );
 fixed_interval!(
     /// Index of an hour.
-    Hour1, pub(crate) HOUR1_INTERVAL = 3600, "hour1", ["1h", "hour", "hourly", "hour1"]
+    Hour1, pub(crate) HOUR1_INTERVAL = 3600, "hour1"
 );
 fixed_interval!(
     /// Index of a 4-hour period.
-    Hour4, pub HOUR4_INTERVAL = 14400, "hour4", ["4h", "hour4"]
+    Hour4, pub HOUR4_INTERVAL = 14400, "hour4"
 );
 fixed_interval!(
     /// Index of a 12-hour period.
-    Hour12, pub(crate) HOUR12_INTERVAL = 43200, "hour12", ["12h", "hour12"]
+    Hour12, pub(crate) HOUR12_INTERVAL = 43200, "hour12"
 );

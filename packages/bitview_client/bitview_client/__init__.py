@@ -182,11 +182,8 @@ MempoolBlockHash = str
 Limit = int
 # A JSON Schema type: what a series' values are on the wire.
 JsonType = Literal["null", "boolean", "integer", "number", "string", "array", "object"]
-# A name REST queries accept for an index: its canonical name or one of its aliases
-IndexAlias = Literal["10mn", "10y", "12h", "1d", "1h", "1m", "1mo", "1w", "1y", "30mn", "3d", "3m", "3mo", "4h", "6m", "6mo", "aaddr", "blk", "block", "d", "daily", "date", "dateindex", "day", "day1", "day3", "decade", "decadeindex", "diff", "difficulty", "difficultyepoch", "empty_script_output_index", "emptyout", "epoch", "h", "halv", "halving", "halvingepoch", "height", "hour", "hour1", "hour12", "hour4", "hourly", "m", "minute10", "minute30", "month", "month1", "month3", "month6", "monthindex", "monthly", "msout", "op", "op_return", "op_return_index", "opreturn", "p2a_address_index", "p2aaddr", "p2ms_output_index", "p2msout", "p2pk33_address_index", "p2pk33addr", "p2pk65_address_index", "p2pk65addr", "p2pkh_address_index", "p2pkhaddr", "p2sh_address_index", "p2shaddr", "p2tr_address_index", "p2traddr", "p2wpkh_address_index", "p2wpkhaddr", "p2wsh_address_index", "p2wshaddr", "pk33addr", "pk65addr", "pkhaddr", "q", "quarter", "quarterindex", "quarterly", "s", "semester", "semesterindex", "shaddr", "traddr", "tx", "tx_index", "txi", "txin", "txin_index", "txo", "txout", "txout_index", "unknown_script_output_index", "unknownout", "w", "week", "week1", "weekindex", "weekly", "wpkhaddr", "wshaddr", "y", "year", "year1", "year10", "yearindex", "yearly"]
-# Aggregation dimension for querying series. Includes time-based (date, week, month, year),
-# block-based (height, tx_index), and address/output type indexes.
-Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving", "epoch", "height", "tx_index", "txin_index", "txout_index", "empty_script_output_index", "op_return_index", "p2a_address_index", "p2ms_output_index", "p2pk33_address_index", "p2pk65_address_index", "p2pkh_address_index", "p2sh_address_index", "p2tr_address_index", "p2wpkh_address_index", "p2wsh_address_index", "unknown_script_output_index"]
+# Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.
+Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving_epoch", "difficulty_epoch", "height", "tx_index", "txin_index", "txout_index", "empty_script_output_index", "op_return_index", "p2a_address_index", "p2ms_output_index", "p2pk33_address_index", "p2pk65_address_index", "p2pkh_address_index", "p2sh_address_index", "p2tr_address_index", "p2wpkh_address_index", "p2wsh_address_index", "unknown_script_output_index"]
 TreeNode = Union[dict[str, "TreeNode"], "SeriesLeafWithSchema"]
 # Index of a 4-hour period.
 Hour4 = int
@@ -209,7 +206,7 @@ HashValue = float
 # US dollars per PH/s of hash rate per day.
 HashPrice = float
 # Index of a halving epoch (210,000 blocks).
-Halving = int
+HalvingEpoch = int
 Format = Literal["json", "csv"]
 # A floating-point value without a specific unit.
 Float = float
@@ -222,8 +219,6 @@ ExchangeRates = dict
 # (other 5xx).
 ErrorType = Literal["invalid_request", "not_found", "unavailable", "timeout", "internal"]
 ErrorCode = Literal["not_found", "invalid_address", "invalid_network", "unsupported_type", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "unknown_after_txid", "unknown_address", "unknown_txid", "unknown_pool", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
-# Index of a difficulty epoch (2,016 blocks).
-Epoch = int
 # An amount in US dollars.
 Dollars = float
 # Open, high, low and close prices in US dollars: [open, high, low, close].
@@ -233,6 +228,8 @@ OHLCDollars = List[Dollars]
 DollarDaysPerCoin = float
 # US dollars multiplied by blocks: coinblocks valued at the spot price.
 DollarBlocks = float
+# Index of a difficulty epoch (2,016 blocks).
+DifficultyEpoch = int
 # Proof-of-work difficulty.
 Difficulty = float
 # A duration in days.
@@ -317,7 +314,7 @@ class UrpdCohortParam(TypedDict):
 class UrpdQuery(TypedDict, total=False):
     """
     Attributes:
-        agg: Aggregation strategy. Default: raw (no aggregation). Accepts `bucket` as alias.
+        agg: Aggregation strategy. Default: raw (no aggregation).
         weight: Supply weighting. Default: none (unweighted).
     """
     agg: UrpdAggregation
@@ -673,15 +670,6 @@ class SeriesInfo(_SeriesInfoRequired, total=False):
     description: Optional[str]
     unit: Optional[str]
 
-class IndexInfo(TypedDict):
-    """
-    Attributes:
-        index: The canonical index name
-        aliases: Every name REST queries accept for it; MCP tools take the canonical `index` only
-    """
-    index: Index
-    aliases: List[IndexAlias]
-
 class SyncStatus(TypedDict):
     """
     Attributes:
@@ -876,9 +864,9 @@ class _SeriesSelectionRequired(TypedDict):
 class SeriesSelection(_SeriesSelectionRequired, total=False):
     """
     Attributes:
-        start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
-        end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
-        limit: Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
+        start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+        end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+        limit: Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
     """
     start: Union[RangeIndex, None]
     end: Union[RangeIndex, None]
@@ -888,9 +876,9 @@ class SeriesSelection(_SeriesSelectionRequired, total=False):
 class DataRangeFormat(TypedDict, total=False):
     """
     Attributes:
-        start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `from`, `f`, `s`
-        end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end. REST aliases: `to`, `t`, `e`
-        limit: Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range. REST aliases: `count`, `c`, `l`
+        start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+        end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
+        limit: Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
     """
     start: Union[RangeIndex, None]
     end: Union[RangeIndex, None]
@@ -2345,8 +2333,8 @@ class SeriesPattern(Protocol[T]):
         ...
 
 
-_i1 = ('minute10', 'minute30', 'hour1', 'hour4', 'hour12', 'day1', 'day3', 'week1', 'month1', 'month3', 'month6', 'year1', 'year10', 'halving', 'epoch', 'height')
-_i2 = ('minute10', 'minute30', 'hour1', 'hour4', 'hour12', 'day1', 'day3', 'week1', 'month1', 'month3', 'month6', 'year1', 'year10', 'halving', 'epoch')
+_i1 = ('minute10', 'minute30', 'hour1', 'hour4', 'hour12', 'day1', 'day3', 'week1', 'month1', 'month3', 'month6', 'year1', 'year10', 'halving_epoch', 'difficulty_epoch', 'height')
+_i2 = ('minute10', 'minute30', 'hour1', 'hour4', 'hour12', 'day1', 'day3', 'week1', 'month1', 'month3', 'month6', 'year1', 'year10', 'halving_epoch', 'difficulty_epoch')
 _i3 = ('minute10',)
 _i4 = ('minute30',)
 _i5 = ('hour1',)
@@ -2360,8 +2348,8 @@ _i12 = ('month3',)
 _i13 = ('month6',)
 _i14 = ('year1',)
 _i15 = ('year10',)
-_i16 = ('halving',)
-_i17 = ('epoch',)
+_i16 = ('halving_epoch',)
+_i17 = ('difficulty_epoch',)
 _i18 = ('height',)
 _i19 = ('tx_index',)
 _i20 = ('txin_index',)
@@ -2400,8 +2388,8 @@ class _SeriesPattern1By(Generic[T]):
     def month6(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'month6')
     def year1(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'year1')
     def year10(self) -> DateSeriesEndpoint[Optional[T]]: return DateSeriesEndpoint(self._c, self._n, 'year10')
-    def halving(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'halving')
-    def epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'epoch')
+    def halving_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'halving_epoch')
+    def difficulty_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'difficulty_epoch')
     def height(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'height')
 
 class SeriesPattern1(Generic[T]):
@@ -2427,8 +2415,8 @@ class _SeriesPattern2By(Generic[T]):
     def month6(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'month6')
     def year1(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'year1')
     def year10(self) -> DateSeriesEndpoint[T]: return DateSeriesEndpoint(self._c, self._n, 'year10')
-    def halving(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'halving')
-    def epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'epoch')
+    def halving_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'halving_epoch')
+    def difficulty_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'difficulty_epoch')
 
 class SeriesPattern2(Generic[T]):
     by: _SeriesPattern2By[T]
@@ -2596,7 +2584,7 @@ class SeriesPattern15(Generic[T]):
 
 class _SeriesPattern16By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def halving(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'halving')
+    def halving_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'halving_epoch')
 
 class SeriesPattern16(Generic[T]):
     by: _SeriesPattern16By[T]
@@ -2608,7 +2596,7 @@ class SeriesPattern16(Generic[T]):
 
 class _SeriesPattern17By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'epoch')
+    def difficulty_epoch(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'difficulty_epoch')
 
 class SeriesPattern17(Generic[T]):
     by: _SeriesPattern17By[T]
@@ -3661,8 +3649,8 @@ class FeesSeries(_Node):
     chain_share: Share = _at(Share, '*_fee_chain_share')
 
 
-class BlocksHalving(_Node):
-    epoch: SeriesPattern1[Halving] = _at(SeriesPattern1, '*_epoch')
+class Halving(_Node):
+    epoch: SeriesPattern1[HalvingEpoch] = _at(SeriesPattern1, '*_epoch')
     blocks_to_halving: SeriesPattern1[Count] = _at(SeriesPattern1, 'blocks_to_*')
     days_to_halving: SeriesPattern1[Optional[Days]] = _at(SeriesPattern1, 'days_to_*')
 
@@ -3671,7 +3659,7 @@ class BlocksDifficulty(_Node):
     value: SeriesPattern1[Optional[Difficulty]] = _at(SeriesPattern1, '*')
     hashrate: SeriesPattern1[Optional[Hashrate]] = _at(SeriesPattern1, '*_hashrate')
     adjustment: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_adjustment')
-    epoch: SeriesPattern1[Epoch] = _at(SeriesPattern1, '*_epoch')
+    epoch: SeriesPattern1[DifficultyEpoch] = _at(SeriesPattern1, '*_epoch')
     blocks_to_retarget: SeriesPattern1[Count] = _at(SeriesPattern1, 'blocks_to_retarget')
     days_to_retarget: SeriesPattern1[Optional[Days]] = _at(SeriesPattern1, 'days_to_retarget')
 
@@ -4559,7 +4547,7 @@ class Blocks(_Node):
     weight: FlowStats[Weight, Optional[WeightFract]] = _at(FlowStats, '*_weight')
     fullness: Fullness = _at(Fullness, '*_fullness')
     difficulty: BlocksDifficulty = _at(BlocksDifficulty, 'difficulty')
-    halving: BlocksHalving = _at(BlocksHalving, 'halving')
+    halving: Halving = _at(Halving, 'halving')
 
 
 class Price(_Node):
@@ -4651,11 +4639,11 @@ class MappingsMinute10(_Node):
     first_height: SeriesPattern3[Height] = _at(SeriesPattern3, '*')
 
 
-class MappingsHalving(_Node):
+class MappingsHalvingEpoch(_Node):
     first_height: SeriesPattern16[Height] = _at(SeriesPattern16, '*')
 
 
-class MappingsEpoch(_Node):
+class MappingsDifficultyEpoch(_Node):
     first_height: SeriesPattern17[Height] = _at(SeriesPattern17, '*')
 
 
@@ -4667,8 +4655,8 @@ class MappingsHeight(_Node):
     hour12: SeriesPattern18[Hour12] = _at(SeriesPattern18, '*_hour12')
     day1: SeriesPattern18[Day1] = _at(SeriesPattern18, '*_day1')
     day3: SeriesPattern18[Day3] = _at(SeriesPattern18, '*_day3')
-    epoch: SeriesPattern18[Epoch] = _at(SeriesPattern18, 'difficulty_epoch')
-    halving: SeriesPattern18[Halving] = _at(SeriesPattern18, 'halving_epoch')
+    difficulty_epoch: SeriesPattern18[DifficultyEpoch] = _at(SeriesPattern18, 'difficulty_epoch')
+    halving_epoch: SeriesPattern18[HalvingEpoch] = _at(SeriesPattern18, 'halving_epoch')
     week1: SeriesPattern18[Week1] = _at(SeriesPattern18, '*_week1')
     month1: SeriesPattern18[Month1] = _at(SeriesPattern18, '*_month1')
     month3: SeriesPattern18[Month3] = _at(SeriesPattern18, '*_month3')
@@ -4825,8 +4813,8 @@ class Mappings(_Node):
     addresses: Addrs[MappingsP2pk65, MappingsP2pk33, MappingsP2pkh, MappingsP2sh, MappingsP2wpkh, MappingsP2wsh, MappingsP2tr, MappingsP2a] = _at((Addrs, MappingsP2pk65, MappingsP2pk33, MappingsP2pkh, MappingsP2sh, MappingsP2wpkh, MappingsP2wsh, MappingsP2tr, MappingsP2a), 'address')
     scripts: Script = _at(Script, 'index')
     height: MappingsHeight = _at(MappingsHeight, 'block')
-    epoch: MappingsEpoch = _at(MappingsEpoch, 'first_height')
-    halving: MappingsHalving = _at(MappingsHalving, 'first_height')
+    difficulty_epoch: MappingsDifficultyEpoch = _at(MappingsDifficultyEpoch, 'first_height')
+    halving_epoch: MappingsHalvingEpoch = _at(MappingsHalvingEpoch, 'first_height')
     minute10: MappingsMinute10 = _at(MappingsMinute10, 'first_height')
     minute30: MappingsMinute30 = _at(MappingsMinute30, 'first_height')
     hour1: MappingsHour1 = _at(MappingsHour1, 'first_height')
@@ -5007,8 +4995,8 @@ class BitviewClient(BitviewClientBase):
       "month6",
       "year1",
       "year10",
-      "halving",
-      "epoch",
+      "halving_epoch",
+      "difficulty_epoch",
       "height",
       "tx_index",
       "txin_index",
@@ -5835,10 +5823,10 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/series/count`"""
         return self.get_json('/api/series/count')
 
-    def get_indexes(self) -> List[IndexInfo]:
+    def get_indexes(self) -> List[Index]:
         """List available indexes.
 
-        Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only.
+        Returns every index a series can be read at, by the name series routes take.
 
         Endpoint: `GET /api/series/indexes`"""
         return self.get_json('/api/series/indexes')

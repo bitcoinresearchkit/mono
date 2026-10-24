@@ -25,9 +25,6 @@ impl Week1 {
     pub(crate) fn index_name() -> &'static str {
         "week1"
     }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["1w", "w", "week", "weekly", "week1", "weekindex"]
-    }
 }
 
 impl From<Day1> for Week1 {

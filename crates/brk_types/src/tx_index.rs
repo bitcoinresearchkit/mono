@@ -41,10 +41,6 @@ impl TxIndex {
     pub fn index_name() -> &'static str {
         "tx_index"
     }
-
-    pub fn index_aliases() -> &'static [&'static str] {
-        &["tx", "tx_index"]
-    }
 }
 
 crate::impl_integer_index!(TxIndex, u32);

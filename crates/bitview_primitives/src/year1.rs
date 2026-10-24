@@ -25,9 +25,6 @@ impl Year1 {
     pub(crate) fn index_name() -> &'static str {
         "year1"
     }
-    pub(crate) fn index_aliases() -> &'static [&'static str] {
-        &["1y", "y", "year", "yearly", "year1", "yearindex"]
-    }
 }
 
 impl From<Year1> for u64 {
