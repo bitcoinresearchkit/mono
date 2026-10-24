@@ -801,50 +801,6 @@ Endpoint: `GET /api/block/{hash}`
 
 ***
 
-### getBlockByHeight()
-
-> **getBlockByHeight**(`height`, `options?`): `Promise`\<`string`\>
-
-Defined in: [modules/bitview-client/index.js:8547](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8547)
-
-Block hash by height
-
-Block hash as plain text.
-
-*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*
-
-Endpoint: `GET /api/block-height/{height}`
-
-#### Parameters
-
-##### height
-
-`number`
-
-##### options?
-
-###### cache?
-
-`boolean`
-
-###### memCache?
-
-`boolean`
-
-###### onValue?
-
-(`value`) => `void`
-
-###### signal?
-
-`AbortSignal`
-
-#### Returns
-
-`Promise`\<`string`\>
-
-***
-
 ### getBlockByTimestamp()
 
 > **getBlockByTimestamp**(`timestamp`, `options?`): `Promise`\<[`BlockTimestamp`](../interfaces/BlockTimestamp.md)\>
@@ -1024,6 +980,50 @@ Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or 
 #### Returns
 
 `Promise`\<[`BlockFeesEntry`](../interfaces/BlockFeesEntry.md)[]\>
+
+***
+
+### getBlockHashByHeight()
+
+> **getBlockHashByHeight**(`height`, `options?`): `Promise`\<`string`\>
+
+Defined in: [modules/bitview-client/index.js:8547](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8547)
+
+Block hash by height
+
+Block hash as plain text.
+
+*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*
+
+Endpoint: `GET /api/block-height/{height}`
+
+#### Parameters
+
+##### height
+
+`number`
+
+##### options?
+
+###### cache?
+
+`boolean`
+
+###### memCache?
+
+`boolean`
+
+###### onValue?
+
+(`value`) => `void`
+
+###### signal?
+
+`AbortSignal`
+
+#### Returns
+
+`Promise`\<`string`\>
 
 ***
 
@@ -2177,44 +2177,6 @@ Quote currency: USD, the only one served
 
 ***
 
-### getIndexes()
-
-> **getIndexes**(`options?`): `Promise`\<[`Index`](../type-aliases/Index.md)[]\>
-
-Defined in: [modules/bitview-client/index.js:8005](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8005)
-
-List available indexes
-
-Returns every index a series can be read at, by the name series routes take.
-
-Endpoint: `GET /api/series/indexes`
-
-#### Parameters
-
-##### options?
-
-###### cache?
-
-`boolean`
-
-###### memCache?
-
-`boolean`
-
-###### onValue?
-
-(`value`) => `void`
-
-###### signal?
-
-`AbortSignal`
-
-#### Returns
-
-`Promise`\<[`Index`](../type-aliases/Index.md)[]\>
-
-***
-
 ### getJson()
 
 > **getJson**\<`T`\>(`path`, `options?`, `keep?`): `Promise`\<`T`\>
@@ -2831,9 +2793,9 @@ Endpoint: `GET /api/v1/mining/pool/{slug}/blocks`
 
 ***
 
-### getPoolBlocksFrom()
+### getPoolBlocksFromHeight()
 
-> **getPoolBlocksFrom**(`slug`, `height`, `options?`): `Promise`\<[`BlockInfoV1`](../interfaces/BlockInfoV1.md)[]\>
+> **getPoolBlocksFromHeight**(`slug`, `height`, `options?`): `Promise`\<[`BlockInfoV1`](../interfaces/BlockInfoV1.md)[]\>
 
 Defined in: [modules/bitview-client/index.js:8910](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8910)
 
@@ -2920,6 +2882,52 @@ Endpoint: `GET /api/v1/mining/pool/{slug}/hashrate`
 #### Returns
 
 `Promise`\<[`PoolHashrateEntry`](../interfaces/PoolHashrateEntry.md)[]\>
+
+***
+
+### getPoolRanking()
+
+> **getPoolRanking**(`time_period`, `options?`): `Promise`\<[`PoolsSummary`](../interfaces/PoolsSummary.md)\>
+
+Defined in: [modules/bitview-client/index.js:8803](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8803)
+
+Mining pool statistics
+
+Get mining pool statistics for a time period.
+
+*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
+
+Endpoint: `GET /api/v1/mining/pools/{time_period}`
+
+#### Parameters
+
+##### time\_period
+
+[`TimePeriod`](../type-aliases/TimePeriod.md)
+
+Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
+
+##### options?
+
+###### cache?
+
+`boolean`
+
+###### memCache?
+
+`boolean`
+
+###### onValue?
+
+(`value`) => `void`
+
+###### signal?
+
+`AbortSignal`
+
+#### Returns
+
+`Promise`\<[`PoolsSummary`](../interfaces/PoolsSummary.md)\>
 
 ***
 
@@ -3044,52 +3052,6 @@ Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or 
 #### Returns
 
 `Promise`\<[`PoolHashrateEntry`](../interfaces/PoolHashrateEntry.md)[]\>
-
-***
-
-### getPoolStats()
-
-> **getPoolStats**(`time_period`, `options?`): `Promise`\<[`PoolsSummary`](../interfaces/PoolsSummary.md)\>
-
-Defined in: [modules/bitview-client/index.js:8803](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8803)
-
-Mining pool statistics
-
-Get mining pool statistics for a time period.
-
-*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
-
-Endpoint: `GET /api/v1/mining/pools/{time_period}`
-
-#### Parameters
-
-##### time\_period
-
-[`TimePeriod`](../type-aliases/TimePeriod.md)
-
-Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
-
-##### options?
-
-###### cache?
-
-`boolean`
-
-###### memCache?
-
-`boolean`
-
-###### onValue?
-
-(`value`) => `void`
-
-###### signal?
-
-`AbortSignal`
-
-#### Returns
-
-`Promise`\<[`PoolsSummary`](../interfaces/PoolsSummary.md)\>
 
 ***
 
@@ -3825,7 +3787,7 @@ Cached and supports `onValue`, same as `getJson`.
 
 ### getTransactionTimes()
 
-> **getTransactionTimes**(`txId`, `options?`): `Promise`\<`number`[]\>
+> **getTransactionTimes**(`txids`, `options?`): `Promise`\<`number`[]\>
 
 Defined in: [modules/bitview-client/index.js:9454](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9454)
 
@@ -3839,7 +3801,7 @@ Endpoint: `GET /api/v1/transaction-times`
 
 #### Parameters
 
-##### txId
+##### txids
 
 `string`[]
 
@@ -3911,25 +3873,25 @@ Endpoint: `GET /api/tx/{txid}`
 
 ***
 
-### getTxByIndex()
+### getTxHex()
 
-> **getTxByIndex**(`index`, `options?`): `Promise`\<`string`\>
+> **getTxHex**(`txid`, `options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:9259](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9259)
+Defined in: [modules/bitview-client/index.js:9329](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9329)
 
-Txid by index
+Transaction hex
 
-Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.
+Hex-encoded serialized transaction.
 
-Endpoint: `GET /api/tx-index/{index}`
+*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-hex)*
+
+Endpoint: `GET /api/tx/{txid}/hex`
 
 #### Parameters
 
-##### index
+##### txid
 
-`number`
-
-Global transaction index across the chain
+`string`
 
 ##### options?
 
@@ -3955,25 +3917,25 @@ Global transaction index across the chain
 
 ***
 
-### getTxHex()
+### getTxidByIndex()
 
-> **getTxHex**(`txid`, `options?`): `Promise`\<`string`\>
+> **getTxidByIndex**(`index`, `options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:9329](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9329)
+Defined in: [modules/bitview-client/index.js:9259](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9259)
 
-Transaction hex
+Txid by index
 
-Hex-encoded serialized transaction.
+Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.
 
-*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-hex)*
-
-Endpoint: `GET /api/tx/{txid}/hex`
+Endpoint: `GET /api/tx-index/{index}`
 
 #### Parameters
 
-##### txid
+##### index
 
-`string`
+`number`
+
+Global transaction index across the chain
 
 ##### options?
 
@@ -4313,21 +4275,27 @@ Endpoint: `GET /api/tx/{txid}/status`
 
 ### getUrpd()
 
-> **getUrpd**(`cohort`, `agg?`, `weight?`, `options?`): `Promise`\<[`Urpd`](../interfaces/Urpd.md)\>
+> **getUrpd**(`cohort`, `point`, `agg?`, `weight?`, `options?`): `Promise`\<[`Urpd`](../interfaces/Urpd.md)\>
 
-Defined in: [modules/bitview-client/index.js:8230](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8230)
+Defined in: [modules/bitview-client/index.js:8253](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8253)
 
-Latest URPD
+URPD at block height or date
 
-URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
+URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
 
-Endpoint: `GET /api/urpd/{cohort}`
+Endpoint: `GET /api/urpd/{cohort}/{point}`
 
 #### Parameters
 
 ##### cohort
 
 [`UrpdCohort`](../type-aliases/UrpdCohort.md)
+
+##### point
+
+[`HeightOrDate`](../type-aliases/HeightOrDate.md)
+
+Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
 
 ##### agg?
 
@@ -4365,29 +4333,23 @@ Supply weighting. Default: none (unweighted).
 
 ***
 
-### getUrpdAt()
+### getUrpdLatest()
 
-> **getUrpdAt**(`cohort`, `point`, `agg?`, `weight?`, `options?`): `Promise`\<[`Urpd`](../interfaces/Urpd.md)\>
+> **getUrpdLatest**(`cohort`, `agg?`, `weight?`, `options?`): `Promise`\<[`Urpd`](../interfaces/Urpd.md)\>
 
-Defined in: [modules/bitview-client/index.js:8253](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8253)
+Defined in: [modules/bitview-client/index.js:8230](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8230)
 
-URPD at block height or date
+Latest URPD
 
-URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
+URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
 
-Endpoint: `GET /api/urpd/{cohort}/{point}`
+Endpoint: `GET /api/urpd/{cohort}`
 
 #### Parameters
 
 ##### cohort
 
 [`UrpdCohort`](../type-aliases/UrpdCohort.md)
-
-##### point
-
-[`HeightOrDate`](../type-aliases/HeightOrDate.md)
-
-Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
 
 ##### agg?
 
@@ -4608,6 +4570,44 @@ The UTC start of bucket `i`; throws for an index without a date calendar.
 #### Returns
 
 `Date`
+
+***
+
+### listIndexes()
+
+> **listIndexes**(`options?`): `Promise`\<[`Index`](../type-aliases/Index.md)[]\>
+
+Defined in: [modules/bitview-client/index.js:8005](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8005)
+
+List available indexes
+
+Returns every index a series can be read at, by the name series routes take.
+
+Endpoint: `GET /api/series/indexes`
+
+#### Parameters
+
+##### options?
+
+###### cache?
+
+`boolean`
+
+###### memCache?
+
+`boolean`
+
+###### onValue?
+
+(`value`) => `void`
+
+###### signal?
+
+`AbortSignal`
+
+#### Returns
+
+`Promise`\<[`Index`](../type-aliases/Index.md)[]\>
 
 ***
 
