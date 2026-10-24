@@ -8,6 +8,6 @@
 
 > **SeriesList** = `string`
 
-Defined in: [modules/bitview-client/index.js:1269](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1269)
+Defined in: [modules/bitview-client/index.js:1274](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1274)
 
 ## Type Parameters

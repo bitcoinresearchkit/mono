@@ -6,7 +6,7 @@
 
 # Interface: DataRangeFormat
 
-Defined in: [modules/bitview-client/index.js:459](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L459)
+Defined in: [modules/bitview-client/index.js:464](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L464)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:459](https://github.com/bitcoinrese
 
 > `optional` **end?**: [`RangeIndex`](../type-aliases/RangeIndex.md) \| `null`
 
-Defined in: [modules/bitview-client/index.js:461](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L461)
+Defined in: [modules/bitview-client/index.js:466](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L466)
 
 Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
 
@@ -24,7 +24,7 @@ Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negati
 
 > `optional` **format?**: [`Format`](../type-aliases/Format.md)
 
-Defined in: [modules/bitview-client/index.js:463](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L463)
+Defined in: [modules/bitview-client/index.js:468](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L468)
 
 ***
 
@@ -32,9 +32,9 @@ Defined in: [modules/bitview-client/index.js:463](https://github.com/bitcoinrese
 
 > `optional` **limit?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:462](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L462)
+Defined in: [modules/bitview-client/index.js:467](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L467)
 
-Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
+Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
 
 ***
 
@@ -42,6 +42,6 @@ Maximum number of values to return (ignored if `end` is set); omitted, the rest 
 
 > `optional` **start?**: [`RangeIndex`](../type-aliases/RangeIndex.md) \| `null`
 
-Defined in: [modules/bitview-client/index.js:460](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L460)
+Defined in: [modules/bitview-client/index.js:465](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L465)
 
 Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.

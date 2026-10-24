@@ -6,7 +6,7 @@
 
 # Interface: ErrorDetail
 
-Defined in: [modules/bitview-client/index.js:579](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L579)
+Defined in: [modules/bitview-client/index.js:584](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L584)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:579](https://github.com/bitcoinrese
 
 > **code**: [`ErrorCode`](../type-aliases/ErrorCode.md)
 
-Defined in: [modules/bitview-client/index.js:581](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L581)
+Defined in: [modules/bitview-client/index.js:586](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L586)
 
 Machine-readable error code
 
@@ -24,7 +24,7 @@ Machine-readable error code
 
 > **docUrl**: `string`
 
-Defined in: [modules/bitview-client/index.js:583](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L583)
+Defined in: [modules/bitview-client/index.js:588](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L588)
 
 Link to API documentation
 
@@ -34,7 +34,7 @@ Link to API documentation
 
 > **message**: `string`
 
-Defined in: [modules/bitview-client/index.js:582](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L582)
+Defined in: [modules/bitview-client/index.js:587](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L587)
 
 Human-readable description
 
@@ -44,6 +44,6 @@ Human-readable description
 
 > **type**: [`ErrorType`](../type-aliases/ErrorType.md)
 
-Defined in: [modules/bitview-client/index.js:580](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L580)
+Defined in: [modules/bitview-client/index.js:585](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L585)
 
 Error category, following the HTTP status

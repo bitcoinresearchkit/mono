@@ -8,7 +8,7 @@
 
 > **CapitalViews** = `object`
 
-Defined in: [modules/bitview-client/index.js:4412](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4412)
+Defined in: [modules/bitview-client/index.js:4417](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4417)
 
 ## Type Parameters
 

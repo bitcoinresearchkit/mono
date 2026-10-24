@@ -8,7 +8,7 @@
 
 > **IndexerP2wsh** = `object`
 
-Defined in: [modules/bitview-client/index.js:6648](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6648)
+Defined in: [modules/bitview-client/index.js:6653](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6653)
 
 ## Type Parameters
 

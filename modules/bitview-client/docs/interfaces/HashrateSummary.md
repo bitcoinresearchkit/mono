@@ -6,7 +6,7 @@
 
 # Interface: HashrateSummary
 
-Defined in: [modules/bitview-client/index.js:634](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L634)
+Defined in: [modules/bitview-client/index.js:639](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L639)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:634](https://github.com/bitcoinrese
 
 > **currentDifficulty**: `number`
 
-Defined in: [modules/bitview-client/index.js:638](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L638)
+Defined in: [modules/bitview-client/index.js:643](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L643)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:638](https://github.com/bitcoinrese
 
 > **currentHashrate**: `number`
 
-Defined in: [modules/bitview-client/index.js:637](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L637)
+Defined in: [modules/bitview-client/index.js:642](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L642)
 
 Current network hashrate over the trailing 7 days (H/s)
 
@@ -32,7 +32,7 @@ Current network hashrate over the trailing 7 days (H/s)
 
 > **difficulty**: [`DifficultyEntry`](DifficultyEntry.md)[]
 
-Defined in: [modules/bitview-client/index.js:636](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L636)
+Defined in: [modules/bitview-client/index.js:641](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L641)
 
 ***
 
@@ -40,4 +40,4 @@ Defined in: [modules/bitview-client/index.js:636](https://github.com/bitcoinrese
 
 > **hashrates**: [`HashrateEntry`](HashrateEntry.md)[]
 
-Defined in: [modules/bitview-client/index.js:635](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L635)
+Defined in: [modules/bitview-client/index.js:640](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L640)

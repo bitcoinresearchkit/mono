@@ -8,6 +8,6 @@
 
 > **Seconds** = `number`
 
-Defined in: [modules/bitview-client/index.js:1228](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1228)
+Defined in: [modules/bitview-client/index.js:1233](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1233)
 
 ## Type Parameters

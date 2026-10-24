@@ -6,7 +6,7 @@
 
 # Interface: RewardStats
 
-Defined in: [modules/bitview-client/index.js:1198](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1198)
+Defined in: [modules/bitview-client/index.js:1203](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1203)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1198](https://github.com/bitcoinres
 
 > **endBlock**: `number`
 
-Defined in: [modules/bitview-client/index.js:1200](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1200)
+Defined in: [modules/bitview-client/index.js:1205](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1205)
 
 Last block in the range
 
@@ -24,7 +24,7 @@ Last block in the range
 
 > **startBlock**: `number`
 
-Defined in: [modules/bitview-client/index.js:1199](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1199)
+Defined in: [modules/bitview-client/index.js:1204](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1204)
 
 First block in the range
 
@@ -34,7 +34,7 @@ First block in the range
 
 > **totalFee**: `string`
 
-Defined in: [modules/bitview-client/index.js:1202](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1202)
+Defined in: [modules/bitview-client/index.js:1207](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1207)
 
 Total transaction fees in sats
 
@@ -44,7 +44,7 @@ Total transaction fees in sats
 
 > **totalReward**: `string`
 
-Defined in: [modules/bitview-client/index.js:1201](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1201)
+Defined in: [modules/bitview-client/index.js:1206](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1206)
 
 Total coinbase rewards (subsidy + fees) in sats
 
@@ -54,6 +54,6 @@ Total coinbase rewards (subsidy + fees) in sats
 
 > **totalTx**: `string`
 
-Defined in: [modules/bitview-client/index.js:1203](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1203)
+Defined in: [modules/bitview-client/index.js:1208](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1208)
 
 Total transactions, coinbase included

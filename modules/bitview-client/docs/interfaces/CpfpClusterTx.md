@@ -6,7 +6,7 @@
 
 # Interface: CpfpClusterTx
 
-Defined in: [modules/bitview-client/index.js:415](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L415)
+Defined in: [modules/bitview-client/index.js:420](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L420)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:415](https://github.com/bitcoinrese
 
 > **fee**: `number`
 
-Defined in: [modules/bitview-client/index.js:418](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L418)
+Defined in: [modules/bitview-client/index.js:423](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L423)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:418](https://github.com/bitcoinrese
 
 > **parents**: `number`[]
 
-Defined in: [modules/bitview-client/index.js:419](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L419)
+Defined in: [modules/bitview-client/index.js:424](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L424)
 
 In-cluster parents of this tx.
 
@@ -32,7 +32,7 @@ In-cluster parents of this tx.
 
 > **txid**: `string`
 
-Defined in: [modules/bitview-client/index.js:416](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L416)
+Defined in: [modules/bitview-client/index.js:421](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L421)
 
 ***
 
@@ -40,4 +40,4 @@ Defined in: [modules/bitview-client/index.js:416](https://github.com/bitcoinrese
 
 > **weight**: `number`
 
-Defined in: [modules/bitview-client/index.js:417](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L417)
+Defined in: [modules/bitview-client/index.js:422](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L422)

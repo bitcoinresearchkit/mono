@@ -139,6 +139,7 @@
 - [AddressesActivity](type-aliases/AddressesActivity.md)
 - [AddressesReuseEvents](type-aliases/AddressesReuseEvents.md)
 - [AddressesWindows](type-aliases/AddressesWindows.md)
+- [AddressOutputType](type-aliases/AddressOutputType.md)
 - [AddressSeries](type-aliases/AddressSeries.md)
 - [AddressType](type-aliases/AddressType.md)
 - [Addrs](type-aliases/Addrs.md)

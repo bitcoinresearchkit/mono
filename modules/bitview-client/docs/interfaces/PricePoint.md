@@ -6,7 +6,7 @@
 
 # Interface: PricePoint
 
-Defined in: [modules/bitview-client/index.js:1119](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1119)
+Defined in: [modules/bitview-client/index.js:1124](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1124)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1119](https://github.com/bitcoinres
 
 > **time**: `number`
 
-Defined in: [modules/bitview-client/index.js:1120](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1120)
+Defined in: [modules/bitview-client/index.js:1125](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1125)
 
 Unix timestamp
 
@@ -24,6 +24,6 @@ Unix timestamp
 
 > **USD**: `number`
 
-Defined in: [modules/bitview-client/index.js:1121](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1121)
+Defined in: [modules/bitview-client/index.js:1126](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1126)
 
 BTC/USD price

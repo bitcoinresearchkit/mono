@@ -8,7 +8,7 @@
 
 > **Cohort** = `object`
 
-Defined in: [modules/bitview-client/index.js:4997](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4997)
+Defined in: [modules/bitview-client/index.js:5002](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5002)
 
 ## Type Parameters
 

@@ -6,7 +6,7 @@
 
 # Interface: TimestampParam
 
-Defined in: [modules/bitview-client/index.js:1326](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1326)
+Defined in: [modules/bitview-client/index.js:1331](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1331)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [modules/bitview-client/index.js:1326](https://github.com/bitcoinres
 
 > **timestamp**: `number`
 
-Defined in: [modules/bitview-client/index.js:1327](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1327)
+Defined in: [modules/bitview-client/index.js:1332](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1332)

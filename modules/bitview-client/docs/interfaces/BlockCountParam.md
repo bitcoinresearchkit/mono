@@ -6,7 +6,7 @@
 
 # Interface: BlockCountParam
 
-Defined in: [modules/bitview-client/index.js:106](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L106)
+Defined in: [modules/bitview-client/index.js:111](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L111)
 
 ## Properties
 
@@ -14,6 +14,6 @@ Defined in: [modules/bitview-client/index.js:106](https://github.com/bitcoinrese
 
 > **blockCount**: `number`
 
-Defined in: [modules/bitview-client/index.js:107](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L107)
+Defined in: [modules/bitview-client/index.js:112](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L112)
 
 Number of recent blocks to include

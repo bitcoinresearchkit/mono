@@ -8,7 +8,7 @@
 
 > **ReuseEvents** = `object`
 
-Defined in: [modules/bitview-client/index.js:5636](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5636)
+Defined in: [modules/bitview-client/index.js:5641](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5641)
 
 ## Type Parameters
 

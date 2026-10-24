@@ -8,7 +8,7 @@
 
 > **Under6mCapitalizedPriceMedian** = `object`
 
-Defined in: [modules/bitview-client/index.js:2773](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2773)
+Defined in: [modules/bitview-client/index.js:2778](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2778)
 
 ## Type Parameters
 

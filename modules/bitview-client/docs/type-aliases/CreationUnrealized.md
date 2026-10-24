@@ -8,7 +8,7 @@
 
 > **CreationUnrealized** = `object`
 
-Defined in: [modules/bitview-client/index.js:3477](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3477)
+Defined in: [modules/bitview-client/index.js:3482](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3482)
 
 ## Type Parameters
 

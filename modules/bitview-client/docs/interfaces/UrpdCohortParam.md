@@ -6,7 +6,7 @@
 
 # Interface: UrpdCohortParam
 
-Defined in: [modules/bitview-client/index.js:1491](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1491)
+Defined in: [modules/bitview-client/index.js:1496](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1496)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [modules/bitview-client/index.js:1491](https://github.com/bitcoinres
 
 > **cohort**: [`UrpdCohort`](../type-aliases/UrpdCohort.md)
 
-Defined in: [modules/bitview-client/index.js:1492](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1492)
+Defined in: [modules/bitview-client/index.js:1497](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1497)

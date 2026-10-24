@@ -12,7 +12,7 @@ Defined in: [modules/bitview-client/index.js:44](https://github.com/bitcoinresea
 
 ### addressType
 
-> **addressType**: [`OutputType`](../type-aliases/OutputType.md)
+> **addressType**: [`AddressOutputType`](../type-aliases/AddressOutputType.md)
 
 Defined in: [modules/bitview-client/index.js:45](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L45)
 

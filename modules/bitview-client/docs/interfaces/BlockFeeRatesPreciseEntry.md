@@ -6,7 +6,7 @@
 
 # Interface: BlockFeeRatesPreciseEntry
 
-Defined in: [modules/bitview-client/index.js:171](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L171)
+Defined in: [modules/bitview-client/index.js:176](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L176)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:171](https://github.com/bitcoinrese
 
 > **avgFee\_0**: `number`
 
-Defined in: [modules/bitview-client/index.js:174](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L174)
+Defined in: [modules/bitview-client/index.js:179](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L179)
 
 Mean of the blocks' minimum fee rate (sat/vB)
 
@@ -24,7 +24,7 @@ Mean of the blocks' minimum fee rate (sat/vB)
 
 > **avgFee\_10**: `number`
 
-Defined in: [modules/bitview-client/index.js:175](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L175)
+Defined in: [modules/bitview-client/index.js:180](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L180)
 
 Mean of the blocks' 10th percentile fee rate (sat/vB)
 
@@ -34,7 +34,7 @@ Mean of the blocks' 10th percentile fee rate (sat/vB)
 
 > **avgFee\_100**: `number`
 
-Defined in: [modules/bitview-client/index.js:180](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L180)
+Defined in: [modules/bitview-client/index.js:185](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L185)
 
 Mean of the blocks' maximum fee rate (sat/vB)
 
@@ -44,7 +44,7 @@ Mean of the blocks' maximum fee rate (sat/vB)
 
 > **avgFee\_25**: `number`
 
-Defined in: [modules/bitview-client/index.js:176](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L176)
+Defined in: [modules/bitview-client/index.js:181](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L181)
 
 Mean of the blocks' 25th percentile fee rate (sat/vB)
 
@@ -54,7 +54,7 @@ Mean of the blocks' 25th percentile fee rate (sat/vB)
 
 > **avgFee\_50**: `number`
 
-Defined in: [modules/bitview-client/index.js:177](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L177)
+Defined in: [modules/bitview-client/index.js:182](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L182)
 
 Mean of the blocks' median fee rate (sat/vB)
 
@@ -64,7 +64,7 @@ Mean of the blocks' median fee rate (sat/vB)
 
 > **avgFee\_75**: `number`
 
-Defined in: [modules/bitview-client/index.js:178](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L178)
+Defined in: [modules/bitview-client/index.js:183](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L183)
 
 Mean of the blocks' 75th percentile fee rate (sat/vB)
 
@@ -74,7 +74,7 @@ Mean of the blocks' 75th percentile fee rate (sat/vB)
 
 > **avgFee\_90**: `number`
 
-Defined in: [modules/bitview-client/index.js:179](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L179)
+Defined in: [modules/bitview-client/index.js:184](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L184)
 
 Mean of the blocks' 90th percentile fee rate (sat/vB)
 
@@ -84,7 +84,7 @@ Mean of the blocks' 90th percentile fee rate (sat/vB)
 
 > **avgHeight**: `number`
 
-Defined in: [modules/bitview-client/index.js:172](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L172)
+Defined in: [modules/bitview-client/index.js:177](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L177)
 
 Average block height in this bucket
 
@@ -94,6 +94,6 @@ Average block height in this bucket
 
 > **timestamp**: `number`
 
-Defined in: [modules/bitview-client/index.js:173](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L173)
+Defined in: [modules/bitview-client/index.js:178](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L178)
 
 Average block timestamp in this bucket

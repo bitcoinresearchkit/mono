@@ -8,7 +8,7 @@
 
 > **PriceWithMvrv** = `object`
 
-Defined in: [modules/bitview-client/index.js:3297](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3297)
+Defined in: [modules/bitview-client/index.js:3302](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3302)
 
 ## Type Parameters
 

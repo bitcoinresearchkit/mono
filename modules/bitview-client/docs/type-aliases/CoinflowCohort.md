@@ -8,7 +8,7 @@
 
 > **CoinflowCohort** = `object`
 
-Defined in: [modules/bitview-client/index.js:3924](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3924)
+Defined in: [modules/bitview-client/index.js:3929](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3929)
 
 ## Type Parameters
 

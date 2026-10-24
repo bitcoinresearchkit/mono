@@ -8,7 +8,7 @@
 
 > **ReserveRisk** = `object`
 
-Defined in: [modules/bitview-client/index.js:4743](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4743)
+Defined in: [modules/bitview-client/index.js:4748](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4748)
 
 ## Type Parameters
 
