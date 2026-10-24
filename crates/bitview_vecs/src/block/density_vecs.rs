@@ -10,11 +10,12 @@ use crate::{CachedSeries, IndexSources, LazyPercentPerBlock, import_cached};
 /// split at spot.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Traversable)]
 pub struct Density<T> {
-    /// Within 5% below or above the represented block's spot price.
+    /// Within 5% below or above the represented block's spot price, both bounds included, on
+    /// creation prices rounded to four significant digits of cents.
     total: T,
-    /// From 5% below spot through spot: the part in profit.
+    /// From 5% below spot through spot's rounded price: the part in profit.
     in_profit: T,
-    /// Above spot through 5% above it: the part in loss.
+    /// Above spot's rounded price through 5% above spot: the part in loss.
     in_loss: T,
 }
 

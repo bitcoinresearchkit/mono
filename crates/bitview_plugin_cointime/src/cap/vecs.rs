@@ -28,10 +28,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// circulating supply. It values the supply using the average destroyed
     /// value per unit of holding time that remains stored.
     pub cointime: FiatPerBlock<Cents, M>,
-    /// Investor capitalization's share of realized capitalization, negative
-    /// with it. Undefined (null) while realized capitalization is zero.
+    /// Investor capitalization's share of realized capitalization, negative while investor
+    /// capitalization is. Undefined (null) while realized capitalization is zero.
     pub investorness: LazyPercentPerBlock<PartsPerMillionSigned32>,
-    /// Thermo capitalization's share of realized capitalization. Undefined
-    /// (null) while realized capitalization is zero.
+    /// Thermo capitalization's share of realized capitalization, above 100% while investor
+    /// capitalization is negative. Undefined (null) while realized capitalization is zero.
     pub producerness: LazyPercentPerBlock<PartsPerMillion32>,
 }

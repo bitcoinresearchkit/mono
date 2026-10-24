@@ -19,10 +19,12 @@ pub struct CostBasisVecs<M: StorageMode = Rw> {
     /// Creation prices (spot when each output was created) of the cohort's unspent outputs,
     /// weighted by each output's weighted USD value at creation.
     pub by_dollar: CostBasisByDollar<M>,
-    /// Share of the cohort's weighted supply with a creation price near spot.
+    /// Share of the cohort's weighted supply with a creation price near spot; undefined (null)
+    /// without weighted supply or a positive spot price.
     supply_density: DensityVecs<M>,
     /// Share of the cohort's weighted invested capital (satoshis times creation
-    /// price) with a creation price near spot.
+    /// price) with a creation price near spot; undefined (null) without weighted capital or a
+    /// positive spot price.
     capital_density: DensityVecs<M>,
     #[traversable(hidden)]
     by_coin_percentiles: PercentilesVecs<M>,

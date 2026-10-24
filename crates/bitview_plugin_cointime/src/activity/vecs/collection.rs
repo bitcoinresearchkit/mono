@@ -14,11 +14,12 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// at that height.
     pub coinblocks_created: PerBlockCumulativeRolling<CoinBlocks, M>,
     /// Coinblocks destroyed by each block: each spent output's BTC value
-    /// multiplied by the blocks it stayed unspent (the age plugin's series).
+    /// multiplied by the blocks it stayed unspent.
     pub coinblocks_destroyed: LazyPerBlockCumulativeRolling<CoinBlocks>,
     /// Net coinblocks stored. Its cumulative value is cumulative coinblocks
     /// created minus cumulative coinblocks destroyed; its per-block value is
-    /// the change in that cumulative stock.
+    /// the change in that cumulative stock, negative (as are window sums) when more was
+    /// destroyed than created.
     pub coinblocks_stored: PerBlockCumulativeRolling<CoinBlocks, M>,
     #[deref]
     #[deref_mut]

@@ -24,7 +24,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub true_market_mean: PriceWithRatio<M>,
     /// AVIV: active capitalization divided by investor capitalization, which
     /// equals spot price divided by True Market Mean (the same series as
-    /// `true_market_mean.ratio`). Undefined (null) while True Market Mean is
+    /// `true_market_mean_ratio`). Undefined (null) while True Market Mean is
     /// null or rounds to zero cents.
     #[traversable(wrap = "true_market_mean", rename = "aviv")]
     pub(super) aviv: LazyPerBlock<Multiple>,

@@ -8,8 +8,8 @@ use super::{ema_vecs::EmaVecs, sma::SmaVecs};
 
 #[derive(Traversable)]
 pub struct Vecs<M: StorageMode = Rw> {
-    /// Simple moving averages of block-level Bitcoin spot prices over trailing
-    /// monotonic-time windows, including the represented block. Windows start no earlier
+    /// Simple moving average of block-level Bitcoin spot prices over a trailing
+    /// monotonic-time window, including the represented block. Windows start no earlier
     /// than the first exchange price (block 74,641); null before it.
     pub sma: SmaVecs<M>,
     /// Exponential moving average of block-level Bitcoin spot price. At each

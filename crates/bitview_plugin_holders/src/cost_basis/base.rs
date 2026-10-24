@@ -23,18 +23,21 @@ pub struct CostBasis<M: StorageMode = Rw> {
     /// Creation prices (spot when each output was created) of the cohort's unspent outputs,
     /// weighted by each output's USD value at creation.
     pub by_dollar: CostBasisByDollar<M>,
-    /// Lowest occupied bucket of the price grid among the cohort's unspent outputs: creation
-    /// prices rounded to four significant digits of the price in cents (exact cents under $100,
-    /// then steps of at most 0.1% up to $100,000,000). Undefined (null) without supply.
+    /// Lowest occupied bucket of the price grid among the cohort's unspent outputs: creation prices
+    /// rounded to four significant digits of the price in cents (exact cents under $100, then steps
+    /// of at most 0.1% up to $42,949,672.94, where higher prices cap). Undefined (null) without
+    /// supply.
     pub min: Price<LazyPerBlock<Cents>>,
     /// Highest occupied bucket of the price grid among the cohort's unspent outputs: creation
     /// prices rounded to four significant digits of the price in cents (exact cents under $100,
-    /// then steps of at most 0.1% up to $100,000,000). Undefined (null) without supply.
+    /// then steps of at most 0.1% up to $42,949,672.94, where higher prices cap). Undefined (null)
+    /// without supply.
     pub max: Price<LazyPerBlock<Cents>>,
-    /// Share of the cohort's unspent supply with a creation price near spot.
+    /// Share of the cohort's unspent supply with a creation price near spot; undefined (null)
+    /// without supply or a positive spot price.
     pub supply_density: Density<LazyPercentPerBlock<PartsPerMillion32>>,
     /// Share of the cohort's invested capital (satoshis times creation price) with a creation
-    /// price near spot.
+    /// price near spot; undefined (null) without capital or a positive spot price.
     pub capital_density: Density<LazyPercentPerBlock<PartsPerMillion32>>,
 }
 

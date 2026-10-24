@@ -22,7 +22,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// separate commit transactions without a detected envelope are excluded.
     pub fees: ValuePerBlockCumulativeRolling<M>,
     /// Inscription transactions' fees divided by all transaction fees in the chain over the
-    /// same cumulative or trailing window.
+    /// same cumulative or trailing window; undefined (null) when those fees are zero.
     #[traversable(wrap = "fees")]
     pub chain_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
 }

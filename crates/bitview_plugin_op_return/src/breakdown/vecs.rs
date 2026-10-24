@@ -16,6 +16,7 @@ use crate::{by_kind::ByKind, policy::Policy};
 /// of the transactions creating them.
 #[derive(Traversable)]
 pub struct BucketVecs<M: StorageMode = Rw> {
+    /// Number of the outputs.
     pub output_count: PerBlockCumulativeRolling<Count, M>,
     /// Script bytes following the `OP_RETURN` opcode, push opcodes and push-length prefixes
     /// included, summed over the outputs.

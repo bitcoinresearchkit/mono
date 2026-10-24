@@ -81,16 +81,18 @@ pub struct NewAddressCount {
 
 #[derive(Traversable)]
 pub struct ActivityVecs<M: StorageMode = Rw> {
-    /// Distinct previously funded addresses that received bitcoin in the
+    /// Distinct previously funded addresses that received an output in the
     /// represented block while holding no unspent outputs immediately before
     /// that receive was applied (an address holding only zero-value outputs
     /// is not reactivated).
     pub reactivated: PerBlockCumulativeAverage<Count, M>,
-    /// Distinct addresses that sent bitcoin in the represented block.
+    /// Distinct addresses with at least one output spent in the represented block, zero-value
+    /// outputs included.
     pub sending: PerBlockCumulativeAverage<Count, M>,
-    /// Distinct addresses that received bitcoin in the represented block.
+    /// Distinct addresses that received at least one output in the represented block,
+    /// zero-value outputs included.
     pub receiving: PerBlockCumulativeAverage<Count, M>,
-    /// Distinct addresses that both sent and received bitcoin in the
+    /// Distinct addresses that both spent and received outputs in the
     /// represented block.
     pub bidirectional: PerBlockCumulativeAverage<Count, M>,
     /// Distinct addresses active in the represented block: sending plus
@@ -148,15 +150,16 @@ pub struct ReuseEvents<M: StorageMode = Rw> {
     /// after an address's first lifetime output; for respending, outputs to an address that had
     /// already spent more than one output when the receive was applied. Multiple qualifying
     /// outputs to one address count separately. Shares are of the outputs the addresses
-    /// received.
+    /// received; undefined (null) when there are none.
     pub outputs: EventCount<M>,
     /// Inputs spending from an address that met the predicate immediately before the input was
     /// applied. Multiple qualifying inputs of one address count separately. Shares are of the
-    /// inputs the addresses spent.
+    /// inputs the addresses spent; undefined (null) when there are none.
     pub inputs: EventCount<M>,
     /// Distinct active addresses meeting the predicate after their block's
     /// events, and their share of active addresses, counted per block (an
-    /// address active in two blocks counts twice).
+    /// address active in two blocks counts twice); the share is undefined (null) without active
+    /// addresses.
     pub active: ActiveEvents<M>,
 }
 

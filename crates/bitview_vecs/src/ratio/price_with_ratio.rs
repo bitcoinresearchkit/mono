@@ -15,8 +15,8 @@ pub struct PriceWithRatio<M: StorageMode = Rw> {
     #[deref_mut]
     #[traversable(flatten, rename = "value")]
     price: Price<LazyPerBlock<Cents>>,
-    /// Spot divided by the price, computed from cent-precision prices: null while the price
-    /// rounds to zero (2010), approximate while prices are a few cents.
+    /// Spot price divided by the price described above, computed from cent-precision prices:
+    /// null while that price rounds to zero (2010), approximate while prices are a few cents.
     #[traversable(flatten, rename = "ratio")]
     pub relative: RatioPerBlock<PriceRatio, M, Multiple>,
 }

@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::unlikely;
 
 /// Compact unsigned cents (u32) - memory-efficient for map keys.
-/// Supports finite values from $0.00 to $42,949,672.94.
+/// Supports finite values from $0.00 to $42,949,672.94; larger ones saturate there.
 /// `u32::MAX` is reserved as a NaN sentinel.
 #[derive(
     Debug,
@@ -94,13 +94,11 @@ impl CentsCompact {
         }
     }
 
+    /// Saturates at the largest finite value ($42,949,672.94): a price above it is held there,
+    /// never wrapped.
     #[inline]
     fn from_finite_u64(value: u64) -> Self {
-        debug_assert!(
-            value < u32::MAX as u64,
-            "CentsCompact finite value exceeds compact range"
-        );
-        Self(value as u32)
+        Self(value.min(u32::MAX as u64 - 1) as u32)
     }
 }
 

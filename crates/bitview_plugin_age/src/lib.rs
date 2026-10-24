@@ -39,8 +39,11 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// The capital of every age range together, each cohort's capital share's denominator.
     #[traversable(hidden)]
     all_capital: CachedSeries<Height, Cents, M>,
+    /// Ages run on monotonic block time, the running maximum of block-header times.
     pub ranges: Box<AgeRange<RangeVecs<M>>>,
     halving_epochs: Box<ByHalvingEpoch<CreationCohort<M>>>,
+    /// Years are UTC calendar years of the creation block's monotonic time, the running maximum of
+    /// block-header times.
     vintages: Box<Vintage<CreationCohort<M>>>,
     /// Coinblocks destroyed by each block: each spent output's BTC value
     /// multiplied by the blocks it stayed unspent. Published by cointime, beside the coinblocks

@@ -27,7 +27,7 @@ pub struct CapitalViews {
     delta: LazyRollingDeltasFiatFromHeight<Cents, CentsSigned, PartsPerMillionSigned64>,
     /// The cohort's share of the capital it is part of: all unspent outputs', or for address
     /// balance bands, all addresses'. Across UTXO age ranges, these shares are the realized cap
-    /// HODL waves.
+    /// HODL waves. Undefined (null) while that capital is zero.
     share: LazyPercentPerBlock<PartsPerMillion32>,
 }
 

@@ -15,7 +15,7 @@ pub struct CreationActivity<M: StorageMode = Rw> {
     /// price.
     pub transfer_volume: CumulativeValue<M>,
     /// Coin days destroyed (CDD) by the cohort's outputs: each spent output's
-    /// BTC value multiplied by its age in days.
+    /// BTC value multiplied by its age in fractional days.
     pub coindays_destroyed: CumulativeQuantity<CoinDays, M>,
 }
 

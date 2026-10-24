@@ -9,7 +9,8 @@ pub struct Value<S, C, B, U> {
     /// Reported in satoshis.
     #[traversable(hidden)]
     pub sats: S,
-    /// Reported in US dollars.
+    /// Reported in US dollars, each block's amount valued at that block's spot price (zero before
+    /// the first exchange price, block 74,641).
     pub usd: U,
     /// Reported in US cents; 100 cents equal one US dollar.
     #[traversable(hidden)]

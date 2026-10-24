@@ -18,7 +18,7 @@ pub struct Vecs<M: StorageMode = Rw> {
 #[derive(Traversable)]
 pub struct RangeVecs<M: StorageMode = Rw> {
     /// Coin days created in the range: its supply held for the block's
-    /// duration (the age plugin's series).
+    /// duration, supply crossing into an older range counted in each range for its time there.
     pub coindays_created: LazyPerBlockCumulativeRolling<CoinDays>,
     /// Coin days destroyed by spent outputs, allocated across every age range
     /// the outputs traversed. The portion above a spent output's age-range

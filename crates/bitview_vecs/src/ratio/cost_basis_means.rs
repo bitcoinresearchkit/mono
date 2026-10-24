@@ -23,14 +23,14 @@ pub struct CostBasisByCoin<M: StorageMode = Rw> {
     /// Realized price: realized cap divided by supply, the weighted mean; undefined (null) while
     /// the cohort holds no supply.
     realized_price: Price<LazyPerBlock<Cents>>,
-    /// On the price grid: creation prices rounded to four significant digits of the price in
-    /// cents (exact cents under $100, then steps of at most 0.1% up to $100,000,000). Undefined
-    /// (null) without supply.
+    /// On the price grid: creation prices rounded to four significant digits of the price in cents
+    /// (exact cents under $100, then steps of at most 0.1% up to $42,949,672.94, where higher
+    /// prices cap). Undefined (null) without supply.
     #[traversable(flatten)]
     pub percentiles: ByPercentile<Price<LazyPerBlock<Cents>>>,
     /// Median realized price: the weighted median, on the price grid: creation prices rounded to
     /// four significant digits of the price in cents (exact cents under $100, then steps of at
-    /// most 0.1% up to $100,000,000). Undefined (null) without supply.
+    /// most 0.1% up to $42,949,672.94, where higher prices cap). Undefined (null) without supply.
     median_realized_price: Price<LazyPerBlock<Cents>>,
 }
 
@@ -41,14 +41,15 @@ pub struct CostBasisByDollar<M: StorageMode = Rw> {
     /// Capitalized price: the weighted mean; undefined (null) while the cohort's USD value at
     /// creation is zero.
     capitalized_price: Price<LazyPerBlock<Cents>>,
-    /// On the price grid: creation prices rounded to four significant digits of the price in
-    /// cents (exact cents under $100, then steps of at most 0.1% up to $100,000,000). Undefined
-    /// (null) while the cohort's capital is zero.
+    /// On the price grid: creation prices rounded to four significant digits of the price in cents
+    /// (exact cents under $100, then steps of at most 0.1% up to $42,949,672.94, where higher
+    /// prices cap). Undefined (null) while the cohort's capital is zero.
     #[traversable(flatten)]
     pub percentiles: ByPercentile<Price<LazyPerBlock<Cents>>>,
-    /// Median capitalized price: the weighted median, on the price grid: creation prices rounded to four significant digits of the price in
-    /// cents (exact cents under $100, then steps of at most 0.1% up to $100,000,000). Undefined
-    /// (null) while the cohort's capital is zero.
+    /// Median capitalized price: the weighted median, on the price grid: creation prices rounded to
+    /// four significant digits of the price in cents (exact cents under $100, then steps of at most
+    /// 0.1% up to $42,949,672.94, where higher prices cap). Undefined (null) while the cohort's
+    /// capital is zero.
     median_capitalized_price: Price<LazyPerBlock<Cents>>,
 }
 

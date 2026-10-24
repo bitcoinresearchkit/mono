@@ -62,4 +62,11 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
   tx_position}`, `max_txs` at most that), `POST /api/addresses/txs` and `POST /api/addresses/txs/summary` (several
   addresses' histories merged, body capped).
 
+- Series additions and precision fixes found by the 2026-10-24 review (`_notes/tree-review-20261024/FULL-REPORT.md`,
+  sections 2 and 4), all additive: raw joins (`tx_height`, `output_tx_index`), pool fee totals, unspent coinbase
+  supply, change-adjusted transfer volume, spent-output lifespan (ASOL, MSOL), UTXO and address counts in profit and
+  loss, UTXO-set age statistics, address concentration, USD balance thresholds, a spent-output price distribution;
+  coin days destroyed summed in satoshi-seconds before converting, and the awake/mobile distributions' per-bucket
+  rounding and grid-price dollar weights.
+
 - Once next.bitview.space serves the dollar windows missing until priced (`bitview_vecs::PricedWindow`), drop Studio's Puell multiple guard (`lag`, in `showcases/studio/presets.js`): it hides its 10Y decade point and needs 4h+.

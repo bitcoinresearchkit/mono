@@ -38,15 +38,16 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     aged_out_sources:
         SatsCents<PerBlockCumulativeRolling<Sats, M>, PerBlockCumulativeRolling<Cents, M>>,
     /// Coin days created in the range: its supply held for the block's
-    /// duration, one coin day per BTC per day.
+    /// duration, supply crossing into an older range counted in each range for its time there,
+    /// one coin day per BTC per day.
     #[traversable(wrap = "activity", rename = "coindays_created")]
     pub coindays_created: PerBlockCumulativeRolling<CoinDays, M>,
-    /// Transfer volume whose spending price is greater than or equal to the
-    /// spent outputs' creation price.
+    /// Value of the outputs spent in each block whose spending price is greater than or equal to
+    /// their creation price; USD at the spending block's spot price.
     #[traversable(wrap = "activity/transfer_volume", rename = "in_profit")]
     pub transfer_volume_in_profit: CumulativeValue<M>,
-    /// Transfer volume whose spending price is below the spent outputs'
-    /// creation price.
+    /// Value of the outputs spent in each block whose spending price is below their creation
+    /// price; USD at the spending block's spot price.
     #[traversable(wrap = "activity/transfer_volume", rename = "in_loss")]
     pub transfer_volume_in_loss: CumulativeValue<M>,
     #[traversable(hidden)]

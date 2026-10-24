@@ -35,7 +35,9 @@ pub struct Realized<M: StorageMode = Rw> {
     /// over the window divided by their creation-time value (value destroyed); undefined (null)
     /// when that value is zero.
     pub sopr: RollingWindows<Multiple, M>,
-    /// Gross realized profit and loss over the window divided by the realized cap.
+    /// Gross realized profit and loss over the window divided by the realized cap; undefined
+    /// (null) when the realized cap is zero or the window reaches before the first exchange price
+    /// (block 74,641).
     pub sell_side_risk_ratio: RatioRollingWindows<PartsPerMillion32, M>,
 }
 impl Section for Realized {

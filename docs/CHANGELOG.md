@@ -692,11 +692,20 @@ has to be deleted by hand.
   lists every log aggregation (`log500`, `log1000` and `log2000` were missing), the series tag and the MCP page say
   series are renamed only in releases, each rename in the changelog (said names may change), and the pool link
   examples match the served `https://foundrydigital.com`
-- Series descriptions: NUPL equals 1 - 1/MVRV with no lower bound (said bounded), the rolling block-fullness series
-  say what fullness is, OP_RETURN byte counts include push opcodes and push-length prefixes, coinbase inputs'
-  `output_type` is `unknown_script` (said `unknown`), Bedrock's floors and their percentiles are on creation prices
-  rounded to four significant digits of cents, SOPR and aSOPR state their ratio in US dollars, and every MVRV's
-  description stands alone (said "spot divided by the price, the same series as the ratio")
+- Series descriptions, from the pre-release review of every description: NUPL is at most 1 with no lower bound (said
+  bounded, then below 1), equal to 1 - 1/MVRV only in exact arithmetic; every USD flow says each block is valued at
+  its own spot price; shares, densities and the sell-side risk ratio say when they are undefined; densities work on
+  rounded creation prices; capital's in-profit and in-loss shares divide by the two sides together; address activity
+  counts zero-value outputs; ages and vintages run on monotonic block time; coin days created count crossings into an
+  older band, coin days destroyed use fractional days; entry membership is fixed at creation; OP_RETURN breakdowns
+  say they count outputs, with push opcodes in their bytes; pool attribution takes the first known pool matching by
+  address or tag (said address first), unmatched blocks are "not matched to a known mining pool", and "21 Inc.." loses
+  its double period; coinbase inputs' `output_type` is `unknown_script`; Bedrock's floors are on rounded creation
+  prices; SOPR and aSOPR state their ratio in US dollars; price ratios, MVRV and AVIV name what they divide by;
+  producerness can exceed 100% and coinblocks stored can be negative; rolling block fullness says what fullness is
+- A price above $42,949,672.94 saturates in the cost-basis, profitability and entry price grids (it wrapped to
+  near zero in release builds, as compact prices are 32-bit cents); their descriptions name that cap (said
+  $100,000,000)
 - Every response carries its CORS headers, a panic's 500 included (it had none, so browsers saw a CORS failure), and
   browsers may reuse a preflight for a day (`Access-Control-Max-Age: 86400`; was the browser default of seconds). A
   successful `POST /api/tx` is `no-store` like its errors (had no `Cache-Control`)

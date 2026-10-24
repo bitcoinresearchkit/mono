@@ -19,13 +19,13 @@ pub struct InputTypeVecs {
     /// Number of inputs spending outputs of the type.
     pub(crate) count: LazyPerBlockCumulativeRolling<Count>,
     /// Inputs spending outputs of the type divided by all non-coinbase inputs
-    /// over the same cumulative or trailing window.
+    /// over the same cumulative or trailing window; undefined (null) when there are none.
     pub(crate) share: LazyPercentCumulativeRolling<PartsPerMillion32>,
     /// Number of transactions with at least one input spending an output of
     /// the type.
     pub(crate) tx_count: LazyPerBlockCumulativeRolling<Count>,
     /// Transactions with at least one input spending an output of the type
     /// divided by all non-coinbase transactions over the same cumulative or
-    /// trailing window.
+    /// trailing window; undefined (null) when there are none.
     pub(crate) tx_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
 }

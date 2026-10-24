@@ -96,7 +96,7 @@ pub fn pools() -> &'static Pools {
         let mut pools: Vec<Pool> = (0..=usize::from(max_id)).map(empty_pool).collect();
 
         pools[0].name = "Unknown";
-        pools[0].lead = "Uses blocks mined by no known pool.";
+        pools[0].lead = "Uses blocks not matched to a known mining pool.";
 
         for entry in entries {
             if TESTNET_IDS.contains(&entry.id) {
@@ -112,7 +112,11 @@ pub fn pools() -> &'static Pools {
                 .into_boxed_slice();
             pools[id] = Pool {
                 slug,
-                lead: leak_str(format!("Uses blocks mined by {}.", entry.name)),
+                lead: leak_str(format!(
+                    "Uses blocks mined by {}{}",
+                    entry.name,
+                    if entry.name.ends_with('.') { "" } else { "." }
+                )),
                 name: leak_str(entry.name),
                 link: leak_str(entry.link),
                 addrs: entry

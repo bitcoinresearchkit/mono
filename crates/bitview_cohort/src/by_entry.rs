@@ -27,11 +27,13 @@ pub struct ByEntry<T> {
     /// Uses UTXOs created when spot price was at or below the previous block's
     /// all-chain capitalized price, the mean creation price of all unspent
     /// outputs weighted by each output's creation-date USD value. An undefined
-    /// capitalized price (no priced capital yet) also selects this cohort.
+    /// capitalized price (no priced capital yet) also selects this cohort. Membership is set at
+    /// creation and kept until the output is spent.
     pub discount: T,
     /// Uses UTXOs created when spot price was above the previous block's all-chain
     /// capitalized price, the mean creation price of all unspent outputs
-    /// weighted by each output's creation-date USD value.
+    /// weighted by each output's creation-date USD value. Membership is set at creation and kept
+    /// until the output is spent.
     pub premium: T,
 }
 

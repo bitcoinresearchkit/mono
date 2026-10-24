@@ -14,7 +14,7 @@ pub struct FeesSeries<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub fees: ValuePerBlockCumulativeRolling<M>,
     /// These fees divided by all transaction fees in the chain over the same
-    /// cumulative or trailing window.
+    /// cumulative or trailing window; undefined (null) when those fees are zero.
     pub chain_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
 }
 
