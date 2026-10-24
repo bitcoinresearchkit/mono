@@ -28246,10 +28246,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const typedParts = words.flatMap((typed) => typed.split("_")).filter(Boolean);
           const seriesByName = !palette.moved && names.some((name) => typedParts.every((typed) => name.split("_").some((part) => part.startsWith(typed))));
           const valueAlone = seriesByName ? unnamed.filter((row) => row.alone) : [], directRest = unnamed.filter((row) => !valueAlone.includes(row));
-          // (A series' id typed whole, as pasted from the API: that series first, the rest where they'd be.)
-          const typedId = query.trim().toLowerCase().replace(/^add\s+(?=\S)/, ""), exact = names.includes(typedId) && isSeriesName(typedId);
-          const series = names.filter((name) => isSeriesName(name) && !(exact && name === typedId)).map((name) => ({ kind: "series", key: name, name, group: exact ? "More series" : "Series" }));
-          const rows = [...(exact ? [{ kind: "series", key: typedId, name: typedId, group: "Series" }] : []), ...leading, ...asFormula, ...named, ...dated, ...strong, ...directRest, ...(seriesByName ? own.slice(0, 3) : own), ...charts, ...presetRows, ...series, ...valueAlone, ...trailing, ...more];
+          // (A series typed whole, by its id as pasted from the API or by its name as listed, "thermo cap": that series
+          // first, ↵ adds it; the rest where they'd be.)
+          const whole = query.trim().toLowerCase().replace(/^add\s+(?=\S)/, "").replace(/\s+/g, " ");
+          const exact = names.find((name) => isSeriesName(name) && (name === whole || humanize(name).toLowerCase() === whole));
+          const series = names.filter((name) => isSeriesName(name) && name !== exact).map((name) => ({ kind: "series", key: name, name, group: exact ? "More series" : "Series" }));
+          const rows = [...(exact ? [{ kind: "series", key: exact, name: exact, group: "Series" }] : []), ...leading, ...asFormula, ...named, ...dated, ...strong, ...directRest, ...(seriesByName ? own.slice(0, 3) : own), ...charts, ...presetRows, ...series, ...valueAlone, ...trailing, ...more];
           return rows.length || !everything ? rows : browseInstead();
         }, landing);
       }
