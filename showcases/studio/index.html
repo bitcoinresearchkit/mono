@@ -21133,7 +21133,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       /** A tile while the presets are read: its place held, a light sweeping across it. */
       const WAITING_TILE = '<div class="tile waiting" aria-hidden="true"><span class="tile-open"><span class="tile-head"><span class="tile-name">&nbsp;</span></span><span class="tile-legend"></span><span class="tile-plot pending"></span></span></div>';
-      const shelfHtml = (name, list, to, count = list.length, lead = false) => `<section class="shelf${lead ? " lead" : ""}" data-list="${listAt()}"><div class="shelf-head">${to ? `<button type="button" class="shelf-title" data-place="${escape(JSON.stringify({ path: to }))}">${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>` : `<h2 class="shelf-title">${escape(name)}</h2>`}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${list.slice(0, SHELF).map((i) => presetTileHtml(i)).join("")}${to ? seeAll({ path: to }, count) : ""}</div></section>`;
+      /**
+       * The tiles a shelf writes as it's drawn (as many as a screen's widest row shows); the rest a slot each, as wide, its
+       * tile written as it comes near (see tilesNear), or the focus comes into its row: a page of shelves (the presets'
+       * fourteen) writes what can show, not every shelf's twelve.
+       */
+      const SHELF_WRITTEN = 3;
+      const shelfTilesHtml = (/** @type {number[]} */ list, /** @type {boolean} */ lead) => list.slice(0, SHELF).map((i, k) => (lead || k < SHELF_WRITTEN ? presetTileHtml(i) : `<div class="tile-slot" data-slot="${i}"></div>`)).join("");
+      /** A shelf's slot, its tile written in its place: drawn as it shows (near), its mini chart once in view. @param {HTMLElement} slot */
+      function fillSlot(slot) {
+        const made = document.createElement("template");
+        made.innerHTML = presetTileHtml(Number(slot.dataset.slot));
+        const tile = /** @type {HTMLElement} */ (made.content.firstElementChild);
+        tile.classList.add("near");
+        slot.replaceWith(tile);
+        for (const frame of all$(".pending[data-plot]", tile)) galleryTilesSeen.observe(frame);
+        return tile;
+      }
+      /** Every slot of a shelf's row filled (the focus come into it: Tab reaches each tile). @param {HTMLElement} row */
+      const fillRow = (row) => all$(":scope > .tile-slot", row).forEach(fillSlot);
+      const shelfHtml = (name, list, to, count = list.length, lead = false) => `<section class="shelf${lead ? " lead" : ""}" data-list="${listAt()}"><div class="shelf-head">${to ? `<button type="button" class="shelf-title" data-place="${escape(JSON.stringify({ path: to }))}">${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>` : `<h2 class="shelf-title">${escape(name)}</h2>`}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${shelfTilesHtml(list, lead)}${to ? seeAll({ path: to }, count) : ""}</div></section>`;
       /** The presets' side of the page, where it is (none in your Library): at the top, one shelf (the recommended, leading to them all); on their page, the recommended, then each section as a shelf; in a section, its own as a grid, then each section in it. */
       function renderGallery() {
         const field = /** @type {HTMLInputElement} */ ($("home-filter")), words = field.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -21182,6 +21201,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ].join("");
         }
         if (kept) placeGallery(kept);
+        // (The focus was on a tile written as a slot now: its row written whole, for it to come back to.)
+        const slot = focus?.data.find(([name]) => name === "openPreset")?.[1], held = slot === undefined ? null : $("gallery").querySelector(`[data-slot="${CSS.escape(String(slot))}"]`);
+        if (held) fillRow(/** @type {HTMLElement} */ (held.parentElement));
         restoreFocus($("gallery"), focus);
         for (const frame of all$(".pending[data-plot]", $("gallery"))) galleryTilesSeen.observe(frame);
         shelvesSoon();
@@ -21238,7 +21260,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           shelvesNear?.disconnect();
           nearReach = reach;
           shelvesNear = new IntersectionObserver((entries, own) => {
-            for (const entry of entries) if (entry.isIntersecting && !rowsNear.has(/** @type {HTMLElement} */ (entry.target))) (own.unobserve(entry.target), shelfSteps(/** @type {HTMLElement} */ (entry.target)), tilesNear(/** @type {HTMLElement} */ (entry.target)));
+            // (Every shelf come near read first, then each written: one layout, not one a shelf.)
+            const rows = entries.filter((entry) => entry.isIntersecting && !rowsNear.has(/** @type {HTMLElement} */ (entry.target))).map((entry) => /** @type {HTMLElement} */ (entry.target));
+            const sizes = rows.map((row) => ({ at: row.scrollLeft, room: row.clientWidth, full: row.scrollWidth, unit: row.children.length > 1 ? row.children[1].getBoundingClientRect().left - row.children[0].getBoundingClientRect().left : 0 }));
+            rows.forEach((row, k) => (own.unobserve(row), fitShelf(row, sizes[k].at, sizes[k].room, sizes[k].full), tilesNear(row, sizes[k])));
           }, { root: scroller, rootMargin: `${2 * reach}px 0px` });
         }
         const shelves = /** @type {IntersectionObserver} */ (shelvesNear);
@@ -21254,16 +21279,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (watch) (watch.unobserve(tile), watch.observe(fresh));
         tile.replaceWith(fresh);
       }
-      function tilesNear(/** @type {HTMLElement} */ row) {
-        // (Those two rows' widths from sight now, at once: an observer's first word comes a frame on, and a page scrolled
-        // fast is past a screen's height by then. The others as the row scrolls, as far ahead: the browser scrolls on
-        // its own, a slow frame or two of the page's meanwhile.)
-        const tiles = /** @type {HTMLElement[]} */ ([...row.children]), unit = tiles.length > 1 ? tiles[1].getBoundingClientRect().left - tiles[0].getBoundingClientRect().left : 0;
+      /**
+       * A shelf's tiles near sight drawn: those two rows' widths from sight now, at once (an observer's first word comes a
+       * frame on, and a page scrolled fast is past a screen's height by then); the others as the row scrolls, as far
+       * ahead (the browser scrolls on its own, a slow frame or two of the page's meanwhile). By the row as it was read
+       * (`at` its scroll, `room` its width, `unit` a tile's step), before anything was written.
+       * @param {HTMLElement} row @param {{ at: number, room: number, unit: number }} size
+       */
+      function tilesNear(row, { at, room, unit }) {
+        const tiles = /** @type {HTMLElement[]} */ ([...row.children]);
+        // (A slot, its tile written there; a tile, drawn.)
+        const bring = (/** @type {HTMLElement} */ tile) => (tile.matches(".tile-slot") ? fillSlot(tile) : tile.classList.add("near"));
         const near = new IntersectionObserver((entries) => {
-          for (const entry of entries) if (entry.isIntersecting) (entry.target.classList.add("near"), near.unobserve(entry.target));
+          for (const entry of entries) if (entry.isIntersecting) (near.unobserve(entry.target), bring(/** @type {HTMLElement} */ (entry.target)));
         }, { root: row, rootMargin: "0px 200%" });
         rowsNear.set(row, near);
-        tiles.slice(1).forEach((tile, i) => ((i + 1) * unit < row.scrollLeft + 3 * row.clientWidth && (i + 2) * unit > row.scrollLeft - 2 * row.clientWidth ? tile.classList.add("near") : near.observe(tile)));
+        tiles.slice(1).forEach((tile, i) => ((i + 1) * unit < at + 3 * room && (i + 2) * unit > at - 2 * room ? bring(tile) : near.observe(tile)));
       }
       /** A shelf as it's scrolled: its steps there while it scrolls, each off at its end; its edges faded where there's more, as a strip's. */
       function fitShelf(/** @type {HTMLElement} */ row, /** @type {number} */ at, /** @type {number} */ size, /** @type {number} */ full) {
@@ -21275,6 +21306,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         edges(row, at, size, full);
       }
       $("home").addEventListener("scroll", (event) => /** @type {HTMLElement} */ (event.target).matches?.(".shelf-row") && shelfSteps(/** @type {HTMLElement} */ (event.target)), { capture: true, passive: true });
+      $("home").addEventListener("focusin", (event) => ((row) => row && fillRow(row))(/** @type {HTMLElement | null} */ (/** @type {HTMLElement} */ (event.target).closest?.(".shelf-row"))));
       addEventListener("resize", () => home && allShelfSteps());
       // Each tile drawn once it's in view (on a shelf, scrolled to), one at a time; let go of if it's left before its turn
       // (a preset on two shelves, the recommended's and its section's: while either's in view).
