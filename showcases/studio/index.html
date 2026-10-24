@@ -10188,6 +10188,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const intervalSteps = (/** @type {string} */ index) => (BY_NUMBER.has(index) ? NUMBER_ORDER : INTERVAL_ORDER);
       const BLOCKS_IN = /** @type {Record<string, number>} */ (Object.fromEntries(NUMBERED.map(([id, , blocks]) => [id, blocks])));
       const GENESIS_BLOCK = 1231006505;
+      /** Each point's own time, by number (see hoverLabel): the API's id. */
+      const STAMPS = "timestamp";
       /** A block's stand-in time, at every interval by number. */
       const blockTime = (/** @type {number} */ block) => GENESIS_BLOCK + block * 600;
       /** The block a stand-in time is of. */
@@ -13765,7 +13767,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!liveHeight) return false;
         const span = spanOf(doc), latest = latestChunk(doc.index);
         const ends = span ? [latest - 1, latest].filter((k) => k >= span.from && k <= span.to).map((k) => `#${k}`) : [""];
-        return seriesIn(doc).some((name) => ends.some((end) => (askedAt.get(`${name}@${doc.index}${end}`) ?? liveHeight) < liveHeight));
+        return [...seriesIn(doc), ...(BY_NUMBER.has(doc.index) ? [STAMPS] : [])].some((name) => ends.some((end) => (askedAt.get(`${name}@${doc.index}${end}`) ?? liveHeight) < liveHeight));
       }
       /** Series kept in memory at the coarse intervals past those the open chart shows (one at 1D is about 115 KB). */
       const KEPT_LOADS = 100;
@@ -13960,7 +13962,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   `low`: a cloud's lows (its highs, its values); `breaks`: a trend's flips; `sides`: which it's on, a trend's (see
        *   trendOf), or a cloud's two is over (see cloudOf).
        * `error` as short as says what to do (the legend, a row), `detail` the sentence why (the editor, a preview, a tip)
-       * @typedef {{ times: number[], results: Map<string, Result>, failed: string[] }} Resolved `failed`: the series whose fetch failed (to ask again)
+       * @typedef {{ times: number[], results: Map<string, Result>, failed: string[], stamps?: { start: number, data: (number | null)[] } | null }} Resolved `failed`: the series whose fetch failed (to ask again); `stamps`, by number, each point's own time (see hoverLabel)
        */
 
       /** The series a chart's formulas name, each once. @param {Chart} doc */
@@ -14397,7 +14399,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           rightPriceScale: scale,
           leftPriceScale: { ...scale },
           timeScale: { borderVisible: false, rightOffsetPixels: 48, minVisibleDataRatio: ON_DATA, bvHoldOnAxes: true, minBarSpacing: MIN_BAR_SPACING, timeVisible: false, allowBoldLabels: false },
-          localization: { locale: "en-US", timeFormatter: (time) => pointLabel(Number(time)), percentageFormatter: (value) => precise(value, "%"), tickmarksPercentageFormatter: (values) => axisTicks(values, "%") },
+          localization: { locale: "en-US", timeFormatter: (time) => hoverLabel(Number(time)), percentageFormatter: (value) => precise(value, "%"), tickmarksPercentageFormatter: (values) => axisTicks(values, "%") },
         };
       }
 
@@ -14860,6 +14862,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const fineDrawn = () => FINE.has(shownIndex());
       /** A point's date as its interval (the one drawn, else `index`) has it: a month's, its month ("Oct 2023"); a year's, its year; a day's, its day; finer, its time too. @param {number} time @param {string} [index] */
       const pointLabel = (time, index = shownIndex()) => BY_NUMBER.has(index) ? `${INTERVAL_LABEL[index]} ${grouped.format(indexAt(index, time))}` : ((at) => (index.startsWith("year") ? String(at.getUTCFullYear()) : index.startsWith("month") ? `${MONTHS[at.getUTCMonth()]} ${at.getUTCFullYear()}` : dateLabel(time, FINE.has(index))))(new Date(time * 1000));
+      /**
+       * The point hovered, as said beside the crosshair (and to a screen reader): its date; by number, its number and its own
+       * time once loaded (a block's to the minute: a day holds 144; an epoch's, its first block's day).
+       */
+      const hoverLabel = (/** @type {number} */ time) => {
+        const index = shownIndex(), label = pointLabel(time, index), stamps = resolved?.stamps;
+        const own = BY_NUMBER.has(index) && stamps ? stamps.data[indexAt(index, time) - stamps.start] : null;
+        return typeof own === "number" ? `${label} · ${dateLabel(own, index === "height")}` : label;
+      };
       let drawnRange = "";
       let drawnChart = "";
       /** Whether the data on screen reaches the latest bar (a fine interval's chunks may end in the past). */
@@ -14937,7 +14948,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (showLoading) $("unreached").hidden = true;
         // Data from memory, asked before the latest block: its tails come again. (Its span as asked: what it reaches.)
         const live = !FINE.has(doc.index) || spanOf(doc)?.live !== false;
-        const result = await resolve(doc, fresh || stale(doc));
+        // (By number, each point's own time too, off the timeline: a block's header time, an epoch's first block's (see
+        // hoverLabel). Failed, the points are said by number alone, and it's asked for again at the next draw.)
+        const again = fresh || stale(doc);
+        const stamping = BY_NUMBER.has(doc.index) ? load(STAMPS, doc.index, again, spanOf(doc)).catch(() => (forget(STAMPS, doc.index), null)) : null;
+        const result = await resolve(doc, again);
+        result.stamps = await stamping;
         if (version !== drawVersion) return false;
         $("loading").hidden = true;
         $("progress").hidden = true;
@@ -16608,7 +16624,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         hoverTime = time;
         valuesSoon();
         const shown = chart.layers.filter((item) => !item.hidden);
-        $("chart-said").textContent = `${pointLabel(time)}: ${shown.length ? shown.map((item) => `${labelOf(item)} ${sayValue(item, { at: i, rest: false })}`).join(", ") : "every layer is hidden"}`;
+        $("chart-said").textContent = `${hoverLabel(time)}: ${shown.length ? shown.map((item) => `${labelOf(item)} ${sayValue(item, { at: i, rest: false })}`).join(", ") : "every layer is hidden"}`;
       }
       /** The keys' crosshair let go: the readout back at the view's end. */
       function keyAway() {
