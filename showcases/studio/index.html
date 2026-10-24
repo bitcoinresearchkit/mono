@@ -30334,7 +30334,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (ownerNow() === anchor && !menu.hidden && !point) return hideMenu();
         hideSubmenu();
         menuPick = onPick;
-        flyout = asFlyout;
+        flyout = asFlyout || openingByHover;
         // Inside a modal dialog, the menu must live in the dialog's top layer to be seen. (Named by what opened it.)
         const host = anchor.closest("dialog") ?? document.body;
         fillMenu(menu, host, html, named || calledBy(anchor), onPick);
@@ -30742,6 +30742,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether the sidebar is a rail of icons. */
       const railed = () => document.body.dataset.sidebar === "collapsed";
       /** A menu shown by a pointer's resting (a closed folder's charts): it leaves the focus be, goes as the pointer does, and as a key's pressed (a tip's way). */
+      /** A ⋯ opening its menu as the pointer rests on it (see hoverMenu): the menu its click shows, shown as a flyout (gone as the pointer leaves it). */
+      let openingByHover = false;
       let flyout = false;
       /**
        * A pointer's rest before a menu shows for it (ms): on a sidebar's row, longer (a pass down the list opens none); on
@@ -30835,6 +30837,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // The chart's ⋯ the same, and its place (the folder before its name): pointed at a moment, its menu.
         const more = $("chart-more");
         hoverMenu(more, () => more, (anchor) => menuOf(anchor, headMenu(), null, "", { hover: true }));
+        // Every ⋯ in the lists too (a chart's, a folder's, a section's, a preset's, a group's, a tile's): what its click
+        // shows, as the pointer rests on it, as the header's ⋯.
+        hoverMenu(document.body, (event) => /** @type {HTMLElement | null} */ (closest(event, "[data-chart-menu], [data-folder-menu], [data-section-menu], [data-preset-menu], [data-group-menu], [data-tile-menu]")), (anchor) => ((openingByHover = true), anchor.click(), (openingByHover = false)));
         hoverMenu($("chart-path"), (event) => /** @type {HTMLElement | null} */ (closest(event, "#chart-place")), (anchor) => menuOf(anchor, chartPathRows(), null, "", { hover: true }));
       }
       /**
