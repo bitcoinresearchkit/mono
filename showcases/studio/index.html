@@ -29148,7 +29148,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const layerRows = (layers) => layers.map((layer) => `<div><dt>${letterChip(layer)}${escape(labelOf(layer))}${layer.hidden ? ' <span class="muted">(hidden)</span>' : ""}</dt><dd>${typeName(layer.type)}</dd></div>`).join("");
       function previewChart(panel, doc) {
         if (!doc) return void (panel.innerHTML = "");
-        panel.innerHTML = `<h4 class="plain">${escape(titleOf(doc))}</h4><p class="description">${plural(doc.layers.length, "layer")} · ${escape(CADENCE[doc.index])} · edited ${escape(ago(doc.updated))}</p>
+        // (Its edit's time; a preset not edited, where it is.)
+        const at = presetIndex(doc), where = doc.updated ? `edited ${ago(doc.updated)}` : at >= 0 ? `Presets › ${/** @type {Preset[]} */ (presets)[at].p.slice(0, -1).join(" › ")}` : "";
+        panel.innerHTML = `<h4 class="plain">${escape(titleOf(doc))}</h4><p class="description">${[plural(doc.layers.length, "layer"), CADENCE[doc.index], where].filter(Boolean).map(escape).join(" · ")}</p>
           ${plotIn(doc)}${doc.layers.length ? `<div class="info"><h5>Layers</h5><dl>${layerRows(doc.layers.slice(0, 10))}</dl></div>` : ""}`;
       }
       /**
