@@ -1,13 +1,13 @@
 use std::str::FromStr;
 
-use brk_types::{AddressBytes, OutputType};
+use brk_types::{AddressBytes, AddressOutputType};
 
 use crate::{BitviewError, Result};
 
 /// BRK address type and leading hex nibbles of the address-payload hash.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AddressHashPrefix {
-    pub address_type: OutputType,
+    pub address_type: AddressOutputType,
     pub prefix: String,
 }
 
@@ -32,14 +32,10 @@ pub fn address_payload_hash_prefix(payload: &[u8], nibbles: usize) -> Result<Str
 }
 
 pub(crate) fn validate_address_payload_for_type(
-    address_type: OutputType,
+    address_type: AddressOutputType,
     payload: &[u8],
 ) -> Result<()> {
-    let Some(len) = address_type.payload_len() else {
-        return Err(BitviewError::new(format!(
-            "Unsupported address type for address payload hash-prefix: {address_type:?}"
-        )));
-    };
+    let len = address_type.payload_len();
     if payload.len() != len {
         return Err(BitviewError::new(format!(
             "Expected {address_type} address payload length {len} bytes"
@@ -48,8 +44,8 @@ pub(crate) fn validate_address_payload_for_type(
     Ok(())
 }
 
-/// Decode a mainnet Bitcoin address into its typed payload: `OutputType::from(&bytes)` is its
-/// address type, `bytes.as_slice()` the raw payload the hash-prefix index hashes.
+/// Decode a mainnet Bitcoin address into its typed payload: `AddressOutputType::from(&bytes)` is
+/// its address type, `bytes.as_slice()` the raw payload the hash-prefix index hashes.
 pub fn decode_address_payload(address: &str) -> Result<AddressBytes> {
     if address.is_empty() {
         return Err(BitviewError::new("Expected an address string"));
@@ -61,7 +57,7 @@ pub fn decode_address_payload(address: &str) -> Result<AddressBytes> {
 pub fn address_hash_prefix(address: &str, nibbles: usize) -> Result<AddressHashPrefix> {
     let bytes = decode_address_payload(address)?;
     Ok(AddressHashPrefix {
-        address_type: OutputType::from(&bytes),
+        address_type: AddressOutputType::from(&bytes),
         prefix: address_payload_hash_prefix(bytes.as_slice(), nibbles)?,
     })
 }

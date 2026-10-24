@@ -291,6 +291,8 @@ BlockOrphanStatus = Union[Literal["invalid"], Literal["headers-only"], Literal["
 BlockHash = str
 # An amount in bitcoin, as a decimal number (1 BTC = 100,000,000 satoshis).
 Bitcoin = float
+# The output type of an address: any output type but `p2ms`, `op_return`, `empty_script` and `unknown_script`.
+AddressOutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2sh", "p2wpkh", "p2wsh", "p2tr", "p2a"]
 # Bitcoin address, or the hex public key of a P2PK output.
 Address = str
 # One stretch of the new block in a `MempoolBlockDiff`.
@@ -437,6 +439,17 @@ class DetailedSeriesCount(TypedDict):
     lazy: int
     stored: int
     by_db: dict[str, SeriesCount]
+
+class _SearchQueryRequired(TypedDict):
+    q: str
+
+class SearchQuery(_SearchQueryRequired, total=False):
+    """
+    Attributes:
+        q: Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
+        limit: Maximum number of results, 1 to 1,000 (default: 100)
+    """
+    limit: int
 
 class MempoolRecentTx(TypedDict):
     """
@@ -594,18 +607,10 @@ class Pagination(TypedDict, total=False):
     """
     Attributes:
         page: Zero-based page number (default: 0)
-        per_page: Results per page (default: 1000, max: 1000)
+        per_page: Results per page, 1 to 1,000 (default: 1000)
     """
-    page: Optional[int]
-    per_page: Optional[int]
-
-class AddressHashPrefixParam(TypedDict):
-    """
-    Attributes:
-        prefix: First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw address payload bytes.
-    """
-    address_type: OutputType
-    prefix: str
+    page: int
+    per_page: int
 
 class MempoolBlockParam(TypedDict):
     index: MempoolBlockIndex
@@ -619,17 +624,6 @@ class MempoolBlockDiffParam(TypedDict):
     """
     index: MempoolBlockIndex
     since: MempoolBlockHash
-
-class _SearchQueryRequired(TypedDict):
-    q: str
-
-class SearchQuery(_SearchQueryRequired, total=False):
-    """
-    Attributes:
-        q: Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
-        limit: Maximum number of results, 100 when omitted
-    """
-    limit: Limit
 
 class SeriesNameWithIndex(TypedDict):
     series: SeriesName
@@ -866,7 +860,7 @@ class SeriesSelection(_SeriesSelectionRequired, total=False):
     Attributes:
         start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
         end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-        limit: Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
+        limit: Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
     """
     start: Union[RangeIndex, None]
     end: Union[RangeIndex, None]
@@ -878,7 +872,7 @@ class DataRangeFormat(TypedDict, total=False):
     Attributes:
         start: Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
         end: Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-        limit: Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
+        limit: Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
     """
     start: Union[RangeIndex, None]
     end: Union[RangeIndex, None]
@@ -1450,6 +1444,14 @@ class Urpd(TypedDict):
     supply: Bitcoin
     buckets: UrpdBuckets
 
+class AddressHashPrefixParam(TypedDict):
+    """
+    Attributes:
+        prefix: First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw address payload bytes.
+    """
+    address_type: AddressOutputType
+    prefix: str
+
 class AddressMempoolTxsQuery(TypedDict, total=False):
     """
     A page of an address's mempool transactions.
@@ -1758,7 +1760,7 @@ class AddressHashPrefixMatches(TypedDict):
     Attributes:
         prefix: The requested prefix, lowercased.
     """
-    address_type: OutputType
+    address_type: AddressOutputType
     prefix: str
     truncated: bool
     addresses: List[Address]
@@ -1980,7 +1982,7 @@ def _validate_hash_prefix_nibbles(nibbles: int) -> None:
         raise ValueError("Expected hash-prefix length from 1 to 16 hex nibbles")
 
 
-def _validate_address_payload_for_type(address_type: OutputType, payload: Union[bytes, bytearray, memoryview]) -> None:
+def _validate_address_payload_for_type(address_type: AddressOutputType, payload: Union[bytes, bytearray, memoryview]) -> None:
     length = len(bytes(payload))
     expected = _ADDRESS_PAYLOAD_LENGTHS.get(address_type)
     if expected is None:
@@ -5769,7 +5771,7 @@ class BitviewClient(BitviewClientBase):
 
     def get_address_payload_hash_prefix_matches(
         self,
-        address_type: OutputType,
+        address_type: AddressOutputType,
         payload: Union[bytes, bytearray, memoryview],
         nibbles: int,
     ) -> AddressHashPrefixMatches:
@@ -5844,7 +5846,7 @@ class BitviewClient(BitviewClientBase):
         path = f'/api/series/list{"?" + query if query else ""}'
         return self.get_json(path)
 
-    def search_series(self, q: str, limit: Optional[Limit] = None) -> List[SeriesName]:
+    def search_series(self, q: str, limit: Optional[int] = None) -> List[SeriesName]:
         """Search series.
 
         Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
@@ -6009,7 +6011,7 @@ class BitviewClient(BitviewClientBase):
         path = f'/api/v1/historical-price{"?" + query if query else ""}'
         return self.get_json(path)
 
-    def get_address_hash_prefix_matches(self, address_type: OutputType, prefix: str) -> AddressHashPrefixMatches:
+    def get_address_hash_prefix_matches(self, address_type: AddressOutputType, prefix: str) -> AddressHashPrefixMatches:
         """Address hash-prefix matches.
 
         Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.

@@ -226,6 +226,14 @@ fn requests() -> Vec<(&'static str, Method, String, Vec<u8>)> {
         get("urpd at a point", "/api/urpd/all/100".into()),
         get("unindexable date", "/api/urpd/all/2008-12-31".into()),
         get(
+            "series page size out of range",
+            "/api/series/list?per_page=0".into(),
+        ),
+        get(
+            "search limit out of range",
+            "/api/series/search?q=price&limit=1001".into(),
+        ),
+        get(
             "series not found (suggestions)",
             "/api/series/difficulty_hashrat/day1".into(),
         ),

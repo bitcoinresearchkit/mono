@@ -20,7 +20,7 @@ use brk_types::Version;
 use serde_json::{Value, to_vec};
 
 use crate::{
-    AppState, CacheParams, CdnCacheMode, Error,
+    AppState, CacheParams, Error,
     api::tags,
     error::Result,
     extended::{HeaderMapExtended, ResponseExtended, TransformResponseExtended},
@@ -48,9 +48,6 @@ pub async fn serve_search(state: AppState, headers: HeaderMap, search: SearchQue
         ))
         .into_response();
     }
-    if search.limit.is_zero() {
-        return empty_search(&headers, state.cdn_cache_mode);
-    }
     AppState::respond_with_future(&headers, state.series_bodies.search.clone(), async {
         let bytes = state
             .run_with_admission(&state.series_bodies.search_query, move |query| {
@@ -66,13 +63,6 @@ pub async fn serve_search(state: AppState, headers: HeaderMap, search: SearchQue
 }
 
 const MAX_INPUT_BYTES: usize = 1024;
-
-fn empty_search(headers: &HeaderMap, cdn_cache_mode: CdnCacheMode) -> Response {
-    let params = CacheParams::immutable(Version::ONE, cdn_cache_mode);
-    Response::cached_bytes(headers, &params, "application/json", || {
-        Bytes::from_static(b"[]")
-    })
-}
 
 pub async fn serve_series_info(
     state: AppState,

@@ -791,7 +791,7 @@ function _validateHashPrefixNibbles(nibbles) {
 }
 
 /**
- * @param {OutputType} addressType
+ * @param {AddressOutputType} addressType
  * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload
  */
 function _validateAddressPayloadForType(addressType, payload) {

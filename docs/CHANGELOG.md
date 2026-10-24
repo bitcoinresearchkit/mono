@@ -32,6 +32,14 @@ has to be deleted by hand.
   Bitview does not index (e.g. witness v2) answers 400 `unsupported_type` (was 500); a block transaction whose indexed
   prevout address is missing answers 500 (was served with an empty prevout script); `too_many_utxos` names the
   configured limit (said >1000 whatever `--maxutxos` was)
+- Parameters are refused outside their ranges, which the OpenAPI now states (`minimum`, `maximum`, `minItems`,
+  `maxItems`, `maxLength`): `per_page` on `/api/series/list` and `limit` on `/api/series/search` take 1 to 1,000 and
+  answer 400 `bad_request` otherwise (`per_page` 0 and anything over 1,000 meant 1,000; a search `limit` of 0 answered
+  `[]` and had no maximum). `/api/address/hash-prefix/{address_type}/{prefix}` takes only the eight address types
+  (`AddressOutputType`: `p2pk65`, `p2pk33`, `p2pkh`, `p2sh`, `p2wpkh`, `p2wsh`, `p2tr`, `p2a`) and refuses another
+  while parsing the path (400 `bad_request`; was `unsupported_type`). `reward-stats` states its minimum of 1,
+  `txId[]` its 1 to 100 IDs and a series list its 2,048 bytes
+- A series range with both `end` and `limit` stops at whichever comes first (`limit` was ignored when `end` was set)
 - `POST /api/tx` accepts bodies up to 8,000,000 bytes (was axum's 2 MB default), answers 400 for malformed hex without
   asking the node, and 503 `overloaded` with `Retry-After: 1` while four submissions are pending
 

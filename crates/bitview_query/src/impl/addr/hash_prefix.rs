@@ -2,7 +2,7 @@ use std::ops::Bound;
 
 use bitview_primitives::AddrHash;
 use bitview_types::AddressHashPrefixMatches;
-use brk_types::{Address, OutputType};
+use brk_types::{Address, AddressOutputType};
 
 use crate::{Error, Query, Result};
 
@@ -11,13 +11,10 @@ const ADDR_HASH_PREFIX_MATCH_LIMIT: usize = 100;
 impl Query {
     pub fn addr_hash_prefix_matches(
         &self,
-        addr_type: OutputType,
+        address_type: AddressOutputType,
         prefix: &str,
     ) -> Result<AddressHashPrefixMatches> {
-        if !addr_type.is_addr() {
-            return Err(Error::UnsupportedType(addr_type.to_string()));
-        }
-
+        let addr_type = address_type.output_type();
         let prefix = AddrHashPrefix::parse(prefix)?;
         let pin = self.pin_safe_lengths()?;
         let stores = self.indexer().stores();
@@ -49,7 +46,7 @@ impl Query {
         addresses.truncate(ADDR_HASH_PREFIX_MATCH_LIMIT);
 
         Ok(AddressHashPrefixMatches {
-            address_type: addr_type,
+            address_type,
             prefix: prefix.text,
             truncated,
             addresses,

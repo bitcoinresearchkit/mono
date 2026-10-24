@@ -23,6 +23,7 @@ const MAX_TXIDS: usize = 100;
 pub struct TxidsParam {
     /// Transaction IDs to look up (max 100 per request).
     #[serde(rename = "txId[]")]
+    #[schemars(length(min = 1, max = MAX_TXIDS))]
     pub txids: Vec<Txid>,
 }
 

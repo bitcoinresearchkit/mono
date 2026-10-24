@@ -1047,7 +1047,7 @@
           "type": "object",
           "properties": {
             "address_type": {
-              "$ref": "#/$defs/OutputType"
+              "$ref": "#/$defs/AddressOutputType"
             },
             "prefix": {
               "description": "First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw\naddress payload bytes.",
@@ -1062,22 +1062,18 @@
           ],
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
-            "OutputType": {
-              "description": "An output's script type (P2PKH, P2WPKH, P2SH, P2TR…).",
+            "AddressOutputType": {
+              "description": "The output type of an address: any output type but `p2ms`, `op_return`, `empty_script` and `unknown_script`.",
               "type": "string",
               "enum": [
                 "p2pk65",
                 "p2pk33",
                 "p2pkh",
-                "p2ms",
                 "p2sh",
-                "op_return",
                 "p2wpkh",
                 "p2wsh",
                 "p2tr",
-                "p2a",
-                "empty_script",
-                "unknown_script"
+                "p2a"
               ]
             }
           }
@@ -1093,7 +1089,7 @@
               "type": "object",
               "properties": {
                 "address_type": {
-                  "$ref": "#/$defs/OutputType"
+                  "$ref": "#/$defs/AddressOutputType"
                 },
                 "prefix": {
                   "pattern": "^[0-9a-f]{1,16}$",
@@ -1116,20 +1112,16 @@
                 "addresses"
               ]
             },
-            "OutputType": {
+            "AddressOutputType": {
               "enum": [
                 "p2pk65",
                 "p2pk33",
                 "p2pkh",
-                "p2ms",
                 "p2sh",
-                "op_return",
                 "p2wpkh",
                 "p2wsh",
                 "p2tr",
-                "p2a",
-                "empty_script",
-                "unknown_script"
+                "p2a"
               ],
               "type": "string"
             }
@@ -11374,7 +11366,7 @@
               "description": "Number of recent blocks to include",
               "type": "integer",
               "format": "uint",
-              "minimum": 0,
+              "minimum": 1,
               "examples": [
                 100
               ]
@@ -11476,7 +11468,7 @@
               "$ref": "#/$defs/RangeIndex"
             },
             "limit": {
-              "description": "Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.",
+              "description": "Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.",
               "$ref": "#/$defs/Limit"
             },
             "format": {
@@ -11735,7 +11727,7 @@
               "$ref": "#/$defs/RangeIndex"
             },
             "limit": {
-              "description": "Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.",
+              "description": "Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.",
               "$ref": "#/$defs/Limit"
             },
             "format": {
@@ -11843,7 +11835,8 @@
                 "price_close",
                 "price_close,market_cap",
                 "realized_price,market_cap,mvrv"
-              ]
+              ],
+              "maxLength": 2048
             }
           }
         },
@@ -12610,7 +12603,9 @@
               "type": "array",
               "items": {
                 "$ref": "#/$defs/Txid"
-              }
+              },
+              "minItems": 1,
+              "maxItems": 100
             }
           },
           "additionalProperties": false,
@@ -14819,17 +14814,20 @@
                 0,
                 1,
                 2
-              ]
+              ],
+              "default": 0
             },
             "per_page": {
-              "description": "Results per page (default: 1000, max: 1000)",
+              "description": "Results per page, 1 to 1,000 (default: 1000)",
               "type": "integer",
               "format": "uint",
-              "minimum": 0,
+              "minimum": 1,
+              "maximum": 1000,
               "examples": [
                 100,
                 1000
-              ]
+              ],
+              "default": 1000
             }
           },
           "additionalProperties": false,
@@ -14993,28 +14991,23 @@
               ]
             },
             "limit": {
-              "description": "Maximum number of results, 100 when omitted",
-              "$ref": "#/$defs/Limit"
+              "description": "Maximum number of results, 1 to 1,000 (default: 100)",
+              "type": "integer",
+              "format": "uint",
+              "minimum": 1,
+              "maximum": 1000,
+              "examples": [
+                10,
+                100
+              ],
+              "default": 100
             }
           },
           "additionalProperties": false,
           "required": [
             "q"
           ],
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "Limit": {
-              "description": "Maximum number of results to return; each parameter states what omitting it means.",
-              "type": "integer",
-              "format": "uint",
-              "minimum": 0,
-              "examples": [
-                1,
-                10,
-                100
-              ]
-            }
-          }
+          "$schema": "https://json-schema.org/draft/2020-12/schema"
         },
         "outputSchema": {
           "type": "array",

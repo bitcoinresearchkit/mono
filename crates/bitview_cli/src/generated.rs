@@ -53,7 +53,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Address hash-prefix matches",
         description: "Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.",
         path_parameters: &[
-            Parameter { api_name: "address_type", name: "address-type", required: true, value_name: "OutputType", repeatable: false, description: None },
+            Parameter { api_name: "address_type", name: "address-type", required: true, value_name: "AddressOutputType", repeatable: false, description: None },
             Parameter { api_name: "prefix", name: "prefix", required: true, value_name: "string", repeatable: false, description: Some("First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw\naddress payload bytes.") },
         ],
         query_parameters: &[
@@ -849,7 +849,7 @@ pub static COMMANDS: &[Command] = &[
         query_parameters: &[
             Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
             Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
-            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.") },
+            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.") },
             Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: None },
         ],
         request_body: None,
@@ -867,7 +867,7 @@ pub static COMMANDS: &[Command] = &[
             Parameter { api_name: "index", name: "index", required: true, value_name: "Index", repeatable: false, description: None },
             Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
             Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
-            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.") },
+            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.") },
             Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: None },
         ],
         request_body: None,
@@ -897,7 +897,7 @@ pub static COMMANDS: &[Command] = &[
         query_parameters: &[
             Parameter { api_name: "start", name: "start", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
             Parameter { api_name: "end", name: "end", required: false, value_name: "RangeIndex", repeatable: false, description: Some("Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.") },
-            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.") },
+            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.") },
             Parameter { api_name: "format", name: "format", required: false, value_name: "Format", repeatable: false, description: None },
         ],
         request_body: None,
@@ -1228,7 +1228,7 @@ pub static COMMANDS: &[Command] = &[
         ],
         query_parameters: &[
             Parameter { api_name: "page", name: "page", required: false, value_name: "integer", repeatable: false, description: Some("Zero-based page number (default: 0)") },
-            Parameter { api_name: "per_page", name: "per-page", required: false, value_name: "integer", repeatable: false, description: Some("Results per page (default: 1000, max: 1000)") },
+            Parameter { api_name: "per_page", name: "per-page", required: false, value_name: "integer", repeatable: false, description: Some("Results per page, 1 to 1,000 (default: 1000)") },
         ],
         request_body: None,
     },
@@ -1266,7 +1266,7 @@ pub static COMMANDS: &[Command] = &[
         ],
         query_parameters: &[
             Parameter { api_name: "q", name: "q", required: true, value_name: "string", repeatable: false, description: Some("Words to find in series names and descriptions (`realized price`, `mvrv`), in any order") },
-            Parameter { api_name: "limit", name: "limit", required: false, value_name: "Limit", repeatable: false, description: Some("Maximum number of results, 100 when omitted") },
+            Parameter { api_name: "limit", name: "limit", required: false, value_name: "integer", repeatable: false, description: Some("Maximum number of results, 1 to 1,000 (default: 100)") },
         ],
         request_body: None,
     },

@@ -35,14 +35,14 @@ confirmed activity
  */
 /**
  * @typedef {Object} AddressHashPrefixMatches
- * @property {OutputType} addressType
+ * @property {AddressOutputType} addressType
  * @property {string} prefix - The requested prefix, lowercased.
  * @property {boolean} truncated
  * @property {Address[]} addresses
  */
 /**
  * @typedef {Object} AddressHashPrefixParam
- * @property {OutputType} addressType
+ * @property {AddressOutputType} addressType
  * @property {string} prefix - First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw
 address payload bytes.
  */
@@ -62,6 +62,11 @@ address payload bytes.
  *
  * @typedef {Object} AddressMempoolTxsQuery
  * @property {?number=} maxTxs - Transactions to return, at most 50 (the default); larger values return 50.
+ */
+/**
+ * The output type of an address: any output type but `p2ms`, `op_return`, `empty_script` and `unknown_script`.
+ *
+ * @typedef {("p2pk65"|"p2pk33"|"p2pkh"|"p2sh"|"p2wpkh"|"p2wsh"|"p2tr"|"p2a")} AddressOutputType
  */
 /**
  * @typedef {Object} AddressParam
@@ -459,7 +464,7 @@ legacy and P2SH-redeem sigops count as 4).
  * @typedef {Object} DataRangeFormat
  * @property {(RangeIndex|null)=} start - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
  * @property {(RangeIndex|null)=} end - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
- * @property {(Limit|null)=} limit - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
+ * @property {(Limit|null)=} limit - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
  * @property {Format=} format
  */
 /**
@@ -993,8 +998,8 @@ a bin closing at the first fee rate change past 50,000 vB
  */
 /**
  * @typedef {Object} Pagination
- * @property {?number=} page - Zero-based page number (default: 0)
- * @property {?number=} perPage - Results per page (default: 1000, max: 1000)
+ * @property {number=} page - Zero-based page number (default: 0)
+ * @property {number=} perPage - Results per page, 1 to 1,000 (default: 1000)
  */
 /**
  * A fraction per day.
@@ -1220,7 +1225,7 @@ on serialization otherwise.
 /**
  * @typedef {Object} SearchQuery
  * @property {string} q - Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
- * @property {Limit=} limit - Maximum number of results, 100 when omitted
+ * @property {number=} limit - Maximum number of results, 1 to 1,000 (default: 100)
  */
 /**
  * A duration in seconds (at most about 136 years).
@@ -1284,7 +1289,7 @@ undefined one (e.g. NaN).
  * @property {Index} index
  * @property {(RangeIndex|null)=} start - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
  * @property {(RangeIndex|null)=} end - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
- * @property {(Limit|null)=} limit - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
+ * @property {(Limit|null)=} limit - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
  * @property {Format=} format
  */
 /**
@@ -2450,7 +2455,7 @@ function _validateHashPrefixNibbles(nibbles) {
 }
 
 /**
- * @param {OutputType} addressType
+ * @param {AddressOutputType} addressType
  * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload
  */
 function _validateAddressPayloadForType(addressType, payload) {
@@ -7888,7 +7893,7 @@ class BitviewClient extends BitviewClientBase {
   }
 
   /**
-   * @param {OutputType} addressType
+   * @param {AddressOutputType} addressType
    * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload - Raw payload bytes matching addressType length
    * @param {number} nibbles
    * @param {{ signal?: AbortSignal, onValue?: (value: AddressHashPrefixMatches) => void, cache?: boolean, memCache?: boolean }} [options]
@@ -8015,7 +8020,7 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/series/list`
    *
    * @param {number=} [page] - Zero-based page number (default: 0)
-   * @param {number=} [per_page] - Results per page (default: 1000, max: 1000)
+   * @param {number=} [per_page] - Results per page, 1 to 1,000 (default: 1000)
    * @param {{ signal?: AbortSignal, onValue?: (value: PaginatedSeries) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<PaginatedSeries>}
    */
@@ -8036,7 +8041,7 @@ class BitviewClient extends BitviewClientBase {
    * Endpoint: `GET /api/series/search`
    *
    * @param {string} q - Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
-   * @param {Limit=} [limit] - Maximum number of results, 100 when omitted
+   * @param {number=} [limit] - Maximum number of results, 1 to 1,000 (default: 100)
    * @param {{ signal?: AbortSignal, onValue?: (value: SeriesName[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<SeriesName[]>}
    */
@@ -8076,7 +8081,7 @@ class BitviewClient extends BitviewClientBase {
    * @param {Index} index
    * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
    * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-   * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
+   * @param {Limit=} [limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
    * @param {Format=} [format]
    * @param {{ signal?: AbortSignal, onValue?: (value: AnySeriesData | string) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<AnySeriesData | string>}
@@ -8104,7 +8109,7 @@ class BitviewClient extends BitviewClientBase {
    * @param {Index} index
    * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
    * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-   * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
+   * @param {Limit=} [limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
    * @param {Format=} [format]
    * @param {{ signal?: AbortSignal, onValue?: (value: *[] | string) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<*[] | string>}
@@ -8181,7 +8186,7 @@ class BitviewClient extends BitviewClientBase {
    * @param {Index} index
    * @param {RangeIndex=} [start] - Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
    * @param {RangeIndex=} [end] - Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-   * @param {Limit=} [limit] - Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
+   * @param {Limit=} [limit] - Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
    * @param {Format=} [format]
    * @param {{ signal?: AbortSignal, onValue?: (value: AnySeriesData[] | string) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<AnySeriesData[] | string>}
@@ -8321,7 +8326,7 @@ class BitviewClient extends BitviewClientBase {
    *
    * Endpoint: `GET /api/address/hash-prefix/{address_type}/{prefix}`
    *
-   * @param {OutputType} address_type
+   * @param {AddressOutputType} address_type
    * @param {string} prefix - First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw
 address payload bytes.
    * @param {{ signal?: AbortSignal, onValue?: (value: AddressHashPrefixMatches) => void, cache?: boolean, memCache?: boolean }} [options]

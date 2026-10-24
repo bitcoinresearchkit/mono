@@ -11,20 +11,6 @@ use serde::Deserialize;
 #[schemars(example = 1, example = 10, example = 100)]
 pub struct Limit(usize);
 
-impl Limit {
-    pub const DEFAULT: Self = Self(100);
-
-    pub fn is_zero(&self) -> bool {
-        self.0 == 0
-    }
-}
-
-impl Default for Limit {
-    fn default() -> Self {
-        Self::DEFAULT
-    }
-}
-
 impl fmt::Display for Limit {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)

@@ -2,7 +2,7 @@ use std::{sync::Arc, thread::available_parallelism};
 
 use bitcoin::hashes::{Hash, HashEngine, sha256};
 use bitview_query::Query;
-use bitview_types::{Limit, Pagination, SeriesInfo};
+use bitview_types::{PageSize, Pagination, SearchQuery, SeriesInfo};
 use serde_json::to_writer;
 use tokio::sync::Semaphore;
 
@@ -66,8 +66,8 @@ fn list_params(names: &[&str]) -> CacheParams {
     }
     CacheParams::revalidate(format!(
         "list1-{}-{}-{}",
-        Pagination::DEFAULT_PER_PAGE,
-        Pagination::MAX_PER_PAGE,
+        *Pagination::DEFAULT_PER_PAGE,
+        PageSize::MAX,
         sha256::Hash::from_engine(engine),
     ))
 }
@@ -83,7 +83,7 @@ fn search_params(catalog: &[u8], names: &[&str]) -> CacheParams {
     }
     CacheParams::revalidate(format!(
         "search2-{}-{}",
-        Limit::DEFAULT,
+        *SearchQuery::DEFAULT_LIMIT,
         sha256::Hash::from_engine(engine)
     ))
 }

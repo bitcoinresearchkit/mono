@@ -9,7 +9,7 @@ impl Query {
     /// near genesis). `InvalidParam` for zero, `Internal` for incomplete published data.
     pub fn reward_stats(&self, block_count: usize) -> Result<RewardStats> {
         if block_count == 0 {
-            return Err(Error::InvalidParam("block_count must be >= 1".into()));
+            return Err(Error::InvalidParam("block_count must be at least 1".into()));
         }
 
         let pin = self.pin_safe_lengths()?;

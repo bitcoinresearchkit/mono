@@ -1,17 +1,16 @@
-use bitview_types::Limit;
 use quickmatch::{QuickMatch, QuickMatchConfig};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::{DescriptionSearch, SeriesId, Vecs, normalize::normalize};
 
 impl Vecs<'_> {
-    pub(crate) fn matches(&self, query: &str, limit: Limit) -> Vec<&'_ str> {
+    pub(crate) fn matches(&self, query: &str, limit: usize) -> Vec<&'_ str> {
         matches(
             &self.series_names,
             &self.matcher,
             &self.description_search,
             query,
-            *limit,
+            limit,
         )
     }
 }

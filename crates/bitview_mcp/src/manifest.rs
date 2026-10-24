@@ -131,10 +131,11 @@ fn validate_schema(
         Value::String(value) if value.len() > MAX_PARAMETER_BYTES => Err(format!(
             "string exceeds the {MAX_PARAMETER_BYTES}-byte parameter limit"
         )),
+        Value::String(value) => validate_string(object, value),
         Value::Number(value) => validate_number(object, value),
         Value::Array(value) => validate_array(root, object, value, depth),
         Value::Object(value) => validate_object(root, object, value, depth),
-        Value::Null | Value::Bool(_) | Value::String(_) => Ok(()),
+        Value::Null | Value::Bool(_) => Ok(()),
     }
 }
 
@@ -155,6 +156,27 @@ fn matches_type(expected: &str, value: &Value) -> bool {
     }
 }
 
+/// A schema's whole-number keyword, if set.
+fn bound(schema: &Map<String, Value>, keyword: &str) -> Option<u64> {
+    schema.get(keyword).and_then(Value::as_u64)
+}
+
+fn validate_string(schema: &Map<String, Value>, value: &str) -> Result<(), String> {
+    // JSON Schema counts characters, not bytes.
+    let length = value.chars().count() as u64;
+    if let Some(min) = bound(schema, "minLength")
+        && length < min
+    {
+        return Err(format!("string is shorter than {min} characters"));
+    }
+    if let Some(max) = bound(schema, "maxLength")
+        && length > max
+    {
+        return Err(format!("string is longer than {max} characters"));
+    }
+    Ok(())
+}
+
 fn validate_number(schema: &Map<String, Value>, value: &Number) -> Result<(), String> {
     let value = value
         .as_f64()
@@ -167,6 +189,11 @@ fn validate_number(schema: &Map<String, Value>, value: &Number) -> Result<(), St
     {
         return Err(format!("number is less than {minimum}"));
     }
+    if let Some(maximum) = schema.get("maximum").and_then(Value::as_f64)
+        && value > maximum
+    {
+        return Err(format!("number is greater than {maximum}"));
+    }
     Ok(())
 }
 
@@ -176,6 +203,17 @@ fn validate_array(
     values: &[Value],
     depth: usize,
 ) -> Result<(), String> {
+    let count = values.len() as u64;
+    if let Some(min) = bound(schema, "minItems")
+        && count < min
+    {
+        return Err(format!("array has fewer than {min} items"));
+    }
+    if let Some(max) = bound(schema, "maxItems")
+        && count > max
+    {
+        return Err(format!("array has more than {max} items"));
+    }
     if let Some(items) = schema.get("items") {
         for value in values {
             validate_schema(root, as_schema(items)?, value, depth + 1)?;

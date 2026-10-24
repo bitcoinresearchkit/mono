@@ -1,10 +1,12 @@
-use std::{fmt::Write, ops::Range};
+use std::{cmp::Ordering, fmt::Write, ops::Range};
 
 use bitview_catalog::TreeNode;
-use bitview_primitives::{BlockHashPrefix, Date, DifficultyEpoch, HalvingEpoch, Index, SeriesName, TxOutIndex};
+use bitview_primitives::{
+    BlockHashPrefix, Date, DifficultyEpoch, HalvingEpoch, Index, SeriesName, TxOutIndex,
+};
 use bitview_types::{
-    DetailedSeriesCount, Format, Limit, PaginatedSeries, Pagination, RangeIndex,
-    SearchQuery, SeriesInfo, SeriesSelection,
+    DetailedSeriesCount, Format, PaginatedSeries, Pagination, RangeIndex, SearchQuery, SeriesInfo,
+    SeriesSelection,
 };
 use brk_types::{Height, Timestamp, TxIndex, Version};
 use itoa::Buffer;
@@ -63,12 +65,12 @@ impl Query {
     }
 
     pub fn search_series(&self, query: &SearchQuery) -> Vec<&'static str> {
-        self.vecs().matches(&query.q, query.limit)
+        self.vecs().matches(&query.q, *query.limit)
     }
 
     /// Build the fuzzy not-found error after an exact series lookup failed.
     pub fn missing_series_error(&self, series: &SeriesName) -> Error {
-        let matches = self.vecs().matches(series, Limit::DEFAULT);
+        let matches = self.vecs().matches(series, *SearchQuery::DEFAULT_LIMIT);
         let total_matches = matches.len();
         let suggestions = matches.into_iter().take(3).collect();
         Error::SeriesNotFound(SeriesNotFound::new(
@@ -236,13 +238,20 @@ impl Query {
                 let (end, settled) = resolve_bound(ri)?;
                 (i64_to_usize(end, total), pinned((end, settled)))
             }
-            None => match params.limit {
-                Some(limit) => {
-                    let end = start.saturating_add(*limit);
-                    (end.min(total), start_pinned && end <= total)
+            None => (total, false),
+        };
+        // `end` and `limit` both cap the range: the tighter one wins.
+        let (end, end_pinned) = match params.limit {
+            Some(limit) => {
+                let capped = start.saturating_add(*limit);
+                let by_limit = (capped.min(total), start_pinned && capped <= total);
+                match by_limit.0.cmp(&end) {
+                    Ordering::Less => by_limit,
+                    Ordering::Equal => (end, end_pinned || by_limit.1),
+                    Ordering::Greater => (end, end_pinned),
                 }
-                None => (total, false),
-            },
+            }
+            None => (end, end_pinned),
         };
 
         let end = end.max(start);
@@ -325,10 +334,20 @@ impl Query {
             Index::TxIndex => v.transactions.first_tx_index.collect_one(height)?.into(),
             Index::TxInIndex => v.inputs.first_txin_index.collect_one(height)?.into(),
             Index::TxOutIndex => v.outputs.first_txout_index.collect_one(height)?.into(),
-            Index::EmptyScriptOutputIndex => v.scripts.empty_script.first_index.collect_one(height)?.into(),
+            Index::EmptyScriptOutputIndex => v
+                .scripts
+                .empty_script
+                .first_index
+                .collect_one(height)?
+                .into(),
             Index::OpReturnOutputIndex => v.op_return.first_index.collect_one(height)?.into(),
             Index::P2MSOutputIndex => v.scripts.p2ms.first_index.collect_one(height)?.into(),
-            Index::UnknownScriptOutputIndex => v.scripts.unknown_script.first_index.collect_one(height)?.into(),
+            Index::UnknownScriptOutputIndex => v
+                .scripts
+                .unknown_script
+                .first_index
+                .collect_one(height)?
+                .into(),
             Index::P2AAddressIndex => v.addrs.p2a.first_index.collect_one(height)?.into(),
             Index::P2PK33AddressIndex => v.addrs.p2pk33.first_index.collect_one(height)?.into(),
             Index::P2PK65AddressIndex => v.addrs.p2pk65.first_index.collect_one(height)?.into(),

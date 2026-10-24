@@ -83,7 +83,7 @@ pub(crate) fn generate_main_client(output: &mut String, endpoints: &[Endpoint]) 
 
     def get_address_payload_hash_prefix_matches(
         self,
-        address_type: OutputType,
+        address_type: AddressOutputType,
         payload: Union[bytes, bytearray, memoryview],
         nibbles: int,
     ) -> AddressHashPrefixMatches:

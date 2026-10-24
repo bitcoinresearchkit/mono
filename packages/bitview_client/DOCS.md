@@ -317,7 +317,8 @@ Compute the RapidHash v3 hash-prefix for raw address payload bytes.
 
 ```python
 def get_address_payload_hash_prefix_matches(
-        address_type: OutputType, payload: Union[bytes, bytearray, memoryview],
+        address_type: AddressOutputType, payload: Union[bytes, bytearray,
+                                                        memoryview],
         nibbles: int) -> AddressHashPrefixMatches
 ```
 
@@ -439,7 +440,7 @@ Endpoint: `GET /api/series/list`
 #### search\_series
 
 ```python
-def search_series(q: str, limit: Optional[Limit] = None) -> List[SeriesName]
+def search_series(q: str, limit: Optional[int] = None) -> List[SeriesName]
 ```
 
 Search series.
@@ -662,7 +663,7 @@ Endpoint: `GET /api/v1/historical-price`
 #### get\_address\_hash\_prefix\_matches
 
 ```python
-def get_address_hash_prefix_matches(address_type: OutputType,
+def get_address_hash_prefix_matches(address_type: AddressOutputType,
                                     prefix: str) -> AddressHashPrefixMatches
 ```
 

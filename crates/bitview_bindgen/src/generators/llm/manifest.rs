@@ -293,18 +293,13 @@ fn build_input_schema(endpoint: &Endpoint, schemas: &TypeSchemas) -> io::Result<
 }
 
 /// Validation keywords the MCP bridge's argument validator does not implement.
-const UNVALIDATED_KEYWORDS: [&str; 12] = [
+const UNVALIDATED_KEYWORDS: [&str; 7] = [
     "const",
     "allOf",
     "oneOf",
     "not",
-    "minLength",
-    "maxLength",
-    "maximum",
     "exclusiveMinimum",
     "exclusiveMaximum",
-    "minItems",
-    "maxItems",
     "uniqueItems",
 ];
 

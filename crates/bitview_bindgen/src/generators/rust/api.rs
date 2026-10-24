@@ -58,7 +58,7 @@ impl BitviewClient {{
     .unwrap();
 
     output.push_str(r#"    /// Fetch address hash-prefix matches from raw payload bytes matching `address_type` length.
-    pub fn get_address_payload_hash_prefix_matches(&self, address_type: OutputType, payload: &[u8], nibbles: usize) -> Result<AddressHashPrefixMatches> {
+    pub fn get_address_payload_hash_prefix_matches(&self, address_type: AddressOutputType, payload: &[u8], nibbles: usize) -> Result<AddressHashPrefixMatches> {
         validate_address_payload_for_type(address_type, payload)?;
         let prefix = address_payload_hash_prefix(payload, nibbles)?;
         self.get_address_hash_prefix_matches(address_type, &prefix)

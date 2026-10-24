@@ -216,7 +216,7 @@ pub(crate) fn generate_main_client(
   }
 
   /**
-   * @param {OutputType} addressType
+   * @param {AddressOutputType} addressType
    * @param {Uint8Array | ArrayBuffer | ArrayBufferView | number[]} payload - Raw payload bytes matching addressType length
    * @param {number} nibbles
    * @param {{ signal?: AbortSignal, onValue?: (value: AddressHashPrefixMatches) => void, cache?: boolean, memCache?: boolean }} [options]

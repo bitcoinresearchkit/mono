@@ -2330,7 +2330,7 @@ impl BitviewClient {
     /// Fetch address hash-prefix matches from raw payload bytes matching `address_type` length.
     pub fn get_address_payload_hash_prefix_matches(
         &self,
-        address_type: OutputType,
+        address_type: AddressOutputType,
         payload: &[u8],
         nibbles: usize,
     ) -> Result<AddressHashPrefixMatches> {
@@ -2437,7 +2437,7 @@ impl BitviewClient {
     /// Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
     ///
     /// Endpoint: `GET /api/series/search`
-    pub fn search_series(&self, q: &str, limit: Option<Limit>) -> Result<Vec<SeriesName>> {
+    pub fn search_series(&self, q: &str, limit: Option<i64>) -> Result<Vec<SeriesName>> {
         let mut query = Vec::new();
         query.push(query_pair("q", q));
         if let Some(v) = limit {
@@ -2758,7 +2758,7 @@ impl BitviewClient {
     /// Endpoint: `GET /api/address/hash-prefix/{address_type}/{prefix}`
     pub fn get_address_hash_prefix_matches(
         &self,
-        address_type: OutputType,
+        address_type: AddressOutputType,
         prefix: &str,
     ) -> Result<AddressHashPrefixMatches> {
         self.base.get_json(&format!(

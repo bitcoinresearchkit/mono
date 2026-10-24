@@ -21,7 +21,7 @@ Address hash-prefix matches
 Find addresses by address type and by the first 1-16 hex nibbles of RapidHash v3 over the raw address payload bytes. Intended for privacy-preserving client-side wallet discovery without sending raw addresses or xpubs. Fetch metadata with `GET /api/address/{address}`.
 
 Parameters:
-- `address_type` (path, OutputType, required)
+- `address_type` (path, AddressOutputType, required)
 - `prefix` (path, string, required): First 1–16 hexadecimal nibbles of the RapidHash v3 hash over the raw address payload bytes.
 
 Returns: JSON `AddressHashPrefixMatches`
@@ -713,7 +713,7 @@ Parameters:
 - `index` (query, Index, required)
 - `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
 - `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-- `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
+- `limit` (query, Limit, optional): Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
 - `format` (query, Format, optional)
 
 Returns: JSON `SeriesData[]`
@@ -742,7 +742,7 @@ Paginated flat list of all available series names.
 
 Parameters:
 - `page` (query, integer, optional): Zero-based page number (default: 0)
-- `per_page` (query, integer, optional): Results per page (default: 1000, max: 1000)
+- `per_page` (query, integer, optional): Results per page, 1 to 1,000 (default: 1000)
 
 Returns: JSON `PaginatedSeries`
 
@@ -754,7 +754,7 @@ Search series by name or descriptive terms. Results prioritize whole query words
 
 Parameters:
 - `q` (query, string, required): Words to find in series names and descriptions (`realized price`, `mvrv`), in any order
-- `limit` (query, Limit, optional): Maximum number of results, 100 when omitted
+- `limit` (query, integer, optional): Maximum number of results, 1 to 1,000 (default: 100)
 
 Returns: JSON `SeriesName[]`
 
@@ -780,7 +780,7 @@ Parameters:
 - `index` (path, Index, required)
 - `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
 - `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-- `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
+- `limit` (query, Limit, optional): Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
 - `format` (query, Format, optional)
 
 Returns: JSON `SeriesData`
@@ -796,7 +796,7 @@ Parameters:
 - `index` (path, Index, required)
 - `start` (query, RangeIndex, optional): Inclusive start: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
 - `end` (query, RangeIndex, optional): Exclusive end: integer index, date (YYYY-MM-DD), or timestamp (ISO 8601). Negative integers count from end.
-- `limit` (query, Limit, optional): Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
+- `limit` (query, Limit, optional): Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
 - `format` (query, Format, optional)
 
 Returns: JSON `value[]`
@@ -1100,7 +1100,7 @@ Returns: JSON `ServerVersion`
 
 ### `AddressHashPrefixMatches`
 
-- `address_type`: `OutputType` (required)
+- `address_type`: `AddressOutputType` (required)
 - `prefix`: `string` (required) — The requested prefix, lowercased.
 - `truncated`: `boolean` (required)
 - `addresses`: `Address[]` (required)
@@ -1113,6 +1113,10 @@ Returns: JSON `ServerVersion`
 - `spent_txo_count`: `integer` (required) — Number of unconfirmed transaction inputs spending from this address
 - `spent_txo_sum`: `Sats` (required) — Total amount in satoshis being spent in unconfirmed transactions
 - `tx_count`: `integer` (required) — Number of unconfirmed transactions involving this address
+
+### `AddressOutputType`
+
+`p2pk65 | p2pk33 | p2pkh | p2sh | p2wpkh | p2wsh | p2tr | p2a`
 
 ### `AddressStats`
 

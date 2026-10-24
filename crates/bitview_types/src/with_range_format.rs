@@ -20,7 +20,7 @@ macro_rules! with_range_format {
             #[serde(default)]
             pub end: Option<$crate::RangeIndex>,
 
-            /// Maximum number of values to return (ignored if `end` is set); omitted, the rest of the range.
+            /// Maximum number of values to return; with `end` too, the tighter of the two applies. Omitted, the rest of the range.
             #[serde(default, deserialize_with = "crate::de_unquote_limit")]
             pub limit: Option<$crate::Limit>,
 

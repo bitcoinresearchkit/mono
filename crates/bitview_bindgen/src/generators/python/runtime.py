@@ -175,7 +175,7 @@ def _validate_hash_prefix_nibbles(nibbles: int) -> None:
         raise ValueError("Expected hash-prefix length from 1 to 16 hex nibbles")
 
 
-def _validate_address_payload_for_type(address_type: OutputType, payload: Union[bytes, bytearray, memoryview]) -> None:
+def _validate_address_payload_for_type(address_type: AddressOutputType, payload: Union[bytes, bytearray, memoryview]) -> None:
     length = len(bytes(payload))
     expected = _ADDRESS_PAYLOAD_LENGTHS.get(address_type)
     if expected is None:

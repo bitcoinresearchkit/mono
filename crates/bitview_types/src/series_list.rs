@@ -17,7 +17,8 @@ use bitview_primitives::SeriesName;
     example = &"date,price_close",
     example = &"price_close",
     example = &"price_close,market_cap",
-    example = &"realized_price,market_cap,mvrv"
+    example = &"realized_price,market_cap,mvrv",
+    extend("maxLength" = MAX_INPUT_BYTES)
 )]
 pub struct SeriesList(Vec<SeriesName>);
 
