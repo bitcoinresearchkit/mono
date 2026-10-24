@@ -8,7 +8,7 @@
 
 > **Transactions** = `object`
 
-Defined in: [modules/bitview-client/index.js:6866](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6866)
+Defined in: [modules/bitview-client/index.js:6867](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6867)
 
 ## Type Parameters
 
@@ -41,10 +41,6 @@ Defined in: [modules/bitview-client/index.js:6866](https://github.com/bitcoinres
 ### perSecond
 
 > **perSecond**: [`Windows`](Windows.md)\<[`PerSecond`](PerSecond.md) \| `null`\>
-
-### sigopCost
-
-> **sigopCost**: [`Flow`](Flow.md)\<[`SigOps`](SigOps.md)\>
 
 ### transferVolume
 

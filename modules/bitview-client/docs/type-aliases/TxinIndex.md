@@ -8,7 +8,7 @@
 
 > **TxinIndex** = `object`
 
-Defined in: [modules/bitview-client/index.js:6216](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6216)
+Defined in: [modules/bitview-client/index.js:6218](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6218)
 
 ## Type Parameters
 

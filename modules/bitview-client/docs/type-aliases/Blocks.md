@@ -8,7 +8,7 @@
 
 > **Blocks** = `object`
 
-Defined in: [modules/bitview-client/index.js:6160](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6160)
+Defined in: [modules/bitview-client/index.js:6161](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6161)
 
 ## Type Parameters
 
@@ -33,6 +33,10 @@ Defined in: [modules/bitview-client/index.js:6160](https://github.com/bitcoinres
 ### interval
 
 > **interval**: [`Averaged`](Averaged.md)\<[`Seconds`](Seconds.md), [`SecondsFract`](SecondsFract.md) \| `null`\>
+
+### sigopCost
+
+> **sigopCost**: [`Flow`](Flow.md)\<[`SigOps`](SigOps.md)\>
 
 ### size
 

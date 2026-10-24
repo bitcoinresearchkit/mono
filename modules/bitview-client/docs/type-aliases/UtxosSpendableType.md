@@ -8,7 +8,7 @@
 
 > **UtxosSpendableType** = `object`
 
-Defined in: [modules/bitview-client/index.js:5025](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5025)
+Defined in: [modules/bitview-client/index.js:5050](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5050)
 
 ## Type Parameters
 

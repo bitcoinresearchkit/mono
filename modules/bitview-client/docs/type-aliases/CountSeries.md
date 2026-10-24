@@ -8,7 +8,7 @@
 
 > **CountSeries** = `object`
 
-Defined in: [modules/bitview-client/index.js:6830](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6830)
+Defined in: [modules/bitview-client/index.js:6832](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6832)
 
 ## Type Parameters
 
