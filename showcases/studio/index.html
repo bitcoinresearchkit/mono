@@ -24618,22 +24618,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             });
             for (const row of rows) if (counts.has(row.label) && row.page) row.aside = plural(counts.get(row.label), "chart");
             if (path.length) return [{ kind: "row", key: "page", icon: ICONS.grid, label: "View", aside: "Its page", verb: "View", run: () => goTo({ path }) }, ...rows];
-            const recommended = RECOMMENDED.flatMap((place) => {
-              const i = list.findIndex((preset) => preset.p.join(" › ") === place);
-              return i < 0 ? [] : [{ ...presetRow(i, true), key: `recommended:${i}`, group: "Recommended" }];
-            });
-            return [...recommended, ...rows.map((row) => ({ ...row, group: "Sections" }))];
+            // (The recommended, a folder of their own before the sections: a row away, not a screen of them.)
+            return [{ kind: "row", key: "group:recommended", icon: ICONS.folder, label: "Recommended", aside: plural(recommendedPresets().length, "chart"), verb: "Open", page: recommendedPage }, ...rows];
           },
         };
         presetPages.add(page);
         return page;
       }
+      /** ⌘K's recommended presets, each with its place. @returns {Page} */
+      function recommendedPage() {
+        return { title: "Recommended", global: true, placeholder: "Search in Recommended", rows: () => (presets ? recommendedPresets().map((i) => ({ ...presetRow(i, true), key: `recommended:${i}` })) : []) };
+      }
       // Read once the page has settled: the recommended cards fill in, and ⌘K finds them at once.
       renderRecommended();
-      const readPresets = () => void loadPresets().catch(() => {});
-      // (The served page's, kept in this browser: read at once, see presetsKept.)
-      if ($("presets")?.textContent?.trim()) whenIdle(readPresets, { timeout: 4000, settle: 1500 });
-      else readPresets();
+      void loadPresets().catch(() => {});
 
       /** After a menu pick re-renders the list, focus goes back to the same menu button. */
       const refocus = (selector) => requestAnimationFrame(() => /** @type {HTMLElement | null} */ (document.querySelector(selector))?.focus());
