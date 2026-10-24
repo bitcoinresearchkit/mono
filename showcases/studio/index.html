@@ -19292,7 +19292,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const hit = drawingAt(event.clientX, event.clientY, reachOf(event));
         // A press on nothing pans; a click there lets the selected drawings go (at its release, unmoved; a ⇧-click that
         // missed one changes nothing).
-        if (!hit) return void (pressedAt = chosen.size && !event.shiftKey ? { x: event.clientX, y: event.clientY } : null);
+        if (!hit) return void (pressedAt = chosen.size && !event.shiftKey ? { x: event.clientX, y: event.clientY, pick: "" } : null);
+        // By touch, one not selected is the chart's still: a drag over it pans (a finger's wide reach on it moves nothing);
+        // a tap selects it, then it's taken as a pointer takes it. (A pen points as a mouse does.)
+        if (event.pointerType === "touch" && !chosen.has(hit.drawing.id)) return void (pressedAt = { x: event.clientX, y: event.clientY, pick: hit.drawing.id });
         take(event);
         const id = hit.drawing.id;
         // ⇧: in or out of the selection.
@@ -19310,15 +19313,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (boxing) return boxTo(event);
         hover(event.buttons || tool || selectingArea ? null : drawingAt(event.clientX, event.clientY));
       });
-      /** Where a press on nothing was, while a drawing is selected. */
-      let pressedAt = null;
+      /** Where a press on nothing was, while a drawing is selected; or a finger's on one not selected (`pick`, see above). */
+      let pressedAt = /** @type {{ x: number, y: number, pick: string } | null} */ (null);
       $("chart").addEventListener("pointerup", (event) => {
         swallow = false;
         if (gesturing() && event.pointerId !== gesturePointer) return;
         if (placing?.held) placed(event);
         else if (moving) moved();
         else if (boxing) boxed();
-        else if (pressedAt && Math.hypot(event.clientX - pressedAt.x, event.clientY - pressedAt.y) < 4) chooseDrawings([]);
+        else if (pressedAt && Math.hypot(event.clientX - pressedAt.x, event.clientY - pressedAt.y) < 4) chooseDrawings(pressedAt.pick ? [pressedAt.pick] : []);
         pressedAt = null;
       });
       $("chart").addEventListener("pointercancel", (event) => {
