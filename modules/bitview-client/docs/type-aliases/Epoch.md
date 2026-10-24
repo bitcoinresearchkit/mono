@@ -8,6 +8,6 @@
 
 > **Epoch** = `number`
 
-Defined in: [modules/bitview-client/index.js:594](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L594)
+Defined in: [modules/bitview-client/index.js:609](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L609)
 
 ## Type Parameters

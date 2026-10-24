@@ -6,7 +6,7 @@
 
 # Interface: BlockSizeEntry
 
-Defined in: [modules/bitview-client/index.js:271](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L271)
+Defined in: [modules/bitview-client/index.js:286](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L286)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:271](https://github.com/bitcoinrese
 
 > **avgHeight**: `number`
 
-Defined in: [modules/bitview-client/index.js:272](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L272)
+Defined in: [modules/bitview-client/index.js:287](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L287)
 
 Average block height in this bucket
 
@@ -24,7 +24,7 @@ Average block height in this bucket
 
 > **avgSize**: `number`
 
-Defined in: [modules/bitview-client/index.js:274](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L274)
+Defined in: [modules/bitview-client/index.js:289](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L289)
 
 Mean block size in this bucket, rounded half up (bytes)
 
@@ -34,6 +34,6 @@ Mean block size in this bucket, rounded half up (bytes)
 
 > **timestamp**: `number`
 
-Defined in: [modules/bitview-client/index.js:273](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L273)
+Defined in: [modules/bitview-client/index.js:288](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L288)
 
 Average block timestamp in this bucket

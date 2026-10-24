@@ -6,7 +6,7 @@
 
 # Interface: BlockTemplateDiff
 
-Defined in: [modules/bitview-client/index.js:306](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L306)
+Defined in: [modules/bitview-client/index.js:321](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L321)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:306](https://github.com/bitcoinrese
 
 > **hash**: `string`
 
-Defined in: [modules/bitview-client/index.js:307](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L307)
+Defined in: [modules/bitview-client/index.js:322](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L322)
 
 Current next-block hash. Use as `since` on the next diff call.
 
@@ -24,7 +24,7 @@ Current next-block hash. Use as `since` on the next diff call.
 
 > **order**: [`BlockTemplateDiffEntry`](../type-aliases/BlockTemplateDiffEntry.md)[]
 
-Defined in: [modules/bitview-client/index.js:310](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L310)
+Defined in: [modules/bitview-client/index.js:325](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L325)
 
 New template in order. Each entry is either an index into the
 prior template's transactions or a full transaction body.
@@ -35,7 +35,7 @@ prior template's transactions or a full transaction body.
 
 > **removed**: `string`[]
 
-Defined in: [modules/bitview-client/index.js:312](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L312)
+Defined in: [modules/bitview-client/index.js:327](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L327)
 
 Txids that left the projected next block since `since`
 (confirmed, evicted, replaced, or pushed past block 0).
@@ -46,7 +46,7 @@ Txids that left the projected next block since `since`
 
 > **since**: `string`
 
-Defined in: [modules/bitview-client/index.js:308](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L308)
+Defined in: [modules/bitview-client/index.js:323](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L323)
 
 Echoed prior hash the diff was computed against.
 
@@ -56,6 +56,6 @@ Echoed prior hash the diff was computed against.
 
 > **stats**: [`MempoolBlock`](MempoolBlock.md)
 
-Defined in: [modules/bitview-client/index.js:309](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L309)
+Defined in: [modules/bitview-client/index.js:324](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L324)
 
 Stats of the new template; they can change while every transaction is retained.

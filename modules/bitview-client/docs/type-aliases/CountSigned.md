@@ -8,6 +8,6 @@
 
 > **CountSigned** = `number`
 
-Defined in: [modules/bitview-client/index.js:412](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L412)
+Defined in: [modules/bitview-client/index.js:427](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L427)
 
 ## Type Parameters

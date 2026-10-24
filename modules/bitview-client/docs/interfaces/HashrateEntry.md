@@ -6,7 +6,7 @@
 
 # Interface: HashrateEntry
 
-Defined in: [modules/bitview-client/index.js:654](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L654)
+Defined in: [modules/bitview-client/index.js:669](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L669)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:654](https://github.com/bitcoinrese
 
 > **avgHashrate**: `number`
 
-Defined in: [modules/bitview-client/index.js:656](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L656)
+Defined in: [modules/bitview-client/index.js:671](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L671)
 
 Average hashrate (H/s)
 
@@ -24,6 +24,6 @@ Average hashrate (H/s)
 
 > **timestamp**: `number`
 
-Defined in: [modules/bitview-client/index.js:655](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L655)
+Defined in: [modules/bitview-client/index.js:670](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L670)
 
 End of the day the hashrate covers (Unix timestamp), as mempool.space stamps it

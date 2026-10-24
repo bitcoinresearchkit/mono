@@ -8,7 +8,7 @@
 
 > **Feature** = `object`
 
-Defined in: [modules/bitview-client/index.js:6842](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6842)
+Defined in: [modules/bitview-client/index.js:6864](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6864)
 
 ## Type Parameters
 

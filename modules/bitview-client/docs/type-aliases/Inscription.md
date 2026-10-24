@@ -8,7 +8,7 @@
 
 > **Inscription** = `object`
 
-Defined in: [modules/bitview-client/index.js:4511](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4511)
+Defined in: [modules/bitview-client/index.js:4533](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4533)
 
 ## Type Parameters
 

@@ -6,7 +6,7 @@
 
 # Interface: BlockInfoV1
 
-Defined in: [modules/bitview-client/index.js:217](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L217)
+Defined in: [modules/bitview-client/index.js:232](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L232)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:217](https://github.com/bitcoinrese
 
 > **bits**: `number`
 
-Defined in: [modules/bitview-client/index.js:222](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L222)
+Defined in: [modules/bitview-client/index.js:237](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L237)
 
 Compact target (bits)
 
@@ -24,7 +24,7 @@ Compact target (bits)
 
 > **difficulty**: `number`
 
-Defined in: [modules/bitview-client/index.js:224](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L224)
+Defined in: [modules/bitview-client/index.js:239](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L239)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: [modules/bitview-client/index.js:224](https://github.com/bitcoinrese
 
 > **extras**: [`BlockExtras`](BlockExtras.md)
 
-Defined in: [modules/bitview-client/index.js:232](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L232)
+Defined in: [modules/bitview-client/index.js:247](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L247)
 
 ***
 
@@ -40,7 +40,7 @@ Defined in: [modules/bitview-client/index.js:232](https://github.com/bitcoinrese
 
 > **height**: `number`
 
-Defined in: [modules/bitview-client/index.js:219](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L219)
+Defined in: [modules/bitview-client/index.js:234](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L234)
 
 ***
 
@@ -48,7 +48,7 @@ Defined in: [modules/bitview-client/index.js:219](https://github.com/bitcoinrese
 
 > **id**: `string`
 
-Defined in: [modules/bitview-client/index.js:218](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L218)
+Defined in: [modules/bitview-client/index.js:233](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L233)
 
 Block hash
 
@@ -58,7 +58,7 @@ Block hash
 
 > **mediantime**: `number`
 
-Defined in: [modules/bitview-client/index.js:230](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L230)
+Defined in: [modules/bitview-client/index.js:245](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L245)
 
 Median time of the last 11 blocks
 
@@ -68,7 +68,7 @@ Median time of the last 11 blocks
 
 > **merkleRoot**: `string`
 
-Defined in: [modules/bitview-client/index.js:225](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L225)
+Defined in: [modules/bitview-client/index.js:240](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L240)
 
 ***
 
@@ -76,7 +76,7 @@ Defined in: [modules/bitview-client/index.js:225](https://github.com/bitcoinrese
 
 > **nonce**: `number`
 
-Defined in: [modules/bitview-client/index.js:223](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L223)
+Defined in: [modules/bitview-client/index.js:238](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L238)
 
 ***
 
@@ -84,7 +84,7 @@ Defined in: [modules/bitview-client/index.js:223](https://github.com/bitcoinrese
 
 > `optional` **previousblockhash?**: `string` \| `null`
 
-Defined in: [modules/bitview-client/index.js:229](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L229)
+Defined in: [modules/bitview-client/index.js:244](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L244)
 
 Hash of the previous block (null for the genesis block)
 
@@ -94,7 +94,7 @@ Hash of the previous block (null for the genesis block)
 
 > **size**: `number`
 
-Defined in: [modules/bitview-client/index.js:227](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L227)
+Defined in: [modules/bitview-client/index.js:242](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L242)
 
 Block size in bytes
 
@@ -104,7 +104,7 @@ Block size in bytes
 
 > `optional` **stale?**: `boolean`
 
-Defined in: [modules/bitview-client/index.js:231](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L231)
+Defined in: [modules/bitview-client/index.js:246](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L246)
 
 Whether this block has been replaced by a longer chain
 
@@ -114,7 +114,7 @@ Whether this block has been replaced by a longer chain
 
 > **timestamp**: `number`
 
-Defined in: [modules/bitview-client/index.js:221](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L221)
+Defined in: [modules/bitview-client/index.js:236](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L236)
 
 Block timestamp (Unix time)
 
@@ -124,7 +124,7 @@ Block timestamp (Unix time)
 
 > **txCount**: `number`
 
-Defined in: [modules/bitview-client/index.js:226](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L226)
+Defined in: [modules/bitview-client/index.js:241](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L241)
 
 ***
 
@@ -132,7 +132,7 @@ Defined in: [modules/bitview-client/index.js:226](https://github.com/bitcoinrese
 
 > **version**: `number`
 
-Defined in: [modules/bitview-client/index.js:220](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L220)
+Defined in: [modules/bitview-client/index.js:235](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L235)
 
 ***
 
@@ -140,6 +140,6 @@ Defined in: [modules/bitview-client/index.js:220](https://github.com/bitcoinrese
 
 > **weight**: `number`
 
-Defined in: [modules/bitview-client/index.js:228](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L228)
+Defined in: [modules/bitview-client/index.js:243](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L243)
 
 Block weight in weight units

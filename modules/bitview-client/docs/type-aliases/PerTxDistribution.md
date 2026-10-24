@@ -8,7 +8,7 @@
 
 > **PerTxDistribution**\<`A`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:3753](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3753)
+Defined in: [modules/bitview-client/index.js:3775](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3775)
 
 ## Type Parameters
 

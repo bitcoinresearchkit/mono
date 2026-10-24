@@ -6,7 +6,7 @@
 
 # Interface: TxIn
 
-Defined in: [modules/bitview-client/index.js:1324](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1324)
+Defined in: [modules/bitview-client/index.js:1346](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1346)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1324](https://github.com/bitcoinres
 
 > `optional` **innerRedeemscriptAsm?**: `string`
 
-Defined in: [modules/bitview-client/index.js:1333](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1333)
+Defined in: [modules/bitview-client/index.js:1355](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1355)
 
 Inner redeemscript in assembly (P2SH inputs)
 
@@ -24,7 +24,7 @@ Inner redeemscript in assembly (P2SH inputs)
 
 > `optional` **innerWitnessscriptAsm?**: `string`
 
-Defined in: [modules/bitview-client/index.js:1334](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1334)
+Defined in: [modules/bitview-client/index.js:1356](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1356)
 
 Inner witnessscript in assembly (P2WSH and P2SH-P2WSH: the witness script; P2TR script path: the leaf script)
 
@@ -34,7 +34,7 @@ Inner witnessscript in assembly (P2WSH and P2SH-P2WSH: the witness script; P2TR 
 
 > **isCoinbase**: `boolean`
 
-Defined in: [modules/bitview-client/index.js:1331](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1331)
+Defined in: [modules/bitview-client/index.js:1353](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1353)
 
 ***
 
@@ -42,7 +42,7 @@ Defined in: [modules/bitview-client/index.js:1331](https://github.com/bitcoinres
 
 > **prevout**: [`TxOut`](TxOut.md) \| `null`
 
-Defined in: [modules/bitview-client/index.js:1327](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1327)
+Defined in: [modules/bitview-client/index.js:1349](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1349)
 
 The output being spent
 
@@ -52,7 +52,7 @@ The output being spent
 
 > **scriptsig**: `string`
 
-Defined in: [modules/bitview-client/index.js:1328](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1328)
+Defined in: [modules/bitview-client/index.js:1350](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1350)
 
 Signature script in hex (empty for native SegWit inputs)
 
@@ -62,7 +62,7 @@ Signature script in hex (empty for native SegWit inputs)
 
 > **scriptsigAsm**: `string`
 
-Defined in: [modules/bitview-client/index.js:1329](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1329)
+Defined in: [modules/bitview-client/index.js:1351](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1351)
 
 Signature script in assembly format
 
@@ -72,7 +72,7 @@ Signature script in assembly format
 
 > **sequence**: `number`
 
-Defined in: [modules/bitview-client/index.js:1332](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1332)
+Defined in: [modules/bitview-client/index.js:1354](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1354)
 
 ***
 
@@ -80,7 +80,7 @@ Defined in: [modules/bitview-client/index.js:1332](https://github.com/bitcoinres
 
 > **txid**: `string`
 
-Defined in: [modules/bitview-client/index.js:1325](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1325)
+Defined in: [modules/bitview-client/index.js:1347](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1347)
 
 Transaction ID of the output being spent
 
@@ -90,7 +90,7 @@ Transaction ID of the output being spent
 
 > **vout**: `number`
 
-Defined in: [modules/bitview-client/index.js:1326](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1326)
+Defined in: [modules/bitview-client/index.js:1348](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1348)
 
 Output index being spent (coinbase: 4294967295)
 
@@ -100,6 +100,6 @@ Output index being spent (coinbase: 4294967295)
 
 > `optional` **witness?**: `string`[]
 
-Defined in: [modules/bitview-client/index.js:1330](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1330)
+Defined in: [modules/bitview-client/index.js:1352](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1352)
 
 Witness data (stack items, present for SegWit inputs; hex-encoded on the wire)

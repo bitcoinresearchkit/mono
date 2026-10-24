@@ -26,6 +26,7 @@
 - [BlockCountParam](interfaces/BlockCountParam.md)
 - [BlockExtras](interfaces/BlockExtras.md)
 - [BlockFeeRatesEntry](interfaces/BlockFeeRatesEntry.md)
+- [BlockFeeRatesPreciseEntry](interfaces/BlockFeeRatesPreciseEntry.md)
 - [BlockFeesEntry](interfaces/BlockFeesEntry.md)
 - [BlockHashParam](interfaces/BlockHashParam.md)
 - [BlockHashStartIndex](interfaces/BlockHashStartIndex.md)

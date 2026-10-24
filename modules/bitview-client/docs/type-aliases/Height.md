@@ -8,6 +8,6 @@
 
 > **Height** = `number`
 
-Defined in: [modules/bitview-client/index.js:689](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L689)
+Defined in: [modules/bitview-client/index.js:704](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L704)
 
 ## Type Parameters

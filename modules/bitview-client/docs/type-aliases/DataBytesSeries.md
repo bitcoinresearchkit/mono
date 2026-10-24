@@ -8,7 +8,7 @@
 
 > **DataBytesSeries** = `object`
 
-Defined in: [modules/bitview-client/index.js:4494](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4494)
+Defined in: [modules/bitview-client/index.js:4516](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4516)
 
 ## Type Parameters
 

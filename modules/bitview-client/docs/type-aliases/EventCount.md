@@ -8,7 +8,7 @@
 
 > **EventCount**\<`A`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:5573](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5573)
+Defined in: [modules/bitview-client/index.js:5595](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5595)
 
 ## Type Parameters
 

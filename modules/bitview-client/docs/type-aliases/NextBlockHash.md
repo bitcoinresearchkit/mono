@@ -8,6 +8,6 @@
 
 > **NextBlockHash** = `string`
 
-Defined in: [modules/bitview-client/index.js:847](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L847)
+Defined in: [modules/bitview-client/index.js:862](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L862)
 
 ## Type Parameters

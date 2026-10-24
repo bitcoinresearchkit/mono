@@ -8,7 +8,7 @@
 
 > **OpReturnWindows** = `object`
 
-Defined in: [modules/bitview-client/index.js:4030](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4030)
+Defined in: [modules/bitview-client/index.js:4052](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4052)
 
 ## Type Parameters
 

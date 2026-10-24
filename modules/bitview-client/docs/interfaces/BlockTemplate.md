@@ -6,7 +6,7 @@
 
 # Interface: BlockTemplate
 
-Defined in: [modules/bitview-client/index.js:292](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L292)
+Defined in: [modules/bitview-client/index.js:307](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L307)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:292](https://github.com/bitcoinrese
 
 > **hash**: `string`
 
-Defined in: [modules/bitview-client/index.js:293](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L293)
+Defined in: [modules/bitview-client/index.js:308](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L308)
 
 Pass to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
 
@@ -24,7 +24,7 @@ Pass to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
 
 > **stats**: [`MempoolBlock`](MempoolBlock.md)
 
-Defined in: [modules/bitview-client/index.js:294](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L294)
+Defined in: [modules/bitview-client/index.js:309](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L309)
 
 ***
 
@@ -32,6 +32,6 @@ Defined in: [modules/bitview-client/index.js:294](https://github.com/bitcoinrese
 
 > **transactions**: [`Transaction`](Transaction.md)[]
 
-Defined in: [modules/bitview-client/index.js:295](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L295)
+Defined in: [modules/bitview-client/index.js:310](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L310)
 
 Full transaction bodies in `getblocktemplate` order.

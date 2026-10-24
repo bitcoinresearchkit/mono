@@ -8,7 +8,7 @@
 
 > **Windows**\<`A`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:4256](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4256)
+Defined in: [modules/bitview-client/index.js:4278](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4278)
 
 ## Type Parameters
 

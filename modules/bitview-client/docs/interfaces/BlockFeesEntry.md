@@ -6,7 +6,7 @@
 
 # Interface: BlockFeesEntry
 
-Defined in: [modules/bitview-client/index.js:170](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L170)
+Defined in: [modules/bitview-client/index.js:185](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L185)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:170](https://github.com/bitcoinrese
 
 > **avgFees**: `number`
 
-Defined in: [modules/bitview-client/index.js:173](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L173)
+Defined in: [modules/bitview-client/index.js:188](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L188)
 
 Mean fees per block in this bucket, rounded half up (sats)
 
@@ -24,7 +24,7 @@ Mean fees per block in this bucket, rounded half up (sats)
 
 > **avgHeight**: `number`
 
-Defined in: [modules/bitview-client/index.js:171](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L171)
+Defined in: [modules/bitview-client/index.js:186](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L186)
 
 Average block height in this bucket
 
@@ -34,7 +34,7 @@ Average block height in this bucket
 
 > **timestamp**: `number`
 
-Defined in: [modules/bitview-client/index.js:172](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L172)
+Defined in: [modules/bitview-client/index.js:187](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L187)
 
 Average block timestamp in this bucket
 
@@ -44,6 +44,6 @@ Average block timestamp in this bucket
 
 > **USD**: `number`
 
-Defined in: [modules/bitview-client/index.js:174](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L174)
+Defined in: [modules/bitview-client/index.js:189](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L189)
 
 Mean BTC/USD spot price over the bucket's blocks (the price, not the fees in USD)

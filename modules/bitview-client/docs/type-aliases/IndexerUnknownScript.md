@@ -8,7 +8,7 @@
 
 > **IndexerUnknownScript** = `object`
 
-Defined in: [modules/bitview-client/index.js:6527](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6527)
+Defined in: [modules/bitview-client/index.js:6549](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6549)
 
 ## Type Parameters
 

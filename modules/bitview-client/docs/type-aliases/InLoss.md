@@ -8,7 +8,7 @@
 
 > **InLoss** = `object`
 
-Defined in: [modules/bitview-client/index.js:3188](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3188)
+Defined in: [modules/bitview-client/index.js:3210](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3210)
 
 ## Type Parameters
 

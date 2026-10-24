@@ -8,7 +8,7 @@
 
 > **ByHalvingEpoch** = `object`
 
-Defined in: [modules/bitview-client/index.js:5152](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5152)
+Defined in: [modules/bitview-client/index.js:5174](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5174)
 
 ## Type Parameters
 

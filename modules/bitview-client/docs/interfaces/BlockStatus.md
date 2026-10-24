@@ -6,7 +6,7 @@
 
 # Interface: BlockStatus
 
-Defined in: [modules/bitview-client/index.js:282](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L282)
+Defined in: [modules/bitview-client/index.js:297](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L297)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:282](https://github.com/bitcoinrese
 
 > `optional` **height?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:284](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L284)
+Defined in: [modules/bitview-client/index.js:299](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L299)
 
 Block height (null unless in the best chain)
 
@@ -24,7 +24,7 @@ Block height (null unless in the best chain)
 
 > **inBestChain**: `boolean`
 
-Defined in: [modules/bitview-client/index.js:283](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L283)
+Defined in: [modules/bitview-client/index.js:298](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L298)
 
 ***
 
@@ -32,6 +32,6 @@ Defined in: [modules/bitview-client/index.js:283](https://github.com/bitcoinrese
 
 > `optional` **nextBest?**: `string` \| `null`
 
-Defined in: [modules/bitview-client/index.js:285](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L285)
+Defined in: [modules/bitview-client/index.js:300](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L300)
 
 Hash of the next block in the best chain (null if tip)

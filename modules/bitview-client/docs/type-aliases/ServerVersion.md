@@ -8,6 +8,6 @@
 
 > **ServerVersion** = `string`
 
-Defined in: [modules/bitview-client/index.js:1270](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1270)
+Defined in: [modules/bitview-client/index.js:1292](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1292)
 
 ## Type Parameters

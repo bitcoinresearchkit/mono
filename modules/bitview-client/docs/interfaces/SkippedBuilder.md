@@ -6,7 +6,7 @@
 
 # Interface: SkippedBuilder\<T\>
 
-Defined in: [modules/bitview-client/index.js:1887](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1887)
+Defined in: [modules/bitview-client/index.js:1909](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1909)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [modules/bitview-client/index.js:1887](https://github.com/bitcoinres
 
 > **fetch**: (`arg?`, `options?`) => `Promise`\<[`SeriesData`](../type-aliases/SeriesData.md)\<`T`\>\>
 
-Defined in: [modules/bitview-client/index.js:1889](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1889)
+Defined in: [modules/bitview-client/index.js:1911](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1911)
 
 Fetch from skipped position to end
 
@@ -44,7 +44,7 @@ Fetch from skipped position to end
 
 > **fetchCsv**: (`options?`) => `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:1890](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1890)
+Defined in: [modules/bitview-client/index.js:1912](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1912)
 
 #### Parameters
 
@@ -62,7 +62,7 @@ Defined in: [modules/bitview-client/index.js:1890](https://github.com/bitcoinres
 
 > **take**: (`n`) => [`RangeBuilder`](RangeBuilder.md)\<`T`\>
 
-Defined in: [modules/bitview-client/index.js:1888](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1888)
+Defined in: [modules/bitview-client/index.js:1910](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1910)
 
 Take n items after skipped position
 
@@ -82,7 +82,7 @@ Take n items after skipped position
 
 > **then**: \<`TResult1`, `TResult2`\>(`onfulfilled?`, `onrejected?`) => `PromiseLike`\<`TResult1` \| `TResult2`\>
 
-Defined in: [modules/bitview-client/index.js:1891](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1891)
+Defined in: [modules/bitview-client/index.js:1913](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1913)
 
 Attaches callbacks for the resolution and/or rejection of the Promise.
 
