@@ -1,7 +1,7 @@
-use std::{fmt, mem};
+use std::{borrow::Cow, fmt, mem};
 
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 #[cfg(feature = "storage")]
 use vecdb::{Bytes, Error, Formattable, Result};
@@ -23,7 +23,6 @@ macro_rules! pool_slugs {
             Ord,
             Hash,
             Serialize,
-            Deserialize,
             JsonSchema,
         )]
         #[repr(u8)]
@@ -39,10 +38,21 @@ macro_rules! pool_slugs {
             }
         }
 
+        /// A slug this build doesn't know reads as `Unknown`, so a client older than the server
+        /// still decodes the responses naming a newer pool.
+        impl<'de> Deserialize<'de> for PoolSlug {
+            fn deserialize<D: Deserializer<'de>>(
+                deserializer: D,
+            ) -> std::result::Result<Self, D::Error> {
+                let slug = Cow::<'de, str>::deserialize(deserializer)?;
+                Ok(slug.parse().unwrap_or(Self::Unknown))
+            }
+        }
+
         impl std::str::FromStr for PoolSlug {
             type Err = ();
 
-            /// The pool written `slug`, as serde reads it.
+            /// The pool written `slug`; an unknown slug is an error (serde reads it as `Unknown`).
             fn from_str(slug: &str) -> std::result::Result<Self, ()> {
                 match slug {
                     $($slug => Ok(Self::$variant),)*

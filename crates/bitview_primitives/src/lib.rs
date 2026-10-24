@@ -57,6 +57,8 @@ mod vec_index;
 mod week1;
 mod year1;
 mod year10;
+#[cfg(test)]
+mod tests;
 
 pub use addr_hash::*;
 pub use addr_index_outpoint::*;

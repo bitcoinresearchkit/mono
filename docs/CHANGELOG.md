@@ -699,6 +699,9 @@ has to be deleted by hand.
 
 #### `bitview-client` (JS), `bitview_client` (Python and Rust)
 
+- The Rust client reads a pool slug it doesn't know as `unknown` (`PoolSlug::Unknown`), so a server listing a newer
+  pool no longer fails its whole response (pool stats and rankings, block extras, the `block_pool` series). Request
+  paths still refuse an unknown slug (404 `unknown_pool`)
 - The JavaScript client's default timeout is 30 s like Python's and Rust's (was 5 s, which also cut downloads such
   as the 9.3 MB projected block short on slow connections, since the server's 5 s limit only covers producing a
   response)
