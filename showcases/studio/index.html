@@ -2480,6 +2480,22 @@
         }
       }
 
+      /* The view linked, at the foot's end: a field as the interval and the ranges are, outlined at all times; on, filled. */
+      #link-view {
+        background: var(--field);
+        box-shadow: inset 0 0 0 1px var(--line);
+
+        &:hover:where(.can-hover *):not(:disabled) {
+          box-shadow: inset 0 0 0 1px var(--faint);
+        }
+
+        &[aria-pressed="true"]:not(:disabled) {
+          color: var(--ink);
+          background: var(--press);
+          box-shadow: inset 0 0 0 1px var(--faint);
+        }
+      }
+
       /* One width for every interval, so the ranges beside it never shift. */
       /* The interval, a field to pick from: its clock says it's one (beside the ranges, "3M" or "1Y" isn't one of them). */
       /* (One width a kind: the ranges beside it never shift; Auto's, its widest ("Auto 12h"), as it follows the zoom.) */
@@ -9546,6 +9562,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 <div class="navigator-clip"><canvas id="overview" aria-hidden="true"></canvas></div>
                 <div id="brush" class="brush"></div>
               </div>
+              <button id="link-view" class="cap" type="button" aria-pressed="false" aria-label="Same dates on every chart" data-tip="Same dates on every chart" data-kbd="V" data-action="link-view" data-icon="chain"></button>
             </footer>
           </section>
 
@@ -9751,6 +9768,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <dl>
             <div><dt>3 months, a year, 4 years, 8 years, Max</dt><dd><kbd>1</kbd>–<kbd>5</kbd></dd></div>
             <div><dt>Go to a date</dt><dd><kbd>G</kbd></dd></div>
+            <div><dt>Same dates on every chart, or each its own</dt><dd><kbd>V</kbd></dd></div>
             <div><dt>Previous or next interval</dt><dd><kbd>[</kbd><kbd>]</kbd></dd></div>
             <div><dt>Zoom out or in</dt><dd><kbd>−</kbd><kbd>+</kbd></dd></div>
             <div><dt>Log or linear scale</dt><dd><kbd>L</kbd></dd></div>
@@ -10019,6 +10037,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         close: svg('<path d="m4 4 8 8M12 4l-8 8"/>', 14),
         copy: svg('<rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5V3a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h.5"/>', 14),
         duplicate: svg('<rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 3.5V3a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h.5M9.5 7.5v4M7.5 9.5h4"/>', 14),
+        chain: svg('<path d="M6.6 9.4 9.4 6.6"/><path d="M7.3 4.6 8.4 3.5a2.65 2.65 0 0 1 3.75 3.75L11 8.4"/><path d="M8.7 11.4 7.6 12.5a2.65 2.65 0 0 1-3.75-3.75L5 7.6"/>', 14),
         link: svg('<path d="M9.5 2.5h4v4M13.5 2.5 7.5 8.5M12 9.5v3a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3"/>', 14),
         trash: svg('<path d="M2.5 4.5h11M6 4.5V3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v1.5M4 4.5l.7 8.6a1 1 0 0 0 1 .9h4.6a1 1 0 0 0 1-.9l.7-8.6"/>', 14),
         folder: svg('<path d="M1.5 4a1 1 0 0 1 1-1h3.6l1.6 1.6h5.8a1 1 0 0 1 1 1V12a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1Z"/>', 15),
@@ -12262,6 +12281,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           groupsClosed: /** @type {Group[]} */ (Array.isArray(stored.groupsClosed) ? GROUPS.filter((group) => stored.groupsClosed.includes(group)) : []),
           /** Single-key shortcuts (a letter, a digit, a sign alone): on unless turned off. */
           keys: stored.keys !== false,
+          /** The view linked: every chart on the same dates, in every tab (see linkView); off unless turned on. */
+          linkView: stored.linkView === true,
           theme: /** @type {"system" | "light" | "dark"} */ (["system", "light", "dark"].includes(stored.theme) ? stored.theme : "dark"),
           belt: { on: stored.belt?.on === true, dock: ["top", "bottom", "left", "right"].includes(stored.belt?.dock) ? stored.belt.dock : "bottom", at: Number.isFinite(stored.belt?.at) ? clamp(stored.belt.at, 0, 1) : 0.5 },
           pen: /** @type {{ color: string, width: number, dash: number, opacity?: number, start?: End, end?: End, size: number, back?: string }} */ ({ ...lookOfDrawing("trend", stored.pen), size: Number.isFinite(stored.pen?.size) ? presetSize(stored.pen.size) : TEXT_SIZE }),
@@ -12748,7 +12769,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (storage.set(VIEWS, all) || (storage.drop(PREVIEWS, THUMBS), storage.set(VIEWS, all))) (viewsBase = { ...all }), (viewsUnkept = false);
         else if (!viewsUnkept) (viewsUnkept = true), notice("Where charts were left isn't kept: storage full or blocked");
       };
-      addEventListener("storage", (event) => event.key === VIEWS && (viewsLeft = null));
+      addEventListener("storage", (event) => event.key === VIEWS && ((viewsLeft = null), followLinked()));
       // (Back from the browser's history, others' writes since unheard: read again.)
       addEventListener("pageshow", (event) => event.persisted && (viewsLeft = null));
       const isEdge = (edge) => Array.isArray(edge) && edge.length === 2 && edge.every(Number.isFinite) && Math.abs(edge[0]) < 1e11;
@@ -12772,6 +12793,31 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Its time kept aside: the view alone, as a link or a picture's key takes it.)
         return isView(left) ? (({ at, ...view }) => view)(left) : null;
       }
+      /** Where the linked view is kept, among the charts' own (no chart's id). */
+      const LINKED = "*";
+      /** A chart's span of chunks at an interval, by the view it's made for: its own, or the linked one's (never mixed). */
+      const spanKey = (/** @type {string} */ id, /** @type {string} */ index, linked = viewKey(id) === LINKED) => `${id}@${index}${linked ? "@linked" : ""}`;
+      /**
+       * Where the open chart was last in line with the linked view (opened on it, following it, or saying it), by its edges'
+       * dates (as kept: chunks loaded before it move its points, not them): it says the linked view again only once it's
+       * moved from there (see storeView), never what it showed meanwhile (a chart at minutes or hours left where it was, a
+       * window it shows wider). @type {any}
+       */
+      let linkedAt = null;
+      /** Two views at the same dates: their edges where they fall in time (however each is written), within a hundredth of a bar. @param {any} a @param {any} b */
+      const sameEdges = (a, b) => Boolean(a && b && a.index === b.index) && ((x, y, bar) => Math.abs(x.start - y.start) < bar && Math.abs(x.end - y.end) < bar)(viewTimes(a), viewTimes(b), (INTERVAL_DAYS[a.index] * 86400) / 100);
+      /** The open chart's span moved to where it's kept now (its view the same through a link's change, see linkView): one span, one key. */
+      function carrySpan() {
+        if (!chart) return;
+        const from = spanKey(chart.id, chart.index, !prefs.linkView), span = spans.get(from);
+        if (!span) return;
+        spans.delete(from);
+        spans.set(spanKey(chart.id, chart.index), span);
+      }
+      /** Where a chart's view is kept: its own, but the open chart's every chart's while the view is linked (see linkView). */
+      const viewKey = (/** @type {string} */ id) => (prefs.linkView && id === chart?.id ? LINKED : id);
+      /** The view a chart opens on (see viewKey). */
+      const openView = (/** @type {string} */ id) => leftView(viewKey(id));
       /** An edge of the view as the time of the point nearest it, and how many bars it lies from that point. */
       function edgeOf(logical, times) {
         const i = clamp(Math.round(logical), 0, times.length - 1);
@@ -12867,6 +12913,44 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         return { start: at(left.from), end: at(left.to) };
       }
+      /**
+       * The view linked or not: on, every chart opens on the same dates, and moving the view (a pan, a zoom, a range, the
+       * navigator) moves it for all, in other tabs too as it rests; only the dates (each its own interval). It starts as
+       * the open chart shows. Off, the open chart stays where it is (its own now), the others on their own.
+       */
+      function linkView(/** @type {boolean} */ on) {
+        if (on === prefs.linkView) return;
+        prefs.linkView = on;
+        savePrefs();
+        carrySpan();
+        // (Kept where it is now: as every chart's, or, off, as its own.)
+        linkedAt = null;
+        storeView(false);
+        renderLinkView();
+        toast(on ? "Every chart shows these dates, in every tab" : "Each chart keeps its own view");
+      }
+      function renderLinkView() {
+        $("link-view").setAttribute("aria-pressed", String(prefs.linkView));
+      }
+      /**
+       * The linked view moved elsewhere (another tab): the open chart there too, unless it's there already, a move under
+       * way stopped, and not said back while it stays where it was put (see storeView). A chart at minutes or hours, its
+       * chunks loaded for the stretch it shows, takes the linked dates as it's opened, not as they move (its chunks would
+       * have to load first: left out, said plainly).
+       */
+      function followLinked() {
+        const left = prefs.linkView ? leftView(LINKED) : null, times = resolved?.times, now = view.timeScale().getVisibleLogicalRange();
+        if (!left || !chart || drawnChart !== chart.id || !times?.length || !now) return;
+        // (One at minutes or hours stays where it is: in line as it is, not said back.)
+        if (FINE.has(chart.index)) return void (linkedAt = viewRecord(now, times));
+        const to = within(viewOn(left, chart.index, times), "to");
+        if (Math.abs(to.from - now.from) < 0.01 && Math.abs(to.to - now.to) < 0.01) return;
+        stopGlide();
+        setPresetShown(false);
+        view.timeScale().setVisibleLogicalRange(to);
+        view.bvFlush();
+        linkedAt = viewRecord(view.timeScale().getVisibleLogicalRange() ?? to, times);
+      }
       let viewTimer = 0;
       /** Keeps where the open chart is, a moment after it stops moving. */
       function keepView() {
@@ -12882,16 +12966,30 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * then only `asDrawn`, by the switch's draw as it lands, so the view moved meanwhile is the one it shows.
        * @param {boolean} asDrawn
        */
+      /**
+       * A view as it's kept, from a range on the points `times`: its edges each the point nearest it and the bars from it,
+       * at the latest its bars from the last (at the latest only where its data is: a fine interval's chunks loaded may
+       * end in the past). @param {{ from: number, to: number }} range @param {number[]} times
+       */
+      const viewRecord = (range, times) => ({ index: drawnIndex, from: edgeOf(range.from, times), to: edgeOf(range.to, times), ...(range.to > times.length - 1.5 && drawnLive ? { latest: [range.from - (times.length - 1), range.to - (times.length - 1)] } : {}) });
+      /** The open chart's view as it shows (none while it shows its range, the range said instead), as a link carries it. */
+      function shownView() {
+        const range = view.timeScale().getVisibleLogicalRange(), times = resolved?.times;
+        return chart && drawnChart === chart.id && range && times?.length && !presetShown ? viewRecord(range, times) : null;
+      }
       function storeView(asDrawn) {
         clearTimeout(viewTimer);
         const times = resolved?.times;
         if (!chart || drawnChart !== chart.id || (!asDrawn && drawnIndex !== chart.index) || !times?.length || !view.timeScale().width()) return;
         // (By the switch's draw, mid-glide (a zoom asked for meanwhile), where it's going: the draw ends the glide.)
         const range = (asDrawn && glideTarget) || view.timeScale().getVisibleLogicalRange();
-        const all = viewsNow();
-        if (presetShown || !range) delete all[chart.id];
-        // (At the latest only where its data is: a fine interval's chunks loaded may end in the past.)
-        else all[chart.id] = { index: drawnIndex, from: edgeOf(range.from, times), to: edgeOf(range.to, times), ...(range.to > times.length - 1.5 && drawnLive ? { latest: [range.from - (times.length - 1), range.to - (times.length - 1)] } : {}), at: Date.now() };
+        // (Linked, every chart's, a range's too: the one each opens on; said only once it's moved since it was in line with
+        // it (see linkedAt).)
+        const all = viewsNow(), key = viewKey(chart.id), shown = range ? viewRecord(range, times) : null;
+        if (key === LINKED && sameEdges(shown, linkedAt)) return;
+        if (key === LINKED) linkedAt = shown;
+        if ((presetShown && !prefs.linkView) || !shown) delete all[key];
+        else all[key] = { ...shown, at: Date.now() };
         putViews(all);
       }
       onLeave(saveView);
@@ -12924,6 +13022,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         brokenLink = "";
         const previous = chart;
         chart = doc;
+        linkedAt = null;
         // (A preset left as it was: nothing of it kept; a chart New chart made, left as it came, the same.)
         if (previous?.preset !== undefined && previous !== doc) prunePresets(doc);
         if (previous && previous !== doc && emptyYours(previous) && library.charts.includes(previous)) dropEmpty(previous);
@@ -13567,7 +13666,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * interval, within its span. Made for a pass over a cache (its series found once).
        */
       function holder() {
-        const names = new Set(chart ? seriesIn(chart) : []), span = chart ? spans.get(`${chart.id}@${chart.index}`) : undefined;
+        const names = new Set(chart ? seriesIn(chart) : []), span = chart ? spans.get(spanKey(chart.id, chart.index)) : undefined;
         return (/** @type {string} */ key) => {
           const [name, rest = ""] = key.split("@"), [index, k] = rest.split("#");
           if (!chart || index !== chart.index || !names.has(name)) return false;
@@ -13686,11 +13785,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function spanOf(doc) {
         if (!FINE.has(doc.index)) return null;
-        const key = `${doc.id}@${doc.index}`, latest = latestChunk(doc.index);
+        const key = spanKey(doc.id, doc.index), latest = latestChunk(doc.index);
         let span = spans.get(key);
         if (!span) {
           // (A view kept at another interval: its stretch of time, of which the chart shows the end: what that needs.)
-          const left = leftView(doc.id);
+          const left = openView(doc.id);
           if (left) {
             const { start, end } = viewTimes(left), most = left.index === doc.index ? MOST_CHUNKS : FIRST_CHUNKS;
             // (Left at the latest: the latest chunks, from its start as late as the time come since its end.)
@@ -14717,7 +14816,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // memory's budget let them go). Opening on its preset instead (an interval switch, a view left at another
         // interval or none), the preset's span is made again. The runs joined go (made again from their chunks).
         if (drawnChart !== doc.id || drawnIndex !== doc.index) {
-          if (drawnChart === doc.id || leftView(doc.id)?.index !== doc.index) spans.delete(`${doc.id}@${doc.index}`);
+          if (drawnChart === doc.id || prefs.linkView || openView(doc.id)?.index !== doc.index) spans.delete(spanKey(doc.id, doc.index));
           spanned.clear();
         }
         // (Counted against the span it'll draw: see above.)
@@ -14744,7 +14843,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (At another interval, the view kept as it shows now, at the one before: moved while its data came, it's that one.
         // Only the switch's own, kept at the one before: none (a range asked for shows instead), or one kept at the new
         // interval (a date gone to), stays as it is.)
-        if (drawnChart === doc.id && drawnIndex !== doc.index && leftView(doc.id)?.index === drawnIndex) storeView(true);
+        if (drawnChart === doc.id && drawnIndex !== doc.index && openView(doc.id)?.index === drawnIndex) storeView(true);
         // (Nothing at all, bitview.space not answering: one word of it over the plot, not a red line per layer.)
         const unreached = result.failed.length > 0 && ![...result.results.values()].some((item) => item?.values);
         $("unreached").hidden = !unreached;
@@ -15203,8 +15302,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // showed one: it kept no view then). (Unless the view has since fallen off the data: an old one of a fine
         // interval, past its latest points.)
         fitSpacing(doc, data.times.length);
-        const left = drawnChart !== doc.id || drawnIndex !== doc.index ? leftView(doc.id) : null;
-        const back = left && data.times.length > 1 ? viewOn(left, doc.index, data.times) : null;
+        const left = drawnChart !== doc.id || drawnIndex !== doc.index ? openView(doc.id) : null;
+        // (A view at the latest from where its range starts, its room after the latest that range's (a quarter either way:
+        // that room is a width's, another tab's may be another): that range itself, as a range shows, at the latest as it
+        // comes.)
+        const onRange = Boolean(left?.latest && left.index === doc.index && data.times.length > 1) && ((preset, last, latest) => Math.abs(latest[0] - (preset.from - last)) < 1 && Math.abs(latest[1] - (preset.to - last)) <= Math.max(1, (preset.to - last) / 4))(presetWindow(doc, data), data.times.length - 1, /** @type {[number, number]} */ (left?.latest));
+        const back = left && !onRange && data.times.length > 1 ? viewOn(left, doc.index, data.times) : null;
         // (Shown, drawn, and shown again: its price scales laid out for it first, else for the view before it (the
         // library's own, on a first draw), and the change of their width held against it, see LWC patch 20.)
         if (back && back.to - back.from >= 1) {
@@ -15213,11 +15316,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           view.bvFlush();
           view.timeScale().setVisibleLogicalRange(target);
           setPresetShown(false);
-        } else if (!visible || presetShown) {
+          if (viewKey(doc.id) === LINKED) linkedAt = ((range) => range && viewRecord(range, data.times))(view.timeScale().getVisibleLogicalRange());
+        } else if (!visible || presetShown || onRange) {
           applyRange(doc, data);
           view.bvFlush();
           applyRange(doc, data);
           setPresetShown(true);
+          if (onRange) linkedAt = ((range) => range && viewRecord(range, data.times))(view.timeScale().getVisibleLogicalRange());
         }
         else if (shift && (glidingTo ?? logical)) {
           const range = /** @type {{ from: number, to: number }} */ (glidingTo ?? logical);
@@ -17004,7 +17109,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Only where the view is taken (not while a preset shows).
        */
       function prefetch() {
-        const span = FINE.has(chart.index) ? spans.get(`${chart.id}@${chart.index}`) : null, n = resolved?.times.length ?? 0;
+        const span = FINE.has(chart.index) ? spans.get(spanKey(chart.id, chart.index)) : null, n = resolved?.times.length ?? 0;
         const range = view.timeScale().getVisibleLogicalRange();
         if (!span || presetShown || !range || n < 2 || drawnChart !== chart.id || drawnIndex !== chart.index) return;
         const side = nearEnd(span, range, n);
@@ -17022,7 +17127,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * held), from memory once prefetched. Only where the view is taken (not while a preset shows, or a glide runs).
        */
       function reachOut() {
-        const span = FINE.has(chart.index) ? spans.get(`${chart.id}@${chart.index}`) : null, n = resolved?.times.length ?? 0;
+        const span = FINE.has(chart.index) ? spans.get(spanKey(chart.id, chart.index)) : null, n = resolved?.times.length ?? 0;
         const range = view.timeScale().getVisibleLogicalRange();
         if (!span || reaching || pressing || brushDrag || presetShown || glideTarget || !settled() || !range || n < 2 || Date.now() < (span.rest ?? 0)) return;
         const side = nearEnd(span, range, n), near = Math.max(CHUNK, (range.to - range.from) / 2);
@@ -17125,7 +17230,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** An Auto chart about to be drawn: at the interval its view as left asks for, else its range's (not one, then another). @param {Chart} doc */
       function autoPrepare(doc) {
         if (!doc.auto) return;
-        const left = leftView(doc.id), times = left ? viewTimes(left) : null;
+        const left = openView(doc.id), times = left ? viewTimes(left) : null;
         doc.index = autoPick(doc, times ? (times.end - times.start) / 86400 : rangeSpan(doc.range), view.timeScale().width() || $("chart").clientWidth);
       }
       /**
@@ -17155,7 +17260,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         saveView();
         const doc = { ...structuredClone(chart), index: next };
         // (A fine one's chunks, those this view needs; never the ones the chart holds now.)
-        if (FINE.has(next)) spans.delete(`${chart.id}@${next}`);
+        if (FINE.has(next)) spans.delete(spanKey(chart.id, next));
         // (One that failed isn't kept as failed: the switch asks again.)
         whenIdle(() => key === nearFor && void resolve(doc).then((data) => retryFailed(doc, data, next), () => {}));
       }
@@ -17286,11 +17391,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function autoSwitch(index, toRange = false) {
         if (toRange) {
           const all = viewsNow();
-          delete all[chart.id];
+          delete all[viewKey(chart.id)];
           putViews(all);
         } else saveView();
         // (A fine interval's chunks held from another visit, elsewhere: made anew for this view.)
-        spans.delete(`${chart.id}@${index}`);
+        spans.delete(spanKey(chart.id, index));
         autoFade = true;
         chart.index = index;
         save(false);
@@ -19994,7 +20099,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** @type {Map<string, Preview & { key: string }>} */
       const previews = new Map(Object.entries(storage.get(PREVIEWS, {})).filter(([, item]) => validPreview(item)));
       /** What a card depends on past a mini chart's: its layers' looks the mark leaves out, the view it was left at and how much the chart shows. @param {Chart} doc */
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName]), leftView(doc.id), FINE.has(doc.index) && !doc.auto ? Math.round(view.timeScale().width() / 50) : 0]);
+      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName]), openView(doc.id), FINE.has(doc.index) && !doc.auto ? Math.round(view.timeScale().width() / 50) : 0]);
       /**
        * How many bars a chart's preview shows at most (its data at `index`): its range's, as the chart opens on it (Max, at
        * a day or coarser, the whole history); finer, no more than fit the chart's width at four a pixel.
@@ -20035,7 +20140,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** @type {Preview} */
         const drawn = { seps: [], marks: [] };
         if (n < 2) return drawn;
-        const left = leftView(doc.id);
+        // (The view it opens on: its own; the open one's, linked, every chart's (as its chunks are, see spanOf).)
+        const left = openView(doc.id);
         // (Another chart's: the room any chart has after its latest point, not the open one's gutter.)
         const shown = left ? within(viewOn(left, doc.index, times, plainGap()), "to") : presetWindow(doc, data, most, 0, 0);
         const span = shown.to - shown.from;
@@ -22489,6 +22595,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (took.includes("sideWidth") || took.includes("panelWidth")) applyWidths();
         if (took.includes("belt") || took.includes("pen")) renderBelt();
         if (took.includes("keys")) renderSingleKeys();
+        // (Unlinked there: the chart here stays where it is, as its own.)
+        if (took.includes("linkView")) (carrySpan(), renderLinkView(), prefs.linkView ? followLinked() : storeView(false));
         if (took.includes("presetsOpen") || took.includes("groupsClosed")) renderCharts();
       });
       /** The themes, from their row: the one chosen ticked. */
@@ -22496,6 +22604,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         menuOf(anchor, THEMES.map(([id, name]) => ({ key: id, label: name, current: prefs.theme === id, run: () => setTheme(/** @type {"system" | "light" | "dark"} */ (id)) })));
       }
       renderTheme();
+      renderLinkView();
       /** The sidebar's rows under a folder's (yours, a section's), at any depth (those after it, deeper than it). */
       function rowsUnder(/** @type {HTMLElement} */ head) {
         // (A group's: all up to the next group's head.)
@@ -26861,9 +26970,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const want = doc.auto ? autoPick(doc, rangeSpan("max"), view.timeScale().width()) : doc.index;
           if (want === doc.index) return;
           const all = viewsNow();
-          all[doc.id] = { index: want, from: [starts[0], 0], to: [Date.now() / 1000, 0], at: Date.now() };
+          all[viewKey(doc.id)] = { index: want, from: [starts[0], 0], to: [Date.now() / 1000, 0], at: Date.now() };
           putViews(all);
-          spans.delete(`${doc.id}@${want}`);
+          spans.delete(spanKey(doc.id, want));
           (doc.index = want), (switched = true);
         });
         // (Else, once they're drawn, all of history in view, the first cycle from its start: the view moved there, not
@@ -27697,6 +27806,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(empty ? [] : [{ title: chart.halvings ? "Hide the halvings" : "Show the halvings", text: chart.halvings ? "The lines at each halving, off this chart." : "A line at each halving, and at the next three, estimated.", words: "halving halvings epoch cycle reward vertical lines markers", icon: "halvings", run: toggleHalvings }]),
           ...(empty ? [] : LEGENDS.map(([id, text, tip]) => ({ title: `Legend: ${text}`, text: `${tip}.`, words: `legend names values strip caption ${{ off: "hide none no", "": "on show follow" }[id]}`, icon: "legend", ...(id === (chart.legend ?? "") ? { current: true } : { run: () => setLegend(id) }) }))),
           ...(empty && !fullOn() ? [] : [{ title: fullOn() ? "Exit full screen" : "Full screen", text: "The chart alone, on the whole screen.", words: "fullscreen full screen focus maximize expand zen present", icon: fullOn() ? "shrink" : "expand", kbd: "⇧F", run: () => setFull() }]),
+          { title: prefs.linkView ? "Unlink the view" : "Link the view", text: prefs.linkView ? "Each chart back on its own view; this one stays as it is." : "Every chart on the same dates, in every tab: moving the view moves it for all.", words: "link sync lock same dates view range window period compare every all charts tabs", icon: "chain", kbd: "V", run: () => linkView(!prefs.linkView) },
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your Library and the presets, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
           { title: "Studio's version", text: `${studioVersion ? `v${studioVersion}` : "Not said yet"}: Studio comes with Bitview, at its version.`, words: "about version build release updated server bitview", icon: "recent", run: () => notice(studioVersion ? `Bitview Studio v${studioVersion}` : "The server hasn't said its version yet"), anywhere: true },
@@ -29626,9 +29736,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // one left there is: drawn once, there, its chunks the ones for it, its draw the latest.)
         if (want && (drawnChart !== chart.id || drawnIndex !== want)) {
           const all = viewsNow();
-          all[chart.id] = { index: want, from: [span.from, 0], to: [Math.min(span.to, Date.now() / 1000), 0], at: Date.now() };
+          all[viewKey(chart.id)] = { index: want, from: [span.from, 0], to: [Math.min(span.to, Date.now() / 1000), 0], at: Date.now() };
           putViews(all);
-          spans.delete(`${chart.id}@${want}`);
+          spans.delete(spanKey(chart.id, want));
           chart.index = want;
           save(false);
           return void refresh(true);
@@ -30958,7 +31068,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A chart as a file or a link carries it: its view too, where it isn't on its preset. @param {Chart} doc */
       function portable(doc) {
         if (doc === chart) saveView();
-        const kept = leftView(doc.id);
+        const kept = doc === chart ? shownView() : leftView(doc.id);
         return { v: 3, title: doc.title, index: doc.auto ? "auto" : doc.index, range: doc.range, ...(doc.halvings ? { halvings: true } : {}), ...(doc.legend ? { legend: doc.legend } : {}), panes: doc.panes, layers: doc.layers.map(({ from, ...layer }) => (from ? { ...layer, [layer.type]: from } : layer)), ...(doc.drawings?.length ? { drawings: doc.drawings } : {}), ...(kept ? { view: kept } : {}) };
       }
       /** The view a file or a link carried with a chart, kept for it (as `saveView` keeps one). @param {Chart} doc */
@@ -31005,7 +31115,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const plain = doc.panes.every((pane, i) => pane.mode === (i ? 0 : 1) && !pane.stack && !pane.reverse && pane.size === undefined);
         const ordered = doc.layers.every((layer, i) => layer.letter === letterAt(i));
         if (doc === chart) saveView();
-        const kept = leftView(doc.id);
+        const kept = doc === chart ? shownView() : leftView(doc.id);
         return {
           ...(doc.title ? { title: doc.title } : {}),
           // (Auto, said; a fixed one, but 1D, a link's default.)
@@ -32283,6 +32393,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (action === "charts") home ? goTo({ top: true }) : showHome(true, leftPlace);
         else if (action === "toggle-sidebar") toggleSidebar();
         else if (action === "toggle-panel") togglePanel();
+        else if (action === "link-view") linkView(!prefs.linkView);
         else if (action === "shortcuts") showShortcuts();
         else if (action === "theme") themeMenu(target);
         else if (action === "show-every") showEvery();
@@ -32537,6 +32648,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (event.key === "?") showShortcuts();
         else if (event.key === "\\" && !phone.matches) toggleSidebar();
         else if (key === "p") togglePanel();
+        else if (key === "v") linkView(!prefs.linkView);
         else if (event.key === "Escape") {
           // (On the Charts page, the chart under it, out of sight, is left as it is: its tool, measure, picks.)
           if (!home && $("menu").hidden && clearMeasure()) return;
@@ -32733,7 +32845,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       ]);
       /** The open chart's layers the live price moves: none on the grid, mid-draw, or with history alone loaded. */
       function liveLayers() {
-        if (home || !settled() || (FINE.has(chart.index) && !spans.get(`${chart.id}@${chart.index}`)?.live)) return [];
+        if (home || !settled() || (FINE.has(chart.index) && !spans.get(spanKey(chart.id, chart.index))?.live)) return [];
         return chart.layers.filter((layer) => LIVE.has(layer.series ?? "") && !layer.hidden && layer.type !== "histogram" && !chart.panes.find((pane) => pane.id === layer.pane)?.stack);
       }
       /** Vectors the live price has its own copies of (written in place from then on: a tick copies nothing). */
