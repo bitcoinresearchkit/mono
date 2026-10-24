@@ -6,7 +6,7 @@
 
 # Interface: LogsQuery
 
-Defined in: [modules/bitview-client/index.js:751](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L751)
+Defined in: [modules/bitview-client/index.js:761](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L761)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:751](https://github.com/bitcoinrese
 
 > `optional` **after?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:753](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L753)
+Defined in: [modules/bitview-client/index.js:763](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L763)
 
 Only the lines after this `seq`, when `started_unix_ms` is this process's; otherwise every kept line.
 
@@ -24,6 +24,6 @@ Only the lines after this `seq`, when `started_unix_ms` is this process's; other
 
 > `optional` **startedUnixMs?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:752](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L752)
+Defined in: [modules/bitview-client/index.js:762](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L762)
 
 The `started_unix_ms` of the last answer: `after` counts in that process's log.

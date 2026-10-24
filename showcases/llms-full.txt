@@ -6,7 +6,7 @@
 - Base URL: https://bitview.space
 - MCP endpoint: https://mcp.bitview.space/
 - Metrics: 21154
-- Operations: 99
+- Operations: 98
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
 
@@ -626,43 +626,16 @@ Returns: JSON `value`
 
 ### Oracle
 
-#### GET `/api/oracle/histogram/outputs/live`
+#### GET `/api/oracle/payments/{height}`
 
-Live output value histogram
+The oracle's payments, a day of blocks at a time
 
-Live unfiltered output value histogram for the complete published mempool. Nonzero outputs within the histogram's bin range are counted by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
-
-Returns: JSON `integer[]`
-
-#### GET `/api/oracle/histogram/outputs/{point}`
-
-Output value histogram at height or day
-
-Unfiltered output value histogram for a confirmed point. A block height (`840000`) counts that block's nonzero outputs within the histogram's bin range, coinbase included, by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
+For each of the 144 blocks from `height` (a multiple of 144, from 508,032): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of an oracle bin wide (0.115% of price) over the block's search window. The chunk at the tip holds the blocks so far; a complete, settled chunk never changes.
 
 Parameters:
-- `point` (path, HeightOrDate, required): Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
+- `height` (path, Height, required)
 
-Returns: JSON `integer[]`
-
-#### GET `/api/oracle/histogram/payments/live`
-
-Live payment output histogram
-
-Live smoothed histogram of oracle-eligible payment outputs, binned by output value on the oracle log scale. It combines the committed oracle window with the complete mempool's eligible outputs from a matching chain publication. A flat array of log-scale bins.
-
-Returns: JSON `integer[]`
-
-#### GET `/api/oracle/histogram/payments/{point}`
-
-Payment output histogram at height or day
-
-Smoothed histogram of oracle-eligible payment outputs for a confirmed point. A block height (`840000`) gives that block's oracle payment histogram; a calendar date (`YYYY-MM-DD`) gives the average of that day's per-block payment histograms. A flat array of log-scale bins.
-
-Parameters:
-- `point` (path, HeightOrDate, required): Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-
-Returns: JSON `integer[]`
+Returns: JSON `OraclePayments`
 
 #### GET `/api/oracle/price`
 
@@ -671,6 +644,25 @@ Live BTC/USD price
 Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available. Confirmed per-height history is available at `GET /api/series/price/height`.
 
 Returns: JSON `Dollars`
+
+#### GET `/api/oracle/searches/live`
+
+The oracle's live search
+
+With the mempool's eligible outputs blended in as the next block, the oracle's search for it from the tip's answer, as in `GET /api/oracle/searches/{height}`: its height is the next block's, its pick the live price. Without a mempool publication at the tip, the tip block's own search.
+
+Returns: JSON `OracleSearch`
+
+#### GET `/api/oracle/searches/{height}`
+
+The oracle's search at a block
+
+The oracle's search behind a block's price, after height 508,000: every candidate bin in its window, 12 below the block before's answer to 11 above, with its score (each round-dollar arm's count over that arm's peak in the window, summed), the bin it picked, and the smoothed histogram it scored them on.
+
+Parameters:
+- `height` (path, Height, required)
+
+Returns: JSON `OracleSearch`
 
 ### Prices
 
@@ -1271,6 +1263,12 @@ Returns: JSON `ServerVersion`
 
 `invalid | headers-only | valid-headers | valid-fork`
 
+### `BlockPayments`
+
+- `height`: `Height` (required)
+- `first`: `integer` (required) — The first bucket: bucket `i` holds the readings whose $100 bin is in `[i, i + 1) * step`, the price `10^(10 - i * step / 200)` dollars at its edge.
+- `counts`: `integer[]` (required) — The readings in each bucket from `first` on, over the oracle's search window for the block.
+
 ### `BlockPool`
 
 - `id`: `integer` (required) — Zero-based pool ID, matching mempool.space's `unique_id`
@@ -1574,6 +1572,19 @@ Returns: JSON `ServerVersion`
 - `block_height`: `Height` (required)
 - `merkle`: `MerkleNode[]` (required) — Merkle proof path, from the transaction's sibling up
 - `pos`: `integer` (required) — Transaction position in the block (0-indexed)
+
+### `OraclePayments`
+
+- `step`: `number` (required) — A bucket's width in oracle bins (a bin is 1/200 of a decade of price).
+- `blocks`: `BlockPayments[]` (required)
+
+### `OracleSearch`
+
+- `height`: `Height` (required)
+- `first_bin`: `integer` (required) — The window's first candidate bin, on the oracle's log scale (200 bins a decade; a bin is where $100 lands in sats: the price is `10^(10 - bin / 200)` dollars).
+- `scores`: `number[]` (required) — Each candidate's score, from `first_bin` on: its round-dollar arms' counts, each over that arm's peak in the window, summed. The highest is the pick's bin.
+- `bin`: `number` (required) — The bin it picked, refined between bins: the block's price.
+- `histogram`: `number[]` (required) — The smoothed histogram it scored: the payments of the block and the 11 before it (and, live, the mempool's as the next block's), counted by amount in sats on the same scale (a bin is `round(log10(sats) * 200)`), the newest weighing most.
 
 ### `OutputType`
 

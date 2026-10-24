@@ -3,13 +3,13 @@ use std::ops::Range;
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{Index40, Lengths, TxOutIndex};
 use brk_error::{Error, Result};
-use brk_oracle::{Oracle, PaymentFilter};
+use brk_oracle::{HistogramRaw, Oracle, PaymentFilter};
 use brk_types::{OutputType, Sats};
 use rayon::prelude::*;
 use vecdb::{AnyVec, ReadableVec, StorageMode, VecIndex};
 
 /// Heights per batch: large range reads (memory-mapped small reads stall on page faults), and
-/// histograms built in parallel.
+/// blocks read in parallel.
 const BATCH_HEIGHTS: usize = 1_000;
 
 /// Feed blocks into an Oracle when callers only need the warmed EMA/window state.
@@ -31,6 +31,76 @@ pub fn feed_blocks_with<IM: StorageMode>(
     range: Range<usize>,
     cap: Option<&Lengths>,
     mut on_block: impl FnMut(usize, &Oracle, f64),
+) -> Result<()> {
+    read_blocks(indexer, range, cap, &Histograms, |height, hist| {
+        let ref_bin = oracle.process_histogram(&hist);
+        on_block(height, oracle, ref_bin);
+    })
+}
+
+/// Each block's payments as the oracle filters them, at their exact amounts, in block order.
+pub fn block_payments<IM: StorageMode>(
+    indexer: &Indexer<IM>,
+    range: Range<usize>,
+    cap: Option<&Lengths>,
+    each: impl FnMut(usize, Vec<Sats>),
+) -> Result<()> {
+    read_blocks(indexer, range, cap, &Payments, each)
+}
+
+/// What each block's non-coinbase transactions' outputs are read into, block by block in parallel.
+trait ReadBlock: Sync {
+    type Out: Send;
+
+    fn read<Outputs>(&self, filter: PaymentFilter, txs: impl Iterator<Item = Outputs>) -> Self::Out
+    where
+        Outputs: ExactSizeIterator<Item = (Sats, OutputType)> + Clone;
+}
+
+/// The oracle's histogram of the block's payments.
+struct Histograms;
+
+impl ReadBlock for Histograms {
+    type Out = HistogramRaw;
+
+    fn read<Outputs>(
+        &self,
+        filter: PaymentFilter,
+        txs: impl Iterator<Item = Outputs>,
+    ) -> HistogramRaw
+    where
+        Outputs: ExactSizeIterator<Item = (Sats, OutputType)> + Clone,
+    {
+        filter.histogram(txs)
+    }
+}
+
+/// The block's payments, at their exact amounts.
+struct Payments;
+
+impl ReadBlock for Payments {
+    type Out = Vec<Sats>;
+
+    fn read<Outputs>(&self, filter: PaymentFilter, txs: impl Iterator<Item = Outputs>) -> Vec<Sats>
+    where
+        Outputs: ExactSizeIterator<Item = (Sats, OutputType)> + Clone,
+    {
+        let mut payments = Vec::new();
+        for outputs in txs {
+            filter.for_each_payment(outputs, |sats| payments.push(sats));
+        }
+        payments
+    }
+}
+
+/// Read a range of blocks' outputs in batches (large range reads), each block read by `reader` in
+/// parallel, then handed to `each` in block order.
+fn read_blocks<IM: StorageMode, R: ReadBlock>(
+    indexer: &Indexer<IM>,
+    range: Range<usize>,
+    cap: Option<&Lengths>,
+    reader: &R,
+    mut each: impl FnMut(usize, R::Out),
 ) -> Result<()> {
     let vecs = indexer.vecs();
     let (total_txs, total_outputs, height_len) = match cap {
@@ -70,7 +140,7 @@ pub fn feed_blocks_with<IM: StorageMode>(
     let out_at = |idx: usize| out_firsts.get(idx).map_or(total_outputs, |i| i.to_usize());
 
     // Reused across batches: each batch's per-tx first outputs and output columns, read in large
-    // range reads, then each block's histogram built in parallel and fed in block order.
+    // range reads, then each block read in parallel and handed over in block order.
     let mut first_outputs: Vec<Index40<TxOutIndex>> = Vec::new();
     let mut values: Vec<Sats> = Vec::new();
     let mut output_types: Vec<OutputType> = Vec::new();
@@ -98,7 +168,7 @@ pub fn feed_blocks_with<IM: StorageMode>(
         );
         let first_output = |tx: usize| first_outputs[tx - tx_base].get().to_usize();
 
-        let histograms = (batch_start..batch_end)
+        let blocks = (batch_start..batch_end)
             .into_par_iter()
             .map(|idx| {
                 // Skip each block's coinbase: the oracle models payments, not issuance.
@@ -122,13 +192,12 @@ pub fn feed_blocks_with<IM: StorageMode>(
                         .copied()
                         .zip(output_types[lo..hi].iter().copied())
                 });
-                PaymentFilter::for_height(range.start + idx).histogram(tx_outputs)
+                reader.read(PaymentFilter::for_height(range.start + idx), tx_outputs)
             })
             .collect::<Vec<_>>();
 
-        for (offset, hist) in histograms.iter().enumerate() {
-            let ref_bin = oracle.process_histogram(hist);
-            on_block(range.start + batch_start + offset, oracle, ref_bin);
+        for (offset, block) in blocks.into_iter().enumerate() {
+            each(range.start + batch_start + offset, block);
         }
     }
     Ok(())

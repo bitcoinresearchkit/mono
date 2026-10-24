@@ -8,7 +8,7 @@
 
 > **MappingsP2pk33** = `object`
 
-Defined in: [modules/bitview-client/index.js:6570](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6570)
+Defined in: [modules/bitview-client/index.js:6602](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6602)
 
 ## Type Parameters
 

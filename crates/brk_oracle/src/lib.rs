@@ -35,6 +35,7 @@ use scale::NUM_BINS;
 pub use scale::{bin_to_cents, cents_to_bin, sats_to_bin};
 pub use seed::{FIRST_PRICE_HEIGHT, pre_oracle_prices_from};
 
+pub use stencil::ROUND_DOLLARS;
 use stencil::Stencil;
 use window::EmaWindow;
 
@@ -42,12 +43,17 @@ use window::EmaWindow;
 pub type HistogramRaw = Histogram<u32, NUM_BINS>;
 /// The window's smoothed EMA per log-scale bin.
 pub type HistogramEma = Histogram<f64, NUM_BINS>;
-/// The `u16` wire projection of [`HistogramEma`].
-pub type HistogramEmaCompact = Histogram<u16, NUM_BINS>;
 
 /// Oracle algorithm version. Bump on any change that alters computed prices
 /// so downstream consumers can invalidate cached results.
 pub const VERSION: u32 = 6;
+
+/// One block's search: its window's first candidate bin and each candidate's score, in bin order.
+#[derive(Clone, Debug)]
+pub struct Search {
+    pub first_bin: usize,
+    pub scores: Vec<f64>,
+}
 
 #[derive(Clone)]
 pub struct Oracle {
@@ -122,6 +128,26 @@ impl Oracle {
     /// `ema()[i]` is bin `i` (see `sats_to_bin`).
     pub fn ema(&self) -> &HistogramEma {
         self.window.ema()
+    }
+
+    /// The search behind the last block's pick, `prev_bin` the reference before it: the window's
+    /// first candidate bin and each candidate's score, as the oracle ranked them. Exact from
+    /// [`START_HEIGHT_FAST`] on; below it, the slow regime's shape profile has already learned
+    /// from the pick it scored.
+    pub fn search(&self, prev_bin: f64) -> Option<Search> {
+        self.stencil
+            .scores(
+                self.window.ema(),
+                prev_bin,
+                self.config.search_below,
+                self.config.search_above,
+            )
+            .map(|(first_bin, scores)| Search { first_bin, scores })
+    }
+
+    /// The current reference bin: the last block's pick.
+    pub fn ref_bin(&self) -> f64 {
+        self.ref_bin
     }
 
     pub fn price_dollars(&self) -> Dollars {

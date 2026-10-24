@@ -217,10 +217,7 @@ fn requests() -> Vec<(&'static str, Method, String, Vec<u8>)> {
             "/api/v1/mining/blocks/timestamp/0".into(),
         ),
         get("oracle price not computed", "/api/oracle/price".into()),
-        get(
-            "oracle histogram at height",
-            "/api/oracle/histogram/outputs/100".into(),
-        ),
+        get("oracle search at height", "/api/oracle/searches/100".into()),
         get("urpd without history", "/api/urpd/all".into()),
         get("urpd of unknown cohort", "/api/urpd/nocohort/100".into()),
         get("urpd at a point", "/api/urpd/all/100".into()),

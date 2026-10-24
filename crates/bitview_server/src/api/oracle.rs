@@ -1,8 +1,6 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{extract::Path, http::HeaderMap, response::Response};
-use bitview_primitives::Day1;
-use bitview_types::HeightOrDate;
-use brk_oracle::{HistogramEmaCompact, HistogramRaw};
+use bitview_types::{OraclePayments, OracleSearch};
 use brk_types::Dollars;
 
 use crate::{
@@ -10,7 +8,7 @@ use crate::{
     api::tags,
     error::Result,
     extended::TransformResponseExtended,
-    params::{Empty, HeightOrDateParam},
+    params::{Empty, HeightParam},
     request_state::RequestState,
 };
 
@@ -44,124 +42,91 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             }),
         )
         .api_route(
-            "/api/oracle/histogram/payments/live",
-            get_with(
-                async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
-                    state
-                        .respond_json_content(&headers, |query| query.live_payment_histogram())
-                        .await
-                },
-                |op| {
-                    op.id("get_oracle_histogram_payments_live")
-                        .tag(tags::ORACLE)
-                        .summary("Live payment output histogram")
-                        .description(
-                            "Live smoothed histogram of oracle-eligible payment outputs, binned \
-                        by output value on the oracle log scale. It combines the committed \
-                        oracle window with the complete mempool's eligible outputs from \
-                        a matching chain publication. A flat array of \
-                        log-scale bins.",
-                        )
-                        .json_response::<HistogramEmaCompact>()
-                        .not_modified()
-                },
-            ),
-        )
-        .api_route(
-            "/api/oracle/histogram/payments/{point}",
+            "/api/oracle/searches/{height}",
             get_with(
                 async |headers: HeaderMap,
-                       Path(path): Path<HeightOrDateParam>,
+                       Path(path): Path<HeightParam>,
                        _: Empty,
                        RequestState(state): RequestState|
                        -> Result<Response> {
-                    let point = path.point;
+                    let height = usize::from(path.height);
                     Ok(state
-                        .respond_json_settled(&headers, move |q| match point {
-                            HeightOrDate::Date(date) => {
-                                q.confirmed_payment_histogram_day(Day1::try_from(date)?)
-                            }
-                            HeightOrDate::Height(height) => {
-                                q.confirmed_payment_histogram(usize::from(height))
-                            }
+                        .respond_json_settled_on(&state.oracle_replays, &headers, move |q| {
+                            q.oracle_search(height)
                         })
                         .await)
                 },
                 |op| {
-                    op.id("get_oracle_histogram_payments")
+                    op.id("get_oracle_search")
                         .tag(tags::ORACLE)
-                        .summary("Payment output histogram at height or day")
+                        .mcp_ignore()
+                        .summary("The oracle's search at a block")
                         .description(
-                            "Smoothed histogram of oracle-eligible payment outputs for a \
-                        confirmed point. A block height (`840000`) gives that block's oracle \
-                        payment histogram; a calendar date (`YYYY-MM-DD`) gives the average \
-                        of that day's per-block payment histograms. A flat array of log-scale \
-                        bins.",
+                            "The oracle's search behind a block's price, after height 508,000: every candidate \
+                        bin in its window, 12 below the block before's answer to 11 above, with its score (each \
+                        round-dollar arm's count over that arm's peak in the window, summed), the bin it picked, \
+                        and the smoothed histogram it scored them on.",
                         )
-                        .json_response::<HistogramEmaCompact>()
+                        .json_response::<OracleSearch>()
                         .not_modified()
                         .not_found()
                 },
             ),
         )
         .api_route(
-            "/api/oracle/histogram/outputs/live",
-            get_with(
-                async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
-                    state
-                        .respond_json_content(&headers, |query| query.live_output_histogram())
-                        .await
-                },
-                |op| {
-                    op.id("get_oracle_histogram_outputs_live")
-                        .tag(tags::ORACLE)
-                        .summary("Live output value histogram")
-                        .description(
-                            "Live unfiltered output value histogram for the complete published \
-                        mempool. Nonzero outputs within the histogram's bin range are counted \
-                        by value on the oracle log scale; no oracle payment filters are \
-                        applied. A flat array of log-scale bins, all zero when no mempool is \
-                        configured.",
-                        )
-                        .json_response::<HistogramRaw>()
-                        .not_modified()
-                },
-            ),
-        )
-        .api_route(
-            "/api/oracle/histogram/outputs/{point}",
+            "/api/oracle/payments/{height}",
             get_with(
                 async |headers: HeaderMap,
-                       Path(path): Path<HeightOrDateParam>,
+                       Path(path): Path<HeightParam>,
                        _: Empty,
                        RequestState(state): RequestState|
                        -> Result<Response> {
-                    let point = path.point;
+                    let start = usize::from(path.height);
                     Ok(state
-                        .respond_json_settled(&headers, move |q| match point {
-                            HeightOrDate::Date(date) => {
-                                q.confirmed_output_histogram_day(Day1::try_from(date)?)
-                            }
-                            HeightOrDate::Height(height) => {
-                                q.confirmed_output_histogram(usize::from(height))
-                            }
+                        .respond_json_settled_on(&state.oracle_replays, &headers, move |q| {
+                            q.oracle_payments_chunk(start)
                         })
                         .await)
                 },
                 |op| {
-                    op.id("get_oracle_histogram_outputs")
+                    op.id("get_oracle_payments")
                         .tag(tags::ORACLE)
-                        .summary("Output value histogram at height or day")
+                        .mcp_ignore()
+                        .summary("The oracle's payments, a day of blocks at a time")
                         .description(
-                            "Unfiltered output value histogram for a confirmed point. A block \
-                        height (`840000`) counts that block's nonzero outputs within the \
-                        histogram's bin range, coinbase included, by value on the oracle log \
-                        scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A \
-                        flat array of log-scale bins.",
+                            "For each of the 144 blocks from `height` (a multiple of 144, from 508,032): its payments as the oracle filters them, each read \
+                        as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, \
+                        counted by the price each reading implies, in buckets a tenth of an oracle bin wide \
+                        (0.115% of price) over the block's search window. The chunk at the tip holds the blocks \
+                        so far; a complete, settled chunk never changes.",
                         )
-                        .json_response::<HistogramRaw>()
+                        .json_response::<OraclePayments>()
                         .not_modified()
                         .not_found()
+                },
+            ),
+        )
+        .api_route(
+            "/api/oracle/searches/live",
+            get_with(
+                async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
+                    state
+                        .respond_json_content(&headers, |query| query.live_search())
+                        .await
+                },
+                |op| {
+                    op.id("get_oracle_search_live")
+                        .tag(tags::ORACLE)
+                        .mcp_ignore()
+                        .summary("The oracle's live search")
+                        .description(
+                            "With the mempool's eligible outputs blended in as the next block, the oracle's \
+                        search for it from the tip's answer, as in `GET /api/oracle/searches/{height}`: its height is \
+                        the next block's, its pick the live price. Without a mempool publication at the tip, \
+                        the tip block's own search.",
+                        )
+                        .json_response::<OracleSearch>()
+                        .not_modified()
                 },
             ),
         )

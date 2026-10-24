@@ -6,7 +6,7 @@
 
 # Interface: LogLine
 
-Defined in: [modules/bitview-client/index.js:735](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L735)
+Defined in: [modules/bitview-client/index.js:745](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L745)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:735](https://github.com/bitcoinrese
 
 > **level**: [`LogLevel`](../type-aliases/LogLevel.md)
 
-Defined in: [modules/bitview-client/index.js:738](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L738)
+Defined in: [modules/bitview-client/index.js:748](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L748)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:738](https://github.com/bitcoinrese
 
 > **seq**: `number`
 
-Defined in: [modules/bitview-client/index.js:736](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L736)
+Defined in: [modules/bitview-client/index.js:746](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L746)
 
 Its place in this process's log, from 0 with no gaps.
 
@@ -32,7 +32,7 @@ Its place in this process's log, from 0 with no gaps.
 
 > **text**: `string`
 
-Defined in: [modules/bitview-client/index.js:739](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L739)
+Defined in: [modules/bitview-client/index.js:749](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L749)
 
 What the log files show after the level: a request's status, path and duration, or a message and its fields.
 
@@ -42,6 +42,6 @@ What the log files show after the level: a request's status, path and duration, 
 
 > **unixMs**: `number`
 
-Defined in: [modules/bitview-client/index.js:737](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L737)
+Defined in: [modules/bitview-client/index.js:747](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L747)
 
 When it was logged, in Unix milliseconds.

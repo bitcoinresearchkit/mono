@@ -8,7 +8,7 @@
 
 > **CostBasis** = `object`
 
-Defined in: [modules/bitview-client/index.js:3610](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3610)
+Defined in: [modules/bitview-client/index.js:3642](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3642)
 
 ## Type Parameters
 

@@ -3,7 +3,7 @@ use brk_types::{MempoolRecentTx, Transaction, Txid};
 use indexmap::IndexMap;
 use rustc_hash::FxBuildHasher;
 
-use crate::{key::TxKey, state::TxEntry, stores::LiveHistograms};
+use crate::{key::TxKey, state::TxEntry, stores::LiveHistogram};
 
 use super::TxRecord;
 
@@ -14,7 +14,7 @@ pub struct ReadOnlyTxStore {
     pub(super) txids_hash: u64,
     pub(super) content_revision: u64,
     pub(super) recent: Vec<MempoolRecentTx>,
-    pub(super) histograms: LiveHistograms,
+    pub(super) histogram: LiveHistogram,
 }
 
 impl ReadOnlyTxStore {
@@ -71,12 +71,6 @@ impl ReadOnlyTxStore {
     /// blend. Maintained incrementally, so this is `O(NUM_BINS)`, not
     /// `O(live_outputs)`.
     pub fn live_eligible_histogram(&self) -> HistogramRaw {
-        self.histograms.eligible()
-    }
-
-    /// Snapshot the raw histogram: live outputs binned by value with no
-    /// payment filtering. Maintained incrementally alongside the eligible one.
-    pub fn live_raw_histogram(&self) -> HistogramRaw {
-        self.histograms.raw()
+        self.histogram.eligible()
     }
 }

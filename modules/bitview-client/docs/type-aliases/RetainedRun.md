@@ -8,6 +8,6 @@
 
 > **RetainedRun** = \[`number`, `number`\]
 
-Defined in: [modules/bitview-client/index.js:1222](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1222)
+Defined in: [modules/bitview-client/index.js:1254](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1254)
 
 ## Type Parameters

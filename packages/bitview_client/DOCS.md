@@ -29,6 +29,7 @@
     * [get\_health](#bitview_client.BitviewClient.get_health)
     * [get\_version](#bitview_client.BitviewClient.get_version)
     * [get\_sync\_status](#bitview_client.BitviewClient.get_sync_status)
+    * [get\_logs](#bitview_client.BitviewClient.get_logs)
     * [get\_disk\_usage](#bitview_client.BitviewClient.get_disk_usage)
     * [get\_series\_tree](#bitview_client.BitviewClient.get_series_tree)
     * [get\_series\_count](#bitview_client.BitviewClient.get_series_count)
@@ -118,10 +119,9 @@
     * [get\_utxo\_set](#bitview_client.BitviewClient.get_utxo_set)
     * [get\_utxo\_set\_diff](#bitview_client.BitviewClient.get_utxo_set_diff)
     * [get\_live\_price](#bitview_client.BitviewClient.get_live_price)
-    * [get\_oracle\_histogram\_payments\_live](#bitview_client.BitviewClient.get_oracle_histogram_payments_live)
-    * [get\_oracle\_histogram\_payments](#bitview_client.BitviewClient.get_oracle_histogram_payments)
-    * [get\_oracle\_histogram\_outputs\_live](#bitview_client.BitviewClient.get_oracle_histogram_outputs_live)
-    * [get\_oracle\_histogram\_outputs](#bitview_client.BitviewClient.get_oracle_histogram_outputs)
+    * [get\_oracle\_search](#bitview_client.BitviewClient.get_oracle_search)
+    * [get\_oracle\_payments](#bitview_client.BitviewClient.get_oracle_payments)
+    * [get\_oracle\_search\_live](#bitview_client.BitviewClient.get_oracle_search_live)
     * [get\_openapi](#bitview_client.BitviewClient.get_openapi)
     * [get\_api](#bitview_client.BitviewClient.get_api)
 
@@ -363,6 +363,21 @@ Sync status.
 Returns a coherent local index snapshot and a separately observed Bitcoin Core tip height. The two heights can differ during indexing or a reorg. Conditional requests refresh these observations before validation.
 
 Endpoint: `GET /api/server/sync`
+
+<a id="bitview_client.BitviewClient.get_logs"></a>
+
+#### get\_logs
+
+```python
+def get_logs(started_unix_ms: Optional[int] = None,
+             after: Optional[int] = None) -> Logs
+```
+
+Logs.
+
+The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, pass the answer's `started_unix_ms` and its last line's `seq` as `after`: the lines since then, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted. Answers are cached for a second.
+
+Endpoint: `GET /api/server/logs`
 
 <a id="bitview_client.BitviewClient.get_disk_usage"></a>
 
@@ -1762,61 +1777,47 @@ Current BTC/USD price in dollars, derived from on-chain round-dollar output patt
 
 Endpoint: `GET /api/oracle/price`
 
-<a id="bitview_client.BitviewClient.get_oracle_histogram_payments_live"></a>
+<a id="bitview_client.BitviewClient.get_oracle_search"></a>
 
-#### get\_oracle\_histogram\_payments\_live
-
-```python
-def get_oracle_histogram_payments_live() -> List[int]
-```
-
-Live payment output histogram.
-
-Live smoothed histogram of oracle-eligible payment outputs, binned by output value on the oracle log scale. It combines the committed oracle window with the complete mempool's eligible outputs from a matching chain publication. A flat array of log-scale bins.
-
-Endpoint: `GET /api/oracle/histogram/payments/live`
-
-<a id="bitview_client.BitviewClient.get_oracle_histogram_payments"></a>
-
-#### get\_oracle\_histogram\_payments
+#### get\_oracle\_search
 
 ```python
-def get_oracle_histogram_payments(point: HeightOrDate) -> List[int]
+def get_oracle_search(height: Height) -> OracleSearch
 ```
 
-Payment output histogram at height or day.
+The oracle's search at a block.
 
-Smoothed histogram of oracle-eligible payment outputs for a confirmed point. A block height (`840000`) gives that block's oracle payment histogram; a calendar date (`YYYY-MM-DD`) gives the average of that day's per-block payment histograms. A flat array of log-scale bins.
+The oracle's search behind a block's price, after height 508,000: every candidate bin in its window, 12 below the block before's answer to 11 above, with its score (each round-dollar arm's count over that arm's peak in the window, summed), the bin it picked, and the smoothed histogram it scored them on.
 
-Endpoint: `GET /api/oracle/histogram/payments/{point}`
+Endpoint: `GET /api/oracle/searches/{height}`
 
-<a id="bitview_client.BitviewClient.get_oracle_histogram_outputs_live"></a>
+<a id="bitview_client.BitviewClient.get_oracle_payments"></a>
 
-#### get\_oracle\_histogram\_outputs\_live
+#### get\_oracle\_payments
 
 ```python
-def get_oracle_histogram_outputs_live() -> List[int]
+def get_oracle_payments(height: Height) -> OraclePayments
 ```
 
-Live output value histogram.
+The oracle's payments, a day of blocks at a time.
 
-Live unfiltered output value histogram for the complete published mempool. Nonzero outputs within the histogram's bin range are counted by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
+For each of the 144 blocks from `height` (a multiple of 144, from 508,032): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of an oracle bin wide (0.115% of price) over the block's search window. The chunk at the tip holds the blocks so far; a complete, settled chunk never changes.
 
-Endpoint: `GET /api/oracle/histogram/outputs/live`
+Endpoint: `GET /api/oracle/payments/{height}`
 
-<a id="bitview_client.BitviewClient.get_oracle_histogram_outputs"></a>
+<a id="bitview_client.BitviewClient.get_oracle_search_live"></a>
 
-#### get\_oracle\_histogram\_outputs
+#### get\_oracle\_search\_live
 
 ```python
-def get_oracle_histogram_outputs(point: HeightOrDate) -> List[int]
+def get_oracle_search_live() -> OracleSearch
 ```
 
-Output value histogram at height or day.
+The oracle's live search.
 
-Unfiltered output value histogram for a confirmed point. A block height (`840000`) counts that block's nonzero outputs within the histogram's bin range, coinbase included, by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
+With the mempool's eligible outputs blended in as the next block, the oracle's search for it from the tip's answer, as in `GET /api/oracle/searches/{height}`: its height is the next block's, its pick the live price. Without a mempool publication at the tip, the tip block's own search.
 
-Endpoint: `GET /api/oracle/histogram/outputs/{point}`
+Endpoint: `GET /api/oracle/searches/live`
 
 <a id="bitview_client.BitviewClient.get_openapi"></a>
 

@@ -14,8 +14,7 @@ use serde::{
 };
 
 /// Fixed-length, log-scale bin histogram generic over the per-bin counter type: raw counts
-/// (`u32`), the smoothed EMA buffer (`f64`) or the quantized wire projection (`u16`). Serializes
-/// as a flat JSON array of `N` values.
+/// (`u32`) or the smoothed EMA (`f64`). Serializes as a flat JSON array of `N` values.
 #[derive(Clone, Debug)]
 pub struct Histogram<T, const N: usize>([T; N]);
 
@@ -45,31 +44,6 @@ impl<const N: usize> Histogram<u32, N> {
     #[inline]
     pub fn increment(&mut self, bin: usize) {
         self.0[bin] += 1;
-    }
-}
-
-impl<const N: usize> Histogram<f64, N> {
-    /// Quantize each bin to `u16` (rounded, saturating) for the wire.
-    /// Lossy by design: faint sub-0.5 bins vanish, which is invisible on a heatmap.
-    pub fn to_compact(&self) -> Histogram<u16, N> {
-        let mut out = [0u16; N];
-        for (o, &v) in out.iter_mut().zip(self.0.iter()) {
-            *o = v.round() as u16;
-        }
-        Histogram(out)
-    }
-
-    #[inline]
-    pub fn add_from(&mut self, rhs: &Self) {
-        self.0
-            .iter_mut()
-            .zip(rhs.0.iter())
-            .for_each(|(a, &b)| *a += b);
-    }
-
-    #[inline]
-    pub fn divide_by(&mut self, rhs: f64) {
-        self.0.iter_mut().for_each(|v| *v /= rhs);
     }
 }
 

@@ -8,7 +8,7 @@
 
 > **Coinbase** = `object`
 
-Defined in: [modules/bitview-client/index.js:4131](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4131)
+Defined in: [modules/bitview-client/index.js:4163](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4163)
 
 ## Type Parameters
 

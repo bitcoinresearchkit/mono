@@ -80,32 +80,40 @@ impl PaymentFilter {
         index < Self::COMMON_ROUND_RANGES.len() && Self::COMMON_ROUND_RANGES[index].0 <= value
     }
 
-    /// Bin index for `(sats, output_type)`, or `None` for an excluded type
-    /// (P2TR), dust, a round-BTC value, or an out-of-range bin. The per-output
-    /// half of the round-dollar payment filter.
+    /// Whether `(sats, output_type)` may be a payment: not an excluded type (P2TR), dust or a
+    /// round-BTC value. The per-output half of the round-dollar payment filter.
     #[inline(always)]
-    fn eligible_bin(sats: Sats, output_type: OutputType) -> Option<u16> {
+    fn eligible(sats: Sats, output_type: OutputType) -> bool {
         // P2TR is protocol-dominated, too noisy to carry the round-dollar signal.
-        if output_type == OutputType::P2TR {
-            return None;
-        }
-        if *sats < MIN_SATS || Self::is_common_round_value(sats) {
-            return None;
-        }
-        sats_to_bin(sats).map(|b| b as u16)
+        output_type != OutputType::P2TR && *sats >= MIN_SATS && !Self::is_common_round_value(sats)
     }
 
     /// Apply the transaction-level payment filter and call `emit(bin)` for each
-    /// eligible output, in order.
-    ///
-    /// A whole transaction is dropped when it carries any OP_RETURN output (data
-    /// carriers, not payments) or when it has more outputs than this filter's
-    /// fan-out cap.
+    /// eligible output inside the histogram, in order.
     #[inline]
     pub fn for_each_bin(
         self,
         outputs: impl ExactSizeIterator<Item = (Sats, OutputType)> + Clone,
         mut emit: impl FnMut(u16),
+    ) {
+        self.for_each_payment(outputs, |sats| {
+            if let Some(bin) = sats_to_bin(sats) {
+                emit(bin as u16);
+            }
+        });
+    }
+
+    /// Apply the transaction-level payment filter and call `emit(sats)` for each eligible output,
+    /// its exact amount, in order.
+    ///
+    /// A whole transaction is dropped when it carries any OP_RETURN output (data
+    /// carriers, not payments) or when it has more outputs than this filter's
+    /// fan-out cap.
+    #[inline]
+    pub fn for_each_payment(
+        self,
+        outputs: impl ExactSizeIterator<Item = (Sats, OutputType)> + Clone,
+        mut emit: impl FnMut(Sats),
     ) {
         if outputs.len() > self.tx_output_fanout_cap {
             return;
@@ -114,8 +122,8 @@ impl PaymentFilter {
             return;
         }
         for (sats, ty) in outputs {
-            if let Some(bin) = Self::eligible_bin(sats, ty) {
-                emit(bin);
+            if Self::eligible(sats, ty) {
+                emit(sats);
             }
         }
     }

@@ -157,6 +157,8 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
     let shared = SharedState {
         sync_query: Arc::new(Semaphore::new(1)),
         disk_query: Arc::new(Semaphore::new(1)),
+        #[cfg(feature = "price")]
+        oracle_replays: Arc::new(Semaphore::new(1)),
         #[cfg(feature = "chain")]
         raw_block_bodies: Arc::new(Semaphore::new(RawBodyPermit::CAPACITY)),
         #[cfg(feature = "chain")]

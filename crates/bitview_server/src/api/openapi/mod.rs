@@ -93,11 +93,9 @@ const TAGS: [(&str, &str); 12] = [
         "On-chain BTC/USD price derived purely from round-dollar payment patterns in \
         transaction outputs, with no external price feed. Payment activity is binned on a \
         log scale, and a smoothed EMA over recent blocks locates the price.\n\n\
-        Histograms come in two kinds, each at the live tip (mempool-blended) or at any \
-        confirmed height or day: `outputs` counts every output by value with no filtering, \
-        while `payments` is the smoothed round-dollar window the price is read from. The live \
-        price is at `/api/oracle/price`, confirmed per-height price history at \
-        `/api/series/price/height`.",
+        The live price is at `/api/oracle/price`, confirmed per-height price history at \
+        `/api/series/price/height`; the searches behind them, with the histograms they scored, at \
+        `/api/oracle/searches/{height}` and `/api/oracle/searches/live`.",
     ),
     (
         tags::UTXO_SET,

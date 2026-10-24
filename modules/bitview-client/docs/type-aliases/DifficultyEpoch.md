@@ -8,6 +8,6 @@
 
 > **DifficultyEpoch** = `number`
 
-Defined in: [modules/bitview-client/index.js:539](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L539)
+Defined in: [modules/bitview-client/index.js:549](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L549)
 
 ## Type Parameters

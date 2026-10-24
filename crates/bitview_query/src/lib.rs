@@ -82,6 +82,8 @@ struct QueryInner<'a> {
     mempool: Option<ReadOnlyMempool>,
     #[cfg(feature = "price")]
     live_oracle: PublicationCache<brk_oracle::Oracle>,
+    #[cfg(feature = "price")]
+    payment_chunks: parking_lot::Mutex<r#impl::oracle::OracleChunks<bitview_types::OraclePayments>>,
     /// Read bounds cached for the newest publication a pin asked for.
     #[cfg(any(feature = "series", feature = "price"))]
     bounds: ArcSwapOption<PublishedBounds>,
@@ -228,6 +230,8 @@ impl Query {
                 mempool: _mempool,
                 #[cfg(feature = "price")]
                 live_oracle: Default::default(),
+                #[cfg(feature = "price")]
+                payment_chunks: Default::default(),
                 #[cfg(any(feature = "series", feature = "price"))]
                 bounds: ArcSwapOption::empty(),
             }),

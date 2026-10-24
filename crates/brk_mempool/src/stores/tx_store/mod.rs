@@ -80,7 +80,7 @@ impl TxStore {
             self.unresolved.insert(key);
         }
         let record = TxRecord::new(tx, entry);
-        self.read_only.histograms.add(&record);
+        self.read_only.histogram.add(&record);
         self.read_only.records.insert(key, record);
         self.read_only.txids_hash ^= Self::txid_position_hash(&txid, position);
         self.bump_content_revision();
@@ -105,7 +105,7 @@ impl TxStore {
             self.read_only.txids_hash ^= Self::txid_position_hash(&last_txid, position);
         }
         self.unresolved.remove(key);
-        self.read_only.histograms.remove(&record);
+        self.read_only.histogram.remove(&record);
         self.bump_content_revision();
         Some(record)
     }

@@ -269,6 +269,16 @@ sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @typedef {(("invalid")|("headers-only")|("valid-headers")|("valid-fork"))} BlockOrphanStatus
  */
 /**
+ * One block's payments, each read as each of the oracle's 19 round-dollar amounts ($1 to $10,000)
+ * at its exact amount in sats, counted by the price each reading implies.
+ *
+ * @typedef {Object} BlockPayments
+ * @property {Height} height
+ * @property {number} first - The first bucket: bucket `i` holds the readings whose $100 bin is in `[i, i + 1) * step`,
+the price `10^(10 - i * step / 200)` dollars at its edge.
+ * @property {number[]} counts - The readings in each bucket from `first` on, over the oracle's search window for the block.
+ */
+/**
  * @typedef {Object} BlockPool
  * @property {number} id - Zero-based pool ID, matching mempool.space's `unique_id`
  * @property {string} name
@@ -905,6 +915,28 @@ a bin closing at the first fee rate change past 50,000 vB
  * Index of an OP_RETURN output.
  *
  * @typedef {TypeIndex} OpReturnOutputIndex
+ */
+/**
+ * Blocks' payments read as round-dollar amounts: the prices they imply, counted in fine buckets.
+ *
+ * @typedef {Object} OraclePayments
+ * @property {number} step - A bucket's width in oracle bins (a bin is 1/200 of a decade of price).
+ * @property {BlockPayments[]} blocks
+ */
+/**
+ * The oracle's search for one block: each candidate bin it scored, the one it picked, and the
+ * histogram it scored them on.
+ *
+ * @typedef {Object} OracleSearch
+ * @property {Height} height
+ * @property {number} firstBin - The window's first candidate bin, on the oracle's log scale (200 bins a decade; a bin is
+where $100 lands in sats: the price is `10^(10 - bin / 200)` dollars).
+ * @property {number[]} scores - Each candidate's score, from `first_bin` on: its round-dollar arms' counts, each over that
+arm's peak in the window, summed. The highest is the pick's bin.
+ * @property {number} bin - The bin it picked, refined between bins: the block's price.
+ * @property {number[]} histogram - The smoothed histogram it scored: the payments of the block and the 11 before it (and,
+live, the mempool's as the next block's), counted by amount in sats on the same scale (a
+bin is `round(log10(sats) * 200)`), the newest weighing most.
  */
 /**
  * The output a transaction input spends: its transaction index and output position, written as
@@ -9588,62 +9620,48 @@ anything else answers 400, as mempool.space does
   }
 
   /**
-   * Live payment output histogram
+   * The oracle's search at a block
    *
-   * Live smoothed histogram of oracle-eligible payment outputs, binned by output value on the oracle log scale. It combines the committed oracle window with the complete mempool's eligible outputs from a matching chain publication. A flat array of log-scale bins.
+   * The oracle's search behind a block's price, after height 508,000: every candidate bin in its window, 12 below the block before's answer to 11 above, with its score (each round-dollar arm's count over that arm's peak in the window, summed), the bin it picked, and the smoothed histogram it scored them on.
    *
-   * Endpoint: `GET /api/oracle/histogram/payments/live`
-   * @param {{ signal?: AbortSignal, onValue?: (value: number[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<number[]>}
+   * Endpoint: `GET /api/oracle/searches/{height}`
+   *
+   * @param {Height} height
+   * @param {{ signal?: AbortSignal, onValue?: (value: OracleSearch) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<OracleSearch>}
    */
-  async getOracleHistogramPaymentsLive({ signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/histogram/payments/live`;
+  async getOracleSearch(height, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/oracle/searches/${encodeURIComponent(height)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
   /**
-   * Payment output histogram at height or day
+   * The oracle's payments, a day of blocks at a time
    *
-   * Smoothed histogram of oracle-eligible payment outputs for a confirmed point. A block height (`840000`) gives that block's oracle payment histogram; a calendar date (`YYYY-MM-DD`) gives the average of that day's per-block payment histograms. A flat array of log-scale bins.
+   * For each of the 144 blocks from `height` (a multiple of 144, from 508,032): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of an oracle bin wide (0.115% of price) over the block's search window. The chunk at the tip holds the blocks so far; a complete, settled chunk never changes.
    *
-   * Endpoint: `GET /api/oracle/histogram/payments/{point}`
+   * Endpoint: `GET /api/oracle/payments/{height}`
    *
-   * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-   * @param {{ signal?: AbortSignal, onValue?: (value: number[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<number[]>}
+   * @param {Height} height
+   * @param {{ signal?: AbortSignal, onValue?: (value: OraclePayments) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<OraclePayments>}
    */
-  async getOracleHistogramPayments(point, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/histogram/payments/${encodeURIComponent(point)}`;
+  async getOraclePayments(height, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/oracle/payments/${encodeURIComponent(height)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
   /**
-   * Live output value histogram
+   * The oracle's live search
    *
-   * Live unfiltered output value histogram for the complete published mempool. Nonzero outputs within the histogram's bin range are counted by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
+   * With the mempool's eligible outputs blended in as the next block, the oracle's search for it from the tip's answer, as in `GET /api/oracle/searches/{height}`: its height is the next block's, its pick the live price. Without a mempool publication at the tip, the tip block's own search.
    *
-   * Endpoint: `GET /api/oracle/histogram/outputs/live`
-   * @param {{ signal?: AbortSignal, onValue?: (value: number[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<number[]>}
+   * Endpoint: `GET /api/oracle/searches/live`
+   * @param {{ signal?: AbortSignal, onValue?: (value: OracleSearch) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<OracleSearch>}
    */
-  async getOracleHistogramOutputsLive({ signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/histogram/outputs/live`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
-  }
-
-  /**
-   * Output value histogram at height or day
-   *
-   * Unfiltered output value histogram for a confirmed point. A block height (`840000`) counts that block's nonzero outputs within the histogram's bin range, coinbase included, by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
-   *
-   * Endpoint: `GET /api/oracle/histogram/outputs/{point}`
-   *
-   * @param {HeightOrDate} point - Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
-   * @param {{ signal?: AbortSignal, onValue?: (value: number[]) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<number[]>}
-   */
-  async getOracleHistogramOutputs(point, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/histogram/outputs/${encodeURIComponent(point)}`;
+  async getOracleSearchLive({ signal, onValue, cache, memCache } = {}) {
+    const path = `/api/oracle/searches/live`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 

@@ -6,7 +6,7 @@
 
 # Interface: MempoolBlockDiffParam
 
-Defined in: [modules/bitview-client/index.js:808](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L808)
+Defined in: [modules/bitview-client/index.js:818](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L818)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:808](https://github.com/bitcoinrese
 
 > **index**: `number`
 
-Defined in: [modules/bitview-client/index.js:809](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L809)
+Defined in: [modules/bitview-client/index.js:819](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L819)
 
 ***
 
@@ -22,6 +22,6 @@ Defined in: [modules/bitview-client/index.js:809](https://github.com/bitcoinrese
 
 > **since**: `string`
 
-Defined in: [modules/bitview-client/index.js:810](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L810)
+Defined in: [modules/bitview-client/index.js:820](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L820)
 
 The `hash` of the client's copy, from the block or a previous diff

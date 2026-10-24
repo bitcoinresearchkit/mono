@@ -8,7 +8,7 @@
 
 > **CointimePriceWithMvrv** = `object`
 
-Defined in: [modules/bitview-client/index.js:3209](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3209)
+Defined in: [modules/bitview-client/index.js:3241](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3241)
 
 ## Type Parameters
 

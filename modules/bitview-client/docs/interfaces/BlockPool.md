@@ -6,7 +6,7 @@
 
 # Interface: BlockPool
 
-Defined in: [modules/bitview-client/index.js:272](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L272)
+Defined in: [modules/bitview-client/index.js:282](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L282)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:272](https://github.com/bitcoinrese
 
 > **blockNumber**: `number`
 
-Defined in: [modules/bitview-client/index.js:276](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L276)
+Defined in: [modules/bitview-client/index.js:286](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L286)
 
 This block's ordinal among blocks attributed to this pool
 
@@ -24,7 +24,7 @@ This block's ordinal among blocks attributed to this pool
 
 > **id**: `number`
 
-Defined in: [modules/bitview-client/index.js:273](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L273)
+Defined in: [modules/bitview-client/index.js:283](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L283)
 
 Zero-based pool ID, matching mempool.space's `unique_id`
 
@@ -34,7 +34,7 @@ Zero-based pool ID, matching mempool.space's `unique_id`
 
 > `optional` **minerNames?**: `string`[] \| `null`
 
-Defined in: [modules/bitview-client/index.js:277](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L277)
+Defined in: [modules/bitview-client/index.js:287](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L287)
 
 Miner name tags found in coinbase scriptsig
 
@@ -44,7 +44,7 @@ Miner name tags found in coinbase scriptsig
 
 > **name**: `string`
 
-Defined in: [modules/bitview-client/index.js:274](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L274)
+Defined in: [modules/bitview-client/index.js:284](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L284)
 
 ***
 
@@ -52,6 +52,6 @@ Defined in: [modules/bitview-client/index.js:274](https://github.com/bitcoinrese
 
 > **slug**: [`PoolSlug`](../type-aliases/PoolSlug.md)
 
-Defined in: [modules/bitview-client/index.js:275](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L275)
+Defined in: [modules/bitview-client/index.js:285](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L285)
 
 URL-friendly pool identifier

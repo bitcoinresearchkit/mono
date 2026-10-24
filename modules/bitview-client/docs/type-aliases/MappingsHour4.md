@@ -8,7 +8,7 @@
 
 > **MappingsHour4** = `object`
 
-Defined in: [modules/bitview-client/index.js:6361](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6361)
+Defined in: [modules/bitview-client/index.js:6393](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6393)
 
 ## Type Parameters
 

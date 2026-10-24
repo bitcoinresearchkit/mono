@@ -8,6 +8,6 @@
 
 > **Day3** = `number`
 
-Defined in: [modules/bitview-client/index.js:483](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L483)
+Defined in: [modules/bitview-client/index.js:493](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L493)
 
 ## Type Parameters

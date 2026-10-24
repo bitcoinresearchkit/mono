@@ -637,49 +637,37 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
-        name: "get-oracle-histogram-outputs",
+        name: "get-oracle-payments",
         method: "GET",
-        path: "/api/oracle/histogram/outputs/{point}",
-        summary: "Output value histogram at height or day",
-        description: "Unfiltered output value histogram for a confirmed point. A block height (`840000`) counts that block's nonzero outputs within the histogram's bin range, coinbase included, by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.",
+        path: "/api/oracle/payments/{height}",
+        summary: "The oracle's payments, a day of blocks at a time",
+        description: "For each of the 144 blocks from `height` (a multiple of 144, from 508,032): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of an oracle bin wide (0.115% of price) over the block's search window. The chunk at the tip holds the blocks so far; a complete, settled chunk never changes.",
         path_parameters: &[
-            Parameter { api_name: "point", name: "point", required: true, value_name: "HeightOrDate", repeatable: false, description: Some("Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)") },
+            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
         request_body: None,
     },
     Command {
-        name: "get-oracle-histogram-outputs-live",
+        name: "get-oracle-search",
         method: "GET",
-        path: "/api/oracle/histogram/outputs/live",
-        summary: "Live output value histogram",
-        description: "Live unfiltered output value histogram for the complete published mempool. Nonzero outputs within the histogram's bin range are counted by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.",
+        path: "/api/oracle/searches/{height}",
+        summary: "The oracle's search at a block",
+        description: "The oracle's search behind a block's price, after height 508,000: every candidate bin in its window, 12 below the block before's answer to 11 above, with its score (each round-dollar arm's count over that arm's peak in the window, summed), the bin it picked, and the smoothed histogram it scored them on.",
         path_parameters: &[
+            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
         request_body: None,
     },
     Command {
-        name: "get-oracle-histogram-payments",
+        name: "get-oracle-search-live",
         method: "GET",
-        path: "/api/oracle/histogram/payments/{point}",
-        summary: "Payment output histogram at height or day",
-        description: "Smoothed histogram of oracle-eligible payment outputs for a confirmed point. A block height (`840000`) gives that block's oracle payment histogram; a calendar date (`YYYY-MM-DD`) gives the average of that day's per-block payment histograms. A flat array of log-scale bins.",
-        path_parameters: &[
-            Parameter { api_name: "point", name: "point", required: true, value_name: "HeightOrDate", repeatable: false, description: Some("Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)") },
-        ],
-        query_parameters: &[
-        ],
-        request_body: None,
-    },
-    Command {
-        name: "get-oracle-histogram-payments-live",
-        method: "GET",
-        path: "/api/oracle/histogram/payments/live",
-        summary: "Live payment output histogram",
-        description: "Live smoothed histogram of oracle-eligible payment outputs, binned by output value on the oracle log scale. It combines the committed oracle window with the complete mempool's eligible outputs from a matching chain publication. A flat array of log-scale bins.",
+        path: "/api/oracle/searches/live",
+        summary: "The oracle's live search",
+        description: "With the mempool's eligible outputs blended in as the next block, the oracle's search for it from the tip's answer, as in `GET /api/oracle/searches/{height}`: its height is the next block's, its pick the live price. Without a mempool publication at the tip, the tip block's own search.",
         path_parameters: &[
         ],
         query_parameters: &[

@@ -8,6 +8,6 @@
 
 > **P2MSOutputIndex** = [`TypeIndex`](TypeIndex.md)
 
-Defined in: [modules/bitview-client/index.js:940](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L940)
+Defined in: [modules/bitview-client/index.js:972](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L972)
 
 ## Type Parameters

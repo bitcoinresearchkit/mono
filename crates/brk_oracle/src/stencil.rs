@@ -26,6 +26,12 @@ const STENCIL_OFFSETS: [i32; 19] = [
     400,  // $10000
 ];
 
+/// The 19 round-dollar amounts behind [`STENCIL_OFFSETS`], in dollars.
+pub const ROUND_DOLLARS: [f64; 19] = [
+    1.0, 2.0, 3.0, 5.0, 10.0, 15.0, 20.0, 25.0, 30.0, 50.0, 100.0, 150.0, 200.0, 300.0, 500.0,
+    1000.0, 2000.0, 5000.0, 10000.0,
+];
+
 const N_ARMS: usize = STENCIL_OFFSETS.len();
 
 type Arms = [f64; N_ARMS];
@@ -72,6 +78,16 @@ pub struct Stencil {
 
 impl Stencil {
     pub fn new(shape_weight: f64) -> Self {
+        debug_assert!(
+            ROUND_DOLLARS
+                .iter()
+                .zip(STENCIL_OFFSETS)
+                .all(
+                    |(dollars, offset)| ((dollars / 100.0).log10() * 200.0).round() as i32
+                        == offset
+                ),
+            "each stencil offset is its round amount's bin distance from $100"
+        );
         Self {
             shape: ShapeAnchor::new(shape_weight),
         }
@@ -87,6 +103,23 @@ impl Stencil {
         let ref_bin = find_best_bin(ema, prev_bin, search_below, search_above, &self.shape);
         self.shape.update(ema, ref_bin.round() as i64);
         ref_bin
+    }
+
+    /// Every candidate's score in the window around `prev_bin`, as [`pick`](Self::pick) ranks them:
+    /// the window's first bin and the scores in bin order. `None` without a searchable bin or any
+    /// evidence, when `pick` keeps its reference.
+    pub fn scores(
+        &self,
+        ema: &HistogramEma,
+        prev_bin: f64,
+        search_below: usize,
+        search_above: usize,
+    ) -> Option<(usize, Vec<f64>)> {
+        let range = search_range(prev_bin, search_below, search_above)?;
+        let scorer = CandidateScorer::new(ema, &self.shape, range.clone());
+        scorer
+            .has_evidence()
+            .then(|| (range.start, range.map(|bin| scorer.score(bin)).collect()))
     }
 }
 

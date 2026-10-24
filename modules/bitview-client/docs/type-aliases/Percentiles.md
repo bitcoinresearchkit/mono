@@ -8,7 +8,7 @@
 
 > **Percentiles**\<`A`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:3179](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3179)
+Defined in: [modules/bitview-client/index.js:3211](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3211)
 
 ## Type Parameters
 

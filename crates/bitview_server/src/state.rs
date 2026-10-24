@@ -39,6 +39,10 @@ pub struct AppState {
 pub struct SharedState {
     pub sync_query: Arc<Semaphore>,
     pub disk_query: Arc<Semaphore>,
+    /// Oracle replays (searches, histograms at a height or a day), which read every output of their
+    /// blocks: one at a time, waiting apart from other reads.
+    #[cfg(feature = "price")]
+    pub oracle_replays: Arc<Semaphore>,
     #[cfg(feature = "chain")]
     pub raw_block_bodies: Arc<Semaphore>,
     #[cfg(feature = "chain")]
@@ -280,8 +284,24 @@ impl AppState {
         T: Serialize + Send + 'static,
         F: FnOnce(&Query) -> Result<(T, bool)> + Send + 'static,
     {
+        self.respond_json_settled_on(&self.sync_query, headers, f)
+            .await
+    }
+
+    /// [`Self::respond_json_settled`] under its own admission: work heavy enough to wait apart.
+    #[cfg(any(feature = "chain", feature = "price", feature = "urpd"))]
+    pub async fn respond_json_settled_on<T, F>(
+        &self,
+        admission: &Arc<Semaphore>,
+        headers: &HeaderMap,
+        f: F,
+    ) -> Response<Body>
+    where
+        T: Serialize + Send + 'static,
+        F: FnOnce(&Query) -> Result<(T, bool)> + Send + 'static,
+    {
         let built = self
-            .read_admitted(move |query| {
+            .read_with_admission(admission, move |query| {
                 let (value, settled) = f(query)?;
                 Ok((Bytes::from(to_vec(&value)?), settled))
             })

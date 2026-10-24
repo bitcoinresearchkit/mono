@@ -8,7 +8,7 @@
 
 > **MappingsTxIndex** = `object`
 
-Defined in: [modules/bitview-client/index.js:6253](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6253)
+Defined in: [modules/bitview-client/index.js:6285](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6285)
 
 ## Type Parameters
 

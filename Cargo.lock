@@ -1141,6 +1141,7 @@ dependencies = [
  "bitcoin",
  "bitview_cohort",
  "bitview_primitives",
+ "brk_oracle",
  "brk_types",
  "derive_more",
  "itoa",

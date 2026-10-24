@@ -738,6 +738,23 @@ class PoolSlugAndHeightParam(TypedDict):
     slug: PoolSlug
     height: Height
 
+class OracleSearch(TypedDict):
+    """
+    The oracle's search for one block: each candidate bin it scored, the one it picked, and the
+    histogram it scored them on.
+
+    Attributes:
+        first_bin: The window's first candidate bin, on the oracle's log scale (200 bins a decade; a bin is where $100 lands in sats: the price is `10^(10 - bin / 200)` dollars).
+        scores: Each candidate's score, from `first_bin` on: its round-dollar arms' counts, each over that arm's peak in the window, summed. The highest is the pick's bin.
+        bin: The bin it picked, refined between bins: the block's price.
+        histogram: The smoothed histogram it scored: the payments of the block and the 11 before it (and, live, the mempool's as the next block's), counted by amount in sats on the same scale (a bin is `round(log10(sats) * 200)`), the newest weighing most.
+    """
+    height: Height
+    first_bin: int
+    scores: List[float]
+    bin: float
+    histogram: List[float]
+
 class MerkleProof(TypedDict):
     """
     Merkle inclusion proof for a transaction
@@ -833,6 +850,29 @@ class BlockSizeEntry(TypedDict):
 class BlockSizesWeights(TypedDict):
     sizes: List[BlockSizeEntry]
     weights: List[BlockWeightEntry]
+
+class BlockPayments(TypedDict):
+    """
+    One block's payments, each read as each of the oracle's 19 round-dollar amounts ($1 to $10,000)
+    at its exact amount in sats, counted by the price each reading implies.
+
+    Attributes:
+        first: The first bucket: bucket `i` holds the readings whose $100 bin is in `[i, i + 1) * step`, the price `10^(10 - i * step / 200)` dollars at its edge.
+        counts: The readings in each bucket from `first` on, over the oracle's search window for the block.
+    """
+    height: Height
+    first: int
+    counts: List[int]
+
+class OraclePayments(TypedDict):
+    """
+    Blocks' payments read as round-dollar amounts: the prices they imply, counted in fine buckets.
+
+    Attributes:
+        step: A bucket's width in oracle bins (a bin is 1/200 of a decade of price).
+    """
+    step: float
+    blocks: List[BlockPayments]
 
 class BlockFeeRatesEntry(TypedDict):
     """
@@ -6749,37 +6789,29 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/oracle/price`"""
         return self.get_json('/api/oracle/price')
 
-    def get_oracle_histogram_payments_live(self) -> List[int]:
-        """Live payment output histogram.
+    def get_oracle_search(self, height: Height) -> OracleSearch:
+        """The oracle's search at a block.
 
-        Live smoothed histogram of oracle-eligible payment outputs, binned by output value on the oracle log scale. It combines the committed oracle window with the complete mempool's eligible outputs from a matching chain publication. A flat array of log-scale bins.
+        The oracle's search behind a block's price, after height 508,000: every candidate bin in its window, 12 below the block before's answer to 11 above, with its score (each round-dollar arm's count over that arm's peak in the window, summed), the bin it picked, and the smoothed histogram it scored them on.
 
-        Endpoint: `GET /api/oracle/histogram/payments/live`"""
-        return self.get_json('/api/oracle/histogram/payments/live')
+        Endpoint: `GET /api/oracle/searches/{height}`"""
+        return self.get_json(f'/api/oracle/searches/{_segment(height)}')
 
-    def get_oracle_histogram_payments(self, point: HeightOrDate) -> List[int]:
-        """Payment output histogram at height or day.
+    def get_oracle_payments(self, height: Height) -> OraclePayments:
+        """The oracle's payments, a day of blocks at a time.
 
-        Smoothed histogram of oracle-eligible payment outputs for a confirmed point. A block height (`840000`) gives that block's oracle payment histogram; a calendar date (`YYYY-MM-DD`) gives the average of that day's per-block payment histograms. A flat array of log-scale bins.
+        For each of the 144 blocks from `height` (a multiple of 144, from 508,032): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of an oracle bin wide (0.115% of price) over the block's search window. The chunk at the tip holds the blocks so far; a complete, settled chunk never changes.
 
-        Endpoint: `GET /api/oracle/histogram/payments/{point}`"""
-        return self.get_json(f'/api/oracle/histogram/payments/{_segment(point)}')
+        Endpoint: `GET /api/oracle/payments/{height}`"""
+        return self.get_json(f'/api/oracle/payments/{_segment(height)}')
 
-    def get_oracle_histogram_outputs_live(self) -> List[int]:
-        """Live output value histogram.
+    def get_oracle_search_live(self) -> OracleSearch:
+        """The oracle's live search.
 
-        Live unfiltered output value histogram for the complete published mempool. Nonzero outputs within the histogram's bin range are counted by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
+        With the mempool's eligible outputs blended in as the next block, the oracle's search for it from the tip's answer, as in `GET /api/oracle/searches/{height}`: its height is the next block's, its pick the live price. Without a mempool publication at the tip, the tip block's own search.
 
-        Endpoint: `GET /api/oracle/histogram/outputs/live`"""
-        return self.get_json('/api/oracle/histogram/outputs/live')
-
-    def get_oracle_histogram_outputs(self, point: HeightOrDate) -> List[int]:
-        """Output value histogram at height or day.
-
-        Unfiltered output value histogram for a confirmed point. A block height (`840000`) counts that block's nonzero outputs within the histogram's bin range, coinbase included, by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
-
-        Endpoint: `GET /api/oracle/histogram/outputs/{point}`"""
-        return self.get_json(f'/api/oracle/histogram/outputs/{_segment(point)}')
+        Endpoint: `GET /api/oracle/searches/live`"""
+        return self.get_json('/api/oracle/searches/live')
 
     def get_openapi(self) -> Any:
         """OpenAPI specification.

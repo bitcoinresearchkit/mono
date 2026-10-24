@@ -8,7 +8,7 @@
 
 > **MappingsP2a** = `object`
 
-Defined in: [modules/bitview-client/index.js:6504](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6504)
+Defined in: [modules/bitview-client/index.js:6536](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6536)
 
 ## Type Parameters
 

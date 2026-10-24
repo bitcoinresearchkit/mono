@@ -8,7 +8,7 @@
 
 > **CoinflowRange** = `object`
 
-Defined in: [modules/bitview-client/index.js:3967](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3967)
+Defined in: [modules/bitview-client/index.js:3999](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3999)
 
 ## Type Parameters
 

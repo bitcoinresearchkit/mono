@@ -8,6 +8,6 @@
 
 > **Vin** = `number`
 
-Defined in: [modules/bitview-client/index.js:1617](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1617)
+Defined in: [modules/bitview-client/index.js:1649](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1649)
 
 ## Type Parameters

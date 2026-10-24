@@ -8,7 +8,7 @@
 
 > **ByLookbackPeriod** = `object`
 
-Defined in: [modules/bitview-client/index.js:3716](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3716)
+Defined in: [modules/bitview-client/index.js:3748](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3748)
 
 ## Type Parameters
 

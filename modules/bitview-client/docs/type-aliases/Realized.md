@@ -8,7 +8,7 @@
 
 > **Realized** = `object`
 
-Defined in: [modules/bitview-client/index.js:4946](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4946)
+Defined in: [modules/bitview-client/index.js:4978](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4978)
 
 ## Type Parameters
 

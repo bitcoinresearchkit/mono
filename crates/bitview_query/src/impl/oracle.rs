@@ -1,126 +1,173 @@
-use std::ops::Range;
+use std::{collections::HashMap, sync::Arc};
 
-use bitview_plugin_indexer::SafeLengths;
-use bitview_plugin_price::{feed_blocks_for_warmup, feed_blocks_with};
-use bitview_primitives::{Day1, Lengths};
-use brk_oracle::{
-    Config, HistogramEma, HistogramEmaCompact, HistogramRaw, Oracle, START_HEIGHT_SLOW, sats_to_bin,
-};
+use bitview_plugin_price::{block_payments, feed_blocks_for_warmup, feed_blocks_with};
+use bitview_primitives::Lengths;
+use bitview_types::{BlockPayments, OraclePayments, OracleSearch};
+use brk_oracle::{Config, Oracle, ROUND_DOLLARS, START_HEIGHT_FAST, START_HEIGHT_SLOW, Search};
 use brk_types::{Dollars, Height};
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
-use crate::{Error, OptionData, Query, Result, check_bound};
+use crate::{Error, Query, Result, check_bound};
+
+/// Blocks in one chunk of payments: a day's. Chunks start at its multiples, so their requests are
+/// few and fixed, and a settled one never changes.
+pub const ORACLE_PAYMENTS_CHUNK: usize = 144;
+
+/// A payments bucket's width, in oracle bins: a tenth, 0.115% of price.
+pub const PAYMENT_STEP: f64 = 0.1;
 
 impl Query {
-    pub fn live_price(&self) -> Result<Dollars> {
-        Ok(self.live_oracle()?.price_dollars())
-    }
-
-    /// Smoothed payment output histogram at the live tip, quantized for the wire.
-    pub fn live_payment_histogram(&self) -> Result<HistogramEmaCompact> {
-        Ok(self.live_oracle()?.ema().to_compact())
-    }
-
-    /// Smoothed payment output histogram for a confirmed `height`, deterministically
-    /// reconstructed by replaying the window ending at `height`. EMA values are
-    /// seed-independent, so the result is exact. Also whether `height` is settled.
-    pub fn confirmed_payment_histogram(
-        &self,
-        height: usize,
-    ) -> Result<(HistogramEmaCompact, bool)> {
-        let pin = self.pin_safe_lengths()?;
-        check_bound(&pin, height, pin.lengths().height.to_usize())?;
-        let safe = self.check_histogram_height(height, pin.lengths())?;
-        let seed = self.seed_bin_at(height)?;
-        let histogram = self
-            .warm_oracle(seed, height + 1, &safe)?
-            .ema()
-            .to_compact();
-        Ok((histogram, pin.lengths().is_settled(Height::from(height))))
-    }
-
-    /// Smoothed payment output histogram for a calendar `day`: the bin-by-bin average of
-    /// every confirmed block's per-block EMA. The first block in each EMA config
-    /// segment is reconstructed exactly, then later blocks in the segment are walked
-    /// sequentially. Blocks before the oracle's first one count as zeros, as their height
-    /// reads do. Averaging keeps the result an intensive per-block rate rather than letting
-    /// a busy day dominate. Also whether the day is settled.
-    pub fn confirmed_payment_histogram_day(
-        &self,
-        day: Day1,
-    ) -> Result<(HistogramEmaCompact, bool)> {
-        let pin = self.pin_safe_lengths()?;
-        let safe = pin.lengths();
-        let (range, settled) = self.day_block_range(day, &pin)?;
-        let count = range.len();
-        let fed = range.start.max(START_HEIGHT_SLOW)..range.end;
-        let segments = Config::segments_for_range(fed)
-            .map(|segment| self.seed_bin_at(segment.start).map(|seed| (segment, seed)))
-            .collect::<Result<Vec<_>>>()?;
-        let histogram = self.average_payment_histogram_range(segments, count, &safe)?;
-        Ok((histogram.to_compact(), settled))
-    }
-
-    /// The segments' per-block EMAs averaged bin by bin over `count` blocks.
-    fn average_payment_histogram_range(
-        &self,
-        segments: Vec<(Range<usize>, f64)>,
-        count: usize,
-        safe: &Lengths,
-    ) -> Result<HistogramEma> {
-        let mut acc = HistogramEma::default();
-
-        for (segment, seed) in segments {
-            let mut oracle = self.warm_oracle(seed, segment.start + 1, safe)?;
-            acc.add_from(oracle.ema());
-
-            let feed_start = segment.start + 1;
-            if feed_start < segment.end {
-                feed_blocks_with(
-                    &mut oracle,
-                    self.indexer(),
-                    feed_start..segment.end,
-                    Some(safe),
-                    |_, oracle, _| acc.add_from(oracle.ema()),
-                )?;
-            }
+    /// The oracle's search at confirmed `height`: every candidate bin it scored from the block
+    /// before's answer, the bin it picked (the block's price), and the smoothed histogram it
+    /// scored. After [`START_HEIGHT_FAST`] (before, the slow regime's shape profile learns from
+    /// each pick). Also whether `height` is settled.
+    pub fn oracle_search(&self, height: usize) -> Result<(OracleSearch, bool)> {
+        if height <= START_HEIGHT_FAST {
+            return Err(Error::OutOfRange(
+                format!("oracle searches: after height {START_HEIGHT_FAST}").into(),
+            ));
         }
-
-        acc.divide_by(count as f64);
-        Ok(acc)
-    }
-
-    /// Unfiltered per-bin output counts at the live tip: the published mempool outputs that
-    /// `sats_to_bin` bins, with none of the round-dollar payment filters. Zeros when no mempool
-    /// is configured.
-    pub fn live_output_histogram(&self) -> Result<HistogramRaw> {
-        Ok(match Self::lookup_mempool(self.mempool()) {
-            Some((mempool, tip)) => mempool.live_raw_histogram(&tip)?,
-            None => HistogramRaw::default(),
-        })
-    }
-
-    /// Unfiltered per-bin output counts for a confirmed `height`: the block's outputs that
-    /// `sats_to_bin` bins, with no payment filtering. Also whether `height` is settled.
-    pub fn confirmed_output_histogram(&self, height: usize) -> Result<(HistogramRaw, bool)> {
         let pin = self.pin_safe_lengths()?;
         check_bound(&pin, height, pin.lengths().height.to_usize())?;
         let safe = self.check_histogram_height(height, pin.lengths())?;
-        let histogram = self.output_histogram_for_blocks(height..height + 1, &safe)?;
-        Ok((histogram, pin.lengths().is_settled(Height::from(height))))
+        // (The window's histogram doesn't depend on the seed: the answers do, read as stored.)
+        let prev = self.seed_bin_at(height - 1)?;
+        let oracle = self.warm_oracle(prev, height + 1, &safe)?;
+        let search = oracle
+            .search(prev)
+            .ok_or_else(|| Error::NotFound(format!("no oracle search at height {height}")))?;
+        let bin = self.seed_bin_at(height)?;
+        Ok((
+            searched(height, search, bin, &oracle),
+            pin.lengths().is_settled(Height::from(height)),
+        ))
     }
 
-    /// [`Self::confirmed_output_histogram`] summed bin by bin over a calendar `day`'s blocks.
-    pub fn confirmed_output_histogram_day(&self, day: Day1) -> Result<(HistogramRaw, bool)> {
+    /// The chunk's blocks' payments (from `start`, a multiple of [`ORACLE_PAYMENTS_CHUNK`] past
+    /// [`START_HEIGHT_FAST`]), each read as each of the oracle's round-dollar amounts at its exact
+    /// amount in sats, counted by the price each reading implies, in buckets of [`PAYMENT_STEP`]
+    /// bins over the block's search window. The chunk at the tip holds the blocks so far. Also
+    /// whether the chunk is complete and settled.
+    pub fn oracle_payments_chunk(&self, start: usize) -> Result<(Arc<OraclePayments>, bool)> {
+        if start <= START_HEIGHT_FAST || !start.is_multiple_of(ORACLE_PAYMENTS_CHUNK) {
+            return Err(Error::OutOfRange(
+                format!("oracle payments: chunks start at multiples of {ORACLE_PAYMENTS_CHUNK}, after height {START_HEIGHT_FAST}").into(),
+            ));
+        }
         let pin = self.pin_safe_lengths()?;
-        let (range, settled) = self.day_block_range(day, &pin)?;
-        let histogram = self.output_histogram_for_blocks(range, &pin.lengths())?;
-        Ok((histogram, settled))
+        check_bound(&pin, start, pin.lengths().height.to_usize())?;
+        let end = (start + ORACLE_PAYMENTS_CHUNK).min(self.histogram_bound(&pin.lengths()));
+        if end <= start {
+            return Err(Error::NotFound(format!(
+                "oracle payments unavailable from height {start}"
+            )));
+        }
+        // (Replayed once: a settled chunk for good, the others once per publication.)
+        if let Some(hit) = self.0.payment_chunks.lock().get(start, pin.revision()) {
+            return Ok(hit);
+        }
+        let range = start..end;
+        let safe = self.check_histogram_height(end - 1, pin.lengths())?;
+        // (Each block's search window, from the block before's answer as stored, as
+        // `oracle_search` finds it.)
+        let prevs = (start - 1..end - 1)
+            .map(|height| self.seed_bin_at(height))
+            .collect::<Result<Vec<_>>>()?;
+        let mut oracle = self.warm_oracle(prevs[0], start, &safe)?;
+        let mut windows = HashMap::with_capacity(range.len());
+        feed_blocks_with(
+            &mut oracle,
+            self.indexer(),
+            range.clone(),
+            Some(&safe),
+            |height, oracle, _| {
+                if let Some(search) = oracle.search(prevs[height - start]) {
+                    windows.insert(height, (search.first_bin, search.scores.len()));
+                }
+            },
+        )?;
+        let per_bin = (1.0 / PAYMENT_STEP).round() as i64;
+        let amounts = ROUND_DOLLARS.map(f64::log10);
+        let mut blocks = Vec::with_capacity(range.len());
+        block_payments(
+            self.indexer(),
+            range.clone(),
+            Some(&safe),
+            |height, payments| {
+                let Some(&(first_bin, bins)) = windows.get(&height) else {
+                    return;
+                };
+                // (A bin spans half a bin either side of it: the window's first bucket starts there.)
+                let first = first_bin as i64 * per_bin - per_bin / 2;
+                let mut counts = vec![0u32; bins * per_bin as usize];
+                for sats in payments {
+                    let at = ((*sats as f64).log10() + 2.0) * 200.0 / PAYMENT_STEP;
+                    for amount in amounts {
+                        // (A reading on a bucket's edge, as $25 in 25,000 sats is $100,000 exactly, can land
+                        // a hair under it in floating point: within a millionth of a bucket is on it.)
+                        let at = at - amount * 200.0 / PAYMENT_STEP;
+                        let edge = at.round();
+                        let bucket = if (at - edge).abs() < 1e-6 {
+                            edge
+                        } else {
+                            at.floor()
+                        } as i64
+                            - first;
+                        if let Some(count) =
+                            usize::try_from(bucket).ok().and_then(|b| counts.get_mut(b))
+                        {
+                            *count += 1;
+                        }
+                    }
+                }
+                blocks.push(BlockPayments {
+                    height: Height::from(height),
+                    first: first as u32,
+                    counts,
+                });
+            },
+        )?;
+        let settled =
+            range.len() == ORACLE_PAYMENTS_CHUNK && pin.lengths().is_settled(Height::from(end - 1));
+        let payments = Arc::new(OraclePayments {
+            step: PAYMENT_STEP,
+            blocks,
+        });
+        self.0
+            .payment_chunks
+            .lock()
+            .put(start, pin.revision(), settled, Arc::clone(&payments));
+        Ok((payments, settled))
     }
 
-    /// The live tip oracle: the committed base, with the published pool's
-    /// mempool outputs blended in as a final slot when a mempool is configured.
-    fn live_oracle(&self) -> Result<Oracle> {
+    /// The live search, from the live oracle the server keeps warm (no replay): with the mempool's
+    /// outputs blended in as the next block, the oracle's search for it from the tip's answer;
+    /// without a mempool publication at this tip, the tip block's own search. With the smoothed
+    /// histogram it scored, the same snapshot. After [`START_HEIGHT_FAST`], as `oracle_search`.
+    pub fn live_search(&self) -> Result<OracleSearch> {
+        let live = self.live_oracle()?;
+        let (oracle, height, prev) = match live.blended_from {
+            Some(prev) => (live.oracle, live.next, prev),
+            None => (live.oracle, live.next - 1, live.tip_prev),
+        };
+        if height <= START_HEIGHT_FAST {
+            return Err(Error::OutOfRange(
+                format!("oracle searches: after height {START_HEIGHT_FAST}").into(),
+            ));
+        }
+        let search = oracle
+            .search(prev)
+            .ok_or_else(|| Error::NotFound("no oracle search at the tip".to_owned()))?;
+        Ok(searched(height, search, oracle.ref_bin(), &oracle))
+    }
+
+    pub fn live_price(&self) -> Result<Dollars> {
+        Ok(self.live_oracle()?.oracle.price_dollars())
+    }
+
+    /// The live tip oracle: the committed base, with the published pool's mempool outputs
+    /// blended in as a final slot when a mempool is configured.
+    fn live_oracle(&self) -> Result<LiveOracle> {
         let (mempool, pin) = self.mempool_then_pin()?;
         let tip = pin.tip();
         // Capture the completed mempool publication while the confirmed anchor
@@ -141,10 +188,19 @@ impl Query {
             .0
             .live_oracle
             .get_or_try_init(pin.revision(), || self.warm_oracle(seed_bin, height, &safe))?;
-        if let Some(histogram) = live {
+        let blended_from = live.map(|histogram| {
+            let from = oracle.ref_bin();
             oracle.process_histogram(&histogram);
-        }
-        Ok(oracle)
+            from
+        });
+        // (Under the same pin as the oracle: a reorganization can't put another fork's answer here.)
+        let tip_prev = self.seed_bin_at(last.saturating_sub(1))?;
+        Ok(LiveOracle {
+            oracle,
+            blended_from,
+            next: height,
+            tip_prev,
+        })
     }
 
     /// An oracle seeded at `seed_bin` and warmed by replaying the `window_size`
@@ -193,56 +249,76 @@ impl Query {
         }
         Ok(safe)
     }
+}
 
-    /// The confirmed block heights of calendar `day`, clamped to the same histogram-available
-    /// bound as `check_histogram_height`, and whether the day is settled.
-    fn day_block_range(&self, day: Day1, pin: &SafeLengths) -> Result<(Range<usize>, bool)> {
-        self.day_heights(day, self.histogram_bound(&pin.lengths()), pin)
+/// A block's search, for the wire, with the histogram `oracle` scored.
+fn searched(height: usize, search: Search, bin: f64, oracle: &Oracle) -> OracleSearch {
+    OracleSearch {
+        height: Height::from(height),
+        first_bin: search.first_bin as u16,
+        scores: search.scores,
+        bin,
+        histogram: oracle.ema().clone(),
+    }
+}
+
+/// The live oracle and what its searches start from.
+struct LiveOracle {
+    oracle: Oracle,
+    /// With the mempool blended in, the reference its search started from: the tip's answer.
+    blended_from: Option<f64>,
+    /// The next block's height.
+    next: usize,
+    /// The tip block's previous answer: where its own search started.
+    tip_prev: f64,
+}
+
+/// Payment chunks already replayed: a settled one kept for good (it never changes), the others for
+/// the publication they were read at; past [`Self::MAX`], the least recently used go first.
+pub struct OracleChunks<T> {
+    /// Each chunk by its start: the revision it was read at (none once settled), when it was last
+    /// used, and the chunk.
+    chunks: HashMap<usize, (Option<u64>, u64, Arc<T>)>,
+    uses: u64,
+}
+
+impl<T> Default for OracleChunks<T> {
+    fn default() -> Self {
+        Self {
+            chunks: HashMap::new(),
+            uses: 0,
+        }
+    }
+}
+
+impl<T> OracleChunks<T> {
+    const MAX: usize = 64;
+
+    fn get(&mut self, start: usize, revision: u64) -> Option<(Arc<T>, bool)> {
+        self.uses += 1;
+        let (read_at, used, chunk) = self.chunks.get_mut(&start)?;
+        let settled = match read_at {
+            None => true,
+            Some(read_at) if *read_at == revision => false,
+            Some(_) => return None,
+        };
+        *used = self.uses;
+        Some((Arc::clone(chunk), settled))
     }
 
-    /// Unfiltered histogram of a contiguous confirmed block range: every output, coinbase
-    /// included, that `sats_to_bin` bins. Raw counts are additive, so a day reads as one output
-    /// range.
-    fn output_histogram_for_blocks(
-        &self,
-        range: Range<usize>,
-        safe: &Lengths,
-    ) -> Result<HistogramRaw> {
-        let indexer = self.indexer();
-        let safe_height = safe.height.to_usize();
-        let total_outputs = safe.txout_index.to_usize();
-        debug_assert!(range.start < range.end && range.end <= safe_height);
-        let first_txout_index = &indexer.vecs().outputs.first_txout_index;
-        let out_start = first_txout_index
-            .collect_one_at(range.start)
-            .data()?
-            .to_usize();
-        let out_end = if range.end < safe_height {
-            first_txout_index
-                .collect_one_at(range.end)
-                .data()?
-                .to_usize()
-        } else {
-            total_outputs
-        };
-        if out_start > out_end || out_end > total_outputs {
-            return Err(Error::Internal("Invalid oracle output boundaries"));
+    fn put(&mut self, start: usize, revision: u64, settled: bool, chunk: Arc<T>) {
+        self.uses += 1;
+        if self.chunks.len() >= Self::MAX
+            && !self.chunks.contains_key(&start)
+            && let Some(&unused) = self
+                .chunks
+                .iter()
+                .min_by_key(|(_, (_, used, _))| *used)
+                .map(|(start, _)| start)
+        {
+            self.chunks.remove(&unused);
         }
-
-        let mut hist = HistogramRaw::default();
-        indexer
-            .vecs()
-            .outputs
-            .value
-            .try_fold_range_at(out_start, out_end, (), |(), sats| {
-                if let Some(bin) = sats_to_bin(sats) {
-                    let count = &mut hist[bin];
-                    *count = count
-                        .checked_add(1)
-                        .ok_or(Error::Internal("Oracle histogram count overflow"))?;
-                }
-                Ok::<_, Error>(())
-            })?;
-        Ok(hist)
+        self.chunks
+            .insert(start, ((!settled).then_some(revision), self.uses, chunk));
     }
 }

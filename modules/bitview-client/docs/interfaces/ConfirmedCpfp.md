@@ -6,7 +6,7 @@
 
 # Interface: ConfirmedCpfp
 
-Defined in: [modules/bitview-client/index.js:372](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L372)
+Defined in: [modules/bitview-client/index.js:382](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L382)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:372](https://github.com/bitcoinrese
 
 > **ancestors**: [`CpfpEntry`](CpfpEntry.md)[]
 
-Defined in: [modules/bitview-client/index.js:373](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L373)
+Defined in: [modules/bitview-client/index.js:383](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L383)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:373](https://github.com/bitcoinrese
 
 > **cluster**: [`CpfpCluster`](CpfpCluster.md)
 
-Defined in: [modules/bitview-client/index.js:377](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L377)
+Defined in: [modules/bitview-client/index.js:387](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L387)
 
 The transaction's relatives in its block.
 
@@ -32,7 +32,7 @@ The transaction's relatives in its block.
 
 > **descendants**: [`CpfpEntry`](CpfpEntry.md)[]
 
-Defined in: [modules/bitview-client/index.js:374](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L374)
+Defined in: [modules/bitview-client/index.js:384](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L384)
 
 ***
 
@@ -40,7 +40,7 @@ Defined in: [modules/bitview-client/index.js:374](https://github.com/bitcoinrese
 
 > **effectiveFeePerVsize**: `number`
 
-Defined in: [modules/bitview-client/index.js:375](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L375)
+Defined in: [modules/bitview-client/index.js:385](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L385)
 
 Feerate of the chunk holding the transaction when its block's relatives are linearized
 (sat/vB).
