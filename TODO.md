@@ -62,5 +62,3 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
   loss, UTXO-set age statistics, address concentration, USD balance thresholds, a spent-output price distribution;
   coin days destroyed summed in satoshi-seconds before converting, and the awake/mobile distributions' per-bucket
   rounding and grid-price dollar weights.
-
-- Once next.bitview.space serves the dollar windows missing until priced (`bitview_vecs::PricedWindow`), drop Studio's Puell multiple guard (`lag`, in `showcases/studio/presets.js`): it hides its 10Y decade point and needs 4h+.
