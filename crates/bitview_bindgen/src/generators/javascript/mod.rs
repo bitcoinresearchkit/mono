@@ -7,6 +7,7 @@ use crate::{Endpoint, IndexSetPattern, TypeSchemas, VERSION, model::Model};
 
 mod api;
 pub(crate) mod client;
+mod keep;
 mod tree;
 pub(crate) mod types;
 
@@ -28,7 +29,7 @@ pub(crate) fn generate_javascript_client(
     client::generate_base_client(&mut output);
     client::generate_index_accessors(&mut output, accessors);
     tree::generate_tree(&mut output, model, shape_names, accessors, undefined_types);
-    tree::generate_main_client(&mut output, endpoints);
+    tree::generate_main_client(&mut output, endpoints, schemas);
 
     write_if_changed(output_path, &output)?;
 

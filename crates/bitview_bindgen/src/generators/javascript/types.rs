@@ -88,8 +88,8 @@ pub(crate) fn generate_type_definitions(output: &mut String, schemas: &TypeSchem
     writeln!(output).unwrap();
 }
 
-/// The name the client exposes for a wire key: the key itself, or for `_x` the camel getter
-/// the runtime adds (`tx_count` → `txCount`; `avgFee_0` and `24h` stay as they are).
+/// The name the client gives a wire field: camelCased by the runtime (`tx_count` → `txCount`;
+/// `avgFee_0` and `24h` stay as they are). Map keys are data and stay as sent.
 fn js_property_name(key: &str) -> String {
     let mut name = String::with_capacity(key.len());
     let mut chars = key.chars().peekable();

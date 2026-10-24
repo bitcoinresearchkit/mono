@@ -12,19 +12,43 @@ const _defaultBrowserCacheName = '__BRK_CLIENT__';
 const _DEFAULT_MEM_CACHE_SIZE = 1000;
 
 /** @template T @typedef {{ etag: string | null, value: T }} _MemEntry */
-/** @param {*} v */
-const _addCamelGetters = (v) => {
-  if (Array.isArray(v)) { v.forEach(_addCamelGetters); return v; }
-  if (v && typeof v === 'object' && v.constructor === Object) {
-    for (const k in v) {
-      if (k.includes('_')) {
-        const c = k.replace(/_([a-z])/g, (_, l) => l.toUpperCase());
-        if (!(c in v)) Object.defineProperty(v, c, { get() { return this[k]; } });
-      }
-      _addCamelGetters(v[k]);
-    }
+/** @type {Map<string, string>} */
+const _camelNames = new Map();
+/** `tx_count` → `txCount`; `avgFee_0` and `24h` stay as they are. @param {string} key */
+const _camelName = (key) => {
+  let name = _camelNames.get(key);
+  if (name === undefined) {
+    name = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+    _camelNames.set(key, name);
   }
-  return v;
+  return name;
+};
+
+/**
+ * A response with camelCase field names, renamed once after parsing. `keep` says where the schema
+ * has maps, whose keys are data and stay as sent with everything under them: `true` for the whole
+ * value, or the fields (by wire name) that hold one; omitted, every key is a field name.
+ * @param {*} value
+ * @param {*} [keep]
+ */
+const _camelKeys = (value, keep) => {
+  if (keep === true || value === null || typeof value !== 'object') return value;
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) value[i] = _camelKeys(value[i], keep);
+    return value;
+  }
+  let renamed = false;
+  for (const key in value) {
+    if (key.includes('_')) { renamed = true; break; }
+  }
+  if (!renamed) {
+    for (const key in value) value[key] = _camelKeys(value[key], keep?.[key]);
+    return value;
+  }
+  /** @type {Record<string, *>} */
+  const out = {};
+  for (const key in value) out[_camelName(key)] = _camelKeys(value[key], keep?.[key]);
+  return out;
 };
 
 /**
@@ -544,14 +568,15 @@ class BitviewClientBase {
   }
 
   /**
-   * Cached and supports `onValue`.
+   * Cached and supports `onValue`. Field names come camelCased, map keys as sent (`keep`).
    * @template T
    * @param {string} path
    * @param {ClientFetchOptions<T>} [options]
+   * @param {*} [keep] Where the response has maps, as `_camelKeys` takes it
    * @returns {Promise<T>}
    */
-  getJson(path, options) {
-    return this._getCached(path, 'json', async (res) => _addCamelGetters(await res.json()), options);
+  getJson(path, options, keep) {
+    return this._getCached(path, 'json', async (res) => _camelKeys(await res.json(), keep), options);
   }
 
   /**
@@ -595,11 +620,12 @@ class BitviewClientBase {
    * @param {string} path
    * @param {string} body
    * @param {{ signal?: AbortSignal }} [options]
+   * @param {*} [keep] Where the response has maps, as `_camelKeys` takes it
    * @returns {Promise<T>}
    */
-  async postJson(path, body, options) {
+  async postJson(path, body, options, keep) {
     const res = await this.post(path, body, options);
-    return _addCamelGetters(await res.json());
+    return _camelKeys(await res.json(), keep);
   }
 
   /**

@@ -1,21 +1,24 @@
 use std::fmt::Write;
 
 use crate::{
-    Endpoint, Parameter, Ty,
-    generators::{javascript::types::js_type, normalize_return_type, write_description},
+    Endpoint, Parameter, Ty, TypeSchemas,
+    generators::{
+        javascript::{keep::keep_expr, types::js_type},
+        normalize_return_type, write_description,
+    },
     to_camel_case,
 };
 
-pub fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
+pub fn generate_api_methods(output: &mut String, endpoints: &[Endpoint], schemas: &TypeSchemas) {
     for endpoint in endpoints
         .iter()
         .filter(|endpoint| endpoint.should_generate())
     {
-        generate_method(output, endpoint);
+        generate_method(output, endpoint, schemas);
     }
 }
 
-fn generate_method(output: &mut String, endpoint: &Endpoint) {
+fn generate_method(output: &mut String, endpoint: &Endpoint, schemas: &TypeSchemas) {
     let post = endpoint.method == "POST";
     let body = endpoint.request_body.as_ref().filter(|_| post);
     let return_type = build_return_type(endpoint);
@@ -99,7 +102,11 @@ fn generate_method(output: &mut String, endpoint: &Endpoint) {
     } else if matches!(response, Some(Ty::List(item)) if item.is_ref("SeriesData")) {
         "(await this.getJson(path, { signal, cache, memCache, onValue: onValue && ((v) => onValue(v.map(_wrapSeriesData))) })).map(_wrapSeriesData)".to_string()
     } else if endpoint.returns_json() {
-        format!("this.{verb}Json({args})")
+        // Map keys are data: they stay as sent while field names are camelCased.
+        match response.and_then(|ty| keep_expr(ty, schemas)) {
+            Some(keep) => format!("this.{verb}Json({args}, {keep})"),
+            None => format!("this.{verb}Json({args})"),
+        }
     } else if endpoint.response_kind.text_is_numeric() && post {
         format!("Number(await this.postText({args}))")
     } else if endpoint.response_kind.text_is_numeric() {

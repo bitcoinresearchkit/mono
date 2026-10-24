@@ -3075,11 +3075,11 @@
 
       async function loadPreviewData(block, signal) {
         const client = await loadClient();
-        const tx = client.series.transactions;
-        const first = await tx.raw.firstTxIndex.by.height.get(block.height).fetch({ signal });
+        const tx = client.series.indexer.transactions;
+        const first = await tx.firstTxIndex.by.height.get(block.height).fetch({ signal });
         const start = first.data[0];
         const end = start + block.tx_count;
-        const [weights, feeRates] = await fetchBulk(client, [tx.raw.weight, tx.fees.feeRate], "tx_index", start, end, { signal, memCache: false });
+        const [weights, feeRates] = await fetchBulk(client, [tx.weight, client.series.transactions.fees.feeRate], "tx_index", start, end, { signal, memCache: false });
 
         signal.throwIfAborted();
 

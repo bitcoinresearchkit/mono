@@ -688,6 +688,11 @@ has to be deleted by hand.
 
 #### `bitview-client` (JS), `bitview_client` (Python and Rust)
 
+- The JavaScript client's responses have camelCase field names as real keys, renamed once after parsing (were hidden
+  getters beside the snake_case keys, lost on spread, `structuredClone` and `JSON.stringify`, and three times the
+  JSON parse on the 9.3 MB projected block: 18.4 ms, now 4.2 ms). Map keys are data and stay as sent with
+  everything under them: the catalog tree (`getSeriesTree`) and `getSeriesCount`'s `by_db` keys (`op_return`, ...);
+  the generator finds the maps in each response's schema and refuses a snake_case struct under one
 - Generated all three series trees from one composition model. Typed series paths follow the series tree (see "One unit
   per quantity": `client.series().price.close.by.day1()`), and type names change: each repeated structure is one generic
   type named after the type that defines it (`Pool` for every pool, `Flow<A>`, `Share`, `Windows<A>`, `Band`,
