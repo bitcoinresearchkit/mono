@@ -8,7 +8,7 @@
 
 > **MappingsDifficultyEpoch** = `object`
 
-Defined in: [modules/bitview-client/index.js:6349](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6349)
+Defined in: [modules/bitview-client/index.js:6375](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6375)
 
 ## Type Parameters
 

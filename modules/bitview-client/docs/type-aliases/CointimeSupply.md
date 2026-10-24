@@ -8,7 +8,7 @@
 
 > **CointimeSupply** = `object`
 
-Defined in: [modules/bitview-client/index.js:3853](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3853)
+Defined in: [modules/bitview-client/index.js:3879](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3879)
 
 ## Type Parameters
 

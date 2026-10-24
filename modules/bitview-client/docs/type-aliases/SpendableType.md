@@ -8,7 +8,7 @@
 
 > **SpendableType** = `object`
 
-Defined in: [modules/bitview-client/index.js:5478](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5478)
+Defined in: [modules/bitview-client/index.js:5504](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5504)
 
 ## Type Parameters
 

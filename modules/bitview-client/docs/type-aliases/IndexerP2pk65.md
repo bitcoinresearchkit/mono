@@ -8,7 +8,7 @@
 
 > **IndexerP2pk65** = `object`
 
-Defined in: [modules/bitview-client/index.js:6677](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6677)
+Defined in: [modules/bitview-client/index.js:6703](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6703)
 
 ## Type Parameters
 

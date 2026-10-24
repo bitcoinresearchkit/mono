@@ -8,7 +8,7 @@
 
 > **HashPriceValue**\<`A`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:3728](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3728)
+Defined in: [modules/bitview-client/index.js:3754](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3754)
 
 ## Type Parameters
 

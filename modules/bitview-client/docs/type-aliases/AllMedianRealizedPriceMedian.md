@@ -8,7 +8,7 @@
 
 > **AllMedianRealizedPriceMedian** = `object`
 
-Defined in: [modules/bitview-client/index.js:2846](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2846)
+Defined in: [modules/bitview-client/index.js:2872](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2872)
 
 ## Type Parameters
 

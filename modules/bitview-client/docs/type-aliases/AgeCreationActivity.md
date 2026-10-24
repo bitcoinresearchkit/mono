@@ -8,7 +8,7 @@
 
 > **AgeCreationActivity** = `object`
 
-Defined in: [modules/bitview-client/index.js:4923](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4923)
+Defined in: [modules/bitview-client/index.js:4949](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4949)
 
 ## Type Parameters
 

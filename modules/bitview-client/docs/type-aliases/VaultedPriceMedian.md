@@ -8,7 +8,7 @@
 
 > **VaultedPriceMedian** = `object`
 
-Defined in: [modules/bitview-client/index.js:2824](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2824)
+Defined in: [modules/bitview-client/index.js:2850](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2850)
 
 ## Type Parameters
 

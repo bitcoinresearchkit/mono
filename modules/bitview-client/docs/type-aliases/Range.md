@@ -8,7 +8,7 @@
 
 > **Range** = `object`
 
-Defined in: [modules/bitview-client/index.js:5196](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5196)
+Defined in: [modules/bitview-client/index.js:5222](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5222)
 
 ## Type Parameters
 

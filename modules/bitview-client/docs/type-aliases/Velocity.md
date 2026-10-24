@@ -8,7 +8,7 @@
 
 > **Velocity** = `object`
 
-Defined in: [modules/bitview-client/index.js:3222](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3222)
+Defined in: [modules/bitview-client/index.js:3248](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3248)
 
 ## Type Parameters
 

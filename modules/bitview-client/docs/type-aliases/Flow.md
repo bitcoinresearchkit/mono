@@ -8,7 +8,7 @@
 
 > **Flow**\<`A`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:4704](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4704)
+Defined in: [modules/bitview-client/index.js:4730](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4730)
 
 ## Type Parameters
 

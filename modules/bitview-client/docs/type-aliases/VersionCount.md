@@ -8,7 +8,7 @@
 
 > **VersionCount**\<`A`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:6812](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6812)
+Defined in: [modules/bitview-client/index.js:6838](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6838)
 
 ## Type Parameters
 

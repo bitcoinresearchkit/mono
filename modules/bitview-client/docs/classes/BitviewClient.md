@@ -6,7 +6,7 @@
 
 # Class: BitviewClient
 
-Defined in: [modules/bitview-client/index.js:7062](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7062)
+Defined in: [modules/bitview-client/index.js:7088](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7088)
 
 A method per API endpoint, and the typed series tree.
 
@@ -20,7 +20,7 @@ A method per API endpoint, and the typed series tree.
 
 > **new BitviewClient**(`options`): `BitviewClient`
 
-Defined in: [modules/bitview-client/index.js:2024](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2024)
+Defined in: [modules/bitview-client/index.js:2048](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2048)
 
 #### Parameters
 
@@ -42,7 +42,7 @@ Defined in: [modules/bitview-client/index.js:2024](https://github.com/bitcoinres
 
 > **\_browserCache**: `Cache` \| `null`
 
-Defined in: [modules/bitview-client/index.js:2035](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2035)
+Defined in: [modules/bitview-client/index.js:2059](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2059)
 
 #### Inherited from
 
@@ -54,7 +54,7 @@ Defined in: [modules/bitview-client/index.js:2035](https://github.com/bitcoinres
 
 > **\_browserCachePromise**: `Promise`\<`Cache` \| `null`\>
 
-Defined in: [modules/bitview-client/index.js:2033](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2033)
+Defined in: [modules/bitview-client/index.js:2057](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2057)
 
 #### Inherited from
 
@@ -66,7 +66,7 @@ Defined in: [modules/bitview-client/index.js:2033](https://github.com/bitcoinres
 
 > **\_memCache**: `Map`\<`string`, [`_MemEntry`](../type-aliases/MemEntry.md)\<`unknown`\>\>
 
-Defined in: [modules/bitview-client/index.js:2042](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2042)
+Defined in: [modules/bitview-client/index.js:2066](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2066)
 
 #### Inherited from
 
@@ -80,7 +80,7 @@ Defined in: [modules/bitview-client/index.js:2042](https://github.com/bitcoinres
 
 > **get** **series**(): [`SeriesTree`](../type-aliases/SeriesTree.md)
 
-Defined in: [modules/bitview-client/index.js:7850](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7850)
+Defined in: [modules/bitview-client/index.js:7876](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7876)
 
 ##### Returns
 
@@ -92,7 +92,7 @@ Defined in: [modules/bitview-client/index.js:7850](https://github.com/bitcoinres
 
 > **\_fetchSeriesData**\<`T`\>(`path`, `arg?`, `options?`): `Promise`\<[`DateSeriesData`](../type-aliases/DateSeriesData.md)\<`T`\>\>
 
-Defined in: [modules/bitview-client/index.js:2293](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2293)
+Defined in: [modules/bitview-client/index.js:2319](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2319)
 
 #### Type Parameters
 
@@ -128,7 +128,7 @@ Defined in: [modules/bitview-client/index.js:2293](https://github.com/bitcoinres
 
 > **\_getCached**\<`T`\>(`path`, `kind`, `parse`, `options?`): `Promise`\<`T`\>
 
-Defined in: [modules/bitview-client/index.js:2124](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2124)
+Defined in: [modules/bitview-client/index.js:2148](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2148)
 
 Make a GET request with layered caching.
 
@@ -186,7 +186,7 @@ Response body reader
 
 > **\_memGet**\<`T`\>(`key`): [`_MemEntry`](../type-aliases/MemEntry.md)\<`T`\> \| `undefined`
 
-Defined in: [modules/bitview-client/index.js:2050](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2050)
+Defined in: [modules/bitview-client/index.js:2074](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2074)
 
 #### Type Parameters
 
@@ -214,7 +214,7 @@ Defined in: [modules/bitview-client/index.js:2050](https://github.com/bitcoinres
 
 > **\_memSet**(`key`, `etag`, `value`): `void`
 
-Defined in: [modules/bitview-client/index.js:2064](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2064)
+Defined in: [modules/bitview-client/index.js:2088](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2088)
 
 #### Parameters
 
@@ -244,7 +244,7 @@ Defined in: [modules/bitview-client/index.js:2064](https://github.com/bitcoinres
 
 > **\_signal**(`signal?`): `AbortSignal`
 
-Defined in: [modules/bitview-client/index.js:2079](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2079)
+Defined in: [modules/bitview-client/index.js:2103](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2103)
 
 The request's timeout, joined with the caller's signal when one is given.
 
@@ -268,7 +268,7 @@ The request's timeout, joined with the caller's signal when one is given.
 
 > **dateToIndex**(`index`, `d`): `number`
 
-Defined in: [modules/bitview-client/index.js:7844](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7844)
+Defined in: [modules/bitview-client/index.js:7870](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7870)
 
 The floor index (latest index whose date is <= the given date); throws for dates before the
 index's first date.
@@ -293,7 +293,7 @@ index's first date.
 
 > **get**(`path`, `options?`): `Promise`\<`Response`\>
 
-Defined in: [modules/bitview-client/index.js:2089](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2089)
+Defined in: [modules/bitview-client/index.js:2113](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2113)
 
 #### Parameters
 
@@ -329,7 +329,7 @@ Defined in: [modules/bitview-client/index.js:2089](https://github.com/bitcoinres
 
 > **getAddress**(`address`, `options?`): `Promise`\<[`AddressStats`](../interfaces/AddressStats.md)\>
 
-Defined in: [modules/bitview-client/index.js:8322](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8322)
+Defined in: [modules/bitview-client/index.js:8348](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8348)
 
 Address information
 
@@ -373,7 +373,7 @@ Endpoint: `GET /api/address/{address}`
 
 > **getAddressConfirmedTxs**(`address`, `max_txs?`, `options?`): `Promise`\<[`Transaction`](../interfaces/Transaction.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8366](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8366)
+Defined in: [modules/bitview-client/index.js:8392](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8392)
 
 Address confirmed transactions
 
@@ -423,7 +423,7 @@ Transactions to return, at most 25 (the default); larger values return 25.
 
 > **getAddressConfirmedTxsAfter**(`address`, `after_txid`, `max_txs?`, `options?`): `Promise`\<[`Transaction`](../interfaces/Transaction.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8389](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8389)
+Defined in: [modules/bitview-client/index.js:8415](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8415)
 
 Address confirmed transactions (paginated)
 
@@ -479,7 +479,7 @@ Transactions to return, at most 25 (the default); larger values return 25.
 
 > **getAddressHashPrefixMatches**(`address_type`, `prefix`, `options?`): `Promise`\<[`AddressHashPrefixMatches`](../interfaces/AddressHashPrefixMatches.md)\>
 
-Defined in: [modules/bitview-client/index.js:8304](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8304)
+Defined in: [modules/bitview-client/index.js:8330](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8330)
 
 Address hash-prefix matches
 
@@ -528,7 +528,7 @@ address payload bytes.
 
 > **getAddressMempoolTxs**(`address`, `max_txs?`, `options?`): `Promise`\<[`Transaction`](../interfaces/Transaction.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8411](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8411)
+Defined in: [modules/bitview-client/index.js:8437](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8437)
 
 Address mempool transactions
 
@@ -578,7 +578,7 @@ Transactions to return, at most 50 (the default); larger values return 50.
 
 > **getAddressPayloadHashPrefixMatches**(`addressType`, `payload`, `nibbles`, `options?`): `Promise`\<[`AddressHashPrefixMatches`](../interfaces/AddressHashPrefixMatches.md)\>
 
-Defined in: [modules/bitview-client/index.js:7871](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7871)
+Defined in: [modules/bitview-client/index.js:7897](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7897)
 
 #### Parameters
 
@@ -624,7 +624,7 @@ Raw payload bytes matching addressType length
 
 > **getAddressTxs**(`address`, `after_txid?`, `max_txs?`, `options?`): `Promise`\<[`Transaction`](../interfaces/Transaction.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8343](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8343)
+Defined in: [modules/bitview-client/index.js:8369](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8369)
 
 Address transactions
 
@@ -681,7 +681,7 @@ Transactions to return, at most 50 (the default); larger values return 50.
 
 > **getAddressUtxos**(`address`, `options?`): `Promise`\<[`Utxo`](../interfaces/Utxo.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8432](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8432)
+Defined in: [modules/bitview-client/index.js:8458](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8458)
 
 Address UTXOs
 
@@ -725,7 +725,7 @@ Endpoint: `GET /api/address/{address}/utxo`
 
 > **getApi**(`options?`): `Promise`\<`any`\>
 
-Defined in: [modules/bitview-client/index.js:9597](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9597)
+Defined in: [modules/bitview-client/index.js:9623](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9623)
 
 Compact API summary
 
@@ -763,7 +763,7 @@ Endpoint: `GET /api.json`
 
 > **getBlock**(`hash`, `options?`): `Promise`\<[`BlockInfo`](../interfaces/BlockInfo.md)\>
 
-Defined in: [modules/bitview-client/index.js:8467](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8467)
+Defined in: [modules/bitview-client/index.js:8493](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8493)
 
 Block information
 
@@ -805,7 +805,7 @@ Endpoint: `GET /api/block/{hash}`
 
 > **getBlockByHeight**(`height`, `options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:8521](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8521)
+Defined in: [modules/bitview-client/index.js:8547](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8547)
 
 Block hash by height
 
@@ -849,7 +849,7 @@ Endpoint: `GET /api/block-height/{height}`
 
 > **getBlockByTimestamp**(`timestamp`, `options?`): `Promise`\<[`BlockTimestamp`](../interfaces/BlockTimestamp.md)\>
 
-Defined in: [modules/bitview-client/index.js:8539](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8539)
+Defined in: [modules/bitview-client/index.js:8565](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8565)
 
 Block by timestamp
 
@@ -893,7 +893,7 @@ Endpoint: `GET /api/v1/mining/blocks/timestamp/{timestamp}`
 
 > **getBlockFeeRates**(`time_period`, `options?`): `Promise`\<[`BlockFeeRatesEntry`](../interfaces/BlockFeeRatesEntry.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:9022](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9022)
+Defined in: [modules/bitview-client/index.js:9048](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9048)
 
 Block fee rates
 
@@ -939,7 +939,7 @@ Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or 
 
 > **getBlockFeeRatesPrecise**(`time_period`, `options?`): `Promise`\<[`BlockFeeRatesPreciseEntry`](../interfaces/BlockFeeRatesPreciseEntry.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:9040](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9040)
+Defined in: [modules/bitview-client/index.js:9066](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9066)
 
 Block fee rates (precise)
 
@@ -985,7 +985,7 @@ Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or 
 
 > **getBlockFees**(`time_period`, `options?`): `Promise`\<[`BlockFeesEntry`](../interfaces/BlockFeesEntry.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8986](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8986)
+Defined in: [modules/bitview-client/index.js:9012](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9012)
 
 Block fees
 
@@ -1031,7 +1031,7 @@ Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or 
 
 > **getBlockHeader**(`hash`, `options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:8503](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8503)
+Defined in: [modules/bitview-client/index.js:8529](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8529)
 
 Block header
 
@@ -1075,7 +1075,7 @@ Endpoint: `GET /api/block/{hash}/header`
 
 > **getBlockRaw**(`hash`, `options?`): `Promise`\<`Uint8Array`\<`ArrayBufferLike`\>\>
 
-Defined in: [modules/bitview-client/index.js:8557](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8557)
+Defined in: [modules/bitview-client/index.js:8583](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8583)
 
 Raw block
 
@@ -1119,7 +1119,7 @@ Endpoint: `GET /api/block/{hash}/raw`
 
 > **getBlockRewards**(`time_period`, `options?`): `Promise`\<[`BlockRewardsEntry`](../interfaces/BlockRewardsEntry.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:9004](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9004)
+Defined in: [modules/bitview-client/index.js:9030](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9030)
 
 Block rewards
 
@@ -1165,7 +1165,7 @@ Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or 
 
 > **getBlocks**(`options?`): `Promise`\<[`BlockInfo`](../interfaces/BlockInfo.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8693](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8693)
+Defined in: [modules/bitview-client/index.js:8719](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8719)
 
 Recent blocks
 
@@ -1205,7 +1205,7 @@ Endpoint: `GET /api/blocks`
 
 > **getBlocksFromHeight**(`height`, `options?`): `Promise`\<[`BlockInfo`](../interfaces/BlockInfo.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8711](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8711)
+Defined in: [modules/bitview-client/index.js:8737](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8737)
 
 Blocks from height
 
@@ -1249,7 +1249,7 @@ Endpoint: `GET /api/blocks/{height}`
 
 > **getBlockSizesWeights**(`time_period`, `options?`): `Promise`\<[`BlockSizesWeights`](../interfaces/BlockSizesWeights.md)\>
 
-Defined in: [modules/bitview-client/index.js:9058](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9058)
+Defined in: [modules/bitview-client/index.js:9084](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9084)
 
 Block sizes and weights
 
@@ -1295,7 +1295,7 @@ Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or 
 
 > **getBlockStatus**(`hash`, `options?`): `Promise`\<[`BlockStatus`](../interfaces/BlockStatus.md)\>
 
-Defined in: [modules/bitview-client/index.js:8575](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8575)
+Defined in: [modules/bitview-client/index.js:8601](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8601)
 
 Block status
 
@@ -1339,7 +1339,7 @@ Endpoint: `GET /api/block/{hash}/status`
 
 > **getBlocksV1**(`options?`): `Promise`\<[`BlockInfoV1`](../interfaces/BlockInfoV1.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8727](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8727)
+Defined in: [modules/bitview-client/index.js:8753](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8753)
 
 Recent blocks with extras
 
@@ -1379,7 +1379,7 @@ Endpoint: `GET /api/v1/blocks`
 
 > **getBlocksV1FromHeight**(`height`, `options?`): `Promise`\<[`BlockInfoV1`](../interfaces/BlockInfoV1.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8745](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8745)
+Defined in: [modules/bitview-client/index.js:8771](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8771)
 
 Blocks from height with extras
 
@@ -1423,7 +1423,7 @@ Endpoint: `GET /api/v1/blocks/{height}`
 
 > **getBlockTipHash**(`options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:8603](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8603)
+Defined in: [modules/bitview-client/index.js:8629](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8629)
 
 Block tip hash
 
@@ -1461,7 +1461,7 @@ Endpoint: `GET /api/blocks/tip/hash`
 
 > **getBlockTipHeight**(`options?`): `Promise`\<`number`\>
 
-Defined in: [modules/bitview-client/index.js:8589](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8589)
+Defined in: [modules/bitview-client/index.js:8615](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8615)
 
 Block tip height
 
@@ -1499,7 +1499,7 @@ Endpoint: `GET /api/blocks/tip/height`
 
 > **getBlockTxid**(`hash`, `index`, `options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:8622](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8622)
+Defined in: [modules/bitview-client/index.js:8648](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8648)
 
 Transaction ID at index
 
@@ -1549,7 +1549,7 @@ Transaction index within the block (0-based)
 
 > **getBlockTxids**(`hash`, `options?`): `Promise`\<`string`[]\>
 
-Defined in: [modules/bitview-client/index.js:8640](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8640)
+Defined in: [modules/bitview-client/index.js:8666](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8666)
 
 Block transaction IDs
 
@@ -1593,7 +1593,7 @@ Endpoint: `GET /api/block/{hash}/txids`
 
 > **getBlockTxs**(`hash`, `options?`): `Promise`\<[`Transaction`](../interfaces/Transaction.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8658](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8658)
+Defined in: [modules/bitview-client/index.js:8684](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8684)
 
 Block transactions
 
@@ -1637,7 +1637,7 @@ Endpoint: `GET /api/block/{hash}/txs`
 
 > **getBlockTxsFromIndex**(`hash`, `start_index`, `options?`): `Promise`\<[`Transaction`](../interfaces/Transaction.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8677](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8677)
+Defined in: [modules/bitview-client/index.js:8703](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8703)
 
 Block transactions (paginated)
 
@@ -1687,7 +1687,7 @@ Starting transaction index within the block (0-based)
 
 > **getBlockV1**(`hash`, `options?`): `Promise`\<[`BlockInfoV1`](../interfaces/BlockInfoV1.md)\>
 
-Defined in: [modules/bitview-client/index.js:8485](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8485)
+Defined in: [modules/bitview-client/index.js:8511](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8511)
 
 Block (v1)
 
@@ -1731,7 +1731,7 @@ Endpoint: `GET /api/v1/block/{hash}`
 
 > **getBytes**(`path`, `options?`): `Promise`\<`Uint8Array`\<`ArrayBufferLike`\>\>
 
-Defined in: [modules/bitview-client/index.js:2232](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2232)
+Defined in: [modules/bitview-client/index.js:2257](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2257)
 
 Cached and supports `onValue`, same as `getJson`.
 
@@ -1759,7 +1759,7 @@ Cached and supports `onValue`, same as `getJson`.
 
 > **getCpfp**(`txid`, `options?`): `Promise`\<[`Cpfp`](../type-aliases/Cpfp.md)\>
 
-Defined in: [modules/bitview-client/index.js:9251](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9251)
+Defined in: [modules/bitview-client/index.js:9277](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9277)
 
 CPFP info
 
@@ -1803,7 +1803,7 @@ Endpoint: `GET /api/v1/cpfp/{txid}`
 
 > **getDifficultyAdjustment**(`options?`): `Promise`\<[`DifficultyAdjustment`](../interfaces/DifficultyAdjustment.md)\>
 
-Defined in: [modules/bitview-client/index.js:8247](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8247)
+Defined in: [modules/bitview-client/index.js:8273](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8273)
 
 Difficulty adjustment
 
@@ -1843,7 +1843,7 @@ Endpoint: `GET /api/v1/difficulty-adjustment`
 
 > **getDifficultyAdjustments**(`options?`): `Promise`\<[`DifficultyAdjustmentEntry`](../type-aliases/DifficultyAdjustmentEntry.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8932](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8932)
+Defined in: [modules/bitview-client/index.js:8958](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8958)
 
 Difficulty adjustments (all time)
 
@@ -1881,7 +1881,7 @@ Endpoint: `GET /api/v1/mining/difficulty-adjustments`
 
 > **getDifficultyAdjustmentsByPeriod**(`time_period`, `options?`): `Promise`\<[`DifficultyAdjustmentEntry`](../type-aliases/DifficultyAdjustmentEntry.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8950](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8950)
+Defined in: [modules/bitview-client/index.js:8976](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8976)
 
 Difficulty adjustments
 
@@ -1927,7 +1927,7 @@ Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or 
 
 > **getDiskUsage**(`options?`): `Promise`\<[`DiskUsage`](../interfaces/DiskUsage.md)\>
 
-Defined in: [modules/bitview-client/index.js:7937](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7937)
+Defined in: [modules/bitview-client/index.js:7963](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7963)
 
 Disk usage
 
@@ -1965,7 +1965,7 @@ Endpoint: `GET /api/server/disk`
 
 > **getFullrbfReplacements**(`options?`): `Promise`\<[`ReplacementNode`](../interfaces/ReplacementNode.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:9184](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9184)
+Defined in: [modules/bitview-client/index.js:9210](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9210)
 
 Recent full-RBF replacements
 
@@ -2005,7 +2005,7 @@ Endpoint: `GET /api/v1/fullrbf/replacements`
 
 > **getHashrate**(`options?`): `Promise`\<[`HashrateSummary`](../interfaces/HashrateSummary.md)\>
 
-Defined in: [modules/bitview-client/index.js:8900](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8900)
+Defined in: [modules/bitview-client/index.js:8926](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8926)
 
 Network hashrate (all time)
 
@@ -2045,7 +2045,7 @@ Endpoint: `GET /api/v1/mining/hashrate`
 
 > **getHashrateByPeriod**(`time_period`, `options?`): `Promise`\<[`HashrateSummary`](../interfaces/HashrateSummary.md)\>
 
-Defined in: [modules/bitview-client/index.js:8918](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8918)
+Defined in: [modules/bitview-client/index.js:8944](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8944)
 
 Network hashrate
 
@@ -2091,7 +2091,7 @@ Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or 
 
 > **getHealth**(`options?`): `Promise`\<[`Health`](../interfaces/Health.md)\>
 
-Defined in: [modules/bitview-client/index.js:7897](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7897)
+Defined in: [modules/bitview-client/index.js:7923](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7923)
 
 Health check
 
@@ -2129,7 +2129,7 @@ Endpoint: `GET /health`
 
 > **getHistoricalPrice**(`timestamp?`, `currency?`, `options?`): `Promise`\<[`HistoricalPrice`](../interfaces/HistoricalPrice.md)\>
 
-Defined in: [modules/bitview-client/index.js:8282](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8282)
+Defined in: [modules/bitview-client/index.js:8308](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8308)
 
 Historical price
 
@@ -2181,7 +2181,7 @@ Quote currency: USD, the only one served
 
 > **getIndexes**(`options?`): `Promise`\<[`Index`](../type-aliases/Index.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:7979](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7979)
+Defined in: [modules/bitview-client/index.js:8005](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8005)
 
 List available indexes
 
@@ -2217,11 +2217,11 @@ Endpoint: `GET /api/series/indexes`
 
 ### getJson()
 
-> **getJson**\<`T`\>(`path`, `options?`): `Promise`\<`T`\>
+> **getJson**\<`T`\>(`path`, `options?`, `keep?`): `Promise`\<`T`\>
 
-Defined in: [modules/bitview-client/index.js:2212](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2212)
+Defined in: [modules/bitview-client/index.js:2237](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2237)
 
-Cached and supports `onValue`.
+Cached and supports `onValue`. Field names come camelCased, map keys as sent (`keep`).
 
 #### Type Parameters
 
@@ -2239,6 +2239,12 @@ Cached and supports `onValue`.
 
 [`ClientFetchOptions`](../interfaces/ClientFetchOptions.md)\<`T`\>
 
+##### keep?
+
+`any`
+
+Where the response has maps, as `_camelKeys` takes it
+
 #### Returns
 
 `Promise`\<`T`\>
@@ -2253,7 +2259,7 @@ Cached and supports `onValue`.
 
 > **getLivePrice**(`options?`): `Promise`\<`number`\>
 
-Defined in: [modules/bitview-client/index.js:9509](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9509)
+Defined in: [modules/bitview-client/index.js:9535](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9535)
 
 Live BTC/USD price
 
@@ -2291,7 +2297,7 @@ Endpoint: `GET /api/oracle/price`
 
 > **getMempool**(`options?`): `Promise`\<[`MempoolInfo`](../interfaces/MempoolInfo.md)\>
 
-Defined in: [modules/bitview-client/index.js:9120](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9120)
+Defined in: [modules/bitview-client/index.js:9146](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9146)
 
 Mempool statistics
 
@@ -2329,7 +2335,7 @@ Endpoint: `GET /api/mempool`
 
 > **getMempoolBlock**(`index`, `options?`): `Promise`\<[`MempoolBlockContent`](../interfaces/MempoolBlockContent.md)\>
 
-Defined in: [modules/bitview-client/index.js:9200](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9200)
+Defined in: [modules/bitview-client/index.js:9226](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9226)
 
 Projected mempool block
 
@@ -2371,7 +2377,7 @@ Endpoint: `GET /api/mempool-blocks/{index}`
 
 > **getMempoolBlockDiff**(`index`, `since`, `options?`): `Promise`\<[`MempoolBlockDiff`](../interfaces/MempoolBlockDiff.md)\>
 
-Defined in: [modules/bitview-client/index.js:9217](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9217)
+Defined in: [modules/bitview-client/index.js:9243](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9243)
 
 Projected mempool block changes
 
@@ -2419,7 +2425,7 @@ The `hash` of the client's copy, from the block or a previous diff
 
 > **getMempoolBlocks**(`options?`): `Promise`\<[`MempoolBlock`](../interfaces/MempoolBlock.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:9074](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9074)
+Defined in: [modules/bitview-client/index.js:9100](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9100)
 
 Projected mempool blocks
 
@@ -2459,7 +2465,7 @@ Endpoint: `GET /api/v1/fees/mempool-blocks`
 
 > **getMempoolRecent**(`options?`): `Promise`\<[`MempoolRecentTx`](../interfaces/MempoolRecentTx.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:9152](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9152)
+Defined in: [modules/bitview-client/index.js:9178](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9178)
 
 Recent mempool transactions
 
@@ -2499,7 +2505,7 @@ Endpoint: `GET /api/mempool/recent`
 
 > **getMempoolTxids**(`options?`): `Promise`\<`string`[]\>
 
-Defined in: [modules/bitview-client/index.js:9136](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9136)
+Defined in: [modules/bitview-client/index.js:9162](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9162)
 
 Mempool transaction IDs
 
@@ -2539,7 +2545,7 @@ Endpoint: `GET /api/mempool/txids`
 
 > **getOpenapi**(`options?`): `Promise`\<`any`\>
 
-Defined in: [modules/bitview-client/index.js:9583](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9583)
+Defined in: [modules/bitview-client/index.js:9609](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9609)
 
 OpenAPI specification
 
@@ -2577,7 +2583,7 @@ Endpoint: `GET /openapi.json`
 
 > **getOracleHistogramOutputs**(`point`, `options?`): `Promise`\<`number`[]\>
 
-Defined in: [modules/bitview-client/index.js:9569](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9569)
+Defined in: [modules/bitview-client/index.js:9595](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9595)
 
 Output value histogram at height or day
 
@@ -2621,7 +2627,7 @@ Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
 
 > **getOracleHistogramOutputsLive**(`options?`): `Promise`\<`number`[]\>
 
-Defined in: [modules/bitview-client/index.js:9553](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9553)
+Defined in: [modules/bitview-client/index.js:9579](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9579)
 
 Live output value histogram
 
@@ -2659,7 +2665,7 @@ Endpoint: `GET /api/oracle/histogram/outputs/live`
 
 > **getOracleHistogramPayments**(`point`, `options?`): `Promise`\<`number`[]\>
 
-Defined in: [modules/bitview-client/index.js:9539](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9539)
+Defined in: [modules/bitview-client/index.js:9565](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9565)
 
 Payment output histogram at height or day
 
@@ -2703,7 +2709,7 @@ Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
 
 > **getOracleHistogramPaymentsLive**(`options?`): `Promise`\<`number`[]\>
 
-Defined in: [modules/bitview-client/index.js:9523](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9523)
+Defined in: [modules/bitview-client/index.js:9549](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9549)
 
 Live payment output histogram
 
@@ -2741,7 +2747,7 @@ Endpoint: `GET /api/oracle/histogram/payments/live`
 
 > **getPool**(`slug`, `options?`): `Promise`\<[`PoolDetail`](../interfaces/PoolDetail.md)\>
 
-Defined in: [modules/bitview-client/index.js:8795](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8795)
+Defined in: [modules/bitview-client/index.js:8821](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8821)
 
 Mining pool details
 
@@ -2785,7 +2791,7 @@ Endpoint: `GET /api/v1/mining/pool/{slug}`
 
 > **getPoolBlocks**(`slug`, `options?`): `Promise`\<[`BlockInfoV1`](../interfaces/BlockInfoV1.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8865](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8865)
+Defined in: [modules/bitview-client/index.js:8891](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8891)
 
 Mining pool blocks
 
@@ -2829,7 +2835,7 @@ Endpoint: `GET /api/v1/mining/pool/{slug}/blocks`
 
 > **getPoolBlocksFrom**(`slug`, `height`, `options?`): `Promise`\<[`BlockInfoV1`](../interfaces/BlockInfoV1.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8884](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8884)
+Defined in: [modules/bitview-client/index.js:8910](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8910)
 
 Mining pool blocks before height
 
@@ -2877,7 +2883,7 @@ Endpoint: `GET /api/v1/mining/pool/{slug}/blocks/{height}`
 
 > **getPoolHashrate**(`slug`, `options?`): `Promise`\<[`PoolHashrateEntry`](../interfaces/PoolHashrateEntry.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8847](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8847)
+Defined in: [modules/bitview-client/index.js:8873](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8873)
 
 Mining pool hashrate
 
@@ -2921,7 +2927,7 @@ Endpoint: `GET /api/v1/mining/pool/{slug}/hashrate`
 
 > **getPools**(`options?`): `Promise`\<[`PoolInfo`](../interfaces/PoolInfo.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8759](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8759)
+Defined in: [modules/bitview-client/index.js:8785](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8785)
 
 List all mining pools
 
@@ -2959,7 +2965,7 @@ Endpoint: `GET /api/v1/mining/pools`
 
 > **getPoolsHashrate**(`options?`): `Promise`\<[`PoolHashrateEntry`](../interfaces/PoolHashrateEntry.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8811](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8811)
+Defined in: [modules/bitview-client/index.js:8837](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8837)
 
 All pools hashrate (all time)
 
@@ -2999,7 +3005,7 @@ Endpoint: `GET /api/v1/mining/hashrate/pools`
 
 > **getPoolsHashrateByPeriod**(`time_period`, `options?`): `Promise`\<[`PoolHashrateEntry`](../interfaces/PoolHashrateEntry.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8829](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8829)
+Defined in: [modules/bitview-client/index.js:8855](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8855)
 
 All pools hashrate
 
@@ -3045,7 +3051,7 @@ Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or 
 
 > **getPoolStats**(`time_period`, `options?`): `Promise`\<[`PoolsSummary`](../interfaces/PoolsSummary.md)\>
 
-Defined in: [modules/bitview-client/index.js:8777](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8777)
+Defined in: [modules/bitview-client/index.js:8803](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8803)
 
 Mining pool statistics
 
@@ -3091,7 +3097,7 @@ Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or 
 
 > **getPreciseFees**(`options?`): `Promise`\<[`PreciseRecommendedFees`](../interfaces/PreciseRecommendedFees.md)\>
 
-Defined in: [modules/bitview-client/index.js:9106](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9106)
+Defined in: [modules/bitview-client/index.js:9132](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9132)
 
 Recommended fee rates (precise)
 
@@ -3131,7 +3137,7 @@ Endpoint: `GET /api/v1/fees/precise`
 
 > **getPrices**(`options?`): `Promise`\<[`PricePoint`](../interfaces/PricePoint.md)\>
 
-Defined in: [modules/bitview-client/index.js:8263](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8263)
+Defined in: [modules/bitview-client/index.js:8289](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8289)
 
 Current BTC price
 
@@ -3171,7 +3177,7 @@ Endpoint: `GET /api/v1/prices`
 
 > **getRecommendedFees**(`options?`): `Promise`\<[`RecommendedFees`](../interfaces/RecommendedFees.md)\>
 
-Defined in: [modules/bitview-client/index.js:9090](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9090)
+Defined in: [modules/bitview-client/index.js:9116](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9116)
 
 Recommended fees
 
@@ -3211,7 +3217,7 @@ Endpoint: `GET /api/v1/fees/recommended`
 
 > **getReplacements**(`options?`): `Promise`\<[`ReplacementNode`](../interfaces/ReplacementNode.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:9168](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9168)
+Defined in: [modules/bitview-client/index.js:9194](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9194)
 
 Recent RBF replacements
 
@@ -3251,7 +3257,7 @@ Endpoint: `GET /api/v1/replacements`
 
 > **getRewardStats**(`block_count`, `options?`): `Promise`\<[`RewardStats`](../interfaces/RewardStats.md)\>
 
-Defined in: [modules/bitview-client/index.js:8968](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8968)
+Defined in: [modules/bitview-client/index.js:8994](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8994)
 
 Mining reward statistics
 
@@ -3297,7 +3303,7 @@ Number of recent blocks to include
 
 > **getSeries**(`series`, `index`, `start?`, `end?`, `limit?`, `format?`, `options?`): `Promise`\<`string` \| [`AnySeriesData`](../type-aliases/AnySeriesData.md)\>
 
-Defined in: [modules/bitview-client/index.js:8058](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8058)
+Defined in: [modules/bitview-client/index.js:8084](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8084)
 
 Get series data
 
@@ -3365,7 +3371,7 @@ Maximum number of values to return (ignored if `end` is set); omitted, the rest 
 
 > **getSeriesBulk**(`series`, `index`, `start?`, `end?`, `limit?`, `format?`, `options?`): `Promise`\<`string` \| [`AnySeriesData`](../type-aliases/AnySeriesData.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8163](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8163)
+Defined in: [modules/bitview-client/index.js:8189](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8189)
 
 Bulk series data
 
@@ -3433,7 +3439,7 @@ Maximum number of values to return (ignored if `end` is set); omitted, the rest 
 
 > **getSeriesCount**(`options?`): `Promise`\<[`DetailedSeriesCount`](../interfaces/DetailedSeriesCount.md)\>
 
-Defined in: [modules/bitview-client/index.js:7965](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7965)
+Defined in: [modules/bitview-client/index.js:7991](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7991)
 
 Series count
 
@@ -3471,7 +3477,7 @@ Endpoint: `GET /api/series/count`
 
 > **getSeriesData**(`series`, `index`, `start?`, `end?`, `limit?`, `format?`, `options?`): `Promise`\<`string` \| `any`[]\>
 
-Defined in: [modules/bitview-client/index.js:8086](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8086)
+Defined in: [modules/bitview-client/index.js:8112](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8112)
 
 Get raw series data
 
@@ -3539,7 +3545,7 @@ Maximum number of values to return (ignored if `end` is set); omitted, the rest 
 
 > **getSeriesInfo**(`series`, `options?`): `Promise`\<[`SeriesInfo`](../interfaces/SeriesInfo.md)\>
 
-Defined in: [modules/bitview-client/index.js:8037](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8037)
+Defined in: [modules/bitview-client/index.js:8063](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8063)
 
 Get series info
 
@@ -3581,7 +3587,7 @@ Endpoint: `GET /api/series/{series}`
 
 > **getSeriesLatest**(`series`, `index`, `options?`): `Promise`\<`any`\>
 
-Defined in: [modules/bitview-client/index.js:8110](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8110)
+Defined in: [modules/bitview-client/index.js:8136](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8136)
 
 Get latest series value
 
@@ -3627,7 +3633,7 @@ Endpoint: `GET /api/series/{series}/{index}/latest`
 
 > **getSeriesLen**(`series`, `index`, `options?`): `Promise`\<`number`\>
 
-Defined in: [modules/bitview-client/index.js:8125](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8125)
+Defined in: [modules/bitview-client/index.js:8151](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8151)
 
 Get series data length
 
@@ -3671,7 +3677,7 @@ Endpoint: `GET /api/series/{series}/{index}/len`
 
 > **getSeriesTree**(`options?`): `Promise`\<[`TreeNode`](../type-aliases/TreeNode.md)\>
 
-Defined in: [modules/bitview-client/index.js:7951](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7951)
+Defined in: [modules/bitview-client/index.js:7977](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7977)
 
 Series catalog
 
@@ -3709,7 +3715,7 @@ Endpoint: `GET /api/series`
 
 > **getSeriesVersion**(`series`, `index`, `options?`): `Promise`\<`number`\>
 
-Defined in: [modules/bitview-client/index.js:8142](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8142)
+Defined in: [modules/bitview-client/index.js:8168](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8168)
 
 Get series version
 
@@ -3755,7 +3761,7 @@ Endpoint: `GET /api/series/{series}/{index}/version`
 
 > **getSyncStatus**(`options?`): `Promise`\<[`SyncStatus`](../interfaces/SyncStatus.md)\>
 
-Defined in: [modules/bitview-client/index.js:7923](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7923)
+Defined in: [modules/bitview-client/index.js:7949](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7949)
 
 Sync status
 
@@ -3793,7 +3799,7 @@ Endpoint: `GET /api/server/sync`
 
 > **getText**(`path`, `options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:2222](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2222)
+Defined in: [modules/bitview-client/index.js:2247](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2247)
 
 Cached and supports `onValue`, same as `getJson`.
 
@@ -3821,7 +3827,7 @@ Cached and supports `onValue`, same as `getJson`.
 
 > **getTransactionTimes**(`txId`, `options?`): `Promise`\<`number`[]\>
 
-Defined in: [modules/bitview-client/index.js:9428](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9428)
+Defined in: [modules/bitview-client/index.js:9454](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9454)
 
 Transaction first-seen times
 
@@ -3867,7 +3873,7 @@ Transaction IDs to look up (max 100 per request).
 
 > **getTx**(`txid`, `options?`): `Promise`\<[`Transaction`](../interfaces/Transaction.md)\>
 
-Defined in: [modules/bitview-client/index.js:9285](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9285)
+Defined in: [modules/bitview-client/index.js:9311](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9311)
 
 Transaction information
 
@@ -3909,7 +3915,7 @@ Endpoint: `GET /api/tx/{txid}`
 
 > **getTxByIndex**(`index`, `options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:9233](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9233)
+Defined in: [modules/bitview-client/index.js:9259](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9259)
 
 Txid by index
 
@@ -3953,7 +3959,7 @@ Global transaction index across the chain
 
 > **getTxHex**(`txid`, `options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:9303](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9303)
+Defined in: [modules/bitview-client/index.js:9329](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9329)
 
 Transaction hex
 
@@ -3997,7 +4003,7 @@ Endpoint: `GET /api/tx/{txid}/hex`
 
 > **getTxMerkleblockProof**(`txid`, `options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:9321](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9321)
+Defined in: [modules/bitview-client/index.js:9347](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9347)
 
 Transaction merkleblock proof
 
@@ -4041,7 +4047,7 @@ Endpoint: `GET /api/tx/{txid}/merkleblock-proof`
 
 > **getTxMerkleProof**(`txid`, `options?`): `Promise`\<[`MerkleProof`](../interfaces/MerkleProof.md)\>
 
-Defined in: [modules/bitview-client/index.js:9337](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9337)
+Defined in: [modules/bitview-client/index.js:9363](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9363)
 
 Transaction merkle proof
 
@@ -4083,7 +4089,7 @@ Endpoint: `GET /api/tx/{txid}/merkle-proof`
 
 > **getTxOutspend**(`txid`, `vout`, `options?`): `Promise`\<[`TxOutspend`](../interfaces/TxOutspend.md)\>
 
-Defined in: [modules/bitview-client/index.js:9356](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9356)
+Defined in: [modules/bitview-client/index.js:9382](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9382)
 
 Output spend status
 
@@ -4133,7 +4139,7 @@ Output index
 
 > **getTxOutspends**(`txid`, `options?`): `Promise`\<[`TxOutspend`](../interfaces/TxOutspend.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:9374](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9374)
+Defined in: [modules/bitview-client/index.js:9400](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9400)
 
 All output spend statuses
 
@@ -4177,7 +4183,7 @@ Endpoint: `GET /api/tx/{txid}/outspends`
 
 > **getTxRaw**(`txid`, `options?`): `Promise`\<`Uint8Array`\<`ArrayBufferLike`\>\>
 
-Defined in: [modules/bitview-client/index.js:9392](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9392)
+Defined in: [modules/bitview-client/index.js:9418](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9418)
 
 Transaction raw
 
@@ -4221,7 +4227,7 @@ Endpoint: `GET /api/tx/{txid}/raw`
 
 > **getTxRbf**(`txid`, `options?`): `Promise`\<[`RbfResponse`](../interfaces/RbfResponse.md)\>
 
-Defined in: [modules/bitview-client/index.js:9269](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9269)
+Defined in: [modules/bitview-client/index.js:9295](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9295)
 
 RBF replacement history
 
@@ -4265,7 +4271,7 @@ Endpoint: `GET /api/v1/tx/{txid}/rbf`
 
 > **getTxStatus**(`txid`, `options?`): `Promise`\<[`TxStatus`](../interfaces/TxStatus.md)\>
 
-Defined in: [modules/bitview-client/index.js:9410](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9410)
+Defined in: [modules/bitview-client/index.js:9436](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9436)
 
 Transaction status
 
@@ -4309,7 +4315,7 @@ Endpoint: `GET /api/tx/{txid}/status`
 
 > **getUrpd**(`cohort`, `agg?`, `weight?`, `options?`): `Promise`\<[`Urpd`](../interfaces/Urpd.md)\>
 
-Defined in: [modules/bitview-client/index.js:8204](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8204)
+Defined in: [modules/bitview-client/index.js:8230](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8230)
 
 Latest URPD
 
@@ -4363,7 +4369,7 @@ Supply weighting. Default: none (unweighted).
 
 > **getUrpdAt**(`cohort`, `point`, `agg?`, `weight?`, `options?`): `Promise`\<[`Urpd`](../interfaces/Urpd.md)\>
 
-Defined in: [modules/bitview-client/index.js:8227](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8227)
+Defined in: [modules/bitview-client/index.js:8253](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8253)
 
 URPD at block height or date
 
@@ -4423,7 +4429,7 @@ Supply weighting. Default: none (unweighted).
 
 > **getUtxoSet**(`point`, `options?`): `Promise`\<[`UtxoSet`](../interfaces/UtxoSet.md)\>
 
-Defined in: [modules/bitview-client/index.js:9479](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9479)
+Defined in: [modules/bitview-client/index.js:9505](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9505)
 
 UTXO set at block height or date
 
@@ -4467,7 +4473,7 @@ Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
 
 > **getUtxoSetDiff**(`point`, `options?`): `Promise`\<[`UtxoSetDiff`](../interfaces/UtxoSetDiff.md)\>
 
-Defined in: [modules/bitview-client/index.js:9495](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9495)
+Defined in: [modules/bitview-client/index.js:9521](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9521)
 
 UTXO set changes of a block or date
 
@@ -4511,7 +4517,7 @@ Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
 
 > **getUtxoSetLatest**(`options?`): `Promise`\<[`UtxoSet`](../interfaces/UtxoSet.md)\>
 
-Defined in: [modules/bitview-client/index.js:9463](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9463)
+Defined in: [modules/bitview-client/index.js:9489](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9489)
 
 Latest UTXO set
 
@@ -4549,7 +4555,7 @@ Endpoint: `GET /api/utxo-set`
 
 > **getVersion**(`options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:7909](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7909)
+Defined in: [modules/bitview-client/index.js:7935](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7935)
 
 API version
 
@@ -4585,7 +4591,7 @@ Endpoint: `GET /version`
 
 > **indexToDate**(`index`, `i`): `Date`
 
-Defined in: [modules/bitview-client/index.js:7833](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7833)
+Defined in: [modules/bitview-client/index.js:7859](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7859)
 
 The UTC start of bucket `i`; throws for an index without a date calendar.
 
@@ -4609,7 +4615,7 @@ The UTC start of bucket `i`; throws for an index without a date calendar.
 
 > **listSeries**(`page?`, `per_page?`, `options?`): `Promise`\<[`PaginatedSeries`](../interfaces/PaginatedSeries.md)\>
 
-Defined in: [modules/bitview-client/index.js:7996](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7996)
+Defined in: [modules/bitview-client/index.js:8022](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8022)
 
 Series list
 
@@ -4659,7 +4665,7 @@ Results per page (default: 1000, max: 1000)
 
 > **listUrpdCohorts**(`options?`): `Promise`\<[`UrpdCohort`](../type-aliases/UrpdCohort.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:8186](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8186)
+Defined in: [modules/bitview-client/index.js:8212](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8212)
 
 Available URPD cohorts
 
@@ -4697,7 +4703,7 @@ Endpoint: `GET /api/urpd`
 
 > **post**(`path`, `body`, `options?`): `Promise`\<`Response`\>
 
-Defined in: [modules/bitview-client/index.js:2245](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2245)
+Defined in: [modules/bitview-client/index.js:2270](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2270)
 
 POST responses are uncached and never invoke `onValue` — every call hits
 the network with the same body and returns the upstream response.
@@ -4732,7 +4738,7 @@ the network with the same body and returns the upstream response.
 
 > **postBytes**(`path`, `body`, `options?`): `Promise`\<`Uint8Array`\<`ArrayBufferLike`\>\>
 
-Defined in: [modules/bitview-client/index.js:2281](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2281)
+Defined in: [modules/bitview-client/index.js:2307](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2307)
 
 #### Parameters
 
@@ -4762,9 +4768,9 @@ Defined in: [modules/bitview-client/index.js:2281](https://github.com/bitcoinres
 
 ### postJson()
 
-> **postJson**\<`T`\>(`path`, `body`, `options?`): `Promise`\<`T`\>
+> **postJson**\<`T`\>(`path`, `body`, `options?`, `keep?`): `Promise`\<`T`\>
 
-Defined in: [modules/bitview-client/index.js:2259](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2259)
+Defined in: [modules/bitview-client/index.js:2285](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2285)
 
 #### Type Parameters
 
@@ -4788,6 +4794,12 @@ Defined in: [modules/bitview-client/index.js:2259](https://github.com/bitcoinres
 
 `AbortSignal`
 
+##### keep?
+
+`any`
+
+Where the response has maps, as `_camelKeys` takes it
+
 #### Returns
 
 `Promise`\<`T`\>
@@ -4802,7 +4814,7 @@ Defined in: [modules/bitview-client/index.js:2259](https://github.com/bitcoinres
 
 > **postText**(`path`, `body`, `options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:2270](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2270)
+Defined in: [modules/bitview-client/index.js:2296](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2296)
 
 #### Parameters
 
@@ -4834,7 +4846,7 @@ Defined in: [modules/bitview-client/index.js:2270](https://github.com/bitcoinres
 
 > **postTx**(`body`, `options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:9449](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9449)
+Defined in: [modules/bitview-client/index.js:9475](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9475)
 
 Broadcast transaction
 
@@ -4866,7 +4878,7 @@ Endpoint: `POST /api/tx`
 
 > **searchSeries**(`q`, `limit?`, `options?`): `Promise`\<`string`[]\>
 
-Defined in: [modules/bitview-client/index.js:8017](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8017)
+Defined in: [modules/bitview-client/index.js:8043](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8043)
 
 Search series
 
@@ -4916,7 +4928,7 @@ Maximum number of results, 100 when omitted
 
 > **seriesEndpoint**\<`I`\>(`series`, `index`): `I` *extends* [`DateIndex`](../type-aliases/DateIndex.md) ? [`DateSeriesEndpoint`](../interfaces/DateSeriesEndpoint.md)\<`unknown`\> : [`SeriesEndpoint`](../interfaces/SeriesEndpoint.md)\<`unknown`\>
 
-Defined in: [modules/bitview-client/index.js:7884](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7884)
+Defined in: [modules/bitview-client/index.js:7910](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7910)
 
 A series by a name known only at runtime; `series` has the typed paths.
 
@@ -4948,7 +4960,7 @@ The index name; date indexes also slice by Date
 
 > **validateAddress**(`address`, `options?`): `Promise`\<[`AddressValidation`](../interfaces/AddressValidation.md)\>
 
-Defined in: [modules/bitview-client/index.js:8451](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8451)
+Defined in: [modules/bitview-client/index.js:8477](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L8477)
 
 Validate address
 
@@ -4995,7 +5007,7 @@ anything else answers 400, as mempool.space does
 
 > `static` **addressPayloadHashPrefix**(`payload`, `nibbles`): `string`
 
-Defined in: [modules/bitview-client/index.js:7860](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7860)
+Defined in: [modules/bitview-client/index.js:7886](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L7886)
 
 Compute the RapidHash v3 hash-prefix for raw address payload bytes.
 

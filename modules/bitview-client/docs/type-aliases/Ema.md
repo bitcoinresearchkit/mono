@@ -8,7 +8,7 @@
 
 > **Ema**\<`A`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:3601](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3601)
+Defined in: [modules/bitview-client/index.js:3627](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3627)
 
 ## Type Parameters
 

@@ -6,7 +6,7 @@
 
 # Interface: ClientFetchOptions\<T\>
 
-Defined in: [modules/bitview-client/index.js:1901](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1901)
+Defined in: [modules/bitview-client/index.js:1925](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1925)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [modules/bitview-client/index.js:1901](https://github.com/bitcoinres
 
 > `optional` **cache?**: `boolean`
 
-Defined in: [modules/bitview-client/index.js:1903](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1903)
+Defined in: [modules/bitview-client/index.js:1927](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1927)
 
 Use HTTP/browser/client caches. Set false for a no-store network fetch.
 
@@ -30,7 +30,7 @@ Use HTTP/browser/client caches. Set false for a no-store network fetch.
 
 > `optional` **memCache?**: `boolean`
 
-Defined in: [modules/bitview-client/index.js:1904](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1904)
+Defined in: [modules/bitview-client/index.js:1928](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1928)
 
 Use the parsed in-memory response cache. Set false for large one-shot reads.
 
@@ -40,7 +40,7 @@ Use the parsed in-memory response cache. Set false for large one-shot reads.
 
 > `optional` **onValue?**: (`value`) => `void`
 
-Defined in: [modules/bitview-client/index.js:1905](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1905)
+Defined in: [modules/bitview-client/index.js:1929](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1929)
 
 Receive stale/fresh values as they arrive
 
@@ -60,6 +60,6 @@ Receive stale/fresh values as they arrive
 
 > `optional` **signal?**: `AbortSignal`
 
-Defined in: [modules/bitview-client/index.js:1902](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1902)
+Defined in: [modules/bitview-client/index.js:1926](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1926)
 
 Abort this request
