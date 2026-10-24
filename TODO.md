@@ -17,9 +17,6 @@ Only what's left. An item done is removed: its history is in the commits and log
 Served by the server at DOMAIN/studio/ (bitview.space, next.bitview.space; studio.bitview.space redirects there).
 
 - Deploy the MCP page only once `main` has `showcases/assets/fonts` (its fonts load from there through jsDelivr).
-- Presets for the well-known indicators nothing shows yet, as formulas over published series (the server keeps
-  formulas out): NVT (market cap over the 24-hour transfer volume in dollars), Thermocap multiple (market cap over
-  `thermo_cap`) and RHODL (the 1-day-to-1-week band's realized cap over the 1-to-2-year bands', age-weighted).
 - Alerts: being told when a series crosses a level (push, email or a webhook). Only the server can watch for it and
   deliver it (alerts that fire only while Studio's tab is open are a weak promise): a back-end feature, with its own
   design, before Studio can offer it.
