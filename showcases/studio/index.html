@@ -8990,12 +8990,21 @@
           grid-template-columns: minmax(0, 1fr);
         }
 
-        .palette-preview {
+        /* (No pane beside the list: a series' is over its actions instead, see .menu-detail.) */
+        #palette-preview {
           display: none;
         }
 
         .palette-left {
           border-right: 0;
+        }
+
+        /* A series' panel over its actions (a row's ⋯), as the pane beside the list shows it on a computer. */
+        .menu-detail {
+          overflow: visible;
+          margin-bottom: 4px;
+          border-bottom: 1px solid var(--line);
+          padding: 6px 12px 14px;
         }
       }
 
@@ -28482,13 +28491,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           panel.innerHTML = `<h4><code>${escape(text)}</code></h4>
             <p class="description">${recipe ? escape(recipe.text) : uses.length ? `Uses ${escape(uses.join(", "))}` : "A constant"}.</p>
-            <svg class="spark" id="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+            <svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>
             <div class="info"><h5>${editing ? "Layer" : "As layer"} ${escape(layer.letter)}</h5><dl>
               <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div>
-              <div><dt>Latest</dt><dd id="spark-caption"></dd></div>
+              <div><dt>Latest</dt><dd class="spark-caption"></dd></div>
               ${editing ? "" : `<div><dt>Goes in</dt><dd>${into ? `Pane ${paneNumber(into)}` : chart.panes.length < MAX_PANES ? "New pane" : stackedOnly(null) ? "Nowhere: the last pane is a stack" : `Pane ${chart.panes.length}`}</dd></div>`}
             </dl></div>`;
-          drawSpark(Array.from(result.values), unit, ink(layer.color));
+          drawSpark(panel, Array.from(result.values), unit, ink(layer.color));
         })();
       }
       /** What a piece of a formula is: a layer of this chart, with its latest value; or a function. */
@@ -28541,11 +28550,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return points;
       }
-      /** The preview's mini chart: a line over the values (on a log scale for a price that stays above zero), its latest under it. */
-      function drawSpark(values, unit, color = css("--ink"), /** @type {((i: number) => string | null) | null} */ tint = null) {
-        const finite = values.filter(Number.isFinite);
-        if (finite.length < 2) return void ($("spark-caption").textContent = finite.length || values.length < 2 ? "No history yet" : "Every value is infinite or undefined");
-        $("spark-caption").textContent = format(finite.at(-1), unit);
+      /** Sparks drawn, each its own fill's id (two panels can show at once: a phone's sheet, the pane behind). */
+      let sparksDrawn = 0;
+      /**
+       * A panel's mini chart (its .spark, its .spark-caption): a line over the values (on a log scale for a price that
+       * stays above zero), its latest under it.
+       */
+      function drawSpark(/** @type {Element} */ panel, values, unit, color = css("--ink"), /** @type {((i: number) => string | null) | null} */ tint = null) {
+        const finite = values.filter(Number.isFinite), caption = /** @type {HTMLElement} */ (panel.querySelector(".spark-caption")), spark = /** @type {SVGElement} */ (panel.querySelector(".spark"));
+        if (finite.length < 2) return void (caption.textContent = finite.length || values.length < 2 ? "No history yet" : "Every value is infinite or undefined");
+        caption.textContent = format(finite.at(-1), unit);
         const logScale = unit === "usd" && finite.every((value) => value > 0);
         const scaled = logScale ? values.map(Math.log10) : values;
         let lo = Infinity, hi = -Infinity;
@@ -28554,7 +28568,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Painted date by date: its line in pieces, each in its color.)
         const line = (/** @type {string[]} */ part, /** @type {string} */ stroke) => `<polyline points="${part.join(" ")}" fill="none" stroke="${escape(stroke)}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" />`;
         const lines = tint ? byColor(spots, (point) => tint(point.i) ?? color).map((piece) => line(piece.points.map((point) => point.at), piece.color)).join("") : line(points, color);
-        $("spark").innerHTML = `<defs><linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${escape(color)}" stop-opacity=".22"/><stop offset="1" stop-color="${escape(color)}" stop-opacity="0"/></linearGradient></defs><polygon points="0,100 ${points.join(" ")} 300,100" fill="url(#spark-fill)"/>${lines}`;
+        const fill = `spark-fill-${++sparksDrawn}`;
+        spark.innerHTML = `<defs><linearGradient id="${fill}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${escape(color)}" stop-opacity=".22"/><stop offset="1" stop-color="${escape(color)}" stop-opacity="0"/></linearGradient></defs><polygon points="0,100 ${points.join(" ")} 300,100" fill="url(#${fill})"/>${lines}`;
       }
 
       /** A text with what's typed marked in it (found in the text itself, then escaped around: no mark lands in an entity). */
@@ -28750,9 +28765,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return;
         }
         if (item.kind === "chart") return previewChart(panel, chartById(item.key));
-        const head = `<h4 class="plain">${escape(humanize(item.name))}</h4><p class="series-id"><code>${escape(item.name)}</code>${((layer) => (layer ? ` · in this chart as ${escape(layer.letter)}` : ""))(home ? null : chart.layers.find((layer) => layer.series === item.name))}</p>`;
-        if (byBlock.has(item.name)) {
-          const day = dailyOf(item.name);
+        previewSeries(panel, item.name, () => palette.items[palette.active] === item);
+      }
+      /**
+       * A series in a panel, as ⌘K shows it (its pane; a phone's, the sheet of a row's actions): its name and id, its
+       * description, its history and what it is, its data a moment after; `still`, whether the panel still shows it (one
+       * arrowed past asks for none of its data).
+       */
+      function previewSeries(/** @type {HTMLElement} */ panel, /** @type {string} */ name, still = () => true) {
+        const head = `<h4 class="plain">${escape(humanize(name))}</h4><p class="series-id"><code>${escape(name)}</code>${((layer) => (layer ? ` · in this chart as ${escape(layer.letter)}` : ""))(home ? null : chart.layers.find((layer) => layer.series === name))}</p>`;
+        if (byBlock.has(name)) {
+          const day = dailyOf(name);
           panel.innerHTML = `${head}<p class="description">${BY_BLOCK}.${day ? ` By day, there's ${escape(humanize(day))} (<code>${escape(day)}</code>).` : ""}</p>`;
           return;
         }
@@ -28762,30 +28785,30 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         void (async () => {
           try {
             // (Bitview asked instead, until the catalog's here: for the row still looked at a moment after.)
-            if (!finder.ready && !known.has(item.name)) {
-              await new Promise((done) => (previewTimer = setTimeout(done, 90)));
-              if (palette.items[palette.active] !== item) return;
+            if (!finder.ready && !known.has(name)) {
+              await new Promise((done) => setTimeout(done, 90));
+              if (!still()) return;
             }
-            retryInfo(item.name);
-            const meta = await info(item.name);
-            if (palette.items[palette.active] !== item) return;
+            retryInfo(name);
+            const meta = await info(name);
+            if (!still()) return;
             const unit = unitOf(meta.type);
-            units.set(item.name, unit);
+            units.set(name, unit);
             panel.innerHTML = `${head}
               ${meta.description ? `<p class="description clamped">${escape(meta.description)}</p>` : ""}
-              <svg class="spark" id="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>
+              <svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>
               <div class="info"><h5>Information</h5><dl>
                 <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit])}</dd></div>
                 <div><dt>Intervals</dt><dd>${meta.indexes.length}</dd></div>
-                <div><dt>Latest</dt><dd id="spark-caption"><span class="shimmer">Loading</span></dd></div>
+                <div><dt>Latest</dt><dd class="spark-caption"><span class="shimmer">Loading</span></dd></div>
               </dl></div>`;
             const index = meta.indexes.includes("week1") ? "week1" : meta.indexes.includes("day1") ? "day1" : null;
-            if (!index) return void ($("spark-caption").textContent = "—");
-            const key = `${item.name}@${index}`, count = index === "week1" ? 520 : 1500;
+            if (!index) return void (/** @type {HTMLElement} */ (panel.querySelector(".spark-caption")).textContent = "—");
+            const key = `${name}@${index}`, count = index === "week1" ? 520 : 1500;
             const tail = () => {
               // (Kept for the last hundred looked at.)
               if (sparks.size > 100) sparks.delete(sparks.keys().next().value);
-              if (!sparks.has(key)) sparks.set(key, client.seriesEndpoint(item.name, /** @type {"day1"} */ (index)).last(count).fetch().catch((error) => {
+              if (!sparks.has(key)) sparks.set(key, client.seriesEndpoint(name, /** @type {"day1"} */ (index)).last(count).fetch().catch((error) => {
                 sparks.delete(key);
                 throw error;
               }));
@@ -28794,14 +28817,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // A series a chart loaded at that interval is at hand: its tail, without asking.
             const held = loads.get(key);
             if (!held && !sparks.has(key)) {
-              await new Promise((done) => (previewTimer = setTimeout(done, 90)));
-              if (palette.items[palette.active] !== item) return;
+              await new Promise((done) => setTimeout(done, 90));
+              if (!still()) return;
             }
             const response = await (held ? lastUsed(loads, key, held).then((data) => ({ data: data.data.slice(-count) }), tail) : tail());
-            if (palette.items[palette.active] !== item) return;
-            drawSpark(response.data.map((value) => (Array.isArray(value) ? value[3] : value)).map((value) => (value == null ? NaN : Number(value))), unit);
+            if (!still()) return;
+            drawSpark(panel, response.data.map((value) => (Array.isArray(value) ? value[3] : value)).map((value) => (value == null ? NaN : Number(value))), unit);
           } catch (error) {
-            if (palette.items[palette.active] === item) panel.innerHTML = `${head}<div class="error-box">${escape(failure(error))}</div>`;
+            if (still()) panel.innerHTML = `${head}<div class="error-box">${escape(failure(error))}</div>`;
           }
         })();
       }
@@ -28900,7 +28923,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         quickHide();
         const item = palette.items[palette.active], actions = actionsFor(item);
         if (actions.length < 2) return;
-        showMenu(anchor, actions.map((action, i) => `${action.danger ? '<div class="menu-rule"></div>' : ""}<button type="button" data-action-index="${i}" ${action.danger ? 'class="danger"' : ""}>${action.icon ?? '<i class="menu-space"></i>'}${escape(action.label)}${action.kbd ? `<kbd>${escape(keyText(action.kbd))}</kbd>` : action.aside ? `<span>${escape(action.aside)}${action.page ? " ›" : ""}</span>` : action.page ? "<span>›</span>" : ""}</button>`).join(""), ({ actionIndex }) => runAction(actions[Number(actionIndex)], item));
+        // (A series', on a phone: what it is over them, as the pane beside the list shows it on a computer.)
+        const detail = phone.matches && item.kind === "series";
+        showMenu(anchor, (detail ? '<div class="palette-preview menu-detail"></div>' : "") + actions.map((action, i) => `${action.danger ? '<div class="menu-rule"></div>' : ""}<button type="button" data-action-index="${i}" ${action.danger ? 'class="danger"' : ""}>${action.icon ?? '<i class="menu-space"></i>'}${escape(action.label)}${action.kbd ? `<kbd>${escape(keyText(action.kbd))}</kbd>` : action.aside ? `<span>${escape(action.aside)}${action.page ? " ›" : ""}</span>` : action.page ? "<span>›</span>" : ""}</button>`).join(""), ({ actionIndex }) => runAction(actions[Number(actionIndex)], item));
+        const box = detail ? /** @type {HTMLElement | null} */ ($("menu").querySelector(".menu-detail")) : null;
+        if (box) previewSeries(box, item.name, () => box.isConnected && !$("menu").hidden);
       }
       /**
        * An action, from ⌘K's menu or a page's row: a page opens; anything else acts, closing ⌘K unless it stays (a
@@ -29788,16 +29815,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         panel.innerHTML = `<h4 class="plain">${escape(labelOf(layer))}</h4>
           <p class="description">${layer.from ? escape(`Between ${fromSpan(layer) || "no layers"}`) : `<code>${escape(layer.series ?? layer.formula ?? "")}</code>`}</p>
           ${about ? `<p class="description clamped">${escape(about)}</p>` : ""}
-          ${result?.error ? `<div class="error-box">${escape(result.detail ?? result.error)}.</div>` : layer.type === "cloud" ? "" : '<svg class="spark" id="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>'}
+          ${result?.error ? `<div class="error-box">${escape(result.detail ?? result.error)}.</div>` : layer.type === "cloud" ? "" : '<svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>'}
           <div class="info"><h5>Layer ${escape(layer.letter)}</h5><dl>
             <div><dt>Type</dt><dd>${escape(typeName(layer.type))}</dd></div>
             <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div>
             <div><dt>Layout</dt><dd>Pane ${at + 1}, ${layer.side === "left" ? "left" : "right"} axis</dd></div>
-            <div><dt>Latest</dt><dd id="spark-caption">${layer.type === "cloud" && result?.values ? escape(rangeAt(layer, { at: result.values.length - 1, rest: true }, unit)) : "—"}</dd></div>
+            <div><dt>Latest</dt><dd class="spark-caption">${layer.type === "cloud" && result?.values ? escape(rangeAt(layer, { at: result.values.length - 1, rest: true }, unit)) : "—"}</dd></div>
           </dl></div>`;
         // (Its colors date by date, where they vary: as given, else as it's drawn; a color given, that one alone.)
         const dated = tint !== undefined ? tint : color ? null : resolved ? paintOf(chart, layer, resolved) : null;
-        if (result?.values && !result.error && layer.type !== "cloud") drawSpark(Array.from(result.values), unit, ink(color ?? layer.color), dated && ((i) => ((name) => (name ? ink(name) : null))(dated(i))));
+        if (result?.values && !result.error && layer.type !== "cloud") drawSpark(panel, Array.from(result.values), unit, ink(color ?? layer.color), dated && ((i) => ((name) => (name ? ink(name) : null))(dated(i))));
       }
       /** @returns {Page} */
       const panesPage = () => ({ title: "Panes", placeholder: "Search this chart's panes", rows: () => [
@@ -30012,15 +30039,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const points = span && !why && !away ? pointsOf(span) : null, wide = points && points.last - points.first + 1 > mostBars();
         panel.innerHTML = `<h4 class="plain">${span ? escape(capitalize(span.label)) : "Go to"}</h4>
           <p class="description">${escape(!span ? "A year or a month is shown whole; a day or a block, centered at the zoom the chart has." : why || (away ? "Loads first, then shows it." : span.day ? "Centered, at the zoom the chart has." : wide ? "Its middle: all of it takes a longer interval." : "Shown whole, edge to edge."))}</p>
-          <svg class="spark" id="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg><span id="spark-caption" hidden></span>
+          <svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg><span class="spark-caption" hidden></span>
           ${span && !why && !away ? `<div class="info"><dl id="date-facts"></dl></div>` : ""}`;
         const source = overviewSource();
-        if (!source || !resolved) return void $("spark").remove();
+        if (!source || !resolved) return void panel.querySelector(".spark")?.remove();
         const values = Array.from(source.values), n = values.length;
-        drawSpark(values, unitFor(source.layer, resolved.results.get(source.layer.id)), ink(source.layer.color));
+        drawSpark(panel, values, unitFor(source.layer, resolved.results.get(source.layer.id)), ink(source.layer.color));
         if (!span || why || away) return;
         const { first, last } = pointsOf(span), x = (i) => ((i / Math.max(1, n - 1)) * 300).toFixed(1);
-        $("spark").insertAdjacentHTML("afterbegin", `<rect x="${x(first)}" y="0" width="${Math.max(1.5, Number(x(last)) - Number(x(first)))}" height="100" style="fill: var(--line-strong)" />`);
+        panel.querySelector(".spark")?.insertAdjacentHTML("afterbegin", `<rect x="${x(first)}" y="0" width="${Math.max(1.5, Number(x(last)) - Number(x(first)))}" height="100" style="fill: var(--line-strong)" />`);
         $("date-facts").innerHTML = `<div><dt>From</dt><dd>${escape(pointLabel(resolved.times[first]))}</dd></div><div><dt>To</dt><dd>${escape(pointLabel(resolved.times[last]))}</dd></div><div><dt>Points</dt><dd>${grouped.format(last - first + 1)}</dd></div>`;
       }
       /**
