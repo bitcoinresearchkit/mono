@@ -2997,8 +2997,9 @@
               visibility: hidden;
             }
 
+            /* (As its legend is: under the Charts page, where the chart's hidden, hidden too.) */
             .eye {
-              visibility: visible;
+              visibility: inherit;
             }
           }
 
@@ -7091,6 +7092,13 @@
         overflow-x: auto;
         overscroll-behavior-x: contain;
         scrollbar-width: none;
+        /* (A fling comes to rest on a tile's start, at the page's column, as its steps go: never two cut in half.) */
+        scroll-snap-type: x mandatory;
+        scroll-padding-inline: 4px;
+
+        & > * {
+          scroll-snap-align: start;
+        }
 
         &::-webkit-scrollbar {
           display: none;
