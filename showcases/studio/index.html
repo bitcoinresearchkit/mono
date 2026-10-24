@@ -16,6 +16,8 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <!-- Its launch from a home screen, every showcase's (it says when it's ready: see start). -->
+    <script src="/assets/launch/launch.js" data-wait></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="description" content="Compose charts from any of Bitview's series: overlay them, stack panes, derive new ones with formulas, and keep, share or export the result, or open one from a link: a chart is a link, #chart= and its JSON (this page's text says how, and how to have its picture)." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%22-0.63 -0.7311 1.26 1.4622%22%3E%3Cpath fill=%22oklch%2864.34%25 0.191 44.41%29%22 fill-rule=%22evenodd%22 d=%22M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z%22/%3E%3C/svg%3E" />
@@ -37,23 +39,6 @@
         const ground = theme === "light" || (theme === "system" && matchMedia("(prefers-color-scheme: light)").matches) ? "#f6f6f7" : "#08090a";
         const manifest = { id: here, name: "Bitview Studio", short_name: "Bitview Studio", start_url: here, scope: here.replace(/[^/]*$/, ""), display: "standalone", background_color: ground, theme_color: ground, icons: [{ src: icon("icon"), sizes: "any", type: "image/svg+xml" }, { src: icon("apple-touch-icon"), sizes: "180x180", type: "image/png" }] };
         /** @type {HTMLLinkElement} */ (document.getElementById("manifest")).href = `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`;
-        // Added to an iPhone's home screen, it opens orange (Bitview's, the logo's): its launch screen (iOS's white else
-        // while the app starts), this phone's size, made once the page has loaded, only in Safari, where it's added
-        // (installed, it's already there); then the page's first frames, orange too, fading into it as it's ready (see
-        // [data-launch]).
-        const orange = "#e65b00";
-        if (/** @type {any} */ (navigator).standalone) document.documentElement.dataset.launch = "";
-        if (/** @type {any} */ (navigator).standalone === false) addEventListener("load", () => setTimeout(() => {
-          const canvas = document.createElement("canvas"), context = canvas.getContext("2d"), link = document.createElement("link");
-          canvas.width = Math.round(screen.width * devicePixelRatio);
-          canvas.height = Math.round(screen.height * devicePixelRatio);
-          if (!context) return;
-          context.fillStyle = orange;
-          context.fillRect(0, 0, canvas.width, canvas.height);
-          link.rel = "apple-touch-startup-image";
-          link.href = canvas.toDataURL("image/png");
-          document.head.append(link);
-        }), { once: true });
       }
     </script>
     <title>Bitview Studio: charts of Bitcoin's on-chain data</title>
@@ -333,42 +318,6 @@
         a {
           text-decoration: none;
           animation: booting var(--dur-page) var(--ease) 12s both;
-        }
-      }
-
-      /* Opened from a home screen (see the manifest's script): orange over the page from its first frame, as its launch
-         screen was, fading as it's ready; not ready (its script held back), after a while all the same, the page's word
-         of it shown. Gone once faded (see the launch's script). */
-      html[data-launch]::after {
-        content: "";
-        position: fixed;
-        inset: 0;
-        z-index: 100;
-        background: #e65b00;
-        pointer-events: none;
-        animation: launch-out 450ms var(--ease) 6s forwards;
-      }
-
-      html[data-launch="out"]::after {
-        animation-name: launch-ready;
-        animation-delay: 0s;
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        html[data-launch]::after {
-          animation-duration: 1ms;
-        }
-      }
-
-      @keyframes launch-out {
-        to {
-          opacity: 0;
-        }
-      }
-
-      @keyframes launch-ready {
-        to {
-          opacity: 0;
         }
       }
 
@@ -7869,17 +7818,6 @@
             height: calc(env(safe-area-inset-top) + 12px);
             background: color-mix(in srgb, var(--card) 1%, transparent);
             pointer-events: none;
-          }
-
-          /* (Opened from the home screen, its bar orange as the launch's cover is, till it fades (then the page's, read at
-             once): over the cover while it's there, which iOS would find first and pass over (a pseudo-element, found as
-             the page itself), see [data-launch].) */
-          html[data-launch] .top-strip {
-            z-index: 101;
-          }
-
-          html[data-launch=""] .top-strip {
-            background: #e65b00;
           }
         }
 
@@ -34062,7 +34000,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         save();
         refresh(true, true);
         // (Rendered: the page shown, settling in whole; opened from a home screen, there whole at once, under its launch's
-        // orange, which fading is its way in.)
+        // orange, which drawing back is its way in: see /assets/launch/launch.js.)
         if ("launch" in document.documentElement.dataset) document.body.classList.remove("boot");
         document.documentElement.dataset.ready = "";
         if (picturing && shared) showPicture();
@@ -34078,12 +34016,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const aside = storage.get(UNREAD, []), told = Array.isArray(aside) ? String(JSON.stringify(aside).length) : "";
         if (Array.isArray(aside) && aside.length && storage.get(`${UNREAD}:told`, "") !== told && storage.set(`${UNREAD}:told`, told)) notice(`${plural(aside.length, "saved chart")} couldn't be read here: kept aside`, { label: "Download", run: () => download("bitview-charts-kept-aside.json", new Blob([JSON.stringify({ v: 2, charts: aside }, null, 2)], { type: "application/json" })) });
       }
-      // (Its launch's orange, fading once the page ready is on the screen (two frames on: iOS shows a page's first frame
-      // late, a fade begun at once would be most of the way through), then gone, no layer left over the page.)
-      document.documentElement.addEventListener("animationend", (event) => event.target === document.documentElement && event.pseudoElement === "::after" && delete document.documentElement.dataset.launch);
-      const launched = () => "launch" in document.documentElement.dataset && requestAnimationFrame(() => requestAnimationFrame(() => "launch" in document.documentElement.dataset && (document.documentElement.dataset.launch = "out")));
       // (Shown whatever start makes of it: one failing shows what it got to, not a page held out of sight.)
-      navigate(start().finally(() => ((document.documentElement.dataset.ready = ""), launched())));
+      navigate(start().finally(() => ((document.documentElement.dataset.ready = ""), /** @type {any} */ (window).bitviewLaunch?.ready())));
     </script>
   </body>
 </html>
