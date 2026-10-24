@@ -104,14 +104,15 @@
         font-variant-numeric: tabular-nums;
       }
 
-      /* ── The bar: the brand, where we are, the search ── */
+      /* ── The bar: the brand, the search ── */
 
       .bar {
         position: sticky;
         top: 0;
         z-index: 3;
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr) auto;
+        /* (The same room either side, the brand's, so the search sits in the middle.) */
+        grid-template-columns: minmax(110px, 1fr) minmax(0, 560px) minmax(110px, 1fr);
         align-items: center;
         gap: 16px;
         height: 56px;
@@ -133,17 +134,10 @@
           width: 20px;
           height: 20px;
         }
-
-        span {
-          color: var(--faint);
-          font-weight: 400;
-        }
       }
 
       .search {
         position: relative;
-        justify-self: center;
-        width: min(560px, 100%);
 
         svg {
           position: absolute;
@@ -231,16 +225,9 @@
         }
       }
 
-      .count {
-        color: var(--faint);
-        font-size: 12px;
-        white-space: nowrap;
-      }
-
       /* (A key's hint only where there are keys to press.) */
       @media (hover: none) {
-        .search kbd,
-        .keys {
+        .search kbd {
           display: none;
         }
       }
@@ -261,36 +248,45 @@
 
       .column {
         flex: none;
+        display: flex;
+        flex-direction: column;
         width: 252px;
-        overflow-y: auto;
+        min-height: 0;
         border-right: 1px solid var(--line);
         background: var(--pane);
         scroll-snap-align: start;
-        /* (Its own scroll up and down kept to it; a slide sideways goes on to the page.) */
-        overscroll-behavior-y: contain;
 
+        /* (Its name and count stay put; its rows scroll under a hairline.) */
         h2 {
-          position: sticky;
-          top: 0;
-          z-index: 1;
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: 10px;
           margin: 0;
-          padding: 12px 14px 8px;
-          background: var(--pane);
+          padding: 12px 14px 9px;
+          border-bottom: 1px solid var(--line);
           color: var(--faint);
           font-size: 11px;
           font-weight: 600;
           letter-spacing: 0.06em;
           text-transform: uppercase;
 
-          /* (Its count said on a phone, where no row beside it says it.) */
           span {
-            display: none;
+            flex: none;
+            font-weight: 400;
+            letter-spacing: 0;
+            text-transform: none;
           }
         }
 
+        /* (Its own scroll up and down kept to it, a slide sideways going on to the page; its rows placed from its top.) */
         ul {
+          position: relative;
+          flex: 1;
           margin: 0;
-          padding: 0 6px 12px;
+          padding: 6px 6px 12px;
+          overflow-y: auto;
+          overscroll-behavior-y: contain;
           list-style: none;
         }
       }
@@ -358,10 +354,10 @@
         }
       }
 
-      /* After the columns: a series, what this is at the top, or the room left. Each takes what the whole columns
+      /* After the columns: a series, the map at the top, or the room left. Each takes what the whole columns
          beside it leave (fit(), in the script), at least its least. */
       .series,
-      .home,
+      .overview,
       .rest {
         flex: 1 0 0;
         scroll-snap-align: end;
@@ -374,23 +370,112 @@
         padding: 28px clamp(20px, 3vw, 40px) 48px;
       }
 
-      .home {
+      /* At the top, beside the first column: what each folder holds, a level deeper, each a tile (a map of every
+         series). */
+      .overview {
         min-width: 360px;
-        display: grid;
-        place-content: center;
-        padding: 40px;
-        color: var(--faint);
-        text-align: center;
+        overflow-y: auto;
+        padding: 28px clamp(20px, 3vw, 40px) 48px;
 
-        p {
+        h1 {
           margin: 0;
+          font-size: clamp(22px, 2.4vw, 30px);
+          font-weight: 600;
+          letter-spacing: -0.025em;
+          line-height: 1.15;
         }
 
-        kbd {
-          padding: 1px 6px;
-          border: 1px solid var(--line-strong);
-          border-radius: 5px;
-          font: 11px var(--mono);
+        > p {
+          margin: 6px 0 0;
+          color: var(--faint);
+        }
+      }
+
+      .tiles {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 12px;
+        margin-top: 22px;
+      }
+
+      .tile {
+        display: grid;
+        align-content: start;
+        gap: 6px;
+        min-width: 0;
+        padding: 12px 14px 14px;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--pane);
+        text-align: left;
+
+        > button {
+          display: flex;
+          align-items: baseline;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 0;
+          text-align: left;
+        }
+
+        b {
+          overflow: hidden;
+          font-weight: 600;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        b + span {
+          flex: none;
+          color: var(--faint);
+          font-size: 12px;
+        }
+
+        > button:hover b {
+          color: var(--accent-ink);
+        }
+
+        /* (What's in it, each a way straight there.) */
+        p {
+          margin: 0;
+          color: var(--faint);
+          font-size: 12.5px;
+          line-height: 1.6;
+
+          /* (Each with its comma, never a line starting with one; a long name wrapping within the tile.) */
+          span {
+            white-space: nowrap;
+          }
+
+          button {
+            max-width: calc(100% - 0.5em);
+            padding: 0;
+            white-space: normal;
+            color: var(--soft);
+            text-align: left;
+
+            &:hover {
+              color: var(--ink);
+              text-decoration: underline;
+              text-underline-offset: 2px;
+            }
+          }
+        }
+
+        code {
+          overflow: hidden;
+          color: var(--faint);
+          font-size: 11.5px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      }
+
+      button.tile:hover {
+        border-color: var(--line-strong);
+
+        b {
+          color: var(--accent-ink);
         }
       }
 
@@ -745,8 +830,9 @@
 
       /* Search: its results where the columns were. */
       .results {
-        flex: 1 0 auto;
-        width: min(760px, 100%);
+        flex: 0 1 780px;
+        min-width: 0;
+        max-width: 780px;
         margin: 0 auto;
         padding: 14px 10px 40px;
 
@@ -788,9 +874,11 @@
         display: none;
       }
 
-      @media (max-width: 739px) {
+      @media (max-width: 739px), (max-height: 519px) {
+        /* (On a phone on its side, the chart short enough to be seen whole with its controls: by the smallest viewport,
+           so Safari's toolbar coming and going doesn't resize it.) */
         :root {
-          --plot-height: 240px;
+          --plot-height: clamp(140px, 100svh - 230px, 240px);
         }
 
         html,
@@ -812,18 +900,13 @@
           gap: 12px;
         }
 
-        .brand span,
-        .count {
-          display: none;
-        }
-
         main {
           display: block;
           overflow: visible;
         }
 
         main > .column:not(:nth-last-child(1 of .column)),
-        main > .home,
+        main > .overview,
         main > .rest,
         main:has(> .series) > .column {
           display: none;
@@ -839,6 +922,7 @@
           h2 {
             position: static;
             display: flex;
+            border: 0;
             align-items: baseline;
             justify-content: space-between;
             gap: 12px;
@@ -866,6 +950,7 @@
 
           ul {
             padding: 0 8px 24px;
+            overflow: visible;
           }
         }
 
@@ -912,6 +997,29 @@
         }
       }
 
+      /* (A phone on its side: a series' heading small, the chart in sight from the top.) */
+      @media (max-height: 519px) {
+        .series {
+          padding-top: 8px;
+        }
+
+        .series > .back {
+          margin-bottom: 2px;
+        }
+
+        .series h1 {
+          font-size: 20px;
+        }
+
+        .series > .copyable {
+          margin-top: 6px;
+        }
+
+        .card {
+          margin-top: 12px;
+        }
+      }
+
       @media (prefers-reduced-motion: no-preference) {
         .row,
         .chip,
@@ -923,14 +1031,13 @@
   </head>
   <body>
     <header class="bar">
-      <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview <span>/ Explorer</span></a>
+      <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
       <form class="search" role="search" id="search-form">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
         <input type="search" id="q" placeholder="Search every series" aria-label="Search every series" aria-controls="found-list" autocomplete="off" spellcheck="false" />
         <kbd>/</kbd>
         <button type="button" class="clear" id="clear" aria-label="Clear the search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17" /></svg></button>
       </form>
-      <span class="count num" id="count"></span>
     </header>
     <main id="main"></main>
     <p class="said" id="said" aria-live="polite"></p>
@@ -999,7 +1106,6 @@
         return { key, label: humanizeKey(key), path, kids, count: kids.reduce((sum, kid) => sum + kid.count, 0) };
       }
       const root = build(client.series, "", []);
-      $("count").textContent = `${grouped.format(byName.size)} series`;
       /** The node at a path of keys (as far as it goes). */
       function nodeAt(/** @type {string[]} */ path) {
         let node = root;
@@ -1108,7 +1214,7 @@
 
       // ── Drawing the page ──
       const main = $("main");
-      const narrow = matchMedia("(max-width: 739px)");
+      const narrow = matchMedia("(max-width: 739px), (max-height: 519px)");
       /** What scrolls a phone's page: the page itself, under its bar. */
       const page = /** @type {HTMLElement} */ (document.scrollingElement);
       /** Where each view was scrolled (a phone's page, by what it shows), to come back to it there. @type {Map<string, number>} */
@@ -1130,21 +1236,24 @@
         const nodes = trail(at.path), leaf = nodes.at(-1)?.name ? /** @type {Node} */ (nodes.at(-1)) : null;
         const folders = [root, ...nodes.filter((node) => !node.name)];
         // (Kept through the redraw: each column's scroll, by its folder; the series' own; what had the focus.)
-        const columnsScrolled = new Map([...main.querySelectorAll(".column")].map((column) => [/** @type {HTMLElement} */ (column).dataset.folder, column.scrollTop]));
+        const columnsScrolled = new Map([...main.querySelectorAll(".column")].map((column) => [/** @type {HTMLElement} */ (column).dataset.folder, /** @type {HTMLElement} */ (column.querySelector("ul")).scrollTop]));
         const article = /** @type {HTMLElement | null} */ (main.querySelector(".series")), sameSeries = leaf && leaf.name === lastSeries;
         const seriesScrolled = article ? scrollOf(article) : 0, intervalsSlid = document.getElementById("intervals")?.scrollLeft ?? 0;
         const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest?.("[data-path], [data-index], [data-range], [data-log], [data-copy]") ?? null);
         const focusAt = focused && main.contains(focused) ? [...Object.entries(focused.dataset)].find(([name]) => ["path", "index", "range", "log", "copy"].includes(name)) : null;
         const parts = folders.map((folder, depth) => columnHtml(folder, at.path[depth], depth));
         // (After the columns: the series open, at the top what this is, else the room left.)
-        main.innerHTML = parts.join("") + (leaf ? seriesHtml(leaf) : at.path.length ? `<div class="rest"></div>` : homeHtml());
+        main.innerHTML = parts.join("") + (leaf ? seriesHtml(leaf) : at.path.length ? `<div class="rest"></div>` : overviewHtml(root));
         fit();
         document.title = `${leaf ? `${humanize(/** @type {string} */ (leaf.name))} · ` : nodes.length ? `${nodes.at(-1)?.label} · ` : ""}Explorer · Bitview`;
-        // (Each column where it was, else scrolled, on its own, to its open row if that's out of sight.)
+        // (Each column where it was, its open row brought just into sight; new, its open row centered.)
         for (const column of /** @type {NodeListOf<HTMLElement>} */ (main.querySelectorAll(".column"))) {
-          column.scrollTop = columnsScrolled.get(column.dataset.folder) ?? 0;
-          const row = /** @type {HTMLElement | null} */ (column.querySelector('[aria-current="true"]'));
-          if (row && (row.offsetTop < column.scrollTop || row.offsetTop + row.offsetHeight > column.scrollTop + column.clientHeight)) column.scrollTop = row.offsetTop - column.clientHeight / 2;
+          const rows = /** @type {HTMLElement} */ (column.querySelector("ul")), was = columnsScrolled.get(column.dataset.folder);
+          rows.scrollTop = was ?? 0;
+          const row = /** @type {HTMLElement | null} */ (rows.querySelector('[aria-current="true"]'));
+          if (row && was === undefined) rows.scrollTop = row.offsetTop - (rows.clientHeight - row.offsetHeight) / 2;
+          else if (row && row.offsetTop < rows.scrollTop) rows.scrollTop = row.offsetTop;
+          else if (row && row.offsetTop + row.offsetHeight > rows.scrollTop + rows.clientHeight) rows.scrollTop = row.offsetTop + row.offsetHeight - rows.clientHeight;
         }
         // (Its intervals slid as they were, the same series's; another's, to its interval if that's out of sight.)
         const drawnAgain = /** @type {HTMLElement | null} */ (main.querySelector(".series")), intervals = document.getElementById("intervals");
@@ -1168,7 +1277,16 @@
         // (The focus back where it was, on what's drawn anew; one hidden now (a phone's folder left), the first row shown.)
         if (focusAt) {
           const again = /** @type {HTMLElement | null} */ ([...main.querySelectorAll(`[data-${focusAt[0]}]`)].find((element) => /** @type {HTMLElement} */ (element).dataset[focusAt[0]] === focusAt[1] && /** @type {HTMLElement} */ (element).offsetParent) ?? null);
-          (again ?? /** @type {HTMLElement | null} */ ([...main.querySelectorAll(".column")].at(-1)?.querySelector(".row") ?? null))?.focus({ preventScroll: true });
+          const fallback = [[...main.querySelectorAll(".column")].at(-1)?.querySelector(".row"), main.querySelector(".series > .back")].find((element) => /** @type {HTMLElement | null | undefined} */ (element)?.offsetParent);
+          const target = again ?? /** @type {HTMLElement | undefined} */ (fallback);
+          target?.focus({ preventScroll: true });
+          // (In the map or a series, out of its pane's sight: brought just into it. A column's rows are placed above.)
+          const pane = /** @type {HTMLElement | null | undefined} */ (target?.closest(".overview, .series"));
+          if (target && pane && !narrow.matches) {
+            const box = target.getBoundingClientRect(), view = pane.getBoundingClientRect();
+            if (box.top < view.top) pane.scrollTop -= view.top - box.top + 12;
+            else if (box.bottom > view.bottom) pane.scrollTop += box.bottom - view.bottom + 12;
+          }
         }
       }
       let lastSeries = "";
@@ -1181,10 +1299,12 @@
        * rest of the width, the ones before scrolled past to the left (a slide along brings them back).
        */
       function fit() {
-        const after = /** @type {HTMLElement | null} */ (main.querySelector(":scope > .series, :scope > .home, :scope > .rest"));
+        const after = /** @type {HTMLElement | null} */ (main.querySelector(":scope > .series, :scope > .overview, :scope > .rest"));
         const columns = main.querySelectorAll(":scope > .column"), width = main.clientWidth, column = /** @type {HTMLElement | undefined} */ (columns[0])?.offsetWidth ?? 0;
         if (!after || !column || narrow.matches) return after?.style.removeProperty("flex-basis");
-        const least = parseFloat(getComputedStyle(after).minWidth) || 0;
+        // (A series takes at least 55% of the width, the columns what's left: a chart large on a laptop or a tablet on its
+        // side, two or three columns of where it is beside it.)
+        const least = Math.max(parseFloat(getComputedStyle(after).minWidth) || 0, after.matches(".series") ? width * 0.55 : 0);
         const shown = Math.max(1, Math.min(columns.length, Math.floor((width - least) / column)));
         after.style.flexBasis = `${Math.max(least, width - shown * column)}px`;
         main.scrollLeft = main.scrollWidth;
@@ -1207,8 +1327,18 @@
         const count = grouped.format(depth ? folder.count : byName.size);
         return `<section class="column" data-folder="${escape(JSON.stringify(folder.path))}" aria-label="${escape(folder.label || "All series")}">${back}<h2>${escape(folder.label || "All series")} <span class="num">${count} series</span></h2><ul role="list">${rows}</ul></section>`;
       }
-      function homeHtml() {
-        return `<section class="home"><p>Open a folder, or search<span class="keys"> with <kbd>/</kbd></span>.</p></section>`;
+      /** What a folder holds, as tiles: a folder its count and what's in it (the first few, each a way there); a series its id. */
+      function overviewHtml(/** @type {Node} */ folder) {
+        const FIRST = 8;
+        const link = (/** @type {Node} */ node) => `<button type="button" data-path="${escape(JSON.stringify(node.path))}">${escape(node.label)}</button>`;
+        const tiles = /** @type {Node[]} */ (folder.kids).map((kid) => {
+          if (kid.name) return `<button type="button" class="tile" data-path="${escape(JSON.stringify(kid.path))}"><b>${escape(kid.label)}</b><code>${escape(kid.name)}</code></button>`;
+          const kids = /** @type {Node[]} */ (kid.kids), more = kids.length - FIRST;
+          return `<div class="tile"><button type="button" data-path="${escape(JSON.stringify(kid.path))}"><b>${escape(kid.label)}</b><span class="num">${grouped.format(kid.count)}</span></button>
+            <p>${kids.slice(0, FIRST).map((node, i, shown) => `<span>${link(node)}${i < shown.length - 1 || more > 0 ? "," : ""}</span>`).join(" ")}${more > 0 ? ` and ${more} more` : ""}</p></div>`;
+        }).join("");
+        const count = grouped.format(folder.path.length ? folder.count : byName.size);
+        return `<section class="overview" aria-labelledby="overview-title"><h1 id="overview-title">${escape(folder.label || "All series")}</h1><p>${count} series, folder by folder</p><div class="tiles">${tiles}</div></section>`;
       }
       function crumbsHtml(/** @type {string[]} */ path) {
         return `<ol class="crumbs">${trail(path).slice(0, -1).map((node) => `<li><button type="button" data-path="${escape(JSON.stringify(node.path))}">${escape(node.label)}</button></li>`).join("")}</ol>`;
@@ -1706,16 +1836,17 @@
       for (const type of ["pointerup", "pointercancel"]) main.addEventListener(type, () => (finger = null));
       main.addEventListener("pointerleave", () => plot && hovered !== null && readout(null), true);
 
-      // ── Keys in the columns: ↑ ↓ within one, → into a folder, ← back out ──
+      // ── Keys in the columns: ↑ ↓ within one (Home, End), → into a folder, ← back out ──
       main.addEventListener("keydown", (event) => {
         const row = /** @type {HTMLElement | null} */ (/** @type {HTMLElement} */ (event.target).closest?.(".column .row"));
         if (!row) return;
         const rows = [...(/** @type {HTMLElement} */ (row.closest("ul")).querySelectorAll(".row"))], i = rows.indexOf(row);
         const path = JSON.parse(/** @type {string} */ (row.dataset.path));
-        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+        const moves = /** @type {Record<string, number>} */ ({ ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: rows.length - 1 });
+        if (event.key in moves) {
           event.preventDefault();
-          const next = /** @type {HTMLElement | undefined} */ (rows[i + (event.key === "ArrowDown" ? 1 : -1)]);
-          if (!next) return;
+          const next = /** @type {HTMLElement | undefined} */ (rows[moves[event.key]]);
+          if (!next || next === row) return;
           // (Wide, the row moved to opens beside, as Finder's columns do; narrow, the focus moves, nothing opens.)
           const to = JSON.parse(/** @type {string} */ (next.dataset.path));
           if (!narrow.matches) {
@@ -1738,8 +1869,13 @@
           focusRow(path.slice(0, -1));
         }
       });
+      /** A row focused, its column's Tab stop. */
       function focusRow(/** @type {string[]} */ path) {
-        /** @type {HTMLElement | null} */ (main.querySelector(`.column .row[data-path="${CSS.escape(JSON.stringify(path))}"]`))?.focus();
+        const row = /** @type {HTMLElement | null} */ (main.querySelector(`.column .row[data-path="${CSS.escape(JSON.stringify(path))}"]`));
+        if (!row) return;
+        for (const other of /** @type {HTMLElement} */ (row.closest("ul")).querySelectorAll(".row")) /** @type {HTMLElement} */ (other).tabIndex = -1;
+        row.tabIndex = 0;
+        row.focus();
       }
 
       render();
