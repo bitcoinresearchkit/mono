@@ -135,8 +135,7 @@ export async function chainFacts(origin) {
 
 /**
  * What never happened or hasn't yet, by the chain's facts: pools that never found a block, halving epochs not begun,
- * vintages to come. Their series are zeros or nothing: they get no presets, and the build doesn't miss them. Without
- * facts, nothing.
+ * vintages to come. Their series are zeros or nothing: they get no presets. Without facts, nothing.
  * @param {any} t a client's series tree @param {Facts | undefined} facts @returns {Set<any>} their nodes
  */
 function notYet(t, facts) {

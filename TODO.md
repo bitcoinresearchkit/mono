@@ -25,9 +25,6 @@ Served by the server at DOMAIN/studio/ (bitview.space, next.bitview.space; studi
 
 The website is gone: the server serves the showcases, Bitview's front page (`showcases/index.html`) at `/`.
 
-- Each showcase's production is standalone at `<name>.DOMAIN`: one build, like Studio's, that inlines the shared
-  modules, fonts, pool logos, the logo and favicons into each page, and points its root links (`/studio/`, `/api/`)
-  at bitview.space; the server keeps serving the sources.
 - A home for what only the website had: block, transaction and address pages.
 
 ## Back end

@@ -9413,7 +9413,7 @@
   <body class="boot">
     <!-- The first stop by keys: past the guide (for scripts, at the start of the page's main) to the chart, or the grid. -->
     <a class="skip" href="#main" onclick="event.preventDefault(); const keys = document.getElementById('plot-keys'); (document.body.hasAttribute('data-home') ? document.getElementById('home-filter') : keys && !keys.hidden ? keys : document.getElementById('title'))?.focus()">Skip to the chart</a>
-    <!-- Bitview's client didn't load (the built page takes it from its server): said, plainly. -->
+    <!-- Bitview's client didn't load (it comes from Studio's server): said, plainly. -->
     <div class="booting" role="status"><p>Connecting…</p><a class="btn" href="" onclick="location.reload(); return false">Reload</a></div>
     <div id="offline" class="offline" role="alert">
       <h1>Bitview can't be reached</h1>
@@ -9882,8 +9882,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
     <div class="top-strip" aria-hidden="true"></div>
 
 
-    <!-- The presets (presets.js): the build puts them here, compressed; the dev page makes them as it loads. -->
-    <script id="presets" type="application/gzip"></script>
     <script type="module">
       // @ts-check
       import { BitviewClient } from "/modules/bitview-client/index.js";
@@ -23888,7 +23886,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * its chart as a link writes it.
        * @typedef {{ p: string[], t: string, c: { layers: any[], panes?: any[], range?: string } }} Preset
        */
-      /** The presets the empty chart offers first, by their place (the build checks each is one). */
+      /** The presets the empty chart offers first, by their place (seo.mjs checks each is one). */
       const RECOMMENDED = [
         "Valuation › Price by MVRV zone", "Price › Technical › Halving cycles", "Valuation › On-chain prices", "Valuation › Market and realized cap", "Valuation › MVRV", "Coin age › Age bands › Compare › Supply share",
         "Holders › Compare › Realized price", "Holders › Compare › MVRV", "Price › Returns › Short-term", "Mining › Hashing › Hash price and value",
@@ -23919,25 +23917,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** @type {Promise<Preset[]> | null} */
       let presetsLoad = null, presetsRead = /** @type {Promise<Preset[]> | null} */ (null);
       /**
-       * The presets' list, read once: the built page's own (made by the build, in it compressed), else the dev page's, made
-       * here from this repo's client (presets.js); and the looks they give series (see looksOf). Nothing else: nothing
-       * opens or shows (that's loadPresets').
+       * The presets' list, read once (made from presets.js and the client, see presetsKept), and the looks they give series
+       * (see looksOf). Nothing else: nothing opens or shows (that's loadPresets').
        */
       function readPresetList() {
         return (presetsRead ??= (async () => {
-          const packed = $("presets")?.textContent?.trim();
-          /** @type {Preset[]} */
-          let list;
-          if (packed) {
-            const bytes = fromBase64(packed);
-            list = JSON.parse(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"))).text());
-          } else list = await presetsKept();
+          const list = await presetsKept();
           presetLooks = looksOf(list);
           return list;
         })());
       }
       /**
-       * The dev page's presets, made from this repo's presets.js and its client: kept in this browser by what made them
+       * The presets, made from presets.js and the client: kept in this browser by what made them
        * (those two files, by a hash of them, and the chain's facts then), read back at once on a reload; made in a worker
        * (off the page's thread: Firefox took a fifth of a second) when either file changed, and looked at again behind
        * (made anew for the next reload when the chain's facts have changed: a pool's first block, a halving, a new year).

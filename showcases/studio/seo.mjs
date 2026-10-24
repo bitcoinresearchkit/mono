@@ -24,6 +24,12 @@ const facts = await chainFacts(SERVER).catch((error) => {
   throw new Error(`${SERVER}'s chain facts unread (${error.message}): is it running?`);
 });
 const presets = studioPresets(new BitviewClient({ baseUrl: SERVER }), facts);
+// The presets the empty chart offers first (the page's RECOMMENDED), each one of them: a place renamed would drop it.
+const recommended = /const RECOMMENDED = \[([\s\S]*?)\];/.exec(html)?.[1];
+if (!recommended) throw new Error("No RECOMMENDED in the page");
+const places = new Set(presets.map((preset) => preset.p.join(" › ")));
+const unknown = [...recommended.matchAll(/"([^"]+)"/g)].map(([, place]) => place).filter((place) => !places.has(place));
+if (unknown.length) throw new Error(`Recommended, but no preset there: ${unknown.join("; ")}`);
 
 const code = /\/\* addresses:[^*]*\*\/([\s\S]*?)\/\* \/addresses \*\//.exec(html)?.[1];
 if (!code) throw new Error("No addresses in the page: the sitemap is made from them");
