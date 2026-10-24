@@ -34061,7 +34061,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         autoPrepare(chart);
         save();
         refresh(true, true);
-        // (Rendered: the page shown, settling in whole.)
+        // (Rendered: the page shown, settling in whole; opened from a home screen, there whole at once, under its launch's
+        // orange, which fading is its way in.)
+        if ("launch" in document.documentElement.dataset) document.body.classList.remove("boot");
         document.documentElement.dataset.ready = "";
         if (picturing && shared) showPicture();
         else if (picturing) pictureFailed(linkError || "That link doesn't contain a chart");
