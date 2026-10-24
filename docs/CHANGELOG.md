@@ -63,6 +63,9 @@ has to be deleted by hand.
   `op_return_output_index`, `first_op_return_output_index` and `op_return_output_tx_index` (were `op_return_index`,
   `first_op_return_index` and `op_return_tx_index`, the last readable as an index of OP_RETURN transactions); this
   node's indexer regions renamed in place
+- Supply leaving an age band by age is `aged_out` (`age_1m_to_2m_aged_out_supply`, `age.ranges.<band>.supply.aged_out`;
+  was `matured`, readable as coins maturing into the band), as its description says; this node's age regions renamed
+  in place
 - Cohort ids follow one rule: a cohort whose value names itself is bare (`sth`, `p2tr`, `awake`), any
   other is its attribute and its value. Age bands and the age cutoffs are `age_<band>` (`age_2y_to_3y_supply`,
   `age_under_1h_supply`, `age_under_4m_mvrv`; were `utxos_2y_to_3y_old_supply`, `utxos_under_4m_old_mvrv`), UTXO
@@ -361,7 +364,7 @@ has to be deleted by hand.
   `activity.coindays_destroyed`, `realized.{net_pnl, value_destroyed}` and `unrealized.{profit, loss, net_pnl}` (were
   metric-first under `cohorts`: `cohorts.supply.total.age.range.<range>`,
   `cohorts.realized.cap.utxo_amount.range.<band>`, `cohorts.supply.total.{epoch, class_, type}.<member>`, ...). Age
-  ranges also hold `supply.matured` (was `cohorts.supply.matured.<range>`), `activity.coindays_created` (was
+  ranges also hold `supply.aged_out` (was `cohorts.supply.matured.<range>`), `activity.coindays_created` (was
   `frameworks.cointime.age_range.coindays_created`; also at `cointime.age_ranges.<range>`) and
   `activity.transfer_volume.{in_profit, in_loss}`; the epochs', classes' and entry cohorts' volume in profit and in
   loss is gone (`epoch_0_transfer_volume_in_profit*`, `class_2009_transfer_volume_in_loss*`,
@@ -689,6 +692,10 @@ has to be deleted by hand.
   lists every log aggregation (`log500`, `log1000` and `log2000` were missing), the series tag and the MCP page say
   series are renamed only in releases, each rename in the changelog (said names may change), and the pool link
   examples match the served `https://foundrydigital.com`
+- Series descriptions: NUPL equals 1 - 1/MVRV with no lower bound (said bounded), the rolling block-fullness series
+  say what fullness is, OP_RETURN byte counts include push opcodes and push-length prefixes, coinbase inputs'
+  `output_type` is `unknown_script` (said `unknown`), Bedrock's floors and their percentiles are on creation prices
+  rounded to four significant digits of cents, and SOPR and aSOPR state their ratio in US dollars
 - Every response carries its CORS headers, a panic's 500 included (it had none, so browsers saw a CORS failure), and
   browsers may reuse a preflight for a day (`Access-Control-Max-Age: 86400`; was the browser default of seconds). A
   successful `POST /api/tx` is `no-store` like its errors (had no `Cache-Control`)

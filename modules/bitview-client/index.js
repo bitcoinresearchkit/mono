@@ -4528,7 +4528,7 @@ const _CreationCapital = _s({
  *   share: SeriesPattern1<?Percent>,
  *   inProfit: Value,
  *   inLoss: Value,
- *   matured: ValueFlow,
+ *   agedOut: ValueFlow,
  * }} AgeCreationSupply
  */
 const _AgeCreationSupply = _s({
@@ -4537,7 +4537,7 @@ const _AgeCreationSupply = _s({
   share: [_i1, '*_supply_share'],
   inProfit: [_Value, '*_supply_in_profit'],
   inLoss: [_Value, '*_supply_in_loss'],
-  matured: [_ValueFlow, '*_matured_supply'],
+  agedOut: [_ValueFlow, '*_aged_out_supply'],
 });
 
 /**

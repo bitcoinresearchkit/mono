@@ -17,7 +17,7 @@ pub struct OutputsVecs<M: StorageMode = Rw> {
     pub value: M::Stored<OverflowVec<TxOutIndex, Sats>>,
     /// BRK locking-script classification of an output. At `txout_index`, this
     /// classifies the indexed output; at `txin_index`, it classifies the
-    /// previous output spent by the input. Coinbase inputs use `unknown`.
+    /// previous output spent by the input. Coinbase inputs use `unknown_script`.
     pub output_type: M::Stored<BytesVec<TxOutIndex, OutputType>>,
     /// Zero-based index within the output's BRK type-specific collection. At
     /// `txout_index`, this identifies the indexed output; at `txin_index`, it

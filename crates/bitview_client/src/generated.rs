@@ -1188,7 +1188,7 @@ pub mod tree {
         share: SeriesPattern1<Option<Percent>> = "*_supply_share",
         in_profit: Value = "*_supply_in_profit",
         in_loss: Value = "*_supply_in_loss",
-        matured: ValueFlow = "*_matured_supply",
+        aged_out: ValueFlow = "*_aged_out_supply",
     } }
     shape! { DataBytesSeries at "series().op_return.data_bytes" {
         block: SeriesPattern18<Bytes> = "*_bytes",

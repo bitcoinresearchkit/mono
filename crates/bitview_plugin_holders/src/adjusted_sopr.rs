@@ -48,7 +48,8 @@ impl Section for AdjustedRealized {
 
 #[derive(Traversable)]
 pub struct AdjustedSopr<M: StorageMode = Rw> {
-    /// Undefined (null) when the window's adjusted value destroyed is zero.
+    /// Spend-time value in US dollars of the outputs it keeps over the window divided by their
+    /// creation-time value; undefined (null) when that value is zero.
     #[traversable(flatten)]
     pub ratio: RollingWindows<Multiple, M>,
     /// Spend-time value of the outputs it keeps (spent an hour or more after creation).

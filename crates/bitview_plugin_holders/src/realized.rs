@@ -31,9 +31,9 @@ pub struct Realized<M: StorageMode = Rw> {
     /// Peak regret: the value sellers forgo relative to each spent output's
     /// highest spot price from its creation block through its spending block.
     pub peak_regret: LazyFiatPerBlockCumulativeWithSums<Cents>,
-    /// Spent output profit ratio (SOPR): spend-time value of the outputs spent over the
-    /// window divided by their creation-time value (value destroyed); undefined (null) when
-    /// that value is zero.
+    /// Spent output profit ratio (SOPR): spend-time value in US dollars of the outputs spent
+    /// over the window divided by their creation-time value (value destroyed); undefined (null)
+    /// when that value is zero.
     pub sopr: RollingWindows<Multiple, M>,
     /// Gross realized profit and loss over the window divided by the realized cap.
     pub sell_side_risk_ratio: RatioRollingWindows<PartsPerMillion32, M>,

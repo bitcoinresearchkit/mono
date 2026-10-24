@@ -3773,7 +3773,7 @@ class AgeCreationSupply(_Node):
     share: SeriesPattern1[Optional[Percent]] = _at(SeriesPattern1, '*_supply_share')
     in_profit: Value = _at(Value, '*_supply_in_profit')
     in_loss: Value = _at(Value, '*_supply_in_loss')
-    matured: ValueFlow = _at(ValueFlow, '*_matured_supply')
+    aged_out: ValueFlow = _at(ValueFlow, '*_aged_out_supply')
 
 
 class DataBytesSeries(_Node):

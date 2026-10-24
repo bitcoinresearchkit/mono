@@ -6,12 +6,13 @@ use super::{Levels, Percentiles, PriceBandId};
 pub struct PriceBands<T> {
     /// Lowest creation price at which the share of mode-weighted supply with a
     /// higher creation price is no greater than the historical loss-share
-    /// threshold identified below. If spot equaled this floor, that higher-cost
+    /// threshold identified below, creation prices rounded to four significant
+    /// digits of cents (exact under $100, then steps of at most 0.1%). If spot equaled this floor, that higher-cost
     /// supply would be in loss. Unavailable when no mode-weighted supply has a
     /// positive creation price, or without a historical threshold.
     pub floor: Percentiles<T>,
     /// Creation-price percentiles of the mode-weighted supply at or above the
-    /// mode's 95th-percentile floor. Unavailable when that floor or the
+    /// mode's 95th-percentile floor, on the same rounded creation prices. Unavailable when that floor or the
     /// conditional supply subset is unavailable.
     pub cost_basis_above_p95_floor: Levels<T>,
 }

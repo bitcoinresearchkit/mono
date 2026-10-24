@@ -8,7 +8,7 @@ use crate::{compute::ComputeContext, state::supply};
 
 #[derive(Default)]
 pub struct TickTockResult {
-    pub matured: AgeRange<Sats>,
+    pub aged_out: AgeRange<Sats>,
     pub coindays_created: AgeRange<CoinDays>,
 }
 
@@ -16,7 +16,7 @@ pub struct TickTockResult {
 /// range. Each boundary's search position is cached and, timestamps being monotonic, only
 /// advances, so a block scans just the origins crossing it.
 ///
-/// Returns the sats matured out of each range and the coin days created in each during the
+/// Returns the sats that aged out of each range and the coin days created in each during the
 /// preceding block interval.
 pub fn tick_tock_next_block(
     states: &mut UTXOStates,
@@ -35,7 +35,7 @@ pub fn tick_tock_next_block(
         return TickTockResult::default();
     }
 
-    let mut matured = AgeRange::default();
+    let mut aged_out = AgeRange::default();
     let UTXOStates {
         age_range,
         tick_tock_cached_positions: cached,
@@ -67,7 +67,7 @@ pub fn tick_tock_next_block(
             let snapshot = CostBasisSnapshot::from_utxo(ctx.height_to_price[h], &supply);
             younger.select_mut(age_range).decrement_snapshot(&snapshot);
             older.select_mut(age_range).increment_snapshot(&snapshot);
-            *younger.select_mut(&mut matured) += supply.value;
+            *younger.select_mut(&mut aged_out) += supply.value;
         },
     );
 
@@ -77,7 +77,7 @@ pub fn tick_tock_next_block(
     );
 
     TickTockResult {
-        matured,
+        aged_out,
         coindays_created: AgeRange::from_fn(|id| {
             sat_seconds_to_coindays(*id.select(&created_sat_seconds))
         }),

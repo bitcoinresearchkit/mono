@@ -43,11 +43,13 @@ fn share_of<S: VecValue>(
 pub struct Fullness {
     /// Block weight as a share of the 4,000,000-weight-unit consensus limit.
     block: LazyPercentVec<PartsPerMillion32, Weight32>,
-    /// Mean fullness of the blocks in a trailing window, each block weighted equally. At
-    /// time-period indexes, the value is taken at the period's final block.
+    /// Mean fullness (block weight as a share of the 4,000,000-weight-unit consensus limit) of
+    /// the blocks in a trailing window, each block weighted equally. At time-period indexes,
+    /// the value is taken at the period's final block.
     avg: Windows<LazyPercentPerBlock<PartsPerMillion32>>,
-    /// Fullness of the blocks in a trailing window. At time-period indexes, the value is taken at
-    /// the period's final block.
+    /// Fullness (block weight as a share of the 4,000,000-weight-unit consensus limit) of the
+    /// blocks in a trailing window. At time-period indexes, the value is taken at the period's
+    /// final block.
     #[traversable(flatten)]
     distribution: DistributionStats<Windows<LazyPercentPerBlock<PartsPerMillion32>>>,
 }

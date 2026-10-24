@@ -23,8 +23,8 @@ pub struct Unrealized {
     /// Gross unrealized profit and loss: unrealized profit plus unrealized loss.
     pub gross_pnl: LazyFiatPerBlock<Cents>,
     /// Net unrealized profit/loss (NUPL): net unrealized profit and loss divided by the
-    /// cohort's market cap, MVRV's bounded counterpart (1 - 1/MVRV); undefined (null) when that
-    /// market cap is zero.
+    /// cohort's market cap, equal to 1 - 1/MVRV: below 1, with no lower bound; undefined
+    /// (null) when that market cap is zero.
     pub nupl: LazyRatioPerBlock<PartsPerMillionSigned32>,
 }
 impl Unrealized {

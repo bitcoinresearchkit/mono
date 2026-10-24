@@ -21,7 +21,7 @@ use derive_more::{Deref, DerefMut};
 
 use crate::state::{RealizedState, UTXOCohortState};
 
-const MATURED_VERSION: Version = Version::new(5);
+const AGED_OUT_VERSION: Version = Version::new(5);
 
 /// One UTXO age range: a creation cohort plus what only disjoint age bands have.
 #[derive(Deref, DerefMut, Traversable)]
@@ -32,10 +32,10 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     cohort: CreationCohort<M>,
     /// Amount of unspent bitcoin that ages out of the range during the
     /// represented block interval.
-    #[traversable(wrap = "supply", rename = "matured")]
-    matured: LazyValuePerBlockCumulativeRolling,
+    #[traversable(wrap = "supply", rename = "aged_out")]
+    aged_out: LazyValuePerBlockCumulativeRolling,
     #[traversable(hidden)]
-    matured_sources:
+    aged_out_sources:
         SatsCents<PerBlockCumulativeRolling<Sats, M>, PerBlockCumulativeRolling<Cents, M>>,
     /// Coin days created in the range: its supply held for the block's
     /// duration, one coin day per BTC per day.
@@ -81,29 +81,29 @@ impl RangeVecs {
         totals: ShareTotals<'_>,
     ) -> Result<Self> {
         let full_name = CohortContext::Utxo.full_name(cohort);
-        let matured_version = version + MATURED_VERSION;
-        let matured_name = format!("{full_name}_matured_supply");
-        let matured_sources = SatsCents {
+        let aged_out_version = version + AGED_OUT_VERSION;
+        let aged_out_name = format!("{full_name}_aged_out_supply");
+        let aged_out_sources = SatsCents {
             sats: PerBlockCumulativeRolling::import(
                 db,
-                &format!("{matured_name}_raw_sats"),
-                matured_version + Version::ONE,
+                &format!("{aged_out_name}_raw_sats"),
+                aged_out_version + Version::ONE,
                 mappings,
                 window_starts,
             )?,
             cents: PerBlockCumulativeRolling::import(
                 db,
-                &format!("{matured_name}_raw_cents"),
-                matured_version + Version::ONE,
+                &format!("{aged_out_name}_raw_cents"),
+                aged_out_version + Version::ONE,
                 mappings,
                 window_starts,
             )?,
         };
-        let matured = LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
-            &matured_name,
-            matured_version,
-            &matured_sources.sats.cumulative.height,
-            &matured_sources.cents.cumulative.height,
+        let aged_out = LazyValuePerBlockCumulativeRolling::from_cumulative_sources(
+            &aged_out_name,
+            aged_out_version,
+            &aged_out_sources.sats.cumulative.height,
+            &aged_out_sources.cents.cumulative.height,
             mappings,
             window_starts,
         );
@@ -138,8 +138,8 @@ impl RangeVecs {
                 spot_price,
                 totals,
             )?,
-            matured,
-            matured_sources,
+            aged_out,
+            aged_out_sources,
             coindays_created,
             transfer_volume_in_profit: volume("transfer_volume_in_profit")?,
             transfer_volume_in_loss: volume("transfer_volume_in_loss")?,
@@ -149,12 +149,12 @@ impl RangeVecs {
 
     /// The tick before the block's spends: supply aging out of the range and coin days created.
     #[inline(always)]
-    pub(crate) fn push_tick(&mut self, matured: Sats, coindays_created: CoinDays, price: Cents) {
+    pub(crate) fn push_tick(&mut self, aged_out: Sats, coindays_created: CoinDays, price: Cents) {
         debug_assert!(!price.is_nan(), "NaN spot price");
-        self.matured_sources.sats.push_block(matured);
-        self.matured_sources
+        self.aged_out_sources.sats.push_block(aged_out);
+        self.aged_out_sources
             .cents
-            .push_block(matured.value_at(price));
+            .push_block(aged_out.value_at(price));
         self.coindays_created.push_block(coindays_created);
     }
 

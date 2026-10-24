@@ -22,13 +22,13 @@ pub fn replay_origins(
         let spent = diff.spent();
         let lost = diff.correction();
         let created = supply(diff.created);
-        for ((range, &matured), &coindays_created) in vecs
+        for ((range, &aged_out), &coindays_created) in vecs
             .ranges
             .iter_mut()
-            .zip(tick.matured.iter())
+            .zip(tick.aged_out.iter())
             .zip(tick.coindays_created.iter())
         {
-            range.push_tick(matured, coindays_created, price);
+            range.push_tick(aged_out, coindays_created, price);
         }
         states.receive_origins(created, height, timestamp, price);
         let satblocks =
