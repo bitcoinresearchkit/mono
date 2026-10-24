@@ -4,7 +4,7 @@ use std::ops::Range;
 
 use bitview_plugin_indexer::Indexer;
 use bitview_plugin_transactions::FeesVecs;
-use bitview_primitives::{Bytes, Bytes32, OP_RETURN_KIND_COUNT, OpReturnIndex, OpReturnKind};
+use bitview_primitives::{Bytes, Bytes32, OP_RETURN_KIND_COUNT, OpReturnKind, OpReturnOutputIndex};
 use brk_types::{Sats, TxIndex, VSize, Weight32};
 use rayon::join;
 use vecdb::{AnyVec, ReadableVec, VecIndex};
@@ -30,7 +30,7 @@ impl Batch {
             .first_index
             .collect_range_at(heights.start, (heights.end + 1).min(raw.first_index.len()));
         if heights.end == raw.first_index.len() {
-            first_indexes.push(OpReturnIndex::from(raw.to_tx_index.len()));
+            first_indexes.push(OpReturnOutputIndex::from(raw.to_tx_index.len()));
         }
 
         let source_start = first_indexes.first().unwrap().to_usize();

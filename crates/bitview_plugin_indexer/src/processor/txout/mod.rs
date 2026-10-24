@@ -136,18 +136,18 @@ pub fn finalize_outputs(
                     }
                 }
                 ProcessedOutputData::OpReturn(op_return) => {
-                    let op_return_index = lengths.op_return_index;
+                    let op_return_output_index = lengths.op_return_output_index;
 
                     op_return_vecs
                         .to_tx_index
-                        .debug_checked_push(op_return_index, tx_index);
+                        .debug_checked_push(op_return_output_index, tx_index);
                     op_return_vecs
                         .kind
-                        .debug_checked_push(op_return_index, op_return.kind);
+                        .debug_checked_push(op_return_output_index, op_return.kind);
                     op_return_vecs
                         .post_op_return_bytes
-                        .debug_checked_push(op_return_index, op_return.post_op_return_bytes);
-                    lengths.op_return_index.copy_then_increment()
+                        .debug_checked_push(op_return_output_index, op_return.post_op_return_bytes);
+                    lengths.op_return_output_index.copy_then_increment()
                 }
                 ProcessedOutputData::None | ProcessedOutputData::Script { .. } => match output_type
                 {

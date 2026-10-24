@@ -50,6 +50,11 @@ has to be deleted by hand.
   `by.difficulty_epoch`, and the mappings at `mappings.{halving_epoch, difficulty_epoch}` and
   `mappings.height.{halving_epoch, difficulty_epoch}` (were `.halving`, `.epoch`). Nothing stored is keyed by them
   (their series are computed from height), so no data changes
+- OP_RETURN outputs are numbered by `op_return_output_index` (was `op_return_index`; type `OpReturnOutputIndex`), as
+  `p2ms_output_index`, `empty_script_output_index` and `unknown_script_output_index`, with the ids
+  `op_return_output_index`, `first_op_return_output_index` and `op_return_output_tx_index` (were `op_return_index`,
+  `first_op_return_index` and `op_return_tx_index`, the last readable as an index of OP_RETURN transactions); this
+  node's indexer regions renamed in place
 - Cohort ids follow one rule: a cohort whose value names itself is bare (`sth`, `p2tr`, `awake`), any
   other is its attribute and its value. Age bands and the age cutoffs are `age_<band>` (`age_2y_to_3y_supply`,
   `age_under_1h_supply`, `age_under_4m_mvrv`; were `utxos_2y_to_3y_old_supply`, `utxos_under_4m_old_mvrv`), UTXO
@@ -281,7 +286,7 @@ has to be deleted by hand.
 - Ids that were index names say what they map: `spent_txout_index` (an input's spent output, was `txout_index`),
   `input_tx_index` (was `tx_index`), `spending_txin_index` (an output's spending input at
   `outputs.spending_txin_index`, was `txin_index` at `outputs.spent.txin_index`), `empty_script_output_tx_index`,
-  `p2ms_output_tx_index`, `unknown_script_output_tx_index` and `op_return_tx_index` at `.tx_index` (were id `tx_index` at
+  `p2ms_output_tx_index`, `unknown_script_output_tx_index` and `op_return_output_tx_index` at `.tx_index` (were id `tx_index` at
   `.to_tx_index`); per-output and per-input values are `output_value` and `input_value` (were both `value`)
 - `input_value` and `output_value` are per record, one value per input and per output (were each transaction's input
   and output totals, at `transactions.fees.{input_value, output_value}`; the totals are gone)

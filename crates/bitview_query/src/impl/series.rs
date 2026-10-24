@@ -326,7 +326,7 @@ impl Query {
             Index::TxInIndex => v.inputs.first_txin_index.collect_one(height)?.into(),
             Index::TxOutIndex => v.outputs.first_txout_index.collect_one(height)?.into(),
             Index::EmptyScriptOutputIndex => v.scripts.empty_script.first_index.collect_one(height)?.into(),
-            Index::OpReturnIndex => v.op_return.first_index.collect_one(height)?.into(),
+            Index::OpReturnOutputIndex => v.op_return.first_index.collect_one(height)?.into(),
             Index::P2MSOutputIndex => v.scripts.p2ms.first_index.collect_one(height)?.into(),
             Index::UnknownScriptOutputIndex => v.scripts.unknown_script.first_index.collect_one(height)?.into(),
             Index::P2AAddressIndex => v.addrs.p2a.first_index.collect_one(height)?.into(),

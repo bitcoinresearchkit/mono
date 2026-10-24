@@ -1,7 +1,7 @@
 use brk_types::{Height, OutputType, TxIndex};
 
 use crate::{
-    EmptyScriptOutputIndex, Index, OpReturnIndex, P2AAddressIndex, P2MSOutputIndex,
+    EmptyScriptOutputIndex, Index, OpReturnOutputIndex, P2AAddressIndex, P2MSOutputIndex,
     P2PK33AddressIndex, P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex,
     P2WPKHAddressIndex, P2WSHAddressIndex, TxInIndex, TxOutIndex, TypeIndex,
     UnknownScriptOutputIndex,
@@ -15,7 +15,7 @@ use crate::{
 pub struct Lengths {
     pub empty_script_output_index: EmptyScriptOutputIndex,
     pub height: Height,
-    pub op_return_index: OpReturnIndex,
+    pub op_return_output_index: OpReturnOutputIndex,
     pub p2ms_output_index: P2MSOutputIndex,
     pub p2pk33_addr_index: P2PK33AddressIndex,
     pub p2pk65_addr_index: P2PK65AddressIndex,
@@ -82,7 +82,7 @@ impl Lengths {
             Index::TxInIndex => self.txin_index.into(),
             Index::TxOutIndex => self.txout_index.into(),
             Index::EmptyScriptOutputIndex => self.empty_script_output_index.into(),
-            Index::OpReturnIndex => self.op_return_index.into(),
+            Index::OpReturnOutputIndex => self.op_return_output_index.into(),
             Index::P2MSOutputIndex => self.p2ms_output_index.into(),
             Index::UnknownScriptOutputIndex => self.unknown_script_output_index.into(),
             Index::P2AAddressIndex => self.p2a_addr_index.into(),
@@ -114,7 +114,7 @@ impl Lengths {
     pub fn to_type_index(mut self, output_type: OutputType) -> TypeIndex {
         match output_type {
             OutputType::EmptyScript => *self.empty_script_output_index,
-            OutputType::OpReturn => *self.op_return_index,
+            OutputType::OpReturn => *self.op_return_output_index,
             OutputType::P2MS => *self.p2ms_output_index,
             OutputType::UnknownScript => *self.unknown_script_output_index,
             _ => *self.addr_index_mut(output_type).unwrap(),
@@ -129,7 +129,9 @@ impl Lengths {
         self.empty_script_output_index = self
             .empty_script_output_index
             .min(other.empty_script_output_index);
-        self.op_return_index = self.op_return_index.min(other.op_return_index);
+        self.op_return_output_index = self
+            .op_return_output_index
+            .min(other.op_return_output_index);
         self.p2ms_output_index = self.p2ms_output_index.min(other.p2ms_output_index);
         self.unknown_script_output_index = self
             .unknown_script_output_index

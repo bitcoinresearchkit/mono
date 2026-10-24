@@ -11,10 +11,10 @@ use serde::{
 use crate::{
     Date, Day1, Day3, DifficultyEpoch, EmptyScriptOutputIndex, HOUR1_INTERVAL, HOUR4_INTERVAL,
     HOUR12_INTERVAL, HalvingEpoch, Hour1, Hour4, Hour12, MINUTE10_INTERVAL, MINUTE30_INTERVAL,
-    Minute10, Minute30, Month1, Month3, Month6, OpReturnIndex, P2AAddressIndex, P2MSOutputIndex,
-    P2PK33AddressIndex, P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex,
-    P2WPKHAddressIndex, P2WSHAddressIndex, TxInIndex, TxOutIndex, UnknownScriptOutputIndex, Week1,
-    Year1, Year10,
+    Minute10, Minute30, Month1, Month3, Month6, OpReturnOutputIndex, P2AAddressIndex,
+    P2MSOutputIndex, P2PK33AddressIndex, P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex,
+    P2TRAddressIndex, P2WPKHAddressIndex, P2WSHAddressIndex, TxInIndex, TxOutIndex,
+    UnknownScriptOutputIndex, Week1, Year1, Year10,
 };
 
 /// 2009-01-01 00:00:00 UTC — epoch for fixed-interval time indexes.
@@ -139,7 +139,7 @@ with_resolution_fields!(indexes, calendars {
     TxInIndex,
     TxOutIndex,
     EmptyScriptOutputIndex,
-    OpReturnIndex,
+    OpReturnOutputIndex,
     P2AAddressIndex,
     P2MSOutputIndex,
     P2PK33AddressIndex,

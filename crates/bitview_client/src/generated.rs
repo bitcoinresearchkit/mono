@@ -75,7 +75,7 @@ const _I21: &[Index] = &[Index::TxInIndex];
 const _I22: &[Index] = &[Index::TxOutIndex];
 const _I23: &[Index] = &[Index::TxOutIndex];
 const _I24: &[Index] = &[Index::EmptyScriptOutputIndex];
-const _I25: &[Index] = &[Index::OpReturnIndex];
+const _I25: &[Index] = &[Index::OpReturnOutputIndex];
 const _I26: &[Index] = &[Index::P2AAddressIndex];
 const _I27: &[Index] = &[Index::P2MSOutputIndex];
 const _I28: &[Index] = &[Index::P2PK33AddressIndex];
@@ -189,7 +189,7 @@ accessor! { SeriesPattern24, SeriesPattern24By, _I24, T {
     plain empty_script_output_index: EmptyScriptOutputIndex -> T,
 } }
 accessor! { SeriesPattern25, SeriesPattern25By, _I25, T {
-    plain op_return_index: OpReturnIndex -> T,
+    plain op_return_output_index: OpReturnOutputIndex -> T,
 } }
 accessor! { SeriesPattern26, SeriesPattern26By, _I26, T {
     plain p2a_address_index: P2AAddressIndex -> T,
@@ -290,11 +290,11 @@ impl SeriesValue for Month6 {
 impl SeriesValue for OHLCDollars {
     type Nullable = Option<OHLCDollars>;
 }
-impl SeriesValue for OpReturnIndex {
-    type Nullable = Option<OpReturnIndex>;
-}
 impl SeriesValue for OpReturnKind {
     type Nullable = Option<OpReturnKind>;
+}
+impl SeriesValue for OpReturnOutputIndex {
+    type Nullable = Option<OpReturnOutputIndex>;
 }
 impl SeriesValue for OutPoint {
     type Nullable = Option<OutPoint>;
@@ -1995,7 +1995,7 @@ pub mod tree {
         year10: SeriesPattern18<Year10> = "*_year10",
     } }
     shape! { MappingsOpReturn at "series().mappings.scripts.op_return" {
-        identity: SeriesPattern25<OpReturnIndex> = "*",
+        identity: SeriesPattern25<OpReturnOutputIndex> = "*",
     } }
     shape! { MappingsUnknownScript at "series().mappings.scripts.unknown_script" {
         identity: SeriesPattern35<UnknownScriptOutputIndex> = "*",
@@ -2007,9 +2007,9 @@ pub mod tree {
         identity: SeriesPattern27<P2MSOutputIndex> = "*",
     } }
     shape! { Script at "series().mappings.scripts" {
-        p2ms: MappingsP2ms = "p2ms_output_*",
-        empty_script: EmptyScript = "empty_script_output_*",
-        unknown_script: MappingsUnknownScript = "unknown_script_output_*",
+        p2ms: MappingsP2ms = "p2ms_*",
+        empty_script: EmptyScript = "empty_script_*",
+        unknown_script: MappingsUnknownScript = "unknown_script_*",
         op_return: MappingsOpReturn = "op_return_*",
     } }
     shape! { MappingsP2a at "series().mappings.addresses.p2a" {
@@ -2045,8 +2045,8 @@ pub mod tree {
         address: SeriesPattern29<Address> = "*",
     } }
     shape! { IndexerOpReturn at "series().indexer.op_return" {
-        first_index: SeriesPattern18<OpReturnIndex> = "first_*_index",
-        tx_index: SeriesPattern25<TxIndex> = "*_tx_index",
+        first_index: SeriesPattern18<OpReturnOutputIndex> = "first_*_output_index",
+        tx_index: SeriesPattern25<TxIndex> = "*_output_tx_index",
         protocol: SeriesPattern25<OpReturnKind> = "*_protocol",
         post_op_return_bytes: SeriesPattern25<Bytes> = "post_*_bytes",
     } }
@@ -2113,7 +2113,7 @@ pub mod tree {
     } }
     shape! { Mappings at "series().mappings" {
         addresses: Addrs<MappingsP2pk65, MappingsP2pk33, MappingsP2pkh, MappingsP2sh, MappingsP2wpkh, MappingsP2wsh, MappingsP2tr, MappingsP2a> = "address",
-        scripts: Script = "index",
+        scripts: Script = "output_index",
         height: MappingsHeight = "block",
         difficulty_epoch: MappingsDifficultyEpoch = "first_height",
         halving_epoch: MappingsHalvingEpoch = "first_height",

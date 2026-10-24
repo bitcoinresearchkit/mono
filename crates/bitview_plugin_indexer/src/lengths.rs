@@ -38,7 +38,7 @@ impl IndexerLengths for Lengths {
             .debug_checked_push(height, self.p2ms_output_index);
         vecs.op_return
             .first_index
-            .debug_checked_push(height, self.op_return_index);
+            .debug_checked_push(height, self.op_return_output_index);
         vecs.scripts
             .unknown_script
             .first_index
@@ -92,7 +92,7 @@ fn collect_at(height: Height, vecs: &Vecs) -> Option<Lengths> {
             &vecs.scripts.p2ms.to_tx_index,
             height,
         )?,
-        op_return_index: next_index(
+        op_return_output_index: next_index(
             &vecs.op_return.first_index,
             &vecs.op_return.to_tx_index,
             height,

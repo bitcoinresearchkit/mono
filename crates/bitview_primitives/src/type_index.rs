@@ -275,7 +275,7 @@ typed_index!(
 );
 typed_index!(
     /// Index of an OP_RETURN output.
-    OpReturnIndex, "op_return_index", 0
+    OpReturnOutputIndex, "op_return_output_index", 0
 );
 typed_index!(
     /// Index of an output with an empty script.

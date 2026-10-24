@@ -3295,11 +3295,11 @@
           const { client, opReturn } = await loadFilterSources();
           const indexes = await opReturn.firstIndex.by.height.skip(height).take(2).fetch({ signal });
           const start = indexes.data[0];
-          const end = indexes.data.length === 2 ? indexes.data[1] : await opReturn.toTxIndex.by.op_return_index.len();
+          const end = indexes.data.length === 2 ? indexes.data[1] : await opReturn.toTxIndex.by.op_return_output_index.len();
 
           if (start === end) return { txIndexes: [], kinds: [], bytes: [] };
 
-          const [txIndexes, kinds, bytes] = await fetchBulk(client, [opReturn.toTxIndex, opReturn.kind, opReturn.postOpReturnBytes], "op_return_index", start, end, { signal, memCache: false });
+          const [txIndexes, kinds, bytes] = await fetchBulk(client, [opReturn.toTxIndex, opReturn.kind, opReturn.postOpReturnBytes], "op_return_output_index", start, end, { signal, memCache: false });
 
           return { txIndexes: txIndexes.data, kinds: kinds.data, bytes: bytes.data };
         }

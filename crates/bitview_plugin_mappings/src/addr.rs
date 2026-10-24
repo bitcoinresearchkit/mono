@@ -2,9 +2,9 @@ mod address;
 
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{
-    EmptyScriptOutputIndex, OpReturnIndex, P2AAddressIndex, P2MSOutputIndex, P2PK33AddressIndex,
-    P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex,
-    P2WSHAddressIndex, UnknownScriptOutputIndex,
+    EmptyScriptOutputIndex, OpReturnOutputIndex, P2AAddressIndex, P2MSOutputIndex,
+    P2PK33AddressIndex, P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex,
+    P2WPKHAddressIndex, P2WSHAddressIndex, UnknownScriptOutputIndex,
 };
 use bitview_traversable::Traversable;
 use brk_types::{
@@ -52,7 +52,7 @@ pub struct ScriptVecs {
     pub unknown_script: IdentityVecs<UnknownScriptOutputIndex, TxIndex>,
     /// Outputs whose locking script begins with `OP_RETURN`.
     /// Zero-based type-specific output index assigned in canonical chain order.
-    pub op_return: IdentityVecs<OpReturnIndex, TxIndex>,
+    pub op_return: IdentityVecs<OpReturnOutputIndex, TxIndex>,
 }
 
 impl Vecs {
@@ -76,14 +76,18 @@ impl ScriptVecs {
         let scripts = &indexer.vecs().scripts;
         Self {
             p2ms: IdentityVecs::new("p2ms_output_index", version, &scripts.p2ms.to_tx_index),
-            empty_script: IdentityVecs::new("empty_script_output_index", version, &scripts.empty_script.to_tx_index),
+            empty_script: IdentityVecs::new(
+                "empty_script_output_index",
+                version,
+                &scripts.empty_script.to_tx_index,
+            ),
             unknown_script: IdentityVecs::new(
                 "unknown_script_output_index",
                 version,
                 &scripts.unknown_script.to_tx_index,
             ),
             op_return: IdentityVecs::new(
-                "op_return_index",
+                "op_return_output_index",
                 version,
                 &indexer.vecs().op_return.to_tx_index,
             ),

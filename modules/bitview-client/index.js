@@ -711,7 +711,7 @@ asking the node
 /**
  * Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.
  *
- * @typedef {("minute10"|"minute30"|"hour1"|"hour4"|"hour12"|"day1"|"day3"|"week1"|"month1"|"month3"|"month6"|"year1"|"year10"|"halving_epoch"|"difficulty_epoch"|"height"|"tx_index"|"txin_index"|"txout_index"|"empty_script_output_index"|"op_return_index"|"p2a_address_index"|"p2ms_output_index"|"p2pk33_address_index"|"p2pk65_address_index"|"p2pkh_address_index"|"p2sh_address_index"|"p2tr_address_index"|"p2wpkh_address_index"|"p2wsh_address_index"|"unknown_script_output_index")} Index
+ * @typedef {("minute10"|"minute30"|"hour1"|"hour4"|"hour12"|"day1"|"day3"|"week1"|"month1"|"month3"|"month6"|"year1"|"year10"|"halving_epoch"|"difficulty_epoch"|"height"|"tx_index"|"txin_index"|"txout_index"|"empty_script_output_index"|"op_return_output_index"|"p2a_address_index"|"p2ms_output_index"|"p2pk33_address_index"|"p2pk65_address_index"|"p2pkh_address_index"|"p2sh_address_index"|"p2tr_address_index"|"p2wpkh_address_index"|"p2wsh_address_index"|"unknown_script_output_index")} Index
  */
 /**
  * A JSON Schema type: what a series' values are on the wire.
@@ -868,14 +868,14 @@ a bin closing at the first fee rate change past 50,000 vB
  * @typedef {Dollars[]} OHLCDollars
  */
 /**
- * Index of an OP_RETURN output.
- *
- * @typedef {TypeIndex} OpReturnIndex
- */
-/**
  * Protocol or format detected in an OP_RETURN output.
  *
  * @typedef {("runes"|"witness_commitment"|"veriblock"|"omni"|"stacks"|"blockstack"|"colu"|"open_assets"|"komodo"|"coinspark"|"poet"|"docproof"|"factom"|"eternity_wall"|"memo"|"bitproof"|"ascribe"|"stampery"|"bare_hash"|"text"|"empty"|"unknown")} OpReturnKind
+ */
+/**
+ * Index of an OP_RETURN output.
+ *
+ * @typedef {TypeIndex} OpReturnOutputIndex
  */
 /**
  * The output a transaction input spends: its transaction index and output position, written as
@@ -2473,7 +2473,7 @@ const _i21 = /** @type {const} */ (["txin_index"]);
 const _i22 = /** @type {const} */ (["txout_index"]);
 const _i23 = /** @type {const} */ (["txout_index"]);
 const _i24 = /** @type {const} */ (["empty_script_output_index"]);
-const _i25 = /** @type {const} */ (["op_return_index"]);
+const _i25 = /** @type {const} */ (["op_return_output_index"]);
 const _i26 = /** @type {const} */ (["p2a_address_index"]);
 const _i27 = /** @type {const} */ (["p2ms_output_index"]);
 const _i28 = /** @type {const} */ (["p2pk33_address_index"]);
@@ -2534,7 +2534,7 @@ function _seriesPattern(client, name, indexes) {
 /** @template T @typedef {{ name: string, by: { readonly txout_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern22 */
 /** @template T @typedef {{ name: string, by: { readonly txout_index: SeriesEndpoint<T | null> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T | null>|undefined }} SeriesPattern23 */
 /** @template T @typedef {{ name: string, by: { readonly empty_script_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern24 */
-/** @template T @typedef {{ name: string, by: { readonly op_return_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern25 */
+/** @template T @typedef {{ name: string, by: { readonly op_return_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern25 */
 /** @template T @typedef {{ name: string, by: { readonly p2a_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern26 */
 /** @template T @typedef {{ name: string, by: { readonly p2ms_output_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern27 */
 /** @template T @typedef {{ name: string, by: { readonly p2pk33_address_index: SeriesEndpoint<T> }, indexes: () => readonly Index[], get: (index: Index) => SeriesEndpoint<T>|undefined }} SeriesPattern28 */
@@ -6391,7 +6391,7 @@ const _MappingsHeight = _s({
 
 /**
  * @typedef {{
- *   identity: SeriesPattern25<OpReturnIndex>,
+ *   identity: SeriesPattern25<OpReturnOutputIndex>,
  * }} MappingsOpReturn
  */
 const _MappingsOpReturn = _s({
@@ -6434,9 +6434,9 @@ const _MappingsP2ms = _s({
  * }} Script
  */
 const _Script = _s({
-  p2ms: [_MappingsP2ms, 'p2ms_output_*'],
-  emptyScript: [_EmptyScript, 'empty_script_output_*'],
-  unknownScript: [_MappingsUnknownScript, 'unknown_script_output_*'],
+  p2ms: [_MappingsP2ms, 'p2ms_*'],
+  emptyScript: [_EmptyScript, 'empty_script_*'],
+  unknownScript: [_MappingsUnknownScript, 'unknown_script_*'],
   opReturn: [_MappingsOpReturn, 'op_return_*'],
 });
 
@@ -6530,15 +6530,15 @@ const _MappingsP2pk65 = _s({
 
 /**
  * @typedef {{
- *   firstIndex: SeriesPattern18<OpReturnIndex>,
+ *   firstIndex: SeriesPattern18<OpReturnOutputIndex>,
  *   txIndex: SeriesPattern25<TxIndex>,
  *   protocol: SeriesPattern25<OpReturnKind>,
  *   postOpReturnBytes: SeriesPattern25<Bytes>,
  * }} IndexerOpReturn
  */
 const _IndexerOpReturn = _s({
-  firstIndex: [_i18, 'first_*_index'],
-  txIndex: [_i25, '*_tx_index'],
+  firstIndex: [_i18, 'first_*_output_index'],
+  txIndex: [_i25, '*_output_tx_index'],
   protocol: [_i25, '*_protocol'],
   postOpReturnBytes: [_i25, 'post_*_bytes'],
 });
@@ -6734,7 +6734,7 @@ const _Addrs = (c, b, f0, f1, f2, f3, f4, f5, f6, f7) => _n(c, b, {
  */
 const _Mappings = _s({
   addresses: [(c, b) => _Addrs(c, b, _MappingsP2pk65, _MappingsP2pk33, _MappingsP2pkh, _MappingsP2sh, _MappingsP2wpkh, _MappingsP2wsh, _MappingsP2tr, _MappingsP2a), 'address'],
-  scripts: [_Script, 'index'],
+  scripts: [_Script, 'output_index'],
   height: [_MappingsHeight, 'block'],
   difficultyEpoch: [_MappingsDifficultyEpoch, 'first_height'],
   halvingEpoch: [_MappingsHalvingEpoch, 'first_height'],
@@ -7083,7 +7083,7 @@ class BitviewClient extends BitviewClientBase {
     "txin_index",
     "txout_index",
     "empty_script_output_index",
-    "op_return_index",
+    "op_return_output_index",
     "p2a_address_index",
     "p2ms_output_index",
     "p2pk33_address_index",

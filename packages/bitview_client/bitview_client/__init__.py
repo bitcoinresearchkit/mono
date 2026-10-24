@@ -71,7 +71,7 @@ P2MSOutputIndex = TypeIndex
 # Index of a P2A (pay-to-anchor) address.
 P2AAddressIndex = TypeIndex
 # Index of an OP_RETURN output.
-OpReturnIndex = TypeIndex
+OpReturnOutputIndex = TypeIndex
 # Index of an output with an empty script.
 EmptyScriptOutputIndex = TypeIndex
 # A transaction ID: its hash.
@@ -183,7 +183,7 @@ Limit = int
 # A JSON Schema type: what a series' values are on the wire.
 JsonType = Literal["null", "boolean", "integer", "number", "string", "array", "object"]
 # Aggregation dimension for querying series. Includes time-based (date, week, month, year), block-based (height, tx_index), and address/output type indexes.
-Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving_epoch", "difficulty_epoch", "height", "tx_index", "txin_index", "txout_index", "empty_script_output_index", "op_return_index", "p2a_address_index", "p2ms_output_index", "p2pk33_address_index", "p2pk65_address_index", "p2pkh_address_index", "p2sh_address_index", "p2tr_address_index", "p2wpkh_address_index", "p2wsh_address_index", "unknown_script_output_index"]
+Index = Literal["minute10", "minute30", "hour1", "hour4", "hour12", "day1", "day3", "week1", "month1", "month3", "month6", "year1", "year10", "halving_epoch", "difficulty_epoch", "height", "tx_index", "txin_index", "txout_index", "empty_script_output_index", "op_return_output_index", "p2a_address_index", "p2ms_output_index", "p2pk33_address_index", "p2pk65_address_index", "p2pkh_address_index", "p2sh_address_index", "p2tr_address_index", "p2wpkh_address_index", "p2wsh_address_index", "unknown_script_output_index"]
 TreeNode = Union[dict[str, "TreeNode"], "SeriesLeafWithSchema"]
 # Index of a 4-hour period.
 Hour4 = int
@@ -2357,7 +2357,7 @@ _i21 = ('txin_index',)
 _i22 = ('txout_index',)
 _i23 = ('txout_index',)
 _i24 = ('empty_script_output_index',)
-_i25 = ('op_return_index',)
+_i25 = ('op_return_output_index',)
 _i26 = ('p2a_address_index',)
 _i27 = ('p2ms_output_index',)
 _i28 = ('p2pk33_address_index',)
@@ -2692,7 +2692,7 @@ class SeriesPattern24(Generic[T]):
 
 class _SeriesPattern25By(Generic[T]):
     def __init__(self, c: BitviewClient, n: str): self._c, self._n = c, n
-    def op_return_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'op_return_index')
+    def op_return_output_index(self) -> SeriesEndpoint[T]: return SeriesEndpoint(self._c, self._n, 'op_return_output_index')
 
 class SeriesPattern25(Generic[T]):
     by: _SeriesPattern25By[T]
@@ -4666,7 +4666,7 @@ class MappingsHeight(_Node):
 
 
 class MappingsOpReturn(_Node):
-    identity: SeriesPattern25[OpReturnIndex] = _at(SeriesPattern25, '*')
+    identity: SeriesPattern25[OpReturnOutputIndex] = _at(SeriesPattern25, '*')
 
 
 class MappingsUnknownScript(_Node):
@@ -4682,9 +4682,9 @@ class MappingsP2ms(_Node):
 
 
 class Script(_Node):
-    p2ms: MappingsP2ms = _at(MappingsP2ms, 'p2ms_output_*')
-    empty_script: EmptyScript = _at(EmptyScript, 'empty_script_output_*')
-    unknown_script: MappingsUnknownScript = _at(MappingsUnknownScript, 'unknown_script_output_*')
+    p2ms: MappingsP2ms = _at(MappingsP2ms, 'p2ms_*')
+    empty_script: EmptyScript = _at(EmptyScript, 'empty_script_*')
+    unknown_script: MappingsUnknownScript = _at(MappingsUnknownScript, 'unknown_script_*')
     op_return: MappingsOpReturn = _at(MappingsOpReturn, 'op_return_*')
 
 
@@ -4729,8 +4729,8 @@ class MappingsP2pk65(_Node):
 
 
 class IndexerOpReturn(_Node):
-    first_index: SeriesPattern18[OpReturnIndex] = _at(SeriesPattern18, 'first_*_index')
-    tx_index: SeriesPattern25[TxIndex] = _at(SeriesPattern25, '*_tx_index')
+    first_index: SeriesPattern18[OpReturnOutputIndex] = _at(SeriesPattern18, 'first_*_output_index')
+    tx_index: SeriesPattern25[TxIndex] = _at(SeriesPattern25, '*_output_tx_index')
     protocol: SeriesPattern25[OpReturnKind] = _at(SeriesPattern25, '*_protocol')
     post_op_return_bytes: SeriesPattern25[Bytes] = _at(SeriesPattern25, 'post_*_bytes')
 
@@ -4811,7 +4811,7 @@ class Addrs(_Node, Generic[A, B, C, D, E, F, G, H]):
 
 class Mappings(_Node):
     addresses: Addrs[MappingsP2pk65, MappingsP2pk33, MappingsP2pkh, MappingsP2sh, MappingsP2wpkh, MappingsP2wsh, MappingsP2tr, MappingsP2a] = _at((Addrs, MappingsP2pk65, MappingsP2pk33, MappingsP2pkh, MappingsP2sh, MappingsP2wpkh, MappingsP2wsh, MappingsP2tr, MappingsP2a), 'address')
-    scripts: Script = _at(Script, 'index')
+    scripts: Script = _at(Script, 'output_index')
     height: MappingsHeight = _at(MappingsHeight, 'block')
     difficulty_epoch: MappingsDifficultyEpoch = _at(MappingsDifficultyEpoch, 'first_height')
     halving_epoch: MappingsHalvingEpoch = _at(MappingsHalvingEpoch, 'first_height')
@@ -5002,7 +5002,7 @@ class BitviewClient(BitviewClientBase):
       "txin_index",
       "txout_index",
       "empty_script_output_index",
-      "op_return_index",
+      "op_return_output_index",
       "p2a_address_index",
       "p2ms_output_index",
       "p2pk33_address_index",
