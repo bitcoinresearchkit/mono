@@ -48,7 +48,7 @@ const TAGS: [(&str, &str); 12] = [
     (
         tags::SERIES,
         "Thousands of historical Bitcoin series across calendar, block and entity indexes, as JSON \
-        or CSV. Series names may change between releases.",
+        or CSV. Series are renamed only in releases, each rename listed in the changelog.",
     ),
     (
         tags::GENERAL,
@@ -93,9 +93,9 @@ const TAGS: [(&str, &str); 12] = [
         "On-chain BTC/USD price derived purely from round-dollar payment patterns in \
         transaction outputs, with no external price feed. Payment activity is binned on a \
         log scale, and a smoothed EMA over recent blocks locates the price.\n\n\
-        Histograms come in two flavors, each available at the live tip (mempool-blended) \
-        or at any confirmed height: `raw` bins every output by value with no filtering, \
-        while `ema` is the smoothed round-dollar window the price is read from. The live \
+        Histograms come in two kinds, each at the live tip (mempool-blended) or at any \
+        confirmed height or day: `outputs` counts every output by value with no filtering, \
+        while `payments` is the smoothed round-dollar window the price is read from. The live \
         price is at `/api/oracle/price`, confirmed per-height price history at \
         `/api/series/price/height`.",
     ),
@@ -123,7 +123,8 @@ const TAGS: [(&str, &str); 12] = [
         Aggregate with the `agg` query parameter:\n\
         - `raw`: one bucket per rounded price (default).\n\
         - `lin200` / `lin500` / `lin1000`: linear buckets, $200 / $500 / $1000 wide.\n\
-        - `log10` / `log50` / `log100` / `log200`: logarithmic buckets, N bins per price decade.\n\n\
+        - `log10` / `log50` / `log100` / `log200` / `log500` / `log1000` / `log2000`: logarithmic \
+        buckets, N bins per price decade.\n\n\
         Weight supply with the `weight` query parameter:\n\
         - `none`: unweighted supply (default).\n\
         - `wakefulness`: each age band weighted by its wakefulness (Cointime), the distribution behind \

@@ -46,7 +46,7 @@ UrpdWeight = Literal["none", "wakefulness", "mobility"]
 UrpdCohort = Literal["all", "sth", "lth", "age_under_4m", "age_under_6m", "age_over_4m", "age_over_6m", "age_under_1h", "age_1h_to_1d", "age_1d_to_1w", "age_1w_to_1m", "age_1m_to_2m", "age_2m_to_3m", "age_3m_to_4m", "age_4m_to_5m", "age_5m_to_6m", "age_6m_to_9m", "age_9m_to_1y", "age_1y_to_18m", "age_18m_to_2y", "age_2y_to_3y", "age_3y_to_4y", "age_4y_to_5y", "age_5y_to_6y", "age_6y_to_7y", "age_7y_to_8y", "age_8y_to_10y", "age_10y_to_12y", "age_12y_to_15y", "age_over_15y"]
 # Aggregation strategy for URPD buckets.
 # Options: raw (no aggregation), lin200/lin500/lin1000 (linear $200/$500/$1000),
-# log10/log50/log100/log200/log500/log1000/log2000 (logarithmic with 10/50/100/200/500/1000/2000 buckets per decade).
+# log10/log50/log100/log200/log500/log1000/log2000 (logarithmic, that many buckets per decade).
 UrpdAggregation = Literal["raw", "lin200", "lin500", "lin1000", "log10", "log50", "log100", "log200", "log500", "log1000", "log2000"]
 # An index within its type (0 for the first P2WPKH address).
 TypeIndex = int

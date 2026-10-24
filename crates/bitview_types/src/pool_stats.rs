@@ -16,7 +16,7 @@ pub struct PoolStats {
     pub name: Cow<'static, str>,
 
     /// Pool website URL
-    #[schemars(example = &"https://foundrydigital.com/")]
+    #[schemars(example = &"https://foundrydigital.com")]
     pub link: Cow<'static, str>,
 
     #[serde(rename = "blockCount")]

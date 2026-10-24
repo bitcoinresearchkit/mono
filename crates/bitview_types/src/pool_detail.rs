@@ -46,7 +46,7 @@ pub struct PoolDetailInfo {
     pub name: Cow<'static, str>,
 
     /// Pool website URL
-    #[schemars(example = &"https://foundrydigital.com/")]
+    #[schemars(example = &"https://foundrydigital.com")]
     pub link: Cow<'static, str>,
 
     /// Known payout addresses

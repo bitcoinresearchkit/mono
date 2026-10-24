@@ -685,6 +685,10 @@ has to be deleted by hand.
 - Gone as well: `supply_state` (`supply.state`, the UTXO count and value per height; `utxo_count` and
   `circulating_supply` serve them), the cohorts' half supplies (`*_supply_half`, a chart helper) and negated losses
   (`*_realized_loss_neg*`, `*_unrealized_loss_neg`)
+- OpenAPI texts: the Oracle tag names its histograms `outputs` and `payments` (said `raw` and `ema`), the URPD tag
+  lists every log aggregation (`log500`, `log1000` and `log2000` were missing), the series tag and the MCP page say
+  series are renamed only in releases, each rename in the changelog (said names may change), and the pool link
+  examples match the served `https://foundrydigital.com`
 - Every response carries its CORS headers, a panic's 500 included (it had none, so browsers saw a CORS failure), and
   browsers may reuse a preflight for a day (`Access-Control-Max-Age: 86400`; was the browser default of seconds). A
   successful `POST /api/tx` is `no-store` like its errors (had no `Cache-Control`)
