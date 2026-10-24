@@ -686,6 +686,12 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                        RequestState(state): RequestState|
                        -> Result<Response, Error> {
                     state.respond_exact_block(headers, path.hash, "txs-v2", Some(path.start_index), move |q, snapshot, params| {
+                        // After the range check (404), as Esplora: pages start on page boundaries.
+                        if u32::from(path.start_index) % BLOCK_TXS_PAGE_SIZE != 0 {
+                            return Err(QueryError::InvalidParam(format!(
+                                "start index must be a multiple of {BLOCK_TXS_PAGE_SIZE}"
+                            )));
+                        }
                         block_json_response(params, &snapshot.anchor_txs(q, path.start_index, BLOCK_TXS_PAGE_SIZE)?)
                     }).await
                 },
@@ -694,8 +700,8 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                         .tag(tags::BLOCKS)
                         .summary("Block transactions (paginated)")
                         .description(&format!(
-                            "Up to {} transactions starting at `start_index`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*",
-                            BLOCK_TXS_PAGE_SIZE
+                            "Up to {} transactions starting at `start_index`, a multiple of {}.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*",
+                            BLOCK_TXS_PAGE_SIZE, BLOCK_TXS_PAGE_SIZE
                         ))
                         .json_response::<Vec<Transaction>>()
                         .not_modified()

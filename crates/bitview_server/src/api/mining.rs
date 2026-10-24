@@ -1,7 +1,6 @@
 use aide::axum::{ApiRouter, routing::get_with};
 use axum::{body::Bytes, extract::Path, http::HeaderMap, response::Response};
 use bitcoin::hashes::{Hash, HashEngine, sha256};
-use bitview_primitives::PoolSlug;
 use bitview_types::{
     BlockFeeRatesEntry, BlockFeeRatesPreciseEntry, BlockFeesEntry, BlockInfoV1, BlockRewardsEntry,
     BlockSizesWeights, DifficultyAdjustmentEntry, HashrateSummary, PoolDetail, PoolHashrateEntry,
@@ -15,7 +14,9 @@ use crate::{
     AppState, CacheParams,
     api::tags,
     extended::TransformResponseExtended,
-    params::{BlockCountParam, Empty, PoolSlugAndHeightParam, PoolSlugParam, TimePeriodParam},
+    params::{
+        BlockCountParam, Empty, PoolSlugAndHeightParam, PoolSlugParam, SlugText, TimePeriodParam,
+    },
     request_state::RequestState,
 };
 const POOL_BLOCKS_LIMIT: usize = 100;
@@ -43,7 +44,7 @@ fn pool_blocks_params(
 async fn serve_pool_blocks(
     state: AppState,
     headers: HeaderMap,
-    slug: PoolSlug,
+    slug: SlugText,
     before_height: Option<Height>,
 ) -> Response {
     state
@@ -51,7 +52,8 @@ async fn serve_pool_blocks(
             headers,
             "application/json",
             move |q| {
-                let blocks = q.resolve_pool_blocks(slug, before_height, POOL_BLOCKS_LIMIT)?;
+                let blocks =
+                    q.resolve_pool_blocks(slug.pool()?, before_height, POOL_BLOCKS_LIMIT)?;
                 let params =
                     pool_blocks_params(blocks.activity_anchor(), blocks.heights(), blocks.prices());
                 Ok((blocks, params))
@@ -99,7 +101,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/v1/mining/pool/{slug}",
         get_with(
             async |headers: HeaderMap, Path(path): Path<PoolSlugParam>, _: Empty, RequestState(state): RequestState| {
-                state.respond_json_content(&headers, move |q| q.pool_detail(path.slug)).await
+                state.respond_json_content(&headers, move |q| q.pool_detail(path.slug.pool()?)).await
             },
             |op| {
                 op.id("get_pool")
@@ -149,8 +151,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/v1/mining/pool/{slug}/hashrate",
         get_with(
             async |headers: HeaderMap, Path(path): Path<PoolSlugParam>, _: Empty, RequestState(state): RequestState| {
-                let slug = path.slug;
-                state.respond_json_content(&headers, move |q| q.pool_hashrate(slug)).await
+                state.respond_json_content(&headers, move |q| q.pool_hashrate(path.slug.pool()?)).await
             },
             |op| {
                 op.id("get_pool_hashrate")

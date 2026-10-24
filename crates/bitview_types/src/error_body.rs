@@ -60,6 +60,7 @@ pub enum ErrorCode {
     UnknownAfterTxid,
     UnknownAddress,
     UnknownTxid,
+    UnknownPool,
     OutOfRange,
     UnindexableDate,
     NoData,

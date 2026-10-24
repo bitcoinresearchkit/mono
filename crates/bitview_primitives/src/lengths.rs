@@ -1,9 +1,10 @@
 use brk_types::{Height, OutputType, TxIndex};
 
 use crate::{
-    EmptyScriptOutputIndex, Index, OpReturnIndex, P2AAddressIndex, P2MSOutputIndex, P2PK33AddressIndex,
-    P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex, P2WPKHAddressIndex,
-    P2WSHAddressIndex, TxInIndex, TxOutIndex, TypeIndex, UnknownScriptOutputIndex,
+    EmptyScriptOutputIndex, Index, OpReturnIndex, P2AAddressIndex, P2MSOutputIndex,
+    P2PK33AddressIndex, P2PK65AddressIndex, P2PKHAddressIndex, P2SHAddressIndex, P2TRAddressIndex,
+    P2WPKHAddressIndex, P2WSHAddressIndex, TxInIndex, TxOutIndex, TypeIndex,
+    UnknownScriptOutputIndex,
 };
 
 /// Pipeline-wide length/count snapshot.
@@ -125,10 +126,14 @@ impl Lengths {
         self.tx_index = self.tx_index.min(other.tx_index);
         self.txin_index = self.txin_index.min(other.txin_index);
         self.txout_index = self.txout_index.min(other.txout_index);
-        self.empty_script_output_index = self.empty_script_output_index.min(other.empty_script_output_index);
+        self.empty_script_output_index = self
+            .empty_script_output_index
+            .min(other.empty_script_output_index);
         self.op_return_index = self.op_return_index.min(other.op_return_index);
         self.p2ms_output_index = self.p2ms_output_index.min(other.p2ms_output_index);
-        self.unknown_script_output_index = self.unknown_script_output_index.min(other.unknown_script_output_index);
+        self.unknown_script_output_index = self
+            .unknown_script_output_index
+            .min(other.unknown_script_output_index);
         self.clamp_addr_indexes_to(other);
     }
 

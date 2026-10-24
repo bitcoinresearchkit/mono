@@ -192,7 +192,7 @@ Returns: JSON `Transaction[]`
 
 Block transactions (paginated)
 
-Up to 25 transactions starting at `start_index`. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
+Up to 25 transactions starting at `start_index`, a multiple of 25. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
 
 Parameters:
 - `hash` (path, BlockHash, required)
@@ -872,7 +872,7 @@ Transaction first-seen times
 First-seen UNIX timestamps in seconds, in request order, of transactions in the mempool or that recently left it other than by replacement (mined ones included); 0 otherwise. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-times)*
 
 Parameters:
-- `txId[]` (query, Txid[], required): Transaction IDs to look up (max 250 per request).
+- `txId[]` (query, Txid[], required): Transaction IDs to look up (max 100 per request).
 
 Returns: JSON `Timestamp[]`
 
@@ -1076,10 +1076,10 @@ Returns: JSON `UtxoSetDiff`
 
 Validate address
 
-Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*
+Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses; a string that isn't 2 to 130 letters and digits answers 400. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*
 
 Parameters:
-- `address` (path, string, required): Bitcoin address to validate (can be any string)
+- `address` (path, string, required): Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130); anything else answers 400, as mempool.space does
 
 Returns: JSON `AddressValidation`
 

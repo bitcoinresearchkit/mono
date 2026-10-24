@@ -15,12 +15,13 @@ use schemars::JsonSchema;
 
 use crate::Error;
 
-const MAX_TXIDS: usize = 250;
+/// mempool.space's `MAX_TRANSACTION_TIMES`.
+const MAX_TXIDS: usize = 100;
 
 /// Transaction IDs as repeated `txId[]` query parameters.
 #[derive(JsonSchema)]
 pub struct TxidsParam {
-    /// Transaction IDs to look up (max 250 per request).
+    /// Transaction IDs to look up (max 100 per request).
     #[serde(rename = "txId[]")]
     pub txids: Vec<Txid>,
 }

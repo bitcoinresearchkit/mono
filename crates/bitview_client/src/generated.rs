@@ -2912,7 +2912,7 @@ impl BitviewClient {
 
     /// Validate address
     ///
-    /// Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses.
+    /// Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses; a string that isn't 2 to 130 letters and digits answers 400.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*
     ///
@@ -3073,7 +3073,7 @@ impl BitviewClient {
 
     /// Block transactions (paginated)
     ///
-    /// Up to 25 transactions starting at `start_index`.
+    /// Up to 25 transactions starting at `start_index`, a multiple of 25.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
     ///

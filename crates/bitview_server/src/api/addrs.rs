@@ -205,15 +205,14 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             headers: HeaderMap,
             Path(path): Path<ValidateAddressParam>,
             _: Empty
-        | {
-            Response::cached_json(&headers, &CacheParams::deploy(), move || {
-                AddressValidation::from_addr(&path.addr)
-            })
+        | -> crate::error::Result<Response> {
+            let validation = AddressValidation::from_addr(path.checked()?);
+            Ok(Response::cached_json(&headers, &CacheParams::deploy(), move || validation))
         }, |op| op
             .id("validate_address")
             .tag(tags::ADDRESSES)
             .summary("Validate address")
-            .description("Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*")
+            .description("Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses; a string that isn't 2 to 130 letters and digits answers 400.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*")
             .json_response::<AddressValidation>()
             .not_modified()
         ),

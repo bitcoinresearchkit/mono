@@ -3354,7 +3354,7 @@
       "tool": {
         "name": "get_block_txs_from_index",
         "title": "Block transactions (paginated)",
-        "description": "Up to 25 transactions starting at `start_index`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*\n\nREST operation: `GET /api/block/{hash}/txs/{start_index}`.",
+        "description": "Up to 25 transactions starting at `start_index`, a multiple of 25.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*\n\nREST operation: `GET /api/block/{hash}/txs/{start_index}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -12847,7 +12847,7 @@
           "type": "object",
           "properties": {
             "txId[]": {
-              "description": "Transaction IDs to look up (max 250 per request).",
+              "description": "Transaction IDs to look up (max 100 per request).",
               "type": "array",
               "items": {
                 "$ref": "#/$defs/Txid"
@@ -15227,17 +15227,17 @@
       "tool": {
         "name": "validate_address",
         "title": "Validate address",
-        "description": "Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*\n\nREST operation: `GET /api/v1/validate-address/{address}`.",
+        "description": "Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses; a string that isn't 2 to 130 letters and digits answers 400.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*\n\nREST operation: `GET /api/v1/validate-address/{address}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "address": {
-              "description": "Bitcoin address to validate (can be any string)",
+              "description": "Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);\nanything else answers 400, as mempool.space does",
               "type": "string",
               "examples": [
                 "04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f",
                 "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
-                "not-a-valid-addr",
+                "notavalidaddr",
                 "bc1qinvalid"
               ]
             }

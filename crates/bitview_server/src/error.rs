@@ -46,6 +46,7 @@ fn error_details(error: &QueryError) -> (StatusCode, ErrorCode) {
         ),
         QueryError::UnknownAddress => (StatusCode::NOT_FOUND, ErrorCode::UnknownAddress),
         QueryError::UnknownTxid => (StatusCode::NOT_FOUND, ErrorCode::UnknownTxid),
+        QueryError::UnknownPool => (StatusCode::NOT_FOUND, ErrorCode::UnknownPool),
         QueryError::NotFound(_) => (StatusCode::NOT_FOUND, ErrorCode::NotFound),
         QueryError::OutOfRange(_) => (StatusCode::NOT_FOUND, ErrorCode::OutOfRange),
         QueryError::UnindexableDate => (StatusCode::NOT_FOUND, ErrorCode::UnindexableDate),

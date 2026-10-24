@@ -38,6 +38,8 @@ pub enum Error {
     UnknownAddress,
     #[error("Transaction not found")]
     UnknownTxid,
+    #[error("This mining pool does not exist")]
+    UnknownPool,
     #[error("{0}")]
     NotFound(String),
     #[error("{0}")]

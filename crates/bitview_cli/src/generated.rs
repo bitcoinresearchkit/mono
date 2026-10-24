@@ -351,7 +351,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/block/{hash}/txs/{start_index}",
         summary: "Block transactions (paginated)",
-        description: "Up to 25 transactions starting at `start_index`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*",
+        description: "Up to 25 transactions starting at `start_index`, a multiple of 25.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*",
         path_parameters: &[
             Parameter { api_name: "hash", name: "hash", required: true, value_name: "BlockHash", repeatable: false, description: None },
             Parameter { api_name: "start_index", name: "start-index", required: true, value_name: "BlockTxIndex", repeatable: false, description: Some("Starting transaction index within the block (0-based)") },
@@ -1024,7 +1024,7 @@ pub static COMMANDS: &[Command] = &[
         path_parameters: &[
         ],
         query_parameters: &[
-            Parameter { api_name: "txId[]", name: "tx-id", required: true, value_name: "Txid[]", repeatable: true, description: Some("Transaction IDs to look up (max 250 per request).") },
+            Parameter { api_name: "txId[]", name: "tx-id", required: true, value_name: "Txid[]", repeatable: true, description: Some("Transaction IDs to look up (max 100 per request).") },
         ],
         request_body: None,
     },
@@ -1297,9 +1297,9 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/validate-address/{address}",
         summary: "Validate address",
-        description: "Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*",
+        description: "Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses; a string that isn't 2 to 130 letters and digits answers 400.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*",
         path_parameters: &[
-            Parameter { api_name: "address", name: "address", required: true, value_name: "string", repeatable: false, description: Some("Bitcoin address to validate (can be any string)") },
+            Parameter { api_name: "address", name: "address", required: true, value_name: "string", repeatable: false, description: Some("Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);\nanything else answers 400, as mempool.space does") },
         ],
         query_parameters: &[
         ],

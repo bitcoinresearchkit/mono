@@ -216,7 +216,7 @@ ExchangeRates = dict
 # `not_found` (404), `unavailable` (503; `Retry-After` when transient), `timeout` (504), `internal`
 # (other 5xx).
 ErrorType = Literal["invalid_request", "not_found", "unavailable", "timeout", "internal"]
-ErrorCode = Literal["not_found", "invalid_address", "invalid_network", "unsupported_type", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "unknown_after_txid", "unknown_address", "unknown_txid", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
+ErrorCode = Literal["not_found", "invalid_address", "invalid_network", "unsupported_type", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "unknown_after_txid", "unknown_address", "unknown_txid", "unknown_pool", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
 # Index of a difficulty epoch (2,016 blocks).
 Epoch = int
 # An amount in US dollars.
@@ -303,7 +303,7 @@ BlockTemplateDiffEntry = Union[int, "Transaction"]
 class ValidateAddressParam(TypedDict):
     """
     Attributes:
-        address: Bitcoin address to validate (can be any string)
+        address: Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130); anything else answers 400, as mempool.space does
     """
     address: str
 
@@ -6101,7 +6101,7 @@ class BitviewClient(BitviewClientBase):
     def validate_address(self, address: str) -> AddressValidation:
         """Validate address.
 
-        Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses.
+        Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses; a string that isn't 2 to 130 letters and digits answers 400.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*
 
@@ -6225,7 +6225,7 @@ class BitviewClient(BitviewClientBase):
     def get_block_txs_from_index(self, hash: BlockHash, start_index: BlockTxIndex) -> List[Transaction]:
         """Block transactions (paginated).
 
-        Up to 25 transactions starting at `start_index`.
+        Up to 25 transactions starting at `start_index`, a multiple of 25.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
 

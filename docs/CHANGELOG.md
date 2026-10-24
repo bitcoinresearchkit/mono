@@ -584,6 +584,11 @@ has to be deleted by hand.
   mempool.space's Esplora caps it (each answered 400 to any query parameter). A chain cursor outside the address's
   history answers `[]` (unknown was 404, another address's transaction a page of the address's older ones)
 - `/api/v1/historical-price` lists its four-hour closes newest first, as mempool.space does (were oldest first)
+- Input checks as mempool.space and Esplora: `/api/block/{hash}/txs/{start_index}` answers 400 unless the index is a
+  multiple of 25 (after the out-of-range 404); an unknown pool slug answers 404 `unknown_pool` "This mining pool does
+  not exist" on the four pool routes (was 400 listing every slug); `/api/v1/transaction-times` takes at most 100
+  txids (was 250); `/api/v1/validate-address/{address}` answers 400 `invalid_address` unless the address is 2 to 130
+  letters and digits (mempool.space's 120, raised for P2PK public keys in hex)
 - Mining matches mempool.space: every period route takes `4y` (12-hour groups, as `3y`); block fee rates are whole
   sat/vB (were 3 decimals), with `/api/v1/mining/blocks/fee-rates/{time_period}/precise` for 3 decimals
   (`BlockFeeRatesPreciseEntry`); the network hashrate has every day's value (was sampled down to 200 points, so 1y

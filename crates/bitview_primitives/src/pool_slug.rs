@@ -38,6 +38,18 @@ macro_rules! pool_slugs {
                 }
             }
         }
+
+        impl std::str::FromStr for PoolSlug {
+            type Err = ();
+
+            /// The pool written `slug`, as serde reads it.
+            fn from_str(slug: &str) -> std::result::Result<Self, ()> {
+                match slug {
+                    $($slug => Ok(Self::$variant),)*
+                    _ => Err(()),
+                }
+            }
+        }
     };
 }
 

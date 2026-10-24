@@ -614,7 +614,7 @@ mainnet, as mempool.space
  * @typedef {Object} ErrorBody
  * @property {ErrorDetail} error
  */
-/** @typedef {("not_found"|"invalid_address"|"invalid_network"|"unsupported_type"|"no_series"|"series_unsupported_index"|"weight_exceeded"|"too_many_utxos"|"unknown_after_txid"|"unknown_address"|"unknown_txid"|"out_of_range"|"unindexable_date"|"no_data"|"series_not_found"|"mempool_not_available"|"state_updating"|"internal_error"|"bad_request"|"overloaded"|"timeout"|"method_not_allowed")} ErrorCode */
+/** @typedef {("not_found"|"invalid_address"|"invalid_network"|"unsupported_type"|"no_series"|"series_unsupported_index"|"weight_exceeded"|"too_many_utxos"|"unknown_after_txid"|"unknown_address"|"unknown_txid"|"unknown_pool"|"out_of_range"|"unindexable_date"|"no_data"|"series_not_found"|"mempool_not_available"|"state_updating"|"internal_error"|"bad_request"|"overloaded"|"timeout"|"method_not_allowed")} ErrorCode */
 /**
  * @typedef {Object} ErrorDetail
  * @property {ErrorType} type - Error category, following the HTTP status
@@ -1429,7 +1429,7 @@ asking the node
  * Transaction IDs as repeated `txId[]` query parameters.
  *
  * @typedef {Object} TxidsParam
- * @property {Txid[]} txId - Transaction IDs to look up (max 250 per request).
+ * @property {Txid[]} txId - Transaction IDs to look up (max 100 per request).
  */
 /**
  * An index within its type (0 for the first P2WPKH address).
@@ -1572,7 +1572,8 @@ coinbase outputs of blocks 91812 and 91722, which duplicates at 91842 and 91880 
  */
 /**
  * @typedef {Object} ValidateAddressParam
- * @property {string} address - Bitcoin address to validate (can be any string)
+ * @property {string} address - Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);
+anything else answers 400, as mempool.space does
  */
 /**
  * Schema or computation version of a stored vector: when it changes, the data is reset and
@@ -8435,13 +8436,14 @@ cursor skips the mempool). One that is neither answers 422.
   /**
    * Validate address
    *
-   * Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses.
+   * Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses; a string that isn't 2 to 130 letters and digits answers 400.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*
    *
    * Endpoint: `GET /api/v1/validate-address/{address}`
    *
-   * @param {string} address - Bitcoin address to validate (can be any string)
+   * @param {string} address - Bitcoin address to validate: 2 to 130 letters and digits (a P2PK public key in hex is 130);
+anything else answers 400, as mempool.space does
    * @param {{ signal?: AbortSignal, onValue?: (value: AddressValidation) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<AddressValidation>}
    */
@@ -8660,7 +8662,7 @@ cursor skips the mempool). One that is neither answers 422.
   /**
    * Block transactions (paginated)
    *
-   * Up to 25 transactions starting at `start_index`.
+   * Up to 25 transactions starting at `start_index`, a multiple of 25.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
    *
@@ -9443,7 +9445,7 @@ cursor skips the mempool). One that is neither answers 422.
    *
    * Endpoint: `GET /api/v1/transaction-times`
    *
-   * @param {Txid[]} txId - Transaction IDs to look up (max 250 per request).
+   * @param {Txid[]} txId - Transaction IDs to look up (max 100 per request).
    * @param {{ signal?: AbortSignal, onValue?: (value: Timestamp[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Timestamp[]>}
    */
