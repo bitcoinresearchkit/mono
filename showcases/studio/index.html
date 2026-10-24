@@ -2739,21 +2739,29 @@
         position: absolute;
         inset: 0 auto 0 0;
         z-index: 2;
-        /* (Its room's (GUTTER), 8px either side.) */
-        width: 192px;
+        /* (Its room's (GUTTER) from the latest point, 8px clear of the scale.) */
+        width: 200px;
         pointer-events: none;
 
-        /* (Its names along its dots, its figures in a column at its right.) */
+        /* (A label moved off its band's middle: a line from the band's end to its dot's edge, in its color.) */
+        .gutter-leads {
+          position: absolute;
+          top: 0;
+          left: 0;
+          overflow: visible;
+        }
+
+        /* (Its names along its dots, after the lines, its figures in a column at its right.) */
         .gutter-label {
           position: absolute;
           right: 0;
-          left: 0;
+          left: 14px;
           display: flex;
           align-items: center;
           gap: 5px;
           max-width: 100%;
           color: var(--text);
-          font: 510 11px/13px var(--sans);
+          font: 510 11px/14px var(--sans);
           white-space: nowrap;
           transform: translateY(-50%);
         }
@@ -14082,8 +14090,33 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const rightGap = (width = view.timeScale().width()) => (guttered(width) ? GUTTER : plainGap(width));
       /** The room after the latest point, any chart's (a preview's too, the open one's aside): see rightGap. */
       const plainGap = (width = view.timeScale().width()) => Math.round(clamp(width * 0.06, 16, 48));
-      /** A stack of many's gutter: its width after the latest point, from how wide a plot it's made in. */
-      const GUTTER = 208, GUTTER_FROM = 720;
+      /** A stack of many's gutter: its width after the latest point, from how wide a plot it's made in, and a label's line. */
+      const GUTTER = 208, GUTTER_FROM = 720, GUTTER_LINE = 14;
+      /**
+       * Labels each wanting to be at a height (`wants`, ascending), `step` apart at least, between `top` and `bottom`: each
+       * as near its own as the others leave it, in their order. Neighbors too close move together, as one, to the mean of
+       * where they'd be (moved again while that crowds the ones before). @returns {number[]}
+       */
+      function spreadLabels(/** @type {number[]} */ wants, /** @type {number} */ step, /** @type {number} */ top, /** @type {number} */ bottom) {
+        // (A group's `sum`: each's want less its steps from the group's first, so its mean is where its first goes.)
+        /** @type {{ at: number, count: number, sum: number }[]} */
+        const groups = [];
+        const place = (/** @type {{ at: number, count: number, sum: number }} */ group) => (group.at = clamp(group.sum / group.count, top, Math.max(top, bottom - (group.count - 1) * step)));
+        for (const want of wants) {
+          groups.push({ at: 0, count: 1, sum: want });
+          place(/** @type {{ at: number, count: number, sum: number }} */ (groups.at(-1)));
+          while (groups.length > 1) {
+            const before = groups[groups.length - 2], after = /** @type {{ at: number, count: number, sum: number }} */ (groups.at(-1));
+            if (before.at + before.count * step <= after.at) break;
+            // (Its labels, `before.count` steps further from the joined group's first.)
+            before.sum += after.sum - after.count * before.count * step;
+            before.count += after.count;
+            groups.pop();
+            place(before);
+          }
+        }
+        return groups.flatMap((group) => Array.from({ length: group.count }, (_, k) => group.at + k * step));
+      }
       /** Whether the open chart names its stack of many's bands after its latest point: a wide plot, a keyed pane, its legends on. */
       const guttered = (/** @type {number} */ width) => width >= GUTTER_FROM && chart?.legend !== "off" && Boolean(chart?.panes.some(keyedPane));
       /**
@@ -14392,6 +14425,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const item of [...canvases, ...edged, ...rules]) Object.assign(item.style, { transform: "", transformOrigin: "" });
           for (const side of ["left", "right"]) element.style.removeProperty(`--stretch-${side}`);
           for (const legend of all$(".legend", element)) legend.style.clipPath = "";
+          for (const gutter of all$(".gutter", element)) Object.assign(gutter.style, { transform: `translateX(${gutter.dataset.x}px)`, visibility: "" });
           delete element.dataset.stretching;
           return;
         }
@@ -14415,6 +14449,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A legend running past the plot as it shows (narrower than drawn), cut at its edge, not over the price scale: by
         // where each was as the stretch began.)
         if (!leftAxis) for (const [legend, at, wide] of drawnStretch.legends) legend.style.clipPath = at + wide > from ? `inset(0 ${at + wide - from}px 0 0)` : "";
+        // (A stack of many's gutter with its latest point, where the canvases' stretch puts it; out of sight while it has
+        // no room there.)
+        for (const gutter of all$(".gutter", element)) {
+          const x = Number(gutter.dataset.x), at = leftAxis ? x * k + (held ? lead * (1 - k) : 0) : to - (to - x) * k + (held ? k * room - gap : 0);
+          Object.assign(gutter.style, { transform: `translateX(${Math.round(at)}px)`, visibility: at - (leftAxis ? 0 : to - from) + GUTTER <= from + 8 ? "" : "hidden" });
+        }
       }
       /**
        * A view kept at the chart's width now: its stretch of time (a preset showing, its window at this width), its bars
@@ -15535,9 +15575,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const shown = Boolean(resolved && x !== null && x >= 0 && x + GUTTER <= width + 8);
           gutter.hidden = !shown;
           if (!shown || !resolved || x === null) return;
-          gutter.style.transform = `translateX(${Math.round(x + 8)}px)`;
-          const stacked = stackOf(chart, resolved);
-          let html = "", free = -Infinity;
+          // (Its latest point's place kept: a layout's motion moves it from there, see stretchDrawn.)
+          gutter.dataset.x = String(Math.round(x));
+          gutter.style.transform = `translateX(${Math.round(x)}px)`;
+          const stacked = stackOf(chart, resolved), height = gutter.clientHeight;
+          /** @type {{ layer: Layer, mid: number, thick: number, value: string }[]} */
+          const bands = [];
           for (const layer of bandsOf(pane)) {
             const made = stacked.get(layer.id), series = drawn.get(layer.id);
             if (!made || !series) continue;
@@ -15545,14 +15588,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             let at = last;
             while (at > 0 && !Number.isFinite(made.values[at])) at--;
             const top = made.values[at], foot = made.under[at] * (made.scale?.[at] ?? 1), high = series.priceToCoordinate(top), low = series.priceToCoordinate(foot);
-            if (high === null || low === null || Math.abs(low - high) < 13) continue;
-            // (Foot to top, so up the pane: each clear of the one under it.)
-            const y = Math.round((high + low) / 2);
-            if (free !== -Infinity && y > free) continue;
-            free = y - 13;
+            if (high === null || low === null || !Number.isFinite(top - foot)) continue;
             const value = pane.stack === "percent" ? format(top - foot, "percent") : format(top - foot, unitFor(layer, resolved.results.get(layer.id)));
-            html += `<span class="gutter-label" style="top: ${y}px; --c: ${escape(ink(colorNow(layer) ?? layer.color))}"><i></i><span class="name">${escape(labelOf(layer))}</span><span class="value">${escape(value)}</span></span>`;
+            bands.push({ layer, mid: (high + low) / 2, thick: Math.abs(low - high), value });
           }
+          // (As many as the pane's height under its legend holds a line each, the thickest kept; then spread: see
+          // spreadLabels.)
+          const legend = /** @type {HTMLElement | null} */ (plot.querySelector(`:scope > .legend[data-pane="${pane.id}"]`)), below = legend ? legend.offsetTop + legend.offsetHeight : 0;
+          const kept = new Set([...bands].sort((a, b) => b.thick - a.thick).slice(0, Math.max(0, Math.floor((height - below) / GUTTER_LINE))));
+          const named = bands.filter((band) => kept.has(band)).sort((a, b) => a.mid - b.mid), ys = spreadLabels(named.map((band) => band.mid), GUTTER_LINE, below + GUTTER_LINE / 2, height - GUTTER_LINE / 2);
+          // (Each moved off its band's middle tied to it by a line in its color, from the band's end to its dot.)
+          const leads = named.map((band, k) => (Math.abs(ys[k] - band.mid) < 1 ? "" : `<path d="M0 ${band.mid.toFixed(1)}C7 ${band.mid.toFixed(1)} 7 ${ys[k].toFixed(1)} 14 ${ys[k].toFixed(1)}" stroke="${escape(ink(colorNow(band.layer) ?? band.layer.color))}"/>`)).join("");
+          // (Its look its own, not the page's: a picture draws it as it is, see measureLegends.)
+          const html = `<svg class="gutter-leads" width="14" height="${height}" fill="none" stroke-width="1" opacity="0.6">${leads}</svg>` + named.map((band, k) => `<span class="gutter-label" style="top: ${ys[k].toFixed(1)}px; --c: ${escape(ink(colorNow(band.layer) ?? band.layer.color))}"><i></i><span class="name">${escape(labelOf(band.layer))}</span><span class="value">${escape(band.value)}</span></span>`).join("");
           if (gutter.innerHTML !== html) gutter.innerHTML = html;
         });
         for (const gutter of /** @type {HTMLElement[]} */ (all$("#chart .gutter"))) if (!wanted.has(gutter)) (gutterFit.unobserve(gutter), gutter.remove());
@@ -31641,7 +31689,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
           }
         }
-        // (A stack of many's bands named after its latest point: each dot, name and figure, as drawn.)
+        // (A stack of many's bands named after its latest point: the lines to the ones moved, each dot, name and figure,
+        // as drawn.)
+        for (const leads of all$("#chart .gutter:not([hidden]) .gutter-leads")) if (leads.querySelector("path")) pieces.push({ ...box(leads), svg: leads.outerHTML });
         for (const label of /** @type {HTMLElement[]} */ (all$("#chart .gutter:not([hidden]) .gutter-label"))) {
           const dot = label.querySelector("i");
           if (dot) pieces.push({ ...box(dot), svg: `<svg viewBox="0 0 6 6" width="6" height="6"><circle cx="3" cy="3" r="3" fill="${getComputedStyle(dot).backgroundColor}"/></svg>` });
