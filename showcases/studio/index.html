@@ -7380,6 +7380,21 @@
         }
       }
 
+      /* (A picture that couldn't be fetched, none before it: said, quietly, where it would be.) */
+      [data-plot].failed {
+        position: relative;
+
+        &::after {
+          content: "Couldn't load";
+          position: absolute;
+          inset: 0;
+          display: grid;
+          place-items: center;
+          color: var(--muted);
+          font-size: 12px;
+        }
+      }
+
       .tile-plot {
         aspect-ratio: 16 / 9;
         margin-top: 12px;
@@ -20594,6 +20609,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!all && !frame.classList.contains("pending")) continue;
           frame.classList.remove("pending");
           if (drawn) frame.innerHTML = previewSvg(drawn, `${frame.classList[0]}-${id}`);
+          // (None, and no picture before it: said, not a blank that reads as no data; asked for again, see retryPlots.
+          // One from before stays: a sketch of the same chart.)
+          frame.classList.toggle("failed", !drawn && !frame.querySelector("svg"));
         }
       }
       /**
@@ -21488,7 +21506,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const doc of [...previewCharts, ...library.charts]) {
           if (!home) break;
           // Drawn already (maybe from ⌘K), it's shown where it's still waited for. A failed fetch isn't drawn (nor
-          // kept): it shows blank, not loading, and the next time the page shows tries again.
+          // kept): it says so, and it's asked for again as the server answers (see paint, retryPlots).
           if (doc.layers.length) paint(doc.id, await drawPreview(doc));
         }
       });
@@ -21556,8 +21574,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         setFull(false);
         leaveField();
         saveView();
-        // The open chart as it is now: its card shows it before it shrinks into it.
-        if (settled() && chart.layers.length) {
+        // The open chart as it is now: its card shows it before it shrinks into it. (Its data failed: none, its card's
+        // own fetch tries again, see paint.)
+        if (settled() && chart.layers.length && !resolved?.failed.length) {
           previews.set(chart.id, { key: previewKey(chart), ...previewOf(chart, resolved) });
           savePreviews();
         }
@@ -23805,6 +23824,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           await drawPreview(card.doc, previewIndex(card.doc));
         }
       });
+      /**
+       * The pictures that couldn't be fetched (see paint), asked for again, each as it's drawn (a tile's, the gallery's, a
+       * recommended card's): as the server answers (see checkLive), they're waited for again.
+       */
+      function retryPlots() {
+        const failed = all$("[data-plot].failed");
+        if (!failed.length) return;
+        for (const frame of failed) frame.classList.replace("failed", "pending");
+        if (!home) return;
+        void schedulePreviews();
+        for (const frame of gallerySeen) if (frame.classList.contains("pending")) galleryQueue.add(presetOf(frame));
+        void drawGallery();
+        for (const frame of failed) ((card) => card && cardQueue.add(Number(card.dataset.template)))(/** @type {HTMLElement | null} */ (frame.closest("[data-template]")));
+        void drawCards();
+      }
       const cardsSeen = new IntersectionObserver((entries) => {
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
@@ -33062,6 +33096,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           queueMicrotask(answered);
         }
         answeredAt = Date.now();
+        retryPlots();
         // (Each answer: back from offline, and how long ago the last block came, said anew.)
         updateStatus();
         const height = health.computedHeight;
