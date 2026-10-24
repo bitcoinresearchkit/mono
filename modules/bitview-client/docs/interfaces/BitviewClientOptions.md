@@ -44,4 +44,4 @@ LRU capacity of the in-memory parsed-response cache, which lets 304 responses sk
 
 Defined in: [modules/bitview-client/index.js:1668](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1668)
 
-Request timeout in milliseconds
+Request timeout in milliseconds, the download included. Default: 30000
