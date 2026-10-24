@@ -8,7 +8,7 @@
 
 > **Bedrock** = `object`
 
-Defined in: [modules/bitview-client/index.js:3749](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3749)
+Defined in: [modules/bitview-client/index.js:3816](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3816)
 
 ## Type Parameters
 

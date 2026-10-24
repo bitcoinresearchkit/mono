@@ -6,7 +6,7 @@
 
 # Interface: SeriesDataBase\<T\>
 
-Defined in: [modules/bitview-client/index.js:1744](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1744)
+Defined in: [modules/bitview-client/index.js:1811](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1811)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [modules/bitview-client/index.js:1744](https://github.com/bitcoinres
 
 > **data**: `T`[]
 
-Defined in: [modules/bitview-client/index.js:1750](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1750)
+Defined in: [modules/bitview-client/index.js:1817](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1817)
 
 The series data (`null` where a value is missing or undefined)
 
@@ -30,7 +30,7 @@ The series data (`null` where a value is missing or undefined)
 
 > **end**: `number`
 
-Defined in: [modules/bitview-client/index.js:1749](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1749)
+Defined in: [modules/bitview-client/index.js:1816](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1816)
 
 End index (exclusive)
 
@@ -40,7 +40,7 @@ End index (exclusive)
 
 > **entries**: () => \[`number`, `T`\][]
 
-Defined in: [modules/bitview-client/index.js:1754](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1754)
+Defined in: [modules/bitview-client/index.js:1821](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1821)
 
 Get [index, value] pairs
 
@@ -54,7 +54,7 @@ Get [index, value] pairs
 
 > **index**: [`Index`](../type-aliases/Index.md)
 
-Defined in: [modules/bitview-client/index.js:1746](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1746)
+Defined in: [modules/bitview-client/index.js:1813](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1813)
 
 ***
 
@@ -62,7 +62,7 @@ Defined in: [modules/bitview-client/index.js:1746](https://github.com/bitcoinres
 
 > **indexes**: () => `number`[]
 
-Defined in: [modules/bitview-client/index.js:1752](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1752)
+Defined in: [modules/bitview-client/index.js:1819](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1819)
 
 #### Returns
 
@@ -74,7 +74,7 @@ Defined in: [modules/bitview-client/index.js:1752](https://github.com/bitcoinres
 
 > **isDateBased**: `boolean`
 
-Defined in: [modules/bitview-client/index.js:1751](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1751)
+Defined in: [modules/bitview-client/index.js:1818](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1818)
 
 ***
 
@@ -82,7 +82,7 @@ Defined in: [modules/bitview-client/index.js:1751](https://github.com/bitcoinres
 
 > **keys**: () => `number`[]
 
-Defined in: [modules/bitview-client/index.js:1753](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1753)
+Defined in: [modules/bitview-client/index.js:1820](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1820)
 
 Alias for indexes
 
@@ -96,7 +96,7 @@ Alias for indexes
 
 > **start**: `number`
 
-Defined in: [modules/bitview-client/index.js:1748](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1748)
+Defined in: [modules/bitview-client/index.js:1815](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1815)
 
 Start index (inclusive)
 
@@ -106,7 +106,7 @@ Start index (inclusive)
 
 > **toMap**: () => `Map`\<`number`, `T`\>
 
-Defined in: [modules/bitview-client/index.js:1755](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1755)
+Defined in: [modules/bitview-client/index.js:1822](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1822)
 
 Convert to Map<index, value>
 
@@ -120,7 +120,7 @@ Convert to Map<index, value>
 
 > **type**: `string`
 
-Defined in: [modules/bitview-client/index.js:1747](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1747)
+Defined in: [modules/bitview-client/index.js:1814](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1814)
 
 Value type (e.g. "Ratio", "Sats", "Cents")
 
@@ -130,4 +130,4 @@ Value type (e.g. "Ratio", "Sats", "Cents")
 
 > **version**: `number`
 
-Defined in: [modules/bitview-client/index.js:1745](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1745)
+Defined in: [modules/bitview-client/index.js:1812](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1812)

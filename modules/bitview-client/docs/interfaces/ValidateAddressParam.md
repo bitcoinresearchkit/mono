@@ -6,7 +6,7 @@
 
 # Interface: ValidateAddressParam
 
-Defined in: [modules/bitview-client/index.js:1485](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1485)
+Defined in: [modules/bitview-client/index.js:1552](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1552)
 
 ## Properties
 
@@ -14,6 +14,6 @@ Defined in: [modules/bitview-client/index.js:1485](https://github.com/bitcoinres
 
 > **address**: `string`
 
-Defined in: [modules/bitview-client/index.js:1486](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1486)
+Defined in: [modules/bitview-client/index.js:1553](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1553)
 
 Bitcoin address to validate (can be any string)

@@ -8,7 +8,7 @@
 
 > **AddressesReuseEvents** = `object`
 
-Defined in: [modules/bitview-client/index.js:5545](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5545)
+Defined in: [modules/bitview-client/index.js:5612](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5612)
 
 ## Type Parameters
 

@@ -6,7 +6,7 @@
 
 # Interface: HistoricalPriceParam
 
-Defined in: [modules/bitview-client/index.js:650](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L650)
+Defined in: [modules/bitview-client/index.js:717](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L717)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:650](https://github.com/bitcoinrese
 
 > `optional` **currency?**: `"USD"` \| `null`
 
-Defined in: [modules/bitview-client/index.js:652](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L652)
+Defined in: [modules/bitview-client/index.js:719](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L719)
 
 Quote currency: USD, the only one served
 
@@ -24,6 +24,6 @@ Quote currency: USD, the only one served
 
 > `optional` **timestamp?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:651](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L651)
+Defined in: [modules/bitview-client/index.js:718](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L718)
 
 UNIX timestamp: the latest close at or before it

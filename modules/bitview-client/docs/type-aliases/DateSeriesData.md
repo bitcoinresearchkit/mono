@@ -8,7 +8,7 @@
 
 > **DateSeriesData**\<`T`\> = [`SeriesData`](SeriesData.md)\<`T`\> & [`DateSeriesDataExtras`](../interfaces/DateSeriesDataExtras.md)\<`T`\>
 
-Defined in: [modules/bitview-client/index.js:1768](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1768)
+Defined in: [modules/bitview-client/index.js:1835](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1835)
 
 ## Type Parameters
 

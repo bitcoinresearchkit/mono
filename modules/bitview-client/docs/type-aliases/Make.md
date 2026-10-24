@@ -8,7 +8,7 @@
 
 > **\_Make** = (`c`, `b`, ...`f`) => `any`
 
-Defined in: [modules/bitview-client/index.js:2460](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2460)
+Defined in: [modules/bitview-client/index.js:2527](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2527)
 
 ## Type Parameters
 

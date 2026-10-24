@@ -8,6 +8,6 @@
 
 > **Count** = `number`
 
-Defined in: [modules/bitview-client/index.js:349](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L349)
+Defined in: [modules/bitview-client/index.js:402](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L402)
 
 ## Type Parameters

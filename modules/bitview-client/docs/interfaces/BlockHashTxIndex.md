@@ -6,7 +6,7 @@
 
 # Interface: BlockHashTxIndex
 
-Defined in: [modules/bitview-client/index.js:166](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L166)
+Defined in: [modules/bitview-client/index.js:192](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L192)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:166](https://github.com/bitcoinrese
 
 > **hash**: `string`
 
-Defined in: [modules/bitview-client/index.js:167](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L167)
+Defined in: [modules/bitview-client/index.js:193](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L193)
 
 ***
 
@@ -22,6 +22,6 @@ Defined in: [modules/bitview-client/index.js:167](https://github.com/bitcoinrese
 
 > **index**: `number`
 
-Defined in: [modules/bitview-client/index.js:168](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L168)
+Defined in: [modules/bitview-client/index.js:194](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L194)
 
 Transaction index within the block (0-based)

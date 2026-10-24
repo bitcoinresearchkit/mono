@@ -8,6 +8,6 @@
 
 > **Minute10** = `number`
 
-Defined in: [modules/bitview-client/index.js:745](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L745)
+Defined in: [modules/bitview-client/index.js:812](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L812)
 
 ## Type Parameters

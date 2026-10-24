@@ -8,7 +8,7 @@
 
 > **CointimeActivity** = `object`
 
-Defined in: [modules/bitview-client/index.js:4675](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4675)
+Defined in: [modules/bitview-client/index.js:4742](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4742)
 
 ## Type Parameters
 

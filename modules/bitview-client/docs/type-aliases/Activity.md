@@ -8,7 +8,7 @@
 
 > **Activity** = `object`
 
-Defined in: [modules/bitview-client/index.js:4019](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4019)
+Defined in: [modules/bitview-client/index.js:4086](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4086)
 
 ## Type Parameters
 

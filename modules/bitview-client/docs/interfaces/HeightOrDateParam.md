@@ -6,7 +6,7 @@
 
 # Interface: HeightOrDateParam
 
-Defined in: [modules/bitview-client/index.js:630](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L630)
+Defined in: [modules/bitview-client/index.js:697](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L697)
 
 ## Properties
 
@@ -14,6 +14,6 @@ Defined in: [modules/bitview-client/index.js:630](https://github.com/bitcoinrese
 
 > **point**: [`HeightOrDate`](../type-aliases/HeightOrDate.md)
 
-Defined in: [modules/bitview-client/index.js:631](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L631)
+Defined in: [modules/bitview-client/index.js:698](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L698)
 
 Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)

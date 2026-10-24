@@ -8,6 +8,6 @@
 
 > **Hour12** = `number`
 
-Defined in: [modules/bitview-client/index.js:662](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L662)
+Defined in: [modules/bitview-client/index.js:729](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L729)
 
 ## Type Parameters

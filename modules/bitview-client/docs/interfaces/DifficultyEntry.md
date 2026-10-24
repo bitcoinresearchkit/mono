@@ -6,7 +6,7 @@
 
 # Interface: DifficultyEntry
 
-Defined in: [modules/bitview-client/index.js:489](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L489)
+Defined in: [modules/bitview-client/index.js:550](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L550)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:489](https://github.com/bitcoinrese
 
 > **adjustment**: `number`
 
-Defined in: [modules/bitview-client/index.js:493](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L493)
+Defined in: [modules/bitview-client/index.js:554](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L554)
 
 Adjustment ratio (new/previous, e.g. 1.068 = +6.8%)
 
@@ -24,7 +24,7 @@ Adjustment ratio (new/previous, e.g. 1.068 = +6.8%)
 
 > **difficulty**: `number`
 
-Defined in: [modules/bitview-client/index.js:492](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L492)
+Defined in: [modules/bitview-client/index.js:553](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L553)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: [modules/bitview-client/index.js:492](https://github.com/bitcoinrese
 
 > **height**: `number`
 
-Defined in: [modules/bitview-client/index.js:491](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L491)
+Defined in: [modules/bitview-client/index.js:552](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L552)
 
 ***
 
@@ -40,6 +40,6 @@ Defined in: [modules/bitview-client/index.js:491](https://github.com/bitcoinrese
 
 > **time**: `number`
 
-Defined in: [modules/bitview-client/index.js:490](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L490)
+Defined in: [modules/bitview-client/index.js:551](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L551)
 
 Unix timestamp of the difficulty adjustment

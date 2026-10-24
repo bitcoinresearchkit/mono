@@ -6,7 +6,7 @@
 
 # Interface: MempoolRecentTx
 
-Defined in: [modules/bitview-client/index.js:723](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L723)
+Defined in: [modules/bitview-client/index.js:790](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L790)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:723](https://github.com/bitcoinrese
 
 > **fee**: `number`
 
-Defined in: [modules/bitview-client/index.js:725](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L725)
+Defined in: [modules/bitview-client/index.js:792](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L792)
 
 Transaction fee (sats)
 
@@ -24,7 +24,7 @@ Transaction fee (sats)
 
 > **txid**: `string`
 
-Defined in: [modules/bitview-client/index.js:724](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L724)
+Defined in: [modules/bitview-client/index.js:791](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L791)
 
 ***
 
@@ -32,7 +32,7 @@ Defined in: [modules/bitview-client/index.js:724](https://github.com/bitcoinrese
 
 > **value**: `number`
 
-Defined in: [modules/bitview-client/index.js:727](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L727)
+Defined in: [modules/bitview-client/index.js:794](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L794)
 
 Total output value (sats)
 
@@ -42,6 +42,6 @@ Total output value (sats)
 
 > **vsize**: `number`
 
-Defined in: [modules/bitview-client/index.js:726](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L726)
+Defined in: [modules/bitview-client/index.js:793](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L793)
 
 Virtual size (vbytes)

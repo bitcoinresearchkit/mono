@@ -8,6 +8,6 @@
 
 > **BlockHash** = `string`
 
-Defined in: [modules/bitview-client/index.js:154](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L154)
+Defined in: [modules/bitview-client/index.js:180](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L180)
 
 ## Type Parameters

@@ -6,7 +6,7 @@
 
 # Interface: BlockExtras
 
-Defined in: [modules/bitview-client/index.js:92](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L92)
+Defined in: [modules/bitview-client/index.js:112](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L112)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:92](https://github.com/bitcoinresea
 
 > **avgFee**: `number`
 
-Defined in: [modules/bitview-client/index.js:98](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L98)
+Defined in: [modules/bitview-client/index.js:118](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L118)
 
 Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
 
@@ -24,7 +24,7 @@ Mean fee per non-coinbase transaction in satoshis, rounded down (0 without any)
 
 > **avgFeeRate**: `number`
 
-Defined in: [modules/bitview-client/index.js:99](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L99)
+Defined in: [modules/bitview-client/index.js:119](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L119)
 
 Average fee rate in sat/vB
 
@@ -34,7 +34,7 @@ Average fee rate in sat/vB
 
 > **avgTxSize**: `number`
 
-Defined in: [modules/bitview-client/index.js:105](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L105)
+Defined in: [modules/bitview-client/index.js:125](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L125)
 
 Non-coinbase transaction bytes over the transaction count (coinbase included), rounded to
 2 decimals
@@ -45,7 +45,7 @@ Non-coinbase transaction bytes over the transaction count (coinbase included), r
 
 > `optional` **coinbaseAddress?**: `string` \| `null`
 
-Defined in: [modules/bitview-client/index.js:101](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L101)
+Defined in: [modules/bitview-client/index.js:121](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L121)
 
 Primary coinbase output address
 
@@ -55,9 +55,20 @@ Primary coinbase output address
 
 > **coinbaseAddresses**: `string`[]
 
-Defined in: [modules/bitview-client/index.js:102](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L102)
+Defined in: [modules/bitview-client/index.js:122](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L122)
 
 All coinbase output addresses
+
+***
+
+### coinbaseBip54?
+
+> `optional` **coinbaseBip54?**: `boolean` \| `null`
+
+Defined in: [modules/bitview-client/index.js:141](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L141)
+
+Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's
+sequence isn't final), from timestamp 1,771,507,776 on; null before
 
 ***
 
@@ -65,7 +76,7 @@ All coinbase output addresses
 
 > **coinbaseRaw**: `string`
 
-Defined in: [modules/bitview-client/index.js:100](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L100)
+Defined in: [modules/bitview-client/index.js:120](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L120)
 
 Raw coinbase transaction scriptsig as hex
 
@@ -75,7 +86,7 @@ Raw coinbase transaction scriptsig as hex
 
 > **coinbaseSignature**: `string`
 
-Defined in: [modules/bitview-client/index.js:103](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L103)
+Defined in: [modules/bitview-client/index.js:123](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L123)
 
 Coinbase output script in ASM format
 
@@ -85,9 +96,29 @@ Coinbase output script in ASM format
 
 > **coinbaseSignatureAscii**: `string`
 
-Defined in: [modules/bitview-client/index.js:104](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L104)
+Defined in: [modules/bitview-client/index.js:124](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L124)
 
 Coinbase scriptsig with each byte read as the Unicode code point of the same value
+
+***
+
+### expectedFees?
+
+> `optional` **expectedFees?**: `number` \| `null`
+
+Defined in: [modules/bitview-client/index.js:147](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L147)
+
+Fees of the expected block template (always null: it needs the mempool as it was)
+
+***
+
+### expectedWeight?
+
+> `optional` **expectedWeight?**: `number` \| `null`
+
+Defined in: [modules/bitview-client/index.js:148](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L148)
+
+Weight of the expected block template (always null: it needs the mempool as it was)
 
 ***
 
@@ -95,7 +126,7 @@ Coinbase scriptsig with each byte read as the Unicode code point of the same val
 
 > **feePercentiles**: `number`[]
 
-Defined in: [modules/bitview-client/index.js:111](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L111)
+Defined in: [modules/bitview-client/index.js:131](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L131)
 
 Fee amount percentiles in satoshis: [min, 10%, 25%, 50%, 75%, 90%, max]
 
@@ -105,7 +136,7 @@ Fee amount percentiles in satoshis: [min, 10%, 25%, 50%, 75%, 90%, max]
 
 > **feeRange**: `number`[]
 
-Defined in: [modules/bitview-client/index.js:95](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L95)
+Defined in: [modules/bitview-client/index.js:115](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L115)
 
 Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
 
@@ -115,7 +146,7 @@ Fee rate range: [min, 10%, 25%, 50%, 75%, 90%, max]
 
 > `optional` **firstSeen?**: `number` \| `null`
 
-Defined in: [modules/bitview-client/index.js:121](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L121)
+Defined in: [modules/bitview-client/index.js:143](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L143)
 
 Timestamp when the block was first seen (always null, not yet supported)
 
@@ -125,9 +156,20 @@ Timestamp when the block was first seen (always null, not yet supported)
 
 > **header**: `string`
 
-Defined in: [modules/bitview-client/index.js:115](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L115)
+Defined in: [modules/bitview-client/index.js:135](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L135)
 
 Raw 80-byte block header as hex
+
+***
+
+### matchRate?
+
+> `optional` **matchRate?**: `number` \| `null`
+
+Defined in: [modules/bitview-client/index.js:145](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L145)
+
+Share of the expected block template the block matched, from mempool.space's own audits
+(always null: it needs the mempool as it was)
 
 ***
 
@@ -135,7 +177,7 @@ Raw 80-byte block header as hex
 
 > **medianFee**: `number`
 
-Defined in: [modules/bitview-client/index.js:94](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L94)
+Defined in: [modules/bitview-client/index.js:114](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L114)
 
 Median fee rate in sat/vB
 
@@ -145,7 +187,7 @@ Median fee rate in sat/vB
 
 > **medianFeeAmt**: `number`
 
-Defined in: [modules/bitview-client/index.js:110](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L110)
+Defined in: [modules/bitview-client/index.js:130](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L130)
 
 Median fee amount in satoshis
 
@@ -153,11 +195,11 @@ Median fee amount in satoshis
 
 ### orphans
 
-> **orphans**: `string`[]
+> **orphans**: [`BlockOrphan`](BlockOrphan.md)[]
 
-Defined in: [modules/bitview-client/index.js:122](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L122)
+Defined in: [modules/bitview-client/index.js:144](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L144)
 
-Orphaned blocks (always empty)
+Stale blocks at this height (always empty, not yet supported)
 
 ***
 
@@ -165,7 +207,7 @@ Orphaned blocks (always empty)
 
 > **pool**: [`BlockPool`](BlockPool.md)
 
-Defined in: [modules/bitview-client/index.js:97](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L97)
+Defined in: [modules/bitview-client/index.js:117](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L117)
 
 ***
 
@@ -173,7 +215,7 @@ Defined in: [modules/bitview-client/index.js:97](https://github.com/bitcoinresea
 
 > **price**: `number`
 
-Defined in: [modules/bitview-client/index.js:123](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L123)
+Defined in: [modules/bitview-client/index.js:149](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L149)
 
 USD price at block height
 
@@ -183,7 +225,7 @@ USD price at block height
 
 > **reward**: `number`
 
-Defined in: [modules/bitview-client/index.js:96](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L96)
+Defined in: [modules/bitview-client/index.js:116](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L116)
 
 Total block reward (subsidy + fees) in satoshis
 
@@ -193,7 +235,7 @@ Total block reward (subsidy + fees) in satoshis
 
 > **segwitTotalSize**: `number`
 
-Defined in: [modules/bitview-client/index.js:113](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L113)
+Defined in: [modules/bitview-client/index.js:133](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L133)
 
 Total size of segwit transactions in bytes
 
@@ -203,7 +245,7 @@ Total size of segwit transactions in bytes
 
 > **segwitTotalTxs**: `number`
 
-Defined in: [modules/bitview-client/index.js:112](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L112)
+Defined in: [modules/bitview-client/index.js:132](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L132)
 
 ***
 
@@ -211,7 +253,7 @@ Defined in: [modules/bitview-client/index.js:112](https://github.com/bitcoinrese
 
 > **segwitTotalWeight**: `number`
 
-Defined in: [modules/bitview-client/index.js:114](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L114)
+Defined in: [modules/bitview-client/index.js:134](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L134)
 
 ***
 
@@ -219,7 +261,7 @@ Defined in: [modules/bitview-client/index.js:114](https://github.com/bitcoinrese
 
 > **totalFees**: `number`
 
-Defined in: [modules/bitview-client/index.js:93](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L93)
+Defined in: [modules/bitview-client/index.js:113](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L113)
 
 Total fees in satoshis
 
@@ -229,7 +271,7 @@ Total fees in satoshis
 
 > **totalInputAmt**: `number`
 
-Defined in: [modules/bitview-client/index.js:119](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L119)
+Defined in: [modules/bitview-client/index.js:139](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L139)
 
 Total input amount in satoshis
 
@@ -239,7 +281,7 @@ Total input amount in satoshis
 
 > **totalInputs**: `number`
 
-Defined in: [modules/bitview-client/index.js:107](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L107)
+Defined in: [modules/bitview-client/index.js:127](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L127)
 
 Total number of inputs (excluding coinbase)
 
@@ -249,7 +291,7 @@ Total number of inputs (excluding coinbase)
 
 > **totalOutputAmt**: `number`
 
-Defined in: [modules/bitview-client/index.js:109](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L109)
+Defined in: [modules/bitview-client/index.js:129](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L129)
 
 Total output amount in satoshis, coinbase excluded
 
@@ -259,7 +301,7 @@ Total output amount in satoshis, coinbase excluded
 
 > **totalOutputs**: `number`
 
-Defined in: [modules/bitview-client/index.js:108](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L108)
+Defined in: [modules/bitview-client/index.js:128](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L128)
 
 ***
 
@@ -267,7 +309,7 @@ Defined in: [modules/bitview-client/index.js:108](https://github.com/bitcoinrese
 
 > **utxoSetChange**: `number`
 
-Defined in: [modules/bitview-client/index.js:116](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L116)
+Defined in: [modules/bitview-client/index.js:136](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L136)
 
 UTXO set change as mempool.space and bitcoin-cli report it: total outputs minus total
 inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
@@ -278,7 +320,7 @@ inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
 
 > **utxoSetSize**: `number`
 
-Defined in: [modules/bitview-client/index.js:118](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L118)
+Defined in: [modules/bitview-client/index.js:138](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L138)
 
 Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
 
@@ -288,6 +330,6 @@ Total spendable UTXO set size at this height (excludes OP_RETURN and other unspe
 
 > **virtualSize**: `number`
 
-Defined in: [modules/bitview-client/index.js:120](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L120)
+Defined in: [modules/bitview-client/index.js:140](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L140)
 
 Virtual size in vbytes: weight / 4, unrounded

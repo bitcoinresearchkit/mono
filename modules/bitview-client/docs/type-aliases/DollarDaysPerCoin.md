@@ -8,6 +8,6 @@
 
 > **DollarDaysPerCoin** = `number`
 
-Defined in: [modules/bitview-client/index.js:512](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L512)
+Defined in: [modules/bitview-client/index.js:573](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L573)
 
 ## Type Parameters

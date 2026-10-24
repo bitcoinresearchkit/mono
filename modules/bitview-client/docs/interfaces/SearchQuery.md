@@ -6,7 +6,7 @@
 
 # Interface: SearchQuery
 
-Defined in: [modules/bitview-client/index.js:1131](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1131)
+Defined in: [modules/bitview-client/index.js:1198](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1198)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1131](https://github.com/bitcoinres
 
 > `optional` **limit?**: `number`
 
-Defined in: [modules/bitview-client/index.js:1133](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1133)
+Defined in: [modules/bitview-client/index.js:1200](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1200)
 
 Maximum number of results, 100 when omitted
 
@@ -24,6 +24,6 @@ Maximum number of results, 100 when omitted
 
 > **q**: `string`
 
-Defined in: [modules/bitview-client/index.js:1132](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1132)
+Defined in: [modules/bitview-client/index.js:1199](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1199)
 
 Words to find in series names and descriptions (`realized price`, `mvrv`), in any order

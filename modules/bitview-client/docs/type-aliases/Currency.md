@@ -8,6 +8,6 @@
 
 > **Currency** = `"USD"`
 
-Defined in: [modules/bitview-client/index.js:420](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L420)
+Defined in: [modules/bitview-client/index.js:481](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L481)
 
 ## Type Parameters

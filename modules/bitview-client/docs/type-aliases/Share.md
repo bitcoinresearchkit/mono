@@ -8,7 +8,7 @@
 
 > **Share** = `object`
 
-Defined in: [modules/bitview-client/index.js:4049](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4049)
+Defined in: [modules/bitview-client/index.js:4116](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4116)
 
 ## Type Parameters
 

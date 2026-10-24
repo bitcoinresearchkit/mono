@@ -8,7 +8,7 @@
 
 > **TrueMarketMeanMedian** = `object`
 
-Defined in: [modules/bitview-client/index.js:2722](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2722)
+Defined in: [modules/bitview-client/index.js:2789](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2789)
 
 ## Type Parameters
 

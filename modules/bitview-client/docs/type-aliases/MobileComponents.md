@@ -8,7 +8,7 @@
 
 > **MobileComponents** = `object`
 
-Defined in: [modules/bitview-client/index.js:2887](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2887)
+Defined in: [modules/bitview-client/index.js:2954](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2954)
 
 ## Type Parameters
 

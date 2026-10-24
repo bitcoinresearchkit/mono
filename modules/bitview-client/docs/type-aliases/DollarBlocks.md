@@ -8,6 +8,6 @@
 
 > **DollarBlocks** = `number`
 
-Defined in: [modules/bitview-client/index.js:506](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L506)
+Defined in: [modules/bitview-client/index.js:567](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L567)
 
 ## Type Parameters

@@ -8,7 +8,7 @@
 
 > **BalanceUtxos** = `object`
 
-Defined in: [modules/bitview-client/index.js:4366](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4366)
+Defined in: [modules/bitview-client/index.js:4433](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4433)
 
 ## Type Parameters
 

@@ -8,6 +8,6 @@
 
 > **Percent** = `number`
 
-Defined in: [modules/bitview-client/index.js:935](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L935)
+Defined in: [modules/bitview-client/index.js:1002](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1002)
 
 ## Type Parameters

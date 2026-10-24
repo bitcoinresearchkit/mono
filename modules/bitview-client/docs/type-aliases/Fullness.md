@@ -8,7 +8,7 @@
 
 > **Fullness** = `object`
 
-Defined in: [modules/bitview-client/index.js:5413](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5413)
+Defined in: [modules/bitview-client/index.js:5480](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5480)
 
 ## Type Parameters
 
@@ -17,6 +17,10 @@ Defined in: [modules/bitview-client/index.js:5413](https://github.com/bitcoinres
 ### avg
 
 > **avg**: [`Windows`](Windows.md)\<[`Percent`](Percent.md) \| `null`\>
+
+### block
+
+> **block**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Percent`](Percent.md) \| `null`\>
 
 ### max
 
@@ -45,7 +49,3 @@ Defined in: [modules/bitview-client/index.js:5413](https://github.com/bitcoinres
 ### p90
 
 > **p90**: [`Windows`](Windows.md)\<[`Percent`](Percent.md) \| `null`\>
-
-### value
-
-> **value**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Percent`](Percent.md) \| `null`\>

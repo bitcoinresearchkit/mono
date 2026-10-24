@@ -8,6 +8,6 @@
 
 > **BlockTemplateDiffEntry** = `number` \| [`Transaction`](../interfaces/Transaction.md)
 
-Defined in: [modules/bitview-client/index.js:282](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L282)
+Defined in: [modules/bitview-client/index.js:325](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L325)
 
 ## Type Parameters

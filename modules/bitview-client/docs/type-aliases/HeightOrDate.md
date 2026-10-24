@@ -8,6 +8,6 @@
 
 > **HeightOrDate** = [`Height`](Height.md) \| [`Date`](Date.md)
 
-Defined in: [modules/bitview-client/index.js:627](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L627)
+Defined in: [modules/bitview-client/index.js:694](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L694)
 
 ## Type Parameters

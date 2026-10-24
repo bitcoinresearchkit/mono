@@ -8,7 +8,7 @@
 
 > **Rate** = `object`
 
-Defined in: [modules/bitview-client/index.js:3666](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3666)
+Defined in: [modules/bitview-client/index.js:3733](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3733)
 
 ## Type Parameters
 

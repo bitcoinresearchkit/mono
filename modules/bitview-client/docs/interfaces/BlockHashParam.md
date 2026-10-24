@@ -6,7 +6,7 @@
 
 # Interface: BlockHashParam
 
-Defined in: [modules/bitview-client/index.js:157](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L157)
+Defined in: [modules/bitview-client/index.js:183](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L183)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [modules/bitview-client/index.js:157](https://github.com/bitcoinrese
 
 > **hash**: `string`
 
-Defined in: [modules/bitview-client/index.js:158](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L158)
+Defined in: [modules/bitview-client/index.js:184](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L184)

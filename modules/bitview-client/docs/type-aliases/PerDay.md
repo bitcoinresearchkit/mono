@@ -8,6 +8,6 @@
 
 > **PerDay** = `number`
 
-Defined in: [modules/bitview-client/index.js:925](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L925)
+Defined in: [modules/bitview-client/index.js:992](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L992)
 
 ## Type Parameters

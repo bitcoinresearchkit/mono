@@ -8,6 +8,6 @@
 
 > **P2SHAddressIndex** = [`TypeIndex`](TypeIndex.md)
 
-Defined in: [modules/bitview-client/index.js:869](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L869)
+Defined in: [modules/bitview-client/index.js:936](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L936)
 
 ## Type Parameters

@@ -8,6 +8,6 @@
 
 > **P2TRBytes** = `string`
 
-Defined in: [modules/bitview-client/index.js:884](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L884)
+Defined in: [modules/bitview-client/index.js:951](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L951)
 
 ## Type Parameters
