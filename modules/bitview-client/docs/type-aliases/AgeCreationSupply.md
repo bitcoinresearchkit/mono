@@ -14,6 +14,10 @@ Defined in: [modules/bitview-client/index.js:4532](https://github.com/bitcoinres
 
 ## Type Declaration
 
+### agedOut
+
+> **agedOut**: [`ValueFlow`](ValueFlow.md)
+
 ### delta
 
 > **delta**: [`Delta`](Delta.md)\<[`Bitcoin`](Bitcoin.md) \| `null`\>
@@ -25,10 +29,6 @@ Defined in: [modules/bitview-client/index.js:4532](https://github.com/bitcoinres
 ### inProfit
 
 > **inProfit**: [`Value`](Value.md)
-
-### matured
-
-> **matured**: [`ValueFlow`](ValueFlow.md)
 
 ### share
 
