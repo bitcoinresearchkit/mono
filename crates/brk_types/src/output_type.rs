@@ -35,13 +35,16 @@ pub enum OutputType {
     P2PKH,
     P2MS,
     P2SH,
+    #[serde(rename = "op_return")]
     OpReturn,
     P2WPKH,
     P2WSH,
     P2TR,
     P2A,
-    Empty,
-    Unknown,
+    #[serde(rename = "empty_script")]
+    EmptyScript,
+    #[serde(rename = "unknown_script")]
+    UnknownScript,
 }
 
 impl fmt::Display for OutputType {
@@ -53,13 +56,13 @@ impl fmt::Display for OutputType {
                 Self::P2PKH => "p2pkh",
                 Self::P2MS => "p2ms",
                 Self::P2SH => "p2sh",
-                Self::OpReturn => "opreturn",
+                Self::OpReturn => "op_return",
                 Self::P2WPKH => "p2wpkh",
                 Self::P2WSH => "p2wsh",
                 Self::P2TR => "p2tr",
                 Self::P2A => "p2a",
-                Self::Empty => "empty",
-                Self::Unknown => "unknown",
+                Self::EmptyScript => "empty_script",
+                Self::UnknownScript => "unknown_script",
             },
             f,
         )
@@ -112,17 +115,17 @@ impl fmt::Display for OutputTypeNormalized {
 }
 
 impl OutputType {
-    pub const COUNT: usize = Self::Unknown as usize + 1;
+    pub const COUNT: usize = Self::UnknownScript as usize + 1;
 
     #[cfg(feature = "storage")]
     fn is_valid(value: u8) -> bool {
-        value <= Self::Unknown as u8
+        value <= Self::UnknownScript as u8
     }
 
     pub fn is_addr(&self) -> bool {
         !matches!(
             self,
-            Self::P2MS | Self::OpReturn | Self::Empty | Self::Unknown
+            Self::P2MS | Self::OpReturn | Self::EmptyScript | Self::UnknownScript
         )
     }
 
@@ -145,8 +148,8 @@ impl OutputType {
             Self::P2WSH => OutputTypeNormalized::P2WSH,
             Self::P2TR => OutputTypeNormalized::P2TR,
             Self::P2A => OutputTypeNormalized::P2A,
-            Self::Empty => OutputTypeNormalized::Empty,
-            Self::Unknown => OutputTypeNormalized::Unknown,
+            Self::EmptyScript => OutputTypeNormalized::Empty,
+            Self::UnknownScript => OutputTypeNormalized::Unknown,
         }
     }
 
@@ -164,7 +167,7 @@ impl From<&ScriptBuf> for OutputType {
         let bytes = script.as_bytes();
 
         match bytes.len() {
-            0 => Self::Empty,
+            0 => Self::EmptyScript,
             4 if bytes == [OP_PUSHNUM_1.to_u8(), OP_PUSHBYTES_2.to_u8(), 78, 115] => Self::P2A,
             22 if bytes[0] == OP_PUSHBYTES_0.to_u8() && bytes[1] == OP_PUSHBYTES_20.to_u8() => {
                 Self::P2WPKH
@@ -197,7 +200,7 @@ impl From<&ScriptBuf> for OutputType {
             }
             _ if bytes[0] == OP_RETURN.to_u8() => Self::OpReturn,
             _ if script.is_multisig() => Self::P2MS,
-            _ => Self::Unknown,
+            _ => Self::UnknownScript,
         }
     }
 }

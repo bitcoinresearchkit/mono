@@ -26,7 +26,7 @@ pub struct Transaction {
     )]
     pub txid: Txid,
 
-    /// Transaction version (raw i32 from Bitcoin protocol, may contain non-standard values in coinbase txs)
+    /// Transaction version (the protocol's 32 bits read unsigned, as Esplora reports them; may contain non-standard values in coinbase txs)
     #[cfg_attr(feature = "schemars", schemars(example = 2))]
     pub version: TxVersionRaw,
 

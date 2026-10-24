@@ -202,7 +202,7 @@ impl OutputRanges {
 fn script_in_parent(output_type: OutputType) -> bool {
     matches!(
         output_type,
-        OutputType::P2MS | OutputType::Unknown | OutputType::OpReturn
+        OutputType::P2MS | OutputType::UnknownScript | OutputType::OpReturn
     )
 }
 
@@ -224,7 +224,7 @@ impl OutputScripts<'_> {
         type_index: TypeIndex,
         value: Sats,
     ) -> Result<ScriptBuf> {
-        if output_type == OutputType::Empty {
+        if output_type == OutputType::EmptyScript {
             return Ok(ScriptBuf::new());
         }
         if let Some(addr) = self.addrs.get(output_type, type_index) {

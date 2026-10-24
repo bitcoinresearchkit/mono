@@ -12,8 +12,8 @@ use vecdb::{
 };
 
 use crate::{
-    IndexSources, LazyRollingAvgsFromHeight, PerBlock, RollingComplete, RollingWindows, WindowStarts,
-    shapes::Windows,
+    IndexSources, LazyRollingAvgsFromHeight, PerBlock, RollingComplete, RollingWindows,
+    WindowStarts, shapes::Windows,
 };
 
 #[derive(Traversable)]

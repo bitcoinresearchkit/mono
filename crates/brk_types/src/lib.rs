@@ -5,6 +5,8 @@ use hints::unlikely;
 #[cfg(feature = "storage")]
 pub use vecdb::{PrintableIndex, VecIndex, Version};
 
+#[cfg(test)]
+mod tests;
 mod addr;
 mod addr_bytes;
 mod addr_mempool_stats;

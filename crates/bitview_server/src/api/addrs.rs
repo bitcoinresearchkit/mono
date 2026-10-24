@@ -1,5 +1,10 @@
 use aide::axum::{ApiRouter, routing::get_with};
-use axum::{body::Bytes, extract::Path, http::HeaderMap, response::Response};
+use axum::{
+    body::Bytes,
+    extract::{Path, Query},
+    http::HeaderMap,
+    response::Response,
+};
 use bitview_primitives::BlockHashPrefix;
 use bitview_query::RepresentationId;
 use bitview_types::{AddressHashPrefixMatches, AddressStats, AddressValidation, Utxo};
@@ -11,18 +16,18 @@ use crate::{
     api::tags,
     extended::{ResponseExtended, TransformResponseExtended},
     params::{
-        AddressAfterTxidParam, AddressHashPrefixParam, AddressParam, Empty, ValidateAddressParam,
+        AddressAfterTxidParam, AddressChainTxsQuery, AddressHashPrefixParam,
+        AddressMempoolTxsQuery, AddressParam, AddressTxsQuery, Empty, ValidateAddressParam,
+        page_size,
     },
     request_state::RequestState,
 };
 
-/// Esplora `/txs` and `/txs/chain` page sizes. Wire-protocol constants from
-/// mempool.space/esplora, not deployment policy. `/txs` returns up to
-/// `MEMPOOL_PAGE` mempool entries plus a chain page sized to reach
-/// `TXS_TOTAL_TARGET` total, floored at `CHAIN_PAGE`.
-const MEMPOOL_PAGE: usize = 50;
+/// Esplora's page sizes, defaults and maxima of `max_txs`, as mempool.space's: `/txs` and
+/// `/txs/mempool` return up to `TXS_PAGE` (on `/txs` mempool entries first, the chain filling
+/// the rest), `/txs/chain` up to `CHAIN_PAGE`.
+const TXS_PAGE: usize = 50;
 const CHAIN_PAGE: usize = 25;
-const TXS_TOTAL_TARGET: usize = 50;
 
 impl AppState {
     async fn respond_addr_chain_txs(
@@ -30,12 +35,14 @@ impl AppState {
         headers: HeaderMap,
         addr: Address,
         after_txid: Option<Txid>,
+        max_txs: Option<usize>,
     ) -> Response {
         self.respond_read(
             headers,
             "application/json",
             move |q| {
-                let source = q.resolve_addr_chain_txs(&addr, after_txid, CHAIN_PAGE)?;
+                let source =
+                    q.resolve_addr_chain_txs(&addr, after_txid, page_size(max_txs, CHAIN_PAGE))?;
                 let params = CacheParams::activity_bound(
                     Version::ONE,
                     BlockHashPrefix::from(&source.activity_anchor()),
@@ -94,17 +101,18 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(async |
             headers: HeaderMap,
             Path(path): Path<AddressParam>,
-            _: Empty,
+            Query(query): Query<AddressTxsQuery>,
             RequestState(state): RequestState
         | {
-            serve_txs(state, headers, path.addr).await
+            serve_txs(state, headers, path.addr, query).await
         }, |op| op
             .id("get_address_txs")
             .tag(tags::ADDRESSES)
             .summary("Address transactions")
-            .description("Get transaction history for an address, newest first. Returns up to 50 mempool transactions plus a confirmed page sized to fill the response to 50 total (chain floor of 25, so 25-50 confirmed depending on mempool weight). To paginate further confirmed history, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*")
+            .description("Get transaction history for an address, newest first: up to `max_txs` (50 by default and at most), mempool transactions first and confirmed ones filling the rest. To continue, pass the last returned txid as `after_txid`, or request `GET /api/address/{address}/txs/chain/{after_txid}` for confirmed history.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*")
             .json_response::<Vec<Transaction>>()
             .not_modified()
+            .unknown_cursor()
         ),
     )
     .api_route(
@@ -112,15 +120,15 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(async |
             headers: HeaderMap,
             Path(path): Path<AddressParam>,
-            _: Empty,
+            Query(query): Query<AddressChainTxsQuery>,
             RequestState(state): RequestState
         | {
-            state.respond_addr_chain_txs(headers, path.addr, None).await
+            state.respond_addr_chain_txs(headers, path.addr, None, query.max_txs).await
         }, |op| op
             .id("get_address_confirmed_txs")
             .tag(tags::ADDRESSES)
             .summary("Address confirmed transactions")
-            .description("Get the first 25 confirmed transactions for an address. For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*")
+            .description("Get the newest confirmed transactions for an address, up to `max_txs` (25 by default and at most). For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*")
             .json_response::<Vec<Transaction>>()
             .not_modified()
         ),
@@ -130,18 +138,19 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(async |
             headers: HeaderMap,
             Path(path): Path<AddressAfterTxidParam>,
-            _: Empty,
+            Query(query): Query<AddressChainTxsQuery>,
             RequestState(state): RequestState
         | {
-            state.respond_addr_chain_txs(headers, path.addr, Some(path.after_txid)).await
+            state
+                .respond_addr_chain_txs(headers, path.addr, Some(path.after_txid), query.max_txs)
+                .await
         }, |op| op
             .id("get_address_confirmed_txs_after")
             .tag(tags::ADDRESSES)
             .summary("Address confirmed transactions (paginated)")
-            .description("Get the next 25 confirmed transactions strictly older than `after_txid` (Esplora-canonical pagination form, matches mempool.space).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*")
+            .description("Get the next confirmed transactions strictly older than `after_txid`, up to `max_txs` (25 by default and at most); a txid outside the address's history answers `[]` (Esplora-canonical pagination form, matches mempool.space).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*")
             .json_response::<Vec<Transaction>>()
             .not_modified()
-            .not_found()
         ),
     )
     .api_route(
@@ -149,14 +158,15 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(async |
             headers: HeaderMap,
             Path(path): Path<AddressParam>,
-            _: Empty,
+            Query(query): Query<AddressMempoolTxsQuery>,
             RequestState(state): RequestState
         | {
             state.respond_read(
                 headers,
                 "application/json",
                 move |q| {
-                    let resolved = q.resolve_addr_mempool_txs(&path.addr, MEMPOOL_PAGE)?;
+                    let resolved = q
+                        .resolve_addr_mempool_txs(&path.addr, page_size(query.max_txs, TXS_PAGE))?;
                     let params = live_params(resolved.identity());
                     Ok((resolved, params))
                 },
@@ -166,7 +176,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
             .id("get_address_mempool_txs")
             .tag(tags::ADDRESSES)
             .summary("Address mempool transactions")
-            .description("Get unconfirmed transactions for an address from the mempool, newest first (up to 50).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*")
+            .description("Get unconfirmed transactions for an address from the mempool, newest first, up to `max_txs` (50 by default and at most).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*")
             .json_response::<Vec<Transaction>>()
             .not_modified()
         ),
@@ -214,14 +224,22 @@ fn live_params(identity: RepresentationId) -> CacheParams {
     CacheParams::representation(Version::ONE, identity)
 }
 
-async fn serve_txs(state: AppState, headers: HeaderMap, addr: Address) -> Response {
+async fn serve_txs(
+    state: AppState,
+    headers: HeaderMap,
+    addr: Address,
+    query: AddressTxsQuery,
+) -> Response {
     state
         .respond_read(
             headers,
             "application/json",
             move |q| {
-                let resolved =
-                    q.resolve_addr_txs(&addr, MEMPOOL_PAGE, CHAIN_PAGE, TXS_TOTAL_TARGET)?;
+                let resolved = q.resolve_addr_txs(
+                    &addr,
+                    query.after_txid,
+                    page_size(query.max_txs, TXS_PAGE),
+                )?;
                 let params = live_params(resolved.identity());
                 Ok((resolved, params))
             },

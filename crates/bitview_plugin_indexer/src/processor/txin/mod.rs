@@ -49,7 +49,7 @@ pub fn finalize_inputs(
                 InputSource::Coinbase => (
                     OutPoint::COINBASE,
                     TxOutIndex::COINBASE,
-                    OutputType::Unknown,
+                    OutputType::UnknownScript,
                     TypeIndex::COINBASE,
                     Sats::MAX,
                 ),

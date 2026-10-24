@@ -19,8 +19,8 @@ impl SpendableTypeId {
             OutputType::P2WSH => Some(Self::P2WSH),
             OutputType::P2TR => Some(Self::P2TR),
             OutputType::P2A => Some(Self::P2A),
-            OutputType::Empty => Some(Self::EmptyScript),
-            OutputType::Unknown => Some(Self::UnknownScript),
+            OutputType::EmptyScript => Some(Self::EmptyScript),
+            OutputType::UnknownScript => Some(Self::UnknownScript),
             OutputType::OpReturn => None,
         }
     }

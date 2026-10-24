@@ -5,7 +5,7 @@ use vecdb::{Convert, ReadableCloneableVec};
 
 use crate::{
     IndexSources, LazyPerBlock, LazyRollingAvgAmountFromHeight, LazyRollingAvgFromHeight,
-    PRICED_VERSION, PricedRollingAvgFromHeight, shapes::Windows,
+    PRICED_VERSION, PricedAvgUsd, PricedRollingAvgFromHeight, shapes::Windows,
 };
 
 /// Lazy rolling averages for all 4 windows, as mean sats/cents with BTC/USD views.
@@ -13,9 +13,7 @@ use crate::{
 pub struct LazyRollingAvgsAmountFromHeight(
     /// Arithmetic mean of the per-block values over the trailing window ending
     /// at the represented block; each block has equal weight. At time-period
-    /// indexes, the value is taken at the period's final block. In dollars,
-    /// over the window's blocks from the first exchange price (block 74,641)
-    /// on; undefined (null) before it.
+    /// indexes, the value is taken at the period's final block.
     pub Windows<LazyRollingAvgAmountFromHeight>,
 );
 
@@ -61,7 +59,7 @@ impl LazyRollingAvgsAmountFromHeight {
             LazyRollingAvgAmountFromHeight {
                 btc,
                 sats,
-                usd,
+                usd: PricedAvgUsd(usd),
                 cents,
             }
         }))

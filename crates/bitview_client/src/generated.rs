@@ -1606,7 +1606,7 @@ pub mod tree {
         unknown_script: OutputTypeSeries = "unknown_script_*",
     } }
     shape! { Fullness at "series().blocks.fullness" {
-        value: SeriesPattern18<Option<Percent>> = "*",
+        block: SeriesPattern18<Option<Percent>> = "*",
         avg: Windows<Option<Percent>> = "*_avg",
         min: Windows<Option<Percent>> = "*_min",
         max: Windows<Option<Percent>> = "*_max",
@@ -2782,31 +2782,65 @@ impl BitviewClient {
 
     /// Address transactions
     ///
-    /// Get transaction history for an address, newest first. Returns up to 50 mempool transactions plus a confirmed page sized to fill the response to 50 total (chain floor of 25, so 25-50 confirmed depending on mempool weight). To paginate further confirmed history, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.
+    /// Get transaction history for an address, newest first: up to `max_txs` (50 by default and at most), mempool transactions first and confirmed ones filling the rest. To continue, pass the last returned txid as `after_txid`, or request `GET /api/address/{address}/txs/chain/{after_txid}` for confirmed history.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*
     ///
     /// Endpoint: `GET /api/address/{address}/txs`
-    pub fn get_address_txs(&self, address: Address) -> Result<Vec<Transaction>> {
-        self.base
-            .get_json(&format!("/api/address/{}/txs", path_segment(address)))
+    pub fn get_address_txs(
+        &self,
+        address: Address,
+        after_txid: Option<Txid>,
+        max_txs: Option<i64>,
+    ) -> Result<Vec<Transaction>> {
+        let mut query = Vec::new();
+        if let Some(v) = after_txid {
+            query.push(query_pair("after_txid", v));
+        }
+        if let Some(v) = max_txs {
+            query.push(query_pair("max_txs", v));
+        }
+        let query_str = if query.is_empty() {
+            String::new()
+        } else {
+            format!("?{}", query.join("&"))
+        };
+        let path = format!("/api/address/{}/txs{}", path_segment(address), query_str);
+        self.base.get_json(&path)
     }
 
     /// Address confirmed transactions
     ///
-    /// Get the first 25 confirmed transactions for an address. For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.
+    /// Get the newest confirmed transactions for an address, up to `max_txs` (25 by default and at most). For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
     ///
     /// Endpoint: `GET /api/address/{address}/txs/chain`
-    pub fn get_address_confirmed_txs(&self, address: Address) -> Result<Vec<Transaction>> {
-        self.base
-            .get_json(&format!("/api/address/{}/txs/chain", path_segment(address)))
+    pub fn get_address_confirmed_txs(
+        &self,
+        address: Address,
+        max_txs: Option<i64>,
+    ) -> Result<Vec<Transaction>> {
+        let mut query = Vec::new();
+        if let Some(v) = max_txs {
+            query.push(query_pair("max_txs", v));
+        }
+        let query_str = if query.is_empty() {
+            String::new()
+        } else {
+            format!("?{}", query.join("&"))
+        };
+        let path = format!(
+            "/api/address/{}/txs/chain{}",
+            path_segment(address),
+            query_str
+        );
+        self.base.get_json(&path)
     }
 
     /// Address confirmed transactions (paginated)
     ///
-    /// Get the next 25 confirmed transactions strictly older than `after_txid` (Esplora-canonical pagination form, matches mempool.space).
+    /// Get the next confirmed transactions strictly older than `after_txid`, up to `max_txs` (25 by default and at most); a txid outside the address's history answers `[]` (Esplora-canonical pagination form, matches mempool.space).
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
     ///
@@ -2815,26 +2849,53 @@ impl BitviewClient {
         &self,
         address: Address,
         after_txid: Txid,
+        max_txs: Option<i64>,
     ) -> Result<Vec<Transaction>> {
-        self.base.get_json(&format!(
-            "/api/address/{}/txs/chain/{}",
+        let mut query = Vec::new();
+        if let Some(v) = max_txs {
+            query.push(query_pair("max_txs", v));
+        }
+        let query_str = if query.is_empty() {
+            String::new()
+        } else {
+            format!("?{}", query.join("&"))
+        };
+        let path = format!(
+            "/api/address/{}/txs/chain/{}{}",
             path_segment(address),
-            path_segment(after_txid)
-        ))
+            path_segment(after_txid),
+            query_str
+        );
+        self.base.get_json(&path)
     }
 
     /// Address mempool transactions
     ///
-    /// Get unconfirmed transactions for an address from the mempool, newest first (up to 50).
+    /// Get unconfirmed transactions for an address from the mempool, newest first, up to `max_txs` (50 by default and at most).
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*
     ///
     /// Endpoint: `GET /api/address/{address}/txs/mempool`
-    pub fn get_address_mempool_txs(&self, address: Address) -> Result<Vec<Transaction>> {
-        self.base.get_json(&format!(
-            "/api/address/{}/txs/mempool",
-            path_segment(address)
-        ))
+    pub fn get_address_mempool_txs(
+        &self,
+        address: Address,
+        max_txs: Option<i64>,
+    ) -> Result<Vec<Transaction>> {
+        let mut query = Vec::new();
+        if let Some(v) = max_txs {
+            query.push(query_pair("max_txs", v));
+        }
+        let query_str = if query.is_empty() {
+            String::new()
+        } else {
+            format!("?{}", query.join("&"))
+        };
+        let path = format!(
+            "/api/address/{}/txs/mempool{}",
+            path_segment(address),
+            query_str
+        );
+        self.base.get_json(&path)
     }
 
     /// Address UTXOs
@@ -3441,12 +3502,12 @@ impl BitviewClient {
 
     /// CPFP info
     ///
-    /// Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package.
+    /// Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package. A mempool transaction answers its live package; a confirmed one its package among its block's transactions; an unknown transaction, or a confirmed one without relatives in its block, `{"ancestors":[]}`.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*
     ///
     /// Endpoint: `GET /api/v1/cpfp/{txid}`
-    pub fn get_cpfp(&self, txid: Txid) -> Result<CpfpInfo> {
+    pub fn get_cpfp(&self, txid: Txid) -> Result<Cpfp> {
         self.base
             .get_json(&format!("/api/v1/cpfp/{}", path_segment(txid)))
     }
@@ -3511,7 +3572,7 @@ impl BitviewClient {
 
     /// Output spend status
     ///
-    /// Whether the output has been spent and, if so, the spending transaction details.
+    /// Whether the output has been spent and, if so, the spending transaction details. An output no known transaction holds is unspent.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*
     ///
@@ -3550,7 +3611,7 @@ impl BitviewClient {
 
     /// Transaction status
     ///
-    /// Retrieve the confirmation status of a transaction. Returns whether the transaction is confirmed and, if so, the block height, hash, and timestamp.
+    /// Retrieve the confirmation status of a transaction. Returns whether the transaction is confirmed and, if so, the block height, hash, and timestamp. A transaction not in the chain, pending or unknown, is `{"confirmed":false}`.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-status)*
     ///

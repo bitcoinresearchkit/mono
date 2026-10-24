@@ -55,7 +55,7 @@ impl Accumulator {
                 .is_some_and(|count| count > MAX_P2SH_SIGOPS),
             OutputType::P2A => self.height <= LAST_V2_POLICY_HEIGHT,
             OutputType::P2TR => facts.witness.has_annex,
-            OutputType::OpReturn | OutputType::Empty | OutputType::Unknown => true,
+            OutputType::OpReturn | OutputType::EmptyScript | OutputType::UnknownScript => true,
             _ => false,
         } || has_nonstandard_witness(output_type, facts);
     }
@@ -63,8 +63,8 @@ impl Accumulator {
     pub fn scan_output(&mut self, txout: &TxOut, output: &ProcessedOutput) {
         let script = &txout.script_pubkey;
         self.nonstandard |= match output.output_type {
-            OutputType::Empty => true,
-            OutputType::Unknown => !is_standard_unknown_witness(script),
+            OutputType::EmptyScript => true,
+            OutputType::UnknownScript => !is_standard_unknown_witness(script),
             // Core's solver: valid public key encodings, a push-only data tail.
             OutputType::P2MS => {
                 u32::from(output.legacy_sigop_cost) > MAX_STANDARD_BARE_MULTISIG_SIGOP_COST
@@ -154,7 +154,7 @@ pub fn is_dust(value: Amount, output_type: OutputType, script: &Script) -> bool 
         OutputType::P2PK65 => 672,
         OutputType::P2PK33 => 576,
         OutputType::P2PKH => 546,
-        OutputType::P2MS | OutputType::Unknown => {
+        OutputType::P2MS | OutputType::UnknownScript => {
             return value < script.minimal_non_dust();
         }
         OutputType::P2SH => 540,
@@ -162,7 +162,7 @@ pub fn is_dust(value: Amount, output_type: OutputType, script: &Script) -> bool 
         OutputType::P2WPKH => 294,
         OutputType::P2WSH | OutputType::P2TR => 330,
         OutputType::P2A => 240,
-        OutputType::Empty => 471,
+        OutputType::EmptyScript => 471,
     };
 
     value.to_sat() < threshold

@@ -76,7 +76,7 @@ OpReturnIndex = TypeIndex
 EmptyScriptOutputIndex = TypeIndex
 # A transaction ID: its hash.
 Txid = str
-# Raw transaction version (i32) from Bitcoin protocol.
+# Raw transaction version: the protocol's 32 bits read unsigned, as Esplora reports them.
 # Unlike TxVersion (u8, indexed), this preserves non-standard values
 # used in coinbase txs for miner signaling/branding.
 TxVersionRaw = int
@@ -149,7 +149,7 @@ P2ABytes = str
 # Output type names used by Esplora and mempool.space.
 OutputTypeNormalized = Literal["p2pk", "p2pkh", "multisig", "p2sh", "op_return", "v0_p2wpkh", "v0_p2wsh", "v1_p2tr", "anchor", "empty", "unknown"]
 # An output's script type (P2PKH, P2WPKH, P2SH, P2TR…).
-OutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2ms", "p2sh", "opreturn", "p2wpkh", "p2wsh", "p2tr", "p2a", "empty", "unknown"]
+OutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2ms", "p2sh", "op_return", "p2wpkh", "p2wsh", "p2tr", "p2a", "empty_script", "unknown_script"]
 # Protocol or format detected in an OP_RETURN output.
 OpReturnKind = Literal["runes", "witness_commitment", "veriblock", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coinspark", "poet", "docproof", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "bare_hash", "text", "empty", "unknown"]
 # Content hash of the projected next block (block 0 of the mempool
@@ -216,7 +216,7 @@ ExchangeRates = dict
 # `not_found` (404), `unavailable` (503; `Retry-After` when transient), `timeout` (504), `internal`
 # (other 5xx).
 ErrorType = Literal["invalid_request", "not_found", "unavailable", "timeout", "internal"]
-ErrorCode = Literal["not_found", "invalid_address", "invalid_network", "unsupported_type", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "unknown_address", "unknown_txid", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
+ErrorCode = Literal["not_found", "invalid_address", "invalid_network", "unsupported_type", "no_series", "series_unsupported_index", "weight_exceeded", "too_many_utxos", "unknown_after_txid", "unknown_address", "unknown_txid", "out_of_range", "unindexable_date", "no_data", "series_not_found", "mempool_not_available", "state_updating", "internal_error", "bad_request", "overloaded", "timeout", "method_not_allowed"]
 # Index of a difficulty epoch (2,016 blocks).
 Epoch = int
 # An amount in US dollars.
@@ -245,6 +245,11 @@ Currency = Literal["USD"]
 # Position of a transaction inside a `CpfpCluster.txs` array. Cluster-local,
 # has no meaning outside the enclosing cluster.
 CpfpClusterTxIndex = int
+# A transaction's CPFP (Child Pays For Parent) answer, in mempool.space's shapes, told apart by
+# their fields (untagged on the wire): a mempool transaction's package, a confirmed transaction's
+# package among its block's transactions, or `{"ancestors":[]}` for an unknown transaction or a
+# confirmed one without relatives in its block.
+Cpfp = Union["CpfpInfo", "ConfirmedCpfp", "EmptyCpfp"]
 # A change in a number of things.
 CountSigned = int
 # A mean number of things.
@@ -276,6 +281,9 @@ Boolean = bool
 # Position of a transaction within a single block (0 = coinbase).
 # Distinct from `TxIndex`, which is the chain-wide global tx index.
 BlockTxIndex = int
+# How far the node validated a fork tip (bitcoind's `getchaintips` statuses other than
+# `active`).
+BlockOrphanStatus = Union[Literal["invalid"], Literal["headers-only"], Literal["valid-headers"], Literal["valid-fork"]]
 # Double-SHA256 block-header hash, serialized in Bitcoin's conventional
 # hexadecimal byte order.
 BlockHash = str
@@ -324,6 +332,17 @@ class TxidVout(TypedDict):
 
 class TxidParam(TypedDict):
     txid: Txid
+
+class AddressTxsQuery(TypedDict, total=False):
+    """
+    A page of an address's transactions, mempool ones first.
+
+    Attributes:
+        after_txid: Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed cursor skips the mempool). One that is neither answers 422.
+        max_txs: Transactions to return, at most 50 (the default); larger values return 50.
+    """
+    after_txid: Union[Txid, None]
+    max_txs: Optional[int]
 
 class TxIndexParam(TypedDict):
     """
@@ -967,6 +986,12 @@ class ErrorBody(TypedDict):
     """
     error: ErrorDetail
 
+class EmptyCpfp(TypedDict):
+    """
+    CPFP of a transaction without known relatives: `{"ancestors":[]}`.
+    """
+    ancestors: List[Any]
+
 class PricePoint(TypedDict):
     """
     A BTC/USD price at a time: the current price (`/api/v1/prices`) or one historical close
@@ -1129,7 +1154,7 @@ class _CpfpInfoRequired(TypedDict):
 
 class CpfpInfo(_CpfpInfoRequired, total=False):
     """
-    CPFP (Child Pays For Parent) information for a transaction.
+    CPFP (Child Pays For Parent) information for a mempool transaction.
 
     Attributes:
         bestDescendant: Best (highest fee rate) descendant, if any.
@@ -1142,6 +1167,19 @@ class CpfpInfo(_CpfpInfoRequired, total=False):
     """
     bestDescendant: Union[CpfpEntry, None]
     cluster: Union[CpfpCluster, None]
+
+class ConfirmedCpfp(TypedDict):
+    """
+    CPFP of a confirmed transaction with relatives in its block: its package there.
+
+    Attributes:
+        effectiveFeePerVsize: Feerate of the chunk holding the transaction when its block's relatives are linearized (sat/vB).
+        cluster: The transaction's relatives in its block.
+    """
+    ancestors: List[CpfpEntry]
+    descendants: List[CpfpEntry]
+    effectiveFeePerVsize: FeeRate
+    cluster: CpfpCluster
 
 class _TxStatusRequired(TypedDict):
     confirmed: bool
@@ -1200,24 +1238,28 @@ class _BlockStatusRequired(TypedDict):
 class BlockStatus(_BlockStatusRequired, total=False):
     """
     Attributes:
-        height: Block height (only if in best chain)
+        height: Block height (null unless in the best chain)
         next_best: Hash of the next block in the best chain (null if tip)
     """
     height: Union[Height, None]
     next_best: Union[BlockHash, None]
 
-class BlockInfo(TypedDict):
+class BlockOrphan(TypedDict):
     """
-    Block information matching mempool.space /api/block/{hash}
+    A stale block at a height of the best chain: a fork tip the node knows (bitcoind's
+    `getchaintips`), as mempool.space lists it.
 
     Attributes:
-        id: Block hash
-        timestamp: Block timestamp (Unix time)
-        bits: Compact target (bits)
-        size: Block size in bytes
-        weight: Block weight in weight units
-        mediantime: Median time of the last 11 blocks
+        branchlen: Length of the fork's branch, in blocks
+        prevhash: Hash of the block the stale block builds on
     """
+    height: Height
+    hash: BlockHash
+    branchlen: int
+    status: BlockOrphanStatus
+    prevhash: BlockHash
+
+class _BlockInfoRequired(TypedDict):
     id: BlockHash
     height: Height
     version: int
@@ -1229,8 +1271,22 @@ class BlockInfo(TypedDict):
     tx_count: int
     size: int
     weight: Weight
-    previousblockhash: BlockHash
     mediantime: Timestamp
+
+class BlockInfo(_BlockInfoRequired, total=False):
+    """
+    Block information matching mempool.space /api/block/{hash}
+
+    Attributes:
+        id: Block hash
+        timestamp: Block timestamp (Unix time)
+        bits: Compact target (bits)
+        size: Block size in bytes
+        weight: Block weight in weight units
+        previousblockhash: Hash of the previous block (null for the genesis block)
+        mediantime: Median time of the last 11 blocks
+    """
+    previousblockhash: Union[BlockHash, None]
 
 class BlockHashTxIndex(TypedDict):
     """
@@ -1363,6 +1419,24 @@ class Urpd(TypedDict):
     supply: Bitcoin
     buckets: UrpdBuckets
 
+class AddressMempoolTxsQuery(TypedDict, total=False):
+    """
+    A page of an address's mempool transactions.
+
+    Attributes:
+        max_txs: Transactions to return, at most 50 (the default); larger values return 50.
+    """
+    max_txs: Optional[int]
+
+class AddressChainTxsQuery(TypedDict, total=False):
+    """
+    A page of an address's confirmed transactions.
+
+    Attributes:
+        max_txs: Transactions to return, at most 25 (the default); larger values return 25.
+    """
+    max_txs: Optional[int]
+
 class _TxOutRequired(TypedDict):
     scriptpubkey: Hex
     scriptpubkey_asm: str
@@ -1423,7 +1497,7 @@ class Transaction(_TransactionRequired, total=False):
 
     Attributes:
         index: Internal transaction index (brk-specific, not in mempool.space)
-        version: Transaction version (raw i32 from Bitcoin protocol, may contain non-standard values in coinbase txs)
+        version: Transaction version (the protocol's 32 bits read unsigned, as Esplora reports them; may contain non-standard values in coinbase txs)
         vin: Transaction inputs
         vout: Transaction outputs
         size: Transaction size in bytes
@@ -1529,7 +1603,7 @@ class _BlockExtrasRequired(TypedDict):
     utxoSetSize: int
     totalInputAmt: Sats
     virtualSize: float
-    orphans: List[BlockHash]
+    orphans: List[BlockOrphan]
     price: Dollars
 
 class BlockExtras(_BlockExtrasRequired, total=False):
@@ -1559,12 +1633,20 @@ class BlockExtras(_BlockExtrasRequired, total=False):
         utxoSetSize: Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
         totalInputAmt: Total input amount in satoshis
         virtualSize: Virtual size in vbytes: weight / 4, unrounded
+        coinbaseBip54: Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's sequence isn't final), from timestamp 1,771,507,776 on; null before
         firstSeen: Timestamp when the block was first seen (always null, not yet supported)
-        orphans: Orphaned blocks (always empty)
+        orphans: Stale blocks at this height (always empty, not yet supported)
+        matchRate: Share of the expected block template the block matched, from mempool.space's own audits (always null: it needs the mempool as it was)
+        expectedFees: Fees of the expected block template (always null: it needs the mempool as it was)
+        expectedWeight: Weight of the expected block template (always null: it needs the mempool as it was)
         price: USD price at block height
     """
     coinbaseAddress: Union[Address, None]
+    coinbaseBip54: Optional[bool]
     firstSeen: Union[Timestamp, None]
+    matchRate: Optional[float]
+    expectedFees: Union[Sats, None]
+    expectedWeight: Union[Weight, None]
 
 class _BlockInfoV1Required(TypedDict):
     id: BlockHash
@@ -1578,7 +1660,6 @@ class _BlockInfoV1Required(TypedDict):
     tx_count: int
     size: int
     weight: Weight
-    previousblockhash: BlockHash
     mediantime: Timestamp
     extras: BlockExtras
 
@@ -1592,9 +1673,11 @@ class BlockInfoV1(_BlockInfoV1Required, total=False):
         bits: Compact target (bits)
         size: Block size in bytes
         weight: Block weight in weight units
+        previousblockhash: Hash of the previous block (null for the genesis block)
         mediantime: Median time of the last 11 blocks
         stale: Whether this block has been replaced by a longer chain
     """
+    previousblockhash: Union[BlockHash, None]
     stale: bool
 
 class _AddressValidationRequired(TypedDict):
@@ -4125,7 +4208,7 @@ class SpendableType(_Node):
 
 
 class Fullness(_Node):
-    value: SeriesPattern18[Optional[Percent]] = _at(SeriesPattern18, '*')
+    block: SeriesPattern18[Optional[Percent]] = _at(SeriesPattern18, '*')
     avg: Windows[Optional[Percent]] = _at(Windows, '*_avg')
     min: Windows[Optional[Percent]] = _at(Windows, '*_min')
     max: Windows[Optional[Percent]] = _at(Windows, '*_max')
@@ -5914,45 +5997,62 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/address/{address}`"""
         return self.get_json(f'/api/address/{_segment(address)}')
 
-    def get_address_txs(self, address: Address) -> List[Transaction]:
+    def get_address_txs(self, address: Address, after_txid: Optional[Txid] = None, max_txs: Optional[int] = None) -> List[Transaction]:
         """Address transactions.
 
-        Get transaction history for an address, newest first. Returns up to 50 mempool transactions plus a confirmed page sized to fill the response to 50 total (chain floor of 25, so 25-50 confirmed depending on mempool weight). To paginate further confirmed history, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.
+        Get transaction history for an address, newest first: up to `max_txs` (50 by default and at most), mempool transactions first and confirmed ones filling the rest. To continue, pass the last returned txid as `after_txid`, or request `GET /api/address/{address}/txs/chain/{after_txid}` for confirmed history.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*
 
         Endpoint: `GET /api/address/{address}/txs`"""
-        return self.get_json(f'/api/address/{_segment(address)}/txs')
+        params: List[Tuple[str, Any]] = []
+        if after_txid is not None: params.append(('after_txid', after_txid))
+        if max_txs is not None: params.append(('max_txs', max_txs))
+        query = urlencode(params)
+        path = f'/api/address/{_segment(address)}/txs{"?" + query if query else ""}'
+        return self.get_json(path)
 
-    def get_address_confirmed_txs(self, address: Address) -> List[Transaction]:
+    def get_address_confirmed_txs(self, address: Address, max_txs: Optional[int] = None) -> List[Transaction]:
         """Address confirmed transactions.
 
-        Get the first 25 confirmed transactions for an address. For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.
+        Get the newest confirmed transactions for an address, up to `max_txs` (25 by default and at most). For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
 
         Endpoint: `GET /api/address/{address}/txs/chain`"""
-        return self.get_json(f'/api/address/{_segment(address)}/txs/chain')
+        params: List[Tuple[str, Any]] = []
+        if max_txs is not None: params.append(('max_txs', max_txs))
+        query = urlencode(params)
+        path = f'/api/address/{_segment(address)}/txs/chain{"?" + query if query else ""}'
+        return self.get_json(path)
 
-    def get_address_confirmed_txs_after(self, address: Address, after_txid: Txid) -> List[Transaction]:
+    def get_address_confirmed_txs_after(self, address: Address, after_txid: Txid, max_txs: Optional[int] = None) -> List[Transaction]:
         """Address confirmed transactions (paginated).
 
-        Get the next 25 confirmed transactions strictly older than `after_txid` (Esplora-canonical pagination form, matches mempool.space).
+        Get the next confirmed transactions strictly older than `after_txid`, up to `max_txs` (25 by default and at most); a txid outside the address's history answers `[]` (Esplora-canonical pagination form, matches mempool.space).
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
 
         Endpoint: `GET /api/address/{address}/txs/chain/{after_txid}`"""
-        return self.get_json(f'/api/address/{_segment(address)}/txs/chain/{_segment(after_txid)}')
+        params: List[Tuple[str, Any]] = []
+        if max_txs is not None: params.append(('max_txs', max_txs))
+        query = urlencode(params)
+        path = f'/api/address/{_segment(address)}/txs/chain/{_segment(after_txid)}{"?" + query if query else ""}'
+        return self.get_json(path)
 
-    def get_address_mempool_txs(self, address: Address) -> List[Transaction]:
+    def get_address_mempool_txs(self, address: Address, max_txs: Optional[int] = None) -> List[Transaction]:
         """Address mempool transactions.
 
-        Get unconfirmed transactions for an address from the mempool, newest first (up to 50).
+        Get unconfirmed transactions for an address from the mempool, newest first, up to `max_txs` (50 by default and at most).
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*
 
         Endpoint: `GET /api/address/{address}/txs/mempool`"""
-        return self.get_json(f'/api/address/{_segment(address)}/txs/mempool')
+        params: List[Tuple[str, Any]] = []
+        if max_txs is not None: params.append(('max_txs', max_txs))
+        query = urlencode(params)
+        path = f'/api/address/{_segment(address)}/txs/mempool{"?" + query if query else ""}'
+        return self.get_json(path)
 
     def get_address_utxos(self, address: Address) -> List[Utxo]:
         """Address UTXOs.
@@ -6420,10 +6520,10 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/tx-index/{index}`"""
         return self.get_text(f'/api/tx-index/{_segment(index)}')
 
-    def get_cpfp(self, txid: Txid) -> CpfpInfo:
+    def get_cpfp(self, txid: Txid) -> Cpfp:
         """CPFP info.
 
-        Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package.
+        Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package. A mempool transaction answers its live package; a confirmed one its package among its block's transactions; an unknown transaction, or a confirmed one without relatives in its block, `{"ancestors":[]}`.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*
 
@@ -6479,7 +6579,7 @@ class BitviewClient(BitviewClientBase):
     def get_tx_outspend(self, txid: Txid, vout: Vout) -> TxOutspend:
         """Output spend status.
 
-        Whether the output has been spent and, if so, the spending transaction details.
+        Whether the output has been spent and, if so, the spending transaction details. An output no known transaction holds is unspent.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*
 
@@ -6509,7 +6609,7 @@ class BitviewClient(BitviewClientBase):
     def get_tx_status(self, txid: Txid) -> TxStatus:
         """Transaction status.
 
-        Retrieve the confirmation status of a transaction. Returns whether the transaction is confirmed and, if so, the block height, hash, and timestamp.
+        Retrieve the confirmation status of a transaction. Returns whether the transaction is confirmed and, if so, the block height, hash, and timestamp. A transaction not in the chain, pending or unknown, is `{"confirmed":false}`.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-status)*
 

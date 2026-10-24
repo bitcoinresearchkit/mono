@@ -12,4 +12,4 @@ pub use lazy_rolling_sum_from_height::LazyRollingSumFiatFromHeight;
 pub use lazy_rolling_sums_from_height::LazyRollingSumsFiatFromHeight;
 pub use per_block::{FiatPerBlock, FiatType};
 mod units;
-pub use units::Fiat;
+pub use units::{Fiat, PricedAvgUsd, PricedDeltaUsd, PricedSumUsd};

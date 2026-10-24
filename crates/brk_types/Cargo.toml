@@ -24,3 +24,6 @@ serde = { workspace = true }
 serde_json = { workspace = true, optional = true }
 sha2 = { workspace = true }
 vecdb = { workspace = true, optional = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

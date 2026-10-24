@@ -22,11 +22,12 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/address/{address}/txs/chain",
         summary: "Address confirmed transactions",
-        description: "Get the first 25 confirmed transactions for an address. For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*",
+        description: "Get the newest confirmed transactions for an address, up to `max_txs` (25 by default and at most). For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*",
         path_parameters: &[
             Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
         ],
         query_parameters: &[
+            Parameter { api_name: "max_txs", name: "max-txs", required: false, value_name: "integer", repeatable: false, description: Some("Transactions to return, at most 25 (the default); larger values return 25.") },
         ],
         request_body: None,
     },
@@ -35,12 +36,13 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/address/{address}/txs/chain/{after_txid}",
         summary: "Address confirmed transactions (paginated)",
-        description: "Get the next 25 confirmed transactions strictly older than `after_txid` (Esplora-canonical pagination form, matches mempool.space).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*",
+        description: "Get the next confirmed transactions strictly older than `after_txid`, up to `max_txs` (25 by default and at most); a txid outside the address's history answers `[]` (Esplora-canonical pagination form, matches mempool.space).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*",
         path_parameters: &[
             Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
             Parameter { api_name: "after_txid", name: "after-txid", required: true, value_name: "Txid", repeatable: false, description: Some("Last txid from the previous page (return transactions strictly older than this)") },
         ],
         query_parameters: &[
+            Parameter { api_name: "max_txs", name: "max-txs", required: false, value_name: "integer", repeatable: false, description: Some("Transactions to return, at most 25 (the default); larger values return 25.") },
         ],
         request_body: None,
     },
@@ -63,11 +65,12 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/address/{address}/txs/mempool",
         summary: "Address mempool transactions",
-        description: "Get unconfirmed transactions for an address from the mempool, newest first (up to 50).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*",
+        description: "Get unconfirmed transactions for an address from the mempool, newest first, up to `max_txs` (50 by default and at most).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*",
         path_parameters: &[
             Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
         ],
         query_parameters: &[
+            Parameter { api_name: "max_txs", name: "max-txs", required: false, value_name: "integer", repeatable: false, description: Some("Transactions to return, at most 50 (the default); larger values return 50.") },
         ],
         request_body: None,
     },
@@ -76,11 +79,13 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/address/{address}/txs",
         summary: "Address transactions",
-        description: "Get transaction history for an address, newest first. Returns up to 50 mempool transactions plus a confirmed page sized to fill the response to 50 total (chain floor of 25, so 25-50 confirmed depending on mempool weight). To paginate further confirmed history, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*",
+        description: "Get transaction history for an address, newest first: up to `max_txs` (50 by default and at most), mempool transactions first and confirmed ones filling the rest. To continue, pass the last returned txid as `after_txid`, or request `GET /api/address/{address}/txs/chain/{after_txid}` for confirmed history.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*",
         path_parameters: &[
             Parameter { api_name: "address", name: "address", required: true, value_name: "Address", repeatable: false, description: None },
         ],
         query_parameters: &[
+            Parameter { api_name: "after_txid", name: "after-txid", required: false, value_name: "Txid", repeatable: false, description: Some("Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed\ncursor skips the mempool). One that is neither answers 422.") },
+            Parameter { api_name: "max_txs", name: "max-txs", required: false, value_name: "integer", repeatable: false, description: Some("Transactions to return, at most 50 (the default); larger values return 50.") },
         ],
         request_body: None,
     },
@@ -410,7 +415,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/cpfp/{txid}",
         summary: "CPFP info",
-        description: "Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*",
+        description: "Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package. A mempool transaction answers its live package; a confirmed one its package among its block's transactions; an unknown transaction, or a confirmed one without relatives in its block, `{\"ancestors\":[]}`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*",
         path_parameters: &[
             Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
         ],
@@ -1080,7 +1085,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/tx/{txid}/outspend/{vout}",
         summary: "Output spend status",
-        description: "Whether the output has been spent and, if so, the spending transaction details.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*",
+        description: "Whether the output has been spent and, if so, the spending transaction details. An output no known transaction holds is unspent.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*",
         path_parameters: &[
             Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
             Parameter { api_name: "vout", name: "vout", required: true, value_name: "Vout", repeatable: false, description: Some("Output index") },
@@ -1133,7 +1138,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/tx/{txid}/status",
         summary: "Transaction status",
-        description: "Retrieve the confirmation status of a transaction. Returns whether the transaction is confirmed and, if so, the block height, hash, and timestamp.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-status)*",
+        description: "Retrieve the confirmation status of a transaction. Returns whether the transaction is confirmed and, if so, the block height, hash, and timestamp. A transaction not in the chain, pending or unknown, is `{\"confirmed\":false}`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-status)*",
         path_parameters: &[
             Parameter { api_name: "txid", name: "txid", required: true, value_name: "Txid", repeatable: false, description: None },
         ],

@@ -52,6 +52,7 @@ impl Query {
         let pin = self.pin_safe_lengths()?;
         Ok(ResolvedAddrMempoolTxs(mempool.addr_txs(
             &bytes,
+            None,
             limit,
             &pin.tip(),
         )?))

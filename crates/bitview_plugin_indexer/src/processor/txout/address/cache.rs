@@ -21,7 +21,7 @@ impl Entry {
     pub const EMPTY: Self = Self {
         hash: AddrHash::new(0),
         type_index: TypeIndex::COINBASE,
-        output_type: OutputType::Unknown,
+        output_type: OutputType::UnknownScript,
     };
 
     #[inline]
@@ -31,7 +31,7 @@ impl Entry {
 
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.output_type == OutputType::Unknown
+        self.output_type == OutputType::UnknownScript
     }
 }
 

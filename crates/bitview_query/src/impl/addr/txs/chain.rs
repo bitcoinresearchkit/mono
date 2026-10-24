@@ -2,7 +2,7 @@ use bitview_plugin_indexer::SafeLengths;
 use bitview_primitives::TypeIndex;
 use brk_types::{Address, BlockHash, Height, OutputType, Transaction, TxIndex, Txid};
 
-use crate::{Query, ReadPin, Result, r#impl::addr::parse_addr};
+use crate::{Error, Query, ReadPin, Result, r#impl::addr::parse_addr};
 
 /// A confirmed address transaction page resolved against one best-chain view.
 #[derive(Debug)]
@@ -52,7 +52,8 @@ impl Query {
     }
 
     /// The confirmed transactions of an address `pin` holds, oldest first: those before the
-    /// `before` cursor, or all of them.
+    /// `before` cursor, or all of them. A cursor outside the address's history (unknown, or
+    /// another address's transaction) has none before it, as Esplora pages.
     pub(crate) fn addr_tx_history(
         &self,
         output_type: OutputType,
@@ -65,7 +66,19 @@ impl Query {
             "a found address is published"
         );
         let before = match before {
-            Some(txid) => self.resolve_tx_index_bounded(txid, pin)?,
+            Some(txid) => match self.resolve_tx_index_bounded(txid, pin) {
+                Ok(tx_index)
+                    if self
+                        .indexer()
+                        .stores()
+                        .addr_has_tx(output_type, type_index, tx_index)? =>
+                {
+                    tx_index
+                }
+                // The history before the address's first transaction: nothing.
+                Ok(_) | Err(Error::UnknownTxid) => TxIndex::ZERO,
+                Err(error) => return Err(error),
+            },
             None => pin.lengths().tx_index,
         };
         Ok(self

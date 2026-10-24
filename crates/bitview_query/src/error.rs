@@ -30,6 +30,8 @@ pub enum Error {
     WeightExceeded { requested: usize, max: usize },
     #[error("Too many unspent transaction outputs (more than {max})")]
     TooManyUtxos { max: usize },
+    #[error("after_txid not found")]
+    UnknownAfterTxid,
 
     // Missing data.
     #[error("Address has no confirmed transactions")]

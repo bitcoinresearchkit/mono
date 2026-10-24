@@ -7,8 +7,7 @@ pub struct BlockStatus {
     #[schemars(example = true)]
     pub in_best_chain: bool,
 
-    /// Block height (only if in best chain)
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Block height (null unless in the best chain)
     pub height: Option<Height>,
 
     /// Hash of the next block in the best chain (null if tip)

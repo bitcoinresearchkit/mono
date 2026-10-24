@@ -29,8 +29,9 @@ pub struct BlockInfo {
     pub size: u64,
     /// Block weight in weight units
     pub weight: Weight,
+    /// Hash of the previous block (null for the genesis block)
     #[serde(rename = "previousblockhash")]
-    pub previous_block_hash: BlockHash,
+    pub previous_block_hash: Option<BlockHash>,
     /// Median time of the last 11 blocks
     #[serde(rename = "mediantime")]
     pub median_time: Timestamp,

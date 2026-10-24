@@ -42,8 +42,8 @@ impl TxFeatureFlags {
             OutputType::P2TR => Self::P2TR,
             OutputType::P2A => Self::P2A,
             OutputType::OpReturn => Self::OP_RETURN,
-            OutputType::Empty => Self::EMPTY,
-            OutputType::Unknown => Self::UNKNOWN,
+            OutputType::EmptyScript => Self::EMPTY,
+            OutputType::UnknownScript => Self::UNKNOWN,
         };
     }
 

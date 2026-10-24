@@ -28,6 +28,12 @@ confirmed activity
  * @property {Dollars} realizedPrice - Realized price (average cost basis) in USD
  */
 /**
+ * A page of an address's confirmed transactions.
+ *
+ * @typedef {Object} AddressChainTxsQuery
+ * @property {?number=} maxTxs - Transactions to return, at most 25 (the default); larger values return 25.
+ */
+/**
  * @typedef {Object} AddressHashPrefixMatches
  * @property {OutputType} addressType
  * @property {string} prefix - The requested prefix, lowercased.
@@ -52,6 +58,12 @@ address payload bytes.
  * @property {number} txCount - Number of unconfirmed transactions involving this address
  */
 /**
+ * A page of an address's mempool transactions.
+ *
+ * @typedef {Object} AddressMempoolTxsQuery
+ * @property {?number=} maxTxs - Transactions to return, at most 50 (the default); larger values return 50.
+ */
+/**
  * @typedef {Object} AddressParam
  * @property {Address} address
  */
@@ -64,6 +76,14 @@ address payload bytes.
  * @property {AddressChainStats} chainStats - Statistics for confirmed transactions on the blockchain
  * @property {AddressMempoolStats} mempoolStats - Statistics for unconfirmed transactions in the mempool
  * @property {Sats} balance - Total current balance in satoshis, including pending (unconfirmed) mempool changes
+ */
+/**
+ * A page of an address's transactions, mempool ones first.
+ *
+ * @typedef {Object} AddressTxsQuery
+ * @property {(Txid|null)=} afterTxid - Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed
+cursor skips the mempool). One that is neither answers 422.
+ * @property {?number=} maxTxs - Transactions to return, at most 50 (the default); larger values return 50.
  */
 /**
  * @typedef {Object} AddressValidation
@@ -118,8 +138,14 @@ inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
  * @property {number} utxoSetSize - Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
  * @property {Sats} totalInputAmt - Total input amount in satoshis
  * @property {number} virtualSize - Virtual size in vbytes: weight / 4, unrounded
+ * @property {?boolean=} coinbaseBip54 - Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's
+sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @property {(Timestamp|null)=} firstSeen - Timestamp when the block was first seen (always null, not yet supported)
- * @property {BlockHash[]} orphans - Orphaned blocks (always empty)
+ * @property {BlockOrphan[]} orphans - Stale blocks at this height (always empty, not yet supported)
+ * @property {?number=} matchRate - Share of the expected block template the block matched, from mempool.space's own audits
+(always null: it needs the mempool as it was)
+ * @property {(Sats|null)=} expectedFees - Fees of the expected block template (always null: it needs the mempool as it was)
+ * @property {(Weight|null)=} expectedWeight - Weight of the expected block template (always null: it needs the mempool as it was)
  * @property {Dollars} price - USD price at block height
  */
 /**
@@ -182,7 +208,7 @@ inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
  * @property {number} txCount
  * @property {number} size - Block size in bytes
  * @property {Weight} weight - Block weight in weight units
- * @property {BlockHash} previousblockhash
+ * @property {(BlockHash|null)=} previousblockhash - Hash of the previous block (null for the genesis block)
  * @property {Timestamp} mediantime - Median time of the last 11 blocks
  */
 /**
@@ -200,10 +226,27 @@ inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
  * @property {number} txCount
  * @property {number} size - Block size in bytes
  * @property {Weight} weight - Block weight in weight units
- * @property {BlockHash} previousblockhash
+ * @property {(BlockHash|null)=} previousblockhash - Hash of the previous block (null for the genesis block)
  * @property {Timestamp} mediantime - Median time of the last 11 blocks
  * @property {boolean=} stale - Whether this block has been replaced by a longer chain
  * @property {BlockExtras} extras
+ */
+/**
+ * A stale block at a height of the best chain: a fork tip the node knows (bitcoind's
+ * `getchaintips`), as mempool.space lists it.
+ *
+ * @typedef {Object} BlockOrphan
+ * @property {Height} height
+ * @property {BlockHash} hash
+ * @property {number} branchlen - Length of the fork's branch, in blocks
+ * @property {BlockOrphanStatus} status
+ * @property {BlockHash} prevhash - Hash of the block the stale block builds on
+ */
+/**
+ * How far the node validated a fork tip (bitcoind's `getchaintips` statuses other than
+ * `active`).
+ *
+ * @typedef {(("invalid")|("headers-only")|("valid-headers")|("valid-fork"))} BlockOrphanStatus
  */
 /**
  * @typedef {Object} BlockPool
@@ -238,7 +281,7 @@ inputs, unspendable outputs (OP_RETURN) included, unlike `utxoSetSize`
 /**
  * @typedef {Object} BlockStatus
  * @property {boolean} inBestChain
- * @property {(Height|null)=} height - Block height (only if in best chain)
+ * @property {(Height|null)=} height - Block height (null unless in the best chain)
  * @property {(BlockHash|null)=} nextBest - Hash of the next block in the best chain (null if tip)
  */
 /**
@@ -344,6 +387,16 @@ prior template's transactions or a full transaction body.
  * @typedef {string} CoinbaseTag
  */
 /**
+ * CPFP of a confirmed transaction with relatives in its block: its package there.
+ *
+ * @typedef {Object} ConfirmedCpfp
+ * @property {CpfpEntry[]} ancestors
+ * @property {CpfpEntry[]} descendants
+ * @property {FeeRate} effectiveFeePerVsize - Feerate of the chunk holding the transaction when its block's relatives are linearized
+(sat/vB).
+ * @property {CpfpCluster} cluster - The transaction's relatives in its block.
+ */
+/**
  * A number of things.
  *
  * @typedef {number} Count
@@ -357,6 +410,14 @@ prior template's transactions or a full transaction body.
  * A change in a number of things.
  *
  * @typedef {number} CountSigned
+ */
+/**
+ * A transaction's CPFP (Child Pays For Parent) answer, in mempool.space's shapes, told apart by
+ * their fields (untagged on the wire): a mempool transaction's package, a confirmed transaction's
+ * package among its block's transactions, or `{"ancestors":[]}` for an unknown transaction or a
+ * confirmed one without relatives in its block.
+ *
+ * @typedef {(CpfpInfo|ConfirmedCpfp|EmptyCpfp)} Cpfp
  */
 /**
  * CPFP cluster: the connected component the seed belongs to, plus its
@@ -397,7 +458,7 @@ prior template's transactions or a full transaction body.
  * @property {Sats} fee
  */
 /**
- * CPFP (Child Pays For Parent) information for a transaction.
+ * CPFP (Child Pays For Parent) information for a mempool transaction.
  *
  * @typedef {Object} CpfpInfo
  * @property {CpfpEntry[]} ancestors
@@ -517,6 +578,12 @@ mainnet, as mempool.space
  * @typedef {number} Dollars
  */
 /**
+ * CPFP of a transaction without known relatives: `{"ancestors":[]}`.
+ *
+ * @typedef {Object} EmptyCpfp
+ * @property {*[]} ancestors
+ */
+/**
  * Index of an output with an empty script.
  *
  * @typedef {TypeIndex} EmptyScriptOutputIndex
@@ -532,7 +599,7 @@ mainnet, as mempool.space
  * @typedef {Object} ErrorBody
  * @property {ErrorDetail} error
  */
-/** @typedef {("not_found"|"invalid_address"|"invalid_network"|"unsupported_type"|"no_series"|"series_unsupported_index"|"weight_exceeded"|"too_many_utxos"|"unknown_address"|"unknown_txid"|"out_of_range"|"unindexable_date"|"no_data"|"series_not_found"|"mempool_not_available"|"state_updating"|"internal_error"|"bad_request"|"overloaded"|"timeout"|"method_not_allowed")} ErrorCode */
+/** @typedef {("not_found"|"invalid_address"|"invalid_network"|"unsupported_type"|"no_series"|"series_unsupported_index"|"weight_exceeded"|"too_many_utxos"|"unknown_after_txid"|"unknown_address"|"unknown_txid"|"out_of_range"|"unindexable_date"|"no_data"|"series_not_found"|"mempool_not_available"|"state_updating"|"internal_error"|"bad_request"|"overloaded"|"timeout"|"method_not_allowed")} ErrorCode */
 /**
  * @typedef {Object} ErrorDetail
  * @property {ErrorType} type - Error category, following the HTTP status
@@ -811,7 +878,7 @@ a bin closing at the first fee rate change past 50,000 vB
 /**
  * An output's script type (P2PKH, P2WPKH, P2SH, P2TR…).
  *
- * @typedef {("p2pk65"|"p2pk33"|"p2pkh"|"p2ms"|"p2sh"|"opreturn"|"p2wpkh"|"p2wsh"|"p2tr"|"p2a"|"empty"|"unknown")} OutputType
+ * @typedef {("p2pk65"|"p2pk33"|"p2pkh"|"p2ms"|"p2sh"|"op_return"|"p2wpkh"|"p2wsh"|"p2tr"|"p2a"|"empty_script"|"unknown_script")} OutputType
  */
 /**
  * Output type names used by Esplora and mempool.space.
@@ -1242,7 +1309,7 @@ asking the node
  * @typedef {Object} Transaction
  * @property {(TxIndex|null)=} index - Internal transaction index (brk-specific, not in mempool.space)
  * @property {Txid} txid
- * @property {TxVersionRaw} version - Transaction version (raw i32 from Bitcoin protocol, may contain non-standard values in coinbase txs)
+ * @property {TxVersionRaw} version - Transaction version (the protocol's 32 bits read unsigned, as Esplora reports them; may contain non-standard values in coinbase txs)
  * @property {RawLockTime} locktime
  * @property {TxIn[]} vin - Transaction inputs
  * @property {TxOut[]} vout - Transaction outputs
@@ -1316,7 +1383,7 @@ asking the node
  * @typedef {number} TxVersion
  */
 /**
- * Raw transaction version (i32) from Bitcoin protocol.
+ * Raw transaction version: the protocol's 32 bits read unsigned, as Esplora reports them.
  * Unlike TxVersion (u8, indexed), this preserves non-standard values
  * used in coinbase txs for miner signaling/branding.
  *
@@ -5401,7 +5468,7 @@ const _SpendableType = _s({
 
 /**
  * @typedef {{
- *   value: SeriesPattern18<?Percent>,
+ *   block: SeriesPattern18<?Percent>,
  *   avg: Windows<?Percent>,
  *   min: Windows<?Percent>,
  *   max: Windows<?Percent>,
@@ -5413,7 +5480,7 @@ const _SpendableType = _s({
  * }} Fullness
  */
 const _Fullness = _s({
-  value: [_i18, '*'],
+  block: [_i18, '*'],
   avg: [_Windows, '*_avg'],
   min: [_Windows, '*_min'],
   max: [_Windows, '*_max'],
@@ -8236,43 +8303,54 @@ address payload bytes.
   /**
    * Address transactions
    *
-   * Get transaction history for an address, newest first. Returns up to 50 mempool transactions plus a confirmed page sized to fill the response to 50 total (chain floor of 25, so 25-50 confirmed depending on mempool weight). To paginate further confirmed history, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.
+   * Get transaction history for an address, newest first: up to `max_txs` (50 by default and at most), mempool transactions first and confirmed ones filling the rest. To continue, pass the last returned txid as `after_txid`, or request `GET /api/address/{address}/txs/chain/{after_txid}` for confirmed history.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*
    *
    * Endpoint: `GET /api/address/{address}/txs`
    *
    * @param {Address} address
+   * @param {Txid=} [after_txid] - Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed
+cursor skips the mempool). One that is neither answers 422.
+   * @param {number=} [max_txs] - Transactions to return, at most 50 (the default); larger values return 50.
    * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Transaction[]>}
    */
-  async getAddressTxs(address, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/address/${encodeURIComponent(address)}/txs`;
+  async getAddressTxs(address, after_txid, max_txs, { signal, onValue, cache, memCache } = {}) {
+    const params = new URLSearchParams();
+    if (after_txid !== undefined) params.set('after_txid', String(after_txid));
+    if (max_txs !== undefined) params.set('max_txs', String(max_txs));
+    const query = params.toString();
+    const path = `/api/address/${encodeURIComponent(address)}/txs${query ? '?' + query : ''}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
   /**
    * Address confirmed transactions
    *
-   * Get the first 25 confirmed transactions for an address. For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.
+   * Get the newest confirmed transactions for an address, up to `max_txs` (25 by default and at most). For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
    *
    * Endpoint: `GET /api/address/{address}/txs/chain`
    *
    * @param {Address} address
+   * @param {number=} [max_txs] - Transactions to return, at most 25 (the default); larger values return 25.
    * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Transaction[]>}
    */
-  async getAddressConfirmedTxs(address, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/address/${encodeURIComponent(address)}/txs/chain`;
+  async getAddressConfirmedTxs(address, max_txs, { signal, onValue, cache, memCache } = {}) {
+    const params = new URLSearchParams();
+    if (max_txs !== undefined) params.set('max_txs', String(max_txs));
+    const query = params.toString();
+    const path = `/api/address/${encodeURIComponent(address)}/txs/chain${query ? '?' + query : ''}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
   /**
    * Address confirmed transactions (paginated)
    *
-   * Get the next 25 confirmed transactions strictly older than `after_txid` (Esplora-canonical pagination form, matches mempool.space).
+   * Get the next confirmed transactions strictly older than `after_txid`, up to `max_txs` (25 by default and at most); a txid outside the address's history answers `[]` (Esplora-canonical pagination form, matches mempool.space).
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
    *
@@ -8280,29 +8358,37 @@ address payload bytes.
    *
    * @param {Address} address
    * @param {Txid} after_txid - Last txid from the previous page (return transactions strictly older than this)
+   * @param {number=} [max_txs] - Transactions to return, at most 25 (the default); larger values return 25.
    * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Transaction[]>}
    */
-  async getAddressConfirmedTxsAfter(address, after_txid, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/address/${encodeURIComponent(address)}/txs/chain/${encodeURIComponent(after_txid)}`;
+  async getAddressConfirmedTxsAfter(address, after_txid, max_txs, { signal, onValue, cache, memCache } = {}) {
+    const params = new URLSearchParams();
+    if (max_txs !== undefined) params.set('max_txs', String(max_txs));
+    const query = params.toString();
+    const path = `/api/address/${encodeURIComponent(address)}/txs/chain/${encodeURIComponent(after_txid)}${query ? '?' + query : ''}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
   /**
    * Address mempool transactions
    *
-   * Get unconfirmed transactions for an address from the mempool, newest first (up to 50).
+   * Get unconfirmed transactions for an address from the mempool, newest first, up to `max_txs` (50 by default and at most).
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*
    *
    * Endpoint: `GET /api/address/{address}/txs/mempool`
    *
    * @param {Address} address
+   * @param {number=} [max_txs] - Transactions to return, at most 50 (the default); larger values return 50.
    * @param {{ signal?: AbortSignal, onValue?: (value: Transaction[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Transaction[]>}
    */
-  async getAddressMempoolTxs(address, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/address/${encodeURIComponent(address)}/txs/mempool`;
+  async getAddressMempoolTxs(address, max_txs, { signal, onValue, cache, memCache } = {}) {
+    const params = new URLSearchParams();
+    if (max_txs !== undefined) params.set('max_txs', String(max_txs));
+    const query = params.toString();
+    const path = `/api/address/${encodeURIComponent(address)}/txs/mempool${query ? '?' + query : ''}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -9132,15 +9218,15 @@ address payload bytes.
   /**
    * CPFP info
    *
-   * Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package.
+   * Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package. A mempool transaction answers its live package; a confirmed one its package among its block's transactions; an unknown transaction, or a confirmed one without relatives in its block, `{"ancestors":[]}`.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*
    *
    * Endpoint: `GET /api/v1/cpfp/{txid}`
    *
    * @param {Txid} txid
-   * @param {{ signal?: AbortSignal, onValue?: (value: CpfpInfo) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<CpfpInfo>}
+   * @param {{ signal?: AbortSignal, onValue?: (value: Cpfp) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<Cpfp>}
    */
   async getCpfp(txid, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/cpfp/${encodeURIComponent(txid)}`;
@@ -9236,7 +9322,7 @@ address payload bytes.
   /**
    * Output spend status
    *
-   * Whether the output has been spent and, if so, the spending transaction details.
+   * Whether the output has been spent and, if so, the spending transaction details. An output no known transaction holds is unspent.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*
    *
@@ -9291,7 +9377,7 @@ address payload bytes.
   /**
    * Transaction status
    *
-   * Retrieve the confirmation status of a transaction. Returns whether the transaction is confirmed and, if so, the block height, hash, and timestamp.
+   * Retrieve the confirmation status of a transaction. Returns whether the transaction is confirmed and, if so, the block height, hash, and timestamp. A transaction not in the chain, pending or unknown, is `{"confirmed":false}`.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-status)*
    *

@@ -85,7 +85,7 @@ impl ScriptsVecs {
                 .p2ms
                 .legacy_sigop_cost
                 .get_append_only(type_index.into(), &readers.p2ms_legacy_sigop_cost),
-            OutputType::Unknown => self
+            OutputType::UnknownScript => self
                 .unknown_script
                 .legacy_sigop_cost
                 .get_append_only(type_index.into(), &readers.unknown_script_legacy_sigop_cost),

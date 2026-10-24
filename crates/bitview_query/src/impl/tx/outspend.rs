@@ -12,11 +12,13 @@ impl Query {
         let mempool = Self::lookup_mempool(mempool);
         let outputs = match self.resolve_tx_outputs(txid, &pin) {
             Ok(outputs) => outputs,
+            // An output no known transaction holds is unspent, as Esplora answers.
             Err(Error::UnknownTxid) => {
-                let (mempool, tip) = mempool.ok_or(Error::UnknownTxid)?;
-                return mempool
-                    .outspend_if_present(txid, vout, &tip)?
-                    .ok_or(Error::UnknownTxid);
+                return Ok(match mempool {
+                    Some((mempool, tip)) => mempool.outspend_if_present(txid, vout, &tip)?,
+                    None => None,
+                }
+                .unwrap_or(TxOutspend::UNSPENT));
             }
             Err(error) => return Err(error),
         };

@@ -10,7 +10,7 @@ use axum::{
 };
 use bitview_types::{MerkleProof, RbfResponse};
 use brk_types::{
-    CpfpInfo, Hex, Timestamp, Transaction, TxOutspend, TxStatus, Txid, TxidPrefix, Version,
+    Cpfp, Hex, Timestamp, Transaction, TxOutspend, TxStatus, Txid, TxidPrefix, Version,
 };
 use serde_json::to_vec;
 use tower_http::limit::RequestBodyLimitLayer;
@@ -65,10 +65,9 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 .id("get_cpfp")
                 .tag(tags::TRANSACTIONS)
                 .summary("CPFP info")
-                .description("Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*")
-                .json_response::<CpfpInfo>()
-                .not_modified()
-                .not_found(),
+                .description("Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package. A mempool transaction answers its live package; a confirmed one its package among its block's transactions; an unknown transaction, or a confirmed one without relatives in its block, `{\"ancestors\":[]}`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*")
+                .json_response::<Cpfp>()
+                .not_modified(),
         ),
     )
     .api_route(
@@ -209,11 +208,10 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 .tag(tags::TRANSACTIONS)
                 .summary("Output spend status")
                 .description(
-                    "Whether the output has been spent and, if so, the spending transaction details.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*",
+                    "Whether the output has been spent and, if so, the spending transaction details. An output no known transaction holds is unspent.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*",
                 )
                 .json_response::<TxOutspend>()
-                .not_modified()
-                .not_found(),
+                .not_modified(),
         ),
     )
     .api_route(
@@ -291,11 +289,10 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 .tag(tags::TRANSACTIONS)
                 .summary("Transaction status")
                 .description(
-                    "Retrieve the confirmation status of a transaction. Returns whether the transaction is confirmed and, if so, the block height, hash, and timestamp.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-status)*",
+                    "Retrieve the confirmation status of a transaction. Returns whether the transaction is confirmed and, if so, the block height, hash, and timestamp. A transaction not in the chain, pending or unknown, is `{\"confirmed\":false}`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-status)*",
                 )
                 .json_response::<TxStatus>()
-                .not_modified()
-                .not_found(),
+                .not_modified(),
         ),
     )
     .api_route(

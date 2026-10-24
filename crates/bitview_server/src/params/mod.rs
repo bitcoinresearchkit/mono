@@ -5,6 +5,8 @@ mod addr_hash_prefix_param;
 #[cfg(feature = "chain")]
 mod addr_param;
 #[cfg(feature = "chain")]
+mod addr_txs_query;
+#[cfg(feature = "chain")]
 mod block_count_param;
 #[cfg(feature = "chain")]
 mod blockhash_param;
@@ -52,6 +54,8 @@ pub use addr_after_txid_param::*;
 pub use addr_hash_prefix_param::*;
 #[cfg(feature = "chain")]
 pub use addr_param::*;
+#[cfg(feature = "chain")]
+pub use addr_txs_query::*;
 #[cfg(feature = "chain")]
 pub use block_count_param::*;
 #[cfg(feature = "chain")]

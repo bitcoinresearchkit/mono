@@ -1,8 +1,8 @@
-use brk_types::{Address, BlockHash, Dollars, FeeRate, Hex, Sats, Timestamp, Weight};
+use brk_types::{Address, Dollars, FeeRate, Hex, Sats, Timestamp, Weight};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::BlockPool;
+use crate::{BlockOrphan, BlockPool};
 
 /// Extended block data matching mempool.space /api/v1/blocks extras
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -114,12 +114,30 @@ pub struct BlockExtras {
     #[schemars(example = 998000.25)]
     pub virtual_size: f64,
 
+    /// Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's
+    /// sequence isn't final), from timestamp 1,771,507,776 on; null before
+    #[serde(rename = "coinbaseBip54")]
+    pub coinbase_bip54: Option<bool>,
+
     /// Timestamp when the block was first seen (always null, not yet supported)
     #[serde(rename = "firstSeen")]
     pub first_seen: Option<Timestamp>,
 
-    /// Orphaned blocks (always empty)
-    pub orphans: Vec<BlockHash>,
+    /// Stale blocks at this height (always empty, not yet supported)
+    pub orphans: Vec<BlockOrphan>,
+
+    /// Share of the expected block template the block matched, from mempool.space's own audits
+    /// (always null: it needs the mempool as it was)
+    #[serde(rename = "matchRate")]
+    pub match_rate: Option<f64>,
+
+    /// Fees of the expected block template (always null: it needs the mempool as it was)
+    #[serde(rename = "expectedFees")]
+    pub expected_fees: Option<Sats>,
+
+    /// Weight of the expected block template (always null: it needs the mempool as it was)
+    #[serde(rename = "expectedWeight")]
+    pub expected_weight: Option<Weight>,
 
     /// USD price at block height
     pub price: Dollars,

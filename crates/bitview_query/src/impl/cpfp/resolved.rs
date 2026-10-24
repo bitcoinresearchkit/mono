@@ -1,7 +1,7 @@
-use brk_types::Txid;
+use brk_types::{Cpfp, Txid};
 use serde_json::to_vec;
 
-use crate::{Query, RepresentationId, Result, r#impl::tx::body::ResolvedTxBody};
+use crate::{Error, Query, RepresentationId, Result, r#impl::tx::body::ResolvedTxBody};
 
 /// CPFP JSON resolved to one exact live or confirmed transaction source.
 pub struct ResolvedCpfp {
@@ -19,15 +19,25 @@ impl ResolvedCpfp {
 }
 
 impl Query {
-    /// Resolve CPFP JSON once before an async response handoff.
+    /// Resolve CPFP JSON once before an async response handoff. An unknown transaction answers
+    /// `{"ancestors":[]}` as mempool.space does, live: it may yet arrive.
     pub fn resolve_cpfp(&self, txid: &Txid) -> Result<ResolvedCpfp> {
-        let source = self.resolve_tx_body(txid, |mempool, tip| {
-            Ok(mempool.cpfp_info(txid, tip)?.map(|info| {
-                let value = to_vec(&info).unwrap();
-                let hash = RepresentationId::content_hash(&value);
-                (value, hash)
-            }))
-        })?;
+        let live = |value: &Cpfp| {
+            let value = to_vec(value).unwrap();
+            let hash = RepresentationId::content_hash(&value);
+            (value, hash)
+        };
+        let source = match self.resolve_tx_body(txid, |mempool, tip| {
+            Ok(mempool
+                .cpfp_info(txid, tip)?
+                .map(|info| live(&Cpfp::Mempool(info))))
+        }) {
+            Err(Error::UnknownTxid) => {
+                let (value, hash) = live(&Cpfp::EMPTY);
+                ResolvedTxBody::Memory { value, hash }
+            }
+            source => source?,
+        };
         Ok(ResolvedCpfp { source })
     }
 
@@ -36,8 +46,8 @@ impl Query {
         match cpfp.source {
             ResolvedTxBody::Memory { value, .. } => Ok(value),
             ResolvedTxBody::Chain(transaction) => {
-                let info = self.confirmed_cpfp_resolved(transaction)?;
-                Ok(to_vec(&info).unwrap())
+                let cpfp = self.confirmed_cpfp_resolved(transaction)?;
+                Ok(to_vec(&cpfp).unwrap())
             }
         }
     }

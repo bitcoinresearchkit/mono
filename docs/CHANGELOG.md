@@ -87,6 +87,9 @@ has to be deleted by hand.
   `brk_types::{AddrState, ...}`). REST: the `Address*` schemas (were `Addr*`), the `address_type` field and path
   parameter (was `addr_type`), and the error codes `invalid_address` and `unknown_address` (were `invalid_addr`,
   `unknown_addr`)
+- `OutputType` values read `op_return`, `empty_script` and `unknown_script` (were `opreturn`, `empty`, `unknown`),
+  as the series ids do: in `output_type` series, the address `address_type` field and the hash-prefix path parameter;
+  stored values are unchanged, and Esplora's `scriptpubkey_type` keeps its own names
 - Undefined values are null instead of a made-up number: shares, ratios and relative changes over a zero denominator
   or base (supply, capital and fee shares, velocity, percent changes from a zero start, price returns and drawdown
   before a price exists), cost basis and realized and capitalized prices of empty cohorts, dormancy over windows without
@@ -173,7 +176,7 @@ has to be deleted by hand.
   transaction signaling opt-in RBF (below; was `explicitly_rbf`), an OP_RETURN protocol's one-word name
   (`op_return.protocols.{veriblock, coinspark}`, ids `op_return_veriblock_*`, `op_return_coinspark_*`, and the
   `op_return_protocol` values; were `veri_block`, `coin_spark`), and `value` for a level's own series beside its
-  derived children, `block` for a flow's per-block amount (was `base`)
+  derived children, available at every index, `block` for a per-block series, available by height only (was `base`)
 - Flows (amounts or counts summed per block: transfer volume, rewards, realized profit, coin days destroyed, ...) lose
   their per-block window averages (`*_average_<window>`), which were the window `sum` divided by its block count: they
   keep `block`, `sum` and `cumulative`. Distributions (block size, fees per block, ...) keep `avg` beside `min`, `max`
@@ -181,7 +184,8 @@ has to be deleted by hand.
   under `avg` (were the window keys directly under the series)
 - A level with derived siblings (a price beside its `ratio`, a count beside its `delta`, a value beside its `share`)
   sits under `value` (was `usd`): `market.sma.200d.value`, `holders.sth.utxos.count.value`,
-  `holders.sth.capital.in_profit.value`, `supply.market_cap.value`, `blocks.difficulty.value`, `cointime.reserve_risk.value`; a flow's per-block amount beside its `cumulative` and `sum` sits under `block`
+  `holders.sth.capital.in_profit.value`, `supply.market_cap.value`, `blocks.difficulty.value`, `cointime.reserve_risk.value`; a per-block series beside its `cumulative`, `sum` or window statistics sits under `block`
+  (`blocks.fullness.block` beside its `avg` and distribution, height only)
 - Market: moving averages sit at the root (`market.sma.200d`, `market.ema.200d`; were under `moving_average`), price
   returns at `market.returns.<window>` (were under `periods`; ids `price_return_<window>` unchanged); the all-time
   high's years copies are gone (`days_since` stays; `days_between_max`, id `days_between_price_ath_max`, was
@@ -560,6 +564,27 @@ has to be deleted by hand.
   epoch where mempool.space said +1.5%)
 - Pool rankings report `emptyBlocks`, the period's coinbase-only blocks (was always 0); v1 block extras' `virtualSize`
   is `weight / 4`, unrounded (was rounded up)
+- v1 block extras carry mempool.space's remaining fields, in its order: `coinbaseBip54`, whether the coinbase follows
+  BIP54 (lock time the height minus one, sequence not final; null before timestamp 1,771,507,776), and
+  `matchRate`, `expectedFees` and `expectedWeight`, always null as mempool.space's are for blocks it didn't audit;
+  `orphans` holds `BlockOrphan` objects (`height`, `hash`, `branchlen`, `status`, `prevhash`; was `BlockHash[]`),
+  still always empty
+- An unknown transaction is answered as mempool.space and Esplora do: `/api/tx/{txid}/status` is 200
+  `{"confirmed":false}`, `/api/tx/{txid}/outspend/{vout}` 200 `{"spent":false}` and `/api/v1/cpfp/{txid}` 200
+  `{"ancestors":[]}` (all were 404 `unknown_txid`), each revalidated like a mempool answer. `/api/v1/cpfp/{txid}`
+  answers one of three shapes (`Cpfp`: `CpfpInfo`, `ConfirmedCpfp` or `EmptyCpfp`; was always `CpfpInfo`): a mempool
+  transaction its live package, a confirmed one with relatives in its block `ancestors`, `descendants`,
+  `effectiveFeePerVsize` and `cluster` (no more `bestDescendant`, `sigops`, `fee`, `vsize`, `adjustedVsize`), and a
+  confirmed one without them `{"ancestors":[]}`. An unknown block's `/api/block/{hash}/status` keeps `"height": null`
+  (the key was left out)
+- Address transactions page as mempool.space does: `/api/address/{address}/txs` returns 50 in all, mempool ones
+  first and confirmed ones filling the rest (the confirmed part was at least 25, so up to 75), and continues from a
+  mempool or confirmed transaction with `?after_txid=` (422 `unknown_after_txid` for one that is neither); `max_txs`
+  sizes the `/txs`, `/txs/chain[/{after_txid}]` and `/txs/mempool` pages, at most their defaults (50, 25, 50) as
+  mempool.space's Esplora caps it (each answered 400 to any query parameter). A chain cursor outside the address's
+  history answers `[]` (unknown was 404, another address's transaction a page of the address's older ones)
+- The genesis block's `previousblockhash` is null (was 64 zeros), and a transaction's `version` is its 32 bits read
+  unsigned (was signed, so a version from 2^31 up read negative), as mempool.space and Esplora report them
 - `/openapi.json` declares its JSON 200 response and both spec routes declare their 304 (only `/api.json`'s JSON 200
   was declared); every client's `get_openapi`/`getOpenapi` returns parsed JSON (was text: Rust `String`, Python
   `str`). `/api.json` is a compact custom summary, not valid OpenAPI (it was described as a compact OpenAPI

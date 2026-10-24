@@ -5,16 +5,14 @@ use vecdb::{Convert, ReadableCloneableVec};
 
 use crate::{
     IndexSources, LazyPerBlock, LazyRollingSumAmountFromHeight, LazyRollingSumFromHeight,
-    PRICED_VERSION, PricedRollingSumFromHeight, shapes::Windows,
+    PRICED_VERSION, PricedRollingSumFromHeight, PricedSumUsd, shapes::Windows,
 };
 
 #[derive(Clone, Deref, DerefMut, Traversable)]
 pub struct LazyRollingSumsAmountFromHeight(
     /// Total of the per-block values over the trailing window ending at the
     /// represented block. At time-period indexes, the value is taken at the
-    /// period's final block. In dollars, undefined (null) until the window lies
-    /// at or after the first exchange price (block 74,641): blocks before it are
-    /// valued at zero.
+    /// period's final block.
     pub Windows<LazyRollingSumAmountFromHeight>,
 );
 
@@ -58,7 +56,7 @@ impl LazyRollingSumsAmountFromHeight {
             LazyRollingSumAmountFromHeight {
                 btc,
                 sats,
-                usd,
+                usd: PricedSumUsd(usd),
                 cents,
             }
         }))

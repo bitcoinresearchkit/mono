@@ -4480,7 +4480,7 @@
           ["Verify", [
             row("Height", `#${formatNumber(block.height)}`),
             row("Hash", block.id, "wide"),
-            row("Previous", block.previousblockhash, "wide"),
+            row("Previous", block.previousblockhash ?? "None (genesis)", "wide"),
           ]],
         ];
       }

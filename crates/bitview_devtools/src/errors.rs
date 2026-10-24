@@ -160,6 +160,14 @@ fn requests() -> Vec<(&'static str, Method, String, Vec<u8>)> {
             "invalid network",
             "/api/address/tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx".into(),
         ),
+        get(
+            "address txs after an unknown txid",
+            format!("/api/address/{ADDRESS}/txs?after_txid={HASH}"),
+        ),
+        get(
+            "address txs with a malformed max_txs",
+            format!("/api/address/{ADDRESS}/txs?max_txs=-1"),
+        ),
         get("unknown block", format!("/api/block/{HASH}")),
         (
             "unknown block (HEAD)",

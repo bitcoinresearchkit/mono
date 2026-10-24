@@ -41,10 +41,12 @@ Returns: JSON `AddressStats`
 
 Address transactions
 
-Get transaction history for an address, newest first. Returns up to 50 mempool transactions plus a confirmed page sized to fill the response to 50 total (chain floor of 25, so 25-50 confirmed depending on mempool weight). To paginate further confirmed history, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*
+Get transaction history for an address, newest first: up to `max_txs` (50 by default and at most), mempool transactions first and confirmed ones filling the rest. To continue, pass the last returned txid as `after_txid`, or request `GET /api/address/{address}/txs/chain/{after_txid}` for confirmed history. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*
 
 Parameters:
 - `address` (path, Address, required)
+- `after_txid` (query, Txid, optional): Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed cursor skips the mempool). One that is neither answers 422.
+- `max_txs` (query, integer, optional): Transactions to return, at most 50 (the default); larger values return 50.
 
 Returns: JSON `Transaction[]`
 
@@ -52,10 +54,11 @@ Returns: JSON `Transaction[]`
 
 Address confirmed transactions
 
-Get the first 25 confirmed transactions for an address. For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
+Get the newest confirmed transactions for an address, up to `max_txs` (25 by default and at most). For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
 
 Parameters:
 - `address` (path, Address, required)
+- `max_txs` (query, integer, optional): Transactions to return, at most 25 (the default); larger values return 25.
 
 Returns: JSON `Transaction[]`
 
@@ -63,11 +66,12 @@ Returns: JSON `Transaction[]`
 
 Address confirmed transactions (paginated)
 
-Get the next 25 confirmed transactions strictly older than `after_txid` (Esplora-canonical pagination form, matches mempool.space). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
+Get the next confirmed transactions strictly older than `after_txid`, up to `max_txs` (25 by default and at most); a txid outside the address's history answers `[]` (Esplora-canonical pagination form, matches mempool.space). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
 
 Parameters:
 - `address` (path, Address, required)
 - `after_txid` (path, Txid, required): Last txid from the previous page (return transactions strictly older than this)
+- `max_txs` (query, integer, optional): Transactions to return, at most 25 (the default); larger values return 25.
 
 Returns: JSON `Transaction[]`
 
@@ -75,10 +79,11 @@ Returns: JSON `Transaction[]`
 
 Address mempool transactions
 
-Get unconfirmed transactions for an address from the mempool, newest first (up to 50). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*
+Get unconfirmed transactions for an address from the mempool, newest first, up to `max_txs` (50 by default and at most). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*
 
 Parameters:
 - `address` (path, Address, required)
+- `max_txs` (query, integer, optional): Transactions to return, at most 50 (the default); larger values return 50.
 
 Returns: JSON `Transaction[]`
 
@@ -281,12 +286,12 @@ Returns: JSON `BlockInfoV1[]`
 
 CPFP info
 
-Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*
+Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package. A mempool transaction answers its live package; a confirmed one its package among its block's transactions; an unknown transaction, or a confirmed one without relatives in its block, `{"ancestors":[]}`. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*
 
 Parameters:
 - `txid` (path, Txid, required)
 
-Returns: JSON `CpfpInfo`
+Returns: JSON `Cpfp`
 
 ### Difficulty Adjustment
 
@@ -920,7 +925,7 @@ Returns: text `Hex`
 
 Output spend status
 
-Whether the output has been spent and, if so, the spending transaction details. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*
+Whether the output has been spent and, if so, the spending transaction details. An output no known transaction holds is unspent. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*
 
 Parameters:
 - `txid` (path, Txid, required)
@@ -954,7 +959,7 @@ Returns: binary data
 
 Transaction status
 
-Retrieve the confirmation status of a transaction. Returns whether the transaction is confirmed and, if so, the block height, hash, and timestamp. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-status)*
+Retrieve the confirmation status of a transaction. Returns whether the transaction is confirmed and, if so, the block height, hash, and timestamp. A transaction not in the chain, pending or unknown, is `{"confirmed":false}`. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-status)*
 
 Parameters:
 - `txid` (path, Txid, required)
@@ -1160,8 +1165,12 @@ Returns: JSON `ServerVersion`
 - `utxoSetSize`: `integer` (required) — Total spendable UTXO set size at this height (excludes OP_RETURN and other unspendable outputs)
 - `totalInputAmt`: `Sats` (required) — Total input amount in satoshis
 - `virtualSize`: `number` (required) — Virtual size in vbytes: weight / 4, unrounded
+- `coinbaseBip54`: `boolean | null` — Whether the coinbase follows BIP54 (its lock time is the height minus one and its input's sequence isn't final), from timestamp 1,771,507,776 on; null before
 - `firstSeen`: `Timestamp | null` — Timestamp when the block was first seen (always null, not yet supported)
-- `orphans`: `BlockHash[]` (required) — Orphaned blocks (always empty)
+- `orphans`: `BlockOrphan[]` (required) — Stale blocks at this height (always empty, not yet supported)
+- `matchRate`: `number | null` — Share of the expected block template the block matched, from mempool.space's own audits (always null: it needs the mempool as it was)
+- `expectedFees`: `Sats | null` — Fees of the expected block template (always null: it needs the mempool as it was)
+- `expectedWeight`: `Weight | null` — Weight of the expected block template (always null: it needs the mempool as it was)
 - `price`: `Dollars` (required) — USD price at block height
 
 ### `BlockFeeRatesEntry`
@@ -1200,7 +1209,7 @@ Returns: JSON `ServerVersion`
 - `tx_count`: `integer` (required)
 - `size`: `integer` (required) — Block size in bytes
 - `weight`: `Weight` (required) — Block weight in weight units
-- `previousblockhash`: `BlockHash` (required)
+- `previousblockhash`: `BlockHash | null` — Hash of the previous block (null for the genesis block)
 - `mediantime`: `Timestamp` (required) — Median time of the last 11 blocks
 
 ### `BlockInfoV1`
@@ -1216,10 +1225,22 @@ Returns: JSON `ServerVersion`
 - `tx_count`: `integer` (required)
 - `size`: `integer` (required) — Block size in bytes
 - `weight`: `Weight` (required) — Block weight in weight units
-- `previousblockhash`: `BlockHash` (required)
+- `previousblockhash`: `BlockHash | null` — Hash of the previous block (null for the genesis block)
 - `mediantime`: `Timestamp` (required) — Median time of the last 11 blocks
 - `stale`: `boolean` — Whether this block has been replaced by a longer chain
 - `extras`: `BlockExtras` (required)
+
+### `BlockOrphan`
+
+- `height`: `Height` (required)
+- `hash`: `BlockHash` (required)
+- `branchlen`: `integer` (required) — Length of the fork's branch, in blocks
+- `status`: `BlockOrphanStatus` (required)
+- `prevhash`: `BlockHash` (required) — Hash of the block the stale block builds on
+
+### `BlockOrphanStatus`
+
+`invalid | headers-only | valid-headers | valid-fork`
 
 ### `BlockPool`
 
@@ -1250,7 +1271,7 @@ Returns: JSON `ServerVersion`
 ### `BlockStatus`
 
 - `in_best_chain`: `boolean` (required)
-- `height`: `Height | null` — Block height (only if in best chain)
+- `height`: `Height | null` — Block height (null unless in the best chain)
 - `next_best`: `BlockHash | null` — Hash of the next block in the best chain (null if tip)
 
 ### `BlockTemplate`
@@ -1286,6 +1307,17 @@ Returns: JSON `ServerVersion`
 - `avgHeight`: `Height` (required) — Average block height in this bucket
 - `timestamp`: `Timestamp` (required) — Average block timestamp in this bucket
 - `avgWeight`: `Weight` (required) — Mean block weight in this bucket, rounded half up (weight units)
+
+### `ConfirmedCpfp`
+
+- `ancestors`: `CpfpEntry[]` (required)
+- `descendants`: `CpfpEntry[]` (required)
+- `effectiveFeePerVsize`: `FeeRate` (required) — Feerate of the chunk holding the transaction when its block's relatives are linearized (sat/vB).
+- `cluster`: `CpfpCluster` (required) — The transaction's relatives in its block.
+
+### `Cpfp`
+
+`CpfpInfo | ConfirmedCpfp | EmptyCpfp`
 
 ### `CpfpCluster`
 
@@ -1380,6 +1412,10 @@ Returns: JSON `ServerVersion`
 ### `Dollars`
 
 `number`
+
+### `EmptyCpfp`
+
+- `ancestors`: `value[]` (required)
 
 ### `ExchangeRates`
 
@@ -1501,7 +1537,7 @@ Returns: JSON `ServerVersion`
 
 ### `OutputType`
 
-`p2pk65 | p2pk33 | p2pkh | p2ms | p2sh | opreturn | p2wpkh | p2wsh | p2tr | p2a | empty | unknown`
+`p2pk65 | p2pk33 | p2pkh | p2ms | p2sh | op_return | p2wpkh | p2wsh | p2tr | p2a | empty_script | unknown_script`
 
 ### `OutputTypeNormalized`
 
@@ -1724,7 +1760,7 @@ Returns: JSON `ServerVersion`
 
 - `index`: `TxIndex | null` — Internal transaction index (brk-specific, not in mempool.space)
 - `txid`: `Txid` (required)
-- `version`: `TxVersionRaw` (required) — Transaction version (raw i32 from Bitcoin protocol, may contain non-standard values in coinbase txs)
+- `version`: `TxVersionRaw` (required) — Transaction version (the protocol's 32 bits read unsigned, as Esplora reports them; may contain non-standard values in coinbase txs)
 - `locktime`: `RawLockTime` (required)
 - `vin`: `TxIn[]` (required) — Transaction inputs
 - `vout`: `TxOut[]` (required) — Transaction outputs

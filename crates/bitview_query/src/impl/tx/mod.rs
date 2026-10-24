@@ -44,23 +44,17 @@ impl Query {
         Ok((hash, time))
     }
 
-    /// The transaction's status, and whether its block lies below the reorg window.
+    /// The transaction's status, and whether its block lies below the reorg window. A transaction
+    /// not in the chain is unconfirmed, pending or unknown alike, as Esplora answers.
     pub fn transaction_status(&self, txid: &Txid) -> Result<(TxStatus, bool)> {
-        let (mempool, pin) = self.mempool_then_pin()?;
-        let read = self.read_indexer_at(pin);
+        let read = self.read_indexer()?;
         match read.resolve_confirmed_position(txid) {
             Ok((_, height)) => {
                 let lengths = read.pin().lengths();
                 let status = self.confirmed_status_at_bounded(height, lengths)?;
                 Ok((status, lengths.is_settled(height)))
             }
-            Err(Error::UnknownTxid) => {
-                let (mempool, tip) = Self::lookup_mempool(mempool).ok_or(Error::UnknownTxid)?;
-                mempool
-                    .contains_txid(txid, &tip)?
-                    .then_some((TxStatus::UNCONFIRMED, false))
-                    .ok_or(Error::UnknownTxid)
-            }
+            Err(Error::UnknownTxid) => Ok((TxStatus::UNCONFIRMED, false)),
             Err(error) => Err(error),
         }
     }

@@ -6,7 +6,7 @@ use crate::{FeeRate, Sats, SigOps, VSize, Weight};
 
 use super::{CpfpCluster, CpfpEntry};
 
-/// CPFP (Child Pays For Parent) information for a transaction.
+/// CPFP (Child Pays For Parent) information for a mempool transaction.
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "schemars", derive(JsonSchema))]
 #[serde(rename_all = "camelCase")]

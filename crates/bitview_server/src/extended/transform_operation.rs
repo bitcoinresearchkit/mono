@@ -40,6 +40,9 @@ pub trait TransformResponseExtended {
         feature = "urpd"
     ))]
     fn not_found(self) -> Self;
+    #[cfg(feature = "chain")]
+    /// 422: a pagination cursor that names no known transaction.
+    fn unknown_cursor(self) -> Self;
     fn not_modified(self) -> Self;
     /// 400, 500, 503, 504: every operation can reject its parameters (path-only ones reject any
     /// query string), fail internally, be briefly unavailable (an updating state, an overload)
@@ -116,6 +119,11 @@ impl<'t> TransformResponseExtended for TransformOperation<'t> {
     ))]
     fn not_found(self) -> Self {
         self.error_response::<404>("Resource not found")
+    }
+
+    #[cfg(feature = "chain")]
+    fn unknown_cursor(self) -> Self {
+        self.error_response::<422>("Pagination cursor not found")
     }
 
     fn not_modified(self) -> Self {

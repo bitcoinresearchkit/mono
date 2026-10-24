@@ -84,6 +84,24 @@ impl Stores {
             .map(|record| record.map(|(key, _)| key.tx_index())))
     }
 
+    /// Whether `tx_index` is in the address's history.
+    pub fn addr_has_tx(
+        &self,
+        addr_type: OutputType,
+        addr_index: TypeIndex,
+        tx_index: TxIndex,
+    ) -> Result<bool> {
+        let key = AddrIndexTxIndex::from((addr_index, tx_index));
+        Ok(self
+            .addr_type_to_addr_index_and_tx_index
+            .get(addr_type)
+            .data()?
+            .range(key..=key)
+            .next()
+            .transpose()?
+            .is_some())
+    }
+
     /// Pins the address-unspent stores as ingested: call it with nothing pending.
     pub(crate) fn addr_unspent_views(&self) -> AddrUnspentViews {
         ByAddrType::from_fn(|id| {

@@ -67,12 +67,15 @@ impl ReadOnlyState {
         Ok(pending)
     }
 
-    /// Live mempool txs touching `addr`, newest first by `first_seen`,
-    /// capped at `limit`. Shares immutable bodies from one completed publication;
-    /// later prevout fills use copy-on-write and cannot mutate this selection.
+    /// Live mempool txs touching `addr`, newest first by `first_seen`, after the
+    /// `after` cursor (older than it) or from the newest, capped at `limit`. A cursor
+    /// that isn't one of the address's transactions has none after it. Shares immutable
+    /// bodies from one completed publication; later prevout fills use copy-on-write and
+    /// cannot mutate this selection.
     pub fn addr_txs(
         &self,
         addr: &AddressBytes,
+        after: Option<&Txid>,
         limit: usize,
         tip: &BlockHash,
     ) -> Result<Vec<PublishedTx>> {
@@ -83,18 +86,28 @@ impl ReadOnlyState {
         if limit == 0 {
             return Ok(Vec::new());
         }
-        // Retain only the requested page. The smallest timestamp is at the
-        // heap root; the txid prefix breaks equal-time ties deterministically.
+        // Page order: the smallest timestamp is at the heap root; the txid prefix breaks
+        // equal-time ties deterministically.
+        let order = |txid: &Txid, first_seen| {
+            Reverse((first_seen, TxidPrefix::from(txid), TxKey::from(txid)))
+        };
+        let after = match after {
+            None => None,
+            Some(txid) => match entry.txids.contains(txid).then(|| state.txs.record(txid)) {
+                Some(Some(record)) => Some(order(txid, record.entry.first_seen)),
+                _ => return Ok(Vec::new()),
+            },
+        };
+        // Retain only the requested page.
         let mut newest = BinaryHeap::with_capacity(limit.min(entry.txids.len()));
         for txid in &entry.txids {
             let Some(record) = state.txs.record(txid) else {
                 continue;
             };
-            let candidate = Reverse((
-                record.entry.first_seen,
-                TxidPrefix::from(txid),
-                TxKey::from(txid),
-            ));
+            let candidate = order(txid, record.entry.first_seen);
+            if after.as_ref().is_some_and(|after| candidate <= *after) {
+                continue;
+            }
             if newest.len() < limit {
                 newest.push(candidate);
             } else if let Some(mut oldest) = newest.peek_mut()

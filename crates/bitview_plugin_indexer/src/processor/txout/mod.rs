@@ -56,7 +56,7 @@ impl<'a> BlockProcessor<'a> {
                 (ProcessedOutputData::Address(hash), single_sig)
             } else if likely(output_type == OutputType::OpReturn) {
                 (ProcessedOutputData::OpReturn(op_return::analyze(script)), 0)
-            } else if output_type == OutputType::Empty {
+            } else if output_type == OutputType::EmptyScript {
                 (ProcessedOutputData::None, 0)
             } else {
                 let count = SigOpCount::of(script);
@@ -160,14 +160,14 @@ pub fn finalize_outputs(
                             .debug_checked_push(index, legacy_sigop_cost);
                         lengths.p2ms_output_index.copy_then_increment()
                     }
-                    OutputType::Empty => {
+                    OutputType::EmptyScript => {
                         scripts
                             .empty_script
                             .to_tx_index
                             .debug_checked_push(lengths.empty_script_output_index, tx_index);
                         lengths.empty_script_output_index.copy_then_increment()
                     }
-                    OutputType::Unknown => {
+                    OutputType::UnknownScript => {
                         let index = lengths.unknown_script_output_index;
                         scripts
                             .unknown_script

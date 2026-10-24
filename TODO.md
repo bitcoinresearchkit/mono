@@ -37,4 +37,20 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
 
 - Indexer version 45 (2026-10-20: OP_RETURN markers, EPOBC) reindexes the Mac mini and production from scratch on first start; plan the downtime. This Mac is on 45 already: its regions were renamed in place for the 2026-10-23 renames (`_notes/tree-review-20261023/rename_regions.py`), which a fresh index doesn't need.
 
+- Fill v1 block extras' `orphans` from the node's `getchaintips` (the non-active tips at the block's height, with their
+  `prevhash`), as mempool.space does; it's always empty now. Additive, so after the release.
+
+- Esplora routes mempool.space serves and Bitview doesn't (API.md), each only if it answers as fast as the address
+  routes (no rate limit here, unlike mempool.space): `/api/scripthash/{hash}` with `/txs`,
+  `/txs/chain[/{last_seen_txid}]`, `/txs/mempool` and `/utxo` (the address routes keyed by the Electrum script hash,
+  SHA-256 of the script: needs a new script-hash index, as `addr_hash` isn't that hash), `/api/address-prefix/{prefix}`
+  (up to 10 addresses by their text: needs a text-prefix index, as electrs's optional `--address-search`), and
+  `POST /api/txs/package` (Bitcoin Core 28+ `submitpackage`, up to 25 transactions; cheap here, under `POST /api/tx`'s
+  pending limit). `/fee-estimates` (deprecated upstream) and `/block-template` (not on mempool.space) stay out.
+
+- mempool's electrs address extensions, live on mempool.space, each only if fast enough unthrottled:
+  `/api/address/{address}/txs/summary[/{last_seen_txid}]` (up to 5,000 rows `{txid, height, value, time,
+  tx_position}`, `max_txs` at most that), `POST /api/addresses/txs` and `POST /api/addresses/txs/summary` (several
+  addresses' histories merged, body capped).
+
 - Once next.bitview.space serves the dollar windows missing until priced (`bitview_vecs::PricedWindow`), drop Studio's Puell multiple guard (`lag`, in `showcases/studio/presets.js`): it hides its 10Y decade point and needs 4h+.

@@ -38,6 +38,9 @@ struct Coinbase {
     /// On-disk total size of the coinbase tx.
     total_size: usize,
     weight: Weight,
+    lock_time: u32,
+    /// The first input's sequence.
+    sequence: u32,
 }
 
 impl Query {
@@ -152,11 +155,28 @@ impl Query {
         if names.is_empty() { None } else { Some(names) }
     }
 
+    /// Whether the coinbase follows BIP54: its lock time is the height minus one and its input's
+    /// sequence isn't final. Null before the first block that did (mempool.space's cutoff).
+    fn bip54_coinbase(
+        height: Height,
+        timestamp: Timestamp,
+        lock_time: u32,
+        sequence: u32,
+    ) -> Option<bool> {
+        const FIRST_BIP54_COINBASE: u32 = 1_771_507_776;
+        (*timestamp >= FIRST_BIP54_COINBASE).then(|| {
+            let height = u32::from(height);
+            height > 0 && lock_time == height - 1 && sequence != u32::MAX
+        })
+    }
+
     fn parse_coinbase_from_read(reader: impl Read) -> Result<Coinbase> {
         let tx = Transaction::consensus_decode(&mut FromStd::new(reader))
             .map_err(|_| Error::Internal("Failed to decode coinbase transaction"))?;
 
         let total_size = tx.total_size();
+        let lock_time = tx.lock_time.to_consensus_u32();
+        let sequence = tx.input.first().map_or(u32::MAX, |input| input.sequence.0);
         let weight = Weight::from(tx.weight().to_wu());
 
         let scriptsig_bytes: Vec<u8> = tx
@@ -200,6 +220,8 @@ impl Query {
             scriptsig_bytes,
             total_size,
             weight,
+            lock_time,
+            sequence,
         })
     }
 
@@ -390,6 +412,8 @@ impl Query {
                     scriptsig_bytes,
                     total_size: coinbase_total_size,
                     weight: coinbase_weight,
+                    lock_time: coinbase_lock_time,
+                    sequence: coinbase_sequence,
                 } = Self::parse_coinbase_from_read(blk)?;
 
                 let info = columns.info(i, id, header, tx_count);
@@ -479,9 +503,18 @@ impl Query {
                     total_input_amt,
                     // Unrounded, as mempool.space reports it.
                     virtual_size: u64::from(weight) as f64 / 4.0,
-                    price: prices[i],
-                    orphans: vec![],
+                    coinbase_bip54: Self::bip54_coinbase(
+                        info.height,
+                        info.timestamp,
+                        coinbase_lock_time,
+                        coinbase_sequence,
+                    ),
                     first_seen: None,
+                    orphans: vec![],
+                    match_rate: None,
+                    expected_fees: None,
+                    expected_weight: None,
+                    price: prices[i],
                 };
 
                 blocks.push(BlockInfoV1 {
@@ -609,9 +642,10 @@ impl BlockColumns {
 
     /// Row `i` with its verified header.
     fn info(&self, i: usize, id: BlockHash, header: BlockHeader, tx_count: u32) -> BlockInfo {
+        let height = Height::from(self.begin + i);
         BlockInfo {
             id,
-            height: Height::from(self.begin + i),
+            height,
             version: header.version,
             timestamp: self.timestamps[i],
             bits: header.bits,
@@ -621,7 +655,7 @@ impl BlockColumns {
             tx_count,
             size: u64::from(*self.sizes[i]),
             weight: self.weights[i].into(),
-            previous_block_hash: header.previous_block_hash,
+            previous_block_hash: (height != Height::ZERO).then_some(header.previous_block_hash),
             median_time: self.median_times[i],
         }
     }

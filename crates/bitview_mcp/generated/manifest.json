@@ -211,13 +211,13 @@
                 "p2pkh",
                 "p2ms",
                 "p2sh",
-                "opreturn",
+                "op_return",
                 "p2wpkh",
                 "p2wsh",
                 "p2tr",
                 "p2a",
-                "empty",
-                "unknown"
+                "empty_script",
+                "unknown_script"
               ],
               "type": "string"
             },
@@ -259,12 +259,18 @@
       "tool": {
         "name": "get_address_confirmed_txs",
         "title": "Address confirmed transactions",
-        "description": "Get the first 25 confirmed transactions for an address. For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*\n\nREST operation: `GET /api/address/{address}/txs/chain`.",
+        "description": "Get the newest confirmed transactions for an address, up to `max_txs` (25 by default and at most). For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*\n\nREST operation: `GET /api/address/{address}/txs/chain`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "address": {
               "$ref": "#/$defs/Address"
+            },
+            "max_txs": {
+              "description": "Transactions to return, at most 25 (the default); larger values return 25.",
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
             }
           },
           "additionalProperties": false,
@@ -589,8 +595,9 @@
               ]
             },
             "TxVersionRaw": {
-              "format": "int32",
-              "type": "integer"
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
             },
             "Txid": {
               "pattern": "^[0-9a-f]{64}$",
@@ -622,6 +629,10 @@
           {
             "name": "address",
             "location": "path"
+          },
+          {
+            "name": "max_txs",
+            "location": "query"
           }
         ]
       }
@@ -630,7 +641,7 @@
       "tool": {
         "name": "get_address_confirmed_txs_after",
         "title": "Address confirmed transactions (paginated)",
-        "description": "Get the next 25 confirmed transactions strictly older than `after_txid` (Esplora-canonical pagination form, matches mempool.space).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*\n\nREST operation: `GET /api/address/{address}/txs/chain/{after_txid}`.",
+        "description": "Get the next confirmed transactions strictly older than `after_txid`, up to `max_txs` (25 by default and at most); a txid outside the address's history answers `[]` (Esplora-canonical pagination form, matches mempool.space).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*\n\nREST operation: `GET /api/address/{address}/txs/chain/{after_txid}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -640,6 +651,12 @@
             "after_txid": {
               "description": "Last txid from the previous page (return transactions strictly older than this)",
               "$ref": "#/$defs/Txid"
+            },
+            "max_txs": {
+              "description": "Transactions to return, at most 25 (the default); larger values return 25.",
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
             }
           },
           "additionalProperties": false,
@@ -975,8 +992,9 @@
               ]
             },
             "TxVersionRaw": {
-              "format": "int32",
-              "type": "integer"
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
             },
             "Txid": {
               "pattern": "^[0-9a-f]{64}$",
@@ -1012,6 +1030,10 @@
           {
             "name": "after_txid",
             "location": "path"
+          },
+          {
+            "name": "max_txs",
+            "location": "query"
           }
         ]
       }
@@ -1049,13 +1071,13 @@
                 "p2pkh",
                 "p2ms",
                 "p2sh",
-                "opreturn",
+                "op_return",
                 "p2wpkh",
                 "p2wsh",
                 "p2tr",
                 "p2a",
-                "empty",
-                "unknown"
+                "empty_script",
+                "unknown_script"
               ]
             }
           }
@@ -1101,13 +1123,13 @@
                 "p2pkh",
                 "p2ms",
                 "p2sh",
-                "opreturn",
+                "op_return",
                 "p2wpkh",
                 "p2wsh",
                 "p2tr",
                 "p2a",
-                "empty",
-                "unknown"
+                "empty_script",
+                "unknown_script"
               ],
               "type": "string"
             }
@@ -1139,12 +1161,18 @@
       "tool": {
         "name": "get_address_mempool_txs",
         "title": "Address mempool transactions",
-        "description": "Get unconfirmed transactions for an address from the mempool, newest first (up to 50).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*\n\nREST operation: `GET /api/address/{address}/txs/mempool`.",
+        "description": "Get unconfirmed transactions for an address from the mempool, newest first, up to `max_txs` (50 by default and at most).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*\n\nREST operation: `GET /api/address/{address}/txs/mempool`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "address": {
               "$ref": "#/$defs/Address"
+            },
+            "max_txs": {
+              "description": "Transactions to return, at most 50 (the default); larger values return 50.",
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
             }
           },
           "additionalProperties": false,
@@ -1469,8 +1497,9 @@
               ]
             },
             "TxVersionRaw": {
-              "format": "int32",
-              "type": "integer"
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
             },
             "Txid": {
               "pattern": "^[0-9a-f]{64}$",
@@ -1502,6 +1531,10 @@
           {
             "name": "address",
             "location": "path"
+          },
+          {
+            "name": "max_txs",
+            "location": "query"
           }
         ]
       }
@@ -1510,12 +1543,22 @@
       "tool": {
         "name": "get_address_txs",
         "title": "Address transactions",
-        "description": "Get transaction history for an address, newest first. Returns up to 50 mempool transactions plus a confirmed page sized to fill the response to 50 total (chain floor of 25, so 25-50 confirmed depending on mempool weight). To paginate further confirmed history, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*\n\nREST operation: `GET /api/address/{address}/txs`.",
+        "description": "Get transaction history for an address, newest first: up to `max_txs` (50 by default and at most), mempool transactions first and confirmed ones filling the rest. To continue, pass the last returned txid as `after_txid`, or request `GET /api/address/{address}/txs/chain/{after_txid}` for confirmed history.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*\n\nREST operation: `GET /api/address/{address}/txs`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "address": {
               "$ref": "#/$defs/Address"
+            },
+            "after_txid": {
+              "description": "Continue after this transaction, a mempool or a confirmed one: the older ones (a confirmed\ncursor skips the mempool). One that is neither answers 422.",
+              "$ref": "#/$defs/Txid"
+            },
+            "max_txs": {
+              "description": "Transactions to return, at most 50 (the default); larger values return 50.",
+              "type": "integer",
+              "format": "uint",
+              "minimum": 0
             }
           },
           "additionalProperties": false,
@@ -1532,6 +1575,16 @@
                 "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
                 "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
               ]
+            },
+            "Txid": {
+              "description": "A transaction ID: its hash.",
+              "type": "string",
+              "examples": [
+                "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b",
+                "2bb85f4b004be6da54f766c17c1e855187327112c231ef2ff35ebad0ea67c69e",
+                "9a0b3b8305bb30cacf9e8443a90d53a76379fb3305047fdeaa4e4b0934a2a1ba"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
             }
           }
         },
@@ -1840,8 +1893,9 @@
               ]
             },
             "TxVersionRaw": {
-              "format": "int32",
-              "type": "integer"
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
             },
             "Txid": {
               "pattern": "^[0-9a-f]{64}$",
@@ -1873,6 +1927,14 @@
           {
             "name": "address",
             "location": "path"
+          },
+          {
+            "name": "after_txid",
+            "location": "query"
+          },
+          {
+            "name": "max_txs",
+            "location": "query"
           }
         ]
       }
@@ -2079,7 +2141,6 @@
                 "tx_count",
                 "size",
                 "weight",
-                "previousblockhash",
                 "mediantime"
               ],
               "type": "object",
@@ -2141,7 +2202,14 @@
                   ]
                 },
                 "previousblockhash": {
-                  "$ref": "#/$defs/BlockHash"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "mediantime": {
                   "allOf": [
@@ -3486,8 +3554,9 @@
               ]
             },
             "TxVersionRaw": {
-              "format": "int32",
-              "type": "integer"
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
             },
             "Txid": {
               "pattern": "^[0-9a-f]{64}$",
@@ -3746,6 +3815,12 @@
                   "format": "double",
                   "type": "number"
                 },
+                "coinbaseBip54": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
                 "firstSeen": {
                   "anyOf": [
                     {
@@ -3758,9 +3833,36 @@
                 },
                 "orphans": {
                   "items": {
-                    "$ref": "#/$defs/BlockHash"
+                    "$ref": "#/$defs/BlockOrphan"
                   },
                   "type": "array"
+                },
+                "matchRate": {
+                  "format": "double",
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "expectedFees": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Sats"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "expectedWeight": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Weight"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "price": {
                   "allOf": [
@@ -3788,7 +3890,6 @@
                 "tx_count",
                 "size",
                 "weight",
-                "previousblockhash",
                 "mediantime",
                 "extras"
               ],
@@ -3851,7 +3952,14 @@
                   ]
                 },
                 "previousblockhash": {
-                  "$ref": "#/$defs/BlockHash"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "mediantime": {
                   "allOf": [
@@ -3867,6 +3975,59 @@
                   "$ref": "#/$defs/BlockExtras"
                 }
               }
+            },
+            "BlockOrphan": {
+              "required": [
+                "height",
+                "hash",
+                "branchlen",
+                "status",
+                "prevhash"
+              ],
+              "type": "object",
+              "properties": {
+                "height": {
+                  "$ref": "#/$defs/Height"
+                },
+                "hash": {
+                  "$ref": "#/$defs/BlockHash"
+                },
+                "branchlen": {
+                  "minimum": 0,
+                  "type": "integer",
+                  "format": "uint32"
+                },
+                "status": {
+                  "$ref": "#/$defs/BlockOrphanStatus"
+                },
+                "prevhash": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    }
+                  ]
+                }
+              }
+            },
+            "BlockOrphanStatus": {
+              "oneOf": [
+                {
+                  "const": "invalid",
+                  "type": "string"
+                },
+                {
+                  "const": "headers-only",
+                  "type": "string"
+                },
+                {
+                  "const": "valid-headers",
+                  "type": "string"
+                },
+                {
+                  "const": "valid-fork",
+                  "type": "string"
+                }
+              ]
             },
             "BlockPool": {
               "type": "object",
@@ -4171,7 +4332,6 @@
                 "tx_count",
                 "size",
                 "weight",
-                "previousblockhash",
                 "mediantime"
               ],
               "type": "object",
@@ -4233,7 +4393,14 @@
                   ]
                 },
                 "previousblockhash": {
-                  "$ref": "#/$defs/BlockHash"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "mediantime": {
                   "allOf": [
@@ -4334,7 +4501,6 @@
                 "tx_count",
                 "size",
                 "weight",
-                "previousblockhash",
                 "mediantime"
               ],
               "type": "object",
@@ -4396,7 +4562,14 @@
                   ]
                 },
                 "previousblockhash": {
-                  "$ref": "#/$defs/BlockHash"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "mediantime": {
                   "allOf": [
@@ -4650,6 +4823,12 @@
                   "format": "double",
                   "type": "number"
                 },
+                "coinbaseBip54": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
                 "firstSeen": {
                   "anyOf": [
                     {
@@ -4662,9 +4841,36 @@
                 },
                 "orphans": {
                   "items": {
-                    "$ref": "#/$defs/BlockHash"
+                    "$ref": "#/$defs/BlockOrphan"
                   },
                   "type": "array"
+                },
+                "matchRate": {
+                  "format": "double",
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "expectedFees": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Sats"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "expectedWeight": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Weight"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "price": {
                   "allOf": [
@@ -4692,7 +4898,6 @@
                 "tx_count",
                 "size",
                 "weight",
-                "previousblockhash",
                 "mediantime",
                 "extras"
               ],
@@ -4755,7 +4960,14 @@
                   ]
                 },
                 "previousblockhash": {
-                  "$ref": "#/$defs/BlockHash"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "mediantime": {
                   "allOf": [
@@ -4771,6 +4983,59 @@
                   "$ref": "#/$defs/BlockExtras"
                 }
               }
+            },
+            "BlockOrphan": {
+              "required": [
+                "height",
+                "hash",
+                "branchlen",
+                "status",
+                "prevhash"
+              ],
+              "type": "object",
+              "properties": {
+                "height": {
+                  "$ref": "#/$defs/Height"
+                },
+                "hash": {
+                  "$ref": "#/$defs/BlockHash"
+                },
+                "branchlen": {
+                  "minimum": 0,
+                  "type": "integer",
+                  "format": "uint32"
+                },
+                "status": {
+                  "$ref": "#/$defs/BlockOrphanStatus"
+                },
+                "prevhash": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    }
+                  ]
+                }
+              }
+            },
+            "BlockOrphanStatus": {
+              "oneOf": [
+                {
+                  "const": "invalid",
+                  "type": "string"
+                },
+                {
+                  "const": "headers-only",
+                  "type": "string"
+                },
+                {
+                  "const": "valid-headers",
+                  "type": "string"
+                },
+                {
+                  "const": "valid-fork",
+                  "type": "string"
+                }
+              ]
             },
             "BlockPool": {
               "type": "object",
@@ -5260,6 +5525,12 @@
                   "format": "double",
                   "type": "number"
                 },
+                "coinbaseBip54": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
                 "firstSeen": {
                   "anyOf": [
                     {
@@ -5272,9 +5543,36 @@
                 },
                 "orphans": {
                   "items": {
-                    "$ref": "#/$defs/BlockHash"
+                    "$ref": "#/$defs/BlockOrphan"
                   },
                   "type": "array"
+                },
+                "matchRate": {
+                  "format": "double",
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "expectedFees": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Sats"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "expectedWeight": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Weight"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "price": {
                   "allOf": [
@@ -5302,7 +5600,6 @@
                 "tx_count",
                 "size",
                 "weight",
-                "previousblockhash",
                 "mediantime",
                 "extras"
               ],
@@ -5365,7 +5662,14 @@
                   ]
                 },
                 "previousblockhash": {
-                  "$ref": "#/$defs/BlockHash"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "mediantime": {
                   "allOf": [
@@ -5381,6 +5685,59 @@
                   "$ref": "#/$defs/BlockExtras"
                 }
               }
+            },
+            "BlockOrphan": {
+              "required": [
+                "height",
+                "hash",
+                "branchlen",
+                "status",
+                "prevhash"
+              ],
+              "type": "object",
+              "properties": {
+                "height": {
+                  "$ref": "#/$defs/Height"
+                },
+                "hash": {
+                  "$ref": "#/$defs/BlockHash"
+                },
+                "branchlen": {
+                  "minimum": 0,
+                  "type": "integer",
+                  "format": "uint32"
+                },
+                "status": {
+                  "$ref": "#/$defs/BlockOrphanStatus"
+                },
+                "prevhash": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    }
+                  ]
+                }
+              }
+            },
+            "BlockOrphanStatus": {
+              "oneOf": [
+                {
+                  "const": "invalid",
+                  "type": "string"
+                },
+                {
+                  "const": "headers-only",
+                  "type": "string"
+                },
+                {
+                  "const": "valid-headers",
+                  "type": "string"
+                },
+                {
+                  "const": "valid-fork",
+                  "type": "string"
+                }
+              ]
             },
             "BlockPool": {
               "type": "object",
@@ -5654,7 +6011,7 @@
       "tool": {
         "name": "get_cpfp",
         "title": "CPFP info",
-        "description": "Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*\n\nREST operation: `GET /api/v1/cpfp/{txid}`.",
+        "description": "Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package. A mempool transaction answers its live package; a confirmed one its package among its block's transactions; an unknown transaction, or a confirmed one without relatives in its block, `{\"ancestors\":[]}`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*\n\nREST operation: `GET /api/v1/cpfp/{txid}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -5681,9 +6038,59 @@
           }
         },
         "outputSchema": {
-          "$ref": "#/$defs/CpfpInfo",
+          "$ref": "#/$defs/Cpfp",
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
+            "ConfirmedCpfp": {
+              "required": [
+                "ancestors",
+                "descendants",
+                "effectiveFeePerVsize",
+                "cluster"
+              ],
+              "type": "object",
+              "properties": {
+                "ancestors": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/CpfpEntry"
+                  }
+                },
+                "descendants": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/CpfpEntry"
+                  }
+                },
+                "effectiveFeePerVsize": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/FeeRate"
+                    }
+                  ]
+                },
+                "cluster": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/CpfpCluster"
+                    }
+                  ]
+                }
+              }
+            },
+            "Cpfp": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/CpfpInfo"
+                },
+                {
+                  "$ref": "#/$defs/ConfirmedCpfp"
+                },
+                {
+                  "$ref": "#/$defs/EmptyCpfp"
+                }
+              ]
+            },
             "CpfpCluster": {
               "required": [
                 "txs",
@@ -5857,6 +6264,18 @@
                       "type": "null"
                     }
                   ]
+                }
+              }
+            },
+            "EmptyCpfp": {
+              "required": [
+                "ancestors"
+              ],
+              "type": "object",
+              "properties": {
+                "ancestors": {
+                  "type": "array",
+                  "maxItems": 0
                 }
               }
             },
@@ -8386,6 +8805,12 @@
                   "format": "double",
                   "type": "number"
                 },
+                "coinbaseBip54": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
                 "firstSeen": {
                   "anyOf": [
                     {
@@ -8398,9 +8823,36 @@
                 },
                 "orphans": {
                   "items": {
-                    "$ref": "#/$defs/BlockHash"
+                    "$ref": "#/$defs/BlockOrphan"
                   },
                   "type": "array"
+                },
+                "matchRate": {
+                  "format": "double",
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "expectedFees": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Sats"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "expectedWeight": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Weight"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "price": {
                   "allOf": [
@@ -8428,7 +8880,6 @@
                 "tx_count",
                 "size",
                 "weight",
-                "previousblockhash",
                 "mediantime",
                 "extras"
               ],
@@ -8491,7 +8942,14 @@
                   ]
                 },
                 "previousblockhash": {
-                  "$ref": "#/$defs/BlockHash"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "mediantime": {
                   "allOf": [
@@ -8507,6 +8965,59 @@
                   "$ref": "#/$defs/BlockExtras"
                 }
               }
+            },
+            "BlockOrphan": {
+              "required": [
+                "height",
+                "hash",
+                "branchlen",
+                "status",
+                "prevhash"
+              ],
+              "type": "object",
+              "properties": {
+                "height": {
+                  "$ref": "#/$defs/Height"
+                },
+                "hash": {
+                  "$ref": "#/$defs/BlockHash"
+                },
+                "branchlen": {
+                  "minimum": 0,
+                  "type": "integer",
+                  "format": "uint32"
+                },
+                "status": {
+                  "$ref": "#/$defs/BlockOrphanStatus"
+                },
+                "prevhash": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    }
+                  ]
+                }
+              }
+            },
+            "BlockOrphanStatus": {
+              "oneOf": [
+                {
+                  "const": "invalid",
+                  "type": "string"
+                },
+                {
+                  "const": "headers-only",
+                  "type": "string"
+                },
+                {
+                  "const": "valid-headers",
+                  "type": "string"
+                },
+                {
+                  "const": "valid-fork",
+                  "type": "string"
+                }
+              ]
             },
             "BlockPool": {
               "type": "object",
@@ -9177,6 +9688,12 @@
                   "format": "double",
                   "type": "number"
                 },
+                "coinbaseBip54": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
                 "firstSeen": {
                   "anyOf": [
                     {
@@ -9189,9 +9706,36 @@
                 },
                 "orphans": {
                   "items": {
-                    "$ref": "#/$defs/BlockHash"
+                    "$ref": "#/$defs/BlockOrphan"
                   },
                   "type": "array"
+                },
+                "matchRate": {
+                  "format": "double",
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "expectedFees": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Sats"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "expectedWeight": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/Weight"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "price": {
                   "allOf": [
@@ -9219,7 +9763,6 @@
                 "tx_count",
                 "size",
                 "weight",
-                "previousblockhash",
                 "mediantime",
                 "extras"
               ],
@@ -9282,7 +9825,14 @@
                   ]
                 },
                 "previousblockhash": {
-                  "$ref": "#/$defs/BlockHash"
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
                 },
                 "mediantime": {
                   "allOf": [
@@ -9298,6 +9848,59 @@
                   "$ref": "#/$defs/BlockExtras"
                 }
               }
+            },
+            "BlockOrphan": {
+              "required": [
+                "height",
+                "hash",
+                "branchlen",
+                "status",
+                "prevhash"
+              ],
+              "type": "object",
+              "properties": {
+                "height": {
+                  "$ref": "#/$defs/Height"
+                },
+                "hash": {
+                  "$ref": "#/$defs/BlockHash"
+                },
+                "branchlen": {
+                  "minimum": 0,
+                  "type": "integer",
+                  "format": "uint32"
+                },
+                "status": {
+                  "$ref": "#/$defs/BlockOrphanStatus"
+                },
+                "prevhash": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/BlockHash"
+                    }
+                  ]
+                }
+              }
+            },
+            "BlockOrphanStatus": {
+              "oneOf": [
+                {
+                  "const": "invalid",
+                  "type": "string"
+                },
+                {
+                  "const": "headers-only",
+                  "type": "string"
+                },
+                {
+                  "const": "valid-headers",
+                  "type": "string"
+                },
+                {
+                  "const": "valid-fork",
+                  "type": "string"
+                }
+              ]
             },
             "BlockPool": {
               "type": "object",
@@ -12473,8 +13076,9 @@
               ]
             },
             "TxVersionRaw": {
-              "format": "int32",
-              "type": "integer"
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
             },
             "Txid": {
               "pattern": "^[0-9a-f]{64}$",
@@ -12745,7 +13349,7 @@
       "tool": {
         "name": "get_tx_outspend",
         "title": "Output spend status",
-        "description": "Whether the output has been spent and, if so, the spending transaction details.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*\n\nREST operation: `GET /api/tx/{txid}/outspend/{vout}`.",
+        "description": "Whether the output has been spent and, if so, the spending transaction details. An output no known transaction holds is unspent.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*\n\nREST operation: `GET /api/tx/{txid}/outspend/{vout}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -13280,7 +13884,7 @@
       "tool": {
         "name": "get_tx_status",
         "title": "Transaction status",
-        "description": "Retrieve the confirmation status of a transaction. Returns whether the transaction is confirmed and, if so, the block height, hash, and timestamp.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-status)*\n\nREST operation: `GET /api/tx/{txid}/status`.",
+        "description": "Retrieve the confirmation status of a transaction. Returns whether the transaction is confirmed and, if so, the block height, hash, and timestamp. A transaction not in the chain, pending or unknown, is `{\"confirmed\":false}`.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-status)*\n\nREST operation: `GET /api/tx/{txid}/status`.",
         "inputSchema": {
           "type": "object",
           "properties": {
