@@ -284,7 +284,7 @@ fn extract_response_kind(
         Ty::Ref(name) => schemas.get(name).map(Ty::parse),
         ty => Some(ty.clone()),
     }
-    .is_some_and(|ty| matches!(ty, Ty::Integer | Ty::Number));
+    .is_some_and(|ty| matches!(ty, Ty::Integer(_) | Ty::Number));
     ResponseKind::Text { ty, numeric }
 }
 

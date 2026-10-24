@@ -13,7 +13,8 @@ pub(crate) enum Ty {
     Any,
     Null,
     Boolean,
-    Integer,
+    /// With its `format`, as schemars writes it (`uint32`), if any.
+    Integer(Option<String>),
     Number,
     String,
     /// An object without a declared value type.
@@ -112,7 +113,12 @@ impl Ty {
         match kind {
             "null" => Self::Null,
             "boolean" => Self::Boolean,
-            "integer" => Self::Integer,
+            "integer" => Self::Integer(
+                schema
+                    .get("format")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned),
+            ),
             "number" => Self::Number,
             "string" => Self::String,
             "array" => match schema.get("prefixItems").and_then(Value::as_array) {
@@ -139,7 +145,7 @@ impl Display for Ty {
             Self::Any => f.write_str("value"),
             Self::Null => f.write_str("null"),
             Self::Boolean => f.write_str("boolean"),
-            Self::Integer => f.write_str("integer"),
+            Self::Integer(_) => f.write_str("integer"),
             Self::Number => f.write_str("number"),
             Self::String => f.write_str("string"),
             Self::Object | Self::Map(_) => f.write_str("object"),

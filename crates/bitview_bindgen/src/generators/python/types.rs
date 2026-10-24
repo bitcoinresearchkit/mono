@@ -190,7 +190,7 @@ pub(crate) fn python_type(ty: &Ty, quote: &impl Fn(&str) -> bool) -> String {
         Ty::Any => "Any".to_owned(),
         Ty::Null => "None".to_owned(),
         Ty::Boolean => "bool".to_owned(),
-        Ty::Integer => "int".to_owned(),
+        Ty::Integer(_) => "int".to_owned(),
         Ty::Number => "float".to_owned(),
         Ty::String => "str".to_owned(),
         Ty::Object => "dict".to_owned(),

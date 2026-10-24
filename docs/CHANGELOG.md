@@ -707,6 +707,10 @@ has to be deleted by hand.
   `get_urpd_latest` (was `get_urpd`) and the one at a height or date `get_urpd` (was `get_urpd_at`). The pool-name
   constant is `POOL_SLUG_TO_NAME` (was `POOL_ID_TO_POOL_NAME`), and `get_transaction_times` takes `txids` (was
   `txId`), still sent as mempool.space's `txId[]`
+- The Rust client types each inline integer by its OpenAPI `format` (all were `i64`): `usize` for `page`, `per_page`,
+  `limit`, `max_txs`, `block_count` and `get_series_len`, `Vec<u16>` and `Vec<u32>` for the oracle histograms. Bindgen
+  maps `uint` to `usize`, `uintN` to `uN` and `intN` to `iN`, keeps `i64` for an integer without a format and fails on
+  an unknown one
 - Generated all three series trees from one composition model. Typed series paths follow the series tree (see "One unit
   per quantity": `client.series().price.close.by.day1()`), and type names change: each repeated structure is one generic
   type named after the type that defines it (`Pool` for every pool, `Flow<A>`, `Share`, `Windows<A>`, `Band`,

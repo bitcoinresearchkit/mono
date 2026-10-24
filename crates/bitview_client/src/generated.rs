@@ -2415,7 +2415,11 @@ impl BitviewClient {
     /// Paginated flat list of all available series names.
     ///
     /// Endpoint: `GET /api/series/list`
-    pub fn list_series(&self, page: Option<i64>, per_page: Option<i64>) -> Result<PaginatedSeries> {
+    pub fn list_series(
+        &self,
+        page: Option<usize>,
+        per_page: Option<usize>,
+    ) -> Result<PaginatedSeries> {
         let mut query = Vec::new();
         if let Some(v) = page {
             query.push(query_pair("page", v));
@@ -2437,7 +2441,7 @@ impl BitviewClient {
     /// Search series by name or descriptive terms. Results prioritize whole query words in names, then descriptions, then fuzzy names, then fuzzy descriptions. Word order does not matter. Descriptions provide cohort terminology and formulas. The decoded q parameter is limited to 1024 UTF-8 bytes.
     ///
     /// Endpoint: `GET /api/series/search`
-    pub fn search_series(&self, q: &str, limit: Option<i64>) -> Result<Vec<SeriesName>> {
+    pub fn search_series(&self, q: &str, limit: Option<usize>) -> Result<Vec<SeriesName>> {
         let mut query = Vec::new();
         query.push(query_pair("q", q));
         if let Some(v) = limit {
@@ -2568,7 +2572,7 @@ impl BitviewClient {
     /// Get series data length
     ///
     /// Endpoint: `GET /api/series/{series}/{index}/len`
-    pub fn get_series_len(&self, series: SeriesName, index: Index) -> Result<i64> {
+    pub fn get_series_len(&self, series: SeriesName, index: Index) -> Result<usize> {
         self.base.get_json(&format!(
             "/api/series/{}/{}/len",
             path_segment(series),
@@ -2791,7 +2795,7 @@ impl BitviewClient {
         &self,
         address: Address,
         after_txid: Option<Txid>,
-        max_txs: Option<i64>,
+        max_txs: Option<usize>,
     ) -> Result<Vec<Transaction>> {
         let mut query = Vec::new();
         if let Some(v) = after_txid {
@@ -2819,7 +2823,7 @@ impl BitviewClient {
     pub fn get_address_confirmed_txs(
         &self,
         address: Address,
-        max_txs: Option<i64>,
+        max_txs: Option<usize>,
     ) -> Result<Vec<Transaction>> {
         let mut query = Vec::new();
         if let Some(v) = max_txs {
@@ -2849,7 +2853,7 @@ impl BitviewClient {
         &self,
         address: Address,
         after_txid: Txid,
-        max_txs: Option<i64>,
+        max_txs: Option<usize>,
     ) -> Result<Vec<Transaction>> {
         let mut query = Vec::new();
         if let Some(v) = max_txs {
@@ -2879,7 +2883,7 @@ impl BitviewClient {
     pub fn get_address_mempool_txs(
         &self,
         address: Address,
-        max_txs: Option<i64>,
+        max_txs: Option<usize>,
     ) -> Result<Vec<Transaction>> {
         let mut query = Vec::new();
         if let Some(v) = max_txs {
@@ -3306,7 +3310,7 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-reward-stats)*
     ///
     /// Endpoint: `GET /api/v1/mining/reward-stats/{block_count}`
-    pub fn get_reward_stats(&self, block_count: i64) -> Result<RewardStats> {
+    pub fn get_reward_stats(&self, block_count: usize) -> Result<RewardStats> {
         self.base.get_json(&format!(
             "/api/v1/mining/reward-stats/{}",
             path_segment(block_count)
@@ -3708,7 +3712,7 @@ impl BitviewClient {
     /// Live smoothed histogram of oracle-eligible payment outputs, binned by output value on the oracle log scale. It combines the committed oracle window with the complete mempool's eligible outputs from a matching chain publication. A flat array of log-scale bins.
     ///
     /// Endpoint: `GET /api/oracle/histogram/payments/live`
-    pub fn get_oracle_histogram_payments_live(&self) -> Result<Vec<i64>> {
+    pub fn get_oracle_histogram_payments_live(&self) -> Result<Vec<u16>> {
         self.base
             .get_json(&format!("/api/oracle/histogram/payments/live"))
     }
@@ -3718,7 +3722,7 @@ impl BitviewClient {
     /// Smoothed histogram of oracle-eligible payment outputs for a confirmed point. A block height (`840000`) gives that block's oracle payment histogram; a calendar date (`YYYY-MM-DD`) gives the average of that day's per-block payment histograms. A flat array of log-scale bins.
     ///
     /// Endpoint: `GET /api/oracle/histogram/payments/{point}`
-    pub fn get_oracle_histogram_payments(&self, point: HeightOrDate) -> Result<Vec<i64>> {
+    pub fn get_oracle_histogram_payments(&self, point: HeightOrDate) -> Result<Vec<u16>> {
         self.base.get_json(&format!(
             "/api/oracle/histogram/payments/{}",
             path_segment(point)
@@ -3730,7 +3734,7 @@ impl BitviewClient {
     /// Live unfiltered output value histogram for the complete published mempool. Nonzero outputs within the histogram's bin range are counted by value on the oracle log scale; no oracle payment filters are applied. A flat array of log-scale bins, all zero when no mempool is configured.
     ///
     /// Endpoint: `GET /api/oracle/histogram/outputs/live`
-    pub fn get_oracle_histogram_outputs_live(&self) -> Result<Vec<i64>> {
+    pub fn get_oracle_histogram_outputs_live(&self) -> Result<Vec<u32>> {
         self.base
             .get_json(&format!("/api/oracle/histogram/outputs/live"))
     }
@@ -3740,7 +3744,7 @@ impl BitviewClient {
     /// Unfiltered output value histogram for a confirmed point. A block height (`840000`) counts that block's nonzero outputs within the histogram's bin range, coinbase included, by value on the oracle log scale; a calendar date (`YYYY-MM-DD`) sums every block that day. A flat array of log-scale bins.
     ///
     /// Endpoint: `GET /api/oracle/histogram/outputs/{point}`
-    pub fn get_oracle_histogram_outputs(&self, point: HeightOrDate) -> Result<Vec<i64>> {
+    pub fn get_oracle_histogram_outputs(&self, point: HeightOrDate) -> Result<Vec<u32>> {
         self.base.get_json(&format!(
             "/api/oracle/histogram/outputs/{}",
             path_segment(point)

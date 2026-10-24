@@ -119,7 +119,7 @@ pub(crate) fn js_type(ty: &Ty) -> String {
         Ty::Any => "*".to_owned(),
         Ty::Null => "null".to_owned(),
         Ty::Boolean => "boolean".to_owned(),
-        Ty::Integer | Ty::Number => "number".to_owned(),
+        Ty::Integer(_) | Ty::Number => "number".to_owned(),
         Ty::String => "string".to_owned(),
         Ty::Object => "Object".to_owned(),
         Ty::Map(value) => format!("{{ [key: string]: {} }}", js_type(value)),
