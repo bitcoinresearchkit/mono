@@ -2796,35 +2796,42 @@
         gap: 2px;
         pointer-events: none;
 
-        /* A stack of many: its key (its bands' colors in order, named at its ends), how many, and the one pointed at. */
+        /* A stack of many: its key (its bands' colors in order, named at its ends) and how many; the band pointed at (else
+           the one selected) in their place, as any legend's item. As tall as an item either way: nothing moves as one
+           takes the other's place. */
         &.keyed {
           align-items: center;
           gap: 10px;
+          min-height: 42px;
 
-          /* (Centered, not on their baseline: the readout's mark would lift its line, and the key and its count with it,
-             each time it shows.) */
-          button.legend-all,
-          button.legend-on {
+          /* (A focused count stays, the keys' place kept under them.) */
+          &:has(> .legend-on:not([hidden])) > :is(.legend-key, .legend-all:not(:focus)) {
+            display: none;
+          }
+
+          button.legend-all {
             display: flex;
             align-items: center;
             gap: 8px;
             padding: 4px 8px 4px 6px;
-          }
-
-          .legend-all {
             color: var(--soft);
           }
 
-          .legend-share {
-            font-weight: 590;
+          /* (Its value's line, as an item's value: its share, then its amount.) */
+          .legend-line {
+            min-height: 18px;
+            padding-left: 22px;
+            color: var(--ink);
+            font: 510 12px/18px var(--sans);
             font-variant-numeric: tabular-nums;
-          }
+            white-space: nowrap;
+            paint-order: stroke fill;
+            -webkit-text-stroke: 4px var(--card);
 
-          /* (On its line, after its share: none of a value's own room under its name.) */
-          .legend-on .legend-value {
-            min-height: 0;
-            padding-left: 0;
-            color: var(--soft);
+            .legend-value {
+              min-height: 0;
+              padding-left: 0;
+            }
           }
         }
 
@@ -7695,6 +7702,11 @@
        * clear of the notch).
        */
       @media (max-width: 760px), (max-height: 500px) {
+        /* (A stack of many's count and its View all: the bar's Layers is the list there.) */
+        .legend.keyed button.legend-all {
+          display: none;
+        }
+
         .app {
           grid-template-columns: minmax(0, 1fr);
           grid-template-rows: minmax(0, 1fr);
@@ -14631,9 +14643,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The layer a series on the chart draws, candles or their close line. */
       const layerOfSeries = (series) => [...drawn].find(([, other]) => other === series)?.[0] ?? [...closes].find(([, close]) => close.series === series)?.[0] ?? null;
-      /** Whether the pointer's a finger's (no band lit by it), and whether it's on a legend over the plot (the band kept). */
-      let touching = false, onLegend = false;
-      for (const type of ["pointerdown", "pointermove"]) document.addEventListener(type, (event) => (touching = /** @type {PointerEvent} */ (event).pointerType === "touch"), { capture: true, passive: true });
+      /** Whether the pointer's on a legend over the plot (the band pointed at kept). */
+      let onLegend = false;
       document.addEventListener("pointerover", (event) => {
         onLegend = Boolean(closest(event, "#chart .legend"));
         // (Not while something's carried: the rows passed over aren't pointed at. A finger points at nothing: what it
@@ -15646,20 +15657,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function keyHtml(pane) {
         const bands = bandsOf(pane);
         const strip = bands.map((layer) => `<i style="--c:${escape(ink(colorNow(layer) ?? layer.color))}"></i>`).join("");
-        return `<span class="legend-key" aria-hidden="true"><span>${escape(labelOf(bands[0]))}</span><span class="key-strip">${strip}</span><span>${escape(labelOf(/** @type {Layer} */ (bands.at(-1))))}</span></span>`
-          + `<button type="button" class="legend-all" data-action="pane-layers" data-pane="${pane.id}">${bands.length} layers<span aria-hidden="true"> · </span>View all</button>`
-          + `<button type="button" class="legend-on" hidden><span class="legend-name"></span>${pane.stack === "percent" ? '<span class="legend-share"></span>' : ""}<span class="legend-value"></span></button>`;
+        // (The band pointed at (else the one selected) first, as any legend's item: its name, its value under it (a 100%
+        // stack's share first); in the key's place while it shows, see the stylesheet.)
+        return `<button type="button" class="legend-on" hidden><span class="legend-name"></span><span class="legend-line">${pane.stack === "percent" ? '<span class="legend-share"></span><span aria-hidden="true"> · </span>' : ""}<span class="legend-value"></span></span></button>`
+          + `<span class="legend-key" aria-hidden="true"><span>${escape(labelOf(bands[0]))}</span><span class="key-strip">${strip}</span><span>${escape(labelOf(/** @type {Layer} */ (bands.at(-1))))}</span></span>`
+          + `<button type="button" class="legend-all" data-action="pane-layers" data-pane="${pane.id}">${bands.length} layers<span aria-hidden="true"> · </span>View all</button>`;
       }
       /** A keyed legend's band, the pointer's else the selected one: its button the same, what it names set in place (a focus on it stays), its values written as they are (see updateReadout). */
       function paintBand(/** @type {HTMLElement} */ element, /** @type {Pane} */ pane) {
         const bands = bandsOf(pane), on = [bandLit, selected].map((id) => bands.find((layer) => layer.id === id)).find(Boolean);
         const button = /** @type {HTMLElement | null} */ (element.querySelector(".legend-on"));
         if (!button) return;
-        button.hidden = !on;
+        // (In the key's place or out of it: what the legend holds measured again, as it's written, see fitSoon.)
+        if (button.hidden !== !on) (button.hidden = !on), fitSoon(element);
         if (!on) return void (delete button.dataset.select);
         // (Selected or picked, as markPicks marks a legend's; its mark and name as they are now (renamed, recolored).)
         button.classList.toggle("selected", on.id === selected || layerPicks.has(on.id));
-        const name = `${seriesMark(on)}<span class="name">${escape(labelOf(on))}</span>`, named = /** @type {HTMLElement} */ (button.querySelector(".legend-name"));
+        const name = legendNameHtml(on), named = /** @type {HTMLElement} */ (button.querySelector(".legend-name"));
         if (named.innerHTML !== name) named.innerHTML = name;
         if (button.dataset.select === on.id) return;
         // (Another band: its values its own, written with the readout.)
@@ -15684,6 +15698,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * while hovering (the date shows on the time axis), else at the view's end; a click selects. A stack of many, its
        * key instead (see keyHtml).
        */
+      /** A legend item's mark (its switch: an eye on it) and name, a band's pointed at as any layer's. @param {Layer} layer */
+      const legendNameHtml = (layer) => `<span class="legend-eye${layer.hidden ? " off" : ""}" data-toggle="${layer.id}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${seriesMark(layer)}<span class="eye">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</span></span><span class="name">${escape(labelOf(layer))}</span>`;
       function updateLegends() {
         if (!chart) return;
         for (const element of legends()) {
@@ -15696,7 +15712,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               : layer.hidden || !result?.values || (layer.type === "signal" && !signalShown(layer)) ? '<span class="legend-value"></span>'
               : `<span class="legend-value" data-value="${layer.id}" style="min-width: ${valueSlot(layer, 12)}px"></span>`;
             return `<button type="button" class="${layer.hidden || (layer.type === "signal" && !signalShown(layer)) ? "hidden" : ""} ${layer.id === selected || layerPicks.has(layer.id) ? "selected" : ""}" data-select="${layer.id}">
-              <span class="legend-name"><span class="legend-eye${layer.hidden ? " off" : ""}" data-toggle="${layer.id}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${seriesMark(layer)}<span class="eye">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</span></span><span class="name">${escape(labelOf(layer))}</span></span>${value}
+              <span class="legend-name">${legendNameHtml(layer)}</span>${value}
             </button>`;
           }).join("");
           if (legendShown.get(element) === html) {
@@ -16276,9 +16292,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       view.subscribeCrosshairMove((param) => {
         const time = param.time === undefined ? null : /** @type {number} */ (param.time);
-        // (In a keyed pane, the band under it: its readout in the key, it lit among its pane's. On the legend over the plot,
-        // the one it was (the readout stays under the pointer); a finger's, none (it selects by a tap).)
-        const band = touching ? null : bandAt(param) ?? (onLegend ? bandLit : null);
+        // (In a keyed pane, the band under it, a finger's held too: its item in the key's place, it lit among its pane's.
+        // On the legend over the plot, the one it was (its item stays under the pointer).)
+        const band = bandAt(param) ?? (onLegend ? bandLit : null);
         if (band !== bandLit) {
           const was = bandLit;
           bandLit = band;
@@ -31678,11 +31694,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const pieces = [];
         for (const legend of shown) {
           const edge = legend.getBoundingClientRect().right;
+          // (A stack of many's key, as it shows: its ends' names and its colors in their order.)
+          const key = /** @type {HTMLElement | null} */ (legend.querySelector(":scope > .legend-key"));
+          if (key?.offsetParent) {
+            const strip = /** @type {HTMLElement} */ (key.querySelector(".key-strip")), cells = all$("i", strip);
+            pieces.push({ ...box(strip), svg: `<svg viewBox="0 0 ${cells.length} 1" width="${strip.offsetWidth}" height="${strip.offsetHeight}" preserveAspectRatio="none">${cells.map((cell, i) => `<rect x="${i}" width="1.02" height="1" fill="${getComputedStyle(cell).backgroundColor}"/>`).join("")}</svg>` });
+            for (const end of /** @type {HTMLElement[]} */ (all$(":scope > span:not(.key-strip)", key))) {
+              const style = getComputedStyle(end);
+              pieces.push({ ...box(end), text: end.textContent?.trim() ?? "", font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ ("left") });
+            }
+          }
           for (const button of legend.querySelectorAll("button")) {
-            if (button.style.display === "none" || button.getBoundingClientRect().right > edge + 1) continue;
+            // (Hidden, out of the legend's place (a key's count and its band's item, one at a time), or past its edge.)
+            if (button.style.display === "none" || !button.offsetParent || button.getBoundingClientRect().right > edge + 1) continue;
             const mark = button.querySelector(".series-mark"), faded = button.classList.contains("hidden");
             if (mark) pieces.push({ ...box(mark), svg: mark.outerHTML, faded });
-            for (const element of /** @type {HTMLElement[]} */ ([button.querySelector(".name"), button.querySelector(".legend-value, .legend-error")])) {
+            // (A band's item: its whole line, its share with its value.)
+            for (const element of /** @type {HTMLElement[]} */ ([button.querySelector(".name"), button.querySelector(".legend-line") ?? button.querySelector(".legend-value, .legend-error")])) {
               if (!element?.textContent?.trim()) continue;
               // (Its words where they're drawn: past its padding, a value's under its name.)
               const style = getComputedStyle(element), inset = parseFloat(style.paddingLeft) * scale, at = box(element);
