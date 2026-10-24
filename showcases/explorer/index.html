@@ -247,6 +247,8 @@
 
       /* ── The catalog: a column per folder opened, the series at the end ── */
 
+      /* (Slid sideways, from anywhere but the chart (a finger there reads it), it comes to rest on a column's edge:
+         columns whole, as fit() shows them.) */
       main {
         position: relative;
         display: flex;
@@ -254,6 +256,7 @@
         min-height: 0;
         overflow-x: auto;
         overscroll-behavior-x: contain;
+        scroll-snap-type: x mandatory;
       }
 
       .column {
@@ -262,7 +265,9 @@
         overflow-y: auto;
         border-right: 1px solid var(--line);
         background: var(--pane);
-        overscroll-behavior: contain;
+        scroll-snap-align: start;
+        /* (Its own scroll up and down kept to it; a slide sideways goes on to the page.) */
+        overscroll-behavior-y: contain;
 
         h2 {
           position: sticky;
@@ -359,6 +364,7 @@
       .home,
       .rest {
         flex: 1 0 0;
+        scroll-snap-align: end;
       }
 
       /* A series: its history, how to have it, what it is. */
