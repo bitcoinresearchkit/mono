@@ -7106,6 +7106,14 @@
         contain-intrinsic-size: auto 0px;
       }
 
+      /* (A shelf out of sight is laid out and drawn only as it comes near: the page of them shown again (back from a
+         chart) lays out the few in sight, not every shelf's tiles. Till then as tall as one drawn (they're all alike,
+         see allShelfSteps), the page's height as it'll be.) */
+      #gallery .shelf {
+        content-visibility: auto;
+        contain-intrinsic-size: auto var(--shelf-height, 247px);
+      }
+
       @media (max-width: 760px), (max-height: 500px) {
         .shelf-row {
           grid-auto-columns: min(82%, 320px);
@@ -16251,17 +16259,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         findLitItems();
         return litItems.get(layer) ?? [];
       }
-      function lightLegend(id, again = false) {
+      function lightLegend(id, again = false, follow = false) {
         if (id === litLayer && !again) return;
         // (Moving from one to another, only those two change; drawn again (the legends' or the rows' writers ask), every
         // one is set, and found anew.)
         const of = (/** @type {string | null} */ layer) => (layer ? litItemsOf(layer) : []);
         const items = again ? findLitItems() : [...of(litLayer), ...of(id)];
         litLayer = id;
-        // (Where it is, read before anything's lit: lighting it moves nothing, and reading after would lay the page out
-        // again, each move; only in a legend wider than its room, the one that can scroll, and not while the view moves:
-        // bands sweep under a pointer held still, the legend kept where it is.)
-        const button = id && !again && performance.now() - viewMovedAt >= 250 ? of(id).find((item) => item.closest(".legend")) : undefined;
+        // (A band's item is kept in sight (`follow`: its key's in the legend's place); a line's is lit where it is, the
+        // legend never sliding under a finger swept across lines. Where it is, read before anything's lit: lighting it
+        // moves nothing, and reading after would lay the page out again, each move; only in a legend wider than its
+        // room, the one that can scroll, and not while the view moves: bands sweep under a pointer held still, the legend
+        // kept where it is.)
+        const button = id && follow && !again && performance.now() - viewMovedAt >= 250 ? of(id).find((item) => item.closest(".legend")) : undefined;
         const row = button?.parentElement, place = button && row?.classList.contains("overflows") ? { left: button.offsetLeft, width: button.offsetWidth, at: row.scrollLeft, room: row.clientWidth, full: row.scrollWidth } : null;
         for (const item of items) item.classList.toggle("lit", (item.dataset.select ?? item.dataset.layer) === id);
         if (!place || !row) return;
@@ -16625,7 +16635,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           paintBands();
           if (spotlit === was || band) spotlight(band);
         }
-        lightLegend(band ?? (param.point && param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null));
+        lightLegend(band ?? (param.point && param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null), false, Boolean(band));
         if (time === hoverTime) return;
         hoverTime = time;
         valuesSoon();
@@ -21185,10 +21195,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Every shelf's steps and edges, once the page's writes this frame are in (one layout, not one a write), before it's shown. */
       let shelvesFrame = 0;
       const shelvesSoon = () => (shelvesFrame ||= requestAnimationFrame(() => ((shelvesFrame = 0), allShelfSteps())));
-      /** Every shelf's steps and edges (all read first, then written: one layout, not one a shelf), its far tiles watched. */
+      /**
+       * Every shelf's steps and edges (all read first, then written: one layout, not one a shelf), its far tiles watched:
+       * those of the shelves near sight; one far, as it comes near (a far one read would be laid out whole, see
+       * #gallery .shelf). A shelf's height, as drawn, the far ones' until they are.
+       */
       function allShelfSteps() {
-        const rows = all$(".shelf-row", $("home")), sizes = rows.map((row) => ({ at: row.scrollLeft, size: row.clientWidth, full: row.scrollWidth }));
-        rows.forEach((row, k) => fitShelf(row, sizes[k].at, sizes[k].size, sizes[k].full));
+        const rows = all$(".shelf-row", $("home")), scroller = homeScroll(), reach = scroller.clientHeight, box = scroller.getBoundingClientRect();
+        const near = rows.filter((row) => ((shelf) => shelf.bottom > box.top - 2 * reach && shelf.top < box.bottom + 2 * reach)(/** @type {HTMLElement} */ (row.closest(".shelf")).getBoundingClientRect()));
+        const sizes = near.map((row) => ({ at: row.scrollLeft, size: row.clientWidth, full: row.scrollWidth })), drawn = near[0]?.closest(".shelf:not(.lead)");
+        near.forEach((row, k) => fitShelf(row, sizes[k].at, sizes[k].size, sizes[k].full));
+        if (drawn) $("gallery").style.setProperty("--shelf-height", `${/** @type {HTMLElement} */ (drawn).offsetHeight}px`);
         nearTiles(rows);
       }
       /** Each shelf whose tiles are watched, and what watches those not near yet. @type {WeakMap<HTMLElement, IntersectionObserver>} */
@@ -21213,7 +21230,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           shelvesNear?.disconnect();
           nearReach = reach;
           shelvesNear = new IntersectionObserver((entries, own) => {
-            for (const entry of entries) if (entry.isIntersecting && !rowsNear.has(/** @type {HTMLElement} */ (entry.target))) (own.unobserve(entry.target), tilesNear(/** @type {HTMLElement} */ (entry.target)));
+            for (const entry of entries) if (entry.isIntersecting && !rowsNear.has(/** @type {HTMLElement} */ (entry.target))) (own.unobserve(entry.target), shelfSteps(/** @type {HTMLElement} */ (entry.target)), tilesNear(/** @type {HTMLElement} */ (entry.target)));
           }, { root: scroller, rootMargin: `${2 * reach}px 0px` });
         }
         const shelves = /** @type {IntersectionObserver} */ (shelvesNear);
