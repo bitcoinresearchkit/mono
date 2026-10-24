@@ -2506,6 +2506,11 @@
         &:has(.interval-auto) {
           width: var(--auto-width, 92px);
         }
+
+        /* (By number, as wide as its name: its ranges are others anyway.) */
+        &.by-number {
+          width: auto;
+        }
         height: 28px;
         border: 0;
         gap: 6px;
@@ -6535,7 +6540,7 @@
           }
 
           /* (Auto: its own row, the width of the three, what it's at now beside its name.) */
-          &.interval-auto-row {
+          &.wide {
             grid-template-columns: 1fr;
             padding-top: 6px;
 
@@ -10048,6 +10053,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         series: svg('<path d="M1.5 12.5 6 7l3 3 5.5-6.5"/>', 15),
         recent: svg('<circle cx="8" cy="8" r="6"/><path d="M8 4.5V8l2.5 1.5"/>', 15),
         calendar: svg('<rect x="2" y="3" width="12" height="11" rx="2"/><path d="M2 6.5h12M5.5 1.5v3M10.5 1.5v3"/>', 15),
+        hash: svg('<path d="M6.5 2 5 14M11 2 9.5 14M2.5 5.5h11M2 10.5h11"/>', 15),
         share: svg('<path d="M8 9.5V2M5.5 4.5 8 2l2.5 2.5"/><path d="M5.5 7H4.5a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-1"/>', 15),
         upload: svg('<path d="M8 10V2.5M5 5.5l3-3 3 3"/><path d="M3 11v1.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V11"/>', 15),
         download: svg('<path d="M8 2.5V10M5 7l3 3 3-3"/><path d="M3 11v1.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V11"/>', 15),
@@ -10169,14 +10175,31 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         ["Years", [["year1", "1Y"], ["year10", "10Y"]]],
       ];
       const INTERVAL_ORDER = INTERVALS.flatMap(([, items]) => items.map(([id]) => id));
-      const INTERVAL_LABEL = Object.fromEntries(INTERVALS.flatMap(([, items]) => items));
-      /** Fine intervals have hundreds of thousands of points: they load in chunks, as far back as the view goes. */
-      const FINE = new Set(["minute10", "minute30", "hour1", "hour4", "hour12"]);
-      /** A fine interval's step, in seconds. */
-      const FINE_STEP = { minute10: 600, minute30: 1800, hour1: 3600, hour4: 14400, hour12: 43200 };
-      /** An index's time (unix seconds, where its bucket starts) and the index a time falls in, by the client (a time before the first is in the first). */
-      const timeAt = (/** @type {string} */ index, /** @type {number} */ i) => client.indexToDate(/** @type {"day1"} */ (index), i).getTime() / 1000;
-      const indexAt = (/** @type {string} */ index, /** @type {number} */ time) => client.dateToIndex(/** @type {"day1"} */ (index), new Date(Math.max(time, timeAt(index, 0)) * 1000));
+      /**
+       * Points by number, not by date (the interval menu's By number): blocks, difficulty epochs (2,016 blocks each) and
+       * halving epochs (210,000), each by its blocks. Laid out as dates are, a block each ten minutes from the genesis
+       * block's time (as the protocol aims: a stretch of blocks lands near its dates), a stand-in time never read as a
+       * date: what's said of a point is its number (see pointLabel, nameAxis). Not Auto's, nor the linked view's.
+       */
+      const NUMBERED = /** @type {[string, string, number, string][]} */ ([["height", "Block", 1, "Block"], ["difficulty_epoch", "Difficulty epoch", 2016, "Difficulty"], ["halving_epoch", "Halving epoch", 210000, "Halving"]]);
+      const NUMBER_ORDER = NUMBERED.map(([id]) => id);
+      const BY_NUMBER = new Set(NUMBER_ORDER);
+      /** The intervals one steps among from `index`, fine to coarse: by date, or by number. */
+      const intervalSteps = (/** @type {string} */ index) => (BY_NUMBER.has(index) ? NUMBER_ORDER : INTERVAL_ORDER);
+      const BLOCKS_IN = /** @type {Record<string, number>} */ (Object.fromEntries(NUMBERED.map(([id, , blocks]) => [id, blocks])));
+      const GENESIS_BLOCK = 1231006505;
+      /** A block's stand-in time, at every interval by number. */
+      const blockTime = (/** @type {number} */ block) => GENESIS_BLOCK + block * 600;
+      /** The block a stand-in time is of. */
+      const blockOf = (/** @type {number} */ time) => Math.floor((time - GENESIS_BLOCK) / 600);
+      const INTERVAL_LABEL = Object.fromEntries([...INTERVALS.flatMap(([, items]) => items), ...NUMBERED.map(([id, label]) => [id, label])]);
+      /** Fine intervals have hundreds of thousands of points: they load in chunks, as far back as the view goes (blocks too). */
+      const FINE = new Set(["minute10", "minute30", "hour1", "hour4", "hour12", "height"]);
+      /** A fine interval's step, in seconds (a block's, its stand-in's). */
+      const FINE_STEP = { minute10: 600, minute30: 1800, hour1: 3600, hour4: 14400, hour12: 43200, height: 600 };
+      /** An index's time (unix seconds, where its bucket starts) and the index a time falls in, by the client (a time before the first is in the first); by number, its stand-in. */
+      const timeAt = (/** @type {string} */ index, /** @type {number} */ i) => (BY_NUMBER.has(index) ? blockTime(i * BLOCKS_IN[index]) : client.indexToDate(/** @type {"day1"} */ (index), i).getTime() / 1000);
+      const indexAt = (/** @type {string} */ index, /** @type {number} */ time) => (BY_NUMBER.has(index) ? Math.max(0, Math.floor((time - GENESIS_BLOCK) / (BLOCKS_IN[index] * 600))) : client.dateToIndex(/** @type {"day1"} */ (index), new Date(Math.max(time, timeAt(index, 0)) * 1000)));
       /** A chunk's points, aligned on the indexes: the latest two load at first, then each the view reaches. */
       const CHUNK = 8000;
       /**
@@ -10194,8 +10217,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const KEPT_CHUNKS = 150;
       /** The range presets: three spans back from the latest, and the most the chart shows (all of history, where it fits). @type {[string, string, number][]} */
       const RANGES = [["3m", "3M", 91], ["1y", "1Y", 365], ["4y", "4Y", 1461], ["8y", "8Y", 2922], ["max", "Max", 0]];
-      /** A range's days (Max, or none, 0). */
-      const rangeDays = (/** @type {string} */ id) => RANGES.find(([range]) => range === id)?.[2] ?? 0;
+      /**
+       * By number, the ranges are counts: of blocks (in days of their stand-in time; Max, a few thousand, as many as the
+       * chart shows), or, for epochs, few enough for Max alone. @type {[string, string, number][]}
+       */
+      const BLOCK_RANGES = [["100", "100", 100 / 144], ["1k", "1K", 1000 / 144], ["max", "Max", 0]];
+      const rangesFor = (/** @type {string} */ index) => (index === "height" ? BLOCK_RANGES : BY_NUMBER.has(index) ? [RANGES[RANGES.length - 1]] : RANGES);
+      /** A range's days at an interval (Max, or one not its own, 0: shown as Max). */
+      const rangeDays = (/** @type {string} */ id, /** @type {string} */ index) => rangesFor(index).find(([range]) => range === id)?.[2] ?? 0;
       /** The range a chart starts on, and a link that names none opens on: two cycles, the last 8 years (user, 2026-10-12). */
       const DEFAULT_RANGE = "8y";
       /**
@@ -10585,7 +10614,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const SPAN_LETTERS = { h: "hour", d: "day", w: "week", mo: "month", y: "year" };
       /** A span's unit as words write it (30 days), as its letters do (30d). @type {Record<string, string>} */
       const SPAN_WORDS = { h: "h", hour: "h", hours: "h", d: "d", day: "d", days: "d", w: "w", week: "w", weeks: "w", mo: "mo", month: "mo", months: "mo", y: "y", year: "y", years: "y" };
-      const INTERVAL_DAYS = { ...Object.fromEntries(Object.entries(FINE_STEP).map(([index, step]) => [index, step / 86400])), day1: 1, day3: 3, week1: 7, month1: SPAN_DAYS.month, month3: 3 * SPAN_DAYS.month, month6: 6 * SPAN_DAYS.month, year1: SPAN_DAYS.year, year10: 10 * SPAN_DAYS.year };
+      const INTERVAL_DAYS = { ...Object.fromEntries(Object.entries(FINE_STEP).map(([index, step]) => [index, step / 86400])), day1: 1, day3: 3, week1: 7, month1: SPAN_DAYS.month, month3: 3 * SPAN_DAYS.month, month6: 6 * SPAN_DAYS.month, year1: SPAN_DAYS.year, year10: 10 * SPAN_DAYS.year, ...Object.fromEntries(NUMBERED.map(([id, , blocks]) => [id, blocks / 144])) };
       /** A window of `days` in an interval's points, one at least: shorter than the interval, a moving average is the series as it is. */
       const windowPoints = (/** @type {number} */ days, /** @type {string} */ index) => Math.max(1, Math.round(days / INTERVAL_DAYS[index]));
       /** Whether a window is longer than `x`'s values reach (from its first to its last), so none fits. */
@@ -10598,7 +10627,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * 1D and up, all of history; at a finer one, a whole chunk beside the newest), for a window of `days` (Infinity: all
        * of history).
        */
-      const fitsFrom = (/** @type {number} */ days, /** @type {string} */ index) => /** @type {string} */ (INTERVAL_ORDER.slice(INTERVAL_ORDER.indexOf(index) + 1).find((other) => !FINE.has(other) || windowPoints(days, other) < CHUNK));
+      const fitsFrom = (/** @type {number} */ days, /** @type {string} */ index) => /** @type {string} */ (intervalSteps(index).slice(intervalSteps(index).indexOf(index) + 1).find((other) => !FINE.has(other) || windowPoints(days, other) < CHUNK));
       /** An error said short where it's glanced at (the legend, a row: what to do), and in full where there's room. */
       const failing = (/** @type {string} */ detail, /** @type {string} */ short) => Object.assign(new Error(detail), { short });
       /**
@@ -10610,7 +10639,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         beyond && FINE.has(index) && !(shift && days > (Date.now() / 1000 - timeAt("day1", 0)) / 86400)
           ? failing(`${f} over ${span}: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(days, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(days, index)]}+`)
           : new Error(`${f}: ${span} is longer than the data`);
-      const CADENCE = { minute10: "Every 10 minutes", minute30: "Every 30 minutes", hour1: "Hourly", hour4: "Every 4 hours", hour12: "Every 12 hours", day1: "Daily", day3: "Every 3 days", week1: "Weekly", month1: "Monthly", month3: "Quarterly", month6: "Every 6 months", year1: "Yearly", year10: "By decade" };
+      const CADENCE = { minute10: "Every 10 minutes", minute30: "Every 30 minutes", hour1: "Hourly", hour4: "Every 4 hours", hour12: "Every 12 hours", day1: "Daily", day3: "Every 3 days", week1: "Weekly", month1: "Monthly", month3: "Quarterly", month6: "Every 6 months", year1: "Yearly", year10: "By decade", ...Object.fromEntries(NUMBERED.map(([id, label]) => [id, `By ${label.toLowerCase()}`])) };
 
       // ── Units and formatting ──────────────────────────────────────────────────
 
@@ -10885,6 +10914,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @returns {[string, string] | [string]} the two ends, or one date when they're the same
        */
       function spanParts(from, to, index = shownIndex()) {
+        // (By number, its numbers: "Block 971,500", "971,600".)
+        if (BY_NUMBER.has(index)) return ((first, last) => (first === last ? [`${INTERVAL_LABEL[index]} ${last}`] : [`${INTERVAL_LABEL[index]} ${first}`, last]))(grouped.format(indexAt(index, from)), grouped.format(indexAt(index, to)));
         const a = new Date(from * 1000), b = new Date(to * 1000), fine = FINE.has(index);
         if (index.startsWith("year")) {
           const [first, last] = [String(a.getUTCFullYear()), String(b.getUTCFullYear())];
@@ -11571,10 +11602,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * 840,000). The next, a block every ten minutes from the tip's: an estimate, drawn as one.
        */
       const KNOWN_HALVINGS = [1354116278, 1468082773, 1589225023, 1713571767], HALVING_BLOCKS = 210_000;
-      /** The halvings mined so far: those known, and any since, placed from the tip's time back (a block each ten minutes). */
-      const minedHalvings = () => [...KNOWN_HALVINGS, ...Array.from({ length: Math.max(0, Math.floor(liveHeight / HALVING_BLOCKS) - KNOWN_HALVINGS.length) }, (_, k) => (liveAt || Date.now() / 1000) - (liveHeight - (KNOWN_HALVINGS.length + k + 1) * HALVING_BLOCKS) * 600)];
-      /** The halvings to come, the next `count`, estimated (a block each ten minutes from the tip): each its number and time. */
-      const nextHalvings = (count = 3) => (liveHeight ? Array.from({ length: count }, (_, k) => ((n) => ({ n, time: Date.now() / 1000 + (n * HALVING_BLOCKS - liveHeight) * 600 }))(Math.floor(liveHeight / HALVING_BLOCKS) + 1 + k)) : []);
+      /**
+       * The halvings mined so far: those known, and any since, placed from the tip's time back (a block each ten minutes);
+       * at an interval by number, each at its block (see blockTime).
+       */
+      const minedHalvings = (/** @type {string} */ index = "day1") => (BY_NUMBER.has(index) ? Array.from({ length: Math.floor(liveHeight / HALVING_BLOCKS) }, (_, k) => blockTime((k + 1) * HALVING_BLOCKS)) : [...KNOWN_HALVINGS, ...Array.from({ length: Math.max(0, Math.floor(liveHeight / HALVING_BLOCKS) - KNOWN_HALVINGS.length) }, (_, k) => (liveAt || Date.now() / 1000) - (liveHeight - (KNOWN_HALVINGS.length + k + 1) * HALVING_BLOCKS) * 600)]);
+      /** The halvings to come, the next `count`, estimated (a block each ten minutes from the tip): each its number and time (by number, its block's). */
+      const nextHalvings = (count = 3, /** @type {string} */ index = "day1") => (liveHeight ? Array.from({ length: count }, (_, k) => ((n) => ({ n, time: BY_NUMBER.has(index) ? blockTime(n * HALVING_BLOCKS) : Date.now() / 1000 + (n * HALVING_BLOCKS - liveHeight) * 600 }))(Math.floor(liveHeight / HALVING_BLOCKS) + 1 + k)) : []);
+      /** Drawings are placed by date (see NUMBERED): by number, neither shown nor drawn. */
+      const BY_DATE_ONLY = "Drawings are placed by date: they show at date intervals";
       /** At most this many drawings, a stroke at most this many points: all of it still fits in a link (two megabytes at most). */
       const MAX_DRAWINGS = 100, MAX_STROKE = 300;
       /** A drawing's point as kept: its time to the second, its value as it is (any rounding moves it on a scale zoomed in far enough). */
@@ -12770,7 +12806,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (storage.set(VIEWS, all) || (storage.drop(PREVIEWS, THUMBS), storage.set(VIEWS, all))) (viewsBase = { ...all }), (viewsUnkept = false);
         else if (!viewsUnkept) (viewsUnkept = true), notice("Where charts were left isn't kept: storage full or blocked");
       };
-      addEventListener("storage", (event) => event.key === VIEWS && ((viewsLeft = null), followLinked()));
+      // (Another tab's linked view, taken here at once out of sight: shown already as it's turned to (see followLinked).)
+      addEventListener("storage", (event) => event.key === VIEWS && ((viewsLeft = null), document.visibilityState !== "visible" && followLinked()));
       // (Back from the browser's history, others' writes since unheard: read again.)
       addEventListener("pageshow", (event) => event.persisted && (viewsLeft = null));
       const isEdge = (edge) => Array.isArray(edge) && edge.length === 2 && edge.every(Number.isFinite) && Math.abs(edge[0]) < 1e11;
@@ -12805,6 +12842,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * window it shows wider). @type {any}
        */
       let linkedAt = null;
+      /** The linked view this page last took or said, by when it was said (its `at`): another said since, it takes it (see followLinked). */
+      let linkedTook = 0;
+      /**
+       * A hand on the page (a pointer, the wheel, a key) since it last took or said the linked view: only then does it say
+       * it (see storeView). A chart laid out, resized or taking it moves its view too, as no one's move.
+       */
+      let handled = false;
+      /** The pointers held down (fingers, by their ids): a hand on the page till the last is let go (said halfway, a drag held on is still one). */
+      const handsHeld = new Set();
+      for (const type of ["pointerdown", "wheel", "keydown"]) addEventListener(type, (event) => ((handled = true), event instanceof PointerEvent && handsHeld.add(event.pointerId)), { capture: true, passive: true });
+      for (const type of ["pointerup", "pointercancel"]) addEventListener(type, (event) => handsHeld.delete(/** @type {PointerEvent} */ (event).pointerId), { capture: true, passive: true });
+      /**
+       * The linked view the open chart is drawn again to take (see followLinked), as it was when taken: its chunks and its
+       * view both for it, one said meanwhile taken next; its chart's, while it's linked (by date). @type {{ view: any, at: number, id: string } | null}
+       */
+      let retaking = null;
       /** Two views at the same dates: their edges where they fall in time (however each is written), within a hundredth of a bar. @param {any} a @param {any} b */
       const sameEdges = (a, b) => Boolean(a && b && a.index === b.index) && ((x, y, bar) => Math.abs(x.start - y.start) < bar && Math.abs(x.end - y.end) < bar)(viewTimes(a), viewTimes(b), (INTERVAL_DAYS[a.index] * 86400) / 100);
       /** The open chart's span moved to where it's kept now (its view the same through a link's change, see linkView): one span, one key. */
@@ -12815,10 +12868,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         spans.delete(from);
         spans.set(spanKey(chart.id, chart.index), span);
       }
-      /** Where a chart's view is kept: its own, but the open chart's every chart's while the view is linked (see linkView). */
-      const viewKey = (/** @type {string} */ id) => (prefs.linkView && id === chart?.id ? LINKED : id);
-      /** The view a chart opens on (see viewKey). */
-      const openView = (/** @type {string} */ id) => leftView(viewKey(id));
+      /**
+       * Where a chart's view is kept: its own, but the open chart's every chart's while the view is linked (see linkView),
+       * by date only (by number, its own: see NUMBERED).
+       */
+      const viewKey = (/** @type {string} */ id) => (prefs.linkView && id === chart?.id && !BY_NUMBER.has(chart.index) ? LINKED : id);
+      /**
+       * The view a chart opens on (see viewKey): one kept by date for a chart by date, by number for one by number (a
+       * number's time a stand-in: none between them, the chart on its range).
+       */
+      const openView = (/** @type {Chart} */ doc) => ((left) => (left && BY_NUMBER.has(left.index) === BY_NUMBER.has(doc.index) ? left : null))(leftView(viewKey(doc.id)));
+      /** The view the open chart opens on now: the linked one it's taking, as taken (see followLinked); else its own. */
+      const openingView = (/** @type {Chart} */ doc) => (retaking && doc.id === retaking.id && viewKey(doc.id) === LINKED ? retaking.view : openView(doc));
       /** An edge of the view as the time of the point nearest it, and how many bars it lies from that point. */
       function edgeOf(logical, times) {
         const i = clamp(Math.round(logical), 0, times.length - 1);
@@ -12916,8 +12977,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * The view linked or not: on, every chart opens on the same dates, and moving the view (a pan, a zoom, a range, the
-       * navigator) moves it for all, in other tabs too as it rests; only the dates (each its own interval). It starts as
-       * the open chart shows. Off, the open chart stays where it is (its own now), the others on their own.
+       * navigator) moves it for all: each takes it as it opens, a tab as it comes in sight (never one in sight as it's
+       * looked at); only the dates (each its own interval). It starts as the open chart shows. Off, the open chart stays
+       * where it is (its own now), the others on their own.
        */
       function linkView(/** @type {boolean} */ on) {
         if (on === prefs.linkView) return;
@@ -12928,30 +12990,30 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         linkedAt = null;
         storeView(false);
         renderLinkView();
-        toast(on ? "Every chart shows these dates, in every tab" : "Each chart keeps its own view");
+        toast(on ? (chart && BY_NUMBER.has(chart.index) ? "Every chart by date shows the same dates, in every tab" : "Every chart shows these dates, in every tab") : "Each chart keeps its own view");
       }
       function renderLinkView() {
         $("link-view").setAttribute("aria-pressed", String(prefs.linkView));
       }
       /**
-       * The linked view moved elsewhere (another tab): the open chart there too, unless it's there already, a move under
-       * way stopped, and not said back while it stays where it was put (see storeView). A chart at minutes or hours, its
-       * chunks loaded for the stretch it shows, takes the linked dates as it's opened, not as they move (its chunks would
-       * have to load first: left out, said plainly).
+       * The linked view said by another tab: the open chart takes it, drawn again as it opens (its chunks for it, at minutes
+       * or hours), as every interval does; out of sight at once (it says nothing back: see storeView), else as it comes in
+       * sight. Never as it's looked at: what's on screen moves only by a hand on it.
        */
       function followLinked() {
-        const left = prefs.linkView ? leftView(LINKED) : null, times = resolved?.times, now = view.timeScale().getVisibleLogicalRange();
-        if (!left || !chart || drawnChart !== chart.id || !times?.length || !now) return;
-        // (One at minutes or hours stays where it is: in line as it is, not said back.)
-        if (FINE.has(chart.index)) return void (linkedAt = viewRecord(now, times));
-        const to = within(viewOn(left, chart.index, times), "to");
-        if (Math.abs(to.from - now.from) < 0.01 && Math.abs(to.to - now.to) < 0.01) return;
+        if (home || !chart || drawnChart !== chart.id || viewKey(chart.id) !== LINKED) return;
+        const linked = leftView(LINKED), at = viewsNow()[LINKED]?.at;
+        if (!linked || !at || at === linkedTook) return;
         stopGlide();
-        setPresetShown(false);
-        view.timeScale().setVisibleLogicalRange(to);
-        view.bvFlush();
-        linkedAt = viewRecord(view.timeScale().getVisibleLogicalRange() ?? to, times);
+        retaking = { view: linked, at, id: chart.id };
+        // (Auto, at the interval it asks for, as it opens.)
+        if (chart.auto) (autoPrepare(chart), renderInterval());
+        spans.delete(spanKey(chart.id, chart.index));
+        void draw();
       }
+      document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && followLinked());
+      // (A window beside another, both in sight: as it's turned to.)
+      addEventListener("focus", followLinked);
       let viewTimer = 0;
       /** Keeps where the open chart is, a moment after it stops moving. */
       function keepView() {
@@ -12972,14 +13034,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * at the latest its bars from the last (at the latest only where its data is: a fine interval's chunks loaded may
        * end in the past). @param {{ from: number, to: number }} range @param {number[]} times
        */
-      const viewRecord = (range, times) => ({ index: drawnIndex, from: edgeOf(range.from, times), to: edgeOf(range.to, times), ...(range.to > times.length - 1.5 && drawnLive ? { latest: [range.from - (times.length - 1), range.to - (times.length - 1)] } : {}) });
+      const viewRecord = (range, times, index = drawnIndex) => ({ index, from: edgeOf(range.from, times), to: edgeOf(range.to, times), ...(range.to > times.length - 1.5 && drawnLive ? { latest: [range.from - (times.length - 1), range.to - (times.length - 1)] } : {}) });
       /** The open chart's view as it shows (none while it shows its range, the range said instead), as a link carries it. */
       function shownView() {
         const range = view.timeScale().getVisibleLogicalRange(), times = resolved?.times;
-        return chart && drawnChart === chart.id && range && times?.length && !presetShown ? viewRecord(range, times) : null;
+        // (Mid-switch between dates and numbers, the one before's: none (see openView).)
+        return chart && drawnChart === chart.id && range && times?.length && !presetShown && BY_NUMBER.has(drawnIndex) === BY_NUMBER.has(chart.index) ? viewRecord(range, times) : null;
       }
-      function storeView(asDrawn) {
+      /** Whether the page has been in sight (see storeView). */
+      let seen = document.visibilityState === "visible";
+      document.addEventListener("visibilitychange", () => (seen ||= document.visibilityState === "visible"));
+      function storeView(asDrawn, leaving = false) {
         clearTimeout(viewTimer);
+        // (Kept only from a page in sight, or as one that was is left: one out of sight isn't moved by anyone, what it shows
+        // there is another's (the linked view followed), or as it was; said, it would take another tab's view back to it.
+        // A page made ahead, unseen (a prerender), keeps nothing.)
+        if (!(document.visibilityState === "visible" || (leaving && seen))) return;
         const times = resolved?.times;
         if (!chart || drawnChart !== chart.id || (!asDrawn && drawnIndex !== chart.index) || !times?.length || !view.timeScale().width()) return;
         // (By the switch's draw, mid-glide (a zoom asked for meanwhile), where it's going: the draw ends the glide.)
@@ -12987,13 +13057,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Linked, every chart's, a range's too: the one each opens on; said only once it's moved since it was in line with
         // it (see linkedAt).)
         const all = viewsNow(), key = viewKey(chart.id), shown = range ? viewRecord(range, times) : null;
-        if (key === LINKED && sameEdges(shown, linkedAt)) return;
-        if (key === LINKED) linkedAt = shown;
-        if ((presetShown && !prefs.linkView) || !shown) delete all[key];
+        if (key === LINKED && (!handled || sameEdges(shown, linkedAt))) return;
+        if (key === LINKED) (linkedAt = shown), (handled = handsHeld.size > 0);
+        if ((presetShown && key !== LINKED) || !shown) delete all[key];
         else all[key] = { ...shown, at: Date.now() };
+        if (key === LINKED && all[key]) linkedTook = all[key].at;
         putViews(all);
       }
-      onLeave(saveView);
+      onLeave(() => storeView(false, true));
       /**
        * Charts opened, and the grid (a link, a script, a click): a picture made meanwhile, of the one before, dropped. The
        * chart open opened again (a preset made anew from the presets as they are now, its id the same) is no other.
@@ -13752,8 +13823,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** @typedef {{ from: number, to: number, live: boolean, rest?: number, floor?: { at: number, of: string } }} Span the chunks a chart holds, `live` while they reach the latest; `rest`: no reaching out before then (nothing came from there); `floor`: the oldest with points for the series it was found with (those before it came empty: they start later) */
       /** The chunk a time falls in, at a fine interval. */
       const chunkAt = (index, time) => Math.floor(indexAt(index, time) / CHUNK);
-      /** The chunk the latest points are in, by the clock. */
-      const latestChunk = (index) => chunkAt(index, Date.now() / 1000);
+      /** Now, at an interval: the clock's; by number, the chain's tip's (the clock's guess till it's known). */
+      const nowAt = (/** @type {string} */ index) => (BY_NUMBER.has(index) && liveHeight ? blockTime(liveHeight) : Date.now() / 1000);
+      /** The chunk the latest points are in. */
+      const latestChunk = (index) => chunkAt(index, nowAt(index));
       /** @type {Map<string, Promise<{ start: number, data: any[], version: number }>>} */
       const chunks = new Map();
       /** Chunks that failed, asked for again when the view reaches for them (not at each redraw). */
@@ -13777,8 +13850,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The chunks a range preset covers, from the latest (Max: the latest two). @returns {Span} */
       function presetSpan(index, range) {
         // (One that doesn't fit at this interval shows as Max: as many chunks as Max takes.)
-        const latest = latestChunk(index), told = rangeDays(range), days = told / INTERVAL_DAYS[index] > mostBars() ? 0 : told;
-        return { from: clamp(days ? chunkAt(index, Date.now() / 1000 - days * 86400) : latest - 1, Math.max(0, latest - FIRST_CHUNKS + 1), Math.max(0, latest - 1)), to: latest, live: true };
+        const latest = latestChunk(index), told = rangeDays(range, index), days = told / INTERVAL_DAYS[index] > mostBars() ? 0 : told;
+        return { from: clamp(days ? chunkAt(index, nowAt(index) - days * 86400) : latest - 1, Math.max(0, latest - FIRST_CHUNKS + 1), Math.max(0, latest - 1)), to: latest, live: true };
       }
       /**
        * A chart's span at its interval (none at a coarse one), made when it's first drawn there: the chunks its saved view
@@ -13790,11 +13863,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         let span = spans.get(key);
         if (!span) {
           // (A view kept at another interval: its stretch of time, of which the chart shows the end: what that needs.)
-          const left = openView(doc.id);
+          const left = openingView(doc);
           if (left) {
             const { start, end } = viewTimes(left), most = left.index === doc.index ? MOST_CHUNKS : FIRST_CHUNKS;
             // (Left at the latest: the latest chunks, from its start as late as the time come since its end.)
-            const to = left.latest ? latest : clamp(chunkAt(doc.index, end), 0, latest), since = left.latest ? Math.max(0, Date.now() / 1000 - end) : 0;
+            const to = left.latest ? latest : clamp(chunkAt(doc.index, end), 0, latest), since = left.latest ? Math.max(0, nowAt(doc.index) - end) : 0;
             const from = clamp(chunkAt(doc.index, start + since), Math.max(0, to - most + 1), to);
             span = { from, to, live: to >= latest };
           } else span = presetSpan(doc.index, doc.range);
@@ -13909,6 +13982,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * one timeline; then evaluates the formulas. @param {Chart} doc @returns {Promise<Resolved>}
        */
       async function resolve(doc, fresh = false) {
+        // (By number, its latest points are the tip's: known first (see draw, which waits before its span is made).)
+        if (BY_NUMBER.has(doc.index) && !liveHeight) await tipAsked;
         const sources = doc.layers.filter((layer) => layer.series);
         const named = formulaSeries(doc);
         if (fresh) for (const name of seriesIn(doc)) retryInfo(name);
@@ -13918,7 +13993,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // formula is never asked for). Until the catalog is indexed (just after load), Bitview is asked.
           if (catalogIndex && !catalogIndex.has(name)) return { error: { status: 404 } };
           // Known to lack this interval (any by date, by block only): say so without asking for its data.
-          const lacking = byBlock.has(name) || (known.get(name) && !known.get(name).indexes.includes(doc.index));
+          const lacking = (byBlock.has(name) && !BY_NUMBER.has(doc.index)) || (known.get(name) && !known.get(name).indexes.includes(doc.index));
           const [about, series] = await Promise.allSettled([info(name), lacking ? Promise.resolve(null) : load(name, doc.index, fresh, spanOf(doc))]);
           if (about.status === "rejected") return { error: about.reason };
           const meta = about.value;
@@ -14071,6 +14146,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const key = [frame.id, layer.formula, doc.index, ...inputs, ...[...refsOf(node, "series")].map((name) => (bySeries.get(name)?.values ? idOf(bySeries.get(name)?.values) : "-"))].join("|");
           return kept(layer, key, () => {
             const value = evaluate(node, length, (name, kind) => {
+              // (By number, a point's time is a stand-in: no date to read.)
+              if (kind === "date" && BY_NUMBER.has(doc.index)) throw new Error(`date: only at a date interval, not by ${INTERVAL_LABEL[doc.index].toLowerCase()}`);
               if (kind === "date") return Float64Array.from(times);
               if (kind === "series") {
                 const input = bySeries.get(name);
@@ -14256,7 +14333,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Over several years the time axis names years only: a lone month at the edge ("Sep") reads as noise. */
       const yearsOnly = (_time, type) => (type === LC.TickMarkType.Year ? null : "");
-      let yearsAxis = false;
+      /** How round a number is, as a tick's weight: ten a zero it ends in, five more where what's left is a five's. */
+      function roundness(/** @type {number} */ n) {
+        if (!n) return 95;
+        let zeros = 0;
+        while (zeros < 8 && n % 10 ** (zeros + 1) === 0) zeros++;
+        return 10 * zeros + ((n / 10 ** zeros) % 5 === 0 ? 5 : 0);
+      }
+      /**
+       * How the time axis names its ticks now: by number (a number view's, its interval), years only (over several years),
+       * or dates. (By what the time scale holds: the build's, as it sets its view.)
+       */
+      let axisNamed = "";
+      function nameAxis(index = drawnDoc?.index ?? shownIndex()) {
+        const span = view.timeScale().getVisibleRange();
+        const by = BY_NUMBER.has(index) ? index : span && Number(span.to) - Number(span.from) > 3 * 365.25 * 86400 ? "years" : "dates";
+        // The chart keeps labels it has formatted: a new formatter, only when the way changes, starts them over.
+        if (by === axisNamed) return;
+        axisNamed = by;
+        view.applyOptions({ timeScale: { tickMarkFormatter: BY_NUMBER.has(by) ? (time) => grouped.format(indexAt(by, Number(time))) : by === "years" ? yearsOnly : () => null } });
+      }
       /**
        * The widest a price scale gets: the longest label an axis writes, as lightweight-charts sizes it (its border,
        * tick, paddings and label offset around the text). Each is as wide as its labels are; this, the room they can take.
@@ -14763,7 +14859,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether what's drawn is at a fine interval (its dates written with their times): during a switch, the old data's. */
       const fineDrawn = () => FINE.has(shownIndex());
       /** A point's date as its interval (the one drawn, else `index`) has it: a month's, its month ("Oct 2023"); a year's, its year; a day's, its day; finer, its time too. @param {number} time @param {string} [index] */
-      const pointLabel = (time, index = shownIndex()) => ((at) => (index.startsWith("year") ? String(at.getUTCFullYear()) : index.startsWith("month") ? `${MONTHS[at.getUTCMonth()]} ${at.getUTCFullYear()}` : dateLabel(time, FINE.has(index))))(new Date(time * 1000));
+      const pointLabel = (time, index = shownIndex()) => BY_NUMBER.has(index) ? `${INTERVAL_LABEL[index]} ${grouped.format(indexAt(index, time))}` : ((at) => (index.startsWith("year") ? String(at.getUTCFullYear()) : index.startsWith("month") ? `${MONTHS[at.getUTCMonth()]} ${at.getUTCFullYear()}` : dateLabel(time, FINE.has(index))))(new Date(time * 1000));
       let drawnRange = "";
       let drawnChart = "";
       /** Whether the data on screen reaches the latest bar (a fine interval's chunks may end in the past). */
@@ -14812,12 +14908,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const doc = structuredClone(chart);
         drawingData = dataKey(doc);
         const first = drawnChart !== doc.id;
+        // (By number, the latest points are the tip's: known first, the server's first answer, before any span's made
+        // (unreached, the clock's guess, made again once it answers: see checkLive).)
+        if (BY_NUMBER.has(doc.index) && !liveHeight) {
+          await tipAsked;
+          if (version !== drawVersion) return false;
+        }
         // Each chart keeps its span at each fine interval while the view it backs is the one the chart opens on (another
         // chart opened, its view left at this interval): back at it, it's as it was left, its chunks at hand (unless the
         // memory's budget let them go). Opening on its preset instead (an interval switch, a view left at another
         // interval or none), the preset's span is made again. The runs joined go (made again from their chunks).
         if (drawnChart !== doc.id || drawnIndex !== doc.index) {
-          if (drawnChart === doc.id || prefs.linkView || openView(doc.id)?.index !== doc.index) spans.delete(spanKey(doc.id, doc.index));
+          if (drawnChart === doc.id || viewKey(doc.id) === LINKED || openView(doc)?.index !== doc.index) spans.delete(spanKey(doc.id, doc.index));
           spanned.clear();
         }
         // (Counted against the span it'll draw: see above.)
@@ -14844,7 +14946,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (At another interval, the view kept as it shows now, at the one before: moved while its data came, it's that one.
         // Only the switch's own, kept at the one before: none (a range asked for shows instead), or one kept at the new
         // interval (a date gone to), stays as it is.)
-        if (drawnChart === doc.id && drawnIndex !== doc.index && openView(doc.id)?.index === drawnIndex) storeView(true);
+        if (drawnChart === doc.id && drawnIndex !== doc.index && openView(doc)?.index === drawnIndex) storeView(true);
         // (Nothing at all, bitview.space not answering: one word of it over the plot, not a red line per layer.)
         const unreached = result.failed.length > 0 && ![...result.results.values()].some((item) => item?.values);
         $("unreached").hidden = !unreached;
@@ -15019,6 +15121,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         endScaleGlide();
         // (What the live price paints its colors from: this, whatever builds it, a restyle and a preview too.)
         drawnDoc = doc;
+        // (By number, the time scale's points weighed by how round their numbers are (LWC patch 34), set with them: its
+        // ticks fall on round ones; else by their dates, the library's own.)
+        LC.bvWeights(BY_NUMBER.has(doc.index) ? (time) => roundness(indexAt(doc.index, time)) : null);
         // (Another chart, another interval: the keys' crosshair lets go of a date it may not have.)
         if (drawnChart !== doc.id || drawnIndex !== doc.index) keyAway();
         const sameView = !refit && drawnIndex === doc.index && drawnRange === doc.range && drawnChart === doc.id;
@@ -15299,11 +15404,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!(holding && drawnPanes === panesShape)) sizePanes();
         drawnPanes = panesShape;
         view.applyOptions({ timeScale: { timeVisible: FINE.has(doc.index) } });
+        nameAxis();
         // A chart opening comes back where it was left; at another interval, on the same time (on its preset, if it
         // showed one: it kept no view then). (Unless the view has since fallen off the data: an old one of a fine
         // interval, past its latest points.)
         fitSpacing(doc, data.times.length);
-        const left = drawnChart !== doc.id || drawnIndex !== doc.index ? openView(doc.id) : null;
+        // (Or the linked view it's taking, still its own: see openingView.)
+        const opening = openingView(doc), taking = Boolean(retaking) && opening === retaking?.view;
+        const left = drawnChart !== doc.id || drawnIndex !== doc.index || taking ? opening : null;
+        if (left && viewKey(doc.id) === LINKED) (linkedTook = taking ? /** @type {any} */ (retaking).at : viewsNow()[LINKED]?.at ?? 0), (handled = false);
+        retaking = null;
         // (A view at the latest from where its range starts, its room after the latest that range's (a quarter either way:
         // that room is a width's, another tab's may be another): that range itself, as a range shows, at the latest as it
         // comes.)
@@ -15317,13 +15427,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           view.bvFlush();
           view.timeScale().setVisibleLogicalRange(target);
           setPresetShown(false);
-          if (viewKey(doc.id) === LINKED) linkedAt = ((range) => range && viewRecord(range, data.times))(view.timeScale().getVisibleLogicalRange());
+          if (viewKey(doc.id) === LINKED) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(view.timeScale().getVisibleLogicalRange());
         } else if (!visible || presetShown || onRange) {
           applyRange(doc, data);
           view.bvFlush();
           applyRange(doc, data);
           setPresetShown(true);
-          if (onRange) linkedAt = ((range) => range && viewRecord(range, data.times))(view.timeScale().getVisibleLogicalRange());
+          if (onRange) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(view.timeScale().getVisibleLogicalRange());
         }
         else if (shift && (glidingTo ?? logical)) {
           const range = /** @type {{ from: number, to: number }} */ (glidingTo ?? logical);
@@ -15472,7 +15582,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A preset's window; "Max" from the first value shown, with room on its left for the first date's label (none on a card's preview, which has no labels). */
       function presetWindow(doc, data, most = mostBars(), room = 30, gap = rightGap()) {
-        const n = data.times.length, days = rangeDays(doc.range);
+        const n = data.times.length, days = rangeDays(doc.range, doc.index);
         const first = days ? lowerBound(data.times, data.times[n - 1] - days * 86400) : firstShown(doc, data);
         // Its first bar `room` pixels in (a range's, at its edge), its last `gap` pixels from the end, as many bars between
         // as fit (at most `most` across: the latest of them).
@@ -15551,7 +15661,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Every price scale back on auto, however it was dragged. */
       const autoScale = () => view.panes().forEach((_, i) => ["left", "right"].forEach((side) => view.priceScale(side, i).applyOptions({ autoScale: true })));
       /** Whether a preset's span fits on the chart at its interval (Max, the most that fits, always). */
-      const presetFits = (/** @type {string} */ id) => id === "max" || (chart.auto ? autoIntervals(chart) : [chart.index]).some((index) => rangeDays(id) / INTERVAL_DAYS[index] <= mostBars());
+      const presetFits = (/** @type {string} */ id) => id === "max" || (chart.auto ? autoIntervals(chart) : [chart.index]).some((index) => ((days) => days > 0 && days / INTERVAL_DAYS[index] <= mostBars())(rangeDays(id, index)));
       /** The preset the chart shows as: its own, or Max for one too long to fit (which shows the same). */
       const shownRange = () => (presetFits(chart.range) ? chart.range : "max");
 
@@ -16393,7 +16503,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /** The range presets, in words: Max, all of history at a day or coarser, the most that fits finer. */
-      const PERIODS = { "3m": "past 3 months", "1y": "past year", "4y": "past 4 years", "8y": "past 8 years", max: "whole history" };
+      const PERIODS = { "3m": "past 3 months", "1y": "past year", "4y": "past 4 years", "8y": "past 8 years", "100": "last 100 blocks", "1k": "last 1,000 blocks", max: "whole history" };
       const periodOf = (/** @type {string} */ id) => (id === "max" && FINE.has(chart.index) ? "most that fits" : PERIODS[id]);
 
       view.subscribeCrosshairMove((param) => {
@@ -17048,13 +17158,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (scaleGliding) endScaleGlide();
         // (The lens shows the view as it's drawn next, moved by a key, a range, the navigator.)
         if (lensAt) lookAt(lensAt);
-        const span = view.timeScale().getVisibleRange();
-        const years = Boolean(span) && Number(span.to) - Number(span.from) > 3 * 365.25 * 86400;
-        // The chart keeps labels it has formatted: a new formatter, only when the threshold is crossed, starts them over.
-        if (years !== yearsAxis) {
-          yearsAxis = years;
-          view.applyOptions({ timeScale: { tickMarkFormatter: years ? yearsOnly : () => null } });
-        }
+        nameAxis();
         if (writing) placeField();
         viewMoved();
         placeBrush();
@@ -17196,7 +17300,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const unfitHere = (formulas) => {
         if (chart.auto || formulas.every((formula) => computableAt(formula, chart.index))) return "";
-        const supported = supportedIntervals(chart), from = INTERVAL_ORDER.slice(INTERVAL_ORDER.indexOf(chart.index) + 1).find((id) => supported(id) && formulas.every((formula) => computableAt(formula, id)));
+        const supported = supportedIntervals(chart), order = intervalSteps(chart.index), from = order.slice(order.indexOf(chart.index) + 1).find((id) => supported(id) && formulas.every((formula) => computableAt(formula, id)));
         return `Not at ${INTERVAL_LABEL[chart.index]}${from ? `: ${INTERVAL_LABEL[from]} and up, or Auto` : ""}`;
       };
       /** The most points `width` pixels show well: a line, a point and a half a pixel; candles, one per six. @param {Chart} doc @param {number} width */
@@ -17216,7 +17320,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return at >= 0 && points(doc.index) <= most * 1.5 && !(finer && points(finer) <= most * 0.8) ? doc.index : best;
       }
       /** A range's days (Max, all of history). @param {string} range */
-      const rangeSpan = (range) => (range === "max" || !rangeDays(range) ? (Date.now() / 1000 - GENESIS) / 86400 : rangeDays(range));
+      const rangeSpan = (range) => ((days) => days || (Date.now() / 1000 - GENESIS) / 86400)(rangeDays(range, "day1"));
       /** The interval the open view asks for of an Auto chart, the open one or a copy of it (none drawn, nothing in it: its range's). */
       function autoWanted(doc = chart) {
         return autoPick(doc, viewDays() ?? rangeSpan(doc.range), view.timeScale().width() || $("chart").clientWidth);
@@ -17231,7 +17335,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** An Auto chart about to be drawn: at the interval its view as left asks for, else its range's (not one, then another). @param {Chart} doc */
       function autoPrepare(doc) {
         if (!doc.auto) return;
-        const left = openView(doc.id), times = left ? viewTimes(left) : null;
+        const left = openingView(doc), times = left ? viewTimes(left) : null;
         doc.index = autoPick(doc, times ? (times.end - times.start) / 86400 : rangeSpan(doc.range), view.timeScale().width() || $("chart").clientWidth);
       }
       /**
@@ -17573,7 +17677,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const REACH = 6, PULL = 8;
       const reachOf = (event) => (event.pointerType === "touch" ? 14 : REACH);
       const SANS = css("--sans");
-      const drawingById = (id) => (id ? chart.drawings?.find((drawing) => drawing.id === id) : undefined);
+      /** A drawing of the open chart, by its id (by number, none: see BY_DATE_ONLY). */
+      const drawingById = (id) => (id && !BY_NUMBER.has(chart.index) ? chart.drawings?.find((drawing) => drawing.id === id) : undefined);
       /** Each drawing's name, its kind's (a text, its words), numbered where the chart has more than one alike. */
       function drawingNames(doc = chart) {
         const all = doc.drawings ?? [], named = (drawing) => (drawing.kind === "text" ? `“${(drawing.text ?? "").trim().split("\n")[0].slice(0, 32)}”` : TOOLS[drawing.kind].name);
@@ -18157,7 +18262,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const host = fill ?? frontFirst[0] ?? null, back = frontFirst.at(-1) ?? null;
           this.markOrder = fill ? "normal" : "bottom";
           const lowest = Boolean(host) && chart.panes.filter((pane) => chart.layers.some((layer) => layer.pane === pane.id && !layer.hidden)).at(-1)?.id === host?.pane;
-          const marks = line && (host?.id === this.layer || (lowest && back?.id === this.layer)) ? [...minedHalvings().map((time, i) => ({ x: line.at + barOf(time) * line.step, n: i + 1, next: false })), ...nextHalvings().map(({ n, time }) => ({ x: line.at + barOf(time) * line.step, n, next: true }))] : [];
+          const marks = line && (host?.id === this.layer || (lowest && back?.id === this.layer)) ? [...minedHalvings(drawnIndex).map((time, i) => ({ x: line.at + barOf(time) * line.step, n: i + 1, next: false })), ...nextHalvings(3, drawnIndex).map(({ n, time }) => ({ x: line.at + barOf(time) * line.step, n, next: true }))] : [];
           this.marks = host?.id === this.layer ? marks : [];
           this.names = lowest && back?.id === this.layer ? marks : [];
           const own = layerById(this.layer), trend = own?.type === "trend" && !own.hidden && line && series ? resolved?.results.get(this.layer) : null;
@@ -18303,7 +18408,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         drawingsOf = doc.id;
         // (The layer a drawing was being placed on, gone: it goes.)
         if (placing && !drawn.has(placing.host.id)) stopDrawing();
-        shownDrawings = doc.drawings ?? [];
+        shownDrawings = BY_NUMBER.has(doc.index) ? [] : doc.drawings ?? [];
+        // (By number, none of them is there to hold (see BY_DATE_ONLY): let go.)
+        if (BY_NUMBER.has(doc.index)) (measuring = null), tool && setTool(""), chosen.size && chooseDrawings([]);
         for (const [id, series] of drawn) {
           if (sketches.has(series)) continue;
           const sketch = new Sketch(id);
@@ -18407,6 +18514,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whatever's in hand put down, the pointer the pointer again (another chart, the grid). */
       const putDown = () => (setTool(""), magnifying && setMagnifier(false));
       function setTool(/** @type {DrawingKind | ""} */ kind, kept = false) {
+        if (kind && BY_NUMBER.has(chart.index)) return notice(BY_DATE_ONLY);
         if (kind && magnifying) setMagnifier(false);
         toolKept = Boolean(kind) && kept && kind !== "text";
         // A tool in hand, nothing's selected: the belt shows what it'll draw (and the drawings, if hidden).
@@ -18440,7 +18548,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * layer go: one thing's in focus at a time.
        */
       function chooseDrawings(/** @type {Iterable<string>} */ ids) {
-        const next = new Set(ids);
+        const next = new Set(BY_NUMBER.has(chart.index) ? [] : ids);
         if (next.size) revealDrawings();
         if (next.size && tool) setTool("");
         if (next.size && selectingArea) setSelectingArea(false);
@@ -18497,8 +18605,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const tools = BELT_TOOLS.map((each) => {
           const { name, tip = name, key, kbd, icon } = beltTool(each);
           // (The ways of looking, the magnifier and the drawings' eye, apart from the ways of drawing.)
-          return `${each === "magnifier" ? '<i class="belt-rule"></i>' : ""}<button type="button" class="cap ${each === tool && toolKept ? "kept" : ""}" id="belt-${each}" data-tool="${each}" aria-pressed="${pressed(each)}" aria-label="${name}${each === tool && toolKept ? ", kept" : ""}" data-tip="${escape(tip)}" data-kbd="${kbd}">${icon}${key ? `<kbd>${key}</kbd>` : ""}</button>`;
-        }).join("") + (chart.drawings?.length ? `<button type="button" class="cap" id="belt-hide" data-belt="hide" aria-pressed="${drawingsHidden}" aria-label="${drawingsHidden ? "Show the drawings" : "Hide the drawings"}" data-tip="${drawingsHidden ? "Show the drawings" : "Hide the drawings: the chart as it is, without them"}" data-kbd="⇧ H">${drawingsHidden ? ICONS.eyeOff : ICONS.eye}</button>` : "");
+          return `${each === "magnifier" ? '<i class="belt-rule"></i>' : ""}<button type="button" class="cap ${each === tool && toolKept ? "kept" : ""}" id="belt-${each}" data-tool="${each}" aria-pressed="${pressed(each)}" aria-label="${name}${each === tool && toolKept ? ", kept" : ""}" ${Object.hasOwn(TOOLS, each) && BY_NUMBER.has(chart.index) ? `aria-disabled="true" data-tip="${BY_DATE_ONLY}"` : `data-tip="${escape(tip)}" data-kbd="${kbd}"`}>${icon}${key ? `<kbd>${key}</kbd>` : ""}</button>`;
+        }).join("") + (chart.drawings?.length && !BY_NUMBER.has(chart.index) ? `<button type="button" class="cap" id="belt-hide" data-belt="hide" aria-pressed="${drawingsHidden}" aria-label="${drawingsHidden ? "Show the drawings" : "Hide the drawings"}" data-tip="${drawingsHidden ? "Show the drawings" : "Hide the drawings: the chart as it is, without them"}" data-kbd="⇧ H">${drawingsHidden ? ICONS.eyeOff : ICONS.eye}</button>` : "");
         const button = (/** @type {string} */ part, /** @type {string} */ label, /** @type {string} */ body, menu = true, kbd = "") => `<button type="button" class="cap" id="belt-${part}" data-belt="${part}" ${menu ? 'aria-haspopup="menu"' : ""} aria-label="${escape(label)}" data-tip="${escape(label)}" ${kbd ? `data-kbd="${kbd}"` : ""}>${body}</button>`;
         // Each look shown as the first drawing that has it has it; set, it's set on each that has it.
         const has = (/** @type {string} */ part) => [...kinds].some((each) => hasLook(each, part));
@@ -20100,20 +20208,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** @type {Map<string, Preview & { key: string }>} */
       const previews = new Map(Object.entries(storage.get(PREVIEWS, {})).filter(([, item]) => validPreview(item)));
       /** What a card depends on past a mini chart's: its layers' looks the mark leaves out, the view it was left at and how much the chart shows. @param {Chart} doc */
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName]), openView(doc.id), FINE.has(doc.index) && !doc.auto ? Math.round(view.timeScale().width() / 50) : 0]);
+      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName]), openView(doc), FINE.has(doc.index) && !doc.auto ? Math.round(view.timeScale().width() / 50) : 0]);
       /**
        * How many bars a chart's preview shows at most (its data at `index`): its range's, as the chart opens on it (Max, at
        * a day or coarser, the whole history); finer, no more than fit the chart's width at four a pixel.
        */
       function previewBars(/** @type {Chart} */ doc, index = doc.index) {
-        const width = view.timeScale().width(), days = rangeDays(doc.range);
+        const width = view.timeScale().width(), days = rangeDays(doc.range, index);
         // (A short range at a coarse interval, 3M of months: a dozen bars still, not a preview of none.)
         const own = autoOwn(doc);
         return Math.min(FINE.has(own) && width ? ((width / MIN_BAR_SPACING) * INTERVAL_DAYS[own]) / INTERVAL_DAYS[index] : Infinity, days ? Math.max(12, days / INTERVAL_DAYS[index]) : Infinity);
       }
       /** Where a chart's range starts in its data: its first point within the range's days of the last one (Max, the first). */
       const rangeStart = (/** @type {Chart} */ doc, /** @type {ArrayLike<number>} */ times) => {
-        const days = rangeDays(doc.range);
+        const days = rangeDays(doc.range, doc.index);
         return days && times.length ? lowerBound(times, times[times.length - 1] - days * 86400) : 0;
       };
       const savePreviewsSoon = writeSoon(savePreviews);
@@ -20142,7 +20250,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const drawn = { seps: [], marks: [] };
         if (n < 2) return drawn;
         // (The view it opens on: its own; the open one's, linked, every chart's (as its chunks are, see spanOf).)
-        const left = openView(doc.id);
+        const left = openView(doc);
         // (Another chart's: the room any chart has after its latest point, not the open one's gutter.)
         const shown = left ? within(viewOn(left, doc.index, times, plainGap()), "to") : presetWindow(doc, data, most, 0, 0);
         const span = shown.to - shown.from;
@@ -20153,7 +20261,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const big = size !== PREVIEW;
         if (big) {
           drawn.end = Math.min(n - 1, Math.floor(shown.to));
-          drawn.ticks = dateTicks(times, shown.from, shown.to, W);
+          drawn.ticks = dateTicks(times, shown.from, shown.to, W, doc.index);
           drawn.scales = [];
         }
         const first = clamp(Math.floor(shown.from), 0, n - 1), last = clamp(Math.ceil(shown.to), 0, n - 1);
@@ -20352,11 +20460,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const closedTo = (d, edge) => d.split("M").filter(Boolean).map((part) => `M${part.split(" ")[0]} ${edge}L${part}L${part.slice(part.lastIndexOf("L") + 1).split(" ")[0]} ${edge}Z`).join("");
       /**
        * Dates along a picture's foot, `width` wide, over `from`–`to` (bars of `times`): years for years (every few, past
-       * eight), months for months, days for days, hours for hours; where each falls.
+       * eight), months for months, days for days, hours for hours; where each falls. By number, round numbers (a 1, 2 or 5
+       * of a power of ten apart, eight at most).
        */
-      function dateTicks(/** @type {ArrayLike<number>} */ times, /** @type {number} */ from, /** @type {number} */ to, /** @type {number} */ width) {
+      function dateTicks(/** @type {ArrayLike<number>} */ times, /** @type {number} */ from, /** @type {number} */ to, /** @type {number} */ width, index = "day1") {
         const n = times.length, start = Math.max(0, Math.ceil(from)), end = Math.min(n - 1, Math.floor(to)), span = to - from;
         if (end <= start || !(span > 0)) return [];
+        if (BY_NUMBER.has(index)) {
+          const first = indexAt(index, times[start]), last = indexAt(index, times[end]), power = 10 ** Math.floor(Math.log10(Math.max(1, (last - first) / 8)));
+          const step = /** @type {number} */ ([1, 2, 5, 10].map((k) => k * power).find((each) => (last - first) / each <= 8));
+          const ticks = [];
+          for (let i = start; i <= end; i++) if (indexAt(index, times[i]) % step === 0) ticks.push({ x: Math.round(((i - from) / span) * width * 10) / 10, text: grouped.format(indexAt(index, times[i])) });
+          return ticks;
+        }
         const days = (times[end] - times[start]) / 86400, unit = days > 730 ? "year" : days > 60 ? "month" : days > 2 ? "day" : "hour";
         const keyOf = (/** @type {number} */ time) => ((date) => (unit === "year" ? date.getUTCFullYear() : unit === "month" ? date.getUTCFullYear() * 12 + date.getUTCMonth() : unit === "day" ? Math.floor(time / 86400) : Math.floor(time / 3600)))(new Date(time * 1000));
         const all = [];
@@ -20477,8 +20593,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function sampleIndex(doc, coarsest, points) {
         const own = autoOwn(doc);
-        if (INTERVAL_ORDER.indexOf(own) >= INTERVAL_ORDER.indexOf(coarsest) || doc.layers.some((layer) => runsWindow(layer.formula ?? ""))) return own;
-        const days = rangeDays(doc.range);
+        // (By number, its own: its points have no dates to sample by.)
+        if (BY_NUMBER.has(own) || INTERVAL_ORDER.indexOf(own) >= INTERVAL_ORDER.indexOf(coarsest) || doc.layers.some((layer) => runsWindow(layer.formula ?? ""))) return own;
+        const days = rangeDays(doc.range, "day1");
         return [coarsest, "week1", "day1"].find((id) => !days || days / INTERVAL_DAYS[id] >= points) ?? "day1";
       }
       /** A tile's plot: the chart drawn, a blank box for an empty one, a shimmer until it's drawn. @param {Chart} doc */
@@ -22597,7 +22714,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (took.includes("belt") || took.includes("pen")) renderBelt();
         if (took.includes("keys")) renderSingleKeys();
         // (Unlinked there: the chart here stays where it is, as its own.)
-        if (took.includes("linkView")) (carrySpan(), renderLinkView(), prefs.linkView ? followLinked() : storeView(false));
+        if (took.includes("linkView")) (carrySpan(), renderLinkView(), !prefs.linkView && storeView(false));
         if (took.includes("presetsOpen") || took.includes("groupsClosed")) renderCharts();
       });
       /** The themes, from their row: the one chosen ticked. */
@@ -24493,7 +24610,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function markersHtml() {
         // (The past ones on the chart; the next, what it can't say otherwise.)
-        const on = Boolean(chart.halvings), [next] = nextHalvings(1), years = next ? `Next ≈ ${monthYear(next.time)}` : "Every 210,000 blocks";
+        const on = Boolean(chart.halvings), [next] = nextHalvings(1), years = !next ? "Every 210,000 blocks" : BY_NUMBER.has(chart.index) ? `Next at block ${grouped.format(next.n * HALVING_BLOCKS)}` : `Next ≈ ${monthYear(next.time)}`;
         const count = chart.drawings?.length ?? 0, drawn = !drawingsHidden;
         return `<section class="markers"><div class="markers-head"><span>Markers</span></div>
           <div class="layer-row marker-row ${on ? "" : "hidden"}">
@@ -24506,7 +24623,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <div class="layer-row marker-row ${drawn ? "" : "hidden"}">
             <button type="button" class="row-main" data-markers="drawings" aria-pressed="${drawn}" data-tip="${drawn ? "Hide" : "Show"} the drawings" data-kbd="⇧ H">
               <span class="letter marker-mark">${ICONS.draw}</span>
-              <span class="row-text"><span class="name">Drawings</span><span class="sub">${plural(count, "drawing")}</span></span>
+              <span class="row-text"><span class="name">Drawings</span><span class="sub">${plural(count, "drawing")}${BY_NUMBER.has(chart.index) ? ", by date" : ""}</span></span>
             </button>
             <button type="button" class="cap small" data-markers="drawings-eye" tabindex="-1" aria-hidden="true" data-tip="${drawn ? "Hide" : "Show"}">${drawn ? ICONS.eye : ICONS.eyeOff}</button>
           </div>` : ""}</section>`;
@@ -27768,15 +27885,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(empty || !SHARES_IMAGES ? [] : [{ title: "Share image", text: "The chart's picture, to Photos, a message, anywhere.", words: "share image picture png screenshot photos save send message", icon: "share", run: () => exportAs("share") }]),
           ...(empty ? [] : [{ title: "Copy as image", text: "The chart, to paste anywhere.", words: "copy image picture png screenshot clipboard share paste", icon: "copy", run: () => exportAs("copy") }]),
           ...(empty ? [] : [{ title: "Download image", text: "A PNG of the chart as it shows (on a phone, wider), with its title.", words: "png picture screenshot export save", icon: "image", run: () => exportAs("png"), suggested: true }]),
-          ...(empty ? [] : [{ title: "Download data", text: "A CSV of every layer's values (the hidden ones too), one row per date.", words: "csv spreadsheet export save", icon: "table", run: () => exportAs("csv") }]),
+          ...(empty ? [] : [{ title: "Download data", text: "A CSV of every layer's values (the hidden ones too), one row per point.", words: "csv spreadsheet export save", icon: "table", run: () => exportAs("csv") }]),
           { title: "Download chart file", text: "A JSON file you can import again later.", words: "export json save backup", icon: "file", run: () => exportAs("json") },
           ...(anythingKept() ? [{ title: "Download all charts", text: "One file of them all, folders and all, to import anywhere else.", words: "export everything backup move computer device browser phone library save json", icon: "download", run: () => downloadAll(), anywhere: true }] : []),
           { title: "Import charts", text: "A chart's file, several exported together, or all of them from anywhere else.", words: "open load json upload", icon: "upload", run: () => $("import-file").click(), anywhere: true },
           // A choice among a few (a theme, an interval, a scale, a legend): each, the one in effect ticked (typed, it says so).
           ...THEMES.map(([id, name, icon, text, words]) => ({ title: `Theme: ${name}`, text, words: `theme appearance mode ${words}`, icon, anywhere: true, ...(id === prefs.theme ? { current: true } : { run: () => setTheme(id) }) })),
-          ...(empty ? [] : RANGES.map(([id, label], i) => ({ id, label, i })).filter(({ id }) => presetFits(id)).map(({ id, label, i }) => ({ title: `Show the ${periodOf(id)}`, text: id !== "max" ? "Change the visible range." : FINE.has(chart.index) ? "As far back as fits on the screen (at a day or coarser, all of history), the price scales back on auto." : "All of history, the price scales back on auto.", words: `range period time ${label} ${id === "max" ? "max all whole history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
+          ...(empty ? [] : rangesFor(chart.index).map(([id, label], i) => ({ id, label, i })).filter(({ id }) => presetFits(id)).map(({ id, label, i }) => ({ title: `Show the ${periodOf(id)}`, text: id !== "max" ? "Change the visible range." : FINE.has(chart.index) ? "As far back as fits on the screen (at a day or coarser, all of history), the price scales back on auto." : "All of history, the price scales back on auto.", words: `range period time ${label} ${id === "max" ? "max all whole history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
           { follows: "Auto", title: "Interval: Auto", text: chart.auto ? `Follows the zoom: at ${INTERVAL_LABEL[chart.index]} now.` : "The interval follows the zoom: weeks over years, hours over days.", words: "timeframe resolution granularity auto automatic zoom", icon: "recent", ...(chart.auto ? { current: true } : { run: () => setAuto() }) },
-          ...INTERVAL_ORDER.map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: supported(id) ? `Redraw every layer at ${INTERVAL_LABEL[id]}.` : `${NO_INTERVAL}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", ...(!chart.auto && id === chart.index ? { current: true } : supported(id) ? { run: () => switchInterval(id) } : {}) })),
+          ...[...INTERVAL_ORDER, ...NUMBER_ORDER].map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: supported(id) ? `Redraw every layer at ${INTERVAL_LABEL[id]}.` : `${NO_INTERVAL}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", ...(!chart.auto && id === chart.index ? { current: true } : supported(id) ? { run: () => switchInterval(id) } : {}) })),
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string, string][]} */ ([[1, "Logarithmic scale", "log logarithmic"], [0, "Linear scale", "linear"]]).map(([mode, title, words]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: `${words} scale axis`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
           ...(empty ? [] : [
             { title: prefs.belt.on ? "Hide the drawing tools" : "Show the drawing tools", text: prefs.belt.on ? "They show only while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", words: "draw drawing belt toolbar tools annotate", icon: "draw", run: toggleBelt },
@@ -27833,7 +27950,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { title: "Next signal", text: "A signal's next mark, after the middle of the view.", words: "signal mark next forward jump occurrence", icon: "calendar", kbd: ".", run: () => stepSignal(1) },
             { title: "Previous signal", text: "A signal's last mark, before the middle of the view.", words: "signal mark previous back jump occurrence", icon: "calendar", kbd: ",", run: () => stepSignal(-1) },
           ] : []),
-          ...(empty ? [] : [{ title: "Go to a date", text: "A year, a month or a day: the chart shows it.", words: "jump date time when navigate calendar", icon: "calendar", kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }]),
+          ...(empty ? [] : [BY_NUMBER.has(chart.index) ? { title: "Go to a block", text: "A block's number: the chart shows its point.", words: "jump block height number navigate", icon: "hash" } : { title: "Go to a date", text: "A year, a month or a day: the chart shows it.", words: "jump date time when navigate calendar", icon: "calendar" }].map((row) => ({ ...row, kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }))),
           { title: "Rename this chart", text: "Its title, typed here.", words: "title name", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
           ...(!isYours(chart) ? [] : [{ title: "Duplicate this chart", text: "A copy, right under it in your list.", words: "copy clone", icon: "duplicate", run: () => chartPick(chart.id, "duplicate") }]),
           ...(!isYours(chart) ? [] : [{ title: "Delete this chart", text: "With an Undo.", words: "remove trash", icon: "trash", danger: true, run: () => deleteChart(chart) }]),
@@ -27968,11 +28085,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // A setting with its value after it ("price color orange"), and a date ("go to 2021", or just "nov 2021"): the
         // change itself, on top.
         const direct = everything && !home ? directRows(query, settings) : [], named = direct.filter((row) => row.named), unnamed = direct.filter((row) => !row.named);
-        const span = everything && !home && chart.layers.length ? readDate(query.replace(/^(go ?to|jump( to)?)\s+/i, "")) : null;
+        // (By number, a block: "go to 840000", "block 840,000".)
+        const blocks = BY_NUMBER.has(chart.index), span = everything && !home && chart.layers.length ? (blocks ? readBlock : readDate)(query.replace(/^(go ?to|jump( to)?)\s+/i, "").replace(blocks ? /^block\s+/i : /^$/, "")) : null;
         // (A formula typed here, not a date: one that reads, of this chart's layers, all there; added as a layer, first,
         // as ⌘K's formula row adds it. A search with a dash in it stays a search.)
         const asFormula = everything && !home && !span && isOwnFormula(query.trim()) ? [{ kind: "formula", key: "formula", group: "Formula" }] : [];
-        const dated = span && !outOfData(span) ? [{ kind: "row", key: "go-to-date", icon: ICONS.calendar, label: `Go to ${span.label}`, group: "Go to", verb: "Go", run: () => goToDate(span), preview: (/** @type {HTMLElement} */ panel) => previewDate(panel, span) }] : [];
+        const dated = span && !outOfData(span) ? [{ kind: "row", key: "go-to-date", icon: blocks ? ICONS.hash : ICONS.calendar, label: `Go to ${span.label}`, group: "Go to", verb: "Go", run: () => goToDate(span), preview: (/** @type {HTMLElement} */ panel) => previewDate(panel, span) }] : [];
         // (The add page's other layers: first where what's typed starts their name, "clo"; else after the series, "ratio".)
         const others = palette.adding && !palette.path.length ? rank(otherLayerRows(), rowText, words) : [];
         const leading = others.filter((row) => row.label.toLowerCase().startsWith(words[0])), trailing = others.filter((row) => !leading.includes(row));
@@ -29269,7 +29387,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** @returns {Page} */
       function intervalPage() {
         const supported = supportedIntervals();
-        return choicePage("Interval", () => [{ key: "auto", icon: ICONS.recent, label: "Auto", aside: chart.auto ? `At ${INTERVAL_LABEL[chart.index]} now` : "Follows the zoom", current: chart.auto, run: () => setAuto() }, ...INTERVAL_ORDER.map((id) => ({ key: id, icon: ICONS.recent, label: CADENCE[id], aside: INTERVAL_LABEL[id], current: !chart.auto && chart.index === id, ...(supported(id) ? { run: () => switchInterval(id) } : { disabled: NO_INTERVAL }) }))]);
+        return choicePage("Interval", () => [{ key: "auto", icon: ICONS.recent, label: "Auto", aside: chart.auto ? `At ${INTERVAL_LABEL[chart.index]} now` : "Follows the zoom", current: chart.auto, run: () => setAuto() }, ...[...INTERVAL_ORDER, ...NUMBER_ORDER].map((id) => ({ key: id, icon: ICONS.recent, label: CADENCE[id], ...(BY_NUMBER.has(id) ? { group: "By number", aside: BLOCKS_IN[id] > 1 ? `${grouped.format(BLOCKS_IN[id])} blocks` : "" } : { aside: INTERVAL_LABEL[id] }), current: !chart.auto && chart.index === id, ...(supported(id) ? { run: () => switchInterval(id) } : { disabled: NO_INTERVAL }) }))]);
       }
       /** The ways to add a layer, as ⌘K's rows (under `group`): a series, a formula, a cloud, a trend. */
       const addRows = (/** @type {string} */ group) => [
@@ -29287,7 +29405,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(any ? [
               { key: "interval", icon: ICONS.recent, label: "Interval", aside: CADENCE[chart.index], group: "Chart", page: intervalPage },
               { key: "go-to", icon: ICONS.calendar, label: "Go to a date", aside: "A year, a month, a day", kbd: "G", group: "Chart", page: datePage },
-              { key: "range", icon: ICONS.charts, label: "Range", aside: presetShown ? capitalize(periodOf(shownRange())) : "As you moved it", group: "Chart", page: () => choicePage("Range", () => RANGES.filter(([id]) => presetFits(id)).map(([id, text]) => ({ key: id, icon: ICONS.charts, label: text, aside: capitalize(periodOf(id)), current: presetShown && shownRange() === id, run: () => setRange(id) }))) },
+              { key: "range", icon: ICONS.charts, label: "Range", aside: presetShown ? capitalize(periodOf(shownRange())) : "As you moved it", group: "Chart", page: () => choicePage("Range", () => rangesFor(chart.index).filter(([id]) => presetFits(id)).map(([id, text]) => ({ key: id, icon: ICONS.charts, label: text, aside: capitalize(periodOf(id)), current: presetShown && shownRange() === id, run: () => setRange(id) }))) },
               legendAction("Chart"),
               { key: "layers", icon: ICONS.series, label: "Layers", aside: plural(chart.layers.length, "layer"), group: "In it", page: layersPage },
               { key: "panes", icon: ICONS.pane, label: "Panes", aside: plural(chart.panes.length, "pane"), group: "In it", page: panesPage },
@@ -29450,7 +29568,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { label: "Settings", icon: ICONS.next, page: () => drawingPage(drawing.id) },
             ...drawingPage(drawing.id).rows().filter((row) => row.key === "duplicate" || row.key === "remove"),
           ] })),
-          ...KINDS.map((kind) => ({ kind: "row", key: `tool:${kind}`, icon: TOOLS[kind].icon, label: TOOLS[kind].verb, aside: TOOLS[kind].tip, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, verb: "Draw", group: "Draw", run: () => setTool(kind) })),
+          ...KINDS.map((kind) => ({ kind: "row", key: `tool:${kind}`, icon: TOOLS[kind].icon, label: TOOLS[kind].verb, aside: TOOLS[kind].tip, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, verb: "Draw", group: "Draw", ...(BY_NUMBER.has(chart.index) ? { disabled: BY_DATE_ONLY } : { run: () => setTool(kind) }) })),
           { kind: "row", key: "tool:magnifier", icon: ICONS.magnifier, label: "Magnifier", aside: "The chart under the pointer, twice as large", kbd: "D Z", verb: magnifying ? "Stop" : "Use", group: "Draw", run: () => setMagnifier(!magnifying) },
           ...(chart.drawings?.length ? [
             { kind: "row", key: "select-box", icon: ICONS.select, label: "Select drawings with a box", aside: "Drag a box around them", kbd: "D S", verb: "Select", group: "Select", run: () => setSelectingArea(true) },
@@ -29695,7 +29813,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The stretch a date shows (its middle, as wide as the chart shows, when it's longer), and whether it's all loaded. */
       function stretchOf(span) {
         // (A span running past now, this month or year, ends now: its middle is of what there is.)
-        const step = INTERVAL_DAYS[shownIndex()] * 86400, range = view.timeScale().getVisibleLogicalRange(), end = Math.min(span.to, Date.now() / 1000), middle = (span.from + end) / 2;
+        const step = INTERVAL_DAYS[shownIndex()] * 86400, range = view.timeScale().getVisibleLogicalRange(), end = Math.min(span.to, nowAt(shownIndex())), middle = (span.from + end) / 2;
         // (A day shows at the zoom the chart has, centered: that's its stretch.)
         const width = span.day && range ? (range.to - range.from) * step : Math.min(end - span.from, mostBars() * step);
         const from = middle - width / 2, to = Math.min(middle + width / 2, end), times = resolved?.times ?? [];
@@ -29709,9 +29827,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // At a fine interval, all of its history (what isn't loaded loads); at a coarse one, the last point stands for its
         // whole interval (a yearly chart's 2026 takes October). (By the data on screen: see shownIndex.)
         const index = shownIndex(), fine = FINE.has(index), start = fine ? timeAt(index, 0) : times[0];
-        const end = fine ? Date.now() / 1000 : timeAt(index, indexAt(index, /** @type {number} */ (times.at(-1))) + 1);
+        const end = timeAt(index, indexAt(index, fine ? nowAt(index) : /** @type {number} */ (times.at(-1))) + 1);
         if (span.to >= start && span.from < end) return "";
-        return `This chart runs from ${monthYear(start)} to ${monthYear(end - 1)}`;
+        return BY_NUMBER.has(index) ? `This chart runs from block ${grouped.format(blockOf(start))} to ${grouped.format(Math.min(liveHeight, blockOf(end) - 1))}` : `This chart runs from ${monthYear(start)} to ${monthYear(end - 1)}`;
       }
       /** The latest Go to a date: one waiting on a draw (see goToDate) goes on only if none came since. */
       let dateGoes = 0;
@@ -29791,8 +29909,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (At a fine interval, a stretch not loaded yet loads first: nothing to light or count until then.)
         const away = Boolean(span && !why && fineDrawn() && !stretchOf(span).loaded);
         const points = span && !why && !away ? pointsOf(span) : null, wide = points && points.last - points.first + 1 > mostBars();
-        panel.innerHTML = `<h4 class="plain">${span ? escape(span.label) : "Go to a date"}</h4>
-          <p class="description">${escape(!span ? "A year or a month is shown whole; a day, centered at the zoom the chart has." : why || (away ? "Loads first, then shows it." : span.day ? "Centered, at the zoom the chart has." : wide ? "Its middle: all of it takes a longer interval." : "Shown whole, edge to edge."))}</p>
+        const blocks = BY_NUMBER.has(shownIndex());
+        panel.innerHTML = `<h4 class="plain">${span ? escape(capitalize(span.label)) : blocks ? "Go to a block" : "Go to a date"}</h4>
+          <p class="description">${escape(!span ? (blocks ? "Its point, centered at the zoom the chart has." : "A year or a month is shown whole; a day, centered at the zoom the chart has.") : why || (away ? "Loads first, then shows it." : span.day ? "Centered, at the zoom the chart has." : wide ? "Its middle: all of it takes a longer interval." : "Shown whole, edge to edge."))}</p>
           <svg class="spark" id="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg><span id="spark-caption" hidden></span>
           ${span && !why && !away ? `<div class="info"><dl id="date-facts"></dl></div>` : ""}`;
         const source = overviewSource();
@@ -29804,18 +29923,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("spark").insertAdjacentHTML("afterbegin", `<rect x="${x(first)}" y="0" width="${Math.max(1.5, Number(x(last)) - Number(x(first)))}" height="100" style="fill: var(--line-strong)" />`);
         $("date-facts").innerHTML = `<div><dt>From</dt><dd>${escape(pointLabel(resolved.times[first]))}</dd></div><div><dt>To</dt><dd>${escape(pointLabel(resolved.times[last]))}</dd></div><div><dt>Points</dt><dd>${grouped.format(last - first + 1)}</dd></div>`;
       }
-      /** Go to a date, typed in ⌘K's field: the span it names lit on the overview; ↵ takes the view there and closes ⌘K. */
-      const datePage = () => inputPage({
-        title: "Go to a date", value: "", placeholder: "2021, 2021-11, 10 nov 2021…", verb: "Go", icon: ICONS.calendar, closes: true,
-        hint: (text) => (readDate(text) ? outOfData(/** @type {any} */ (readDate(text))) : "Type a year, a month or a day"),
+      /** A block typed (840000, 840,000): the point that holds it, gone to as a day is. */
+      const readBlock = (/** @type {string} */ text) => (/^\d[\d, _]*$/.test(text.trim()) ? ((block) => ({ from: blockTime(block), to: blockTime(block + 1) - 1, label: `block ${grouped.format(block)}`, day: true }))(Number(text.replace(/\D/g, ""))) : null);
+      /**
+       * Go to a date, typed in ⌘K's field (by number, a block): the span it names lit on the overview; ↵ takes the view
+       * there and closes ⌘K.
+       */
+      const datePage = () => ((blocks) => inputPage({
+        title: blocks ? "Go to a block" : "Go to a date", value: "", placeholder: blocks ? "840000, 840,000…" : "2021, 2021-11, 10 nov 2021…", verb: "Go", icon: blocks ? ICONS.hash : ICONS.calendar, closes: true,
+        hint: (text) => ((span) => (span ? outOfData(span) : blocks ? "Type a block's number" : "Type a year, a month or a day"))((blocks ? readBlock : readDate)(text)),
         read: (text) => {
-          const span = readDate(text);
+          const span = (blocks ? readBlock : readDate)(text);
           return span && !outOfData(span) ? `Go to ${span.label}` : null;
         },
         // (Then the navigator has the keys, on from there: ← → ↑ ↓; by touch, none.)
-        apply: (text) => (goToDate(readDate(text)), !TOUCH && requestAnimationFrame(() => $("navigator").focus({ preventScroll: true }))),
-        preview: (panel, text) => previewDate(panel, readDate(text)),
-      });
+        apply: (text) => (goToDate((blocks ? readBlock : readDate)(text)), !TOUCH && requestAnimationFrame(() => $("navigator").focus({ preventScroll: true }))),
+        preview: (panel, text) => previewDate(panel, (blocks ? readBlock : readDate)(text)),
+      }))(BY_NUMBER.has(chart.index));
       /** ⌘K, straight on a page. @param {Page} page */
       function openPage(page) {
         // (Opened on it: ⌘K's own way in, no page turned; open already, the page it shows leaves.)
@@ -30687,11 +30811,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       $("interval").addEventListener("click", (event) => {
         const supported = supportedIntervals();
-        // (Auto first, the one it's at said beside it; the others each a fixed one.)
-        showMenu(event.currentTarget, `<div class="menu-row interval-auto-row"><button type="button" data-index="auto" aria-checked="${chart.auto}">Auto<span>${chart.auto ? `At ${INTERVAL_LABEL[chart.index]} now` : "Follows the zoom"}</span></button></div>` + INTERVALS.map(([group, items]) => `<div class="menu-group">${group}</div><div class="menu-row">${items.map(([id, text]) => `<button type="button" data-index="${id}" aria-checked="${!chart.auto && chart.index === id}" ${supported(id) ? "" : `aria-disabled="true" data-tip="${NO_INTERVAL}"`}>${text}</button>`).join("")}</div>`).join("") + `<div class="menu-note">Minutes and hours load as far back as you look.</div>`, ({ index }) => (index === "auto" ? setAuto() : supported(index) ? switchInterval(index) : notice(`${INTERVAL_LABEL[index]}: ${NO_INTERVAL.toLowerCase()}`)));
+        const button = (/** @type {string} */ id, /** @type {string} */ html) => `<button type="button" data-index="${id}" aria-checked="${!chart.auto && chart.index === id}" ${supported(id) ? (html === INTERVAL_LABEL[id] ? "" : `aria-label="${INTERVAL_LABEL[id]}" data-tip="${INTERVAL_LABEL[id]}"`) : `aria-disabled="true" data-tip="${NO_INTERVAL}"`}>${html}</button>`;
+        // (Auto first, the one it's at said beside it; the others each a fixed one, by date, then by number.)
+        showMenu(event.currentTarget, `<div class="menu-row wide"><button type="button" data-index="auto" aria-checked="${chart.auto}">Auto<span>${chart.auto ? `At ${INTERVAL_LABEL[chart.index]} now` : "Follows the zoom"}</span></button></div>` + INTERVALS.map(([group, items]) => `<div class="menu-group">${group}</div><div class="menu-row">${items.map(([id, text]) => button(id, text)).join("")}</div>`).join("") + `<div class="menu-group">By number</div><div class="menu-row">${NUMBERED.map(([id, , , short]) => button(id, short)).join("")}</div><div class="menu-note">Minutes, hours and blocks load as far back as you look.</div>`, ({ index }) => (index === "auto" ? setAuto() : supported(index) ? switchInterval(index) : notice(`${INTERVAL_LABEL[index]}: ${NO_INTERVAL.toLowerCase()}`)));
       });
       function stepInterval(delta) {
-        const ids = INTERVAL_ORDER.filter(supportedIntervals());
+        const ids = intervalSteps(chart.index).filter(supportedIntervals());
         const next = ids[ids.indexOf(chart.index) + delta];
         if (!next) return;
         const was = chart.auto;
@@ -30699,7 +30824,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         toast(`Interval: ${CADENCE[next]}${was ? " (Auto off)" : ""}`);
       }
       function renderRanges() {
-        const html = RANGES.map(([id, text], i) => {
+        const html = rangesFor(chart.index).map(([id, text], i) => {
           const fits = presetFits(id), tip = fits ? capitalize(periodOf(id)) : `More than fits at ${INTERVAL_LABEL[chart.index]}`;
           return `<button type="button" data-range="${id}" aria-pressed="${presetShown && shownRange() === id}" aria-label="${text}: ${tip.toLowerCase()}" data-tip="${tip}" ${fits ? `data-kbd="${i + 1}"` : 'aria-disabled="true"'}>${text}</button>`;
         }).join("");
@@ -30717,11 +30842,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The interval's button: Auto and the one it's at, else the one chosen. */
       function renderInterval() {
-        $("interval").innerHTML = `${chart.auto ? '<span class="interval-auto">Auto</span>' : ICONS.recent}${INTERVAL_LABEL[chart.index] ?? chart.index}${CHEVRON}`;
+        $("interval").innerHTML = `${chart.auto ? '<span class="interval-auto">Auto</span>' : BY_NUMBER.has(chart.index) ? ICONS.hash : ICONS.recent}${INTERVAL_LABEL[chart.index] ?? chart.index}${CHEVRON}`;
+        $("interval").classList.toggle("by-number", BY_NUMBER.has(chart.index));
         $("interval").setAttribute("aria-label", `${chart.auto ? "Auto, at " : ""}${INTERVAL_LABEL[chart.index] ?? chart.index}, ${(CADENCE[chart.index] ?? chart.index).toLowerCase()} interval`);
       }
       /** Auto on: the interval the view asks for, at once. */
       function setAuto() {
+        // (Auto picks among the intervals by date: a chart whose series have none (by block only) can't follow the zoom.)
+        if (!autoIntervals(chart).length) return notice("Auto picks among intervals by date: these series have none");
         commit((doc) => (doc.auto = true), { look: true, redraw: "none" });
         autoCheck(true);
       }
@@ -31078,7 +31206,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A chart as a file or a link carries it: its view too, where it isn't on its preset. @param {Chart} doc */
       function portable(doc) {
         if (doc === chart) saveView();
-        const kept = doc === chart ? shownView() : leftView(doc.id);
+        const kept = doc === chart ? shownView() : openView(doc);
         return { v: 3, title: doc.title, index: doc.auto ? "auto" : doc.index, range: doc.range, ...(doc.halvings ? { halvings: true } : {}), ...(doc.legend ? { legend: doc.legend } : {}), panes: doc.panes, layers: doc.layers.map(({ from, ...layer }) => (from ? { ...layer, [layer.type]: from } : layer)), ...(doc.drawings?.length ? { drawings: doc.drawings } : {}), ...(kept ? { view: kept } : {}) };
       }
       /** The view a file or a link carried with a chart, kept for it (as `saveView` keeps one). @param {Chart} doc */
@@ -31125,7 +31253,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const plain = doc.panes.every((pane, i) => pane.mode === (i ? 0 : 1) && !pane.stack && !pane.reverse && pane.size === undefined);
         const ordered = doc.layers.every((layer, i) => layer.letter === letterAt(i));
         if (doc === chart) saveView();
-        const kept = doc === chart ? shownView() : leftView(doc.id);
+        const kept = doc === chart ? shownView() : openView(doc);
         return {
           ...(doc.title ? { title: doc.title } : {}),
           // (Auto, said; a fixed one, but 1D, a link's default.)
@@ -31396,7 +31524,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         doc.index = Object.hasOwn(INTERVAL_LABEL, input.index) ? input.index : "day1";
         // (Auto, as said: "auto", or kept with Auto said. None, 1D.)
         doc.auto = typeof input.auto === "boolean" ? input.auto : input.index === "auto";
-        doc.range = RANGES.some(([id]) => id === input.range) ? input.range : DEFAULT_RANGE;
+        doc.range = [...RANGES, ...BLOCK_RANGES].some(([id]) => id === input.range) ? input.range : DEFAULT_RANGE;
         if (input.halvings === true) doc.halvings = true;
         if (input.legend === "off") doc.legend = "off";
         const panes = input.panes.slice(0, MAX_PANES);
@@ -31512,7 +31640,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /**
        * Layers' data as a CSV (the chart's whole, Export's; one layer's, its own actions'), as the chart has it: one row
-       * per date at its interval, a column per layer (a cloud's, its low and its high but for an edge), the hidden ones too.
+       * per point at its interval (by date, or by number), a column per layer (a cloud's, its low and its high but for an edge), the hidden ones too.
        * @param {Layer[]} which
        */
       function exportData(which) {
@@ -31523,11 +31651,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const quote = (text) => `"${String(text).replace(/"/g, '""')}"`;
         // (A cloud's columns: its low, its high, but for an edge.)
         const ends = (/** @type {Layer} */ layer) => (layer.type === "cloud" ? ["low", "high"].filter((end) => !layer.from?.includes(end === "low" ? "bottom" : "top")) : [""]);
-        const header = ["date", ...layers.flatMap((layer) => ends(layer).map((end) => quote(`${layer.letter} ${labelOf(layer)}${end ? ` (${end})` : ""}`)))].join(",");
+        // (By number, its numbers: the index's own name, as the API has it.)
+        const header = [BY_NUMBER.has(chart.index) ? chart.index : "date", ...layers.flatMap((layer) => ends(layer).map((end) => quote(`${layer.letter} ${labelOf(layer)}${end ? ` (${end})` : ""}`)))].join(",");
         const columns = layers.flatMap((layer) => ((result) => ends(layer).map((end) => (end === "low" ? result?.low : result?.values)))(resolved?.results.get(layer.id)));
         const rows = resolved.times.map((time, i) => {
           const cells = columns.map((values) => ((value) => (value !== undefined && Number.isFinite(value) ? String(value) : ""))(values?.[i]));
-          return cells.some(Boolean) ? [new Date(time * 1000).toISOString().slice(0, FINE.has(chart.index) ? 16 : 10), ...cells].join(",") : null;
+          return cells.some(Boolean) ? [BY_NUMBER.has(chart.index) ? indexAt(chart.index, time) : new Date(time * 1000).toISOString().slice(0, FINE.has(chart.index) ? 16 : 10), ...cells].join(",") : null;
         }).filter(Boolean);
         download(which.length === 1 && chart.layers.length > 1 ? fileName("csv").replace(/\.csv$/, `-${labelOf(which[0]).trim().replace(/[^\w-]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "layer"}.csv`) : fileName("csv"), new Blob([[header, ...rows].join("\n")], { type: "text/csv" }));
         return toast(`Downloaded ${grouped.format(rows.length)} rows`);
@@ -32695,8 +32824,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (key === "g" && chart.layers.length) openPage(datePage());
         else if (event.key === "-" || event.key === "_") zoom(1.6);
         else if (event.key === "=" || event.key === "+") zoom(1 / 1.6);
-        else if (["1", "2", "3", "4", "5"].includes(event.key)) {
-          const [id, text] = RANGES[Number(event.key) - 1];
+        else if (/^[1-5]$/.test(event.key) && rangesFor(chart.index)[Number(event.key) - 1]) {
+          const [id, text] = rangesFor(chart.index)[Number(event.key) - 1];
           if (presetFits(id)) setRange(id);
           else notice(`${text} is more than fits at ${INTERVAL_LABEL[chart.index]}`);
         }
@@ -32797,8 +32926,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       $("live").addEventListener("animationend", (event) => event.animationName === "block" && $("live").classList.remove("block"));
       let checking = false;
+      /** The server's first answer to checkLive (its tip, unless it failed). */
+      let answered = /** @type {(value?: unknown) => void} */ (() => {});
+      const tipAsked = new Promise((ok) => (answered = ok));
       async function checkLive() {
-        if (document.visibilityState !== "visible" || checking) return;
+        // (Hidden, nothing's asked; but the tip, till it's known: a chart by number waits on it.)
+        if ((document.visibilityState !== "visible" && liveHeight) || checking) return;
         checking = true;
         let health;
         try {
@@ -32807,6 +32940,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return updateStatus();
         } finally {
           checking = false;
+          // (Its tip set first, below: nothing waits between.)
+          queueMicrotask(answered);
         }
         answeredAt = Date.now();
         // (Each answer: back from offline, and how long ago the last block came, said anew.)
@@ -32822,6 +32957,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderLayers();
           repaintDrawings();
         }
+        // (Spans by number made meanwhile (the server unreached at first), on the clock's guess: made again from the tip, and
+        // the pictures drawn from them with them.)
+        if (first) for (const key of [...spans.keys()]) if (BY_NUMBER.has(key.split("@")[1])) spans.delete(key), previews.delete(key.split("@")[0]), thumbs.delete(key.split("@")[0]);
+        if (first && chart && BY_NUMBER.has(chart.index) && drawnChart === chart.id && !home) void draw();
         if (first) return;
         const live = $("live");
         live.classList.remove("block");
@@ -32855,7 +32994,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       ]);
       /** The open chart's layers the live price moves: none on the grid, mid-draw, or with history alone loaded. */
       function liveLayers() {
-        if (home || !settled() || (FINE.has(chart.index) && !spans.get(spanKey(chart.id, chart.index))?.live)) return [];
+        // (By number, a point is a block's or an epoch's, its price that block's: not moved.)
+        if (home || !settled() || BY_NUMBER.has(chart.index) || (FINE.has(chart.index) && !spans.get(spanKey(chart.id, chart.index))?.live)) return [];
         return chart.layers.filter((layer) => LIVE.has(layer.series ?? "") && !layer.hidden && layer.type !== "histogram" && !chart.panes.find((pane) => pane.id === layer.pane)?.stack);
       }
       /** Vectors the live price has its own copies of (written in place from then on: a tick copies nothing). */
