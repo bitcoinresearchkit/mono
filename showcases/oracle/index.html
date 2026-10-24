@@ -92,11 +92,22 @@
       }
 
       /* ── The first screen: the bar, the price, the week filling the rest, a quiet way down ── */
+      /* The chart is the whole first screen, edge to edge; the bar, the price and the way down sit over it, the
+         data drawn below the price. */
       .stage {
-        display: flex;
-        flex-direction: column;
+        position: relative;
         height: 100svh;
         min-height: 560px;
+
+        > .bar,
+        > .hero {
+          position: relative;
+          z-index: 2;
+        }
+
+        > .hero {
+          pointer-events: none;
+        }
       }
 
       .bar {
@@ -155,8 +166,8 @@
       h1 {
         margin: 12px 0 0;
         color: var(--ink);
-        font-size: clamp(52px, min(11vw, 14vh), 120px);
-        font-weight: 500;
+        font-size: clamp(40px, min(7.5vw, 10vh), 88px);
+        font-weight: 400;
         line-height: 0.95;
         letter-spacing: -0.045em;
         font-variant-numeric: tabular-nums;
@@ -185,16 +196,14 @@
 
       /* The week, edge to edge, as tall as the screen leaves it. */
       .week {
-        display: flex;
-        flex: 1;
-        flex-direction: column;
-        min-height: 260px;
-        margin: clamp(12px, 3vh, 28px) 0 0;
+        position: absolute;
+        inset: 0;
+        margin: 0;
       }
 
       .chart {
-        position: relative;
-        flex: 1;
+        position: absolute;
+        inset: 0;
         touch-action: pan-y;
         cursor: crosshair;
 
@@ -219,18 +228,60 @@
 
       .price-line {
         fill: none;
-        stroke: var(--answer);
+        stroke: var(--ink);
         stroke-width: 1.6;
         stroke-linejoin: round;
+        stroke-linecap: round;
       }
 
-      .end {
-        fill: var(--answer);
+      .price-glow {
+        fill: none;
+        stroke: var(--app);
+        stroke-width: 5;
+        stroke-linejoin: round;
+        opacity: 0.35;
       }
 
+      /* The evidence as warm light, ember to orange at the crest; the answer a crisp ink line on it. */
+      :root {
+        --heat-lo: light-dark(rgb(250 230 212), rgb(54 16 4));
+        --heat-mid: light-dark(rgb(245 172 112), rgb(196 66 14));
+        --heat-hi: light-dark(rgb(232 108 30), rgb(255 152 66));
+      }
+
+      /* Now: a dot of the line, in its border. */
+      .end,
+      .cross circle {
+        fill: var(--ink);
+        stroke: var(--app);
+        stroke-width: 3.4;
+        stroke-opacity: 0.35;
+        paint-order: stroke;
+      }
+
+      /* Now: the live end breathes, slowly. */
       .end-glow {
-        fill: var(--answer);
-        opacity: 0.2;
+        fill: var(--ink);
+        opacity: 0.22;
+        transform-box: fill-box;
+        transform-origin: center;
+        animation: breathe 2.8s ease-in-out infinite;
+
+        @media (prefers-reduced-motion: reduce) {
+          animation: none;
+        }
+      }
+
+      @keyframes breathe {
+        0%,
+        100% {
+          scale: 0.7;
+          opacity: 0.32;
+        }
+        50% {
+          scale: 1.5;
+          opacity: 0.08;
+        }
       }
 
       .cross line {
@@ -238,19 +289,18 @@
         stroke-dasharray: 2 3;
       }
 
-      .cross circle {
-        fill: var(--answer);
-        stroke: var(--app);
-        stroke-width: 2;
-      }
 
       .foot {
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 2;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 8px 24px;
-        padding: 12px 0 max(14px, env(safe-area-inset-bottom));
-        border-top: 1px solid var(--line);
+        padding: 10px 0 max(16px, env(safe-area-inset-bottom));
         color: var(--faint);
         font-size: 12px;
       }
@@ -259,15 +309,21 @@
         display: flex;
         align-items: baseline;
         gap: 10px;
+        min-width: 0;
         margin: 0;
+
+        > span:last-child {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
 
         .swatch {
           flex: none;
           width: 28px;
           height: 8px;
           translate: 0 -1px;
-          background: linear-gradient(90deg, transparent, var(--heat));
-          opacity: 0.6;
+          background: linear-gradient(90deg, var(--heat-lo), var(--heat-mid), var(--heat-hi));
         }
       }
 
@@ -275,6 +331,11 @@
         display: inline-flex;
         flex: none;
         align-items: center;
+
+        b {
+          font-weight: inherit;
+        }
+
         gap: 8px;
         color: var(--soft);
         text-decoration: none;
@@ -367,6 +428,94 @@
         background: var(--plate);
       }
 
+      /* Which block it reads: named, a step either way or now, and its place on the week's line. */
+      .blocks {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px 12px;
+        padding: 12px 16px 8px;
+        border-bottom: 1px solid var(--line);
+        font-variant-numeric: tabular-nums;
+
+        .which {
+          overflow: hidden;
+          margin: 0;
+          color: var(--ink);
+          font-weight: 600;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+
+          small {
+            margin-left: 10px;
+            color: var(--faint);
+            font-size: 12px;
+            font-weight: 400;
+          }
+        }
+
+        .steps {
+          display: flex;
+          gap: 6px;
+        }
+
+        button {
+          min-width: 34px;
+          padding: 5px 10px;
+          border: 1px solid var(--line);
+          background: none;
+          font-size: 13px;
+          touch-action: manipulation;
+
+          &:hover:not(:disabled) {
+            border-color: var(--soft);
+          }
+
+          &:disabled {
+            opacity: 0.35;
+          }
+
+          &[aria-pressed="true"] {
+            border-color: var(--answer);
+            color: var(--answer);
+          }
+        }
+
+        .scrub {
+          position: relative;
+          grid-column: 1 / -1;
+          height: 34px;
+          cursor: pointer;
+          touch-action: pan-y;
+          user-select: none;
+          -webkit-user-select: none;
+
+          svg {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+          }
+        }
+
+        .scrub-line {
+          fill: none;
+          stroke: var(--soft);
+          stroke-width: 1.2;
+          stroke-linejoin: round;
+        }
+
+        .scrub-mark {
+          stroke: var(--answer);
+          stroke-width: 1.5;
+        }
+
+        .scrub-dot {
+          fill: var(--answer);
+        }
+      }
+
       .readout {
         display: flex;
         flex-wrap: wrap;
@@ -435,6 +584,12 @@
       .plate {
         position: relative;
         height: clamp(260px, 36vh, 340px);
+
+        /* A block being read: the one before stays, dimmed, until it's here. */
+        &[aria-busy="true"] svg {
+          opacity: 0.5;
+          transition: opacity 0.2s;
+        }
         cursor: grab;
         touch-action: pan-y;
         user-select: none;
@@ -795,6 +950,15 @@
             width: 80px;
           }
         }
+
+        .blocks .which {
+          white-space: normal;
+
+          small {
+            display: block;
+            margin: 2px 0 0;
+          }
+        }
       }
     </style>
   </head>
@@ -805,7 +969,7 @@
         <span class="tip" id="tip"></span>
       </header>
 
-      <section class="hero shell" aria-labelledby="price">
+      <section class="hero shell" id="hero" aria-labelledby="price">
         <p class="eyebrow"><i aria-hidden="true"></i><span id="kicker">BTC/USD · from the chain, no exchange</span></p>
         <h1 id="price">$…</h1>
         <p class="change" id="change">&nbsp;</p>
@@ -817,8 +981,8 @@
           <svg id="lines" aria-hidden="true"></svg>
         </div>
         <figcaption class="foot shell">
-          <span class="legend"><span class="swatch" aria-hidden="true"></span>Behind the line, each block's evidence: how well round dollars fit each price.</span>
-          <a class="more" href="#how">How it reads the chain <span aria-hidden="true">↓</span></a>
+          <span class="legend"><span class="swatch" aria-hidden="true"></span><span>Behind the line, payments read as round dollars: brighter where more imply that price</span></span>
+          <a class="more" href="#how"><b id="more">How it reads the chain</b> <span aria-hidden="true">↓</span></a>
         </figcaption>
       </figure>
     </div>
@@ -830,8 +994,19 @@
         <header><span class="n">01</span><h2 id="c1">Round dollars leave a fingerprint</h2></header>
         <div>
           <p>People pay <b>$10</b>, <b>$20</b>, <b>$100</b>, rarely $13.70. In sats, those round amounts sit at the same distances from one another whatever the price: a fingerprint of 19 teeth, from $1 to $10,000.</p>
-          <p>Below are the latest payments, counted by amount. Drag the fingerprint across them: where its teeth all land on spikes, that's the price. Elsewhere it fits in part at best, most at double or half the price, where $50 payments pass for $100 ones.</p>
+          <p>Below are the payments it counted at a block, by amount: now, or any block of the week. Drag the fingerprint across them: where its teeth all land on spikes, that's the price. Elsewhere it fits in part at best, most at double or half the price, where $50 payments pass for $100 ones.</p>
           <div class="instrument">
+            <div class="blocks">
+              <p class="which" id="which" aria-live="polite">Now</p>
+              <div class="steps">
+                <button type="button" id="earlier" aria-label="The block before">‹</button>
+                <button type="button" id="later" aria-label="The block after">›</button>
+                <button type="button" id="now" aria-pressed="true">Now</button>
+              </div>
+              <div class="scrub" id="scrub" role="slider" tabindex="0" aria-label="Which block: arrows step a block (Shift: several), Home goes to the first, End to now">
+                <svg id="scrub-line" aria-hidden="true"></svg>
+              </div>
+            </div>
             <div class="readout" id="readout">
               <div><span class="k">At</span><output id="tried">$…</output></div>
               <div class="fit"><span class="k">Fit</span><span class="meter" aria-hidden="true"><i id="meter"></i></span><output class="pct" id="pct"></output></div>
@@ -842,7 +1017,7 @@
             </div>
             <dl class="sums" id="sums" aria-label="Round amounts in sats at this price"></dl>
           </div>
-          <p class="caption">Gray: the latest payments by amount in sats, smallest on the left (the latest blocks and the mempool); lit, the counts under the teeth. At the bottom: how well the fingerprint fits wherever it's held; shaded, the only part the oracle looks at.</p>
+          <p class="caption">Gray: the payments it counted at that block by amount in sats, smallest on the left (the block's and the 11 before it, the newest weighing most; now, the mempool's as the next block); lit, the counts under the teeth. At the bottom: how well the fingerprint fits wherever it's held; shaded, the only part the oracle looks at.</p>
         </div>
       </section>
 
@@ -851,7 +1026,7 @@
         <div>
           <p>Each new block, it counts again: its payments and those of the 11 before, the newest weighing most.</p>
           <ol class="weights" id="weights" aria-label="Each of the last 12 blocks' weight, newest first"></ol>
-          <div class="weights-axis" aria-hidden="true"><span>newest block</span><span>12th</span></div>
+          <div class="weights-axis" aria-hidden="true"><span id="newest">newest block</span><span id="oldest">12th</span></div>
           <p>And it looks only near its last answer, never more than about <b>16% higher</b> or <b>13% lower</b>: never as far as the echoes at double or half the price. One odd block can't throw it far; the line moves a block at a time.</p>
         </div>
       </section>
@@ -937,7 +1112,7 @@
         };
         let best = 0;
         for (let c = c0; c <= c1; c++) best = Math.max(best, whole(c));
-        return { at, best, c0, c1 };
+        return { at, whole, best, c0, c1 };
       }
 
       const grouped = (/** @type {number} */ n) => Math.round(n).toLocaleString("en-US");
@@ -972,18 +1147,22 @@
 
       // ── State ──
 
-      /** The week: the blocks of the last 7 days (read from enough to cover a fast week); one histogram in 6, at
-       * heights that are multiples of 6 so a new block adds one, not six (a block is under a pixel wide on a desk). */
-      const WEEK = 7 * 86400, FETCH = 1300, EVERY = 6;
+      /** The week: the blocks of the last 7 days (read from enough to cover a fast week), every one's histogram read,
+       * so each cell is the mean over all the blocks it covers. */
+      const WEEK = 7 * 86400, FETCH = 1300;
       let tip = 0, tipHash = "", live = 0;
       /** Each block's price by height, for the previous block's answer. @type {Map<number, number>} */
       let priceAt = new Map();
       /** The blocks shown: height, price, time. @type {{ h: number, p: number, t: number }[]} */
       let points = [];
-      /** Each block's histogram (the oracle's 12-block average at it), by height. @type {Map<number, number[]>} */
-      const hist = new Map();
-      /** @type {number[]} */
-      let liveHist = [];
+      /** @typedef {{ height: number, first_bin: number, scores: number[], bin: number, histogram: number[] }} Search */
+      /** @typedef {{ height: number, first: number, counts: number[] }} Payments */
+      /** Each block's payments read as round dollars: readings by price bucket, a tenth of a bin each. @type {Map<number, Payments>} */
+      let payments = new Map();
+      /** Whether a chunk failed to read: the next look tries again. */
+      let incomplete = false;
+      /** The live search, the mempool blended in as the next block, with the histogram it scored. @type {Search | null} */
+      let liveSearch = null;
 
       // ── The price at the top: now, or the block pointed at ──
 
@@ -992,7 +1171,7 @@
         cancelAnimationFrame(rolling);
         const from = shown || next, start = performance.now();
         const step = (/** @type {number} */ now) => {
-          const t = !roll || still.matches || !shown ? 1 : Math.min(1, (now - start) / 500), v = from + (next - from) * (1 - (1 - t) ** 3);
+          const t = !roll || still.matches || !shown ? 1 : Math.min(1, (now - start) / 200), v = from + (next - from) * (1 - (1 - t) ** 3);
           $("price").textContent = `$${grouped(v)}`;
           shown = t === 1 ? next : v;
           if (t < 1) rolling = requestAnimationFrame(step);
@@ -1032,25 +1211,38 @@
         priceAt = new Map(all.filter((pt) => pt.p > 0).map((pt) => [pt.h, pt.p]));
         const newest = all.findLast((pt) => pt.t !== undefined)?.t ?? 0;
         points = all.filter((pt) => pt.p > 0 && pt.t !== undefined && pt.t > newest - WEEK);
-        for (const h of hist.keys()) if (h < (points[0]?.h ?? 0)) hist.delete(h);
         showTip();
         draw();
         drawHeat();
         tell(pointed);
-        // (The histograms, one block in EVERY, the newest first, in batches.)
-        const want = points.filter((pt) => pt.h % EVERY === 0).map((pt) => pt.h).filter((h) => !hist.has(h)).reverse();
-        for (let i = 0; i < want.length; i += 24) {
-          const batch = want.slice(i, i + 24);
-          const answers = await Promise.allSettled(batch.map((h) => read(`/api/oracle/histogram/payments/${h}`)));
-          answers.forEach((a, k) => a.status === "fulfilled" && hist.set(batch[k], a.value));
-          drawHeat();
-        }
+        // (Every block's payments, a day of blocks a request: settled days never change, so caches keep them; a day
+        // that fails keeps what it had, and the next look tries it again.)
+        if (!points.length) return;
+        const DAY = 144, chunks = [];
+        for (let start = Math.max(Math.floor(points[0].h / DAY) * DAY, Math.ceil(508_000 / DAY) * DAY); start <= tip; start += DAY) chunks.push(start);
+        const found = await Promise.allSettled(chunks.map((start) => read(`/api/oracle/payments/${start}`)));
+        const next = new Map([...payments].filter(([h]) => h >= points[0].h));
+        incomplete = false;
+        found.forEach((r, i) => {
+          if (r.status !== "fulfilled") return void (incomplete = true);
+          for (let h = chunks[i]; h < chunks[i] + DAY; h++) next.delete(h);
+          for (const block of r.value.blocks) next.set(block.height, block);
+        });
+        payments = next;
+        draw();
+        drawHeat();
       }
       async function readLive() {
-        const [p, h] = await Promise.allSettled([read("/api/oracle/price", "text"), read("/api/oracle/histogram/payments/live")]);
-        if (p.status === "fulfilled") live = Number(p.value);
-        else if (!live) $("kicker").textContent = "Can't reach this server's oracle; trying again";
-        if (h.status === "fulfilled") liveHist = h.value;
+        // (The live search with the histogram it scored, one snapshot: its pick is the live price.)
+        const s = await read("/api/oracle/searches/live").catch(() => null);
+        if (s) [liveSearch, live] = [s, priceOf(s.bin)];
+        else {
+          // (No live search, as while the oracle's first fast blocks sync: the price alone, and no evidence for it.)
+          liveSearch = null;
+          const p = await read("/api/oracle/price", "text").catch(() => null);
+          if (p) live = Number(p);
+          else if (!live) $("kicker").textContent = "Can't reach this server's oracle; trying again";
+        }
         if (pointed === null) tell(null);
         draw();
         drawHeat();
@@ -1060,24 +1252,43 @@
       // ── The week's chart, edge to edge ──
 
       const chart = $("chart"), canvas = /** @type {HTMLCanvasElement} */ ($("heat")), svg = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("lines")));
-      const PAD = { top: 10, right: 72, bottom: 26 };
-      /** The frame: x of a block's index (the live point one past the last), y of a price (log). */
+      const PAD = { top: 0, right: 0, bottom: 0 };
+      /** How far the week's lowest and highest prices sit from the bottom and top of the screen. */
+      const MARGIN = 0.12;
+      /** Buckets a bin: the payments' price step, a tenth of the oracle's. */
+      const PER_BIN = 10;
+      /** How near a square at `bin` is a block's pick at `pick`: 1 on it, fading over about a bin. */
+      const nearPick = (/** @type {number} */ bin, /** @type {number} */ pick) => Math.exp(-((bin - pick) ** 2) / 0.5);
+      /** The frame: x of a block's index (the live point one past the last), y of a price (log); the data below the
+       * price and above the way down. */
       function frame() {
         const w = chart.clientWidth, h = chart.clientHeight, n = points.length;
-        const prices = [...points.map((pt) => pt.p), live || points.at(-1)?.p || 1];
-        let lo = Math.min(...prices), hi = Math.max(...prices);
-        // (At least ±4% around the middle, so the evidence has room; a little past the line.)
-        const mid = Math.sqrt(lo * hi);
-        [lo, hi] = [Math.min(lo / 1.02, mid / 1.04), Math.max(hi * 1.02, mid * 1.04)];
-        const x = (/** @type {number} */ k) => (k / Math.max(1, n)) * (w - PAD.right);
+        // (The price axis is the oracle's bins, each an equal row of the whole screen, as many as put the week's lowest
+        // and highest prices about MARGIN from the bottom and top, rounded out to whole bins.)
+        const prices = [...points.map((pt) => pt.p), ...(live ? [live] : [])];
+        let b0 = 0, b1 = 1;
+        if (prices.length) {
+          const top = binOf(100, Math.max(...prices)), bottom = binOf(100, Math.min(...prices));
+          const rows = Math.max(1, Math.ceil((bottom - top) / (1 - 2 * MARGIN))), spare = rows - (bottom - top);
+          b0 = Math.round(top - spare / 2);
+          b1 = b0 + rows;
+        }
+        const hi = priceOf(b0 - 0.5), lo = priceOf(b1 + 0.5);
+        // (The squares: rows of whole buckets, a tenth of a bin each, about 10px tall; columns as wide, edge to edge,
+        // the blocks in all but the last two: the live search's strip, where now is, then one left empty.)
+        const tall = (b1 - b0 + 1) * PER_BIN, per = Math.max(1, Math.round(10 / (h / tall))), side = (h / tall) * per;
+        const cols = Math.max(3, Math.round(w / side)), width = w / cols, span = (cols - 2) * width, now = (cols - 1.5) * width;
+        const x = (/** @type {number} */ k) => (k / Math.max(1, n)) * span;
         const y = (/** @type {number} */ p) => PAD.top + (1 - Math.log(p / lo) / Math.log(hi / lo)) * (h - PAD.top - PAD.bottom);
-        const priceAt = (/** @type {number} */ py) => lo * (hi / lo) ** (1 - (py - PAD.top) / (h - PAD.top - PAD.bottom));
-        return { w, h, n, lo, hi, x, y, priceAt };
+        const priceOfY = (/** @type {number} */ py) => lo * (hi / lo) ** (1 - (py - PAD.top) / (h - PAD.top - PAD.bottom));
+        return { w, h, n, lo, hi, x, y, priceAt: priceOfY, b0, b1, per, side, cols, width, span, now };
       }
 
-      /** Behind the line: each block's score at each price, the oracle's way, in square cells; the cells nearest its
-       * best brightest, the rest left dark. Only inside its search window: it looked nowhere else. (From the
-       * histograms as served, in whole counts where the oracle's are fractional: its scores, very nearly.) */
+      /** Behind the line, the payments themselves: each block's eligible outputs, at their exact amounts, read as each
+       * round-dollar amount, counted by the price each reading implies, in buckets a tenth of an oracle bin tall. The
+       * screen cut into squares of about 10px: a row a few buckets tall, a column as wide over its blocks; a square is
+       * its readings, brightest where a column's are densest. Gray where no block's search window reached. Then the
+       * live strip: what the oracle searches now, the same readings from its smoothed histogram, a bin at a time. */
       function drawHeat() {
         const f = frame(), ratio = devicePixelRatio || 1;
         canvas.width = Math.round(f.w * ratio);
@@ -1085,49 +1296,75 @@
         const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
         ctx.scale(ratio, ratio);
         if (!f.n) return;
-        const heat = resolved("var(--heat)");
-        const column = (/** @type {number[]} */ values, /** @type {number} */ prev, /** @type {number} */ x0, /** @type {number} */ x1) => {
-          const score = scorer(values, prev);
-          if (!score.best) return;
-          const side = Math.max(3, x1 - x0);
-          for (let top = PAD.top; top + side <= f.h - PAD.bottom + 0.5; top += side) {
-            const c = binOf(100, f.priceAt(top + side / 2));
-            if (c < score.c0 || c > score.c1) continue;
-            const v = score.at(c) / score.best;
-            if (v < 0.5) continue;
-            ctx.fillStyle = `rgba(${heat},${(((v - 0.5) / 0.5) ** 1.8 * 0.8).toFixed(3)})`;
-            ctx.fillRect(x0, top, side - 1, side - 1);
-          }
+        // (The ramp's three stops as the scheme resolves them; a cell's color and strength both from its score.)
+        const stops = ["var(--heat-lo)", "var(--heat-mid)", "var(--heat-hi)"].map((c) => resolved(c).split(",").map(Number)), ink = resolved("var(--ink)");
+        const ramp = (/** @type {number} */ t) => {
+          const k = t < 0.5 ? 0 : 1, u = t < 0.5 ? t * 2 : (t - 0.5) * 2;
+          return stops[k].map((a, i) => Math.round(a + (stops[k + 1][i] - a) * u)).join(",");
         };
-        // (A column per histogram read, or as many blocks as make it 5px wide.)
-        const stride = EVERY * Math.max(1, Math.ceil(5 / ((f.x(1) - f.x(0)) * EVERY)));
+        // (The screen's buckets, top to bottom, from the first row's bin; a square's rows of them.)
+        const { per, side, cols, width } = f, top = f.b0 * PER_BIN - PER_BIN / 2, rows = Math.ceil(((f.b1 - f.b0 + 1) * PER_BIN) / per);
+        /** A row's middle, in bins. */
+        const binAt = (/** @type {number} */ r) => (top + (r + 0.5) * per) / PER_BIN;
+        const strips = cols - 1, blocks = cols - 2;
+        const sums = Array.from({ length: strips }, () => new Float64Array(rows)), seen = Array.from({ length: strips }, () => new Uint8Array(rows));
+        // (How much each square is the pick's: over the column's blocks, each its share.)
+        const lift = Array.from({ length: strips }, () => new Float64Array(rows)), picks = new Float64Array(strips);
+        const liftAt = (/** @type {number} */ j, /** @type {number} */ pick) => {
+          picks[j]++;
+          for (let r = 0; r < rows; r++) lift[j][r] += nearPick(binAt(r), pick);
+        };
         points.forEach((pt, k) => {
-          const values = pt.h % stride === 0 && hist.get(pt.h), prev = priceAt.get(pt.h - 1);
-          if (values && prev) column(values, binOf(100, prev), f.x(Math.max(0, k - stride + 1)), f.x(k + 1));
+          const block = payments.get(pt.h);
+          if (!block) return;
+          // (A block in the column its point on the line falls in.)
+          const j = Math.min(blocks - 1, Math.floor((k * blocks) / f.n));
+          block.counts.forEach((count, i) => {
+            const r = Math.floor((block.first + i - top) / per);
+            if (r < 0 || r >= rows) return;
+            sums[j][r] += count;
+            seen[j][r] = 1;
+          });
+          liftAt(j, binOf(100, pt.p));
         });
-        if (liveHist.length) column(liveHist, binOf(100, points[f.n - 1].p), f.x(f.n), f.x(f.n) + 6);
+        // (The live strip: each bin in the search's window, its readings as the oracle's 19 arms see them, spread over
+        // its buckets as the blocks' are.)
+        if (liveSearch) {
+          const j = blocks, { first_bin, scores, histogram } = liveSearch;
+          for (let c = first_bin; c < first_bin + scores.length; c++) {
+            const v = OFFSETS.reduce((total, o) => total + (histogram[c + o] ?? 0), 0) / PER_BIN;
+            for (let b = c * PER_BIN - PER_BIN / 2; b < c * PER_BIN + PER_BIN / 2; b++) {
+              const r = Math.floor((b - top) / per);
+              if (r < 0 || r >= rows) continue;
+              sums[j][r] += v;
+              seen[j][r] = 1;
+            }
+          }
+          liftAt(j, liveSearch.bin);
+        }
+        for (let j = 0; j < strips; j++) {
+          let most = 0;
+          for (let r = 0; r < rows; r++) most = Math.max(most, sums[j][r]);
+          for (let r = 0; r < rows; r++) {
+            // A square no search reached is gray; a searched one, faint where few readings land, bright where most do,
+            // lifted softly around the oracle's picks.
+            const t = most ? (sums[j][r] / most) ** 0.7 : 0, u = picks[j] ? lift[j][r] / picks[j] : 0;
+            const v = Math.min(1, t + 0.4 * u * (1 - t) + 0.15 * u);
+            ctx.fillStyle = seen[j][r] ? `rgba(${ramp(v)},${(0.06 + 0.94 * v).toFixed(3)})` : `rgba(${ink},0.035)`;
+            ctx.fillRect(j * width, r * side, width - 1, side - 1);
+          }
+        }
       }
 
-      /** The line, its grid and labels, the live end; the crosshair kept where it was. */
+      /** The line and its live end, no axes: pointing tells a block's date and price; the crosshair kept where it was. */
       let pointed = /** @type {number | null} */ (null);
       function draw() {
         const f = frame();
         if (!f.n) return;
         svg.setAttribute("viewBox", `0 0 ${f.w} ${f.h}`);
-        const raw = (f.hi - f.lo) / 4, power = 10 ** Math.floor(Math.log10(raw)), step = [1, 2, 2.5, 5, 10].map((m) => m * power).find((s) => s >= raw) ?? power * 10;
-        let grid = "";
-        for (let p = Math.ceil(f.lo / step) * step; p <= f.hi; p += step)
-          grid += `<line class="gridline" x1="0" x2="${f.w - PAD.right + 8}" y1="${f.y(p)}" y2="${f.y(p)}"/><text class="axis-text" x="${f.w - 16}" y="${f.y(p) + 4}" text-anchor="end">$${p >= 1000 ? `${Number((p / 1000).toFixed(1))}k` : grouped(p)}</text>`;
-        const times = [];
-        let lastX = -Infinity;
-        for (let k = 1; k < f.n; k++) {
-          const a = new Date(points[k].t * 1000), b = new Date(points[k - 1].t * 1000);
-          if (a.getDate() !== b.getDate() && f.x(k) > 24 && f.x(k) < f.w - PAD.right - 24 && f.x(k) - lastX > 64 && (lastX = f.x(k)))
-            times.push(`<text class="axis-text" x="${f.x(k)}" y="${f.h - 7}" text-anchor="middle">${day(points[k].t)}</text>`);
-        }
-        const path = points.map((pt, k) => `${k ? "L" : "M"}${f.x(k).toFixed(1)},${f.y(pt.p).toFixed(1)}`).join("") + (live ? `L${f.x(f.n).toFixed(1)},${f.y(live).toFixed(1)}` : "");
-        const endX = f.x(live ? f.n : f.n - 1), endY = f.y(live || points[f.n - 1].p);
-        svg.innerHTML = `${grid}${times.join("")}<path class="price-line" d="${path}"/><circle class="end-glow" cx="${endX}" cy="${endY}" r="9"/><circle class="end" cx="${endX}" cy="${endY}" r="3.5"/><g class="cross" id="cross" visibility="hidden"><line y1="${PAD.top}" y2="${f.h - PAD.bottom}"/><circle r="4.5"/></g>`;
+        const path = points.map((pt, k) => `${k ? "L" : "M"}${f.x(k).toFixed(1)},${f.y(pt.p).toFixed(1)}`).join("") + (live ? `L${f.now.toFixed(1)},${f.y(live).toFixed(1)}` : "");
+        const endX = live ? f.now : f.x(f.n - 1), endY = f.y(live || points[f.n - 1].p);
+        svg.innerHTML = `<path class="price-glow" d="${path}"/><path class="price-line" d="${path}"/><circle class="end-glow" cx="${endX}" cy="${endY}" r="9"/><circle class="end" cx="${endX}" cy="${endY}" r="4.5"/><g class="cross" id="cross" visibility="hidden"><line y1="${PAD.top}" y2="${f.h - PAD.bottom}"/><circle r="4.5"/></g>`;
         if (pointed !== null) point(pointed);
       }
 
@@ -1138,13 +1375,14 @@
         if (!cross) return;
         cross.setAttribute("visibility", pointed === null ? "hidden" : "visible");
         if (pointed !== null) {
-          const f = frame(), x = String(f.x(pointed)), line = /** @type {SVGLineElement} */ (cross.querySelector("line")), dot = /** @type {SVGCircleElement} */ (cross.querySelector("circle"));
+          const f = frame(), x = String(pointed >= points.length ? f.now : f.x(pointed)), line = /** @type {SVGLineElement} */ (cross.querySelector("line")), dot = /** @type {SVGCircleElement} */ (cross.querySelector("circle"));
           line.setAttribute("x1", x);
           line.setAttribute("x2", x);
           dot.setAttribute("cx", x);
           dot.setAttribute("cy", String(f.y(points[pointed]?.p ?? live)));
         }
         tell(pointed);
+        $("more").textContent = pointed !== null && pointed < points.length ? `How it read block ${grouped(points[pointed].h)}` : "How it reads the chain";
       }
 
       /** Pointer input across an element: a touch that starts here scrolls the page unless it moves more across than
@@ -1180,12 +1418,20 @@
         hover: true,
         move: (e) => {
           const f = frame(), box = chart.getBoundingClientRect();
-          point(Math.round(((e.clientX - box.left) / (f.w - PAD.right)) * f.n));
+          point(Math.round(((e.clientX - box.left) / f.span) * f.n));
         },
       });
       chart.addEventListener("pointerleave", (e) => e.pointerType === "mouse" && point(null));
+      // A block clicked (or Enter on it): how it read it, in 01.
+      const open = () => {
+        if (pointed === null || pointed >= points.length) return;
+        choose(points[pointed].h);
+        $("plate").closest(".instrument")?.scrollIntoView({ behavior: still.matches ? "auto" : "smooth", block: "center" });
+      };
+      chart.addEventListener("click", open);
       chart.addEventListener("keydown", (e) => {
         const n = points.length, step = e.shiftKey ? 36 : 1, from = pointed ?? n - 1;
+        if (e.key === "Enter") return open();
         const to = /** @type {Record<string, number>} */ ({ ArrowLeft: from - step, ArrowRight: from + step, Home: 0, End: n - 1 })[e.key];
         if (to === undefined) return;
         e.preventDefault();
@@ -1208,31 +1454,123 @@
       let shift = 0;
       /** The fit wherever the fingerprint is held: each tooth's count over the tallest it meets anywhere within reach
        * (the oracle's own normalization holds only inside its window, so it can't rank places beyond it); and the
-       * oracle's window, around its last answer, the last block's price. */
-      let wide = scorer([], 0), own = scorer([], 0), most = 0;
+       * oracle's window, from the search shown. */
+      let wide = scorer([], 0), own = { c0: 0, c1: 0 }, most = 0;
+      /** The block 01 reads (null: now). */
+      let picked = /** @type {number | null} */ (null);
+      /** Blocks' searches as read, by height, the oldest read dropped past a week's worth. @type {Map<number, Search>} */
+      const searchAt = new Map();
+      /** The search shown: the picked block's once read (until then, the one before it), or now's. @type {Search | null} */
+      let shownSearch = null;
+      let reading = false, failed = /** @type {number | null} */ (null);
 
       function instrument() {
-        const last = points.at(-1)?.p;
-        if (!live || !liveHist.length || !last) return;
-        const center = binOf(100, live);
-        own = scorer(liveHist, binOf(100, last));
-        wide = scorer(liveHist, center, { below: REACH, above: REACH });
+        // (A block's search not read yet, or none now: the plate keeps the last, dimmed.)
+        const s = picked === null ? liveSearch : searchAt.get(picked);
+        plate.setAttribute("aria-busy", String(!s));
+        drawBlocks();
+        if (!s) return;
+        shownSearch = s;
+        const center = s.bin;
+        own = { c0: s.first_bin, c1: s.first_bin + s.scores.length - 1 };
+        wide = scorer(s.histogram, center, { below: REACH, above: REACH });
         most = 0;
         for (let c = center - REACH; c <= center + REACH; c += 0.5) most = Math.max(most, wide.at(c));
+        // (02's twelve: the block read and the 11 before it, now the mempool's first.)
+        const mempool = s.height > tip;
+        $("newest").textContent = mempool ? "the mempool" : `block ${grouped(s.height)}`;
+        $("oldest").textContent = `block ${grouped(s.height - 11)}`;
         drawPlate();
       }
+
+      /** Read a block for 01 (null: now). Past the week's newest block is now; a block is read once, the latest
+       * picked while one is being read read next. */
+      function choose(/** @type {number | null} */ h) {
+        const last = points.at(-1)?.h ?? 0;
+        picked = h === null || h > last ? null : Math.max(points[0]?.h ?? h, h);
+        failed = null;
+        instrument();
+        if (picked !== null && !searchAt.has(picked)) readPicked();
+      }
+      async function readPicked() {
+        if (reading) return;
+        reading = true;
+        while (picked !== null && !searchAt.has(picked)) {
+          const h = picked, s = await read(`/api/oracle/searches/${h}`).catch(() => null);
+          if (!s) {
+            // (Another picked meanwhile: that one next.)
+            if (picked !== h) continue;
+            failed = h;
+            break;
+          }
+          searchAt.set(h, s);
+          if (searchAt.size > 1008) searchAt.delete(/** @type {number} */ (searchAt.keys().next().value));
+        }
+        reading = false;
+        instrument();
+      }
+
+      /** Which block: its name, the steps, and its place on the week's line. */
+      const scrub = $("scrub"), scrubLine = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("scrub-line")));
+      const scrubX = (/** @type {number} */ k, /** @type {number} */ w) => 6 + (k / Math.max(1, points.length)) * (w - 12);
+      function drawBlocks() {
+        const n = points.length, k = picked === null ? n : points.findIndex((pt) => pt.h === picked), pt = points[k];
+        const which = $("which");
+        if (pt) {
+          which.innerHTML = `Block ${grouped(pt.h)}<small>${day(pt.t)}, ${clock(pt.t)} · $${grouped(pt.p)}${failed === picked ? " · couldn't read it, step to try again" : ""}</small>`;
+        } else {
+          const what = !liveSearch ? "its search can't be read" : liveSearch.height > tip ? "the mempool as the next block" : "the newest block";
+          which.innerHTML = `Now<small>${what}${live ? ` · $${grouped(live)}` : ""}</small>`;
+        }
+        /** @type {HTMLButtonElement} */ ($("earlier")).disabled = k <= 0;
+        /** @type {HTMLButtonElement} */ ($("later")).disabled = picked === null;
+        $("now").setAttribute("aria-pressed", String(picked === null));
+        scrub.setAttribute("aria-valuemin", "0");
+        scrub.setAttribute("aria-valuemax", String(n));
+        scrub.setAttribute("aria-valuenow", String(k));
+        scrub.setAttribute("aria-valuetext", pt ? `Block ${grouped(pt.h)}, ${day(pt.t)} ${clock(pt.t)}: $${grouped(pt.p)}` : "Now");
+        const w = scrub.clientWidth, h = scrub.clientHeight;
+        if (!n || !w) return;
+        const prices = [...points.map((p) => p.p), ...(live ? [live] : [])], lo = Math.min(...prices), hi = Math.max(...prices);
+        const y = (/** @type {number} */ p) => 4 + (1 - Math.log(p / lo) / Math.log(hi / lo || 1)) * (h - 8);
+        const path = points.map((p, i) => `${i ? "L" : "M"}${scrubX(i, w).toFixed(1)},${y(p.p).toFixed(1)}`).join("") + (live ? `L${scrubX(n, w).toFixed(1)},${y(live).toFixed(1)}` : "");
+        const mx = scrubX(k, w).toFixed(1), my = y(pt?.p ?? live ?? lo).toFixed(1);
+        scrubLine.setAttribute("viewBox", `0 0 ${w} ${h}`);
+        scrubLine.innerHTML = `<path class="scrub-line" d="${path}"/><line class="scrub-mark" x1="${mx}" x2="${mx}" y1="0" y2="${h}"/><circle class="scrub-dot" cx="${mx}" cy="${my}" r="3.5"/>`;
+      }
+      const stepFrom = (/** @type {number} */ by) => {
+        const n = points.length, k = picked === null ? n : points.findIndex((pt) => pt.h === picked), to = Math.max(0, Math.min(n, k + by));
+        choose(to >= n ? null : points[to].h);
+      };
+      $("earlier").addEventListener("click", () => stepFrom(-1));
+      $("later").addEventListener("click", () => stepFrom(1));
+      $("now").addEventListener("click", () => choose(null));
+      const pickAt = (/** @type {number} */ clientX) => {
+        const box = scrub.getBoundingClientRect(), n = points.length, k = Math.round(((clientX - box.left - 6) / (box.width - 12)) * n);
+        choose(k >= n ? null : points[Math.max(0, k)]?.h ?? null);
+      };
+      across(scrub, { move: (e) => pickAt(e.clientX) });
+      // (A tap picks too: a touch picks only once it moves across.)
+      scrub.addEventListener("click", (e) => pickAt(e.clientX));
+      scrub.addEventListener("keydown", (e) => {
+        const by = e.shiftKey ? 36 : 1;
+        const go = /** @type {Record<string, () => void>} */ ({ ArrowLeft: () => stepFrom(-by), ArrowRight: () => stepFrom(by), Home: () => choose(points[0]?.h ?? null), End: () => choose(null) })[e.key];
+        if (!go) return;
+        e.preventDefault();
+        go();
+      });
 
       /** The plate: the counts as bars (sats, log), the 19 teeth where the fingerprint is held, and under them the
        * fit at every place the $100 tooth could be, the oracle's window shaded. */
       function drawPlate() {
-        if (!live || !liveHist.length || !most) return;
-        const w = plate.clientWidth, h = plate.clientHeight, center = binOf(100, live), here = center + shift;
+        if (!shownSearch || !most) return;
+        const hist = shownSearch.histogram, w = plate.clientWidth, h = plate.clientHeight, center = shownSearch.bin, here = center + shift;
         const lo = center - SPAN, hi = center + SPAN, strip = 76, base = h - strip - 22, top = 30;
         const x = (/** @type {number} */ b) => ((b - lo) / (hi - lo)) * w;
         let peak = 0;
-        for (let b = Math.floor(lo); b < hi; b++) peak = Math.max(peak, liveHist[b] ?? 0);
+        for (let b = Math.floor(lo); b < hi; b++) peak = Math.max(peak, hist[b] ?? 0);
         const bw = Math.max(1, w / (hi - lo)), bar = (/** @type {number} */ b, cls = "") => {
-          const v = liveHist[b] ?? 0;
+          const v = hist[b] ?? 0;
           if (!v || !peak) return "";
           const bh = (v / peak) * (base - top - 8);
           return `<rect${cls} x="${x(b - 0.5).toFixed(1)}" y="${(base - bh).toFixed(1)}" width="${bw.toFixed(2)}" height="${bh.toFixed(1)}"/>`;
@@ -1348,6 +1686,7 @@
         drawHeat();
       }).observe(chart);
       new ResizeObserver(() => drawPlate()).observe(plate);
+      new ResizeObserver(() => drawBlocks()).observe(scrub);
       matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawHeat);
       // The fingerprint starts off the price, and fits itself once it's in view.
       shift = still.matches ? 0 : 70;
@@ -1364,15 +1703,16 @@
       }, { threshold: 0.6 }).observe(plate);
       setInterval(readLive, 10_000);
       setInterval(showTip, 30_000);
-      // A new tip, or the same height with another block (a reorganization): the last blocks' histograms read again.
+      // A new tip, or the same height with another block (a reorganization): the week read again, and blocks'
+      // searches (the new tip may be another branch's); a block no longer in the week gives way to now.
       tipHash = await read("/api/blocks/tip/hash", "text").catch(() => "");
       setInterval(async () => {
         const hash = await read("/api/blocks/tip/hash", "text").catch(() => tipHash);
-        if (hash === tipHash) return;
+        if (hash === tipHash && !incomplete) return;
+        if (hash !== tipHash) searchAt.clear();
         tipHash = hash;
-        for (const h of hist.keys()) if (h > tip - 12) hist.delete(h);
         await readWeek().catch(() => {});
-        instrument();
+        choose(picked !== null && points.some((pt) => pt.h === picked) ? picked : null);
       }, 30_000);
     </script>
   </body>
