@@ -6,10 +6,10 @@
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f6f7" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#08090a" />
-    <title>Bitview: Bitcoin's on-chain data, open to all</title>
-    <meta name="description" content="Bitview reads every block from a Bitcoin node and measures it. Chart the series in Studio, query them through the API, hand them to your assistant, or run the server on your own node. Free, with no account and no key." />
+    <title>Bitview</title>
+    <meta name="description" content="Bitview's apps on this server (Studio, Series, Smart DCA, Globe, Calendar, The Satoshi Trail), the chain right now, and this node: its state and its API." />
     <meta property="og:title" content="Bitview" />
-    <meta property="og:description" content="Bitcoin's on-chain data, open to all: chart it in Studio, query it through the API, or run the server on your own node." />
+    <meta property="og:description" content="Bitview's apps, the chain right now, and this node: its state and its API." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/" />
     <meta property="og:image" content="https://bitview.space/assets/favicon/web-app-manifest-512x512.png" />
@@ -44,17 +44,13 @@
         --muted: light-dark(#6b7079, #7c818a);
         --line: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.06));
         --line-strong: light-dark(rgb(0 0 0 / 0.13), rgb(255 255 255 / 0.1));
-        --edge: light-dark(rgb(0 0 0 / 0.32), rgb(255 255 255 / 0.32));
-        --grid: light-dark(rgb(0 0 0 / 0.06), rgb(255 255 255 / 0.05));
         --focus: light-dark(rgb(0 0 0 / 0.45), rgb(255 255 255 / 0.5));
         --live: light-dark(#0c7642, #3ccf7c);
-        /* The logo's orange; on it, its own dark. */
+        /* The logo's orange. */
         --brand: oklch(64.34% 0.191 44.41);
-        --on-brand: #1a0f02;
         /* (As small text: darker on the light, for its contrast.) */
         --brand-text: light-dark(oklch(52% 0.16 44.41), var(--brand));
         --sheen: inset 0 1px 0 light-dark(rgb(255 255 255 / 0.7), rgb(255 255 255 / 0.04));
-        --shadow: 0 1px 2px light-dark(rgb(0 0 0 / 0.04), transparent), 0 24px 60px -30px light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.6));
         --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
         --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
         --radius: 12px;
@@ -99,37 +95,13 @@
         }
       }
 
-      /* ── Header: the brand, the way to each part, the latest block ── */
+      /* ── The bar: the brand, and this node's state ── */
 
       .top {
         display: flex;
         align-items: center;
         gap: 4px;
         height: 64px;
-
-        nav {
-          display: flex;
-          gap: 4px;
-          margin-right: auto;
-          margin-left: 20px;
-
-          /* (A phone: the brand and the block; the ways in are the page's.) */
-          @media (max-width: 719px) {
-            display: none;
-          }
-
-          a {
-            border-radius: 6px;
-            padding: 4px 10px;
-            color: var(--soft);
-            font-size: 14px;
-
-            &:hover {
-              color: var(--ink);
-              background: var(--line);
-            }
-          }
-        }
       }
 
       .brand {
@@ -146,7 +118,7 @@
           height: 25.5px;
         }
 
-        @media (max-width: 719px) {
+        .top & {
           margin-right: auto;
         }
       }
@@ -179,72 +151,82 @@
           color: var(--ink);
           font-weight: 500;
         }
+
+        /* (Not at the tip, or not reachable: the brand's orange, not the live green.) */
+        &.behind::before {
+          background: var(--brand);
+          box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand), transparent 80%);
+        }
       }
 
-      /* ── The pitch, beside what this server measures right now ── */
+      /* ── Sections: the apps, the chain now, this node ── */
 
-      .hero {
+      main {
+        padding-top: 16px;
+
+        @media (min-width: 720px) {
+          padding-top: 24px;
+        }
+      }
+
+      section + section {
+        padding-top: 56px;
+      }
+
+      h2 {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        margin: 0 0 16px;
+        color: var(--ink);
+        font-size: 20px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+
+        small {
+          color: var(--muted);
+          font-size: 13px;
+          font-weight: 400;
+          letter-spacing: 0;
+        }
+      }
+
+      /* Every app, a tile each of one size: three a row on a desk, two on a tablet (six: none alone); on a phone, a row
+         each, its picture small beside its words, so the chain's in reach. */
+      .apps {
         display: grid;
-        gap: 40px;
-        align-items: center;
-        padding: 56px 0 40px;
+        gap: 12px;
+
+        @media (min-width: 640px) {
+          grid-template-columns: 1fr 1fr;
+        }
 
         @media (min-width: 960px) {
-          grid-template-columns: 1.15fr 1fr;
-          gap: 56px;
-          padding: 88px 0 56px;
-        }
-      }
-
-      h1 {
-        margin: 0;
-        color: var(--ink);
-        font-size: clamp(36px, 6vw, 60px);
-        font-weight: 600;
-        line-height: 1.04;
-        letter-spacing: -0.04em;
-        text-wrap: balance;
-      }
-
-      .lede {
-        max-width: 34em;
-        margin: 20px 0 0;
-        color: var(--soft);
-        font-size: clamp(16px, 2vw, 18px);
-        line-height: 1.5;
-        text-wrap: pretty;
-      }
-
-      .ctas {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        margin-top: 32px;
-      }
-
-      .button {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        height: 40px;
-        border-radius: 8px;
-        padding: 0 16px;
-        color: var(--ink);
-        background: var(--card);
-        box-shadow: var(--sheen), inset 0 0 0 1px var(--line-strong);
-        font-weight: 500;
-
-        &:hover {
-          background: color-mix(in oklab, var(--card), var(--ink) 4%);
+          grid-template-columns: repeat(3, 1fr);
         }
 
-        &.primary {
-          color: var(--on-brand);
-          background: var(--brand);
-          box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.2);
+        @media (max-width: 639px) {
+          gap: 8px;
 
-          &:hover {
-            background: color-mix(in oklab, var(--brand), white 8%);
+          .media {
+            display: grid;
+            grid-template-columns: 112px minmax(0, 1fr);
+            align-items: center;
+
+            > .shot {
+              height: 100%;
+              border-right: 1px solid var(--line);
+              border-bottom: 0;
+            }
+
+            > .body {
+              padding: 12px 14px;
+            }
+
+            p {
+              margin-top: 2px;
+              font-size: 13px;
+            }
           }
         }
       }
@@ -252,24 +234,92 @@
       .surface {
         border-radius: var(--radius);
         background: var(--card);
-        box-shadow: var(--sheen), var(--shadow), 0 0 0 1px var(--line);
+        box-shadow: var(--sheen), 0 0 0 1px var(--line);
       }
 
-      .stats {
+      /* ── The chain now: the latest blocks, beside fees, the mempool, the next adjustment and the price ── */
+
+      /* (Columns that may be narrower than what's in them: a long address wraps, never widening the page.) */
+      .now {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+
+        @media (min-width: 900px) {
+          grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+        }
+      }
+
+      .panel {
+        padding: 16px 18px;
+
+        h3 {
+          margin: 0 0 8px;
+          color: var(--muted);
+          font-size: 12px;
+          font-weight: 500;
+        }
+      }
+
+      .readings {
         display: grid;
         grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+
+      /* The latest blocks, newest first: its height, its pool, its transactions and median fee, how long ago. */
+      .blocks {
         margin: 0;
+        padding: 0;
+        list-style: none;
 
-        > div {
-          padding: 16px 18px;
+        li {
+          display: grid;
+          grid-template-columns: 7ch minmax(0, 1fr) auto;
+          grid-template-areas: "height pool age" "height detail age";
+          align-items: center;
+          gap: 0 12px;
+          border-top: 1px solid var(--line);
+          padding: 9px 0;
 
-          &:nth-child(odd) {
-            border-right: 1px solid var(--line);
+          &:first-child {
+            border-top: 0;
           }
+        }
 
-          &:nth-child(n + 3) {
-            border-top: 1px solid var(--line);
-          }
+        .height {
+          grid-area: height;
+          color: var(--ink);
+          font-size: 14px;
+        }
+
+        .pool {
+          grid-area: pool;
+          overflow: hidden;
+          color: var(--ink);
+          font-weight: 500;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+
+        .detail {
+          grid-area: detail;
+          color: var(--muted);
+          font-size: 13px;
+        }
+
+        .age {
+          grid-area: age;
+          color: var(--soft);
+          font-size: 13px;
+          white-space: nowrap;
+        }
+      }
+
+      /* A reading: its name, its value, a line under it. */
+      .reading {
+        dl {
+          margin: 0;
         }
 
         dt {
@@ -278,235 +328,140 @@
         }
 
         dd {
-          margin: 4px 0 0;
+          margin: 2px 0 0;
           color: var(--ink);
-          font-size: clamp(18px, 2.4vw, 22px);
+          font-size: 22px;
           letter-spacing: -0.02em;
 
           &:empty::before {
             content: "–";
             color: var(--muted);
           }
-        }
-      }
 
-      .stats-foot {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        border-top: 1px solid var(--line);
-        padding: 10px 18px;
-        color: var(--muted);
-        font-size: 12px;
-
-        a:hover {
-          color: var(--ink);
-        }
-      }
-
-      /* ── The chart: lines stretched to the plot (strokes kept), the grid over it, labels in a gutter, a cursor ── */
-
-      .chart-card {
-        /* (Room at the plot's right for its labels.) */
-        --labels: 52px;
-        margin: 0;
-        padding: 18px 18px 14px;
-      }
-
-      .chart-head {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: baseline;
-        gap: 6px 20px;
-        font-size: 13px;
-      }
-
-      /* (One height whatever week's read: the date under the name, each value in the room its widest takes.) */
-      .chart-title {
-        margin-right: auto;
-        color: var(--ink);
-        font-weight: 500;
-
-        .num {
-          display: block;
-          color: var(--muted);
-          font-weight: 400;
-          white-space: nowrap;
-        }
-      }
-
-      .key {
-        display: inline-flex;
-        align-items: baseline;
-        gap: 8px;
-        color: var(--soft);
-
-        &::before {
-          content: "";
-          align-self: center;
-          width: 10px;
-          height: 2px;
-          border-radius: 1px;
-          background: var(--color);
-        }
-
-        .num {
-          min-width: 8ch;
-          color: var(--ink);
-          white-space: nowrap;
-        }
-      }
-
-      .plot {
-        position: relative;
-        aspect-ratio: 2.8;
-        margin: 16px var(--labels) 0 0;
-        touch-action: pan-y;
-
-        /* (Taller on a phone: the years, not the dollars, are what it's short of.) */
-        @media (max-width: 600px) {
-          aspect-ratio: 1.5;
-        }
-
-        svg {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          overflow: visible;
-        }
-
-        polyline {
-          fill: none;
-          stroke-width: 1.5;
-          stroke-linejoin: round;
-          vector-effect: non-scaling-stroke;
-        }
-
-        &[data-state]::after {
-          content: "Loading…";
-          position: absolute;
-          inset: 0;
-          display: grid;
-          place-items: center;
-          color: var(--muted);
-          font-size: 13px;
-        }
-
-        &[data-state="failed"]::after {
-          content: "This server's data isn't reachable right now.";
-        }
-      }
-
-      .gridline {
-        position: absolute;
-        left: 0;
-        right: 0;
-        border-top: 1px solid var(--grid);
-
-        span {
-          position: absolute;
-          left: calc(100% + 8px);
-          translate: 0 -50%;
-          color: var(--muted);
-          font-size: 11px;
-        }
-      }
-
-      .cursor {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        border-left: 1px dashed var(--edge);
-        pointer-events: none;
-
-        &[hidden] {
-          display: none;
-        }
-
-        i {
-          position: absolute;
-          width: 7px;
-          height: 7px;
-          margin: -3.5px 0 0 -4px;
-          border-radius: 50%;
-          background: var(--color);
-          box-shadow: 0 0 0 2px var(--card);
-        }
-      }
-
-      .years {
-        position: relative;
-        height: 18px;
-        margin: 6px var(--labels) 0 0;
-        color: var(--muted);
-        font-size: 11px;
-
-        span {
-          position: absolute;
-          translate: -50% 0;
-        }
-      }
-
-      .chart-foot {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        gap: 8px;
-        margin-top: 10px;
-        border-top: 1px solid var(--line);
-        padding-top: 12px;
-        color: var(--muted);
-        font-size: 13px;
-
-        a {
-          color: var(--soft);
-
-          &:hover {
-            color: var(--ink);
+          /* (A unit after a number: small, in words' face.) */
+          small {
+            color: var(--muted);
+            font-family: var(--sans);
+            font-size: 12px;
+            letter-spacing: 0;
           }
         }
+
+        p {
+          margin: 4px 0 0;
+          min-height: 1.5em;
+          color: var(--soft);
+          font-size: 13px;
+        }
       }
 
-      /* ── Sections: the ways in, things to explore, what's underneath ── */
+      /* The fees, by how soon: four in a row, the soonest first. */
+      .fees {
+        grid-column: 1 / -1;
 
-      section {
-        padding: 72px 0 0;
+        dl {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+
+          @media (min-width: 480px) {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+          }
+        }
+
+        dd {
+          font-size: 20px;
+        }
       }
 
-      h2 {
-        margin: 0;
-        color: var(--ink);
-        font-size: clamp(22px, 3vw, 28px);
-        font-weight: 600;
-        letter-spacing: -0.025em;
+      /* How far through the difficulty's period: a bar. */
+      .progress {
+        height: 4px;
+        margin-top: 10px;
+        border-radius: 2px;
+        background: var(--line-strong);
+
+        i {
+          display: block;
+          height: 100%;
+          border-radius: inherit;
+          background: var(--brand);
+        }
       }
 
-      .section-lede {
-        margin: 6px 0 0;
-        color: var(--soft);
-      }
+      /* ── Use it: three ways in, the same on any server; then this server, in a line ── */
 
-      /* Columns by section (none left alone on a row): one on a phone, then each its own. */
-      .grid {
+      /* (Three a row on a desk, else one: never one alone.) */
+      .uses {
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
         gap: 12px;
-        margin-top: 24px;
 
-        & + & {
-          margin-top: 12px;
+        @media (min-width: 900px) {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
         }
       }
 
-      @media (min-width: 720px) {
-        .two {
-          grid-template-columns: 1fr 1fr;
+      .use {
+        display: flex;
+        flex-direction: column;
+        padding: 18px;
+
+        h3 {
+          margin: 0;
+          color: var(--ink);
+          font-size: 15px;
+          font-weight: 600;
+        }
+
+        p {
+          margin: 4px 0 0;
+          color: var(--soft);
+          font-size: 14px;
+          text-wrap: pretty;
         }
       }
 
-      @media (min-width: 960px) {
-        .three {
-          grid-template-columns: repeat(3, 1fr);
+      /* This server: its state, version, disk and time up, one quiet line. */
+      .server {
+        margin: 16px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+
+        b {
+          color: var(--text);
+          font-weight: 500;
+        }
+
+        .ok {
+          color: var(--live);
+        }
+
+        .behind {
+          color: var(--brand-text);
+        }
+      }
+
+      /* A reading that didn't answer: its last one kept, its values dimmed (its words not, still read), and said so. */
+      [data-failed] :is(dd, .blocks, .reading p, .reply) {
+        opacity: 0.5;
+      }
+
+      .stale {
+        color: var(--brand-text);
+        font-weight: 500;
+      }
+
+      /* A short orientation under the bar: what's here, in fact, not a pitch. */
+      .intro {
+        max-width: 60ch;
+        margin: 0 0 28px;
+        color: var(--soft);
+        font-size: 15px;
+
+        b {
+          color: var(--ink);
+          font-weight: 500;
         }
       }
 
@@ -555,21 +510,9 @@
           font-size: 14px;
           text-wrap: pretty;
         }
-
-        svg.icon {
-          flex: none;
-          width: 18px;
-          height: 18px;
-          color: var(--brand);
-          fill: none;
-          stroke: currentColor;
-          stroke-width: 1.5;
-          stroke-linecap: round;
-          stroke-linejoin: round;
-        }
       }
 
-      /* A card is one link, its title's stretched over it; a link or button inside it stays above, its own. */
+      /* A card is one link, its title's stretched over it. */
       .stretch {
         outline: none;
 
@@ -579,11 +522,6 @@
           inset: 0;
           border-radius: inherit;
         }
-      }
-
-      .card :is(.links a, .proof a, .proof button) {
-        position: relative;
-        z-index: 1;
       }
 
       .go {
@@ -644,10 +582,6 @@
           color: var(--brand-text);
         }
 
-        .word {
-          white-space: nowrap;
-        }
-
         button {
           flex: none;
           border: 0;
@@ -692,43 +626,6 @@
         background: var(--well);
       }
 
-      /* Studio, first and widest: its words, then (wider) beside them as tall, its picture. */
-      .feature {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-
-        > .body {
-          padding: 24px;
-
-          h3 {
-            font-size: 20px;
-          }
-
-          p {
-            font-size: 15px;
-          }
-        }
-
-        > .shot {
-          order: -1;
-        }
-
-        @media (min-width: 720px) {
-          grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
-
-          > .body {
-            padding: 32px;
-          }
-
-          > .shot {
-            order: 0;
-            height: 100%;
-            border-bottom: 0;
-            border-left: 1px solid var(--line);
-          }
-        }
-      }
-
       footer {
         display: flex;
         flex-wrap: wrap;
@@ -766,120 +663,49 @@
     <div class="page">
       <header class="top">
         <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-        <nav aria-label="Bitview">
-          <a href="/studio/">Studio</a>
-          <a href="/api/">API</a>
-          <a href="/dev/">Run your own</a>
-          <a href="https://github.com/bitcoinresearchkit/mono">GitHub</a>
-        </nav>
-        <span class="tip" id="tip" hidden>Block <b class="num" id="tip-height"></b></span>
+        <span class="tip" id="tip" hidden><span id="tip-state"></span> <b class="num" id="tip-height"></b></span>
       </header>
 
       <main>
-        <div class="hero">
-          <div>
-            <h1>Bitcoin's on-chain data, open to all</h1>
-            <p class="lede">
-              Bitview reads every block from a Bitcoin node and measures it: prices, supply, holders, miners, fees and
-              much more. Chart it, query it, or run the server yourself. Free, with no account and no key.
-            </p>
-            <div class="ctas">
-              <a class="button primary" href="/studio/">Open Studio</a>
-              <a class="button" href="/api/">Explore the API</a>
-            </div>
-          </div>
+        <h1 class="vh">Bitview on this server</h1>
+        <p class="intro">Every Bitcoin block, read and measured by this server: <b id="series-count">its</b> series, to chart, explore and fetch.</p>
 
-          <div class="surface">
-            <dl class="stats">
-              <div><dt>Price</dt><dd class="num" id="stat-price"></dd></div>
-              <div><dt>Market cap</dt><dd class="num" id="stat-cap"></dd></div>
-              <div><dt>MVRV</dt><dd class="num" id="stat-mvrv"></dd></div>
-              <div><dt>Supply in profit</dt><dd class="num" id="stat-profit"></dd></div>
-              <div><dt>Hashrate</dt><dd class="num" id="stat-hashrate"></dd></div>
-              <div><dt>Circulating supply</dt><dd class="num" id="stat-supply"></dd></div>
-            </dl>
-            <div class="stats-foot"><span>Live from this server</span><a href="/studio/">Studio <span aria-hidden="true">→</span></a></div>
-          </div>
-        </div>
-
-        <figure class="chart-card surface">
-          <div class="chart-head">
-            <span class="chart-title">Price and realized price, weekly<span class="num" id="chart-date"></span></span>
-            <span class="key" style="--color: var(--ink)">Price <span class="num" id="price"></span></span>
-            <span class="key" style="--color: var(--brand)">Realized price <span class="num" id="realized"></span></span>
-          </div>
-          <div class="plot" id="plot" data-state="loading"></div>
-          <div class="years" id="years" aria-hidden="true"></div>
-          <figcaption class="chart-foot">
-            <span>Realized price: what every coin cost when it last moved, on average.</span>
-            <a href="/studio/">Chart it yourself <span aria-hidden="true">→</span></a>
-          </figcaption>
-        </figure>
-
-        <section aria-labelledby="ways">
-          <h2 id="ways">Ways in</h2>
-          <p class="section-lede">The same data, however you work with it.</p>
-          <div class="grid">
-            <article class="card media feature">
-              <div class="body">
-                <h3><svg class="icon" viewBox="0 0 18 18" aria-hidden="true"><path d="M2.5 14.5l4-5 3 2.5 6-8" /><path d="M2.5 2.5v13h13" /></svg><a class="stretch" href="/studio/">Studio</a><span class="go" aria-hidden="true">→</span></h3>
-                <p>Chart any series: overlay them, stack panes, derive new ones with formulas, then keep, share or export them. Presets to start from, on your phone as on your desk.</p>
-              </div>
-              <img class="shot" src="/assets/previews/studio.jpg" alt="" width="800" height="500" />
-            </article>
-          </div>
-          <div class="grid three">
-            <article class="card">
-              <h3><svg class="icon" viewBox="0 0 18 18" aria-hidden="true"><path d="M6 2.5c-1.7 0-2 .8-2 2v2c0 1.2-.6 2.5-1.8 2.5 1.2 0 1.8 1.3 1.8 2.5v2c0 1.2.3 2 2 2M12 2.5c1.7 0 2 .8 2 2v2c0 1.2.6 2.5 1.8 2.5-1.2 0-1.8 1.3-1.8 2.5v2c0 1.2-.3 2-2 2" /></svg><a class="stretch" href="/api/">API</a><span class="go" aria-hidden="true">→</span></h3>
-              <p>Every series, block, transaction and address over plain HTTP, documented from the server's own specification.</p>
-              <div class="proof"><code><a href="/api/series/price/day1/latest"><span class="verb">GET</span> /api/series/price/day1/latest</a><span class="reply" id="reply"></span></code></div>
-              <div class="links"><a href="/openapi.json">OpenAPI</a><a href="/llms.txt">llms.txt</a><a href="https://www.npmjs.com/package/bitview-client">JavaScript</a><a href="https://pypi.org/project/bitview-client/">Python</a><a href="https://crates.io/crates/bitview_client">Rust</a></div>
-            </article>
-            <article class="card">
-              <h3><svg class="icon" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2v3M9 13v3M2 9h3M13 9h3M4 4l2 2M12 12l2 2M14 4l-2 2M6 12l-2 2" /></svg><a class="stretch" href="https://mcp.bitview.space/">For assistants</a><span class="go" aria-hidden="true">↗</span></h3>
-              <p>Add Bitview to Claude, ChatGPT or any MCP client: it searches the series by their names and descriptions, and reads them.</p>
-              <div class="proof"><code>https://mcp.bitview.space/</code><button type="button" data-copy="https://mcp.bitview.space/" aria-label="Copy the MCP address">Copy</button></div>
-            </article>
-            <article class="card">
-              <h3><svg class="icon" viewBox="0 0 18 18" aria-hidden="true"><rect x="2.5" y="3" width="13" height="5" rx="1.2" /><rect x="2.5" y="10" width="13" height="5" rx="1.2" /><path d="M5.5 5.5h.01M5.5 12.5h.01" /></svg><a class="stretch" href="/dev/">Run your own</a><span class="go" aria-hidden="true">→</span></h3>
-              <p>The same server beside your own Bitcoin Core, on Linux or macOS. Open source, under the MIT license.</p>
-              <div class="proof"><code>cargo install <span class="word">--locked</span> bitviewd</code><button type="button" data-copy="cargo install --locked bitviewd" aria-label="Copy the install command">Copy</button></div>
-            </article>
-          </div>
-        </section>
-
-        <section aria-labelledby="explore">
-          <h2 id="explore">Explore</h2>
-          <p class="section-lede">Pages built on the same data.</p>
-          <div class="grid">
-            <article class="card media feature">
-              <div class="body">
-                <h3><a class="stretch" href="/dca/">Smart DCA</a><span class="go" aria-hidden="true">→</span></h3>
-                <p>Bitcoin every day, week or month, buying more when it's cheap against what holders paid: what any plan since 2010 would be worth, beside the plain plan buying the same each time, and how every start and length turned out.</p>
-              </div>
-              <img class="shot" src="/assets/previews/dca.jpg" alt="" width="800" height="500" loading="lazy" />
-            </article>
-          </div>
-          <div class="grid two">
+        <section aria-labelledby="apps-title">
+          <h2 id="apps-title">Apps</h2>
+          <div class="apps">
             <article class="card media">
-              <img class="shot" src="/assets/previews/series.jpg" alt="" width="800" height="500" loading="lazy" />
+              <img class="shot" src="/assets/previews/studio.jpg" alt="" width="800" height="500" />
+              <div class="body">
+                <h3><a class="stretch" href="/studio/">Studio</a><span class="go" aria-hidden="true">→</span></h3>
+                <p>Chart any series: overlay, stack, derive with formulas, then keep, share or export.</p>
+              </div>
+            </article>
+            <article class="card media">
+              <img class="shot" src="/assets/previews/series.jpg" alt="" width="800" height="500" />
               <div class="body">
                 <h3><a class="stretch" href="/series/">Series</a><span class="go" aria-hidden="true">→</span></h3>
-                <p>Every series Bitview computes, folder by folder: what each one is, its history drawn, and how to fetch it.</p>
+                <p>Every series, folder by folder: what it is, its history, and how to fetch it.</p>
+              </div>
+            </article>
+            <article class="card media">
+              <img class="shot" src="/assets/previews/dca.jpg" alt="" width="800" height="500" />
+              <div class="body">
+                <h3><a class="stretch" href="/dca/">Smart DCA</a><span class="go" aria-hidden="true">→</span></h3>
+                <p>Bitcoin on a schedule, more when it's cheap: any plan since 2010, beside the plain one.</p>
               </div>
             </article>
             <article class="card media">
               <img class="shot" src="/assets/previews/globe.jpg" alt="" width="800" height="500" loading="lazy" />
               <div class="body">
                 <h3><a class="stretch" href="/globe/">Globe</a><span class="go" aria-hidden="true">→</span></h3>
-                <p>Where blocks are mined, by their pools' home countries: live, over any period, and month by month since 2011.</p>
+                <p>Where blocks are mined, by their pools' home countries, live and since 2011.</p>
               </div>
             </article>
             <article class="card media">
               <img class="shot" src="/assets/previews/calendar.jpg" alt="" width="800" height="500" loading="lazy" />
               <div class="body">
                 <h3><a class="stretch" href="/calendar/">Calendar</a><span class="go" aria-hidden="true">→</span></h3>
-                <p>Every day of the year, the pool that found the most blocks, and every block of any day.</p>
+                <p>Every day's leading pool, and every block of any day.</p>
               </div>
             </article>
             <article class="card media">
@@ -892,43 +718,99 @@
           </div>
         </section>
 
-        <section aria-labelledby="underneath">
-          <h2 id="underneath">Underneath</h2>
-          <p class="section-lede">What Bitview is made of, open for anyone to build on.</p>
-          <div class="grid two">
-            <article class="card">
-              <h3><svg class="icon" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 2l6 3.5v7L9 16l-6-3.5v-7z" /><path d="M3 5.5L9 9l6-3.5M9 9v7" /></svg><a class="stretch" href="/brk/">Bitcoin Research Kit</a><span class="go" aria-hidden="true">→</span></h3>
-              <p>The Rust crates Bitview is built from: RPC, block files, mempool, prices, types and storage.</p>
-            </article>
-            <article class="card">
-              <h3><svg class="icon" viewBox="0 0 18 18" aria-hidden="true"><path d="M6 5L2.5 9 6 13M12 5l3.5 4-3.5 4M10.5 3.5l-3 11" /></svg><a class="stretch" href="https://github.com/bitcoinresearchkit/mono">Source</a><span class="go" aria-hidden="true">↗</span></h3>
-              <p>Everything here, from the indexer to this page, in one open repository.</p>
-            </article>
+        <section aria-labelledby="now-title">
+          <h2 id="now-title">The chain now <small id="now-when"></small></h2>
+          <div class="now">
+            <div class="surface panel" id="blocks-panel">
+              <h3>Latest blocks</h3>
+              <ol class="blocks" id="blocks" aria-live="off"></ol>
+            </div>
+            <div class="readings">
+              <div class="surface panel reading fees" id="fees-panel">
+                <h3>Fees, by how soon</h3>
+                <dl>
+                  <div><dt>Next block</dt><dd class="num" id="fee-fast"></dd></div>
+                  <div><dt>30 minutes</dt><dd class="num" id="fee-half"></dd></div>
+                  <div><dt>An hour</dt><dd class="num" id="fee-hour"></dd></div>
+                  <div><dt>Economy</dt><dd class="num" id="fee-economy"></dd></div>
+                </dl>
+              </div>
+              <div class="surface panel reading" id="mempool-panel">
+                <dl><dt>Mempool</dt><dd class="num" id="mempool-count"></dd></dl>
+                <p id="mempool-more"></p>
+              </div>
+              <div class="surface panel reading" id="price-panel">
+                <dl><dt>Price</dt><dd class="num" id="price"></dd></dl>
+                <p>Derived from the chain by this server</p>
+              </div>
+              <div class="surface panel reading" id="difficulty-panel" style="grid-column: 1 / -1">
+                <dl><dt>Next difficulty adjustment</dt><dd class="num" id="difficulty"></dd></dl>
+                <p id="difficulty-more"></p>
+                <div class="progress" aria-hidden="true"><i id="difficulty-progress" style="width: 0"></i></div>
+              </div>
+            </div>
           </div>
+        </section>
+
+        <section aria-labelledby="use-title">
+          <h2 id="use-title">Use it</h2>
+          <div class="uses">
+            <div class="surface use" id="api-panel">
+              <h3>API</h3>
+              <p>Every series, block, transaction and address on this server, over plain HTTP.</p>
+              <div class="proof"><code><a href="/api/series/price/day1/latest"><span class="verb">GET</span> <span id="origin"></span>/<wbr />api/<wbr />series/<wbr />price/<wbr />day1/<wbr />latest</a><span class="reply" id="reply"></span></code></div>
+              <div class="links">
+                <a href="/api/">Docs</a>
+                <a href="/openapi.json">OpenAPI</a>
+                <a href="https://www.npmjs.com/package/bitview-client">JavaScript</a>
+                <a href="https://pypi.org/project/bitview-client/">Python</a>
+                <a href="https://crates.io/crates/bitview_client">Rust</a>
+              </div>
+            </div>
+            <div class="surface use">
+              <h3>For assistants</h3>
+              <p>Add Bitview's MCP server to Claude, ChatGPT or any MCP client, or hand one this server's llms.txt.</p>
+              <div class="proof"><code>https://mcp.bitview.space/</code><button type="button" data-copy="https://mcp.bitview.space/" aria-label="Copy the MCP server's address">Copy</button></div>
+              <div class="links">
+                <a href="/llms.txt">llms.txt</a>
+                <a href="https://mcp.bitview.space/">MCP server ↗</a>
+              </div>
+            </div>
+            <div class="surface use">
+              <h3>Run your own</h3>
+              <p>Bitview beside your own Bitcoin Core, on Linux or macOS. The same command installs it, or updates it.</p>
+              <div class="proof"><code>cargo install --locked bitviewd</code><button type="button" data-copy="cargo install --locked bitviewd" aria-label="Copy the install command">Copy</button></div>
+              <div class="links">
+                <a href="/dev/">Guide</a>
+                <a href="/brk/">Bitcoin Research Kit</a>
+                <a href="https://github.com/bitcoinresearchkit/mono">Source ↗</a>
+              </div>
+            </div>
+          </div>
+          <p class="server" id="server">This server: <span id="server-state">–</span><span id="server-more"></span></p>
         </section>
       </main>
 
       <p class="vh" id="status" role="status"></p>
+      <p class="vh" id="copied" role="status"></p>
 
       <footer>
         <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-        <a href="/studio/">Studio</a>
-        <a href="/api/">API</a>
-        <a href="/dev/">Run your own</a>
-        <a href="https://github.com/bitcoinresearchkit/mono">GitHub</a>
+        <a href="https://bitview.space/" id="public">bitview.space ↗</a>
+        <a href="https://github.com/bitcoinresearchkit/mono">Source ↗</a>
         <span>MIT license</span>
       </footer>
     </div>
 
     <script type="module">
       // @ts-check
+      // The suite's home on any server running it, bitview.space or your own: its apps; the chain now, from this server
+      // (its latest blocks, fees, mempool, the next difficulty adjustment, the price); the ways to use it; and its state.
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
-      const reduced = matchMedia("(prefers-reduced-motion: reduce)");
 
       // Numbers as Studio writes them (its `precise`): thousands whole and grouped (82,156); under a thousand, four
       // digits (123.4, 1.527); millions and up, four digits and a letter (1.655T), each threshold by the value as
-      // written; never wider than eight characters (0.0001234 as 1.234e-4); a unit said with an SI prefix takes the
-      // letter (1.167 ZH/s).
+      // written; never wider than eight characters (0.0001234 as 1.234e-4).
       const SI = ["", "K", "M", "B", "T", "P", "E", "Z", "Y"];
       const digits = (/** @type {number} */ n) => String(Number(n.toPrecision(4)));
       const precise = (/** @type {number} */ value) => {
@@ -942,57 +824,122 @@
         if (Number(scaled.toPrecision(4)) >= 1000 && tier < SI.length - 1) (tier++), (scaled /= 1000);
         return `${sign}${digits(scaled)}${SI[tier]}`;
       };
-      const prefixed = (/** @type {number} */ value, /** @type {string} */ unit) => {
-        const text = precise(value), letter = text.slice(-1);
-        return /[A-Z]$/.test(text) ? `${text.slice(0, -1)} ${({ B: "G", K: "k" })[letter] ?? letter}${unit}` : `${text} ${unit}`;
-      };
       const dollars = (/** @type {number} */ value) => `$${precise(value)}`;
       const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      /** A date as Studio writes it: "19 Oct 2026". */
-      const day = (/** @type {string} */ date) => `${Number(date.slice(8, 10))} ${MONTHS[Number(date.slice(5, 7)) - 1]} ${date.slice(0, 4)}`;
 
-      // What this server measures now, and its latest block, every minute.
-      /** @type {[string, string, (value: number) => string][]} */
-      const STATS = [
-        ["price", "stat-price", dollars],
-        ["market_cap", "stat-cap", dollars],
-        ["mvrv", "stat-mvrv", (value) => `${precise(value)}×`],
-        ["supply_in_profit_share", "stat-profit", (value) => `${precise(value)}%`],
-        ["hashrate", "stat-hashrate", (value) => prefixed(value, "H/s")],
-        ["circulating_supply", "stat-supply", (value) => `₿${precise(value)}`],
-      ];
-      const text = (/** @type {string} */ path) => fetch(path).then((response) => (response.ok ? response.text() : Promise.reject(new Error(String(response.status)))));
-      const json = (/** @type {string} */ path) => text(path).then((body) => JSON.parse(body));
-      // (Each part on its own: one failing leaves the others.)
-      function refresh() {
-        text("/api/blocks/tip/height").then((tip) => {
-          $("tip-height").textContent = precise(Number(tip));
-          $("tip").hidden = false;
-        }, () => {});
-        json(`/api/series/bulk?series=${STATS.map(([series]) => series).join(",")}&index=day1&start=-1`).then((stats) => {
-          stats.forEach((/** @type {{ data: (number | null)[] }} */ series, /** @type {number} */ i) => {
-            const [, id, format] = STATS[i], value = series.data.at(-1);
-            $(id).textContent = typeof value === "number" ? format(value) : "";
-          });
-        }, () => {});
-        text("/api/series/price/day1/latest").then((reply) => ($("reply").textContent = reply), () => {});
-      }
-      refresh();
-      setInterval(refresh, 60_000);
-
-      // Copied, said on the button a moment (and to a screen reader, each time). Where the page can't write the clipboard (served
-      // over plain HTTP, but for localhost), no button: the text's there to select.
-      // (Said a moment after it's cleared: the same words set at once would be no change to a screen reader; gone a while
-      // after, none left to find reading through the page.)
-      let saying = 0;
-      const say = (/** @type {string} */ words) => {
-        clearTimeout(saying);
-        $("status").textContent = "";
-        saying = setTimeout(() => {
-          $("status").textContent = words;
-          saying = setTimeout(() => ($("status").textContent = ""), 3000);
-        }, 100);
+      const grouped = (/** @type {number} */ n) => Math.round(n).toLocaleString("en-US");
+      /** A length of time in words: "40 s", "12 min", "3 h 5 min", "2 days". */
+      const lasting = (/** @type {number} */ seconds) => {
+        const s = Math.max(0, Math.round(seconds));
+        if (s < 60) return `${s} s`;
+        if (s < 3600) return `${Math.floor(s / 60)} min`;
+        if (s < 86_400) return `${Math.floor(s / 3600)} h${s % 3600 >= 60 ? ` ${Math.floor((s % 3600) / 60)} min` : ""}`;
+        const days = Math.floor(s / 86_400);
+        return `${days} day${days > 1 ? "s" : ""}`;
       };
+      const ago = (/** @type {number} */ unix) => (Date.now() / 1000 - unix < 45 ? "just now" : `${lasting(Date.now() / 1000 - unix)} ago`);
+      /** A fee rate: "1 sat/vB", "12.5 sat/vB". */
+      const rate = (/** @type {number} */ r) => `${r >= 10 ? Math.round(r) : Number(r.toFixed(1))}`;
+
+      // ── Reading: every 30 seconds, one round at a time, each part shown as it answers ──
+
+      const escape = (/** @type {string} */ value) => value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+      /** A part answered (its reading shown) or didn't (its last kept, its values dimmed, "not answering" by its name). */
+      function answered(/** @type {string} */ id, /** @type {boolean} */ ok) {
+        const part = $(id), label = part.querySelector("h3, dt") ?? part;
+        part.toggleAttribute("data-failed", !ok);
+        label.querySelector(".stale")?.remove();
+        if (!ok) label.insertAdjacentHTML("beforeend", ` <span class="stale">· not answering</span>`);
+      }
+
+      /** @type {{ height: number, timestamp: number, tx_count: number, extras?: { pool?: { name: string }, medianFee?: number } }[]} */
+      let blocks = [];
+      /** The latest blocks, their "ago"s true as of now. */
+      function showBlocks() {
+        $("blocks").innerHTML = blocks.slice(0, 6).map((b) => `<li><span class="height num">${grouped(b.height)}</span><span class="pool">${escape(b.extras?.pool?.name ?? "Unknown")}</span>
+          <span class="detail">${grouped(b.tx_count)} txs${b.extras?.medianFee !== undefined ? ` · ${rate(b.extras.medianFee)} sat/vB` : ""}</span><span class="age">${ago(b.timestamp)}</span></li>`).join("");
+        $("now-when").textContent = blocks.length ? `block ${grouped(blocks[0].height)}, ${ago(blocks[0].timestamp)}` : "";
+      }
+
+      /** Each part: what it reads, and how it shows it. @type {[string, string, (value: any) => void, string?][]} */
+      const PARTS = [
+        ["blocks-panel", "/api/v1/blocks", (latest) => (blocks = latest)],
+        ["fees-panel", "/api/v1/fees/recommended", (fees) => {
+          for (const [id, key] of [["fee-fast", "fastestFee"], ["fee-half", "halfHourFee"], ["fee-hour", "hourFee"], ["fee-economy", "economyFee"]])
+            $(id).innerHTML = `${rate(fees[key])} <small>sat/vB</small>`;
+        }],
+        ["mempool-panel", "/api/mempool", (pool) => {
+          $("mempool-count").innerHTML = `${grouped(pool.count)} <small>transactions</small>`;
+          $("mempool-more").textContent = `${(pool.vsize / 1e6).toFixed(1)} vMB waiting, ${precise(pool.total_fee / 1e8)} ₿ in fees`;
+        }],
+        ["price-panel", "/api/v1/prices", (prices) => ($("price").textContent = dollars(prices.USD))],
+        ["difficulty-panel", "/api/v1/difficulty-adjustment", (d) => {
+          const change = d.difficultyChange, at = new Date(d.estimatedRetargetDate);
+          $("difficulty").textContent = `${change >= 0 ? "+" : "−"}${Math.abs(change).toFixed(1)}%`;
+          $("difficulty-more").textContent = `Estimated, at block ${grouped(d.nextRetargetHeight)}: ${grouped(d.remainingBlocks)} blocks to go, about ${at.getUTCDate()} ${MONTHS[at.getUTCMonth()]}`;
+          $("difficulty-progress").style.width = `${Math.min(100, Math.max(0, d.progressPercent))}%`;
+        }],
+        ["api-panel", "/api/series/price/day1/latest", (reply) => ($("reply").textContent = reply), "text"],
+      ];
+
+      /** This server: its sync and health as last read (null: not answering), its disk now and then. */
+      let sync = /** @type {any} */ (null), health = /** @type {any} */ (null), disk = "", stateRead = false;
+      /** Its state, and the words a screen reader is told when it changes (none on a first load that's synced). */
+      let stateSaid = "synced";
+      function showServer() {
+        const behind = sync && sync.blocks_behind > 0, state = sync ? (behind ? "syncing" : "synced") : "unread";
+        $("tip-state").textContent = sync ? `${behind ? "Syncing" : "Synced"} ·` : "State unavailable";
+        $("tip-height").textContent = sync ? grouped(sync.indexed_height) : "";
+        $("tip").classList.toggle("behind", state !== "synced");
+        $("tip").hidden = false;
+        $("server-state").innerHTML = !sync ? `<span class="behind">its state unavailable</span>`
+          : behind ? `<span class="behind">syncing</span>, block <b>${grouped(sync.indexed_height)}</b> of ${grouped(sync.tip_height)}, ${grouped(sync.blocks_behind)} to go`
+          : `<span class="ok">synced</span> to block <b>${grouped(sync.indexed_height)}</b>`;
+        $("server-more").textContent = `${health ? ` · Bitview ${health.version} · up ${lasting(health.uptime_seconds)}` : ""}${disk ? ` · ${disk}` : ""}`;
+        if (state === stateSaid) return;
+        stateSaid = state;
+        $("status").textContent = state === "unread" ? "This server's state can't be read." : behind ? `This server is syncing, ${grouped(sync.blocks_behind)} blocks behind.` : "This server is synced.";
+      }
+
+      const read = (/** @type {string} */ path, kind = "json") => fetch(path, { signal: AbortSignal.timeout(10_000) }).then((response) => {
+        if (!response.ok) throw new Error(String(response.status));
+        return kind === "json" ? response.json() : response.text();
+      });
+      // (The series' count until read once; the disk's sizes now and then.)
+      let counted = false, rounds = 0, reading = false;
+      async function round() {
+        if (reading) return;
+        reading = true;
+        const parts = PARTS.map(([id, path, show, kind]) => read(path, kind).then((value) => {
+          show(value);
+          answered(id, true);
+        }, () => answered(id, false)).finally(showBlocks));
+        const state = Promise.allSettled([read("/api/server/sync"), read("/health")]).then(([s, h]) => {
+          [sync, health] = [s.status === "fulfilled" ? s.value : null, h.status === "fulfilled" ? h.value : null];
+          stateRead = true;
+          showServer();
+        });
+        const sizes = rounds % 20 ? null : read("/api/server/disk").then((d) => {
+          disk = `${d.brk} beside Bitcoin Core's ${d.bitcoin}`;
+          // (Before the state's first read, kept for it: no state shown, or said, from nothing.)
+          if (stateRead) showServer();
+        }, () => {});
+        const count = counted ? null : read("/api/series/count").then((c) => {
+          $("series-count").textContent = grouped(c.distinct);
+          counted = true;
+        }, () => {});
+        await Promise.allSettled([...parts, state, sizes, count]);
+        rounds++;
+        reading = false;
+      }
+      $("origin").textContent = location.origin;
+      // (Bitview's own server, on any other: on itself, no link to itself.)
+      $("public").hidden = location.hostname === "bitview.space";
+      round();
+      setInterval(round, 30_000);
+
+      // Copied, said on the button a moment, and to a screen reader. Where the page can't write the clipboard (plain
+      // HTTP, but for localhost), no button: the text's there to select.
       for (const button of /** @type {NodeListOf<HTMLButtonElement>} */ (document.querySelectorAll("[data-copy]"))) {
         let back = 0;
         button.hidden = !navigator.clipboard;
@@ -1001,95 +948,12 @@
             await navigator.clipboard.writeText(/** @type {string} */ (button.dataset.copy));
             clearTimeout(back);
             button.textContent = "Copied";
-            say("Copied");
+            $("copied").textContent = "";
+            setTimeout(() => ($("copied").textContent = "Copied"), 50);
             back = setTimeout(() => (button.textContent = "Copy"), 1500);
           } catch {}
         });
       }
-
-      // The price and realized price, weekly, on a log scale, from the first week both have one; a cursor reads a week.
-      async function drawChart() {
-        const plot = $("plot");
-        try {
-          const [dates, price, realized] = /** @type {{ data: any[] }[]} */ (await json("/api/series/bulk?series=date,price,realized_price&index=week1")).map((series) => series.data);
-          const first = price.findIndex((value, i) => value > 0 && realized[i] > 0);
-          const weeks = first < 0 ? [] : dates.slice(first).map((date, k) => ({ date: String(date), price: Number(price[first + k]), realized: Number(realized[first + k]) }));
-          const values = weeks.flatMap((week) => [week.price, week.realized]).filter((value) => value > 0);
-          const low = Math.log10(Math.min(...values)), high = Math.log10(Math.max(...values));
-          if (weeks.length < 2 || !(high > low)) throw new Error("Too little history to draw");
-          const x = (/** @type {number} */ k) => (k / (weeks.length - 1)) * 1000;
-          const y = (/** @type {number} */ value) => 100 - ((Math.log10(value) - low) / (high - low)) * 100;
-          const line = (/** @type {"price" | "realized"} */ key) => weeks.flatMap((week, k) => (week[key] > 0 ? [`${x(k).toFixed(1)},${y(week[key]).toFixed(2)}`] : [])).join(" ");
-          // Gridlines at every other power of ten in range, labeled.
-          const powers = [];
-          for (let power = Math.ceil(low); power <= Math.floor(high); power++) if ((Math.floor(high) - power) % 2 === 0) powers.push(power);
-          const label = (/** @type {number} */ power) => (power >= 6 ? `$${10 ** (power - 6)}M` : power >= 3 ? `$${10 ** (power - 3)}K` : `$${10 ** power}`);
-          plot.innerHTML =
-            powers.map((power) => `<div class="gridline" style="top: ${y(10 ** power)}%"><span class="num">${label(power)}</span></div>`).join("") +
-            `<svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="${line("realized")}" stroke="var(--brand)"/><polyline points="${line("price")}" stroke="var(--ink)"/></svg>` +
-            `<div class="cursor" hidden><i style="--color: var(--ink)"></i><i style="--color: var(--brand)"></i></div>`;
-          const last = weeks[weeks.length - 1];
-          // The halving years, every four from 2012, where their first week starts, kept off the edges.
-          $("years").innerHTML = weeks
-            .map((week, k) => ({ year: Number(week.date.slice(0, 4)), at: x(k) / 10, starts: k > 0 && week.date.slice(0, 4) !== weeks[k - 1].date.slice(0, 4) }))
-            .filter((tick) => tick.starts && tick.year % 4 === 0 && tick.at > 3 && tick.at < 97)
-            .map((tick) => `<span class="num" style="left: ${tick.at}%">${tick.year}</span>`)
-            .join("");
-          // A week read (its values as it closed): in the head, the cursor on it; none, the latest. By a mouse over it (until
-          // it leaves), a tap or a sideways drag, by touch or pen (held until another; a scroll that starts on it moves
-          // nothing), or, focused, by a slider's keys: ← → ↑ ↓ a week, Page Up and Down a year, Home and End. Each said to a
-          // screen reader.
-          const cursor = /** @type {HTMLElement} */ (plot.querySelector(".cursor"));
-          const [priceDot, realizedDot] = /** @type {HTMLElement[]} */ ([...cursor.children]);
-          let reading = /** @type {number | null} */ (null);
-          plot.tabIndex = 0;
-          plot.setAttribute("role", "slider");
-          plot.setAttribute("aria-label", `Price and realized price, weekly from ${weeks[0].date.slice(0, 4)} to ${last.date.slice(0, 4)}, on a log scale`);
-          plot.setAttribute("aria-valuemin", "0");
-          plot.setAttribute("aria-valuemax", String(weeks.length - 1));
-          const show = (/** @type {number | null} */ k) => {
-            reading = k;
-            const week = weeks[k ?? weeks.length - 1];
-            $("chart-date").textContent = `Week of ${day(week.date)}`;
-            $("price").textContent = dollars(week.price);
-            $("realized").textContent = dollars(week.realized);
-            plot.setAttribute("aria-valuenow", String(k ?? weeks.length - 1));
-            plot.setAttribute("aria-valuetext", `${$("chart-date").textContent}: price ${$("price").textContent}, realized price ${$("realized").textContent}`);
-            cursor.hidden = k === null;
-            if (k === null) return;
-            cursor.style.left = `${x(k) / 10}%`;
-            priceDot.style.top = `${y(week.price)}%`;
-            realizedDot.style.top = `${y(week.realized)}%`;
-          };
-          const point = (/** @type {PointerEvent} */ event) => {
-            const box = plot.getBoundingClientRect();
-            show(Math.round(Math.min(1, Math.max(0, (event.clientX - box.left) / box.width)) * (weeks.length - 1)));
-          };
-          // (A touch that turns into a scroll: the reading as it was before it.)
-          let before = /** @type {number | null} */ (null);
-          plot.addEventListener("pointerdown", () => (before = reading));
-          plot.addEventListener("pointermove", point);
-          plot.addEventListener("pointerup", (event) => event.pointerType !== "mouse" && point(event));
-          plot.addEventListener("pointercancel", () => show(before));
-          // (Only a mouse leaving lets a reading go: a touch's or a pen's is held until another.)
-          plot.addEventListener("pointerleave", (event) => event.pointerType === "mouse" && show(null));
-          plot.addEventListener("blur", () => show(null));
-          plot.addEventListener("keydown", (event) => {
-            const at = reading ?? weeks.length - 1, end = weeks.length - 1;
-            const to = { ArrowLeft: at - 1, ArrowDown: at - 1, ArrowRight: at + 1, ArrowUp: at + 1, PageDown: at - 52, PageUp: at + 52, Home: 0, End: end }[event.key];
-            if (to === undefined) return;
-            event.preventDefault();
-            show(Math.min(end, Math.max(0, to)));
-          });
-          show(null);
-          delete plot.dataset.state;
-          // (Drawn in from the left, once.)
-          if (!reduced.matches) /** @type {SVGElement} */ (plot.querySelector("svg")).animate({ clipPath: ["inset(0 100% 0 0)", "inset(0 0 0 0)"] }, { duration: 1200, easing: "cubic-bezier(0.2, 0.7, 0.2, 1)" });
-        } catch {
-          plot.dataset.state = "failed";
-        }
-      }
-      drawChart();
     </script>
   </body>
 </html>
