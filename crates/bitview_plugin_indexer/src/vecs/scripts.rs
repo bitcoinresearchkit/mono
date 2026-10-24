@@ -1,4 +1,6 @@
-use bitview_primitives::{EmptyScriptOutputIndex, P2MSOutputIndex, TypeIndex, UnknownScriptOutputIndex};
+use bitview_primitives::{
+    EmptyScriptOutputIndex, P2MSOutputIndex, TypeIndex, UnknownScriptOutputIndex,
+};
 use bitview_traversable::{Compact, Traversable};
 use brk_error::Result;
 use brk_types::{OutputType, SigOps32, Version};

@@ -583,6 +583,17 @@ has to be deleted by hand.
   sizes the `/txs`, `/txs/chain[/{after_txid}]` and `/txs/mempool` pages, at most their defaults (50, 25, 50) as
   mempool.space's Esplora caps it (each answered 400 to any query parameter). A chain cursor outside the address's
   history answers `[]` (unknown was 404, another address's transaction a page of the address's older ones)
+- `/api/v1/historical-price` lists its four-hour closes newest first, as mempool.space does (were oldest first)
+- Mining matches mempool.space: every period route takes `4y` (12-hour groups, as `3y`); block fee rates are whole
+  sat/vB (were 3 decimals), with `/api/v1/mining/blocks/fee-rates/{time_period}/precise` for 3 decimals
+  (`BlockFeeRatesPreciseEntry`); the network hashrate has every day's value (was sampled down to 200 points, so 1y
+  every 2 days and all every 33); `hashrate/pools` lists the pools that mined in the last week, by time and then
+  their weekly rank (was every pool, pool by pool), its weeks, and a pool's `/hashrate`'s, ending on Mondays 00:00 UTC and stamped
+  with them, completed weeks only (were 7-day spans ending on the tip's day, stamped with their last day's start); difficulty adjustments, in their own routes and in the
+  hashrate's `difficulty`, only where the difficulty changed (the first 15 retargets kept it at 1), the ratio to 6
+  significant digits; pools carry `avgMatchRate` and `avgFeeDelta`, and a pool's detail `avgBlockHealth`, always null (they
+  come from mempool.space's own audits); a pool's `totalReward` is a decimal string (was a number), as
+  `reward-stats`' amounts
 - The genesis block's `previousblockhash` is null (was 64 zeros), and a transaction's `version` is its 32 bits read
   unsigned (was signed, so a version from 2^31 up read negative), as mempool.space and Esplora report them
 - `/openapi.json` declares its JSON 200 response and both spec routes declare their 304 (only `/api.json`'s JSON 200

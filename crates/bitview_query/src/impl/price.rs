@@ -47,8 +47,8 @@ impl ResolvedHistoricalPrice<'_> {
         self.pin.revision()
     }
 
-    /// Every completed four-hour close from the first priced one, or the last one before
-    /// `timestamp`'s bucket (none before the first price). Also whether that point is settled:
+    /// Every completed four-hour close from the first priced one, newest first, or the last one
+    /// before `timestamp`'s bucket (none before the first price). Also whether that point is settled:
     /// its bucket's boundary, which closes every earlier bucket, lies below the reorg window.
     pub fn get(&self, timestamp: Option<Timestamp>) -> Result<(HistoricalPrice, bool)> {
         let plugins = self.query.plugins();
@@ -120,6 +120,8 @@ impl ResolvedHistoricalPrice<'_> {
                                 .extend(entry(index, usize::from(pair[0])..usize::from(pair[1]))?);
                         }
                     }
+                    // Read forward through the price pages, served newest first as mempool.space's.
+                    prices.reverse();
                     (prices, false)
                 }
             };

@@ -60,9 +60,10 @@ impl AddressBytes {
             OutputType::P2WPKH | OutputType::P2WSH | OutputType::P2TR | OutputType::P2A => {
                 Ok(&bytes[2..])
             }
-            OutputType::P2MS | OutputType::UnknownScript | OutputType::EmptyScript | OutputType::OpReturn => {
-                Err(Error::WrongAddrType)
-            }
+            OutputType::P2MS
+            | OutputType::UnknownScript
+            | OutputType::EmptyScript
+            | OutputType::OpReturn => Err(Error::WrongAddrType),
         }
     }
 
@@ -132,7 +133,10 @@ impl TryFrom<(&ScriptBuf, OutputType)> for AddressBytes {
             OutputType::P2WSH => Self::P2WSH(P2WSHBytes::from(bytes)),
             OutputType::P2TR => Self::P2TR(P2TRBytes::from(bytes)),
             OutputType::P2A => Self::P2A(P2ABytes::from(bytes)),
-            OutputType::P2MS | OutputType::UnknownScript | OutputType::EmptyScript | OutputType::OpReturn => {
+            OutputType::P2MS
+            | OutputType::UnknownScript
+            | OutputType::EmptyScript
+            | OutputType::OpReturn => {
                 unreachable!()
             }
         })

@@ -1,12 +1,30 @@
-use bitview_types::{BlockFeeRatesEntry, FeeRatePercentiles, TimePeriod};
+use bitview_types::{
+    BlockFeeRatesEntry, BlockFeeRatesPreciseEntry, FeeRatePercentiles, TimePeriod,
+};
 
 use super::block_window::BlockWindow;
 use crate::{Query, Result, r#impl::mempool_fee_rate};
 
 impl Query {
+    /// [`Self::block_fee_rates_precise`] with each rate rounded to a whole sat/vB.
+    pub fn block_fee_rates(&self, time_period: TimePeriod) -> Result<Vec<BlockFeeRatesEntry>> {
+        Ok(self
+            .block_fee_rates_precise(time_period)?
+            .into_iter()
+            .map(|entry| BlockFeeRatesEntry {
+                avg_height: entry.avg_height,
+                timestamp: entry.timestamp,
+                percentiles: entry.percentiles.whole(),
+            })
+            .collect())
+    }
+
     /// Mean effective (CPFP-adjusted) fee-rate percentiles per time bucket over `time_period`,
     /// chronological.
-    pub fn block_fee_rates(&self, time_period: TimePeriod) -> Result<Vec<BlockFeeRatesEntry>> {
+    pub fn block_fee_rates_precise(
+        &self,
+        time_period: TimePeriod,
+    ) -> Result<Vec<BlockFeeRatesPreciseEntry>> {
         let pin = self.pin_safe_lengths()?;
         let tip = Query::tip_height(&pin)?;
         let bw = BlockWindow::new(self, time_period, tip)?;
@@ -31,7 +49,7 @@ impl Query {
             .buckets
             .iter()
             .enumerate()
-            .map(|(i, b)| BlockFeeRatesEntry {
+            .map(|(i, b)| BlockFeeRatesPreciseEntry {
                 avg_height: b.avg_height,
                 timestamp: b.avg_timestamp,
                 percentiles: FeeRatePercentiles {

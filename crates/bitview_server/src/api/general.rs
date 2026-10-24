@@ -68,7 +68,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 op.id("get_historical_price")
                     .tag(tags::GENERAL)
                     .summary("Historical price")
-                    .description("Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*")
+                    .description("Completed four-hour BTC/USD closes, newest first as mempool.space lists them, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*")
                     .json_response::<HistoricalPrice>()
                     .not_modified()
             },

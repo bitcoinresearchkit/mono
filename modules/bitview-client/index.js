@@ -149,11 +149,26 @@ sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @property {Dollars} price - USD price at block height
  */
 /**
- * One time bucket of blocks. Each `avgFee_*` field is the
- * bucket's mean of its blocks' own percentile of their non-coinbase transactions' effective fee
- * rates, weighted by vsize (a block without such transactions counts as 0).
+ * One time bucket of blocks. Each `avgFee_*` field is the bucket's mean of its blocks' own
+ * percentile of their non-coinbase transactions' effective fee rates, weighted by vsize (a block
+ * without such transactions counts as 0), rounded to a whole sat/vB.
  *
  * @typedef {Object} BlockFeeRatesEntry
+ * @property {Height} avgHeight - Average block height in this bucket
+ * @property {Timestamp} timestamp - Average block timestamp in this bucket
+ * @property {number} avgFee_0 - Mean of the blocks' minimum fee rate (sat/vB)
+ * @property {number} avgFee_10 - Mean of the blocks' 10th percentile fee rate (sat/vB)
+ * @property {number} avgFee_25 - Mean of the blocks' 25th percentile fee rate (sat/vB)
+ * @property {number} avgFee_50 - Mean of the blocks' median fee rate (sat/vB)
+ * @property {number} avgFee_75 - Mean of the blocks' 75th percentile fee rate (sat/vB)
+ * @property {number} avgFee_90 - Mean of the blocks' 90th percentile fee rate (sat/vB)
+ * @property {number} avgFee_100 - Mean of the blocks' maximum fee rate (sat/vB)
+ */
+/**
+ * One time bucket of blocks, as [`BlockFeeRatesEntry`] with each `avgFee_*` field to 3
+ * decimals.
+ *
+ * @typedef {Object} BlockFeeRatesPreciseEntry
  * @property {Height} avgHeight - Average block height in this bucket
  * @property {Timestamp} timestamp - Average block timestamp in this bucket
  * @property {FeeRate} avgFee_0 - Mean of the blocks' minimum fee rate (sat/vB)
@@ -1024,7 +1039,10 @@ a bin closing at the first fee rate change past 50,000 vB
  * @property {PoolBlockShares} blockShare
  * @property {number} estimatedHashrate - Estimated hashrate based on blocks mined (H/s)
  * @property {?number=} reportedHashrate - Self-reported hashrate (if available, H/s)
- * @property {Sats} totalReward - Total reward earned by this pool: coinbase output value of every block it mined (sats)
+ * @property {?number=} avgBlockHealth - Mean health of the pool's blocks, from mempool.space's own audits (always null: it needs
+the mempool as it was)
+ * @property {string} totalReward - Total reward earned by this pool: coinbase output value of every block it mined (sats),
+as a decimal string
  */
 /**
  * @typedef {Object} PoolDetailInfo
@@ -1074,8 +1092,12 @@ a bin closing at the first fee rate change past 50,000 vB
  * @property {number} rank - Pool ranking by block count (1 = most blocks)
  * @property {number} emptyBlocks - Number of empty (coinbase-only) blocks mined in the time period
  * @property {PoolSlug} slug - URL-friendly pool identifier
- * @property {number} share - Pool's share of total blocks (0.0 - 1.0)
+ * @property {?number=} avgMatchRate - Mean share of the expected block template the pool's blocks matched, from mempool.space's
+own audits (always null: it needs the mempool as it was)
+ * @property {?string=} avgFeeDelta - Mean relative difference of the pool's fees from the expected template's, a decimal
+string at mempool.space, from its own audits (always null: it needs the mempool as it was)
  * @property {number} poolUniqueId - Zero-based pool ID, matching mempool.space's `unique_id`
+ * @property {number} share - Pool's share of total blocks (0.0 - 1.0)
  */
 /**
  * @typedef {Object} PoolsSummary
@@ -1288,11 +1310,11 @@ asking the node
 /**
  * Lookback window for mining statistics.
  *
- * @typedef {("24h"|"3d"|"1w"|"1m"|"3m"|"6m"|"1y"|"2y"|"3y"|"all")} TimePeriod
+ * @typedef {("24h"|"3d"|"1w"|"1m"|"3m"|"6m"|"1y"|"2y"|"3y"|"4y"|"all")} TimePeriod
  */
 /**
  * @typedef {Object} TimePeriodParam
- * @property {TimePeriod} timePeriod - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+ * @property {TimePeriod} timePeriod - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
  */
 /**
  * A Unix timestamp, in seconds.
@@ -8244,7 +8266,7 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Historical price
    *
-   * Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
+   * Completed four-hour BTC/USD closes, newest first as mempool.space lists them, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
    *
@@ -8745,7 +8767,7 @@ cursor skips the mempool). One that is neither answers 422.
    *
    * Endpoint: `GET /api/v1/mining/pools/{time_period}`
    *
-   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
    * @param {{ signal?: AbortSignal, onValue?: (value: PoolsSummary) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<PoolsSummary>}
    */
@@ -8775,6 +8797,8 @@ cursor skips the mempool). One that is neither answers 422.
   /**
    * All pools hashrate (all time)
    *
+   * Get weekly hashrate data, over the whole chain, of the mining pools that mined in the last week, by time and then their weekly rank.
+   *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
    *
    * Endpoint: `GET /api/v1/mining/hashrate/pools`
@@ -8789,13 +8813,13 @@ cursor skips the mempool). One that is neither answers 422.
   /**
    * All pools hashrate
    *
-   * Get hashrate data for all mining pools for a time period.
+   * Get weekly hashrate data, for a time period, of the mining pools that mined in the last week, by time and then their weekly rank.
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
    *
    * Endpoint: `GET /api/v1/mining/hashrate/pools/{time_period}`
    *
-   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
    * @param {{ signal?: AbortSignal, onValue?: (value: PoolHashrateEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<PoolHashrateEntry[]>}
    */
@@ -8884,7 +8908,7 @@ cursor skips the mempool). One that is neither answers 422.
    *
    * Endpoint: `GET /api/v1/mining/hashrate/{time_period}`
    *
-   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
    * @param {{ signal?: AbortSignal, onValue?: (value: HashrateSummary) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<HashrateSummary>}
    */
@@ -8916,7 +8940,7 @@ cursor skips the mempool). One that is neither answers 422.
    *
    * Endpoint: `GET /api/v1/mining/difficulty-adjustments/{time_period}`
    *
-   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
    * @param {{ signal?: AbortSignal, onValue?: (value: DifficultyAdjustmentEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<DifficultyAdjustmentEntry[]>}
    */
@@ -8952,7 +8976,7 @@ cursor skips the mempool). One that is neither answers 422.
    *
    * Endpoint: `GET /api/v1/mining/blocks/fees/{time_period}`
    *
-   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
    * @param {{ signal?: AbortSignal, onValue?: (value: BlockFeesEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<BlockFeesEntry[]>}
    */
@@ -8970,7 +8994,7 @@ cursor skips the mempool). One that is neither answers 422.
    *
    * Endpoint: `GET /api/v1/mining/blocks/rewards/{time_period}`
    *
-   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
    * @param {{ signal?: AbortSignal, onValue?: (value: BlockRewardsEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<BlockRewardsEntry[]>}
    */
@@ -8982,18 +9006,36 @@ cursor skips the mempool). One that is neither answers 422.
   /**
    * Block fee rates
    *
-   * Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period.
+   * Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals).
    *
    * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
    *
    * Endpoint: `GET /api/v1/mining/blocks/fee-rates/{time_period}`
    *
-   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
    * @param {{ signal?: AbortSignal, onValue?: (value: BlockFeeRatesEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<BlockFeeRatesEntry[]>}
    */
   async getBlockFeeRates(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/blocks/fee-rates/${encodeURIComponent(time_period)}`;
+    return this.getJson(path, { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * Block fee rates (precise)
+   *
+   * Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in sat/vB to 3 decimals.
+   *
+   * *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
+   *
+   * Endpoint: `GET /api/v1/mining/blocks/fee-rates/{time_period}/precise`
+   *
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
+   * @param {{ signal?: AbortSignal, onValue?: (value: BlockFeeRatesPreciseEntry[]) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<BlockFeeRatesPreciseEntry[]>}
+   */
+  async getBlockFeeRatesPrecise(time_period, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/v1/mining/blocks/fee-rates/${encodeURIComponent(time_period)}/precise`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
@@ -9006,7 +9048,7 @@ cursor skips the mempool). One that is neither answers 422.
    *
    * Endpoint: `GET /api/v1/mining/blocks/sizes-weights/{time_period}`
    *
-   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+   * @param {TimePeriod} time_period - Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
    * @param {{ signal?: AbortSignal, onValue?: (value: BlockSizesWeights) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<BlockSizesWeights>}
    */

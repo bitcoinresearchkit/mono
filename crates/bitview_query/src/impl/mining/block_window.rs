@@ -18,7 +18,7 @@ fn time_div(period: TimePeriod) -> u32 {
         TimePeriod::ThreeMonths => 7200,
         TimePeriod::SixMonths => 10800,
         TimePeriod::Year | TimePeriod::TwoYears => 28800,
-        TimePeriod::ThreeYears => 43200,
+        TimePeriod::ThreeYears | TimePeriod::FourYears => 43200,
         TimePeriod::All => 86400,
     }
 }

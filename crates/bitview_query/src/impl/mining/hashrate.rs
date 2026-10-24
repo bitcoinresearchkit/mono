@@ -7,14 +7,9 @@ use crate::{Error, OptionData, Query, Result};
 
 impl Query {
     /// Network hashrate summary over `time_period`'s timestamp lookback from the tip (`None`: the
-    /// full chain): completed days' hashrates, each stamped at its day's end as mempool.space
-    /// does and sampled down to at most `max_points.max(1)`; the window's retargets; the
-    /// trailing 7-day hashrate; and the tip's difficulty.
-    pub fn hashrate(
-        &self,
-        time_period: Option<TimePeriod>,
-        max_points: usize,
-    ) -> Result<HashrateSummary> {
+    /// full chain): every completed day's hashrate, stamped at its day's end as mempool.space
+    /// does; the window's retargets; the trailing 7-day hashrate; and the tip's difficulty.
+    pub fn hashrate(&self, time_period: Option<TimePeriod>) -> Result<HashrateSummary> {
         let pin = self.pin_safe_lengths()?;
         let tip = Query::tip_height(&pin)?;
         let indexer = self.indexer();
@@ -38,19 +33,17 @@ impl Query {
             .collect_one(Height::from(start))
             .data()?;
 
-        // Completed days only (the tip's is still open), sampled at regular intervals so the
-        // chart payload stays bounded regardless of window size.
+        // Completed days only: the tip's is still open.
         let days = end_day1
             .to_usize()
             .checked_sub(start_day1.to_usize())
             .ok_or(Error::Internal("Reversed hashrate day window"))?;
-        let step = days.div_ceil(max_points.max(1)).max(1);
 
         let mut hr_cursor = plugins.mining.hash.hashrate.value.day1.cursor();
         let mut ts_cursor = plugins.mappings.timestamp.day1.cursor();
 
-        let mut hashrates = Vec::with_capacity(days.div_ceil(step));
-        for di in (start_day1.to_usize()..end_day1.to_usize()).step_by(step) {
+        let mut hashrates = Vec::with_capacity(days);
+        for di in start_day1.to_usize()..end_day1.to_usize() {
             let hr = hr_cursor.get(di).data()?;
             // The day's end: the next day's start.
             let timestamp = ts_cursor.get(di + 1).data()?;

@@ -25,6 +25,8 @@ pub enum TimePeriod {
     TwoYears,
     #[serde(rename = "3y")]
     ThreeYears,
+    #[serde(rename = "4y")]
+    FourYears,
     #[serde(rename = "all")]
     All,
 }
@@ -41,6 +43,7 @@ impl fmt::Display for TimePeriod {
             TimePeriod::Year => write!(f, "1y"),
             TimePeriod::TwoYears => write!(f, "2y"),
             TimePeriod::ThreeYears => write!(f, "3y"),
+            TimePeriod::FourYears => write!(f, "4y"),
             TimePeriod::All => write!(f, "all"),
         }
     }

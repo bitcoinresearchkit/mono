@@ -21,10 +21,7 @@ struct WalkResult {
 }
 
 impl Query {
-    pub(crate) fn confirmed_cpfp_resolved(
-        &self,
-        transaction: ResolvedConfirmedTx,
-    ) -> Result<Cpfp> {
+    pub(crate) fn confirmed_cpfp_resolved(&self, transaction: ResolvedConfirmedTx) -> Result<Cpfp> {
         let read = self.read_indexer()?;
         let (_, seed, height) = read.revalidate_confirmed_tx(transaction)?;
         // Count views end at their source's visible length, bounded by the read's pin.

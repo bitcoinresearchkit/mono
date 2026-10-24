@@ -1,8 +1,8 @@
-use std::fmt::Display;
-
 use brk_types::{Height, Sats};
 use schemars::JsonSchema;
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Error};
+use serde::{Deserialize, Serialize};
+
+use crate::decimal_string;
 
 /// Block reward statistics over a range of blocks
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -24,25 +24,4 @@ pub struct RewardStats {
     #[serde(with = "decimal_string")]
     #[schemars(with = "String", extend("pattern" = "^[0-9]+$"))]
     pub total_tx: u64,
-}
-
-/// An unsigned integer written as a decimal string.
-mod decimal_string {
-    use super::*;
-
-    pub fn serialize<T: Display, S: Serializer>(
-        value: &T,
-        serializer: S,
-    ) -> Result<S::Ok, S::Error> {
-        serializer.collect_str(value)
-    }
-
-    pub fn deserialize<'de, T: From<u64>, D: Deserializer<'de>>(
-        deserializer: D,
-    ) -> Result<T, D::Error> {
-        String::deserialize(deserializer)?
-            .parse::<u64>()
-            .map(T::from)
-            .map_err(D::Error::custom)
-    }
 }

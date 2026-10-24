@@ -35,14 +35,24 @@ pub struct PoolStats {
     /// URL-friendly pool identifier
     pub slug: PoolSlug,
 
-    /// Pool's share of total blocks (0.0 - 1.0)
-    #[schemars(example = 0.30)]
-    pub share: f64,
+    /// Mean share of the expected block template the pool's blocks matched, from mempool.space's
+    /// own audits (always null: it needs the mempool as it was)
+    #[serde(rename = "avgMatchRate")]
+    pub avg_match_rate: Option<f64>,
+
+    /// Mean relative difference of the pool's fees from the expected template's, a decimal
+    /// string at mempool.space, from its own audits (always null: it needs the mempool as it was)
+    #[serde(rename = "avgFeeDelta")]
+    pub avg_fee_delta: Option<String>,
 
     /// Zero-based pool ID, matching mempool.space's `unique_id`
     #[serde(rename = "poolUniqueId")]
     #[schemars(example = 44)]
     pub pool_unique_id: u8,
+
+    /// Pool's share of total blocks (0.0 - 1.0)
+    #[schemars(example = 0.30)]
+    pub share: f64,
 }
 
 impl PoolStats {
@@ -61,8 +71,10 @@ impl PoolStats {
             rank,
             empty_blocks,
             slug: pool.slug,
-            share,
+            avg_match_rate: None,
+            avg_fee_delta: None,
             pool_unique_id: pool.mempool_unique_id(),
+            share,
         }
     }
 }

@@ -18,5 +18,8 @@ fn cpfp_shapes() {
     assert!(matches!(decode(&mempool), Cpfp::Mempool(_)));
     assert!(matches!(decode(&confirmed), Cpfp::Confirmed(_)));
     assert!(matches!(decode("{\"ancestors\":[]}"), Cpfp::Empty(_)));
-    assert_eq!(serde_json::to_string(&Cpfp::EMPTY).unwrap(), "{\"ancestors\":[]}");
+    assert_eq!(
+        serde_json::to_string(&Cpfp::EMPTY).unwrap(),
+        "{\"ancestors\":[]}"
+    );
 }

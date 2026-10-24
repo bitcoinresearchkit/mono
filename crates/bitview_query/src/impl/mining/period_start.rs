@@ -18,6 +18,7 @@ pub fn start_height(query: &Query, period: TimePeriod, tip: Height) -> Result<He
         TimePeriod::Year => lookback._1y.collect_one(tip).data()?,
         TimePeriod::TwoYears => lookback._2y.collect_one(tip).data()?,
         TimePeriod::ThreeYears => lookback._3y.collect_one(tip).data()?,
+        TimePeriod::FourYears => lookback._4y.collect_one(tip).data()?,
         TimePeriod::All => Height::from(0_usize),
     };
     if start > tip {

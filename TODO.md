@@ -48,6 +48,15 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
   `POST /api/txs/package` (Bitcoin Core 28+ `submitpackage`, up to 25 transactions; cheap here, under `POST /api/tx`'s
   pending limit). `/fee-estimates` (deprecated upstream) and `/block-template` (not on mempool.space) stay out.
 
+- More mempool/electrs routes live on mempool.space (rbitcoin serves them too), each only if fast enough unthrottled:
+  `GET /api/txs/outspends?txids=` (several transactions' outspends), `/api/mempool/txids/page[/{last_txid}]`,
+  `POST /api/txs/test` (Core's `testmempoolaccept`, under `POST /api/tx`'s pending limit) and `GET /api/broadcast?tx=`
+  (a GET twin of `POST /api/tx`). Additive, so after the release.
+
+- `GET /api/v1/mining/blocks/fees?from=&to=`, mempool.space's block fees over a timestamp range: the period routes'
+  grouping, its divisor from the span (24 h past 4 years down to 1 s within a day, `getTimeRangeFromTimespan`).
+  Additive, so after the release.
+
 - mempool's electrs address extensions, live on mempool.space, each only if fast enough unthrottled:
   `/api/address/{address}/txs/summary[/{last_seen_txid}]` (up to 5,000 rows `{txid, height, value, time,
   tx_position}`, `max_txs` at most that), `POST /api/addresses/txs` and `POST /api/addresses/txs/summary` (several

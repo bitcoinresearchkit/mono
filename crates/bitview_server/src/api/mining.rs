@@ -3,9 +3,9 @@ use axum::{body::Bytes, extract::Path, http::HeaderMap, response::Response};
 use bitcoin::hashes::{Hash, HashEngine, sha256};
 use bitview_primitives::PoolSlug;
 use bitview_types::{
-    BlockFeeRatesEntry, BlockFeesEntry, BlockInfoV1, BlockRewardsEntry, BlockSizesWeights,
-    DifficultyAdjustmentEntry, HashrateSummary, PoolDetail, PoolHashrateEntry, PoolInfo,
-    PoolsSummary, RewardStats,
+    BlockFeeRatesEntry, BlockFeeRatesPreciseEntry, BlockFeesEntry, BlockInfoV1, BlockRewardsEntry,
+    BlockSizesWeights, DifficultyAdjustmentEntry, HashrateSummary, PoolDetail, PoolHashrateEntry,
+    PoolInfo, PoolsSummary, RewardStats,
 };
 use brk_types::{BlockHash, Dollars, Height};
 use serde_json::to_vec;
@@ -18,8 +18,6 @@ use crate::{
     params::{BlockCountParam, Empty, PoolSlugAndHeightParam, PoolSlugParam, TimePeriodParam},
     request_state::RequestState,
 };
-
-const HASHRATE_MAX_POINTS: usize = 200;
 const POOL_BLOCKS_LIMIT: usize = 100;
 
 fn pool_blocks_params(
@@ -124,7 +122,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 op.id("get_pools_hashrate")
                     .tag(tags::MINING)
                     .summary("All pools hashrate (all time)")
-                    .description("*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*")
+                    .description("Get weekly hashrate data, over the whole chain, of the mining pools that mined in the last week, by time and then their weekly rank.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*")
                     .json_response::<Vec<PoolHashrateEntry>>()
                     .not_modified()
             },
@@ -141,7 +139,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 op.id("get_pools_hashrate_by_period")
                     .tag(tags::MINING)
                     .summary("All pools hashrate")
-                    .description("Get hashrate data for all mining pools for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*")
+                    .description("Get weekly hashrate data, for a time period, of the mining pools that mined in the last week, by time and then their weekly rank.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*")
                     .json_response::<Vec<PoolHashrateEntry>>()
                     .not_modified()
             },
@@ -203,7 +201,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         "/api/v1/mining/hashrate",
         get_with(
             async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| {
-                state.respond_json_content(&headers, |q| q.hashrate(None, HASHRATE_MAX_POINTS)).await
+                state.respond_json_content(&headers, |q| q.hashrate(None)).await
             },
             |op| {
                 op.id("get_hashrate")
@@ -220,7 +218,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         get_with(
             async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, RequestState(state): RequestState| {
                 let time_period = Some(path.time_period);
-                state.respond_json_content(&headers, move |q| q.hashrate(time_period, HASHRATE_MAX_POINTS)).await
+                state.respond_json_content(&headers, move |q| q.hashrate(time_period)).await
             },
             |op| {
                 op.id("get_hashrate_by_period")
@@ -326,8 +324,25 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 op.id("get_block_fee_rates")
                     .tag(tags::MINING)
                     .summary("Block fee rates")
-                    .description("Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*")
+                    .description("Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*")
                     .json_response::<Vec<BlockFeeRatesEntry>>()
+                    .not_modified()
+            },
+        ),
+    )
+    .api_route(
+        "/api/v1/mining/blocks/fee-rates/{time_period}/precise",
+        get_with(
+            async |headers: HeaderMap, Path(path): Path<TimePeriodParam>, _: Empty, RequestState(state): RequestState| {
+                let time_period = path.time_period;
+                state.respond_json_content(&headers, move |q| q.block_fee_rates_precise(time_period)).await
+            },
+            |op| {
+                op.id("get_block_fee_rates_precise")
+                    .tag(tags::MINING)
+                    .summary("Block fee rates (precise)")
+                    .description("Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in sat/vB to 3 decimals.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*")
+                    .json_response::<Vec<BlockFeeRatesPreciseEntry>>()
                     .not_modified()
             },
         ),

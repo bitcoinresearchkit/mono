@@ -5,8 +5,10 @@ use vecdb::{ReadableVec, VecIndex};
 
 use crate::{Error, Result, query_plugins::QueryPlugins};
 
-/// One entry per retarget whose first block lies in `[start_height, end_height]`, with the
-/// new/previous difficulty ratio (1.068 = +6.8%); `Error::Internal` for missing published data.
+/// One entry per retarget whose first block lies in `[start_height, end_height]` and that changed
+/// the difficulty (the first 15 kept it at 1), with the new/previous difficulty ratio to 6
+/// significant digits (1.068 = +6.8%), as mempool.space lists them; genesis, or the window's first epoch
+/// without a predecessor, at 0. `Error::Internal` for missing published data.
 pub fn difficulty_epochs(
     plugins: &QueryPlugins,
     start_height: usize,
@@ -51,7 +53,9 @@ pub fn difficulty_epochs(
             .ok_or(Error::Internal("Missing epoch difficulty"))?;
 
         let adjustment = match prev_difficulty {
-            Some(prev) => epoch_difficulty / prev,
+            Some(prev) if epoch_difficulty == prev => continue,
+            // 6 significant digits, as mempool.space stores the ratio.
+            Some(prev) => format!("{:.5e}", epoch_difficulty / prev).parse().unwrap(),
             None => 0.0,
         };
 

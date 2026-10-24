@@ -94,7 +94,7 @@ TxInIndex = int
 # A Unix timestamp, in seconds.
 Timestamp = int
 # Lookback window for mining statistics.
-TimePeriod = Literal["24h", "3d", "1w", "1m", "3m", "6m", "1y", "2y", "3y", "all"]
+TimePeriod = Literal["24h", "3d", "1w", "1m", "3m", "6m", "1y", "2y", "3y", "4y", "all"]
 # BIP-141 signature-operation cost: legacy and P2SH-redeem sigops count four and witness sigops
 # one. Sums over many transactions or blocks use the full 64 bits.
 SigOps = int
@@ -386,7 +386,7 @@ class HashrateEntry(TypedDict):
 class TimePeriodParam(TypedDict):
     """
     Attributes:
-        time_period: Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+        time_period: Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
     """
     time_period: TimePeriod
 
@@ -510,7 +510,18 @@ class RecommendedFees(TypedDict):
     economyFee: int
     minimumFee: int
 
-class PoolStats(TypedDict):
+class _PoolStatsRequired(TypedDict):
+    poolId: int
+    name: str
+    link: str
+    blockCount: int
+    rank: int
+    emptyBlocks: int
+    slug: PoolSlug
+    poolUniqueId: int
+    share: float
+
+class PoolStats(_PoolStatsRequired, total=False):
     """
     Mining pool with block statistics for a time period
 
@@ -520,18 +531,13 @@ class PoolStats(TypedDict):
         rank: Pool ranking by block count (1 = most blocks)
         emptyBlocks: Number of empty (coinbase-only) blocks mined in the time period
         slug: URL-friendly pool identifier
-        share: Pool's share of total blocks (0.0 - 1.0)
+        avgMatchRate: Mean share of the expected block template the pool's blocks matched, from mempool.space's own audits (always null: it needs the mempool as it was)
+        avgFeeDelta: Mean relative difference of the pool's fees from the expected template's, a decimal string at mempool.space, from its own audits (always null: it needs the mempool as it was)
         poolUniqueId: Zero-based pool ID, matching mempool.space's `unique_id`
+        share: Pool's share of total blocks (0.0 - 1.0)
     """
-    poolId: int
-    name: str
-    link: str
-    blockCount: int
-    rank: int
-    emptyBlocks: int
-    slug: PoolSlug
-    share: float
-    poolUniqueId: int
+    avgMatchRate: Optional[float]
+    avgFeeDelta: Optional[str]
 
 class PoolsSummary(TypedDict):
     """
@@ -799,6 +805,33 @@ class BlockSizesWeights(TypedDict):
     sizes: List[BlockSizeEntry]
     weights: List[BlockWeightEntry]
 
+class BlockFeeRatesEntry(TypedDict):
+    """
+    One time bucket of blocks. Each `avgFee_*` field is the bucket's mean of its blocks' own
+    percentile of their non-coinbase transactions' effective fee rates, weighted by vsize (a block
+    without such transactions counts as 0), rounded to a whole sat/vB.
+
+    Attributes:
+        avgHeight: Average block height in this bucket
+        timestamp: Average block timestamp in this bucket
+        avgFee_0: Mean of the blocks' minimum fee rate (sat/vB)
+        avgFee_10: Mean of the blocks' 10th percentile fee rate (sat/vB)
+        avgFee_25: Mean of the blocks' 25th percentile fee rate (sat/vB)
+        avgFee_50: Mean of the blocks' median fee rate (sat/vB)
+        avgFee_75: Mean of the blocks' 75th percentile fee rate (sat/vB)
+        avgFee_90: Mean of the blocks' 90th percentile fee rate (sat/vB)
+        avgFee_100: Mean of the blocks' maximum fee rate (sat/vB)
+    """
+    avgHeight: Height
+    timestamp: Timestamp
+    avgFee_0: int
+    avgFee_10: int
+    avgFee_25: int
+    avgFee_50: int
+    avgFee_75: int
+    avgFee_90: int
+    avgFee_100: int
+
 class Health(TypedDict):
     """
     Attributes:
@@ -940,11 +973,10 @@ class MempoolBlock(TypedDict):
     medianFee: FeeRate
     feeRange: List[FeeRate]
 
-class BlockFeeRatesEntry(TypedDict):
+class BlockFeeRatesPreciseEntry(TypedDict):
     """
-    One time bucket of blocks. Each `avgFee_*` field is the
-    bucket's mean of its blocks' own percentile of their non-coinbase transactions' effective fee
-    rates, weighted by vsize (a block without such transactions counts as 0).
+    One time bucket of blocks, as [`BlockFeeRatesEntry`] with each `avgFee_*` field to 3
+    decimals.
 
     Attributes:
         avgHeight: Average block height in this bucket
@@ -1566,16 +1598,18 @@ class _PoolDetailRequired(TypedDict):
     blockCount: PoolBlockCounts
     blockShare: PoolBlockShares
     estimatedHashrate: int
-    totalReward: Sats
+    totalReward: str
 
 class PoolDetail(_PoolDetailRequired, total=False):
     """
     Attributes:
         estimatedHashrate: Estimated hashrate based on blocks mined (H/s)
         reportedHashrate: Self-reported hashrate (if available, H/s)
-        totalReward: Total reward earned by this pool: coinbase output value of every block it mined (sats)
+        avgBlockHealth: Mean health of the pool's blocks, from mempool.space's own audits (always null: it needs the mempool as it was)
+        totalReward: Total reward earned by this pool: coinbase output value of every block it mined (sats), as a decimal string
     """
     reportedHashrate: Optional[int]
+    avgBlockHealth: Optional[float]
 
 class _BlockExtrasRequired(TypedDict):
     totalFees: Sats
@@ -5967,7 +6001,7 @@ class BitviewClient(BitviewClientBase):
     def get_historical_price(self, timestamp: Optional[Timestamp] = None, currency: Optional[Currency] = None) -> HistoricalPrice:
         """Historical price.
 
-        Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
+        Completed four-hour BTC/USD closes, newest first as mempool.space lists them, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
 
@@ -6269,6 +6303,8 @@ class BitviewClient(BitviewClientBase):
     def get_pools_hashrate(self) -> List[PoolHashrateEntry]:
         """All pools hashrate (all time).
 
+        Get weekly hashrate data, over the whole chain, of the mining pools that mined in the last week, by time and then their weekly rank.
+
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
 
         Endpoint: `GET /api/v1/mining/hashrate/pools`"""
@@ -6277,7 +6313,7 @@ class BitviewClient(BitviewClientBase):
     def get_pools_hashrate_by_period(self, time_period: TimePeriod) -> List[PoolHashrateEntry]:
         """All pools hashrate.
 
-        Get hashrate data for all mining pools for a time period.
+        Get weekly hashrate data, for a time period, of the mining pools that mined in the last week, by time and then their weekly rank.
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
 
@@ -6385,12 +6421,22 @@ class BitviewClient(BitviewClientBase):
     def get_block_fee_rates(self, time_period: TimePeriod) -> List[BlockFeeRatesEntry]:
         """Block fee rates.
 
-        Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period.
+        Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals).
 
         *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
 
         Endpoint: `GET /api/v1/mining/blocks/fee-rates/{time_period}`"""
         return self.get_json(f'/api/v1/mining/blocks/fee-rates/{_segment(time_period)}')
+
+    def get_block_fee_rates_precise(self, time_period: TimePeriod) -> List[BlockFeeRatesPreciseEntry]:
+        """Block fee rates (precise).
+
+        Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in sat/vB to 3 decimals.
+
+        *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
+
+        Endpoint: `GET /api/v1/mining/blocks/fee-rates/{time_period}/precise`"""
+        return self.get_json(f'/api/v1/mining/blocks/fee-rates/{_segment(time_period)}/precise')
 
     def get_block_sizes_weights(self, time_period: TimePeriod) -> BlockSizesWeights:
         """Block sizes and weights.

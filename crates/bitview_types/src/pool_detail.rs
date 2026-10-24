@@ -24,8 +24,15 @@ pub struct PoolDetail {
     #[serde(rename = "reportedHashrate")]
     pub reported_hashrate: Option<u128>,
 
-    /// Total reward earned by this pool: coinbase output value of every block it mined (sats)
-    #[serde(rename = "totalReward")]
+    /// Mean health of the pool's blocks, from mempool.space's own audits (always null: it needs
+    /// the mempool as it was)
+    #[serde(rename = "avgBlockHealth")]
+    pub avg_block_health: Option<f64>,
+
+    /// Total reward earned by this pool: coinbase output value of every block it mined (sats),
+    /// as a decimal string
+    #[serde(rename = "totalReward", with = "crate::decimal_string")]
+    #[schemars(with = "String", extend("pattern" = "^[0-9]+$"))]
     pub total_reward: Sats,
 }
 

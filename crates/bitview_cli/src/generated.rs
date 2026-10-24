@@ -158,9 +158,22 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/blocks/fee-rates/{time_period}",
         summary: "Block fee rates",
-        description: "Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*",
+        description: "Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*",
         path_parameters: &[
-            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.") },
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.") },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-block-fee-rates-precise",
+        method: "GET",
+        path: "/api/v1/mining/blocks/fee-rates/{time_period}/precise",
+        summary: "Block fee rates (precise)",
+        description: "Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in sat/vB to 3 decimals.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*",
+        path_parameters: &[
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.") },
         ],
         query_parameters: &[
         ],
@@ -173,7 +186,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Block fees",
         description: "Get average total fees per block for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-fees)*",
         path_parameters: &[
-            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.") },
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.") },
         ],
         query_parameters: &[
         ],
@@ -212,7 +225,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Block rewards",
         description: "Get average coinbase reward (subsidy + fees) per block for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-rewards)*",
         path_parameters: &[
-            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.") },
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.") },
         ],
         query_parameters: &[
         ],
@@ -225,7 +238,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Block sizes and weights",
         description: "Get average block sizes and weights for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-sizes-weights)*",
         path_parameters: &[
-            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.") },
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.") },
         ],
         query_parameters: &[
         ],
@@ -454,7 +467,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Difficulty adjustments",
         description: "Get historical difficulty adjustments for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*",
         path_parameters: &[
-            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.") },
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.") },
         ],
         query_parameters: &[
         ],
@@ -503,7 +516,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Network hashrate",
         description: "Get network hashrate and difficulty data for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*",
         path_parameters: &[
-            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.") },
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.") },
         ],
         query_parameters: &[
         ],
@@ -526,7 +539,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/historical-price",
         summary: "Historical price",
-        description: "Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*",
+        description: "Completed four-hour BTC/USD closes, newest first as mempool.space lists them, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -753,7 +766,7 @@ pub static COMMANDS: &[Command] = &[
         summary: "Mining pool statistics",
         description: "Get mining pool statistics for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*",
         path_parameters: &[
-            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.") },
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.") },
         ],
         query_parameters: &[
         ],
@@ -776,7 +789,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/hashrate/pools",
         summary: "All pools hashrate (all time)",
-        description: "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*",
+        description: "Get weekly hashrate data, over the whole chain, of the mining pools that mined in the last week, by time and then their weekly rank.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*",
         path_parameters: &[
         ],
         query_parameters: &[
@@ -788,9 +801,9 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/v1/mining/hashrate/pools/{time_period}",
         summary: "All pools hashrate",
-        description: "Get hashrate data for all mining pools for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*",
+        description: "Get weekly hashrate data, for a time period, of the mining pools that mined in the last week, by time and then their weekly rank.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*",
         path_parameters: &[
-            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.") },
+            Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.") },
         ],
         query_parameters: &[
         ],

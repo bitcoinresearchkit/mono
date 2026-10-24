@@ -6,7 +6,7 @@
 - Base URL: https://bitview.space
 - MCP endpoint: https://mcp.bitview.space/
 - Metrics: 21154
-- Operations: 99
+- Operations: 100
 
 For machine-readable tool construction, use [https://bitview.space/openapi.json](https://bitview.space/openapi.json). For the complete source-derived series tree, use [https://bitview.space/api/series](https://bitview.space/api/series).
 
@@ -355,7 +355,7 @@ Returns: JSON `Health`
 
 Historical price
 
-Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
+Completed four-hour BTC/USD closes, newest first as mempool.space lists them, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
 
 Parameters:
 - `timestamp` (query, Timestamp, optional): UNIX timestamp: the latest close at or before it
@@ -430,12 +430,23 @@ Returns: JSON `BlockTemplateDiff`
 
 Block fee rates
 
-Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
+Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals). *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
 
 Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
 
 Returns: JSON `BlockFeeRatesEntry[]`
+
+#### GET `/api/v1/mining/blocks/fee-rates/{time_period}/precise`
+
+Block fee rates (precise)
+
+Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in sat/vB to 3 decimals. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
+
+Parameters:
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
+
+Returns: JSON `BlockFeeRatesPreciseEntry[]`
 
 #### GET `/api/v1/mining/blocks/fees/{time_period}`
 
@@ -444,7 +455,7 @@ Block fees
 Get average total fees per block for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-fees)*
 
 Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
 
 Returns: JSON `BlockFeesEntry[]`
 
@@ -455,7 +466,7 @@ Block rewards
 Get average coinbase reward (subsidy + fees) per block for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-rewards)*
 
 Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
 
 Returns: JSON `BlockRewardsEntry[]`
 
@@ -466,7 +477,7 @@ Block sizes and weights
 Get average block sizes and weights for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-sizes-weights)*
 
 Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
 
 Returns: JSON `BlockSizesWeights`
 
@@ -496,7 +507,7 @@ Difficulty adjustments
 Get historical difficulty adjustments for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-difficulty-adjustments)*
 
 Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
 
 Returns: JSON `DifficultyAdjustmentEntry[]`
 
@@ -512,7 +523,7 @@ Returns: JSON `HashrateSummary`
 
 All pools hashrate (all time)
 
-*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
+Get weekly hashrate data, over the whole chain, of the mining pools that mined in the last week, by time and then their weekly rank. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
 
 Returns: JSON `PoolHashrateEntry[]`
 
@@ -520,10 +531,10 @@ Returns: JSON `PoolHashrateEntry[]`
 
 All pools hashrate
 
-Get hashrate data for all mining pools for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
+Get weekly hashrate data, for a time period, of the mining pools that mined in the last week, by time and then their weekly rank. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
 
 Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
 
 Returns: JSON `PoolHashrateEntry[]`
 
@@ -534,7 +545,7 @@ Network hashrate
 Get network hashrate and difficulty data for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-hashrate)*
 
 Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
 
 Returns: JSON `HashrateSummary`
 
@@ -598,7 +609,7 @@ Mining pool statistics
 Get mining pool statistics for a time period. *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
 
 Parameters:
-- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.
+- `time_period` (path, TimePeriod, required): Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.
 
 Returns: JSON `PoolsSummary`
 
@@ -1177,6 +1188,18 @@ Returns: JSON `ServerVersion`
 
 - `avgHeight`: `Height` (required) — Average block height in this bucket
 - `timestamp`: `Timestamp` (required) — Average block timestamp in this bucket
+- `avgFee_0`: `integer` (required) — Mean of the blocks' minimum fee rate (sat/vB)
+- `avgFee_10`: `integer` (required) — Mean of the blocks' 10th percentile fee rate (sat/vB)
+- `avgFee_25`: `integer` (required) — Mean of the blocks' 25th percentile fee rate (sat/vB)
+- `avgFee_50`: `integer` (required) — Mean of the blocks' median fee rate (sat/vB)
+- `avgFee_75`: `integer` (required) — Mean of the blocks' 75th percentile fee rate (sat/vB)
+- `avgFee_90`: `integer` (required) — Mean of the blocks' 90th percentile fee rate (sat/vB)
+- `avgFee_100`: `integer` (required) — Mean of the blocks' maximum fee rate (sat/vB)
+
+### `BlockFeeRatesPreciseEntry`
+
+- `avgHeight`: `Height` (required) — Average block height in this bucket
+- `timestamp`: `Timestamp` (required) — Average block timestamp in this bucket
 - `avgFee_0`: `FeeRate` (required) — Mean of the blocks' minimum fee rate (sat/vB)
 - `avgFee_10`: `FeeRate` (required) — Mean of the blocks' 10th percentile fee rate (sat/vB)
 - `avgFee_25`: `FeeRate` (required) — Mean of the blocks' 25th percentile fee rate (sat/vB)
@@ -1571,7 +1594,8 @@ Returns: JSON `ServerVersion`
 - `blockShare`: `PoolBlockShares` (required)
 - `estimatedHashrate`: `integer` (required) — Estimated hashrate based on blocks mined (H/s)
 - `reportedHashrate`: `integer | null` — Self-reported hashrate (if available, H/s)
-- `totalReward`: `Sats` (required) — Total reward earned by this pool: coinbase output value of every block it mined (sats)
+- `avgBlockHealth`: `number | null` — Mean health of the pool's blocks, from mempool.space's own audits (always null: it needs the mempool as it was)
+- `totalReward`: `string` (required) — Total reward earned by this pool: coinbase output value of every block it mined (sats), as a decimal string
 
 ### `PoolDetailInfo`
 
@@ -1609,8 +1633,10 @@ Returns: JSON `ServerVersion`
 - `rank`: `integer` (required) — Pool ranking by block count (1 = most blocks)
 - `emptyBlocks`: `integer` (required) — Number of empty (coinbase-only) blocks mined in the time period
 - `slug`: `PoolSlug` (required) — URL-friendly pool identifier
-- `share`: `number` (required) — Pool's share of total blocks (0.0 - 1.0)
+- `avgMatchRate`: `number | null` — Mean share of the expected block template the pool's blocks matched, from mempool.space's own audits (always null: it needs the mempool as it was)
+- `avgFeeDelta`: `string | null` — Mean relative difference of the pool's fees from the expected template's, a decimal string at mempool.space, from its own audits (always null: it needs the mempool as it was)
 - `poolUniqueId`: `integer` (required) — Zero-based pool ID, matching mempool.space's `unique_id`
+- `share`: `number` (required) — Pool's share of total blocks (0.0 - 1.0)
 
 ### `PoolsSummary`
 
@@ -1750,7 +1776,7 @@ Returns: JSON `ServerVersion`
 
 ### `TimePeriod`
 
-`24h | 3d | 1w | 1m | 3m | 6m | 1y | 2y | 3y | all`
+`24h | 3d | 1w | 1m | 3m | 6m | 1y | 2y | 3y | 4y | all`
 
 ### `Timestamp`
 

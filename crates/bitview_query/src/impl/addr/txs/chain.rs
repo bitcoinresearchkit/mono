@@ -68,10 +68,11 @@ impl Query {
         let before = match before {
             Some(txid) => match self.resolve_tx_index_bounded(txid, pin) {
                 Ok(tx_index)
-                    if self
-                        .indexer()
-                        .stores()
-                        .addr_has_tx(output_type, type_index, tx_index)? =>
+                    if self.indexer().stores().addr_has_tx(
+                        output_type,
+                        type_index,
+                        tx_index,
+                    )? =>
                 {
                     tx_index
                 }

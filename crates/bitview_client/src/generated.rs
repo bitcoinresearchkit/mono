@@ -2725,7 +2725,7 @@ impl BitviewClient {
 
     /// Historical price
     ///
-    /// Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
+    /// Completed four-hour BTC/USD closes, newest first as mempool.space lists them, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
     ///
@@ -3173,6 +3173,8 @@ impl BitviewClient {
 
     /// All pools hashrate (all time)
     ///
+    /// Get weekly hashrate data, over the whole chain, of the mining pools that mined in the last week, by time and then their weekly rank.
+    ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
     ///
     /// Endpoint: `GET /api/v1/mining/hashrate/pools`
@@ -3183,7 +3185,7 @@ impl BitviewClient {
 
     /// All pools hashrate
     ///
-    /// Get hashrate data for all mining pools for a time period.
+    /// Get weekly hashrate data, for a time period, of the mining pools that mined in the last week, by time and then their weekly rank.
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
     ///
@@ -3337,7 +3339,7 @@ impl BitviewClient {
 
     /// Block fee rates
     ///
-    /// Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period.
+    /// Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals).
     ///
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
     ///
@@ -3345,6 +3347,23 @@ impl BitviewClient {
     pub fn get_block_fee_rates(&self, time_period: TimePeriod) -> Result<Vec<BlockFeeRatesEntry>> {
         self.base.get_json(&format!(
             "/api/v1/mining/blocks/fee-rates/{}",
+            path_segment(time_period)
+        ))
+    }
+
+    /// Block fee rates (precise)
+    ///
+    /// Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in sat/vB to 3 decimals.
+    ///
+    /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
+    ///
+    /// Endpoint: `GET /api/v1/mining/blocks/fee-rates/{time_period}/precise`
+    pub fn get_block_fee_rates_precise(
+        &self,
+        time_period: TimePeriod,
+    ) -> Result<Vec<BlockFeeRatesPreciseEntry>> {
+        self.base.get_json(&format!(
+            "/api/v1/mining/blocks/fee-rates/{}/precise",
             path_segment(time_period)
         ))
     }

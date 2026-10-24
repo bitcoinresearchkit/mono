@@ -2399,12 +2399,12 @@
       "tool": {
         "name": "get_block_fee_rates",
         "title": "Block fee rates",
-        "description": "Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*\n\nREST operation: `GET /api/v1/mining/blocks/fee-rates/{time_period}`.",
+        "description": "Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*\n\nREST operation: `GET /api/v1/mining/blocks/fee-rates/{time_period}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "time_period": {
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.",
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
               "$ref": "#/$defs/TimePeriod"
             }
           },
@@ -2427,6 +2427,7 @@
                 "1y",
                 "2y",
                 "3y",
+                "4y",
                 "all"
               ]
             }
@@ -2440,6 +2441,146 @@
           "$schema": "https://json-schema.org/draft/2020-12/schema",
           "$defs": {
             "BlockFeeRatesEntry": {
+              "required": [
+                "avgHeight",
+                "timestamp",
+                "avgFee_0",
+                "avgFee_10",
+                "avgFee_25",
+                "avgFee_50",
+                "avgFee_75",
+                "avgFee_90",
+                "avgFee_100"
+              ],
+              "type": "object",
+              "properties": {
+                "avgHeight": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Height"
+                    }
+                  ]
+                },
+                "timestamp": {
+                  "allOf": [
+                    {
+                      "$ref": "#/$defs/Timestamp"
+                    }
+                  ]
+                },
+                "avgFee_0": {
+                  "minimum": 0,
+                  "type": "integer",
+                  "format": "uint64"
+                },
+                "avgFee_10": {
+                  "minimum": 0,
+                  "type": "integer",
+                  "format": "uint64"
+                },
+                "avgFee_25": {
+                  "minimum": 0,
+                  "type": "integer",
+                  "format": "uint64"
+                },
+                "avgFee_50": {
+                  "minimum": 0,
+                  "type": "integer",
+                  "format": "uint64"
+                },
+                "avgFee_75": {
+                  "minimum": 0,
+                  "type": "integer",
+                  "format": "uint64"
+                },
+                "avgFee_90": {
+                  "minimum": 0,
+                  "type": "integer",
+                  "format": "uint64"
+                },
+                "avgFee_100": {
+                  "minimum": 0,
+                  "type": "integer",
+                  "format": "uint64"
+                }
+              }
+            },
+            "Height": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
+            },
+            "Timestamp": {
+              "minimum": 0,
+              "type": "integer",
+              "format": "uint32"
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "idempotentHint": true,
+          "openWorldHint": true
+        }
+      },
+      "http": {
+        "method": "GET",
+        "path": "/api/v1/mining/blocks/fee-rates/{time_period}",
+        "parameters": [
+          {
+            "name": "time_period",
+            "location": "path"
+          }
+        ]
+      }
+    },
+    {
+      "tool": {
+        "name": "get_block_fee_rates_precise",
+        "title": "Block fee rates (precise)",
+        "description": "Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in sat/vB to 3 decimals.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*\n\nREST operation: `GET /api/v1/mining/blocks/fee-rates/{time_period}/precise`.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "time_period": {
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
+              "$ref": "#/$defs/TimePeriod"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "time_period"
+          ],
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$defs": {
+            "TimePeriod": {
+              "description": "Lookback window for mining statistics.",
+              "type": "string",
+              "enum": [
+                "24h",
+                "3d",
+                "1w",
+                "1m",
+                "3m",
+                "6m",
+                "1y",
+                "2y",
+                "3y",
+                "4y",
+                "all"
+              ]
+            }
+          }
+        },
+        "outputSchema": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/BlockFeeRatesPreciseEntry"
+          },
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "$defs": {
+            "BlockFeeRatesPreciseEntry": {
               "required": [
                 "avgHeight",
                 "timestamp",
@@ -2543,7 +2684,7 @@
       },
       "http": {
         "method": "GET",
-        "path": "/api/v1/mining/blocks/fee-rates/{time_period}",
+        "path": "/api/v1/mining/blocks/fee-rates/{time_period}/precise",
         "parameters": [
           {
             "name": "time_period",
@@ -2561,7 +2702,7 @@
           "type": "object",
           "properties": {
             "time_period": {
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.",
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
               "$ref": "#/$defs/TimePeriod"
             }
           },
@@ -2584,6 +2725,7 @@
                 "1y",
                 "2y",
                 "3y",
+                "4y",
                 "all"
               ]
             }
@@ -2730,7 +2872,7 @@
           "type": "object",
           "properties": {
             "time_period": {
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.",
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
               "$ref": "#/$defs/TimePeriod"
             }
           },
@@ -2753,6 +2895,7 @@
                 "1y",
                 "2y",
                 "3y",
+                "4y",
                 "all"
               ]
             }
@@ -2852,7 +2995,7 @@
           "type": "object",
           "properties": {
             "time_period": {
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.",
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
               "$ref": "#/$defs/TimePeriod"
             }
           },
@@ -2875,6 +3018,7 @@
                 "1y",
                 "2y",
                 "3y",
+                "4y",
                 "all"
               ]
             }
@@ -6518,7 +6662,7 @@
           "type": "object",
           "properties": {
             "time_period": {
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.",
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
               "$ref": "#/$defs/TimePeriod"
             }
           },
@@ -6541,6 +6685,7 @@
                 "1y",
                 "2y",
                 "3y",
+                "4y",
                 "all"
               ]
             }
@@ -6880,7 +7025,7 @@
           "type": "object",
           "properties": {
             "time_period": {
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.",
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
               "$ref": "#/$defs/TimePeriod"
             }
           },
@@ -6903,6 +7048,7 @@
                 "1y",
                 "2y",
                 "3y",
+                "4y",
                 "all"
               ]
             }
@@ -7028,7 +7174,7 @@
       "tool": {
         "name": "get_historical_price",
         "title": "Historical price",
-        "description": "Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*\n\nREST operation: `GET /api/v1/historical-price`.",
+        "description": "Completed four-hour BTC/USD closes, newest first as mempool.space lists them, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*\n\nREST operation: `GET /api/v1/historical-price`.",
         "inputSchema": {
           "type": "object",
           "properties": {
@@ -8157,12 +8303,16 @@
                   ],
                   "format": "uint128"
                 },
-                "totalReward": {
-                  "allOf": [
-                    {
-                      "$ref": "#/$defs/Sats"
-                    }
+                "avgBlockHealth": {
+                  "format": "double",
+                  "type": [
+                    "number",
+                    "null"
                   ]
+                },
+                "totalReward": {
+                  "pattern": "^[0-9]+$",
+                  "type": "string"
                 }
               },
               "required": [
@@ -8394,11 +8544,6 @@
                 "dmnd"
               ],
               "type": "string"
-            },
-            "Sats": {
-              "minimum": 0,
-              "type": "integer",
-              "format": "uint64"
             }
           }
         },
@@ -10437,7 +10582,7 @@
           "type": "object",
           "properties": {
             "time_period": {
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.",
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
               "$ref": "#/$defs/TimePeriod"
             }
           },
@@ -10460,6 +10605,7 @@
                 "1y",
                 "2y",
                 "3y",
+                "4y",
                 "all"
               ]
             }
@@ -10649,8 +10795,8 @@
                 "rank",
                 "emptyBlocks",
                 "slug",
-                "share",
-                "poolUniqueId"
+                "poolUniqueId",
+                "share"
               ],
               "type": "object",
               "properties": {
@@ -10688,15 +10834,28 @@
                     }
                   ]
                 },
-                "share": {
+                "avgMatchRate": {
                   "format": "double",
-                  "type": "number"
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "avgFeeDelta": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "poolUniqueId": {
                   "maximum": 255,
                   "type": "integer",
                   "format": "uint8",
                   "minimum": 0
+                },
+                "share": {
+                  "format": "double",
+                  "type": "number"
                 }
               }
             },
@@ -10992,7 +11151,7 @@
       "tool": {
         "name": "get_pools_hashrate",
         "title": "All pools hashrate (all time)",
-        "description": "*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*\n\nREST operation: `GET /api/v1/mining/hashrate/pools`.",
+        "description": "Get weekly hashrate data, over the whole chain, of the mining pools that mined in the last week, by time and then their weekly rank.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*\n\nREST operation: `GET /api/v1/mining/hashrate/pools`.",
         "inputSchema": {
           "type": "object",
           "properties": {},
@@ -11060,12 +11219,12 @@
       "tool": {
         "name": "get_pools_hashrate_by_period",
         "title": "All pools hashrate",
-        "description": "Get hashrate data for all mining pools for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*\n\nREST operation: `GET /api/v1/mining/hashrate/pools/{time_period}`.",
+        "description": "Get weekly hashrate data, for a time period, of the mining pools that mined in the last week, by time and then their weekly rank.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*\n\nREST operation: `GET /api/v1/mining/hashrate/pools/{time_period}`.",
         "inputSchema": {
           "type": "object",
           "properties": {
             "time_period": {
-              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y` or `all`.",
+              "description": "Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.",
               "$ref": "#/$defs/TimePeriod"
             }
           },
@@ -11088,6 +11247,7 @@
                 "1y",
                 "2y",
                 "3y",
+                "4y",
                 "all"
               ]
             }
