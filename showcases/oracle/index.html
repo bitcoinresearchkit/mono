@@ -380,15 +380,22 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr);
         gap: 0 48px;
-        padding: clamp(64px, 12vh, 112px) 0 0;
+        padding: clamp(56px, 12vh, 120px) 0 0;
         scroll-margin-top: 24px;
 
-        @media (min-width: 900px) {
-          grid-template-columns: 250px minmax(0, 1fr);
+        > header {
+          margin-bottom: 20px;
         }
 
-        > header {
-          margin-bottom: 18px;
+        /* Wide, the title stays beside its chapter as it scrolls by. */
+        @media (min-width: 900px) {
+          grid-template-columns: 250px minmax(0, 1fr);
+
+          > header {
+            position: sticky;
+            top: 32px;
+            align-self: start;
+          }
         }
 
         .n {
@@ -410,7 +417,7 @@
 
         p {
           max-width: 62ch;
-          margin: 0 0 18px;
+          margin: 0 0 16px;
           text-wrap: pretty;
         }
 
@@ -423,45 +430,17 @@
       /* ── 01: the instrument. The latest payments by amount, the fingerprint's 19 teeth over them, and below, how
          well it fits wherever it's held. ── */
       .instrument {
-        margin-top: 6px;
+        margin-top: 24px;
         border: 1px solid var(--line);
         background: var(--plate);
-      }
 
-      /* Which block it reads: named, a step either way or now, and its place on the week's line. */
-      .blocks {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
-        gap: 10px 12px;
-        padding: 12px 16px 8px;
-        border-bottom: 1px solid var(--line);
-        font-variant-numeric: tabular-nums;
-
-        .which {
-          overflow: hidden;
-          margin: 0;
-          color: var(--ink);
-          font-weight: 600;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-
-          small {
-            margin-left: 10px;
-            color: var(--faint);
-            font-size: 12px;
-            font-weight: 400;
-          }
-        }
-
-        .steps {
-          display: flex;
-          gap: 6px;
-        }
-
+        /* Its controls, one size: steps, now, fit. */
         button {
-          min-width: 34px;
-          padding: 5px 10px;
+          display: inline-grid;
+          place-items: center;
+          min-width: 32px;
+          height: 32px;
+          padding: 0 12px;
           border: 1px solid var(--line);
           background: none;
           font-size: 13px;
@@ -474,16 +453,62 @@
           &:disabled {
             opacity: 0.35;
           }
+        }
+      }
 
-          &[aria-pressed="true"] {
-            border-color: var(--answer);
-            color: var(--answer);
+      /* Which block it reads: named, a step either way or now, and its place on the week's line. */
+      .blocks {
+        display: grid;
+        grid-template: "which detail steps" auto "scrub scrub scrub" auto / auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px 16px;
+        padding: 12px 16px 4px;
+        border-bottom: 1px solid var(--line);
+        font-variant-numeric: tabular-nums;
+
+        .which {
+          grid-area: which;
+          margin: 0;
+          color: var(--ink);
+          font-weight: 600;
+          white-space: nowrap;
+        }
+
+        .detail {
+          grid-area: detail;
+          margin: 0;
+          color: var(--faint);
+          font-size: 12px;
+        }
+
+        /* Narrow, the detail under the name and the steps. */
+        @media (max-width: 640px) {
+          grid-template: "which steps" auto "detail detail" auto "scrub scrub" auto / minmax(0, 1fr) auto;
+          row-gap: 4px;
+
+          .scrub {
+            margin-top: 6px;
           }
         }
 
+        .steps {
+          grid-area: steps;
+          display: flex;
+          gap: 6px;
+
+          button {
+            padding: 0 10px;
+          }
+        }
+
+        button[aria-pressed="true"] {
+          border-color: var(--answer);
+          color: var(--answer);
+        }
+
         .scrub {
+          grid-area: scrub;
           position: relative;
-          grid-column: 1 / -1;
           height: 34px;
           cursor: pointer;
           touch-action: pan-y;
@@ -520,8 +545,8 @@
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 10px 28px;
-        padding: 14px 16px;
+        gap: 8px 28px;
+        padding: 12px 16px;
         border-bottom: 1px solid var(--line);
         font-variant-numeric: tabular-nums;
 
@@ -569,15 +594,6 @@
 
         button {
           margin-left: auto;
-          padding: 6px 12px;
-          border: 1px solid var(--line);
-          background: none;
-          font-size: 13px;
-          touch-action: manipulation;
-
-          &:hover {
-            border-color: var(--soft);
-          }
         }
       }
 
@@ -720,10 +736,12 @@
         }
       }
 
-      .caption {
-        margin: 12px 0 0;
+      .chapter :is(.caption, .note) {
+        max-width: 72ch;
+        margin: 20px 0 0;
         color: var(--faint);
         font-size: 12px;
+        line-height: 1.65;
       }
 
       /* ── 02: the twelve blocks, by weight ── */
@@ -733,7 +751,7 @@
         align-items: end;
         gap: 6px;
         height: 150px;
-        margin: 4px 0 0;
+        margin: 24px 0 0;
         padding: 0;
         list-style: none;
 
@@ -746,6 +764,10 @@
           font-size: 11px;
           color: var(--faint);
           font-variant-numeric: tabular-nums;
+        }
+
+        small {
+          font-size: inherit;
         }
 
         i {
@@ -761,10 +783,14 @@
           opacity: 1;
         }
 
+        /* Narrow, the values without their % (the axis says what they are). */
         @media (max-width: 560px) {
           span {
-            font-size: 9px;
-            letter-spacing: -0.05em;
+            font-size: 10px;
+          }
+
+          small {
+            display: none;
           }
         }
       }
@@ -772,8 +798,8 @@
       .weights-axis {
         display: flex;
         justify-content: space-between;
-        margin: 0 0 22px;
-        padding-top: 6px;
+        margin: 0 0 32px;
+        padding-top: 8px;
         border-top: 1px solid var(--line);
         color: var(--faint);
         font-size: 12px;
@@ -784,14 +810,14 @@
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
         gap: 1px;
-        margin: 6px 0 0;
+        margin: 24px 0 0;
         padding: 0;
         list-style: none;
         border: 1px solid var(--line);
         background: var(--line);
 
         li {
-          padding: 14px 16px 16px;
+          padding: 16px;
           background: var(--app);
         }
 
@@ -833,7 +859,7 @@
         align-items: end;
         gap: 6px;
         height: 190px;
-        margin: 8px 0 0;
+        margin: 32px 0 0;
         padding: 0;
         list-style: none;
 
@@ -851,6 +877,10 @@
           color: var(--soft);
         }
 
+        small {
+          font-size: inherit;
+        }
+
         i {
           display: block;
           height: var(--h);
@@ -865,8 +895,11 @@
 
         @media (max-width: 560px) {
           .v {
-            font-size: 9px;
-            letter-spacing: -0.05em;
+            font-size: 10px;
+          }
+
+          small {
+            display: none;
           }
         }
       }
@@ -876,7 +909,7 @@
         grid-template-columns: repeat(12, minmax(0, 1fr));
         gap: 6px;
         margin: 0;
-        padding-top: 6px;
+        padding-top: 8px;
         border-top: 1px solid var(--line);
         color: var(--faint);
         font-size: 11px;
@@ -886,14 +919,18 @@
 
       .facts {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1px;
-        margin: 28px 0 0;
+        margin: 32px 0 0;
+
+        @media (min-width: 900px) {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
         border: 1px solid var(--line);
         background: var(--line);
 
         div {
-          padding: 14px 16px;
+          padding: 16px;
           background: var(--app);
         }
 
@@ -907,13 +944,11 @@
           color: var(--ink);
           font-size: 17px;
           font-weight: 600;
-        }
-      }
 
-      .note {
-        margin-top: 14px;
-        color: var(--faint);
-        font-size: 12px;
+          @media (max-width: 640px) {
+            font-size: 15px;
+          }
+        }
       }
 
       .sr {
@@ -944,19 +979,45 @@
         }
 
         .readout {
-          gap: 8px 18px;
+          gap: 8px 16px;
 
           .meter {
-            width: 80px;
+            display: none;
+          }
+        }
+      }
+
+      /* The narrowest phones: the instrument's rows a little tighter, so each stays one. */
+      @media (max-width: 400px) {
+        .blocks,
+        .readout {
+          padding-inline: 12px;
+        }
+
+        .readout {
+          gap: 8px 12px;
+
+          .k {
+            margin-right: 6px;
+          }
+
+          /* (The price needs no "at".) */
+          .k:has(+ #tried) {
+            display: none;
+          }
+
+          output {
+            font-size: 16px;
           }
         }
 
-        .blocks .which {
-          white-space: normal;
+        .sums {
+          div {
+            padding: 12px;
+          }
 
-          small {
-            display: block;
-            margin: 2px 0 0;
+          dd {
+            font-size: 14px;
           }
         }
       }
@@ -997,7 +1058,8 @@
           <p>Below are the payments it counted at a block, by amount: now, or any block of the week. Drag the fingerprint across them: where its teeth all land on spikes, that's the price. Elsewhere it fits in part at best, most at double or half the price, where $50 payments pass for $100 ones.</p>
           <div class="instrument">
             <div class="blocks">
-              <p class="which" id="which" aria-live="polite">Now</p>
+              <p class="which" id="which">Now</p>
+              <p class="detail" id="detail"></p>
               <div class="steps">
                 <button type="button" id="earlier" aria-label="The block before">‹</button>
                 <button type="button" id="later" aria-label="The block after">›</button>
@@ -1058,7 +1120,7 @@
             <div><dt>Since 2022</dt><dd>none off by 10%</dd></div>
             <div><dt>Exchanges asked</dt><dd>none</dd></div>
           </dl>
-          <p class="note">Measured against exchanges' high and low at each block through block 952,314, so 2026 is partial (its lighter bar); a block inside that range counts as 0%. It was weakest in 2015 and 2017, when fewer payments made a fainter fingerprint.</p>
+          <p class="note">Measured against exchanges' high and low at each block through block 952,314, so 2026 is partial (its fainter bar); a block inside that range counts as 0%. It was weakest in 2015 and 2017, when fewer payments made a fainter fingerprint.</p>
         </div>
       </section>
     </main>
@@ -1490,8 +1552,11 @@
         picked = h === null || h > last ? null : Math.max(points[0]?.h ?? h, h);
         failed = null;
         instrument();
+        say();
         if (picked !== null && !searchAt.has(picked)) readPicked();
       }
+      /** The block picked, said aloud (its name and detail, a failure's too). */
+      const say = () => ($("said").textContent = `${$("which").textContent}: ${$("detail").textContent}`);
       async function readPicked() {
         if (reading) return;
         reading = true;
@@ -1501,7 +1566,10 @@
             // (Another picked meanwhile: that one next.)
             if (picked !== h) continue;
             failed = h;
-            break;
+            reading = false;
+            instrument();
+            say();
+            return;
           }
           searchAt.set(h, s);
           if (searchAt.size > 1008) searchAt.delete(/** @type {number} */ (searchAt.keys().next().value));
@@ -1517,10 +1585,12 @@
         const n = points.length, k = picked === null ? n : points.findIndex((pt) => pt.h === picked), pt = points[k];
         const which = $("which");
         if (pt) {
-          which.innerHTML = `Block ${grouped(pt.h)}<small>${day(pt.t)}, ${clock(pt.t)} · $${grouped(pt.p)}${failed === picked ? " · couldn't read it, step to try again" : ""}</small>`;
+          which.textContent = `Block ${grouped(pt.h)}`;
+          $("detail").textContent = `${day(pt.t)}, ${clock(pt.t)} · $${grouped(pt.p)}${failed === picked ? " · couldn't read it, step to try again" : ""}`;
         } else {
-          const what = !liveSearch ? "its search can't be read" : liveSearch.height > tip ? "the mempool as the next block" : "the newest block";
-          which.innerHTML = `Now<small>${what}${live ? ` · $${grouped(live)}` : ""}</small>`;
+          const what = !liveSearch ? "its search can't be read" : liveSearch.height > tip ? "with the mempool" : "the newest block";
+          which.textContent = "Now";
+          $("detail").textContent = `${what}${live ? ` · $${grouped(live)}` : ""}`;
         }
         /** @type {HTMLButtonElement} */ ($("earlier")).disabled = k <= 0;
         /** @type {HTMLButtonElement} */ ($("later")).disabled = picked === null;
@@ -1664,7 +1734,7 @@
 
       $("weights").replaceChildren(...Array.from({ length: WINDOW }, (_, age) => {
         const weight = ALPHA * (1 - ALPHA) ** age, li = document.createElement("li");
-        li.innerHTML = `<span>${(weight * 100).toFixed(1)}%</span><i style="--h:${((weight / ALPHA) * 100).toFixed(1)}%"></i>`;
+        li.innerHTML = `<span>${(weight * 100).toFixed(1)}<small>%</small></span><i style="--h:${((weight / ALPHA) * 100).toFixed(1)}%"></i>`;
         li.setAttribute("aria-label", `${age ? `${age} blocks back` : "The newest block"}: ${(weight * 100).toFixed(1)}%`);
         return li;
       }));
@@ -1673,7 +1743,7 @@
       $("years").replaceChildren(...YEARS.map(([year, median]) => {
         const li = document.createElement("li");
         if (year === 2026) li.className = "partial";
-        li.innerHTML = `<span class="v">${median.toFixed(2)}%</span><i style="--h:${((median / 0.45) * 100).toFixed(1)}%"></i>`;
+        li.innerHTML = `<span class="v">${median.toFixed(2)}<small>%</small></span><i style="--h:${((median / 0.45) * 100).toFixed(1)}%"></i>`;
         li.setAttribute("aria-label", `${year}${year === 2026 ? " so far" : ""}: ${median.toFixed(2)}%`);
         return li;
       }));
