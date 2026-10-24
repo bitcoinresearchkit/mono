@@ -5,12 +5,13 @@
 //
 //   bun showcases/studio/seo.mjs [server]          writes them
 //   bun showcases/studio/seo.mjs --check [server]  fails if they're not what they'd be now
+//   bun showcases/studio/seo.mjs --drop [server]   writes them though charts have gone (see below)
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const check = process.argv.includes("--check");
+const check = process.argv.includes("--check"), drop = process.argv.includes("--drop");
 const SERVER = process.argv.slice(2).find((arg) => !arg.startsWith("--")) ?? "http://127.0.0.1:3110";
 // (The address Studio's known by, on every domain it's served on: see ORIGIN in the page.)
 const ORIGIN = "https://bitview.space/studio";
@@ -51,11 +52,20 @@ const files = {
   "llms.txt": ascii(`${markdown}\n\n## The presets' sections\n\nEach section's page lists its charts; each chart's own address is in ${ORIGIN}/sitemap.xml.\n\n${sections.join("\n")}\n`),
   "sitemap.xml": `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((url) => `<url><loc>${ORIGIN}${url.replaceAll("&", "&amp;")}</loc></url>`).join("\n")}\n</urlset>\n`,
 };
+const written = (/** @type {string} */ name) => { try { return readFileSync(join(HERE, name), "utf8"); } catch { return ""; } };
+// Charts gone since the sitemap was last written: a preset whose series the server renamed or took away goes without a
+// word (its layer reads nothing, so it isn't made). Named, and written over only when meant (--drop).
+const now = new Set(urls.map((url) => `${ORIGIN}${url}`));
+const gone = [...written("sitemap.xml").matchAll(/<loc>([^<]*)<\/loc>/g)].map(([, loc]) => loc.replaceAll("&amp;", "&")).filter((loc) => !now.has(loc));
+if (gone.length && !drop) {
+  console.error(`Gone since last written, ${gone.length} addresses:\n${gone.slice(0, 12).map((loc) => `  ${loc}`).join("\n")}${gone.length > 12 ? `\n  and ${gone.length - 12} more` : ""}`);
+  console.error("A series renamed or taken away on the server? Fix the presets; meant to go: bun showcases/studio/seo.mjs --drop");
+  process.exit(1);
+}
 const stale = [];
 for (const [name, text] of Object.entries(files)) {
-  const path = join(HERE, name);
-  if (!check) writeFileSync(path, text);
-  else if (((file) => { try { return readFileSync(file, "utf8"); } catch { return ""; } })(path) !== text) stale.push(name);
+  if (!check) writeFileSync(join(HERE, name), text);
+  else if (written(name) !== text) stale.push(name);
 }
 if (stale.length) {
   console.error(`Stale: ${stale.join(", ")}. Write them again: bun showcases/studio/seo.mjs`);
