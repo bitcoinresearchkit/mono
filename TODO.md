@@ -29,8 +29,6 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
 
 ## Back end
 
-- Indexer version 45 (2026-10-20: OP_RETURN markers, EPOBC) reindexes the Mac mini and production from scratch on first start; plan the downtime. This Mac is on 45 already: its regions were renamed in place for the 2026-10-23 renames (`_notes/tree-review-20261023/rename_regions.py`), which a fresh index doesn't need.
-
 - Fill v1 block extras' `orphans` from the node's `getchaintips` (the non-active tips at the block's height, with their
   `prevhash`), as mempool.space does; it's always empty now. Additive, so after the release.
 
