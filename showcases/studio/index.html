@@ -9745,6 +9745,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <div><dt>Move five rows at a time</dt><dd><kbd>⇧↑</kbd><kbd>⇧↓</kbd></dd></div>
             <div><dt>Add a series in a new pane</dt><dd><kbd>⇧↵</kbd></dd></div>
             <div><dt>Add, and keep ⌘K open for the next</dt><dd><kbd>⌘↵</kbd></dd></div>
+            <div><dt>Undo or redo the chart, ⌘K still open</dt><dd><kbd>⌘Z</kbd><kbd>⇧⌘Z</kbd></dd></div>
             <div><dt>Insert a completion in a formula</dt><dd><kbd>⇥</kbd></dd></div>
           </dl>
         </div>
@@ -29901,6 +29902,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The list's keys as they're said (↑↓, ⇧ by five; ↵, ⇧↵, ⌘↵): another chord's the field's, ⌘↑ to its start. A
         // page left or entered by a key's press, not its repeat: ⌫ held empties the field and stops there.)
         const plain = !event.metaKey && !event.ctrlKey && !event.altKey;
+        // (⌘Z, ⇧⌘Z: the chart's undo and redo, as everywhere, ⌘K open on it as it is now; while a value's written (a
+        // formula, a name, a date), the writing's own.)
+        if ((event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === "z" && !palette.formula && !palette.pages.at(-1)?.input) {
+          event.preventDefault();
+          event.shiftKey ? redoLast() : undoLast();
+          // (Its field kept, the undo having let the page's go: the next ⌘Z, or ⇧⌘Z, is ⌘K's too.)
+          showPalette();
+          return paletteKeys();
+        }
         if (["ArrowDown", "ArrowUp", "ArrowRight", "Enter", "Tab"].includes(event.key)) palette.pending?.();
         if (event.key === "ArrowDown" && plain) move(event.shiftKey ? 5 : 1);
         else if (event.key === "ArrowUp" && plain) move(event.shiftKey ? -5 : -1);
