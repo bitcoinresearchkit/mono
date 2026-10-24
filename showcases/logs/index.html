@@ -128,31 +128,19 @@
         gap: 12px;
         height: 52px;
 
-        .home {
+        .brand {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 9px;
           color: var(--ink);
           text-decoration: none;
           font-weight: 600;
           letter-spacing: -0.01em;
 
-          svg {
+          img {
             width: 18px;
-            height: 21px;
-            color: var(--block);
+            height: 18px;
           }
-        }
-
-        .sep {
-          color: var(--faint);
-        }
-
-        h1 {
-          margin: 0;
-          font-size: 14px;
-          font-weight: 600;
-          color: var(--ink);
         }
       }
 
@@ -510,12 +498,8 @@
   <body>
     <header>
       <div class="bar shell">
-        <a class="home" href="/" aria-label="Bitview, home">
-          <svg viewBox="0 0 173.2 200" aria-hidden="true"><polygon fill="currentColor" points="86.6,0 173.2,50 86.6,100 0,50" /><polygon fill="currentColor" opacity="0.72" points="0,50 86.6,100 86.6,200 0,150" /><polygon fill="currentColor" opacity="0.5" points="173.2,50 173.2,150 86.6,200 86.6,100" /></svg>
-          <span>Bitview</span>
-        </a>
-        <span class="sep" aria-hidden="true">/</span>
-        <h1>Logs</h1>
+        <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+        <h1 class="sr">Logs</h1>
         <span class="state" id="state" data-state="connecting" role="status">Connecting</span>
       </div>
     </header>

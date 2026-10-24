@@ -225,8 +225,8 @@
         box-shadow: var(--sheen), 0 0 0 1px var(--line);
       }
 
-      /* ── Apps: seven tiles, Studio across two: two rows of four on a desk, rows of two on a tablet (none alone); a row
-         each on a phone, its picture small beside its words ── */
+      /* ── Apps: nine tiles, Studio, the Oracle and the API across two: three rows of four on a desk, rows of two on a
+         tablet (none alone); a row each on a phone, its picture small beside its words ── */
 
       .apps {
         display: grid;
@@ -300,7 +300,7 @@
           background: var(--well);
         }
 
-        /* (Studio, across two: its picture, then beside it as tall, its words.) */
+        /* (Across two: its picture, then beside it as tall, its words.) */
         &.wide {
           @media (min-width: 640px) {
             display: grid;
@@ -672,6 +672,13 @@
                 <p>Bitcoin on a schedule, more when it's cheap: any plan since 2010, beside the plain one.</p>
               </div>
             </article>
+            <article class="card wide">
+              <img class="shot" src="/assets/previews/oracle.jpg" alt="" width="800" height="500" />
+              <div class="body">
+                <h3><a class="stretch" href="/oracle/">Oracle</a><span class="go" aria-hidden="true">→</span></h3>
+                <p>Bitcoin's price read from the chain alone, block by block, with no exchange or feed; and how.</p>
+              </div>
+            </article>
             <article class="card">
               <img class="shot" src="/assets/previews/globe.jpg" alt="" width="800" height="500" loading="lazy" />
               <div class="body">
@@ -694,6 +701,13 @@
               </div>
             </article>
             <article class="card">
+              <img class="shot" src="/assets/previews/logs.jpg" alt="" width="800" height="500" loading="lazy" />
+              <div class="body">
+                <h3><a class="stretch" href="/logs/">Logs</a><span class="go" aria-hidden="true">→</span></h3>
+                <p>This server at work, live: each block it reads, everything it computes, every request.</p>
+              </div>
+            </article>
+            <article class="card wide">
               <img class="shot" src="/assets/previews/api.jpg" alt="" width="800" height="500" loading="lazy" />
               <div class="body">
                 <h3><a class="stretch" href="/api/">API</a><span class="go" aria-hidden="true">→</span></h3>
