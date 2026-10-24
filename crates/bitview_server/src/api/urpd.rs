@@ -85,7 +85,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 serve_urpd(state, headers, params.cohort, None, query).await
             },
             |op| {
-                op.id("get_urpd")
+                op.id("get_urpd_latest")
                     .tag(tags::URPD)
                     .summary("Latest URPD")
                     .description(
@@ -110,7 +110,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 serve_urpd(state, headers, params.cohort, Some(params.point), query).await
             },
             |op| {
-                op.id("get_urpd_at")
+                op.id("get_urpd")
                     .tag(tags::URPD)
                     .summary("URPD at block height or date")
                     .description(

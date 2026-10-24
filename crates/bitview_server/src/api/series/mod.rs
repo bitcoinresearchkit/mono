@@ -256,7 +256,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 state.series_bodies.indexes.respond(&headers)
             },
             |op| op
-                .id("get_indexes")
+                .id("list_indexes")
                 .tag(tags::SERIES)
                 .summary("List available indexes")
                 .description(

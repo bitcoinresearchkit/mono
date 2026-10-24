@@ -7122,7 +7122,7 @@ class BitviewClient extends BitviewClientBase {
     "unknown_script_output_index"
   ]);
 
-  POOL_ID_TO_POOL_NAME = /** @type {const} */ ({
+  POOL_SLUG_TO_NAME = /** @type {const} */ ({
     "175btc": "175btc",
     "1hash": "1Hash",
     "1m1x": "1M1X",
@@ -8002,7 +8002,7 @@ class BitviewClient extends BitviewClientBase {
    * @param {{ signal?: AbortSignal, onValue?: (value: Index[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Index[]>}
    */
-  async getIndexes({ signal, onValue, cache, memCache } = {}) {
+  async listIndexes({ signal, onValue, cache, memCache } = {}) {
     const path = `/api/series/indexes`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
@@ -8227,7 +8227,7 @@ class BitviewClient extends BitviewClientBase {
    * @param {{ signal?: AbortSignal, onValue?: (value: Urpd) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Urpd>}
    */
-  async getUrpd(cohort, agg, weight, { signal, onValue, cache, memCache } = {}) {
+  async getUrpdLatest(cohort, agg, weight, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
     if (agg !== undefined) params.set('agg', String(agg));
     if (weight !== undefined) params.set('weight', String(weight));
@@ -8250,7 +8250,7 @@ class BitviewClient extends BitviewClientBase {
    * @param {{ signal?: AbortSignal, onValue?: (value: Urpd) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Urpd>}
    */
-  async getUrpdAt(cohort, point, agg, weight, { signal, onValue, cache, memCache } = {}) {
+  async getUrpd(cohort, point, agg, weight, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
     if (agg !== undefined) params.set('agg', String(agg));
     if (weight !== undefined) params.set('weight', String(weight));
@@ -8544,7 +8544,7 @@ anything else answers 400, as mempool.space does
    * @param {{ signal?: AbortSignal, onValue?: (value: BlockHash) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<BlockHash>}
    */
-  async getBlockByHeight(height, { signal, onValue, cache, memCache } = {}) {
+  async getBlockHashByHeight(height, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/block-height/${encodeURIComponent(height)}`;
     return this.getText(path, { signal, onValue, cache, memCache });
   }
@@ -8800,7 +8800,7 @@ anything else answers 400, as mempool.space does
    * @param {{ signal?: AbortSignal, onValue?: (value: PoolsSummary) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<PoolsSummary>}
    */
-  async getPoolStats(time_period, { signal, onValue, cache, memCache } = {}) {
+  async getPoolRanking(time_period, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/pools/${encodeURIComponent(time_period)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
@@ -8907,7 +8907,7 @@ anything else answers 400, as mempool.space does
    * @param {{ signal?: AbortSignal, onValue?: (value: BlockInfoV1[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<BlockInfoV1[]>}
    */
-  async getPoolBlocksFrom(slug, height, { signal, onValue, cache, memCache } = {}) {
+  async getPoolBlocksFromHeight(slug, height, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/v1/mining/pool/${encodeURIComponent(slug)}/blocks/${encodeURIComponent(height)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
@@ -9256,7 +9256,7 @@ anything else answers 400, as mempool.space does
    * @param {{ signal?: AbortSignal, onValue?: (value: Txid) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Txid>}
    */
-  async getTxByIndex(index, { signal, onValue, cache, memCache } = {}) {
+  async getTxidByIndex(index, { signal, onValue, cache, memCache } = {}) {
     const path = `/api/tx-index/${encodeURIComponent(index)}`;
     return this.getText(path, { signal, onValue, cache, memCache });
   }
@@ -9447,13 +9447,13 @@ anything else answers 400, as mempool.space does
    *
    * Endpoint: `GET /api/v1/transaction-times`
    *
-   * @param {Txid[]} txId - Transaction IDs to look up (max 100 per request).
+   * @param {Txid[]} txids - Transaction IDs to look up (max 100 per request).
    * @param {{ signal?: AbortSignal, onValue?: (value: Timestamp[]) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Timestamp[]>}
    */
-  async getTransactionTimes(txId, { signal, onValue, cache, memCache } = {}) {
+  async getTransactionTimes(txids, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    for (const _v of txId) params.append('txId[]', String(_v));
+    for (const _v of txids) params.append('txId[]', String(_v));
     const query = params.toString();
     const path = `/api/v1/transaction-times${query ? '?' + query : ''}`;
     return this.getJson(path, { signal, onValue, cache, memCache });

@@ -20,7 +20,7 @@ fn main() -> bitview_client::Result<()> {
     // Use the public API or point the client at a self-hosted Bitview server.
     let client = BitviewClient::new("https://bitview.space");
 
-    let block_hash = client.get_block_by_height(Height::new(800_000))?;
+    let block_hash = client.get_block_hash_by_height(Height::new(800_000))?;
 
     // Typed, chainable series access.
     let prices = client

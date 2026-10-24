@@ -31,7 +31,7 @@ from bitview_client import BitviewClient
 client = BitviewClient("https://bitview.space")
 
 # Mempool.space-compatible blockchain endpoints.
-block_hash = client.get_block_by_height(800000)
+block_hash = client.get_block_hash_by_height(800000)
 tx = client.get_tx(
     "a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d"
 )

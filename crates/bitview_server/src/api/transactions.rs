@@ -40,7 +40,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 Ok(Response::cached_bytes(&headers, &params, "text/plain", || Bytes::from(txid.to_string())))
             },
             |op| op
-                .id("get_tx_by_index")
+                .id("get_txid_by_index")
                 .tag(tags::TRANSACTIONS)
                 .summary("Txid by index")
                 .description("Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.")

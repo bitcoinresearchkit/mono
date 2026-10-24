@@ -128,19 +128,6 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
-        name: "get-block-by-height",
-        method: "GET",
-        path: "/api/block-height/{height}",
-        summary: "Block hash by height",
-        description: "Block hash as plain text.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*",
-        path_parameters: &[
-            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
-        ],
-        query_parameters: &[
-        ],
-        request_body: None,
-    },
-    Command {
         name: "get-block-by-timestamp",
         method: "GET",
         path: "/api/v1/mining/blocks/timestamp/{timestamp}",
@@ -187,6 +174,19 @@ pub static COMMANDS: &[Command] = &[
         description: "Get average total fees per block for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-fees)*",
         path_parameters: &[
             Parameter { api_name: "time_period", name: "time-period", required: true, value_name: "TimePeriod", repeatable: false, description: Some("Lookback period: `24h`, `3d`, `1w`, `1m`, `3m`, `6m`, `1y`, `2y`, `3y`, `4y` or `all`.") },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-block-hash-by-height",
+        method: "GET",
+        path: "/api/block-height/{height}",
+        summary: "Block hash by height",
+        description: "Block hash as plain text.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*",
+        path_parameters: &[
+            Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
@@ -524,18 +524,6 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
-        name: "get-indexes",
-        method: "GET",
-        path: "/api/series/indexes",
-        summary: "List available indexes",
-        description: "Returns every index a series can be read at, by the name series routes take.",
-        path_parameters: &[
-        ],
-        query_parameters: &[
-        ],
-        request_body: None,
-    },
-    Command {
         name: "get-live-price",
         method: "GET",
         path: "/api/oracle/price",
@@ -711,7 +699,7 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
-        name: "get-pool-blocks-from",
+        name: "get-pool-blocks-from-height",
         method: "GET",
         path: "/api/v1/mining/pool/{slug}/blocks/{height}",
         summary: "Mining pool blocks before height",
@@ -738,7 +726,7 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
-        name: "get-pool-stats",
+        name: "get-pool-ranking",
         method: "GET",
         path: "/api/v1/mining/pools/{time_period}",
         summary: "Mining pool statistics",
@@ -1020,19 +1008,6 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
-        name: "get-tx-by-index",
-        method: "GET",
-        path: "/api/tx-index/{index}",
-        summary: "Txid by index",
-        description: "Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.",
-        path_parameters: &[
-            Parameter { api_name: "index", name: "index", required: true, value_name: "TxIndex", repeatable: false, description: Some("Global transaction index across the chain") },
-        ],
-        query_parameters: &[
-        ],
-        request_body: None,
-    },
-    Command {
         name: "get-tx-hex",
         method: "GET",
         path: "/api/tx/{txid}/hex",
@@ -1138,13 +1113,27 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
+        name: "get-txid-by-index",
+        method: "GET",
+        path: "/api/tx-index/{index}",
+        summary: "Txid by index",
+        description: "Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.",
+        path_parameters: &[
+            Parameter { api_name: "index", name: "index", required: true, value_name: "TxIndex", repeatable: false, description: Some("Global transaction index across the chain") },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
         name: "get-urpd",
         method: "GET",
-        path: "/api/urpd/{cohort}",
-        summary: "Latest URPD",
-        description: "URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.",
+        path: "/api/urpd/{cohort}/{point}",
+        summary: "URPD at block height or date",
+        description: "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.",
         path_parameters: &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "UrpdCohort", repeatable: false, description: None },
+            Parameter { api_name: "point", name: "point", required: true, value_name: "HeightOrDate", repeatable: false, description: Some("Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)") },
         ],
         query_parameters: &[
             Parameter { api_name: "agg", name: "agg", required: false, value_name: "UrpdAggregation", repeatable: false, description: Some("Aggregation strategy. Default: raw (no aggregation).") },
@@ -1153,14 +1142,13 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
-        name: "get-urpd-at",
+        name: "get-urpd-latest",
         method: "GET",
-        path: "/api/urpd/{cohort}/{point}",
-        summary: "URPD at block height or date",
-        description: "URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.",
+        path: "/api/urpd/{cohort}",
+        summary: "Latest URPD",
+        description: "URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.",
         path_parameters: &[
             Parameter { api_name: "cohort", name: "cohort", required: true, value_name: "UrpdCohort", repeatable: false, description: None },
-            Parameter { api_name: "point", name: "point", required: true, value_name: "HeightOrDate", repeatable: false, description: Some("Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)") },
         ],
         query_parameters: &[
             Parameter { api_name: "agg", name: "agg", required: false, value_name: "UrpdAggregation", repeatable: false, description: Some("Aggregation strategy. Default: raw (no aggregation).") },
@@ -1212,6 +1200,18 @@ pub static COMMANDS: &[Command] = &[
         path: "/version",
         summary: "API version",
         description: "",
+        path_parameters: &[
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "list-indexes",
+        method: "GET",
+        path: "/api/series/indexes",
+        summary: "List available indexes",
+        description: "Returns every index a series can be read at, by the name series routes take.",
         path_parameters: &[
         ],
         query_parameters: &[

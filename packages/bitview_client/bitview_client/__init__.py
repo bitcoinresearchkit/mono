@@ -5015,7 +5015,7 @@ class BitviewClient(BitviewClientBase):
       "unknown_script_output_index"
     ]
 
-    POOL_ID_TO_POOL_NAME = {
+    POOL_SLUG_TO_NAME = {
       "175btc": "175btc",
       "1hash": "1Hash",
       "1m1x": "1M1X",
@@ -5823,7 +5823,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/series/count`"""
         return self.get_json('/api/series/count')
 
-    def get_indexes(self) -> List[Index]:
+    def list_indexes(self) -> List[Index]:
         """List available indexes.
 
         Returns every index a series can be read at, by the name series routes take.
@@ -5948,7 +5948,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/urpd`"""
         return self.get_json('/api/urpd')
 
-    def get_urpd(self, cohort: UrpdCohort, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
+    def get_urpd_latest(self, cohort: UrpdCohort, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
         """Latest URPD.
 
         URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
@@ -5961,7 +5961,7 @@ class BitviewClient(BitviewClientBase):
         path = f'/api/urpd/{_segment(cohort)}{"?" + query if query else ""}'
         return self.get_json(path)
 
-    def get_urpd_at(self, cohort: UrpdCohort, point: HeightOrDate, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
+    def get_urpd(self, cohort: UrpdCohort, point: HeightOrDate, agg: Optional[UrpdAggregation] = None, weight: Optional[UrpdWeight] = None) -> Urpd:
         """URPD at block height or date.
 
         URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
@@ -6132,7 +6132,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/block/{hash}/header`"""
         return self.get_text(f'/api/block/{_segment(hash)}/header')
 
-    def get_block_by_height(self, height: Height) -> BlockHash:
+    def get_block_hash_by_height(self, height: Height) -> BlockHash:
         """Block hash by height.
 
         Block hash as plain text.
@@ -6276,7 +6276,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/v1/mining/pools`"""
         return self.get_json('/api/v1/mining/pools')
 
-    def get_pool_stats(self, time_period: TimePeriod) -> PoolsSummary:
+    def get_pool_ranking(self, time_period: TimePeriod) -> PoolsSummary:
         """Mining pool statistics.
 
         Get mining pool statistics for a time period.
@@ -6336,7 +6336,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/v1/mining/pool/{slug}/blocks`"""
         return self.get_json(f'/api/v1/mining/pool/{_segment(slug)}/blocks')
 
-    def get_pool_blocks_from(self, slug: PoolSlug, height: Height) -> List[BlockInfoV1]:
+    def get_pool_blocks_from_height(self, slug: PoolSlug, height: Height) -> List[BlockInfoV1]:
         """Mining pool blocks before height.
 
         Get up to 100 blocks mined by a specific pool strictly below the given height (pass the last height of a page to get the next one).
@@ -6538,7 +6538,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/mempool-blocks/{index}/diff/{since}`"""
         return self.get_json(f'/api/mempool-blocks/{_segment(index)}/diff/{_segment(since)}')
 
-    def get_tx_by_index(self, index: TxIndex) -> Txid:
+    def get_txid_by_index(self, index: TxIndex) -> Txid:
         """Txid by index.
 
         Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.
@@ -6642,7 +6642,7 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/tx/{txid}/status`"""
         return self.get_json(f'/api/tx/{_segment(txid)}/status')
 
-    def get_transaction_times(self, txId: List[Txid]) -> List[Timestamp]:
+    def get_transaction_times(self, txids: List[Txid]) -> List[Timestamp]:
         """Transaction first-seen times.
 
         First-seen UNIX timestamps in seconds, in request order, of transactions in the mempool or that recently left it other than by replacement (mined ones included); 0 otherwise.
@@ -6651,7 +6651,7 @@ class BitviewClient(BitviewClientBase):
 
         Endpoint: `GET /api/v1/transaction-times`"""
         params: List[Tuple[str, Any]] = []
-        for _v in txId: params.append(('txId[]', _v))
+        for _v in txids: params.append(('txId[]', _v))
         query = urlencode(params)
         path = f'/api/v1/transaction-times{"?" + query if query else ""}'
         return self.get_json(path)

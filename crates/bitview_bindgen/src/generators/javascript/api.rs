@@ -27,13 +27,13 @@ fn generate_method(output: &mut String, endpoint: &Endpoint, schemas: &TypeSchem
     for param in &endpoint.path_params {
         let desc = format_param_desc(param.description.as_deref());
         let ty = js_type(&param.ty);
-        writeln!(output, "   * @param {{{}}} {}{}", ty, param.name, desc).unwrap();
+        writeln!(output, "   * @param {{{}}} {}{}", ty, param.arg, desc).unwrap();
     }
     for param in &endpoint.query_params {
         let optional = if param.required { "" } else { "=" };
         let desc = format_param_desc(param.description.as_deref());
         let ty = js_type(&param.ty);
-        let ident = sanitize_ident(&param.name);
+        let ident = param.arg.clone();
         let name_decl = if param.required {
             ident
         } else {
@@ -172,7 +172,7 @@ fn write_path_assignment(output: &mut String, endpoint: &Endpoint, path: &str) {
     } else {
         writeln!(output, "    const params = new URLSearchParams();").unwrap();
         for param in &endpoint.query_params {
-            let ident = sanitize_ident(&param.name);
+            let ident = &param.arg;
             if matches!(param.ty, Ty::List(_)) {
                 if param.required {
                     writeln!(
@@ -226,14 +226,9 @@ fn build_method_params(endpoint: &Endpoint) -> String {
         if index != 0 {
             params.push_str(", ");
         }
-        params.push_str(&sanitize_ident(&param.name));
+        params.push_str(&param.arg);
     }
     params
-}
-
-/// Drop `[` and `]` (as in `txId[]`).
-fn sanitize_ident(name: &str) -> String {
-    name.replace(['[', ']'], "")
 }
 
 /// The path as a template literal, each parameter percent-encoded as one segment.
@@ -241,7 +236,7 @@ fn build_path_template(path: &str, path_params: &[Parameter]) -> String {
     let mut result = path.to_string();
     for param in path_params {
         let placeholder = format!("{{{}}}", param.name);
-        let interpolation = format!("${{encodeURIComponent({})}}", param.name);
+        let interpolation = format!("${{encodeURIComponent({})}}", param.arg);
         result = result.replace(&placeholder, &interpolation);
     }
     result

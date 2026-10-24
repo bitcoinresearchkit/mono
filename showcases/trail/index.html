@@ -5636,7 +5636,7 @@
 
           const request = (async () => {
             const client = await clientReady;
-            const data = await client.getUrpdAt(cohort, date, AGGREGATION, weight, {
+            const data = await client.getUrpd(cohort, date, AGGREGATION, weight, {
               signal,
               cache: !refresh,
             });

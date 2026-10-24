@@ -2406,7 +2406,7 @@ impl BitviewClient {
     /// Returns every index a series can be read at, by the name series routes take.
     ///
     /// Endpoint: `GET /api/series/indexes`
-    pub fn get_indexes(&self) -> Result<Vec<Index>> {
+    pub fn list_indexes(&self) -> Result<Vec<Index>> {
         self.base.get_json(&format!("/api/series/indexes"))
     }
 
@@ -2645,7 +2645,7 @@ impl BitviewClient {
     /// URPD for the latest published block; `date` echoes the date served. Fields, units, price-grid rounding and weighting as in `GET /api/urpd/{cohort}/{point}`.
     ///
     /// Endpoint: `GET /api/urpd/{cohort}`
-    pub fn get_urpd(
+    pub fn get_urpd_latest(
         &self,
         cohort: UrpdCohort,
         agg: Option<UrpdAggregation>,
@@ -2672,7 +2672,7 @@ impl BitviewClient {
     /// URPD for a cohort at a block height or the last block of a UTC day. Returns `{ height, hash, date, cohort, weight, aggregation, close, supply, buckets }` where `buckets` is columns, `{ price, supply, realized_cap, unrealized_pnl }`, one entry per bucket in ascending price: the same block header and columnar layout as `GET /api/utxo-set/{point}`. `close`, `price`, `realized_cap`, and `unrealized_pnl` are USD; `supply` is BTC. `unrealized_pnl` can be negative. Bucket `realized_cap` and `unrealized_pnl` value each coin at its creation price on the price grid (four significant digits of the price in cents, within 0.05% of the exact price), rounded to the cent per bucket, so the buckets need not sum to the realized cap series. With a `wakefulness` or `mobility` `weight`, `supply` is the weighted supply (whole satoshis) and the bucket values follow it.
     ///
     /// Endpoint: `GET /api/urpd/{cohort}/{point}`
-    pub fn get_urpd_at(
+    pub fn get_urpd(
         &self,
         cohort: UrpdCohort,
         point: HeightOrDate,
@@ -2966,7 +2966,7 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-height)*
     ///
     /// Endpoint: `GET /api/block-height/{height}`
-    pub fn get_block_by_height(&self, height: Height) -> Result<BlockHash> {
+    pub fn get_block_hash_by_height(&self, height: Height) -> Result<BlockHash> {
         self.base
             .get_text(&format!("/api/block-height/{}", path_segment(height)))
             .and_then(parse_text)
@@ -3152,7 +3152,7 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*
     ///
     /// Endpoint: `GET /api/v1/mining/pools/{time_period}`
-    pub fn get_pool_stats(&self, time_period: TimePeriod) -> Result<PoolsSummary> {
+    pub fn get_pool_ranking(&self, time_period: TimePeriod) -> Result<PoolsSummary> {
         self.base.get_json(&format!(
             "/api/v1/mining/pools/{}",
             path_segment(time_period)
@@ -3235,7 +3235,11 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*
     ///
     /// Endpoint: `GET /api/v1/mining/pool/{slug}/blocks/{height}`
-    pub fn get_pool_blocks_from(&self, slug: PoolSlug, height: Height) -> Result<Vec<BlockInfoV1>> {
+    pub fn get_pool_blocks_from_height(
+        &self,
+        slug: PoolSlug,
+        height: Height,
+    ) -> Result<Vec<BlockInfoV1>> {
         self.base.get_json(&format!(
             "/api/v1/mining/pool/{}/blocks/{}",
             path_segment(slug),
@@ -3500,7 +3504,7 @@ impl BitviewClient {
     /// Retrieve the transaction ID (txid) at a given global transaction index. Returns the txid as plain text.
     ///
     /// Endpoint: `GET /api/tx-index/{index}`
-    pub fn get_tx_by_index(&self, index: TxIndex) -> Result<Txid> {
+    pub fn get_txid_by_index(&self, index: TxIndex) -> Result<Txid> {
         self.base
             .get_text(&format!("/api/tx-index/{}", path_segment(index)))
             .and_then(parse_text)
@@ -3634,9 +3638,9 @@ impl BitviewClient {
     /// *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-times)*
     ///
     /// Endpoint: `GET /api/v1/transaction-times`
-    pub fn get_transaction_times(&self, txId: &[Txid]) -> Result<Vec<Timestamp>> {
+    pub fn get_transaction_times(&self, txids: &[Txid]) -> Result<Vec<Timestamp>> {
         let mut query = Vec::new();
-        for v in txId {
+        for v in txids {
             query.push(query_pair("txId[]", v));
         }
         let query_str = if query.is_empty() {

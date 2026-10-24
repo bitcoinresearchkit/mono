@@ -245,8 +245,10 @@ fn extract_parameters(operation: &Map<String, Value>, location: &str) -> Vec<Par
                 .get("schema")
                 .cloned()
                 .unwrap_or_else(|| json!({ "type": "string" }));
+            let name = text(param, "name").unwrap_or_default();
             Parameter {
-                name: text(param, "name").unwrap_or_default(),
+                arg: text(param, "x-arg-name").unwrap_or_else(|| name.replace(['[', ']'], "")),
+                name,
                 required: flag(param, "required"),
                 ty: Ty::parse(&schema),
                 description: text(param, "description"),

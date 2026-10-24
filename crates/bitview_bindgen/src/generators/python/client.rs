@@ -12,7 +12,7 @@ pub(crate) fn generate_class_constants(output: &mut String) {
     write_class_const(output, "INDEXES", &format_json(&constants.indexes));
     write_class_const(
         output,
-        "POOL_ID_TO_POOL_NAME",
+        "POOL_SLUG_TO_NAME",
         &format_json(&constants.pool_map),
     );
 

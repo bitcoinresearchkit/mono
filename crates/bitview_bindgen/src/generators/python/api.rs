@@ -205,7 +205,7 @@ fn generate_api_methods(output: &mut String, endpoints: &[Endpoint]) {
             writeln!(output, "        params: List[Tuple[str, Any]] = []").unwrap();
             for param in &endpoint.query_params {
                 // Use safe name for Python variable, original name for API query parameter
-                let safe_name = escape_python_keyword(&param.name);
+                let safe_name = escape_python_keyword(&param.arg);
                 if matches!(param.ty, Ty::List(_)) {
                     writeln!(
                         output,
@@ -257,21 +257,21 @@ fn build_method_params(endpoint: &Endpoint) -> String {
     let mut params = String::new();
     // Path params are always required
     for param in &endpoint.path_params {
-        let safe_name = escape_python_keyword(&param.name);
+        let safe_name = escape_python_keyword(&param.arg);
         let py_type = api_type(&param.ty);
         write!(params, ", {}: {}", safe_name, py_type).unwrap();
     }
     // Required query params must come before optional ones (Python syntax requirement)
     for param in &endpoint.query_params {
         if param.required {
-            let safe_name = escape_python_keyword(&param.name);
+            let safe_name = escape_python_keyword(&param.arg);
             let py_type = api_type(&param.ty);
             write!(params, ", {}: {}", safe_name, py_type).unwrap();
         }
     }
     for param in &endpoint.query_params {
         if !param.required {
-            let safe_name = escape_python_keyword(&param.name);
+            let safe_name = escape_python_keyword(&param.arg);
             let py_type = api_type(&param.ty);
             write!(params, ", {}: Optional[{}] = None", safe_name, py_type).unwrap();
         }
@@ -292,7 +292,7 @@ fn build_path_template(path: &str, path_params: &[Parameter]) -> String {
     let mut result = path.to_string();
     for param in path_params {
         let placeholder = format!("{{{}}}", param.name);
-        let safe_name = escape_python_keyword(&param.name);
+        let safe_name = escape_python_keyword(&param.arg);
         let interpolation = format!("{{_segment({})}}", safe_name);
         result = result.replace(&placeholder, &interpolation);
     }

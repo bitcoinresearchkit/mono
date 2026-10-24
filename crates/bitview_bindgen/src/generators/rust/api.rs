@@ -193,7 +193,7 @@ fn write_method_doc(output: &mut String, endpoint: &Endpoint) {
 fn write_query_assembly(output: &mut String, endpoint: &Endpoint, path: &str, path_args: &str) {
     writeln!(output, "        let mut query = Vec::new();").unwrap();
     for param in &endpoint.query_params {
-        let ident = sanitize_ident(&param.name);
+        let ident = &param.arg;
         let name = &param.name;
         let (list, item) = match &param.ty {
             Ty::List(item) => (true, &**item),
@@ -215,7 +215,7 @@ fn write_query_assembly(output: &mut String, endpoint: &Endpoint, path: &str, pa
             )
             .unwrap();
         } else if param.required {
-            let v = value(&ident);
+            let v = value(ident);
             writeln!(output, "        query.push(query_pair(\"{name}\", {v}));").unwrap();
         } else {
             let v = value("v");
@@ -239,11 +239,11 @@ fn build_method_params(endpoint: &Endpoint) -> String {
     let mut params = String::new();
     for param in &endpoint.path_params {
         let rust_type = rust_param_type(&param.ty);
-        write!(params, ", {}: {}", sanitize_ident(&param.name), rust_type).unwrap();
+        write!(params, ", {}: {}", param.arg, rust_type).unwrap();
     }
     for param in &endpoint.query_params {
         let rust_type = rust_param_type(&param.ty);
-        let name = sanitize_ident(&param.name);
+        let name = &param.arg;
         if param.required {
             write!(params, ", {}: {}", name, rust_type).unwrap();
         } else {
@@ -251,11 +251,6 @@ fn build_method_params(endpoint: &Endpoint) -> String {
         }
     }
     params
-}
-
-/// Drop `[` and `]` (as in `txId[]`).
-fn sanitize_ident(name: &str) -> String {
-    name.replace(['[', ']'], "")
 }
 
 /// The path as a format template (`{}` per path parameter) and its format args, in path order:
@@ -272,7 +267,7 @@ fn build_path_template(endpoint: &Endpoint) -> (String, String) {
             .iter()
             .find(|param| param.name == name)
             .expect("undeclared path parameter");
-        let ident = sanitize_ident(name);
+        let ident = &param.arg;
         if param.ty.is_ref("Index") {
             write!(args, ", {ident}.name()").unwrap();
         } else {

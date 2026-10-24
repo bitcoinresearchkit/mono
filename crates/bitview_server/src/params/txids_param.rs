@@ -69,7 +69,14 @@ where
 impl OperationInput for TxidsParam {
     fn operation_input(ctx: &mut GenContext, operation: &mut Operation) {
         let schema = ctx.schema.subschema_for::<Self>();
-        let params = parameters_from_schema(ctx, schema, ParamLocation::Query);
+        let mut params = parameters_from_schema(ctx, schema, ParamLocation::Query);
+        // The wire keeps mempool.space's `txId[]`; client code calls the argument `txids`.
+        for param in &mut params {
+            param
+                .parameter_data_mut()
+                .extensions
+                .insert("x-arg-name".to_owned(), "txids".into());
+        }
         add_parameters(ctx, operation, params);
     }
 }

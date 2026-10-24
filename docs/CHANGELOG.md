@@ -693,6 +693,12 @@ has to be deleted by hand.
   JSON parse on the 9.3 MB projected block: 18.4 ms, now 4.2 ms). Map keys are data and stay as sent with
   everything under them: the catalog tree (`getSeriesTree`) and `getSeriesCount`'s `by_db` keys (`op_return`, ...);
   the generator finds the maps in each response's schema and refuses a snake_case struct under one
+- Methods and MCP tools named after what they return: `get_block_hash_by_height` (was `get_block_by_height`),
+  `get_txid_by_index` (was `get_tx_by_index`), `get_pool_ranking` (was `get_pool_stats`),
+  `get_pool_blocks_from_height` (was `get_pool_blocks_from`) and `list_indexes` (was `get_indexes`). The latest URPD is
+  `get_urpd_latest` (was `get_urpd`) and the one at a height or date `get_urpd` (was `get_urpd_at`). The pool-name
+  constant is `POOL_SLUG_TO_NAME` (was `POOL_ID_TO_POOL_NAME`), and `get_transaction_times` takes `txids` (was
+  `txId`), still sent as mempool.space's `txId[]`
 - Generated all three series trees from one composition model. Typed series paths follow the series tree (see "One unit
   per quantity": `client.series().price.close.by.day1()`), and type names change: each repeated structure is one generic
   type named after the type that defines it (`Pool` for every pool, `Flow<A>`, `Share`, `Windows<A>`, `Band`,

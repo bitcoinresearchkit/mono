@@ -485,7 +485,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     state.respond_block_height(headers, path.height).await
                 },
                 |op| {
-                    op.id("get_block_by_height")
+                    op.id("get_block_hash_by_height")
                         .tag(tags::BLOCKS)
                         .summary("Block hash by height")
                         .description(

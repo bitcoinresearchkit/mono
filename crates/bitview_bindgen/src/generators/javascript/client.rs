@@ -56,7 +56,7 @@ pub(crate) fn generate_constants(output: &mut String) {
     write_const(output, "INDEXES", &format_json(&constants.indexes));
     write_const(
         output,
-        "POOL_ID_TO_POOL_NAME",
+        "POOL_SLUG_TO_NAME",
         &format_json(&constants.pool_map),
     );
     for (name, value) in name_constants() {

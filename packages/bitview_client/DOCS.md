@@ -9,7 +9,7 @@
   * [BitviewClient](#bitview_client.BitviewClient)
     * [VERSION](#bitview_client.BitviewClient.VERSION)
     * [INDEXES](#bitview_client.BitviewClient.INDEXES)
-    * [POOL\_ID\_TO\_POOL\_NAME](#bitview_client.BitviewClient.POOL_ID_TO_POOL_NAME)
+    * [POOL\_SLUG\_TO\_NAME](#bitview_client.BitviewClient.POOL_SLUG_TO_NAME)
     * [TERM\_NAMES](#bitview_client.BitviewClient.TERM_NAMES)
     * [HALVING\_EPOCH\_NAMES](#bitview_client.BitviewClient.HALVING_EPOCH_NAMES)
     * [VINTAGE\_NAMES](#bitview_client.BitviewClient.VINTAGE_NAMES)
@@ -32,7 +32,7 @@
     * [get\_disk\_usage](#bitview_client.BitviewClient.get_disk_usage)
     * [get\_series\_tree](#bitview_client.BitviewClient.get_series_tree)
     * [get\_series\_count](#bitview_client.BitviewClient.get_series_count)
-    * [get\_indexes](#bitview_client.BitviewClient.get_indexes)
+    * [list\_indexes](#bitview_client.BitviewClient.list_indexes)
     * [list\_series](#bitview_client.BitviewClient.list_series)
     * [search\_series](#bitview_client.BitviewClient.search_series)
     * [get\_series\_info](#bitview_client.BitviewClient.get_series_info)
@@ -43,8 +43,8 @@
     * [get\_series\_version](#bitview_client.BitviewClient.get_series_version)
     * [get\_series\_bulk](#bitview_client.BitviewClient.get_series_bulk)
     * [list\_urpd\_cohorts](#bitview_client.BitviewClient.list_urpd_cohorts)
+    * [get\_urpd\_latest](#bitview_client.BitviewClient.get_urpd_latest)
     * [get\_urpd](#bitview_client.BitviewClient.get_urpd)
-    * [get\_urpd\_at](#bitview_client.BitviewClient.get_urpd_at)
     * [get\_difficulty\_adjustment](#bitview_client.BitviewClient.get_difficulty_adjustment)
     * [get\_prices](#bitview_client.BitviewClient.get_prices)
     * [get\_historical\_price](#bitview_client.BitviewClient.get_historical_price)
@@ -59,7 +59,7 @@
     * [get\_block](#bitview_client.BitviewClient.get_block)
     * [get\_block\_v1](#bitview_client.BitviewClient.get_block_v1)
     * [get\_block\_header](#bitview_client.BitviewClient.get_block_header)
-    * [get\_block\_by\_height](#bitview_client.BitviewClient.get_block_by_height)
+    * [get\_block\_hash\_by\_height](#bitview_client.BitviewClient.get_block_hash_by_height)
     * [get\_block\_by\_timestamp](#bitview_client.BitviewClient.get_block_by_timestamp)
     * [get\_block\_raw](#bitview_client.BitviewClient.get_block_raw)
     * [get\_block\_status](#bitview_client.BitviewClient.get_block_status)
@@ -74,13 +74,13 @@
     * [get\_blocks\_v1](#bitview_client.BitviewClient.get_blocks_v1)
     * [get\_blocks\_v1\_from\_height](#bitview_client.BitviewClient.get_blocks_v1_from_height)
     * [get\_pools](#bitview_client.BitviewClient.get_pools)
-    * [get\_pool\_stats](#bitview_client.BitviewClient.get_pool_stats)
+    * [get\_pool\_ranking](#bitview_client.BitviewClient.get_pool_ranking)
     * [get\_pool](#bitview_client.BitviewClient.get_pool)
     * [get\_pools\_hashrate](#bitview_client.BitviewClient.get_pools_hashrate)
     * [get\_pools\_hashrate\_by\_period](#bitview_client.BitviewClient.get_pools_hashrate_by_period)
     * [get\_pool\_hashrate](#bitview_client.BitviewClient.get_pool_hashrate)
     * [get\_pool\_blocks](#bitview_client.BitviewClient.get_pool_blocks)
-    * [get\_pool\_blocks\_from](#bitview_client.BitviewClient.get_pool_blocks_from)
+    * [get\_pool\_blocks\_from\_height](#bitview_client.BitviewClient.get_pool_blocks_from_height)
     * [get\_hashrate](#bitview_client.BitviewClient.get_hashrate)
     * [get\_hashrate\_by\_period](#bitview_client.BitviewClient.get_hashrate_by_period)
     * [get\_difficulty\_adjustments](#bitview_client.BitviewClient.get_difficulty_adjustments)
@@ -89,20 +89,19 @@
     * [get\_block\_fees](#bitview_client.BitviewClient.get_block_fees)
     * [get\_block\_rewards](#bitview_client.BitviewClient.get_block_rewards)
     * [get\_block\_fee\_rates](#bitview_client.BitviewClient.get_block_fee_rates)
+    * [get\_block\_fee\_rates\_precise](#bitview_client.BitviewClient.get_block_fee_rates_precise)
     * [get\_block\_sizes\_weights](#bitview_client.BitviewClient.get_block_sizes_weights)
     * [get\_mempool\_blocks](#bitview_client.BitviewClient.get_mempool_blocks)
     * [get\_recommended\_fees](#bitview_client.BitviewClient.get_recommended_fees)
     * [get\_precise\_fees](#bitview_client.BitviewClient.get_precise_fees)
     * [get\_mempool](#bitview_client.BitviewClient.get_mempool)
-    * [get\_mempool\_hash](#bitview_client.BitviewClient.get_mempool_hash)
     * [get\_mempool\_txids](#bitview_client.BitviewClient.get_mempool_txids)
     * [get\_mempool\_recent](#bitview_client.BitviewClient.get_mempool_recent)
     * [get\_replacements](#bitview_client.BitviewClient.get_replacements)
     * [get\_fullrbf\_replacements](#bitview_client.BitviewClient.get_fullrbf_replacements)
-    * [get\_block\_template](#bitview_client.BitviewClient.get_block_template)
-    * [get\_block\_template\_diff](#bitview_client.BitviewClient.get_block_template_diff)
-    * [get\_live\_price](#bitview_client.BitviewClient.get_live_price)
-    * [get\_tx\_by\_index](#bitview_client.BitviewClient.get_tx_by_index)
+    * [get\_mempool\_block](#bitview_client.BitviewClient.get_mempool_block)
+    * [get\_mempool\_block\_diff](#bitview_client.BitviewClient.get_mempool_block_diff)
+    * [get\_txid\_by\_index](#bitview_client.BitviewClient.get_txid_by_index)
     * [get\_cpfp](#bitview_client.BitviewClient.get_cpfp)
     * [get\_tx\_rbf](#bitview_client.BitviewClient.get_tx_rbf)
     * [get\_tx](#bitview_client.BitviewClient.get_tx)
@@ -118,7 +117,7 @@
     * [get\_utxo\_set\_latest](#bitview_client.BitviewClient.get_utxo_set_latest)
     * [get\_utxo\_set](#bitview_client.BitviewClient.get_utxo_set)
     * [get\_utxo\_set\_diff](#bitview_client.BitviewClient.get_utxo_set_diff)
-    * [get\_oracle\_price](#bitview_client.BitviewClient.get_oracle_price)
+    * [get\_live\_price](#bitview_client.BitviewClient.get_live_price)
     * [get\_oracle\_histogram\_payments\_live](#bitview_client.BitviewClient.get_oracle_histogram_payments_live)
     * [get\_oracle\_histogram\_payments](#bitview_client.BitviewClient.get_oracle_histogram_payments)
     * [get\_oracle\_histogram\_outputs\_live](#bitview_client.BitviewClient.get_oracle_histogram_outputs_live)
@@ -211,9 +210,9 @@ A method per API endpoint, and the typed series tree.
 
 #### INDEXES
 
-<a id="bitview_client.BitviewClient.POOL_ID_TO_POOL_NAME"></a>
+<a id="bitview_client.BitviewClient.POOL_SLUG_TO_NAME"></a>
 
-#### POOL\_ID\_TO\_POOL\_NAME
+#### POOL\_SLUG\_TO\_NAME
 
 <a id="bitview_client.BitviewClient.TERM_NAMES"></a>
 
@@ -406,17 +405,17 @@ Returns the number of series available per index type.
 
 Endpoint: `GET /api/series/count`
 
-<a id="bitview_client.BitviewClient.get_indexes"></a>
+<a id="bitview_client.BitviewClient.list_indexes"></a>
 
-#### get\_indexes
+#### list\_indexes
 
 ```python
-def get_indexes() -> List[IndexInfo]
+def list_indexes() -> List[Index]
 ```
 
 List available indexes.
 
-Returns all available indexes with their accepted REST query aliases. REST series queries accept any alias; MCP tools take the canonical `index` name only.
+Returns every index a series can be read at, by the name series routes take.
 
 Endpoint: `GET /api/series/indexes`
 
@@ -575,14 +574,14 @@ Every URPD cohort once a UTXO set is published (none before): the age aggregates
 
 Endpoint: `GET /api/urpd`
 
-<a id="bitview_client.BitviewClient.get_urpd"></a>
+<a id="bitview_client.BitviewClient.get_urpd_latest"></a>
 
-#### get\_urpd
+#### get\_urpd\_latest
 
 ```python
-def get_urpd(cohort: UrpdCohort,
-             agg: Optional[UrpdAggregation] = None,
-             weight: Optional[UrpdWeight] = None) -> Urpd
+def get_urpd_latest(cohort: UrpdCohort,
+                    agg: Optional[UrpdAggregation] = None,
+                    weight: Optional[UrpdWeight] = None) -> Urpd
 ```
 
 Latest URPD.
@@ -591,15 +590,15 @@ URPD for the latest published block; `date` echoes the date served. Fields, unit
 
 Endpoint: `GET /api/urpd/{cohort}`
 
-<a id="bitview_client.BitviewClient.get_urpd_at"></a>
+<a id="bitview_client.BitviewClient.get_urpd"></a>
 
-#### get\_urpd\_at
+#### get\_urpd
 
 ```python
-def get_urpd_at(cohort: UrpdCohort,
-                point: HeightOrDate,
-                agg: Optional[UrpdAggregation] = None,
-                weight: Optional[UrpdWeight] = None) -> Urpd
+def get_urpd(cohort: UrpdCohort,
+             point: HeightOrDate,
+             agg: Optional[UrpdAggregation] = None,
+             weight: Optional[UrpdWeight] = None) -> Urpd
 ```
 
 URPD at block height or date.
@@ -652,7 +651,7 @@ def get_historical_price(
 
 Historical price.
 
-Completed four-hour BTC/USD closes, oldest first, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
+Completed four-hour BTC/USD closes, newest first as mempool.space lists them, labeled by interval end, from the first priced interval (2010-08-16). With a UNIX timestamp, returns the latest nonempty completed close at or before it; before the first close returns an empty list. The current partial interval is excluded. USD only (`currency` accepts `USD`); exchangeRates is empty.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-historical-price)*
 
@@ -694,12 +693,14 @@ Endpoint: `GET /api/address/{address}`
 #### get\_address\_txs
 
 ```python
-def get_address_txs(address: Address) -> List[Transaction]
+def get_address_txs(address: Address,
+                    after_txid: Optional[Txid] = None,
+                    max_txs: Optional[int] = None) -> List[Transaction]
 ```
 
 Address transactions.
 
-Get transaction history for an address, newest first. Returns up to 50 mempool transactions plus a confirmed page sized to fill the response to 50 total (chain floor of 25, so 25-50 confirmed depending on mempool weight). To paginate further confirmed history, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.
+Get transaction history for an address, newest first: up to `max_txs` (50 by default and at most), mempool transactions first and confirmed ones filling the rest. To continue, pass the last returned txid as `after_txid`, or request `GET /api/address/{address}/txs/chain/{after_txid}` for confirmed history.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions)*
 
@@ -710,12 +711,14 @@ Endpoint: `GET /api/address/{address}/txs`
 #### get\_address\_confirmed\_txs
 
 ```python
-def get_address_confirmed_txs(address: Address) -> List[Transaction]
+def get_address_confirmed_txs(address: Address,
+                              max_txs: Optional[int] = None
+                              ) -> List[Transaction]
 ```
 
 Address confirmed transactions.
 
-Get the first 25 confirmed transactions for an address. For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.
+Get the newest confirmed transactions for an address, up to `max_txs` (25 by default and at most). For pagination, request `GET /api/address/{address}/txs/chain/{after_txid}` with the last returned txid.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
 
@@ -726,13 +729,15 @@ Endpoint: `GET /api/address/{address}/txs/chain`
 #### get\_address\_confirmed\_txs\_after
 
 ```python
-def get_address_confirmed_txs_after(address: Address,
-                                    after_txid: Txid) -> List[Transaction]
+def get_address_confirmed_txs_after(
+        address: Address,
+        after_txid: Txid,
+        max_txs: Optional[int] = None) -> List[Transaction]
 ```
 
 Address confirmed transactions (paginated).
 
-Get the next 25 confirmed transactions strictly older than `after_txid` (Esplora-canonical pagination form, matches mempool.space).
+Get the next confirmed transactions strictly older than `after_txid`, up to `max_txs` (25 by default and at most); a txid outside the address's history answers `[]` (Esplora-canonical pagination form, matches mempool.space).
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-chain)*
 
@@ -743,12 +748,14 @@ Endpoint: `GET /api/address/{address}/txs/chain/{after_txid}`
 #### get\_address\_mempool\_txs
 
 ```python
-def get_address_mempool_txs(address: Address) -> List[Transaction]
+def get_address_mempool_txs(address: Address,
+                            max_txs: Optional[int] = None
+                            ) -> List[Transaction]
 ```
 
 Address mempool transactions.
 
-Get unconfirmed transactions for an address from the mempool, newest first (up to 50).
+Get unconfirmed transactions for an address from the mempool, newest first, up to `max_txs` (50 by default and at most).
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-transactions-mempool)*
 
@@ -780,7 +787,7 @@ def validate_address(address: str) -> AddressValidation
 
 Validate address.
 
-Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses.
+Validate a Bitcoin address and get information about its type and scriptPubKey. Returns `isvalid: false` with an error message for invalid addresses; a string that isn't 2 to 130 letters and digits answers 400.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-address-validate)*
 
@@ -832,12 +839,12 @@ Returns the hex-encoded 80-byte block header.
 
 Endpoint: `GET /api/block/{hash}/header`
 
-<a id="bitview_client.BitviewClient.get_block_by_height"></a>
+<a id="bitview_client.BitviewClient.get_block_hash_by_height"></a>
 
-#### get\_block\_by\_height
+#### get\_block\_hash\_by\_height
 
 ```python
-def get_block_by_height(height: Height) -> BlockHash
+def get_block_hash_by_height(height: Height) -> BlockHash
 ```
 
 Block hash by height.
@@ -983,7 +990,7 @@ def get_block_txs_from_index(hash: BlockHash,
 
 Block transactions (paginated).
 
-Up to 25 transactions starting at `start_index`.
+Up to 25 transactions starting at `start_index`, a multiple of 25.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-transactions)*
 
@@ -1067,12 +1074,12 @@ List all mining pools.
 
 Endpoint: `GET /api/v1/mining/pools`
 
-<a id="bitview_client.BitviewClient.get_pool_stats"></a>
+<a id="bitview_client.BitviewClient.get_pool_ranking"></a>
 
-#### get\_pool\_stats
+#### get\_pool\_ranking
 
 ```python
-def get_pool_stats(time_period: TimePeriod) -> PoolsSummary
+def get_pool_ranking(time_period: TimePeriod) -> PoolsSummary
 ```
 
 Mining pool statistics.
@@ -1109,6 +1116,8 @@ def get_pools_hashrate() -> List[PoolHashrateEntry]
 
 All pools hashrate (all time).
 
+Get weekly hashrate data, over the whole chain, of the mining pools that mined in the last week, by time and then their weekly rank.
+
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
 
 Endpoint: `GET /api/v1/mining/hashrate/pools`
@@ -1124,7 +1133,7 @@ def get_pools_hashrate_by_period(
 
 All pools hashrate.
 
-Get hashrate data for all mining pools for a time period.
+Get weekly hashrate data, for a time period, of the mining pools that mined in the last week, by time and then their weekly rank.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-hashrates)*
 
@@ -1162,12 +1171,13 @@ Get up to 100 recent blocks mined by a specific pool.
 
 Endpoint: `GET /api/v1/mining/pool/{slug}/blocks`
 
-<a id="bitview_client.BitviewClient.get_pool_blocks_from"></a>
+<a id="bitview_client.BitviewClient.get_pool_blocks_from_height"></a>
 
-#### get\_pool\_blocks\_from
+#### get\_pool\_blocks\_from\_height
 
 ```python
-def get_pool_blocks_from(slug: PoolSlug, height: Height) -> List[BlockInfoV1]
+def get_pool_blocks_from_height(slug: PoolSlug,
+                                height: Height) -> List[BlockInfoV1]
 ```
 
 Mining pool blocks before height.
@@ -1299,11 +1309,28 @@ def get_block_fee_rates(time_period: TimePeriod) -> List[BlockFeeRatesEntry]
 
 Block fee rates.
 
-Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period.
+Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each a whole sat/vB (`/precise` for 3 decimals).
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
 
 Endpoint: `GET /api/v1/mining/blocks/fee-rates/{time_period}`
+
+<a id="bitview_client.BitviewClient.get_block_fee_rates_precise"></a>
+
+#### get\_block\_fee\_rates\_precise
+
+```python
+def get_block_fee_rates_precise(
+        time_period: TimePeriod) -> List[BlockFeeRatesPreciseEntry]
+```
+
+Block fee rates (precise).
+
+Get block fee rate percentiles (min, 10th, 25th, median, 75th, 90th, max) for a time period, each in sat/vB to 3 decimals.
+
+*[Mempool.space docs](https://mempool.space/docs/api/rest#get-block-feerates)*
+
+Endpoint: `GET /api/v1/mining/blocks/fee-rates/{time_period}/precise`
 
 <a id="bitview_client.BitviewClient.get_block_sizes_weights"></a>
 
@@ -1383,20 +1410,6 @@ Mempool statistics.
 
 Endpoint: `GET /api/mempool`
 
-<a id="bitview_client.BitviewClient.get_mempool_hash"></a>
-
-#### get\_mempool\_hash
-
-```python
-def get_mempool_hash() -> NextBlockHash
-```
-
-Mempool content hash.
-
-Returns an opaque content token for the published projected next block, including statistics and transaction bodies. This is not the HTTP ETag. An unchanged token means unchanged content, not necessarily a stalled sync loop.
-
-Endpoint: `GET /api/mempool/hash`
-
 <a id="bitview_client.BitviewClient.get_mempool_txids"></a>
 
 #### get\_mempool\_txids
@@ -1461,54 +1474,41 @@ Same response shape as `GET /api/v1/replacements`, but limited to trees where at
 
 Endpoint: `GET /api/v1/fullrbf/replacements`
 
-<a id="bitview_client.BitviewClient.get_block_template"></a>
+<a id="bitview_client.BitviewClient.get_mempool_block"></a>
 
-#### get\_block\_template
+#### get\_mempool\_block
 
 ```python
-def get_block_template() -> BlockTemplate
+def get_mempool_block(index: MempoolBlockIndex) -> MempoolBlockContent
 ```
 
-Projected next block template.
+Projected mempool block.
 
-Bitcoin Core's `getblocktemplate` selection: full transaction bodies in GBT order with aggregate stats. The returned `hash` is an opaque content token; pass it to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas instead of refetching the whole template.
+A projected mempool block with its transactions in order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection, and the only one served for now (others answer 404). The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
 
-Endpoint: `GET /api/v1/mempool/block-template`
+Endpoint: `GET /api/mempool-blocks/{index}`
 
-<a id="bitview_client.BitviewClient.get_block_template_diff"></a>
+<a id="bitview_client.BitviewClient.get_mempool_block_diff"></a>
 
-#### get\_block\_template\_diff
+#### get\_mempool\_block\_diff
 
 ```python
-def get_block_template_diff(hash: NextBlockHash) -> BlockTemplateDiff
+def get_mempool_block_diff(index: MempoolBlockIndex,
+                           since: MempoolBlockHash) -> MempoolBlockDiff
 ```
 
-Block template diff since hash.
+Projected mempool block changes.
 
-Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild and replace the cached `stats` with the response's; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.
+The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction object, a body to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict cached bodies. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.
 
-Endpoint: `GET /api/v1/mempool/block-template/diff/{hash}`
+Endpoint: `GET /api/mempool-blocks/{index}/diff/{since}`
 
-<a id="bitview_client.BitviewClient.get_live_price"></a>
+<a id="bitview_client.BitviewClient.get_txid_by_index"></a>
 
-#### get\_live\_price
-
-```python
-def get_live_price() -> Dollars
-```
-
-Live BTC/USD price.
-
-Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available.
-
-Endpoint: `GET /api/mempool/price`
-
-<a id="bitview_client.BitviewClient.get_tx_by_index"></a>
-
-#### get\_tx\_by\_index
+#### get\_txid\_by\_index
 
 ```python
-def get_tx_by_index(index: TxIndex) -> Txid
+def get_txid_by_index(index: TxIndex) -> Txid
 ```
 
 Txid by index.
@@ -1522,12 +1522,12 @@ Endpoint: `GET /api/tx-index/{index}`
 #### get\_cpfp
 
 ```python
-def get_cpfp(txid: Txid) -> CpfpInfo
+def get_cpfp(txid: Txid) -> Cpfp
 ```
 
 CPFP info.
 
-Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package.
+Returns ancestors and descendants for a CPFP (Child Pays For Parent) transaction, including the effective fee rate of the package. A mempool transaction answers its live package; a confirmed one its package among its block's transactions; an unknown transaction, or a confirmed one without relatives in its block, `{"ancestors":[]}`.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-children-pay-for-parent)*
 
@@ -1619,7 +1619,7 @@ def get_tx_outspend(txid: Txid, vout: Vout) -> TxOutspend
 
 Output spend status.
 
-Whether the output has been spent and, if so, the spending transaction details.
+Whether the output has been spent and, if so, the spending transaction details. An output no known transaction holds is unspent.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-outspend)*
 
@@ -1667,7 +1667,7 @@ def get_tx_status(txid: Txid) -> TxStatus
 
 Transaction status.
 
-Retrieve the confirmation status of a transaction. Returns whether the transaction is confirmed and, if so, the block height, hash, and timestamp.
+Retrieve the confirmation status of a transaction. Returns whether the transaction is confirmed and, if so, the block height, hash, and timestamp. A transaction not in the chain, pending or unknown, is `{"confirmed":false}`.
 
 *[Mempool.space docs](https://mempool.space/docs/api/rest#get-transaction-status)*
 
@@ -1678,7 +1678,7 @@ Endpoint: `GET /api/tx/{txid}/status`
 #### get\_transaction\_times
 
 ```python
-def get_transaction_times(txId: List[Txid]) -> List[Timestamp]
+def get_transaction_times(txids: List[Txid]) -> List[Timestamp]
 ```
 
 Transaction first-seen times.
@@ -1747,17 +1747,17 @@ What a block (`840000`) or a UTC day's published blocks (`YYYY-MM-DD`) changed i
 
 Endpoint: `GET /api/utxo-set/{point}/diff`
 
-<a id="bitview_client.BitviewClient.get_oracle_price"></a>
+<a id="bitview_client.BitviewClient.get_live_price"></a>
 
-#### get\_oracle\_price
+#### get\_live\_price
 
 ```python
-def get_oracle_price() -> Dollars
+def get_live_price() -> Dollars
 ```
 
 Live BTC/USD price.
 
-Current BTC/USD price in dollars. Same value as `GET /api/mempool/price`. Confirmed per-height history is available at `GET /api/series/price/height`.
+Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available. Confirmed per-height history is available at `GET /api/series/price/height`.
 
 Endpoint: `GET /api/oracle/price`
 

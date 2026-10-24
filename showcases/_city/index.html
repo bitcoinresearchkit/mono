@@ -2936,7 +2936,7 @@
       function loadTx(/** @type {Parcel} */ parcel) {
         void (async () => {
           const client = await clientReady;
-          const txid = parcel.txid ?? (await client.getTxByIndex(parcel.g));
+          const txid = parcel.txid ?? (await client.getTxidByIndex(parcel.g));
           const tx = parcel.tx ?? (await client.getTx(txid));
           Object.assign(parcel, { txid, tx }, layTx(tx));
           if (txTable.item === parcel) opening(sim);

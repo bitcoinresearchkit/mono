@@ -88,7 +88,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 state.respond_json_content(&headers, move |q| q.mining_pools(time_period)).await
             },
             |op| {
-                op.id("get_pool_stats")
+                op.id("get_pool_ranking")
                     .tag(tags::MINING)
                     .summary("Mining pool statistics")
                     .description("Get mining pool statistics for a time period.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pools)*")
@@ -188,7 +188,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 serve_pool_blocks(state, headers, slug, Some(height)).await
             },
             |op| {
-                op.id("get_pool_blocks_from")
+                op.id("get_pool_blocks_from_height")
                     .tag(tags::MINING)
                     .summary("Mining pool blocks before height")
                     .description("Get up to 100 blocks mined by a specific pool strictly below the given height (pass the last height of a page to get the next one).\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mining-pool-blocks)*")
