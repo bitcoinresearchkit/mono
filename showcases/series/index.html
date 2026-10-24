@@ -1536,10 +1536,11 @@
       // ── Its history, drawn: a line (its close, for candles), hover or touch to read a point ──
       /** @type {{ xs: number[], ys: number[], index: string, type: string, start: number, total: number, log: boolean, from: number } | null} */
       let plot = null;
-      /** How far back a daily or weekly history shows: a year, four, or all of it (coarser ones show all). */
-      const RANGES = /** @type {[string, string, number][]} */ ([["1y", "Past year", 365], ["4y", "Past 4 years", 1461], ["all", "All", 0]]);
+      /** How far back a daily or weekly history shows, as Studio's ranges have it: 3 months, a year, 4 or 8 years, or all of
+       * it (coarser ones show all); 8 years first, two cycles, as Studio opens. */
+      const RANGES = /** @type {[string, string, number][]} */ ([["3m", "3M", 91], ["1y", "1Y", 365], ["4y", "4Y", 1461], ["8y", "8Y", 2922], ["max", "Max", 0]]);
       const ranged = (/** @type {string} */ index) => ["day1", "day3", "week1"].includes(index);
-      let range = "all";
+      let range = "8y";
       function drawSeries(/** @type {any} */ answer, /** @type {string} */ index) {
         const values = /** @type {any[]} */ (answer.data).map((v) => (Array.isArray(v) ? v[3] : v));
         const numeric = values.some((v) => typeof v === "number");
@@ -1563,10 +1564,10 @@
           $("view").innerHTML = `<div class="message">Nothing yet.</div>`;
           return;
         }
-        // (A log scale skips what's zero or below, as Studio's does; it's the first one when the rest spans 100-fold.)
-        const above = ys.filter((y) => y > 0), loggable = above.length > 1 && ys.every((y) => y >= 0);
-        const spread = loggable ? Math.log10(Math.max(...above) / Math.min(...above)) : 0;
-        plot = { xs, ys, index, type: answer.type, start: answer.start, total: answer.end, log: loggable && spread > 2, from: 0 };
+        // (Linear first, the values as they are; a log scale, on asking, where none is below zero: it skips what's zero, as
+        // Studio's does.)
+        const loggable = ys.filter((y) => y > 0).length > 1 && ys.every((y) => y >= 0);
+        plot = { xs, ys, index, type: answer.type, start: answer.start, total: answer.end, log: false, from: 0 };
         // (Under the plot: how far back, for a daily or weekly history; else how much of a long one is drawn.)
         const under = ranged(index)
           ? `<div class="seg" role="group" aria-label="Range">${RANGES.map(([id, label]) => `<button type="button" data-range="${id}" aria-pressed="${id === range}" tabindex="${id === range ? 0 : -1}">${label}</button>`).join("")}</div>`
