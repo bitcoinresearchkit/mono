@@ -3841,6 +3841,18 @@
           font: 510 12px var(--sans);
           font-variant-numeric: tabular-nums;
         }
+
+        /* What the rows' changes are since, over them: the view's start, its edge theirs (clear of the rows' eyes, a cap
+           and its 2px). */
+        .since {
+          overflow: hidden;
+          margin-right: 30px;
+          color: var(--muted);
+          font: 400 12px var(--sans);
+          font-variant-numeric: tabular-nums;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
       }
 
       /* What's marked on the chart besides its layers (the halvings): under the panes, rows as theirs are. */
@@ -7556,6 +7568,11 @@
           margin-left: auto;
         }
 
+        /* (Its close in the eyes' column: what the changes are since, beside it.) */
+        .panel .since {
+          margin-right: 2px;
+        }
+
         /* Floating over the plot, never over the time axis nor the foot under it; it slides in and out whole, from the
            right. */
         .panel {
@@ -9466,6 +9483,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <div class="panel-head">
                 <h2>Layers <span id="layer-count" class="count"></span></h2>
                 <span class="spacer"></span>
+                <span id="changes-since" class="since" hidden></span>
                 <button class="cap small sheet-close" type="button" data-action="close-sheet" aria-label="Close" data-tip="Close" data-icon="close"></button>
               </div>
               <div id="layer-list" class="layer-list"></div>
@@ -16373,7 +16391,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function updateRowChanges() {
         if (!resolved || !panelShown()) return;
-        const point = readPoint(), moving = performance.now() - viewMovedAt < 250;
+        const point = readPoint(), moving = performance.now() - viewMovedAt < 250, since = /** @type {Set<number>} */ (new Set());
         for (const element of all$(".row-change[data-change]")) {
           const layer = layerById(element.dataset.change);
           const result = resolved.results.get(element.dataset.change);
@@ -16382,6 +16400,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const change = !layer.hidden && !result.error && !(named(layer) && bandOf(layer, valueAt(layer, point))) ? changeOver(layer, point) : null;
           // (Each written only where it changed: a crosshair's move restyles nothing else.)
           const name = `row-change ${change?.up === true ? "up" : change?.up === false ? "down" : ""}`, text = change ? chipText(change) : "";
+          if (change) since.add(change.from);
           if (element.className !== name) element.className = name;
           if (element.textContent !== text) element.textContent = text;
           // While the view moves (a pan, a zoom), its change only: its tip and its room, read and measured from the view,
@@ -16397,6 +16416,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const figures = /** @type {HTMLElement} */ (element.parentElement), width = layer.hidden || result.error ? "" : `${Math.max(valueSlot(layer, rowSizes.value), chipSlot(layer))}px`;
           if (figures.style.minWidth !== width) figures.style.minWidth = width;
         }
+        // (Over them, what they're since, once the view rests: the date they share, else each its own first in view.)
+        if (moving) return;
+        const head = $("changes-since"), text = since.size === 1 ? `Since ${pointLabel([...since][0])}` : since.size ? "Since the view's start" : "";
+        if (head.textContent !== text) head.textContent = text;
+        head.hidden = !text;
       }
       /**
        * The widest change a layer's chip can show in this view, padding included: those to its lowest and highest
