@@ -149,22 +149,23 @@ has to be deleted by hand.
   `addresses` `Address`es and `firstSeen` a `Timestamp`; inputs' `scriptsig` and `witness` and outputs' `scriptpubkey`
   are `Hex`; series search and `GET /api/series/list` return `SeriesName`s, `GET /api/v1/transaction-times`
   `Timestamp`s; a series' JSON `type` is `JsonType`, `/health`'s `status` `HealthStatus` (`healthy`) and its `version`,
-  as `GET /version`'s answer, `ServerVersion` (SemVer); an index's `aliases` are `IndexAlias`es, every name REST queries
-  accept; a block's `orphans` are `BlockHash`es; ISO 8601 times are `date-time`s and `reward-stats` totals digit
-  strings; a difficulty adjustment is the tuple `[Timestamp, Height, number, number]` (was `number[]`). The document's
-  tuples are `prefixItems`, as OpenAPI 3.1 has them (was draft-07's `items` array)
+  as `GET /version`'s answer, `ServerVersion` (SemVer); a block's `orphans` are `BlockHash`es; ISO 8601 times are
+  `date-time`s and `reward-stats` totals digit strings; a difficulty adjustment is the tuple `[Timestamp, Height,
+  number, number]` (was `number[]`). The document's tuples are `prefixItems`, as OpenAPI 3.1 has them (was draft-07's
+  `items` array)
 - Relations to nothing are null instead of a maximum-value marker: `spending_txin_index` while an output is unspent,
-  and a coinbase input's `outpoint`, `spent_txout_index` and `type_index` (its `output_type` stays `unknown`)
+  and a coinbase input's `outpoint`, `spent_txout_index` and `type_index` (its `output_type` stays `unknown_script`)
 - One unit per quantity: the `_cents` copies of USD series, the `_sats` copies of BTC amounts and the sats-per-USD
   copies of prices (`*_price_sats` and every other price's `_sats`) are gone from the API and the clients (they stay the
-  exact storage; the USD and BTC series print the same values exactly); `sats_per_dollar` replaces `price_sats`. Unitless numbers have one form, the one they are read in: shares, rates and changes
-  in percent; ratios (spot ÷ price, SOPR, MVRV, NUPL, liveliness, sell-side risk, every `X_to_Y`) as a ratio; the `_ppm`
-  copies and the `_ratio` copies of percent values are gone. The Cointime and Coinflow in-loss shares and the Bedrock
-  loss thresholds are in percent (were decimals); sell-side risk is a ratio (was percent beside a `_ratio` copy: same
-  ids, 100 times smaller). A share with rolling windows keeps its all-time value as `cumulative` beside `24h`...`1y`, id
-  `*_cumulative` (`p2tr_output_share_cumulative`, was `p2tr_output_share`). A node left with one unit is the series
-  itself: `price.spot`, `price.ohlc`, realized caps and prices (were their `.usd` child), shares (were `.percent`), BTC
-  changes over a window (were `.btc`). About 26,100 v0.12.2 ids were such copies
+  exact storage; the USD and BTC series print the same values exactly); `sats_per_dollar` replaces `price_sats`.
+  Unitless numbers have one form, the one they are read in: shares, rates and changes in percent; ratios (spot ÷ price,
+  SOPR, MVRV, NUPL, liveliness, sell-side risk, every `X_to_Y`) as a ratio; the `_ppm` copies and the `_ratio` copies of
+  percent values are gone. The Cointime and Coinflow in-loss shares and the Bedrock loss thresholds are in percent (were
+  decimals); sell-side risk is a ratio (was percent beside a `_ratio` copy: same ids, 100 times smaller). A share with
+  rolling windows keeps its all-time value as `cumulative` beside `24h`...`1y`, id `*_cumulative`
+  (`p2tr_output_share_cumulative`, was `p2tr_output_share`). A node left with one unit is the series itself:
+  `price.spot`, `price.ohlc`, realized caps and prices (were their `.usd` child), shares (were `.percent`), BTC changes
+  over a window (were `.btc`). About 26,100 v0.12.2 ids were such copies
 - Renamed the rarity meter `*_index` series to `*_level` (`rarity_meter.full.level`, ...)
 - Rarity meter components sit by cohort: `rarity_meter.components.{all, sth}.{realized_price, capitalized_price,
   median_realized_price, median_capitalized_price}`, with the whole network's cointime prices in `all` too
@@ -223,8 +224,9 @@ has to be deleted by hand.
   under `avg` (were the window keys directly under the series)
 - A level with derived siblings (a price beside its `ratio`, a count beside its `delta`, a value beside its `share`)
   sits under `value` (was `usd`): `market.sma.200d.value`, `holders.sth.utxos.count.value`,
-  `holders.sth.capital.in_profit.value`, `supply.market_cap.value`, `blocks.difficulty.value`, `cointime.reserve_risk.value`; a per-block series beside its `cumulative`, `sum` or window statistics sits under `block`
-  (`blocks.fullness.block` beside its `avg` and distribution, height only)
+  `holders.sth.capital.in_profit.value`, `supply.market_cap.value`, `blocks.difficulty.value`,
+  `cointime.reserve_risk.value`; a per-block series beside its `cumulative`, `sum` or window statistics sits under
+  `block` (`blocks.fullness.block` beside its `avg` and distribution, height only)
 - Market: moving averages sit at the root (`market.sma.200d`, `market.ema.200d`; were under `moving_average`), price
   returns at `market.returns.<window>` (were under `periods`; ids `price_return_<window>` unchanged); the all-time
   high's years copies are gone (`days_since` stays; `days_between_max`, id `days_between_price_ath_max`, was
@@ -244,13 +246,13 @@ has to be deleted by hand.
   definition
 - The `capital_sentiment` plugin is gone: its phases, score and long/short strategy are an opinionated reading of
   spot against the published all, short- and long-term capitalized prices and the 1-year SMA
-- Mining: hash price and hash value are per PH/s only, as `mining.hash_price` and `mining.hash_value`, each
-  `{value, atl, rebound}` (were under `mining.hashrate.price` and `.value`), ids `hash_price`, `hash_price_atl`, ... (were `hash_price_ths`, `hash_price_phs` and their `*_min`), typed `HashPrice`
-  (USD) and `HashValue` (sats) per PH/s per day (were `StoredF32`); `fees.share`/`subsidy.share` (were `dominance`);
-  output volume leaves the tree (the transaction volume minus fees, not a reward; the block endpoints still report
-  it); unclaimed rewards gain window sums; the network hash rate is `mining.hashrate.{value, sma, ath, drawdown}` (was
-  `mining.hashrate.rate`), its ids saying `hashrate` like every other one (`hashrate`, `hashrate_sma_1w`,
-  `hashrate_ath`, `hashrate_drawdown`; were `hash_rate*`)
+- Mining: hash price and hash value are per PH/s only, as `mining.hash_price` and `mining.hash_value`, each `{value,
+  atl, rebound}` (were under `mining.hashrate.price` and `.value`), ids `hash_price`, `hash_price_atl`, ... (were
+  `hash_price_ths`, `hash_price_phs` and their `*_min`), typed `HashPrice` (USD) and `HashValue` (sats) per PH/s per day
+  (were `StoredF32`); `fees.share`/`subsidy.share` (were `dominance`); output volume leaves the tree (the transaction
+  volume minus fees, not a reward; the block endpoints still report it); unclaimed rewards gain window sums; the network
+  hash rate is `mining.hashrate.{value, sma, ath, drawdown}` (was `mining.hashrate.rate`), its ids saying `hashrate`
+  like every other one (`hashrate`, `hashrate_sma_1w`, `hashrate_ath`, `hashrate_drawdown`; were `hash_rate*`)
 - Transactions: `transactions.per_second` (ids `tx_per_second_<window>`; were `tx_per_sec_<window>` at
   `transactions.volume.tx_per_sec`); the transaction volume (input value of non-coinbase transactions) is
   `transactions.transfer_volume`, id `transfer_volume` (was `transactions.volume.transfer_volume` with ids
@@ -269,14 +271,14 @@ has to be deleted by hand.
   `block_count`, always one, is gone, as are the constant `blocks.count.target.<window>` series);
   `blocks.lookback` (window-start heights, `height_<window>_ago`) leaves the tree
 - Block size and weight: `blocks.size.block` (id `block_size`) and `blocks.weight.block` (`block_weight`) sit beside
-  their cumulative and rolling statistics (the per-block values were only the indexer's); blocks are measured in
-  weight and transactions in vsize, so block virtual size is gone (`blocks.vbytes`, `block_vbytes*`). The indexer's
-  own columns lose their wraps: `indexer.blocks.size` (id `block_size`, was `blocks.size.base` with id `total_size`),
+  their cumulative and rolling statistics (the per-block values were only the indexer's); blocks are measured in weight
+  and transactions in vsize, so block virtual size is gone (`blocks.vbytes`, `block_vbytes*`). The indexer's own columns
+  lose their wraps: `indexer.blocks.size` (id `block_size`, was `blocks.size.base` with id `total_size`),
   `indexer.blocks.weight` (was `blocks.weight.base`), `indexer.blocks.timestamp` (was `blocks.time.timestamp`), and
   `segwit_tx_count` (was `segwit_txs`) beside `segwit_tx_size` and `segwit_tx_weight` (were `segwit_size`,
   `segwit_weight`); `p2ms_legacy_sigop_cost` and `unknown_script_legacy_sigop_cost` at
-  `indexer.scripts.{p2ms,unknown_script}.legacy_sigop_cost` (BIP-141 cost; were `legacy_sigops`), and `post_op_return_bytes`
-  (was `op_return_post_op_return_bytes`)
+  `indexer.scripts.{p2ms,unknown_script}.legacy_sigop_cost` (BIP-141 cost; were `legacy_sigops`), and
+  `post_op_return_bytes` (was `op_return_post_op_return_bytes`)
 - These per-transaction series take the `tx_` stem: `tx_size` at `indexer.transactions.size` (was `total_size`, the same
   id as the block size), `tx_sigop_cost` at `.sigop_cost` (was `total_sigop_cost`), `tx_locktime` at `.locktime` (was
   `raw_locktime`), `tx_version` at `.version` (was `.tx_version`) and `tx_fee` (was `fee`). The block sum of sigop cost
@@ -295,9 +297,9 @@ has to be deleted by hand.
   `p2pkh_input_tx_count` (were `tx_count_<kind>`). The OP_RETURN protocol per output is
   `indexer.op_return.protocol`, id `op_return_protocol` (was `kind`)
 - Ids that were index names say what they map: `spent_txout_index` (an input's spent output, was `txout_index`),
-  `input_tx_index` (was `tx_index`), `spending_txin_index` (an output's spending input at
-  `outputs.spending_txin_index`, was `txin_index` at `outputs.spent.txin_index`), `empty_script_output_tx_index`,
-  `p2ms_output_tx_index`, `unknown_script_output_tx_index` and `op_return_output_tx_index` at `.tx_index` (were id `tx_index` at
+  `input_tx_index` (was `tx_index`), `spending_txin_index` (an output's spending input at `outputs.spending_txin_index`,
+  was `txin_index` at `outputs.spent.txin_index`), `empty_script_output_tx_index`, `p2ms_output_tx_index`,
+  `unknown_script_output_tx_index` and `op_return_output_tx_index` at `.tx_index` (were id `tx_index` at
   `.to_tx_index`); per-output and per-input values are `output_value` and `input_value` (were both `value`)
 - `input_value` and `output_value` are per record, one value per input and per output (were each transaction's input
   and output totals, at `transactions.fees.{input_value, output_value}`; the totals are gone)
@@ -359,21 +361,20 @@ has to be deleted by hand.
   `outputs.spendable_count` and `outputs.op_return_value` sit at the outputs root (were under `by_type` and `value`)
 - Age and UTXO cohorts are member-first: `age.ranges.<range>`, `age.halving_epochs.<epoch>`, `age.vintages.<year>`,
   `utxos.amounts.<band>` and `utxos.types.<type>` each hold `supply.{total, delta, share}`, `capital` (below),
-  `utxos.{count, spent_count}`, `activity.transfer_volume`, `realized.{profit, loss}` and
-  `cost_basis.by_coin.{avg, realized_price}` and, in age, `supply.{in_profit, in_loss}`,
-  `activity.coindays_destroyed`, `realized.{net_pnl, value_destroyed}` and `unrealized.{profit, loss, net_pnl}` (were
-  metric-first under `cohorts`: `cohorts.supply.total.age.range.<range>`,
-  `cohorts.realized.cap.utxo_amount.range.<band>`, `cohorts.supply.total.{epoch, class_, type}.<member>`, ...). Age
-  ranges also hold `supply.aged_out` (was `cohorts.supply.matured.<range>`), `activity.coindays_created` (was
-  `frameworks.cointime.age_range.coindays_created`; also at `cointime.age_ranges.<range>`) and
-  `activity.transfer_volume.{in_profit, in_loss}`; the epochs', classes' and entry cohorts' volume in profit and in
-  loss is gone (`epoch_0_transfer_volume_in_profit*`, `class_2009_transfer_volume_in_loss*`,
-  `veteran_transfer_volume_in_profit*` (now `entry_discount_`), ...; the age ranges and holders keep the split). Ids are unchanged, but for
-  `supply.share`, `cost_basis` and `capital` (below) and the halving epochs' and years' prefixes:
-  `halving_epoch_0_supply`, `vintage_2009_supply`, ... (were `epoch_0_supply`, `class_2009_supply`). The 0-sat band
-  (`utxos.amounts._0_sats`) holds its counts only: its amounts, values and cost basis, zero or null by definition, are
-  gone (`utxos_0sats_realized_price`, `utxos_0sats_realized_profit`, ...). Age's `coinblocks_destroyed` is published at
-  `cointime.activity.coinblocks_destroyed` only
+  `utxos.{count, spent_count}`, `activity.transfer_volume`, `realized.{profit, loss}` and `cost_basis.by_coin.{avg,
+  realized_price}` and, in age, `supply.{in_profit, in_loss}`, `activity.coindays_destroyed`, `realized.{net_pnl,
+  value_destroyed}` and `unrealized.{profit, loss, net_pnl}` (were metric-first under `cohorts`:
+  `cohorts.supply.total.age.range.<range>`, `cohorts.realized.cap.utxo_amount.range.<band>`,
+  `cohorts.supply.total.{epoch, class_, type}.<member>`, ...). Age ranges also hold `supply.aged_out` (was
+  `cohorts.supply.matured.<range>`), `activity.coindays_created` (was `frameworks.cointime.age_range.coindays_created`;
+  also at `cointime.age_ranges.<range>`) and `activity.transfer_volume.{in_profit, in_loss}`; the epochs', classes' and
+  entry cohorts' volume in profit and in loss is gone (`epoch_0_transfer_volume_in_profit*`,
+  `class_2009_transfer_volume_in_loss*`, `veteran_transfer_volume_in_profit*` (now `entry_discount_`), ...; the age
+  ranges and holders keep the split). The move keeps ids, but for `supply.share`, `cost_basis` and `capital` (below) and
+  the halving epochs' and years' prefixes: `halving_epoch_0_supply`, `vintage_2009_supply`, ... (were `epoch_0_supply`,
+  `class_2009_supply`). The 0-sat band (`utxos.amounts.0_sats`) holds its counts only: its amounts, values and cost
+  basis, zero or null by definition, are gone (`utxos_0sats_realized_price`, `utxos_0sats_realized_profit`, ...). Age's
+  `coinblocks_destroyed` is published at `cointime.activity.coinblocks_destroyed` only
 - The open-ended cohorts are gone, all but the 4- and 6-month age cutoffs (now in `holders`): every age over and
   under each boundary (`utxos_over_1y_old_*`, `utxos_under_1w_old_*`, ...), every UTXO amount over and under each
   boundary (`utxos_over_1btc_*`, `utxos_under_1btc_*`, ...) and every address balance over and under each boundary
@@ -630,14 +631,14 @@ has to be deleted by hand.
   letters and digits (mempool.space's 120, raised for P2PK public keys in hex)
 - Mining matches mempool.space: every period route takes `4y` (12-hour groups, as `3y`); block fee rates are whole
   sat/vB (were 3 decimals), with `/api/v1/mining/blocks/fee-rates/{time_period}/precise` for 3 decimals
-  (`BlockFeeRatesPreciseEntry`); the network hashrate has every day's value (was sampled down to 200 points, so 1y
-  every 2 days and all every 33); `hashrate/pools` lists the pools that mined in the last week, by time and then
-  their weekly rank (was every pool, pool by pool), its weeks, and a pool's `/hashrate`'s, ending on Mondays 00:00 UTC and stamped
-  with them, completed weeks only (were 7-day spans ending on the tip's day, stamped with their last day's start); difficulty adjustments, in their own routes and in the
-  hashrate's `difficulty`, only where the difficulty changed (the first 15 retargets kept it at 1), the ratio to 6
-  significant digits; pools carry `avgMatchRate` and `avgFeeDelta`, and a pool's detail `avgBlockHealth`, always null (they
-  come from mempool.space's own audits); a pool's `totalReward` is a decimal string (was a number), as
-  `reward-stats`' amounts
+  (`BlockFeeRatesPreciseEntry`); the network hashrate has every day's value (was sampled down to 200 points, so 1y every
+  2 days and all every 33); `hashrate/pools` lists the pools that mined in the last week, by time and then their weekly
+  rank (was every pool, pool by pool), its weeks, and a pool's `/hashrate`'s, ending on Mondays 00:00 UTC and stamped
+  with them, completed weeks only (were 7-day spans ending on the tip's day, stamped with their last day's start);
+  difficulty adjustments, in their own routes and in the hashrate's `difficulty`, only where the difficulty changed (the
+  first 15 retargets kept it at 1), the ratio to 6 significant digits; pools carry `avgMatchRate` and `avgFeeDelta`, and
+  a pool's detail `avgBlockHealth`, always null (they come from mempool.space's own audits); a pool's `totalReward` is a
+  decimal string (was a number), as `reward-stats`' amounts
 - The genesis block's `previousblockhash` is null (was 64 zeros), and a transaction's `version` is its 32 bits read
   unsigned (was signed, so a version from 2^31 up read negative), as mempool.space and Esplora report them
 - `/openapi.json` declares its JSON 200 response and both spec routes declare their 304 (only `/api.json`'s JSON 200
@@ -666,7 +667,7 @@ has to be deleted by hand.
   at their end (were stamped at their start, a day before mempool.space's, and included today's partial day). Pool
   rankings' `lastEstimatedHashrate3d` and `lastEstimatedHashrate1w` are trailing 3- and 7-day estimates (were the
   1-day rate 3 days and a week back)
-- Block-template diffs carry the template's `stats` (a client following diffs kept stale statistics)
+- Mempool block diffs carry the block's `stats` (a client following diffs kept stale statistics)
 - Mempool transaction `sigops` count the redeem sigops of a P2SH spend whose scriptSig pushes `OP_n` (an HTLC's
   `OP_1 <redeem>`; they counted none), and transaction JSON `inner_redeemscript_asm` shows those spends' redeem script
   (was empty), like Esplora. Their `CHECKMULTISIG` counting follows Bitcoin Core like the indexer's (below)
@@ -749,7 +750,7 @@ has to be deleted by hand.
   their own field, after that field (`EntrySupply`, `EntryCapital`; `MappingsDay1` where the field's name is taken),
   `Series` after a name the API already uses (`UtxoSetSeries`) and the path's name where no type defines
   one; Rust types live in `bitview_client::tree` (were `SeriesTree_Blocks` or `_1m1w1y24hPattern6`). Clients shrink from
-  1.26 MB to 313 KB (JS), 1.05 MB to 274 KB (Python) and 1.95 MB to 157 KB (Rust), with a third of v0.12.2's series
+  1.26 MB to 327 KB (JS), 1.05 MB to 287 KB (Python) and 1.95 MB to 162 KB (Rust), with a third of v0.12.2's series
   paths
 - The raw `getSeries`/`get_series` methods return the same helper objects as typed endpoints (Python: a dataclass,
   read `.data` instead of `['data']`)
@@ -1071,7 +1072,7 @@ has to be deleted by hand.
   ref_bin, price_cents}`, `BINS_PER_DECADE`, `NUM_BINS`, `pre_oracle_price_cents`, `seed_bin` and `seed_price_cents` are
   no longer public, `Oracle::from_checkpoint`'s replay returns a `Result`, and `HistogramRaw`, `HistogramEma` and
   `HistogramEmaCompact` are type aliases over `brk_types::Histogram` (were structs). `bitview_vecs` exports
-  `is_priced`, `first_priced`, `priced_range`, `first_wholly_priced`, `priced_starts`, the dollar window ops
+  `priced_range`, `first_wholly_priced`, `priced_starts`, the dollar window ops
   (`PricedWindow`, `PricedRows`, `PricedSum`, `PricedChange`) and `PricedPerBlockCumulativeRolling`
   (`PerBlockCumulativeRolling` and `LazyRollingSumsFromHeight` take their sum's op), and `bitview_plugin_indexer`
   `FIRST_V29_POLICY_HEIGHT`. `CentsSigned` has a NaN (`i64::MIN`, written as null; its arithmetic keeps it), and
@@ -1149,25 +1150,24 @@ has to be deleted by hand.
 - The website is gone (Bitview Studio, a separate app, has its charts and search): the server serves the showcases
   instead, Bitview's front page at `/` (what Bitview is, a live weekly chart of the price and realized price from the
   server that serves it, and the ways in: Studio, the API, MCP, running your own, the explorations and the crates) and
-  each one at `/<name>/`, embedded or, in debug builds, from `./showcases`. Each page keeps a look of its own: the API page
-  (`/api`) is Scalar in the front page's type and colors, following the system's theme; the self-hosting (`/dev`) and
-  Bitcoin Research Kit (`/brk`) pages keep theirs, their facts brought up to date (Studio in place of the website's
+  each one at `/<name>/`, embedded or, in debug builds, from `./showcases`. Each page keeps a look of its own: the API
+  page (`/api`) is Scalar in the front page's type and colors, following the system's theme; the self-hosting (`/dev`)
+  and Bitcoin Research Kit (`/brk`) pages keep theirs, their facts brought up to date (Studio in place of the website's
   pages; mainnet and complete block files required). The OpenAPI contact is Bitview and its license link resolves (was
   `docs/LICENSE.md`, absent); `.jpg` files are served as `image/jpeg`. Calendar is rebuilt as an almanac (light and
   dark): every day's leading pools by year (ties shown, Unknown not a pool), the pools that led most, the year's notes
-  in its margin (halvings, the busiest and quietest days, the longest run, the biggest day for one pool), and a day as
-  a 24-hour dial of its blocks (its longest wait, quickest pair, busiest hour), each with its pool's count that day and
-  ever. Globe is rebuilt as Earth from orbit, the planet the whole first screen: each country's share of the blocks
-  over a period (over a day or a week, with the hashrate it implies), the blocks without a known home as a moon,
-  tonight's night side and the sun's light, the same month by month since 2011 (a stacked chart with the halvings and
-  China's ban, driving the globe, playable), and blocks landing live. Trail holds a price range, dragged on the terrain
-  (a touch holds still a moment first), with its supply and its share of all, until a click on the terrain or Escape;
-  its cohorts add short- and long-term holders, and every age band, together on the selected day, each in its color
-  over the terrain of all coins (the ages amber to blue, by way of red and violet). Explorer (`/explorer`) is rebuilt
-  on the server's own client: every series, folder by folder as its client names them (columns on a wide page, one
-  folder at a time on a phone), the server's search, and each series' description, unit and intervals, its history
-  drawn at any of them (linear or log, a point read by pointer or touch), and its JSON, CSV and API address, or a
-  chart of it in Studio.
+  in its margin (halvings, the busiest and quietest days, the longest run, the biggest day for one pool), and a day as a
+  24-hour dial of its blocks (its longest wait, quickest pair, busiest hour), each with its pool's count that day and
+  ever. Globe is rebuilt as Earth from orbit, the planet the whole first screen: each country's share of the blocks over
+  a period (over a day or a week, with the hashrate it implies), the blocks without a known home as a moon, tonight's
+  night side and the sun's light, the same month by month since 2011 (a stacked chart with the halvings and China's ban,
+  driving the globe, playable), and blocks landing live. Trail holds a price range, dragged on the terrain (a touch
+  holds still a moment first), with its supply and its share of all, until a click on the terrain or Escape; its cohorts
+  add short- and long-term holders, and every age band, together on the selected day, each in its color over the terrain
+  of all coins (the ages amber to blue, by way of red and violet). Explorer, now Series (`/series`), is rebuilt on the
+  server's own client: every series, folder by folder as its client names them (columns on a wide page, one folder at a
+  time on a phone), the server's search, and each series' description, unit and intervals, its history drawn at any of
+  them (linear or log, a point read by pointer or touch), and its JSON, CSV and API address, or a chart of it in Studio.
   `--website` serves them (`true`), nothing (`false`) or a directory. The website's block, transaction and address pages
   have no replacement yet. `/api` is the API showcase: Scalar 1.75.1 from `modules/` (was 1.49.8, built into the server
   with its own `/scalar.js` route), so `--website false` serves no API page either and `/` redirects to `/openapi.json`
@@ -1179,9 +1179,9 @@ has to be deleted by hand.
 - Showcases whose charts Bitview Studio now draws are gone: Bedrock (its landscape, colored, beside each mode's floors),
   rarity meter (Studio's), extreme events (marked on the price in Studio's "Events"), regime (Studio's cost-basis
   distributions), HODL wave (with dormant and immobile supply waves; capital by wakefulness or mobility has no series),
-  supply density (Studio's supply and capital density charts), clouds (Studio's "Cost basis clouds"), middle (Studio's "Time
-  above"); so are the height page, the "Finding the floor" essay and capital
-  sentiment, whose series went with its plugin
+  supply density (Studio's supply and capital density charts), clouds (Studio's "Cost basis clouds"), middle (Studio's
+  "Time above"); so are the height page, the "Finding the floor" essay and capital sentiment, whose series went with its
+  plugin
 
 ### New Features
 
@@ -1325,16 +1325,16 @@ has to be deleted by hand.
   oracle's seed (block 339,999, $246.62, 6% above Bitfinex's $232.04) keeps its value: seeding from the corrected
   price made the oracle's first ten days slightly worse. `brk_oracle::VERSION` is 6 (was 4), so every price-derived
   series recomputes
-- Creation prices in cost-basis statistics are rounded to four significant digits of the price in cents (were
-  rounded to whole dollars, then to five significant digits: fewer than five under $10,000, and under $1 every coin
-  was at $0 or $1): exact cents under $100, then steps of at most 0.1% (10 cents to $1,000, $1 to $10,000, $10 to
-  $100,000, $100 to $1,000,000, $1,000 to $10,000,000 and $10,000 to $100,000,000; were $1 up to $100,000, $10 up to
-  $1,000,000 and one bucket above, where every creation price shared it), so a price is at most 0.05% off. Changed:
-  holders' cost-basis percentiles, `min`, `max` and supply density; the profitability bands (at block 100,000 all
-  supply sat in one loss band); Bedrock's URPD statistics (its floors now appear in 2010, when supply rounded to $0 kept
-  them empty); Rarity Meter's components that read them; and the URPD API's buckets. Most of the change is before 2013;
-  today's percentiles move by up to $5 under $100,000 and up to $50 above. The ±5% density band's edges round to the
-  nearest cent (were truncated). The price index has 64,001 buckets (was 190,001)
+- Creation prices in cost-basis statistics are rounded to four significant digits of the price in cents (were rounded to
+  whole dollars, then to five significant digits: fewer than five under $10,000, and under $1 every coin was at $0 or
+  $1): exact cents under $100, then steps of at most 0.1% (10 cents to $1,000, $1 to $10,000, $10 to $100,000, $100 to
+  $1,000,000, $1,000 to $10,000,000 and $10,000 to $100,000,000, prices capped at $42,949,672.94; were $1 up to
+  $100,000, $10 up to $1,000,000 and one bucket above, where every creation price shared it), so a price is at most
+  0.05% off. Changed: holders' cost-basis percentiles, `min`, `max` and supply density; the profitability bands (at
+  block 100,000 all supply sat in one loss band); Bedrock's URPD statistics (its floors now appear in 2010, when supply
+  rounded to $0 kept them empty); Rarity Meter's components that read them; and the URPD API's buckets. Most of the
+  change is before 2013; today's percentiles move by up to $5 under $100,000 and up to $50 above. The ±5% density band's
+  edges round to the nearest cent (were truncated). The price index has 64,001 buckets (was 190,001)
 - Block-to-pool attribution follows mempool's current `pools-v2.json` (a new Foundry USA payout address)
 - The average address balance is the exact mean (was floored to whole sats: 3 sats over two addresses read 1) and
   undefined (null) while no address is funded (was 0), computed on read
@@ -1388,7 +1388,7 @@ has to be deleted by hand.
   (at 91842 the cohorts showed 50 BTC of transfer volume for it). Coinblocks destroyed leave them out too (9,400
   fewer from 91880 on), which moves Cointime's liveliness and everything built on it very slightly. `supply.burned`
   counts the two outputs (it left out 100 BTC from 91880 on)
-- Holders' supply density is NaN for an empty cohort (was 0) and before the first price (was 100%: every coin's $0
+- Holders' supply density is null for an empty cohort (was 0) and before the first price (was 100%: every coin's $0
   creation price sat in the $0 band)
 - Reserve Risk is time-weighted, like Glassnode's daily definition: the HODL bank accrues each block's opportunity
   cost times the time since the previous block in days, on monotonic timestamps (it added a full price per block,
@@ -1400,8 +1400,8 @@ has to be deleted by hand.
 - Every replayed distribution output (`distribution`'s, now the age, addresses and UTXOs plugins) carries its
   dependency versions (price, timestamps, history, indexer inputs), so a change upstream recomputes everything
   downstream of it
-- Year cohorts gain `2027` and halving cohorts `epoch_5`: from January 1, 2027 (and from block 1,050,000) new outputs
-  would have fallen out of both
+- Vintages gain `vintage_2027` and halving epochs `halving_epoch_5`: from January 1, 2027 (and from block 1,050,000) new
+  outputs would have fallen out of both
 - A coinbase that claims less than its block's fees (valid, if wasteful) no longer stops the node (it panicked):
   `subsidy` is floored at zero, `unclaimed_rewards` is the scheduled subsidy plus fees minus the coinbase (the
   unclaimed fees are burned), and the fee share is one minus the subsidy share, so both stay within 0 to 100%. A
@@ -1454,11 +1454,12 @@ has to be deleted by hand.
   risk, velocity, hash price) are null where they are; reserve risk's median of the VOCDD day sums starts with them
   (the HODL bank adds nothing before). Per-block dollar values and sums since the start are unchanged
 - OP_RETURN: coinbase transactions no longer count in the pre-v30 policy categories, documented as size/count
-  categories; kind descriptions corrected (Po.et vs Proof of Existence, length/prefix heuristics). A new `witness_commitment` protocol matches the BIP141 header (a 36-byte push beginning `aa21a9ed`),
-  so `komodo` no longer counts every SegWit coinbase commitment. Three protocols never matched an output: Factom
-  is its anchor, `Fa` with a 6-byte height and a 32-byte Merkle root (was the prefix `Factom!!`), Ascribe its
-  `ASCRIBESPOOL` marker (was `ASCRIBE\0`), Stampery its BTA anchor, `S`, a version digit, an optional 2-byte server
-  identifier and a 32- or 64-byte hash (was the prefix `Stampery`)
+  categories; kind descriptions corrected (Po.et vs Proof of Existence, length/prefix heuristics). A new
+  `witness_commitment` protocol matches the BIP141 header (a 36-byte push beginning `aa21a9ed`), so `komodo` no longer
+  counts every SegWit coinbase commitment. Three protocols never matched an output: Factom is its anchor, `Fa` with a
+  6-byte height and a 32-byte Merkle root (was the prefix `Factom!!`), Ascribe its `ASCRIBESPOOL` marker (was
+  `ASCRIBE\0`), Stampery its BTA anchor, `S`, a version digit, an optional 2-byte server identifier and a 32- or 64-byte
+  hash (was the prefix `Stampery`)
 - Transactions: the ephemeral-dust policy switch uses the indexer's v29 height, 892,500 (was 905,000)
 - Coarse calendar periods' `date` is the period's start (was its first block's date: empty periods repeated the next
   one's)
@@ -1565,9 +1566,9 @@ has to be deleted by hand.
   inside a transaction could pass for a frame: with an unobfuscated blk file (a datadir created before Core 28, or run
   with `-blocksxor=0`), a crafted transaction carrying a recent canonical header could have had its bytes parsed as
   that block
-- Block templates (about 10 MB) and template diffs are built and sent two of each at a time, keeping their admission
-  until the body is sent: each request built its own with no limit, so slow readers could each hold one while new
-  requests built more. A matching conditional request still answers 304 before any build. Outspends, RBF trees,
+- Projected mempool blocks (about 10 MB) and their diffs are built and sent two of each at a time, keeping their
+  admission until the body is sent: each request built its own with no limit, so slow readers could each hold one while
+  new requests built more. A matching conditional request still answers 304 before any build. Outspends, RBF trees,
   replacements and all-pools hashrate count toward the response-body admission too
 - An address's unspent outputs no longer list the two coinbase outputs that BIP30 duplicates overwrote (blocks 91812
   and 91722): the indexer drops them from their address when the duplicate lands
@@ -1778,10 +1779,11 @@ has to be deleted by hand.
 
 - The pinned Rust toolchain is 1.99.1 (was 1.98.0), for source builds and the Docker image; `scripts/update.sh`
   bumps both to the latest stable
-- Four seeded model-based tests replace every other test (the forks' included, with pco's compatibility assets):
+- Four seeded model-based tests replace the broad suites (the forks' included, with pco's compatibility assets):
   vecdb's (rawdb and every vector variant against an in-memory model), brk_store's (fjall and lsm-tree against a
-  `BTreeMap`), statedb's and pco's (round trips), each running in about 2 s. Other changes are verified end to end
-  with throwaway checks. Only the website and `examples/custom_plugin` examples remain
+  `BTreeMap`), statedb's and pco's (round trips), each running in about 2 s. Beside them, a few tests guard contracts
+  that could break silently (`brk_types`, `bitview_primitives`, the indexer, `bitview_mcp`, `bitview_website`); other
+  changes are verified end to end with throwaway checks. Only the website and `examples/custom_plugin` examples remain
 - Plugin crates other than the indexer follow one skeleton; distribution plugins share their cohort
   families and replay scaffold
 - A slop pass removed about 4,400 lines of restating docs, history comments, single-use wrappers, impossible defensive
