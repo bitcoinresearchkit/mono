@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="Every series Bitview computes from the chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." />
     <meta name="color-scheme" content="light dark" />
-    <title>Explorer · Bitview</title>
+    <title>Series · Bitview</title>
     <link rel="icon" href="/assets/logo/logo.svg" type="image/svg+xml" />
     <style>
       @font-face {
@@ -1122,7 +1122,7 @@
       // ── Intervals, as Studio names them ──
       const INTERVALS = /** @type {[string, string][]} */ ([
         ["minute10", "10m"], ["minute30", "30m"], ["hour1", "1h"], ["hour4", "4h"], ["hour12", "12h"], ["day1", "1D"], ["day3", "3D"], ["week1", "1W"],
-        ["month1", "1M"], ["month3", "3M"], ["month6", "6M"], ["year1", "1Y"], ["year10", "10Y"], ["halving", "Halving"], ["epoch", "Epoch"], ["height", "Block"],
+        ["month1", "1M"], ["month3", "3M"], ["month6", "6M"], ["year1", "1Y"], ["year10", "10Y"], ["halving_epoch", "Halving"], ["difficulty_epoch", "Epoch"], ["height", "Block"],
       ]);
       const INTERVAL_LABEL = Object.fromEntries(INTERVALS);
       const rank = (/** @type {string} */ index) => ((i) => (i < 0 ? INTERVALS.length : i))(INTERVALS.findIndex(([id]) => id === index));
@@ -1245,7 +1245,7 @@
         // (After the columns: the series open, at the top what this is, else the room left.)
         main.innerHTML = parts.join("") + (leaf ? seriesHtml(leaf) : at.path.length ? `<div class="rest"></div>` : overviewHtml(root));
         fit();
-        document.title = `${leaf ? `${humanize(/** @type {string} */ (leaf.name))} · ` : nodes.length ? `${nodes.at(-1)?.label} · ` : ""}Explorer · Bitview`;
+        document.title = `${leaf ? `${humanize(/** @type {string} */ (leaf.name))} · ` : nodes.length ? `${nodes.at(-1)?.label} · ` : ""}Series · Bitview`;
         // (Each column where it was, its open row brought just into sight; new, its open row centered.)
         for (const column of /** @type {NodeListOf<HTMLElement>} */ (main.querySelectorAll(".column"))) {
           const rows = /** @type {HTMLElement} */ (column.querySelector("ul")), was = columnsScrolled.get(column.dataset.folder);
@@ -1711,7 +1711,7 @@
               <span class="where">${escape(trail(node.path).slice(0, -1).map((n) => n.label).join(" › "))}</span>
             </button></li>`;
           }).join("");
-          document.title = `“${query}” · Explorer · Bitview`;
+          document.title = `“${query}” · Series · Bitview`;
           sayPicked();
         } catch (error) {
           if (signal.aborted || !document.getElementById("found")) return;
