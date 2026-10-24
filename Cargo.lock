@@ -688,7 +688,6 @@ dependencies = [
  "brk_exit",
  "brk_types",
  "derive_more",
- "rayon",
  "statedb",
  "vecdb",
 ]
