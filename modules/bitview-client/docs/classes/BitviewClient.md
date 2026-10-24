@@ -725,7 +725,7 @@ Endpoint: `GET /api/address/{address}/utxo`
 
 > **getApi**(`options?`): `Promise`\<`any`\>
 
-Defined in: [modules/bitview-client/index.js:9622](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9622)
+Defined in: [modules/bitview-client/index.js:9608](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9608)
 
 Compact API summary
 
@@ -1759,7 +1759,7 @@ Cached and supports `onValue`, same as `getJson`.
 
 > **getCpfp**(`txid`, `options?`): `Promise`\<[`Cpfp`](../type-aliases/Cpfp.md)\>
 
-Defined in: [modules/bitview-client/index.js:9276](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9276)
+Defined in: [modules/bitview-client/index.js:9262](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9262)
 
 CPFP info
 
@@ -2253,13 +2253,13 @@ Cached and supports `onValue`.
 
 > **getLivePrice**(`options?`): `Promise`\<`number`\>
 
-Defined in: [modules/bitview-client/index.js:9242](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9242)
+Defined in: [modules/bitview-client/index.js:9520](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9520)
 
 Live BTC/USD price
 
-Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available.
+Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available. Confirmed per-height history is available at `GET /api/series/price/height`.
 
-Endpoint: `GET /api/mempool/price`
+Endpoint: `GET /api/oracle/price`
 
 #### Parameters
 
@@ -2539,7 +2539,7 @@ Endpoint: `GET /api/mempool/txids`
 
 > **getOpenapi**(`options?`): `Promise`\<`any`\>
 
-Defined in: [modules/bitview-client/index.js:9608](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9608)
+Defined in: [modules/bitview-client/index.js:9594](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9594)
 
 OpenAPI specification
 
@@ -2577,7 +2577,7 @@ Endpoint: `GET /openapi.json`
 
 > **getOracleHistogramOutputs**(`point`, `options?`): `Promise`\<`number`[]\>
 
-Defined in: [modules/bitview-client/index.js:9594](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9594)
+Defined in: [modules/bitview-client/index.js:9580](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9580)
 
 Output value histogram at height or day
 
@@ -2621,7 +2621,7 @@ Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
 
 > **getOracleHistogramOutputsLive**(`options?`): `Promise`\<`number`[]\>
 
-Defined in: [modules/bitview-client/index.js:9578](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9578)
+Defined in: [modules/bitview-client/index.js:9564](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9564)
 
 Live output value histogram
 
@@ -2659,7 +2659,7 @@ Endpoint: `GET /api/oracle/histogram/outputs/live`
 
 > **getOracleHistogramPayments**(`point`, `options?`): `Promise`\<`number`[]\>
 
-Defined in: [modules/bitview-client/index.js:9564](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9564)
+Defined in: [modules/bitview-client/index.js:9550](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9550)
 
 Payment output histogram at height or day
 
@@ -2703,7 +2703,7 @@ Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
 
 > **getOracleHistogramPaymentsLive**(`options?`): `Promise`\<`number`[]\>
 
-Defined in: [modules/bitview-client/index.js:9548](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9548)
+Defined in: [modules/bitview-client/index.js:9534](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9534)
 
 Live payment output histogram
 
@@ -2734,44 +2734,6 @@ Endpoint: `GET /api/oracle/histogram/payments/live`
 #### Returns
 
 `Promise`\<`number`[]\>
-
-***
-
-### getOraclePrice()
-
-> **getOraclePrice**(`options?`): `Promise`\<`number`\>
-
-Defined in: [modules/bitview-client/index.js:9534](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9534)
-
-Live BTC/USD price
-
-Current BTC/USD price in dollars. Same value as `GET /api/mempool/price`. Confirmed per-height history is available at `GET /api/series/price/height`.
-
-Endpoint: `GET /api/oracle/price`
-
-#### Parameters
-
-##### options?
-
-###### cache?
-
-`boolean`
-
-###### memCache?
-
-`boolean`
-
-###### onValue?
-
-(`value`) => `void`
-
-###### signal?
-
-`AbortSignal`
-
-#### Returns
-
-`Promise`\<`number`\>
 
 ***
 
@@ -3859,7 +3821,7 @@ Cached and supports `onValue`, same as `getJson`.
 
 > **getTransactionTimes**(`txId`, `options?`): `Promise`\<`number`[]\>
 
-Defined in: [modules/bitview-client/index.js:9453](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9453)
+Defined in: [modules/bitview-client/index.js:9439](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9439)
 
 Transaction first-seen times
 
@@ -3905,7 +3867,7 @@ Transaction IDs to look up (max 100 per request).
 
 > **getTx**(`txid`, `options?`): `Promise`\<[`Transaction`](../interfaces/Transaction.md)\>
 
-Defined in: [modules/bitview-client/index.js:9310](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9310)
+Defined in: [modules/bitview-client/index.js:9296](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9296)
 
 Transaction information
 
@@ -3947,7 +3909,7 @@ Endpoint: `GET /api/tx/{txid}`
 
 > **getTxByIndex**(`index`, `options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:9258](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9258)
+Defined in: [modules/bitview-client/index.js:9244](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9244)
 
 Txid by index
 
@@ -3991,7 +3953,7 @@ Global transaction index across the chain
 
 > **getTxHex**(`txid`, `options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:9328](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9328)
+Defined in: [modules/bitview-client/index.js:9314](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9314)
 
 Transaction hex
 
@@ -4035,7 +3997,7 @@ Endpoint: `GET /api/tx/{txid}/hex`
 
 > **getTxMerkleblockProof**(`txid`, `options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:9346](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9346)
+Defined in: [modules/bitview-client/index.js:9332](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9332)
 
 Transaction merkleblock proof
 
@@ -4079,7 +4041,7 @@ Endpoint: `GET /api/tx/{txid}/merkleblock-proof`
 
 > **getTxMerkleProof**(`txid`, `options?`): `Promise`\<[`MerkleProof`](../interfaces/MerkleProof.md)\>
 
-Defined in: [modules/bitview-client/index.js:9362](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9362)
+Defined in: [modules/bitview-client/index.js:9348](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9348)
 
 Transaction merkle proof
 
@@ -4121,7 +4083,7 @@ Endpoint: `GET /api/tx/{txid}/merkle-proof`
 
 > **getTxOutspend**(`txid`, `vout`, `options?`): `Promise`\<[`TxOutspend`](../interfaces/TxOutspend.md)\>
 
-Defined in: [modules/bitview-client/index.js:9381](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9381)
+Defined in: [modules/bitview-client/index.js:9367](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9367)
 
 Output spend status
 
@@ -4171,7 +4133,7 @@ Output index
 
 > **getTxOutspends**(`txid`, `options?`): `Promise`\<[`TxOutspend`](../interfaces/TxOutspend.md)[]\>
 
-Defined in: [modules/bitview-client/index.js:9399](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9399)
+Defined in: [modules/bitview-client/index.js:9385](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9385)
 
 All output spend statuses
 
@@ -4215,7 +4177,7 @@ Endpoint: `GET /api/tx/{txid}/outspends`
 
 > **getTxRaw**(`txid`, `options?`): `Promise`\<`Uint8Array`\<`ArrayBufferLike`\>\>
 
-Defined in: [modules/bitview-client/index.js:9417](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9417)
+Defined in: [modules/bitview-client/index.js:9403](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9403)
 
 Transaction raw
 
@@ -4259,7 +4221,7 @@ Endpoint: `GET /api/tx/{txid}/raw`
 
 > **getTxRbf**(`txid`, `options?`): `Promise`\<[`RbfResponse`](../interfaces/RbfResponse.md)\>
 
-Defined in: [modules/bitview-client/index.js:9294](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9294)
+Defined in: [modules/bitview-client/index.js:9280](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9280)
 
 RBF replacement history
 
@@ -4303,7 +4265,7 @@ Endpoint: `GET /api/v1/tx/{txid}/rbf`
 
 > **getTxStatus**(`txid`, `options?`): `Promise`\<[`TxStatus`](../interfaces/TxStatus.md)\>
 
-Defined in: [modules/bitview-client/index.js:9435](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9435)
+Defined in: [modules/bitview-client/index.js:9421](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9421)
 
 Transaction status
 
@@ -4461,7 +4423,7 @@ Supply weighting. Default: none (unweighted).
 
 > **getUtxoSet**(`point`, `options?`): `Promise`\<[`UtxoSet`](../interfaces/UtxoSet.md)\>
 
-Defined in: [modules/bitview-client/index.js:9504](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9504)
+Defined in: [modules/bitview-client/index.js:9490](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9490)
 
 UTXO set at block height or date
 
@@ -4505,7 +4467,7 @@ Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
 
 > **getUtxoSetDiff**(`point`, `options?`): `Promise`\<[`UtxoSetDiff`](../interfaces/UtxoSetDiff.md)\>
 
-Defined in: [modules/bitview-client/index.js:9520](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9520)
+Defined in: [modules/bitview-client/index.js:9506](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9506)
 
 UTXO set changes of a block or date
 
@@ -4549,7 +4511,7 @@ Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)
 
 > **getUtxoSetLatest**(`options?`): `Promise`\<[`UtxoSet`](../interfaces/UtxoSet.md)\>
 
-Defined in: [modules/bitview-client/index.js:9488](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9488)
+Defined in: [modules/bitview-client/index.js:9474](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9474)
 
 Latest UTXO set
 
@@ -4872,7 +4834,7 @@ Defined in: [modules/bitview-client/index.js:2281](https://github.com/bitcoinres
 
 > **postTx**(`body`, `options?`): `Promise`\<`string`\>
 
-Defined in: [modules/bitview-client/index.js:9474](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9474)
+Defined in: [modules/bitview-client/index.js:9460](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L9460)
 
 Broadcast transaction
 
