@@ -6,7 +6,7 @@
 
 # Interface: MerkleProof
 
-Defined in: [modules/bitview-client/index.js:840](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L840)
+Defined in: [modules/bitview-client/index.js:829](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L829)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:840](https://github.com/bitcoinrese
 
 > **blockHeight**: `number`
 
-Defined in: [modules/bitview-client/index.js:841](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L841)
+Defined in: [modules/bitview-client/index.js:830](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L830)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:841](https://github.com/bitcoinrese
 
 > **merkle**: `string`[]
 
-Defined in: [modules/bitview-client/index.js:842](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L842)
+Defined in: [modules/bitview-client/index.js:831](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L831)
 
 Merkle proof path, from the transaction's sibling up
 
@@ -32,6 +32,6 @@ Merkle proof path, from the transaction's sibling up
 
 > **pos**: `number`
 
-Defined in: [modules/bitview-client/index.js:843](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L843)
+Defined in: [modules/bitview-client/index.js:832](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L832)
 
 Transaction position in the block (0-indexed)

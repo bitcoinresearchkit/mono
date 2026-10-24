@@ -8,6 +8,6 @@
 
 > **AnySeriesEndpoint** = [`SeriesEndpoint`](../interfaces/SeriesEndpoint.md)\<`any`\>
 
-Defined in: [modules/bitview-client/index.js:1908](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1908)
+Defined in: [modules/bitview-client/index.js:1897](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1897)
 
 ## Type Parameters

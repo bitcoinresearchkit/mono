@@ -8,7 +8,7 @@
 
 > **PredicateSupply** = `object`
 
-Defined in: [modules/bitview-client/index.js:3407](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3407)
+Defined in: [modules/bitview-client/index.js:3396](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3396)
 
 ## Type Parameters
 

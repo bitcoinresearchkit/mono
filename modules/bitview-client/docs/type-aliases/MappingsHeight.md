@@ -8,7 +8,7 @@
 
 > **MappingsHeight** = `object`
 
-Defined in: [modules/bitview-client/index.js:6383](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6383)
+Defined in: [modules/bitview-client/index.js:6372](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6372)
 
 ## Type Parameters
 
@@ -22,13 +22,13 @@ Defined in: [modules/bitview-client/index.js:6383](https://github.com/bitcoinres
 
 > **day3**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Day3`](Day3.md)\>
 
-### epoch
+### difficultyEpoch
 
-> **epoch**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Epoch`](Epoch.md)\>
+> **difficultyEpoch**: [`SeriesPattern18`](SeriesPattern18.md)\<[`DifficultyEpoch`](DifficultyEpoch.md)\>
 
-### halving
+### halvingEpoch
 
-> **halving**: [`SeriesPattern18`](SeriesPattern18.md)\<[`Halving`](Halving.md)\>
+> **halvingEpoch**: [`SeriesPattern18`](SeriesPattern18.md)\<[`HalvingEpoch`](HalvingEpoch.md)\>
 
 ### hour1
 

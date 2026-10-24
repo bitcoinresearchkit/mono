@@ -8,7 +8,7 @@
 
 > **Balance** = `object`
 
-Defined in: [modules/bitview-client/index.js:4892](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4892)
+Defined in: [modules/bitview-client/index.js:4881](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4881)
 
 ## Type Parameters
 

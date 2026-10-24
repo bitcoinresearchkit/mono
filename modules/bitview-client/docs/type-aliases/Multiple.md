@@ -8,6 +8,6 @@
 
 > **Multiple** = `number`
 
-Defined in: [modules/bitview-client/index.js:874](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L874)
+Defined in: [modules/bitview-client/index.js:863](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L863)
 
 ## Type Parameters

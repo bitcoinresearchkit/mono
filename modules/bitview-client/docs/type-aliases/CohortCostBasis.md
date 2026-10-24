@@ -8,7 +8,7 @@
 
 > **CohortCostBasis** = `object`
 
-Defined in: [modules/bitview-client/index.js:3451](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3451)
+Defined in: [modules/bitview-client/index.js:3440](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3440)
 
 ## Type Parameters
 

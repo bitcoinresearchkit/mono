@@ -8,6 +8,6 @@
 
 > **Year10** = `number`
 
-Defined in: [modules/bitview-client/index.js:1630](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1630)
+Defined in: [modules/bitview-client/index.js:1619](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1619)
 
 ## Type Parameters

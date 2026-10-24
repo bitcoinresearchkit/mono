@@ -8,6 +8,6 @@
 
 > **P2PKHAddressIndex** = [`TypeIndex`](TypeIndex.md)
 
-Defined in: [modules/bitview-client/index.js:947](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L947)
+Defined in: [modules/bitview-client/index.js:936](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L936)
 
 ## Type Parameters

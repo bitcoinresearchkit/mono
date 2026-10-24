@@ -8,7 +8,7 @@
 
 > **BlocksDifficulty** = `object`
 
-Defined in: [modules/bitview-client/index.js:4273](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4273)
+Defined in: [modules/bitview-client/index.js:4262](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4262)
 
 ## Type Parameters
 
@@ -28,7 +28,7 @@ Defined in: [modules/bitview-client/index.js:4273](https://github.com/bitcoinres
 
 ### epoch
 
-> **epoch**: [`SeriesPattern1`](SeriesPattern1.md)\<[`Epoch`](Epoch.md)\>
+> **epoch**: [`SeriesPattern1`](SeriesPattern1.md)\<[`DifficultyEpoch`](DifficultyEpoch.md)\>
 
 ### hashrate
 

@@ -8,7 +8,7 @@
 
 > **Signatures** = `object`
 
-Defined in: [modules/bitview-client/index.js:4644](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4644)
+Defined in: [modules/bitview-client/index.js:4633](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4633)
 
 ## Type Parameters
 

@@ -8,7 +8,7 @@
 
 > **Thenable**\<`T`\> = `PromiseLike`\<[`SeriesData`](SeriesData.md)\<`T`\>\>\[`"then"`\]
 
-Defined in: [modules/bitview-client/index.js:1873](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1873)
+Defined in: [modules/bitview-client/index.js:1862](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1862)
 
 ## Type Parameters
 

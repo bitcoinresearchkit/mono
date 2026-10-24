@@ -8,7 +8,7 @@
 
 > **MappingsP2tr** = `object`
 
-Defined in: [modules/bitview-client/index.js:6469](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6469)
+Defined in: [modules/bitview-client/index.js:6458](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6458)
 
 ## Type Parameters
 

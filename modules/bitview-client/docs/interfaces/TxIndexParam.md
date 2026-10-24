@@ -6,7 +6,7 @@
 
 # Interface: TxIndexParam
 
-Defined in: [modules/bitview-client/index.js:1382](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1382)
+Defined in: [modules/bitview-client/index.js:1371](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1371)
 
 ## Properties
 
@@ -14,6 +14,6 @@ Defined in: [modules/bitview-client/index.js:1382](https://github.com/bitcoinres
 
 > **index**: `number`
 
-Defined in: [modules/bitview-client/index.js:1383](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1383)
+Defined in: [modules/bitview-client/index.js:1372](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1372)
 
 Global transaction index across the chain

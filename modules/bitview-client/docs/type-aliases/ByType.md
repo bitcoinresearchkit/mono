@@ -8,7 +8,7 @@
 
 > **ByType** = `object`
 
-Defined in: [modules/bitview-client/index.js:5461](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5461)
+Defined in: [modules/bitview-client/index.js:5450](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5450)
 
 ## Type Parameters
 

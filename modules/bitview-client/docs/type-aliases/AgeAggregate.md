@@ -8,7 +8,7 @@
 
 > **AgeAggregate**\<`A`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:3954](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3954)
+Defined in: [modules/bitview-client/index.js:3943](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3943)
 
 ## Type Parameters
 

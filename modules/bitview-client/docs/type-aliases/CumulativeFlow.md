@@ -8,7 +8,7 @@
 
 > **CumulativeFlow** = `object`
 
-Defined in: [modules/bitview-client/index.js:5766](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5766)
+Defined in: [modules/bitview-client/index.js:5755](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5755)
 
 ## Type Parameters
 

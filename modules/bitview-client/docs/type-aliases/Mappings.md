@@ -8,7 +8,7 @@
 
 > **Mappings** = `object`
 
-Defined in: [modules/bitview-client/index.js:6744](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6744)
+Defined in: [modules/bitview-client/index.js:6733](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6733)
 
 ## Type Parameters
 
@@ -26,13 +26,13 @@ Defined in: [modules/bitview-client/index.js:6744](https://github.com/bitcoinres
 
 > **day3**: [`MappingsDay3`](MappingsDay3.md)
 
-### epoch
+### difficultyEpoch
 
-> **epoch**: [`MappingsEpoch`](MappingsEpoch.md)
+> **difficultyEpoch**: [`MappingsDifficultyEpoch`](MappingsDifficultyEpoch.md)
 
-### halving
+### halvingEpoch
 
-> **halving**: [`MappingsHalving`](MappingsHalving.md)
+> **halvingEpoch**: [`MappingsHalvingEpoch`](MappingsHalvingEpoch.md)
 
 ### height
 

@@ -8,7 +8,7 @@
 
 > **Age** = `object`
 
-Defined in: [modules/bitview-client/index.js:5315](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5315)
+Defined in: [modules/bitview-client/index.js:5304](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5304)
 
 ## Type Parameters
 

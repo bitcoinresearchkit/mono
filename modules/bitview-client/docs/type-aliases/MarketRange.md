@@ -8,7 +8,7 @@
 
 > **MarketRange** = `object`
 
-Defined in: [modules/bitview-client/index.js:3650](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3650)
+Defined in: [modules/bitview-client/index.js:3639](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3639)
 
 ## Type Parameters
 

@@ -8,7 +8,7 @@
 
 > **BandCapital** = `object`
 
-Defined in: [modules/bitview-client/index.js:3256](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3256)
+Defined in: [modules/bitview-client/index.js:3245](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3245)
 
 ## Type Parameters
 

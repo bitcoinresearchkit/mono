@@ -8,7 +8,7 @@
 
 > **SeriesPattern28**\<`T`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:2551](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2551)
+Defined in: [modules/bitview-client/index.js:2540](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2540)
 
 ## Type Parameters
 

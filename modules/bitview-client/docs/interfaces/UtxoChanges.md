@@ -6,7 +6,7 @@
 
 # Interface: UtxoChanges
 
-Defined in: [modules/bitview-client/index.js:1537](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1537)
+Defined in: [modules/bitview-client/index.js:1526](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1526)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1537](https://github.com/bitcoinres
 
 > **count**: `number`[]
 
-Defined in: [modules/bitview-client/index.js:1539](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1539)
+Defined in: [modules/bitview-client/index.js:1528](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1528)
 
 Number of outputs in each row.
 
@@ -24,7 +24,7 @@ Number of outputs in each row.
 
 > **height**: `number`[]
 
-Defined in: [modules/bitview-client/index.js:1538](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1538)
+Defined in: [modules/bitview-client/index.js:1527](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1527)
 
 Creation height of each row.
 
@@ -34,6 +34,6 @@ Creation height of each row.
 
 > **supply**: `number`[]
 
-Defined in: [modules/bitview-client/index.js:1540](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1540)
+Defined in: [modules/bitview-client/index.js:1529](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1529)
 
 BTC held by the outputs in each row.

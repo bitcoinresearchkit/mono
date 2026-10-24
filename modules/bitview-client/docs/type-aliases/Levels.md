@@ -8,7 +8,7 @@
 
 > **Levels** = `object`
 
-Defined in: [modules/bitview-client/index.js:3113](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3113)
+Defined in: [modules/bitview-client/index.js:3102](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3102)
 
 ## Type Parameters
 
