@@ -19,16 +19,16 @@ use crate::{LazyDeltaFromHeight, LazyWindowStartVec};
 
 /// Added to a dollar window's version: what's read from it changed (NaN where it reaches before
 /// the first price), so whatever is computed from it is again.
-pub const PRICED_VERSION: Version = Version::ONE;
+pub(crate) const PRICED_VERSION: Version = Version::ONE;
 
 #[inline]
-pub fn is_priced(height: usize) -> bool {
+fn is_priced(height: usize) -> bool {
     height >= FIRST_PRICE_HEIGHT
 }
 
 /// The first priced height at or after `height`.
 #[inline]
-pub fn first_priced(height: usize) -> usize {
+fn first_priced(height: usize) -> usize {
     height.max(FIRST_PRICE_HEIGHT)
 }
 

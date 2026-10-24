@@ -15,7 +15,7 @@ pub struct GetBlockHeaderVerbose {
     pub height: i64,
     /// None for the genesis block.
     #[serde(rename = "previousblockhash")]
-    pub previous_block_hash: Option<String>,
+    pub(crate) previous_block_hash: Option<String>,
 }
 
 /// `getblocktemplate`.

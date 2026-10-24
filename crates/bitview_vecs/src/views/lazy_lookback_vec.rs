@@ -34,7 +34,7 @@ where
     T: VecValue,
     F: Fn(S, Option<S>) -> T + Clone + Send + Sync + 'static,
 {
-    pub fn new(
+    pub(crate) fn new(
         name: &str,
         version: Version,
         source: &(impl ReadableCloneableVec<I, S> + ?Sized),
