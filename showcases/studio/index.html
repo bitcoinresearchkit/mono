@@ -12145,8 +12145,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const isPreview = (/** @type {Chart | null | undefined} */ doc) => Boolean(doc && previewCharts.includes(doc));
       /** Whether a chart is one of yours (not a preview, not a preset). @param {Chart} doc */
       const isYours = (doc) => !isPreview(doc) && doc.preset === undefined;
-      /** A preview added, the newest (once). @param {Chart} doc */
-      const addPreview = (doc) => void (isPreview(doc) || previewCharts.unshift(doc));
+      /** The most previews kept as they were opened: older ones go as newer come (an edited one stays till it's saved or closed). */
+      const MOST_PREVIEWS = 20;
+      /**
+       * A preview added, the newest (once); past the most, the oldest not edited let go of (as a closed one is: no edit
+       * lost; never the one open, nor a draft).
+       * @param {Chart} doc
+       */
+      function addPreview(doc) {
+        if (isPreview(doc)) return;
+        previewCharts.unshift(doc);
+        const plain = previewCharts.filter((item) => !touched.has(item) && !drafts.has(item) && item !== chart && item !== doc);
+        for (const old of plain.slice(MOST_PREVIEWS - 1)) dropPreview(old), forgetPreview(old), previews.delete(old.id);
+      }
       /** A preview let go of (kept, closed, left empty). @param {Chart} doc */
       const dropPreview = (doc) => void (previewCharts = previewCharts.filter((item) => item !== doc));
       /** A new chart, empty, as a preview. */
