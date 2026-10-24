@@ -30333,8 +30333,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (side === "left" || side === "right") {
           const right = side === "right" ? rect.right + gap + width <= bounds.right - 8 : rect.left - gap - width < bounds.left + 8;
           const x = right ? rect.right + gap : rect.left - gap - width, top = clamp(rect.top + rect.height / 2 - height / 2, bounds.top + 8, bounds.bottom - height - 8);
-          menu.style.left = `${x - origin.x}px`;
-          menu.style.top = `${top - origin.y}px`;
+          placeFixed(menu, origin, x, top);
           menu.style.transformOrigin = `${right ? "0" : "100%"} ${clamp(rect.top + rect.height / 2 - top, 0, height)}px`;
           void menu.offsetWidth;
           menu.style.animation = "";
@@ -30342,8 +30341,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         const left = clamp(side ? rect.left + rect.width / 2 - width / 2 : rect.left + width > bounds.right - 8 && !point ? rect.right - width : rect.left, bounds.left + 8, bounds.right - width - 8);
         const fitsBelow = rect.bottom + gap + height <= bounds.bottom - 8, below = side === "above" ? rect.top - gap - height < bounds.top + 8 && fitsBelow : fitsBelow;
-        menu.style.left = `${left - origin.x}px`;
-        menu.style.top = `${(below ? rect.bottom + gap : Math.max(bounds.top + 8, rect.top - gap - height)) - origin.y}px`;
+        placeFixed(menu, origin, left, below ? rect.bottom + gap : Math.max(bounds.top + 8, rect.top - gap - height));
         menu.style.transformOrigin = `${clamp(rect.left + (side ? rect.width : Math.min(rect.width, 24)) / 2 - left, 0, width)}px ${below ? "0" : "100%"}`;
         void menu.offsetWidth;
         menu.style.animation = "";
@@ -30356,6 +30354,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         element.style.left = element.style.top = "0px";
         const { left: x, top: y } = element.getBoundingClientRect();
         return { x, y };
+      }
+      /**
+       * A fixed element put at `left`, `top` in the viewport (from its `origin`, see fixedOrigin), on whole device pixels:
+       * its text drawn the same wherever it's drawn (on a layer of its own as it opens or a highlight glides in it, or
+       * not), not a pixel's fraction off once it's painted again (Chromium).
+       */
+      function placeFixed(/** @type {HTMLElement} */ element, /** @type {{ x: number, y: number }} */ origin, /** @type {number} */ left, /** @type {number} */ top) {
+        const onPixels = (/** @type {number} */ value) => Math.round(value * devicePixelRatio) / devicePixelRatio;
+        element.style.left = `${onPixels(left) - origin.x}px`;
+        element.style.top = `${onPixels(top) - origin.y}px`;
       }
       /** A phone's menu's backdrop: tapped, it closes the menu, and the tap ends there. `scrimFade`: its going, as its sheet slides away. */
       const menuScrim = document.createElement("div");
@@ -30545,8 +30553,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const top = clamp(own.top - 4, bounds.top + 8, bounds.bottom - height - 8);
         // (Fitting on neither side: on the roomier one, kept within its host, over its menu's edge.)
         const side = right || parent.left - 4 - width >= bounds.left + 8 ? right : bounds.right - parent.right >= parent.left - bounds.left;
-        sub.style.left = `${clamp(side ? parent.right + 4 : parent.left - 4 - width, bounds.left + 8, bounds.right - width - 8) - origin.x}px`;
-        sub.style.top = `${top - origin.y}px`;
+        placeFixed(sub, origin, clamp(side ? parent.right + 4 : parent.left - 4 - width, bounds.left + 8, bounds.right - width - 8), top);
         sub.style.transformOrigin = `${side ? "0" : "100%"} ${clamp(own.top + own.height / 2 - top, 0, height)}px`;
         void sub.offsetWidth;
         sub.style.animation = "";
@@ -32117,8 +32124,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           top = rect.top + rect.height / 2 - box.height / 2;
         } else if (top + box.height > innerHeight - 8) top = rect.top - box.height - 8;
         const origin = fixedOrigin(tip);
-        tip.style.left = `${clamp(left, 8, innerWidth - box.width - 8) - origin.x}px`;
-        tip.style.top = `${clamp(top, 8, innerHeight - box.height - 8) - origin.y}px`;
+        placeFixed(tip, origin, clamp(left, 8, innerWidth - box.width - 8), clamp(top, 8, innerHeight - box.height - 8));
       }
       function hideTip() {
         clearTimeout(tipTimer);
