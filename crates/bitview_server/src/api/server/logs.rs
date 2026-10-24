@@ -7,7 +7,7 @@ use bitview_types::{LogLevel, LogLine, Logs};
 use brk_logger::{Line, Recent};
 use tracing::Level;
 
-use crate::{extended::HeaderMapExtended, params::LogsQuery};
+use crate::{cache::CDN_LIVE, extended::HeaderMapExtended, params::LogsQuery};
 
 pub async fn get(Query(query): Query<LogsQuery>) -> Response {
     // A `seq` from another process (before a restart) counts nothing here: every kept line.
@@ -21,8 +21,9 @@ pub async fn get(Query(query): Query<LogsQuery>) -> Response {
     })
     .into_response();
     let headers = response.headers_mut();
-    headers.insert_cache_control("no-store");
-    headers.insert_cdn_cache_control("no-store");
+    // A second, for browsers and the CDN alike: readers polling together share one answer.
+    headers.insert_cache_control(CDN_LIVE);
+    headers.insert_cdn_cache_control(CDN_LIVE);
     response
 }
 

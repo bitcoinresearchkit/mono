@@ -12,7 +12,8 @@ use crate::{etag::Etag, extended::HeaderMapExtended};
 // Browser-facing: always revalidate via ETag. `no-cache` means "cache it but
 // check before use" (not "don't cache"); ETag makes the check cheap.
 const CC: &str = "public, no-cache, must-revalidate";
-const CDN_LIVE: &str = "public, max-age=1, must-revalidate";
+/// Reused for a second, then asked again: what a CDN may do with a live answer.
+pub const CDN_LIVE: &str = "public, max-age=1, must-revalidate";
 const CDN_STABLE: &str = "public, max-age=31536000, immutable";
 
 // Revalidating errors are briefly cacheable, but never served stale: even a permanent input

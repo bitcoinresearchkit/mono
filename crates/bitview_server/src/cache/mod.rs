@@ -3,5 +3,5 @@
 mod mode;
 mod params;
 pub use mode::CdnCacheMode;
-pub use params::CacheParams;
+pub use params::{CDN_LIVE, CacheParams};
 pub use params::ErrorCachePolicy;
