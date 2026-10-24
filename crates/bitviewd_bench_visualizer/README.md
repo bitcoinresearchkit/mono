@@ -1,6 +1,7 @@
 # bitviewd_bench_visualizer
 
-SVG charts for `bitviewd_bench` runs.
+SVG charts for `bitviewd_bench` runs, and `benches/index.html`, one self-contained page to
+browse them all (published at [perf.bitview.dev](https://perf.bitview.dev)).
 
 ## Usage
 
@@ -35,5 +36,14 @@ cannot be read, or without memory samples, is reported and skipped.
   - Height, memory, CPU and I/O charts show the six most recent.
   - A table gives compute time per plugin and run.
 
-Rates come from cumulative counters over exactly the trailing 60 seconds, so they start
-after the first minute; totals are the counters' growth over the run.
+- `index.html`: every machine's runs in one file, their data inside it, no other file or
+  network access needed: the latest complete run, each complete run's time and peak memory,
+  a table of every run, and a run's curves (height, memory, CPU, disk, data directory) on one
+  time axis beside another run's, with time per plugin and the data directory by component.
+  Curves keep 400 points a run. To publish it, deploy the one file (`bunx wrangler pages
+  deploy <dir holding it> --project-name bitview-perf`).
+
+In the SVGs, rates come from cumulative counters over exactly the trailing 60 seconds, so
+they start after the first minute; totals are the counters' growth over the run. The page
+keeps 400 points a curve, so its rates are over the trailing minute as closely as those
+points allow, from its second point on.

@@ -1,6 +1,7 @@
 mod chart;
 mod data;
 mod format;
+mod page;
 
 use std::{error::Error, fs, path::Path};
 
@@ -9,25 +10,34 @@ use data::Run;
 
 type Result<T = ()> = std::result::Result<T, Box<dyn Error>>;
 
-/// One `dashboard.svg` per run, and per machine a `compare.svg` across its complete runs. `root`
-/// is a Bitview data directory (or the workspace) holding `benches/<machine>/`.
+/// One `dashboard.svg` per run, per machine a `compare.svg` across its complete runs, and an
+/// `index.html` to browse them all, every run's data inside it. `root` is a Bitview data
+/// directory (or the workspace) holding `benches/<machine>/`.
 pub fn generate(root: &Path) -> Result {
     let dir = root.join("benches");
     if !dir.exists() {
         return Err(format!("{} does not exist", dir.display()).into());
     }
-    for entry in fs::read_dir(&dir)? {
-        let machine = entry?.path();
-        if machine.is_dir() {
-            generate_machine(&machine)?;
-        }
+    let mut machines = fs::read_dir(&dir)?
+        .map(|entry| entry.map(|entry| entry.path()))
+        .collect::<std::io::Result<Vec<_>>>()?;
+    machines.retain(|machine| machine.is_dir());
+    machines.sort();
+    let mut all = Vec::new();
+    for machine in machines {
+        let runs = data::discover(&machine)?;
+        generate_machine(&machine, &runs)?;
+        let name = machine.file_name().unwrap_or_default().to_string_lossy().into_owned();
+        all.push((name, runs));
     }
+    let output = dir.join("index.html");
+    page::write(&all, &output)?;
+    println!("Generated: {}", output.display());
     Ok(())
 }
 
-fn generate_machine(dir: &Path) -> Result {
-    let runs = data::discover(dir)?;
-    for run in &runs {
+fn generate_machine(dir: &Path, runs: &[Run]) -> Result {
+    for run in runs {
         let output = run.path.join("dashboard.svg");
         dashboard(run, &output)?;
         println!("Generated: {}", output.display());

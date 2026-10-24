@@ -1,6 +1,6 @@
 [package]
 name = "bitviewd_bench_visualizer"
-description = "Charts for bitviewd bootstrap benchmark runs."
+description = "Charts and a browsable page for bitviewd bootstrap benchmark runs."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,3 +10,4 @@ publish = false
 
 [dependencies]
 plotters = { version = "0.3.7", default-features = false, features = ["svg_backend", "line_series"] }
+serde_json = { workspace = true }

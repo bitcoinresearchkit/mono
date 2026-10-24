@@ -1235,6 +1235,7 @@ name = "bitviewd_bench_visualizer"
 version = "0.12.2"
 dependencies = [
  "plotters",
+ "serde_json",
 ]
 
 [[package]]

@@ -1,0 +1,779 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>bitviewd benchmarks</title>
+    <meta name="description" content="bitviewd's full syncs from block 0, measured: how long they take, the memory, disk and CPU they use, run by run." />
+    <style>
+      /* A lab report: a quiet ground, numbers in a monospace, one accent; every value measured, none claimed. */
+      :root {
+        color-scheme: light dark;
+        --app: light-dark(#f7f7f5, #0c0d0e);
+        --card: light-dark(#ffffff, #131416);
+        --raised: light-dark(#efefec, #1b1c1f);
+        --ink: light-dark(#141518, #eceef1);
+        --text: light-dark(#3a3d44, #c4c8cf);
+        --soft: light-dark(#666a73, #8c919a);
+        --faint: light-dark(#686c75, #8a8f98);
+        --line: light-dark(rgb(20 21 24 / 0.09), rgb(236 238 241 / 0.08));
+        --grid: light-dark(rgb(20 21 24 / 0.06), rgb(236 238 241 / 0.05));
+        --accent: light-dark(#d95f12, #ff8a3d);
+        --cycle-indexing: light-dark(rgb(217 95 18 / 0.06), rgb(255 138 61 / 0.07));
+        --cycle-compute: light-dark(rgb(43 108 230 / 0.06), rgb(110 160 255 / 0.07));
+        --cycle-catch-up: light-dark(rgb(20 21 24 / 0.04), rgb(236 238 241 / 0.04));
+        --compare: light-dark(#6b6f78, #9aa0aa);
+        --sans: -apple-system, system-ui, "Segoe UI", Roboto, Inter, sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--text);
+        background: var(--app);
+        font: 15px/1.55 var(--sans);
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .num {
+        font-family: var(--mono);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .page {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 28px 16px 72px;
+
+        @media (min-width: 720px) {
+          padding: 40px 32px 96px;
+        }
+      }
+
+      header h1 {
+        margin: 0;
+        color: var(--ink);
+        font-size: 22px;
+        font-weight: 650;
+        letter-spacing: -0.02em;
+
+        span {
+          color: var(--faint);
+          font-weight: 500;
+        }
+      }
+
+      header p {
+        max-width: 64ch;
+        margin: 6px 0 0;
+        color: var(--soft);
+      }
+
+      .tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 20px;
+
+        button {
+          border: 0;
+          border-radius: 999px;
+          padding: 6px 14px;
+          background: var(--raised);
+          color: var(--soft);
+          font: inherit;
+          font-size: 13px;
+          font-weight: 600;
+          cursor: pointer;
+
+          &[aria-pressed="true"] {
+            color: var(--app);
+            background: var(--ink);
+          }
+        }
+      }
+
+      section {
+        margin-top: 20px;
+        border-radius: 14px;
+        padding: 20px;
+        background: var(--card);
+        box-shadow: 0 0 0 1px var(--line);
+
+        @media (min-width: 720px) {
+          padding: 24px 28px;
+        }
+      }
+
+      h2 {
+        margin: 0;
+        color: var(--ink);
+        font-size: 15px;
+        font-weight: 650;
+
+        small {
+          margin-left: 8px;
+          color: var(--faint);
+          font-weight: 400;
+        }
+      }
+
+      /* ── The latest complete run ── */
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 20px 40px;
+
+        @media (min-width: 900px) {
+          grid-template-columns: auto minmax(0, 1fr);
+          align-items: end;
+        }
+
+        .kicker {
+          color: var(--soft);
+          font-size: 13px;
+        }
+
+        .big {
+          margin: 4px 0 0;
+          color: var(--ink);
+          font: 600 clamp(44px, 9vw, 76px) / 1 var(--mono);
+          letter-spacing: -0.04em;
+        }
+
+        .what {
+          margin-top: 8px;
+          color: var(--soft);
+        }
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px 24px;
+        margin: 0;
+
+        @media (min-width: 640px) {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        dt {
+          color: var(--faint);
+          font-size: 12px;
+        }
+
+        dd {
+          margin: 2px 0 0;
+          color: var(--ink);
+          font: 500 19px var(--mono);
+          letter-spacing: -0.02em;
+
+          small {
+            display: block;
+            color: var(--soft);
+            font: 12px var(--sans);
+            letter-spacing: 0;
+          }
+        }
+      }
+
+      .host {
+        grid-column: 1 / -1;
+        border-top: 1px solid var(--line);
+        padding-top: 14px;
+        color: var(--soft);
+        font-size: 13px;
+
+        a {
+          color: var(--accent);
+          text-decoration: none;
+
+          &:hover {
+            text-decoration: underline;
+          }
+        }
+      }
+
+      /* ── Charts ── */
+
+      .chart {
+        position: relative;
+        margin-top: 12px;
+
+        svg {
+          display: block;
+          width: 100%;
+          overflow: visible;
+        }
+
+        text {
+          fill: var(--faint);
+          font: 11px var(--mono);
+        }
+
+        .gridline {
+          stroke: var(--grid);
+        }
+
+        .series {
+          fill: none;
+          stroke-width: 1.75px;
+          stroke-linejoin: round;
+        }
+
+        .cross {
+          stroke: var(--soft);
+          stroke-dasharray: 2 3;
+        }
+      }
+
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 16px;
+        min-height: 1.5em;
+        margin-top: 6px;
+        color: var(--soft);
+        font-size: 12.5px;
+
+        i {
+          display: inline-block;
+          width: 12px;
+          height: 0;
+          margin-right: 6px;
+          vertical-align: 0.3em;
+          border-top: 2px solid var(--c);
+
+          &.dashed {
+            border-top-style: dashed;
+          }
+        }
+
+        b {
+          color: var(--ink);
+          font: 500 12.5px var(--mono);
+        }
+      }
+
+      .charts {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 24px 32px;
+        margin-top: 8px;
+
+        @media (min-width: 900px) {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        }
+
+        h3 {
+          margin: 0;
+          color: var(--ink);
+          font-size: 13px;
+          font-weight: 600;
+        }
+      }
+
+      .detail-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px 16px;
+
+        label {
+          color: var(--soft);
+          font-size: 13px;
+        }
+
+        select {
+          margin-left: 6px;
+          border: 0;
+          border-radius: 8px;
+          padding: 5px 8px;
+          background: var(--raised);
+          color: var(--ink);
+          font: 13px var(--mono);
+        }
+      }
+
+      .phases {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 14px;
+        margin-top: 10px;
+        color: var(--soft);
+        font-size: 12.5px;
+
+        i {
+          display: inline-block;
+          width: 12px;
+          height: 10px;
+          margin-right: 6px;
+          border-radius: 2px;
+          vertical-align: -0.05em;
+          background: var(--c);
+          box-shadow: inset 0 0 0 1px var(--line);
+        }
+      }
+
+      /* Bars: a name, a bar as long as its share, its value; the compared run's value beside. */
+      .bars {
+        display: grid;
+        grid-template-columns: minmax(0, 11em) minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 6px 12px;
+        margin-top: 12px;
+        font-size: 13px;
+
+        .row {
+          display: contents;
+        }
+
+        /* (A phone: a row's name and values on one line, its bar under them, the whole width.) */
+        @media (max-width: 559px) {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 10px;
+
+          .row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            grid-template-areas: "name value" "track track";
+            gap: 3px 10px;
+          }
+
+          .name {
+            grid-area: name;
+          }
+
+          .value {
+            grid-area: value;
+          }
+
+          .track {
+            grid-area: track;
+          }
+        }
+
+        .name {
+          overflow: hidden;
+          color: var(--text);
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+
+        .track {
+          position: relative;
+          height: 10px;
+        }
+
+        .bar {
+          position: absolute;
+          top: 0;
+          left: 0;
+          height: 100%;
+          border-radius: 2px;
+          background: var(--accent);
+        }
+
+        .bar.other {
+          top: 7px;
+          height: 3px;
+          background: var(--compare);
+        }
+
+        .value {
+          color: var(--ink);
+          font: 12.5px var(--mono);
+          text-align: right;
+          white-space: nowrap;
+
+          small {
+            margin-left: 6px;
+            color: var(--faint);
+          }
+        }
+      }
+
+      /* ── Runs ── */
+
+      .table {
+        margin-top: 12px;
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        white-space: nowrap;
+
+        th,
+        td {
+          border-top: 1px solid var(--line);
+          padding: 8px 10px;
+          text-align: right;
+        }
+
+        th:first-child,
+        td:first-child {
+          padding-left: 0;
+          text-align: left;
+        }
+
+        thead th {
+          border-top: 0;
+          color: var(--faint);
+          font-size: 12px;
+          font-weight: 500;
+        }
+
+        td {
+          font-family: var(--mono);
+          font-size: 12.5px;
+          color: var(--ink);
+        }
+
+        /* (A run's commit is a button: picked by click, tap or keys.) */
+        .pick {
+          border: 0;
+          padding: 0;
+          background: none;
+          color: inherit;
+          font: inherit;
+          cursor: pointer;
+
+          &:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+          }
+        }
+
+        tbody tr {
+          cursor: pointer;
+
+          &:hover td {
+            background: var(--raised);
+          }
+
+          &[aria-selected="true"] td {
+            background: color-mix(in oklab, var(--accent), transparent 88%);
+          }
+        }
+
+        .incomplete td {
+          color: var(--faint);
+        }
+      }
+
+      footer {
+        margin-top: 28px;
+        color: var(--faint);
+        font-size: 12.5px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1>bitviewd <span>benchmarks</span></h1>
+        <p>Full syncs from block 0, each at one commit, sampled every few seconds: how long they take and the memory, disk and CPU they use. Runs on different machines don't compare.</p>
+        <div class="tabs" id="tabs" role="group" aria-label="Machine"></div>
+      </header>
+
+      <section aria-label="Latest complete run">
+        <div class="hero" id="hero"></div>
+      </section>
+
+      <section aria-labelledby="history-title">
+        <h2 id="history-title">Run by run <small>complete runs: time to sync, and peak memory</small></h2>
+        <div class="chart" id="history"></div>
+        <div class="legend"><span><i style="--c: var(--accent)"></i>time to sync</span><span><i class="dashed" style="--c: var(--compare)"></i>peak memory</span></div>
+      </section>
+
+      <section aria-labelledby="runs-title">
+        <h2 id="runs-title">Every run <small>pick one to see it below</small></h2>
+        <div class="table"><table id="runs"></table></div>
+      </section>
+
+      <section aria-labelledby="run-title">
+        <div class="detail-head">
+          <h2 id="run-title"></h2>
+          <label>Compare with<select id="compare"></select></label>
+        </div>
+        <div class="phases" id="phases"></div>
+        <div class="charts" id="charts"></div>
+      </section>
+
+      <section aria-labelledby="plugins-title">
+        <h2 id="plugins-title">Compute time per plugin</h2>
+        <div class="bars" id="compute"></div>
+      </section>
+
+      <section aria-labelledby="disk-title">
+        <h2 id="disk-title">Data directory by component <small>at the end</small></h2>
+        <div class="bars" id="breakdown"></div>
+      </section>
+
+      <footer>Written by <code>bitviewd_bench_visualizer</code> from each run's recordings in <code>benches/</code>. Curves keep 400 points a run.</footer>
+    </div>
+
+    <script>
+      "use strict";
+      const DATA = __DATA__;
+      const $ = (id) => document.getElementById(id);
+      const REPO = "https://github.com/bitcoinresearchkit/mono/commit/";
+
+      // ── Words ──
+      const bytes = (v) => {
+        if (v == null) return "–";
+        const units = ["B", "KiB", "MiB", "GiB", "TiB"];
+        let k = 0;
+        while (v >= 1024 && k < units.length - 1) (v /= 1024), k++;
+        return `${v >= 100 || k === 0 ? v.toFixed(0) : v.toFixed(v >= 10 ? 1 : 2)} ${units[k]}`;
+      };
+      const duration = (s) => {
+        if (s == null) return "–";
+        if (s < 60) return `${s.toFixed(s < 10 ? 1 : 0)}s`;
+        const m = Math.round(s / 60);
+        return m < 60 ? `${m}m` : `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m`;
+      };
+      const grouped = (n) => (n == null ? "–" : Math.round(n).toLocaleString("en-US"));
+      const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      const dated = (unix) => {
+        if (!unix) return "–";
+        const d = new Date(unix * 1000);
+        return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+      };
+      const rev = (run) => (run.revision ? run.revision.slice(0, 9) + (run.dirty ? "*" : "") : run.label.split("/")[0]);
+      const escape = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+      /** A machine's folder name in words: "apple-m6-16gb-external-tb" as "Apple M6 · 16 GB · external (Thunderbolt)". */
+      const machineWords = (name) => name.replace(/^apple-/, "Apple ").replace(/ m(\d)/, " M$1").replace(/-(\d+)gb-/, " · $1 GB · ").replace(/-tb$/, " (Thunderbolt)").replace(/-/g, " ");
+
+      // ── State: the machine whose latest complete run is newest ──
+      DATA.machines = DATA.machines.filter((m) => m.runs.length);
+      const newest = (m) => Math.max(0, ...m.runs.filter((r) => r.status === "complete").map((r) => r.started_at));
+      let machine = DATA.machines.reduce((best, m, k) => (newest(m) > newest(DATA.machines[best]) ? k : best), 0);
+      let selected = null, compared = null;
+      const runs = () => DATA.machines[machine].runs;
+      const complete = () => runs().filter((r) => r.status === "complete");
+
+      // ── Machines ──
+      function tabs() {
+        $("tabs").innerHTML = DATA.machines.map((m, k) => `<button type="button" aria-pressed="${k === machine}" data-k="${k}">${escape(machineWords(m.name))} <span class="num">· ${m.runs.length}</span></button>`).join("");
+      }
+      $("tabs").addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        machine = Number(b.dataset.k);
+        selected = compared = null;
+        render();
+      });
+
+      // ── The latest complete run ──
+      function hero() {
+        const all = complete(), r = all.at(-1);
+        if (!r) return ($("hero").innerHTML = `<p>No complete run on this machine yet.</p>`);
+        const h = r.host;
+        $("hero").innerHTML = `
+          <div><div class="kicker">Latest full sync, ${dated(r.started_at)}</div><div class="big">${duration(r.duration_s)}</div>
+            <div class="what">to read and compute <span class="num">${grouped(r.chain_height)}</span> blocks</div></div>
+          <dl class="stats">
+            <div><dt>Peak memory</dt><dd>${bytes(r.peak_memory?.bytes)}<small>${escape(r.peak_memory?.name ?? "")}</small></dd></div>
+            <div><dt>Data directory</dt><dd>${bytes(r.disk_bytes)}<small>at the end</small></dd></div>
+            <div><dt>Read, written</dt><dd>${bytes(r.read_bytes)}<small>${bytes(r.written_bytes)} written</small></dd></div>
+            <div><dt>CPU time</dt><dd>${duration((r.cpu_user_s ?? 0) + (r.cpu_system_s ?? 0))}<small>${duration(r.cpu_user_s)} user, ${duration(r.cpu_system_s)} system</small></dd></div>
+            <div><dt>Indexing</dt><dd>${duration(phase(r, "indexing"))}<small>reading the blocks</small></dd></div>
+            <div><dt>Compute</dt><dd>${duration(phase(r, "compute") + phase(r, "catch-up"))}<small>every series</small></dd></div>
+          </dl>
+          <div class="host">${[h.cpu, h.ram_bytes && `${bytes(h.ram_bytes)} memory`, h.storage, h.cores && `${h.cores} cores`, h.cache_bytes && `${bytes(h.cache_bytes)} cache`, r.version && `bitviewd ${r.version}`].filter(Boolean).map(escape).join(" · ")} · commit ${r.revision ? `<a href="${REPO}${r.revision}">${rev(r)}</a>` : rev(r)}</div>`;
+      }
+      const phase = (r, name) => r.cycles.filter((c) => c.name === name).reduce((t, c) => t + c.end - c.start, 0);
+
+      // ── History: complete runs in time order, time to sync as bars, peak memory as a line ──
+      function history() {
+        const all = complete(), el = $("history");
+        if (all.length < 1) return (el.innerHTML = "");
+        const w = el.clientWidth || 800, h = 200, pad = { l: 44, r: 52, t: 10, b: 24 };
+        const tmax = Math.max(...all.map((r) => r.duration_s)) * 1.1, mmax = Math.max(...all.map((r) => r.peak_memory?.bytes ?? 0)) * 1.15;
+        const slot = (w - pad.l - pad.r) / all.length, bw = Math.min(40, slot * 0.6);
+        const x = (k) => pad.l + slot * (k + 0.5), yT = (s) => h - pad.b - (s / tmax) * (h - pad.t - pad.b), yM = (b) => h - pad.b - (b / mmax) * (h - pad.t - pad.b);
+        let svg = "";
+        for (let k = 0; k <= 4; k++) {
+          const s = (tmax / 4) * k, y = yT(s);
+          svg += `<line class="gridline" x1="${pad.l}" x2="${w - pad.r}" y1="${y}" y2="${y}"/><text x="${pad.l - 6}" y="${y + 4}" text-anchor="end">${duration(s)}</text><text x="${w - pad.r + 6}" y="${y + 4}">${bytes((mmax / 4) * k)}</text>`;
+        }
+        all.forEach((r, k) => {
+          const y = yT(r.duration_s), sel = r === selected;
+          svg += `<rect data-label="${escape(r.label)}" x="${x(k) - bw / 2}" y="${y}" width="${bw}" height="${h - pad.b - y}" rx="3" fill="var(--accent)" opacity="${sel ? 1 : 0.55}" style="cursor:pointer"><title>${escape(rev(r))}, ${dated(r.started_at)}: ${duration(r.duration_s)}, peak ${bytes(r.peak_memory?.bytes)}</title></rect>`;
+          // (A commit's name under its bar, where it has 56px of room; else every few, the newest kept.)
+          const every = Math.ceil(56 / slot);
+          if ((all.length - 1 - k) % every === 0) svg += `<text x="${x(k)}" y="${h - 6}" text-anchor="middle">${escape(rev(r).slice(0, 7))}</text>`;
+        });
+        const line = all.map((r, k) => `${k ? "L" : "M"}${x(k)},${yM(r.peak_memory?.bytes ?? 0)}`).join("");
+        svg += `<path d="${line}" fill="none" stroke="var(--compare)" stroke-width="1.5" stroke-dasharray="4 3"/>` + all.map((r, k) => `<circle cx="${x(k)}" cy="${yM(r.peak_memory?.bytes ?? 0)}" r="3" fill="var(--compare)"/>`).join("");
+        el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" height="${h}">${svg}</svg>`;
+      }
+      $("history").addEventListener("click", (e) => {
+        const label = e.target.closest("[data-label]")?.dataset.label;
+        if (label) pick(runs().find((r) => r.label === label));
+      });
+
+      // ── Every run ──
+      function table() {
+        const list = [...runs()].reverse();
+        $("runs").innerHTML = `<thead><tr><th>Commit</th><th>Started</th><th>Status</th><th>Time</th><th>Indexing</th><th>Compute</th><th>Peak memory</th><th>Data dir</th><th>Read</th><th>Written</th></tr></thead><tbody>${list.map((r) => `<tr data-label="${escape(r.label)}" aria-selected="${r === selected}" class="${r.status === "complete" ? "" : "incomplete"}"><td><button type="button" class="pick" aria-pressed="${r === selected}">${escape(rev(r))}</button></td><td>${dated(r.started_at)}</td><td>${escape(r.status ?? "unknown")}</td><td>${duration(r.duration_s)}</td><td>${duration(phase(r, "indexing"))}</td><td>${duration(phase(r, "compute") + phase(r, "catch-up"))}</td><td>${bytes(r.peak_memory?.bytes)}</td><td>${bytes(r.disk_bytes)}</td><td>${bytes(r.read_bytes)}</td><td>${bytes(r.written_bytes)}</td></tr>`).join("")}</tbody>`;
+      }
+      $("runs").addEventListener("click", (e) => {
+        const label = e.target.closest("tr[data-label]")?.dataset.label;
+        if (label) pick(runs().find((r) => r.label === label));
+      });
+
+      // ── A run's curves on one time axis, its phases shaded; a compared run dashed ──
+      /** A counter's rate: its growth over each trailing minute (or as close as the kept points allow), per second. */
+      function rate(points, scale = 1) {
+        const out = [];
+        let j = 0;
+        for (let i = 1; i < points.length; i++) {
+          while (j < i - 1 && points[i][0] - points[j + 1][0] >= 60) j++;
+          const dt = points[i][0] - points[j][0];
+          if (dt > 0) out.push([points[i][0], ((points[i][1] - points[j][1]) / dt) * scale]);
+        }
+        return out;
+      }
+      const CHARTS = [
+        { title: "Indexed height", get: (r) => [["height", r.curves.height]], fmt: grouped, axis: (v) => (v >= 1e6 ? `${(v / 1e6).toFixed(1)}M` : `${Math.round(v / 1e3)}k`) },
+        { title: "Memory footprint", get: (r) => [["memory", r.curves.memory]], fmt: bytes, axis: bytes },
+        { title: "CPU, cores busy", get: (r) => [["user", rate(r.curves.cpu_user_ms, 1 / 1000)], ["system", rate(r.curves.cpu_system_ms, 1 / 1000)]], fmt: (v) => v.toFixed(1), axis: (v) => v.toFixed(0) },
+        { title: "Disk, per second", get: (r) => [["read", rate(r.curves.read_bytes)], ["written", rate(r.curves.written_bytes)]], fmt: (v) => `${bytes(v)}/s`, axis: bytes },
+        { title: "Data directory", get: (r) => [["size", r.curves.disk_bytes]], fmt: bytes, axis: bytes },
+      ];
+      const COLORS = ["var(--accent)", "light-dark(#2b6ce6, #6ea0ff)"];
+      let cross = null;
+      function detail() {
+        const r = selected, o = compared;
+        $("run-title").innerHTML = `${escape(rev(r))} <small>${dated(r.started_at)} · ${escape(r.status ?? "unknown")} in ${duration(r.duration_s)}</small>`;
+        $("compare").innerHTML = `<option value="">nothing</option>` + [...runs()].reverse().filter((x) => x !== r).map((x) => `<option value="${escape(x.label)}"${x === o ? " selected" : ""}>${escape(rev(x))} · ${duration(x.duration_s)}</option>`).join("");
+        const shades = { indexing: "var(--cycle-indexing)", compute: "var(--cycle-compute)", "catch-up": "var(--cycle-catch-up)" };
+        $("phases").innerHTML = [...new Set(r.cycles.map((c) => c.name))].map((n) => `<span><i style="--c: ${shades[n]}"></i>${n} ${duration(phase(r, n))}</span>`).join("");
+        const tmax = Math.max(r.duration_s, o?.duration_s ?? 0);
+        $("charts").innerHTML = CHARTS.map((c, k) => `<div><h3>${c.title}</h3><div class="chart" data-k="${k}"></div><div class="legend" data-k="${k}"></div></div>`).join("");
+        for (const el of $("charts").querySelectorAll(".chart")) {
+          const c = CHARTS[Number(el.dataset.k)], w = el.clientWidth || 500, h = 170, pad = { l: 52, r: 8, t: 8, b: 22 };
+          const mine = c.get(r), theirs = o ? c.get(o) : [];
+          const vmax = Math.max(1e-9, ...[...mine, ...theirs].flatMap(([, p]) => p.map(([, v]) => v))) * 1.08;
+          const x = (t) => pad.l + (t / tmax) * (w - pad.l - pad.r), y = (v) => h - pad.b - (v / vmax) * (h - pad.t - pad.b);
+          let svg = r.cycles.map((cy) => `<rect x="${x(cy.start)}" y="${pad.t}" width="${Math.max(0, x(cy.end) - x(cy.start))}" height="${h - pad.t - pad.b}" fill="${shades[cy.name]}"/>`).join("");
+          for (let k = 0; k <= 3; k++) {
+            const v = (vmax / 3) * k;
+            svg += `<line class="gridline" x1="${pad.l}" x2="${w - pad.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${pad.l - 6}" y="${y(v) + 4}" text-anchor="end">${c.axis(v)}</text>`;
+          }
+          const step = tmax > 3 * 3600 ? 3600 : tmax > 3600 ? 1800 : 600;
+          for (let t = step; t < tmax; t += step) svg += `<text x="${x(t)}" y="${h - 6}" text-anchor="middle">${duration(t)}</text>`;
+          const path = (p) => p.map(([t, v], i) => `${i ? "L" : "M"}${x(t).toFixed(1)},${y(v).toFixed(1)}`).join("");
+          theirs.forEach(([, p], i) => (svg += `<path class="series" d="${path(p)}" stroke="var(--compare)" stroke-dasharray="4 3" opacity="${i ? 0.6 : 1}"/>`));
+          mine.forEach(([, p], i) => (svg += `<path class="series" d="${path(p)}" stroke="${COLORS[i]}"/>`));
+          svg += `<line class="cross" y1="${pad.t}" y2="${h - pad.b}" visibility="hidden"/>`;
+          el.innerHTML = `<svg viewBox="0 0 ${w} ${h}" height="${h}">${svg}</svg>`;
+          el._frame = { x, pad, w, tmax, mine, theirs, c, ends: [r.duration_s, o?.duration_s] };
+        }
+        readAt(null);
+      }
+      /** The value of a curve at a time: the last point at or before it. */
+      const at = (p, t) => {
+        let v = null;
+        for (const [pt, pv] of p) {
+          if (pt > t) break;
+          v = pv;
+        }
+        return v;
+      };
+      function readAt(t) {
+        for (const el of $("charts").querySelectorAll(".chart")) {
+          const f = el._frame, legend = $("charts").querySelector(`.legend[data-k="${el.dataset.k}"]`), line = el.querySelector(".cross");
+          if (!f) continue;
+          line.setAttribute("visibility", t === null ? "hidden" : "visible");
+          if (t !== null) line.setAttribute("x1", f.x(t)), line.setAttribute("x2", f.x(t));
+          // (Pointed past a run's end: none, it had stopped.)
+          const value = (p, end) => (t === null ? (f.c.title.startsWith("CPU") || f.c.title.startsWith("Disk,") ? p.reduce((m, [, v]) => Math.max(m, v), 0) : p.at(-1)?.[1]) : t > end ? null : at(p, t));
+          const word = t === null && (f.c.title.startsWith("CPU") || f.c.title.startsWith("Disk,")) ? "max " : "";
+          legend.innerHTML = [
+            ...f.mine.map(([name, p], i) => `<span><i style="--c: ${COLORS[i]}"></i>${name} <b>${word}${value(p, f.ends[0]) == null ? "–" : f.c.fmt(value(p, f.ends[0]))}</b></span>`),
+            ...f.theirs.map(([name, p]) => `<span><i class="dashed" style="--c: var(--compare)"></i>${escape(rev(compared))} ${name} <b>${word}${value(p, f.ends[1]) == null ? "–" : f.c.fmt(value(p, f.ends[1]))}</b></span>`),
+          ].join("") + (t === null ? "" : `<span>at <b>${duration(t)}</b></span>`);
+        }
+      }
+      $("charts").addEventListener("pointermove", (e) => {
+        const el = e.target.closest(".chart");
+        if (!el?._frame) return;
+        const f = el._frame, box = el.getBoundingClientRect(), px = ((e.clientX - box.left) / box.width) * f.w;
+        readAt(Math.max(0, Math.min(f.tmax, ((px - f.pad.l) / (f.w - f.pad.l - f.pad.r)) * f.tmax)));
+      });
+      $("charts").addEventListener("pointerleave", () => readAt(null));
+      $("compare").addEventListener("change", () => {
+        compared = runs().find((x) => x.label === $("compare").value) ?? null;
+        detail();
+        bars();
+      });
+
+      // ── Bars: compute per plugin, the data directory by component ──
+      /** Each name in either run (the compared one's own after, with none of its own), a bar as long as its share. */
+      function barList(el, rows, other, fmt) {
+        const names = [...rows.map(([n]) => n), ...(other ?? []).map(([n]) => n).filter((n) => !rows.some(([m]) => m === n))];
+        const max = Math.max(1e-9, ...rows.map(([, v]) => v), ...(other ?? []).map(([, v]) => v));
+        el.innerHTML = names.map((name) => {
+          const v = rows.find(([n]) => n === name)?.[1], o = other?.find(([n]) => n === name)?.[1];
+          const bar = (value, cls) => (value == null ? "" : `<span class="bar${cls}" style="width:${(value / max) * 100}%"></span>`);
+          return `<div class="row"><span class="name" title="${escape(name)}">${escape(name)}</span><span class="track">${bar(v, "")}${other ? bar(o, " other") : ""}</span><span class="value">${v == null ? "–" : fmt(v)}${other ? `<small>${o == null ? "–" : fmt(o)}</small>` : ""}</span></div>`;
+        }).join("") || `<span class="name">Not recorded for this run.</span>`;
+      }
+      function bars() {
+        barList($("compute"), selected.compute, compared?.compute, duration);
+        barList($("breakdown"), selected.breakdown, compared?.breakdown, bytes);
+      }
+
+      function pick(r) {
+        if (!r) return;
+        // (The table's redrawn: a run's button that had focus gets it back.)
+        const focused = document.activeElement?.closest?.("#runs tr[data-label]")?.dataset.label;
+        selected = r;
+        if (compared === r) compared = null;
+        history();
+        table();
+        detail();
+        bars();
+        if (focused) $("runs").querySelector(`tr[data-label="${CSS.escape(focused)}"] .pick`)?.focus();
+      }
+      function render() {
+        if (!DATA.machines.length) {
+          document.querySelector(".page").innerHTML = `<header><h1>bitviewd <span>benchmarks</span></h1><p>No runs recorded yet.</p></header>`;
+          return;
+        }
+        tabs();
+        hero();
+        selected ??= complete().at(-1) ?? runs().at(-1);
+        // (Compared, at first, with the complete run before it: what changed.)
+        if (compared === null) {
+          const all = complete(), k = all.indexOf(selected);
+          compared = k > 0 ? all[k - 1] : null;
+        }
+        pick(selected);
+      }
+      let resizing = 0;
+      addEventListener("resize", () => {
+        cancelAnimationFrame(resizing);
+        resizing = requestAnimationFrame(() => selected && (history(), detail()));
+      });
+      render();
+    </script>
+  </body>
+</html>

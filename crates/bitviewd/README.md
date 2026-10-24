@@ -19,7 +19,8 @@ arguments, configuration files, logging, signal handling, and serving.
   pruned node)
 - About 290 GiB of disk space for the current default composition, plus Bitcoin
   Core storage and growth headroom (see [Disk usage](#disk-usage))
-- 16 GB of RAM recommended for a full sync.
+- 16 GB of RAM recommended for a full sync (see [perf.bitview.dev](https://perf.bitview.dev)
+  for what each measured run used).
 
 ## Disk usage
 
@@ -67,7 +68,9 @@ Regenerating section of [`bitview_bindgen`](https://crates.io/crates/bitview_bin
 
 ## First sync
 
-The initial sync processes the entire blockchain and can take several hours.
+The initial sync processes the entire blockchain: about an hour and a half on a 16 GB Mac
+mini with a fast SSD, longer on slower disks and CPUs. Every measured run, with its
+memory, disk and CPU, is at [perf.bitview.dev](https://perf.bitview.dev).
 While more than 10,000 blocks behind, indexing completes before the server
 starts to reduce memory use. The web interface at `localhost:3110` becomes
 available after the sync finishes.
