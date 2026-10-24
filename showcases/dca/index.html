@@ -467,15 +467,15 @@
         fill: var(--loss-fill);
       }
 
+      /* (Thin: the plan's own 2px, the rest 1.25px.) */
       .line {
         fill: none;
-        stroke-width: 2.5px;
+        stroke-width: 2px;
         stroke-linecap: round;
         stroke-linejoin: round;
 
         &.up {
           stroke: var(--line-up);
-          stroke-width: 3px;
         }
 
         &.down {
@@ -484,17 +484,17 @@
 
         &.price {
           stroke: var(--soft);
-          stroke-width: 1.75px;
+          stroke-width: 1.25px;
         }
 
         &.plain {
           stroke: var(--plain);
-          stroke-width: 1.75px;
+          stroke-width: 1.25px;
         }
 
         &.dashed {
           stroke: var(--soft);
-          stroke-width: 1.5px;
+          stroke-width: 1.25px;
           stroke-dasharray: 3 5;
         }
       }
@@ -562,7 +562,7 @@
           height: 0;
           margin-right: 6px;
           vertical-align: 0.3em;
-          border-top: 2.5px solid var(--line-up);
+          border-top: 2px solid var(--line-up);
           border-radius: 2px;
         }
 
@@ -572,7 +572,7 @@
 
         .price i {
           border-top-color: var(--soft);
-          border-top-width: 2px;
+          border-top-width: 1.5px;
         }
 
         .down i {
@@ -581,6 +581,7 @@
 
         .plain i {
           border-top-color: var(--plain);
+          border-top-width: 1.5px;
         }
 
         .plain-name {
@@ -1480,7 +1481,12 @@
 
       // ── The plan's state, in the address (to: left out while it's the last day) ──
 
-      const state = { amount: 100, every: /** @type {Every} */ ("week"), from: 0, to: 0, log: false, view: /** @type {"value" | "cost"} */ ("value"), atlas: /** @type {"returns" | "edge"} */ ("returns") };
+      /** Each chart's scale by default: the value's linear, a plan's worth as it grew; the cost's log, as the price and a
+       * coin's cost span cents to tens of thousands of dollars. */
+      const LOG = { value: false, cost: true };
+      const state = { amount: 100, every: /** @type {Every} */ ("week"), from: 0, to: 0, logs: { ...LOG }, view: /** @type {"value" | "cost"} */ ("value"), atlas: /** @type {"returns" | "edge"} */ ("returns") };
+      /** Whether the chart shown is on a log scale (each chart keeps its own). */
+      const logged = () => state.logs[state.view];
       /** The plain plan, and the smart plan over the same days (none without MVRV). @type {Run} */
       let plan;
       /** @type {Run | null} */
@@ -1496,7 +1502,7 @@
       /** The plan a link asks for; a part that isn't usable stays the default, and the page says which. */
       function readAddress() {
         const query = new URLSearchParams(location.search), unused = [];
-        const amount = query.get("amount"), every = query.get("every"), from = query.get("from"), to = query.get("to"), view = query.get("view"), atlas = query.get("map");
+        const amount = query.get("amount"), every = query.get("every"), from = query.get("from"), to = query.get("to"), view = query.get("view"), scale = query.get("scale"), atlas = query.get("map");
         if (amount !== null) amountProblem(Number(amount)) ? unused.push("amount") : (state.amount = Number(amount));
         if (every !== null) every === "day" || every === "week" || every === "month" ? (state.every = every) : unused.push("schedule");
         const toDay = to === null ? last : linkDay(to), fromDay = from === null ? NaN : linkDay(from);
@@ -1504,8 +1510,9 @@
         state.to = toDay >= first && toDay <= last ? toDay : last;
         if (from !== null && !(fromDay >= first && fromDay <= state.to)) unused.push("first day");
         state.from = fromDay >= first && fromDay <= state.to ? fromDay : Math.max(first, yearsBefore(state.to, 4) + 1);
-        state.log = query.get("scale") === "log";
         if (view !== null) view === "value" || view === "cost" ? (state.view = view) : unused.push("chart");
+        // (The scale is the linked chart's.)
+        if (scale !== null) scale === "log" || scale === "lin" ? (state.logs[state.view] = scale === "log") : unused.push("scale");
         if (atlas !== null) atlas === "returns" || (atlas === "smart" && comparable) ? (state.atlas = atlas === "smart" ? "edge" : "returns") : unused.push("map");
         return unused.length ? `This link's ${unused.join(", ")} couldn't be used, so ${unused.length > 1 ? "the defaults stand" : "the default stands"} in.` : "";
       }
@@ -1518,7 +1525,8 @@
       function writeAddress() {
         const query = new URLSearchParams({ amount: String(state.amount), every: state.every, from: iso(state.from) });
         if (state.to !== last) query.set("to", iso(state.to));
-        if (state.log) query.set("scale", "log");
+        // (The chart shown's scale, when it isn't that chart's default.)
+        if (logged() !== LOG[state.view]) query.set("scale", logged() ? "log" : "lin");
         if (state.view === "cost") query.set("view", "cost");
         if (state.atlas === "edge") query.set("map", "smart");
         history.replaceState(null, "", `?${query}`);
@@ -1605,7 +1613,7 @@
           const years = Number(/** @type {HTMLElement} */ (button).dataset.years);
           button.setAttribute("aria-pressed", String(state.from === spanStart(years)));
         }
-        $("log").setAttribute("aria-pressed", String(state.log));
+        $("log").setAttribute("aria-pressed", String(logged()));
         for (const button of document.querySelectorAll("[data-atlas]")) button.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (button).dataset.atlas === state.atlas));
       }
 
@@ -1677,7 +1685,7 @@
         });
       }
       $("log").addEventListener("click", () => {
-        state.log = !state.log;
+        state.logs[state.view] = !logged();
         update();
       });
 
@@ -1751,9 +1759,9 @@
       const INKS = { up: "var(--line-up)", down: "var(--loss)", price: "var(--soft)", dashed: "var(--soft)", plain: "var(--plain)" };
       /** What the chart shows: x and y by the plan's day, its series (two, and the baseline's third), the crosshair, and
        * how to finish drawing it.
-       * @type {{ x: (i: number) => number, ys: ((i: number) => number)[], series: Series[], marks: Element[], line: Element, ends: Element, finish: () => void } | null} */
+       * @type {{ x: (i: number) => number, onLine: (k: number, i: number) => number, series: Series[], marks: Element[], line: Element, ends: Element, finish: () => void } | null} */
       let drawn = null;
-      /** The lines as on screen, two points a pixel column: where a glide starts. */
+      /** The lines as on screen, a point a column: where a glide starts. */
       let onScreen = /** @type {Float64Array[] | null} */ (null), glide = 0;
       const GLIDE = 250;
       const eased = (/** @type {number} */ t) => 1 - (1 - t) ** 3;
@@ -1767,6 +1775,45 @@
       /** How far in from each side the first and last days sit: a dot's reach (a crosshair's 5px and its 1.5px ring), so
        * a dot on either end stays in its card. */
       const INSET = 7;
+      /** A line's points, one every 3px: the curve through them is smooth where a point a pixel is hair. */
+      const STEP = 3;
+
+      /** The slopes at points by x of a curve through them, monotone between each two (Fritsch–Carlson): smooth, and never
+       * above the higher of two neighbors or below the lower, so it shows no high or low the points don't have. */
+      function tangentsOf(/** @type {[number, number][]} */ points) {
+        const n = points.length, slopes = [], tangents = new Array(n).fill(0);
+        if (n < 2) return tangents;
+        for (let k = 0; k < n - 1; k++) slopes.push((points[k + 1][1] - points[k][1]) / (points[k + 1][0] - points[k][0]));
+        [tangents[0], tangents[n - 1]] = [slopes[0], slopes[n - 2]];
+        for (let k = 1; k < n - 1; k++) tangents[k] = slopes[k - 1] * slopes[k] <= 0 ? 0 : (slopes[k - 1] + slopes[k]) / 2;
+        for (let k = 0; k < n - 1; k++) {
+          if (slopes[k] === 0) {
+            tangents[k] = tangents[k + 1] = 0;
+            continue;
+          }
+          const a = tangents[k] / slopes[k], b = tangents[k + 1] / slopes[k], h = a * a + b * b;
+          if (h > 9) [tangents[k], tangents[k + 1]] = [(3 / Math.sqrt(h)) * a * slopes[k], (3 / Math.sqrt(h)) * b * slopes[k]];
+        }
+        return tangents;
+      }
+
+      /** That curve's height between two points `width` apart, with heights y0, y1 and slopes m0, m1, a fraction `u` along. */
+      const hermite = (/** @type {number} */ y0, /** @type {number} */ y1, /** @type {number} */ m0, /** @type {number} */ m1, /** @type {number} */ u, /** @type {number} */ width) =>
+        (2 * u ** 3 - 3 * u ** 2 + 1) * y0 + (u ** 3 - 2 * u ** 2 + u) * width * m0 + (-2 * u ** 3 + 3 * u ** 2) * y1 + (u ** 3 - u ** 2) * width * m1;
+
+      /** That curve as a path, from the first point or (`reverse`) from the last: the same curve either way. */
+      function monotone(/** @type {[number, number][]} */ points, reverse = false) {
+        const n = points.length, at = (/** @type {[number, number]} */ [x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`;
+        if (n < 3) return (reverse ? [...points].reverse() : points).map((p, k) => `${k ? "L" : "M"}${at(p)}`).join("");
+        const tangents = tangentsOf(points), segments = [];
+        for (let k = 0; k < n - 1; k++) {
+          const [[x0, y0], [x1, y1]] = [points[k], points[k + 1]], third = (x1 - x0) / 3;
+          /** @type {[number, number][]} */
+          const controls = [[x0 + third, y0 + tangents[k] * third], [x1 - third, y1 - tangents[k + 1] * third]];
+          segments.push(reverse ? `C${at(controls[1])},${at(controls[0])},${at(points[k])}` : `C${at(controls[0])},${at(controls[1])},${at(points[k + 1])}`);
+        }
+        return `M${at(points[reverse ? n - 1 : 0])}${(reverse ? segments.reverse() : segments).join("")}`;
+      }
 
       /** No axes: the numbers are the value above and the keys below, at the day pointed at. The plan the page leads with:
        * worth is green, or red when the plan ends below what went in; faintly between its two lines, green where the plan
@@ -1794,10 +1841,11 @@
           }
         // (Flat within float error, as a one-day plan is: centered.)
         const flat = hi - lo <= hi * 1e-9;
-        if (state.log) [lo, hi] = flat ? [lo / 2, hi * 2] : [lo / 1.04, hi * 1.04];
+        const log = logged();
+        if (log) [lo, hi] = flat ? [lo / 2, hi * 2] : [lo / 1.04, hi * 1.04];
         else [lo, hi] = flat ? [lo / 2, hi * 1.5] : [Math.max(0, lo - (hi - lo) * 0.05), hi + (hi - lo) * 0.05];
-        const span = state.log ? Math.log(hi / lo) : hi - lo;
-        const y = (/** @type {number} */ v) => pad + (height - 2 * pad) * (1 - (state.log ? Math.log(v / lo) : v - lo) / span);
+        const span = log ? Math.log(hi / lo) : hi - lo;
+        const y = (/** @type {number} */ v) => pad + (height - 2 * pad) * (1 - (log ? Math.log(v / lo) : v - lo) / span);
         const x = (/** @type {number} */ i) => (n === 1 ? width / 2 : INSET + (i / (n - 1)) * (width - 2 * INSET));
         const ys = series.map((s) => (/** @type {number} */ i) => y(s.f(i)));
         svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
@@ -1813,50 +1861,40 @@
         ends.append(...dots);
         // (The baseline's line under the plan's own, which is on top.)
         svg.replaceChildren(clips, ...fills, ...[0, 2, 1].flatMap((k) => lines[k] ?? []), ends, cross);
-        // The lines as two points a pixel column, at rest and in a glide alike, so a glide starts and ends on the shape at
-        // rest: where days outnumber columns, a column's lowest and highest day in the order they came (as drawing every
-        // day looks); else each day on the column nearest it and the line between days on the rest, twice a column. A
-        // one-day plan: its point, in one column.
-        const columns = n === 1 ? 1 : Math.max(2, Math.round(width - 2 * INSET));
+        // The lines as a point a column, every STEP px, at rest and in a glide alike, so a glide starts and ends on the
+        // shape at rest: where days outnumber columns, the day at each column's x (the first and last columns: the first
+        // and last days); else the curve through the days where each column is, so a short plan is as smooth as a long
+        // one. A one-day plan: its point, in one column.
+        const columns = n === 1 ? 1 : Math.max(2, Math.round((width - 2 * INSET) / STEP));
         const colX = (/** @type {number} */ j) => (columns === 1 ? width / 2 : INSET + (j / (columns - 1)) * (width - 2 * INSET));
         // (After the columns, the last day's own value: where the line's end dot sits.)
         const sample = (/** @type {(i: number) => number} */ yOf) => {
-          const out = new Float64Array(columns * 2 + 1);
-          out[columns * 2] = yOf(n - 1);
+          const out = new Float64Array(columns + 1);
+          out[columns] = yOf(n - 1);
           if (n > columns) {
-            for (let j = 0; j < columns; j++) {
-              const from = Math.floor((j * n) / columns), to = Math.max(from + 1, Math.floor(((j + 1) * n) / columns));
-              let top = from, bottom = from;
-              for (let i = from; i < to; i++) {
-                if (yOf(i) < yOf(top)) top = i;
-                if (yOf(i) > yOf(bottom)) bottom = i;
-              }
-              [out[2 * j], out[2 * j + 1]] = top < bottom ? [yOf(top), yOf(bottom)] : [yOf(bottom), yOf(top)];
-            }
+            for (let j = 0; j < columns; j++) out[j] = yOf(Math.round((j / (columns - 1)) * (n - 1)));
             return out;
           }
+          /** @type {[number, number][]} */
+          const days = Array.from({ length: n }, (_, i) => [i, yOf(i)]), tangents = tangentsOf(days);
           for (let j = 0; j < columns; j++) {
-            const t = columns === 1 ? 0 : (j / (columns - 1)) * (n - 1), i = Math.floor(t), next = Math.min(n - 1, i + 1);
-            out[2 * j] = out[2 * j + 1] = yOf(i) + (yOf(next) - yOf(i)) * (t - i);
-          }
-          for (let i = 0; i < n; i++) {
-            const j = n === 1 ? 0 : Math.round((i / (n - 1)) * (columns - 1));
-            out[2 * j] = out[2 * j + 1] = yOf(i);
+            // (Between two days, the cubic that joins them with their slopes.)
+            const t = columns === 1 ? 0 : (j / (columns - 1)) * (n - 1), i = Math.min(n - 2, Math.floor(t)), u = t - i;
+            if (n === 1) {
+              out[j] = days[0][1];
+              continue;
+            }
+            out[j] = hermite(days[i][1], days[i + 1][1], tangents[i], tangents[i + 1], u, 1);
           }
           return out;
         };
+        /** A line's samples as points on the chart. */
+        const pointsOf = (/** @type {Float64Array} */ line) => Array.from({ length: columns }, (_, j) => /** @type {[number, number]} */ ([colX(j), line[j]]));
         /** Draws the lines, the fill between the first two and its clips, from their samples. */
         const paint = (/** @type {Float64Array[]} */ shape) => {
-          const along = (/** @type {number} */ k, reverse = false) => {
-            let d = "";
-            for (let m = 0; m < columns * 2; m++) {
-              const p = reverse ? columns * 2 - 1 - m : m;
-              d += `${d ? "L" : "M"}${colX(p >> 1).toFixed(1)},${shape[k][p].toFixed(1)}`;
-            }
-            return d;
-          };
+          const along = (/** @type {number} */ k, reverse = false) => monotone(pointsOf(shape[k]), reverse);
           lines.forEach((path, k) => path.setAttribute("d", along(k)));
-          dots.forEach((dot, k) => dot.setAttribute("cy", shape[k][columns * 2].toFixed(1)));
+          dots.forEach((dot, k) => dot.setAttribute("cy", shape[k][columns].toFixed(1)));
           const edge = along(1 - good), between = `${along(good)}L${along(1 - good, true).slice(1)}Z`;
           fills.forEach((fill) => fill.setAttribute("d", between));
           under[0].setAttribute("d", `${edge}L${width},0L0,0Z`);
@@ -1870,7 +1908,15 @@
           paint(target);
           onScreen = target;
         };
-        drawn = { x, ys, series, marks, line, ends, finish };
+        // (A day's mark on its line as drawn at rest: on the curve between the two points around it, where the day falls
+        // between points; the keys say the day's own numbers.)
+        const tangents = target.map((line) => tangentsOf(pointsOf(line)));
+        const onLine = (/** @type {number} */ k, /** @type {number} */ i) => {
+          if (columns === 1) return target[k][0];
+          const at = (i / (n - 1)) * (columns - 1), j = Math.min(columns - 2, Math.floor(at));
+          return hermite(target[k][j], target[k][j + 1], tangents[k][j], tangents[k][j + 1], at - j, colX(j + 1) - colX(j));
+        };
+        drawn = { x, onLine, series, marks, line, ends, finish };
         cancelAnimationFrame(glide);
         if (animate && from && !still.matches) {
           const start = performance.now();
@@ -1931,7 +1977,7 @@
           drawn.line.setAttribute("x2", x);
           drawn.marks.forEach((mark, k) => {
             mark.setAttribute("cx", x);
-            mark.setAttribute("cy", String(/** @type {NonNullable<typeof drawn>} */ (drawn).ys[k](at)));
+            mark.setAttribute("cy", String(/** @type {NonNullable<typeof drawn>} */ (drawn).onLine(k, at)));
           });
         }
         setWorth(worth, roll);
