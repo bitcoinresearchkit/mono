@@ -8,7 +8,7 @@
 
 > **TransactionsScripts** = `object`
 
-Defined in: [modules/bitview-client/index.js:4656](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4656)
+Defined in: [modules/bitview-client/index.js:4657](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4657)
 
 ## Type Parameters
 

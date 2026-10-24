@@ -16,4 +16,4 @@ Defined in: [modules/bitview-client/index.js:1431](https://github.com/bitcoinres
 
 Defined in: [modules/bitview-client/index.js:1432](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1432)
 
-Transaction IDs to look up (max 250 per request).
+Transaction IDs to look up (max 100 per request).

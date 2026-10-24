@@ -8,7 +8,7 @@
 
 > **EntrySupply** = `object`
 
-Defined in: [modules/bitview-client/index.js:3806](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3806)
+Defined in: [modules/bitview-client/index.js:3807](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3807)
 
 ## Type Parameters
 

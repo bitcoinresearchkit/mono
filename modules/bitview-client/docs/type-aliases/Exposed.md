@@ -8,7 +8,7 @@
 
 > **Exposed** = `object`
 
-Defined in: [modules/bitview-client/index.js:3406](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3406)
+Defined in: [modules/bitview-client/index.js:3407](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3407)
 
 ## Type Parameters
 

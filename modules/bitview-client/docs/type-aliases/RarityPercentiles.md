@@ -8,7 +8,7 @@
 
 > **RarityPercentiles**\<`A`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:2946](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2946)
+Defined in: [modules/bitview-client/index.js:2947](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2947)
 
 ## Type Parameters
 

@@ -8,7 +8,7 @@
 
 > **Script** = `object`
 
-Defined in: [modules/bitview-client/index.js:6432](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6432)
+Defined in: [modules/bitview-client/index.js:6433](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6433)
 
 ## Type Parameters
 

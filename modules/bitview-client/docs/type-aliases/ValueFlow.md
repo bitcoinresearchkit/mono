@@ -8,7 +8,7 @@
 
 > **ValueFlow** = `object`
 
-Defined in: [modules/bitview-client/index.js:4097](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4097)
+Defined in: [modules/bitview-client/index.js:4098](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4098)
 
 ## Type Parameters
 

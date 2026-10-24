@@ -8,7 +8,7 @@
 
 > **PriceMinMax** = `object`
 
-Defined in: [modules/bitview-client/index.js:3625](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3625)
+Defined in: [modules/bitview-client/index.js:3626](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3626)
 
 ## Type Parameters
 

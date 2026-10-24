@@ -8,7 +8,7 @@
 
 > **Fullness** = `object`
 
-Defined in: [modules/bitview-client/index.js:5502](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5502)
+Defined in: [modules/bitview-client/index.js:5503](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5503)
 
 ## Type Parameters
 

@@ -6,7 +6,7 @@
 
 # Interface: BitviewClientOptions
 
-Defined in: [modules/bitview-client/index.js:1659](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1659)
+Defined in: [modules/bitview-client/index.js:1660](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1660)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1659](https://github.com/bitcoinres
 
 > **baseUrl**: `string`
 
-Defined in: [modules/bitview-client/index.js:1660](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1660)
+Defined in: [modules/bitview-client/index.js:1661](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1661)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:1660](https://github.com/bitcoinres
 
 > `optional` **browserCache?**: `string` \| `boolean`
 
-Defined in: [modules/bitview-client/index.js:1662](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1662)
+Defined in: [modules/bitview-client/index.js:1663](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1663)
 
 Enable browser Cache API with default name (true), custom name (string), or disable (false). No effect in Node.js. Default: true
 
@@ -32,7 +32,7 @@ Enable browser Cache API with default name (true), custom name (string), or disa
 
 > `optional` **memCache?**: `number` \| `boolean`
 
-Defined in: [modules/bitview-client/index.js:1663](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1663)
+Defined in: [modules/bitview-client/index.js:1664](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1664)
 
 LRU capacity of the in-memory parsed-response cache, which lets 304 responses skip the JSON parse: true/undefined → 1000, false/0 → disabled
 
@@ -42,6 +42,6 @@ LRU capacity of the in-memory parsed-response cache, which lets 304 responses sk
 
 > `optional` **timeout?**: `number`
 
-Defined in: [modules/bitview-client/index.js:1661](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1661)
+Defined in: [modules/bitview-client/index.js:1662](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1662)
 
 Request timeout in milliseconds

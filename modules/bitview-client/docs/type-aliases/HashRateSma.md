@@ -8,7 +8,7 @@
 
 > **HashRateSma** = `object`
 
-Defined in: [modules/bitview-client/index.js:3740](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3740)
+Defined in: [modules/bitview-client/index.js:3741](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3741)
 
 ## Type Parameters
 

@@ -8,7 +8,7 @@
 
 > **Inputs** = `object`
 
-Defined in: [modules/bitview-client/index.js:5570](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5570)
+Defined in: [modules/bitview-client/index.js:5571](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5571)
 
 ## Type Parameters
 
