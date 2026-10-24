@@ -10641,8 +10641,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (let i = 1; i < values.length; i++) gap = Math.min(gap, Math.abs(values[i] - values[i - 1]));
         if (!gap) return labels;
         const near = (/** @type {number[]} */ read) => read.every((value, i) => Math.abs(value - values[i]) <= gap / 100);
-        if (near(labels.map(readLabel))) return labels;
         const fit = (/** @type {string[]} */ texts) => texts.every((text) => text.replace(/^−/, "").length <= AXIS_CHARS && !text.includes("e"));
+        // (One unit across the axis: ticks lettered apart (750E under 1.1Z) all at the largest's letter (0.75Z), with the
+        // fewest digits that write each true; where that's too long, a scale over decades, each its own as below.)
+        const letterOf = (/** @type {string} */ label) => /[A-Z]/.exec(label)?.[0] ?? "";
+        if (new Set(labels.filter((_, i) => Math.abs(values[i]) >= 5e-10).map(letterOf)).size > 1) {
+          const top = labels[values.reduce((at, value, i) => (Math.abs(value) > Math.abs(values[at]) ? i : at), 0)], tier = Math.max(0, SI.indexOf(letterOf(top)));
+          for (let digits = 1; digits <= 9; digits++) {
+            const parts = values.map((value) => ({ sign: value <= -5e-10 ? "−" : "", mantissa: Math.abs(value) < 5e-10 ? 0 : Number((Math.abs(value) / 1000 ** tier).toPrecision(digits)) }));
+            if (!near(parts.map(({ sign, mantissa }) => (sign ? -1 : 1) * mantissa * 1000 ** tier))) continue;
+            // (One too small to write at that letter but with an exponent (1M at Z's, 1e-15): over decades, each its own.)
+            if (parts.some(({ mantissa }) => String(mantissa).includes("e"))) break;
+            const places = Math.max(...parts.map(({ mantissa }) => (String(mantissa).split(".")[1] ?? "").length));
+            const write = (/** @type {(mantissa: number) => string} */ digitsOf) => parts.map(({ sign, mantissa }) => (mantissa ? `${sign}${digitsOf(mantissa)}${SI[tier]}${suffix}` : `0${suffix}`));
+            // (Each as written read back as its tick: a mantissa too small to write (1M at Z's) isn't one.)
+            const even = write((mantissa) => mantissa.toFixed(places)), bare = write(String), reads = (/** @type {string[]} */ texts) => fit(texts) && near(texts.map(readLabel));
+            if (reads(even)) return even;
+            if (reads(bare)) return bare;
+            break;
+          }
+        }
+        if (near(labels.map(readLabel))) return labels;
         for (let digits = 4; digits <= 9; digits++) {
           // (With letters, as axisLabel's; where those are too long (12.345K), in plain digits (12345).)
           for (const lettered of [true, false]) {
