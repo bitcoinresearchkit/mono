@@ -13014,9 +13014,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // What's being typed is kept, on the chart it was typed on.
         leaveField();
         saveView();
-        // This tab's place, for a reload and for Back: the chart it shows now (a step from the grid stays one).
-        // (In the step it opens in: from the Charts page if that one was, Back going there still.)
-        if (history.state?.chart && history.state.chart !== doc.id) history.replaceState({ chart: doc.id, ...(history.state.fromHome ? { fromHome: true } : {}), ...(history.state.place ? { place: history.state.place } : {}) }, "");
+        // This tab's place, for a reload and for Back: a chart opened from another, a step of its own (Back, that one again,
+        // where it was left; Forward, this one). Come back to by Back or Forward, its step is the one there.
+        if (history.state?.chart && history.state.chart !== doc.id) history.pushState({ chart: doc.id }, "");
         // (An empty preview left has nothing to come back to (nor kept aside); a link that couldn't be read, left behind.)
         for (const item of previewCharts) if (item !== doc && !item.layers.length) (dropPreview(item), forgetPreview(item));
         brokenLink = "";
