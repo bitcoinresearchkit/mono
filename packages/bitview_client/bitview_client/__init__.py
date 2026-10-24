@@ -116,6 +116,9 @@ Score = int
 SatsSigned = int
 # An amount in satoshis (100,000,000 to a bitcoin).
 Sats = int
+# Consecutive transactions kept from the prior block, `[start, count]`: its positions
+# `start..start + count`, in order.
+RetainedRun = List[int]
 # Transaction locktime. Values below 500,000,000 are interpreted as block heights; values at or above are Unix timestamps.
 RawLockTime = int
 # A dimensionless ratio: a quotient or share, read as a plain number.
@@ -152,12 +155,6 @@ OutputTypeNormalized = Literal["p2pk", "p2pkh", "multisig", "p2sh", "op_return",
 OutputType = Literal["p2pk65", "p2pk33", "p2pkh", "p2ms", "p2sh", "op_return", "p2wpkh", "p2wsh", "p2tr", "p2a", "empty_script", "unknown_script"]
 # Protocol or format detected in an OP_RETURN output.
 OpReturnKind = Literal["runes", "witness_commitment", "veriblock", "omni", "stacks", "blockstack", "colu", "open_assets", "komodo", "coinspark", "poet", "docproof", "factom", "eternity_wall", "memo", "bitproof", "ascribe", "stampery", "bare_hash", "text", "empty", "unknown"]
-# Content hash of the projected next block (block 0 of the mempool
-# snapshot), including its statistics and complete transaction bodies.
-# Opaque token, distinct from HTTP ETag formatting: pass back
-# to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
-# A decimal string, since JavaScript numbers can't hold every 64-bit value.
-NextBlockHash = str
 # A multiple: one value over another of its kind, 1 at parity (MVRV, SOPR, a price over its
 # average).
 Multiple = float
@@ -173,6 +170,14 @@ Minute30 = int
 Minute10 = int
 # A merkle tree node: a double-SHA256 hash, hex-encoded in Bitcoin's display byte order.
 MerkleNode = str
+# A projected mempool block's position, as `/api/v1/fees/mempool-blocks` lists them: 0 is the
+# next block, Bitcoin Core's `getblocktemplate` selection.
+MempoolBlockIndex = int
+# Content hash of a projected mempool block, including its statistics and complete
+# transaction bodies. Opaque token, distinct from HTTP ETag formatting: pass back to
+# `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
+# A decimal string, since JavaScript numbers can't hold every 64-bit value.
+MempoolBlockHash = str
 # Maximum number of results to return; each parameter states what omitting it means.
 Limit = int
 # A JSON Schema type: what a series' values are on the wire.
@@ -291,15 +296,14 @@ BlockHash = str
 Bitcoin = float
 # Bitcoin address, or the hex public key of a P2PK output.
 Address = str
-# One slot of the new template in a `BlockTemplateDiff`.
+# One stretch of the new block in a `MempoolBlockDiff`.
 #
 # Untagged on the wire so JSON type disambiguates the variants:
-# - `Retained(idx)` serializes as a bare integer - index into the
-#   transactions of the prior template (which the client cached at
-#   `since`).
-# - `New(tx)` serializes as a transaction object - a body that was
-#   new or changed since the prior template and must replace this position.
-BlockTemplateDiffEntry = Union[int, "Transaction"]
+# - `Retained(run)` serializes as `[start, count]`: the prior block's transactions
+#   `start..start + count` (which the client cached at `since`), kept in order.
+# - `New(tx)` serializes as a transaction object: a body that was new or changed since the
+#   prior block and takes this position.
+MempoolBlockDiffEntry = Union[RetainedRun, "Transaction"]
 class ValidateAddressParam(TypedDict):
     """
     Attributes:
@@ -606,11 +610,18 @@ class AddressHashPrefixParam(TypedDict):
     address_type: OutputType
     prefix: str
 
-class NextBlockHashParam(TypedDict):
+class MempoolBlockParam(TypedDict):
+    index: MempoolBlockIndex
+
+class MempoolBlockDiffParam(TypedDict):
     """
-    Prior-template hash for `GET /api/v1/mempool/block-template/diff/{hash}`.
+    The block and the content token a client holds for it.
+
+    Attributes:
+        since: The `hash` of the client's copy, from the block or a previous diff
     """
-    hash: NextBlockHash
+    index: MempoolBlockIndex
+    since: MempoolBlockHash
 
 class _SearchQueryRequired(TypedDict):
     q: str
@@ -1538,40 +1549,37 @@ class Transaction(_TransactionRequired, total=False):
     """
     index: Union[TxIndex, None]
 
-class BlockTemplateDiff(TypedDict):
+class MempoolBlockDiff(TypedDict):
     """
-    Delta between the current `getblocktemplate` projection and a prior
-    one identified by `since`. Returned by
-    `GET /api/v1/mempool/block-template/diff/{hash}`.
+    A projected mempool block's changes since a prior copy identified by `since`. Returned by
+    `GET /api/mempool-blocks/{index}/diff/{since}`.
     
-    `removed` lists txids no longer present. A changed body can be emitted as
-    `New` without removing its txid; absence of a retained index alone does not
-    imply removal.
+    `removed` lists txids no longer present. A changed body can be emitted as `New` without
+    removing its txid; absence from every retained run alone does not imply removal.
 
     Attributes:
-        hash: Current next-block hash. Use as `since` on the next diff call.
+        hash: The block's current hash. Use as `since` on the next diff call.
         since: Echoed prior hash the diff was computed against.
-        stats: Stats of the new template; they can change while every transaction is retained.
-        order: New template in order. Each entry is either an index into the prior template's transactions or a full transaction body.
+        stats: Stats of the new block; they can change while every transaction is retained.
+        order: The new block in order. Each entry is either a run of the prior copy's transactions, `[start, count]`, or a full transaction body.
         removed: Txids that left the projected next block since `since` (confirmed, evicted, replaced, or pushed past block 0).
     """
-    hash: NextBlockHash
-    since: NextBlockHash
+    hash: MempoolBlockHash
+    since: MempoolBlockHash
     stats: MempoolBlock
-    order: List[BlockTemplateDiffEntry]
+    order: List[MempoolBlockDiffEntry]
     removed: List[Txid]
 
-class BlockTemplate(TypedDict):
+class MempoolBlockContent(TypedDict):
     """
-    Projected next-block contents from Bitcoin Core's `getblocktemplate`
-    (block 0 of the snapshot). Returned by
-    `GET /api/v1/mempool/block-template`.
+    A projected mempool block with its transactions: block 0 is Bitcoin Core's
+    `getblocktemplate` selection. Returned by `GET /api/mempool-blocks/{index}`.
 
     Attributes:
-        hash: Pass to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
+        hash: Pass as `since` to `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
         transactions: Full transaction bodies in `getblocktemplate` order.
     """
-    hash: NextBlockHash
+    hash: MempoolBlockHash
     stats: MempoolBlock
     transactions: List[Transaction]
 
@@ -6486,14 +6494,6 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/mempool`"""
         return self.get_json('/api/mempool')
 
-    def get_mempool_hash(self) -> NextBlockHash:
-        """Mempool content hash.
-
-        Returns an opaque content token for the published projected next block, including statistics and transaction bodies. This is not the HTTP ETag. An unchanged token means unchanged content, not necessarily a stalled sync loop.
-
-        Endpoint: `GET /api/mempool/hash`"""
-        return self.get_json('/api/mempool/hash')
-
     def get_mempool_txids(self) -> List[Txid]:
         """Mempool transaction IDs.
 
@@ -6534,21 +6534,21 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/v1/fullrbf/replacements`"""
         return self.get_json('/api/v1/fullrbf/replacements')
 
-    def get_block_template(self) -> BlockTemplate:
-        """Projected next block template.
+    def get_mempool_block(self, index: MempoolBlockIndex) -> MempoolBlockContent:
+        """Projected mempool block.
 
-        Bitcoin Core's `getblocktemplate` selection: full transaction bodies in GBT order with aggregate stats. The returned `hash` is an opaque content token; pass it to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas instead of refetching the whole template.
+        A projected mempool block with its transactions in order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection, and the only one served for now (others answer 404). The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
 
-        Endpoint: `GET /api/v1/mempool/block-template`"""
-        return self.get_json('/api/v1/mempool/block-template')
+        Endpoint: `GET /api/mempool-blocks/{index}`"""
+        return self.get_json(f'/api/mempool-blocks/{_segment(index)}')
 
-    def get_block_template_diff(self, hash: NextBlockHash) -> BlockTemplateDiff:
-        """Block template diff since hash.
+    def get_mempool_block_diff(self, index: MempoolBlockIndex, since: MempoolBlockHash) -> MempoolBlockDiff:
+        """Projected mempool block changes.
 
-        Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild and replace the cached `stats` with the response's; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.
+        The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction object, a body to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict cached bodies. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.
 
-        Endpoint: `GET /api/v1/mempool/block-template/diff/{hash}`"""
-        return self.get_json(f'/api/v1/mempool/block-template/diff/{_segment(hash)}')
+        Endpoint: `GET /api/mempool-blocks/{index}/diff/{since}`"""
+        return self.get_json(f'/api/mempool-blocks/{_segment(index)}/diff/{_segment(since)}')
 
     def get_live_price(self) -> Dollars:
         """Live BTC/USD price.

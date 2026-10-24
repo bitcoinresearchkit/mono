@@ -20,7 +20,7 @@ mod steps;
 mod stores;
 
 pub use api::{
-    BlockTemplateSource, PendingUtxos, PublishedTx, RbfForTx, RbfNode, ResolvedBlockTemplateDiff,
+    MempoolBlockSource, PendingUtxos, PublishedTx, RbfForTx, RbfNode, ResolvedMempoolBlockDiff,
 };
 pub use chain_waker::ChainWaker;
 pub use read_only::ReadOnlyMempool;

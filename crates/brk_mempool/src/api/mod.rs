@@ -2,10 +2,10 @@
 
 use std::sync::Arc;
 
-use brk_types::{NextBlockHash, Transaction};
+use brk_types::{MempoolBlockHash, Transaction};
 
 pub mod addr;
-pub mod block_template;
+pub mod mempool_block;
 pub mod fees;
 pub mod histogram;
 pub mod published_tx;
@@ -13,25 +13,25 @@ pub mod rbf;
 pub mod tx;
 
 pub use addr::PendingUtxos;
-pub use block_template::BlockTemplateSource;
+pub use mempool_block::MempoolBlockSource;
 pub use published_tx::PublishedTx;
 pub use rbf::{RbfForTx, RbfNode};
 
 /// A validated historical template captured for one diff request.
-pub struct ResolvedBlockTemplateDiff {
-    since: NextBlockHash,
+pub struct ResolvedMempoolBlockDiff {
+    since: MempoolBlockHash,
     past: Arc<[Arc<Transaction>]>,
-    source: BlockTemplateSource,
+    source: MempoolBlockSource,
 }
 
-impl ResolvedBlockTemplateDiff {
+impl ResolvedMempoolBlockDiff {
     #[must_use]
-    pub fn since(&self) -> NextBlockHash {
+    pub fn since(&self) -> MempoolBlockHash {
         self.since
     }
 
     #[must_use]
-    pub fn source(&self) -> &BlockTemplateSource {
+    pub fn source(&self) -> &MempoolBlockSource {
         &self.source
     }
 }

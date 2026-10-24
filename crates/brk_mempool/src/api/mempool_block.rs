@@ -1,41 +1,42 @@
-//! Projected next block: full template and incremental diff.
+//! A projected mempool block (block 0, Core's template): full content and incremental diff.
 
 use std::sync::Arc;
 
 use brk_error::Result;
 
 use brk_types::{
-    BlockTemplate, BlockTemplateDiff, BlockTemplateDiffEntry, NextBlockHash, Transaction, Txid,
+    MempoolBlockContent, MempoolBlockDiff, MempoolBlockDiffEntry, MempoolBlockHash, RetainedRun,
+    Transaction, Txid,
 };
 use rustc_hash::FxHashMap;
 use serde::{Serialize, Serializer};
 
-use crate::{ReadOnlyState, ResolvedBlockTemplateDiff, Snapshot};
+use crate::{ReadOnlyState, ResolvedMempoolBlockDiff, Snapshot};
 
 /// One immutable published template, retained for validation and body construction.
 #[derive(Clone)]
-pub struct BlockTemplateSource {
+pub struct MempoolBlockSource {
     snapshot: Arc<Snapshot>,
 }
 
-impl PartialEq for BlockTemplateSource {
+impl PartialEq for MempoolBlockSource {
     fn eq(&self, other: &Self) -> bool {
         Arc::ptr_eq(&self.snapshot, &other.snapshot)
     }
 }
 
-impl Eq for BlockTemplateSource {}
+impl Eq for MempoolBlockSource {}
 
-impl BlockTemplateSource {
+impl MempoolBlockSource {
     /// Identity of the captured body; unavailable selections must not revalidate.
-    pub fn hash(&self) -> Result<NextBlockHash> {
+    pub fn hash(&self) -> Result<MempoolBlockHash> {
         self.snapshot.ensure_projection()?;
-        Ok(self.snapshot.next_block_hash)
+        Ok(self.snapshot.mempool_block_hash)
     }
 
     /// Build only after validation, without observing a newer publication.
-    pub fn build(self) -> Result<BlockTemplate<TemplateTxs>> {
-        Ok(BlockTemplate {
+    pub fn build(self) -> Result<MempoolBlockContent<TemplateTxs>> {
+        Ok(MempoolBlockContent {
             hash: self.hash()?,
             stats: self.snapshot.template_stats(),
             transactions: TemplateTxs(self.snapshot.template_transactions().clone()),
@@ -44,27 +45,27 @@ impl BlockTemplateSource {
 }
 
 impl ReadOnlyState {
-    pub fn next_block_hash(&self) -> Result<NextBlockHash> {
-        self.block_template_source().hash()
+    pub fn mempool_block_hash(&self) -> Result<MempoolBlockHash> {
+        self.mempool_block_source().hash()
     }
 
     /// Capture the currently published template without cloning transaction bodies.
     #[must_use]
-    pub fn block_template_source(&self) -> BlockTemplateSource {
-        BlockTemplateSource {
+    pub fn mempool_block_source(&self) -> MempoolBlockSource {
+        MempoolBlockSource {
             snapshot: self.snapshot().clone(),
         }
     }
 
     /// Validate and capture the historical side of one diff request.
     #[must_use]
-    pub fn resolve_block_template_diff(
+    pub fn resolve_mempool_block_diff(
         &self,
-        since: NextBlockHash,
-    ) -> Option<ResolvedBlockTemplateDiff> {
+        since: MempoolBlockHash,
+    ) -> Option<ResolvedMempoolBlockDiff> {
         let past = self.historical_block0(since)?;
-        let source = self.block_template_source();
-        Some(ResolvedBlockTemplateDiff {
+        let source = self.mempool_block_source();
+        Some(ResolvedMempoolBlockDiff {
             since,
             past,
             source,
@@ -72,9 +73,9 @@ impl ReadOnlyState {
     }
 }
 
-impl ResolvedBlockTemplateDiff {
+impl ResolvedMempoolBlockDiff {
     /// Build against the publication captured when history was resolved.
-    pub fn build(self) -> Result<BlockTemplateDiff<TemplateOrder>> {
+    pub fn build(self) -> Result<MempoolBlockDiff<TemplateOrder>> {
         let Self {
             since,
             past,
@@ -87,22 +88,28 @@ impl ResolvedBlockTemplateDiff {
             .enumerate()
             .map(|(idx, tx)| (tx.txid, idx as u32))
             .collect();
-        let entries = bodies
-            .iter()
-            .enumerate()
-            .map(|(position, tx)| match prior_index.remove(&tx.txid) {
+        let mut entries: Vec<MempoolBlockDiffEntry<usize>> = Vec::new();
+        for (position, tx) in bodies.iter().enumerate() {
+            match prior_index.remove(&tx.txid) {
                 Some(idx) if Arc::ptr_eq(tx, &past[idx as usize]) => {
-                    BlockTemplateDiffEntry::Retained(idx)
+                    // A kept transaction continuing the previous run extends it.
+                    if let Some(MempoolBlockDiffEntry::Retained(run)) = entries.last_mut()
+                        && run.0 + run.1 == idx
+                    {
+                        run.1 += 1;
+                    } else {
+                        entries.push(MempoolBlockDiffEntry::Retained(RetainedRun(idx, 1)));
+                    }
                 }
-                _ => BlockTemplateDiffEntry::New(position),
-            })
-            .collect();
+                _ => entries.push(MempoolBlockDiffEntry::New(position)),
+            }
+        }
         let removed = past
             .iter()
             .filter(|tx| prior_index.contains_key(&tx.txid))
             .map(|tx| tx.txid)
             .collect();
-        Ok(BlockTemplateDiff {
+        Ok(MempoolBlockDiff {
             hash,
             since,
             stats: source.snapshot.template_stats(),
@@ -124,15 +131,15 @@ impl Serialize for TemplateTxs {
 /// The new template's entries, each new body a position in the published `bodies`.
 pub struct TemplateOrder {
     bodies: Arc<[Arc<Transaction>]>,
-    entries: Vec<BlockTemplateDiffEntry<usize>>,
+    entries: Vec<MempoolBlockDiffEntry<usize>>,
 }
 
 impl Serialize for TemplateOrder {
     fn serialize<S: Serializer>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error> {
         serializer.collect_seq(self.entries.iter().map(|entry| match *entry {
-            BlockTemplateDiffEntry::Retained(idx) => BlockTemplateDiffEntry::Retained(idx),
-            BlockTemplateDiffEntry::New(position) => {
-                BlockTemplateDiffEntry::New(&*self.bodies[position])
+            MempoolBlockDiffEntry::Retained(run) => MempoolBlockDiffEntry::Retained(run),
+            MempoolBlockDiffEntry::New(position) => {
+                MempoolBlockDiffEntry::New(&*self.bodies[position])
             }
         }))
     }

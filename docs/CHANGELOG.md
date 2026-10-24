@@ -64,9 +64,16 @@ has to be deleted by hand.
 - The address state series are gone from the API (`addr_state`, `funded_addr_data`, `extended_empty_addr_data`) with
   the `funded_addr_index`, `empty_addr_index` and `extended_empty_addr_index` indexes: internal slots whose numbering
   depends on save history. `/api/address/{address}` serves the same data
-- Mempool content hashes are decimal strings (were numbers): block template and diff `hash`, diff `since`, and
-  `GET /api/mempool/hash`. JavaScript numbers lost precision past 2^53, so a fetched hash could fail its own diff
-  lookup; the v0.12.2 Rust client fails to parse them
+- Mempool content hashes are decimal strings (were numbers): a mempool block's and its diff's `hash`, and the diff's
+  `since`. JavaScript numbers lost precision past 2^53, so a fetched hash could fail its own diff lookup; the v0.12.2
+  Rust client fails to parse them
+- The projected block's routes are `/api/mempool-blocks/{index}` and `/api/mempool-blocks/{index}/diff/{since}` (were
+  `/api/v1/mempool/block-template` and `.../diff/{hash}`, in mempool.space's namespace without being its routes),
+  index 0 the next block, Core's template, the only one served for now (others 404); a diff's retained transactions
+  are runs, `[start, count]` (were one index each: an unchanged diff of a 1,922-transaction block weighed 8.7 KB);
+  `/api/mempool/hash` is gone (the diff carries `hash`, and `If-None-Match` answers 304 while unchanged). Types
+  `MempoolBlockContent`, `MempoolBlockDiff`, `MempoolBlockDiffEntry`, `RetainedRun` and `MempoolBlockHash` (were
+  `BlockTemplate`, `BlockTemplateDiff`, `BlockTemplateDiffEntry` and `NextBlockHash`)
 - Typed every series value by what it measures, replacing the representation-named `Stored*` types (`StoredBool`,
   `StoredU8`...`StoredU64`, `StoredI8`, `StoredI64`, `StoredF32`, `StoredF64`) and `Weight64`: `Boolean`, `Score`,
   `Count`/`CountSigned`, `Seconds`, `Ratio` (a plain quotient or share: NUPL, sell-side risk, liveliness, velocity),
@@ -105,7 +112,7 @@ has to be deleted by hand.
   alphabetical order); the `{point}` of `/api/urpd/{cohort}/{point}`, `/api/utxo-set/{point}`,
   `/api/utxo-set/{point}/diff` and the oracle histograms is `HeightOrDate`, a `Height` or a `Date` (was a string);
   transaction ids, block hashes, hex data, series names and the address hash prefix carry their canonical pattern
-  (lowercase hex, `^[a-z0-9_]+$`), `NextBlockHash` its digits; a block's `merkle_root` and a merkle proof's path are
+  (lowercase hex, `^[a-z0-9_]+$`), `MempoolBlockHash` its digits; a block's `merkle_root` and a merkle proof's path are
   `MerkleNode`s, its extras' `coinbaseRaw` and `header` `Hex`, `coinbaseAddress`, `coinbaseAddresses` and a pool's
   `addresses` `Address`es and `firstSeen` a `Timestamp`; inputs' `scriptsig` and `witness` and outputs' `scriptpubkey`
   are `Hex`; series search and `GET /api/series/list` return `SeriesName`s, `GET /api/v1/transaction-times`
@@ -912,7 +919,7 @@ has to be deleted by hand.
   `GetSigOpCount` (legacy and accurate counts in one walk)
 - `brk_types`: `Sats::value_at(price)` and `Cents::sats_per_dollar()` replace `bitview_compute::SatsToCents` and
   `Sats / Dollars`; `Witness` is gone (`TxIn.witness` is rust-bitcoin's `Witness`, like `script_sig`'s `ScriptBuf`);
-  `BlockTemplate`, `BlockTemplateDiff` and `BlockTemplateDiffEntry` are generic with owned defaults; `CpfpInfo::new`
+  `MempoolBlockContent`, `MempoolBlockDiff` and `MempoolBlockDiffEntry` are generic with owned defaults; `CpfpInfo::new`
   derives the sizes and best descendant; `AddrMempoolStats` is `AddressMempoolStats`, its `receiving`, `received`,
   `sending` and `sent` are `add_funding`, `remove_funding`, `add_spend` and `remove_spend`
 - `brk_types`' unit types keep same-unit arithmetic only: `Dollars`, `Bitcoin`, `Sats`, `Cents` and `CentsSigned` add
@@ -1050,6 +1057,8 @@ has to be deleted by hand.
 
 #### Configuration
 
+- The default `maxutxos` (`--maxutxos`) falls from 1,000 to 500, electrs's `--utxos-limit` default as
+  mempool.space serves it: `/api/address/{address}/utxo` answers 400 `too_many_utxos` past 500 unspent outputs
 - RPC credentials resolve like bitcoin-cli: `rpcuser` + `rpcpassword` when a password is set, else the cookie file
   (an existing cookie used to win over explicit credentials). A relative `rpccookiefile` resolves inside
   `bitcoindir`. In Docker, `BTC_RPC_USER` and `BTC_RPC_PASSWORD` default to empty, so the cookie in

@@ -3424,15 +3424,6 @@ impl BitviewClient {
         self.base.get_json(&format!("/api/mempool"))
     }
 
-    /// Mempool content hash
-    ///
-    /// Returns an opaque content token for the published projected next block, including statistics and transaction bodies. This is not the HTTP ETag. An unchanged token means unchanged content, not necessarily a stalled sync loop.
-    ///
-    /// Endpoint: `GET /api/mempool/hash`
-    pub fn get_mempool_hash(&self) -> Result<NextBlockHash> {
-        self.base.get_json(&format!("/api/mempool/hash"))
-    }
-
     /// Mempool transaction IDs
     ///
     /// Get all transaction IDs currently in the mempool.
@@ -3477,25 +3468,30 @@ impl BitviewClient {
         self.base.get_json(&format!("/api/v1/fullrbf/replacements"))
     }
 
-    /// Projected next block template
+    /// Projected mempool block
     ///
-    /// Bitcoin Core's `getblocktemplate` selection: full transaction bodies in GBT order with aggregate stats. The returned `hash` is an opaque content token; pass it to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas instead of refetching the whole template.
+    /// A projected mempool block with its transactions in order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection, and the only one served for now (others answer 404). The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
     ///
-    /// Endpoint: `GET /api/v1/mempool/block-template`
-    pub fn get_block_template(&self) -> Result<BlockTemplate> {
+    /// Endpoint: `GET /api/mempool-blocks/{index}`
+    pub fn get_mempool_block(&self, index: MempoolBlockIndex) -> Result<MempoolBlockContent> {
         self.base
-            .get_json(&format!("/api/v1/mempool/block-template"))
+            .get_json(&format!("/api/mempool-blocks/{}", path_segment(index)))
     }
 
-    /// Block template diff since hash
+    /// Projected mempool block changes
     ///
-    /// Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild and replace the cached `stats` with the response's; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.
+    /// The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction object, a body to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict cached bodies. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.
     ///
-    /// Endpoint: `GET /api/v1/mempool/block-template/diff/{hash}`
-    pub fn get_block_template_diff(&self, hash: NextBlockHash) -> Result<BlockTemplateDiff> {
+    /// Endpoint: `GET /api/mempool-blocks/{index}/diff/{since}`
+    pub fn get_mempool_block_diff(
+        &self,
+        index: MempoolBlockIndex,
+        since: MempoolBlockHash,
+    ) -> Result<MempoolBlockDiff> {
         self.base.get_json(&format!(
-            "/api/v1/mempool/block-template/diff/{}",
-            path_segment(hash)
+            "/api/mempool-blocks/{}/diff/{}",
+            path_segment(index),
+            path_segment(since)
         ))
     }
 

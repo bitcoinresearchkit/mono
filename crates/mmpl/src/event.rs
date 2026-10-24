@@ -3,7 +3,7 @@
 //! objects) so `jq -c 'select(...)'` works without `..` walks.
 
 use brk_types::{
-    BlockHash, FeeRate, Height, NextBlockHash, PreciseRecommendedFees, Sats, Timestamp, Txid, VSize,
+    BlockHash, FeeRate, Height, MempoolBlockHash, PreciseRecommendedFees, Sats, Timestamp, Txid, VSize,
 };
 use serde::Serialize;
 
@@ -36,7 +36,7 @@ pub enum Event {
     /// changes. `hash` is the template's opaque content identity.
     Block {
         t: f64,
-        hash: NextBlockHash,
+        hash: MempoolBlockHash,
         count: u32,
         vsize: VSize,
         fee: Sats,

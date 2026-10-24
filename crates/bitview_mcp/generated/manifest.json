@@ -7680,40 +7680,6 @@
     },
     {
       "tool": {
-        "name": "get_mempool_hash",
-        "title": "Mempool content hash",
-        "description": "Returns an opaque content token for the published projected next block, including statistics and transaction bodies. This is not the HTTP ETag. An unchanged token means unchanged content, not necessarily a stalled sync loop.\n\nREST operation: `GET /api/mempool/hash`.",
-        "inputSchema": {
-          "type": "object",
-          "properties": {},
-          "additionalProperties": false,
-          "$schema": "https://json-schema.org/draft/2020-12/schema"
-        },
-        "outputSchema": {
-          "$ref": "#/$defs/NextBlockHash",
-          "$schema": "https://json-schema.org/draft/2020-12/schema",
-          "$defs": {
-            "NextBlockHash": {
-              "pattern": "^[0-9]+$",
-              "type": "string"
-            }
-          }
-        },
-        "annotations": {
-          "readOnlyHint": true,
-          "destructiveHint": false,
-          "idempotentHint": true,
-          "openWorldHint": true
-        }
-      },
-      "http": {
-        "method": "GET",
-        "path": "/api/mempool/hash",
-        "parameters": []
-      }
-    },
-    {
-      "tool": {
         "name": "get_mempool_recent",
         "title": "Recent mempool transactions",
         "description": "Get the last 10 transactions to enter the mempool.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-recent)*\n\nREST operation: `GET /api/mempool/recent`.",

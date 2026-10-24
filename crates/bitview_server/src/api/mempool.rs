@@ -2,18 +2,17 @@ use aide::axum::{ApiRouter, routing::get_with};
 use axum::{extract::Path, http::HeaderMap, response::Response};
 use bitview_types::ReplacementNode;
 use brk_types::{
-    BlockTemplate, BlockTemplateDiff, Dollars, MempoolInfo, MempoolRecentTx, NextBlockHash, Txid,
-    Version,
+    Dollars, MempoolBlockContent, MempoolBlockDiff, MempoolInfo, MempoolRecentTx, Txid, Version,
 };
 
-use super::{block_template, mempool_txids};
+use super::{mempool_block, mempool_txids};
 use crate::{
-    AppState, CacheParams,
+    AppState,
     api::oracle::serve_live_price,
     api::tags,
     error::Result,
-    extended::{ResponseExtended, TransformResponseExtended},
-    params::{Empty, NextBlockHashParam},
+    extended::TransformResponseExtended,
+    params::{Empty, MempoolBlockDiffParam, MempoolBlockParam},
     request_state::RequestState,
 };
 
@@ -32,23 +31,6 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                     .summary("Mempool statistics")
                     .description("*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool)*")
                     .json_response::<MempoolInfo>()
-                    .not_modified()
-            },
-        ),
-    )
-    .api_route(
-        "/api/mempool/hash",
-        get_with(
-            async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| -> Result<Response> {
-                let hash = state.query.read(|q| q.mempool_hash()).await?;
-                Ok(Response::cached_json(&headers, &CacheParams::live_hash(hash.into()), || hash))
-            },
-            |op| {
-                op.id("get_mempool_hash")
-                    .tag(tags::MEMPOOL)
-                    .summary("Mempool content hash")
-                    .description("Returns an opaque content token for the published projected next block, including statistics and transaction bodies. This is not the HTTP ETag. An unchanged token means unchanged content, not necessarily a stalled sync loop.")
-                    .json_response::<NextBlockHash>()
                     .not_modified()
             },
         ),
@@ -129,38 +111,42 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
         ),
     )
     .api_route(
-        "/api/v1/mempool/block-template",
+        "/api/mempool-blocks/{index}",
         get_with(
-            async |headers: HeaderMap, _: Empty, RequestState(state): RequestState| -> Result<Response> {
-                block_template::serve(state, headers).await
+            async |headers: HeaderMap,
+                   Path(path): Path<MempoolBlockParam>,
+                   _: Empty,
+                   RequestState(state): RequestState| -> Result<Response> {
+                mempool_block::serve(state, headers, path.index).await
             },
             |op| {
-                op.id("get_block_template")
+                op.id("get_mempool_block")
                     .tag(tags::MEMPOOL)
                     .mcp_ignore()
-                    .summary("Projected next block template")
-                    .description("Bitcoin Core's `getblocktemplate` selection: full transaction bodies in GBT order with aggregate stats. The returned `hash` is an opaque content token; pass it to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas instead of refetching the whole template.")
-                    .json_response::<BlockTemplate>()
+                    .summary("Projected mempool block")
+                    .description("A projected mempool block with its transactions in order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection, and the only one served for now (others answer 404). The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.")
+                    .json_response::<MempoolBlockContent>()
                     .not_modified()
+                    .not_found()
             },
         ),
     )
     .api_route(
-        "/api/v1/mempool/block-template/diff/{hash}",
+        "/api/mempool-blocks/{index}/diff/{since}",
         get_with(
             async |headers: HeaderMap,
-                   Path(path): Path<NextBlockHashParam>,
+                   Path(path): Path<MempoolBlockDiffParam>,
                    _: Empty,
                    RequestState(state): RequestState| -> Result<Response> {
-                block_template::serve_diff(state, headers, path.hash).await
+                mempool_block::serve_diff(state, headers, path.index, path.since).await
             },
             |op| {
-                op.id("get_block_template_diff")
+                op.id("get_mempool_block_diff")
                     .tag(tags::MEMPOOL)
                     .mcp_ignore()
-                    .summary("Block template diff since hash")
-                    .description("Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild and replace the cached `stats` with the response's; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.")
-                    .json_response::<BlockTemplateDiff>()
+                    .summary("Projected mempool block changes")
+                    .description("The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction object, a body to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict cached bodies. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.")
+                    .json_response::<MempoolBlockDiff>()
                     .not_modified()
                     .not_found()
             },

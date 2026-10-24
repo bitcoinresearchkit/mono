@@ -14,8 +14,6 @@ use crate::{Error, extended::TransformResponseExtended, params::Empty};
 #[cfg(feature = "chain")]
 mod addrs;
 #[cfg(feature = "chain")]
-mod block_template;
-#[cfg(feature = "chain")]
 mod blocks;
 #[cfg(feature = "chain")]
 pub mod broadcast;
@@ -27,6 +25,8 @@ mod general;
 mod historical_price;
 #[cfg(feature = "chain")]
 mod mempool;
+#[cfg(feature = "chain")]
+mod mempool_block;
 #[cfg(feature = "chain")]
 mod mempool_txids;
 #[cfg(feature = "chain")]

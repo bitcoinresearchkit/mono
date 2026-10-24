@@ -300,46 +300,6 @@ sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @property {(BlockHash|null)=} nextBest - Hash of the next block in the best chain (null if tip)
  */
 /**
- * Projected next-block contents from Bitcoin Core's `getblocktemplate`
- * (block 0 of the snapshot). Returned by
- * `GET /api/v1/mempool/block-template`.
- *
- * @typedef {Object} BlockTemplate
- * @property {NextBlockHash} hash - Pass to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
- * @property {MempoolBlock} stats
- * @property {Transaction[]} transactions - Full transaction bodies in `getblocktemplate` order.
- */
-/**
- * Delta between the current `getblocktemplate` projection and a prior
- * one identified by `since`. Returned by
- * `GET /api/v1/mempool/block-template/diff/{hash}`.
- *
- * `removed` lists txids no longer present. A changed body can be emitted as
- * `New` without removing its txid; absence of a retained index alone does not
- * imply removal.
- *
- * @typedef {Object} BlockTemplateDiff
- * @property {NextBlockHash} hash - Current next-block hash. Use as `since` on the next diff call.
- * @property {NextBlockHash} since - Echoed prior hash the diff was computed against.
- * @property {MempoolBlock} stats - Stats of the new template; they can change while every transaction is retained.
- * @property {BlockTemplateDiffEntry[]} order - New template in order. Each entry is either an index into the
-prior template's transactions or a full transaction body.
- * @property {Txid[]} removed - Txids that left the projected next block since `since`
-(confirmed, evicted, replaced, or pushed past block 0).
- */
-/**
- * One slot of the new template in a `BlockTemplateDiff`.
- *
- * Untagged on the wire so JSON type disambiguates the variants:
- * - `Retained(idx)` serializes as a bare integer - index into the
- *   transactions of the prior template (which the client cached at
- *   `since`).
- * - `New(tx)` serializes as a transaction object - a body that was
- *   new or changed since the prior template and must replace this position.
- *
- * @typedef {(number|Transaction)} BlockTemplateDiffEntry
- */
-/**
  * Block information returned for timestamp queries
  *
  * @typedef {Object} BlockTimestamp
@@ -789,6 +749,67 @@ or coinbase.
 later projected ones
  */
 /**
+ * A projected mempool block with its transactions: block 0 is Bitcoin Core's
+ * `getblocktemplate` selection. Returned by `GET /api/mempool-blocks/{index}`.
+ *
+ * @typedef {Object} MempoolBlockContent
+ * @property {MempoolBlockHash} hash - Pass as `since` to `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
+ * @property {MempoolBlock} stats
+ * @property {Transaction[]} transactions - Full transaction bodies in `getblocktemplate` order.
+ */
+/**
+ * A projected mempool block's changes since a prior copy identified by `since`. Returned by
+ * `GET /api/mempool-blocks/{index}/diff/{since}`.
+ *
+ * `removed` lists txids no longer present. A changed body can be emitted as `New` without
+ * removing its txid; absence from every retained run alone does not imply removal.
+ *
+ * @typedef {Object} MempoolBlockDiff
+ * @property {MempoolBlockHash} hash - The block's current hash. Use as `since` on the next diff call.
+ * @property {MempoolBlockHash} since - Echoed prior hash the diff was computed against.
+ * @property {MempoolBlock} stats - Stats of the new block; they can change while every transaction is retained.
+ * @property {MempoolBlockDiffEntry[]} order - The new block in order. Each entry is either a run of the prior copy's transactions,
+`[start, count]`, or a full transaction body.
+ * @property {Txid[]} removed - Txids that left the projected next block since `since`
+(confirmed, evicted, replaced, or pushed past block 0).
+ */
+/**
+ * One stretch of the new block in a `MempoolBlockDiff`.
+ *
+ * Untagged on the wire so JSON type disambiguates the variants:
+ * - `Retained(run)` serializes as `[start, count]`: the prior block's transactions
+ *   `start..start + count` (which the client cached at `since`), kept in order.
+ * - `New(tx)` serializes as a transaction object: a body that was new or changed since the
+ *   prior block and takes this position.
+ *
+ * @typedef {(RetainedRun|Transaction)} MempoolBlockDiffEntry
+ */
+/**
+ * The block and the content token a client holds for it.
+ *
+ * @typedef {Object} MempoolBlockDiffParam
+ * @property {MempoolBlockIndex} index
+ * @property {MempoolBlockHash} since - The `hash` of the client's copy, from the block or a previous diff
+ */
+/**
+ * Content hash of a projected mempool block, including its statistics and complete
+ * transaction bodies. Opaque token, distinct from HTTP ETag formatting: pass back to
+ * `GET /api/mempool-blocks/{index}/diff/{since}` to follow changes.
+ * A decimal string, since JavaScript numbers can't hold every 64-bit value.
+ *
+ * @typedef {string} MempoolBlockHash
+ */
+/**
+ * A projected mempool block's position, as `/api/v1/fees/mempool-blocks` lists them: 0 is the
+ * next block, Bitcoin Core's `getblocktemplate` selection.
+ *
+ * @typedef {number} MempoolBlockIndex
+ */
+/**
+ * @typedef {Object} MempoolBlockParam
+ * @property {MempoolBlockIndex} index
+ */
+/**
  * Mempool statistics with incrementally maintained fee histogram.
  *
  * @typedef {Object} MempoolInfo
@@ -851,21 +872,6 @@ a bin closing at the first fee rate change past 50,000 vB
  * average).
  *
  * @typedef {number} Multiple
- */
-/**
- * Content hash of the projected next block (block 0 of the mempool
- * snapshot), including its statistics and complete transaction bodies.
- * Opaque token, distinct from HTTP ETag formatting: pass back
- * to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas.
- * A decimal string, since JavaScript numbers can't hold every 64-bit value.
- *
- * @typedef {string} NextBlockHash
- */
-/**
- * Prior-template hash for `GET /api/v1/mempool/block-template/diff/{hash}`.
- *
- * @typedef {Object} NextBlockHashParam
- * @property {NextBlockHash} hash
  */
 /**
  * Open, high, low and close prices in US dollars: [open, high, low, close].
@@ -1190,6 +1196,12 @@ replaced it. Omitted on the root of an RBF response.
  * @property {?boolean=} mined - `Some(true)` iff this node's tx is currently confirmed. Absent
 on serialization otherwise.
  * @property {ReplacementNode[]} replaces
+ */
+/**
+ * Consecutive transactions kept from the prior block, `[start, count]`: its positions
+ * `start..start + count`, in order.
+ *
+ * @typedef {[number, number]} RetainedRun
  */
 /**
  * Block reward statistics over a range of blocks
@@ -9122,20 +9134,6 @@ anything else answers 400, as mempool.space does
   }
 
   /**
-   * Mempool content hash
-   *
-   * Returns an opaque content token for the published projected next block, including statistics and transaction bodies. This is not the HTTP ETag. An unchanged token means unchanged content, not necessarily a stalled sync loop.
-   *
-   * Endpoint: `GET /api/mempool/hash`
-   * @param {{ signal?: AbortSignal, onValue?: (value: NextBlockHash) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<NextBlockHash>}
-   */
-  async getMempoolHash({ signal, onValue, cache, memCache } = {}) {
-    const path = `/api/mempool/hash`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
-  }
-
-  /**
    * Mempool transaction IDs
    *
    * Get all transaction IDs currently in the mempool.
@@ -9200,32 +9198,35 @@ anything else answers 400, as mempool.space does
   }
 
   /**
-   * Projected next block template
+   * Projected mempool block
    *
-   * Bitcoin Core's `getblocktemplate` selection: full transaction bodies in GBT order with aggregate stats. The returned `hash` is an opaque content token; pass it to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas instead of refetching the whole template.
+   * A projected mempool block with its transactions in order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection, and the only one served for now (others answer 404). The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.
    *
-   * Endpoint: `GET /api/v1/mempool/block-template`
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockTemplate) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockTemplate>}
+   * Endpoint: `GET /api/mempool-blocks/{index}`
+   *
+   * @param {MempoolBlockIndex} index
+   * @param {{ signal?: AbortSignal, onValue?: (value: MempoolBlockContent) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<MempoolBlockContent>}
    */
-  async getBlockTemplate({ signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mempool/block-template`;
+  async getMempoolBlock(index, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/mempool-blocks/${encodeURIComponent(index)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
   /**
-   * Block template diff since hash
+   * Projected mempool block changes
    *
-   * Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild and replace the cached `stats` with the response's; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.
+   * The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction object, a body to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict cached bodies. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.
    *
-   * Endpoint: `GET /api/v1/mempool/block-template/diff/{hash}`
+   * Endpoint: `GET /api/mempool-blocks/{index}/diff/{since}`
    *
-   * @param {NextBlockHash} hash
-   * @param {{ signal?: AbortSignal, onValue?: (value: BlockTemplateDiff) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<BlockTemplateDiff>}
+   * @param {MempoolBlockIndex} index
+   * @param {MempoolBlockHash} since - The `hash` of the client's copy, from the block or a previous diff
+   * @param {{ signal?: AbortSignal, onValue?: (value: MempoolBlockDiff) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<MempoolBlockDiff>}
    */
-  async getBlockTemplateDiff(hash, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/v1/mempool/block-template/diff/${encodeURIComponent(hash)}`;
+  async getMempoolBlockDiff(index, since, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/mempool-blocks/${encodeURIComponent(index)}/diff/${encodeURIComponent(since)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 

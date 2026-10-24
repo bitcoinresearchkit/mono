@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, sync::Arc};
 
 use brk_error::{Error, Result};
-use brk_types::{BlockHash, NextBlockHash, Transaction};
+use brk_types::{BlockHash, MempoolBlockHash, Transaction};
 
 use crate::Snapshot;
 
@@ -18,7 +18,7 @@ pub struct ReadOnlyState {
     pub(crate) pool: Option<Arc<Pool>>,
     projection: Arc<Snapshot>,
     projection_tip: Option<BlockHash>,
-    history: VecDeque<(NextBlockHash, Arc<[Arc<Transaction>]>)>,
+    history: VecDeque<(MempoolBlockHash, Arc<[Arc<Transaction>]>)>,
 }
 
 impl ReadOnlyState {
@@ -49,7 +49,7 @@ impl ReadOnlyState {
             )));
         }
         if projection_changed {
-            let hash = graph.next_block_hash;
+            let hash = graph.mempool_block_hash;
             next.history.retain(|(previous, _)| *previous != hash);
             next.history
                 .push_back((hash, graph.template_transactions().clone()));
@@ -76,7 +76,7 @@ impl ReadOnlyState {
         &self.projection
     }
 
-    pub(crate) fn historical_block0(&self, hash: NextBlockHash) -> Option<Arc<[Arc<Transaction>]>> {
+    pub(crate) fn historical_block0(&self, hash: MempoolBlockHash) -> Option<Arc<[Arc<Transaction>]>> {
         self.history
             .iter()
             .find(|(candidate, _)| *candidate == hash)

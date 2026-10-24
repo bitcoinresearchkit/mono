@@ -13,7 +13,7 @@ use std::{hash::Hasher, sync::Arc};
 pub use block_stats::BlockStats;
 use brk_error::{Error as QueryError, Result};
 use brk_types::{
-    FeeRate, MempoolBlock, NextBlockHash, PreciseRecommendedFees, RecommendedFees, Transaction,
+    FeeRate, MempoolBlock, MempoolBlockHash, PreciseRecommendedFees, RecommendedFees, Transaction,
     Txid,
 };
 use builder::KeyIndex;
@@ -39,7 +39,7 @@ pub struct Snapshot {
     pub fees: RecommendedFees,
     min_fee: FeeRate,
     /// Content identity of the published template statistics and complete bodies.
-    pub next_block_hash: NextBlockHash,
+    pub mempool_block_hash: MempoolBlockHash,
     key_to_idx: KeyIndex,
     template_transactions: Arc<[Arc<Transaction>]>,
     content_revision: u64,
@@ -65,7 +65,7 @@ impl Snapshot {
             precise_fees,
             fees,
             min_fee,
-            next_block_hash: NextBlockHash::ZERO,
+            mempool_block_hash: MempoolBlockHash::ZERO,
             key_to_idx,
             template_transactions: Arc::from([]),
             content_revision: 0,
@@ -90,7 +90,7 @@ impl Snapshot {
         for &digest in digests {
             hasher.write_u64(digest);
         }
-        self.next_block_hash = NextBlockHash::new(hasher.finish());
+        self.mempool_block_hash = MempoolBlockHash::new(hasher.finish());
         self.template_transactions = bodies.into();
         self.content_revision = revision;
         self.template_missing = missing;

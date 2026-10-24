@@ -13,9 +13,9 @@ use crate::{Port, cache::CdnCacheMode};
 /// budget.
 pub const DEFAULT_MAX_WEIGHT: usize = 10_000 * size_of::<OHLCCents>();
 
-/// Default max UTXOs returned per address.
+/// Default max UTXOs returned per address, electrs's `--utxos-limit` default as mempool.space serves.
 /// Bounds worst-case work and response size, prevents heavy-address DDoS.
-pub const DEFAULT_MAX_UTXOS: usize = 1000;
+pub const DEFAULT_MAX_UTXOS: usize = 500;
 
 /// Default HTTP bind address: this machine only (the server has no authentication); `0.0.0.0` serves its network.
 pub const DEFAULT_BIND: IpAddr = IpAddr::V4(Ipv4Addr::LOCALHOST);

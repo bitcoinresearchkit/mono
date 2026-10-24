@@ -50,10 +50,10 @@ pub struct SharedState {
     pub mempool_txid_bodies: Arc<Semaphore>,
     /// Block templates, about 10 MB each.
     #[cfg(feature = "chain")]
-    pub block_template_bodies: Arc<Semaphore>,
+    pub mempool_block_bodies: Arc<Semaphore>,
     /// Block template diffs: small, except right after a block.
     #[cfg(feature = "chain")]
-    pub block_template_diff_bodies: Arc<Semaphore>,
+    pub mempool_block_diff_bodies: Arc<Semaphore>,
     #[cfg(feature = "chain")]
     pub broadcast_requests: Arc<Semaphore>,
     /// Transaction, block and address-history bodies.

@@ -258,31 +258,6 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
-        name: "get-block-template",
-        method: "GET",
-        path: "/api/v1/mempool/block-template",
-        summary: "Projected next block template",
-        description: "Bitcoin Core's `getblocktemplate` selection: full transaction bodies in GBT order with aggregate stats. The returned `hash` is an opaque content token; pass it to `GET /api/v1/mempool/block-template/diff/{hash}` to fetch deltas instead of refetching the whole template.",
-        path_parameters: &[
-        ],
-        query_parameters: &[
-        ],
-        request_body: None,
-    },
-    Command {
-        name: "get-block-template-diff",
-        method: "GET",
-        path: "/api/v1/mempool/block-template/diff/{hash}",
-        summary: "Block template diff since hash",
-        description: "Delta of the projected next block since `<hash>`. `order` is the full new template in order: each entry is either a number (index into the prior template the client cached at `<hash>`) or a transaction object (new body to insert at this position). Walk `order` once to rebuild and replace the cached `stats` with the response's; `removed` is a convenience list of txids that left so clients can evict cached bodies. After applying, use the response `hash` as `<hash>` on the next call to keep iterating. Returns `404` when `<hash>` has aged out of server history; clients should fall back to `GET /api/v1/mempool/block-template`.",
-        path_parameters: &[
-            Parameter { api_name: "hash", name: "hash", required: true, value_name: "NextBlockHash", repeatable: false, description: None },
-        ],
-        query_parameters: &[
-        ],
-        request_body: None,
-    },
-    Command {
         name: "get-block-tip-hash",
         method: "GET",
         path: "/api/blocks/tip/hash",
@@ -585,23 +560,38 @@ pub static COMMANDS: &[Command] = &[
         request_body: None,
     },
     Command {
-        name: "get-mempool-blocks",
+        name: "get-mempool-block",
         method: "GET",
-        path: "/api/v1/fees/mempool-blocks",
-        summary: "Projected mempool blocks",
-        description: "Projected blocks for fee estimation. Block 0 reflects Bitcoin Core's actual next-block selection; blocks 1+ are a fee-tier approximation.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*",
+        path: "/api/mempool-blocks/{index}",
+        summary: "Projected mempool block",
+        description: "A projected mempool block with its transactions in order and its stats, by position as `GET /api/v1/fees/mempool-blocks` lists them: 0 is the next block, Bitcoin Core's `getblocktemplate` selection, and the only one served for now (others answer 404). The returned `hash` is an opaque content token: poll `GET /api/mempool-blocks/{index}/diff/{hash}` to follow changes instead of refetching the block.",
         path_parameters: &[
+            Parameter { api_name: "index", name: "index", required: true, value_name: "MempoolBlockIndex", repeatable: false, description: None },
         ],
         query_parameters: &[
         ],
         request_body: None,
     },
     Command {
-        name: "get-mempool-hash",
+        name: "get-mempool-block-diff",
         method: "GET",
-        path: "/api/mempool/hash",
-        summary: "Mempool content hash",
-        description: "Returns an opaque content token for the published projected next block, including statistics and transaction bodies. This is not the HTTP ETag. An unchanged token means unchanged content, not necessarily a stalled sync loop.",
+        path: "/api/mempool-blocks/{index}/diff/{since}",
+        summary: "Projected mempool block changes",
+        description: "The projected mempool block's changes since the client's copy at `since`. `order` is the new block in order: each entry is either `[start, count]`, the client's transactions `start..start + count` kept in order, or a transaction object, a body to place there. Walk `order` once to rebuild, and replace the cached `stats` with the response's; `removed` lists the txids that left, so clients can evict cached bodies. Use the response `hash` as the next `since`; with `If-None-Match` an unchanged block answers 304. Returns `404` when `since` has aged out of server history: fetch `GET /api/mempool-blocks/{index}` again.",
+        path_parameters: &[
+            Parameter { api_name: "index", name: "index", required: true, value_name: "MempoolBlockIndex", repeatable: false, description: None },
+            Parameter { api_name: "since", name: "since", required: true, value_name: "MempoolBlockHash", repeatable: false, description: Some("The `hash` of the client's copy, from the block or a previous diff") },
+        ],
+        query_parameters: &[
+        ],
+        request_body: None,
+    },
+    Command {
+        name: "get-mempool-blocks",
+        method: "GET",
+        path: "/api/v1/fees/mempool-blocks",
+        summary: "Projected mempool blocks",
+        description: "Projected blocks for fee estimation. Block 0 reflects Bitcoin Core's actual next-block selection; blocks 1+ are a fee-tier approximation.\n\n*[Mempool.space docs](https://mempool.space/docs/api/rest#get-mempool-blocks-fees)*",
         path_parameters: &[
         ],
         query_parameters: &[

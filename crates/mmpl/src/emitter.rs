@@ -9,7 +9,7 @@ use std::{
 use brk_error::{Error, Result};
 use brk_mempool::{RbfNode, ReadOnlyState};
 use brk_rpc::Client;
-use brk_types::{BlockHash, FeeRate, NextBlockHash, PreciseRecommendedFees, Sats, Txid, VSize};
+use brk_types::{BlockHash, FeeRate, MempoolBlockHash, PreciseRecommendedFees, Sats, Txid, VSize};
 use rustc_hash::FxHashSet;
 use serde::Deserialize;
 use serde_json::{from_slice, to_writer};
@@ -22,7 +22,7 @@ use crate::event::{Event, LeaveReason};
 #[derive(Default)]
 pub struct Emitter {
     prev_tip: Option<BlockHash>,
-    prev_next_block_hash: Option<NextBlockHash>,
+    prev_mempool_block_hash: Option<MempoolBlockHash>,
     prev_fees: Option<PreciseRecommendedFees>,
     prev_txids: FxHashSet<Txid>,
 }
@@ -100,9 +100,9 @@ impl Emitter {
                 height: height.into(),
             });
         }
-        let next_block_hash = state.next_block_hash().ok();
-        if let Some(hash) = next_block_hash
-            && self.prev_next_block_hash != Some(hash)
+        let mempool_block_hash = state.mempool_block_hash().ok();
+        if let Some(hash) = mempool_block_hash
+            && self.prev_mempool_block_hash != Some(hash)
             && let Some(block) = state.block_stats()?.first()
         {
             events.push(Event::Block {
@@ -136,8 +136,8 @@ impl Emitter {
         out.flush()?;
 
         self.prev_tip = Some(tip);
-        if next_block_hash.is_some() {
-            self.prev_next_block_hash = next_block_hash;
+        if mempool_block_hash.is_some() {
+            self.prev_mempool_block_hash = mempool_block_hash;
         }
         if fees.is_some() {
             self.prev_fees = fees;

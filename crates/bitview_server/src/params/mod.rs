@@ -22,7 +22,7 @@ mod height_param;
 #[cfg(feature = "chain")]
 mod historical_price_param;
 #[cfg(feature = "chain")]
-mod next_block_hash_param;
+mod mempool_block_param;
 #[cfg(feature = "chain")]
 mod pool_slug_param;
 #[cfg(feature = "series")]
@@ -72,7 +72,7 @@ pub use height_param::*;
 #[cfg(feature = "chain")]
 pub use historical_price_param::*;
 #[cfg(feature = "chain")]
-pub use next_block_hash_param::*;
+pub use mempool_block_param::*;
 #[cfg(feature = "chain")]
 pub use pool_slug_param::*;
 #[cfg(feature = "series")]

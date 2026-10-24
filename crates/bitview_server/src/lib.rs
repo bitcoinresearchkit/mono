@@ -163,9 +163,9 @@ pub async fn app(query: &AsyncQuery, config: ServerConfig) -> Result<App> {
         #[cfg(feature = "chain")]
         mempool_txid_bodies: Arc::new(Semaphore::new(2)),
         #[cfg(feature = "chain")]
-        block_template_bodies: Arc::new(Semaphore::new(2)),
+        mempool_block_bodies: Arc::new(Semaphore::new(2)),
         #[cfg(feature = "chain")]
-        block_template_diff_bodies: Arc::new(Semaphore::new(2)),
+        mempool_block_diff_bodies: Arc::new(Semaphore::new(2)),
         #[cfg(feature = "chain")]
         broadcast_requests: Arc::new(Semaphore::new(api::broadcast::BroadcastPermit::CAPACITY)),
         #[cfg(feature = "chain")]

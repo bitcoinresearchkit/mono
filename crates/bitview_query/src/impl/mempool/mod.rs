@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
 use brk_mempool::ReadOnlyState;
-pub use brk_mempool::{BlockTemplateSource, ResolvedBlockTemplateDiff};
-use brk_types::{MempoolBlock, NextBlockHash, PreciseRecommendedFees, RecommendedFees, Txid};
+pub use brk_mempool::{MempoolBlockSource, ResolvedMempoolBlockDiff};
+use brk_types::{MempoolBlock, MempoolBlockHash, PreciseRecommendedFees, RecommendedFees, Txid};
 use serde::{Serialize, Serializer};
 use serde_json::to_vec;
 
@@ -99,26 +99,21 @@ impl Query {
         Ok(self.require_mempool()?.transaction_times_with_hash(txids)?)
     }
 
-    /// Content identity of the published projected next block, not a liveness clock.
-    pub fn mempool_hash(&self) -> Result<NextBlockHash> {
-        Ok(self.require_mempool()?.next_block_hash()?)
-    }
-
     /// Capture a published template for cheap validation and deferred construction.
-    pub fn resolve_block_template(&self) -> Result<BlockTemplateSource> {
-        let source = self.require_mempool()?.block_template_source();
+    pub fn resolve_mempool_block(&self) -> Result<MempoolBlockSource> {
+        let source = self.require_mempool()?.mempool_block_source();
         source.hash()?;
         Ok(source)
     }
 
     /// Validate history before conditional handling and capture both diff inputs.
-    pub fn resolve_block_template_diff(
+    pub fn resolve_mempool_block_diff(
         &self,
-        since: NextBlockHash,
-    ) -> Result<ResolvedBlockTemplateDiff> {
+        since: MempoolBlockHash,
+    ) -> Result<ResolvedMempoolBlockDiff> {
         let mempool = self.require_mempool()?;
         let resolved = mempool
-            .resolve_block_template_diff(since)
+            .resolve_mempool_block_diff(since)
             .ok_or_else(|| Error::NotFound(format!("unknown since hash: {since}")))?;
         resolved.source().hash()?;
         Ok(resolved)

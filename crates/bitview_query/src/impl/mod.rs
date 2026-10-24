@@ -33,7 +33,7 @@ pub use block::{ResolvedBlockTimestamp, ResolvedBlocks, ResolvedBlocksV1};
 #[cfg(feature = "chain")]
 pub use cpfp::ResolvedCpfp;
 #[cfg(feature = "chain")]
-pub use mempool::{BlockTemplateSource, MempoolTxids, ResolvedBlockTemplateDiff, ResolvedRbf};
+pub use mempool::{MempoolBlockSource, MempoolTxids, ResolvedMempoolBlockDiff, ResolvedRbf};
 #[cfg(feature = "chain")]
 pub use mining::ResolvedPoolBlocks;
 #[cfg(feature = "series")]

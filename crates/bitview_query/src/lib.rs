@@ -50,8 +50,8 @@ pub use r#impl::ResolvedUrpd;
 pub use r#impl::price::ResolvedHistoricalPrice;
 #[cfg(feature = "chain")]
 pub use r#impl::{
-    BlockTemplateSource, MempoolTxids, ResolvedAddrChainTxs, ResolvedAddrMempoolTxs,
-    ResolvedAddrTxs, ResolvedAddrUtxos, ResolvedBlockTemplateDiff, ResolvedBlockTimestamp,
+    MempoolBlockSource, MempoolTxids, ResolvedAddrChainTxs, ResolvedAddrMempoolTxs,
+    ResolvedAddrTxs, ResolvedAddrUtxos, ResolvedMempoolBlockDiff, ResolvedBlockTimestamp,
     ResolvedBlocks, ResolvedBlocksV1, ResolvedConfirmedTx, ResolvedCpfp, ResolvedPoolBlocks,
     ResolvedRbf, ResolvedTransaction, UtxoSetPoint,
 };

@@ -2,22 +2,27 @@ use std::sync::Arc;
 
 use axum::{http::HeaderMap, response::Response};
 use bitview_query::{Query, Result as QueryResult};
-use brk_types::NextBlockHash;
+use brk_types::{MempoolBlockHash, MempoolBlockIndex};
 use serde::Serialize;
 use serde_json::to_vec;
 use tokio::sync::Semaphore;
 
-use crate::{AppState, CacheParams, error::Result, extended::ResponseExtended};
+use crate::{AppState, CacheParams, error::Result, extended::ResponseExtended, params::served};
 
-/// The projected next block (about 10 MB).
-pub async fn serve(state: AppState, headers: HeaderMap) -> Result<Response> {
+/// A projected mempool block with its transactions (block 0: about 12 MB).
+pub async fn serve(
+    state: AppState,
+    headers: HeaderMap,
+    index: MempoolBlockIndex,
+) -> Result<Response> {
     serve_json(
         &state,
         headers,
-        &state.block_template_bodies,
-        |query| {
-            let source = query.resolve_block_template()?;
-            let params = CacheParams::live(format!("template-v2-{}", source.hash()?));
+        &state.mempool_block_bodies,
+        move |query| {
+            served(index)?;
+            let source = query.resolve_mempool_block()?;
+            let params = CacheParams::live(format!("mempool-block-0-{}", source.hash()?));
             Ok((source, params))
         },
         |source| source.build(),
@@ -25,19 +30,22 @@ pub async fn serve(state: AppState, headers: HeaderMap) -> Result<Response> {
     .await
 }
 
+/// A projected mempool block's changes since the client's copy, `since`.
 pub async fn serve_diff(
     state: AppState,
     headers: HeaderMap,
-    since: NextBlockHash,
+    index: MempoolBlockIndex,
+    since: MempoolBlockHash,
 ) -> Result<Response> {
     serve_json(
         &state,
         headers,
-        &state.block_template_diff_bodies,
+        &state.mempool_block_diff_bodies,
         move |query| {
-            let resolved = query.resolve_block_template_diff(since)?;
+            served(index)?;
+            let resolved = query.resolve_mempool_block_diff(since)?;
             let params = CacheParams::live(format!(
-                "template-diff-v2-{}-{}",
+                "mempool-block-0-diff-{}-{}",
                 resolved.since(),
                 resolved.source().hash()?
             ));
