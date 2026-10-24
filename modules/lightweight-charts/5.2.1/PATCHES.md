@@ -587,22 +587,7 @@ pan now starts from where the press was, so its first frame catches up and it st
 Measured: Mullvad Browser (headless, 2x), a 60 px drag in 2 px steps: the chart's travel equals the pointer's from the
 first frame past the threshold (it was 8 px short throughout).
 
-## 34. Tick weights given by the page
-
-The time axis picks which bars get a label by each bar's weight, which the library derives from its date (a year's
-first bar outweighs a month's, a month's a day's). A chart laid out by number, not by date (Studio's blocks and epochs:
-a stand-in time each, see `NUMBERED`), wants its round numbers labelled instead (840,000 over 840,100), which no date
-weighs. The page can now give the weights itself.
-
-- `bvWeights(weigh)`, exported: `weigh(time)` (a bar's time, as given) returns its weight; `null` goes back to the
-  library's own.
-- `fillWeightsForPoints()` (the horizontal scale behavior's weights): with one set, each bar from the first changed on
-  is weighed by it, and nothing else is done there.
-
-Studio: by block, the axis labels 970,000, 970,500, 971,000… (the crosshair "Block 971,622"); by difficulty epoch, 100,
-150, 200…; by date, as before.
-
-## 35. A fling that would pass the view's end eases into it
+## 34. A fling that would pass the view's end eases into it
 
 A fling glides on from where the finger lifts, its speed falling by a fixed friction (`class In`: its travel, as it
 starts, `-speed / ln(friction)`), and the time scale holds every frame to its ends (patch 13): a fling that would carry

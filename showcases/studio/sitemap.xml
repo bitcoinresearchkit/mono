@@ -4776,9 +4776,6 @@
 <url><loc>https://bitview.space/studio/presets/network/transactions/per-second</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/volume</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/volume-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/network/transactions/vsize</loc></url>
-<url><loc>https://bitview.space/studio/presets/network/transactions/fee</loc></url>
-<url><loc>https://bitview.space/studio/presets/network/transactions/fee-rate</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/nonstandard</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/nonstandard-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/network/transactions/features/compare</loc></url>

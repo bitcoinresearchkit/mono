@@ -18,7 +18,7 @@
  *   else has them in a pane of their own above its own, shown short, or, about the chain's workings, not the market,
  *   hidden there: see priced).
  * @typedef {Record<string, any>} Layer
- * @typedef {{ layers: Layer[], panes?: Record<string, any>[], range?: string, index?: string, halvings?: boolean }} Sketch
+ * @typedef {{ layers: Layer[], panes?: Record<string, any>[], range?: string, halvings?: boolean }} Sketch
  * @typedef {{ p: string[], t: string, c: Sketch }} Preset
  * @typedef {{ name: string, title: string, c: Sketch, priceHidden?: boolean }} ChartNode
  * @typedef {{ name: string, items: (ChartNode | SectionNode)[], workings?: boolean }} SectionNode `workings`: its charts are
@@ -167,15 +167,14 @@ export function studioPresets(client, facts) {
   };
   /** A chart's letter for its `i`th layer (fewer than 26). */
   const letter = (/** @type {number} */ i) => String.fromCharCode(65 + i);
-  /** The price, as its candles; by block, each block's (candles are a period's). @returns {Layer} */
-  const price = (byBlock = false) => ({ series: (byBlock ? t.price.spot : t.price.ohlc).name, label: "Price", type: byBlock ? "line" : "candles", color: "ink", priceLine: true });
+  /** The price, as its candles. @returns {Layer} */
+  const price = () => ({ series: t.price.ohlc.name, label: "Price", type: "candles", color: "ink", priceLine: true });
   /**
    * A chart: its layers, each with its pane (1 if none), and its panes' scales (a pane with the price, or `log` said,
    * logarithmic; else linear) and stacks.
    * @param {string} name @param {string} title @param {Layer[]} layers
-   * `index`: drawn by it (a date's, as ever, unless said).
    * `priceHidden`: the price on top starts hidden (a chart whose subject already moves with it, as market cap).
-   * @param {{ log?: number[], linear?: number[], stack?: Record<number, string>, sizes?: number[], range?: string, index?: string, halvings?: boolean, priceHidden?: boolean }} [options]
+   * @param {{ log?: number[], linear?: number[], stack?: Record<number, string>, sizes?: number[], range?: string, halvings?: boolean, priceHidden?: boolean }} [options]
    * @returns {ChartNode}
    */
   const chart = (name, title, layers, options = {}) => {
@@ -185,7 +184,7 @@ export function studioPresets(client, facts) {
       const log = options.log?.includes(n) || (withPrice && !options.linear?.includes(n));
       return { mode: log ? 1 : 0, ...(options.stack?.[n] ? { stack: options.stack[n] } : {}), ...(options.sizes?.[i] ? { size: options.sizes[i] } : {}) };
     });
-    return { name, title, c: { layers, panes, ...(options.range ? { range: options.range } : {}), ...(options.index ? { index: options.index } : {}), ...(options.halvings ? { halvings: true } : {}) }, ...(options.priceHidden ? { priceHidden: true } : {}) };
+    return { name, title, c: { layers, panes, ...(options.range ? { range: options.range } : {}), ...(options.halvings ? { halvings: true } : {}) }, ...(options.priceHidden ? { priceHidden: true } : {}) };
   };
   /**
    * @param {string} name @param {(ChartNode | SectionNode | null | undefined | false)[]} items
@@ -756,9 +755,6 @@ export function studioPresets(client, facts) {
         ...stats(tx.count, "Count", "Transactions"),
         chart("Per second", "Transactions per second", windows(tx.perSecond, "")),
         ...flow(tx.transferVolume, "Volume", "Transaction volume"),
-        transactionStats("Vsize", "Transaction vsize", tx.vsize),
-        transactionStats("Fee", "Transaction fee", tx.fees.fee),
-        transactionStats("Fee rate", "Transaction fee rate", tx.fees.effectiveFeeRate),
         ...counted(tx.nonstandard, "Nonstandard", "Nonstandard transactions"),
         section("Features", [
           ...txKinds(entries(tx.features).filter(([, node]) => node.share), featureName, featureTx, "Share of transactions by feature"),
@@ -867,15 +863,6 @@ export function studioPresets(client, facts) {
       ...flow(node, name, title),
       ...(keys.length ? [chart(`${name} per block`, `${perBlock}: average and percentiles`, keys.flatMap((key, i) => windows(node[key], statLabel(key), { show: key === "avg" ? ["_1m"] : [], extra: { color: colors[i] } })), { log: [1] })] : []),
     ];
-  }
-  /**
-   * Each block's transactions' statistics (min, percentiles, max), the median shown, by block: a date's view of them is
-   * its last block's, not the day's.
-   * @param {string} name @param {string} title @param {any} node
-   */
-  function transactionStats(name, title, node) {
-    const keys = ["min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => isLeaf(node[key]) && node[key].indexes().includes("height")), colors = ramp(keys.length, 25, 300);
-    return chart(name, title, keys.map((key, i) => series(node[key], statLabel(key), { color: colors[i], ...(key === "median" ? {} : { hidden: true }) })), { log: [1], index: "height" });
   }
   function statLabel(/** @type {string} */ key) {
     return key === "avg" ? "Average" : key === "min" ? "Lowest" : key === "max" ? "Highest" : percentileLabel(percentile(key));
@@ -1133,7 +1120,7 @@ export function studioPresets(client, facts) {
     const [first, ...rest] = c.panes ?? [{ mode: 0 }];
     return {
       ...c,
-      layers: [{ ...price(c.index === "height"), ...(hidden ? { hidden: true } : {}) }, ...c.layers.map((layer) => ({ ...layer, pane: (layer.pane ?? 1) + 1 }))],
+      layers: [{ ...price(), ...(hidden ? { hidden: true } : {}) }, ...c.layers.map((layer) => ({ ...layer, pane: (layer.pane ?? 1) + 1 }))],
       panes: [{ mode: 1, size: 1.4 }, { ...first, size: first.size ?? 3 }, ...rest],
     };
   };
