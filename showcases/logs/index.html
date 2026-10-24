@@ -4,12 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f5f6f8" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0c10" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f7f9" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0b0d" />
     <title>Logs · Bitview</title>
-    <meta name="description" content="This Bitview server's log, live: every block it reads, everything it computes, every request it answers." />
+    <meta name="description" content="This Bitview server, live: requests a minute, response times, refusals and failures, each route, the last block, and every line it logs." />
     <meta property="og:title" content="Logs · Bitview" />
-    <meta property="og:description" content="This Bitview server's log, live: every block it reads, everything it computes, every request it answers." />
+    <meta property="og:description" content="This Bitview server, live: requests a minute, response times, refusals and failures, each route, the last block, and every line it logs." />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png" />
     <style>
@@ -27,25 +27,29 @@
         font-display: swap;
       }
 
-      /* A control room's wall: the pulse of the server across the top, its lines below, newest first. Cool paper by
-         day, blue-black by night; color only where something needs a look (warnings, errors) and on new blocks. */
+      /* A console with its vital signs on top: the numbers a glance needs, then the lines to dig through, filters on
+         the left, a line's details on the right. Cool paper by day, near-black by night; color only for status and
+         for what needs a look. */
       :root {
         color-scheme: light dark;
-        --app: light-dark(#f5f6f8, #0a0c10);
-        --panel: light-dark(#fbfcfd, #0f1218);
-        --ink: light-dark(#10141b, #e6e9ef);
-        --text: light-dark(#323946, #b6bdca);
-        --soft: light-dark(#5d6574, #8b93a3);
-        --faint: light-dark(#6e7684, #6b7383);
-        --line: light-dark(rgb(16 20 27 / 0.12), rgb(230 233 239 / 0.1));
-        --hover: light-dark(rgb(16 20 27 / 0.035), rgb(230 233 239 / 0.04));
-        --request: light-dark(rgb(16 20 27 / 0.22), rgb(230 233 239 / 0.2));
-        --warn: light-dark(#9a5b00, #f0b54a);
-        --warn-bg: light-dark(rgb(240 165 30 / 0.1), rgb(240 181 74 / 0.08));
+        --app: light-dark(#f6f7f9, #0a0b0d);
+        --panel: light-dark(#ffffff, #101215);
+        --raise: light-dark(#eceef2, #181b20);
+        --ink: light-dark(#0f1217, #eceef2);
+        --text: light-dark(#2e3440, #bcc1cb);
+        --soft: light-dark(#4f5664, #959cab);
+        --faint: light-dark(#5d6573, #7d8594);
+        --line: light-dark(rgb(15 18 23 / 0.1), rgb(255 255 255 / 0.08));
+        --line2: light-dark(rgb(15 18 23 / 0.18), rgb(255 255 255 / 0.15));
+        --spark: light-dark(rgb(15 18 23 / 0.22), rgb(255 255 255 / 0.2));
+        --ok: light-dark(#13804a, #4ade80);
+        --warn: light-dark(#9a5b00, #f5b74a);
+        --warn-bg: light-dark(rgb(240 165 30 / 0.1), rgb(245 183 74 / 0.08));
         --error: light-dark(#c0262d, #ff6b6b);
         --error-bg: light-dark(rgb(220 40 50 / 0.07), rgb(255 107 107 / 0.08));
-        --ok: light-dark(#1c7a46, #5fd394);
+        --work: light-dark(#3557c4, #8aa8ff);
         --block: light-dark(#c4520f, #ff8a3d);
+        --bar: light-dark(rgb(53 87 196 / 0.12), rgb(138 168 255 / 0.12));
         --sans: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
         --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
         --gutter: max(16px, env(safe-area-inset-left));
@@ -57,33 +61,29 @@
         box-sizing: border-box;
       }
 
+      [hidden] {
+        display: none !important;
+      }
+
+      html,
+      body {
+        height: 100%;
+      }
+
       html {
         background: var(--app);
         -webkit-text-size-adjust: 100%;
       }
 
       body {
+        display: flex;
+        flex-direction: column;
         margin: 0;
-        min-height: 100dvh;
         color: var(--text);
         background: var(--app);
-        font: 400 14px/1.5 var(--sans);
+        font: 400 13px/1.45 var(--sans);
         -webkit-font-smoothing: antialiased;
         overflow-anchor: none;
-      }
-
-      [hidden] {
-        display: none !important;
-      }
-
-      /* For screen readers only: a line's severity, which the eye gets from its color. */
-      .sr {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip-path: inset(50%);
-        white-space: nowrap;
       }
 
       button,
@@ -94,10 +94,7 @@
 
       button {
         cursor: pointer;
-      }
-
-      :root[data-pointer] :focus-visible {
-        outline: none;
+        touch-action: manipulation;
       }
 
       :focus-visible {
@@ -105,37 +102,56 @@
         outline-offset: 2px;
       }
 
-      .shell {
-        width: min(100% - 2 * var(--gutter), 1180px);
-        margin-inline: auto;
+      :root[data-pointer] :focus-visible {
+        outline: none;
       }
 
-      /* The bar: home, the title, the connection. */
-      header {
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        background: color-mix(in srgb, var(--app) 88%, transparent);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        border-bottom: 1px solid var(--line);
-        padding-top: env(safe-area-inset-top);
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
       }
 
+      .mono {
+        font-family: var(--mono);
+      }
+
+      .s2 {
+        color: var(--ok);
+      }
+
+      .s3 {
+        color: var(--soft);
+      }
+
+      .s4 {
+        color: var(--warn);
+      }
+
+      .s5 {
+        color: var(--error);
+      }
+
+      /* ── The bar: home, and the stream's state, which pauses it ── */
       .bar {
         display: flex;
+        flex: none;
         align-items: center;
         gap: 12px;
-        height: 52px;
+        height: calc(52px + env(safe-area-inset-top));
+        padding: env(safe-area-inset-top) var(--gutter) 0;
+        border-bottom: 1px solid var(--line);
 
         .brand {
-          display: flex;
+          display: inline-flex;
           align-items: center;
           gap: 9px;
           color: var(--ink);
-          text-decoration: none;
           font-weight: 600;
-          letter-spacing: -0.01em;
+          text-decoration: none;
 
           img {
             width: 18px;
@@ -144,13 +160,23 @@
         }
       }
 
-      .state {
+      .window {
         margin-left: auto;
+        color: var(--faint);
+        font: 12px var(--mono);
+      }
+
+      .state {
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        font: 500 12px/1 var(--mono);
-        color: var(--soft);
+        height: 30px;
+        padding: 0 12px;
+        border: 1px solid var(--line2);
+        border-radius: 8px;
+        background: var(--panel);
+        color: var(--ink);
+        font-weight: 500;
         white-space: nowrap;
 
         &::before {
@@ -161,17 +187,17 @@
           background: var(--faint);
         }
 
-        &[data-state="live"] {
-          color: var(--ink);
-
-          &::before {
-            background: var(--ok);
-            box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent);
-          }
+        &[data-state="live"]::before {
+          background: var(--ok);
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent);
         }
 
-        &[data-state="paused"]::before {
-          background: var(--warn);
+        &[data-state="paused"] {
+          border-color: var(--warn);
+
+          &::before {
+            background: var(--warn);
+          }
         }
 
         &[data-state="offline"]::before {
@@ -179,585 +205,1137 @@
         }
       }
 
-      /* The pulse: lines per five seconds over ten minutes, stacked by kind. */
-      .pulse {
-        padding: 20px 0 14px;
+      /* ── The vital signs: five numbers, each with its last ten minutes ── */
+      .tiles {
+        display: grid;
+        flex: none;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        margin: 0;
         border-bottom: 1px solid var(--line);
+      }
 
-        .head {
-          display: flex;
-          align-items: baseline;
-          justify-content: space-between;
-          gap: 16px;
-          flex-wrap: wrap;
-          margin-bottom: 12px;
+      .tile {
+        min-width: 0;
+        padding: 12px var(--gutter) 10px;
+        border-right: 1px solid var(--line);
+
+        &:last-child {
+          border-right: 0;
         }
 
-        .rate {
-          margin: 0;
-          font: 600 clamp(26px, 6vw, 34px) / 1 var(--sans);
-          letter-spacing: -0.03em;
+        dt {
+          color: var(--soft);
+          font-size: 12px;
+        }
+
+        dd {
+          margin: 2px 0 6px;
           color: var(--ink);
+          font: 600 22px/1.2 var(--sans);
+          letter-spacing: -0.02em;
           font-variant-numeric: tabular-nums;
+          white-space: nowrap;
 
           small {
-            font-size: 14px;
+            margin-left: 4px;
+            color: var(--soft);
+            font-size: 12px;
             font-weight: 500;
             letter-spacing: 0;
-            color: var(--soft);
           }
         }
 
-        .key {
-          display: flex;
-          gap: 14px;
-          margin: 0;
-          padding: 0;
-          list-style: none;
-          font: 12px/1 var(--mono);
-          color: var(--soft);
+        .note {
+          color: var(--faint);
+          font: 12px var(--mono);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+      }
 
-          li {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-          }
+      .spark {
+        display: flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 20px;
 
-          i {
-            width: 8px;
-            height: 8px;
-            border-radius: 2px;
-          }
+        i {
+          flex: 1;
+          min-height: 1px;
+          background: var(--spark);
+          border-radius: 1px;
+        }
+      }
+
+      /* ── The console: filters, the lines, a line's details ── */
+      .console {
+        display: grid;
+        flex: 1;
+        grid-template-columns: 280px minmax(0, 1fr) 340px;
+        min-height: 0;
+      }
+
+      .filters {
+        overflow-y: auto;
+        padding: 12px 12px 24px;
+        border-right: 1px solid var(--line);
+
+        summary {
+          display: none;
         }
 
-        svg {
-          display: block;
-          width: 100%;
-          height: 64px;
-        }
-
-        .axis {
+        h2 {
           display: flex;
           justify-content: space-between;
-          margin-top: 6px;
-          font: 11px/1 var(--mono);
-          color: var(--faint);
+          margin: 16px 8px 6px;
+          color: var(--soft);
+          font: 600 11px var(--sans);
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+
+          span {
+            color: var(--faint);
+            font-weight: 500;
+            letter-spacing: 0;
+            text-transform: none;
+          }
+        }
+
+        .group:first-of-type h2 {
+          margin-top: 2px;
         }
       }
 
-      .k-work {
-        background: var(--ink);
-        fill: var(--ink);
-      }
-
-      .k-request {
-        background: var(--request);
-        fill: var(--request);
-      }
-
-      .k-warn {
-        background: var(--warn);
-        fill: var(--warn);
-      }
-
-      .k-error {
-        background: var(--error);
-        fill: var(--error);
-      }
-
-      /* The controls: what to show, a filter, pause. */
-      .controls {
-        display: flex;
+      .facet {
+        display: grid;
+        grid-template-columns: 14px minmax(0, 1fr) auto;
         align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-        padding: 12px 0;
+        gap: 9px;
+        width: 100%;
+        height: 28px;
+        padding: 0 8px;
+        border: 0;
+        border-radius: 6px;
+        background: none;
+        text-align: left;
+
+        &:hover {
+          background: var(--raise);
+        }
+
+        > i {
+          width: 12px;
+          height: 12px;
+          border: 1px solid var(--line2);
+          border-radius: 3px;
+        }
+
+        &[aria-pressed="true"] {
+          background: var(--raise);
+          color: var(--ink);
+
+          > i {
+            border-color: var(--ink);
+            background: var(--ink);
+            box-shadow: inset 0 0 0 2px var(--raise);
+          }
+        }
+
+        b {
+          color: var(--faint);
+          font: 500 12px var(--mono);
+        }
+
+        .dot {
+          width: 7px;
+          height: 7px;
+          margin-left: 3px;
+          border: 0;
+          border-radius: 50%;
+        }
+
+        &[aria-pressed="true"] .dot {
+          box-shadow: 0 0 0 3px var(--raise), 0 0 0 4px var(--ink);
+        }
       }
 
-      .seg {
-        display: inline-flex;
-        padding: 2px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
+      /* (A route: its share of the requests as a faint bar behind its name, its count, its median.) */
+      .facet.route {
+        grid-template-columns: minmax(0, 1fr) 40px 58px;
+        font: 12px var(--mono);
 
-        button {
-          border: 0;
-          border-radius: 6px;
-          padding: 5px 10px;
-          background: none;
-          color: var(--soft);
-          font-size: 13px;
-          font-weight: 500;
-          touch-action: manipulation;
+        .name {
+          position: relative;
+          overflow: hidden;
+          color: var(--text);
+          text-overflow: ellipsis;
+          white-space: nowrap;
 
-          &[aria-pressed="true"] {
-            background: var(--ink);
-            color: var(--app);
+          &::before {
+            content: "";
+            position: absolute;
+            inset: 2px auto 2px 0;
+            width: var(--share);
+            z-index: -1;
+            border-radius: 3px;
+            background: var(--bar);
+          }
+        }
+
+        &[aria-pressed="true"] .name {
+          color: var(--ink);
+          font-weight: 600;
+        }
+
+        b,
+        em {
+          color: var(--faint);
+          font-style: normal;
+          text-align: right;
+        }
+      }
+
+      .clear {
+        margin: 18px 8px 0;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--soft);
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .lines {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0;
+      }
+
+      .search {
+        display: flex;
+        flex: none;
+        gap: 8px;
+        padding: 10px 16px 8px;
+
+        input {
+          flex: 1;
+          min-width: 0;
+          height: 34px;
+          padding: 0 12px;
+          border: 1px solid var(--line2);
+          border-radius: 8px;
+          background: var(--panel);
+          font: 13px var(--mono);
+
+          &::placeholder {
+            color: var(--faint);
           }
         }
       }
 
-      .count {
-        font: 12px/1 var(--mono);
-        margin-left: 4px;
-        opacity: 0.75;
-      }
-
-      .filter {
-        flex: 1 1 180px;
-        min-width: 0;
-        height: 32px;
-        padding: 0 10px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-        font: 13px var(--mono);
-
-        &::placeholder {
-          color: var(--faint);
-        }
-      }
-
-      .pause {
-        height: 32px;
-        padding: 0 12px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--panel);
-        font-size: 13px;
-        font-weight: 500;
-        white-space: nowrap;
-        touch-action: manipulation;
-
-        &[aria-pressed="true"] {
-          border-color: var(--warn);
-          color: var(--warn);
-        }
-      }
-
-      /* The lines, newest first. */
-      .feed {
-        margin: 0 0 40px;
-        padding: 0;
-        list-style: none;
-        font: 12.5px/1.55 var(--mono);
-        border-top: 1px solid var(--line);
-      }
-
-      .row {
+      .head,
+      .line {
         display: grid;
-        grid-template-columns: 9ch 1fr;
+        grid-template-columns: 104px 46px minmax(0, 1fr) 76px;
         gap: 14px;
-        padding: 3px 10px;
-        border-left: 2px solid transparent;
-        border-bottom: 1px solid transparent;
+        align-items: center;
+        padding: 0 16px;
+      }
+
+      .head {
+        flex: none;
+        height: 28px;
+        border-bottom: 1px solid var(--line);
+        color: var(--faint);
+        font-size: 11.5px;
+
+        span:last-child {
+          text-align: right;
+        }
+      }
+
+      .feed {
+        flex: 1;
+        margin: 0;
+        padding: 0;
+        overflow-y: auto;
+        list-style: none;
+        overflow-anchor: none;
+      }
+
+      .line {
+        width: 100%;
+        min-height: 27px;
+        border: 0;
+        border-bottom: 1px solid color-mix(in srgb, var(--line) 50%, transparent);
+        background: none;
+        font: 12.5px var(--mono);
+        text-align: left;
 
         &:hover {
-          background: var(--hover);
+          background: var(--raise);
         }
 
-        time {
+        &[aria-current="true"] {
+          background: var(--raise);
+          box-shadow: inset 2px 0 var(--ink);
+        }
+
+        .t {
           color: var(--faint);
           font-variant-numeric: tabular-nums;
         }
 
-        .text {
-          min-width: 0;
+        .p {
+          overflow: hidden;
+          color: var(--ink);
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .d {
+          color: var(--soft);
+          text-align: right;
+        }
+
+        &.work .k {
+          color: var(--work);
+        }
+
+        &.work .p {
           color: var(--text);
-          overflow-wrap: anywhere;
-          white-space: pre-wrap;
         }
 
         &.warn {
-          border-left-color: var(--warn);
           background: var(--warn-bg);
 
-          .text {
+          .k,
+          .p {
             color: var(--warn);
           }
         }
 
         &.error {
-          border-left-color: var(--error);
           background: var(--error-bg);
 
-          .text {
+          .k,
+          .p {
             color: var(--error);
           }
         }
 
-        &.debug .text {
-          color: var(--soft);
-        }
-      }
-
-      /* A request: its status, its path, how long it took. */
-      .request .text {
-        display: grid;
-        grid-template-columns: 3ch 1fr auto;
-        gap: 12px;
-        color: var(--soft);
-
-        b {
-          font-weight: 500;
-          color: var(--ok);
-        }
-
-        .path {
-          color: var(--text);
-        }
-
-        .took {
+        &.debug .p,
+        &.debug .k {
           color: var(--faint);
-          text-align: right;
+        }
+
+        &.block {
+          min-height: 34px;
+
+          .k,
+          .p {
+            color: var(--block);
+            font-weight: 600;
+          }
         }
       }
 
-      .request.redirect .text b {
-        color: var(--soft);
-      }
-
-      .request.refused .text b {
-        color: var(--warn);
-      }
-
-      .request.error .text b,
-      .request.error .text .path {
-        color: var(--error);
-      }
-
-      /* A new block: the feed's chapters. */
-      .block {
-        margin-top: 10px;
-        padding-block: 8px;
-        border-top: 1px solid var(--line);
-
-        .text {
-          color: var(--ink);
-        }
-
-        .height {
-          color: var(--block);
-          font-weight: 600;
-        }
-      }
-
-      /* What the feed says about itself: lines skipped, a restart. */
-      .note {
-        padding: 8px 10px;
+      .note-row {
+        padding: 8px 16px;
         color: var(--faint);
         font-style: italic;
         text-align: center;
       }
 
       .empty {
-        padding: 48px 0;
-        text-align: center;
+        padding: 48px 16px;
         color: var(--faint);
         font: 13px var(--mono);
+        text-align: center;
+      }
+
+      .detail {
+        overflow-y: auto;
+        padding: 16px 18px 24px;
+        border-left: 1px solid var(--line);
+        background: var(--panel);
+
+        .top {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+        }
+
+        .grip {
+          display: none;
+        }
+
+        .close {
+          display: none;
+          flex: none;
+          place-items: center;
+          width: 32px;
+          height: 32px;
+          margin: -4px -6px 0 auto;
+          padding: 0;
+          border: 0;
+          border-radius: 50%;
+          background: var(--raise);
+          color: var(--soft);
+
+          &:hover {
+            color: var(--ink);
+          }
+
+          svg {
+            width: 14px;
+            height: 14px;
+          }
+        }
+
+        h2 {
+          flex: 1;
+          min-width: 0;
+          margin: 0 0 4px;
+          color: var(--ink);
+          font: 600 14px/1.4 var(--mono);
+          word-break: break-all;
+        }
+
+        .when {
+          margin: 0 0 16px;
+          color: var(--soft);
+          font-size: 12px;
+        }
+
+        h3 {
+          margin: 22px 0 8px;
+          color: var(--soft);
+          font: 600 11px var(--sans);
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }
+
+        dl {
+          display: grid;
+          grid-template-columns: 96px minmax(0, 1fr);
+          gap: 8px 12px;
+          margin: 0;
+          font-size: 12.5px;
+        }
+
+        dt {
+          color: var(--faint);
+        }
+
+        dd {
+          margin: 0;
+          color: var(--ink);
+          font-family: var(--mono);
+          word-break: break-all;
+        }
+
+        .raw {
+          margin: 0;
+          padding: 10px 12px;
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          background: var(--app);
+          color: var(--text);
+          font: 12px/1.5 var(--mono);
+          white-space: pre-wrap;
+          word-break: break-all;
+        }
+
+        .act {
+          margin-top: 14px;
+          padding: 6px 12px;
+          border: 1px solid var(--line2);
+          border-radius: 8px;
+          background: none;
+          font-size: 12.5px;
+        }
+
+        .hint {
+          color: var(--faint);
+        }
       }
 
       footer {
+        flex: none;
+        padding: 8px var(--gutter) calc(8px + env(safe-area-inset-bottom));
         border-top: 1px solid var(--line);
-        padding: 20px 0 calc(28px + env(safe-area-inset-bottom));
         color: var(--faint);
-        font-size: 13px;
-
-        p {
-          margin: 0;
-          max-width: 64ch;
-        }
+        font-size: 12px;
 
         a {
           color: var(--soft);
         }
       }
 
-      @media (max-width: 640px) {
-        .feed {
-          font-size: 12px;
+      /* Narrower desks: the details slide over the lines. */
+      @media (max-width: 1279px) {
+        .console {
+          grid-template-columns: 260px minmax(0, 1fr);
         }
 
-        .row {
-          grid-template-columns: 8ch 1fr;
-          gap: 10px;
-          padding: 4px 6px;
+        .detail {
+          position: fixed;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          z-index: 5;
+          width: min(380px, 100%);
+          box-shadow: -18px 0 40px -20px rgb(0 0 0 / 0.45);
+          animation: slide 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+          .close {
+            display: grid;
+          }
         }
 
-        .request .text {
-          gap: 8px;
+        .scrim {
+          position: fixed;
+          inset: 0;
+          z-index: 4;
+          background: rgb(0 0 0 / 0.3);
+          animation: fade 0.22s ease-out;
+        }
+      }
+
+      @keyframes slide {
+        from {
+          translate: 100% 0;
+        }
+      }
+
+      @keyframes rise {
+        from {
+          translate: 0 100%;
+        }
+      }
+
+      @keyframes fade {
+        from {
+          opacity: 0;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .detail,
+        .scrim {
+          animation: none !important;
+        }
+      }
+
+      /* Phones: the page scrolls; the numbers scroll sideways, the filters fold, the details rise as a sheet. */
+      @media (max-width: 760px) {
+        html,
+        body {
+          height: auto;
         }
 
-        .pulse .key {
+        /* (The bar and the search stay while the lines scroll.) */
+        .bar {
+          position: sticky;
+          top: 0;
+          z-index: 3;
+          background: var(--app);
+        }
+
+        .tiles {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .tile {
+          padding: 10px var(--gutter) 8px;
+          border-bottom: 1px solid var(--line);
+
+          &:nth-child(2n) {
+            border-right: 0;
+          }
+
+          dd {
+            font-size: 19px;
+          }
+
+          /* (The last block, across both columns, on one line.) */
+          &:last-child {
+            display: flex;
+            grid-column: 1 / -1;
+            align-items: baseline;
+            gap: 10px;
+            border-bottom: 0;
+
+            dd {
+              margin: 0;
+            }
+
+            .note {
+              margin-left: auto;
+            }
+          }
+        }
+
+        .spark {
+          height: 14px;
+        }
+
+        .console {
+          display: block;
+        }
+
+        .filters {
+          overflow: visible;
+          padding: 0;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+
+          summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px var(--gutter);
+            color: var(--ink);
+            font-weight: 500;
+            cursor: pointer;
+            list-style: none;
+
+            &::-webkit-details-marker {
+              display: none;
+            }
+
+            &::after {
+              content: "";
+              width: 7px;
+              height: 7px;
+              border-right: 1.5px solid var(--soft);
+              border-bottom: 1.5px solid var(--soft);
+              rotate: 45deg;
+              translate: 0 -2px;
+              transition: rotate 0.15s;
+            }
+          }
+
+          &[open] summary::after {
+            rotate: 225deg;
+            translate: 0 2px;
+          }
+
+          .body {
+            padding: 0 calc(var(--gutter) - 8px) 14px;
+          }
+        }
+
+        .search {
+          position: sticky;
+          top: calc(52px + env(safe-area-inset-top));
+          z-index: 2;
+          padding: 8px var(--gutter);
+          border-bottom: 1px solid var(--line);
+          background: var(--app);
+        }
+
+        .head {
           display: none;
+        }
+
+        .line {
+          grid-template-columns: 62px 34px minmax(0, 1fr) auto;
+          gap: 8px;
+          padding: 3px var(--gutter);
+          font-size: 12px;
+
+          .p {
+            display: -webkit-box;
+            white-space: normal;
+            overflow-wrap: anywhere;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+          }
+        }
+
+        .feed {
+          overflow: visible;
+        }
+
+        .line .ms {
+          display: none;
+        }
+
+        /* The details as a sheet: a grip to pull it down, its title and a close beside it, held while it scrolls. */
+        .detail {
+          top: auto;
+          left: 0;
+          width: 100%;
+          max-height: 82vh;
+          padding: 0 20px calc(24px + env(safe-area-inset-bottom));
+          border-left: 0;
+          border-top: 1px solid var(--line2);
+          border-radius: 18px 18px 0 0;
+          box-shadow: 0 -18px 40px -20px rgb(0 0 0 / 0.45);
+          animation-name: rise;
+          overscroll-behavior: contain;
+
+          .top {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            flex-wrap: wrap;
+            margin: 0 -20px 4px;
+            padding: 0 20px 6px;
+            background: var(--panel);
+            touch-action: none;
+          }
+
+          .grip {
+            display: block;
+            flex-basis: 100%;
+            height: 22px;
+
+            &::before {
+              content: "";
+              display: block;
+              width: 38px;
+              height: 5px;
+              margin: 9px auto 0;
+              border-radius: 3px;
+              background: var(--line2);
+            }
+          }
+
+          .close {
+            margin-top: -2px;
+          }
         }
       }
     </style>
   </head>
   <body>
-    <header>
-      <div class="bar shell">
-        <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-        <h1 class="sr">Logs</h1>
-        <span class="state" id="state" data-state="connecting" role="status">Connecting</span>
-      </div>
+    <header class="bar">
+      <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+      <h1 class="sr">Logs</h1>
+      <span class="window" id="window"></span>
+      <button class="state" id="state" type="button" data-state="connecting" aria-label="Connecting; press to pause">Connecting</button>
+      <p class="sr" id="said" aria-live="polite"></p>
     </header>
 
-    <main>
-      <section class="pulse shell" aria-labelledby="rate">
-        <div class="head">
-          <p class="rate" id="rate">–<small> lines a minute</small></p>
-          <ul class="key" aria-label="Kinds">
-            <li><i class="k-work"></i>Work</li>
-            <li><i class="k-request"></i>Requests</li>
-            <li><i class="k-warn"></i>Warnings</li>
-            <li><i class="k-error"></i>Errors</li>
-          </ul>
-        </div>
-        <svg id="pulse" viewBox="0 0 120 64" preserveAspectRatio="none" role="img" aria-label="Lines logged every five seconds over the last ten minutes"></svg>
-        <div class="axis" aria-hidden="true"><span>10 min ago</span><span>5 min</span><span>now</span></div>
+    <dl class="tiles" id="tiles" aria-label="The last ten minutes"></dl>
+
+    <div class="console">
+      <details class="filters" id="filters" open>
+        <summary>Filters</summary>
+        <div class="body" id="facets"></div>
+      </details>
+
+      <section class="lines" aria-label="Log lines, newest first">
+        <div class="search"><input id="search" type="search" placeholder="Search lines" aria-label="Search lines" autocomplete="off" spellcheck="false" /></div>
+        <div class="head" aria-hidden="true"><span>Time</span><span>Status</span><span>Path or message</span><span>Duration</span></div>
+        <ol class="feed" id="feed"></ol>
+        <p class="empty" id="empty">Waiting for the first line…</p>
       </section>
 
-      <div class="shell">
-        <div class="controls">
-          <div class="seg" role="group" aria-label="Show">
-            <button type="button" data-show="all" aria-pressed="true">All</button>
-            <button type="button" data-show="work" aria-pressed="false">Work</button>
-            <button type="button" data-show="requests" aria-pressed="false">Requests</button>
-            <button type="button" data-show="problems" aria-pressed="false">Problems<span class="count" id="problems"></span></button>
-          </div>
-          <input class="filter" id="filter" type="search" placeholder="Filter" aria-label="Filter lines" autocomplete="off" spellcheck="false" />
-          <button class="pause" id="pause" type="button" aria-pressed="false">Pause</button>
-        </div>
+      <div class="scrim" id="scrim" hidden></div>
+      <aside class="detail" id="detail" aria-label="The line's details"></aside>
+    </div>
 
-        <ol class="feed" id="feed" aria-label="Log lines, newest first"></ol>
-        <p class="empty" id="empty">Waiting for the first line…</p>
-      </div>
-    </main>
-
-    <footer>
-      <div class="shell">
-        <p>Everything this server logs, looked at every two seconds; at its busiest, some lines go by unseen. Requests show their status, path and time; who made them is never logged. Read it yourself: <a href="/api#tag/server/GET/api/server/logs"><code>GET /api/server/logs</code></a>.</p>
-      </div>
-    </footer>
+    <footer>Everything this server logs, every request with its status, path and time; never who made it. <a href="/api#tag/server/GET/api/server/logs"><code>GET /api/server/logs</code></a></footer>
 
     <script>
-      const KEEP = 2000; // rows in the page
-      const BUCKET = 5000; // ms per pulse bar
-      const BARS = 120; // ten minutes
+      // ── The shapes of the log's own lines ──
       const REQUEST = /^(\d{3}) (\S+)(?: (\S+))?$/;
-      const BLOCK = /^Updated to block (\d+)/;
+      const BLOCK = /^Updated to block (\d+) \S+ in ([\d.]+(?:ns|µs|ms|s))$/;
+      const DURATION = /^([\d.]+)(ns|µs|ms|s)$/;
+      const MS = { ns: 1e-6, "µs": 1e-3, ms: 1, s: 1000 };
 
-      const feed = document.getElementById("feed");
-      const empty = document.getElementById("empty");
-      const stateEl = document.getElementById("state");
-      const rateEl = document.getElementById("rate");
-      const pulse = document.getElementById("pulse");
-      const filterEl = document.getElementById("filter");
-      const pauseEl = document.getElementById("pause");
-      const problemsEl = document.getElementById("problems");
+      const KEEP = 2000; // rows in the page
+      const HELD = 20_000; // lines the numbers are read from, at most
+      const WINDOW = 10 * 60_000; // what the numbers cover
+      const EVERY = 1000; // ms between looks
+      const BARS = 30; // a sparkline's bars: 20 seconds each
 
-      const view = { show: "all", filter: "", paused: false };
-      const EVERY = 2000; // ms between looks
-      let started = null; // the server process the lines come from
-      let lastSeq = null;
-      let pending = []; // lines waiting for the next frame, or for resume
-      let frame = 0;
-      let problems = 0;
-      const buckets = new Map(); // bucket start (ms) -> counts by kind
-
-      const timeFormat = new Intl.DateTimeFormat(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
-      const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "medium" });
+      const $ = (id) => document.getElementById(id);
       const numberFormat = new Intl.NumberFormat();
+      const num = (n) => numberFormat.format(Math.round(n));
+      const pad = (n, k = 2) => String(n).padStart(k, "0");
+      const clock = (ms) => {
+        const d = new Date(ms);
+        return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      };
+      const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "medium" });
+      const toMs = (d) => {
+        const m = DURATION.exec(d ?? "");
+        return m ? Number(m[1]) * MS[m[2]] : null;
+      };
+      /** A duration as Rust prints it, to three significant digits. */
+      const short = (d) => {
+        const m = DURATION.exec(d ?? "");
+        return m ? `${Number(Number(m[1]).toPrecision(3))}${m[2]}` : (d ?? "");
+      };
+      const span = (ms) => (ms >= 1000 ? `${Number((ms / 1000).toPrecision(3))}s` : ms >= 1 ? `${Number(ms.toPrecision(3))}ms` : `${Number((ms * 1000).toPrecision(3))}µs`);
+      /** A quantile, between the two nearest values (the median of 10 and 100 is 55). */
+      const quantile = (xs, q) => {
+        if (!xs.length) return null;
+        const sorted = [...xs].sort((a, b) => a - b), at = (sorted.length - 1) * q, lo = Math.floor(at);
+        return sorted[lo] + (sorted[Math.ceil(at)] - sorted[lo]) * (at - lo);
+      };
+      const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+      /** A path's route: its query dropped, and each identifier (a long or numeric segment) as `:id`. */
+      const routeOf = (path) => path.split("?")[0].split("/").map((s) => (s.length > 20 || /^\d{4,}$/.test(s) ? ":id" : s)).join("/") || "/";
 
-      // A line's kind, from the log's own shapes: an access line is `status path [latency]`. A request is judged by its
-      // status, not its level (every 4xx is logged as an error): only a 5xx is the server's problem.
-      function kindOf(line) {
-        const request = REQUEST.exec(line.text);
-        if (request) return request[1][0] === "5" ? "error" : "request";
-        if (line.level === "error") return "error";
-        if (line.level === "warn") return "warn";
-        return "work";
+      /** A line, read: its kind (a request by its status: only a 5xx is the server's problem), and its parts. */
+      function parse(line) {
+        const r = REQUEST.exec(line.text), b = BLOCK.exec(line.text);
+        const kind = r ? (r[1][0] === "5" ? "error" : "request") : line.level === "error" ? "error" : line.level === "warn" ? "warn" : "work";
+        return {
+          ...line,
+          kind,
+          status: r ? Number(r[1]) : null,
+          path: r ? r[2] : null,
+          took: r ? (r[3] ?? null) : null,
+          ms: r ? toMs(r[3]) : null,
+          route: r ? routeOf(r[2]) : null,
+          block: b ? Number(b[1]) : null,
+          blockTook: b ? b[2] : null,
+        };
       }
 
-      function shown(row) {
-        const { kind, request } = row.dataset;
-        if (view.show === "work" && request) return false;
-        if (view.show === "requests" && !request) return false;
-        if (view.show === "problems" && kind !== "warn" && kind !== "error") return false;
-        return !view.filter || row.textContent.toLowerCase().includes(view.filter);
+      // ── State ──
+
+      /** Every line read, oldest first, the last ten minutes' worth at least. */
+      let lines = [];
+      let started = null, lastSeq = null, online = null;
+      const view = { levels: new Set(), kinds: new Set(), statuses: new Set(), routes: new Set(), text: "", paused: false };
+      let pending = [], frame = 0, selected = null;
+
+      // ── The numbers ──
+
+      // (By this device's clock, which an operating system keeps to within a second or so of the server's.)
+      function tiles() {
+        const now = Date.now(), from = now - WINDOW;
+        const recent = lines.filter((l) => l.unix_ms > from), reqs = recent.filter((l) => l.status);
+        // (The time the held lines cover; a rate over less than a minute would multiply a handful into hundreds.)
+        const covered = Math.min(WINDOW, Math.max(0, now - (lines[0]?.unix_ms ?? now)));
+        const bars = Array.from({ length: BARS }, () => []);
+        for (const l of reqs) bars[Math.max(0, Math.min(BARS - 1, Math.floor(((l.unix_ms - from) / WINDOW) * BARS)))].push(l);
+        const spark = (xs) => {
+          const top = Math.max(...xs.map((x) => x ?? 0), 0);
+          return `<div class="spark" aria-hidden="true">${xs.map((x) => `<i style="height:${top ? ((x ?? 0) / top) * 100 : 0}%"></i>`).join("")}</div>`;
+        };
+        const ms = (q) => bars.map((ls) => quantile(ls.map((l) => l.ms).filter((m) => m !== null), q));
+        const all = reqs.map((l) => l.ms).filter((m) => m !== null);
+        const refused = reqs.filter((l) => l.status >= 400 && l.status < 500).length, failed = reqs.filter((l) => l.status >= 500).length;
+        const block = lines.findLast((l) => l.block);
+        const tile = (name, value, unit, below) => `<div class="tile"><dt>${name}</dt><dd>${esc(value)}${unit ? `<small>${esc(unit)}</small>` : ""}</dd>${below}</div>`;
+        const p50 = quantile(all, 0.5), p95 = quantile(all, 0.95);
+        $("tiles").innerHTML =
+          tile("Requests", reqs.length ? num((reqs.length / Math.max(covered, 60_000)) * 60_000) : "–", "/min", spark(bars.map((ls) => ls.length))) +
+          tile("Median response", p50 === null ? "–" : span(p50), "", spark(ms(0.5))) +
+          tile("95th percentile", p95 === null ? "–" : span(p95), "", spark(ms(0.95))) +
+          tile("Refused · failed", `${num(refused)} · ${num(failed)}`, "", spark(bars.map((ls) => ls.filter((l) => l.status >= 400).length))) +
+          tile("Last block", block ? num(block.block) : "–", block ? `in ${short(block.blockTook)}` : "", `<div class="note">${block ? clock(block.unix_ms) : "none in memory yet"}</div>`);
+        const minutes = Math.max(1, Math.round(covered / 60_000));
+        $("window").textContent = `last ${minutes} min`;
+        $("tiles").setAttribute("aria-label", `The last ${minutes} minutes`);
       }
 
-      function rowFor(line) {
-        const li = document.createElement("li");
-        const kind = kindOf(line);
-        li.className = `row ${kind}`;
-        if (line.level === "debug") li.classList.add("debug");
-        li.dataset.kind = kind;
-        li.dataset.seq = line.seq;
-        const time = document.createElement("time");
-        const date = new Date(line.unix_ms);
-        time.dateTime = date.toISOString();
-        time.title = dateFormat.format(date);
-        time.textContent = timeFormat.format(date);
-        const text = document.createElement("span");
-        text.className = "text";
-        const request = REQUEST.exec(line.text);
-        const block = BLOCK.exec(line.text);
-        if (request) {
-          const [, status, path, took] = request;
-          li.dataset.request = "1";
-          li.classList.add("request");
-          if (status[0] === "3") li.classList.add("redirect");
-          if (status[0] === "4") li.classList.add("refused");
-          const b = document.createElement("b");
-          b.textContent = status;
-          const p = document.createElement("span");
-          p.className = "path";
-          p.textContent = path;
-          const t = document.createElement("span");
-          t.className = "took";
-          t.textContent = took ? short(took) : "";
-          t.title = took ?? "";
-          text.append(b, p, t);
-        } else if (block) {
-          li.classList.add("block");
-          const h = document.createElement("span");
-          h.className = "height";
-          h.textContent = `Block ${numberFormat.format(Number(block[1]))}`;
-          text.append(h, line.text.slice(block[0].length).replace(/^ \S+/, ""));
-          text.title = line.text;
+      // ── The filters ──
+
+      const GROUPS = {
+        levels: [["error", "Error", "var(--error)"], ["warn", "Warn", "var(--warn)"], ["info", "Info"], ["debug", "Debug"]],
+        kinds: [["request", "Requests"], ["work", "Work"]],
+        statuses: [["2", "2xx"], ["3", "3xx"], ["4", "4xx"], ["5", "5xx"]],
+      };
+      const TITLES = { levels: "Level", kinds: "Kind", statuses: "Status" };
+
+      function facets() {
+        const had = document.activeElement?.dataset?.key;
+        // (Counted over the lines the page holds, so a filter's count is what it shows.)
+        const held = lines.slice(-KEEP);
+        const count = (group, key) =>
+          held.filter((l) => (group === "levels" ? l.level === key : group === "kinds" ? (key === "request" ? l.status : !l.status) : String(l.status)[0] === key)).length;
+        let html = "";
+        for (const [group, keys] of Object.entries(GROUPS)) {
+          html += `<div class="group"><h2>${TITLES[group]}</h2>${keys
+            .filter(([key]) => group !== "levels" || key === "error" || key === "warn" || count(group, key) || view.levels.has(key))
+            .map(([key, label, dot]) => `<button type="button" class="facet" data-group="${group}" data-key="${group}:${key}" aria-pressed="${view[group].has(key)}">${dot ? `<i class="dot" style="background:${dot}"></i>` : "<i></i>"}<span>${label}</span><b>${num(count(group, key))}</b></button>`)
+            .join("")}</div>`;
+        }
+        const routes = new Map();
+        for (const l of held) if (l.route) (routes.get(l.route) ?? routes.set(l.route, []).get(l.route)).push(l.ms);
+        const leading = [...routes].sort((a, b) => b[1].length - a[1].length).slice(0, 14);
+        for (const route of view.routes) if (!leading.some(([r]) => r === route)) leading.push([route, routes.get(route) ?? []]);
+        const most = leading[0]?.[1].length || 1;
+        html += `<div class="group"><h2>Routes <span>count · median</span></h2>${leading
+          .map(([route, ms]) => {
+            const p50 = quantile(ms.filter((m) => m !== null), 0.5);
+            return `<button type="button" class="facet route" data-group="routes" data-key="routes:${encodeURIComponent(route)}" data-route="${encodeURIComponent(route)}" aria-pressed="${view.routes.has(route)}" style="--share:${((ms.length / most) * 100).toFixed(1)}%"><span class="name"></span><b>${num(ms.length)}</b><em>${p50 === null ? "" : span(p50)}</em></button>`;
+          })
+          .join("")}</div>`;
+        const any = view.levels.size + view.kinds.size + view.statuses.size + view.routes.size;
+        if (any) html += `<button type="button" class="clear" id="clear">Clear filters</button>`;
+        $("facets").innerHTML = html;
+        // (Route names set as text: they come from requests.)
+        for (const button of $("facets").querySelectorAll(".route")) button.title = button.querySelector(".name").textContent = decodeURIComponent(button.dataset.route);
+        if (had) $("facets").querySelector(`[data-key="${CSS.escape(had)}"]`)?.focus();
+        $("filters").querySelector("summary").textContent = any ? `Filters · ${any} on` : "Filters";
+      }
+
+      $("facets").addEventListener("click", (e) => {
+        const button = e.target.closest("button");
+        if (!button) return;
+        if (button.id === "clear") {
+          for (const group of ["levels", "kinds", "statuses", "routes"]) view[group].clear();
         } else {
-          text.textContent = line.text;
+          const group = button.dataset.group, key = group === "routes" ? decodeURIComponent(button.dataset.route) : button.dataset.key.split(":")[1];
+          view[group].has(key) ? view[group].delete(key) : view[group].add(key);
         }
-        if (kind === "warn" || kind === "error") {
-          const severity = document.createElement("span");
-          severity.className = "sr";
-          severity.textContent = kind === "warn" ? "Warning: " : "Error: ";
-          text.prepend(severity);
+        facets();
+        refilter();
+      });
+
+      /** Within a group any, across groups all; then the search. */
+      function shown(l) {
+        if (view.levels.size && !view.levels.has(l.level)) return false;
+        if (view.kinds.size && !view.kinds.has(l.status ? "request" : "work")) return false;
+        if (view.statuses.size && !(l.status && view.statuses.has(String(l.status)[0]))) return false;
+        if (view.routes.size && !(l.route && view.routes.has(l.route))) return false;
+        return !view.text || l.text.toLowerCase().includes(view.text);
+      }
+      const rows = new WeakMap();
+      function refilter() {
+        for (const li of $("feed").children) {
+          const l = rows.get(li);
+          if (l) li.hidden = !shown(l);
         }
-        li.append(time, text);
-        return li;
+        empty();
+      }
+      function empty() {
+        const any = [...$("feed").children].some((li) => !li.hidden);
+        $("empty").hidden = any;
+        $("empty").textContent = lines.length ? "No line matches." : "Waiting for the first line…";
       }
 
-      // A duration as Rust prints it (`115.416µs`, `1.180934s`), to three significant digits.
-      function short(took) {
-        const parts = /^([\d.]+)(ns|µs|ms|s)$/.exec(took);
-        return parts ? `${Number(Number(parts[1]).toPrecision(3))}${parts[2]}` : took;
+      $("search").addEventListener("input", () => {
+        view.text = $("search").value.trim().toLowerCase();
+        refilter();
+      });
+
+      // ── The lines ──
+
+      function rowFor(l) {
+        const li = document.createElement("li");
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = `line ${l.block ? "block" : l.status ? (l.kind === "error" ? "request error" : "request") : l.kind}${l.level === "debug" ? " debug" : ""}`;
+        const cells = l.block
+          ? ["■", `Block ${num(l.block)} · read and computed in ${short(l.blockTook)}`, ""]
+          : l.status
+            ? [String(l.status), l.path, short(l.took)]
+            : [l.level, l.text, ""];
+        const classes = [`k${l.status ? ` s${String(l.status)[0]}` : ""}`, "p", "d"];
+        // (The time to the millisecond, its milliseconds dropped on a phone.)
+        const time = Object.assign(document.createElement("span"), { className: "t", textContent: clock(l.unix_ms) });
+        time.append(Object.assign(document.createElement("span"), { className: "ms", textContent: `.${pad(new Date(l.unix_ms).getMilliseconds(), 3)}` }));
+        button.append(time);
+        cells.forEach((text, i) => button.append(Object.assign(document.createElement("span"), { className: classes[i], textContent: text })));
+        if (l.kind === "warn" || l.kind === "error") button.prepend(Object.assign(document.createElement("span"), { className: "sr", textContent: l.kind === "warn" ? "Warning: " : "Error: " }));
+        button.addEventListener("click", () => select(l, button));
+        li.append(button);
+        rows.set(li, l);
+        return li;
       }
 
       function noteRow(message) {
         const li = document.createElement("li");
-        li.className = "note";
+        li.className = "note-row";
         li.textContent = message;
         return li;
       }
 
-      function count(line, kind) {
-        const at = Math.floor(line.unix_ms / BUCKET) * BUCKET;
-        let bucket = buckets.get(at);
-        if (!bucket) buckets.set(at, (bucket = { work: 0, request: 0, warn: 0, error: 0 }));
-        bucket[kind]++;
+      function queue(element) {
+        pending.push(element);
+        // (Paused long, the oldest waiting rows go: the page holds no more than it shows.)
+        if (pending.length > KEEP) pending.splice(0, pending.length - KEEP);
+        if (!frame) frame = requestAnimationFrame(flush);
       }
 
-      // The page's lines, newest on top; the reader's place kept when they're further down.
+      // The rows, newest on top; the line being read kept in place when new ones arrive above it.
       function flush() {
         frame = 0;
-        if (view.paused) return showPaused();
+        if (view.paused) return showState();
         if (!pending.length) return;
-        const fragment = document.createDocumentFragment();
+        const feed = $("feed"), fragment = document.createDocumentFragment();
         for (let i = pending.length - 1; i >= 0; i--) {
-          const row = pending[i];
-          // (The view as it is now: it may have changed while the row waited.)
-          if (row.classList.contains("row")) row.hidden = !shown(row);
-          fragment.append(row);
+          const li = pending[i], l = rows.get(li);
+          if (l) li.hidden = !shown(l);
+          fragment.append(li);
         }
         pending = [];
-        // The line at the top of the window stays put when the reader is further down.
-        const header = document.querySelector("header").getBoundingClientRect().bottom;
-        const anchor = scrollY > feed.offsetTop - 120 ? document.elementFromPoint(innerWidth / 2, header + 8)?.closest("#feed > li") : null;
+        const scroller = getComputedStyle(feed).overflowY === "auto" ? feed : document.scrollingElement;
+        // (Below whatever covers the feed's top: the search, pinned on a phone.)
+        const top = Math.max(feed.getBoundingClientRect().top, document.querySelector(".search").getBoundingClientRect().bottom, 0);
+        const reading = scroller.scrollTop > 0;
+        const anchor = reading ? document.elementFromPoint(feed.getBoundingClientRect().left + 40, top + 12)?.closest("#feed > li") : null;
         const before = anchor?.getBoundingClientRect().top;
         feed.prepend(fragment);
         while (feed.children.length > KEEP) feed.lastElementChild.remove();
-        if (anchor?.isConnected) scrollBy(0, anchor.getBoundingClientRect().top - before);
-        empty.hidden = feed.children.length > 0;
-        problemsEl.textContent = problems ? ` ${numberFormat.format(problems)}` : "";
-        drawPulse();
-      }
-
-      function queue(element) {
-        pending.push(element);
-        // Paused long, the oldest waiting lines go: the page holds no more than it shows.
-        if (pending.length > KEEP) pending.splice(0, pending.length - KEEP);
-        if (!frame) frame = requestAnimationFrame(flush);
+        if (anchor?.isConnected) scroller.scrollTop += anchor.getBoundingClientRect().top - before;
+        empty();
       }
 
       function take(line) {
         if (lastSeq !== null && line.seq > lastSeq + 1) {
           const missed = line.seq - lastSeq - 1;
-          queue(noteRow(`${numberFormat.format(missed)} ${missed === 1 ? "line" : "lines"} not shown: the server logged faster than this page asks`));
+          queue(noteRow(`${num(missed)} ${missed === 1 ? "line" : "lines"} not shown: the server logged faster than this page asks`));
         }
         lastSeq = line.seq;
-        const kind = kindOf(line);
-        if (kind === "warn" || kind === "error") problems++;
-        count(line, kind);
-        queue(rowFor(line));
+        const l = parse(line);
+        lines.push(l);
+        queue(rowFor(l));
       }
 
-      // Bars of the last ten minutes, each stacked: work, requests, warnings, errors.
-      const NS = "http://www.w3.org/2000/svg";
-      function drawPulse() {
-        const now = Math.floor(Date.now() / BUCKET) * BUCKET;
-        const first = now - (BARS - 1) * BUCKET;
-        for (const at of buckets.keys()) if (at < first) buckets.delete(at);
-        // Square-root heights: a burst (a restart's first lines) leaves the ordinary minutes readable.
-        let max = 1;
-        let total = 0;
-        for (const [at, b] of buckets) {
-          const sum = b.work + b.request + b.warn + b.error;
-          max = Math.max(max, sum);
-          if (at > now - 60000) total += sum;
-        }
-        const bars = [];
-        for (let i = 0; i < BARS; i++) {
-          const b = buckets.get(first + i * BUCKET);
-          if (!b) continue;
-          const sum = b.work + b.request + b.warn + b.error;
-          const height = Math.sqrt(sum / max) * 62;
-          let y = 64;
-          for (const kind of ["work", "request", "warn", "error"]) {
-            if (!b[kind]) continue;
-            // The bar's height shared by kind; a lone warning or error still shows.
-            const h = Math.max((b[kind] / sum) * height, 1.2);
-            y -= h;
-            const rect = document.createElementNS(NS, "rect");
-            rect.setAttribute("class", `k-${kind}`);
-            rect.setAttribute("x", i + 0.12);
-            rect.setAttribute("y", y);
-            rect.setAttribute("width", 0.76);
-            rect.setAttribute("height", h);
-            bars.push(rect);
-          }
-        }
-        pulse.replaceChildren(...bars);
-        rateEl.firstChild.textContent = numberFormat.format(total);
+      // ── A line's details ──
+
+      const narrow = () => matchMedia("(max-width: 1279px)").matches;
+
+      function select(l, button) {
+        selected = l;
+        for (const current of $("feed").querySelectorAll('[aria-current="true"]')) current.removeAttribute("aria-current");
+        button?.setAttribute("aria-current", "true");
+        detail();
+        if (narrow()) $("detail").querySelector("h2")?.focus();
       }
 
-      function showPaused() {
-        if (!view.paused) return;
-        const waiting = pending.filter((el) => el.classList.contains("row")).length;
-        pauseEl.textContent = waiting ? `Resume · ${numberFormat.format(waiting)} new` : "Resume";
+      function unselect() {
+        const back = $("feed").querySelector('[aria-current="true"]');
+        selected = null;
+        detail();
+        if (narrow()) back?.focus();
       }
+
+      /** A route's last ten minutes, as facts. */
+      function routeFacts(route) {
+        const same = lines.filter((x) => x.route === route && x.unix_ms > (lines.at(-1)?.unix_ms ?? 0) - WINDOW), ms = same.map((x) => x.ms).filter((m) => m !== null);
+        return [["Requests", num(same.length)], ["Median", span(quantile(ms, 0.5) ?? 0)], ["95th pct", span(quantile(ms, 0.95) ?? 0)], ["Refused", num(same.filter((x) => x.status >= 400 && x.status < 500).length)], ["Failed", num(same.filter((x) => x.status >= 500).length)]];
+      }
+      const fill = (dl, pairs) =>
+        dl.replaceChildren(...pairs.flatMap(([k, v, cls]) => [Object.assign(document.createElement("dt"), { textContent: k }), Object.assign(document.createElement("dd"), { textContent: v, className: cls ?? "" })]));
+
+      function detail() {
+        const box = $("detail"), l = selected;
+        box.hidden = !l && narrow();
+        $("scrim").hidden = !l || !narrow();
+        // (Over the page, the details are a dialog: focus stays in them until they close.)
+        if (l && narrow()) {
+          box.setAttribute("role", "dialog");
+          box.setAttribute("aria-modal", "true");
+        } else {
+          box.removeAttribute("role");
+          box.removeAttribute("aria-modal");
+        }
+        box.style.translate = "";
+        if (!l) {
+          box.innerHTML = `<p class="hint">Pick a line to see it whole, and its route's last ten minutes.</p>`;
+          return;
+        }
+        box.replaceChildren();
+        const add = (tag, props, parent = box) => parent.appendChild(Object.assign(document.createElement(tag), props));
+        const top = add("div", { className: "top" });
+        add("span", { className: "grip" }, top).setAttribute("aria-hidden", "true");
+        add("h2", { textContent: l.path ?? (l.block ? `Block ${num(l.block)}` : l.text), tabIndex: -1 }, top);
+        const close = add("button", { type: "button", className: "close" }, top);
+        close.setAttribute("aria-label", "Close");
+        close.innerHTML = `<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+        close.addEventListener("click", unselect);
+        add("p", { className: "when", textContent: dateFormat.format(l.unix_ms) });
+        if (l.status) {
+          fill(add("dl", {}), [["Status", String(l.status), `s${String(l.status)[0]}`], ["Duration", short(l.took)], ["Route", l.route], ["Line", `#${num(l.seq)}`]]);
+          add("h3", { textContent: "This route, last ten minutes" });
+          fill(add("dl", { id: "route-facts" }), routeFacts(l.route));
+          const only = add("button", { type: "button", className: "act", textContent: view.routes.has(l.route) ? "Show every route" : "Show only this route" });
+          only.addEventListener("click", () => {
+            view.routes.has(l.route) ? view.routes.delete(l.route) : (view.routes.clear(), view.routes.add(l.route));
+            only.textContent = view.routes.has(l.route) ? "Show every route" : "Show only this route";
+            facets();
+            refilter();
+          });
+        } else {
+          fill(add("dl", {}), [["Level", l.level], ["Line", `#${num(l.seq)}`], ...(l.block ? [["Took", short(l.blockTook)]] : [])]);
+        }
+        add("h3", { textContent: "As logged" });
+        add("pre", { className: "raw", textContent: l.text });
+        grip(top);
+      }
+
+      /** On a phone, the sheet follows a finger pulling its top down, and closes past a third of its height. */
+      function grip(top) {
+        let from = null;
+        top.addEventListener("pointerdown", (e) => {
+          if (e.pointerType !== "touch" || e.target.closest("button")) return;
+          from = e.clientY;
+          top.setPointerCapture(e.pointerId);
+        });
+        top.addEventListener("pointermove", (e) => {
+          if (from !== null) $("detail").style.translate = `0 ${Math.max(0, e.clientY - from)}px`;
+        });
+        const end = (e) => {
+          if (from === null) return;
+          const pulled = e.clientY - from;
+          from = null;
+          if (pulled > $("detail").offsetHeight / 3) unselect();
+          else $("detail").style.translate = "";
+        };
+        top.addEventListener("pointerup", end);
+        top.addEventListener("pointercancel", end);
+      }
+      $("scrim").addEventListener("click", unselect);
+      $("detail").addEventListener("keydown", (e) => {
+        if (e.key !== "Tab" || $("detail").getAttribute("aria-modal") !== "true") return;
+        const stops = [...$("detail").querySelectorAll("button, [tabindex]")], first = stops[0], last = stops.at(-1);
+        if (e.shiftKey && document.activeElement === first) (e.preventDefault(), last.focus());
+        else if (!e.shiftKey && document.activeElement === last) (e.preventDefault(), first.focus());
+      });
+
+      addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && selected) unselect();
+        if (e.key === "/" && document.activeElement?.tagName !== "INPUT" && $("detail").getAttribute("aria-modal") !== "true") {
+          e.preventDefault();
+          $("search").focus();
+        }
+      });
+      // Up and down move along the lines.
+      $("feed").addEventListener("keydown", (e) => {
+        if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+        const all = [...$("feed").querySelectorAll("li:not([hidden]) > .line")], at = all.indexOf(document.activeElement);
+        const next = all[at + (e.key === "ArrowDown" ? 1 : -1)];
+        if (!next) return;
+        e.preventDefault();
+        next.focus();
+        // (Beside the lines, the details follow; over them, they'd take the keys away, so they wait for a press.)
+        if (!narrow()) next.click();
+      });
+
+      // ── The stream's state, and pausing ──
 
       function showState() {
-        const [state, label] = view.paused ? ["paused", "Paused"] : online ? ["live", "Live"] : online === false ? ["offline", "Offline"] : ["connecting", "Connecting"];
-        stateEl.dataset.state = state;
-        stateEl.textContent = label;
+        const waiting = pending.filter((li) => rows.has(li)).length;
+        const [state, label] = view.paused ? ["paused", waiting ? `Paused · ${num(waiting)} new` : "Paused"] : online ? ["live", "Live"] : online === false ? ["offline", "Offline"] : ["connecting", "Connecting"];
+        if ($("state").dataset.state !== state) $("said").textContent = { live: "Live", paused: "Paused", offline: "Offline: can't reach the server", connecting: "Connecting" }[state];
+        $("state").dataset.state = state;
+        $("state").textContent = label;
+        $("state").setAttribute("aria-label", `${label}; press to ${view.paused ? "resume" : "pause"}`);
       }
+      $("state").addEventListener("click", () => {
+        view.paused = !view.paused;
+        showState();
+        if (!view.paused) flush();
+      });
 
-      // Every two seconds, the lines since the last ones; none while the page isn't seen.
-      let online = null; // unknown until the first answer
+      // ── Reading: every second, the lines since the last; none while the page isn't seen ──
+
       async function poll() {
         const since = started !== null && lastSeq !== null ? `?started_unix_ms=${started}&after=${lastSeq}` : "";
         try {
@@ -770,15 +1348,26 @@
           }
           started = logs.started_unix_ms;
           for (const line of logs.lines) take(line);
+          // (Ten minutes kept for the numbers, and never fewer lines than the page shows.)
+          // (Ten minutes kept for the numbers: never fewer lines than the page shows, never more than HELD.)
+          let drop = lines.findIndex((l) => l.unix_ms > Date.now() - WINDOW);
+          if (drop < 0) drop = lines.length;
+          drop = Math.max(Math.min(drop, lines.length - KEEP), lines.length - HELD);
+          if (drop > 0) lines = lines.slice(drop);
           online = true;
+          // (The numbers each look, so the old age out even when nothing new comes.)
+          tiles();
+          if (logs.lines.length || !$("facets").children.length) {
+            facets();
+            if (selected?.route && $("route-facts")) fill($("route-facts"), routeFacts(selected.route));
+          }
         } catch {
           online = false;
         }
         showState();
       }
 
-      let polling = false;
-      let next = 0;
+      let polling = false, next = 0;
       async function loop() {
         clearTimeout(next);
         if (polling || document.hidden) return;
@@ -788,34 +1377,13 @@
         if (!document.hidden) next = setTimeout(loop, EVERY);
       }
       document.addEventListener("visibilitychange", () => (document.hidden ? clearTimeout(next) : loop()));
+      // (Phones start with the filters folded.)
+      const phone = matchMedia("(max-width: 760px)");
+      if (phone.matches) $("filters").open = false;
+      // (Widened past a phone, the filters can't fold: they open.)
+      phone.addEventListener("change", (e) => e.matches || ($("filters").open = true));
+      detail();
       loop();
-
-      // The pulse moves on even when nothing is logged.
-      setInterval(drawPulse, 1000);
-
-      for (const button of document.querySelectorAll("[data-show]")) {
-        button.addEventListener("click", () => {
-          view.show = button.dataset.show;
-          for (const other of document.querySelectorAll("[data-show]")) other.setAttribute("aria-pressed", other === button);
-          for (const row of feed.children) if (row.classList.contains("row")) row.hidden = !shown(row);
-        });
-      }
-
-      filterEl.addEventListener("input", () => {
-        view.filter = filterEl.value.trim().toLowerCase();
-        for (const row of feed.children) if (row.classList.contains("row")) row.hidden = !shown(row);
-      });
-
-      pauseEl.addEventListener("click", () => {
-        view.paused = !view.paused;
-        pauseEl.setAttribute("aria-pressed", view.paused);
-        showState();
-        if (view.paused) showPaused();
-        else {
-          pauseEl.textContent = "Pause";
-          flush();
-        }
-      });
 
       // Focus rings for keyboards only.
       addEventListener("pointerdown", () => document.documentElement.setAttribute("data-pointer", ""), true);
