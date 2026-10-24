@@ -601,3 +601,19 @@ weighs. The page can now give the weights itself.
 
 Studio: by block, the axis labels 970,000, 970,500, 971,000… (the crosshair "Block 971,622"); by difficulty epoch, 100,
 150, 200…; by date, as before.
+
+## 35. A fling that would pass the view's end eases into it
+
+A fling glides on from where the finger lifts, its speed falling by a fixed friction (`class In`: its travel, as it
+starts, `-speed / ln(friction)`), and the time scale holds every frame to its ends (patch 13): a fling that would carry
+the view past one was cut off there at its speed, a stop in one frame (Studio on an iPhone: 47 to 129 bars a frame, then
+none). Now, as it starts, a fling that would pass an end has its friction raised to end there: the same speed as the
+finger left it, falling faster, the view coming to rest against the end.
+
+- `class In`: `bvEndBy(at, least, most)` after `Kc()`: the travel as it starts against the room to `least` or `most`
+  from `at` (bar offsets, as `Oc()`); past one, the friction set to stop there (`exp(-speed / room)`), its duration as
+  the constructor's; none left (or the room the other way), it ends at once.
+- The pane's press handler (`dw()`, a drag let go): after `this.Xm.me(n.Oc(),t)`, `this.Xm.bvEndBy(n.Oc(),n.od()??-1/0,n._d())`.
+
+Studio, the iPhone simulator, a fling at the latest bar's end: 121, 74, 37, 21, 11, 5, 3, 1.5 bars a frame, at rest in
+150 ms (before, the same fling: 131 … 47, then held).
