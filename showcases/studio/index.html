@@ -7844,23 +7844,30 @@
           bottom: var(--bar-room);
         }
 
-        /* The header: the title, Undo (Keep in its place for a preview, Copy for a preset, till it's edited), Draw, Share
-           (its icon), ⋯ (Redo in it, a preset's Reset); "Saved" said elsewhere, taking no room from the title (not saved,
-           it stays: it lasts). */
+        /* The header: the title (its name, read: Rename in ⋯ edits it), Undo (Save in its place for a preview, Copy for a
+           preset, till it's edited), Share, ⋯ (Redo in it, the drawing tools, a preset's Reset), each by its icon; "Saved"
+           said elsewhere, taking no room from the title (not saved, it stays: it lasts). */
         #saved:not(.error),
         #preset-reset,
+        .card-head #draw-toggle,
         .head-actions:has(#preview-note:not([hidden])):not(:has(#keep.edited)) #undo,
         .head-actions:has(#preset-note:not([hidden])):has(#preset-reset[hidden]) #undo {
           display: none;
         }
 
-        /* (Share by its icon, as the others are, a preset's Copy too: the title keeps the room. Edited, a preset's Undo is
-           back in its place, its Copy in ⋯.) */
+        /* (Share by its icon, as the others are, a preview's Save and a preset's Copy too: the title keeps the room.
+           Edited, a preset's Undo is back in its place, its Copy in ⋯.) */
         #preset-note:has(#preset-reset:not([hidden])) {
           display: none;
         }
 
+        /* (Read, not edited, till Rename: a tap on it is nothing's.) */
+        .title[readonly] {
+          pointer-events: none;
+        }
+
         #share,
+        #keep,
         #preset-copy {
           justify-content: center;
           width: 28px;
@@ -9541,7 +9548,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           </div>
           <div class="head-actions">
             <span id="saved" class="saved"></span>
-            <span id="preview-note" class="preview-note" hidden><span class="preview-said">A preview</span><button id="keep" class="btn small" type="button" data-tip="Save puts it in your Library, as it is" data-kbd="⌘ S"><span data-icon="keep"></span>Save</button></span>
+            <span id="preview-note" class="preview-note" hidden><span class="preview-said">A preview</span><button id="keep" class="btn small" type="button" data-tip="Save puts it in your Library, as it is" data-kbd="⌘ S" aria-label="Save"><span data-icon="keep"></span><span class="label">Save</span></button></span>
             <span id="preset-note" class="preview-note" hidden><button id="preset-reset" class="btn small ghost" type="button" data-tip="Back as the preset is: your edits let go of" hidden>Reset</button><button id="preset-copy" class="btn small" type="button" aria-label="Save a copy" data-tip="A copy of it, as it is, in your Library"><span data-icon="duplicate"></span><span class="label">Save a copy</span></button></span>
             <button id="undo" class="cap" type="button" aria-label="Undo" data-tip="Undo" data-kbd="⌘ Z" data-icon="undo"></button>
             <button id="redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo" aria-disabled="true"></button>
@@ -23766,7 +23773,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("preset-reset").addEventListener("click", () => resetPreset(chart));
       $("chart-more").addEventListener("click", (event) => {
         const button = /** @type {HTMLElement} */ (event.currentTarget);
-        menuOf(button, headMenu());
+        // (On a phone, headed by the chart's whole name: its title may be cut short there.)
+        menuOf(button, headMenu(), null, "", { title: phone.matches ? titleOf(chart) : "" });
       });
       $("home-new-folder").addEventListener("click", (event) => {
         event.preventDefault();
@@ -24512,7 +24520,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const doc = editedPreset(i), head = where === "head";
         return [
           ...(where === "tile" || where === "palette" ? [{ key: "open", icon: ICONS.next, label: "Open", run: () => pickPreset(i) }] : []),
-          ...(head ? [{ key: "rename", icon: ICONS.pencil, label: "Rename", run: () => (/** @type {HTMLInputElement} */ ($("title")).focus(), /** @type {HTMLInputElement} */ ($("title")).select()) }] : []),
+          ...(head ? [{ key: "rename", icon: ICONS.pencil, label: "Rename", run: renameInPlace }] : []),
           { key: "copy", icon: ICONS.duplicate, label: "Save a copy", aside: "Into your Library", run: () => void copyPreset(i) },
           { key: "copy-to", icon: ICONS.folder, label: "Save a copy to…", page: () => choicePage("Save a copy to", () => copyChoices(i)) },
           ...(head && chart.layers.length ? [{ ...legendAction(), apart: true }, { key: "export", icon: ICONS.download, label: "Export", aside: "Image, data, file", page: () => listPage("Export", exportRows) }] : []),
@@ -29430,11 +29438,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const tabletHead = matchMedia("(760px < width <= 1100px) and (height > 500px)");
       // (One of them focused as the window comes to a tablet's size: ⋯, where they are now.)
       tabletHead.addEventListener("change", () => tabletHead.matches && document.activeElement?.matches("#add, #draw-toggle") && $("chart-more").focus({ preventScroll: true }));
-      /** The chart header's ⋯: a tablet's, the tools its header leaves to it first (see .card-head on tablets), then the chart's. */
+      /**
+       * The chart header's ⋯: the tools its header leaves to it first (a tablet's, Add and the drawing tools; a phone's,
+       * the drawing tools: its bar has Add), then the chart's.
+       */
       const headMenu = () => [
         ...(tabletHead.matches && chart.layers.length ? [
           // (Back to ⋯ once the search is put away, as it'd be to Add.)
           { key: "add", icon: ICONS.plus, label: "Add a layer", kbd: "A", group: "tools", run: () => ($("chart-more").focus({ preventScroll: true }), openPalette({ add: true })) },
+        ] : []),
+        ...((tabletHead.matches || phone.matches) && chart.layers.length ? [
           { key: "draw", icon: ICONS.draw, label: prefs.belt.on ? "Hide the drawing tools" : "Drawing tools", kbd: "D", group: "tools", run: toggleBelt },
         ] : []),
         ...chartActions(chart.id, "head"),
@@ -29461,7 +29474,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(inPalette || tile ? [{ key: "open", icon: ICONS.next, label: "Open", kbd: inPalette ? "↵" : undefined, run: () => go(chartById(id)) }] : []),
           ...(tile && !preview && !picked.has(id) ? [{ key: "select", icon: ICONS.checkbox, label: "Select", run: () => pickChart(id) }] : []),
           ...(preview && doc.layers.length ? [{ key: "keep", icon: ICONS.keep, label: "Save", aside: inPalette ? undefined : "Into your Library", run: () => keepChart(doc) }] : []),
-          { key: "rename", icon: ICONS.pencil, label: "Rename", ...(inPalette ? { page: () => renameChartPage(doc) } : head ? { run: () => (/** @type {HTMLInputElement} */ ($("title")).focus(), /** @type {HTMLInputElement} */ ($("title")).select()) } : { run: act("rename") }) },
+          { key: "rename", icon: ICONS.pencil, label: "Rename", ...(inPalette ? { page: () => renameChartPage(doc) } : head ? { run: renameInPlace } : { run: act("rename") }) },
           ...(preview ? [] : [{ key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", run: act("duplicate") }]),
           ...(peers.indexOf(doc) > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", kbd: "⌥↑", stay: true, run: () => stepChart(id, -1) }] : []),
           ...(peers.length && peers.indexOf(doc) < peers.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", kbd: "⌥↓", stay: true, run: () => stepChart(id, 1) }] : []),
@@ -31066,7 +31079,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         typedFrom.set(field, field.value);
       }
       // (The window left (a phone's app switched), it's as it was till the window's back: see leftOpen.)
-      $("title").addEventListener("blur", () => leftWith($("title"), leaveTitle) || leaveTitle());
+      $("title").addEventListener("blur", () => (leftWith($("title"), leaveTitle) || leaveTitle(), titleReads()));
+      /**
+       * On a phone, the title is its name, read (a tap to read it brings no keyboard); Rename (⋯) edits it where it is.
+       * Elsewhere, a field as ever.
+       */
+      const titleReads = () => (/** @type {HTMLInputElement} */ ($("title")).readOnly = phone.matches);
+      titleReads();
+      phone.addEventListener("change", () => document.activeElement !== $("title") && titleReads());
+      /** The title renamed where it is (see titleReads). */
+      function renameInPlace() {
+        const field = /** @type {HTMLInputElement} */ ($("title"));
+        field.readOnly = false;
+        field.focus();
+        field.select();
+      }
       // Single-line fields: Enter is done, Escape takes back what was typed; both leave the field.
       const FIELDS = "#title, #label, .number-input, .level-name";
       const typedFrom = new WeakMap();
@@ -32266,8 +32293,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const edited = isPreview(chart) && touched.has(chart), keep = $("keep");
         keep.classList.toggle("edited", edited);
         keep.dataset.tip = edited ? "Your edits aren't in your Library yet: Save puts it there, with them" : "Save puts it in your Library, as it is";
-        if (edited) keep.setAttribute("aria-label", "Save, edited");
-        else keep.removeAttribute("aria-label");
+        keep.setAttribute("aria-label", edited ? "Save, edited" : "Save");
       }
       /** A toast's Undo, which ⌘Z presses while it's up and nothing has changed since (a deleted chart comes back too); its Redo, ⌘⇧Z. */
       let toastUndo = /** @type {{ press: () => void, mark: number } | null} */ (null), toastRedo = /** @type {{ press: () => void, mark: number } | null} */ (null);
