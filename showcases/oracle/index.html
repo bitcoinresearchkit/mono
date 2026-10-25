@@ -816,19 +816,46 @@
         border: 1px solid var(--line);
         background: var(--line);
 
+        /* A rule: its name and what it skipped, why, and its share of the outputs at the bottom. */
         li {
+          display: grid;
+          grid-template: auto 1fr auto / minmax(0, 1fr) auto;
+          gap: 4px 12px;
           padding: 16px;
           background: var(--app);
         }
 
-        b {
-          display: block;
-          margin-bottom: 4px;
+        output {
+          color: var(--ink);
+          font-size: 13px;
+          font-variant-numeric: tabular-nums;
+          text-align: right;
+
+          small {
+            margin-left: 8px;
+            color: var(--faint);
+            font-size: 12px;
+          }
         }
 
         span {
+          grid-column: 1 / -1;
           color: var(--soft);
           font-size: 13px;
+        }
+
+        i {
+          grid-column: 1 / -1;
+          height: 2px;
+          margin-top: 12px;
+          background:
+            linear-gradient(var(--soft), var(--soft)) 0 0 / var(--share, 0%) 100% no-repeat,
+            var(--grid);
+          transition: background-size 0.3s;
+
+          @media (prefers-reduced-motion: reduce) {
+            transition: none;
+          }
         }
       }
 
@@ -1096,15 +1123,16 @@
       <section class="chapter" aria-labelledby="c3">
         <header><span class="n">03</span><h2 id="c3">What isn't a purchase, it skips</h2></header>
         <div>
-          <p>Only outputs that look like someone paying someone count.</p>
-          <ul class="skips">
-            <li><b>The miner's reward</b><span>New coins, not a payment.</span></li>
-            <li><b>Transactions with data</b><span>Any with an OP_RETURN output: records, not purchases.</span></li>
-            <li><b>Payouts to many</b><span>More than 250 outputs: an exchange or a pool paying out.</span></li>
-            <li><b>Taproot outputs</b><span>Mostly protocol traffic, which drowns the signal.</span></li>
-            <li><b>Dust</b><span>Under 1,000 sats: too small to be a payment.</span></li>
-            <li><b>Round bitcoin amounts</b><span>0.01 BTC, 50,000 sats: round in bitcoin, so not in dollars.</span></li>
+          <p id="kept">Only outputs that look like someone paying someone count.</p>
+          <ul class="skips" id="skips" aria-label="Each rule, in the order it asks, and the outputs it skipped at the block read in 01">
+            <li data-rule="coinbase"><b>The miner's reward</b><output></output><span>New coins, not a payment.</span><i aria-hidden="true"></i></li>
+            <li data-rule="fan_out"><b>Payouts to many</b><output></output><span>More than 250 outputs: an exchange or a pool paying out.</span><i aria-hidden="true"></i></li>
+            <li data-rule="op_return"><b>Transactions with data</b><output></output><span>Any with an OP_RETURN output: records, not purchases.</span><i aria-hidden="true"></i></li>
+            <li data-rule="taproot"><b>Taproot outputs</b><output></output><span>Mostly protocol traffic, which drowns the signal.</span><i aria-hidden="true"></i></li>
+            <li data-rule="dust"><b>Dust</b><output></output><span>Under 1,000 sats: too small to be a payment.</span><i aria-hidden="true"></i></li>
+            <li data-rule="round_btc"><b>Round bitcoin amounts</b><output></output><span>0.01 BTC, 50,000 sats: round in bitcoin, so not in dollars.</span><i aria-hidden="true"></i></li>
           </ul>
+          <p class="note">Each output counts under the first rule that skips it, in this order: a whole transaction goes first, then its outputs one by one. The bars are shares of all the outputs.</p>
         </div>
       </section>
 
@@ -1217,7 +1245,8 @@
       let priceAt = new Map();
       /** The blocks shown: height, price, time. @type {{ h: number, p: number, t: number }[]} */
       let points = [];
-      /** @typedef {{ height: number, first_bin: number, scores: number[], bin: number, histogram: number[] }} Search */
+      /** @typedef {{ coinbase: number, fan_out: number, op_return: number, taproot: number, dust: number, round_btc: number, payments: number }} Outputs */
+      /** @typedef {{ height: number, first_bin: number, scores: number[], bin: number, histogram: number[], outputs: Outputs, mempool: boolean }} Search */
       /** @typedef {{ height: number, first: number, counts: number[] }} Payments */
       /** Each block's payments read as round dollars: readings by price bucket, a tenth of a bin each. @type {Map<number, Payments>} */
       let payments = new Map();
@@ -1539,9 +1568,18 @@
         most = 0;
         for (let c = center - REACH; c <= center + REACH; c += 0.5) most = Math.max(most, wide.at(c));
         // (02's twelve: the block read and the 11 before it, now the mempool's first.)
-        const mempool = s.height > tip;
+        const mempool = s.mempool;
         $("newest").textContent = mempool ? "the mempool" : `block ${grouped(s.height)}`;
         $("oldest").textContent = `block ${grouped(s.height - 11)}`;
+        // (03: what each rule skipped of that block's own outputs, the mempool's now.)
+        const o = s.outputs, total = Object.values(o).reduce((a, b) => a + b, 0), share = (/** @type {number} */ n) => (total ? (n / total) * 100 : 0);
+        const pct = (/** @type {number} */ n) => (n && share(n) < 0.05 ? "<0.1" : share(n) >= 9.95 ? share(n).toFixed(0) : share(n).toFixed(1));
+        $("kept").innerHTML = `Only outputs that look like someone paying someone count: ${mempool ? "in the mempool now" : `in block ${grouped(s.height)}`}, <b>${grouped(o.payments)}</b> of ${grouped(total)} (${pct(o.payments)}%).`;
+        for (const li of $("skips").children) {
+          const n = o[/** @type {keyof Outputs} */ (/** @type {HTMLElement} */ (li).dataset.rule)];
+          li.querySelector("output").innerHTML = `${grouped(n)}<small>${pct(n)}%</small>`;
+          /** @type {HTMLElement} */ (li.querySelector("i")).style.setProperty("--share", `${share(n)}%`);
+        }
         drawPlate();
       }
 
@@ -1588,7 +1626,7 @@
           which.textContent = `Block ${grouped(pt.h)}`;
           $("detail").textContent = `${day(pt.t)}, ${clock(pt.t)} · $${grouped(pt.p)}${failed === picked ? " · couldn't read it, step to try again" : ""}`;
         } else {
-          const what = !liveSearch ? "its search can't be read" : liveSearch.height > tip ? "with the mempool" : "the newest block";
+          const what = !liveSearch ? "its search can't be read" : liveSearch.mempool ? "with the mempool" : "the newest block";
           which.textContent = "Now";
           $("detail").textContent = `${what}${live ? ` · $${grouped(live)}` : ""}`;
         }
