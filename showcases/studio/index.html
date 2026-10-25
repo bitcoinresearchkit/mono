@@ -31317,19 +31317,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!canvasReadable()) throw new Error(UNREADABLE);
         const PAD = 28, HEAD = 60, FOOT = 40;
         // Laid out as its picture while it's read: at its size (a script's, whatever the window; else as shown), its panes
-        // sized to it, its legends wrapped as the picture writes them and room made over the lines for them, drawn at once
-        // (no frame waited for: a tab out of sight has none); then exactly as it was (its zoom, its size, its margins).
+        // sized to it, its legends as the picture writes them (see presentLegends) and room made over the lines for them,
+        // drawn at once (no frame waited for: a tab out of sight has none); then exactly as it was (its zoom, its size, its
+        // margins, its legends).
         const element = $("chart"), wrapper = /** @type {HTMLElement} */ (element.firstElementChild), sized = Boolean(size.width && size.height);
         const style = element.getAttribute("style"), wrapped = [wrapper.style.width, wrapper.style.height], logical = view.timeScale().getVisibleLogicalRange(), heightWas = chartHeight;
         const width = sized ? /** @type {number} */ (size.width) - PAD * 2 : element.clientWidth, height = sized ? /** @type {number} */ (size.height) - HEAD - FOOT : element.clientHeight;
         if (!width || !height) throw new Error("The chart has no room: the window is of no size");
-        const strips = legends().map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.cssText]));
-        let shot, pieces, scale = 1, dates, axisHeight = 0, leftWidth = 0;
+        let shot, pieces, scale = 1, dates, axisHeight = 0, leftWidth = 0, restoreLegends = () => {};
         // (Its resizes aren't the chart's: the view held as it is, see holdView.)
         exporting = true;
         try {
           if (sized) Object.assign(element.style, { right: "auto", bottom: "auto", width: `${width}px`, height: `${height}px` });
-          for (const [legend] of strips) Object.assign(legend.style, { flexWrap: "wrap", overflow: "visible", rowGap: "2px" });
+          // (A tab drawing no frames: its legends still to place, the chart's, not the one before.)
+          layOutLegends();
+          restoreLegends = presentLegends();
           sizeChart(width, height);
           chartHeight = height;
           sizePanes();
@@ -31350,8 +31352,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             capturing = false;
             repaintDrawings();
           }
-          // (A tab drawing no frames: its legends still to place, the chart's, not the one before; its gutters at its size.)
-          layOutLegends();
+          // (Its gutters at its size.)
           placeGutters();
           scale = shot.width / width;
           // (The legends read at rest, the view's last point, as the foot dates them: not wherever the crosshair was.)
@@ -31369,7 +31370,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           axisHeight = view.timeScale().height();
           leftWidth = view.priceScale("left").width();
         } finally {
-          for (const [legend, saved] of strips) legend.style.cssText = saved;
+          restoreLegends();
           if (style === null) element.removeAttribute("style");
           else element.setAttribute("style", style);
           chartHeight = heightWas;
@@ -31480,24 +31481,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return `${cut.trimEnd()}…`;
       }
       /**
-       * Each pane's legend as the page shows it at rest, for the picture: its layers' marks, names and values, measured
-       * with the hidden layers taken out (the others close up as they would; a folded pane's kept, faded, all it shows), no layer lit or selected, and every layer
-       * shown (a crowded legend wraps onto more lines within its pane, a picture can't scroll); in the chart's own
-       * coordinates, scaled.
+       * Each pane's legend as the picture writes it (see presentLegends), at rest: its layers' marks, names and values, in
+       * the chart's own coordinates, scaled.
        * @returns {{ x: number, y: number, width: number, height: number, svg?: string, image?: HTMLImageElement, text?: string, font?: string, color?: string, align?: CanvasTextAlign, faded?: boolean }[]}
        */
       function measureLegends(scale) {
-        const shown = legends(), buttons = all$("#chart .legend button");
-        const states = buttons.map((button) => /** @type {[HTMLElement, string]} */ ([button, button.className]));
-        const styles = shown.map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.cssText]));
-        for (const legend of shown) Object.assign(legend.style, { flexWrap: "wrap", overflow: "visible", rowGap: "2px" });
-        // (A hidden layer's name is left out; a folded pane's show, faded, as on the chart: all it shows.)
-        const folded = foldedPanes(chart);
-        for (const button of buttons) {
-          if (button.classList.contains("hidden") && !folded.has(/** @type {HTMLElement | null} */ (button.closest(".legend"))?.dataset.pane ?? "")) button.style.display = "none";
-          button.classList.remove("selected", "lit");
-        }
-        const origin = view.chartElement().getBoundingClientRect();
+        const shown = legends(), origin = view.chartElement().getBoundingClientRect();
         const box = (element) => {
           const rect = element.getBoundingClientRect();
           return { x: (rect.left - origin.left) * scale, y: (rect.top - origin.top) * scale, width: rect.width * scale, height: rect.height * scale };
@@ -31539,12 +31528,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             pieces.push({ ...box(element), text: element.textContent?.trim() ?? "", font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ ("left") });
           }
         }
-        for (const [button, className] of states) {
-          button.className = className;
-          button.style.display = "";
-        }
-        for (const [legend, cssText] of styles) legend.style.cssText = cssText;
         return pieces;
+      }
+      /**
+       * Each pane's legend as a picture writes it, till what it returns puts them back as they were: every layer shown (a
+       * crowded legend wraps onto more lines within its pane, a picture can't scroll), a hidden layer's left out (the others
+       * close up as they would; a folded pane's kept, faded, all it shows), none lit or selected.
+       * @returns {() => void}
+       */
+      function presentLegends() {
+        const strips = legends().map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.cssText]));
+        const buttons = all$("#chart .legend button").map((button) => /** @type {[HTMLElement, string, string]} */ ([button, button.className, button.style.display]));
+        const folded = foldedPanes(chart);
+        for (const [legend] of strips) Object.assign(legend.style, { flexWrap: "wrap", overflow: "visible", rowGap: "2px" });
+        for (const [button] of buttons) {
+          if (button.classList.contains("hidden") && !folded.has(/** @type {HTMLElement | null} */ (button.closest(".legend"))?.dataset.pane ?? "")) button.style.display = "none";
+          button.classList.remove("selected", "lit");
+        }
+        return () => {
+          for (const [button, className, display] of buttons) (button.className = className), (button.style.display = display);
+          for (const [legend, cssText] of strips) legend.style.cssText = cssText;
+        };
       }
       /** The legends' marks, drawn from their own drawings (one that fails is left out). */
       async function drawMarks(pieces) {
