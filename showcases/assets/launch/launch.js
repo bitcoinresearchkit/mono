@@ -5,11 +5,12 @@
 //
 // - In Safari, where a page is added to a home screen: its launch screen, Bitview's orange at the phone's size (iOS's
 //   white else while the app starts), made once the page has loaded.
-// - Opened from there: the same orange over the page from its first frame. Once the page is ready and on the screen,
-//   the orange is Bitview's cube seen up close, which draws back as a camera would (evenly to the eye, eased in and
-//   out) and fades over its second half, never coming to rest, the page sharpening behind it (a layer blurring what's
-//   behind it: iOS's own blur, on its GPU; the page itself never blurred or drawn again). The status bar orange with
-//   it, the page's own after. Then nothing of it is left. Reduced motion: gone at once.
+// - Opened from there: the same orange over the page from its first frame (drawn no sooner than 150 ms in, for iOS to
+//   hand over to it without a flash of white). Once the page is ready and on the screen, the orange is Bitview's cube
+//   seen up close, which draws back as a camera would (evenly to the eye, eased in and out) and fades over its second
+//   half, never coming to rest, the page sharpening behind it (a layer blurring what's behind it: iOS's own blur, on
+//   its GPU; the page itself never blurred or drawn again). The status bar orange with it, the page's own after. Then
+//   nothing of it is left. Reduced motion: gone at once.
 // - Never ready (its script held back), the orange fades after a while all the same, the page's word of it shown.
 (() => {
   const ORANGE = "#e65b00";
@@ -35,6 +36,11 @@
   /** @type {any} */ (window).bitviewLaunch = api;
   if (!standalone) return;
 
+  // (iOS fades its launch screen out at the page's first frame, of any kind, and one drawn within ~100 ms of the
+  // navigation's start reaches the screen a few frames into that fade: the blank web view shows through, white (seen
+  // on a phone, measured in the iOS 27 Simulator). So nothing is drawn before 150 ms in: held here, ahead of all the
+  // page draws, as hiding the page still makes a frame, an empty one.)
+  while (performance.now() < 150);
   root.dataset.launch = "";
   const top = 2147483600;
   const style = document.createElement("style");
