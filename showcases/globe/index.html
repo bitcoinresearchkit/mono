@@ -88,16 +88,6 @@
         font-variant-numeric: tabular-nums;
       }
 
-      .page {
-        max-width: 1120px;
-        margin: 0 auto;
-        padding: 0 16px 64px;
-
-        @media (min-width: 720px) {
-          padding: 0 32px 88px;
-        }
-      }
-
       /* ── Header: the brand and the page's name; the latest block, live ── */
 
       .top {
@@ -169,6 +159,7 @@
         font-weight: 300;
         line-height: 1.02;
         letter-spacing: -0.035em;
+        text-wrap: balance;
       }
 
       .lede {
@@ -192,7 +183,7 @@
       .hero {
         position: relative;
         display: grid;
-        grid-template: "top" "text" "globe" "board" "ticker" / minmax(0, 1fr);
+        grid-template: "top" "text" "globe" "history" "board" / minmax(0, 1fr);
         gap: 16px;
         padding: 0 16px 24px;
 
@@ -204,8 +195,8 @@
           grid-area: board;
         }
 
-        .ticker {
-          grid-area: ticker;
+        .history {
+          grid-area: history;
         }
 
         > canvas {
@@ -223,7 +214,7 @@
 
         @media (min-width: 1024px) {
           height: max(680px, 100svh);
-          grid-template: "top top" 64px "text board" auto ". board" minmax(0, 1fr) "ticker ticker" auto / minmax(0, 1fr) 360px;
+          grid-template: "top top" 64px "text board" auto ". board" minmax(0, 1fr) "history board" auto / minmax(0, 1fr) 360px;
           gap: 0 32px;
           padding: 0 32px 24px;
 
@@ -242,7 +233,12 @@
 
           .hero-text {
             align-self: start;
-            max-width: 30rem;
+            max-width: min(30rem, 42vw);
+
+            /* (The title in its column's measure: two lines, the planet's middle clear of it.) */
+            h1 {
+              font-size: clamp(40px, 4.6vw, 72px);
+            }
             padding-top: 40px;
             pointer-events: none;
             /* (Where the words cross the planet, a halo of the night keeps them read.) */
@@ -251,9 +247,18 @@
 
           .board {
             align-self: start;
-            max-height: 100%;
+            max-height: calc(100% - 24px);
             margin-top: 24px;
             overflow-y: auto;
+          }
+
+          .history {
+            margin-top: 0;
+
+            .area {
+              aspect-ratio: auto;
+              height: clamp(64px, 11vh, 112px);
+            }
           }
 
         }
@@ -416,10 +421,6 @@
 
       /* ── History: each country's share by month, a cursor to read one ── */
 
-      .page > section {
-        padding: 40px 0 0;
-      }
-
       /* The history's notes: a word above the month each happened, a line down to it (on two rows, so near ones don't meet). */
       /* (Each label on a row, and to a side of its line: --anchor 0 starts at it, 0.5 centers on it, 1 ends at it.) */
       .events {
@@ -446,36 +447,31 @@
         }
       }
 
-      h2 {
-        margin: 0;
-        color: var(--ink);
-        font-size: clamp(24px, 3.4vw, 34px);
-        font-weight: 300;
-        letter-spacing: -0.025em;
-      }
-
       .kicker {
         margin: 0 0 8px;
       }
 
-      .section-lede {
-        max-width: 40em;
-        margin: 6px 0 0;
-        color: var(--soft);
-        text-wrap: pretty;
-      }
 
       .history {
-        margin-top: 20px;
-        padding: 16px 18px 12px;
+        min-width: 0;
+        padding: 14px 16px 10px;
       }
 
       .history-head {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        justify-content: space-between;
         gap: 8px 16px;
+
+        .kicker {
+          margin: 0;
+          font-weight: 400;
+        }
+
+        /* (Beside the title where there's room for it, else its own row.) */
+        .legend {
+          flex: 1 1 24rem;
+        }
       }
 
       .legend {
@@ -574,41 +570,30 @@
       .ticker {
         display: grid;
         gap: 8px;
+        margin-top: 18px;
       }
 
       .latest {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
+        gap: 6px;
         margin: 0;
         padding: 0;
         list-style: none;
 
-        /* (Four, two by two on a phone, a row on a wide page; six where there's room.) */
-        @media (max-width: 1439px) {
-          li:nth-child(n + 5) {
-            display: none;
-          }
-        }
-
-        @media (min-width: 1024px) {
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-
-        @media (min-width: 1440px) {
-          grid-template-columns: repeat(6, minmax(0, 1fr));
+        /* (A block a row: its pool and home on the left, its height and age on the right; the four newest.) */
+        li:nth-child(n + 5) {
+          display: none;
         }
 
         li {
           display: grid;
-          grid-template-columns: 10px minmax(0, 1fr);
+          grid-template-columns: 10px minmax(0, 1fr) auto;
           gap: 2px 10px;
           align-items: center;
           border-radius: 10px;
-          padding: 10px 12px;
-          background: var(--card);
-          box-shadow: var(--sheen), 0 0 0 1px var(--line);
-          backdrop-filter: blur(14px);
+          padding: 8px 12px;
+          background: var(--well);
+          box-shadow: 0 0 0 1px var(--line);
           font-size: 13px;
 
           /* (A block new to the list, arriving.) */
@@ -640,31 +625,14 @@
           white-space: nowrap;
         }
 
-        /* (The height and the age: one line, or two where a card is narrow.) */
+        /* (The height above the age, at the right.) */
         .stamp {
           display: flex;
-          flex-wrap: wrap;
-          column-gap: 10px;
-          white-space: normal;
-        }
-
-        /* Narrow, a block a row: its pool and home on the left, its height and age on the right. */
-        @media (max-width: 1023px) {
-          grid-template-columns: minmax(0, 1fr);
-          gap: 6px;
-
-          li {
-            grid-template-columns: 10px minmax(0, 1fr) auto;
-            padding: 8px 12px;
-          }
-
-          .stamp {
-            grid-column: 3;
-            grid-row: 1 / span 2;
-            flex-direction: column;
-            align-items: flex-end;
-            row-gap: 2px;
-          }
+          grid-column: 3;
+          grid-row: 1 / span 2;
+          flex-direction: column;
+          align-items: flex-end;
+          row-gap: 2px;
         }
       }
 
@@ -747,31 +715,25 @@
           </div>
           <div class="periods" role="group" aria-label="Over" id="periods"></div>
           <ol class="countries" id="countries" aria-label="Countries by blocks"></ol>
-        </div>
-        <div class="ticker">
-          <span class="kicker" id="latest-title">Latest blocks</span>
-          <ol class="latest" id="latest" aria-labelledby="latest-title"></ol>
-          <p class="said" id="said" role="status"></p>
-        </div>
-      </section>
-
-      <div class="page">
-        <section aria-labelledby="history-title">
-          <p class="kicker">Since 2011</p>
-          <h2 id="history-title">How it moved</h2>
-          <p class="section-lede">Each country's share of the blocks, month by month. Point at a month, or drag along it, to see it on the globe; play it to watch it move.</p>
-          <div class="history surface">
-            <div class="history-head">
-              <ul class="legend" id="legend"></ul>
-              <button type="button" class="play" id="play" disabled>Play</button>
-            </div>
-            <div class="events" id="events" aria-hidden="true"></div>
-            <div class="message" id="history-message">Loading…</div>
-            <div class="area" id="area" hidden></div>
-            <div class="years" id="years" aria-hidden="true"></div>
+          <div class="ticker">
+            <span class="kicker" id="latest-title">Latest blocks</span>
+            <ol class="latest" id="latest" aria-labelledby="latest-title"></ol>
+            <p class="said" id="said" role="status"></p>
           </div>
+        </div>
+        <!-- Time, along the planet's foot: each country's share month by month since 2011; drag along it, the globe goes too. -->
+        <section class="history surface" id="history" aria-labelledby="history-title">
+          <div class="history-head">
+            <h2 class="kicker" id="history-title">Since 2011, month by month</h2>
+            <ul class="legend" id="legend"></ul>
+            <button type="button" class="play" id="play" disabled>Play</button>
+          </div>
+          <div class="events" id="events" aria-hidden="true"></div>
+          <div class="message" id="history-message">Loading…</div>
+          <div class="area" id="area" hidden></div>
+          <div class="years" id="years" aria-hidden="true"></div>
         </section>
-      </div>
+      </section>
     </main>
     <div class="float" id="float" hidden aria-hidden="true"></div>
     <script type="module">
@@ -1323,9 +1285,11 @@
         if (wide.matches) {
           const free = $("countries").closest(".board")?.getBoundingClientRect().left ?? W;
           room = free - box.left - 16;
-          cx = room * 0.56;
-          cy = H * 0.57;
-          R = Math.min(room * 0.34, H * 0.36);
+          // (Between the header and the months along its foot, a little right of the middle, clear of both.)
+          const floor = ($("history").getBoundingClientRect().top || box.bottom) - box.top - 20, ceiling = 72;
+          cx = room * 0.6;
+          cy = (ceiling + floor) / 2;
+          R = Math.min(room * 0.34, (floor - ceiling) / 2);
         } else {
           room = W;
           cx = W / 2;
@@ -1341,6 +1305,7 @@
       /** Where no name is drawn (the title, on a wide page), in the canvas's coordinates. @type {{ left: number, top: number, right: number, bottom: number } | null} */
       let keepOff = null;
       new ResizeObserver(resize).observe(canvas);
+      new ResizeObserver(resize).observe($("history"));
       // (The title's room, again in its own font.)
       document.fonts.ready.then(resize);
 
