@@ -28,8 +28,6 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
   place of `started_unix_ms` and `after` (a restart still answers every kept line). With the clients regenerated and
   /logs reading on by `next`, in one change, once no other session is using the local server (it serves /logs from
   disk: the page and the server must change together).
-- The new-version notice on the local server: debug builds send no ETag (`bitview_website`'s handlers, release only),
-  so it stays quiet there. Send ETags in debug too, when the local server can be rebuilt.
 
 ## Back end
 

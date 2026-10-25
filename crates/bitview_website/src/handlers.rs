@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use axum::{
     body::Body,
     extract::{Path as ExtractPath, State},
-    http::{HeaderMap, HeaderValue, Response, header},
+    http::{HeaderMap, HeaderName, HeaderValue, Response, header},
 };
 use tokio::{sync::Semaphore, task::spawn_blocking};
 
@@ -26,6 +26,9 @@ pub async fn index_handler(
 ) -> Result<Response<Body>, Error> {
     serve(website, String::new(), headers).await
 }
+
+/// A file's version, its content hash.
+const VERSION: HeaderName = HeaderName::from_static("bitview-version");
 
 /// Concurrent filesystem responses.
 static FILESYSTEM_READS: Semaphore = Semaphore::const_new(2);
@@ -86,6 +89,9 @@ fn insert_caching(headers: &mut HeaderMap, etag: Option<&str>) {
     if let Some(etag) = etag {
         // Weak: compression serves other bytes under the same validator.
         headers.insert(header::ETAG, format!("W/\"{etag}\"").parse().unwrap());
+        // The same hash as the file's version, for an open page to tell a newer one is served
+        // (`showcases/assets/version`): a CDN that rewrites pages drops their ETag (Cloudflare does), not this.
+        headers.insert(VERSION, etag.parse().unwrap());
     }
     headers.insert(header::VARY, HeaderValue::from_static("accept-encoding"));
     headers.insert(
