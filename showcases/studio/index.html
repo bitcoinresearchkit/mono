@@ -25474,48 +25474,79 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       let vividGrid = /** @type {Float64Array | null} */ (null);
       const VIVID_ROWS = Math.round(1 / 0.005) + 1;
-      /** The surface's limits, row by row (lightness down, hue across), and how many rows are made. */
-      const vividRows = new Float64Array(VIVID_ROWS * 360);
-      let vividRow = 0;
-      /** The surface's grid made in idle moments, a few rows at a time (none of it a long task), then finished. */
+      /**
+       * Each window of `size` along `line` (its first window at the line's start), its minimum (`lowest`) or its mean,
+       * written into `into` from `at`, a `step` apart: a running sum, a queue of the window's rising minima, one step a
+       * point whatever the window's width.
+       * @param {Float64Array} line @param {number} size @param {boolean} lowest @param {Float64Array} into @param {number} at @param {number} step
+       */
+      function windowed(line, size, lowest, into, at, step) {
+        if (!lowest) {
+          let sum = 0;
+          for (let k = 0; k < size; k++) sum += line[k];
+          for (let k = 0; k + size <= line.length; k++) {
+            into[at + k * step] = sum / size;
+            if (k + size < line.length) sum += line[k + size] - line[k];
+          }
+          return;
+        }
+        const queue = new Int32Array(line.length);
+        let head = 0, tail = 0;
+        for (let k = 0; k < line.length; k++) {
+          while (tail > head && line[queue[tail - 1]] >= line[k]) tail--;
+          queue[tail++] = k;
+          if (queue[head] <= k - size) head++;
+          if (k >= size - 1) into[at + (k - size + 1) * step] = line[queue[head]];
+        }
+      }
+      /**
+       * One pass over the surface: each window folded across hue (12° either side, around the wheel), then down lightness
+       * (0.03 either side, held at its ends), a line a step.
+       * @param {Float64Array} source @param {boolean} lowest
+       */
+      function* fold(source, lowest) {
+        const rows = VIVID_ROWS, across = new Float64Array(rows * 360), out = new Float64Array(rows * 360);
+        const line = new Float64Array(360 + 24), column = new Float64Array(rows + 12);
+        for (let r = 0; r < rows; r++) {
+          for (let k = 0; k < line.length; k++) line[k] = source[r * 360 + ((k - 12 + 360) % 360)];
+          windowed(line, 25, lowest, across, r * 360, 1);
+          yield;
+        }
+        for (let c = 0; c < 360; c++) {
+          for (let k = 0; k < column.length; k++) column[k] = across[clamp(k - 6, 0, rows - 1) * 360 + c];
+          windowed(column, 13, lowest, out, c, 360);
+          yield;
+        }
+        return out;
+      }
+      /** The surface's grid made a line at a time: its limits row by row, folded at their lowest, then averaged, then eased. */
+      const vividWork = (function* () {
+        const rows = VIVID_ROWS, limits = new Float64Array(rows * 360);
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < 360; c++) limits[r * 360 + c] = limit(1 - r * 0.005, c, 12);
+          yield;
+        }
+        const smooth = yield* fold(yield* fold(limits, true), false), eased = new Float64Array(rows * 360);
+        // A soft minimum: below both, and smooth where they cross.
+        for (let r = 0; r < rows; r++) {
+          for (let i = r * 360; i < (r + 1) * 360; i++) eased[i] = -0.012 * Math.log(Math.exp(-CHROMA / 0.012) + Math.exp(-smooth[i] / 0.012));
+          yield;
+        }
+        vividGrid = eased;
+      })();
+      /**
+       * The surface's grid made in idle moments, a few lines at a time, none of it a long task (folded whole in one go, it
+       * had held a phone without its JIT (Lockdown Mode) half a second), till it's made.
+       */
       function vividSoon(/** @type {{ timeRemaining: () => number }} */ deadline) {
-        if (vividGrid) return;
         const until = performance.now() + Math.min(8, Math.max(2, deadline.timeRemaining()));
-        for (; vividRow < VIVID_ROWS && performance.now() < until; vividRow++) for (let c = 0; c < 360; c++) vividRows[vividRow * 360 + c] = limit(1 - vividRow * 0.005, c, 12);
-        if (vividRow < VIVID_ROWS) return whenIdle(vividSoon);
-        vivid(0.5, 0);
+        while (!vividGrid && performance.now() < until) vividWork.next();
+        if (!vividGrid) whenIdle(vividSoon);
       }
       function vivid(l, h) {
         const rows = VIVID_ROWS;
-        if (!vividGrid) {
-          // (Its rows of limits, those not made in idle moments yet: see vividSoon.)
-          const grid = vividRows;
-          for (; vividRow < rows; vividRow++) for (let c = 0; c < 360; c++) grid[vividRow * 360 + c] = limit(1 - vividRow * 0.005, c, 12);
-          // One pass folds each window across hue (around the wheel), then down lightness (held at its ends).
-          const pass = (/** @type {Float64Array} */ source, lowest = false) => {
-            const across = new Float64Array(rows * 360), out = new Float64Array(rows * 360);
-            for (let r = 0; r < rows; r++) for (let c = 0; c < 360; c++) {
-              let value = lowest ? Infinity : 0;
-              for (let d = -12; d <= 12; d++) {
-                const x = source[r * 360 + ((c + d + 360) % 360)];
-                value = lowest ? Math.min(value, x) : value + x;
-              }
-              across[r * 360 + c] = lowest ? value : value / 25;
-            }
-            for (let r = 0; r < rows; r++) for (let c = 0; c < 360; c++) {
-              let value = lowest ? Infinity : 0;
-              for (let d = -6; d <= 6; d++) {
-                const x = across[clamp(r + d, 0, rows - 1) * 360 + c];
-                value = lowest ? Math.min(value, x) : value + x;
-              }
-              out[r * 360 + c] = lowest ? value : value / 13;
-            }
-            return out;
-          };
-          const limits = pass(pass(grid, true));
-          // A soft minimum: below both, and smooth where they cross.
-          vividGrid = limits.map((most) => -0.012 * Math.log(Math.exp(-CHROMA / 0.012) + Math.exp(-most / 0.012)));
-        }
+        // (What isn't made yet in idle moments, made now: see vividSoon.)
+        while (!vividGrid) vividWork.next();
         const g = vividGrid, r = clamp((1 - l) / 0.005, 0, rows - 1), c = ((h % 360) + 360) % 360;
         const r0 = Math.floor(r), r1 = Math.min(rows - 1, r0 + 1), c0 = Math.floor(c) % 360, c1 = (c0 + 1) % 360, fr = r - r0, fc = c - Math.floor(c);
         const at = (row, col) => g[row * 360 + col];
