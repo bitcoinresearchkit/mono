@@ -23957,8 +23957,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const contentHash = (doc) => hashOf(contentOf({ ...doc, range: "" }));
       /** A preset's chart as made now, as an edit leaves a chart (normalized: nothing for an edit to change). */
       const freshPreset = (/** @type {number} */ i) => ((doc) => (normalize(doc), doc))(fromPreset(/** @type {Preset[]} */ (presets)[i]));
+      /**
+       * Each preset's fingerprint as made now, by the preset as read: made once (a preset makes the same chart wherever
+       * it's made, as a copy's stamp, kept, has it), not for each time it's asked (each of its rows, its search, its
+       * opening). @type {WeakMap<Preset, string>}
+       */
+      const templateHashes = new WeakMap();
       /** A preset's fingerprint as made now. */
-      const templateHash = (/** @type {number} */ i) => contentHash(freshPreset(i));
+      function templateHash(/** @type {number} */ i) {
+        const preset = /** @type {Preset[]} */ (presets)[i];
+        let hash = templateHashes.get(preset);
+        if (hash === undefined) templateHashes.set(preset, (hash = contentHash(freshPreset(i))));
+        return hash;
+      }
       /** A preset's chart's id: the same wherever it's opened (another tab's, a step of the history's), by which it is. */
       const presetIdOf = (/** @type {string} */ key) => `p${hashOf(key)}`;
       /** Each preset by its chart's id (made once they're read). */
