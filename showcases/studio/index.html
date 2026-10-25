@@ -18170,7 +18170,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Every sketch drawn again: the drawings, what's selected or pointed at, changed. */
       function repaintDrawings() {
-        for (const series of drawn.values()) sketches.get(series)?.update();
+        // (Under the Charts page, none: painted as it's left, see redrawChart.)
+        if (!home) for (const series of drawn.values()) sketches.get(series)?.update();
         $("belt").classList.toggle("busy", Boolean(placing || moving?.moved || boxing));
       }
       /** A chart's drawings, on the series just built (each given its sketch once). @param {Chart} doc */
@@ -20941,7 +20942,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       $("home").addEventListener("scroll", (event) => /** @type {HTMLElement} */ (event.target).matches?.(".shelf-row") && shelfSteps(/** @type {HTMLElement} */ (event.target)), { capture: true, passive: true });
       $("home").addEventListener("focusin", (event) => ((row) => row && fillRow(row))(/** @type {HTMLElement | null} */ (/** @type {HTMLElement} */ (event.target).closest?.(".shelf-row"))));
-      addEventListener("resize", () => home && allShelfSteps());
+      // Every shelf measured again as the page's size changes (the window's, the sidebar's, a phone turned), shown at
+      // another size than it was left at too; not as it's simply shown again: hidden, its shelves stayed as they were.
+      {
+        let size = "";
+        new ResizeObserver(([entry]) => {
+          const { inlineSize, blockSize } = entry.contentBoxSize[0], now = `${inlineSize} ${blockSize}`;
+          // (Hidden, none: its size as it was left kept.)
+          if (!inlineSize || now === size) return;
+          size = now;
+          allShelfSteps();
+        }).observe(/** @type {HTMLElement} */ ($("home").querySelector(".home-scroll")));
+      }
       // Each tile drawn once it's in view (on a shelf, scrolled to), one at a time; let go of if it's left before its turn
       // (a preset on two shelves, the recommended's and its section's: while either's in view).
       const galleryQueue = /** @type {Set<number>} */ (new Set()), gallerySeen = /** @type {Set<Element>} */ (new Set());
@@ -21315,10 +21327,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const draft = deletedOpen === chart.id || (cancelling === chart.id && previousChart()) || emptyYours(chart) ? chart : null;
         cancelling = deletedOpen = "";
         hideMenu();
-        putDown();
         hideTip();
         if (selected) deselect();
-        clearMeasure();
         document.body.removeAttribute("data-peek");
         home = true;
         prefs.home = true;
@@ -21330,8 +21340,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (An empty preview left simply goes.)
           if (draft) openChart(previousChart() ?? newDraft());
           document.body.toggleAttribute("data-home", true);
-          // (Its shelves as they are now: sized for a window resized meanwhile, watched for a screen of another height.)
-          shelvesSoon();
+          // (What's in hand let go of once the page is over the chart: the chart not drawn again for it, see
+          // repaintDrawings.)
+          putDown();
+          clearMeasure();
           // (A toast up stays, where it shows on this page: over its foot, not the chart's.)
           if ($("toast").classList.contains("visible")) placeToast();
           refresh("none");
