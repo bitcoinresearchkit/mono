@@ -12290,7 +12290,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const deviceLight = matchMedia("(prefers-color-scheme: light)");
       /** The bar over the page (a browser's, an installed app's, a phone's status bar) in the page's color under it: the grid's ground, a chart's card on a phone. */
       const themeColor = /** @type {HTMLMetaElement | null} */ (document.querySelector('meta[name="theme-color"]'));
-      const syncThemeColor = () => themeColor && (themeColor.content = token(phone.matches && !document.body.hasAttribute("data-home") ? "--card" : "--app"));
+      // (The theme's, kept till it changes: the page coming or going reads no style for it, mid-change.)
+      const syncThemeColor = () => themeColor && (themeColor.content = css(phone.matches && !document.body.hasAttribute("data-home") ? "--card" : "--app"));
       new MutationObserver(syncThemeColor).observe(document.body, { attributes: true, attributeFilter: ["data-home"] });
       new MutationObserver(syncThemeColor).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
       deviceLight.addEventListener("change", syncThemeColor);
@@ -21360,9 +21361,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         prefs.home = false;
         savePrefs();
         picked.clear();
-        show();
-        // (Where the page was, kept in its step: Back comes back there; Charts, too.)
+        // (Where the page was, kept in its step: Back comes back there; Charts, too. Read before anything changes on it:
+        // after, it'd be laid out anew just to read it.)
         leftPlace = galleryPlace();
+        show();
         // (A step from before steps had keys: given one.)
         if (push && history.state?.home) (history.replaceState({ ...history.state, ...homeState(), place: leftPlace }, ""), leftPlaces.set(history.state.key, leftPlace));
         if (push) history.pushState({ chart: chart.id, fromHome: true, place: leftPlace }, "");
