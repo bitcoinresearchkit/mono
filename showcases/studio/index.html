@@ -23814,7 +23814,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {{ p: string[] }[]} list
        */
       function addressesOf(list) {
-        const word = (/** @type {string} */ text) => text.replace(/\+/g, " plus ").replace(/(^|\s)-(?=\d)|[−–]/g, "$1 minus ").replace(/≥/g, " at least ").replace(/≤/g, " at most ").replace(/>/g, " over ").replace(/</g, " under ").replace(/%/g, " percent ").replace(/&/g, " and ")
+        // (A name's word made once: names come again and again, a section's under each of its presets.)
+        const words = new Map();
+        const word = (/** @type {string} */ text) => words.get(text) ?? words.set(text, slug(text)).get(text);
+        const slug = (/** @type {string} */ text) => text.replace(/\+/g, " plus ").replace(/(^|\s)-(?=\d)|[−–]/g, "$1 minus ").replace(/≥/g, " at least ").replace(/≤/g, " at most ").replace(/>/g, " over ").replace(/</g, " under ").replace(/%/g, " percent ").replace(/&/g, " and ")
           .normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "x";
         const tag = (/** @type {string} */ text) => {
           let h = 2166136261;
@@ -23826,9 +23829,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const preset of list) for (let depth = 1; depth < preset.p.length; depth++) sectionPaths.set(JSON.stringify(preset.p.slice(0, depth)), preset.p.slice(0, depth));
         const alike = new Map(), count = (/** @type {string} */ key) => alike.set(key, (alike.get(key) ?? 0) + 1);
         const keyOf = (/** @type {string[]} */ path) => `${JSON.stringify(path.slice(0, -1))}|${word(/** @type {string} */ (path.at(-1)))}`;
-        for (const path of sectionPaths.values()) count(keyOf(path));
-        for (const preset of list) count(keyOf(preset.p));
-        const named = (/** @type {string[]} */ path) => ((name) => (alike.get(keyOf(path)) > 1 ? `${word(name)}-${tag(name)}` : word(name)))(/** @type {string} */ (path.at(-1)));
+        // (Each path's key made once, for its count and its name alike.)
+        const keys = new Map(), keyed = (/** @type {string[]} */ path) => ((at) => keys.get(at) ?? keys.set(at, keyOf(path)).get(at))(JSON.stringify(path));
+        for (const path of sectionPaths.values()) count(keyed(path));
+        for (const preset of list) count(keyed(preset.p));
+        const named = (/** @type {string[]} */ path) => ((name) => (alike.get(keyed(path)) > 1 ? `${word(name)}-${tag(name)}` : word(name)))(/** @type {string} */ (path.at(-1)));
         const sections = new Map([["[]", "/presets/"]]), at = /** @type {Map<string, { path: string[] } | { preset: number }>} */ (new Map([["/presets/", { path: [] }]]));
         const sectionAt = (/** @type {string[]} */ path) => {
           const key = JSON.stringify(path), known = sections.get(key);
