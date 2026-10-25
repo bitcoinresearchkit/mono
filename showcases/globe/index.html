@@ -89,8 +89,7 @@
       /* ── One screen of data: the planet and under it the months since 2011; the countries and the latest blocks beside ── */
       .app {
         display: grid;
-        /* (On a phone the months right under the planet: reading one redraws the countries, below them, never above.) */
-        grid-template: "top" "globe" "history" "board" / minmax(0, 1fr);
+        grid-template: "top" "globe" "board" "history" / minmax(0, 1fr);
         gap: 20px;
         padding: 0 var(--gutter) 40px;
 
@@ -276,6 +275,14 @@
         margin: 0;
         padding: 0;
         list-style: none;
+
+        /* (On a phone, five rows' height, the rest scrolled to: a period or a month with more or fewer countries never
+           moves what's under it.) */
+        @media (max-width: 1023px) {
+          height: calc(5 * 59px);
+          overflow-y: auto;
+          overscroll-behavior: contain;
+        }
       }
 
       /* A country: its name, its blocks, its share; under them its share as a hairline, in the answer's orange. */
@@ -285,11 +292,13 @@
         > button {
           display: grid;
           grid-template-columns: minmax(0, 1fr) auto auto;
+          align-content: center;
           align-items: baseline;
           gap: 2px 14px;
           width: 100%;
+          height: 58px;
           border: 0;
-          padding: 12px 0 10px;
+          padding: 0;
           background: none;
           text-align: left;
           cursor: pointer;
@@ -516,8 +525,9 @@
         }
       }
 
-      .history .message {
-        min-height: calc(9 * (var(--plot) + 1px));
+      /* (The rows' height, fixed: nine rows always, loading or loaded.) */
+      .history :is(.message, .area) {
+        height: calc(9 * (var(--plot) + 1px));
         margin: 0;
       }
 
