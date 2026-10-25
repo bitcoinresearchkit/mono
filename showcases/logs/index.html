@@ -4,7 +4,8 @@
     <meta charset="utf-8" />
     <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- (Its most scale 1, as Studio's: iOS doesn't zoom in on the search, its text under 16px.) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f7f9" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0b0d" />
@@ -106,6 +107,11 @@
 
       :root[data-pointer] :focus-visible {
         outline: none;
+      }
+
+      /* (A row's ring inside it: the feed clips what's past its edges.) */
+      .line:focus-visible {
+        outline-offset: -2px;
       }
 
       .sr {
@@ -395,6 +401,31 @@
           color: var(--faint);
           font-style: normal;
           text-align: right;
+        }
+      }
+
+      /* (A percentile: its cut, how many requests took longer, the duration it cuts at.) */
+      .facet.slow {
+        grid-template-columns: 14px minmax(0, 1fr) 40px 58px;
+
+        > i {
+          border-radius: 50%;
+        }
+
+        span {
+          font-variant-numeric: tabular-nums;
+        }
+
+        b,
+        em {
+          font: 500 12px var(--mono);
+          color: var(--faint);
+          font-style: normal;
+          text-align: right;
+        }
+
+        &[aria-pressed="true"] em {
+          color: var(--ink);
         }
       }
 
@@ -859,8 +890,9 @@
           }
         }
 
+        /* (Clipped at its edge: new rows slide in from under it, not over the search.) */
         .feed {
-          overflow: visible;
+          overflow: clip;
         }
 
         .line .ms {
@@ -1009,7 +1041,7 @@
       /** Every line read, oldest first, the last ten minutes' worth at least. */
       let lines = [];
       let started = null, lastSeq = null, online = null;
-      const view = { levels: new Set(), kinds: new Set(), statuses: new Set(), routes: new Set(), text: "", paused: false };
+      const view = { levels: new Set(), kinds: new Set(), statuses: new Set(), routes: new Set(), slow: null, text: "", paused: false };
       let pending = [], frame = 0, selected = null;
 
       // ── The numbers ──
@@ -1051,11 +1083,17 @@
         statuses: [["2", "2xx"], ["3", "3xx"], ["4", "4xx"], ["5", "5xx"]],
       };
       const TITLES = { levels: "Level", kinds: "Kind", statuses: "Status" };
+      /** The slowest requests, by percentile: one at a time, each holding the next. */
+      const SLOW = [95, 98, 99, 99.5, 99.9];
+      /** Each percentile's duration, over the requests the page holds; a request slower than the chosen one shows. */
+      let cuts = new Map();
 
       function facets() {
         const had = document.activeElement?.dataset?.key;
         // (Counted over the lines the page holds, so a filter's count is what it shows.)
         const held = lines.slice(-KEEP);
+        const durations = held.map((l) => l.ms).filter((m) => m !== null);
+        cuts = new Map(SLOW.map((p) => [p, quantile(durations, p / 100)]));
         const count = (group, key) =>
           held.filter((l) => (group === "levels" ? l.level === key : group === "kinds" ? (key === "request" ? l.status : !l.status) : String(l.status)[0] === key)).length;
         let html = "";
@@ -1065,6 +1103,10 @@
             .map(([key, label, dot]) => `<button type="button" class="facet" data-group="${group}" data-key="${group}:${key}" aria-pressed="${view[group].has(key)}">${dot ? `<i class="dot" style="background:${dot}"></i>` : "<i></i>"}<span>${label}</span><b>${num(count(group, key))}</b></button>`)
             .join("")}</div>`;
         }
+        html += `<div class="group"><h2>Slowest <span>count · over</span></h2>${SLOW.map((p) => {
+          const cut = cuts.get(p);
+          return `<button type="button" class="facet slow" data-group="slow" data-key="slow:${p}" aria-pressed="${view.slow === p}"><i></i><span>&gt; p${p}</span><b>${num(cut === null ? 0 : durations.filter((m) => m > cut).length)}</b><em>${cut === null ? "" : span(cut)}</em></button>`;
+        }).join("")}</div>`;
         const routes = new Map();
         for (const l of held) if (l.route) (routes.get(l.route) ?? routes.set(l.route, []).get(l.route)).push(l.ms);
         const leading = [...routes].sort((a, b) => b[1].length - a[1].length).slice(0, 14);
@@ -1076,7 +1118,7 @@
             return `<button type="button" class="facet route" data-group="routes" data-key="routes:${encodeURIComponent(route)}" data-route="${encodeURIComponent(route)}" aria-pressed="${view.routes.has(route)}" style="--share:${((ms.length / most) * 100).toFixed(1)}%"><span class="name"></span><b>${num(ms.length)}</b><em>${p50 === null ? "" : span(p50)}</em></button>`;
           })
           .join("")}</div>`;
-        const any = view.levels.size + view.kinds.size + view.statuses.size + view.routes.size;
+        const any = view.levels.size + view.kinds.size + view.statuses.size + view.routes.size + (view.slow === null ? 0 : 1);
         if (any) html += `<button type="button" class="clear" id="clear">Clear filters</button>`;
         $("facets").innerHTML = html;
         // (Route names set as text: they come from requests.)
@@ -1090,6 +1132,10 @@
         if (!button) return;
         if (button.id === "clear") {
           for (const group of ["levels", "kinds", "statuses", "routes"]) view[group].clear();
+          view.slow = null;
+        } else if (button.dataset.group === "slow") {
+          const p = Number(button.dataset.key.split(":")[1]);
+          view.slow = view.slow === p ? null : p;
         } else {
           const group = button.dataset.group, key = group === "routes" ? decodeURIComponent(button.dataset.route) : button.dataset.key.split(":")[1];
           view[group].has(key) ? view[group].delete(key) : view[group].add(key);
@@ -1104,6 +1150,7 @@
         if (view.kinds.size && !view.kinds.has(l.status ? "request" : "work")) return false;
         if (view.statuses.size && !(l.status && view.statuses.has(String(l.status)[0]))) return false;
         if (view.routes.size && !(l.route && view.routes.has(l.route))) return false;
+        if (view.slow !== null && !(l.ms !== null && cuts.get(view.slow) !== null && l.ms > cuts.get(view.slow))) return false;
         return !view.text || l.text.toLowerCase().includes(view.text);
       }
       const rows = new WeakMap();
@@ -1178,14 +1225,34 @@
         pending = [];
         const scroller = getComputedStyle(feed).overflowY === "auto" ? feed : document.scrollingElement;
         // (Below whatever covers the feed's top: the search, pinned on a phone.)
-        const top = Math.max(feed.getBoundingClientRect().top, document.querySelector(".search").getBoundingClientRect().bottom, 0);
-        const reading = scroller.scrollTop > 0;
+        const covered = Math.max(document.querySelector(".search").getBoundingClientRect().bottom, 0);
+        const top = Math.max(feed.getBoundingClientRect().top, covered);
+        // (Reading once the newest row has gone under that: the page scrolled only past the numbers, new rows still come in.)
+        const reading = scroller === feed ? feed.scrollTop > 0 : feed.getBoundingClientRect().top < covered - 1;
         const anchor = reading ? document.elementFromPoint(feed.getBoundingClientRect().left + 40, top + 12)?.closest("#feed > li") : null;
         const before = anchor?.getBoundingClientRect().top;
+        // (Measured by the first row shown: a filtered one has no place.)
+        const added = fragment.children.length, first = [...feed.children].find((li) => !li.hidden), was = first?.offsetTop;
         feed.prepend(fragment);
         while (feed.children.length > KEEP) feed.lastElementChild.remove();
         if (anchor?.isConnected) scroller.scrollTop += anchor.getBoundingClientRect().top - before;
+        else if (!reading && first?.isConnected) settle(feed, added, first.offsetTop - was);
         empty();
+      }
+
+      const still = matchMedia("(prefers-reduced-motion: reduce)");
+      /** The new rows in, at the top: they slide down from under the feed's edge, the rows on screen easing down by as
+       * much, the new ones fading up as they come; none of it once the rows below the screen are reached. More than a
+       * screen of them at once (the page coming back from a pause) just appears. */
+      function settle(feed, added, shift) {
+        if (still.matches || shift <= 0 || shift > innerHeight) return;
+        const from = { transform: `translateY(${-shift}px)` };
+        for (const [i, li] of [...feed.children].entries()) {
+          if (li.hidden) continue;
+          for (const animation of li.getAnimations()) animation.cancel();
+          if (li.getBoundingClientRect().top - shift > innerHeight) break;
+          li.animate(i < added ? [{ ...from, opacity: 0 }, { transform: "none", opacity: 1 }] : [from, { transform: "none" }], { duration: 260, easing: "cubic-bezier(0.2, 0.8, 0.3, 1)" });
+        }
       }
 
       function take(line) {
@@ -1361,6 +1428,8 @@
           tiles();
           if (logs.lines.length || !$("facets").children.length) {
             facets();
+            // (The cut moves with the lines held: the rows already shown are judged again by it.)
+            if (view.slow !== null) refilter();
             if (selected?.route && $("route-facts")) fill($("route-facts"), routeFacts(selected.route));
           }
         } catch {
