@@ -31582,11 +31582,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             layer: letterId(drawing.layer),
             points: Array.isArray(drawing.points) ? drawing.points.slice(0, MAX_STROKE).map((/** @type {any} */ point) => (Array.isArray(point) ? [timeOfText(point[0]), point[1]] : point)) : drawing.points,
           })) } : {}),
-          // (A view by dates, at the chart's interval; one as Studio keeps it, as it is. At an interval Studio doesn't have
-          // (an old link's by block), none: its edges aren't dates, the chart on its range.)
+          // (A view by dates, at the chart's interval; one as Studio keeps it, as it is.)
           // (Auto's, at the finest interval: its ends where they were, whichever interval it then asks for.)
-          ...(input.index !== undefined && input.index !== "auto" && !Object.hasOwn(INTERVAL_LABEL, input.index) ? { view: undefined }
-            : from !== null && to !== null && from < to ? { view: { index: input.index === "auto" ? "minute10" : index, from: [from, 0], to: [to, 0] } } : {}),
+          ...(from !== null && to !== null && from < to ? { view: { index: input.index === "auto" ? "minute10" : index, from: [from, 0], to: [to, 0] } } : {}),
           panes, layers: layers.map((/** @type {any} */ layer, /** @type {number} */ i) => {
           const kind = Array.isArray(layer.trend) ? "trend" : Array.isArray(layer.cloud) ? "cloud" : null, members = kind ? layer[kind].map(letterId) : null;
           return {
