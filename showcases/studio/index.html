@@ -2504,14 +2504,9 @@
 
       /* One width for every interval, so the ranges beside it never shift. */
       /* The interval, a field to pick from: its clock says it's one (beside the ranges, "3M" or "1Y" isn't one of them). */
-      /* (One width a kind: the ranges beside it never shift; Auto's, its widest ("Auto 12h"), as it follows the zoom.) */
       .interval.btn {
         justify-content: flex-start;
         width: 74px;
-
-        &:has(.interval-auto) {
-          width: var(--auto-width, 92px);
-        }
         height: 28px;
         border: 0;
         gap: 6px;
@@ -2525,11 +2520,6 @@
           color: var(--soft);
           background: var(--field);
           box-shadow: inset 0 0 0 1px var(--faint);
-        }
-
-        /* (Auto, in its clock's place, quieter than the interval it's at.) */
-        .interval-auto {
-          color: var(--muted);
         }
 
         svg {
@@ -2570,20 +2560,6 @@
         min-height: 0;
       }
 
-      /* (An Auto switch's crossfade: the plot as it was, over its canvases, under its legend.) */
-      .plot-veil {
-        position: absolute;
-        inset: 0;
-        z-index: 3;
-        overflow: hidden;
-        pointer-events: none;
-      }
-      .plot-veil canvas {
-        display: block;
-        width: 100%;
-        height: 100%;
-        transform-origin: 0 0;
-      }
 
       .chart {
         position: absolute;
@@ -6560,23 +6536,6 @@
               cursor: default;
             }
           }
-
-          /* (Auto: its own row, the width of the three, what it's at now beside its name.) */
-          &.interval-auto-row {
-            grid-template-columns: 1fr;
-            padding-top: 6px;
-
-            button {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-
-              span {
-                color: var(--muted);
-                font-weight: 400;
-              }
-            }
-          }
         }
 
         .menu-note {
@@ -9502,7 +9461,7 @@
           <ul>
             <li>"layers" (the one thing needed): its layers, in order (see below).</li>
             <li>"title".</li>
-            <li>"index": its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10 (day1 if none), or "auto" (the interval follows the zoom: weeks over years, hours over days).</li>
+            <li>"index": its interval: minute10, minute30, hour1, hour4, hour12, day1, day3, week1, month1, month3, month6, year1 or year10 (day1 if none).</li>
             <li>"range": what it shows: 3m, 1y, 4y, 8y or max (8y if none; max: all of history at day1 or coarser; at a finer interval, as far back as fits on the screen). Or "view": {"from": "2021-01-01", "to": "2022-06-30"}, a window by dates: from the bar holding its "from" to the one holding its "to" (now if none). Dates and times are UTC: "2026-10-08", or with a time where it needs one, "2026-10-08T14:00:00Z".</li>
             <li>"panes": [{"mode": 1}, {"mode": 0, "stack": "stack"}], top to bottom: "mode" is its scale (0 linear, 1 logarithmic, 2 percent change, 3 indexed to 100), "stack" stacks its layers ("stack", or "percent" for shares), "size" is its height relative to the others' (3 for the first, 1.4 for the others if none: 1 and 1 halves the chart), "reverse": true puts its last layer in front. Without them, the first pane is logarithmic and the others linear.</li>
             <li>"halvings": true: a line at each halving, and at the next three, estimated (a block each ten minutes).</li>
@@ -11605,7 +11564,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   its last layer in front (in a stack, at its foot); else its first, as the panel lists them
        * @typedef {{ id: string, name: string, parent?: string, closed?: true }} Folder A folder of charts and folders, in
        *   `parent` (none: at the top), as deep as wanted; `closed`, what's in it out of sight.
-       * @typedef {{ id: string, title: string, index: string, auto: boolean, range: string, panes: Pane[], layers: Layer[], drawings?: Drawing[], halvings?: true, legend?: "off", folder?: string, preset?: string, base?: string, blank?: true, updated: number }} Chart
+       * @typedef {{ id: string, title: string, index: string, range: string, panes: Pane[], layers: Layer[], drawings?: Drawing[], halvings?: true, legend?: "off", folder?: string, preset?: string, base?: string, blank?: true, updated: number }} Chart
        * @typedef {"trend" | "hline" | "vline" | "rect" | "ellipse" | "text" | "brush" | "ruler"} DrawingKind
        * @typedef {{ id: string, kind: DrawingKind, layer: string, points: [number, number][], color: string, width: number, dash: number,
        *   opacity?: number, start?: End, end?: End, text?: string, label?: string, at?: number, size?: number, back?: string }} Drawing
@@ -11817,7 +11776,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** @returns {Chart} */
       function blankChart(title = "") {
-        return { id: uid(), title, index: "day1", auto: false, range: DEFAULT_RANGE, panes: [{ id: uid(), mode: 1 }], layers: [], updated: Date.now() };
+        return { id: uid(), title, index: "day1", range: DEFAULT_RANGE, panes: [{ id: uid(), mode: 1 }], layers: [], updated: Date.now() };
       }
       /** Charts started empty in their stead, nothing else there (a first visit, the last one deleted): the person's own from their first edit (a link's preview is kept only by Keep). */
       const drafts = new WeakSet();
@@ -12740,17 +12699,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         to.push(JSON.stringify(chart));
         // The chart as it was, all of it (what it didn't have then, it hasn't now); the range is a view, as a pan is: it
         // stays as it is.
-        const was = JSON.parse(state), folder = chart.folder, stamped = chart.updated, blank = chart.blank, at = chart.index, auto = chart.auto, types = new Map(chart.layers.map((layer) => [layer.id, layer.type]));
+        const was = JSON.parse(state), folder = chart.folder, stamped = chart.updated, blank = chart.blank, types = new Map(chart.layers.map((layer) => [layer.id, layer.type]));
         // (A step of the range alone (see setRange): its range back, shown; any other keeps the view as it is.)
-        // (Compared as undo leaves the rest: its folder, id, blank, and the interval Auto's at, kept as they are now.)
-        const bare = (/** @type {Record<string, any>} */ doc) => JSON.stringify(Object.keys(doc).filter((key) => !["range", "updated", "folder", "id", "blank", ...(auto && was.auto ? ["index"] : [])].includes(key)).sort().map((key) => [key, doc[key]]));
+        // (Compared as undo leaves the rest: its folder, id and blank, kept as they are now.)
+        const bare = (/** @type {Record<string, any>} */ doc) => JSON.stringify(Object.keys(doc).filter((key) => !["range", "updated", "folder", "id", "blank"].includes(key)).sort().map((key) => [key, doc[key]]));
         const ranged = was.range !== chart.range && bare(was) === bare(JSON.parse(/** @type {string} */ (to.at(-1))));
         for (const key of Object.keys(chart)) if (!(key in was)) delete chart[key];
         // (The range is a view, as a pan is; its folder, the library's; its id, the chart's own (kept again, it may have
         // a new one): all stay as they are.)
         Object.assign(chart, was, { range: ranged ? was.range : chart.range, id: chart.id });
-        // (Auto then and now: the interval it's at stays, the view's, not a step's.)
-        if (auto && was.auto) chart.index = at;
         // (The looks remembered by the layers whose type this changed let go of: they were the steps' since, not this one's.)
         for (const layer of chart.layers) if (types.get(layer.id) !== layer.type) looksLeft.delete(`${chart.id}:${layer.id}`);
         // (A preview's step, kept aside as its edits are: reloaded, it's as it is now.)
@@ -12981,8 +12938,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (left.index === index) return { from: logicalOf(left.from, times, index), to: logicalOf(left.to, times, index) };
         const { start, end } = viewTimes(left), last = /** @type {number} */ (times.at(-1)), lastIndex = indexAt(index, last);
         // A moment's place: on the data, between the point at or before it and the next; past it, counted by the calendar
-        // (before it, by its bars' length: the room before the data kept, as after it, or Auto would find the view narrower
-        // and go back).
+        // (before it, by its bars' length: the room before the data kept, as after it).
         const placeOf = (/** @type {number} */ time) => {
           if (time < times[0]) return (time - times[0]) / (INTERVAL_DAYS[index] * 86400);
           if (time >= last) {
@@ -13045,8 +13001,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!linked || !at || at === linkedTook) return;
         stopGlide();
         retaking = { view: linked, at, id: chart.id };
-        // (Auto, at the interval it asks for, as it opens.)
-        if (chart.auto) (autoPrepare(chart), renderInterval());
         spans.delete(spanKey(chart.id, chart.index));
         void draw();
       }
@@ -13158,8 +13112,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         revision++;
         hideMenu();
         putDown();
-        // (Auto: drawn from the first at the interval it asks for.)
-        autoPrepare(doc);
         save();
         refresh(true, true);
       }
@@ -13215,7 +13167,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         leaveHome(() => {
           addPreview(shown);
           keepAsideOpened(shown);
-          if (shown === chart) (drawnChart = ""), autoPrepare(shown), refresh(true, true);
+          if (shown === chart) (drawnChart = ""), refresh(true, true);
           else openChart(shown);
         }, null, push);
         return shown;
@@ -13879,7 +13831,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Each chart's span at each fine interval, kept as it grows (and once the chart is left). @type {Map<string, Span>} */
       const spans = new Map();
-      /** A chart's chunks at hand let go of, at every interval (its view given anew: Auto picks the interval it asks for). @param {string} id */
+      /** A chart's chunks at hand let go of, at every interval (its view given anew). @param {string} id */
       const forgetSpans = (id) => {
         for (const key of spans.keys()) if (key.startsWith(`${id}@`)) spans.delete(key);
       };
@@ -14916,14 +14868,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @returns {Promise<boolean>} whether it drew (a newer draw can take its place)
        */
       async function draw(refit = false, fresh = false) {
-        // (Auto, at an interval a layer can't be computed at now (a formula over all of history, added at hours): at the
-        // one its view asks for among those it can, before anything's asked for.)
-        const index = drawnChart === chart.id ? autoIndex(chart) : chart.index;
-        if (index !== chart.index) {
-          chart.index = index;
-          renderInterval();
-          save(false);
-        }
         const version = ++drawVersion;
         // Drawn on the way out of the grid: the chart grows out of its card instead of wiping in.
         const fromHome = document.body.hasAttribute("data-home");
@@ -14970,19 +14914,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         resolved = result;
         drawnData = drawingData;
         const reveal = first && doc.layers.length > 0 && !reduced.matches && !fromHome;
-        // (Auto at another interval: the plot as it was over the new one, fading: the line sharpens, nothing jumps.)
         endScaleGlide();
-        const veils = autoFade && !first ? veilPlots() : [], held = veils.length ? heldScales() : [];
-        autoFade = false;
         build(withLook(structuredClone(chart)), result, refit);
-        liftVeils(veils);
-        glideScales(held);
         drawnChart = doc.id;
         drawnVersion = version;
         drawnLive = live;
         for (const wake of [...drawnWaiters]) wake();
-        // (Auto: its view drawn, the interval it asks for looked at once it rests.)
-        if (chart.auto) rest();
         renderLayers();
         renderInspector();
         updateStatus();
@@ -15674,7 +15611,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Every price scale back on auto, however it was dragged. */
       const autoScale = () => view.panes().forEach((_, i) => ["left", "right"].forEach((side) => view.priceScale(side, i).applyOptions({ autoScale: true })));
       /** Whether a preset's span fits on the chart at its interval (Max, the most that fits, always). */
-      const presetFits = (/** @type {string} */ id) => id === "max" || (chart.auto ? autoIntervals(chart) : [chart.index]).some((index) => rangeDays(id) / INTERVAL_DAYS[index] <= mostBars());
+      const presetFits = (/** @type {string} */ id) => id === "max" || rangeDays(id) / INTERVAL_DAYS[chart.index] <= mostBars();
       /** The preset the chart shows as: its own, or Max for one too long to fit (which shows the same). */
       const shownRange = () => (presetFits(chart.range) ? chart.range : "max");
 
@@ -17210,15 +17147,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Reaching out waits for the view to rest (nothing held down, unmoved a moment): mid-gesture, the chart keeps a
        * pan's start by its last bar, so points loaded under it would make the view leap.
        */
-      let autoTimer = 0;
       const rest = () => {
         clearTimeout(restTimer);
-        // (Not where Auto's about to switch: what it'd reach for is another interval's.)
-        restTimer = setTimeout(() => (chart?.auto && autoWanted() !== chart.index) || reachOut(), 200);
-        // (Auto, once the view's still a moment: a wheel's or a fling's last step, seven frames on; a press or a pinch is
-        // waited out by autoCheck itself, till its last finger's up.)
-        clearTimeout(autoTimer);
-        autoTimer = setTimeout(autoCheck, 120);
+        restTimer = setTimeout(reachOut, 200);
       };
       /** The pointers down on the chart (a pinch's two: pressed till both are up); of them, the fingers. */
       const pressed = new Set(), fingers = new Set();
@@ -17273,7 +17204,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (side) void grow(span, side);
       }
 
-      // ── Auto: the interval the view asks for ────────────────────────────────────
+      // ── Formulas' windows, and the price scales glided ─────────────────────────────
       /** Bitcoin's first block (3 January 2009): all of history's start, for a range over it. */
       const GENESIS = 1230940800;
       /** A span written as a sum (6h + 6h), its days; one that names a series, all of history. @param {any} node @returns {number} */
@@ -17286,7 +17217,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const a = spanDaysOf(node.a), b = spanDaysOf(node.b);
         return { "+": a + b, "-": a - b, "*": a * b, "/": a / b, "^": a ** b }[/** @type {string} */ (node.op)] ?? Infinity;
       };
-      /** Each formula's windows (its spans, in days), as Auto weighs them: read once a formula. @type {Map<string, { days: number, two: boolean }[]>} */
+      /** Each formula's windows (its spans, in days), as an interval's fit weighs them: read once a formula. @type {Map<string, { days: number, two: boolean }[]>} */
       const windowsSeen = new Map();
       function windowsOf(/** @type {string} */ formula) {
         let windows = windowsSeen.get(formula);
@@ -17314,129 +17245,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         windowsSeen.set(formula, (windows = found));
         return windows;
       }
-      /**
-       * The intervals an Auto chart can be at: every series in it has them, and each formula can be computed there (a
-       * window over all of history, or more points than a fine interval holds, only from 1D up).
-       * @param {Chart} doc
-       */
-      function autoIntervals(doc) {
-        const supported = supportedIntervals(doc), formulas = doc.layers.flatMap((layer) => (layer.formula ? [layer.formula] : []));
-        return INTERVAL_ORDER.filter((id) => supported(id) && formulas.every((formula) => computableAt(formula, id)));
-      }
       /** Whether a formula can be computed at an interval: its windows (all of history among them) within what a fine one holds, two points at least where it needs them. */
       const computableAt = (/** @type {string} */ formula, /** @type {string} */ id) => windowsOf(formula).every(({ days, two }) => (!FINE.has(id) || (Number.isFinite(days) && windowPoints(days, id) < CHUNK)) && (!two || windowPoints(days, id) >= 2));
       /**
-       * Why formulas a click adds can't be computed at the chart's interval, if they can't: the interval they'd need. Auto
-       * goes to one they can be at; not Auto, the chart stays where it's put. @param {string[]} formulas
+       * Why formulas a click adds can't be computed at the chart's interval, if they can't: the interval they'd need (the
+       * chart stays where it's put). @param {string[]} formulas
        */
       const unfitHere = (formulas) => {
-        if (chart.auto || formulas.every((formula) => computableAt(formula, chart.index))) return "";
+        if (formulas.every((formula) => computableAt(formula, chart.index))) return "";
         const supported = supportedIntervals(chart), from = INTERVAL_ORDER.slice(INTERVAL_ORDER.indexOf(chart.index) + 1).find((id) => supported(id) && formulas.every((formula) => computableAt(formula, id)));
-        return `Not at ${INTERVAL_LABEL[chart.index]}${from ? `: ${INTERVAL_LABEL[from]} and up, or Auto` : ""}`;
+        return `Not at ${INTERVAL_LABEL[chart.index]}${from ? `: ${INTERVAL_LABEL[from]} and up` : ""}`;
       };
-      /** The most points `width` pixels show well: a line, a point and a half a pixel; candles, one per six. @param {Chart} doc @param {number} width */
-      const autoMost = (doc, width) => width * (doc.layers.some((layer) => !layer.hidden && layer.type === "candles") ? 1 / 6 : 1.5);
-      /**
-       * The interval `days` in view asks for, `width` pixels wide: as many points as the plot shows well (a line, a point and
-       * a half a pixel; a candle, six pixels), the finest that fits. The one it's at is kept while it's within reach of that (not too dense,
-       * and a finer one wouldn't fit with room to spare): no flipping to and fro at a threshold.
-       * @param {Chart} doc @param {number} days @param {number} width
-       */
-      function autoPick(doc, days, width) {
-        const ids = autoIntervals(doc);
-        if (!ids.length || !(days > 0) || !(width > 0)) return doc.index;
-        const most = autoMost(doc, width), points = (/** @type {string} */ id) => days / INTERVAL_DAYS[id];
-        const best = ids.find((id) => points(id) <= most) ?? /** @type {string} */ (ids.at(-1));
-        const at = ids.indexOf(doc.index), finer = ids[at - 1];
-        return at >= 0 && points(doc.index) <= most * 1.5 && !(finer && points(finer) <= most * 0.8) ? doc.index : best;
-      }
-      /** A range's days (Max, all of history). @param {string} range */
-      const rangeSpan = (range) => (range === "max" || !rangeDays(range) ? (Date.now() / 1000 - GENESIS) / 86400 : rangeDays(range));
-      /** The interval the open view asks for of an Auto chart, the open one or a copy of it (none drawn, nothing in it: its range's). */
-      function autoWanted(doc = chart) {
-        return autoPick(doc, viewDays() ?? rangeSpan(doc.range), view.timeScale().width() || $("chart").clientWidth);
-      }
-      /** An Auto chart's interval once a layer can't be computed at the one it's at: the one its view asks for, among those it can. */
-      const autoIndex = (/** @type {Chart} */ doc) => (doc.auto && !autoIntervals(doc).includes(doc.index) ? autoWanted(doc) : doc.index);
-      /**
-       * The days the view spans, by its bars at its interval: past the data's ends too (time all the same: scrolled to the
-       * start, or past what a fine interval's loaded, it's no narrower than it shows). Nothing drawn, none.
-       */
-      const viewDays = () => ((range) => (range && resolved?.times.length ? (range.to - range.from) * INTERVAL_DAYS[shownIndex()] : null))(view.timeScale().getVisibleLogicalRange());
-      /** An Auto chart about to be drawn: at the interval its view as left asks for, else its range's (not one, then another). @param {Chart} doc */
-      function autoPrepare(doc) {
-        if (!doc.auto) return;
-        const left = openingView(doc), times = left ? viewTimes(left) : null;
-        doc.index = autoPick(doc, times ? (times.end - times.start) / 86400 : rangeSpan(doc.range), view.timeScale().width() || $("chart").clientWidth);
-      }
-      /**
-       * An Auto chart, its view at rest (nothing held, nothing gliding, drawn at its interval): at the interval it asks
-       * for (`now`, at once: Auto just turned on). One drawn with nothing in view (an interval its series lack): its range's.
-       */
-      function autoCheck(now = false) {
-        if (!chart?.auto || home || ((pressing || brushDrag || glideTarget) && !now) || !resolved || drawnChart !== chart.id || drawnIndex !== chart.index || !settled()) return;
-        const next = autoWanted();
-        if (next !== chart.index) return autoSwitch(next);
-        autoNear();
-      }
-      /**
-       * The interval Auto would switch to next, once the view's close to it (more than nine tenths of what it shows well,
-       * the coarser; the finer, nearly fitting): its data for this view asked for meanwhile, while the page is idle (kept
-       * as any is), so the switch finds it in and draws at once. Once a view, again only once it's moved by its width.
-       */
-      let nearFor = "";
-      function autoNear() {
-        const ids = autoIntervals(chart), at = ids.indexOf(chart.index), span = view.timeScale().getVisibleRange();
-        if (at < 0 || !span) return;
-        const from = Number(span.from), to = Number(span.to), days = viewDays() ?? (to - from) / 86400, most = autoMost(chart, view.timeScale().width()), points = (/** @type {string} */ id) => days / INTERVAL_DAYS[id];
-        const next = points(chart.index) > most * 0.9 ? ids[at + 1] : ids[at - 1] && points(ids[at - 1]) <= most * 1.2 ? ids[at - 1] : undefined;
-        const key = JSON.stringify([chart.id, chart.index, next, Math.round(from / (to - from || 1)), Math.round(to / (to - from || 1)), seriesIn(chart)]);
-        if (!next || key === nearFor) return;
-        nearFor = key;
-        saveView();
-        const doc = { ...structuredClone(chart), index: next };
-        // (A fine one's chunks, those this view needs; never the ones the chart holds now.)
-        if (FINE.has(next)) spans.delete(spanKey(chart.id, next));
-        // (One that failed isn't kept as failed: the switch asks again.)
-        whenIdle(() => key === nearFor && void resolve(doc).then((data) => retryFailed(doc, data, next), () => {}));
-      }
-      /** An Auto switch's draw to come: crossfaded (see veilPlots). */
-      let autoFade = false;
-      /**
-       * Each pane's plot as it is now, a copy over its canvases (under its legend), and the time axis's, to fade as the
-       * chart's drawn anew under them: none where motion's reduced. (The time axis's dates stay where they were, see
-       * viewOn: some come or go, as an interval labels its own.)
-       */
-      function veilPlots() {
-        if (reduced.matches) return [];
-        for (const old of all$(".plot-veil", $("chart"))) old.remove();
-        /** A copy of a box's drawing (its first canvas: not the crosshair's over it, which stays as it is), over it. @param {HTMLElement | null | undefined} box @param {number | null} pane */
-        const veilOf = (box, pane) => {
-          const canvas = box?.querySelector("canvas");
-          if (!box || !canvas?.width) return [];
-          // (In the box: a plot's, moved with its scale, is clipped to its pane.)
-          const veil = document.createElement("div"), copy = document.createElement("canvas");
-          veil.className = "plot-veil";
-          if (pane !== null) veil.dataset.pane = String(pane);
-          copy.width = canvas.width;
-          copy.height = canvas.height;
-          const context = copy.getContext("2d");
-          if (!context) return [];
-          context.drawImage(canvas, 0, 0);
-          veil.append(copy);
-          box.append(veil);
-          return [veil];
-        };
-        const rows = view.chartElement().querySelector("table")?.rows;
-        return [
-          ...view.panes().flatMap((pane, i) => veilOf(/** @type {HTMLElement | null | undefined} */ (pane.getHTMLElement()?.children[1]?.firstElementChild), i)),
-          ...veilOf(/** @type {HTMLElement | null | undefined} */ (rows?.[rows.length - 1]?.cells[1]?.firstElementChild), null),
-        ];
-      }
-      /** The veils faded away (the plot under them drawn). @param {HTMLElement[]} veils */
-      function liftVeils(veils) {
-        for (const veil of veils) veil.animate({ opacity: [1, 0] }, { duration: MOTION.small, easing: MOTION.ease, fill: "forwards" }).finished.then(() => veil.remove(), () => veil.remove());
-      }
       /** Each scale's range as it's held, where it follows the plot (auto scaled). */
       function heldScales() {
         return view.panes().flatMap((_, i) => ["left", "right"].flatMap((side) => {
@@ -17445,7 +17264,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }));
       }
       let scaleGlide = 0, scaleMoves = /** @type {any[]} */ ([]), scaleGliding = false;
-      /** A glide under way, ended: its scales follow the plot again (its veils, moved with them, gone at once). */
+      /** A glide under way, ended: its scales follow the plot again. */
       function endScaleGlide() {
         cancelAnimationFrame(scaleGlide);
         scaleGliding = false;
@@ -17453,11 +17272,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!scaleMoves.length) return;
         for (const scale of scaleMoves) scale.setAutoScale(true);
         scaleMoves = [];
-        for (const veil of all$(".plot-veil", $("chart"))) veil.remove();
       }
       /**
-       * The scales held before a draw, glided from there to where they follow the plot now (as the veils fade, each pane's
-       * moved with its scale: the line and its axis move together, the old line over the new). Held through the draw,
+       * The scales held (see holdPrices), glided from there to where they follow the plot now. Held through the draw,
        * where the view's applied (as it's drawn next), then glided to where they'd be (patch 16 of lightweight-charts): a
        * log scale's by its logarithms. Anything else moving the view (a press on the chart, a zoom, the navigator), another
        * draw, or the page hidden, lets them follow at once.
@@ -17470,13 +17287,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const scale = /** @type {any} */ (view.priceScale(side, i)), options = scale.options();
           if (!options.autoScale || options.mode !== mode) return [];
           scale.bvSetRange(range);
-          // (A pane's veil moves with its scale, as a series on it places prices: one that places them, see below.)
-          return [{ i, scale, range, to: range, log: mode === 1, series: view.panes()[i].getSeries().filter((item) => item.options().priceScaleId === side && item.options().visible !== false), veil: /** @type {HTMLElement | null} */ ($("chart").querySelector(`.plot-veil[data-pane="${i}"]`)), ends: /** @type {number[] | null} */ (null) }];
+          return [{ scale, range, to: range, log: mode === 1 }];
         });
         if (!moves.length) return;
         scaleMoves = moves.map(({ scale }) => scale);
-        // (A pane whose two sides both move: its veil, one picture of both, stays as it is.)
-        for (const move of moves) if (moves.some((other) => other !== move && other.i === move.i)) move.veil = null;
         /** @param {number} a @param {number} b @param {number} k @param {boolean} log */
         const between = (a, b, k, log) => (log && a > 0 && b > 0 ? 10 ** (Math.log10(a) + (Math.log10(b) - Math.log10(a)) * k) : a + (b - a) * k);
         let started = false;
@@ -17489,28 +17303,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               for (const move of moves) {
                 move.to = move.scale.bvAutoRange() ?? move.range;
                 move.scale.bvSetRange(move.range);
-                // (The prices at the veil's top and foot, as it was drawn: by a series that places them, the first.)
-                const height = move.veil?.clientHeight;
-                for (const series of height ? move.series : []) {
-                  const ends = [series.coordinateToPrice(0), series.coordinateToPrice(height)];
-                  if (ends.every(Number.isFinite) && ends[0] !== ends[1]) {
-                    move.series = [series];
-                    move.ends = ends;
-                    break;
-                  }
-                }
               }
               // (From here on, a view moved is moved by something else.)
               scaleGliding = true;
             }
             const t = Math.min(1, now / MOTION.small), k = eased(t);
             if (t >= 1) return endScaleGlide();
-            for (const { scale, range, to, log, series, veil, ends } of moves) {
-              scale.bvSetRange({ from: between(range.from, to.from, k, log), to: between(range.to, to.to, k, log) });
-              if (!veil?.isConnected || !ends) continue;
-              const top = series[0].priceToCoordinate(ends[0]), foot = series[0].priceToCoordinate(ends[1]), height = veil.clientHeight;
-              if (Number.isFinite(top) && Number.isFinite(foot) && height) /** @type {HTMLElement} */ (veil.firstElementChild).style.transform = `translateY(${top}px) scaleY(${(foot - top) / height})`;
-            }
+            for (const { scale, range, to, log } of moves) scale.bvSetRange({ from: between(range.from, to.from, k, log), to: between(range.to, to.to, k, log) });
             scaleGlide = requestAnimationFrame(step);
           } catch {
             endScaleGlide();
@@ -17519,24 +17318,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         scaleGlide = requestAnimationFrame(step);
       }
       document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && endScaleGlide());
-      /**
-       * An Auto chart drawn at another interval, as one chosen is (the same stretch of time in view, the one before shown
-       * till the new one's in), not an edit: no step, no stamp, nothing said. `toRange`: its range shown, not the view.
-       * @param {string} index
-       */
-      function autoSwitch(index, toRange = false) {
-        if (toRange) {
-          const all = viewsNow();
-          delete all[viewKey(chart.id)];
-          putViews(all);
-        } else saveView();
-        // (A fine interval's chunks held from another visit, elsewhere: made anew for this view.)
-        spans.delete(spanKey(chart.id, index));
-        autoFade = true;
-        chart.index = index;
-        save(false);
-        refresh(true);
-      }
 
       /** @param {Span} span @param {number} by */
       async function grow(span, by) {
@@ -20017,7 +19798,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       };
       /** What a mini chart depends on: its layers, its panes, and the day. @param {Chart} doc */
-      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.auto ? "auto" : doc.index, doc.range, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.colors, layer.fill, layer.from, layer.ref, layer.colorFrom, layer.byLevels ? layer.levels : null, ...fadingKey(layer)])]);
+      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.range, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.colors, layer.fill, layer.from, layer.ref, layer.colorFrom, layer.byLevels ? layer.levels : null, ...fadingKey(layer)])]);
       /** Four-color bars' fading colors as drawn (their default the theme's): what a picture of them depends on. */
       const fadingKey = (/** @type {Layer} */ layer) => (layer.type === "histogram" && layer.colors === 4 ? [ink(fadingOf(layer, false)), ink(fadingOf(layer, true))] : []);
       /**
@@ -20238,7 +20019,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** @type {Map<string, Preview & { key: string }>} */
       const previews = new Map(Object.entries(storage.get(PREVIEWS, {})).filter(([, item]) => validPreview(item)));
       /** What a card depends on past a mini chart's: its layers' looks the mark leaves out, the view it was left at and how much the chart shows. @param {Chart} doc */
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName]), openView(doc), FINE.has(doc.index) && !doc.auto ? Math.round(view.timeScale().width() / 50) : 0]);
+      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName]), openView(doc), FINE.has(doc.index) ? Math.round(view.timeScale().width() / 50) : 0]);
       /**
        * How many bars a chart's preview shows at most (its data at `index`): its range's, as the chart opens on it (Max, at
        * a day or coarser, the whole history); finer, no more than fit the chart's width at four a pixel.
@@ -20246,8 +20027,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function previewBars(/** @type {Chart} */ doc, index = doc.index) {
         const width = view.timeScale().width(), days = rangeDays(doc.range);
         // (A short range at a coarse interval, 3M of months: a dozen bars still, not a preview of none.)
-        const own = autoOwn(doc);
-        return Math.min(FINE.has(own) && width ? ((width / MIN_BAR_SPACING) * INTERVAL_DAYS[own]) / INTERVAL_DAYS[index] : Infinity, days ? Math.max(12, days / INTERVAL_DAYS[index]) : Infinity);
+        return Math.min(FINE.has(doc.index) && width ? ((width / MIN_BAR_SPACING) * INTERVAL_DAYS[doc.index]) / INTERVAL_DAYS[index] : Infinity, days ? Math.max(12, days / INTERVAL_DAYS[index]) : Infinity);
       }
       /** Where a chart's range starts in its data: its first point within the range's days of the last one (Max, the first). */
       const rangeStart = (/** @type {Chart} */ doc, /** @type {ArrayLike<number>} */ times) => {
@@ -20596,18 +20376,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return /** @type {Promise<(Preview & { key: string }) | null>} */ (plotsDrawing.get(ask));
       }
       /**
-       * The interval a chart's pictures start from: its own; Auto's, a day's (not the one its view was last at), else the
-       * coarsest it can be at (a window of hours, the finest hours).
-       * @param {Chart} doc
-       */
-      const autoOwn = (doc) => (doc.auto ? ((ids) => (ids.includes("day1") || !ids.length ? "day1" : /** @type {string} */ (ids.at(-1))))(autoIntervals(doc)) : doc.index);
-      /**
        * A picture's interval as asked for, else the chart's own (a series without it: one only by the day), its series'
        * intervals known first. @param {Chart} doc @param {string} index
        */
       async function sampleable(doc, index) {
         await Promise.allSettled(seriesIn(doc).map(info));
-        return supportedIntervals(doc)(index) ? index : autoOwn(doc);
+        return supportedIntervals(doc)(index) ? index : doc.index;
       }
       /** A preset's drawing is made from weekly data (its own, where a window runs: it'd read otherwise). @param {Chart} doc */
       const previewIndex = (/** @type {Chart} */ doc) => sampleIndex(doc, "week1", 100);
@@ -20617,8 +20391,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * formula runs a window over it. @param {Chart} doc @param {string} coarsest @param {number} points
        */
       function sampleIndex(doc, coarsest, points) {
-        const own = autoOwn(doc);
-        if (INTERVAL_ORDER.indexOf(own) >= INTERVAL_ORDER.indexOf(coarsest) || doc.layers.some((layer) => runsWindow(layer.formula ?? ""))) return own;
+        if (INTERVAL_ORDER.indexOf(doc.index) >= INTERVAL_ORDER.indexOf(coarsest) || doc.layers.some((layer) => runsWindow(layer.formula ?? ""))) return doc.index;
         const days = rangeDays(doc.range);
         return [coarsest, "week1", "day1"].find((id) => !days || days / INTERVAL_DAYS[id] >= points) ?? "day1";
       }
@@ -20632,8 +20405,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // shown one's.)
         return `<span class="${frame} ${drawn && (!current || drawn.key === previewKey(doc)) ? "" : "pending"}" data-plot="${doc.id}">${drawn ? previewSvg(drawn, `${frame.split(" ")[0]}-${doc.id}`) : ""}</span>`;
       }
-      /** A tile's interval, where it isn't a day's: Auto, or the one it's at. @param {Chart} doc */
-      const tileIndexHtml = (doc) => (doc.auto ? `<span class="tile-index">Auto</span>` : doc.index === "day1" ? "" : `<span class="tile-index">${INTERVAL_LABEL[doc.index]}</span>`);
+      /** A tile's interval, where it isn't a day's. @param {Chart} doc */
+      const tileIndexHtml = (doc) => (doc.index === "day1" ? "" : `<span class="tile-index">${INTERVAL_LABEL[doc.index]}</span>`);
       /** A chart in the grid, as its own card: title (and its interval, where it isn't a day's), its layers' legend, its mini chart; a tick to pick it. @param {Chart} doc */
       function tileHtml(doc) {
         const title = escape(titleOf(doc)), on = picked.has(doc.id), preview = isPreview(doc);
@@ -21646,7 +21419,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Drawn first (its data is usually at hand, from its tile), to grow into itself.
           await until(settled, 400);
           return $("main");
-        }, [$("home")]).then(() => chart.auto && rest());
+        }, [$("home")]);
       }
       /**
        * Opens a chart someone picked; from the grid, its card grows into it (`push`: a new step, for Back).
@@ -27148,7 +26921,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (chart.panes.length >= MAX_PANES) return void notice(`A chart holds up to ${MAX_PANES} panes: the cycles need one of their own`);
         const unfit = unfitHere([cycleFormula(layer, 0)]);
         if (unfit) return void notice(unfit);
-        let switched = false;
         /** @type {Layer | undefined} */
         let first;
         commit((doc) => {
@@ -27159,23 +26931,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             doc.layers.push(added);
             first ??= added;
           });
-          // (Under Auto, at the interval all of history asks for with them in, its view kept there for it, as a Go to
-          // it is: drawn once, there.)
-          const want = doc.auto ? autoPick(doc, rangeSpan("max"), view.timeScale().width()) : doc.index;
-          if (want === doc.index) return;
-          const all = viewsNow();
-          all[viewKey(doc.id)] = { index: want, from: [starts[0], 0], to: [Date.now() / 1000, 0], at: Date.now() };
-          putViews(all);
-          spans.delete(spanKey(doc.id, want));
-          (doc.index = want), (switched = true);
         });
-        // (Else, once they're drawn, all of history in view, the first cycle from its start: the view moved there, not
-        // its range. An edit since (an undo), not.)
-        if (!switched) {
-          const go = ++dateGoes, at = revision;
-          const drawn = () => revision === at && (!settled() ? afterDrawn(go, drawn) : applyRange({ ...chart, range: "max" }, /** @type {Resolved} */ (resolved), true));
-          afterDrawn(go, drawn);
-        }
+        // (Once they're drawn, all of history in view, the first cycle from its start: the view moved there, not its
+        // range. An edit since (an undo), not.)
+        const go = ++dateGoes, at = revision;
+        const drawn = () => revision === at && (!settled() ? afterDrawn(go, drawn) : applyRange({ ...chart, range: "max" }, /** @type {Resolved} */ (resolved), true));
+        afterDrawn(go, drawn);
         toast(`Added ${labelOf(layer)}'s ${starts.length} halving cycles, each from its start`, editAdded(first));
       }
       /** Whether a trend is offered here: a layer that isn't made from layers (short of more, it says why: trendShort). */
@@ -27970,8 +27731,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // A choice among a few (a theme, an interval, a scale, a legend): each, the one in effect ticked (typed, it says so).
           ...THEMES.map(([id, name, icon, text, words]) => ({ title: `Theme: ${name}`, text, words: `theme appearance mode ${words}`, icon, anywhere: true, ...(id === prefs.theme ? { current: true } : { run: () => setTheme(id) }) })),
           ...(empty ? [] : RANGES.map(([id, label], i) => ({ id, label, i })).filter(({ id }) => presetFits(id)).map(({ id, label, i }) => ({ title: `Show the ${periodOf(id)}`, text: id !== "max" ? "Change the visible range." : FINE.has(chart.index) ? "As far back as fits on the screen (at a day or coarser, all of history), the price scales back on auto." : "All of history, the price scales back on auto.", words: `range period time ${label} ${id === "max" ? "max all whole history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
-          { follows: "Auto", title: "Interval: Auto", text: chart.auto ? `Follows the zoom: at ${INTERVAL_LABEL[chart.index]} now.` : "The interval follows the zoom: weeks over years, hours over days.", words: "timeframe resolution granularity auto automatic zoom", icon: "recent", ...(chart.auto ? { current: true } : { run: () => setAuto() }) },
-          ...INTERVAL_ORDER.map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: supported(id) ? `Redraw every layer at ${INTERVAL_LABEL[id]}.` : `${NO_INTERVAL}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", ...(!chart.auto && id === chart.index ? { current: true } : supported(id) ? { run: () => switchInterval(id) } : {}) })),
+          ...INTERVAL_ORDER.map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: supported(id) ? `Redraw every layer at ${INTERVAL_LABEL[id]}.` : `${NO_INTERVAL}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", ...(id === chart.index ? { current: true } : supported(id) ? { run: () => switchInterval(id) } : {}) })),
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string, string][]} */ ([[1, "Logarithmic scale", "log logarithmic"], [0, "Linear scale", "linear"]]).map(([mode, title, words]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: `${words} scale axis`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
           ...(empty ? [] : [
             { title: prefs.belt.on ? "Hide the drawing tools" : "Show the drawing tools", text: prefs.belt.on ? "They show only while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", words: "draw drawing belt toolbar tools annotate", icon: "draw", run: toggleBelt },
@@ -28424,8 +28184,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else if (asSignal(text)) doc.layers.push((layer = makeLayer({ formula: text, type: "signal", ref: markFor(doc, text)?.id }, doc)));
           else doc.layers.push((layer = makeLayer({ formula: text, pane: into ?? newPaneIn(doc).id, ...(into && side ? { side } : {}) }, doc)));
           const editing = palette.editing !== null;
-          // (At the interval Auto would move to for it, as adding it would.)
-          doc.index = autoIndex(doc);
           const data = await resolve(doc).catch(() => null);
           if (run !== formulaRun || palette.items[palette.active]?.key !== key) return;
           const result = data?.results.get(layer.id);
@@ -29159,8 +28917,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!range || !resolved) return;
         // (Not in what's loaded now (an interval since, the oldest let go): there by its date, loaded first.)
         if (resolved.times[at] !== time) return goToDate({ from: time, to: time + INTERVAL_DAYS[chart.index] * 86400 - 1, day: true, label: pointLabel(time, chart.index) });
-        // (Auto: as much time as AROUND days, its interval then the one that asks for.)
-        const half = Math.min(chart.auto ? AROUND / INTERVAL_DAYS[chart.index] : AROUND, range.to - range.from) / 2;
+        const half = Math.min(AROUND, range.to - range.from) / 2;
         autoScale();
         glide({ from: at - half, to: at + half });
       }
@@ -29485,7 +29242,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** @returns {Page} */
       function intervalPage() {
         const supported = supportedIntervals();
-        return choicePage("Interval", () => [{ key: "auto", icon: ICONS.recent, label: "Auto", aside: chart.auto ? `At ${INTERVAL_LABEL[chart.index]} now` : "Follows the zoom", current: chart.auto, run: () => setAuto() }, ...INTERVAL_ORDER.map((id) => ({ key: id, icon: ICONS.recent, label: CADENCE[id], aside: INTERVAL_LABEL[id], current: !chart.auto && chart.index === id, ...(supported(id) ? { run: () => switchInterval(id) } : { disabled: NO_INTERVAL }) }))]);
+        return choicePage("Interval", () => INTERVAL_ORDER.map((id) => ({ key: id, icon: ICONS.recent, label: CADENCE[id], aside: INTERVAL_LABEL[id], current: chart.index === id, ...(supported(id) ? { run: () => switchInterval(id) } : { disabled: NO_INTERVAL }) })));
       }
       /** The ways to add a layer, as ⌘K's rows (under `group`): a series, a formula, a cloud, a trend. */
       const addRows = (/** @type {string} */ group) => [
@@ -29946,29 +29703,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function goToDate(span, by = 0, go = ++dateGoes) {
         if (!span || outOfData(span)) return;
-        // (Auto, a month or a year asked for: at the interval it asks for, then there (a fine one loads its chunks for it
-        // first, below); a day, at the zoom the chart has, as it is.)
-        const want = chart.auto && !span.day ? autoPick(chart, Math.max(1, (Math.min(span.to, Date.now() / 1000) - span.from) / 86400), view.timeScale().width()) : null;
-        // (Not the one on screen (a switch to it under way, to another, or none): kept as its view at that interval, as
-        // one left there is: drawn once, there, its chunks the ones for it, its draw the latest.)
-        if (want && (drawnChart !== chart.id || drawnIndex !== want)) {
-          const all = viewsNow();
-          all[viewKey(chart.id)] = { index: want, from: [span.from, 0], to: [Math.min(span.to, Date.now() / 1000), 0], at: Date.now() };
-          putViews(all);
-          spans.delete(spanKey(chart.id, want));
-          chart.index = want;
-          save(false);
-          return void refresh(true);
-        }
-        // (The one on screen, a switch away from it still loading: that switch called off, the chart drawn again as it
-        // is (its draw the latest), then there once drawn: a glide begun first, the draw would put the view back.)
-        if (want && chart.index !== want) {
-          autoFade = false;
-          chart.index = want;
-          save(false);
-          refresh(true);
-          return void afterDrawn(go, () => goToDate(span, 0, go));
-        }
         // (Any other draw under way (another Go's, a block come in) would take the view back as it lands: once it has,
         // from what it drew.)
         if (!settled()) return void afterDrawn(go, () => goToDate(span, by, go));
@@ -30910,16 +30644,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       $("interval").addEventListener("click", (event) => {
         const supported = supportedIntervals();
-        // (Auto first, the one it's at said beside it; the others each a fixed one.)
-        showMenu(event.currentTarget, `<div class="menu-row interval-auto-row"><button type="button" data-index="auto" aria-checked="${chart.auto}">Auto<span>${chart.auto ? `At ${INTERVAL_LABEL[chart.index]} now` : "Follows the zoom"}</span></button></div>` + INTERVALS.map(([group, items]) => `<div class="menu-group">${group}</div><div class="menu-row">${items.map(([id, text]) => `<button type="button" data-index="${id}" aria-checked="${!chart.auto && chart.index === id}" ${supported(id) ? "" : `aria-disabled="true" data-tip="${NO_INTERVAL}"`}>${text}</button>`).join("")}</div>`).join("") + `<div class="menu-note">Minutes and hours load as far back as you look.</div>`, ({ index }) => (index === "auto" ? setAuto() : supported(index) ? switchInterval(index) : notice(`${INTERVAL_LABEL[index]}: ${NO_INTERVAL.toLowerCase()}`)));
+        showMenu(event.currentTarget, INTERVALS.map(([group, items]) => `<div class="menu-group">${group}</div><div class="menu-row">${items.map(([id, text]) => `<button type="button" data-index="${id}" aria-checked="${chart.index === id}" ${supported(id) ? "" : `aria-disabled="true" data-tip="${NO_INTERVAL}"`}>${text}</button>`).join("")}</div>`).join("") + `<div class="menu-note">Minutes and hours load as far back as you look.</div>`, ({ index }) => (supported(index) ? switchInterval(index) : notice(`${INTERVAL_LABEL[index]}: ${NO_INTERVAL.toLowerCase()}`)));
       });
       function stepInterval(delta) {
         const ids = INTERVAL_ORDER.filter(supportedIntervals());
         const next = ids[ids.indexOf(chart.index) + delta];
         if (!next) return;
-        const was = chart.auto;
         switchInterval(next);
-        toast(`Interval: ${CADENCE[next]}${was ? " (Auto off)" : ""}`);
+        toast(`Interval: ${CADENCE[next]}`);
       }
       function renderRanges() {
         const html = RANGES.map(([id, text], i) => {
@@ -30936,34 +30668,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Another interval for the open chart: its view kept first, so the new one opens on the same time (on its preset, if it showed one). */
       function switchInterval(/** @type {string} */ index) {
         saveView();
-        commit((doc) => ((doc.index = index), (doc.auto = false)), { look: true });
+        commit((doc) => (doc.index = index), { look: true });
       }
-      /** The interval's button: Auto and the one it's at, else the one chosen. */
+      /** The interval's button. */
       function renderInterval() {
-        $("interval").innerHTML = `${chart.auto ? '<span class="interval-auto">Auto</span>' : ICONS.recent}${INTERVAL_LABEL[chart.index] ?? chart.index}${CHEVRON}`;
-        $("interval").setAttribute("aria-label", `${chart.auto ? "Auto, at " : ""}${INTERVAL_LABEL[chart.index] ?? chart.index}, ${(CADENCE[chart.index] ?? chart.index).toLowerCase()} interval`);
-      }
-      /** Auto on: the interval the view asks for, at once. */
-      function setAuto() {
-        commit((doc) => (doc.auto = true), { look: true, redraw: "none" });
-        autoCheck(true);
+        $("interval").innerHTML = `${ICONS.recent}${INTERVAL_LABEL[chart.index] ?? chart.index}${CHEVRON}`;
+        $("interval").setAttribute("aria-label", `${INTERVAL_LABEL[chart.index] ?? chart.index}, ${(CADENCE[chart.index] ?? chart.index).toLowerCase()} interval`);
       }
       /** A preset is a view: no rebuild, the chart glides there. A step, as the interval is (see travel: undone, it glides back). */
       function setRange(range) {
         commit((doc) => (doc.range = range), { coalesce: "range", redraw: "none", look: true, quiet: true, view: true });
         showRange();
       }
-      /** The chart's range shown (as set, or as an undo put it back): Auto at the interval it asks for. */
+      /** The chart's range shown (as set, or as an undo put it back). */
       function showRange() {
         const range = chart.range;
-        // (Auto: the interval this range asks for, drawn at it, the range shown.)
-        if (chart.auto && resolved && drawnChart === chart.id) {
-          const next = autoPick(chart, rangeSpan(range), view.timeScale().width());
-          if (next !== chart.index) {
-            autoScale();
-            return autoSwitch(next, true);
-          }
-        }
         autoScale();
         drawnRange = chart.range;
         // At a fine interval, a preset shows the latest, over the chunks it covers and those held when they join them.
@@ -31316,7 +31035,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function portable(doc) {
         if (doc === chart) saveView();
         const kept = doc === chart ? shownView() : openView(doc);
-        return { v: 3, title: doc.title, index: doc.auto ? "auto" : doc.index, range: doc.range, ...(doc.halvings ? { halvings: true } : {}), ...(doc.legend ? { legend: doc.legend } : {}), panes: doc.panes, layers: doc.layers.map(({ from, ...layer }) => (from ? { ...layer, [layer.type]: from } : layer)), ...(doc.drawings?.length ? { drawings: doc.drawings } : {}), ...(kept ? { view: kept } : {}) };
+        return { v: 3, title: doc.title, index: doc.index, range: doc.range, ...(doc.halvings ? { halvings: true } : {}), ...(doc.legend ? { legend: doc.legend } : {}), panes: doc.panes, layers: doc.layers.map(({ from, ...layer }) => (from ? { ...layer, [layer.type]: from } : layer)), ...(doc.drawings?.length ? { drawings: doc.drawings } : {}), ...(kept ? { view: kept } : {}) };
       }
       /** The view a file or a link carried with a chart, kept for it (as `saveView` keeps one). @param {Chart} doc */
       function keepCarriedView(doc, input) {
@@ -31327,7 +31046,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         putViews(all);
       }
       /** A chart's content, ids aside (a file or a link gets new ones): panes in order, layers by their pane's place, keys sorted. */
-      const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.auto ? "auto" : doc.index, doc.range, Boolean(doc.halvings), doc.legend ?? "", doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, path, paths, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane), ...(layer.from ? { from: layer.from.map((member) => (EDGES.includes(member) ? member : doc.layers.findIndex((item) => item.id === member))) } : {}), ...(layer.ref ? { ref: doc.layers.findIndex((item) => item.id === layer.ref) } : {}), ...(layer.colorFrom ? { colorFrom: doc.layers.findIndex((item) => item.id === layer.colorFrom) } : {}) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
+      const contentOf = (/** @type {Chart} */ doc) => JSON.stringify([doc.title, doc.index, doc.range, Boolean(doc.halvings), doc.legend ?? "", doc.panes.map(({ id, ...pane }) => pane), doc.layers.map(({ id, pane, path, paths, ...layer }) => ({ ...layer, pane: doc.panes.findIndex((item) => item.id === pane), ...(layer.from ? { from: layer.from.map((member) => (EDGES.includes(member) ? member : doc.layers.findIndex((item) => item.id === member))) } : {}), ...(layer.ref ? { ref: doc.layers.findIndex((item) => item.id === layer.ref) } : {}), ...(layer.colorFrom ? { colorFrom: doc.layers.findIndex((item) => item.id === layer.colorFrom) } : {}) })), (doc.drawings ?? []).map(({ id, layer, ...drawing }) => ({ ...drawing, layer: doc.layers.findIndex((item) => item.id === layer) }))], (_key, value) => (value && typeof value === "object" && !Array.isArray(value) ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : 1))) : value));
       /** Two charts alike (a link opened again is the chart already here), whatever range each shows (a view, as a pan is). */
       const sameChart = (/** @type {Chart} */ a, /** @type {Chart} */ b) => contentOf({ ...a, range: "" }) === contentOf({ ...b, range: "" });
       /**
@@ -31365,8 +31084,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const kept = doc === chart ? shownView() : openView(doc);
         return {
           ...(doc.title ? { title: doc.title } : {}),
-          // (Auto, said; a fixed one, but 1D, a link's default.)
-          ...(doc.auto ? { index: "auto" } : doc.index !== "day1" ? { index: doc.index } : {}),
+          // (Its interval, but 1D, a link's default.)
+          ...(doc.index !== "day1" ? { index: doc.index } : {}),
           ...(doc.range !== DEFAULT_RANGE ? { range: doc.range } : {}),
           ...(doc.halvings ? { halvings: true } : {}),
           ...(doc.legend ? { legend: doc.legend } : {}),
@@ -31583,8 +31302,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             points: Array.isArray(drawing.points) ? drawing.points.slice(0, MAX_STROKE).map((/** @type {any} */ point) => (Array.isArray(point) ? [timeOfText(point[0]), point[1]] : point)) : drawing.points,
           })) } : {}),
           // (A view by dates, at the chart's interval; one as Studio keeps it, as it is.)
-          // (Auto's, at the finest interval: its ends where they were, whichever interval it then asks for.)
-          ...(from !== null && to !== null && from < to ? { view: { index: input.index === "auto" ? "minute10" : index, from: [from, 0], to: [to, 0] } } : {}),
+          ...(from !== null && to !== null && from < to ? { view: { index, from: [from, 0], to: [to, 0] } } : {}),
           panes, layers: layers.map((/** @type {any} */ layer, /** @type {number} */ i) => {
           const kind = Array.isArray(layer.trend) ? "trend" : Array.isArray(layer.cloud) ? "cloud" : null, members = kind ? layer[kind].map(letterId) : null;
           return {
@@ -31631,8 +31349,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!input || !Array.isArray(input.layers) || !Array.isArray(input.panes) || !input.panes.length) throw new Error("Not a studio chart");
         const doc = blankChart(String(input.title ?? "").slice(0, 120));
         doc.index = Object.hasOwn(INTERVAL_LABEL, input.index) ? input.index : "day1";
-        // (Auto, as said: "auto", or kept with Auto said. None, 1D.)
-        doc.auto = typeof input.auto === "boolean" ? input.auto : input.index === "auto";
         doc.range = RANGES.some(([id]) => id === input.range) ? input.range : DEFAULT_RANGE;
         if (input.halvings === true) doc.halvings = true;
         if (input.legend === "off") doc.legend = "off";
@@ -33350,7 +33066,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A chart a link (or a script, a file) brought, shown: the one open drawn anew, at the link's window; one kept, opened; else a preview. */
       /** @returns {Chart} the chart shown (a preview of it already there, that one) */
       function showLinked(/** @type {Chart} */ doc) {
-        if (doc === chart) leaveHome(() => { drawnChart = ""; autoPrepare(doc); refresh(true, true); });
+        if (doc === chart) leaveHome(() => { drawnChart = ""; refresh(true, true); });
         else if (library.charts.includes(doc)) leaveHome(() => openChart(doc));
         else return showPreview(doc);
         return doc;
@@ -33544,13 +33260,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** Once the chart open (or opening) is drawn with its data in (see settle), and has some: else why not. */
         async ready(ms = 60_000) {
           await settle(ms);
-          // (Auto: at the interval its view asks for, drawn there.)
-          for (let n = 0; chart.auto && n < 3; n++) {
-            const want = autoWanted();
-            if (want === chart.index) break;
-            autoSwitch(want);
-            await settle(ms);
-          }
           if (!resolved?.times.length) {
             const why = chart.layers.flatMap((layer) => ((error) => (error ? [`${layer.letter}: ${error}`] : []))(resolved?.results.get(layer.id)?.error));
             throw new Error(`The chart has no data${why.length ? ` (${why.join("; ")})` : ""}`);
@@ -33817,7 +33526,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         library.active = chart.id;
         rememberViewed(chart.id);
         normalize(chart);
-        autoPrepare(chart);
         save();
         refresh(true, true);
         // (Rendered: the page shown, settling in whole; opened from a home screen, there whole at once, under its launch's

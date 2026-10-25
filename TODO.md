@@ -9,8 +9,6 @@ Only what's left. An item done is removed: its history is in the commits and log
     - pinch and fling across 2011–2015, where the axis labels change width most;
     - do the same at the latest bar;
     - turn the phone and back.
-  - Auto: pinch and fling through a few interval switches. Check that nothing shifts sideways, the time axis fades with the plot, and the switch comes quickly once the view rests.
-- Decide whether Auto becomes the default interval again (it's opt-in now).
 
 ## Studio on the new server
 
