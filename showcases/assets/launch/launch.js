@@ -17,6 +17,8 @@
   const ORANGE = "#e65b00";
   const root = document.documentElement, script = /** @type {HTMLScriptElement | null} */ (document.currentScript);
   const standalone = /** @type {any} */ (navigator).standalone;
+  // (A newer version of the page, said: its own file, every showcase's from here.)
+  document.head.append(Object.assign(document.createElement("script"), { src: "/assets/version/version.js" }));
   // (iOS uses a launch screen only for a page that says it's an app: said here, for every showcase.)
   if (!document.querySelector('meta[name="apple-mobile-web-app-capable"]')) document.head.append(Object.assign(document.createElement("meta"), { name: "apple-mobile-web-app-capable", content: "yes" }));
   if (standalone === false) {
