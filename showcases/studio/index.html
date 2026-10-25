@@ -32005,7 +32005,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Live, with the last block the server's series include and when it came. */
       function updateStatus() {
         const at = liveAt ? new Date(liveAt * 1000) : null;
-        // The price once it's known, the block; how long ago the block came (no room for it beside a price) in the tip.
+        // The block, then the price once it's known (till then, when the block came: the price comes in its place, nothing
+        // before it moving); how long ago the block came in the tip.
         const lost = offline();
         // (Nothing heard from the server yet, and not given up on: still connecting, as the page began (back online
         // after "Offline", too).)
@@ -32018,7 +32019,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         $("live").classList.toggle("offline", lost);
         $("live").classList.remove("waiting");
-        $("stamp").textContent = $("home-live").textContent = [lost ? "Offline" : "Live", !lost && livePrice ? dollarsAndCents(livePrice) : "", liveHeight ? `#${grouped.format(liveHeight)}` : "", !livePrice && at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · ");
+        $("stamp").textContent = $("home-live").textContent = [lost ? "Offline" : "Live", liveHeight ? `#${grouped.format(liveHeight)}` : "", !lost && livePrice ? dollarsAndCents(livePrice) : at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · ");
         const block = liveHeight ? `Last block ${grouped.format(liveHeight)}${at ? `, ${ago(at.getTime())}` : ""}` : "";
         liveTip(lost ? (navigator.onLine ? `${SERVER_HOST} isn't answering` : "This device is offline") : `Live from ${SERVER_HOST}`, ...(lost ? [block, "Trying again every 15 seconds"] : [livePrice ? `Price ${dollarsAndCents(livePrice)}, as it trades` : "", block, "A new block shows within seconds"]));
       }
