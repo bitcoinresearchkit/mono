@@ -16539,7 +16539,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (PAIRED.has(kind) && !pointsApart(drawing)) return void (said.textContent = `Its other ${part} is on its first: move it first`);
         keyValue = null;
         // (Kept, the tool's in hand again for the next one.)
-        setTool(toolKept ? kind : "", toolKept);
+        takeUp(toolKept ? kind : "", toolKept);
         if (kind === "text") return startTyping(drawing, $("plot-keys"));
         keepDrawing(drawing);
         // (Said once it's there: a chart full, its notice says why not.)
@@ -18193,14 +18193,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Where the mouse was last (the magnifier shows there at once). */
       let pointerAt = /** @type {{ x: number, y: number } | null} */ (null);
       const LENS = 168, LENS_ZOOM = 2;
-      function setMagnifier(/** @type {boolean} */ on) {
-        if (on) (setTool(""), setSelectingArea(false));
-        magnifying = on;
-        document.body.toggleAttribute("data-magnifying", on);
-        // (On, at once where the pointer rests over the chart: no move needed to show it.)
-        lookAt(on && pointerAt && !TOUCH && $("chart").matches(":hover") ? { ...pointerAt, touch: false } : null);
-        renderBelt();
-      }
       /** The lens on a point of the page (none: away), drawn on the next frame: after the chart's own, which it shows. */
       function lookAt(/** @type {{ x: number, y: number, touch: boolean } | null} */ at) {
         lensAt = magnifying ? at : null;
@@ -18248,35 +18240,37 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         loupe.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
         loupe.hidden = false;
       }
-      /** Whatever's in hand put down, the pointer the pointer again (another chart, the grid). */
-      const putDown = () => (setTool(""), magnifying && setMagnifier(false));
-      function setTool(/** @type {DrawingKind | ""} */ kind, kept = false) {
-        if (kind && magnifying) setMagnifier(false);
+      /** The Select tool: a box dragged around drawings selects them (once; as ⌘ and a drag does, anytime). */
+      let selectingArea = false;
+      /**
+       * What's in hand, one thing at a time: a drawing tool (`kept`: drawn with again and again, see toolKept), Select,
+       * the magnifier, or none (the pointer the pointer again). Whatever was under way with the one before let go of.
+       */
+      function takeUp(/** @type {DrawingKind | "select" | "magnifier" | ""} */ what, kept = false) {
+        const kind = what === "select" || what === "magnifier" ? "" : what, lens = what === "magnifier";
         toolKept = Boolean(kind) && kept && kind !== "text";
         // A tool in hand, nothing's selected: the belt shows what it'll draw (and the drawings, if hidden).
-        if (kind) chooseDrawings([]);
-        if (kind) revealDrawings();
+        if (kind) (chooseDrawings([]), revealDrawings());
         tool = kind;
-        selectingArea = false;
+        selectingArea = what === "select";
         placing = moving = draft = boxing = null;
         keyValue = null;
         reshaped = new Map();
         $("select-box").hidden = true;
         hold("");
-        document.body.toggleAttribute("data-drawing", Boolean(kind));
+        document.body.toggleAttribute("data-drawing", Boolean(kind) || selectingArea);
+        if (lens !== magnifying) {
+          magnifying = lens;
+          document.body.toggleAttribute("data-magnifying", lens);
+          // (On, at once where the pointer rests over the chart: no move needed to show it.)
+          lookAt(lens && pointerAt && !TOUCH && $("chart").matches(":hover") ? { ...pointerAt, touch: false } : null);
+        }
         hover(null);
         renderBelt();
         repaintDrawings();
       }
-      /** The Select tool: a box dragged around drawings selects them (once; as ⌘ and a drag does, anytime). */
-      let selectingArea = false;
-      function setSelectingArea(/** @type {boolean} */ on) {
-        if (on && magnifying) setMagnifier(false);
-        if (on) setTool("");
-        selectingArea = on;
-        document.body.toggleAttribute("data-drawing", on || Boolean(tool));
-        renderBelt();
-      }
+      /** Whatever's in hand put down (another chart, the grid). */
+      const putDown = () => takeUp("");
       /** ⌘ (Ctrl elsewhere) and a drag: a box around drawings. */
       const boxKey = (/** @type {PointerEvent} */ event) => (MAC ? event.metaKey : event.ctrlKey);
       /**
@@ -18286,9 +18280,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function chooseDrawings(/** @type {Iterable<string>} */ ids) {
         const next = new Set(ids);
         if (next.size) revealDrawings();
-        if (next.size && tool) setTool("");
-        if (next.size && selectingArea) setSelectingArea(false);
-        if (next.size && magnifying) setMagnifier(false);
+        if (next.size && (tool || selectingArea || magnifying)) takeUp("");
         if (next.size === chosen.size && [...next].every((id) => chosen.has(id))) return;
         chosen = next;
         if (next.size && layerPicks.size) clearLayerPicks();
@@ -18327,7 +18319,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         stage.toggleAttribute("data-belt-shown", !hide || fading.has(belt));
         going?.then(() => belt.hidden && !fading.has(belt) && stage.removeAttribute("data-belt-shown"));
         // (Its button gone, the magnifier with it.)
-        if (belt.hidden && magnifying) return setMagnifier(false);
+        if (belt.hidden && magnifying) return takeUp("");
         $("draw-toggle").setAttribute("aria-pressed", String(prefs.belt.on));
         if (belt.hidden) {
           // (What had the focus in it lets go: hidden, it can't keep it; the chart's keys take it, not the page.)
@@ -18565,11 +18557,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       /** A tool from the belt: the cursor puts down what's in hand, Select boxes drawings (or stops), a drawing tool's taken (or put down). */
       function pickTool(/** @type {string} */ each) {
-        if (each === "select") return setSelectingArea(!selectingArea);
-        if (each === "magnifier") return setMagnifier(!magnifying);
-        setMagnifier(false);
-        setSelectingArea(false);
-        setTool(each === "cursor" || each === tool ? "" : /** @type {DrawingKind} */ (each));
+        if (each === "select") return takeUp(selectingArea ? "" : "select");
+        if (each === "magnifier") return takeUp(magnifying ? "" : "magnifier");
+        takeUp(each === "cursor" || each === tool ? "" : /** @type {DrawingKind} */ (each));
       }
       $("belt").addEventListener("keydown", (event) => {
         if (event.metaKey || event.ctrlKey || event.altKey) return;
@@ -18650,7 +18640,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (button.id === "belt-grip") return void (event.detail === 0 && menuOf(button, dockChoices(), null, "", { title: "Dock the drawing tools" }));
         const { tool: each, belt: part = "" } = button.dataset, drawings = [...chosen], drawing = chosen.size === 1 ? drawingById(drawings[0]) : undefined, look = lookFor(part);
         // (Its second click, a double-click: the tool kept in hand, for several; text, one at a time.)
-        if (each && event.detail === 2 && Object.hasOwn(TOOLS, each) && each !== "text") return setTool(/** @type {DrawingKind} */ (each), true);
+        if (each && event.detail === 2 && Object.hasOwn(TOOLS, each) && each !== "text") return takeUp(/** @type {DrawingKind} */ (each), true);
         if (each) return pickTool(each);
         if (part === "hide") return hideDrawings(!drawingsHidden);
         // (A phone's: the tools put away (D's keys with them), the chart's foot back.)
@@ -19120,7 +19110,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const { host, stroke } = placing, kind = tool, again = toolKept;
         let drawing = draft;
         // (Kept, the tool's in hand again for the next one.)
-        setTool(again ? kind : "", again);
+        takeUp(again ? kind : "", again);
         if (kind === "text") {
           // (Its middle where the click was.)
           const point = pointFrom(at, host, { free: true });
@@ -19323,7 +19313,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const sketch = layer.pane === id ? sketches.get(drawn.get(layer.id)) : null;
           for (const { drawing, points } of sketch?.shown ?? []) if (inBox(drawing, points, box, sketch.size)) found.push(drawing.id);
         }
-        if (selectingArea) setSelectingArea(false);
+        if (selectingArea) takeUp("");
         chooseDrawings(found);
       }
       /** Whether a segment crosses a box (or lies in it): clipped to it, something's left. */
@@ -27592,11 +27582,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string][]} */ ([[1, "Logarithmic scale"], [0, "Linear scale"]]).map(([mode, title]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
           ...(empty ? [] : [
             { title: prefs.belt.on ? "Hide the drawing tools" : "Show the drawing tools", text: prefs.belt.on ? "They show only while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", icon: "draw", run: toggleBelt },
-            ...(tool ? [{ title: "Stop drawing", text: `${TOOLS[tool].name}: a press on the chart pans it again.`, icon: tool, kbd: "esc", run: () => setTool("") }] : []),
-            ...(tool && tool !== "text" && !toolKept ? [{ title: "Keep drawing", text: `The ${TOOLS[tool].noun} in hand after each one: draw several, till esc (as a double-click on its tool does).`, icon: tool, run: () => setTool(tool, true) }] : []),
-            ...KINDS.filter((kind) => kind !== tool).map((kind) => ({ title: TOOLS[kind].verb, text: kind === "text" ? `${TOOLS[kind].tip}.` : `${TOOLS[kind].tip}: one, then the chart pans again (to draw several, ${TOUCH ? "tap its tool twice" : "double-click its tool"}, or Keep drawing).`, icon: kind, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, run: () => setTool(kind) })),
-            { title: "Select drawings", text: `Drag a box around drawings to select them (or ${keyText("⌘")} and drag anytime); esc to stop.`, icon: "select", kbd: "D S", run: () => setSelectingArea(true) },
-            { title: magnifying ? "Stop the magnifier" : "Magnifier", text: magnifying ? "The pointer is the pointer again." : `The chart under the pointer, twice as large${TOUCH ? " (pressed, above the finger)" : ""}; esc to stop.`, icon: "magnifier", kbd: "D Z", run: () => setMagnifier(!magnifying) },
+            ...(tool ? [{ title: "Stop drawing", text: `${TOOLS[tool].name}: a press on the chart pans it again.`, icon: tool, kbd: "esc", run: () => takeUp("") }] : []),
+            ...(tool && tool !== "text" && !toolKept ? [{ title: "Keep drawing", text: `The ${TOOLS[tool].noun} in hand after each one: draw several, till esc (as a double-click on its tool does).`, icon: tool, run: () => takeUp(tool, true) }] : []),
+            ...KINDS.filter((kind) => kind !== tool).map((kind) => ({ title: TOOLS[kind].verb, text: kind === "text" ? `${TOOLS[kind].tip}.` : `${TOOLS[kind].tip}: one, then the chart pans again (to draw several, ${TOUCH ? "tap its tool twice" : "double-click its tool"}, or Keep drawing).`, icon: kind, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, run: () => takeUp(kind) })),
+            { title: "Select drawings", text: `Drag a box around drawings to select them (or ${keyText("⌘")} and drag anytime); esc to stop.`, icon: "select", kbd: "D S", run: () => takeUp("select") },
+            { title: magnifying ? "Stop the magnifier" : "Magnifier", text: magnifying ? "The pointer is the pointer again." : `The chart under the pointer, twice as large${TOUCH ? " (pressed, above the finger)" : ""}; esc to stop.`, icon: "magnifier", kbd: "D Z", run: () => takeUp(magnifying ? "" : "magnifier") },
             ...(prefs.belt.on ? [{ title: "Dock the drawing tools", text: `On a side of the chart: now the ${prefs.belt.dock}.`, icon: "draw", keepOpen: true, run: () => pushPage(choicePage("Dock the drawing tools", dockChoices)) }] : []),
             ...(chart.drawings?.length ? [{ title: drawingsHidden ? "Show the drawings" : "Hide the drawings", text: drawingsHidden ? "Back on the chart." : "The chart as it is, without them (they're kept).", icon: drawingsHidden ? "eye" : "eyeOff", kbd: "⇧H", run: () => hideDrawings(!drawingsHidden, true) }] : []),
             ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, follows: "remove clear delete erase", icon: "trash", danger: true, run: clearDrawings }] : []),
@@ -29169,10 +29159,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { label: "Settings", icon: ICONS.next, page: () => drawingPage(drawing.id) },
             ...drawingPage(drawing.id).rows().filter((row) => row.key === "duplicate" || row.key === "remove"),
           ] })),
-          ...KINDS.map((kind) => ({ kind: "row", key: `tool:${kind}`, icon: TOOLS[kind].icon, label: TOOLS[kind].verb, aside: TOOLS[kind].tip, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, verb: "Draw", group: "Draw", run: () => setTool(kind) })),
-          { kind: "row", key: "tool:magnifier", icon: ICONS.magnifier, label: "Magnifier", aside: "The chart under the pointer, twice as large", kbd: "D Z", verb: magnifying ? "Stop" : "Use", group: "Draw", run: () => setMagnifier(!magnifying) },
+          ...KINDS.map((kind) => ({ kind: "row", key: `tool:${kind}`, icon: TOOLS[kind].icon, label: TOOLS[kind].verb, aside: TOOLS[kind].tip, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, verb: "Draw", group: "Draw", run: () => takeUp(kind) })),
+          { kind: "row", key: "tool:magnifier", icon: ICONS.magnifier, label: "Magnifier", aside: "The chart under the pointer, twice as large", kbd: "D Z", verb: magnifying ? "Stop" : "Use", group: "Draw", run: () => takeUp(magnifying ? "" : "magnifier") },
           ...(chart.drawings?.length ? [
-            { kind: "row", key: "select-box", icon: ICONS.select, label: "Select drawings with a box", aside: "Drag a box around them", kbd: "D S", verb: "Select", group: "Select", run: () => setSelectingArea(true) },
+            { kind: "row", key: "select-box", icon: ICONS.select, label: "Select drawings with a box", aside: "Drag a box around them", kbd: "D S", verb: "Select", group: "Select", run: () => takeUp("select") },
             { kind: "row", key: "select-all", icon: ICONS.select, label: "Select every drawing", aside: plural(chart.drawings.length, "drawing"), verb: "Select", group: "Select", run: () => chooseDrawings((chart.drawings ?? []).map((drawing) => drawing.id)) },
             { kind: "row", key: "clear", icon: ICONS.trash, label: "Remove every drawing", verb: "Remove", group: "Draw", danger: true, run: clearDrawings },
           ] : []),
@@ -32380,9 +32370,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (home && picked.size && $("menu").hidden) clearPicks();
           else if (!$("menu").hidden) dismissMenu(true);
           else if (!home && (placing || moving || boxing)) stopDrawing();
-          else if (!home && tool) setTool("");
-          else if (!home && selectingArea) setSelectingArea(false);
-          else if (!home && magnifying) setMagnifier(false);
+          else if (!home && (tool || selectingArea || magnifying)) takeUp("");
           else if (!home && chosen.size) chooseDrawings([]);
           else if (!home && layerPicks.size) clearLayerPicks(true);
           else if (!home && selected) deselect();
@@ -32405,7 +32393,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (key === "h" && !event.shiftKey && layerPicks.size) layersBatch("hide");
         else if (key === "h" && !event.shiftKey && layerById(selected)) toggleHidden(selected);
         else if (key === "l" && chart.layers.length) toggleLog(scalePane().id);
-        else if (key === "m" && chart.layers.length) setTool(tool === "ruler" ? "" : "ruler");
+        else if (key === "m" && chart.layers.length) takeUp(tool === "ruler" ? "" : "ruler");
         else if (key === "d" && chart.layers.length) focusBelt();
         else if (key === "g" && chart.layers.length) openPage(datePage());
         else if (event.key === "-" || event.key === "_") zoom(1.6);
