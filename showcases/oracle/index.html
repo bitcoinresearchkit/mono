@@ -1186,7 +1186,7 @@
             <div><dt>Since 2022</dt><dd>none off by 10%</dd></div>
             <div><dt>Exchanges asked</dt><dd>none</dd></div>
           </dl>
-          <p class="note">Measured against exchanges' high and low at each block through block 952,314, so 2026 is partial (its fainter bar); a block inside that range counts as 0%. It was weakest in 2015 and 2017, when fewer payments made a fainter fingerprint.</p>
+          <p class="note">These numbers aren't measured live: they're from brk_oracle's own test, in <a href="https://github.com/bitcoinresearchkit/mono/blob/main/crates/brk_oracle/README.md#accuracy">its README</a>. It ran the oracle over every block from 340,000 (January 2015) through 952,314 and measured the 596,251 that exchange data covers against exchanges' high and low at that block; a block inside that range counts as 0%. So 2026 is partial (its fainter bar). It was weakest in 2015 and 2017, when fewer payments made a fainter fingerprint.</p>
         </div>
       </section>
     </main>
