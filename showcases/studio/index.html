@@ -12271,7 +12271,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let home = false;
 
       /** (`unsaved`: a write that failed, tried again on leaving: storage may take it by then.) */
-      let saveTimer = 0, savedFade = /** @type {Animation | null} */ (null), unsaved = false;
+      let saveDue = false, savedFade = /** @type {Animation | null} */ (null), unsaved = false;
       /** Whether the write coming says "Saved" (an edit asked for it meanwhile). */
       let announcing = false;
       /** The library as this tab last wrote it: storage still holding it, no other tab has saved since. */
@@ -12382,17 +12382,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const formula = /** @type {HTMLTextAreaElement | null} */ (document.getElementById("formula"));
         if (formula && document.activeElement === formula && selected) applyFormula(selected, formula.value);
       }
-      /** Writes the library soon; `announce` shows a brief "Saved" after an edit. A failure stays on screen. */
+      /**
+       * Writes the library at the page's next idle moment (a second at most), once for all asked for till then: never put
+       * off by more; `announce` shows a brief "Saved" after an edit. A failure stays on screen.
+       */
       function save(announce = false) {
         saves++;
         announcing ||= announce;
-        clearTimeout(saveTimer);
-        saveTimer = setTimeout(() => {
+        if (saveDue) return;
+        saveDue = true;
+        whenIdle(() => {
+          if (!saveDue) return;
           const announced = announcing;
-          saveTimer = 0;
-          announcing = false;
+          saveDue = announcing = false;
           written(persist(), announced);
-        }, 250);
+        });
       }
       /** A write's outcome, said: a failure stays on screen (and is tried again on leaving), until one goes through. */
       function written(/** @type {boolean} */ ok, /** @type {boolean} */ announced) {
@@ -12512,25 +12516,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const [, end] of ends) end();
       }));
       /**
-       * A write put off a moment (`wait`, ms), all asked for meanwhile written once; the page left (or hidden) first,
-       * written then. @param {() => void} write @returns {() => void} asking for it
+       * A write done at the page's next idle moment (`timeout`, ms, at most; 0, whenever it is), once for all asked for
+       * till then, never put off by more; the page left (or hidden) first, written then. @param {() => void} write
+       * @returns {(() => void) & { cancel: () => void }} asking for it
        */
-      function writeSoon(write, wait = 1000) {
-        let timer = 0;
-        onLeave(() => timer && (clearTimeout(timer), (timer = 0), write()));
-        return () => {
-          clearTimeout(timer);
-          timer = setTimeout(() => ((timer = 0), write()), wait);
-        };
+      function writeSoon(write, timeout = 0) {
+        let due = false;
+        const now = () => due && ((due = false), write());
+        onLeave(now);
+        // (`cancel`: written another way meanwhile, the one waiting isn't.)
+        return Object.assign(() => void (due || ((due = true), whenIdle(now, { timeout }))), { cancel: () => void (due = false) });
       }
       // Leaving (or hidden): what's being typed kept, and what's not yet written written now (as a save would, full storage
       // too). Hidden (a phone's app switched), what's typed in place stays open as it is, to go on with (the focus comes
       // back to it; the app closed meanwhile, that alone is lost).
       onLeave((hidden) => {
         flushEdits(hidden);
-        if (!saveTimer && !unsaved) return;
-        clearTimeout(saveTimer);
-        saveTimer = 0;
+        if (!saveDue && !unsaved) return;
+        saveDue = announcing = false;
         written(persist(), false);
       });
 
@@ -12904,12 +12907,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && followLinked());
       // (A window beside another, both in sight: as it's turned to.)
       addEventListener("focus", followLinked);
-      let viewTimer = 0;
-      /** Keeps where the open chart is, a moment after it stops moving. */
-      function keepView() {
-        clearTimeout(viewTimer);
-        viewTimer = setTimeout(saveView, 250);
-      }
+      /** Keeps where the open chart is, at the page's next idle moment (a second at most) as it moves. */
+      const keepView = writeSoon(() => saveView(), 1000);
       /** The view kept, as it shows: the chart on screen, at the interval it's drawn at (see storeView). */
       function saveView() {
         storeView(false);
@@ -12934,7 +12933,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let seen = document.visibilityState === "visible";
       document.addEventListener("visibilitychange", () => (seen ||= document.visibilityState === "visible"));
       function storeView(asDrawn, leaving = false) {
-        clearTimeout(viewTimer);
+        keepView.cancel();
         // (Kept only from a page in sight, or as one that was is left: one out of sight isn't moved by anyone, what it shows
         // there is another's (the linked view followed), or as it was; said, it would take another tab's view back to it.
         // A page made ahead, unseen (a prerender), keeps nothing.)
@@ -23455,26 +23454,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The recommended cards as last drawn: by the theme and the presets edited among them (one edited since, drawn anew, see renderCharts). */
       let recommendedDrawn = "";
       const recommendedKey = () => (presets ? JSON.stringify([light, ...RECOMMENDED.map((place) => ((i) => ((doc) => (doc && presetEdited(doc) ? `${doc.id}@${doc.updated}` : ""))(i >= 0 ? editedPreset(i) : undefined))(/** @type {Preset[]} */ (presets).findIndex((item) => item.p.join(" › ") === place)))]) : "");
-      // A card's drawing, once it comes into view: one at a time, while the page is idle and the row isn't scrolling (the
-      // data it's drawn from comes over the network; drawn mid-scroll, the scroll would stall on it). Kept for the day.
+      // A card's drawing, once it comes into view: one at a time, each asked for at the page's next idle moment (however
+      // long that takes). Kept for the day.
       const cardQueue = new Set();
-      let stripMoving = 0;
-      $("templates").addEventListener("scroll", () => {
-        clearTimeout(stripMoving);
-        stripMoving = setTimeout(() => (stripMoving = 0), 150);
-      }, { passive: true });
-      const calm = () => new Promise((done) => {
-        // (Checked again at its turn: the row may have started moving meanwhile.)
-        const turn = () => (stripMoving ? wait() : done(undefined));
-        const wait = () => (stripMoving ? setTimeout(wait, 100) : whenIdle(turn));
-        wait();
-      });
       const drawCards = serial(async () => {
         for (const i of cardQueue) {
           cardQueue.delete(i);
           const card = recommendedCards[i];
           if (!card || previews.get(card.doc.id)?.key === previewKey(card.doc)) continue;
-          await calm();
+          await new Promise((done) => whenIdle(done, { timeout: 0 }));
           await drawPreview(card.doc, previewIndex(card.doc));
         }
       });
@@ -25833,7 +25821,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function completeSeries(holder, token, add) {
         if (token.length < 2 || /^[A-Z]/.test(token)) return;
         const controller = (holder.controller = new AbortController());
-        findSeries(token, 8, controller.signal, 140).then((names) => {
+        findSeries(token, 8, controller.signal).then((names) => {
           const series = names.filter(isSeriesName).map((name) => /** @type {const} */ ({ insert: name, title: name, text: "", series: true }));
           if (!controller.signal.aborted && series.length && !series.some((item) => item.insert === token)) add(series);
         }, () => {});
@@ -27226,17 +27214,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * Series for a query, best first, as bitview.space ranks them: one asked before at once, else from this machine
-       * once its index is built, else from bitview.space after `pause` milliseconds (more typing aborts it first; its
-       * answers aren't kept: this machine's come soon).
-       * @param {string} query @param {number} limit @param {AbortSignal} [signal] @returns {Promise<string[]>}
+       * once its index is built, else from bitview.space (more typing aborts it; its answers aren't kept: this machine's
+       * come soon).
+       * (`remote`: told as it asks bitview.space.)
+       * @param {string} query @param {number} limit @param {AbortSignal} [signal] @param {() => void} [remote] @returns {Promise<string[]>}
        */
-      function findSeries(query, limit, signal, pause = 0) {
+      function findSeries(query, limit, signal, remote = () => {}) {
         const key = `${limit}\n${query}`, kept = searched.get(key);
         if (kept) return Promise.resolve(kept);
-        const remote = () => client.searchSeries(/** @type {any} */ (normalizeQuery(query)), /** @type {any} */ (limit), { signal }).then((names) => byDate(/** @type {string[]} */ (names).slice(0, limit)));
+        const asked = () => (remote(), client.searchSeries(/** @type {any} */ (normalizeQuery(query)), /** @type {any} */ (limit), { signal }).then((names) => byDate(/** @type {string[]} */ (names).slice(0, limit))));
         return new Promise((resolve, reject) => {
           if (finder.ready && finder.worker) {
-            const question = { message: { query, limit }, reply: (/** @type {any} */ data) => (data?.names ? resolve((searched.set(key, data.names), data.names)) : remote().then(resolve, reject)) };
+            const question = { message: { query, limit }, reply: (/** @type {any} */ data) => (data?.names ? resolve((searched.set(key, data.names), data.names)) : asked().then(resolve, reject)) };
             finder.line.push(question);
             signal?.addEventListener("abort", () => {
               const at = finder.line.indexOf(question);
@@ -27245,10 +27234,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }, { once: true });
             return askNext();
           }
-          // (No pause, no timer: a hidden tab's may come late.)
-          if (!pause) return void remote().then(resolve, reject);
-          const timer = setTimeout(() => remote().then(resolve, reject), pause);
-          signal?.addEventListener("abort", () => (clearTimeout(timer), reject(signal.reason)), { once: true });
+          asked().then(resolve, reject);
         }).then((/** @type {string[]} */ names) => {
           if (searched.size > 300) searched.delete(/** @type {string} */ (searched.keys().next().value));
           return names;
@@ -27269,8 +27255,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         active: 0,
         query: "",
         controller: /** @type {AbortController | null} */ (null),
-        timer: 0,
-        /** The rows waiting for `timer` to be drawn (↵ draws them first). @type {(() => void) | null} */
+        /** The rows waiting for this machine's series to be drawn with (↵ draws them first). @type {(() => void) | null} */
         pending: null,
         moved: false,
         /** @type {string | null} the row to land on when going back up (the folder or page just left) */
@@ -27664,7 +27649,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Its list written anew (typed into, opened, a page turned): its row lit as keys light it, till the pointer moves.)
         pointedOption = false;
         const query = palette.query.trim();
-        clearTimeout(palette.timer);
         palette.pending = null;
         palette.controller?.abort();
         $("palette-glow").hidden = true;
@@ -27721,8 +27705,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderPalette();
           return;
         }
-        // Charts and commands match here; series too once the search's index is built, else on bitview.space after a pause
-        // in typing.
+        // Charts and commands match here; series too, on this machine once the search's index is built, else on
+        // bitview.space.
         const words = query.toLowerCase().split(/\s+/).filter(Boolean);
         // Adding or replacing a series, only series are found: nothing else is built, to be dropped later.
         const everything = !palette.adding && !palette.replacing;
@@ -27765,14 +27749,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const leading = others.filter((row) => row.label.toLowerCase().startsWith(words[0])), trailing = others.filter((row) => !leading.includes(row));
         const local = [...leading, ...asFormula, ...dated, ...strong, ...own, ...charts, ...presetRows, ...trailing], more = weak.map((item) => ({ ...item, group: "More commands" }));
         palette.moved = false;
-        // What matched here, while the series are looked for: at once when bitview.space answers; on this machine they
-        // come back within a frame or two and show with the rest, so it shows only if they're slow.
+        // What matched here, while the series are looked for: at once when bitview.space answers; on this machine with
+        // the series, a frame or two on (or first, for a key on the list: see above).
         // Back from a page to this search, on the row that led there.
         const landOn = palette.landOn;
         palette.landOn = null;
         const landing = (items) => Math.max(0, items.findIndex((item) => item.key === landOn));
         const searching = () => {
-          clearTimeout(palette.timer);
           palette.pending = null;
           palette.items = local;
           palette.active = landing(local);
@@ -27780,9 +27763,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $("palette-glow").hidden = false;
           renderPalette(true);
         };
-        // (Drawn a moment later; meanwhile a key on the list (↵ too) draws these first and goes on with them, a click or a
-        // hover on the last query's rows only draws them: nothing's done to a list no longer typed.)
-        if (finder.ready) (palette.timer = setTimeout(searching, 80)), (palette.pending = searching);
+        // (This machine's search answering within a frame or two: drawn once, with its series, then; meanwhile a key on the
+        // list (↵ too) draws these first and goes on with them, a click or a hover on the last query's rows only draws
+        // them: nothing's done to a list no longer typed. bitview.space's: these now, its series after.)
+        if (finder.ready) palette.pending = searching;
         else searching();
         // ("add price" is a search for price: ↵ adds it. The top result leads, or the row come back to.)
         searchSeries(query.replace(/^add\s+(?=\S)/i, ""), (names) => {
@@ -27810,7 +27794,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const controller = (palette.controller = new AbortController());
         const settle = (/** @type {string[] | null} */ names, note = "") => {
           if (controller.signal.aborted) return;
-          clearTimeout(palette.timer);
           palette.pending = null;
           const active = palette.items[palette.active];
           palette.items = compose(names);
@@ -27818,7 +27801,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $("palette-glow").hidden = true;
           renderPalette(false, note);
         };
-        findSeries(query, 80, controller.signal, 140).then((names) => settle(names), () => settle(null, "Series search is unavailable right now."));
+        // (Gone to bitview.space, this machine's failing: the rows waiting drawn meanwhile, its series after.)
+        findSeries(query, 80, controller.signal, () => !controller.signal.aborted && palette.pending?.()).then((names) => settle(names), () => settle(null, "Series search is unavailable right now."));
       }
 
       /**
@@ -28195,8 +28179,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The list ⌘K shows (its page, its search, its place in the catalog), to tell it drawn again from a new one; none when it opens. @type {{ page: any, query: string, path: string } | null} */
       let paletteShown = null;
-      /** What ⌘K found, about to be said (see updatePaletteKeys), and the search and count last said. */
-      let countSaid = 0, countSaidFor = "";
+      /** The search and count ⌘K last said (see updatePaletteKeys). */
+      let countSaidFor = "";
       /** How many rows ⌘K writes at a time. */
       const PALETTE_PAGE = 24;
       /** ⌘K's rows from `from` to `to`, each under its group's name where a group starts. */
@@ -28260,13 +28244,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A row to look elsewhere (out of this folder, or to browse instead) isn't one found.)
           const found = palette.items.filter((row) => !row.elsewhere).length, more = palette.items.filter((row) => row.kind === "series").length >= 80;
           $("palette-count").textContent = found ? `${grouped.format(found)}${more ? "+" : ""} ${found === 1 && !more ? "result" : "results"}` : "No results";
-          // (Said for a screen reader once the typing settles: one count a search, not one a key, nor again as the
-          // highlight moves.)
+          // (Said for a screen reader as the search answers: once a search, not again as the highlight moves.)
           const said = `${palette.query}|${$("palette-count").textContent}`;
-          if (said !== countSaidFor) {
-            clearTimeout(countSaid);
-            countSaid = window.setTimeout(() => $("palette").open && !$("palette-count").hidden && palette.query.trim() && ((countSaidFor = said), say($("palette-count").textContent)), 700);
-          }
+          if (said !== countSaidFor && $("palette").open && !$("palette-count").hidden) (countSaidFor = said), say($("palette-count").textContent);
         } else $("palette-count").textContent = seriesCount ? `${grouped.format(seriesCount)} series on Bitview` : "Bitview";
       }
 
@@ -28324,8 +28304,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * A series in a panel, as ⌘K shows it (its pane; a phone's, the sheet of a row's actions): its name and id, its
-       * description, its history and what it is, its data a moment after; `still`, whether the panel still shows it (one
-       * arrowed past asks for none of its data).
+       * description, its history and what it is, its data as it comes; `still`, whether the panel still shows it (one arrowed
+       * past draws none of it).
        */
       function previewSeries(/** @type {HTMLElement} */ panel, /** @type {string} */ name, still = () => true) {
         const head = `<h4 class="plain">${escape(humanize(name))}</h4><p class="series-id"><code>${escape(name)}</code>${((layer) => (layer ? ` · in this chart as ${escape(layer.letter)}` : ""))(home ? null : chart.layers.find((layer) => layer.series === name))}</p>`;
@@ -28335,15 +28315,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return;
         }
         panel.innerHTML = `${head}<p class="description"><span class="shimmer">Loading description…</span></p>`;
-        // What it is at once (the catalog's at hand); its data a moment after, if it's still the row looked at (rows
-        // arrowed through ask for none of theirs).
+        // What it is, then its data, each as it comes, if it's still the row looked at (one arrowed past draws nothing).
         void (async () => {
           try {
-            // (Bitview asked instead, until the catalog's here: for the row still looked at a moment after.)
-            if (!finder.ready && !known.has(name)) {
-              await new Promise((done) => setTimeout(done, 90));
-              if (!still()) return;
-            }
             retryInfo(name);
             const meta = await info(name);
             if (!still()) return;
@@ -28374,10 +28348,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             };
             // A series a chart loaded at that interval is at hand: its tail, without asking.
             const held = loads.get(key);
-            if (!held && !sparks.has(key)) {
-              await new Promise((done) => setTimeout(done, 90));
-              if (!still()) return;
-            }
             const response = await (held ? lastUsed(loads, key, held).then((data) => ({ data: data.data.slice(-count) }), tail) : tail());
             if (!still()) return;
             drawSpark(panel, response.data.map((value) => (Array.isArray(value) ? value[3] : value)).map((value) => (value == null ? NaN : Number(value))), unit);
@@ -28476,7 +28446,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** ⌘K in ⌘K: the highlighted row's actions, over the footer. */
       function showActions(/** @type {HTMLElement} */ anchor = $("palette-actions")) {
-        // (Rows waiting for their frame drawn first: the actions are the lit row's of what's typed.)
+        // (Rows waiting for the series drawn first: the actions are the lit row's of what's typed.)
         palette.pending?.();
         quickHide();
         const item = palette.items[palette.active], actions = actionsFor(item);
