@@ -9413,7 +9413,7 @@
             <li>await studio.png(options): its picture, as Export makes it (its title, legends and dates), as a data URL ("data:image/png;base64," and its base64), in one result, the same whatever the window. If your tool says the output was too long and saved it to a file, decode the base64 from that file: that's the picture, no need to retype it. Options, each if wanted: width and height, in CSS pixels (1200 and 760 if none); scale, 1 or 2 (pixels for each, 1 if none); type, "image/png" (if none), "image/webp" or "image/jpeg", with quality, 0.01 to 1 (0.9 if none); part, only if long output gets cut off and nothing is saved: 0, 1 and so on, each call with part 0's options, the picture in parts, each {part, parts, mime, base64}, partSize characters of its base64 (45000 if none: each part, all told, under 50,000); part 0 makes the picture of the chart as it is, the others are from that same picture, however long after: join their base64, "data:" + mime + ";base64," before it. Sizes, at 1200 by 760, for a chart of a few lines: a PNG about 130,000 to 160,000 characters (three or four parts), a WebP about 50,000, a JPEG about 100,000; at scale 2, about 330,000, 130,000 and 270,000.</li>
             <li>studio.chart(): the chart open, as a link writes it.</li>
             <li>await studio.errors(): once it's drawn, its layers that show nothing, and why, as [{"layer": "B", "error": "...", "closest": "..."}]: a series name Bitview doesn't have (with the closest it has), a series it has only by block (with its day's, if it has one), a formula it can't read.</li>
-            <li>await studio.search(words, count): series names for those words (count of them, 10 if not given, 1 to 50), the best first, as Studio's search finds them, only those it can chart (by date; words as people say them do: "200 day moving average", "transaction count"). No browsing needed: the page knows the catalog, and asks bitview.space only for its first seconds, until its own search is up. It answers within a few seconds, the page shown or not, else it's rejected with why.</li>
+            <li>await studio.search(words, count): series names for those words (count of them, 10 if not given, 1 to 50), the best first, as Studio's search finds them, only those it can chart (by date; by the words of their names and descriptions: "sma 200d", "transaction count"). No browsing needed: the page knows the catalog, and asks bitview.space only for its first seconds, until its own search is up. It answers within a few seconds, the page shown or not, else it's rejected with why.</li>
           </ul>
           <p>What a chart can't hold is left out, or at its default, without a word: past 40 layers, left out; an interval or a range it doesn't know, day1 or 8y.</p>
           <pre>await studio.open({"title": "Cost basis", "layers": [{"series": "price"}, {"series": "realized_price"}]});
@@ -10183,7 +10183,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const isColor = (color) => typeof color === "string" && (isNamed(color) || /^#[0-9a-f]{6}$/i.test(color) || (OKLCH_TEXT.test(color) && Number(color.split(" ")[2].slice(0, -1)) <= 360));
       /**
        * Color names, each at its usual color: the xkcd survey's, the names people use (filtered: see its module). A color
-       * takes the nearest one's name; light, dark or muted only where it sits far from every name.
+       * takes the nearest one's name.
        * @type {{ name: string, l: number, c: number, h: number }[] | null}
        */
       let names = null;
@@ -10204,16 +10204,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const distance = nameDistance(l, c, h, name.l, name.c, name.h);
           if (distance < nearest) (nearest = distance), (best = name);
         }
-        // Far from every name, it says how it differs (unless the name already says so: "very light pink", "dull orange").
-        const lighter = l - best.l, words = [];
-        if (Math.sqrt(nearest) > 0.06) {
-          if (!/\b(light|lighter|lightish|dark|darker|darkish|pale|deep|very|bright|pastel|off)\b/.test(best.name)) {
-            if (lighter > 0.08) words.push(lighter > 0.18 ? "pale" : "light");
-            else if (lighter < -0.08) words.push(lighter < -0.18 ? "deep" : "dark");
-          }
-          if (best.c > 0.06 && c < best.c * 0.6 && !/\b(dull|muted|dusty|dusky|faded|grayish|pale|pastel)\b/.test(best.name)) words.push("muted");
-        }
-        return capitalize([...words, best.name].join(" "));
+        return capitalize(best.name);
       }
       /** The types whose second color is kept as picked, one color or two: a trend's (on a support), a cloud's (its second over). */
       const TWO_KEPT = new Set(["trend", "cloud"]);
@@ -10518,8 +10509,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A window's units in days (a month and a year on average), the letters formulas write them with, and each interval in days. */
       const SPAN_DAYS = { hour: 1 / 24, day: 1, week: 7, month: 365.25 / 12, year: 365.25 };
       const SPAN_LETTERS = { h: "hour", d: "day", w: "week", mo: "month", y: "year" };
-      /** A span's unit as words write it (30 days), as its letters do (30d). @type {Record<string, string>} */
-      const SPAN_WORDS = { h: "h", hour: "h", hours: "h", d: "d", day: "d", days: "d", w: "w", week: "w", weeks: "w", mo: "mo", month: "mo", months: "mo", y: "y", year: "y", years: "y" };
       const INTERVAL_DAYS = { ...Object.fromEntries(Object.entries(FINE_STEP).map(([index, step]) => [index, step / 86400])), day1: 1, day3: 3, week1: 7, month1: SPAN_DAYS.month, month3: 3 * SPAN_DAYS.month, month6: 6 * SPAN_DAYS.month, year1: SPAN_DAYS.year, year10: 10 * SPAN_DAYS.year };
       /** A window of `days` in an interval's points, one at least: shorter than the interval, a moving average is the series as it is. */
       const windowPoints = (/** @type {number} */ days, /** @type {string} */ index) => Math.max(1, Math.round(days / INTERVAL_DAYS[index]));
@@ -11084,7 +11073,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /** Functions whose window takes two points at least. */
-      const TWO_POINTS = new Set(["stdev", "sd", "zscore", "volatility", "vol", "chop", "rsi", "stochrsi", "macd", "macd_signal", "macd_hist"]);
+      const TWO_POINTS = new Set(["stdev", "zscore", "volatility", "chop", "rsi", "stochrsi", "macd", "macd_signal", "macd_hist"]);
       /**
        * name → [arity, signature, what it does, run, the span may be left out, its usual span (days)]; a window is a span
        * of time (30d, 4w, 6mo, 2y, 12h; a bare number is days), always the last argument, run as the interval's points
@@ -11107,7 +11096,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }, true],
         // A deviation takes two values at least.
         stdev: [2, "stdev(x, span?)", "rolling standard deviation (no span: of all so far)", (x, n, _p, partial) => deviationOf(x, n, partial), true],
-        sd: [2, "sd(x, span?)", "stdev, by its short name", (x, n, _p, partial) => deviationOf(x, n, partial), true],
         zscore: [2, "zscore(x, span?)", "deviations from the rolling mean (no span: of all so far)", (x, n, _p, partial) => {
           const { mean, variance, count } = rolling(x, n, partial);
           return x.map((value, i) => {
@@ -11137,7 +11125,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         macd_signal: [2, "macd_signal(x, span?)", "MACD's signal: its line's EMA over 9/26 of the span (span: 26 points if left out)", (x, n, _p, partial) => emaOf(macdOf(x, n, partial), Math.max(1, Math.round((n * 9) / 26)), partial), true, 26],
         macd_hist: [2, "macd_hist(x, span?)", "MACD's histogram: its line less its signal (span: 26 points if left out)", (x, n, _p, partial) => ((line) => ((signal) => line.map((value, i) => value - signal[i]))(emaOf(line, Math.max(1, Math.round((n * 9) / 26)), partial)))(macdOf(x, n, partial)), true, 26],
         volatility: [2, "volatility(x, span?)", "annualized volatility: the deviation of its log returns over the span, in % (span: 30 points if left out)", (x, n, _p, partial, step) => volatilityOf(x, n, partial, step), true, 30],
-        vol: [2, "vol(x, span?)", "volatility, by its short name", (x, n, _p, partial, step) => volatilityOf(x, n, partial, step), true, 30],
         chop: [2, "chop(x, span?)", "choppiness index, 0 to 100: high, moving sideways; low, trending (span: 14 points if left out)", (x, n) => chopOf(x, n), true, 14],
         highest: [2, "highest(x, span?)", "rolling maximum (no span: of all so far)", (x, n, _p, partial) => extreme(x, n, (a, b) => a > b, partial), true],
         lowest: [2, "lowest(x, span?)", "rolling minimum (no span: of all so far)", (x, n, _p, partial) => extreme(x, n, (a, b) => a < b, partial), true],
@@ -11182,9 +11169,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           index = TOKEN.lastIndex;
           if (match[1]) {
             if (match[2] && !Object.hasOwn(SPAN_LETTERS, match[2])) throw new Error(`Unknown unit "${match[2]}" in ${match[0].trim()}: h, d, w, mo or y`);
-            // (A span with a space before its unit, 30 days: said how it's written.)
-            const spaced = !match[2] && /^\s+([a-z]+)(?![\w])/.exec(source.slice(index))?.[1];
-            if (spaced && Object.hasOwn(SPAN_WORDS, spaced)) throw new Error(`A span is written without a space: ${match[1]}${SPAN_WORDS[spaced]}`);
             tokens.push({ t: "num", v: Number(match[1]), unit: match[2] && SPAN_LETTERS[match[2]], text: match[0].trim() });
           } else if (match[3]) tokens.push({ t: "ref", v: match[3] });
           else if (match[4]) tokens.push({ t: "id", v: match[4] });
@@ -11303,9 +11287,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A formula with its series renamed (`names`: old to new), all at once (as series: a function of the same name stays). */
       const renamed = (/** @type {string} */ formula, /** @type {Map<string, string>} */ names) => (names.size ? formula.replace(new RegExp(`(?<![A-Za-z0-9_])(${[...names.keys()].join("|")})(?![A-Za-z0-9_])(?!\\s*\\()`, "g"), (name) => /** @type {string} */ (names.get(name))) : formula);
 
-      const KEEPS_UNIT = new Set(["sma", "ema", "sum", "stdev", "sd", "median", "percentile", "highest", "lowest", "lag", "diff", "abs", "macd", "macd_signal", "macd_hist", "when"]);
+      const KEEPS_UNIT = new Set(["sma", "ema", "sum", "stdev", "median", "percentile", "highest", "lowest", "lag", "diff", "abs", "macd", "macd_signal", "macd_hist", "when"]);
       /** Functions whose result is a percent, whatever their input's unit. */
-      const IN_PERCENT = new Set(["change", "cagr", "drawdown", "volatility", "vol"]);
+      const IN_PERCENT = new Set(["change", "cagr", "drawdown", "volatility"]);
       /** The unit a function's result carries, from its input's. */
       const unitOfCall = (/** @type {string} */ f, /** @type {string | null} */ unit) => (KEEPS_UNIT.has(f) ? unit : IN_PERCENT.has(f) ? "percent" : f === "rebase" ? "ratio" : "number");
       /** The unit a formula's result carries, from its parts (`unitOfRef(name, kind)`); null for plain numbers. @returns {string | null} */
@@ -12267,9 +12251,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * toned), crossfaded where the browser can. Set before the first paint (see the page's first script), and here.
        */
       const THEMES = /** @type {const} */ ([
-        ["system", "System", "computer", "As the device is set, and as it changes.", "system device auto automatic os follow"],
-        ["light", "Light", "sun", "Light surfaces; the data's colors deepened to read on white.", "light day white bright"],
-        ["dark", "Dark", "moon", "Dark surfaces; the data's colors as they are.", "dark night black"],
+        ["system", "System", "computer", "As the device is set, and as it changes."],
+        ["light", "Light", "sun", "Light surfaces; the data's colors deepened to read on white."],
+        ["dark", "Dark", "moon", "Dark surfaces; the data's colors as they are."],
       ]);
       const deviceLight = matchMedia("(prefers-color-scheme: light)");
       /** The bar over the page (a browser's, an installed app's, a phone's status bar) in the page's color under it: the grid's ground, a chart's card on a phone. */
@@ -24216,7 +24200,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const presetRow = (/** @type {number} */ i, deep = false) => {
         const preset = /** @type {Preset[]} */ (presets)[i], edited = keptPreset(i), title = edited ? titleOf(edited) : preset.t;
         return {
-          kind: "row", key: `preset:${i}`, icon: ICONS.charts, label: title, ...(deep ? { aside: preset.p.slice(0, -1).join(" › ") } : {}), words: presetSearchWords(i), verb: "Open",
+          kind: "row", key: `preset:${i}`, icon: ICONS.charts, label: title, ...(deep ? { aside: preset.p.slice(0, -1).join(" › ") } : {}), verb: "Open",
           run: () => pickPreset(i),
           actions: () => presetActions(i, "palette"),
           preview: (/** @type {HTMLElement} */ panel) => {
@@ -24424,7 +24408,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** How a chart's legends show: none, or (the default, "") over each pane, scrolling to the line pointed at. */
       const LEGENDS = /** @type {const} */ ([["off", "Off", "No legend over the panes", "None"], ["", "On", "A legend over each pane, its values where you point", "Over each pane"]]);
       /** The legend's setting, the chart's (its ⋯, ⌘K's page of it). */
-      const legendAction = (group = "") => ({ key: "legend", icon: ICONS.legend, label: "Legend", aside: LEGENDS.find(([id]) => id === (chart.legend ?? ""))?.[1], words: "legend names values strip caption hide show off on", group, page: () => choicePage("Legend", () => LEGENDS.map(([id, text, , note]) => ({ key: id || "on", icon: ICONS.legend, label: text, aside: note, current: (chart.legend ?? "") === id, run: () => setLegend(id) }))) });
+      const legendAction = (group = "") => ({ key: "legend", icon: ICONS.legend, label: "Legend", aside: LEGENDS.find(([id]) => id === (chart.legend ?? ""))?.[1], group, page: () => choicePage("Legend", () => LEGENDS.map(([id, text, , note]) => ({ key: id || "on", icon: ICONS.legend, label: text, aside: note, current: (chart.legend ?? "") === id, run: () => setLegend(id) }))) });
       const setLegend = (/** @type {string} */ mode) => (chart.legend ?? "") !== mode && commit((doc) => (mode === "off" ? (doc.legend = "off") : delete doc.legend), { look: true });
       /** The layer list's parts as last written, by key (its panes', then what's under them). */
       let layersWritten = { keys: /** @type {string[]} */ ([]), tail: /** @type {[string, string][]} */ ([]) };
@@ -25307,8 +25291,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const colorSources = (layer) => chart.layers.filter((other) => other.id !== layer.id && other.colorFrom !== layer.id && other.type !== "signal");
       /** What each way of coloring does, said beside it. */
       const MODE_ASIDES = { one: "The same all along", sides: "Above and below its base", momentum: "Growing and fading", levels: "Each level's color above it", layers: "Each one's own, where it's over", from: "Another layer's, by date" };
-      /** What each way of coloring is found by in ⌘K (a type's own ways only). */
-      const MODE_WORDS = { one: "one single", sides: "two above below sign", momentum: "four growing fading rising falling macd momentum", levels: "levels", layers: "layers own lines series cross", from: "from layer" };
       /**
        * A layer's ways of coloring as choices (its menu's, ⌘K's): those its type has, each said; by its levels once it has
        * some; from a layer, which (a page of them). @returns {Action[]}
@@ -26863,11 +26845,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * What a cloud can be between, as choices (the one it has, `except`, aside): the chart's layers not made from layers
        * on that one's scale (an edge's, any; those it's between kept), then its pane's top and its bottom.
-       * @returns {{ key: string, icon: string, label: string, group: string, words?: string, preview?: (panel: HTMLElement) => void }[]}
+       * @returns {{ key: string, icon: string, label: string, group: string, preview?: (panel: HTMLElement) => void }[]}
        */
       const cloudMembers = (except = "", /** @type {Layer | null} */ self = null) => [
         ...chart.layers.filter((layer) => layer.id !== except && (memberable(layer, self, layerById(except) ?? null) || Boolean(self?.from?.includes(layer.id)))).map((layer) => ({ key: layer.id, icon: letterChip(layer), label: labelOf(layer), group: "Layers", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id) })),
-        ...EDGES.filter((edge) => edge !== except).map((edge) => ({ key: edge, icon: edgeIcon(edge), label: EDGE_NAMES[edge], words: "edge pane", group: "Edges" })),
+        ...EDGES.filter((edge) => edge !== except).map((edge) => ({ key: edge, icon: edgeIcon(edge), label: EDGE_NAMES[edge], group: "Edges" })),
       ];
       /** One of a cloud's two, as its fields say it: a layer by its letter and name, an edge by its icon and name; none, null. */
       const memberShown = (/** @type {string | undefined} */ id) => (id && EDGES.includes(id) ? { icon: edgeIcon(id), label: EDGE_NAMES[id], short: `the ${id}` } : ((layer) => (layer ? { icon: letterChip(layer), label: labelOf(layer), short: layer.letter } : null))(layerById(id ?? "")));
@@ -27027,49 +27009,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return (text.match(/(?:[A-Za-z0-9<>=+%]|(?<=[0-9])\.(?=[0-9]))+/g) ?? []).join(" ").toLowerCase();
       }
       /**
-       * A normalized query as the names say it (people's ways of saying it, in the names' words). Self-contained, as
-       * `normalizeQuery`: the worker and bitview.space's path (until the worker's up) say it alike.
-       * @param {string} typed
-       */
-      function sayQuery(typed) {
-        /** @type {[RegExp, string][]} */
-        const SAYINGS = [
-          [/\brealis(e|ed)\b/g, "realiz$1"],
-          [/\bexponential moving averages?\b/g, "ema"],
-          [/\b(?:simple )?moving averages?\b/g, "sma"],
-          [/\b(\d+) (?:hours?|hrs?)\b/g, "$1h"],
-          [/\b(\d+) days?\b/g, "$1d"],
-          [/\b(\d+) weeks?\b/g, "$1w"],
-          [/\b(\d+) months?\b/g, "$1m"],
-          [/\b(\d+) years?\b/g, "$1y"],
-          [/\btransactions?\b/g, "tx"],
-          [/\baddresses\b/g, "addrs"],
-          [/\baddress\b/g, "addr"],
-          [/\blong term holders?\b/g, "lth"],
-          [/\bshort term holders?\b/g, "sth"],
-          [/\ball time highs?\b/g, "ath"],
-          [/\bmarket capitali[sz]ation\b/g, "market cap"],
-          [/\bcoin (days|years|blocks)\b/g, "coin$1"],
-          [/^(?:bitcoin|btc) (?=\S)/, ""],
-          [/^cdd$/, "coindays destroyed"],
-          [/^s2f$/, "stock to flow"],
-          [/^mayer(?: multiple)?$/, "price sma 200d ratio"],
-        ];
-        return SAYINGS.reduce((said, [pattern, put]) => said.replace(pattern, put), typed);
-      }
-      /**
        * The series search as bitview.space runs it (crates/bitview_query/src/vecs/search.rs, on the same quickmatch): the
        * query normalized, then whole name words, names matching every word (starts, joined words, plurals), whole
        * description words, names a typo matches, description starts and typos; a description several series share ranks
-       * them by how few other words their names carry. Before it, what
-       * people type is said as the names say it ("200 day moving average" is "200d sma"), the query as typed searched
-       * after. Series only by block (none of `dated`, the intervals Studio charts) come last, their day's (a 24h sum, an
+       * them by how few other words their names carry. Series only by block (none of `dated`, the intervals Studio charts) come last, their day's (a 24h sum, an
        * average) in their place. It runs in a worker started from this function's own source: the catalog's names and
        * descriptions are indexed once, off the page, and each query is answered in milliseconds.
        * @param {string} quickmatch the module's URL @param {string} catalog the catalog's URL @param {string[]} dated
-       * @param {typeof normalizeQuery} normalize @param {typeof sayQuery} say (handed over as their source)
+       * @param {typeof normalizeQuery} normalize (handed over as its source)
        */
-      async function seriesSearch(quickmatch, catalog, dated, normalize, say) {
+      async function seriesSearch(quickmatch, catalog, dated, normalize) {
         const { QuickMatch, QuickMatchConfig } = /** @type {typeof import("/modules/quickmatch-js/src/index.js")} */ (await import(quickmatch));
         const byBytes = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
         const index = (async () => {
@@ -27126,7 +27075,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         function search(found, query, max) {
           const limit = Math.min(max, found.names.length);
           if (!limit) return [];
-          const typed = normalize(query), said = say(typed);
+          const words = normalize(query);
+          if (!words) return [];
           /** @type {number[]} */
           const result = [], last = [];
           const seen = new Set();
@@ -27144,9 +27094,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               }
             }
           };
-          // (Stage by stage, what's said, then as typed: a name's whole words in either before its starts and slips.)
-          const queries = (said === typed ? [typed] : [said, typed]).filter(Boolean).map((words) => stages(found, words, limit));
-          for (let stage = 0; stage < 5; stage++) for (const run of queries) if (result.length < limit) append(run[stage]());
+          // (Stage by stage: a name's whole words before its starts and slips.)
+          const run = stages(found, words, limit);
+          for (let stage = 0; stage < 5; stage++) if (result.length < limit) append(run[stage]());
           return [...result, ...last].slice(0, limit).map((id) => found.names[id]);
         }
         /**
@@ -27224,7 +27174,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         finder.started = true;
         if (typeof Worker !== "function") return;
         const quickmatch = new URL("/modules/quickmatch-js/src/index.js", location.origin).href;
-        const source = URL.createObjectURL(new Blob([`(${seriesSearch})(${JSON.stringify(quickmatch)}, ${JSON.stringify(`${client.baseUrl}/api/series`)}, ${JSON.stringify(INTERVAL_ORDER)}, ${normalizeQuery}, ${sayQuery});`], { type: "text/javascript" }));
+        const source = URL.createObjectURL(new Blob([`(${seriesSearch})(${JSON.stringify(quickmatch)}, ${JSON.stringify(`${client.baseUrl}/api/series`)}, ${JSON.stringify(INTERVAL_ORDER)}, ${normalizeQuery});`], { type: "text/javascript" }));
         // (Workers turned off for the page: none, and bitview.space answers; never the page's start failing with it.)
         let worker;
         try {
@@ -27283,10 +27233,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function findSeries(query, limit, signal, pause = 0) {
         const key = `${limit}\n${query}`, kept = searched.get(key);
         if (kept) return Promise.resolve(kept);
-        // (Said as the names say it first, then as typed, as this machine's search does: the server only normalizes.)
-        const typed = normalizeQuery(query), said = sayQuery(typed);
-        const remote = () => Promise.all((said === typed ? [typed] : [said, typed]).map((words) => client.searchSeries(/** @type {any} */ (words), /** @type {any} */ (limit), { signal })))
-          .then((lists) => byDate([...new Set(/** @type {string[][]} */ (lists).flat())].slice(0, limit)));
+        const remote = () => client.searchSeries(/** @type {any} */ (normalizeQuery(query)), /** @type {any} */ (limit), { signal }).then((names) => byDate(/** @type {string[]} */ (names).slice(0, limit)));
         return new Promise((resolve, reject) => {
           if (finder.ready && finder.worker) {
             const question = { message: { query, limit }, reply: (/** @type {any} */ data) => (data?.names ? resolve((searched.set(key, data.names), data.names)) : remote().then(resolve, reject)) };
@@ -27561,8 +27508,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** Every pane's height set at once: all alike, or as at first. */
       const PANE_HEIGHTS = [
-        { key: "equal", label: "Equal pane heights", text: "Every pane as tall as the others", words: "resize panes even same size", verb: "Apply", set: (/** @type {Pane} */ pane) => (pane.size = 1) },
-        { key: "reset", label: "Reset pane heights", text: "The first tall, the others shorter, as at first", words: "resize panes default size", verb: "Reset", set: (/** @type {Pane} */ pane) => delete pane.size },
+        { key: "equal", label: "Equal pane heights", text: "Every pane as tall as the others", verb: "Apply", set: (/** @type {Pane} */ pane) => (pane.size = 1) },
+        { key: "reset", label: "Reset pane heights", text: "The first tall, the others shorter, as at first", verb: "Reset", set: (/** @type {Pane} */ pane) => delete pane.size },
       ];
       /** Pane heights set, as a divider's drag sets them: a layout (no "Saved"; a chart started here not kept by it). */
       const setPaneHeights = (/** @type {(pane: Pane) => void} */ set) => commit((doc) => doc.panes.forEach(set), { quiet: true });
@@ -27570,7 +27517,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const scalePane = () => chart.panes.find((item) => item.id === layerById(selected)?.pane) ?? chart.panes[0];
 
       /**
-       * @typedef {{ title: string, text: string, words?: string, icon: string, kbd?: string, run?: () => any, suggested?: boolean,
+       * @typedef {{ title: string, text: string, icon: string, kbd?: string, run?: () => any, suggested?: boolean,
        *   anywhere?: boolean, keepOpen?: boolean, danger?: boolean, follows?: string, current?: boolean }} Command
        *   `danger` marks it (it's undone as any other). With no `run`, it says how things are (found by typing only):
        *   `current`, the choice in effect, ticked; else not now (dim)
@@ -27585,108 +27532,108 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const collapsed = document.body.dataset.sidebar === "collapsed";
         const empty = !chart.layers.length;
         return /** @type {Command[]} */ ([
-          { title: "Add a layer", text: "Search every series, or browse them by topic; a formula, a cloud, a trend.", words: "add series catalog browse explore folders metric data", icon: "plus", kbd: "A", run: () => openPalette({ add: true }), suggested: true, keepOpen: true },
-          { title: "New chart", text: "A blank chart of yours, in your Library, to start from series or a file.", words: "create blank empty", icon: "plus", kbd: "N", run: newChart, suggested: true, anywhere: true },
-          ...(isPreview(chart) && !home && chart.layers.length ? [{ title: "Save this chart", text: "A preview: into your Library, with your edits (till then, they're this preview's alone).", words: "keep save preview add charts", icon: "keep", run: () => keepChart(), suggested: true }] : []),
-          ...(isPreview(chart) && !home && chart.layers.length && previousChart() ? [{ title: "Close this preview", text: `${titleOf(chart)}: not in your Library, let go of.`, words: "close preview discard dismiss", icon: "close", run: () => closePreview() }] : []),
-          { title: "New folder", text: "For charts that go together, named at once.", words: "create folder group organize", icon: "folderAdd", run: () => newFolder(), anywhere: true },
+          { title: "Add a layer", text: "Search every series, or browse them by topic; a formula, a cloud, a trend.", icon: "plus", kbd: "A", run: () => openPalette({ add: true }), suggested: true, keepOpen: true },
+          { title: "New chart", text: "A blank chart of yours, in your Library, to start from series or a file.", icon: "plus", kbd: "N", run: newChart, suggested: true, anywhere: true },
+          ...(isPreview(chart) && !home && chart.layers.length ? [{ title: "Save this chart", text: "A preview: into your Library, with your edits (till then, they're this preview's alone).", icon: "keep", run: () => keepChart(), suggested: true }] : []),
+          ...(isPreview(chart) && !home && chart.layers.length && previousChart() ? [{ title: "Close this preview", text: `${titleOf(chart)}: not in your Library, let go of.`, icon: "close", run: () => closePreview() }] : []),
+          { title: "New folder", text: "For charts that go together, named at once.", icon: "folderAdd", run: () => newFolder(), anywhere: true },
           // Each folder, by its name: its page (expand or collapse it, rename it, delete it, its charts).
-          ...((counts) => library.folders.map((folder) => ({ title: folderPath(folder.id), text: `A folder: ${plural(counts.get(folder.id) ?? 0, "chart")}.`, words: `folder ${folderPath(folder.id)}`, icon: "folder", keepOpen: true, anywhere: true, run: () => openPage(folderOwnPage(folder.id)) })))(chartCounts()),
+          ...((counts) => library.folders.map((folder) => ({ title: folderPath(folder.id), text: `A folder: ${plural(counts.get(folder.id) ?? 0, "chart")}.`, icon: "folder", keepOpen: true, anywhere: true, run: () => openPage(folderOwnPage(folder.id)) })))(chartCounts()),
           // (The Charts page and your Library's: places to go; the one shown, not offered.)
-          ...(home && "top" in homeAt ? [] : [{ title: "Charts", text: "Your Library and the presets, side by side.", words: "all charts presets grid overview gallery library home browse templates ready made", icon: "grid", anywhere: true, run: () => goTo({ top: true }) }]),
-          ...(home && "folder" in homeAt && !homeAt.folder ? [] : [{ title: "Library", text: "Your charts and their folders, side by side.", words: "library your charts mine saved folders grid", icon: "grid", anywhere: true, run: () => goTo({ folder: "" }) }]),
+          ...(home && "top" in homeAt ? [] : [{ title: "Charts", text: "Your Library and the presets, side by side.", icon: "grid", anywhere: true, run: () => goTo({ top: true }) }]),
+          ...(home && "folder" in homeAt && !homeAt.folder ? [] : [{ title: "Library", text: "Your charts and their folders, side by side.", icon: "grid", anywhere: true, run: () => goTo({ folder: "" }) }]),
           // (A cloud, wherever there are layers (its pane's two edges are two); a trend, from layers.)
           ...(chart.layers.length ? [
-            { title: "Add a cloud", text: "Filled between two layers, in the color of the one over; or from one to the pane's top or bottom.", words: "cloud band envelope fill between shade percentiles cross crossing edge top bottom from layers", icon: "cloud", keepOpen: true, run: () => pushPage(cloudPage()) },
+            { title: "Add a cloud", text: "Filled between two layers, in the color of the one over; or from one to the pane's top or bottom.", icon: "cloud", keepOpen: true, run: () => pushPage(cloudPage()) },
           ] : []),
           ...(cloudable() ? [
             // (Not now, it says why: dimmed, nothing to run.)
-            { title: "Add a trend", text: trendShort() ? `${trendShort()}.` : "From layers: on the lowest of them until a price touches it, then on the highest until it touches that.", words: "trend support resistance bound ride regime from layers percentiles", icon: "riding", ...(trendShort() ? {} : { keepOpen: true, run: () => pushPage(trendPage()) }) },
+            { title: "Add a trend", text: trendShort() ? `${trendShort()}.` : "From layers: on the lowest of them until a price touches it, then on the highest until it touches that.", icon: "riding", ...(trendShort() ? {} : { keepOpen: true, run: () => pushPage(trendPage()) }) },
           ] : []),
-          ...(empty || chart.panes.length >= MAX_PANES ? [] : [{ title: "Add to a new pane", text: "A series in a pane of its own, under the others.", words: "new pane add series separate own below", icon: "pane", keepOpen: true, run: () => openPalette({ add: true, into: "new" }) }]),
-          { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, words: "formula expression compute ratio", icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
-          ...(chart.layers.some((layer) => layer.type !== "cloud" && layer.type !== "signal") ? [{ title: "Add a signal", text: "Marks on a layer where a formula turns up or down, like A > sma(A, 200d), or (A > B) - (A < B).", words: "signal mark marker when condition cross crosses above below event alert", icon: "signal", run: addSignal, keepOpen: true }] : []),
-          ...(empty ? [] : [{ title: SHARE, text: "A link that opens this chart for anyone.", words: "share url send link copy qr code scan phone", icon: "share", run: () => $("share").click(), suggested: true }]),
-          ...(empty ? [] : [{ title: "Open image", text: "The chart's picture alone, in a tab of its own.", words: "image picture tab open view", icon: "link", run: () => exportAs("open") }]),
-          ...(!isYours(chart) ? [] : [{ title: "Move to folder", text: `${titleOf(chart)}: now ${chart.folder ? folderPath(chart.folder) : "in none"}.`, words: "folder move organize group put", icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
-          ...(empty || !SHARES_IMAGES ? [] : [{ title: "Share image", text: "The chart's picture, to Photos, a message, anywhere.", words: "share image picture png screenshot photos save send message", icon: "share", run: () => exportAs("share") }]),
-          ...(empty ? [] : [{ title: "Copy as image", text: "The chart, to paste anywhere.", words: "copy image picture png screenshot clipboard share paste", icon: "copy", run: () => exportAs("copy") }]),
-          ...(empty ? [] : [{ title: "Download image", text: "A PNG of the chart as it shows (on a phone, wider), with its title.", words: "png picture screenshot export save", icon: "image", run: () => exportAs("png"), suggested: true }]),
-          ...(empty ? [] : [{ title: "Download data", text: "A CSV of every layer's values (the hidden ones too), one row per date.", words: "csv spreadsheet export save", icon: "table", run: () => exportAs("csv") }]),
-          { title: "Download chart file", text: "A JSON file you can import again later.", words: "export json save backup", icon: "file", run: () => exportAs("json") },
-          ...(anythingKept() ? [{ title: "Download all charts", text: "One file of them all, folders and all, to import anywhere else.", words: "export everything backup move computer device browser phone library save json", icon: "download", run: () => downloadAll(), anywhere: true }] : []),
-          { title: "Import charts", text: "A chart's file, several exported together, or all of them from anywhere else.", words: "open load json upload", icon: "upload", run: () => $("import-file").click(), anywhere: true },
+          ...(empty || chart.panes.length >= MAX_PANES ? [] : [{ title: "Add to a new pane", text: "A series in a pane of its own, under the others.", icon: "pane", keepOpen: true, run: () => openPalette({ add: true, into: "new" }) }]),
+          { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
+          ...(chart.layers.some((layer) => layer.type !== "cloud" && layer.type !== "signal") ? [{ title: "Add a signal", text: "Marks on a layer where a formula turns up or down, like A > sma(A, 200d), or (A > B) - (A < B).", icon: "signal", run: addSignal, keepOpen: true }] : []),
+          ...(empty ? [] : [{ title: SHARE, text: "A link that opens this chart for anyone.", icon: "share", run: () => $("share").click(), suggested: true }]),
+          ...(empty ? [] : [{ title: "Open image", text: "The chart's picture alone, in a tab of its own.", icon: "link", run: () => exportAs("open") }]),
+          ...(!isYours(chart) ? [] : [{ title: "Move to folder", text: `${titleOf(chart)}: now ${chart.folder ? folderPath(chart.folder) : "in none"}.`, icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
+          ...(empty || !SHARES_IMAGES ? [] : [{ title: "Share image", text: "The chart's picture, to Photos, a message, anywhere.", icon: "share", run: () => exportAs("share") }]),
+          ...(empty ? [] : [{ title: "Copy as image", text: "The chart, to paste anywhere.", icon: "copy", run: () => exportAs("copy") }]),
+          ...(empty ? [] : [{ title: "Download image", text: "A PNG of the chart as it shows (on a phone, wider), with its title.", icon: "image", run: () => exportAs("png"), suggested: true }]),
+          ...(empty ? [] : [{ title: "Download data", text: "A CSV of every layer's values (the hidden ones too), one row per date.", icon: "table", run: () => exportAs("csv") }]),
+          { title: "Download chart file", text: "A JSON file you can import again later.", icon: "file", run: () => exportAs("json") },
+          ...(anythingKept() ? [{ title: "Download all charts", text: "One file of them all, folders and all, to import anywhere else.", icon: "download", run: () => downloadAll(), anywhere: true }] : []),
+          { title: "Import charts", text: "A chart's file, several exported together, or all of them from anywhere else.", icon: "upload", run: () => $("import-file").click(), anywhere: true },
           // A choice among a few (a theme, an interval, a scale, a legend): each, the one in effect ticked (typed, it says so).
-          ...THEMES.map(([id, name, icon, text, words]) => ({ title: `Theme: ${name}`, text, words: `theme appearance mode ${words}`, icon, anywhere: true, ...(id === prefs.theme ? { current: true } : { run: () => setTheme(id) }) })),
-          ...(empty ? [] : RANGES.map(([id, label], i) => ({ id, label, i })).filter(({ id }) => presetFits(id)).map(({ id, label, i }) => ({ title: `Show the ${periodOf(id)}`, text: id !== "max" ? "Change the visible range." : FINE.has(chart.index) ? "As far back as fits on the screen (at a day or coarser, all of history), the price scales back on auto." : "All of history, the price scales back on auto.", words: `range period time ${label} ${id === "max" ? "max all whole history everything fit reset autoscale" : PERIODS[id]}`, icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
-          ...INTERVAL_ORDER.map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: supported(id) ? `Redraw every layer at ${INTERVAL_LABEL[id]}.` : `${NO_INTERVAL}.`, words: `timeframe resolution granularity ${INTERVAL_LABEL[id]} ${CADENCE[id]}`, icon: "recent", ...(id === chart.index ? { current: true } : supported(id) ? { run: () => switchInterval(id) } : {}) })),
-          ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string, string][]} */ ([[1, "Logarithmic scale", "log logarithmic"], [0, "Linear scale", "linear"]]).map(([mode, title, words]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, words: `${words} scale axis`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
+          ...THEMES.map(([id, name, icon, text]) => ({ title: `Theme: ${name}`, text, icon, anywhere: true, ...(id === prefs.theme ? { current: true } : { run: () => setTheme(id) }) })),
+          ...(empty ? [] : RANGES.map(([id, label], i) => ({ id, label, i })).filter(({ id }) => presetFits(id)).map(({ id, label, i }) => ({ title: `Show the ${periodOf(id)}`, text: id !== "max" ? "Change the visible range." : FINE.has(chart.index) ? "As far back as fits on the screen (at a day or coarser, all of history), the price scales back on auto." : "All of history, the price scales back on auto.", icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
+          ...INTERVAL_ORDER.map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: supported(id) ? `Redraw every layer at ${INTERVAL_LABEL[id]}.` : `${NO_INTERVAL}.`, icon: "recent", ...(id === chart.index ? { current: true } : supported(id) ? { run: () => switchInterval(id) } : {}) })),
+          ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string][]} */ ([[1, "Logarithmic scale"], [0, "Linear scale"]]).map(([mode, title]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
           ...(empty ? [] : [
-            { title: prefs.belt.on ? "Hide the drawing tools" : "Show the drawing tools", text: prefs.belt.on ? "They show only while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", words: "draw drawing belt toolbar tools annotate", icon: "draw", run: toggleBelt },
-            ...(tool ? [{ title: "Stop drawing", text: `${TOOLS[tool].name}: a press on the chart pans it again.`, words: "draw drawing tool cancel end", icon: tool, kbd: "esc", run: () => setTool("") }] : []),
-            ...(tool && tool !== "text" && !toolKept ? [{ title: "Keep drawing", text: `The ${TOOLS[tool].noun} in hand after each one: draw several, till esc (as a double-click on its tool does).`, words: "keep hold several many more again pin lock tool draw", icon: tool, run: () => setTool(tool, true) }] : []),
-            ...KINDS.filter((kind) => kind !== tool).map((kind) => ({ title: TOOLS[kind].verb, text: kind === "text" ? `${TOOLS[kind].tip}.` : `${TOOLS[kind].tip}: one, then the chart pans again (to draw several, ${TOUCH ? "tap its tool twice" : "double-click its tool"}, or Keep drawing).`, words: `draw drawing annotate annotation ${TOOLS[kind].name} ${TOOLS[kind].noun}${kind === "ruler" ? " measure measuring distance difference percent" : ""}`, icon: kind, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, run: () => setTool(kind) })),
-            { title: "Select drawings", text: `Drag a box around drawings to select them (or ${keyText("⌘")} and drag anytime); esc to stop.`, words: "select drawings box marquee pick several", icon: "select", kbd: "D S", run: () => setSelectingArea(true) },
-            { title: magnifying ? "Stop the magnifier" : "Magnifier", text: magnifying ? "The pointer is the pointer again." : `The chart under the pointer, twice as large${TOUCH ? " (pressed, above the finger)" : ""}; esc to stop.`, words: "magnifier magnify magnifying glass lens loupe closer enlarge zoom", icon: "magnifier", kbd: "D Z", run: () => setMagnifier(!magnifying) },
-            ...(prefs.belt.on ? [{ title: "Dock the drawing tools", text: `On a side of the chart: now the ${prefs.belt.dock}.`, words: "drawing tools belt toolbar dock move side top bottom left right", icon: "draw", keepOpen: true, run: () => pushPage(choicePage("Dock the drawing tools", dockChoices)) }] : []),
-            ...(chart.drawings?.length ? [{ title: drawingsHidden ? "Show the drawings" : "Hide the drawings", text: drawingsHidden ? "Back on the chart." : "The chart as it is, without them (they're kept).", words: "drawings annotations hide show visible clean", icon: drawingsHidden ? "eye" : "eyeOff", kbd: "⇧H", run: () => hideDrawings(!drawingsHidden, true) }] : []),
-            ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, words: "drawings clear delete erase annotations", follows: "remove clear delete erase", icon: "trash", danger: true, run: clearDrawings }] : []),
+            { title: prefs.belt.on ? "Hide the drawing tools" : "Show the drawing tools", text: prefs.belt.on ? "They show only while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", icon: "draw", run: toggleBelt },
+            ...(tool ? [{ title: "Stop drawing", text: `${TOOLS[tool].name}: a press on the chart pans it again.`, icon: tool, kbd: "esc", run: () => setTool("") }] : []),
+            ...(tool && tool !== "text" && !toolKept ? [{ title: "Keep drawing", text: `The ${TOOLS[tool].noun} in hand after each one: draw several, till esc (as a double-click on its tool does).`, icon: tool, run: () => setTool(tool, true) }] : []),
+            ...KINDS.filter((kind) => kind !== tool).map((kind) => ({ title: TOOLS[kind].verb, text: kind === "text" ? `${TOOLS[kind].tip}.` : `${TOOLS[kind].tip}: one, then the chart pans again (to draw several, ${TOUCH ? "tap its tool twice" : "double-click its tool"}, or Keep drawing).`, icon: kind, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, run: () => setTool(kind) })),
+            { title: "Select drawings", text: `Drag a box around drawings to select them (or ${keyText("⌘")} and drag anytime); esc to stop.`, icon: "select", kbd: "D S", run: () => setSelectingArea(true) },
+            { title: magnifying ? "Stop the magnifier" : "Magnifier", text: magnifying ? "The pointer is the pointer again." : `The chart under the pointer, twice as large${TOUCH ? " (pressed, above the finger)" : ""}; esc to stop.`, icon: "magnifier", kbd: "D Z", run: () => setMagnifier(!magnifying) },
+            ...(prefs.belt.on ? [{ title: "Dock the drawing tools", text: `On a side of the chart: now the ${prefs.belt.dock}.`, icon: "draw", keepOpen: true, run: () => pushPage(choicePage("Dock the drawing tools", dockChoices)) }] : []),
+            ...(chart.drawings?.length ? [{ title: drawingsHidden ? "Show the drawings" : "Hide the drawings", text: drawingsHidden ? "Back on the chart." : "The chart as it is, without them (they're kept).", icon: drawingsHidden ? "eye" : "eyeOff", kbd: "⇧H", run: () => hideDrawings(!drawingsHidden, true) }] : []),
+            ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, follows: "remove clear delete erase", icon: "trash", danger: true, run: clearDrawings }] : []),
           ]),
           ...(((layers) => !layers.length ? [] : ((n, hide) => [
-            { title: `${hide ? "Hide" : "Show"} ${n}`, text: layers.map(labelOf).join(", "), words: "selected picked layers hide show visible", icon: hide ? "eyeOff" : "eye", kbd: "H", run: () => layersBatch("hide"), suggested: true },
-            { title: `Duplicate ${n}`, text: "Each copy under its original.", words: "selected picked layers copy duplicate", icon: "duplicate", kbd: "⌘D", run: () => layersBatch("duplicate"), suggested: true },
-            ...chart.panes.filter((pane) => layers.some((layer) => layer.pane !== pane.id)).map((pane) => ({ title: `Move ${n} to pane ${chart.panes.indexOf(pane) + 1}`, text: paneNames(pane), words: "selected picked layers move pane", icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), pane.id) })),
-            ...(chart.panes.length < MAX_PANES ? [{ title: `Move ${n} to a new pane`, text: "A pane of their own, under the others.", words: "selected picked layers move pane new", icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), null), suggested: true }] : []),
-            ...(layers.filter((layer) => !layer.from && layer.type !== "signal").length > 1 ? [{ title: "A cloud between them", ...(((bases) => (bases.length !== 2 ? { text: "A cloud is between two layers." } : fromShort({ type: "cloud", from: bases.map((layer) => layer.id) }) ? { text: `${ONE_SCALE}.` } : { text: "Filled between the two, in the color of the one over.", run: () => layersBatch("cloud"), suggested: true }))(layers.filter((layer) => !layer.from && layer.type !== "signal"))), words: "selected picked layers cloud band envelope fill between shade cross", icon: "cloud" }, ((why) => ({ title: "A trend between them", text: why ? `${why}.` : "On the lowest of them until a price touches it, then on the highest until it touches that.", words: "selected picked layers trend support resistance bound ride", icon: "riding", ...(why ? {} : { run: () => layersBatch("trend") }) }))(fromShort({ type: "trend", from: layers.filter((layer) => !layer.from && layer.type !== "signal").map((layer) => layer.id) }))] : []),
-            { title: `Remove ${n}`, text: "With an Undo.", words: "selected picked layers remove delete", icon: "trash", kbd: "⌫", danger: true, run: () => layersBatch("remove"), suggested: true },
-            { title: "Clear the selection", text: `${n} selected.`, words: "selected picked layers deselect clear", icon: "close", kbd: "esc", run: () => clearLayerPicks(), suggested: true },
+            { title: `${hide ? "Hide" : "Show"} ${n}`, text: layers.map(labelOf).join(", "), icon: hide ? "eyeOff" : "eye", kbd: "H", run: () => layersBatch("hide"), suggested: true },
+            { title: `Duplicate ${n}`, text: "Each copy under its original.", icon: "duplicate", kbd: "⌘D", run: () => layersBatch("duplicate"), suggested: true },
+            ...chart.panes.filter((pane) => layers.some((layer) => layer.pane !== pane.id)).map((pane) => ({ title: `Move ${n} to pane ${chart.panes.indexOf(pane) + 1}`, text: paneNames(pane), icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), pane.id) })),
+            ...(chart.panes.length < MAX_PANES ? [{ title: `Move ${n} to a new pane`, text: "A pane of their own, under the others.", icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), null), suggested: true }] : []),
+            ...(layers.filter((layer) => !layer.from && layer.type !== "signal").length > 1 ? [{ title: "A cloud between them", ...(((bases) => (bases.length !== 2 ? { text: "A cloud is between two layers." } : fromShort({ type: "cloud", from: bases.map((layer) => layer.id) }) ? { text: `${ONE_SCALE}.` } : { text: "Filled between the two, in the color of the one over.", run: () => layersBatch("cloud"), suggested: true }))(layers.filter((layer) => !layer.from && layer.type !== "signal"))), icon: "cloud" }, ((why) => ({ title: "A trend between them", text: why ? `${why}.` : "On the lowest of them until a price touches it, then on the highest until it touches that.", icon: "riding", ...(why ? {} : { run: () => layersBatch("trend") }) }))(fromShort({ type: "trend", from: layers.filter((layer) => !layer.from && layer.type !== "signal").map((layer) => layer.id) }))] : []),
+            { title: `Remove ${n}`, text: "With an Undo.", icon: "trash", kbd: "⌫", danger: true, run: () => layersBatch("remove"), suggested: true },
+            { title: "Clear the selection", text: `${n} selected.`, icon: "close", kbd: "esc", run: () => clearLayerPicks(), suggested: true },
           ])(plural(layers.length, "layer"), layers.some((layer) => !layer.hidden)))(pickedLayers())),
           // The selected drawings, as the picked layers: what the belt does to them.
           ...(((ids) => home || !ids.length ? [] : ((n) => [
-            { title: `Duplicate ${n}`, text: "Each copy beside its original.", words: "selected chosen drawings copy duplicate", icon: "duplicate", kbd: "⌘D", run: () => duplicateDrawings(ids), suggested: true },
-            { title: `Remove ${n}`, text: "With an Undo.", words: "selected chosen drawings remove delete erase", icon: "trash", kbd: "⌫", danger: true, run: () => removeDrawings(ids), suggested: true },
-            { title: "Clear the selection", text: `${n} selected.`, words: "selected chosen drawings deselect clear", icon: "close", kbd: "esc", run: () => chooseDrawings([]), suggested: true },
+            { title: `Duplicate ${n}`, text: "Each copy beside its original.", icon: "duplicate", kbd: "⌘D", run: () => duplicateDrawings(ids), suggested: true },
+            { title: `Remove ${n}`, text: "With an Undo.", icon: "trash", kbd: "⌫", danger: true, run: () => removeDrawings(ids), suggested: true },
+            { title: "Clear the selection", text: `${n} selected.`, icon: "close", kbd: "esc", run: () => chooseDrawings([]), suggested: true },
           ])(plural(ids.length, "drawing")))([...chosen])),
-          ...(empty ? [] : [{ title: chart.halvings ? "Hide the halvings" : "Show the halvings", text: chart.halvings ? "The lines at each halving, off this chart." : "A line at each halving, and at the next three, estimated.", words: "halving halvings epoch cycle reward vertical lines markers", icon: "halvings", run: toggleHalvings }]),
-          ...(empty ? [] : LEGENDS.map(([id, text, tip]) => ({ title: `Legend: ${text}`, text: `${tip}.`, words: `legend names values strip caption ${{ off: "hide none no", "": "on show follow" }[id]}`, icon: "legend", ...(id === (chart.legend ?? "") ? { current: true } : { run: () => setLegend(id) }) }))),
-          ...(empty && !fullOn() ? [] : [{ title: fullOn() ? "Exit full screen" : "Full screen", text: "The chart alone, on the whole screen.", words: "fullscreen full screen focus maximize expand zen present", icon: fullOn() ? "shrink" : "expand", kbd: "⇧F", run: () => setFull() }]),
-          { title: prefs.linkView ? "Unlink the view" : "Link the view", text: prefs.linkView ? "Each chart back on its own view; this one stays as it is." : "Every chart on the same dates, in every tab: moving the view moves it for all.", words: "link sync lock same dates view range window period compare every all charts tabs", icon: "chain", kbd: "V", run: () => linkView(!prefs.linkView) },
-          ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", words: "layers inspector settings", icon: "panel", kbd: "P", run: () => togglePanel() }]),
-          ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your Library and the presets, beside the chart.", words: "sidebar charts library navigation", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
-          { title: "Studio's version", text: `${studioVersion ? `v${studioVersion}` : "Not said yet"}: Studio comes with Bitview, at its version.`, words: "about version build release updated server bitview", icon: "recent", run: () => notice(studioVersion ? `Bitview Studio v${studioVersion}` : "The server hasn't said its version yet"), anywhere: true },
-          ...(!keyboard() ? [] : [{ title: "Shortcuts", text: "Every key Bitview Studio answers to.", words: "keyboard keys help hotkeys", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
-          ...(!keyboard() ? [] : [true, false].map((on) => ({ title: `Single-key shortcuts: ${on ? "On" : "Off"}`, text: on ? "A letter, a digit or a sign alone acts (A adds a series, P the panel…)." : `Only shortcuts with ${keyText("⌘")} or ${keyText("⌥")} act: typing a letter by mistake does nothing.`, words: "single key keys keyboard shortcuts letters hotkeys accessibility disable enable turn", icon: "keyboard", anywhere: true, ...(prefs.keys === on ? { current: true } : { run: () => setSingleKeys(on) }) }))),
-          { title: "How links work", text: "A chart is a link: what one holds, and how to write it by hand or have an assistant write it (the guide, here).", words: "about guide docs documentation help link links json api script assistant ai llms", icon: "link", run: showGuide, anywhere: true },
-          libraryUndo() || toastUndo?.mark === revision || (!home && edits.past.length) ? { title: "Undo", text: libraryUndo() ? `${libraryUndo()?.text}.` : toastUndo?.mark === revision ? "What the last toast offered to undo." : "Back one change.", words: "revert back", icon: "undo", kbd: "⌘Z", run: undoLast, anywhere: true } : { title: "Undo", text: "Nothing to undo.", words: "revert back", icon: "undo", anywhere: true },
+          ...(empty ? [] : [{ title: chart.halvings ? "Hide the halvings" : "Show the halvings", text: chart.halvings ? "The lines at each halving, off this chart." : "A line at each halving, and at the next three, estimated.", icon: "halvings", run: toggleHalvings }]),
+          ...(empty ? [] : LEGENDS.map(([id, text, tip]) => ({ title: `Legend: ${text}`, text: `${tip}.`, icon: "legend", ...(id === (chart.legend ?? "") ? { current: true } : { run: () => setLegend(id) }) }))),
+          ...(empty && !fullOn() ? [] : [{ title: fullOn() ? "Exit full screen" : "Full screen", text: "The chart alone, on the whole screen.", icon: fullOn() ? "shrink" : "expand", kbd: "⇧F", run: () => setFull() }]),
+          { title: prefs.linkView ? "Unlink the view" : "Link the view", text: prefs.linkView ? "Each chart back on its own view; this one stays as it is." : "Every chart on the same dates, in every tab: moving the view moves it for all.", icon: "chain", kbd: "V", run: () => linkView(!prefs.linkView) },
+          ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", icon: "panel", kbd: "P", run: () => togglePanel() }]),
+          ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your Library and the presets, beside the chart.", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
+          { title: "Studio's version", text: `${studioVersion ? `v${studioVersion}` : "Not said yet"}: Studio comes with Bitview, at its version.`, icon: "recent", run: () => notice(studioVersion ? `Bitview Studio v${studioVersion}` : "The server hasn't said its version yet"), anywhere: true },
+          ...(!keyboard() ? [] : [{ title: "Shortcuts", text: "Every key Bitview Studio answers to.", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
+          ...(!keyboard() ? [] : [true, false].map((on) => ({ title: `Single-key shortcuts: ${on ? "On" : "Off"}`, text: on ? "A letter, a digit or a sign alone acts (A adds a series, P the panel…)." : `Only shortcuts with ${keyText("⌘")} or ${keyText("⌥")} act: typing a letter by mistake does nothing.`, icon: "keyboard", anywhere: true, ...(prefs.keys === on ? { current: true } : { run: () => setSingleKeys(on) }) }))),
+          { title: "How links work", text: "A chart is a link: what one holds, and how to write it by hand or have an assistant write it (the guide, here).", icon: "link", run: showGuide, anywhere: true },
+          libraryUndo() || toastUndo?.mark === revision || (!home && edits.past.length) ? { title: "Undo", text: libraryUndo() ? `${libraryUndo()?.text}.` : toastUndo?.mark === revision ? "What the last toast offered to undo." : "Back one change.", icon: "undo", kbd: "⌘Z", run: undoLast, anywhere: true } : { title: "Undo", text: "Nothing to undo.", icon: "undo", anywhere: true },
           // The charts picked in the grid: what its bar does.
           ...(home && picked.size ? [
-            ...(picked.size === 1 ? [{ title: `Rename “${titleOf(chartById([...picked][0]) ?? { title: "" })}”`, text: "Its title, typed in place.", words: "rename title picked selected", icon: "pencil", run: () => batch("rename"), anywhere: true }] : []),
-            { title: `Move ${plural(picked.size, "chart")} to folder`, text: "A folder, a new one, or out of theirs.", words: "move folder picked selected", icon: "folder", keepOpen: true, run: () => openPage(folderPage([...picked])), anywhere: true },
-            { title: "Clear the selection", text: plural(picked.size, "chart") + " selected.", words: "deselect clear picked selected", icon: "close", kbd: "esc", run: () => clearPicks(), anywhere: true },
-            { title: `Duplicate ${plural(picked.size, "chart")}`, text: "A copy of each, beside it.", words: "copy picked selected", icon: "duplicate", run: () => batch("duplicate"), anywhere: true },
-            { title: `Download ${plural(picked.size, "chart")}`, text: "One chart file, to import again.", words: "export save json picked selected", icon: "file", run: () => batch("export"), anywhere: true },
-            { title: `Delete ${plural(picked.size, "chart")}`, text: "With an Undo.", words: "remove trash picked selected", icon: "trash", run: () => batch("delete"), anywhere: true, danger: true },
+            ...(picked.size === 1 ? [{ title: `Rename “${titleOf(chartById([...picked][0]) ?? { title: "" })}”`, text: "Its title, typed in place.", icon: "pencil", run: () => batch("rename"), anywhere: true }] : []),
+            { title: `Move ${plural(picked.size, "chart")} to folder`, text: "A folder, a new one, or out of theirs.", icon: "folder", keepOpen: true, run: () => openPage(folderPage([...picked])), anywhere: true },
+            { title: "Clear the selection", text: plural(picked.size, "chart") + " selected.", icon: "close", kbd: "esc", run: () => clearPicks(), anywhere: true },
+            { title: `Duplicate ${plural(picked.size, "chart")}`, text: "A copy of each, beside it.", icon: "duplicate", run: () => batch("duplicate"), anywhere: true },
+            { title: `Download ${plural(picked.size, "chart")}`, text: "One chart file, to import again.", icon: "file", run: () => batch("export"), anywhere: true },
+            { title: `Delete ${plural(picked.size, "chart")}`, text: "With an Undo.", icon: "trash", run: () => batch("delete"), anywhere: true, danger: true },
           ] : []),
-          libraryRedo() || toastRedo?.mark === revision || (!home && edits.future.length) ? { title: "Redo", text: "Forward again.", words: "again forward", icon: "redo", kbd: "⇧⌘Z", run: redoLast, anywhere: true } : { title: "Redo", text: "Nothing to redo.", words: "again forward", icon: "redo", anywhere: true },
+          libraryRedo() || toastRedo?.mark === revision || (!home && edits.future.length) ? { title: "Redo", text: "Forward again.", icon: "redo", kbd: "⇧⌘Z", run: redoLast, anywhere: true } : { title: "Redo", text: "Nothing to redo.", icon: "redo", anywhere: true },
           ...(empty ? [] : [
-            { title: "Zoom in", text: "Closer, around the middle of the view (or its right edge, at the latest).", words: "magnify enlarge nearer", icon: "charts", kbd: "+", run: () => zoom(1 / 1.6) },
-            { title: "Zoom out", text: "Wider, around the middle of the view (or its right edge, at the latest).", words: "wider further shrink", icon: "charts", kbd: "−", run: () => zoom(1.6) },
+            { title: "Zoom in", text: "Closer, around the middle of the view (or its right edge, at the latest).", icon: "charts", kbd: "+", run: () => zoom(1 / 1.6) },
+            { title: "Zoom out", text: "Wider, around the middle of the view (or its right edge, at the latest).", icon: "charts", kbd: "−", run: () => zoom(1.6) },
           ]),
           ...(chart.layers.some((layer) => signalShown(layer)) ? [
-            { title: "Next signal", text: "A signal's next mark, after the middle of the view.", words: "signal mark next forward jump occurrence", icon: "calendar", kbd: ".", run: () => stepSignal(1) },
-            { title: "Previous signal", text: "A signal's last mark, before the middle of the view.", words: "signal mark previous back jump occurrence", icon: "calendar", kbd: ",", run: () => stepSignal(-1) },
+            { title: "Next signal", text: "A signal's next mark, after the middle of the view.", icon: "calendar", kbd: ".", run: () => stepSignal(1) },
+            { title: "Previous signal", text: "A signal's last mark, before the middle of the view.", icon: "calendar", kbd: ",", run: () => stepSignal(-1) },
           ] : []),
-          ...(empty ? [] : [{ title: "Go to a date", text: "A year, a month or a day: the chart shows it.", words: "jump date time when navigate calendar", icon: "calendar", kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }]),
-          { title: "Rename this chart", text: "Its title, typed here.", words: "title name", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
-          ...(!isYours(chart) ? [] : [{ title: "Duplicate this chart", text: "A copy, right under it in your list.", words: "copy clone", icon: "duplicate", run: () => chartPick(chart.id, "duplicate") }]),
-          ...(!isYours(chart) ? [] : [{ title: "Delete this chart", text: "With an Undo.", words: "remove trash", icon: "trash", danger: true, run: () => deleteChart(chart) }]),
+          ...(empty ? [] : [{ title: "Go to a date", text: "A year, a month or a day: the chart shows it.", icon: "calendar", kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }]),
+          { title: "Rename this chart", text: "Its title, typed here.", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
+          ...(!isYours(chart) ? [] : [{ title: "Duplicate this chart", text: "A copy, right under it in your list.", icon: "duplicate", run: () => chartPick(chart.id, "duplicate") }]),
+          ...(!isYours(chart) ? [] : [{ title: "Delete this chart", text: "With an Undo.", icon: "trash", danger: true, run: () => deleteChart(chart) }]),
           ...(chart.preset === undefined || presetIndex(chart) < 0 ? [] : [
-            { title: "Save a copy of this preset", text: `${titleOf(chart)}: a copy of it, as it is, in your Library, opened.`, words: "copy preset save keep mine duplicate", icon: "duplicate", run: () => copyPreset(presetIndex(chart)) },
-            ...(presetEdited(chart) ? [{ title: "Reset this preset", text: "As the preset is: your edits to it let go of, with an Undo.", words: "reset preset revert original undo edits", icon: "undo", run: () => resetPreset(chart) }] : []),
+            { title: "Save a copy of this preset", text: `${titleOf(chart)}: a copy of it, as it is, in your Library, opened.`, icon: "duplicate", run: () => copyPreset(presetIndex(chart)) },
+            ...(presetEdited(chart) ? [{ title: "Reset this preset", text: "As the preset is: your edits to it let go of, with an Undo.", icon: "undo", run: () => resetPreset(chart) }] : []),
           ]),
-          ...(chart.layers.some((layer) => layer.hidden) ? [{ title: "Show every layer", text: "The hidden ones too.", words: "unhide visible all", icon: "eye", run: showEvery }] : []),
+          ...(chart.layers.some((layer) => layer.hidden) ? [{ title: "Show every layer", text: "The hidden ones too.", icon: "eye", run: showEvery }] : []),
           ...(chart.panes.length > 1 ? [
-            ...PANE_HEIGHTS.map(({ label, text, words, set }) => ({ title: label, text: `${text}.`, words, icon: "pane", run: () => setPaneHeights(set) })),
+            ...PANE_HEIGHTS.map(({ label, text, set }) => ({ title: label, text: `${text}.`, icon: "pane", run: () => setPaneHeights(set) })),
           ] : []),
         ]).filter((command) => !home || command.anywhere);
       }
@@ -27779,14 +27726,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const words = query.toLowerCase().split(/\s+/).filter(Boolean);
         // Adding or replacing a series, only series are found: nothing else is built, to be dropped later.
         const everything = !palette.adding && !palette.replacing;
-        // A command leads only when the first word typed starts its name or one of its keywords ("export", "share");
-        // otherwise ("hash rate" in a template's name) it follows the series, which is what people search for.
-        // One of many of a kind (an interval) leads only by its own name ("weekly", "1w"); by the kind ("interval"), the
-        // page that has them all, the one in effect checked, does.
-        const leads = (command) => (command.follows ?? `${command.title.split(/[\s:]/)[0]} ${command.words ?? ""}`).toLowerCase().split(/\s+/).some((word) => word.startsWith(words[0]));
-        const found = !everything ? [] : rank(commands().map((command) => ({ kind: "command", key: command.title, command, group: "Commands" })), (item) => `${item.command.title} ${item.command.words ?? ""}`, words);
-        // (Of those leading, a title starting with it first, "delete" Delete this chart; a keyword's after; one that
-        // destroys, by a keyword alone, last.)
+        // A command leads only when the first word typed starts a word of its name ("download", "share"); otherwise (a word
+        // of its description alone) it follows the series, which is what people search for. One of many of a kind (an
+        // interval) leads only by its own name ("weekly", "1w"); by the kind ("interval"), the page that has them all, the
+        // one in effect checked, does.
+        const leads = (command) => (command.follows ?? command.title).toLowerCase().split(/[^a-z0-9%×.]+/).some((word) => word.startsWith(words[0]));
+        const found = !everything ? [] : rank(commands().map((command) => ({ kind: "command", key: command.title, command, group: "Commands" })), (item) => `${item.command.title} ${item.command.text ?? ""}`, words);
+        // (Of those leading, a title starting with it first, "delete" Delete this chart; an interval's by its own name
+        // after; one that destroys, so, last.)
         const titled = (/** @type {Command} */ command) => command.title.toLowerCase().startsWith(words[0]), ahead = found.filter((item) => leads(item.command));
         const strong = [...ahead.filter((item) => titled(item.command)), ...ahead.filter((item) => !titled(item.command) && !item.command.danger), ...ahead.filter((item) => !titled(item.command) && item.command.danger)].slice(0, 6), weak = found.filter((item) => !leads(item.command)).slice(0, 6);
         // Charts that match come before the series: a chart's title is a few words, matched, it's what's looked for.
@@ -27795,30 +27742,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const chartsFound = !everything ? [] : rank([...listedPreviews(), ...library.charts].map((doc) => ({ kind: "chart", key: doc.id, group: "Charts" })), rowText, words);
         const charts = allOf(chartsFound.filter((item) => home || item.key !== chart.id), "Charts", "charts found", chartsPage, chartsFound.length);
         // The presets (once read), after yours: a few that match; all of them on their own page.
-        const presetRows = !everything || !presets ? [] : allOf(rank(presetsMatching(words, 60).map((i) => ({ ...presetRow(i, true), group: "Presets" })), rowText, words), "Presets", "presets found", () => presetsPage([]), undefined, 60);
+        const presetRows = !everything || !presets ? [] : allOf(presetsMatching(words, 60).map((i) => ({ ...presetRow(i, true), group: "Presets" })), "Presets", "presets found", () => presetsPage([]), undefined, 60);
         // This chart's own: the ways in, its layers and panes, by name, series or formula; then any of their settings and
         // actions, by what they're of and what they are ("price color", "mvrv base").
-        // (The chart's settings, made once a search: its rows and the changes typed whole read the same ones.)
+        // (The chart's settings, made once a search.)
         const settings = everything && !home ? settingRows() : [];
-        const own = !everything ? [] : home ? rank(browseRows(), wayText, words) : [
-          ...rank(browseRows(), wayText, words),
+        const own = !everything ? [] : home ? rank(browseRows(), rowText, words) : [
+          ...rank(browseRows(), rowText, words),
           ...rank(chart.layers.map((layer) => ({ ...layerRow(layer), group: "Layers" })), rowText, words),
           ...rank(chart.panes.map((pane, i) => ({ ...paneRow(pane.id, i), group: "Panes" })), rowText, words),
           // (A setting by a word of its own, not its owner's alone: "mvrv" is the layer's row, "mvrv color" its color.)
-          ...rank(settings.filter((row) => words.some((typed) => typed.length > 1 && !FILLER.has(typed) && fitScore(row.itself, [typed]))), wayText, words).slice(0, 4),
+          ...rank(settings.filter((row) => words.some((typed) => typed.length > 1 && fitScore(row.itself, [typed]))), wayText, words).slice(0, 4),
         ];
-        // A setting with its value after it ("price color orange"), and a date ("go to 2021", or just "nov 2021"): the
-        // change itself, on top.
-        const direct = everything && !home ? directRows(query, settings) : [], named = direct.filter((row) => row.named), unnamed = direct.filter((row) => !row.named);
-        const span = everything && !home && chart.layers.length ? readDate(query.replace(/^(go ?to|jump( to)?)\s+/i, "")) : null;
+        // A date ("go to 2021", or just "nov 2021"): going there, on top.
+        const span = everything && !home && chart.layers.length ? readDate(query.replace(/^go ?to\s+/i, "")) : null;
         // (A formula typed here, not a date: one that reads, of this chart's layers, all there; added as a layer, first,
         // as ⌘K's formula row adds it. A search with a dash in it stays a search.)
         const asFormula = everything && !home && !span && isOwnFormula(query.trim()) ? [{ kind: "formula", key: "formula", group: "Formula" }] : [];
         const dated = span && !outOfData(span) ? [{ kind: "row", key: "go-to-date", icon: ICONS.calendar, label: `Go to ${span.label}`, group: "Go to", verb: "Go", run: () => goToDate(span), preview: (/** @type {HTMLElement} */ panel) => previewDate(panel, span) }] : [];
-        // (The add page's other layers: first where what's typed starts their name, "clo"; else after the series, "ratio".)
+        // (The add page's other layers: first where what's typed starts their name, "clo"; else after the series, "layers".)
         const others = palette.adding && !palette.path.length ? rank(otherLayerRows(), rowText, words) : [];
         const leading = others.filter((row) => row.label.toLowerCase().startsWith(words[0])), trailing = others.filter((row) => !leading.includes(row));
-        const local = [...leading, ...asFormula, ...named, ...dated, ...strong, ...unnamed, ...own, ...charts, ...presetRows, ...trailing], more = weak.map((item) => ({ ...item, group: "More commands" }));
+        const local = [...leading, ...asFormula, ...dated, ...strong, ...own, ...charts, ...presetRows, ...trailing], more = weak.map((item) => ({ ...item, group: "More commands" }));
         palette.moved = false;
         // What matched here, while the series are looked for: at once when bitview.space answers; on this machine they
         // come back within a frame or two and show with the rest, so it shows only if they're slow.
@@ -27843,16 +27788,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         searchSeries(query.replace(/^add\s+(?=\S)/i, ""), (names) => {
           if (!names) return [...local, ...more];
           // (Series named as typed, by the starts of their names' words: this chart's own rows, its three best, before them,
-          // not a screen of them, a value alone's change after them; unless the person's moved to a row already.)
+          // not a screen of them; unless the person's moved to a row already.)
           const typedParts = words.flatMap((typed) => typed.split("_")).filter(Boolean);
           const seriesByName = !palette.moved && names.some((name) => typedParts.every((typed) => name.split("_").some((part) => part.startsWith(typed))));
-          const valueAlone = seriesByName ? unnamed.filter((row) => row.alone) : [], directRest = unnamed.filter((row) => !valueAlone.includes(row));
           // (A series typed whole, by its id as pasted from the API or by its name as listed, "thermo cap": that series
           // first, ↵ adds it; the rest where they'd be.)
           const whole = query.trim().toLowerCase().replace(/^add\s+(?=\S)/, "").replace(/\s+/g, " ");
           const exact = names.find((name) => isSeriesName(name) && (name === whole || humanize(name).toLowerCase() === whole));
           const series = names.filter((name) => isSeriesName(name) && name !== exact).map((name) => ({ kind: "series", key: name, name, group: exact ? "More series" : "Series" }));
-          const rows = [...(exact ? [{ kind: "series", key: exact, name: exact, group: "Series" }] : []), ...leading, ...asFormula, ...named, ...dated, ...strong, ...directRest, ...(seriesByName ? own.slice(0, 3) : own), ...charts, ...presetRows, ...series, ...valueAlone, ...trailing, ...more];
+          const rows = [...(exact ? [{ kind: "series", key: exact, name: exact, group: "Series" }] : []), ...leading, ...asFormula, ...dated, ...strong, ...(seriesByName ? own.slice(0, 3) : own), ...charts, ...presetRows, ...series, ...trailing, ...more];
           return rows.length || !everything ? rows : browseInstead();
         }, landing);
       }
@@ -28587,18 +28531,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * in effect (ticked); `disabled`: why it can't act (said when pressed); `danger` marks it (red); `apart` sets it off
        * in a menu (a rule before it), as a new `group` does (in ⌘K, its heading).
        * @typedef {{ label: string, aside?: string, mono?: boolean, kbd?: string, icon?: string, run?: () => void, page?: () => Page, leads?: boolean, stay?: boolean, danger?: boolean, current?: boolean, disabled?: string, apart?: boolean, verb?: string, key?: string, group?: string, preview?: (panel: HTMLElement) => void, look?: (doc: Chart) => void }} Action
-       * @typedef {{ title: string | (() => string), placeholder?: string, rows: () => any[], options?: () => Action[], input?: { value: string, placeholder: string, read: (text: string) => string | null, hint: string | ((text: string) => string), verb: string, icon?: string, apply: (text: string) => void, set: (text: string) => void, preview?: (panel: HTMLElement, text: string) => void }, query?: string, landOn?: string | null, searches?: boolean, global?: boolean }} Page
+       * @typedef {{ title: string | (() => string), placeholder?: string, rows: () => any[], options?: () => Action[], input?: { value: string, placeholder: string, read: (text: string) => string | null, hint: string | ((text: string) => string), verb: string, icon?: string, apply: (text: string) => void, preview?: (panel: HTMLElement, text: string) => void }, query?: string, landOn?: string | null, searches?: boolean, global?: boolean }} Page
        */
       const pageTitle = (/** @type {Page} */ page) => (typeof page.title === "function" ? page.title() : page.title);
-      /** What else a setting is called, for the search: "rename" finds a name, "sma" a formula from a layer, "resize" a height. */
-      const SYNONYMS = {
-        title: "rename name", name: "rename label", series: "replace swap change other", solo: "solo alone only isolate", derive: "moving average sma ema smooth bands percentile median deviation zscore transform", "to-formula": "convert transform", "to-series": "convert", format: "format",
-        type: "line area bars histogram baseline candles dots style", color: "colour", "color-below": "colour", dash: "dashed dotted stroke", shape: "steps curved smooth",
-        fill: "area", width: "thickness stroke", opacity: "transparency alpha", pane: "move", side: "left right", "price-line": "last value",
-        base: "zero", levels: "horizontal lines threshold", hide: "visible show eye", remove: "delete", duplicate: "copy clone",
-        interval: "timeframe resolution", range: "zoom period", export: "download png csv json image", share: "link url",
-        scale: "log linear percent indexed", start: "ends ray reach extended arrow beginning", end: "ends ray reach extended arrow project future", text: "words label note write", size: "font bigger smaller", stack: "stacked cumulative sum share total", height: "size resize", up: "swap reorder", down: "swap reorder", "go-to": "jump date when",
-      };
       /** Edits from one word to another (a letter added, dropped, changed, two swapped), stopping past `most`. */
       function editsBetween(a, b, most) {
         if (Math.abs(a.length - b.length) > most) return most + 1;
@@ -28614,8 +28549,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return row[b.length];
       }
-      /** Words that say nothing of what's looked for, in a search of several ("move to pane", "the price color"). */
-      const FILLER = new Set(["a", "an", "the", "to", "of", "in", "on", "for", "and", "my", "into", "with", "at", "by"]);
       /**
        * How well what's typed finds a text, word by word: a whole word, a word's start, inside one, or (from four letters)
        * a word of its `name` a letter or two off (a slip in what it's called, not in what's said of it: "light" isn't
@@ -28638,7 +28571,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (best === 4) break;
           }
           if (!best && word.length >= 3 && lower.includes(word)) best = 2;
-          if (!best && words.length > 1 && FILLER.has(word)) continue;
           if (!best) return 0;
           total += best;
         }
@@ -28650,10 +28582,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const nameOf = (/** @type {any} */ item) => (item.kind === "chart" ? titleOf(chartById(item.key) ?? { title: "" }) : item.command?.title ?? item.label ?? "");
       /** What's found, best first, then what's used most lately, then as listed (what removes, only when asked for). */
       const rank = (list, textOf, words) => list.map((item, i) => /** @type {[any, number, number]} */ ([item, fitScore(textOf(item), words, nameOf(item)), i])).filter(([, score]) => score > 0).sort((a, b) => b[1] - a[1] || useScore(b[0].key) - useScore(a[0].key) || a[2] - b[2]).map(([item]) => item);
-      /** What a row is found by: its label, its aside, its words, what else it's called; a chart, by its title. */
-      const rowText = (item) => (item.kind === "chart" ? titleOf(chartById(item.key) ?? { title: "" }) : `${item.label ?? ""} ${item.aside ?? ""} ${item.words ?? ""} ${SYNONYMS[item.key] ?? ""}`);
+      /** What a row is found by: what it shows (its label, its aside, a layer's letter); a chart, by its title. */
+      const rowText = (item) => (item.kind === "chart" ? titleOf(chartById(item.key) ?? { title: "" }) : `${item.label ?? ""} ${item.aside ?? ""} ${item.letter ?? ""}`);
       /** A way in, by what it is, not what it shows at its end (the chart's title: the chart's own row has it). */
-      const wayText = (item) => `${item.label ?? ""} ${item.words ?? ""} ${SYNONYMS[item.key] ?? ""}`;
+      const wayText = (item) => item.label ?? "";
       /** Into a page: what was typed, and the row that led there, come back with ⌫. @param {Page} page */
       function pushPage(page, turn = true) {
         const from = palette.pages.at(-1) ?? palette.root;
@@ -28784,7 +28716,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * shows what a value would make of it.
        */
       function choicePage(title, options, preview = /** @type {any} */ (null)) {
-        return { title, options, rows: () => options().map((option) => ({ kind: "row", verb: "Choose", ...(preview ? { preview: (panel) => preview(panel, option) } : {}), ...option, apply: option.disabled ? undefined : option.run, stay: true, run: () => {
+        return { title, options, rows: () => options().map((option) => ({ kind: "row", verb: "Choose", ...(preview ? { preview: (panel) => preview(panel, option) } : {}), ...option, stay: true, run: () => {
           const page = palette.pages.at(-1);
           option.run();
           // (One that leads on to a page of its own, a new folder's name, leaves it there.)
@@ -28850,7 +28782,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @returns {Page}
        */
       function inputPage({ title, value, placeholder, read, hint = "", verb = "Set", icon, closes = false, apply, preview }) {
-        return { title, rows: () => [], input: { value, placeholder, read, hint, verb, icon, preview, set: apply, apply: (text) => {
+        return { title, rows: () => [], input: { value, placeholder, read, hint, verb, icon, preview, apply: (text) => {
           apply(text);
           if (palette.pages.length > 1 && !closes) popPage();
           else $("palette").close();
@@ -28931,15 +28863,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The chart's page adds only its settings, as the chart's: its actions are commands already; its title found
         // too. A layer's adds its own: its pane's are the pane's, once.)
         const shared = new Set(chart.layers.map(labelOf).filter((name, i, names) => names.indexOf(name) !== i));
-        /** @type {{ name: string, kind: string, id: string, page: () => Page, only: string[] | null, not: string[] }[]} */
+        /** @type {{ name: string, page: () => Page, only: string[] | null, not: string[] }[]} */
         const owners = [
-          { name: "Chart", kind: `chart ${titleOf(chart)}`, id: "", page: chartPage, only: ["title", "interval", "range"], not: [] },
-          ...chart.layers.map((layer) => ({ name: shared.has(labelOf(layer)) ? `${labelOf(layer)} (${layer.letter})` : labelOf(layer), kind: "layer", id: layer.id, page: () => layerPage(layer.id), only: null, not: ["scale", "stack", "order"] })),
-          ...chart.panes.map((pane, i) => ({ name: `Pane ${i + 1}`, kind: `pane ${chart.layers.filter((layer) => layer.pane === pane.id).map(labelOf).join(" ")}`, id: "", page: () => panePage(pane.id), only: null, not: [] })),
-          ...((names) => (chart.drawings ?? []).map((drawing) => ({ name: /** @type {string} */ (names.get(drawing.id)), kind: "drawing", id: "", page: () => drawingPage(drawing.id), only: null, not: [] })))(drawingNames()),
+          { name: "Chart", page: chartPage, only: ["title", "interval", "range"], not: [] },
+          ...chart.layers.map((layer) => ({ name: shared.has(labelOf(layer)) ? `${labelOf(layer)} (${layer.letter})` : labelOf(layer), page: () => layerPage(layer.id), only: null, not: ["scale", "stack", "order"] })),
+          ...chart.panes.map((pane, i) => ({ name: `Pane ${i + 1}`, page: () => panePage(pane.id), only: null, not: [] })),
+          ...((names) => (chart.drawings ?? []).map((drawing) => ({ name: /** @type {string} */ (names.get(drawing.id)), page: () => drawingPage(drawing.id), only: null, not: [] })))(drawingNames()),
         ];
-        return owners.flatMap(({ name, kind, id, page, only, not }) => page().rows().filter((row) => !row.key.startsWith("layer:") && !row.key.startsWith("add-") && (!only || only.includes(row.key)) && !not.includes(row.key)).map((row) => ({
-          ...row, key: `setting:${name}:${row.key}`, owner: { name, kind: kind.split(" ")[0], id }, group: "In this chart", label: `${name} · ${row.label}`, words: `${name} ${kind} ${row.words ?? ""} ${SYNONYMS[row.key] ?? ""}`, itself: `${row.label} ${row.words ?? ""} ${SYNONYMS[row.key] ?? ""}`, of: row.page ?? (row.choices && (() => choicePage(row.label, row.choices))),
+        return owners.flatMap(({ name, page, only, not }) => page().rows().filter((row) => !row.key.startsWith("layer:") && !row.key.startsWith("add-") && (!only || only.includes(row.key)) && !not.includes(row.key)).map((row) => ({
+          ...row, key: `setting:${name}:${row.key}`, group: "In this chart", label: `${name} · ${row.label}`, itself: row.label, of: row.page,
           page: row.page && (() => {
             const owner = page();
             pushPage(owner);
@@ -28948,99 +28880,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }),
         })));
       }
-      /**
-       * A setting with its value typed after it (or before, or between: "left axis", "price right axis"), as one change to
-       * run: "price color orange", "mvrv base 1", "pane 1 scale log", "interval weekly", "rename BTC cycles"; a value alone
-       * too ("candles"). The other words find the setting (as the search does); the value picks a choice by its name (the
-       * one in effect: none, nothing to change), or is read as the setting's own page reads it. `named`: what it's of named too ("price"), not
-       * only the setting (then a layer's, a pane's, a drawing's leads only after the commands that do).
-       */
-      function directRows(/** @type {string} */ query, /** @type {any[]} */ settings) {
-        const words = query.trim().split(/\s+/);
-        /** How a choice answers to a value: its name exactly, its start, any of its words (a slip allowed). */
-        // (A key that's a number is a place in a list, a scale's "2", never what it's called.)
-        const answer = (option, value) => {
-          const lower = value.toLowerCase(), key = /^\d+$/.test(option.key) ? "" : option.key.toLowerCase();
-          if (option.label.toLowerCase() === lower || key === lower) return 4;
-          if (option.label.toLowerCase().startsWith(lower)) return 3;
-          return Math.min(2, fitScore(`${option.label} ${option.aside ?? ""} ${key}`, lower.split(/\s+/)));
-        };
-        // A value alone ("candles", "dashed", "left"): the change to it where a setting has it as a choice (by its name or
-        // its start, three letters or more; never the one in effect), the selected layer's first.
-        if (words.length === 1) {
-          const value = words[0], mine = layerById(selected), alone = [];
-          if (value.length < 3) return [];
-          for (const row of settings) {
-            const own = row.of?.();
-            if (!own || own.input) continue;
-            // (The one in effect fitting best: nothing to change here; of two fitting as well, the other.)
-            const best = own.rows().filter((option) => option.apply && answer(option, value) >= 3).sort((a, b) => answer(b, value) - answer(a, value) || Number(Boolean(a.current)) - Number(Boolean(b.current)))[0];
-            const first = Boolean(mine) && row.owner.id === mine?.id;
-            if (best && !best.current) alone.push({ first, score: answer(best, value), row: { kind: "row", key: `do:${row.key}:${best.key}`, icon: best.icon ?? row.icon, label: `${row.label} → ${best.label}`, group: "Set", verb: "Set", run: best.apply, look: best.look, preview: best.preview ?? row.preview, named: false, alone: true } });
-          }
-          return alone.sort((a, b) => Number(b.first) - Number(a.first) || b.score - a.score).slice(0, 3).map(({ row }) => row);
-        }
-        const many = words.length > 6;
-        // (The value after the setting's words, the most of them first; then before them; then between.)
-        // (Many words, only a value at their end, after four words at most: those alone, not every run, a pasted page's.)
-        const runs = many ? [1, 2, 3, 4].map((from) => /** @type {[number, number]} */ ([from, words.length])) : words.flatMap((_, from) => words.map((__, to) => /** @type {[number, number]} */ ([from, to + 1]))).filter(([from, to]) => from < to && to - from < words.length);
-        const where = ([from, to]) => (to === words.length ? 0 : from === 0 ? 1 : 2);
-        // (A value not at the end is one a choice is called by, as typed or its start: "left axis", never "pane 2 log".)
-        const splits = runs.sort((a, b) => where(a) - where(b) || (where(a) === 1 ? a[1] - b[1] : b[0] - a[0])).map((run) => /** @type {[string[], string[], boolean]} */ ([[...words.slice(0, run[0]), ...words.slice(run[1])], words.slice(run[0], run[1]), where(run) > 0]));
-        const found = [];
-        for (const row of settings) {
-          if (!row.of) continue;
-          const name = rowText({ ...row, aside: "" }), itself = `${row.label.split(" · ").pop()} ${SYNONYMS[row.key.split(":").pop()] ?? ""}`;
-          // The longest run of words that finds the setting, and a value for it in the rest.
-          /** @type {Page | null} */
-          let page = null;
-          for (const [lead, rest, within] of splits) {
-            const head = lead.map((word) => word.toLowerCase()), value = rest.join(" ");
-            // The words name the setting itself, not only what it's of: "mvrv base 1", not "mvrv 1".
-            const score = fitScore(name, head);
-            if (!score || !head.some((word) => word.length > 1 && fitScore(itself, [word]))) continue;
-            const own = (page ??= row.of());
-            if (own.input) {
-              // (A name's value: what follows the longest run of words finding it, whatever it is; "rename chart Price" is no title.)
-              if (within) continue;
-              const said = namesSomething(value) ? null : own.input.read(value);
-              if (said) found.push({ score, row: { kind: "row", key: `do:${row.key}`, icon: row.icon, label: `${row.label} → ${said.replace(/^(Set|Rename) to /, "")}`, group: "Set", verb: "Set", run: () => own.input?.set(value), preview: row.preview, named: row.owner.kind === "chart" || head.some((word) => fitScore(row.owner.name, [word])) } });
-              break;
-            } else {
-              // (Of two that fit as well, the one not in effect: "move to pane" offers another pane.)
-              const options = own.rows().filter((option) => option.apply);
-              const best = options.map((option) => /** @type {[any, number]} */ ([option, answer(option, value)])).filter(([, fits]) => fits > (within ? 2 : 0)).sort((a, b) => b[1] - a[1] || Number(Boolean(a[0].current)) - Number(Boolean(b[0].current)))[0]?.[0];
-              if (!best) continue;
-              // (The one in effect fitting best: nothing to change, nothing offered, no other reading of the words tried;
-              // its page shows where it is.)
-              if (best.current) break;
-              const named = row.owner.kind === "chart" || head.some((word) => fitScore(row.owner.name, [word]));
-              found.push({ score, row: { kind: "row", key: `do:${row.key}:${best.key}`, icon: best.icon ?? row.icon, label: `${row.label} → ${best.label}`, group: "Set", verb: "Set", run: best.apply, look: best.look, preview: best.preview ?? row.preview, named } });
-            }
-            break;
-          }
-        }
-        return found.sort((a, b) => b.score - a.score).slice(0, 3).map(({ row }) => row);
-      }
-      /** Whether words name something here (a folder, a chart, a layer) or a kind of thing, or start with one ("chart Price"): never a value to set. */
-      function namesSomething(/** @type {string} */ value) {
-        const said = value.trim().toLowerCase(), kinds = ["folder", "folders", "chart", "charts", "layer", "layers", "pane", "panes", "drawing", "drawings", "series"];
-        return kinds.includes(said.split(/\s+/)[0])
-          || library.folders.some((folder) => folder.name.toLowerCase() === said) || library.charts.some((doc) => titleOf(doc).toLowerCase() === said) || chart.layers.some((layer) => labelOf(layer).toLowerCase() === said);
-      }
       /** Adding: what a layer can be besides a series, first on the page (and found by its words). */
       function otherLayerRows() {
         return [
-          { kind: "row", key: "add:formula", icon: ICONS.formula, label: "Formula", aside: "From the layers, by their letters", kbd: "F", preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Formula</h4><p class="description">A layer of its own, written from the others by their letters, with + − × ÷ and functions; or from any series by its name.</p><ul class="contents">${((letters) => [...(letters.length > 1 ? [`${letters[0]} / ${letters[1]}`] : []), `sma(${letters[0] ?? "A"}, 200d)`, `zscore(${letters[0] ?? "A"}, 1y)`, EXAMPLE])(chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter)).map((text) => `<li><code>${escape(text)}</code></li>`).join("")}</ul>`), words: "formula expression math ratio divide combine function", group: "Other layers", other: true, verb: "Add", run: () => addFormula(palette.into) },
+          { kind: "row", key: "add:formula", icon: ICONS.formula, label: "Formula", aside: "From the layers, by their letters", kbd: "F", preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Formula</h4><p class="description">A layer of its own, written from the others by their letters, with + − × ÷ and functions; or from any series by its name.</p><ul class="contents">${((letters) => [...(letters.length > 1 ? [`${letters[0]} / ${letters[1]}`] : []), `sma(${letters[0] ?? "A"}, 200d)`, `zscore(${letters[0] ?? "A"}, 1y)`, EXAMPLE])(chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter)).map((text) => `<li><code>${escape(text)}</code></li>`).join("")}</ul>`), group: "Other layers", other: true, verb: "Add", run: () => addFormula(palette.into) },
           // (A cloud, wherever there are layers (its pane's two edges are two); a trend, from layers.)
           ...(chart.layers.length ? [
-            { kind: "row", key: "add:cloud", icon: ICONS.cloud, label: "Cloud", aside: "Filled between two layers", words: "cloud band fill area between range cross edge", group: "Other layers", other: true, verb: "Add", page: () => cloudPage() },
+            { kind: "row", key: "add:cloud", icon: ICONS.cloud, label: "Cloud", aside: "Filled between two layers", group: "Other layers", other: true, verb: "Add", page: () => cloudPage() },
           ] : []),
           ...(markable(chart).length ? [
-            { kind: "row", key: "add:signal", icon: ICONS.signal, label: "Signal", aside: "Marks where a formula turns up or down", words: "signal mark marker when condition cross crosses above below event alert", group: "Other layers", other: true, verb: "Add", run: () => addSignal() },
+            { kind: "row", key: "add:signal", icon: ICONS.signal, label: "Signal", aside: "Marks where a formula turns up or down", group: "Other layers", other: true, verb: "Add", run: () => addSignal() },
           ] : []),
           ...(cloudable() ? [
-            { kind: "row", key: "add:trend", icon: ICONS.riding, label: "Trend", aside: trendShort() || "Rides two layers, flipped by a third", words: "trend riding above below support resistance", group: "Other layers", other: true, verb: "Add", page: () => trendPage(), ...(trendShort() ? { disabled: trendShort() } : {}) },
+            { kind: "row", key: "add:trend", icon: ICONS.riding, label: "Trend", aside: trendShort() || "Rides two layers, flipped by a third", group: "Other layers", other: true, verb: "Add", page: () => trendPage(), ...(trendShort() ? { disabled: trendShort() } : {}) },
           ] : []),
         ];
       }
@@ -29053,14 +28905,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function browseRows() {
         const any = chart.layers.length > 0;
         return [
-          { key: "page:chart", icon: chartMark(chart), label: titleOf(chart), aside: "This chart", words: "this chart", page: chartPage },
-          { key: "page:charts", icon: ICONS.grid, label: "Open from Library", aside: plural(library.charts.length, "chart"), words: "go to open switch all library list", page: chartsPage },
+          { key: "page:chart", icon: chartMark(chart), label: titleOf(chart), aside: "This chart", page: chartPage },
+          { key: "page:charts", icon: ICONS.grid, label: "Open from Library", aside: plural(library.charts.length, "chart"), page: chartsPage },
           ...(any ? [
-            { key: "page:layers", icon: ICONS.series, label: "Layers", aside: plural(chart.layers.length, "layer"), words: "series formulas edit change style", page: layersPage },
-            { key: "page:panes", icon: ICONS.pane, label: "Panes", aside: plural(chart.panes.length, "pane"), words: "scale height resize swap move", page: panesPage },
-            { key: "page:drawings", icon: ICONS.draw, label: "Drawings", aside: chart.drawings?.length ? plural(chart.drawings.length, "drawing") : "Lines, boxes, text", words: "draw drawings annotations lines shapes text brush", page: drawingsPage },
+            { key: "page:layers", icon: ICONS.series, label: "Layers", aside: plural(chart.layers.length, "layer"), page: layersPage },
+            { key: "page:panes", icon: ICONS.pane, label: "Panes", aside: plural(chart.panes.length, "pane"), page: panesPage },
+            { key: "page:drawings", icon: ICONS.draw, label: "Drawings", aside: chart.drawings?.length ? plural(chart.drawings.length, "drawing") : "Lines, boxes, text", page: drawingsPage },
           ] : []),
-          { key: "page:presets", icon: ICONS.charts, label: "Presets", aside: presets ? plural(presets.length, "chart") : "Loading…", words: "presets templates examples gallery ready made start browse", page: () => presetsPage([]) },
+          { key: "page:presets", icon: ICONS.charts, label: "Presets", aside: presets ? plural(presets.length, "chart") : "Loading…", page: () => presetsPage([]) },
         ].filter((row) => !home || row.key === "page:charts" || row.key === "page:presets").map((row) => ({ kind: "row", group: "Browse", verb: "Open", ...row }));
       }
       /** The previews and your charts, as ⌘K's page: the previews, yours in no folder, then each folder's under its name and those it's in (the sidebar's order); and making more. */
@@ -29154,7 +29006,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ] : []),
             ...addRows("In it"),
             ...(any ? [
-              { key: "share", icon: ICONS.share, label: SHARE, aside: "Its QR code too", words: "share link url copy qr code scan phone", verb: SHEET_SHARE ? "Share" : "Copy", group: "Out of it", run: () => $("share").click() },
+              { key: "share", icon: ICONS.share, label: SHARE, aside: "Its QR code too", verb: SHEET_SHARE ? "Share" : "Copy", group: "Out of it", run: () => $("share").click() },
               { key: "copy-image", icon: ICONS.copy, label: "Copy as image", verb: "Copy", group: "Out of it", run: () => exportAs("copy") },
               { key: "export", icon: ICONS.download, label: "Export", aside: "An image, the data, the chart file", group: "Out of it", page: () => listPage("Export", exportRows) },
             ] : []),
@@ -29179,7 +29031,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const open = () => layerPage(layer.id);
         return {
           kind: "row", key: `layer:${layer.id}`, icon: `${letterChip(layer)}`, label: labelOf(layer),
-          aside: layer.from ? `Between ${fromSpan(layer) || "no layers"}` : layer.series ?? (layer.label ? layer.formula : formulaLine(layer)) ?? "", mono: !layer.from && Boolean(layer.series || layer.label), dim: Boolean(layer.hidden), words: `${layer.letter} layer ${layer.hidden ? "hidden" : ""}`, verb: "Open", page: open,
+          aside: layer.from ? `Between ${fromSpan(layer) || "no layers"}` : layer.series ?? (layer.label ? layer.formula : formulaLine(layer)) ?? "", mono: !layer.from && Boolean(layer.series || layer.label), dim: Boolean(layer.hidden), letter: layer.letter, verb: "Open", page: open,
           actions: () => [{ label: "Open", icon: ICONS.next, kbd: "↵", page: open }, ...open().rows().filter((row) => QUICK.has(row.key))],
           preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id),
         };
@@ -29233,18 +29085,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(layer.type === "signal" ? [
               { key: "ref", icon: ICONS.signal, label: "Marked on", aside: ((ref) => (ref ? labelOf(ref) : "None"))(layerById(layer.ref ?? "")), group: first, page: () => choicePage("Marked on", () => refChoices(id)) },
               { key: "place", icon: glyphSvg(markBody(layer.place, "currentColor")), label: "Shown as", aside: placeName(layer.place ?? "above"), group: first, page: () => choicePage("Shown as", () => MARK_PLACES.map(([place]) => ({ key: place, icon: glyphSvg(markBody(place, "currentColor")), label: placeName(place), current: (now().place ?? "above") === place, run: set((item) => (item.place = place === "above" ? undefined : place)) }))) },
-              { key: "results", icon: ICONS.signal, label: "Results", aside: layer.results ? "On" : "Off", verb: layer.results ? "Turn off" : "Turn on", group: first, stay: true, run: set((item) => (item.results = !item.results || undefined)), choices: () => [true, false].map((on) => ({ key: on ? "on" : "off", icon: ICONS.signal, label: on ? "On" : "Off", current: Boolean(now().results) === on, run: set((item) => (item.results = on || undefined)) })) },
+              { key: "results", icon: ICONS.signal, label: "Results", aside: layer.results ? "On" : "Off", verb: layer.results ? "Turn off" : "Turn on", group: first, stay: true, run: set((item) => (item.results = !item.results || undefined)) },
               { key: "times", icon: ICONS.calendar, label: "Times marked", aside: ((values) => (values ? plural(marksOf(layer, values).length, "time") : undefined))(result?.values), group: first, page: () => timesPage(id) },
             ] : []),
             ...(layer.series ? [
               { key: "copy-name", icon: ICONS.copy, label: "Copy the series name", verb: "Copy", group: first, run: () => copyName(/** @type {string} */ (layer.series)) },
             ] : []),
-            ...(!layer.from && layer.type !== "signal" ? [{ key: "cycles", icon: ICONS.pane, label: "Compare halving cycles", words: "cycles halving compare periods rebase normalize epochs", verb: "Compare", group: first, ...((why) => (why ? { aside: why, disabled: why } : { aside: "Each from its start" }))(unfitHere([cycleFormula(layer, 0)])), run: () => compareCycles(id) }] : []),
+            ...(!layer.from && layer.type !== "signal" ? [{ key: "cycles", icon: ICONS.pane, label: "Compare halving cycles", verb: "Compare", group: first, ...((why) => (why ? { aside: why, disabled: why } : { aside: "Each from its start" }))(unfitHere([cycleFormula(layer, 0)])), run: () => compareCycles(id) }] : []),
             { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: first, page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined), { redraw: "none" })) },
             { key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc || (layer.series && isOhlc(layer.series))).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => retype(item, type)) }))) },
             ...(layer.type === "baseline" || layer.type === "histogram" ? [{ key: "base", icon: ICONS.ruler, label: "Base", aside: format(baseOf(layer), unit), group: "Style", page: () => numberPage({ title: "Base", value: String(baseOf(layer)), fallback: 0, apply: (n) => editById(id, (item) => (item.base = n || undefined)) }) }] : []),
             ...(layer.type === "baseline" ? [lineRow(id, "base", "Base line", "Style")] : []),
-            ...(modesOf(layer).length > 1 ? [{ key: "colors", icon: modeSwatch(layer, colorModeOf(layer)), label: "Colors", aside: modeName(colorModeOf(layer)), words: `colors color way ${modesOf(layer).map((mode) => /** @type {Record<string, string>} */ (MODE_WORDS)[mode] + (mode === "sides" && layer.type === "trend" ? " resistance support" : mode === "sides" && layer.type === "cloud" ? " cross over under crossing" : "")).join(" ")}`, group: "Style", page: () => choicePage("Colors", () => colorModeChoices(id), lookOfChoice) }] : []),
+            ...(modesOf(layer).length > 1 ? [{ key: "colors", icon: modeSwatch(layer, colorModeOf(layer)), label: "Colors", aside: modeName(colorModeOf(layer)), group: "Style", page: () => choicePage("Colors", () => colorModeChoices(id), lookOfChoice) }] : []),
             ...colorSlots(layer).map(([key, label]) => (key === "from"
               ? { key: "color-from", icon: source ? letterChip(source) : ICONS.series, label: "Colors from", aside: source ? labelOf(source) : "", group: "Style", page: () => choicePage("Colors from", () => fromChoices(id), lookOfChoice) }
               : color(key, colorSlots(layer).length > 1 || colorModeOf(layer) === "levels" ? `Color ${label.replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase())}` : "Color"))),
@@ -29255,10 +29107,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               { key: "shape", icon: shapeGlyph(layer.shape ?? "straight"), label: "Shape", aside: SHAPES.find(([shape]) => shape === (layer.shape ?? "straight"))?.[1], group: "Style", page: () => choicePage("Shape", () => SHAPES.map(([shape, text]) => ({ key: shape, icon: shapeGlyph(shape), label: text, aside: shape === "steps" ? "Each value held until the next" : undefined, current: (now().shape ?? "straight") === shape, ...both((item) => (item.shape = shape === "straight" ? undefined : shape)) }))) },
             ] : []),
             ...(layer.type === "area" ? [{ key: "fill", icon: glyph("area"), label: "Fill", aside: layer.fill === "above" ? "From the line up" : "From the line down", verb: layer.fill === "above" ? "Fill down" : "Fill up", group: "Style", stay: true, run: set((item) => (item.fill = item.fill === "above" ? undefined : "above")) }] : []),
-            { key: "price-line", icon: dashGlyph(2, 2), label: "Price line", aside: layer.priceLine ? (layer.type !== "signal" && chart.panes.find((pane) => pane.id === layer.pane)?.stack ? "On, not drawn in a stack" : "On") : "Off", verb: layer.priceLine ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.priceLine = !item.priceLine || undefined)), choices: () => [true, false].map((on) => ({ key: on ? "on" : "off", icon: dashGlyph(2, 2), label: on ? "On" : "Off", current: Boolean(now().priceLine) === on, run: set((item) => (item.priceLine = on || undefined)) })) },
+            { key: "price-line", icon: dashGlyph(2, 2), label: "Price line", aside: layer.priceLine ? (layer.type !== "signal" && chart.panes.find((pane) => pane.id === layer.pane)?.stack ? "On, not drawn in a stack" : "On") : "Off", verb: layer.priceLine ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.priceLine = !item.priceLine || undefined)) },
             { key: "levels", icon: dashGlyph(5, 3), label: "Levels", aside: layer.levels?.length ? `${plural(layer.levels.length, "level")}${((why) => (why ? `, ${why.toLowerCase()}` : ""))(acrossUnfit(chart, layer))}` : "None", group: "Style", page: () => levelsPage(id) },
             { key: "pane", icon: ICONS.pane, label: "Pane", aside: `Pane ${at + 1}`, group: "Layout", page: () => choicePage("Pane", () => paneChoices([id])) },
-            { key: "side", icon: ICONS.axis, label: "Axis", aside: layer.side === "left" ? "Left" : "Right", verb: `To the ${layer.side === "left" ? "right" : "left"}`, group: "Layout", stay: true, run: set((item) => (item.side = item.side === "left" ? "right" : "left")), choices: () => /** @type {const} */ (["left", "right"]).map((side) => ({ key: side, icon: ICONS.axis, label: capitalize(side), current: (now().side === "left" ? "left" : "right") === side, run: set((item) => (item.side = side)) })) },
+            { key: "side", icon: ICONS.axis, label: "Axis", aside: layer.side === "left" ? "Left" : "Right", verb: `To the ${layer.side === "left" ? "right" : "left"}`, group: "Layout", stay: true, run: set((item) => (item.side = item.side === "left" ? "right" : "left")) },
             ...panePage(layer.pane).rows().filter((row) => row.key === "scale" || row.key === "stack" || row.key === "order").map((row) => ({ ...row, group: "Layout" })),
             ...((mates) => [
               ...(mates.indexOf(layer) > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", aside: `Swaps with ${labelOf(mates[mates.indexOf(layer) - 1])}`, verb: "Move", group: "Layout", stay: true, run: () => moveLayer(id, -1) }] : []),
@@ -29472,7 +29324,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function paneRow(id, i) {
         const pane = chart.panes[i], open = () => panePage(id);
         return {
-          kind: "row", key: `pane:${id}`, icon: ICONS.pane, label: `Pane ${i + 1}`, aside: `${paneNames(pane)} · ${paneChip(pane)}${foldedPanes(chart).has(pane.id) ? " · Folded" : sizable(i) ? ` · ${shareOf(i)}%` : ""}`, words: "pane", verb: "Open", page: open,
+          kind: "row", key: `pane:${id}`, icon: ICONS.pane, label: `Pane ${i + 1}`, aside: `${paneNames(pane)} · ${paneChip(pane)}${foldedPanes(chart).has(pane.id) ? " · Folded" : sizable(i) ? ` · ${shareOf(i)}%` : ""}`, verb: "Open", page: open,
           actions: () => [{ label: "Open", icon: ICONS.next, kbd: "↵", page: open }, ...open().rows().filter((row) => !row.key.startsWith("layer:"))],
           preview: (/** @type {HTMLElement} */ panel) => previewPane(panel, id),
         };
