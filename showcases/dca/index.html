@@ -218,7 +218,8 @@
           gap: 16px;
           margin-top: 20px;
 
-          .card.smart {
+          .card.smart,
+          .card.today {
             grid-column: 1 / -1;
           }
         }
@@ -757,6 +758,67 @@
         }
       }
 
+      /* Today: what the smart plan says to do as of the last close, the plan's own dollars; then the levels that would
+         change it. Beside each other on a desk. */
+      .today {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 4px 32px;
+
+        &[hidden] {
+          display: none;
+        }
+
+        @media (min-width: 720px) {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+
+          .head {
+            grid-column: 1 / -1;
+          }
+        }
+
+        .head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .phase {
+          border-radius: 999px;
+          padding: 4px 10px;
+          background: var(--raised);
+          font-size: 13px;
+          font-weight: 600;
+        }
+
+        .act {
+          margin: 12px 0 0;
+          font-size: 32px;
+          font-weight: 700;
+          line-height: 1.1;
+          letter-spacing: -0.03em;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .why {
+          margin: 8px 0 0;
+          font-size: 16px;
+          line-height: 1.4;
+        }
+
+        .when {
+          margin: 8px 0 0;
+          color: var(--soft);
+          font-size: 13px;
+          font-weight: 500;
+        }
+
+        .rows {
+          align-self: end;
+        }
+      }
+
       .rows {
         margin: 14px 0 0;
 
@@ -1258,6 +1320,16 @@
 
           </div>
 
+          <section class="card today" id="today" aria-labelledby="today-title" hidden>
+            <div class="head"><h2 id="today-title">Today</h2><span class="phase" id="today-phase"></span></div>
+            <div class="now">
+              <p class="act" id="today-act">&nbsp;</p>
+              <p class="why" id="today-why">&nbsp;</p>
+              <p class="when" id="today-when">&nbsp;</p>
+            </div>
+            <dl class="rows" id="today-levels" aria-label="What would change it"></dl>
+          </section>
+
           <section class="card smart" id="smart" aria-labelledby="smart-title">
             <div class="words">
               <h2 id="smart-title">Smart vs plain</h2>
@@ -1440,6 +1512,9 @@
          * it comes), and on a floor's day, that share. */
         const WAIT = 0, FLOOR = 1, RETAKE = 2, DCA = 3;
         let phase = new Uint8Array(), share = new Float64Array();
+        /** Per day: the all-time high to then and its day, and the day the phase then began; and the series, by day. */
+        let high = new Float64Array(), highDay = new Int32Array(), began = new Int32Array();
+        let level = (/** @type {number} */ k, /** @type {number} */ d) => NaN;
         /** Its series' first day, for the fine print. */
         let since = 0;
 
@@ -1461,10 +1536,15 @@
           const MEAN = FLOORS.length, MEDIAN = MEAN + 1;
           phase = new Uint8Array(last + 1);
           share = new Float64Array(last + 1);
-          let now = WAIT, high = 0;
+          high = new Float64Array(last + 1);
+          highDay = new Int32Array(last + 1);
+          began = new Int32Array(last + 1);
+          level = at;
+          let now = WAIT, top = 0, topDay = first;
           for (let d = first; d <= last; d++) {
-            const p = price[d], record = d > first && p > high;
-            high = Math.max(high, p);
+            const p = price[d], record = d > first && p > top, was = now;
+            if (p > top) [top, topDay] = [p, d];
+            [high[d], highDay[d]] = [top, topDay];
             // (A new high: waiting again. Waiting, a close at or under the first floor begins the floor; there, the first close
             // above the young coins' capitalized price and its median, both, takes them back, the same day too: all in that
             // day, each saving as it comes after.)
@@ -1475,6 +1555,7 @@
               if (now === FLOOR && p > Math.max(at(MEAN, d), at(MEDIAN, d))) now = RETAKE;
             }
             phase[d] = now;
+            began[d] = d === first || now !== was ? d : began[d - 1];
             if (now === FLOOR) FLOORS.forEach(([, s], k) => p <= at(k, d) && (share[d] = s));
           }
           since = first;
@@ -1502,13 +1583,60 @@
           };
         }
 
+        /**
+         * What it says to do on day `d`, a plan's: what to do, why, and the levels that would change it (each its words,
+         * their detail, its price and how far it is from the day's).
+         * @param {{ cash: number, spend: number, amount: number, next: number, now: number }} plan its savings before the
+         * day's buy, that buy, a saving's amount, its next saving's day after `d`, and the day it is now (the next saving,
+         * on it, is today's).
+         * @returns {{ phase: string, act: string, why: string, levels: [string, string, number][] }}
+         */
+        function today(d, plan) {
+          const p = price[d], line = Math.max(level(FLOORS.length, d), level(FLOORS.length + 1, d)), saved = usd(plan.cash);
+          const allTime = /** @type {[string, string, number]} */ (["Saving again", "a close above the all-time high", high[d]]);
+          const allIn = /** @type {[string, string, number]} */ (["All in", "a close above what young coins paid", line]);
+          if (phase[d] === WAIT) {
+            return {
+              phase: "Waiting",
+              act: "Save, don't buy",
+              why: `Waiting since the all-time high of ${usd(high[d])} on ${dated(highDay[d])}, ${saved} saved so far.`,
+              levels: [["Buying 10% a day", "a close at or under Bedrock's first floor", level(0, d)]],
+            };
+          }
+          if (phase[d] === FLOOR) {
+            const k = FLOORS.reduce((deepest, _, j) => (p <= level(j, d) ? j : deepest), -1);
+            const deeper = k + 1 < FLOORS.length ? [/** @type {[string, string, number]} */ ([FLOORS[k + 1][1] === 1 ? "Buying all of it" : `Buying ${FLOORS[k + 1][1] * 100}% a day`, `a close at or under Bedrock's ${ORDINALS[k + 1]} floor`, level(k + 1, d)])] : [];
+            if (k >= 0 && plan.spend < 0.005) return { phase: "At the floor", act: "Nothing today", why: `The price closed at ${usd(p)}, at or under Bedrock's ${ORDINALS[k]} floor, with nothing saved yet to buy with.`, levels: [...deeper, allIn] };
+            return k < 0
+              ? { phase: "At the floor", act: "Nothing today", why: `The price closed at ${usd(p)}, above Bedrock's first floor; ${saved} saved, for the floors and the reclaim.`, levels: [...deeper, allIn] }
+              : { phase: "At the floor", act: `Buy ${usd(plan.spend)}`, why: `${FLOORS[k][1] * 100}% of the ${saved} saved: the price closed at ${usd(p)}, at or under Bedrock's ${ORDINALS[k]} floor (${usd(level(k, d))}).`, levels: [...deeper, allIn] };
+          }
+          if (phase[d] === RETAKE) {
+            if (plan.spend < 0.005) return { phase: "All in", act: "Nothing today", why: `The price closed at ${usd(p)}, back above what coins younger than six months paid, with nothing saved yet to put in.`, levels: [allTime] };
+            return {
+              phase: "All in",
+              act: `Put in all ${usd(plan.spend)}`,
+              why: `The price closed at ${usd(p)}, back above what coins younger than six months paid: ${usd(level(FLOORS.length, d))} on average, ${usd(level(FLOORS.length + 1, d))} at the median.`,
+              levels: [allTime],
+            };
+          }
+          return {
+            phase: "DCA",
+            act: plan.next === plan.now ? `Buy ${usd(plan.amount)} today` : `Buy ${usd(plan.amount)} on ${dated(plan.next)}`,
+            // (The reclaim: the day before the DCA step began.)
+            why: `Each saving as it comes, since the price took back what young coins paid on ${dated(began[d] - 1)}.`,
+            levels: [allTime],
+          };
+        }
+        const ORDINALS = ["first", "second", "third", "fourth", "fifth"];
+
         /** Its words on the page: its rule, a few words for a plan, and the fine print's line. */
         const words = {
           rule: "The smart plan saves the same dollars and buys from a cycle's floor to its next all-time high. From a high, it waits. From the day the price first closes at or under Bedrock's first floor, each day it closes at or under a floor it buys a tenth of its savings, twice as much at each deeper floor, all of them at the fifth. The first day it closes above what coins younger than six months cost, on average and at the median, it puts in all that's left; then it buys each saving as it comes, until the next high. The plain plan buys the amount each time.",
           plan: "saved, bought from the cycle's floor",
           fine: "Mobile-weighted throughout: each age of coins counted by how likely they are ever to move. Bedrock's floors are the prices at which as many of them would sit in loss as at the 95th, 98th, 99th, 99.5th and 99.9th percentile of their history. The young coins' cost: their capitalized price and median capitalized price. Of the plans from 2017 on of four years, or running to today, it ended ahead of the plain plan in every one; a shorter plan ending in a bull run, its savings still waiting for the next floor, can end far behind. That's three cycles, and any look back is hindsight.",
         };
-        return { prepare, start, words, since: () => since };
+        return { prepare, start, today, words, since: () => since };
       })();
 
       /** A plan day by day over [from, to]: each day's dollars in, bitcoin held and cash; the plain plan or the smart one. */
@@ -1807,8 +1935,41 @@
         writeAddress();
         fillForm();
         tell();
+        advise();
         drawCharts(true);
         drawMap();
+      }
+
+      /** What the smart plan says to do as of the last close (yesterday's while today's day is still open), for this plan
+       * carried to that day: its dollars saved before the day's buy, that buy, and its next saving. */
+      function advise() {
+        $("today").hidden = !comparable;
+        if (!comparable) return;
+        const open = last >= Math.floor((Date.now() - ORIGIN) / DAY), d = open ? last - 1 : last, from = state.from;
+        // (A plan begun by then, carried to that day; one beginning after it, nothing saved yet.)
+        let cash = 0, spend = 0;
+        if (from <= d) {
+          const run1 = run(from, d, state.every, state.amount, true), n = d - from;
+          spend = (run1.held[n] - (n ? run1.held[n - 1] : 0)) * price[d];
+          cash = run1.cash[n] + spend;
+        }
+        const days = buyDays(from, state.every);
+        let next = /** @type {number} */ (days.next().value);
+        while (next <= d) next = /** @type {number} */ (days.next().value);
+        const told = Smart.today(d, { cash, spend, amount: state.amount, next, now: d + 1 });
+        $("today-phase").textContent = told.phase;
+        $("today-act").textContent = told.act;
+        $("today-why").textContent = told.why;
+        $("today-when").textContent = `As of the close on ${dated(d)} (${usd(price[d])}), for ${usd(state.amount)} a ${state.every} saved ${from <= d ? "since" : "from"} ${dated(from)}.`;
+        $("today-levels").replaceChildren(
+          ...told.levels.map(([what, when, at]) => {
+            const row = document.createElement("div"), dt = document.createElement("dt"), dd = document.createElement("dd"), away = (at / price[d] - 1) * 100;
+            dt.append(what, Object.assign(document.createElement("small"), { textContent: when }));
+            dd.append(usd(at), Object.assign(document.createElement("small"), { textContent: `${Math.abs(away).toFixed(1)}% ${away < 0 ? "below" : "above"}` }));
+            row.append(dt, dd);
+            return row;
+          }),
+        );
       }
 
       /** The plan the page leads with in a few words, over the value as of its last day: "$100 a week, saved, bought from the
