@@ -4,10 +4,11 @@
 // `bitviewLaunch.ready`).
 //
 // - In Safari, where a page is added to a home screen: its launch screen, Bitview's orange at the phone's size (iOS's
-//   white else while the app starts), made once the page has loaded.
-// - Launched from there (not a page it goes to after, nor a reload): the same orange over the page from its first frame
-//   (drawn no sooner than 150 ms in, for iOS to hand over to it without a flash of white). Once the page is ready and
-//   on the screen, the orange is Bitview's cube seen up close, which draws back as a camera would (evenly to the eye,
+//   white else while the app starts), made as soon as the page starts, not once it has loaded: added to a home screen
+//   before then, an app would launch white for good.
+// - Launched from there (not a page it goes to after, nor a reload): the same orange over the page from its first frame,
+//   that frame the orange alone (for iOS to hand over to it without a flash of white). Once the page is ready and on
+//   the screen, the orange is Bitview's cube seen up close, which draws back as a camera would (evenly to the eye,
 //   eased in and out) and fades over its second half, never coming to rest, the page sharpening behind it (a layer
 //   blurring what's behind it: iOS's own blur, on its GPU; the page itself never blurred or drawn again). The status
 //   bar orange with it, the page's own after. Then nothing of it is left. Reduced motion: gone at once.
@@ -19,7 +20,7 @@
   // (iOS uses a launch screen only for a page that says it's an app: said here, for every showcase.)
   if (!document.querySelector('meta[name="apple-mobile-web-app-capable"]')) document.head.append(Object.assign(document.createElement("meta"), { name: "apple-mobile-web-app-capable", content: "yes" }));
   if (standalone === false) {
-    addEventListener("load", () => setTimeout(() => {
+    setTimeout(() => {
       const canvas = document.createElement("canvas"), context = canvas.getContext("2d"), link = document.createElement("link");
       canvas.width = Math.round(screen.width * devicePixelRatio);
       canvas.height = Math.round(screen.height * devicePixelRatio);
@@ -29,7 +30,7 @@
       link.rel = "apple-touch-startup-image";
       link.href = canvas.toDataURL("image/png");
       document.head.append(link);
-    }), { once: true });
+    });
   }
   /** Said by a page that waits (`data-wait`): it's ready. Else as it loads. */
   const api = { ready: () => {} };
@@ -41,16 +42,14 @@
     sessionStorage.setItem("bitview-launched", "");
   } catch {}
 
-  // (iOS fades its launch screen out at the page's first frame, of any kind, and one drawn within ~100 ms of the
-  // navigation's start reaches the screen a few frames into that fade: the blank web view shows through, white (seen
-  // on a phone, measured in the iOS 27 Simulator). So nothing is drawn before 150 ms in: held here, ahead of all the
-  // page draws, as hiding the page still makes a frame, an empty one.)
-  while (performance.now() < 150);
   root.dataset.launch = "";
   const top = 2147483600;
   const style = document.createElement("style");
   style.textContent = `
     html[data-launch]::after { content: ""; position: fixed; inset: 0; z-index: ${top}; background: ${ORANGE}; pointer-events: none; animation: bitview-launch-out 450ms ease 6s forwards; }
+    @layer bitview-launch {
+      html[data-launch=""] body, html[data-launch=""] body * { visibility: hidden !important; }
+    }
     html[data-launch="out"]::after { inset: auto; top: 50%; left: 50%; width: 400px; aspect-ratio: 1.26 / 1.4622; translate: -50% -50%; transform-origin: 50% 60.26%; background: var(--bitview-launch-cube) center / 100% 100% no-repeat; animation: none; }
     html[data-launch="out"]::before { content: ""; position: fixed; inset: 0; z-index: ${top - 1}; pointer-events: none; }
     .bitview-launch-bar { position: fixed; inset: 0 0 auto; z-index: ${top + 1}; height: calc(env(safe-area-inset-top) + 12px); background: ${ORANGE}; pointer-events: none; }
@@ -64,6 +63,17 @@
   const gone = () => (delete root.dataset.launch, bar.remove());
   // (Faded by itself, the page never ready: gone.)
   root.addEventListener("animationend", (event) => event.target === root && event.pseudoElement === "::after" && gone());
+  // The page drawn only once a frame of the orange alone is on the screen. iOS fades its launch screen out at the page's
+  // first frame, and a page drawn into that frame makes it reach the screen late, the blank web view showing through
+  // white meanwhile (the home page, in the iOS 27 Simulator: 6 frames, to half white; with it hidden, none, and no hold
+  // before that frame helps further). Hidden, it's laid out all the same, for its scripts to measure; hidden from a
+  // layer, whose !important outranks any page's own visibility, however specific (Trail's scene, Studio's touch
+  // counts). Left on a phone: 2-4 frames to ~10%, the blank web view fading in before even that first frame arrives,
+  // with an orange page background, theme-color or manifest background alike.
+  const shown = new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (root.dataset.launch === "") root.dataset.launch = "page";
+    resolve(undefined);
+  })));
   // The cube, the logo's, in the launch's orange, decoded before it's shown (shown undecoded, a frame of nothing).
   const cube = fetch("/assets/logo/logo.svg").then((response) => response.text()).then(async (text) => {
     const url = `url("data:image/svg+xml,${encodeURIComponent(text.replace(/fill="[^"]*"/, `fill="${ORANGE}"`))}")`, image = new Image();
@@ -78,7 +88,7 @@
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) return gone();
     // (Two frames on: iOS shows a page's first frame late, a motion begun at once would be most of the way through
     // unseen.)
-    cube.then((url) => requestAnimationFrame(() => requestAnimationFrame(() => {
+    Promise.all([cube, shown]).then(([url]) => requestAnimationFrame(() => requestAnimationFrame(() => {
       if (!("launch" in root.dataset)) return;
       root.style.setProperty("--bitview-launch-cube", url);
       root.dataset.launch = "out";
