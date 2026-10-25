@@ -89,7 +89,8 @@
       /* ── One screen of data: the planet and under it the months since 2011; the countries and the latest blocks beside ── */
       .app {
         display: grid;
-        grid-template: "top" "globe" "board" "history" / minmax(0, 1fr);
+        /* (On a phone the months right under the planet: reading one redraws the countries, below them, never above.) */
+        grid-template: "top" "globe" "history" "board" / minmax(0, 1fr);
         gap: 20px;
         padding: 0 var(--gutter) 40px;
 
@@ -483,9 +484,12 @@
           min-width: 0;
         }
 
+        /* (As wide as the longest month, so reading one never moves the row.) */
         output {
+          min-width: 14ch;
           color: var(--ink);
           font-size: 13px;
+          text-align: right;
           white-space: nowrap;
         }
       }
