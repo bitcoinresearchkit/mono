@@ -20845,6 +20845,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let galleryDrawn = "", gallerySpot = "", galleryFound = 0;
       /** A shelf's steps: there only while its row scrolls, each off at its end. @param {HTMLElement} row */
       function shelfSteps(row) {
+        shelfScrolls.set(row, row.scrollLeft);
         fitShelf(row, row.scrollLeft, row.clientWidth, row.scrollWidth);
       }
       /** A shelf a page on (`dir` 1) or back (-1), by whole tiles: the first one there whole at its start. */
@@ -33120,13 +33121,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** The page's scroll. */
       const homeScroll = () => /** @type {HTMLElement} */ (document.querySelector(".home-scroll"));
+      /**
+       * Each shelf's scroll, as it last scrolled (one not in it, new: at its start). Where the page is, read and put back
+       * by it: a shelf out of sight, its scroll read or written, is laid out for it alone, shelf by shelf (back from a
+       * chart: 64 ms at a phone's 4× slower CPU, to write where they were already).
+       * @type {WeakMap<HTMLElement, number>}
+       */
+      const shelfScrolls = new WeakMap();
       /** Where the page is: its scroll, and each shelf's. */
-      const galleryPlace = () => ({ top: homeScroll().scrollTop, rows: Object.fromEntries(all$(".shelf-row", $("home")).map((row) => [shelfKey(row), row.scrollLeft])), shown: galleryShown });
+      const galleryPlace = () => ({ top: homeScroll().scrollTop, rows: Object.fromEntries(all$(".shelf-row", $("home")).map((row) => [shelfKey(row), shelfScrolls.get(row) ?? 0])), shown: galleryShown });
       /** A shelf by what it is (where its name leads, else its name): kept where it was, whatever came before it since. */
       const shelfKey = (/** @type {HTMLElement} */ row) => ((title) => title?.getAttribute("data-place") ?? title?.firstChild?.textContent ?? "")(row.closest(".shelf")?.querySelector(".shelf-title"));
       /** The gallery back where it was (drawn with as much of it as it showed, see popstate). @param {{ top: number, rows: Record<string, number> }} place */
       function placeGallery(place) {
-        for (const row of all$(".shelf-row", $("home"))) row.scrollLeft = place.rows[shelfKey(row)] ?? 0;
+        // (Only those not there already: the rest aren't laid out for it.)
+        for (const row of all$(".shelf-row", $("home"))) {
+          const left = place.rows[shelfKey(row)] ?? 0;
+          if (left !== (shelfScrolls.get(row) ?? 0)) (row.scrollLeft = left), shelfScrolls.set(row, row.scrollLeft);
+        }
         homeScroll().scrollTop = place.top;
       }
 
