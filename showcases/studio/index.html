@@ -24742,18 +24742,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function layersMenu(anchor, point) {
         menuOf(anchor, layersActions(), point);
       }
-      /** What the picked layers do together (a right-click on one of them). @returns {Action[]} */
+      /** What the picked layers do together (a right-click on one of them; ⌘K's commands, see layersCommands). @returns {Action[]} */
       function layersActions() {
         const layers = pickedLayers(), n = plural(layers.length, "layer"), hide = layers.some((layer) => !layer.hidden);
-        const two = layers.filter((layer) => !layer.from && layer.type !== "signal").length >= 2 ? {} : { disabled: "Two layers at least, not made from layers" };
+        const bases = layers.filter((layer) => !layer.from && layer.type !== "signal"), ids = bases.map((layer) => layer.id);
         return [
-          { key: "hide", icon: hide ? ICONS.eyeOff : ICONS.eye, label: `${hide ? "Hide" : "Show"} ${n}`, kbd: "H", run: () => layersBatch("hide") },
-          { key: "duplicate", icon: ICONS.duplicate, label: `Duplicate ${n}`, kbd: "⌘D", ...(chart.layers.length + layers.length > MAX_LAYERS ? { disabled: `A chart holds up to ${MAX_LAYERS} layers` } : {}), run: () => layersBatch("duplicate") },
-          { key: "move", icon: ICONS.pane, label: "Move to pane", page: () => choicePage("Move to pane", () => paneChoices(layers.map((layer) => layer.id))) },
-          { key: "cloud", icon: ICONS.cloud, label: "A cloud between them", ...(((bases) => (bases.length !== 2 ? { disabled: "A cloud is between two layers, not made from layers" } : fromShort({ type: "cloud", from: bases.map((layer) => layer.id) }) ? { disabled: ONE_SCALE } : {}))(layers.filter((layer) => !layer.from && layer.type !== "signal"))), run: () => layersBatch("cloud") },
-          { key: "trend", icon: ICONS.riding, label: "A trend between them", ...(Object.keys(two).length ? two : ((why) => (why ? { disabled: why } : {}))(fromShort({ type: "trend", from: layers.filter((layer) => !layer.from && layer.type !== "signal").map((layer) => layer.id) }))), run: () => layersBatch("trend") },
-          { key: "remove", icon: ICONS.trash, label: `Remove ${n}`, kbd: "⌫", danger: true, run: () => layersBatch("remove") },
+          { key: "hide", icon: hide ? ICONS.eyeOff : ICONS.eye, label: `${hide ? "Hide" : "Show"} ${n}`, text: layers.map(labelOf).join(", "), kbd: "H", run: () => layersBatch("hide") },
+          { key: "duplicate", icon: ICONS.duplicate, label: `Duplicate ${n}`, text: "Each copy under its original.", kbd: "⌘D", ...(chart.layers.length + layers.length > MAX_LAYERS ? { disabled: `A chart holds up to ${MAX_LAYERS} layers` } : {}), run: () => layersBatch("duplicate") },
+          { key: "move", icon: ICONS.pane, label: "Move to pane", text: "One of the others, or a new one.", page: () => choicePage("Move to pane", () => paneChoices(layers.map((layer) => layer.id))) },
+          { key: "cloud", icon: ICONS.cloud, label: "A cloud between them", text: "Filled between the two, in the color of the one over.", ...(bases.length !== 2 ? { disabled: "A cloud is between two layers, not made from layers" } : fromShort({ type: "cloud", from: ids }) ? { disabled: ONE_SCALE } : {}), run: () => layersBatch("cloud") },
+          { key: "trend", icon: ICONS.riding, label: "A trend between them", text: "On the lowest of them until a price touches it, then on the highest until it touches that.", ...(bases.length < 2 ? { disabled: "Two layers at least, not made from layers" } : ((why) => (why ? { disabled: why } : {}))(fromShort({ type: "trend", from: ids }))), run: () => layersBatch("trend") },
+          { key: "remove", icon: ICONS.trash, label: `Remove ${n}`, text: "With an Undo.", kbd: "⌫", danger: true, run: () => layersBatch("remove") },
         ];
+      }
+      /** The icons by their markup: an action's, named as a command names its own. */
+      const iconNames = new Map(Object.entries(ICONS).map(([name, markup]) => [markup, name]));
+      /** The picked layers' actions as ⌘K's commands (one that can't act says why, found, not run), and the selection let go of. @returns {Command[]} */
+      function layersCommands() {
+        if (!layerPicks.size) return [];
+        const commands = layersActions().map((row) => ({ title: row.label, text: row.disabled ? `${row.disabled}.` : row.text ?? "", icon: /** @type {string} */ (iconNames.get(row.icon ?? "")), kbd: row.kbd, danger: row.danger, suggested: true, ...(row.disabled ? {} : row.page ? { keepOpen: true, run: () => pushPage(/** @type {() => Page} */ (row.page)()) } : { run: row.run }) }));
+        return [...commands, { title: "Clear the selection", text: `${plural(pickedLayers().length, "layer")} selected.`, icon: "close", kbd: "esc", run: () => clearLayerPicks(), suggested: true }];
       }
 
       // ── Inspector ─────────────────────────────────────────────────────────────
@@ -27591,17 +27599,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { title: magnifying ? "Stop the magnifier" : "Magnifier", text: magnifying ? "The pointer is the pointer again." : `The chart under the pointer, twice as large${TOUCH ? " (pressed, above the finger)" : ""}; esc to stop.`, icon: "magnifier", kbd: "D Z", run: () => takeUp(magnifying ? "" : "magnifier") },
             ...(prefs.belt.on ? [{ title: "Dock the drawing tools", text: `On a side of the chart: now the ${prefs.belt.dock}.`, icon: "draw", keepOpen: true, run: () => pushPage(choicePage("Dock the drawing tools", dockChoices)) }] : []),
             ...(chart.drawings?.length ? [{ title: drawingsHidden ? "Show the drawings" : "Hide the drawings", text: drawingsHidden ? "Back on the chart." : "The chart as it is, without them (they're kept).", icon: drawingsHidden ? "eye" : "eyeOff", kbd: "⇧H", run: () => hideDrawings(!drawingsHidden, true) }] : []),
-            ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, follows: "remove clear delete erase", icon: "trash", danger: true, run: clearDrawings }] : []),
+            ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, icon: "trash", danger: true, run: clearDrawings }] : []),
           ]),
-          ...(((layers) => !layers.length ? [] : ((n, hide) => [
-            { title: `${hide ? "Hide" : "Show"} ${n}`, text: layers.map(labelOf).join(", "), icon: hide ? "eyeOff" : "eye", kbd: "H", run: () => layersBatch("hide"), suggested: true },
-            { title: `Duplicate ${n}`, text: "Each copy under its original.", icon: "duplicate", kbd: "⌘D", run: () => layersBatch("duplicate"), suggested: true },
-            ...chart.panes.filter((pane) => layers.some((layer) => layer.pane !== pane.id)).map((pane) => ({ title: `Move ${n} to pane ${chart.panes.indexOf(pane) + 1}`, text: paneNames(pane), icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), pane.id) })),
-            ...(chart.panes.length < MAX_PANES ? [{ title: `Move ${n} to a new pane`, text: "A pane of their own, under the others.", icon: "pane", run: () => moveLayers(layers.map((layer) => layer.id), null), suggested: true }] : []),
-            ...(layers.filter((layer) => !layer.from && layer.type !== "signal").length > 1 ? [{ title: "A cloud between them", ...(((bases) => (bases.length !== 2 ? { text: "A cloud is between two layers." } : fromShort({ type: "cloud", from: bases.map((layer) => layer.id) }) ? { text: `${ONE_SCALE}.` } : { text: "Filled between the two, in the color of the one over.", run: () => layersBatch("cloud"), suggested: true }))(layers.filter((layer) => !layer.from && layer.type !== "signal"))), icon: "cloud" }, ((why) => ({ title: "A trend between them", text: why ? `${why}.` : "On the lowest of them until a price touches it, then on the highest until it touches that.", icon: "riding", ...(why ? {} : { run: () => layersBatch("trend") }) }))(fromShort({ type: "trend", from: layers.filter((layer) => !layer.from && layer.type !== "signal").map((layer) => layer.id) }))] : []),
-            { title: `Remove ${n}`, text: "With an Undo.", icon: "trash", kbd: "⌫", danger: true, run: () => layersBatch("remove"), suggested: true },
-            { title: "Clear the selection", text: `${n} selected.`, icon: "close", kbd: "esc", run: () => clearLayerPicks(), suggested: true },
-          ])(plural(layers.length, "layer"), layers.some((layer) => !layer.hidden)))(pickedLayers())),
+          ...layersCommands(),
           // The selected drawings, as the picked layers: what the belt does to them.
           ...(((ids) => home || !ids.length ? [] : ((n) => [
             { title: `Duplicate ${n}`, text: "Each copy beside its original.", icon: "duplicate", kbd: "⌘D", run: () => duplicateDrawings(ids), suggested: true },
@@ -28528,8 +28528,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * An action, a row of a menu or of a ⌘K page: a label, an aside (a current value; `mono` for a name or a formula);
        * a `page` it opens (beside it, in a menu), or what it `run`s (closing ⌘K unless it `stay`s). `current`: the choice
        * in effect (ticked); `disabled`: why it can't act (said when pressed); `danger` marks it (red); `apart` sets it off
-       * in a menu (a rule before it), as a new `group` does (in ⌘K, its heading).
-       * @typedef {{ label: string, aside?: string, mono?: boolean, kbd?: string, icon?: string, run?: () => void, page?: () => Page, leads?: boolean, stay?: boolean, danger?: boolean, current?: boolean, disabled?: string, apart?: boolean, verb?: string, key?: string, group?: string, preview?: (panel: HTMLElement) => void, look?: (doc: Chart) => void }} Action
+       * in a menu (a rule before it), as a new `group` does (in ⌘K, its heading); `text`, what ⌘K says of it as a command.
+       * @typedef {{ label: string, aside?: string, text?: string, mono?: boolean, kbd?: string, icon?: string, run?: () => void, page?: () => Page, leads?: boolean, stay?: boolean, danger?: boolean, current?: boolean, disabled?: string, apart?: boolean, verb?: string, key?: string, group?: string, preview?: (panel: HTMLElement) => void, look?: (doc: Chart) => void }} Action
        * @typedef {{ title: string | (() => string), placeholder?: string, rows: () => any[], options?: () => Action[], input?: { value: string, placeholder: string, read: (text: string) => string | null, hint: string | ((text: string) => string), verb: string, icon?: string, apply: (text: string) => void, preview?: (panel: HTMLElement, text: string) => void }, query?: string, landOn?: string | null, searches?: boolean, global?: boolean }} Page
        */
       const pageTitle = (/** @type {Page} */ page) => (typeof page.title === "function" ? page.title() : page.title);
