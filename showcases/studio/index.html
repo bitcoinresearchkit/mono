@@ -7542,9 +7542,15 @@
         animation-duration: var(--dur-panel);
       }
 
-      /* (The tab bar, live through it: no picture of it as it was, nothing faded.) */
+      /* (The tab bar, live through it: no picture of it as it was, nothing faded; over what moves under it, whatever
+         came first (WebKit puts a picture only the new page has over those both have: the chart's, grown from no card,
+         had hidden it).) */
       ::view-transition-old(tabs) {
         display: none;
+      }
+
+      ::view-transition-group(tabs) {
+        z-index: 1;
       }
 
       ::view-transition-group(tabs),
@@ -8288,7 +8294,19 @@
             color: var(--muted);
             background: none;
             font: 510 10px/12px var(--sans);
-            transition: color var(--fade), background var(--fade), box-shadow var(--fade), translate var(--dur-layout) var(--ease-layout);
+            isolation: isolate;
+            transition: color var(--fade), translate var(--dur-layout) var(--ease-layout);
+
+            /* (Its chip, pressed or lit: a layer of its own, as wide as its place in the bar (`--reach` past it each
+               side, of its width: a tab moved to a wider place, see the Charts page's), growing with it as it moves.) */
+            &::before {
+              content: "";
+              position: absolute;
+              inset: 0 calc(-1 * var(--reach, 0%));
+              z-index: -1;
+              border-radius: inherit;
+              transition: background var(--fade), inset var(--dur-layout) var(--ease-layout);
+            }
 
             > span[data-icon] {
               display: grid;
@@ -8301,7 +8319,7 @@
               stroke-width: 1.35;
             }
 
-            &:active {
+            &:active::before {
               background: var(--press);
             }
 
@@ -8314,6 +8332,11 @@
         /* (The Charts page's three, the bar's width between them: Layers, an open chart's, fades away as the page comes,
            the others moving into thirds of it: moved, not laid out again, smooth whatever the page does meanwhile.) */
         body[data-home] .mobile-bar {
+          /* (Each a quarter of it in a third: its chip the third's width.) */
+          > .tab {
+            --reach: 16.667%;
+          }
+
           > :nth-child(1) {
             translate: 16.667% 0;
           }
@@ -8329,7 +8352,7 @@
 
         #mobile-layers {
           overflow: hidden;
-          transition: color var(--fade), background var(--fade), box-shadow var(--fade), opacity var(--dur-layout) var(--ease-layout), visibility var(--dur-layout) allow-discrete;
+          transition: color var(--fade), translate var(--dur-layout) var(--ease-layout), opacity var(--dur-layout) var(--ease-layout), visibility var(--dur-layout) allow-discrete;
 
           body[data-home] & {
             visibility: hidden;
@@ -8374,9 +8397,12 @@
         body[data-home] #mobile-charts,
         body[data-sheet="panel"] #mobile-layers {
           color: var(--ink);
-          background: var(--press);
 
-          &:active {
+          &::before {
+            background: var(--press);
+          }
+
+          &:active::before {
             background: var(--active);
           }
         }
@@ -8546,7 +8572,12 @@
             translate: 0 -50%;
           }
 
-          /* (A rail: Layers fades away, the others moving down half a tab, centered in it.) */
+          /* (A rail: Layers fades away, the others moving down half a tab, centered in it; each as tall as it was, its
+             chip its own.) */
+          body[data-home] .mobile-bar > .tab {
+            --reach: 0%;
+          }
+
           body[data-home] .mobile-bar > :is(:nth-child(1), :nth-child(2), :nth-child(3)) {
             translate: 0 50%;
           }
