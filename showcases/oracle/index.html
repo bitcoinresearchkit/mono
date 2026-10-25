@@ -204,6 +204,8 @@
       .chart {
         position: absolute;
         inset: 0;
+        /* (Its layers stack among themselves, under the words over it.) */
+        isolation: isolate;
         touch-action: pan-y;
         cursor: crosshair;
 
@@ -213,6 +215,22 @@
           inset: 0;
           width: 100%;
           height: 100%;
+        }
+
+        /* The evidence settles into the page under the words at the top and the foot, the line over it untouched. */
+        &::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          pointer-events: none;
+          background:
+            linear-gradient(color-mix(in srgb, var(--app) 72%, transparent), transparent 34%),
+            linear-gradient(to top, color-mix(in srgb, var(--app) 80%, transparent), transparent 14%);
+        }
+
+        svg {
+          z-index: 2;
         }
       }
 
@@ -509,7 +527,7 @@
         .scrub {
           grid-area: scrub;
           position: relative;
-          height: 34px;
+          height: 50px;
           cursor: pointer;
           touch-action: pan-y;
           user-select: none;
@@ -538,6 +556,20 @@
 
         .scrub-dot {
           fill: var(--answer);
+        }
+
+        .scrub-hover {
+          stroke: var(--soft);
+          stroke-dasharray: 2 3;
+        }
+
+        .scrub-day {
+          stroke: var(--line);
+        }
+
+        .scrub-day-label {
+          fill: var(--faint);
+          font: 10px var(--mono);
         }
       }
 
@@ -1258,6 +1290,8 @@
       let payments = new Map();
       /** Whether a chunk failed to read: the next look tries again. */
       let incomplete = false;
+      /** The days of payments read once they were settled, by their first height: never read again. */
+      const settledDays = new Set();
       /** The live search, the mempool blended in as the next block, with the histogram it scored. @type {Search | null} */
       let liveSearch = null;
 
@@ -1312,11 +1346,11 @@
         draw();
         drawHeat();
         tell(pointed);
-        // (Every block's payments, a day of blocks a request: settled days never change, so caches keep them; a day
-        // that fails keeps what it had, and the next look tries it again.)
+        // (Every block's payments, a day of blocks a request. A day read whole and well under the tip doesn't change,
+        // so it isn't read again; a day that fails keeps what it had, and the next look tries it again.)
         if (!points.length) return;
-        const DAY = 144, chunks = [];
-        for (let start = Math.max(Math.floor(points[0].h / DAY) * DAY, Math.ceil(508_000 / DAY) * DAY); start <= tip; start += DAY) chunks.push(start);
+        const DAY = 144, first = points[0].h, chunks = [];
+        for (let start = Math.max(Math.floor(first / DAY) * DAY, Math.ceil(508_000 / DAY) * DAY); start <= tip; start += DAY) if (!settledDays.has(start)) chunks.push(start);
         const found = await Promise.allSettled(chunks.map((start) => read(`/api/oracle/payments/${start}`)));
         const next = new Map([...payments].filter(([h]) => h >= points[0].h));
         incomplete = false;
@@ -1324,6 +1358,8 @@
           if (r.status !== "fulfilled") return void (incomplete = true);
           for (let h = chunks[i]; h < chunks[i] + DAY; h++) next.delete(h);
           for (const block of r.value.blocks) next.set(block.height, block);
+          // (Read whole once already settled, a day is final: no reorganization reaches it.)
+          if (chunks[i] + DAY <= tip - SETTLE) settledDays.add(chunks[i]);
         });
         payments = next;
         draw();
@@ -1350,6 +1386,8 @@
 
       const chart = $("chart"), canvas = /** @type {HTMLCanvasElement} */ ($("heat")), svg = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("lines")));
       const PAD = { top: 0, right: 0, bottom: 0 };
+      /** Blocks under the tip a day of payments must end to be read once: deeper than a reorganization reaches. */
+      const SETTLE = 6;
       /** How far the week's lowest and highest prices sit from the bottom and top of the screen. */
       const MARGIN = 0.12;
       /** Buckets a bin: the payments' price step, a tenth of the oracle's. */
@@ -1625,6 +1663,8 @@
       /** Which block: its name, the steps, and its place on the week's line. */
       const scrub = $("scrub"), scrubLine = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("scrub-line")));
       const scrubX = (/** @type {number} */ k, /** @type {number} */ w) => 6 + (k / Math.max(1, points.length)) * (w - 12);
+      /** The block under a mouse over the scrub (null: none), shown faintly where a click would go. */
+      let scrubHover = /** @type {number | null} */ (null);
       function drawBlocks() {
         const n = points.length, k = picked === null ? n : points.findIndex((pt) => pt.h === picked), pt = points[k];
         const which = $("which");
@@ -1645,12 +1685,24 @@
         scrub.setAttribute("aria-valuetext", pt ? `Block ${grouped(pt.h)}, ${day(pt.t)} ${clock(pt.t)}: $${grouped(pt.p)}` : "Now");
         const w = scrub.clientWidth, h = scrub.clientHeight;
         if (!n || !w) return;
-        const prices = [...points.map((p) => p.p), ...(live ? [live] : [])], lo = Math.min(...prices), hi = Math.max(...prices);
-        const y = (/** @type {number} */ p) => 4 + (1 - Math.log(p / lo) / Math.log(hi / lo || 1)) * (h - 8);
+        // (The line above, the days below: a tick at each midnight, its date where it fits.)
+        const lineH = h - 18, prices = [...points.map((p) => p.p), ...(live ? [live] : [])], lo = Math.min(...prices), hi = Math.max(...prices);
+        const y = (/** @type {number} */ p) => 4 + (1 - Math.log(p / lo) / Math.log(hi / lo || 1)) * (lineH - 8);
         const path = points.map((p, i) => `${i ? "L" : "M"}${scrubX(i, w).toFixed(1)},${y(p.p).toFixed(1)}`).join("") + (live ? `L${scrubX(n, w).toFixed(1)},${y(live).toFixed(1)}` : "");
+        let days = "", free = 0;
+        for (let i = 1; i < n; i++) {
+          if (new Date(points[i].t * 1000).getDate() === new Date(points[i - 1].t * 1000).getDate()) continue;
+          const dx = scrubX(i, w), label = day(points[i].t);
+          days += `<line class="scrub-day" x1="${dx.toFixed(1)}" x2="${dx.toFixed(1)}" y1="${lineH}" y2="${lineH + 5}"/>`;
+          if (dx >= free && dx + label.length * 6 + 3 <= w) {
+            days += `<text class="scrub-day-label" x="${(dx + 3).toFixed(1)}" y="${h - 2}">${label}</text>`;
+            free = dx + label.length * 6 + 12;
+          }
+        }
         const mx = scrubX(k, w).toFixed(1), my = y(pt?.p ?? live ?? lo).toFixed(1);
+        const ghost = scrubHover === null || scrubHover === k ? "" : `<line class="scrub-hover" x1="${scrubX(scrubHover, w).toFixed(1)}" x2="${scrubX(scrubHover, w).toFixed(1)}" y1="0" y2="${lineH}"/>`;
         scrubLine.setAttribute("viewBox", `0 0 ${w} ${h}`);
-        scrubLine.innerHTML = `<path class="scrub-line" d="${path}"/><line class="scrub-mark" x1="${mx}" x2="${mx}" y1="0" y2="${h}"/><circle class="scrub-dot" cx="${mx}" cy="${my}" r="3.5"/>`;
+        scrubLine.innerHTML = `<line class="scrub-day" x1="0" x2="${w}" y1="${lineH}" y2="${lineH}"/>${days}<path class="scrub-line" d="${path}"/>${ghost}<line class="scrub-mark" x1="${mx}" x2="${mx}" y1="0" y2="${lineH}"/><circle class="scrub-dot" cx="${mx}" cy="${my}" r="3.5"/>`;
       }
       const stepFrom = (/** @type {number} */ by) => {
         const n = points.length, k = picked === null ? n : points.findIndex((pt) => pt.h === picked), to = Math.max(0, Math.min(n, k + by));
@@ -1659,10 +1711,23 @@
       $("earlier").addEventListener("click", () => stepFrom(-1));
       $("later").addEventListener("click", () => stepFrom(1));
       $("now").addEventListener("click", () => choose(null));
-      const pickAt = (/** @type {number} */ clientX) => {
-        const box = scrub.getBoundingClientRect(), n = points.length, k = Math.round(((clientX - box.left - 6) / (box.width - 12)) * n);
-        choose(k >= n ? null : points[Math.max(0, k)]?.h ?? null);
+      const scrubAt = (/** @type {number} */ clientX) => {
+        const box = scrub.getBoundingClientRect(), n = points.length;
+        return Math.max(0, Math.min(n, Math.round(((clientX - box.left - 6) / (box.width - 12)) * n)));
       };
+      const pickAt = (/** @type {number} */ clientX) => {
+        const k = scrubAt(clientX);
+        choose(k >= points.length ? null : points[k]?.h ?? null);
+      };
+      scrub.addEventListener("pointermove", (e) => {
+        if (e.pointerType !== "mouse") return;
+        scrubHover = scrubAt(e.clientX);
+        drawBlocks();
+      });
+      scrub.addEventListener("pointerleave", () => {
+        scrubHover = null;
+        drawBlocks();
+      });
       across(scrub, { move: (e) => pickAt(e.clientX) });
       // (A tap picks too: a touch picks only once it moves across.)
       scrub.addEventListener("click", (e) => pickAt(e.clientX));
@@ -1679,7 +1744,7 @@
       function drawPlate() {
         if (!shownSearch || !most) return;
         const hist = shownSearch.histogram, w = plate.clientWidth, h = plate.clientHeight, center = shownSearch.bin, here = center + shift;
-        const lo = center - SPAN, hi = center + SPAN, strip = 76, base = h - strip - 22, top = 30;
+        const lo = center - SPAN, hi = center + SPAN, strip = 86, base = h - strip - 22, top = 30;
         const x = (/** @type {number} */ b) => ((b - lo) / (hi - lo)) * w;
         let peak = 0;
         for (let b = Math.floor(lo); b < hi; b++) peak = Math.max(peak, hist[b] ?? 0);
@@ -1716,7 +1781,7 @@
         }
         // The fit wherever the fingerprint could be held, across the strip at the bottom, the price it'd say under
         // each peak: the true one, and its echoes at double and half (where $50 payments pass for $100 ones).
-        const s0 = h - strip + 18, s1 = h - 8, fx = (/** @type {number} */ c) => 8 + ((c - center + REACH) / (2 * REACH)) * (w - 16);
+        const s0 = h - strip + 28, s1 = h - 8, fx = (/** @type {number} */ c) => 8 + ((c - center + REACH) / (2 * REACH)) * (w - 16);
         let fit = "";
         {
           const pts = [];
@@ -1810,7 +1875,10 @@
         drawHeat();
       }).observe(chart);
       new ResizeObserver(() => drawPlate()).observe(plate);
-      new ResizeObserver(() => drawBlocks()).observe(scrub);
+      new ResizeObserver(() => {
+        scrubHover = null;
+        drawBlocks();
+      }).observe(scrub);
       matchMedia("(prefers-color-scheme: dark)").addEventListener("change", drawHeat);
       // The fingerprint starts off the price, and fits itself once it's in view.
       shift = still.matches ? 0 : 70;
@@ -1825,19 +1893,29 @@
           setTimeout(() => glideTo(0, 1400), 300);
         }
       }, { threshold: 0.6 }).observe(plate);
-      setInterval(readLive, 10_000);
-      setInterval(showTip, 30_000);
-      // A new tip, or the same height with another block (a reorganization): the week read again, and blocks'
-      // searches (the new tip may be another branch's); a block no longer in the week gives way to now.
-      tipHash = await read("/api/blocks/tip/hash", "text").catch(() => "");
-      setInterval(async () => {
+      /** A new tip, or the same height with another block (a reorganization): the week read again, and blocks'
+       * searches (the new tip may be another branch's); a block no longer in the week gives way to now. */
+      async function readTip() {
         const hash = await read("/api/blocks/tip/hash", "text").catch(() => tipHash);
         if (hash === tipHash && !incomplete) return;
         if (hash !== tipHash) searchAt.clear();
         tipHash = hash;
         await readWeek().catch(() => {});
         choose(picked !== null && points.some((pt) => pt.h === picked) ? picked : null);
-      }, 30_000);
+      }
+      tipHash = await read("/api/blocks/tip/hash", "text").catch(() => "");
+      // Every 10 s, the tip then now: a new block is on the line, its header and the strip in the same look. (The
+      // next look only once this one is done: a slow one is never overtaken.)
+      const look = async () => {
+        try {
+          await readTip();
+          await readLive();
+        } finally {
+          setTimeout(look, 10_000);
+        }
+      };
+      setTimeout(look, 10_000);
+      setInterval(showTip, 30_000);
     </script>
   </body>
 </html>
