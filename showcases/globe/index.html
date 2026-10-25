@@ -5,66 +5,55 @@
     <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="dark" />
-    <meta name="theme-color" content="#04060b" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f2ec" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0a0c0b" />
     <title>Globe · Bitview</title>
     <meta name="description" content="Where Bitcoin's blocks are mined: every block by its mining pool's home country, live on a globe, and how that map has moved since 2011." />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <link rel="apple-touch-icon" href="/assets/favicon/apple-touch-icon.png" />
     <style>
       @font-face {
-        font-family: Inter;
-        src: url("/assets/fonts/InterVariable.woff2") format("woff2");
-        font-weight: 100 900;
-        font-display: swap;
-      }
-
-      @font-face {
         font-family: Lilex;
         src: url("/assets/fonts/Lilex.woff2") format("woff2");
-        font-weight: 500 700;
+        font-weight: 400 700;
         font-display: swap;
       }
 
-      /* Earth from orbit: one night sky, always; the planet's own blues; readouts as an instrument's. */
+      /* The planet as a print: land a field of fine dots in the ink, the countries that mine lit in Bitview's orange as
+         strong as their share, the night a little darker; everything else type and hairlines, as the Oracle's. */
       :root {
-        color-scheme: dark;
-        --app: #04060b;
-        --card: rgb(13 19 33 / 0.62);
-        --well: rgb(255 255 255 / 0.04);
-        --ink: #eef3ff;
-        --text: #c6d0e4;
-        --soft: #8d99b3;
-        --muted: #7d89a3;
-        --faint: #5d6984;
-        --line: rgb(140 170 255 / 0.1);
-        --line-strong: rgb(140 170 255 / 0.18);
-        --hover: rgb(140 170 255 / 0.07);
-        --focus: rgb(180 200 255 / 0.6);
-        --live: #3ccf7c;
-        --sheen: inset 0 1px 0 rgb(255 255 255 / 0.05);
-        --pop: 0 0 0 1px var(--line-strong), 0 16px 40px -12px rgb(0 0 0 / 0.8);
-        --ocean: #0a1426;
-        --land: #1c2740;
-        --border: rgb(4 6 11 / 0.85);
-        --grid: rgb(120 160 255 / 0.07);
-        --glow: rgb(70 130 255 / 0.35);
-        --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
+        color-scheme: light dark;
+        --app: light-dark(#f3f2ec, #0a0c0b);
+        --plate: light-dark(#f8f7f2, #0e1110);
+        --ink: light-dark(#151916, #e3e8e4);
+        --text: light-dark(#2f3631, #b9c2bc);
+        --soft: light-dark(#454d47, #a3ada6);
+        --faint: light-dark(#5f6862, #7b8580);
+        --line: light-dark(rgb(21 25 22 / 0.15), rgb(227 232 228 / 0.13));
+        --grid: light-dark(rgb(21 25 22 / 0.07), rgb(227 232 228 / 0.06));
+        --focus: light-dark(rgb(21 25 22 / 0.6), rgb(227 232 228 / 0.6));
+        --answer: light-dark(rgb(206 82 16), rgb(255 128 52));
         --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
-        --radius: 14px;
+        --gutter: max(20px, env(safe-area-inset-left));
       }
 
-      * {
+      *,
+      *::before,
+      *::after {
         box-sizing: border-box;
+      }
+
+      html {
+        background: var(--app);
+        -webkit-text-size-adjust: 100%;
       }
 
       body {
         margin: 0;
         color: var(--text);
-        background: radial-gradient(1200px 700px at 30% 30%, rgb(40 70 150 / 0.18), transparent 70%), var(--app);
-        background-attachment: fixed;
-        font: 15px/1.55 var(--sans);
-        font-feature-settings: "cv11", "ss01";
+        background: var(--app);
+        font: 450 14px/1.7 var(--mono);
         -webkit-font-smoothing: antialiased;
       }
 
@@ -84,120 +73,25 @@
       }
 
       .num {
-        font-family: var(--mono);
         font-variant-numeric: tabular-nums;
       }
 
-      /* ── Header: the brand and the page's name; the latest block, live ── */
-
-      .top {
-        grid-area: top;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        height: 64px;
-      }
-
-      .brand {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: var(--ink);
-        font-size: 16px;
-        font-weight: 600;
-        letter-spacing: -0.01em;
-
-        img {
-          width: 22px;
-          height: 25.5px;
-        }
-      }
-
-      .crumb {
-        color: var(--faint);
-
-        & + span {
-          margin-right: auto;
-          color: var(--soft);
-        }
-      }
-
-      .tip-height {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        height: 28px;
-        border-radius: 14px;
-        padding: 0 12px;
-        color: var(--soft);
-        box-shadow: inset 0 0 0 1px var(--line-strong);
-        font-size: 13px;
-
-        &[hidden] {
-          display: none;
-        }
-
-        &::before {
-          content: "";
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: var(--live);
-          box-shadow: 0 0 0 3px color-mix(in oklab, var(--live), transparent 80%);
-        }
-
-        b {
-          color: var(--ink);
-          font-weight: 500;
-        }
-      }
-
-      h1 {
+      /* An instrument's labels: small, spaced capitals. */
+      .kicker,
+      .when {
         margin: 0;
-        color: var(--ink);
-        font-size: clamp(36px, 5.6vw, 72px);
-        font-weight: 300;
-        line-height: 1.02;
-        letter-spacing: -0.035em;
-        text-wrap: balance;
+        color: var(--faint);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
       }
 
-      .lede {
-        max-width: 30em;
-        margin: 12px 0 0;
-        color: var(--soft);
-        font-size: clamp(15px, 1.6vw, 17px);
-        text-wrap: pretty;
-      }
-
-      .surface {
-        border-radius: var(--radius);
-        background: var(--card);
-        box-shadow: var(--sheen), 0 0 0 1px var(--line);
-        backdrop-filter: blur(14px);
-      }
-
-      /* ── The hero: the planet across the whole first screen; over it the name, the countries, the latest blocks.
-         A phone: one after another, the planet square. ── */
-
-      .hero {
-        position: relative;
+      /* ── One screen of data: the planet and under it the months since 2011; the countries and the latest blocks beside ── */
+      .app {
         display: grid;
-        grid-template: "top" "text" "globe" "history" "board" / minmax(0, 1fr);
-        gap: 16px;
-        padding: 0 16px 24px;
-
-        .hero-text {
-          grid-area: text;
-        }
-
-        .board {
-          grid-area: board;
-        }
-
-        .history {
-          grid-area: history;
-        }
+        grid-template: "top" "globe" "board" "history" / minmax(0, 1fr);
+        gap: 20px;
+        padding: 0 var(--gutter) 40px;
 
         > canvas {
           grid-area: globe;
@@ -213,114 +107,166 @@
         }
 
         @media (min-width: 1024px) {
-          height: max(680px, 100svh);
-          grid-template: "top top" 64px "text board" auto ". board" minmax(0, 1fr) "history board" auto / minmax(0, 1fr) 360px;
-          gap: 0 32px;
-          padding: 0 32px 24px;
+          height: max(720px, 100svh);
+          grid-template: "top top" 64px "globe board" minmax(0, 1fr) "history board" auto / minmax(0, 1fr) 340px;
+          gap: 0 48px;
+          padding: 0 clamp(24px, 3vw, 48px) 24px;
 
           > canvas {
-            position: absolute;
-            inset: 0;
-            grid-area: auto;
             height: 100%;
+            min-height: 0;
             aspect-ratio: auto;
-          }
-
-          /* (Over the planet: the words let a drag through; the countries and blocks don't.) */
-          > :not(canvas) {
-            position: relative;
-          }
-
-          .hero-text {
-            align-self: start;
-            max-width: min(30rem, 42vw);
-
-            /* (The title in its column's measure: two lines, the planet's middle clear of it.) */
-            h1 {
-              font-size: clamp(40px, 4.6vw, 72px);
-            }
-            padding-top: 40px;
-            pointer-events: none;
-            /* (Where the words cross the planet, a halo of the night keeps them read.) */
-            text-shadow: 0 0 2px var(--app), 0 0 12px var(--app), 0 0 24px var(--app);
+            /* (The planet runs past its box: its top and bottom fade into the page.) */
+            mask-image: linear-gradient(transparent, #000 12%, #000 86%, transparent);
           }
 
           .board {
-            align-self: start;
-            max-height: calc(100% - 24px);
-            margin-top: 24px;
+            min-height: 0;
             overflow-y: auto;
+            scrollbar-width: none;
           }
-
-          .history {
-            margin-top: 0;
-
-            .area {
-              aspect-ratio: auto;
-              height: clamp(64px, 11vh, 112px);
-            }
-          }
-
         }
       }
 
+      .top {
+        grid-area: top;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 64px;
+        font-size: 13px;
+
+        .brand {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          color: var(--ink);
+          font-weight: 600;
+
+          img {
+            width: 22px;
+            height: 22px;
+          }
+        }
+
+        .crumb {
+          color: var(--faint);
+        }
+
+      }
+
+      /* The latest block, live: a dot that breathes beside its height. */
+      .tip-height {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: auto;
+        color: var(--faint);
+
+        &::before {
+          content: "";
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--answer);
+          animation: breathe 2.8s ease-in-out infinite;
+
+          @media (prefers-reduced-motion: reduce) {
+            animation: none;
+          }
+        }
+
+        b {
+          color: var(--ink);
+          font-weight: 500;
+        }
+      }
+
+      .tip-height[hidden] {
+        display: none;
+      }
+
+      @keyframes breathe {
+        50% {
+          opacity: 0.35;
+        }
+      }
+
+      /* (The page's name, in the header: the data is the page. On a phone, read aloud only.) */
+      h1 {
+        margin: 0;
+        color: var(--soft);
+        font-size: inherit;
+        font-weight: inherit;
+        white-space: nowrap;
+
+        @media (max-width: 640px) {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          overflow: hidden;
+          clip-path: inset(50%);
+        }
+      }
+
+      .top .crumb {
+        @media (max-width: 640px) {
+          display: none;
+        }
+      }
+
+      .note {
+        margin: 10px 0 0;
+        color: var(--faint);
+        font-size: 11px;
+      }
+
+      /* ── The board: the period or the month, its countries by blocks, then the latest blocks ── */
       .board {
+        grid-area: board;
         display: flex;
         flex-direction: column;
         min-width: 0;
-        padding: 16px;
       }
 
       .board-head {
         display: flex;
-        flex-wrap: wrap;
         align-items: baseline;
         justify-content: space-between;
-        gap: 8px 16px;
-      }
+        gap: 16px;
 
-      /* (An instrument's readouts: small, spaced capitals.) */
-      .when,
-      .kicker {
-        color: var(--soft);
-        font-family: var(--mono);
-        font-size: 12px;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-      }
-
-      .total {
-        color: var(--muted);
-        font-size: 13px;
+        .total {
+          color: var(--faint);
+          font-size: 12px;
+        }
       }
 
       .periods {
         display: flex;
-        gap: 2px;
-        margin: 12px 0 8px;
-        border-radius: 8px;
-        padding: 2px;
-        background: var(--well);
-        box-shadow: inset 0 0 0 1px var(--line);
+        margin: 12px 0 6px;
+        border: 1px solid var(--line);
 
         button {
           flex: 1;
+          height: 32px;
           border: 0;
-          border-radius: 6px;
-          padding: 5px 0;
-          color: var(--soft);
+          color: var(--faint);
           background: none;
-          font-size: 13px;
+          font-size: 12px;
           cursor: pointer;
+          touch-action: manipulation;
+
+          + button {
+            border-left: 1px solid var(--line);
+          }
 
           &:hover {
             color: var(--ink);
           }
 
           &[aria-pressed="true"] {
-            color: var(--ink);
-            background: var(--card);
-            box-shadow: 0 0 0 1px var(--line-strong), 0 1px 2px rgb(0 0 0 / 0.3);
+            color: var(--app);
+            background: var(--ink);
           }
         }
       }
@@ -331,154 +277,70 @@
         list-style: none;
       }
 
+      /* A country: its name, its blocks, its share; under them its share as a hairline, in the answer's orange. */
       .country {
-        border-top: 1px solid var(--line);
-
-        &:first-child {
-          border-top: 0;
-        }
+        border-bottom: 1px solid var(--line);
 
         > button {
           display: grid;
-          grid-template-columns: 10px minmax(0, 1fr) auto auto;
-          gap: 2px 10px;
-          align-items: center;
+          grid-template-columns: minmax(0, 1fr) auto auto;
+          align-items: baseline;
+          gap: 2px 14px;
           width: 100%;
           border: 0;
-          border-radius: 8px;
-          padding: 9px 6px;
-          text-align: left;
+          padding: 12px 0 10px;
           background: none;
+          text-align: left;
           cursor: pointer;
-
-          &:hover {
-            background: var(--hover);
-          }
-        }
-
-        &.active > button {
-          background: var(--hover);
-          box-shadow: inset 0 0 0 1px var(--line-strong);
-        }
-
-        .swatch {
-          width: 10px;
-          height: 10px;
-          border-radius: 3px;
-          background: var(--color);
         }
 
         .name {
           overflow: hidden;
           color: var(--ink);
-          font-weight: 500;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        .count {
-          color: var(--muted);
-          font-size: 13px;
-        }
-
-        /* (Its hashrate, as its share of the network's says.) */
         .rate {
           margin-left: 8px;
-          color: var(--muted);
+          color: var(--faint);
           font-size: 11px;
-          font-weight: 400;
+        }
+
+        .count {
+          color: var(--faint);
+          font-size: 12px;
         }
 
         .share {
           min-width: 4.5ch;
           color: var(--ink);
-          font-size: 13px;
+          font-size: 18px;
+          font-weight: 500;
+          letter-spacing: -0.03em;
           text-align: right;
         }
 
+        .swatch {
+          display: none;
+        }
+
         .bar {
-          grid-column: 2 / -1;
-          height: 3px;
-          border-radius: 2px;
-          background: linear-gradient(90deg, var(--color) var(--share), var(--line) var(--share));
+          grid-column: 1 / -1;
+          height: 2px;
+          margin-top: 6px;
+          background: linear-gradient(var(--color), var(--color)) 0 0 / var(--share) 100% no-repeat, var(--grid);
         }
 
-        .pools {
-          margin: 0 0 8px 26px;
-          padding: 0;
-          color: var(--soft);
-          font-size: 13px;
-          list-style: none;
-
-          li {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 2px 6px 2px 0;
-          }
+        > button:hover .name,
+        &.active .name {
+          color: var(--answer);
         }
       }
 
-      /* ── History: each country's share by month, a cursor to read one ── */
-
-      /* The history's notes: a word above the month each happened, a line down to it (on two rows, so near ones don't meet). */
-      /* (Each label on a row, and to a side of its line: --anchor 0 starts at it, 0.5 centers on it, 1 ends at it.) */
-      .events {
-        position: relative;
-        height: calc(26px + var(--top, 1) * 18px);
-        margin-top: 12px;
-        color: var(--soft);
-        font-size: 11px;
-
-        span {
-          position: absolute;
-          bottom: calc(6px + var(--row, 0) * 18px);
-          translate: calc(var(--anchor, 0.5) * -100%) 0;
-          white-space: nowrap;
-
-          &::after {
-            content: "";
-            position: absolute;
-            top: 100%;
-            left: calc(var(--anchor, 0.5) * 100%);
-            height: calc(6px + var(--row, 0) * 18px);
-            border-left: 1px dashed var(--soft);
-          }
-        }
-      }
-
-      .kicker {
-        margin: 0 0 8px;
-      }
-
-
-      .history {
-        min-width: 0;
-        padding: 14px 16px 10px;
-      }
-
-      .history-head {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 8px 16px;
-
-        .kicker {
-          margin: 0;
-          font-weight: 400;
-        }
-
-        /* (Beside the title where there's room for it, else its own row.) */
-        .legend {
-          flex: 1 1 24rem;
-        }
-      }
-
-      .legend {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px 14px;
-        margin: 0;
+      /* The pools behind a country, opened. */
+      .pools {
+        margin: -2px 0 10px;
         padding: 0;
         color: var(--soft);
         font-size: 12px;
@@ -486,127 +348,53 @@
 
         li {
           display: flex;
-          align-items: center;
-          gap: 6px;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 2px 0;
+        }
 
-          &::before {
-            content: "";
-            width: 8px;
-            height: 8px;
-            border-radius: 2px;
-            background: var(--color);
-          }
+        .num {
+          color: var(--faint);
         }
       }
 
-      .play {
-        border: 0;
-        border-radius: 8px;
-        padding: 5px 12px;
-        background: var(--well);
-        box-shadow: inset 0 0 0 1px var(--line-strong);
-        font-size: 13px;
-        cursor: pointer;
-
-        &:hover:not(:disabled) {
-          background: var(--hover);
-        }
-
-        /* (Nothing to play yet.) */
-        &:disabled {
-          opacity: 0.45;
-          cursor: default;
-        }
-      }
-
-      .area {
-        position: relative;
-        aspect-ratio: 4;
-        margin-top: 14px;
-        touch-action: pan-y;
-        cursor: crosshair;
-
-        @media (max-width: 600px) {
-          aspect-ratio: 2;
-        }
-
-        svg {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          border-radius: 6px;
-        }
-
-        .cursor {
-          position: absolute;
-          top: -4px;
-          bottom: -4px;
-          border-left: 2px solid var(--ink);
-          pointer-events: none;
-
-          &[hidden] {
-            display: none;
-          }
-        }
-      }
-
-      .years {
-        position: relative;
-        height: 18px;
-        margin-top: 6px;
-        color: var(--muted);
-        font-size: 11px;
-
-        span {
-          position: absolute;
-          translate: -50% 0;
-        }
-      }
-
-      /* ── The latest blocks ── */
-
-      /* The latest blocks: a strip along the planet's foot (two rows of two, on a phone). */
+      /* The latest blocks: a row each, the pool and its home, the height and how long ago. */
       .ticker {
         display: grid;
         gap: 8px;
-        margin-top: 18px;
+        margin-top: 28px;
       }
 
       .latest {
-        display: grid;
-        gap: 6px;
         margin: 0;
         padding: 0;
         list-style: none;
 
-        /* (A block a row: its pool and home on the left, its height and age on the right; the four newest.) */
-        li:nth-child(n + 5) {
-          display: none;
-        }
-
         li {
           display: grid;
-          grid-template-columns: 10px minmax(0, 1fr) auto;
-          gap: 2px 10px;
-          align-items: center;
-          border-radius: 10px;
-          padding: 8px 12px;
-          background: var(--well);
-          box-shadow: 0 0 0 1px var(--line);
+          grid-template-columns: 8px minmax(0, 1fr) auto;
+          gap: 0 12px;
+          align-items: baseline;
+          border-top: 1px solid var(--line);
+          padding: 9px 0;
           font-size: 13px;
 
           /* (A block new to the list, arriving.) */
           &.new {
             animation: arrive 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
           }
+
+          &:nth-child(n + 5) {
+            display: none;
+          }
         }
 
         .swatch {
-          width: 10px;
-          height: 10px;
-          border-radius: 3px;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
           background: var(--color);
+          translate: 0 -1px;
         }
 
         b {
@@ -620,7 +408,8 @@
         .meta {
           grid-column: 2;
           overflow: hidden;
-          color: var(--muted);
+          color: var(--faint);
+          font-size: 12px;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
@@ -632,7 +421,15 @@
           grid-row: 1 / span 2;
           flex-direction: column;
           align-items: flex-end;
-          row-gap: 2px;
+          color: var(--faint);
+          font-size: 12px;
+        }
+      }
+
+      @keyframes arrive {
+        from {
+          opacity: 0;
+          translate: 0 6px;
         }
       }
 
@@ -646,43 +443,215 @@
         white-space: nowrap;
       }
 
-      @keyframes arrive {
-        from {
-          opacity: 0;
-          translate: 0 6px;
+      /* ── How it moved: each country's share month by month since 2011, a row each, one month read across them ── */
+      .history {
+        grid-area: history;
+        min-width: 0;
+        padding-top: 16px;
+        /* (A row: its name, its plot, its share in the month read; the events and years over the plots' column.) */
+        --name: 8.5rem;
+        --value: 3.5rem;
+        --gap: 12px;
+
+        /* (On a phone: narrower names, no event labels (each row shows them), every fourth year.) */
+        @media (max-width: 640px) {
+          --name: 6.5rem;
+          --value: 2.75rem;
+          --gap: 8px;
+
+          .events {
+            display: none;
+          }
+
+          .years span:nth-child(even) {
+            display: none;
+          }
+
+          .area .row {
+            font-size: 11px;
+          }
         }
       }
 
-      .float {
-        position: fixed;
-        z-index: 10;
-        max-width: 260px;
-        border-radius: 10px;
-        padding: 10px 12px;
-        background: var(--card);
-        box-shadow: var(--pop);
-        font-size: 13px;
-        pointer-events: none;
+      .history-head {
+        display: flex;
+        align-items: center;
+        gap: 12px 16px;
 
-        &[hidden] {
-          display: none;
+        h2 {
+          flex: 1;
+          min-width: 0;
         }
 
-        b {
-          display: block;
+        output {
           color: var(--ink);
-          font-weight: 600;
+          font-size: 13px;
+          white-space: nowrap;
+        }
+      }
+
+      .play {
+        height: 28px;
+        border: 1px solid var(--line);
+        padding: 0 12px;
+        background: none;
+        font-size: 12px;
+        cursor: pointer;
+        touch-action: manipulation;
+
+        &:hover:not(:disabled) {
+          border-color: var(--soft);
+        }
+
+        /* (Nothing to play yet.) */
+        &:disabled {
+          opacity: 0.35;
+          cursor: default;
         }
       }
 
       .message {
-        padding: 48px 16px;
+        margin-top: 24px;
+        color: var(--faint);
+
+        p {
+          margin: 0 0 10px;
+        }
+      }
+
+      /* The events that moved the map: a word above the month each happened, a line down to it. */
+      /* (Each label on a row, and to a side of its line: --anchor 0 starts at it, 0.5 centers on it, 1 ends at it.) */
+      .events {
+        position: relative;
+        height: calc(22px + var(--top, 1) * 16px);
+        margin: 4px calc(var(--value) + var(--gap)) 0 calc(var(--name) + var(--gap));
+        color: var(--faint);
+        font-size: 11px;
+
+        span {
+          position: absolute;
+          bottom: calc(4px + var(--row, 0) * 16px);
+          translate: calc(var(--anchor, 0.5) * -100%) 0;
+          white-space: nowrap;
+
+          &::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: calc(var(--anchor, 0.5) * 100%);
+            height: calc(4px + var(--row, 0) * 16px);
+            border-left: 1px dotted var(--faint);
+          }
+        }
+      }
+
+      /* The rows: a country's name, its share since 2011 (the same scale for all), its share in the month read. */
+      .area {
+        position: relative;
+        display: grid;
+        touch-action: pan-y;
+        cursor: crosshair;
+
+        .row {
+          display: grid;
+          grid-template-columns: var(--name) minmax(0, 1fr) var(--value);
+          align-items: end;
+          gap: var(--gap);
+          border-top: 1px solid var(--line);
+          font-size: 12px;
+        }
+
+        .row > span {
+          overflow: hidden;
+          padding-bottom: 3px;
+          color: var(--soft);
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .row > b {
+          padding-bottom: 3px;
+          color: var(--ink);
+          font-weight: 500;
+          text-align: right;
+        }
+
+        svg {
+          display: block;
+          width: 100%;
+          height: clamp(22px, 3.2vh, 30px);
+          padding-top: 3px;
+        }
+
+        .fill {
+          fill: var(--ink);
+          fill-opacity: 0.12;
+        }
+
+        .line {
+          fill: none;
+          stroke: var(--ink);
+          stroke-width: 1.2;
+          stroke-opacity: 0.7;
+          vector-effect: non-scaling-stroke;
+        }
+
+        /* (The month read, across the plots' column.) */
+        .cursor {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: calc(var(--name) + var(--gap) + (100% - var(--name) - var(--value) - 2 * var(--gap)) * var(--at));
+          border-left: 1px solid var(--answer);
+          pointer-events: none;
+
+          &[hidden] {
+            display: none;
+          }
+        }
+      }
+
+      .years {
+        position: relative;
+        height: 18px;
+        margin: 6px calc(var(--value) + var(--gap)) 0 calc(var(--name) + var(--gap));
+        color: var(--faint);
+        font-size: 11px;
+
+        span {
+          position: absolute;
+          translate: -50% 0;
+        }
+      }
+
+      /* What's under the pointer on the planet. */
+      .float {
+        position: fixed;
+        z-index: 10;
+        max-width: 260px;
+        border: 1px solid var(--line);
+        padding: 8px 10px;
         color: var(--soft);
-        text-align: center;
+        background: var(--plate);
+        font-size: 12px;
+        pointer-events: none;
+
+        b {
+          display: block;
+          margin-bottom: 2px;
+          color: var(--ink);
+          font-weight: 500;
+        }
+
+        &[hidden] {
+          display: none;
+        }
       }
 
       @media (prefers-reduced-motion: reduce) {
-        * {
+        *,
+        *::before,
+        *::after {
           animation: none !important;
           transition: none !important;
         }
@@ -691,41 +660,35 @@
   </head>
   <body>
     <main>
-      <!-- The planet: the whole first screen; over it, the page's name, the countries, the latest blocks. -->
-      <section class="hero" aria-labelledby="title">
-        <canvas id="globe" role="img" aria-label="A globe, each country shaded by its share of the blocks; the list of countries has the same."></canvas>
+      <!-- One screen of data: the planet with the period's shares, the countries and the latest blocks beside it, and how
+           it moved since 2011 under it. -->
+      <section class="app" aria-labelledby="title">
         <header class="top">
           <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
           <span class="crumb" aria-hidden="true">/</span>
-          <span>Globe</span>
+          <h1 id="title">Where blocks are mined</h1>
           <span class="tip-height" id="tip" hidden>Block <b class="num" id="tip-height"></b></span>
         </header>
-        <div class="hero-text">
-          <p class="kicker">Bitcoin, from orbit</p>
-          <h1 id="title">Where blocks are mined</h1>
-          <p class="lede">
-            Every block by where its mining pool is based: the pool's home, not where its machines run, which no one can
-            see from the chain.
-          </p>
-        </div>
-        <div class="board surface">
+        <canvas id="globe" role="img" aria-label="A globe, each country lit by its share of the blocks; the list of countries has the same."></canvas>
+        <div class="board">
           <div class="board-head">
             <span class="when" id="when"></span>
             <span class="total num" id="total"></span>
           </div>
           <div class="periods" role="group" aria-label="Over" id="periods"></div>
           <ol class="countries" id="countries" aria-label="Countries by blocks"></ol>
+          <p class="note">By each pool's home, not where its machines run: the chain doesn't say that.</p>
           <div class="ticker">
             <span class="kicker" id="latest-title">Latest blocks</span>
             <ol class="latest" id="latest" aria-labelledby="latest-title"></ol>
             <p class="said" id="said" role="status"></p>
           </div>
         </div>
-        <!-- Time, along the planet's foot: each country's share month by month since 2011; drag along it, the globe goes too. -->
-        <section class="history surface" id="history" aria-labelledby="history-title">
+        <!-- How it moved: each country's share month by month since 2011; read a month across them, the globe goes too. -->
+        <section class="history" id="history" aria-labelledby="history-title">
           <div class="history-head">
-            <h2 class="kicker" id="history-title">Since 2011, month by month</h2>
-            <ul class="legend" id="legend"></ul>
+            <h2 class="kicker" id="history-title">Share of blocks by month, since 2011</h2>
+            <output class="num" id="history-when"></output>
             <button type="button" class="play" id="play" disabled>Play</button>
           </div>
           <div class="events" id="events" aria-hidden="true"></div>
@@ -840,7 +803,6 @@
         return [y, z * Math.cos(tilt) + x * Math.sin(tilt), x * Math.cos(tilt) - z * Math.sin(tilt)];
       }
       const toScreen = (/** @type {number[]} */ [x, y]) => [cx + R * x, cy - R * y];
-      const project = (/** @type {number[]} */ point) => toScreen(view(point));
 
       /** Screen point to [lon, lat], or null off the globe. */
       function invert(sx, sy) {
@@ -853,129 +815,6 @@
         const lon = Math.atan2(x, z * Math.cos(tilt) + y * Math.sin(tilt)) / RAD - rot[0];
         const lat = Math.asin(Math.max(-1, Math.min(1, y * Math.cos(tilt) - z * Math.sin(tilt)))) / RAD;
         return [((lon + 540) % 360) - 180, lat];
-      }
-
-      /** A circle of `radius` degrees around `center`, clockwise (interior on the right) like the atlas. @param {number[]} center */
-      function circle([lon, lat], radius, step = 4) {
-        const [phi, d] = [lat * RAD, radius * RAD];
-        const ring = [];
-        for (let bearing = 0; bearing <= 360; bearing += step) {
-          const t = bearing * RAD;
-          const lat2 = Math.asin(Math.sin(phi) * Math.cos(d) + Math.cos(phi) * Math.sin(d) * Math.cos(t));
-          const lon2 = lon * RAD + Math.atan2(Math.sin(t) * Math.sin(d) * Math.cos(phi), Math.cos(d) - Math.sin(phi) * Math.sin(lat2));
-          ring.push([lon2 / RAD, lat2 / RAD]);
-        }
-        return ring;
-      }
-
-      /** Meridians and parallels every 10°, like a classic graticule. */
-      const graticule = {
-        type: "MultiLineString",
-        coordinates: [
-          ...Array.from({ length: 36 }, (_, i) => {
-            const lon = -180 + i * 10;
-            const extent = lon % 90 ? 80 : 90;
-            return Array.from({ length: extent + 1 }, (_, k) => [lon, -extent + 2 * k]);
-          }),
-          ...Array.from({ length: 17 }, (_, i) => Array.from({ length: 181 }, (_, k) => [-180 + 2 * k, -80 + i * 10])),
-        ],
-      };
-
-      /** Where the edge a→b (view vectors on opposite sides) meets the horizon. */
-      function horizon(a, b) {
-        const t = a[2] / (a[2] - b[2]);
-        const x = a[0] + (b[0] - a[0]) * t;
-        const y = a[1] + (b[1] - a[1]) * t;
-        const n = Math.hypot(x, y) || 1;
-        return [x / n, y / n, 0];
-      }
-
-      /** The visible runs of a line, as view-space polylines. */
-      function clipLine(line) {
-        const runs = [];
-        let run = null;
-        let previous = null;
-        for (const point of line) {
-          const v = view(point);
-          if (previous && previous[2] > 0 !== v[2] > 0) {
-            const edge = horizon(previous, v);
-            if (run) {
-              run.push(edge);
-              runs.push(run);
-              run = null;
-            } else run = [edge];
-          }
-          if (v[2] > 0) (run ??= []).push(v);
-          previous = v;
-        }
-        if (run) runs.push(run);
-        return runs;
-      }
-
-      /** The visible part of a polygon (interior on the right of every ring), closed along the horizon. */
-      function clipPolygon(rings) {
-        const closed = [];
-        const runs = [];
-        for (const ring of rings) {
-          const views = ring.map(view);
-          const hidden = views.findIndex((v) => v[2] <= 0);
-          if (hidden < 0) {
-            closed.push(views);
-            continue;
-          }
-          if (!views.some((v) => v[2] > 0)) continue; // wholly on the far side
-          // Start from a hidden point: every visible run then has a horizon entry and exit.
-          let run = null;
-          for (let i = 1; i <= views.length; i += 1) {
-            const previous = views[(hidden + i - 1) % views.length];
-            const v = views[(hidden + i) % views.length];
-            if (previous[2] <= 0 && v[2] > 0) run = [horizon(previous, v), v];
-            else if (v[2] > 0) run?.push(v);
-            else if (previous[2] > 0) {
-              run.push(horizon(previous, v));
-              runs.push(run);
-              run = null;
-            }
-          }
-        }
-        // From each exit, follow the horizon clockwise to the nearest entry, until the loop closes.
-        const angle = ([x, y]) => Math.atan2(y, x);
-        while (runs.length) {
-          const path = runs.shift();
-          for (;;) {
-            const exit = angle(path.at(-1));
-            const sweep = (point) => (((exit - angle(point)) % TAU) + TAU) % TAU;
-            let next = -1;
-            let gap = sweep(path[0]);
-            runs.forEach((run, index) => {
-              const candidate = sweep(run[0]);
-              if (candidate < gap) [gap, next] = [candidate, index];
-            });
-            for (let a = 0.08; a < gap; a += 0.08) path.push([Math.cos(exit - a), Math.sin(exit - a), 0]);
-            if (next < 0) break;
-            path.push(...runs.splice(next, 1)[0]);
-          }
-          closed.push(path);
-        }
-        return closed;
-      }
-
-      function trace(paths, close) {
-        for (const path of paths) {
-          path.forEach((v, i) => {
-            const [x, y] = toScreen(v);
-            if (i) ctx.lineTo(x, y);
-            else ctx.moveTo(x, y);
-          });
-          if (close) ctx.closePath();
-        }
-      }
-
-      /** Adds a geometry's visible part to the current canvas path. */
-      function traceGeometry(geometry) {
-        if (geometry.type === "Polygon") trace(clipPolygon(geometry.coordinates), true);
-        else if (geometry.type === "MultiPolygon") for (const polygon of geometry.coordinates) trace(clipPolygon(polygon), true);
-        else if (geometry.type === "MultiLineString") for (const line of geometry.coordinates) trace(clipLine(line), false);
       }
 
       const polygonsOf = (geometry) => (geometry.type === "Polygon" ? [geometry.coordinates] : geometry.coordinates);
@@ -1011,34 +850,20 @@
           type,
           coordinates: type === "Polygon" ? indexes.map(line) : indexes.map((polygon) => polygon.map(line)),
         }));
-        /** Arcs used by two different geometries of `name`: the borders between them. */
-        const shared = (name) => {
-          const owners = new Map();
-          topology.objects[name].geometries.forEach((geometry, owner) => {
-            for (const index of geometry.arcs.flat(2)) {
-              const arc = index < 0 ? ~index : index;
-              owners.set(arc, (owners.get(arc) ?? new Set()).add(owner));
-            }
-          });
-          return { type: "MultiLineString", coordinates: [...owners].filter(([, set]) => set.size > 1).map(([arc]) => arcs[arc]) };
-        };
-        return { geometries, shared };
+        return { geometries };
       }
 
       // ── State ──
-      const HALO = 1.14; // the atmosphere's reach, in globe radii
       let W = 0, H = 0, R = 100, cx = 0, cy = 0;
       const rot = [-20, -28, 0];
       /** @type {{ geometry: any, cc: string | undefined }[]} */
       let features = [];
-      let borders = { type: "MultiLineString", coordinates: [] };
       /** Pools' names by slug. */
       const names = new Map([["unknown", "Unknown"]]);
-      /** Each country's color: the most blocks ever, a color of its own; the rest, one between them. */
-      const colors = new Map();
-      const PALETTE = ["#e5484d", "#3e8ef7", "#f5a524", "#30a46c", "#a463f2", "#e93d82", "#12a594", "#84cc16"];
-      const OTHER = "#8a8f98";
-      const colorOf = (/** @type {string | null} */ cc) => (cc ? colors.get(cc) ?? OTHER : "var(--faint)");
+      /** The countries with the most blocks ever, the most first: a row each in the history. @type {string[]} */
+      let leading = [];
+      /** One color: a block with a known home in the answer's orange, the rest faint. */
+      const colorOf = (/** @type {string | null} */ cc) => (cc ? "var(--answer)" : "var(--faint)");
 
       /** @typedef {{ cc: string | null, count: number, pools: { slug: string, count: number }[] }} Row */
       /** A period's or a month's blocks by country; a period's, the network's hashrate too. @typedef {{ label: string, total: number, rows: Row[], hashrate?: number }} Snapshot */
@@ -1055,7 +880,7 @@
       const keyOf = (/** @type {Row} */ row) => row.cc ?? UNKNOWN;
       /** @type {{ months: string[], total: number[], pools: Map<string, number[]> } | null} */
       let history = null;
-      /** New blocks landing: [lon, lat], when, color. @type {{ at: number[], t0: number, color: string }[]} */
+      /** New blocks landing: [lon, lat], when. @type {{ at: number[], t0: number }[]} */
       const pulses = [];
 
       const PERIODS = /** @type {[string, string, string][]} */ ([
@@ -1261,20 +1086,17 @@
       const ink = /** @type {Record<string, string>} */ ({});
       let font = "";
       function readInks() {
-        font = `600 12px ${getComputedStyle(document.body).fontFamily}`;
+        font = `500 12px ${getComputedStyle(document.body).fontFamily}`;
         const probe = document.createElement("span");
         document.body.append(probe);
-        for (const name of ["ocean", "land", "border", "grid", "ink", "card", "line-strong", "faint", "muted", "glow", "app"]) {
+        for (const name of ["ink", "faint", "app", "answer", "line"]) {
           probe.style.color = `var(--${name})`;
           ink[name] = getComputedStyle(probe).color;
         }
         probe.remove();
       }
 
-      /** The globe's place: in the space the page leaves it (on a wide one, left of the countries). */
-      const wide = matchMedia("(min-width: 1024px)");
-      /** The width the globe has to itself (left of the countries, on a wide page): its moon and names keep inside it. */
-      let room = 0;
+      /** The planet fills its box, a little in from its edges; its names keep inside it. */
       function resize() {
         const box = canvas.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
         W = box.width;
@@ -1282,32 +1104,16 @@
         canvas.width = Math.round(W * dpr);
         canvas.height = Math.round(H * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        if (wide.matches) {
-          const free = $("countries").closest(".board")?.getBoundingClientRect().left ?? W;
-          room = free - box.left - 16;
-          // (Between the header and the months along its foot, a little right of the middle, clear of both.)
-          const floor = ($("history").getBoundingClientRect().top || box.bottom) - box.top - 20, ceiling = 72;
-          cx = room * 0.6;
-          cy = (ceiling + floor) / 2;
-          R = Math.min(room * 0.34, (floor - ceiling) / 2);
-        } else {
-          room = W;
-          cx = W / 2;
-          cy = H / 2;
-          // (Room left beside it for the moon, clear of it however big it grows: 0.155 R.)
-          R = (Math.min(W, H) / 2 - 20) / 1.32;
-        }
-        // (The words over the planet, where no name is drawn.)
-        const words = document.querySelector(".hero-text")?.getBoundingClientRect();
-        keepOff = wide.matches && words ? { left: words.left - box.left - 8, top: words.top - box.top - 8, right: words.right - box.left + 8, bottom: words.bottom - box.top + 8 } : null;
+        // (Wide, as close as reads: past its box's top and bottom, which fade into the page; else whole in its square.)
+        const close = W > H * 1.3;
+        cx = W / 2;
+        cy = H / 2;
+        R = close ? Math.min(W / 2 - 12, H * 0.62) : Math.min(W, H) / 2 - 12;
         invalidate();
       }
-      /** Where no name is drawn (the title, on a wide page), in the canvas's coordinates. @type {{ left: number, top: number, right: number, bottom: number } | null} */
-      let keepOff = null;
       new ResizeObserver(resize).observe(canvas);
-      new ResizeObserver(resize).observe($("history"));
-      // (The title's room, again in its own font.)
-      document.fonts.ready.then(resize);
+      // (The inks again with the scheme: the canvas draws with them.)
+      matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => (readInks(), invalidate()));
 
       /** A country's share now, and the largest. */
       function shares() {
@@ -1327,64 +1133,20 @@
         const hours = date.getUTCHours() + date.getUTCMinutes() / 60;
         return [-15 * (hours - 12), -23.44 * Math.cos(((2 * Math.PI) / 365) * (day + 10))];
       }
-      /** The sun and the night: three circles about the point opposite the sun, darker toward it (the terminator the
-       * outermost, twilight inside it; none past a hemisphere, whose edge could hide while the night shows), a minute's. */
-      let night = { minute: -1, sun: [0, 0], rings: /** @type {number[][][]} */ ([]) };
-      function sunAndNight() {
-        const minute = Math.floor(Date.now() / 60_000);
-        if (night.minute !== minute) {
-          const sun = subsolar(new Date()), [lon, lat] = sun;
-          const anti = [lon > 0 ? lon - 180 : lon + 180, -lat];
-          night = { minute, sun, rings: [90, 84, 78].map((radius) => circle(anti, radius)) };
-        }
-        return night;
-      }
+      /** A [lon, lat] as a point on the unit sphere. */
+      const unit = (/** @type {number} */ lon, /** @type {number} */ lat) => [Math.cos(lat * RAD) * Math.cos(lon * RAD), Math.cos(lat * RAD) * Math.sin(lon * RAD), Math.sin(lat * RAD)];
 
-      /** The moon: the blocks without a known home, as big as their share, beside the planet: never over a country, where
-       * it would read as one. */
-      function moon(/** @type {number} */ unknown) {
-        // (Up and to the right of it, a gap off its edge however big it grows: 0.155 R at most, so it reaches 1.12 R right.)
-        const r = R * (0.035 + 0.12 * Math.sqrt(unknown)), away = R + r + Math.max(12, R * 0.08), angle = -0.6;
-        return { x: cx + Math.cos(angle) * away, y: cy + Math.sin(angle) * away, r };
-      }
-      function drawMoon(/** @type {{ x: number, y: number, r: number }} */ m, /** @type {number} */ unknown) {
-        const lit = ctx.createRadialGradient(m.x - m.r * 0.4, m.y - m.r * 0.4, m.r * 0.1, m.x, m.y, m.r);
-        lit.addColorStop(0, "#d9dde6");
-        lit.addColorStop(1, "#4b5163");
-        ctx.fillStyle = lit;
-        ctx.beginPath();
-        ctx.arc(m.x, m.y, m.r, 0, TAU);
-        ctx.fill();
-        if (selected === UNKNOWN) {
-          ctx.strokeStyle = ink.ink;
-          ctx.lineWidth = 1.5;
-          ctx.stroke();
-        }
-        // (Its name above it, off the planet; where there's no room above, beside it.)
-        label(`No known home ${percent(unknown)}`, m.x, m.y, m.r, true);
-      }
-      /** A name beside its mark, on whichever side it fits and clears the title (neither: none), haloed in the night's color;
-       * or, `above`, centered over it where it fits. */
-      function label(/** @type {string} */ text, /** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ radius, above = false) {
+      /** A name beside its mark, on whichever side it fits (neither: none), haloed in the page's color. */
+      function label(/** @type {string} */ text, /** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ radius) {
         const width = ctx.measureText(text).width;
-        if (above) {
-          const left = Math.max(4, Math.min(room - 4 - width, x - width / 2)), base = y - radius - 8;
-          const free = base - 12 > 0 && (!keepOff || left > keepOff.right || left + width < keepOff.left || base < keepOff.top || base - 12 > keepOff.bottom);
-          if (free) {
-            ctx.lineWidth = 4;
-            ctx.strokeStyle = ink.app;
-            ctx.fillStyle = ink.ink;
-            ctx.strokeText(text, left, base);
-            ctx.fillText(text, left, base);
-            return;
-          }
-        }
-        const clear = (/** @type {number} */ left) => !keepOff || left > keepOff.right || left + width < keepOff.left || y + 6 < keepOff.top || y - 10 > keepOff.bottom;
-        const sides = [x + radius + 6, x - radius - 6 - width].filter((left) => left >= 4 && left + width <= room - 4 && clear(left));
+        // (Clear of the box's faded top and bottom, where the planet runs past it.)
+        if (W > H * 1.3 && (y < H * 0.12 || y > H * 0.86)) return;
+        const sides = [x + radius + 8, x - radius - 8 - width].filter((left) => left >= 4 && left + width <= W - 4);
         if (!sides.length) return;
         const right = sides[0] > x, tx = right ? sides[0] : sides[0] + width;
         ctx.textAlign = right ? "left" : "right";
         ctx.lineWidth = 4;
+        ctx.lineJoin = "round";
         ctx.strokeStyle = ink.app;
         ctx.fillStyle = ink.ink;
         ctx.strokeText(text, tx, y + 4);
@@ -1392,108 +1154,90 @@
         ctx.textAlign = "left";
       }
 
-      /** Stars, fixed where they are (the same sky each visit): [x, y] in the canvas's fractions, a size, a brightness. */
-      const STARS = Array.from({ length: 220 }, (_, i) => {
-        const noise = (/** @type {number} */ k) => ((Math.sin((i + 1) * 12.9898 + k * 78.233) * 43758.5453) % 1 + 1) % 1;
-        return [noise(1), noise(2), 0.4 + noise(3) * 1.1, 0.2 + noise(4) * 0.7];
-      });
-      /** Each visible country's dot: where it is on screen, how big. @type {{ cc: string, x: number, y: number, r: number }[]} */
+      /** The land as a print: a dot every STEP degrees of it (spaced as evenly over the sphere as rows allow), each with its
+       * country (the index of its feature) and its place on the unit sphere. Below 60° south, none: no one mines there. */
+      const STEP = 1.1;
+      let dots = { lon: new Float32Array(0), lat: new Float32Array(0), xyz: new Float32Array(0), cc: /** @type {(string | undefined)[]} */ ([]) };
+      function printLand() {
+        const boxes = features.map((feature) => {
+          let [w, s, e, n] = [180, 90, -180, -90];
+          for (const ring of polygonsOf(feature.geometry).flat()) for (const [lon, lat] of ring) [w, s, e, n] = [Math.min(w, lon), Math.min(s, lat), Math.max(e, lon), Math.max(n, lat)];
+          return [w, s, e, n];
+        });
+        const lon = [], lat = [], xyz = [], cc = [];
+        for (let y = 83; y >= -60; y -= STEP) {
+          const step = STEP / Math.max(0.2, Math.cos(y * RAD));
+          for (let x = -180 + step / 2; x < 180; x += step) {
+            const k = features.findIndex((feature, i) => x >= boxes[i][0] && x <= boxes[i][2] && y >= boxes[i][1] && y <= boxes[i][3] && contains(feature.geometry, [x, y]));
+            if (k < 0) continue;
+            lon.push(x);
+            lat.push(y);
+            xyz.push(...unit(x, y));
+            cc.push(features[k].cc);
+          }
+        }
+        dots = { lon: Float32Array.from(lon), lat: Float32Array.from(lat), xyz: Float32Array.from(xyz), cc };
+      }
+
+      /** Each named country's mark: where it is on screen, how near counts as on it. @type {{ cc: string, x: number, y: number, r: number }[]} */
       let marks = [];
+      /** Dots by how they're inked: the land's, then the countries' that mine, each at one of ALPHAS strengths. */
+      const ALPHAS = 12;
       function draw(/** @type {number} */ now) {
         ctx.clearRect(0, 0, W, H);
         // (No room for a planet yet: a canvas laid out at nothing, or not at all.)
         if (!(R > 0)) return;
         ctx.font = font;
-        const { byCountry, top, unknown } = shares(), m = unknown ? moon(unknown) : null;
-        // The sky; the atmosphere; the sphere.
+        const { byCountry, top } = shares();
+        // The planet: a faint body of its own, its edge a hairline.
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, TAU);
+        ctx.globalAlpha = 0.035;
         ctx.fillStyle = ink.ink;
-        for (const [x, y, size, light] of STARS) {
-          ctx.globalAlpha = light;
-          ctx.fillRect(x * W, y * H, size, size);
-        }
+        ctx.fill();
         ctx.globalAlpha = 1;
-        const halo = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * HALO);
-        halo.addColorStop(0, ink.glow);
-        halo.addColorStop(1, "transparent");
-        ctx.fillStyle = halo;
-        ctx.beginPath();
-        ctx.arc(cx, cy, R * HALO, 0, TAU);
-        ctx.fill();
-        ctx.fillStyle = ink.ocean;
-        ctx.beginPath();
-        ctx.arc(cx, cy, R, 0, TAU);
-        ctx.fill();
-        ctx.strokeStyle = ink.grid;
+        ctx.strokeStyle = ink.line;
         ctx.lineWidth = 1;
-        ctx.beginPath();
-        traceGeometry(graticule);
         ctx.stroke();
-        // The land, then each country with blocks in its color, as strong as its share.
-        ctx.fillStyle = ink.land;
-        ctx.beginPath();
-        for (const feature of features) traceGeometry(feature.geometry);
-        ctx.fill();
-        for (const feature of features) {
-          const share = feature.cc ? byCountry.get(feature.cc) : undefined;
-          if (!share) continue;
-          ctx.globalAlpha = 0.3 + 0.7 * Math.sqrt(share / top);
-          ctx.fillStyle = colorOf(feature.cc ?? null);
-          ctx.beginPath();
-          traceGeometry(feature.geometry);
-          ctx.fill();
+        // The dots: faint where the planet turns away, a little darker on the night side; a country's in the answer's
+        // orange, as strong as its share (the one picked, full).
+        const sun = unit(...subsolar(new Date())), size = Math.max(0.6, R * STEP * RAD * 0.26);
+        const buckets = Array.from({ length: 2 * ALPHAS }, () => new Path2D());
+        for (let i = 0; i < dots.cc.length; i++) {
+          const v = view([dots.lon[i], dots.lat[i]]);
+          if (v[2] <= 0) continue;
+          const day = dots.xyz[3 * i] * sun[0] + dots.xyz[3 * i + 1] * sun[1] + dots.xyz[3 * i + 2] * sun[2];
+          const fade = Math.min(1, v[2] * 3) * (day > 0 ? 1 : 0.6), cc = dots.cc[i], share = cc ? byCountry.get(cc) : undefined;
+          const strength = share ? (cc === selected ? 1 : 0.45 + 0.55 * Math.sqrt(share / top)) * fade : 0.42 * fade;
+          const [x, y] = toScreen(v), r = size * (0.6 + 0.4 * v[2]) * (share ? 1.25 : 1);
+          const path = buckets[(share ? ALPHAS : 0) + Math.min(ALPHAS - 1, Math.floor(strength * ALPHAS))];
+          path.moveTo(x + r, y);
+          path.arc(x, y, r, 0, TAU);
         }
+        buckets.forEach((path, k) => {
+          ctx.globalAlpha = ((k % ALPHAS) + 0.5) / ALPHAS;
+          ctx.fillStyle = k < ALPHAS ? ink.ink : ink.answer;
+          ctx.fill(path);
+        });
         ctx.globalAlpha = 1;
-        ctx.strokeStyle = ink.border;
-        ctx.lineWidth = 0.6;
-        ctx.beginPath();
-        traceGeometry(borders);
-        ctx.stroke();
-        if (selected && COUNTRIES[selected]) {
-          ctx.strokeStyle = ink.ink;
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          for (const feature of features) if (feature.cc === selected) traceGeometry(feature.geometry);
-          ctx.stroke();
-        }
-        // The night, as it is now: darker toward its middle.
-        ctx.fillStyle = "rgb(1 3 8 / 0.22)";
-        const { sun, rings } = sunAndNight();
-        for (const ring of rings) {
-          ctx.beginPath();
-          traceGeometry({ type: "Polygon", coordinates: [ring] });
-          ctx.fill();
-        }
-        // Light across the sphere, from the sun (brightest where it's overhead; none with it behind); the far rim in shade.
-        const [sx, sy, sz] = view(sun), [lx, ly] = toScreen([sx, sy]);
-        const light = ctx.createRadialGradient(lx, ly, R * 0.05, cx, cy, R * 1.05);
-        light.addColorStop(0, `rgb(255 255 255 / ${(0.16 * Math.max(0, sz)).toFixed(3)})`);
-        light.addColorStop(0.7, "rgb(255 255 255 / 0)");
-        light.addColorStop(1, "rgb(0 0 0 / 0.5)");
-        ctx.fillStyle = light;
-        ctx.beginPath();
-        ctx.arc(cx, cy, R, 0, TAU);
-        ctx.fill();
-        ctx.strokeStyle = ink.glow;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(cx, cy, R, 0, TAU);
-        ctx.stroke();
-        // Each country with blocks, a dot as big as its share; the three biggest and the one picked, named.
+        // The five biggest and the one picked, named beside a mark at their middle.
         marks = [];
         [...byCountry].sort((a, b) => b[1] - a[1]).forEach(([cc, share], rank) => {
           const v = view(COUNTRIES[cc].at);
           if (v[2] <= 0.05) return;
-          const [x, y] = toScreen(v), radius = 2.5 + 9 * Math.sqrt(share);
-          marks.push({ cc, x, y, r: radius });
+          if (rank >= 5 && cc !== selected) return;
+          const [x, y] = toScreen(v);
+          // (Pointing finds a named one by its mark; the rest, by their shape.)
+          marks.push({ cc, x, y, r: 8 });
           ctx.globalAlpha = Math.min(1, v[2] * 3);
-          ctx.fillStyle = colorOf(cc);
-          ctx.strokeStyle = ink.card;
+          ctx.fillStyle = ink.ink;
+          ctx.strokeStyle = ink.app;
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(x, y, radius, 0, TAU);
-          ctx.fill();
+          ctx.arc(x, y, 3, 0, TAU);
           ctx.stroke();
-          if (rank < 3 || cc === selected) label(`${COUNTRIES[cc].name} ${percent(share)}`, x, y, radius);
+          ctx.fill();
+          label(`${COUNTRIES[cc].name} ${percent(share)}`, x, y, 3);
         });
         ctx.globalAlpha = 1;
         // Blocks landing: a ring that widens and fades.
@@ -1507,18 +1251,14 @@
           if (v[2] <= 0) continue;
           const [x, y] = toScreen(v);
           ctx.globalAlpha = 1 - t;
-          ctx.strokeStyle = pulse.color;
-          ctx.lineWidth = 2;
+          ctx.strokeStyle = ink.answer;
+          ctx.lineWidth = 1.5;
           ctx.beginPath();
           ctx.arc(x, y, 6 + 40 * t, 0, TAU);
           ctx.stroke();
         }
         ctx.globalAlpha = 1;
-        if (m) drawMoon(m, unknown);
-        moonAt = m;
       }
-      /** @type {{ x: number, y: number, r: number } | null} */
-      let moonAt = null;
 
       // ── Motion: a slow turn, a drag, a flight; drawn only while something moves, and on screen ──
       /** @type {{ from: number[], to: number[], t0: number, dur: number } | null} */
@@ -1588,14 +1328,13 @@
       });
       canvas.addEventListener("pointerleave", () => showFloat(null));
       canvas.addEventListener("pointercancel", () => ((dragging = null), canvas.classList.remove("dragging"), invalidate()));
-      /** What's under a pointer: the moon, a country's dot (the small ones have no shape on this map), or a country. */
+      /** What's under a pointer: a country by its shape, or a named one's mark (the small ones have no shape on this map). */
       function pickAt(/** @type {PointerEvent} */ event) {
         const box = canvas.getBoundingClientRect(), x = event.clientX - box.left, y = event.clientY - box.top;
-        if (moonAt && Math.hypot(x - moonAt.x, y - moonAt.y) <= moonAt.r + 6) return UNKNOWN;
-        const dot = marks.find((mark) => Math.hypot(x - mark.x, y - mark.y) <= mark.r + 6);
-        if (dot) return dot.cc;
+        // (The country under it by its shape; else a named one's mark near it, for those too small to have one here.)
         const at = invert(x, y), { byCountry } = shares();
-        return at ? features.find((feature) => feature.cc && byCountry.has(feature.cc) && contains(feature.geometry, at))?.cc ?? null : null;
+        const shape = at ? features.find((feature) => feature.cc && byCountry.has(feature.cc) && contains(feature.geometry, at))?.cc : undefined;
+        return shape ?? marks.find((mark) => Math.hypot(x - mark.x, y - mark.y) <= mark.r)?.cc ?? null;
       }
       function showFloat(/** @type {string | null} */ key, /** @type {PointerEvent | undefined} */ event = undefined) {
         const float = $("float"), row = snapshot?.rows.find((r) => keyOf(r) === key);
@@ -1607,26 +1346,27 @@
         float.style.top = `${Math.min(innerHeight - float.offsetHeight - 8, event.clientY + 14)}px`;
       }
 
-      // ── History: a 100% stack of each country's monthly share, a cursor on a month, the events that moved it ──
+      // ── History: each country's monthly share, a row each, a cursor on a month read across them, the events that moved it ──
+      /** The history's rows as drawn: a name and each month's share. @type {{ name: string, shares: number[] }[]} */
+      let historyRows = [];
       function drawHistory() {
         if (!history) return;
         const h = history, n = h.months.length;
-        // (The countries with a color, most first at the bottom; the rest of the known, then the unknown, on top.)
-        const named = [...colors.keys()], series = named.map((cc) => ({ cc, color: /** @type {string} */ (colors.get(cc)), values: new Array(n).fill(0) }));
-        const other = { cc: "other", color: OTHER, values: new Array(n).fill(0) }, unknown = { cc: null, color: ink.faint, values: new Array(n).fill(0) };
+        // (A row for each country with the most blocks ever, then the rest of the known together, then the unknown.)
+        const counts = leading.map((cc) => ({ name: COUNTRIES[cc].name, cc, values: new Array(n).fill(0) }));
+        const others = { name: "Others", cc: "", values: new Array(n).fill(0) }, unknown = { name: "No known home", cc: "", values: new Array(n).fill(0) };
         for (const [slug, values] of h.pools) {
-          const cc = /** @type {string} */ (POOL_COUNTRY.get(slug)), target = series.find((s) => s.cc === cc) ?? other;
+          const target = counts.find((row) => row.cc === POOL_COUNTRY.get(slug)) ?? others;
           values.forEach((value, k) => (target.values[k] += value));
         }
-        for (let k = 0; k < n; k++) unknown.values[k] = Math.max(0, h.total[k] - series.reduce((sum, s) => sum + s.values[k], 0) - other.values[k]);
-        const layers = [...series, other, unknown], base = new Array(n).fill(0), x = (/** @type {number} */ k) => (k / (n - 1)) * 1000;
-        const paths = layers.map((layer) => {
-          const lower = base.map((value, k) => [x(k), 100 - value]);
-          layer.values.forEach((value, k) => (base[k] += h.total[k] ? (value / h.total[k]) * 100 : 0));
-          const upper = base.map((value, k) => [x(k), 100 - value]);
-          return `<path d="M${upper.map(([px, py]) => `${px.toFixed(1)},${py.toFixed(2)}`).join("L")}L${lower.reverse().map(([px, py]) => `${px.toFixed(1)},${py.toFixed(2)}`).join("L")}Z" fill="${layer.color}"/>`;
-        });
-        $("area").innerHTML = `<svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true">${paths.join("")}</svg><div class="cursor" id="month-cursor" hidden></div>`;
+        for (let k = 0; k < n; k++) unknown.values[k] = Math.max(0, h.total[k] - counts.reduce((sum, row) => sum + row.values[k], 0) - others.values[k]);
+        historyRows = [...counts, others, unknown].map(({ name, values }) => ({ name, shares: values.map((value, k) => (h.total[k] ? value / h.total[k] : 0)) }));
+        // (Each the same scale, a row's full height its whole: an area under its share, month by month.)
+        const x = (/** @type {number} */ k) => ((k / (n - 1)) * 1000).toFixed(1);
+        $("area").innerHTML = historyRows.map(({ name, shares }) => {
+          const line = shares.map((share, k) => `${x(k)},${(100 - share * 100).toFixed(2)}`).join("L");
+          return `<div class="row"><span>${name}</span><svg viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><path class="fill" d="M0,100L${line}L1000,100Z"/><path class="line" d="M${line}"/></svg><b class="num"></b></div>`;
+        }).join("") + `<div class="cursor" id="month-cursor" hidden></div>`;
         Object.assign($("area"), { hidden: false, tabIndex: 0 });
         /** @type {HTMLButtonElement} */ ($("play")).disabled = false;
         $("area").setAttribute("role", "slider");
@@ -1634,11 +1374,6 @@
         $("history-message").hidden = true;
         $("area").setAttribute("aria-valuemin", "0");
         $("area").setAttribute("aria-valuemax", String(n - 1));
-        $("legend").replaceChildren(...[...named.map((cc) => [COUNTRIES[cc].name, colors.get(cc)]), ["Others", OTHER], ["No known home", "var(--faint)"]].map(([label, color]) => {
-          const item = Object.assign(document.createElement("li"), { textContent: label });
-          item.style.setProperty("--color", /** @type {string} */ (color));
-          return item;
-        }));
         const at = (/** @type {number} */ k) => (k / (n - 1)) * 100;
         $("years").innerHTML = h.months.flatMap((date, k) => (date.endsWith("-01-01") && Number(date.slice(0, 4)) % 2 === 0 && k > n * 0.02 && k < n * 0.98 ? [`<span class="num" style="left: ${at(k)}%">${date.slice(0, 4)}</span>`] : [])).join("");
         $("events").innerHTML = EVENTS.flatMap(([date, text]) => {
@@ -1686,14 +1421,23 @@
         if (!cursor || !history) return;
         const end = history.months.length - 1;
         cursor.hidden = month === null;
-        if (month !== null) cursor.style.left = `${(month / end) * 100}%`;
+        if (month !== null) cursor.style.setProperty("--at", String(month / end));
+        // (Each row's share in the month read; none read, the latest.)
+        $("area").querySelectorAll(".row > b").forEach((value, i) => {
+          const share = historyRows[i]?.shares[month ?? end] ?? 0;
+          value.textContent = share ? percent(share) : "–";
+        });
+        $("history-when").textContent = monthLabel(month ?? end);
         // (A period's shown: the slider stands at now.)
         $("area").setAttribute("aria-valuenow", String(month ?? end));
         const event = month === null ? undefined : EVENTS.find(([date]) => date === history?.months[month]);
-        $("area").setAttribute("aria-valuetext", month === null ? /** @type {string} */ (PERIODS.find(([id]) => id === period)?.[2]) : `${monthLabel(month)}${event ? `, ${event[1]}` : ""}`);
+        // (The slider says the month and every row's share in it: its rows are inside it, so read through it.)
+        const k = month ?? end, read = historyRows.map(({ name, shares }) => `${name} ${shares[k] ? percent(shares[k]) : "none"}`).join(", ");
+        $("area").setAttribute("aria-valuetext", `${monthLabel(k)}${event ? `, ${event[1]}` : ""}: ${read}`);
       }
       const monthAt = (/** @type {PointerEvent} */ event) => {
-        const box = $("area").getBoundingClientRect(), n = /** @type {NonNullable<typeof history>} */ (history).months.length;
+        // (Along the plots' column: a row's plot spans it.)
+        const box = /** @type {Element} */ ($("area").querySelector("svg")).getBoundingClientRect(), n = /** @type {NonNullable<typeof history>} */ (history).months.length;
         return Math.round(Math.min(1, Math.max(0, (event.clientX - box.left) / box.width)) * (n - 1));
       };
       // (Pointed at, a month shows; picked (a tap, a click, a drag), it stays until another or a period's picked.)
@@ -1818,7 +1562,7 @@
           if (before > 0 && !rereading && fresh.length <= 3) {
             for (const block of fresh) {
               const cc = POOL_COUNTRY.get(block.pool);
-              if (cc && !reduced.matches) pulses.push({ at: COUNTRIES[cc].at, t0: performance.now(), color: colorOf(cc) });
+              if (cc && !reduced.matches) pulses.push({ at: COUNTRIES[cc].at, t0: performance.now() });
             }
             // (Said once, as it arrives.)
             $("said").textContent = fresh.map((block) => `Block ${grouped(block.height)}: ${names.get(block.pool) ?? block.pool}, ${POOL_COUNTRY.has(block.pool) ? COUNTRIES[/** @type {string} */ (POOL_COUNTRY.get(block.pool))].name : "no known home"}`).join(". ");
@@ -1838,11 +1582,11 @@
         const [topology, allTime] = await Promise.all([json("/modules/world-atlas/2.0.2/countries-110m.json"), json("/api/v1/mining/pools/all")]);
         const atlas = decodeTopology(topology);
         features = atlas.geometries("countries").map((geometry) => ({ geometry, cc: CC_BY_ID.get(geometry.id) }));
-        borders = atlas.shared("countries");
+        printLand();
         for (const pool of allTime.pools) names.set(pool.slug, pool.name);
-        // (Colors by blocks ever found: the most, the first.)
-        tally(allTime.pools.map((/** @type {any} */ pool) => ({ slug: pool.slug, count: pool.blockCount })), allTime.blockCount)
-          .filter((row) => row.cc).slice(0, PALETTE.length).forEach((row, i) => colors.set(row.cc, PALETTE[i]));
+        // (The history's rows: the countries with the most blocks ever found.)
+        leading = tally(allTime.pools.map((/** @type {any} */ pool) => ({ slug: pool.slug, count: pool.blockCount })), allTime.blockCount)
+          .flatMap((row) => (row.cc ? [row.cc] : [])).slice(0, 7);
         invalidate();
         await setPeriod(period);
         poll();
