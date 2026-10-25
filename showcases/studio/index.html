@@ -3490,6 +3490,10 @@
       }
 
       /* The page's head: its name (a folder of yours, its menu beside it). */
+      .home-brand {
+        display: none;
+      }
+
       .home-head {
         position: relative;
         display: flex;
@@ -6932,13 +6936,6 @@
         overflow-x: auto;
         overscroll-behavior-x: contain;
         scrollbar-width: none;
-        /* (A fling comes to rest on a tile's start, at the page's column, as its steps go: never two cut in half.) */
-        scroll-snap-type: x mandatory;
-        scroll-padding-inline: 4px;
-
-        & > * {
-          scroll-snap-align: start;
-        }
 
         &::-webkit-scrollbar {
           display: none;
@@ -8162,6 +8159,23 @@
 
         .home-head {
           margin-bottom: 14px;
+        }
+
+        .home-brand {
+          display: flex;
+          gap: 8px;
+          width: fit-content;
+          height: 44px;
+          margin: -10px 0 4px -4px;
+          padding: 0 4px;
+          color: var(--ink);
+          font: 590 15px/1 var(--sans);
+          letter-spacing: -0.01em;
+
+          img {
+            width: 18px;
+            height: 21px;
+          }
         }
 
         .home-device {
@@ -9532,6 +9546,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         <section id="home" class="home" aria-labelledby="home-title">
           <div class="home-scroll">
             <div class="home-inner">
+              <!-- (On a phone, the way back to Bitview, as every showcase has it: elsewhere, the sidebar's.) -->
+              <a class="brand home-brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
               <!-- (Above its name: the way up, each level a step to; the page itself only named once, by its name.) -->
               <nav id="gallery-path" class="crumbs gallery-path" aria-label="Where it is" hidden></nav>
               <div class="home-head">
