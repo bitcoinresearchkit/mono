@@ -5495,6 +5495,12 @@
         }
       }
 
+      @keyframes vanish {
+        to {
+          opacity: 0;
+        }
+      }
+
       @keyframes slide {
         from {
           opacity: 0;
@@ -7523,7 +7529,11 @@
         white-space: nowrap;
       }
 
-      /* Between the grid and a chart: the chart grows out of its card, and shrinks back into it. */
+      /* Between the grid and a chart: the chart grows out of its tile, and shrinks back into it. Each picture keeps
+         its shape, its top at the card's top (the chart revealed from its top as the card grows, never squashed); the
+         tile's shows only near its own size, never seen magnified, the chart's over the rest (data-morph, see morph):
+         growing, gone over its first 8% (the ease is quick at first: a third of the way), shrinking, back over its last
+         30% (its last 1.4%). */
       ::view-transition-group(stage) {
         animation-duration: var(--dur-page);
         animation-timing-function: var(--ease);
@@ -7533,8 +7543,20 @@
       ::view-transition-new(stage) {
         width: 100%;
         height: 100%;
-        object-fit: fill;
-        animation-duration: var(--dur-page);
+        object-fit: cover;
+        object-position: top;
+        mix-blend-mode: plus-lighter;
+        animation: appear calc(var(--dur-page) * 0.08) linear both;
+      }
+
+      ::view-transition-old(stage) {
+        animation-name: vanish;
+      }
+
+      html[data-morph="shrink"]::view-transition-old(stage),
+      html[data-morph="shrink"]::view-transition-new(stage) {
+        animation-duration: calc(var(--dur-page) * 0.3);
+        animation-delay: calc(var(--dur-page) * 0.7);
       }
 
       ::view-transition-old(root),
@@ -20402,7 +20424,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function tileHtml(doc) {
         const title = escape(titleOf(doc)), on = picked.has(doc.id), preview = isPreview(doc);
         const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => `<span><i style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</span>`).join("");
-        return `<div class="tile ${on ? "picked" : ""} ${preview ? "preview" : ""} ${preview && touched.has(doc) ? "edited" : ""}" data-home-card="${doc.id}">
+        return `<div class="tile ${on ? "picked" : ""} ${preview ? "preview" : ""} ${preview && touched.has(doc) ? "edited" : ""}" data-home-card="${doc.id}" data-chart="${doc.id}">
             <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</span>${plotHtml(doc)}</button>
             <button type="button" class="cap small tile-more" data-tile-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button>
             ${preview ? "" : `<input type="checkbox" class="pick-check tile-check" style="--tick:${escape(tickOn("ink"))}" aria-label="Select ${title}" ${on ? "checked" : ""} />`}
@@ -20683,8 +20705,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {{ name: string, place: Place, folder?: string, count: number, previews?: boolean, empty?: string }} shelf @param {string} tiles
        */
       const folderShelfHtml = ({ name, place, folder, count, previews, empty }, tiles) => `<section class="shelf${previews ? " previews" : ""}"><div class="shelf-head"${folder === undefined ? "" : ` data-grid-folder="${folder}"`}><button type="button" class="shelf-title" data-place="${escape(JSON.stringify(place))}">${folder ? ICONS.folder : ""}${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>${folder ? `<button type="button" class="cap small shelf-more" data-folder-menu="${folder}" aria-haspopup="menu" aria-label="More for ${escape(name)}" data-tip="More">${ICONS.more}</button>` : ""}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${tiles ? `${tiles}${seeAll(place, count)}` : empty || `<p class="shelf-empty">No charts in it yet</p>`}</div></section>`;
+      /**
+       * The tile last pressed on the page: of the tiles showing a chart (a preset on two shelves, the recommended's and its
+       * section's), the one it grows out of and shrinks back into. Every tile says the chart it opens (`data-chart`): one
+       * of yours, a preset's.
+       * @type {HTMLElement | null}
+       */
+      let pressedTile = null;
+      $("home").addEventListener("click", (event) => (pressedTile = closest(event, ".tile[data-chart]") ?? pressedTile), true);
       /** A chart's tile: what the chart grows out of and shrinks into. */
-      const cardOf = (id) => /** @type {HTMLElement | null} */ ($("home-grid").querySelector(`[data-home-card="${id}"]`));
+      const cardOf = (id) => /** @type {HTMLElement | null} */ (pressedTile?.isConnected && pressedTile.dataset.chart === id ? pressedTile : $("home").querySelector(`.tile[data-chart="${CSS.escape(id)}"]`));
       const tileOpen = (id) => /** @type {HTMLElement | null} */ (cardOf(id)?.querySelector(".tile-open") ?? null);
 
       // ── The presets, as a gallery ─────────────────────────────────────────────
@@ -20794,7 +20824,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function presetTileHtml(/** @type {number} */ i, doc = presetDoc(i), card = -1) {
         const title = escape(titleOf(doc));
         const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => `<span><i style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</span>`).join("");
-        return `<div class="tile preset-tile ${doc.preset !== undefined && presetEdited(doc) ? "edited" : ""}" data-preset="${i}"><button type="button" class="tile-open" ${card < 0 ? `data-open-preset="${i}"` : `data-template="${card}"`} aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend}</span>${plotHtml(doc, true, card < 0 ? "tile-plot" : "template-plot tile-plot")}</button><button type="button" class="cap small tile-more" data-preset-menu="${i}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button></div>`;
+        return `<div class="tile preset-tile ${doc.preset !== undefined && presetEdited(doc) ? "edited" : ""}" data-preset="${i}"${card < 0 ? ` data-chart="${presetIdOf(presetKey(i))}"` : ""}><button type="button" class="tile-open" ${card < 0 ? `data-open-preset="${i}"` : `data-template="${card}"`} aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend}</span>${plotHtml(doc, true, card < 0 ? "tile-plot" : "template-plot tile-plot")}</button><button type="button" class="cap small tile-more" data-preset-menu="${i}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button></div>`;
       }
       /** The gallery's lists as drawn, each by its place there (its grid's Show more finds its own by it). */
       let listsDrawn = 0;
@@ -21330,10 +21360,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (before) before.style.viewTransitionName = "";
           after = await update();
           if (after) after.style.viewTransitionName = "stage";
+          // (Out of a tile or into one: its picture shown at that end, see ::view-transition-old(stage).)
+          document.documentElement.dataset.morph = before?.matches(".tile") ? "grow" : after?.matches(".tile") ? "shrink" : "";
         });
         transition.ready.catch(() => {});
         // (Over, its page whole again: what follows it, after.)
-        return transition.finished.catch(() => {}).finally(() => after && (after.style.viewTransitionName = ""));
+        return transition.finished.catch(() => {}).finally(() => (after && (after.style.viewTransitionName = ""), delete document.documentElement.dataset.morph));
       }
       /**
        * The Charts page, where `homeAt` is; the open one shrinks into its card (one of yours that's never had anything in
