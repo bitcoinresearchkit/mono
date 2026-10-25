@@ -20800,8 +20800,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (!presets) void loadPresets().catch(() => {});
         // (Drawn as it is already, it stays: what's scrolled on it, focused, drawn, as it was.)
-        // (A preset edited here shows as it is: drawn anew once one is.)
-        const spot = JSON.stringify([top, path, words, galleryShown]), drawn = JSON.stringify([spot, presets?.length ?? 0, presetsFailed, light, library.presets.map((doc) => `${doc.preset}@${doc.updated}`)]);
+        // (A preset edited here shows as it is: drawn anew once one is; one only opened, kept as it was, shows as the preset
+        // does, nothing to draw again for.)
+        const spot = JSON.stringify([top, path, words, galleryShown]), drawn = JSON.stringify([spot, presets?.length ?? 0, presetsFailed, light, library.presets.filter((doc) => !pristine(doc)).map((doc) => `${doc.preset}@${doc.updated}`)]);
         if (drawn === galleryDrawn) return;
         // (The same place drawn anew (the theme switched): its scroll and its shelves' kept.)
         const kept = spot === gallerySpot ? galleryPlace() : null;
