@@ -14593,6 +14593,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const lookOf = (/** @type {Record<string, any>} */ { priceFormat, priceScaleId, ...look }) => look;
       /** What each layer was drawn as (its shape, its data, stacked or not, painted date by date or not), to tell a restyle from a change. @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, painted?: any[] | null, low?: Vector }>} */
       const built = new Map();
+      /** The layers' order as last put in order (see build). */
+      let drawnOrder = "";
       /** @type {Map<string, Record<string, string>>} layer id → its series' colors */
       const paints = new Map();
       /** The layer in the spotlight while its row or caption is hovered: the others fade back. */
@@ -15004,13 +15006,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // it; its data is set again only where it changed (its values new), so an edit to one layer redraws that layer
         // alone, and a color or a width scrubbed stays smooth however many points there are. (Bars, their colors in
         // their points, are set again whole.)
-        const layerShape = (/** @type {Layer} */ layer, /** @type {number} */ i) => JSON.stringify([i, layer.type, layer.type === "signal" && layer.place === "shade", fromUnfit(doc, layer), paneIndex.get(layer.pane), layer.side, layer.fill ?? "", baseOf(layer), modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane), Boolean(doc.panes.find((pane) => pane.id === layer.pane)?.reverse), edgesOf(layer).length > 1]);
+        // (Not where it is among them: a layer moved, or its pane reversed, keeps its series, put in order below.)
+        const layerShape = (/** @type {Layer} */ layer) => JSON.stringify([layer.type, layer.type === "signal" && layer.place === "shade", fromUnfit(doc, layer), paneIndex.get(layer.pane), layer.side, layer.fill ?? "", baseOf(layer), modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane), edgesOf(layer).length > 1]);
         /** @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, painted?: any[] | null, low?: Vector }>} */
         const kept = new Map();
-        doc.layers.forEach((layer, i) => {
+        for (const layer of doc.layers) {
           const before = built.get(layer.id);
-          if (before && before.shape === layerShape(layer, i) && was.has(layer.id)) kept.set(layer.id, before);
-        });
+          if (before && before.shape === layerShape(layer) && was.has(layer.id)) kept.set(layer.id, before);
+        }
         built.clear();
         // The others' series go once the new ones are in: a scale left empty is reset by the chart library.
         const old = [...[...was].filter(([id]) => !kept.has(id)).map(([, series]) => series), ...[...wasCloses].filter(([id]) => !kept.has(id)).map(([, close]) => close.series)];
@@ -15119,7 +15122,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (layer.type === "dots") dotted.set(layer.id, { series, width: layer.width, radius });
           }
           paints.set(layer.id, paint);
-          built.set(layer.id, { shape: layerShape(layer, i), shown: stack?.values ?? result?.values, ohlc: result?.ohlc, stacked: Boolean(stack), painted: painting, ...(result?.low ? { low: result.low } : {}) });
+          built.set(layer.id, { shape: layerShape(layer), shown: stack?.values ?? result?.values, ohlc: result?.ohlc, stacked: Boolean(stack), painted: painting, ...(result?.low ? { low: result.low } : {}) });
           // The same values (and not bars, their colors in them): nothing to set again. None now (an error, a formula
           // being written), a kept series is emptied.
           const before = kept.get(layer.id);
@@ -15214,8 +15217,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const series of old) view.removeSeries(series);
         for (const { series } of carriersBefore.values()) view.removeSeries(series);
         // Each pane's series front to back as the panel lists them (its first layer in front; reversed, its last), over its
-        // lines across (in a stack, its foot in front of the taller ones: each band and bar shows whole). Drawn back first.
-        if (added) {
+        // lines across (in a stack, its foot in front of the taller ones: each band and bar shows whole). Drawn back first:
+        // as a series is added, or the order's another (a layer moved, a pane reversed).
+        const order = JSON.stringify([doc.layers.map((layer) => [layer.id, layer.pane]), doc.panes.map((pane) => Boolean(pane.reverse))]);
+        if (added || order !== drawnOrder) {
           const next = new Map([...carrierOf.keys()].map((key) => [Number(key.split("|")[0]), 0]));
           for (const key of carrierOf.keys()) next.set(Number(key.split("|")[0]), (next.get(Number(key.split("|")[0])) ?? 0) + 1);
           const reversed = new Set(doc.panes.filter((pane) => pane.reverse).map((pane) => pane.id));
@@ -15229,6 +15234,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
           }
         }
+        drawnOrder = order;
         const panes = view.panes();
         // (A pane's shade is on a scale of its own: no side's.)
         const sides = new Set(doc.layers.flatMap((layer) => (edgesOf(layer).length > 1 ? [] : [layer.side])));
