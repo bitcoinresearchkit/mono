@@ -6,7 +6,7 @@
 
 # Class: BitviewError
 
-Defined in: [modules/bitview-client/index.js:1811](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1811)
+Defined in: [modules/bitview-client/index.js:1833](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1833)
 
 A failed request: the HTTP status and the server's error code and message, when it sent them.
 
@@ -20,7 +20,7 @@ A failed request: the HTTP status and the server's error code and message, when 
 
 > **new BitviewError**(`message`, `status?`, `code?`): `BitviewError`
 
-Defined in: [modules/bitview-client/index.js:1817](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1817)
+Defined in: [modules/bitview-client/index.js:1839](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1839)
 
 #### Parameters
 

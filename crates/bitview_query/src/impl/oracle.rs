@@ -2,14 +2,15 @@ use std::{collections::HashMap, sync::Arc};
 
 use bitview_plugin_price::{block_payments, block_tally, feed_blocks_for_warmup, feed_blocks_with};
 use bitview_primitives::Lengths;
-use bitview_types::{BlockPayments, OraclePayments, OracleSearch};
+use bitview_types::{OracleBlock, OracleBlockPayments, OraclePayments};
 use brk_oracle::{
     Config, Oracle, ROUND_DOLLARS, START_HEIGHT_FAST, START_HEIGHT_SLOW, Search, Tally,
+    bin_to_cents,
 };
-use brk_types::{Dollars, Height};
+use brk_types::{BlockHash, Dollars, Height};
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
-use crate::{Error, Query, ReadPin, Result, check_bound};
+use crate::{Error, OptionData, Query, ReadPin, Result, check_bound};
 
 /// Blocks in one chunk of payments: a day's. Chunks start at its multiples, so their requests are
 /// few and fixed, and a settled one never changes.
@@ -19,14 +20,14 @@ pub const ORACLE_PAYMENTS_CHUNK: usize = 144;
 pub const PAYMENT_STEP: f64 = 0.1;
 
 impl Query {
-    /// The oracle's search at confirmed `height`: every candidate bin it scored from the block
-    /// before's answer, the bin it picked (the block's price), and the smoothed histogram it
-    /// scored. After [`START_HEIGHT_FAST`] (before, the slow regime's shape profile learns from
-    /// each pick). Also whether `height` is settled.
-    pub fn oracle_search(&self, height: usize) -> Result<(OracleSearch, bool)> {
+    /// The oracle at confirmed `height`: every candidate bin it scored from the block before's
+    /// answer, the bin it picked (the block's price), the smoothed histogram it scored and the
+    /// block's outputs as its filter judged them. After [`START_HEIGHT_FAST`] (before, the slow
+    /// regime's shape profile learns from each pick). Also whether `height` is settled.
+    pub fn oracle_block(&self, height: usize) -> Result<(OracleBlock, bool)> {
         if height <= START_HEIGHT_FAST {
             return Err(Error::OutOfRange(
-                format!("oracle searches: after height {START_HEIGHT_FAST}").into(),
+                format!("the oracle's blocks: after height {START_HEIGHT_FAST}").into(),
             ));
         }
         let pin = self.pin_safe_lengths()?;
@@ -37,24 +38,34 @@ impl Query {
         let oracle = self.warm_oracle(prev, height + 1, &safe)?;
         let search = oracle
             .search(prev)
-            .ok_or_else(|| Error::NotFound(format!("no oracle search at height {height}")))?;
+            .ok_or_else(|| Error::NotFound(format!("no oracle reading at height {height}")))?;
         let bin = self.seed_bin_at(height)?;
         let tally = block_tally(self.indexer(), height, Some(&safe))?;
+        let hash = self.block_hash_at(height)?;
         Ok((
-            searched(height, search, bin, &oracle, tally),
+            reading(height, hash, search, bin, &oracle, tally, false),
             pin.lengths().is_settled(Height::from(height)),
         ))
     }
 
     /// The chunk's blocks' payments (from `start`, a multiple of [`ORACLE_PAYMENTS_CHUNK`] past
-    /// [`START_HEIGHT_FAST`]), each read as each of the oracle's round-dollar amounts at its exact
-    /// amount in sats, counted by the price each reading implies, in buckets of [`PAYMENT_STEP`]
-    /// bins over the block's search window. The chunk at the tip holds the blocks so far. Also
-    /// whether the chunk is complete and settled.
+    /// [`START_HEIGHT_FAST`], else an invalid request), each read as each of the oracle's
+    /// round-dollar amounts at its exact amount in sats, counted by the price each reading implies,
+    /// in buckets of [`PAYMENT_STEP`] bins over the block's search window. The chunk at the tip
+    /// holds the blocks so far. Also whether the chunk is complete and settled.
     pub fn oracle_payments_chunk(&self, start: usize) -> Result<(Arc<OraclePayments>, bool)> {
-        if start <= START_HEIGHT_FAST || !start.is_multiple_of(ORACLE_PAYMENTS_CHUNK) {
+        if !start.is_multiple_of(ORACLE_PAYMENTS_CHUNK) {
+            let first = START_HEIGHT_FAST / ORACLE_PAYMENTS_CHUNK * ORACLE_PAYMENTS_CHUNK
+                + ORACLE_PAYMENTS_CHUNK;
+            return Err(Error::InvalidParam(format!(
+                "the oracle's payments: `start` is a multiple of {ORACLE_PAYMENTS_CHUNK}, as {}",
+                (start / ORACLE_PAYMENTS_CHUNK * ORACLE_PAYMENTS_CHUNK).max(first)
+            )));
+        }
+        if start <= START_HEIGHT_FAST {
             return Err(Error::OutOfRange(
-                format!("oracle payments: chunks start at multiples of {ORACLE_PAYMENTS_CHUNK}, after height {START_HEIGHT_FAST}").into(),
+                format!("the oracle's payments: after height {START_HEIGHT_FAST}, from 508,032")
+                    .into(),
             ));
         }
         let pin = self.pin_safe_lengths()?;
@@ -62,17 +73,20 @@ impl Query {
         let end = (start + ORACLE_PAYMENTS_CHUNK).min(self.histogram_bound(&pin.lengths()));
         if end <= start {
             return Err(Error::NotFound(format!(
-                "oracle payments unavailable from height {start}"
+                "no oracle payments from height {start} yet"
             )));
         }
-        // (Replayed once: a settled chunk for good, the others once per publication.)
-        if let Some(hit) = self.0.payment_chunks.lock().get(start, pin.revision()) {
+        // (Replayed once: a settled chunk for good, the others once per publication; either only
+        // while its last block is still on the chain, which a rollback past settlement replaces.)
+        let last = self.block_hash_at(end - 1)?;
+        let hit = self.0.payment_chunks.lock().get(start, pin.revision());
+        if let Some(hit) = hit.filter(|(payments, _)| payments.hash == last) {
             return Ok(hit);
         }
         let range = start..end;
         let safe = self.check_histogram_height(end - 1, pin.lengths())?;
         // (Each block's search window, from the block before's answer as stored, as
-        // `oracle_search` finds it.)
+        // `oracle_block` finds it.)
         let prevs = (start - 1..end - 1)
             .map(|height| self.seed_bin_at(height))
             .collect::<Result<Vec<_>>>()?;
@@ -123,9 +137,9 @@ impl Query {
                         }
                     }
                 }
-                blocks.push(BlockPayments {
+                blocks.push(OracleBlockPayments {
                     height: Height::from(height),
-                    first: first as u32,
+                    first_bucket: first as u32,
                     counts,
                 });
             },
@@ -133,6 +147,7 @@ impl Query {
         let settled =
             range.len() == ORACLE_PAYMENTS_CHUNK && pin.lengths().is_settled(Height::from(end - 1));
         let payments = Arc::new(OraclePayments {
+            hash: last,
             step: PAYMENT_STEP,
             blocks,
         });
@@ -143,11 +158,11 @@ impl Query {
         Ok((payments, settled))
     }
 
-    /// The live search, from the live oracle the server keeps warm (no replay): with the mempool's
-    /// outputs blended in as the next block, the oracle's search for it from the tip's answer;
-    /// without a mempool publication at this tip, the tip block's own search. With the smoothed
-    /// histogram it scored, the same snapshot. After [`START_HEIGHT_FAST`], as `oracle_search`.
-    pub fn live_search(&self) -> Result<OracleSearch> {
+    /// The oracle now, from the live oracle the server keeps warm (no replay): with the mempool's
+    /// outputs blended in as the next block, its reading of it from the tip's answer; without a
+    /// mempool publication at this tip, the tip block's own. One snapshot. After
+    /// [`START_HEIGHT_FAST`], as [`Self::oracle_block`].
+    pub fn live_block(&self) -> Result<OracleBlock> {
         let live = self.live_oracle()?;
         let (oracle, height, prev) = match live.blended_from {
             Some(prev) => (live.oracle, live.next, prev),
@@ -160,15 +175,22 @@ impl Query {
         };
         if height <= START_HEIGHT_FAST {
             return Err(Error::OutOfRange(
-                format!("oracle searches: after height {START_HEIGHT_FAST}").into(),
+                format!("the oracle's blocks: after height {START_HEIGHT_FAST}").into(),
             ));
         }
         let search = oracle
             .search(prev)
-            .ok_or_else(|| Error::NotFound("no oracle search at the tip".to_owned()))?;
-        let mut search = searched(height, search, oracle.ref_bin(), &oracle, tally);
-        search.mempool = live.mempool.is_some();
-        Ok(search)
+            .ok_or_else(|| Error::NotFound("no oracle reading at the tip".to_owned()))?;
+        let hash = live.pin.tip();
+        Ok(reading(
+            height,
+            hash,
+            search,
+            oracle.ref_bin(),
+            &oracle,
+            tally,
+            live.mempool.is_some(),
+        ))
     }
 
     pub fn live_price(&self) -> Result<Dollars> {
@@ -242,6 +264,16 @@ impl Query {
             .ok_or_else(|| Error::NotFound("oracle prices not yet computed".to_string()))
     }
 
+    /// The hash of confirmed block `height`.
+    fn block_hash_at(&self, height: usize) -> Result<BlockHash> {
+        self.indexer()
+            .vecs()
+            .blocks
+            .blockhash
+            .collect_one(Height::from(height))
+            .data()
+    }
+
     fn histogram_bound(&self, safe: &Lengths) -> usize {
         self.plugins()
             .price
@@ -258,30 +290,34 @@ impl Query {
         let bound = self.histogram_bound(&safe);
         if height >= bound {
             return Err(Error::NotFound(format!(
-                "oracle histogram unavailable for height {height}"
+                "no oracle reading at height {height} yet"
             )));
         }
         Ok(safe)
     }
 }
 
-/// A block's search, for the wire, with the histogram `oracle` scored and the block's outputs as
-/// the filter judged them.
-fn searched(
+/// A block's reading, for the wire: its search, the histogram `oracle` scored and the block's
+/// outputs as the filter judged them.
+fn reading(
     height: usize,
+    hash: BlockHash,
     search: Search,
     bin: f64,
     oracle: &Oracle,
     tally: Tally,
-) -> OracleSearch {
-    OracleSearch {
+    mempool: bool,
+) -> OracleBlock {
+    OracleBlock {
         height: Height::from(height),
+        hash,
+        mempool,
+        price: bin_to_cents(bin).into(),
+        bin,
         first_bin: search.first_bin as u16,
         scores: search.scores,
-        bin,
         histogram: oracle.ema().clone(),
         outputs: tally.into(),
-        mempool: false,
     }
 }
 

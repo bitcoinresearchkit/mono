@@ -119,9 +119,9 @@
     * [get\_utxo\_set](#bitview_client.BitviewClient.get_utxo_set)
     * [get\_utxo\_set\_diff](#bitview_client.BitviewClient.get_utxo_set_diff)
     * [get\_live\_price](#bitview_client.BitviewClient.get_live_price)
-    * [get\_oracle\_search](#bitview_client.BitviewClient.get_oracle_search)
+    * [get\_oracle\_live](#bitview_client.BitviewClient.get_oracle_live)
+    * [get\_oracle\_block](#bitview_client.BitviewClient.get_oracle_block)
     * [get\_oracle\_payments](#bitview_client.BitviewClient.get_oracle_payments)
-    * [get\_oracle\_search\_live](#bitview_client.BitviewClient.get_oracle_search_live)
     * [get\_openapi](#bitview_client.BitviewClient.get_openapi)
     * [get\_api](#bitview_client.BitviewClient.get_api)
 
@@ -1773,51 +1773,51 @@ def get_live_price() -> Dollars
 
 Live BTC/USD price.
 
-Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available. Confirmed per-height history is available at `GET /api/series/price/height`.
+Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available, to the cent: `price` of `GET /api/oracle/live`. Confirmed per-height history is available at `GET /api/series/price/height`. Not found before the oracle's first prices.
 
 Endpoint: `GET /api/oracle/price`
 
-<a id="bitview_client.BitviewClient.get_oracle_search"></a>
+<a id="bitview_client.BitviewClient.get_oracle_live"></a>
 
-#### get\_oracle\_search
+#### get\_oracle\_live
 
 ```python
-def get_oracle_search(height: Height) -> OracleSearch
+def get_oracle_live() -> OracleBlock
 ```
 
-The oracle's search at a block.
+The oracle now.
 
-The oracle's search behind a block's price, after height 508,000: every candidate bin in its window, 12 below the block before's answer to 11 above, with its score (each round-dollar arm's count over that arm's peak in the window, summed), the bin it picked, the smoothed histogram it scored them on, and the block's outputs as the filter judged them (each skipped one under the first rule that skips it, the rest payments).
+The oracle's reading now, as `GET /api/oracle/blocks/{height}` reads a block: with the mempool's outputs blended in as the next block (`mempool` true, `height` the next block's, `outputs` the mempool's), its search from the tip's answer, `price` the live price; without a mempool at the tip, the tip block's own. One snapshot: its parts never from two moments, `hash` the confirmed tip it was read at. Not found before the oracle's first prices, nor before height 508,000.
 
-Endpoint: `GET /api/oracle/searches/{height}`
+Endpoint: `GET /api/oracle/live`
+
+<a id="bitview_client.BitviewClient.get_oracle_block"></a>
+
+#### get\_oracle\_block
+
+```python
+def get_oracle_block(height: Height) -> OracleBlock
+```
+
+The oracle at a block.
+
+How the oracle read a confirmed block, after height 508,000: what it counted (the smoothed histogram of the payments of the block and the 11 before it, by amount on its log scale; the block's outputs as its filter judged them, each skipped one under the first rule that skips it), where it looked (every candidate bin in its window, 12 below the block before's answer to 11 above, with its score) and what it found (the bin it picked and its price). Bins: 200 a decade, a bin `round(log10(sats) * 200)`; as where $100 lands, a bin is the price `10^(10 - bin / 200)` dollars. A settled block's never changes.
+
+Endpoint: `GET /api/oracle/blocks/{height}`
 
 <a id="bitview_client.BitviewClient.get_oracle_payments"></a>
 
 #### get\_oracle\_payments
 
 ```python
-def get_oracle_payments(height: Height) -> OraclePayments
+def get_oracle_payments(start: Height) -> OraclePayments
 ```
 
-The oracle's payments, a day of blocks at a time.
+The oracle's payments, 144 blocks at a time.
 
-For each of the 144 blocks from `height` (a multiple of 144, from 508,032): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of an oracle bin wide (0.115% of price) over the block's search window. The chunk at the tip holds the blocks so far; a complete, settled chunk never changes.
+For each of the 144 blocks from `start` (a multiple of 144, else a bad request; from 508,032, earlier ones out of range): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of a bin wide (0.115% of price) over the block's search window: finer than the oracle's bins, the evidence behind its prices. The chunk at the tip holds its blocks so far, `hash` its last block's; a whole, settled chunk never changes.
 
-Endpoint: `GET /api/oracle/payments/{height}`
-
-<a id="bitview_client.BitviewClient.get_oracle_search_live"></a>
-
-#### get\_oracle\_search\_live
-
-```python
-def get_oracle_search_live() -> OracleSearch
-```
-
-The oracle's live search.
-
-With the mempool's eligible outputs blended in as the next block, the oracle's search for it from the tip's answer, as in `GET /api/oracle/searches/{height}`: its height is the next block's, its pick the live price. Without a mempool publication at the tip, the tip block's own search.
-
-Endpoint: `GET /api/oracle/searches/live`
+Endpoint: `GET /api/oracle/payments/{start}`
 
 <a id="bitview_client.BitviewClient.get_openapi"></a>
 

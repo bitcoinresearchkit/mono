@@ -626,14 +626,33 @@ Returns: JSON `value`
 
 ### Oracle
 
-#### GET `/api/oracle/payments/{height}`
+#### GET `/api/oracle/blocks/{height}`
 
-The oracle's payments, a day of blocks at a time
+The oracle at a block
 
-For each of the 144 blocks from `height` (a multiple of 144, from 508,032): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of an oracle bin wide (0.115% of price) over the block's search window. The chunk at the tip holds the blocks so far; a complete, settled chunk never changes.
+How the oracle read a confirmed block, after height 508,000: what it counted (the smoothed histogram of the payments of the block and the 11 before it, by amount on its log scale; the block's outputs as its filter judged them, each skipped one under the first rule that skips it), where it looked (every candidate bin in its window, 12 below the block before's answer to 11 above, with its score) and what it found (the bin it picked and its price). Bins: 200 a decade, a bin `round(log10(sats) * 200)`; as where $100 lands, a bin is the price `10^(10 - bin / 200)` dollars. A settled block's never changes.
 
 Parameters:
 - `height` (path, Height, required)
+
+Returns: JSON `OracleBlock`
+
+#### GET `/api/oracle/live`
+
+The oracle now
+
+The oracle's reading now, as `GET /api/oracle/blocks/{height}` reads a block: with the mempool's outputs blended in as the next block (`mempool` true, `height` the next block's, `outputs` the mempool's), its search from the tip's answer, `price` the live price; without a mempool at the tip, the tip block's own. One snapshot: its parts never from two moments, `hash` the confirmed tip it was read at. Not found before the oracle's first prices, nor before height 508,000.
+
+Returns: JSON `OracleBlock`
+
+#### GET `/api/oracle/payments/{start}`
+
+The oracle's payments, 144 blocks at a time
+
+For each of the 144 blocks from `start` (a multiple of 144, else a bad request; from 508,032, earlier ones out of range): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of a bin wide (0.115% of price) over the block's search window: finer than the oracle's bins, the evidence behind its prices. The chunk at the tip holds its blocks so far, `hash` its last block's; a whole, settled chunk never changes.
+
+Parameters:
+- `start` (path, Height, required): The first block's height.
 
 Returns: JSON `OraclePayments`
 
@@ -641,28 +660,9 @@ Returns: JSON `OraclePayments`
 
 Live BTC/USD price
 
-Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available. Confirmed per-height history is available at `GET /api/series/price/height`.
+Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available, to the cent: `price` of `GET /api/oracle/live`. Confirmed per-height history is available at `GET /api/series/price/height`. Not found before the oracle's first prices.
 
 Returns: JSON `Dollars`
-
-#### GET `/api/oracle/searches/live`
-
-The oracle's live search
-
-With the mempool's eligible outputs blended in as the next block, the oracle's search for it from the tip's answer, as in `GET /api/oracle/searches/{height}`: its height is the next block's, its pick the live price. Without a mempool publication at the tip, the tip block's own search.
-
-Returns: JSON `OracleSearch`
-
-#### GET `/api/oracle/searches/{height}`
-
-The oracle's search at a block
-
-The oracle's search behind a block's price, after height 508,000: every candidate bin in its window, 12 below the block before's answer to 11 above, with its score (each round-dollar arm's count over that arm's peak in the window, summed), the bin it picked, the smoothed histogram it scored them on, and the block's outputs as the filter judged them (each skipped one under the first rule that skips it, the rest payments).
-
-Parameters:
-- `height` (path, Height, required)
-
-Returns: JSON `OracleSearch`
 
 ### Prices
 
@@ -1263,12 +1263,6 @@ Returns: JSON `ServerVersion`
 
 `invalid | headers-only | valid-headers | valid-fork`
 
-### `BlockPayments`
-
-- `height`: `Height` (required)
-- `first`: `integer` (required) — The first bucket: bucket `i` holds the readings whose $100 bin is in `[i, i + 1) * step`, the price `10^(10 - i * step / 200)` dollars at its edge.
-- `counts`: `integer[]` (required) — The readings in each bucket from `first` on, over the oracle's search window for the block.
-
 ### `BlockPool`
 
 - `id`: `integer` (required) — Zero-based pool ID, matching mempool.space's `unique_id`
@@ -1434,16 +1428,6 @@ Returns: JSON `ServerVersion`
 
 `number`
 
-### `FilteredOutputs`
-
-- `coinbase`: `integer` (required) — The coinbase's: new coins, not payments.
-- `fan_out`: `integer` (required) — Those of transactions with more outputs than the fan-out cap (250; 100 before height 630,000): batch payouts.
-- `op_return`: `integer` (required) — Those of transactions carrying an OP_RETURN output: data, not payments.
-- `taproot`: `integer` (required) — Taproot outputs: mostly protocol traffic.
-- `dust`: `integer` (required) — Under 1,000 sats.
-- `round_btc`: `integer` (required) — Round amounts in bitcoin (within 0.1% of 1, 2, 3, 5 or 6 times a power of ten sats).
-- `payments`: `integer` (required) — The rest: the payments it counted.
-
 ### `Format`
 
 `json | csv`
@@ -1583,20 +1567,39 @@ Returns: JSON `ServerVersion`
 - `merkle`: `MerkleNode[]` (required) — Merkle proof path, from the transaction's sibling up
 - `pos`: `integer` (required) — Transaction position in the block (0-indexed)
 
-### `OraclePayments`
+### `OracleBlock`
 
-- `step`: `number` (required) — A bucket's width in oracle bins (a bin is 1/200 of a decade of price).
-- `blocks`: `BlockPayments[]` (required)
+- `height`: `Height` (required) — The block's height; live with the mempool, the next block's.
+- `hash`: `BlockHash` (required) — The confirmed block it was read at: this block's hash; live with the mempool, the tip's (block `height - 1`), the one the mempool is blended onto.
+- `mempool`: `boolean` (required) — Whether it's the live reading with the mempool blended in as the next block (`outputs` the mempool's), rather than a confirmed block's.
+- `price`: `Dollars` (required) — The price it found, in dollars: `bin` as a price, to the cent.
+- `bin`: `number` (required) — The bin it picked, refined between bins by a parabola through the best score and its neighbours.
+- `first_bin`: `integer` (required) — The search window's first candidate bin: 12 below the block before's answer, rounded, 24 candidates in all.
+- `scores`: `number[]` (required) — Each candidate's score, from `first_bin` on, unitless: for each of the 19 round-dollar amounts ($1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 100, 150, 200, 300, 500, 1k, 2k, 5k, 10k), the histogram's count where that amount lands if $100 is at the candidate, over that amount's peak in the window, summed. The highest is the pick's bin; all zero when the window held no payments at all, and the oracle kept the block before's answer.
+- `histogram`: `number[]` (required) — The smoothed histogram it scored, 2,400 bins: the block's payments and the 11 blocks' before it (live, the mempool's as the next block's), each block's counts weighted `(2/7) * (5/7)^age`, the newest at age 0.
+- `outputs`: `OracleOutputs` (required) — The block's own outputs (live, the mempool's) as the oracle's filter judged them.
 
-### `OracleSearch`
+### `OracleBlockPayments`
 
 - `height`: `Height` (required)
-- `first_bin`: `integer` (required) — The window's first candidate bin, on the oracle's log scale (200 bins a decade; a bin is where $100 lands in sats: the price is `10^(10 - bin / 200)` dollars).
-- `scores`: `number[]` (required) — Each candidate's score, from `first_bin` on: its round-dollar arms' counts, each over that arm's peak in the window, summed. The highest is the pick's bin.
-- `bin`: `number` (required) — The bin it picked, refined between bins: the block's price.
-- `histogram`: `number[]` (required) — The smoothed histogram it scored: the payments of the block and the 11 before it (and, live, the mempool's as the next block's), counted by amount in sats on the same scale (a bin is `round(log10(sats) * 200)`), the newest weighing most.
-- `outputs`: `FilteredOutputs` (required) — The block's own outputs (live, the mempool's) as the oracle's filter judged them.
-- `mempool`: `boolean` (required) — Whether it's the live search with the mempool blended in as the next block (`height` the next block's, `outputs` the mempool's), rather than a block's.
+- `first_bucket`: `integer` (required) — The first bucket's index: the window's first bin's lower edge (half a bin under it) over `step`.
+- `counts`: `integer[]` (required) — The readings in each bucket from `first_bucket` on: bucket `first_bucket + k` at index `k`.
+
+### `OracleOutputs`
+
+- `coinbase`: `integer` (required) — The coinbase's: new coins, not payments.
+- `fan_out`: `integer` (required) — Those of transactions with more outputs than the fan-out cap (250; 100 before height 630,000): batch payouts.
+- `op_return`: `integer` (required) — Those of transactions carrying an OP_RETURN output: data, not payments.
+- `taproot`: `integer` (required) — Taproot outputs: mostly protocol traffic.
+- `dust`: `integer` (required) — Under 1,000 sats.
+- `round_btc`: `integer` (required) — Round amounts in bitcoin (within 0.1% of 1, 2, 3, 5 or 6 times a power of ten sats).
+- `payments`: `integer` (required) — The rest: the payments it counted.
+
+### `OraclePayments`
+
+- `hash`: `BlockHash` (required) — The last block's hash: it commits to every block before it.
+- `step`: `number` (required) — A bucket's width in oracle bins: 0.1, a price range of 0.115%.
+- `blocks`: `OracleBlockPayments[]` (required) — Each block's, in order.
 
 ### `OutputType`
 

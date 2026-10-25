@@ -8,7 +8,7 @@
 
 > **Pool** = `object`
 
-Defined in: [modules/bitview-client/index.js:5874](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5874)
+Defined in: [modules/bitview-client/index.js:5896](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5896)
 
 ## Type Parameters
 

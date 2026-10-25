@@ -8,7 +8,7 @@
 
 > **Side** = `object`
 
-Defined in: [modules/bitview-client/index.js:3993](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3993)
+Defined in: [modules/bitview-client/index.js:4015](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4015)
 
 ## Type Parameters
 

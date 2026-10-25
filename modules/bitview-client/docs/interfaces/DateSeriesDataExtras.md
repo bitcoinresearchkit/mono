@@ -6,7 +6,7 @@
 
 # Interface: DateSeriesDataExtras\<T\>
 
-Defined in: [modules/bitview-client/index.js:1956](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1956)
+Defined in: [modules/bitview-client/index.js:1978](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1978)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [modules/bitview-client/index.js:1956](https://github.com/bitcoinres
 
 > **dateEntries**: () => \[`Date`, `T`\][]
 
-Defined in: [modules/bitview-client/index.js:1958](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1958)
+Defined in: [modules/bitview-client/index.js:1980](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1980)
 
 #### Returns
 
@@ -32,7 +32,7 @@ Defined in: [modules/bitview-client/index.js:1958](https://github.com/bitcoinres
 
 > **dates**: () => `Date`[]
 
-Defined in: [modules/bitview-client/index.js:1957](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1957)
+Defined in: [modules/bitview-client/index.js:1979](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1979)
 
 Get dates for each data point
 
@@ -46,7 +46,7 @@ Get dates for each data point
 
 > **toDateMap**: () => `Map`\<`Date`, `T`\>
 
-Defined in: [modules/bitview-client/index.js:1959](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1959)
+Defined in: [modules/bitview-client/index.js:1981](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1981)
 
 #### Returns
 

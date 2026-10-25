@@ -8,7 +8,7 @@
 
 > **Coinflow** = `object`
 
-Defined in: [modules/bitview-client/index.js:5397](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5397)
+Defined in: [modules/bitview-client/index.js:5419](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5419)
 
 ## Type Parameters
 

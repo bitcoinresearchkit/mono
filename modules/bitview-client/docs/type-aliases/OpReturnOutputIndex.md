@@ -8,6 +8,6 @@
 
 > **OpReturnOutputIndex** = [`TypeIndex`](TypeIndex.md)
 
-Defined in: [modules/bitview-client/index.js:932](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L932)
+Defined in: [modules/bitview-client/index.js:907](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L907)
 
 ## Type Parameters

@@ -6,7 +6,7 @@
 
 # Interface: SeriesPattern\<T\>
 
-Defined in: [modules/bitview-client/index.js:2042](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2042)
+Defined in: [modules/bitview-client/index.js:2064](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2064)
 
 ## Type Parameters
 
@@ -20,7 +20,7 @@ Defined in: [modules/bitview-client/index.js:2042](https://github.com/bitcoinres
 
 > **by**: `Readonly`\<`Partial`\<`Record`\<[`Index`](../type-aliases/Index.md), [`SeriesEndpoint`](SeriesEndpoint.md)\<`T`\>\>\>\>
 
-Defined in: [modules/bitview-client/index.js:2044](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2044)
+Defined in: [modules/bitview-client/index.js:2066](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2066)
 
 Index endpoints as lazy getters
 
@@ -30,7 +30,7 @@ Index endpoints as lazy getters
 
 > **get**: (`index`) => [`SeriesEndpoint`](SeriesEndpoint.md)\<`T`\> \| `undefined`
 
-Defined in: [modules/bitview-client/index.js:2046](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2046)
+Defined in: [modules/bitview-client/index.js:2068](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2068)
 
 #### Parameters
 
@@ -48,7 +48,7 @@ Defined in: [modules/bitview-client/index.js:2046](https://github.com/bitcoinres
 
 > **indexes**: () => readonly [`Index`](../type-aliases/Index.md)[]
 
-Defined in: [modules/bitview-client/index.js:2045](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2045)
+Defined in: [modules/bitview-client/index.js:2067](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2067)
 
 #### Returns
 
@@ -60,4 +60,4 @@ readonly [`Index`](../type-aliases/Index.md)[]
 
 > **name**: `string`
 
-Defined in: [modules/bitview-client/index.js:2043](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2043)
+Defined in: [modules/bitview-client/index.js:2065](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2065)

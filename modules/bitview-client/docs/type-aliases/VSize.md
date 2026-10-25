@@ -8,6 +8,6 @@
 
 > **VSize** = `number`
 
-Defined in: [modules/bitview-client/index.js:1651](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1651)
+Defined in: [modules/bitview-client/index.js:1673](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1673)
 
 ## Type Parameters

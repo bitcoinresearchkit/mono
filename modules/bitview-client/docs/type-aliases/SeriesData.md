@@ -8,7 +8,7 @@
 
 > **SeriesData**\<`T`\> = [`SeriesDataBase`](../interfaces/SeriesDataBase.md)\<`T`\> & `Iterable`\<\[`number`, `T`\]\>
 
-Defined in: [modules/bitview-client/index.js:1952](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1952)
+Defined in: [modules/bitview-client/index.js:1974](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1974)
 
 ## Type Parameters
 

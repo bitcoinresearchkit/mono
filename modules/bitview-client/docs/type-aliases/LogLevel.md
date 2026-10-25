@@ -8,6 +8,6 @@
 
 > **LogLevel** = `"error"` \| `"warn"` \| `"info"` \| `"debug"` \| `"trace"`
 
-Defined in: [modules/bitview-client/index.js:756](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L756)
+Defined in: [modules/bitview-client/index.js:731](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L731)
 
 ## Type Parameters

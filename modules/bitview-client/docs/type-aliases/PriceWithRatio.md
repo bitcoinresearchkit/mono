@@ -8,7 +8,7 @@
 
 > **PriceWithRatio** = `object`
 
-Defined in: [modules/bitview-client/index.js:3596](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3596)
+Defined in: [modules/bitview-client/index.js:3618](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3618)
 
 ## Type Parameters
 

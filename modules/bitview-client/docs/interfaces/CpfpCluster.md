@@ -6,7 +6,7 @@
 
 # Interface: CpfpCluster
 
-Defined in: [modules/bitview-client/index.js:416](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L416)
+Defined in: [modules/bitview-client/index.js:406](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L406)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:416](https://github.com/bitcoinrese
 
 > **chunkIndex**: `number`
 
-Defined in: [modules/bitview-client/index.js:419](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L419)
+Defined in: [modules/bitview-client/index.js:409](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L409)
 
 Index into `chunks` of the chunk containing the seed tx.
 
@@ -24,7 +24,7 @@ Index into `chunks` of the chunk containing the seed tx.
 
 > **chunks**: [`CpfpClusterChunk`](CpfpClusterChunk.md)[]
 
-Defined in: [modules/bitview-client/index.js:418](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L418)
+Defined in: [modules/bitview-client/index.js:408](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L408)
 
 Chunks ordered by descending feerate.
 
@@ -34,6 +34,6 @@ Chunks ordered by descending feerate.
 
 > **txs**: [`CpfpClusterTx`](CpfpClusterTx.md)[]
 
-Defined in: [modules/bitview-client/index.js:417](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L417)
+Defined in: [modules/bitview-client/index.js:407](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L407)
 
 All txs in the cluster, in topological order (parents before children).

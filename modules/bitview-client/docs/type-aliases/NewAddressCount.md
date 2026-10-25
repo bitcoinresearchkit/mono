@@ -8,7 +8,7 @@
 
 > **NewAddressCount** = `object`
 
-Defined in: [modules/bitview-client/index.js:4398](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4398)
+Defined in: [modules/bitview-client/index.js:4420](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4420)
 
 ## Type Parameters
 

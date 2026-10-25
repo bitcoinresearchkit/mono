@@ -6,7 +6,7 @@
 
 # Interface: UtxoSet
 
-Defined in: [modules/bitview-client/index.js:1625](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1625)
+Defined in: [modules/bitview-client/index.js:1647](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1647)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1625](https://github.com/bitcoinres
 
 > **count**: `number`
 
-Defined in: [modules/bitview-client/index.js:1630](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1630)
+Defined in: [modules/bitview-client/index.js:1652](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1652)
 
 Number of unspent outputs.
 
@@ -24,7 +24,7 @@ Number of unspent outputs.
 
 > **date**: `string`
 
-Defined in: [modules/bitview-client/index.js:1628](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1628)
+Defined in: [modules/bitview-client/index.js:1650](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1650)
 
 UTC date of the represented block's monotonic timestamp (the running maximum of block
 times).
@@ -35,7 +35,7 @@ times).
 
 > **hash**: `string`
 
-Defined in: [modules/bitview-client/index.js:1627](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1627)
+Defined in: [modules/bitview-client/index.js:1649](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1649)
 
 ***
 
@@ -43,7 +43,7 @@ Defined in: [modules/bitview-client/index.js:1627](https://github.com/bitcoinres
 
 > **height**: `number`
 
-Defined in: [modules/bitview-client/index.js:1626](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1626)
+Defined in: [modules/bitview-client/index.js:1648](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1648)
 
 ***
 
@@ -51,7 +51,7 @@ Defined in: [modules/bitview-client/index.js:1626](https://github.com/bitcoinres
 
 > **origins**: [`UtxoOrigins`](UtxoOrigins.md)
 
-Defined in: [modules/bitview-client/index.js:1632](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1632)
+Defined in: [modules/bitview-client/index.js:1654](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1654)
 
 Unspent outputs by creation height: entry `i` is what remains of block `i`'s outputs.
 
@@ -61,6 +61,6 @@ Unspent outputs by creation height: entry `i` is what remains of block `i`'s out
 
 > **supply**: `number`
 
-Defined in: [modules/bitview-client/index.js:1631](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1631)
+Defined in: [modules/bitview-client/index.js:1653](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1653)
 
 BTC held by the unspent outputs.

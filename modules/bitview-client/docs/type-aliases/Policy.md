@@ -8,7 +8,7 @@
 
 > **Policy** = `object`
 
-Defined in: [modules/bitview-client/index.js:5467](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5467)
+Defined in: [modules/bitview-client/index.js:5489](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L5489)
 
 ## Type Parameters
 

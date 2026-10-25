@@ -8,6 +8,6 @@
 
 > **OpReturnKind** = `"runes"` \| `"witness_commitment"` \| `"veriblock"` \| `"omni"` \| `"stacks"` \| `"blockstack"` \| `"colu"` \| `"open_assets"` \| `"komodo"` \| `"coinspark"` \| `"poet"` \| `"docproof"` \| `"factom"` \| `"eternity_wall"` \| `"memo"` \| `"bitproof"` \| `"ascribe"` \| `"stampery"` \| `"bare_hash"` \| `"text"` \| `"empty"` \| `"unknown"`
 
-Defined in: [modules/bitview-client/index.js:927](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L927)
+Defined in: [modules/bitview-client/index.js:902](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L902)
 
 ## Type Parameters

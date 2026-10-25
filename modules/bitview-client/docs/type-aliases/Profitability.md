@@ -8,7 +8,7 @@
 
 > **Profitability** = `object`
 
-Defined in: [modules/bitview-client/index.js:4145](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4145)
+Defined in: [modules/bitview-client/index.js:4167](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4167)
 
 ## Type Parameters
 

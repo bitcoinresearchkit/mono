@@ -8,7 +8,7 @@
 
 > **Blocks** = `object`
 
-Defined in: [modules/bitview-client/index.js:6235](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6235)
+Defined in: [modules/bitview-client/index.js:6257](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6257)
 
 ## Type Parameters
 

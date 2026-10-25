@@ -6,7 +6,7 @@
 
 # Interface: MempoolBlockParam
 
-Defined in: [modules/bitview-client/index.js:852](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L852)
+Defined in: [modules/bitview-client/index.js:827](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L827)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [modules/bitview-client/index.js:852](https://github.com/bitcoinrese
 
 > **index**: `number`
 
-Defined in: [modules/bitview-client/index.js:853](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L853)
+Defined in: [modules/bitview-client/index.js:828](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L828)

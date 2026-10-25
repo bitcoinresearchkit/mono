@@ -8,6 +8,6 @@
 
 > **OutputType** = `"p2pk65"` \| `"p2pk33"` \| `"p2pkh"` \| `"p2ms"` \| `"p2sh"` \| `"op_return"` \| `"p2wpkh"` \| `"p2wsh"` \| `"p2tr"` \| `"p2a"` \| `"empty_script"` \| `"unknown_script"`
 
-Defined in: [modules/bitview-client/index.js:970](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L970)
+Defined in: [modules/bitview-client/index.js:988](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L988)
 
 ## Type Parameters

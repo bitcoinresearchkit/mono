@@ -106,8 +106,8 @@ impl Stencil {
     }
 
     /// Every candidate's score in the window around `prev_bin`, as [`pick`](Self::pick) ranks them:
-    /// the window's first bin and the scores in bin order. `None` without a searchable bin or any
-    /// evidence, when `pick` keeps its reference.
+    /// the window's first bin and the scores in bin order, all zero without any evidence (when
+    /// `pick` keeps its reference). `None` without a searchable bin.
     pub fn scores(
         &self,
         ema: &HistogramEma,
@@ -117,9 +117,12 @@ impl Stencil {
     ) -> Option<(usize, Vec<f64>)> {
         let range = search_range(prev_bin, search_below, search_above)?;
         let scorer = CandidateScorer::new(ema, &self.shape, range.clone());
-        scorer
-            .has_evidence()
-            .then(|| (range.start, range.map(|bin| scorer.score(bin)).collect()))
+        let scores = if scorer.has_evidence() {
+            range.clone().map(|bin| scorer.score(bin)).collect()
+        } else {
+            vec![0.0; range.len()]
+        };
+        Some((range.start, scores))
     }
 }
 

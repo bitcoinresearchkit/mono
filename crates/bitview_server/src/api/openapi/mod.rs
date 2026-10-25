@@ -94,8 +94,9 @@ const TAGS: [(&str, &str); 12] = [
         transaction outputs, with no external price feed. Payment activity is binned on a \
         log scale, and a smoothed EMA over recent blocks locates the price.\n\n\
         The live price is at `/api/oracle/price`, confirmed per-height price history at \
-        `/api/series/price/height`; the searches behind them, with the histograms they scored, at \
-        `/api/oracle/searches/{height}` and `/api/oracle/searches/live`.",
+        `/api/series/price/height`. How it read each block (what it counted, where it looked, what \
+        it found) is at `/api/oracle/blocks/{height}`, and now at `/api/oracle/live`; the payments \
+        behind its prices, 144 blocks at a time, at `/api/oracle/payments/{start}`.",
     ),
     (
         tags::UTXO_SET,

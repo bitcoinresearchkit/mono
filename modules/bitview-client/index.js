@@ -269,16 +269,6 @@ sequence isn't final), from timestamp 1,771,507,776 on; null before
  * @typedef {(("invalid")|("headers-only")|("valid-headers")|("valid-fork"))} BlockOrphanStatus
  */
 /**
- * One block's payments, each read as each of the oracle's 19 round-dollar amounts ($1 to $10,000)
- * at its exact amount in sats, counted by the price each reading implies.
- *
- * @typedef {Object} BlockPayments
- * @property {Height} height
- * @property {number} first - The first bucket: bucket `i` holds the readings whose $100 bin is in `[i, i + 1) * step`,
-the price `10^(10 - i * step / 200)` dollars at its edge.
- * @property {number[]} counts - The readings in each bucket from `first` on, over the oracle's search window for the block.
- */
-/**
  * @typedef {Object} BlockPool
  * @property {number} id - Zero-based pool ID, matching mempool.space's `unique_id`
  * @property {string} name
@@ -615,21 +605,6 @@ mainnet, as mempool.space
  * @typedef {number} FeeRate
  */
 /**
- * A block's outputs as the oracle's filter judged them: each skipped one under the first rule
- * that skips it, in the filter's order, and the payments it kept. They add up to the block's
- * outputs.
- *
- * @typedef {Object} FilteredOutputs
- * @property {number} coinbase - The coinbase's: new coins, not payments.
- * @property {number} fanOut - Those of transactions with more outputs than the fan-out cap (250; 100 before height
-630,000): batch payouts.
- * @property {number} opReturn - Those of transactions carrying an OP_RETURN output: data, not payments.
- * @property {number} taproot - Taproot outputs: mostly protocol traffic.
- * @property {number} dust - Under 1,000 sats.
- * @property {number} roundBtc - Round amounts in bitcoin (within 0.1% of 1, 2, 3, 5 or 6 times a power of ten sats).
- * @property {number} payments - The rest: the payments it counted.
- */
-/**
  * A floating-point value without a specific unit.
  *
  * @typedef {number} Float
@@ -932,29 +907,72 @@ a bin closing at the first fee rate change past 50,000 vB
  * @typedef {TypeIndex} OpReturnOutputIndex
  */
 /**
- * Blocks' payments read as round-dollar amounts: the prices they imply, counted in fine buckets.
+ * The oracle at one block: what it counted (`histogram`, `outputs`), where it looked (`first_bin`,
+ * `scores`) and what it found (`bin`, `price`).
  *
- * @typedef {Object} OraclePayments
- * @property {number} step - A bucket's width in oracle bins (a bin is 1/200 of a decade of price).
- * @property {BlockPayments[]} blocks
+ * Bins are the oracle's log scale of amounts in sats, 200 a decade: amount `sats` is in bin
+ * `round(log10(sats) * 200)`, bin 0 at 1 sat to bin 2399 just under 10^12. Read as where $100
+ * lands, a bin is a price: `10^(10 - bin / 200)` dollars, higher bins lower prices.
+ *
+ * @typedef {Object} OracleBlock
+ * @property {Height} height - The block's height; live with the mempool, the next block's.
+ * @property {BlockHash} hash - The confirmed block it was read at: this block's hash; live with the mempool, the tip's
+(block `height - 1`), the one the mempool is blended onto.
+ * @property {boolean} mempool - Whether it's the live reading with the mempool blended in as the next block (`outputs` the
+mempool's), rather than a confirmed block's.
+ * @property {Dollars} price - The price it found, in dollars: `bin` as a price, to the cent.
+ * @property {number} bin - The bin it picked, refined between bins by a parabola through the best score and its
+neighbours.
+ * @property {number} firstBin - The search window's first candidate bin: 12 below the block before's answer, rounded, 24
+candidates in all.
+ * @property {number[]} scores - Each candidate's score, from `first_bin` on, unitless: for each of the 19 round-dollar
+amounts ($1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 100, 150, 200, 300, 500, 1k, 2k, 5k, 10k),
+the histogram's count where that amount lands if $100 is at the candidate, over that
+amount's peak in the window, summed. The highest is the pick's bin; all zero when the window
+held no payments at all, and the oracle kept the block before's answer.
+ * @property {number[]} histogram - The smoothed histogram it scored, 2,400 bins: the block's payments and the 11 blocks'
+before it (live, the mempool's as the next block's), each block's counts weighted
+`(2/7) * (5/7)^age`, the newest at age 0.
+ * @property {OracleOutputs} outputs - The block's own outputs (live, the mempool's) as the oracle's filter judged them.
  */
 /**
- * The oracle's search for one block: each candidate bin it scored, the one it picked, and the
- * histogram it scored them on.
+ * One block's payments read as round dollars, over the oracle's search window for it.
  *
- * @typedef {Object} OracleSearch
+ * @typedef {Object} OracleBlockPayments
  * @property {Height} height
- * @property {number} firstBin - The window's first candidate bin, on the oracle's log scale (200 bins a decade; a bin is
-where $100 lands in sats: the price is `10^(10 - bin / 200)` dollars).
- * @property {number[]} scores - Each candidate's score, from `first_bin` on: its round-dollar arms' counts, each over that
-arm's peak in the window, summed. The highest is the pick's bin.
- * @property {number} bin - The bin it picked, refined between bins: the block's price.
- * @property {number[]} histogram - The smoothed histogram it scored: the payments of the block and the 11 before it (and,
-live, the mempool's as the next block's), counted by amount in sats on the same scale (a
-bin is `round(log10(sats) * 200)`), the newest weighing most.
- * @property {FilteredOutputs} outputs - The block's own outputs (live, the mempool's) as the oracle's filter judged them.
- * @property {boolean} mempool - Whether it's the live search with the mempool blended in as the next block (`height` the
-next block's, `outputs` the mempool's), rather than a block's.
+ * @property {number} firstBucket - The first bucket's index: the window's first bin's lower edge (half a bin under it) over
+`step`.
+ * @property {number[]} counts - The readings in each bucket from `first_bucket` on: bucket `first_bucket + k` at index `k`.
+ */
+/**
+ * A block's outputs as the oracle's filter judged them: each skipped one under the first rule
+ * that skips it, in the filter's order, and the payments it kept. They add up to the block's
+ * outputs.
+ *
+ * @typedef {Object} OracleOutputs
+ * @property {number} coinbase - The coinbase's: new coins, not payments.
+ * @property {number} fanOut - Those of transactions with more outputs than the fan-out cap (250; 100 before height
+630,000): batch payouts.
+ * @property {number} opReturn - Those of transactions carrying an OP_RETURN output: data, not payments.
+ * @property {number} taproot - Taproot outputs: mostly protocol traffic.
+ * @property {number} dust - Under 1,000 sats.
+ * @property {number} roundBtc - Round amounts in bitcoin (within 0.1% of 1, 2, 3, 5 or 6 times a power of ten sats).
+ * @property {number} payments - The rest: the payments it counted.
+ */
+/**
+ * 144 blocks' payments, each read as each of the oracle's 19 round-dollar amounts ($1 to
+ * $10,000) at its exact amount in sats, counted by the price each reading implies in buckets a
+ * tenth of the oracle's bins.
+ *
+ * A reading of `sats` as `amount` dollars implies $100 lands at bin
+ * `(log10(sats) + 2 - log10(amount)) * 200`; bucket `b` holds the readings in bins
+ * `[b * step, (b + 1) * step)`, prices from `10^(10 - (b + 1) * step / 200)` up to
+ * `10^(10 - b * step / 200)` dollars.
+ *
+ * @typedef {Object} OraclePayments
+ * @property {BlockHash} hash - The last block's hash: it commits to every block before it.
+ * @property {number} step - A bucket's width in oracle bins: 0.1, a price range of 0.115%.
+ * @property {OracleBlockPayments[]} blocks - Each block's, in order.
  */
 /**
  * The output a transaction input spends: its transaction index and output position, written as
@@ -1376,6 +1394,10 @@ undefined one (e.g. NaN).
  * one. Sums over many transactions or blocks use the full 64 bits.
  *
  * @typedef {number} SigOps
+ */
+/**
+ * @typedef {Object} StartParam
+ * @property {Height} start - The first block's height.
  */
 /**
  * @typedef {Object} SyncStatus
@@ -9626,7 +9648,7 @@ anything else answers 400, as mempool.space does
   /**
    * Live BTC/USD price
    *
-   * Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available. Confirmed per-height history is available at `GET /api/series/price/height`.
+   * Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available, to the cent: `price` of `GET /api/oracle/live`. Confirmed per-height history is available at `GET /api/series/price/height`. Not found before the oracle's first prices.
    *
    * Endpoint: `GET /api/oracle/price`
    * @param {{ signal?: AbortSignal, onValue?: (value: Dollars) => void, cache?: boolean, memCache?: boolean }} [options]
@@ -9638,48 +9660,48 @@ anything else answers 400, as mempool.space does
   }
 
   /**
-   * The oracle's search at a block
+   * The oracle now
    *
-   * The oracle's search behind a block's price, after height 508,000: every candidate bin in its window, 12 below the block before's answer to 11 above, with its score (each round-dollar arm's count over that arm's peak in the window, summed), the bin it picked, the smoothed histogram it scored them on, and the block's outputs as the filter judged them (each skipped one under the first rule that skips it, the rest payments).
+   * The oracle's reading now, as `GET /api/oracle/blocks/{height}` reads a block: with the mempool's outputs blended in as the next block (`mempool` true, `height` the next block's, `outputs` the mempool's), its search from the tip's answer, `price` the live price; without a mempool at the tip, the tip block's own. One snapshot: its parts never from two moments, `hash` the confirmed tip it was read at. Not found before the oracle's first prices, nor before height 508,000.
    *
-   * Endpoint: `GET /api/oracle/searches/{height}`
-   *
-   * @param {Height} height
-   * @param {{ signal?: AbortSignal, onValue?: (value: OracleSearch) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<OracleSearch>}
+   * Endpoint: `GET /api/oracle/live`
+   * @param {{ signal?: AbortSignal, onValue?: (value: OracleBlock) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<OracleBlock>}
    */
-  async getOracleSearch(height, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/searches/${encodeURIComponent(height)}`;
+  async getOracleLive({ signal, onValue, cache, memCache } = {}) {
+    const path = `/api/oracle/live`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 
   /**
-   * The oracle's payments, a day of blocks at a time
+   * The oracle at a block
    *
-   * For each of the 144 blocks from `height` (a multiple of 144, from 508,032): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of an oracle bin wide (0.115% of price) over the block's search window. The chunk at the tip holds the blocks so far; a complete, settled chunk never changes.
+   * How the oracle read a confirmed block, after height 508,000: what it counted (the smoothed histogram of the payments of the block and the 11 before it, by amount on its log scale; the block's outputs as its filter judged them, each skipped one under the first rule that skips it), where it looked (every candidate bin in its window, 12 below the block before's answer to 11 above, with its score) and what it found (the bin it picked and its price). Bins: 200 a decade, a bin `round(log10(sats) * 200)`; as where $100 lands, a bin is the price `10^(10 - bin / 200)` dollars. A settled block's never changes.
    *
-   * Endpoint: `GET /api/oracle/payments/{height}`
+   * Endpoint: `GET /api/oracle/blocks/{height}`
    *
    * @param {Height} height
+   * @param {{ signal?: AbortSignal, onValue?: (value: OracleBlock) => void, cache?: boolean, memCache?: boolean }} [options]
+   * @returns {Promise<OracleBlock>}
+   */
+  async getOracleBlock(height, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/oracle/blocks/${encodeURIComponent(height)}`;
+    return this.getJson(path, { signal, onValue, cache, memCache });
+  }
+
+  /**
+   * The oracle's payments, 144 blocks at a time
+   *
+   * For each of the 144 blocks from `start` (a multiple of 144, else a bad request; from 508,032, earlier ones out of range): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of a bin wide (0.115% of price) over the block's search window: finer than the oracle's bins, the evidence behind its prices. The chunk at the tip holds its blocks so far, `hash` its last block's; a whole, settled chunk never changes.
+   *
+   * Endpoint: `GET /api/oracle/payments/{start}`
+   *
+   * @param {Height} start - The first block's height.
    * @param {{ signal?: AbortSignal, onValue?: (value: OraclePayments) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<OraclePayments>}
    */
-  async getOraclePayments(height, { signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/payments/${encodeURIComponent(height)}`;
-    return this.getJson(path, { signal, onValue, cache, memCache });
-  }
-
-  /**
-   * The oracle's live search
-   *
-   * With the mempool's eligible outputs blended in as the next block, the oracle's search for it from the tip's answer, as in `GET /api/oracle/searches/{height}`: its height is the next block's, its pick the live price. Without a mempool publication at the tip, the tip block's own search.
-   *
-   * Endpoint: `GET /api/oracle/searches/live`
-   * @param {{ signal?: AbortSignal, onValue?: (value: OracleSearch) => void, cache?: boolean, memCache?: boolean }} [options]
-   * @returns {Promise<OracleSearch>}
-   */
-  async getOracleSearchLive({ signal, onValue, cache, memCache } = {}) {
-    const path = `/api/oracle/searches/live`;
+  async getOraclePayments(start, { signal, onValue, cache, memCache } = {}) {
+    const path = `/api/oracle/payments/${encodeURIComponent(start)}`;
     return this.getJson(path, { signal, onValue, cache, memCache });
   }
 

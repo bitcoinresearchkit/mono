@@ -6,15 +6,27 @@
 
 # Interface: OraclePayments
 
-Defined in: [modules/bitview-client/index.js:937](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L937)
+Defined in: [modules/bitview-client/index.js:972](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L972)
 
 ## Properties
 
 ### blocks
 
-> **blocks**: [`BlockPayments`](BlockPayments.md)[]
+> **blocks**: [`OracleBlockPayments`](OracleBlockPayments.md)[]
 
-Defined in: [modules/bitview-client/index.js:939](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L939)
+Defined in: [modules/bitview-client/index.js:975](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L975)
+
+Each block's, in order.
+
+***
+
+### hash
+
+> **hash**: `string`
+
+Defined in: [modules/bitview-client/index.js:973](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L973)
+
+The last block's hash: it commits to every block before it.
 
 ***
 
@@ -22,6 +34,6 @@ Defined in: [modules/bitview-client/index.js:939](https://github.com/bitcoinrese
 
 > **step**: `number`
 
-Defined in: [modules/bitview-client/index.js:938](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L938)
+Defined in: [modules/bitview-client/index.js:974](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L974)
 
-A bucket's width in oracle bins (a bin is 1/200 of a decade of price).
+A bucket's width in oracle bins: 0.1, a price range of 0.115%.

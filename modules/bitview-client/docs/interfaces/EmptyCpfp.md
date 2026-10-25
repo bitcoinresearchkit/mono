@@ -6,7 +6,7 @@
 
 # Interface: EmptyCpfp
 
-Defined in: [modules/bitview-client/index.js:578](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L578)
+Defined in: [modules/bitview-client/index.js:568](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L568)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [modules/bitview-client/index.js:578](https://github.com/bitcoinrese
 
 > **ancestors**: `any`[]
 
-Defined in: [modules/bitview-client/index.js:579](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L579)
+Defined in: [modules/bitview-client/index.js:569](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L569)

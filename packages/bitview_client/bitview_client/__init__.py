@@ -613,6 +613,29 @@ class Pagination(TypedDict, total=False):
     page: int
     per_page: int
 
+class OracleOutputs(TypedDict):
+    """
+    A block's outputs as the oracle's filter judged them: each skipped one under the first rule
+    that skips it, in the filter's order, and the payments it kept. They add up to the block's
+    outputs.
+
+    Attributes:
+        coinbase: The coinbase's: new coins, not payments.
+        fan_out: Those of transactions with more outputs than the fan-out cap (250; 100 before height 630,000): batch payouts.
+        op_return: Those of transactions carrying an OP_RETURN output: data, not payments.
+        taproot: Taproot outputs: mostly protocol traffic.
+        dust: Under 1,000 sats.
+        round_btc: Round amounts in bitcoin (within 0.1% of 1, 2, 3, 5 or 6 times a power of ten sats).
+        payments: The rest: the payments it counted.
+    """
+    coinbase: int
+    fan_out: int
+    op_return: int
+    taproot: int
+    dust: int
+    round_btc: int
+    payments: int
+
 class MempoolBlockParam(TypedDict):
     index: MempoolBlockIndex
 
@@ -717,6 +740,13 @@ class SyncStatus(TypedDict):
     last_indexed_at: str
     last_indexed_at_unix: Timestamp
 
+class StartParam(TypedDict):
+    """
+    Attributes:
+        start: The first block's height.
+    """
+    start: Height
+
 class RewardStats(TypedDict):
     """
     Block reward statistics over a range of blocks
@@ -737,6 +767,18 @@ class RewardStats(TypedDict):
 class PoolSlugAndHeightParam(TypedDict):
     slug: PoolSlug
     height: Height
+
+class OracleBlockPayments(TypedDict):
+    """
+    One block's payments read as round dollars, over the oracle's search window for it.
+
+    Attributes:
+        first_bucket: The first bucket's index: the window's first bin's lower edge (half a bin under it) over `step`.
+        counts: The readings in each bucket from `first_bucket` on: bucket `first_bucket + k` at index `k`.
+    """
+    height: Height
+    first_bucket: int
+    counts: List[int]
 
 class MerkleProof(TypedDict):
     """
@@ -834,29 +876,6 @@ class BlockSizesWeights(TypedDict):
     sizes: List[BlockSizeEntry]
     weights: List[BlockWeightEntry]
 
-class BlockPayments(TypedDict):
-    """
-    One block's payments, each read as each of the oracle's 19 round-dollar amounts ($1 to $10,000)
-    at its exact amount in sats, counted by the price each reading implies.
-
-    Attributes:
-        first: The first bucket: bucket `i` holds the readings whose $100 bin is in `[i, i + 1) * step`, the price `10^(10 - i * step / 200)` dollars at its edge.
-        counts: The readings in each bucket from `first` on, over the oracle's search window for the block.
-    """
-    height: Height
-    first: int
-    counts: List[int]
-
-class OraclePayments(TypedDict):
-    """
-    Blocks' payments read as round-dollar amounts: the prices they imply, counted in fine buckets.
-
-    Attributes:
-        step: A bucket's width in oracle bins (a bin is 1/200 of a decade of price).
-    """
-    step: float
-    blocks: List[BlockPayments]
-
 class BlockFeeRatesEntry(TypedDict):
     """
     One time bucket of blocks. Each `avgFee_*` field is the bucket's mean of its blocks' own
@@ -937,50 +956,6 @@ class DataRangeFormat(TypedDict, total=False):
     end: Union[RangeIndex, None]
     limit: Union[Limit, None]
     format: Format
-
-class FilteredOutputs(TypedDict):
-    """
-    A block's outputs as the oracle's filter judged them: each skipped one under the first rule
-    that skips it, in the filter's order, and the payments it kept. They add up to the block's
-    outputs.
-
-    Attributes:
-        coinbase: The coinbase's: new coins, not payments.
-        fan_out: Those of transactions with more outputs than the fan-out cap (250; 100 before height 630,000): batch payouts.
-        op_return: Those of transactions carrying an OP_RETURN output: data, not payments.
-        taproot: Taproot outputs: mostly protocol traffic.
-        dust: Under 1,000 sats.
-        round_btc: Round amounts in bitcoin (within 0.1% of 1, 2, 3, 5 or 6 times a power of ten sats).
-        payments: The rest: the payments it counted.
-    """
-    coinbase: int
-    fan_out: int
-    op_return: int
-    taproot: int
-    dust: int
-    round_btc: int
-    payments: int
-
-class OracleSearch(TypedDict):
-    """
-    The oracle's search for one block: each candidate bin it scored, the one it picked, and the
-    histogram it scored them on.
-
-    Attributes:
-        first_bin: The window's first candidate bin, on the oracle's log scale (200 bins a decade; a bin is where $100 lands in sats: the price is `10^(10 - bin / 200)` dollars).
-        scores: Each candidate's score, from `first_bin` on: its round-dollar arms' counts, each over that arm's peak in the window, summed. The highest is the pick's bin.
-        bin: The bin it picked, refined between bins: the block's price.
-        histogram: The smoothed histogram it scored: the payments of the block and the 11 before it (and, live, the mempool's as the next block's), counted by amount in sats on the same scale (a bin is `round(log10(sats) * 200)`), the newest weighing most.
-        outputs: The block's own outputs (live, the mempool's) as the oracle's filter judged them.
-        mempool: Whether it's the live search with the mempool blended in as the next block (`height` the next block's, `outputs` the mempool's), rather than a block's.
-    """
-    height: Height
-    first_bin: int
-    scores: List[float]
-    bin: float
-    histogram: List[float]
-    outputs: FilteredOutputs
-    mempool: bool
 
 class _RbfTxRequired(TypedDict):
     txid: Txid
@@ -1348,6 +1323,56 @@ class TxOutspend(_TxOutspendRequired, total=False):
     txid: Union[Txid, None]
     vin: Union[Vin, None]
     status: Union[TxStatus, None]
+
+class OraclePayments(TypedDict):
+    """
+    144 blocks' payments, each read as each of the oracle's 19 round-dollar amounts ($1 to
+    $10,000) at its exact amount in sats, counted by the price each reading implies in buckets a
+    tenth of the oracle's bins.
+    
+    A reading of `sats` as `amount` dollars implies $100 lands at bin
+    `(log10(sats) + 2 - log10(amount)) * 200`; bucket `b` holds the readings in bins
+    `[b * step, (b + 1) * step)`, prices from `10^(10 - (b + 1) * step / 200)` up to
+    `10^(10 - b * step / 200)` dollars.
+
+    Attributes:
+        hash: The last block's hash: it commits to every block before it.
+        step: A bucket's width in oracle bins: 0.1, a price range of 0.115%.
+        blocks: Each block's, in order.
+    """
+    hash: BlockHash
+    step: float
+    blocks: List[OracleBlockPayments]
+
+class OracleBlock(TypedDict):
+    """
+    The oracle at one block: what it counted (`histogram`, `outputs`), where it looked (`first_bin`,
+    `scores`) and what it found (`bin`, `price`).
+    
+    Bins are the oracle's log scale of amounts in sats, 200 a decade: amount `sats` is in bin
+    `round(log10(sats) * 200)`, bin 0 at 1 sat to bin 2399 just under 10^12. Read as where $100
+    lands, a bin is a price: `10^(10 - bin / 200)` dollars, higher bins lower prices.
+
+    Attributes:
+        height: The block's height; live with the mempool, the next block's.
+        hash: The confirmed block it was read at: this block's hash; live with the mempool, the tip's (block `height - 1`), the one the mempool is blended onto.
+        mempool: Whether it's the live reading with the mempool blended in as the next block (`outputs` the mempool's), rather than a confirmed block's.
+        price: The price it found, in dollars: `bin` as a price, to the cent.
+        bin: The bin it picked, refined between bins by a parabola through the best score and its neighbours.
+        first_bin: The search window's first candidate bin: 12 below the block before's answer, rounded, 24 candidates in all.
+        scores: Each candidate's score, from `first_bin` on, unitless: for each of the 19 round-dollar amounts ($1, 2, 3, 5, 10, 15, 20, 25, 30, 50, 100, 150, 200, 300, 500, 1k, 2k, 5k, 10k), the histogram's count where that amount lands if $100 is at the candidate, over that amount's peak in the window, summed. The highest is the pick's bin; all zero when the window held no payments at all, and the oracle kept the block before's answer.
+        histogram: The smoothed histogram it scored, 2,400 bins: the block's payments and the 11 blocks' before it (live, the mempool's as the next block's), each block's counts weighted `(2/7) * (5/7)^age`, the newest at age 0.
+        outputs: The block's own outputs (live, the mempool's) as the oracle's filter judged them.
+    """
+    height: Height
+    hash: BlockHash
+    mempool: bool
+    price: Dollars
+    bin: float
+    first_bin: int
+    scores: List[float]
+    histogram: List[float]
+    outputs: OracleOutputs
 
 class BlockTimestamp(TypedDict):
     """
@@ -6811,34 +6836,34 @@ class BitviewClient(BitviewClientBase):
     def get_live_price(self) -> Dollars:
         """Live BTC/USD price.
 
-        Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available. Confirmed per-height history is available at `GET /api/series/price/height`.
+        Current BTC/USD price in dollars, derived from on-chain round-dollar output patterns in the oracle's recent-block window, with the mempool's outputs blended in when available, to the cent: `price` of `GET /api/oracle/live`. Confirmed per-height history is available at `GET /api/series/price/height`. Not found before the oracle's first prices.
 
         Endpoint: `GET /api/oracle/price`"""
         return self.get_json('/api/oracle/price')
 
-    def get_oracle_search(self, height: Height) -> OracleSearch:
-        """The oracle's search at a block.
+    def get_oracle_live(self) -> OracleBlock:
+        """The oracle now.
 
-        The oracle's search behind a block's price, after height 508,000: every candidate bin in its window, 12 below the block before's answer to 11 above, with its score (each round-dollar arm's count over that arm's peak in the window, summed), the bin it picked, the smoothed histogram it scored them on, and the block's outputs as the filter judged them (each skipped one under the first rule that skips it, the rest payments).
+        The oracle's reading now, as `GET /api/oracle/blocks/{height}` reads a block: with the mempool's outputs blended in as the next block (`mempool` true, `height` the next block's, `outputs` the mempool's), its search from the tip's answer, `price` the live price; without a mempool at the tip, the tip block's own. One snapshot: its parts never from two moments, `hash` the confirmed tip it was read at. Not found before the oracle's first prices, nor before height 508,000.
 
-        Endpoint: `GET /api/oracle/searches/{height}`"""
-        return self.get_json(f'/api/oracle/searches/{_segment(height)}')
+        Endpoint: `GET /api/oracle/live`"""
+        return self.get_json('/api/oracle/live')
 
-    def get_oracle_payments(self, height: Height) -> OraclePayments:
-        """The oracle's payments, a day of blocks at a time.
+    def get_oracle_block(self, height: Height) -> OracleBlock:
+        """The oracle at a block.
 
-        For each of the 144 blocks from `height` (a multiple of 144, from 508,032): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of an oracle bin wide (0.115% of price) over the block's search window. The chunk at the tip holds the blocks so far; a complete, settled chunk never changes.
+        How the oracle read a confirmed block, after height 508,000: what it counted (the smoothed histogram of the payments of the block and the 11 before it, by amount on its log scale; the block's outputs as its filter judged them, each skipped one under the first rule that skips it), where it looked (every candidate bin in its window, 12 below the block before's answer to 11 above, with its score) and what it found (the bin it picked and its price). Bins: 200 a decade, a bin `round(log10(sats) * 200)`; as where $100 lands, a bin is the price `10^(10 - bin / 200)` dollars. A settled block's never changes.
 
-        Endpoint: `GET /api/oracle/payments/{height}`"""
-        return self.get_json(f'/api/oracle/payments/{_segment(height)}')
+        Endpoint: `GET /api/oracle/blocks/{height}`"""
+        return self.get_json(f'/api/oracle/blocks/{_segment(height)}')
 
-    def get_oracle_search_live(self) -> OracleSearch:
-        """The oracle's live search.
+    def get_oracle_payments(self, start: Height) -> OraclePayments:
+        """The oracle's payments, 144 blocks at a time.
 
-        With the mempool's eligible outputs blended in as the next block, the oracle's search for it from the tip's answer, as in `GET /api/oracle/searches/{height}`: its height is the next block's, its pick the live price. Without a mempool publication at the tip, the tip block's own search.
+        For each of the 144 blocks from `start` (a multiple of 144, else a bad request; from 508,032, earlier ones out of range): its payments as the oracle filters them, each read as each of its 19 round-dollar amounts ($1 to $10,000) at its exact amount in sats, counted by the price each reading implies, in buckets a tenth of a bin wide (0.115% of price) over the block's search window: finer than the oracle's bins, the evidence behind its prices. The chunk at the tip holds its blocks so far, `hash` its last block's; a whole, settled chunk never changes.
 
-        Endpoint: `GET /api/oracle/searches/live`"""
-        return self.get_json('/api/oracle/searches/live')
+        Endpoint: `GET /api/oracle/payments/{start}`"""
+        return self.get_json(f'/api/oracle/payments/{_segment(start)}')
 
     def get_openapi(self) -> Any:
         """OpenAPI specification.

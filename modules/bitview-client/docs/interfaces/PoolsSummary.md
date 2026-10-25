@@ -6,7 +6,7 @@
 
 # Interface: PoolsSummary
 
-Defined in: [modules/bitview-client/index.js:1177](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1177)
+Defined in: [modules/bitview-client/index.js:1195](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1195)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1177](https://github.com/bitcoinres
 
 > **blockCount**: `number`
 
-Defined in: [modules/bitview-client/index.js:1179](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1179)
+Defined in: [modules/bitview-client/index.js:1197](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1197)
 
 Total blocks in the time period
 
@@ -24,7 +24,7 @@ Total blocks in the time period
 
 > **lastEstimatedHashrate**: `number`
 
-Defined in: [modules/bitview-client/index.js:1180](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1180)
+Defined in: [modules/bitview-client/index.js:1198](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1198)
 
 Estimated network hashrate (H/s)
 
@@ -34,7 +34,7 @@ Estimated network hashrate (H/s)
 
 > **lastEstimatedHashrate1w**: `number`
 
-Defined in: [modules/bitview-client/index.js:1182](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1182)
+Defined in: [modules/bitview-client/index.js:1200](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1200)
 
 Estimated network hashrate over last 1 week (H/s)
 
@@ -44,7 +44,7 @@ Estimated network hashrate over last 1 week (H/s)
 
 > **lastEstimatedHashrate3d**: `number`
 
-Defined in: [modules/bitview-client/index.js:1181](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1181)
+Defined in: [modules/bitview-client/index.js:1199](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1199)
 
 Estimated network hashrate over last 3 days (H/s)
 
@@ -54,6 +54,6 @@ Estimated network hashrate over last 3 days (H/s)
 
 > **pools**: [`PoolStats`](PoolStats.md)[]
 
-Defined in: [modules/bitview-client/index.js:1178](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1178)
+Defined in: [modules/bitview-client/index.js:1196](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1196)
 
 List of pools sorted by block count descending

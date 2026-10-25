@@ -8,6 +8,6 @@
 
 > **UrpdWeight** = `"none"` \| `"wakefulness"` \| `"mobility"`
 
-Defined in: [modules/bitview-client/index.js:1591](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1591)
+Defined in: [modules/bitview-client/index.js:1613](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1613)
 
 ## Type Parameters
