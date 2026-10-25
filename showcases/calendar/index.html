@@ -244,7 +244,21 @@
         padding-top: 12px;
 
         @media (min-width: 1024px) {
-          grid-template-columns: minmax(0, 1fr) 320px;
+          grid-template: "year pools" auto "year notes" 1fr / minmax(0, 1fr) 320px;
+          row-gap: 28px;
+
+          .year {
+            grid-area: year;
+          }
+
+          .pools {
+            grid-area: pools;
+          }
+
+          .notes {
+            grid-area: notes;
+            align-self: start;
+          }
         }
 
         .kicker {
@@ -253,7 +267,7 @@
 
         /* (A year on a desk: as wide as a whole year in a screen allows, its label over it.) */
         @media (min-width: 1024px) {
-          > div:has(> #view > .months) {
+          > .year:has(> #view > .months) {
             width: 100%;
             max-width: calc((100svh - 150px) * 1.15);
             margin-inline: auto;
@@ -274,6 +288,12 @@
         @media (min-width: 1024px) {
           grid-template-columns: repeat(4, minmax(0, 1fr));
         }
+      }
+
+      .future p {
+        margin: 0;
+        color: var(--faint);
+        font-size: 12px;
       }
 
       .month h2 {
@@ -311,8 +331,11 @@
         cursor: pointer;
         transition: opacity 0.2s;
 
+        /* (Its leader's share of its blocks, as a shade: a sixth or less untinted, half the day and more the darkest.) */
+        background: rgb(from var(--ink) r g b / calc(clamp(0, (var(--won, 0) - 0.16) / 0.34, 1) * 0.3));
+
         &:hover:not(:disabled) {
-          background: var(--hover);
+          box-shadow: inset 0 0 0 1px var(--soft);
         }
 
         .logo {
@@ -322,8 +345,9 @@
           min-height: 0;
         }
 
-        /* (Today, in the orange.) */
-        &.today {
+        /* (Today, in the orange, pointed at too.) */
+        &.today,
+        &.today:hover:not(:disabled) {
           box-shadow: inset 0 0 0 1.5px var(--answer);
         }
 
@@ -394,13 +418,7 @@
         }
       }
 
-      /* ── Beside the sheet: its pools, most days (or blocks) first, then its notes ── */
-      .side {
-        display: grid;
-        align-content: start;
-        gap: 28px;
-      }
-
+      /* ── Its pools, most days (or blocks) first, and its notes ── */
       .leaders {
         margin: 0;
         padding: 0;
@@ -689,21 +707,20 @@
         <dl class="totals" id="totals"></dl>
       </header>
 
+      <!-- In reading order: the pools, the year (or the day), its notes; on a desk the pools and notes in a column beside. -->
       <main class="sheet">
-        <div>
+        <section class="pools" aria-labelledby="leaders-title">
+          <h2 class="kicker" id="leaders-title"></h2>
+          <ul class="leaders" id="leaders" aria-labelledby="leaders-title"></ul>
+        </section>
+        <div class="year">
           <p class="kicker" id="lede"></p>
           <div id="view" aria-busy="true"></div>
         </div>
-        <aside class="side">
-          <section aria-labelledby="leaders-title">
-            <h2 class="kicker" id="leaders-title"></h2>
-            <ul class="leaders" id="leaders" aria-labelledby="leaders-title"></ul>
-          </section>
-          <section class="notes" id="notes" aria-labelledby="notes-title" hidden>
-            <h2 class="kicker" id="notes-title">Notes</h2>
-            <ol id="note-list"></ol>
-          </section>
-        </aside>
+        <section class="notes" id="notes" aria-labelledby="notes-title" hidden>
+          <h2 class="kicker" id="notes-title">Notes</h2>
+          <ol id="note-list"></ol>
+        </section>
       </main>
     </div>
     <div class="tip" id="tip" hidden aria-hidden="true"></div>
@@ -999,7 +1016,7 @@
         /** @type {HTMLButtonElement} */ ($("back")).disabled = day ? at.date <= GENESIS : y <= 2009;
         /** @type {HTMLButtonElement} */ ($("forward")).disabled = day ? at.date >= today() : y >= Number(today().slice(0, 4));
         /** @type {HTMLButtonElement} */ ($("current")).disabled = !day;
-        $("lede").textContent = day ? `${longDate(at.date)}: every block, where it fell in its 24 hours` : "Each day, the pool that found the most blocks";
+        $("lede").textContent = day ? `${longDate(at.date)}: every block, where it fell in its 24 hours` : "Each day, the pool that found the most blocks: the darker, the more of them";
         $("leaders-title").textContent = day ? "Pools, by blocks" : "Pools, by days led";
         document.title = `${day ? at.date : y} · Calendar · Bitview`;
       }
@@ -1038,6 +1055,13 @@
         for (let month = 0; month < 12; month++) {
           const card = document.createElement("section"), days = Object.assign(document.createElement("div"), { className: "days" });
           card.className = "month";
+          // (A month still to come: its name, nothing to read in it yet.)
+          if (iso(Date.UTC(y, month, 1)) > now) {
+            card.classList.add("future");
+            card.append(Object.assign(document.createElement("h2"), { textContent: MONTHS[month] }), Object.assign(document.createElement("p"), { textContent: "To come" }));
+            months.append(card);
+            continue;
+          }
           card.setAttribute("aria-label", `${MONTHS[month]} ${y}`);
           const week = Object.assign(document.createElement("div"), { className: "week" });
           week.setAttribute("aria-hidden", "true");
@@ -1057,6 +1081,8 @@
               tile.dataset.pool = lead.pools.join(" ");
               tile.dataset.tip = `${when}${date === now ? " (so far)" : ""}\n${lead.pools.map(name).join(" and ")}: ${lead.count} of ${dayBlocks.length} blocks${lead.pools.length > 1 ? " each, tied" : ""}`;
               tile.classList.toggle("tied", lead.pools.length > 1);
+              // (How much of the day it took: the cell's shade, darker the bigger its share.)
+              tile.style.setProperty("--won", (lead.count / dayBlocks.length).toFixed(3));
               tile.append(...lead.pools.slice(0, 2).map(logo));
             } else {
               // (A day no known pool led, as printed: its date.)
@@ -1083,14 +1109,14 @@
           tile.classList.toggle("noted", noted.has(date));
         }
         const pools = ranked(blocks), share = new Map(pools.map(({ pool, count }) => [pool, count / blocks.length]));
-        totals([["Blocks", grouped(blocks.length)], ["Pools that led a day", grouped(led.size)]]);
+        totals([["Blocks", grouped(blocks.length)], ["Day leaders", grouped(led.size)]]);
         // (Its bar: its share of the days led; beside it, its share of the blocks.)
         const daysLed = [...led.values()].reduce((a, b) => a + b, 0) || 1;
         drawLeaders([...led].sort((a, b) => b[1] - a[1] || (share.get(b[0]) ?? 0) - (share.get(a[0]) ?? 0)).slice(0, 12).map(([pool, days]) => ({ pool, share: days / daysLed, label: `${days} ${days === 1 ? "day" : "days"} · ${((share.get(pool) ?? 0) * 100).toFixed(1)}% of blocks` })));
       }
 
       const plural = (/** @type {number} */ n, /** @type {string} */ word) => `${grouped(n)} ${word}${n === 1 ? "" : "s"}`;
-      const shortDate = (/** @type {string} */ date) => `${Number(date.slice(8, 10))} ${MONTHS[Number(date.slice(5, 7)) - 1].slice(0, 3)}`;
+      const shortDate = (/** @type {string} */ date) => `${Number(date.slice(8, 10))}\u00a0${MONTHS[Number(date.slice(5, 7)) - 1].slice(0, 3)}`;
       /**
        * What an almanac would note of a year: its halvings (the blocks themselves), its busiest and quietest whole days,
        * the longest run of days one pool led, and the most blocks one pool found in a day.
