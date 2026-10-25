@@ -1278,20 +1278,22 @@
       /** The week: the blocks of the last 7 days (read from enough to cover a fast week), every one's histogram read,
        * so each cell is the mean over all the blocks it covers. */
       const WEEK = 7 * 86400, FETCH = 1300;
-      let tip = 0, tipHash = "", live = 0;
+      let tip = 0, live = 0;
+      const KICKER = "BTC/USD · from the chain, no exchange";
+      /** When now was last read (ms), and, while it can't be, what the top says instead. */
+      let liveAt = 0, offline = "";
       /** Each block's price by height, for the previous block's answer. @type {Map<number, number>} */
       let priceAt = new Map();
       /** The blocks shown: height, price, time. @type {{ h: number, p: number, t: number }[]} */
       let points = [];
       /** @typedef {{ coinbase: number, fan_out: number, op_return: number, taproot: number, dust: number, round_btc: number, payments: number }} Outputs */
-      /** @typedef {{ height: number, first_bin: number, scores: number[], bin: number, histogram: number[], outputs: Outputs, mempool: boolean }} Search */
-      /** @typedef {{ height: number, first: number, counts: number[] }} Payments */
+      /** The oracle at a block (or now): what it counted, where it looked, what it found.
+       * @typedef {{ height: number, hash: string, mempool: boolean, price: number, bin: number, first_bin: number, scores: number[], histogram: number[], outputs: Outputs }} Search */
+      /** @typedef {{ height: number, first_bucket: number, counts: number[] }} Payments */
       /** Each block's payments read as round dollars: readings by price bucket, a tenth of a bin each. @type {Map<number, Payments>} */
       let payments = new Map();
       /** Whether a chunk failed to read: the next look tries again. */
       let incomplete = false;
-      /** The days of payments read once they were settled, by their first height: never read again. */
-      const settledDays = new Set();
       /** The live search, the mempool blended in as the next block, with the histogram it scored. @type {Search | null} */
       let liveSearch = null;
 
@@ -1316,6 +1318,7 @@
         if (!live && k === null) return;
         if (!points.length) {
           setPrice(live, false);
+          $("kicker").textContent = offline || KICKER;
           return;
         }
         const first = points[0].p, at = k === null ? live : points[k].p, m = at / first - 1;
@@ -1325,7 +1328,7 @@
         const delta = `${up ? "▲ " : down ? "▼ " : ""}$${grouped(Math.abs(at - first))} (${Math.abs(m * 100).toFixed(2)}%)`;
         const when = k === null ? "past 7 days" : `since ${day(points[0].t)}`;
         $("change").replaceChildren(Object.assign(document.createElement("span"), { className: "delta", textContent: delta }), Object.assign(document.createElement("span"), { className: "when", textContent: when }));
-        $("kicker").textContent = k === null ? "BTC/USD · from the chain, no exchange" : `Block ${grouped(points[k].h)} · ${day(points[k].t)}, ${clock(points[k].t)}`;
+        $("kicker").textContent = k === null ? offline || KICKER : `Block ${grouped(points[k].h)} · ${day(points[k].t)}, ${clock(points[k].t)}`;
       }
       function showTip() {
         const last = points.at(-1);
@@ -1346,11 +1349,12 @@
         draw();
         drawHeat();
         tell(pointed);
-        // (Every block's payments, a day of blocks a request. A day read whole and well under the tip doesn't change,
-        // so it isn't read again; a day that fails keeps what it had, and the next look tries it again.)
+        // (Every block's payments, 144 blocks a request: a settled chunk's answer never changes, so asking again costs
+        // a 304, and the server checks it against the chain; a chunk that fails keeps what it had, and the next look
+        // tries it again.)
         if (!points.length) return;
-        const DAY = 144, first = points[0].h, chunks = [];
-        for (let start = Math.max(Math.floor(first / DAY) * DAY, Math.ceil(508_000 / DAY) * DAY); start <= tip; start += DAY) if (!settledDays.has(start)) chunks.push(start);
+        const DAY = 144, chunks = [];
+        for (let start = Math.max(Math.floor(points[0].h / DAY) * DAY, Math.ceil(508_000 / DAY) * DAY); start <= tip; start += DAY) chunks.push(start);
         const found = await Promise.allSettled(chunks.map((start) => read(`/api/oracle/payments/${start}`)));
         const next = new Map([...payments].filter(([h]) => h >= points[0].h));
         incomplete = false;
@@ -1358,24 +1362,25 @@
           if (r.status !== "fulfilled") return void (incomplete = true);
           for (let h = chunks[i]; h < chunks[i] + DAY; h++) next.delete(h);
           for (const block of r.value.blocks) next.set(block.height, block);
-          // (Read whole once already settled, a day is final: no reorganization reaches it.)
-          if (chunks[i] + DAY <= tip - SETTLE) settledDays.add(chunks[i]);
         });
         payments = next;
         draw();
         drawHeat();
       }
-      async function readLive() {
-        // (The live search with the histogram it scored, one snapshot: its pick is the live price.)
-        const s = await read("/api/oracle/searches/live").catch(() => null);
-        if (s) [liveSearch, live] = [s, priceOf(s.bin)];
+      /** Now, as read (`s`: the live reading, with the histogram it scored, one snapshot; its pick is the live price). */
+      async function readLive(/** @type {Search | null} */ s) {
+        let fresh = !!s;
+        if (s) [liveSearch, live] = [s, s.price];
         else {
-          // (No live search, as while the oracle's first fast blocks sync: the price alone, and no evidence for it.)
+          // (No live reading, as while the oracle's first fast blocks sync: the price alone, and no evidence for it.)
           liveSearch = null;
           const p = await read("/api/oracle/price", "text").catch(() => null);
-          if (p) live = Number(p);
-          else if (!live) $("kicker").textContent = "Can't reach this server's oracle; trying again";
+          if (p) [live, fresh] = [Number(p), true];
         }
+        // (Nothing read: the price shown is the last one read, and says since when.)
+        if (fresh) liveAt = Date.now();
+        offline = fresh ? "" : live ? `Can't reach this server's oracle since ${clock(liveAt / 1000)}; trying again` : "Can't reach this server's oracle; trying again";
+        if (!live) $("kicker").textContent = offline;
         if (pointed === null) tell(null);
         draw();
         drawHeat();
@@ -1386,8 +1391,6 @@
 
       const chart = $("chart"), canvas = /** @type {HTMLCanvasElement} */ ($("heat")), svg = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("lines")));
       const PAD = { top: 0, right: 0, bottom: 0 };
-      /** Blocks under the tip a day of payments must end to be read once: deeper than a reorganization reaches. */
-      const SETTLE = 6;
       /** How far the week's lowest and highest prices sit from the bottom and top of the screen. */
       const MARGIN = 0.12;
       /** Buckets a bin: the payments' price step, a tenth of the oracle's. */
@@ -1455,7 +1458,7 @@
           // (A block in the column its point on the line falls in.)
           const j = Math.min(blocks - 1, Math.floor((k * blocks) / f.n));
           block.counts.forEach((count, i) => {
-            const r = Math.floor((block.first + i - top) / per);
+            const r = Math.floor((block.first_bucket + i - top) / per);
             if (r < 0 || r >= rows) return;
             sums[j][r] += count;
             seen[j][r] = 1;
@@ -1598,6 +1601,9 @@
       /** The search shown: the picked block's once read (until then, the one before it), or now's. @type {Search | null} */
       let shownSearch = null;
       let reading = false, failed = /** @type {number | null} */ (null);
+      /** The tip the week was last read whole at (its hash; a failed read leaves it, so the next look tries again),
+       * and how many new tips there have been: a block's read from before one is dropped. */
+      let weekAt = "", tipEra = 0;
 
       function instrument() {
         // (A block's search not read yet, or none now: the plate keeps the last, dimmed.)
@@ -1643,7 +1649,9 @@
         if (reading) return;
         reading = true;
         while (picked !== null && !searchAt.has(picked)) {
-          const h = picked, s = await read(`/api/oracle/searches/${h}`).catch(() => null);
+          // (A read that outlives a new tip, maybe another branch's, is dropped and the block read again.)
+          const h = picked, era = tipEra, s = await read(`/api/oracle/blocks/${h}`).catch(() => null);
+          if (era !== tipEra) continue;
           if (!s) {
             // (Another picked meanwhile: that one next.)
             if (picked !== h) continue;
@@ -1742,7 +1750,18 @@
       /** The plate: the counts as bars (sats, log), the 19 teeth where the fingerprint is held, and under them the
        * fit at every place the $100 tooth could be, the oracle's window shaded. */
       function drawPlate() {
-        if (!shownSearch || !most) return;
+        if (!shownSearch) return;
+        // (A block whose window counted no payments at all: nothing to fit, and it says so.)
+        if (!most) {
+          spectrum.setAttribute("viewBox", `0 0 ${plate.clientWidth} ${plate.clientHeight}`);
+          spectrum.innerHTML = `<text class="axis-text" x="${plate.clientWidth / 2}" y="${plate.clientHeight / 2}" text-anchor="middle">No payments counted at this block</text>`;
+          for (const id of ["tried", "pct"]) $(id).textContent = "–";
+          $("meter").style.width = "0";
+          $("sums").replaceChildren();
+          for (const attribute of ["aria-valuenow", "aria-valuemin", "aria-valuemax"]) plate.removeAttribute(attribute);
+          plate.setAttribute("aria-valuetext", "No payments counted at this block");
+          return;
+        }
         const hist = shownSearch.histogram, w = plate.clientWidth, h = plate.clientHeight, center = shownSearch.bin, here = center + shift;
         const lo = center - SPAN, hi = center + SPAN, strip = 86, base = h - strip - 22, top = 30;
         const x = (/** @type {number} */ b) => ((b - lo) / (hi - lo)) * w;
@@ -1884,7 +1903,7 @@
       shift = still.matches ? 0 : 70;
       // (The live price first; the week, its histograms included, comes as it comes.)
       const week = readWeek().catch(() => {});
-      await readLive();
+      await readLive(await read("/api/oracle/live").catch(() => null));
       await Promise.race([week, new Promise((r) => setTimeout(r, 4000))]);
       instrument();
       new IntersectionObserver((entries, observer) => {
@@ -1895,21 +1914,29 @@
       }, { threshold: 0.6 }).observe(plate);
       /** A new tip, or the same height with another block (a reorganization): the week read again, and blocks'
        * searches (the new tip may be another branch's); a block no longer in the week gives way to now. */
-      async function readTip() {
-        const hash = await read("/api/blocks/tip/hash", "text").catch(() => tipHash);
-        if (hash === tipHash && !incomplete) return;
-        if (hash !== tipHash) searchAt.clear();
-        tipHash = hash;
-        await readWeek().catch(() => {});
+      async function readTip(/** @type {string} */ hash) {
+        if (hash !== weekAt) {
+          searchAt.clear();
+          tipEra++;
+        }
+        try {
+          await readWeek();
+        } catch {
+          return;
+        }
+        weekAt = hash;
         choose(picked !== null && points.some((pt) => pt.h === picked) ? picked : null);
       }
-      tipHash = await read("/api/blocks/tip/hash", "text").catch(() => "");
-      // Every 10 s, the tip then now: a new block is on the line, its header and the strip in the same look. (The
-      // next look only once this one is done: a slow one is never overtaken.)
+      // Every 10 s, now, and the tip it was read at: a new one's week read before now is drawn on it, so a new block
+      // is on the line, its header and the strip in the same look. (The next look only once this one is done: a slow
+      // one is never overtaken.)
       const look = async () => {
         try {
-          await readTip();
-          await readLive();
+          // (The tip from now's reading; without one, as before the oracle's fast blocks, asked for.)
+          const s = await read("/api/oracle/live").catch(() => null);
+          const hash = s?.hash ?? (await read("/api/blocks/tip/hash", "text").catch(() => null));
+          if (hash && (hash !== weekAt || incomplete)) await readTip(hash);
+          await readLive(s);
         } finally {
           setTimeout(look, 10_000);
         }
