@@ -15576,30 +15576,42 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (corner && button.parentElement !== corner) corner.append(button);
         button.hidden = !corner;
       }
+      /**
+       * Each pane's legend in its plot's frame: the one there kept (what it shows, its focus, where it's scrolled, written
+       * again only where it changes: see updateLegends), one made for a pane new there, the others gone.
+       */
       function placeLegends() {
-        // (Each pane's strip where it was scrolled to: a still one, above all, stays where it was left.)
+        // (Each pane's strip where it was scrolled to, one made anew too (its pane moved): a still one, above all, stays
+        // where it was left.)
         const scrolled = new Map(legends().map((legend) => [legend.dataset.pane, legend.scrollLeft]));
-        for (const legend of legends()) legend.remove();
-        legendFit.disconnect();
         // Until this chart is drawn, its panes don't exist yet: no legends to place (none at all, turned off).
         if (chart && drawnChart === chart.id) placeFull();
+        const kept = new Set(), made = /** @type {HTMLElement[]} */ ([]);
+        if (chart && drawnChart === chart.id) {
+          // (Turned off, none; but a folded pane's, its names all it shows.)
+          const panes = view.panes(), folded = chart.legend === "off" ? foldedPanes(chart) : null;
+          chart.panes.forEach((pane, i) => {
+            if (folded && !folded.has(pane.id)) return;
+            // The pane's row holds its left scale, its plot, its right scale; the legend goes in the plot's frame.
+            const plot = panes[i]?.getHTMLElement()?.children[1]?.firstElementChild;
+            if (!plot) return;
+            let element = /** @type {HTMLElement | null} */ (plot.querySelector(`:scope > .legend[data-pane="${CSS.escape(pane.id)}"]`));
+            if (!element) {
+              element = document.createElement("div");
+              element.className = "legend strip";
+              element.dataset.pane = pane.id;
+              strip(element);
+              plot.append(element);
+              legendFit.observe(element);
+              made.push(element);
+            }
+            kept.add(element);
+          });
+        }
+        for (const legend of legends()) if (!kept.has(legend)) (legendFit.unobserve(legend), legend.remove());
         if (!chart || drawnChart !== chart.id) return;
-        // (Turned off, none; but a folded pane's, its names all it shows.)
-        const panes = view.panes(), folded = chart.legend === "off" ? foldedPanes(chart) : null;
-        chart.panes.forEach((pane, i) => {
-          if (folded && !folded.has(pane.id)) return;
-          // The pane's row holds its left scale, its plot, its right scale; the legend goes in the plot's frame.
-          const plot = panes[i]?.getHTMLElement()?.children[1]?.firstElementChild;
-          if (!plot) return;
-          const element = document.createElement("div");
-          element.className = "legend strip";
-          element.dataset.pane = pane.id;
-          strip(element);
-          plot.append(element);
-          legendFit.observe(element);
-        });
         updateLegends();
-        for (const legend of legends()) if (scrolled.get(legend.dataset.pane)) legend.scrollLeft = /** @type {number} */ (scrolled.get(legend.dataset.pane));
+        for (const legend of made) if (scrolled.get(legend.dataset.pane)) legend.scrollLeft = /** @type {number} */ (scrolled.get(legend.dataset.pane));
         sizePanes();
         marginsSet = "";
         relayout();
