@@ -7211,13 +7211,14 @@
         display: block;
 
         /* Waiting for its drawing: a light sweeping across, moved (not repainted: the compositor runs it, off the page's
-           thread, though a strip's cards out of sight wait on for as long as they're there). */
+           thread); a tile's only while it's in sight (data-seen, by the observers that draw them): out of it, no motion,
+           no layer of its own (a page's waiting ones had each been the compositor's every frame). */
         &.pending {
           overflow: hidden;
           border-radius: var(--radius-sm);
         }
 
-        &.pending::after {
+        &.pending:is(.palette-plot, [data-seen])::after {
           content: "";
           position: absolute;
           top: 0;
@@ -20550,7 +20551,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // the page shows, as the presets' are (see galleryTilesSeen); let go of if it's left before its turn.
       const yourQueue = /** @type {Set<string>} */ (new Set()), yoursSeen = /** @type {Set<Element>} */ (new Set());
       const yourTilesSeen = new IntersectionObserver((entries) => {
-        for (const entry of entries) entry.isIntersecting ? yoursSeen.add(entry.target) : yoursSeen.delete(entry.target);
+        for (const entry of entries) (entry.isIntersecting ? yoursSeen.add(entry.target) : yoursSeen.delete(entry.target)), entry.target.toggleAttribute("data-seen", entry.isIntersecting);
         queueYours();
       });
       /** The tiles in view, waited for again (a frame written anew, a fetch that failed). */
@@ -20777,7 +20778,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {string} name @param {number[]} list @param {string[] | null} to @param {number} [count] @param {boolean} [lead]
        */
       /** A tile while the presets are read: its place held, a light sweeping across it. */
-      const WAITING_TILE = '<div class="tile waiting" aria-hidden="true"><span class="tile-open"><span class="tile-head"><span class="tile-name">&nbsp;</span></span><span class="tile-legend"></span><span class="tile-plot pending"></span></span></div>';
+      const WAITING_TILE = '<div class="tile waiting" aria-hidden="true"><span class="tile-open"><span class="tile-head"><span class="tile-name">&nbsp;</span></span><span class="tile-legend"></span><span class="tile-plot pending" data-seen></span></span></div>';
       /**
        * The tiles a shelf writes as it's drawn (as many as a screen's widest row shows); the rest a slot each, as wide, its
        * tile written as it comes near (see tilesNear), or the focus comes into its row: a page of shelves (the presets'
@@ -20957,7 +20958,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const galleryQueue = /** @type {Set<number>} */ (new Set()), gallerySeen = /** @type {Set<Element>} */ (new Set());
       const presetOf = (/** @type {Element} */ frame) => Number(/** @type {HTMLElement | null} */ (frame.closest("[data-preset]"))?.dataset.preset);
       const galleryTilesSeen = new IntersectionObserver((entries) => {
-        for (const entry of entries) entry.isIntersecting ? gallerySeen.add(entry.target) : gallerySeen.delete(entry.target);
+        for (const entry of entries) (entry.isIntersecting ? gallerySeen.add(entry.target) : gallerySeen.delete(entry.target)), entry.target.toggleAttribute("data-seen", entry.isIntersecting);
         galleryQueue.clear();
         for (const frame of gallerySeen) if (frame.classList.contains("pending")) galleryQueue.add(presetOf(frame));
         drawGallery();
