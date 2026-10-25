@@ -8176,6 +8176,17 @@
             width: 18px;
             height: 21px;
           }
+
+          /* (Below the top, the way up in its row, as tall: the page's name where it is on every page; Bitview's
+             way back on the Charts page the way up leads to.) */
+          &:has(+ .gallery-path:not([hidden])) {
+            display: none;
+          }
+        }
+
+        .gallery-path {
+          height: 44px;
+          margin: -10px 0 4px;
         }
 
         .home-device {
