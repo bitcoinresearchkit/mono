@@ -650,6 +650,12 @@
       .tooth-label {
         fill: var(--soft);
         font: 11px var(--mono);
+
+        /* The amounts between the powers of ten: smaller, dimmer, without their $. */
+        &.minor {
+          font-size: 10px;
+          opacity: 0.55;
+        }
       }
 
       [data-locked] .tooth {
@@ -1685,13 +1691,23 @@
         };
         let bars = "";
         for (let b = Math.floor(lo); b < hi; b++) bars += bar(b);
-        // The teeth: a tick each at the top, a hairline down, and the count each lands on lit.
+        // The teeth: a tick each at the top, a hairline down, and the count each lands on lit; each its amount above,
+        // the powers of ten first and brightest, the others dimmer wherever they fit between.
         let teeth = "";
         OFFSETS.forEach((o, k) => {
           const at = here + o, tx = x(at).toFixed(1), major = MAJOR.has(AMOUNTS[k]);
           teeth += `<line class="tooth${major ? " major" : ""}" x1="${tx}" x2="${tx}" y1="${top - 6}" y2="${base}"/>${bar(Math.round(at), ' class="hit"')}`;
-          if (major) teeth += `<text class="tooth-label" x="${tx}" y="${top - 12}" text-anchor="middle">${dollars(AMOUNTS[k])}</text>`;
         });
+        /** @type {[number, number][]} */
+        const taken = [];
+        for (const k of AMOUNTS.map((_, k) => k).sort((a, b) => +MAJOR.has(AMOUNTS[b]) - +MAJOR.has(AMOUNTS[a]))) {
+          const major = MAJOR.has(AMOUNTS[k]), text = major ? dollars(AMOUNTS[k]) : dollars(AMOUNTS[k]).slice(1), cx = x(here + OFFSETS[k]);
+          // (A label's width at its size, monospace, and a little room either side.)
+          const half = (text.length * (major ? 11 : 10) * 0.6) / 2 + 3;
+          if (cx - half < 0 || cx + half > w || taken.some(([a, b]) => cx + half > a && cx - half < b)) continue;
+          taken.push([cx - half, cx + half]);
+          teeth += `<text class="tooth-label${major ? "" : " minor"}" x="${cx.toFixed(1)}" y="${top - 12}" text-anchor="middle">${text}</text>`;
+        }
         // (The sats scale: each power of ten.)
         let rule = `<line class="rule" x1="0" x2="${w}" y1="${base + 0.5}" y2="${base + 0.5}"/>`;
         for (let d = Math.ceil(lo / PER_DECADE); d * PER_DECADE < hi; d++) {
