@@ -647,6 +647,25 @@
           column-gap: 10px;
           white-space: normal;
         }
+
+        /* Narrow, a block a row: its pool and home on the left, its height and age on the right. */
+        @media (max-width: 1023px) {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 6px;
+
+          li {
+            grid-template-columns: 10px minmax(0, 1fr) auto;
+            padding: 8px 12px;
+          }
+
+          .stamp {
+            grid-column: 3;
+            grid-row: 1 / span 2;
+            flex-direction: column;
+            align-items: flex-end;
+            row-gap: 2px;
+          }
+        }
       }
 
       /* (What's said of new blocks: to a screen reader only.) */
@@ -1222,8 +1241,6 @@
       }
       function select(/** @type {string | null} */ key) {
         selected = key;
-        // (The moon picked: round to the front, where it's seen.)
-        if (key === UNKNOWN) moonAngle = Math.PI / 4;
         drawBoard();
         if (key && COUNTRIES[key]) flyTo(COUNTRIES[key].at);
       }
@@ -1243,6 +1260,7 @@
           if (period !== p || month !== null || periods.get(p)?.asked !== asked) return;
           snapshot = shown;
           drawBoard();
+          greet();
         } catch (error) {
           // (Said if it's still the period shown and no other ask for it came since: a failed one's forgotten, a stopped
           // one replaced.)
@@ -1252,6 +1270,15 @@
         }
       }
       /** What failed, in the page's words (a fetch that never reached the server fails as a TypeError), and a way to try again. */
+      /** The answer first, once: with the first counts shown, the globe turns to their leading country, a little east of it
+       * so the slow turn brings it across the middle; unless it's been taken in hand (a drag, a pick) by then. */
+      let greeted = false;
+      function greet() {
+        if (greeted) return;
+        greeted = true;
+        const lead = snapshot?.rows.find((row) => row.cc);
+        if (lead && !selected && !dragging) flyTo([COUNTRIES[lead.cc].at[0] + (reduced.matches ? 0 : 15), COUNTRIES[lead.cc].at[1]]);
+      }
       function failure(/** @type {Error} */ error, /** @type {() => void} */ again) {
         const message = Object.assign(document.createElement("li"), { className: "message" }), retry = Object.assign(document.createElement("button"), { type: "button", className: "play", textContent: "Try again" });
         retry.addEventListener("click", again);
@@ -1303,7 +1330,7 @@
           room = W;
           cx = W / 2;
           cy = H / 2;
-          // (Room left beside it for the moon's orbit, clear of it at its sides however big it grows: 0.155 R.)
+          // (Room left beside it for the moon, clear of it however big it grows: 0.155 R.)
           R = (Math.min(W, H) / 2 - 20) / 1.32;
         }
         // (The words over the planet, where no name is drawn.)
@@ -1348,11 +1375,12 @@
         return night;
       }
 
-      /** The moon: the blocks without a known home, on a slow orbit, as big as their share. */
-      let moonAngle = 0.5;
+      /** The moon: the blocks without a known home, as big as their share, beside the planet: never over a country, where
+       * it would read as one. */
       function moon(/** @type {number} */ unknown) {
-        const r = R * (0.035 + 0.12 * Math.sqrt(unknown)), orbit = Math.min(R * 1.32, Math.min(cx, room - cx) - 16 - r);
-        return { x: cx + Math.cos(moonAngle) * orbit, y: cy - R * 0.22 + Math.sin(moonAngle) * R * 0.3, r, behind: Math.sin(moonAngle) < 0 };
+        // (Up and to the right of it, a gap off its edge however big it grows: 0.155 R at most, so it reaches 1.12 R right.)
+        const r = R * (0.035 + 0.12 * Math.sqrt(unknown)), away = R + r + Math.max(12, R * 0.08), angle = -0.6;
+        return { x: cx + Math.cos(angle) * away, y: cy + Math.sin(angle) * away, r };
       }
       function drawMoon(/** @type {{ x: number, y: number, r: number }} */ m, /** @type {number} */ unknown) {
         const lit = ctx.createRadialGradient(m.x - m.r * 0.4, m.y - m.r * 0.4, m.r * 0.1, m.x, m.y, m.r);
@@ -1367,11 +1395,25 @@
           ctx.lineWidth = 1.5;
           ctx.stroke();
         }
-        label(`No known home ${percent(unknown)}`, m.x, m.y, m.r);
+        // (Its name above it, off the planet; where there's no room above, beside it.)
+        label(`No known home ${percent(unknown)}`, m.x, m.y, m.r, true);
       }
-      /** A name beside its mark, on whichever side it fits and clears the title (neither: none), haloed in the night's color. */
-      function label(/** @type {string} */ text, /** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ radius) {
+      /** A name beside its mark, on whichever side it fits and clears the title (neither: none), haloed in the night's color;
+       * or, `above`, centered over it where it fits. */
+      function label(/** @type {string} */ text, /** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ radius, above = false) {
         const width = ctx.measureText(text).width;
+        if (above) {
+          const left = Math.max(4, Math.min(room - 4 - width, x - width / 2)), base = y - radius - 8;
+          const free = base - 12 > 0 && (!keepOff || left > keepOff.right || left + width < keepOff.left || base < keepOff.top || base - 12 > keepOff.bottom);
+          if (free) {
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = ink.app;
+            ctx.fillStyle = ink.ink;
+            ctx.strokeText(text, left, base);
+            ctx.fillText(text, left, base);
+            return;
+          }
+        }
         const clear = (/** @type {number} */ left) => !keepOff || left > keepOff.right || left + width < keepOff.left || y + 6 < keepOff.top || y - 10 > keepOff.bottom;
         const sides = [x + radius + 6, x - radius - 6 - width].filter((left) => left >= 4 && left + width <= room - 4 && clear(left));
         if (!sides.length) return;
@@ -1398,14 +1440,13 @@
         if (!(R > 0)) return;
         ctx.font = font;
         const { byCountry, top, unknown } = shares(), m = unknown ? moon(unknown) : null;
-        // The sky; the moon if it's behind; the atmosphere; the sphere.
+        // The sky; the atmosphere; the sphere.
         ctx.fillStyle = ink.ink;
         for (const [x, y, size, light] of STARS) {
           ctx.globalAlpha = light;
           ctx.fillRect(x * W, y * H, size, size);
         }
         ctx.globalAlpha = 1;
-        if (m?.behind) drawMoon(m, unknown);
         const halo = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * HALO);
         halo.addColorStop(0, ink.glow);
         halo.addColorStop(1, "transparent");
@@ -1508,19 +1549,19 @@
           ctx.stroke();
         }
         ctx.globalAlpha = 1;
-        if (m && !m.behind) drawMoon(m, unknown);
+        if (m) drawMoon(m, unknown);
         moonAt = m;
       }
-      /** @type {{ x: number, y: number, r: number, behind: boolean } | null} */
+      /** @type {{ x: number, y: number, r: number } | null} */
       let moonAt = null;
 
-      // ── Motion: a slow turn, the moon's orbit, a drag, a flight; drawn only while something moves, and on screen ──
+      // ── Motion: a slow turn, a drag, a flight; drawn only while something moves, and on screen ──
       /** @type {{ from: number[], to: number[], t0: number, dur: number } | null} */
       let flight = null;
       let dragging = /** @type {{ x: number, y: number, rot: number[], moved: boolean } | null} */ (null);
       let last = 0, frameId = 0, onScreen = true;
       const ease = (/** @type {number} */ t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
-      /** Whether anything moves of itself: the turn and the orbit (unless motion's reduced or a country's picked), a flight, a ring. */
+      /** Whether anything moves of itself: the turn (unless motion's reduced or a country's picked), a flight, a ring. */
       const moving = () => Boolean(flight || pulses.length || (!reduced.matches && !selected && !dragging));
       function invalidate() {
         if (!frameId && onScreen) frameId = requestAnimationFrame(frame);
@@ -1541,7 +1582,6 @@
           if (t >= 1) flight = null;
         } else if (moving()) {
           rot[0] += dt * 0.004;
-          moonAngle += dt * 0.00012;
         }
         draw(now);
         if (moving()) invalidate();
@@ -1558,6 +1598,7 @@
       canvas.addEventListener("pointerdown", (event) => {
         dragging = { x: event.clientX, y: event.clientY, rot: [rot[0], rot[1]], moved: false };
         flight = null;
+        greeted = true;
       });
       addEventListener("pointermove", (event) => {
         if (dragging) {
@@ -1585,8 +1626,7 @@
       /** What's under a pointer: the moon, a country's dot (the small ones have no shape on this map), or a country. */
       function pickAt(/** @type {PointerEvent} */ event) {
         const box = canvas.getBoundingClientRect(), x = event.clientX - box.left, y = event.clientY - box.top;
-        // (The moon where it shows: behind the planet, only off its disc.)
-        if (moonAt && Math.hypot(x - moonAt.x, y - moonAt.y) <= moonAt.r + 6 && !(moonAt.behind && Math.hypot(x - cx, y - cy) < R)) return UNKNOWN;
+        if (moonAt && Math.hypot(x - moonAt.x, y - moonAt.y) <= moonAt.r + 6) return UNKNOWN;
         const dot = marks.find((mark) => Math.hypot(x - mark.x, y - mark.y) <= mark.r + 6);
         if (dot) return dot.cc;
         const at = invert(x, y), { byCountry } = shares();
@@ -1743,7 +1783,9 @@
       }
 
       // ── The latest blocks, live ──
-      let tip = 0;
+      /** The last block shown (the series'), the chain's tip as seen (its height and hash), and whether a reorganization's
+       * blocks are being read again. */
+      let tip = 0, seen = 0, tipHash = "", rereading = false;
       /** @type {{ height: number, pool: string, time: number }[]} */
       let latest = [];
       async function blocks(/** @type {number} */ start, /** @type {number} */ end) {
@@ -1783,19 +1825,32 @@
         try {
           // (The sun and the night move on, a little each poll, whatever else does.)
           invalidate();
-          const height = Number(await fetch("/api/blocks/tip/height").then((response) => response.text()));
-          if (!Number.isFinite(height)) return;
-          $("tip-height").textContent = grouped(height);
-          $("tip").hidden = false;
-          if (height <= tip) return drawLatest();
-          const before = tip, fresh = (await blocks(tip ? tip + 1 : height - 5, height + 1)).reverse();
+          // (The tip by its hash: a new block, or another at the same height or lower (a reorganization), both change it.
+          // What the chain's tip is (`seen`) and the last block the series gave (`tip`) apart: the series can lag.)
+          const hash = await fetch("/api/blocks/tip/hash").then((response) => (response.ok ? response.text() : Promise.reject()));
+          if (hash !== tipHash) {
+            const height = Number(await fetch("/api/blocks/tip/height").then((response) => (response.ok ? response.text() : Promise.reject())));
+            if (!Number.isFinite(height)) return;
+            const first = !seen;
+            if (seen && height <= seen) rereading = true;
+            [seen, tipHash] = [height, hash];
+            $("tip-height").textContent = grouped(height);
+            $("tip").hidden = false;
+            // (A new tip: every period's counts are old; the one shown asked for again, as a pick would, its answer or its
+            // failure said; not waited for, so a slow answer never holds up the next poll.)
+            if (!first) {
+              forgetPeriods();
+              if (month === null) setPeriod(period);
+            }
+          }
+          if (tip >= seen && !rereading) return drawLatest();
+          // (The blocks since the last one shown; after a reorganization, the last six again, until the series has the tip.)
+          const before = tip, fresh = (await blocks(rereading || !tip ? seen - 5 : tip + 1, seen + 1)).reverse();
           if (!fresh.length) return;
-          // (Up to the last block the series had: one it hadn't yet is read next time.)
           tip = fresh[0].height;
-          latest = [...fresh, ...latest.filter((block) => block.height < fresh[fresh.length - 1].height)].slice(0, 6);
+          latest = (rereading ? fresh : [...fresh, ...latest.filter((block) => block.height < fresh[fresh.length - 1].height)]).slice(0, 6);
           drawLatest();
-          const arrived = before > 0;
-          if (arrived && fresh.length <= 3) {
+          if (before > 0 && !rereading && fresh.length <= 3) {
             for (const block of fresh) {
               const cc = POOL_COUNTRY.get(block.pool);
               if (cc && !reduced.matches) pulses.push({ at: COUNTRIES[cc].at, t0: performance.now(), color: colorOf(cc) });
@@ -1803,13 +1858,8 @@
             // (Said once, as it arrives.)
             $("said").textContent = fresh.map((block) => `Block ${grouped(block.height)}: ${names.get(block.pool) ?? block.pool}, ${POOL_COUNTRY.has(block.pool) ? COUNTRIES[/** @type {string} */ (POOL_COUNTRY.get(block.pool))].name : "no known home"}`).join(". ");
           }
+          if (rereading && tip === seen) rereading = false;
           invalidate();
-          if (!arrived) return;
-          // (A new block: every period's counts are old; the one shown asked for again, as a pick would: its answer or its
-          // failure said.)
-          forgetPeriods();
-          // (Not waited for: a slow answer never holds up the next poll.)
-          if (month === null) setPeriod(period);
         } catch {
         } finally {
           polling = false;
