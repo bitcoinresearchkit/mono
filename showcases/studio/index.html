@@ -8295,10 +8295,12 @@
             background: none;
             font: 510 10px/12px var(--sans);
             isolation: isolate;
+            /* (Moved along the bar by `--shift` (of its own length), see the Charts page's.) */
+            translate: var(--shift, 0%) 0;
             transition: color var(--fade), translate var(--dur-layout) var(--ease-layout);
 
-            /* (Its chip, pressed or lit: a layer of its own, as wide as its place in the bar (`--reach` past it each
-               side, of its width: a tab moved to a wider place, see the Charts page's), growing with it as it moves.) */
+            /* (Its chip, pressed or lit: a layer of its own, as long as its place in the bar (`--reach` past it at each
+               end, of its length: a tab moved to a longer place, see the Charts page's), growing with it as it moves.) */
             &::before {
               content: "";
               position: absolute;
@@ -8329,24 +8331,24 @@
           }
         }
 
-        /* (The Charts page's three, the bar's width between them: Layers, an open chart's, fades away as the page comes,
-           the others moving into thirds of it: moved, not laid out again, smooth whatever the page does meanwhile.) */
+        /* (The Charts page's three, the bar's length between them: Layers, an open chart's, fades away as the page
+           comes, the others moving into thirds of it, each a quarter of it, its chip the third's: moved, not laid out
+           again, smooth whatever the page does meanwhile. Along the bar, whichever way it lies.) */
         body[data-home] .mobile-bar {
-          /* (Each a quarter of it in a third: its chip the third's width.) */
           > .tab {
             --reach: 16.667%;
           }
 
           > :nth-child(1) {
-            translate: 16.667% 0;
+            --shift: 16.667%;
           }
 
           > :nth-child(2) {
-            translate: 50% 0;
+            --shift: 50%;
           }
 
           > :nth-child(3) {
-            translate: 83.333% 0;
+            --shift: 83.333%;
           }
         }
 
@@ -8572,14 +8574,13 @@
             translate: 0 -50%;
           }
 
-          /* (A rail: Layers fades away, the others moving down half a tab, centered in it; each as tall as it was, its
-             chip its own.) */
-          body[data-home] .mobile-bar > .tab {
-            --reach: 0%;
-          }
+          /* (A rail: its tabs moved, and their chips reaching, down it.) */
+          .mobile-bar > .tab {
+            translate: 0 var(--shift, 0%);
 
-          body[data-home] .mobile-bar > :is(:nth-child(1), :nth-child(2), :nth-child(3)) {
-            translate: 0 50%;
+            &::before {
+              inset: calc(-1 * var(--reach, 0%)) 0;
+            }
           }
 
           /* (The grid's centered on what the rail leaves; the sheet's, in the sheet, at its foot.) */
