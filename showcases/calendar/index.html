@@ -107,16 +107,33 @@
         outline-offset: 2px;
       }
 
+      /* (Read aloud only.) */
+      .sr {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+
       .num {
         font-family: var(--mono);
         font-variant-numeric: tabular-nums;
       }
 
       /* An almanac's headings: the italic serif. */
+      /* Headings in three steps: a section's title in the full ink; the months, many and repeated, softer; the year's
+         caption, faintest. */
       .kicker {
         margin: 0;
+        color: var(--ink);
+        font: italic 400 18px / 1.2 var(--serif);
+      }
+
+      #lede {
         color: var(--faint);
-        font: italic 400 16px / 1.2 var(--serif);
+        font-size: 15px;
       }
 
       .page {
@@ -149,16 +166,6 @@
           }
         }
 
-        .crumb {
-          color: var(--faint);
-        }
-
-        h1 {
-          margin: 0;
-          color: var(--soft);
-          font-size: inherit;
-          font-weight: inherit;
-        }
       }
 
       .stepper {
@@ -673,8 +680,7 @@
     <div class="page">
       <header class="top">
         <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-        <span class="crumb" aria-hidden="true">/</span>
-        <h1>Calendar</h1>
+        <h1 class="sr">Calendar</h1>
         <nav class="stepper" aria-label="Year or day">
           <button type="button" id="back" class="num"></button>
           <button type="button" id="current" class="current num"></button>

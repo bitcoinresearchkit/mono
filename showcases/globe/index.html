@@ -149,9 +149,6 @@
           }
         }
 
-        .crumb {
-          color: var(--faint);
-        }
 
       }
 
@@ -192,27 +189,15 @@
         }
       }
 
-      /* (The page's name, in the header: the data is the page. On a phone, read aloud only.) */
+      /* (The page's name, read aloud only: the data is the page.) */
       h1 {
+        position: absolute;
+        width: 1px;
+        height: 1px;
         margin: 0;
-        color: var(--soft);
-        font-size: inherit;
-        font-weight: inherit;
+        overflow: hidden;
+        clip-path: inset(50%);
         white-space: nowrap;
-
-        @media (max-width: 640px) {
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          overflow: hidden;
-          clip-path: inset(50%);
-        }
-      }
-
-      .top .crumb {
-        @media (max-width: 640px) {
-          display: none;
-        }
       }
 
       .note {
@@ -686,7 +671,6 @@
       <section class="app" aria-labelledby="title">
         <header class="top">
           <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-          <span class="crumb" aria-hidden="true">/</span>
           <h1 id="title">Where blocks are mined</h1>
           <span class="tip-height" id="tip" hidden>Block <b class="num" id="tip-height"></b></span>
         </header>
