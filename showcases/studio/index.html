@@ -10342,6 +10342,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @returns {{ at: number, to: number, was: number, since: number }[]}
        */
       const changesOf = (values) => {
+        // (Read once a series: a signal's marks, its results and its times ask the same. Not one the live price writes in.)
+        const kept = values && changesKept.get(values);
+        if (kept) return kept;
         const out = [];
         let was = NaN, since = -1;
         for (let i = 0; i < (values?.length ?? 0); i++) {
@@ -10354,8 +10357,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           since = was === was ? i : -1;
           was = state;
         }
+        if (values && !ownLive.has(values)) changesKept.set(values, out);
         return out;
       };
+      const changesKept = new WeakMap();
       /**
        * Where a signal's marks are: each change to up or down (a condition's: where it turns true), and with its results,
        * each stretch ending off with one (its dot): counted, listed and stepped through as they're drawn. Its layer's
@@ -10904,10 +10909,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * or `n` points after it, as `rolling`: the window's values kept in order by a tree of counts over their ranks.
        * @param {Vector} x @param {number} n @param {number} p
        */
+      /** A series' values in order, each once, and each one's rank: what a rolling percentile counts by, made once a series (a band's two ask the same). */
+      const rankings = new WeakMap();
+      function rankingOf(/** @type {any} */ x) {
+        let ranking = rankings.get(x);
+        if (!ranking) {
+          const sorted = x.filter(Number.isFinite).sort();
+          const values = sorted.filter((/** @type {number} */ value, /** @type {number} */ i) => i === 0 || value !== sorted[i - 1]);
+          rankings.set(x, (ranking = { values, rankOf: new Map(Array.from(values, (value, i) => [value, i + 1])) }));
+        }
+        return /** @type {{ values: ArrayLike<number>, rankOf: Map<number, number> }} */ (ranking);
+      }
       function rollingPercentile(x, n, p, partial = false) {
         const out = new Float64Array(x.length).fill(NaN);
-        const sorted = x.filter(Number.isFinite).sort();
-        const values = sorted.filter((value, i) => i === 0 || value !== sorted[i - 1]), rankOf = new Map(Array.from(values, (value, i) => [value, i + 1]));
+        const { values, rankOf } = rankingOf(x);
         const tree = new Int32Array(values.length + 1);
         const add = (/** @type {number} */ rank, /** @type {number} */ by) => {
           for (; rank < tree.length; rank += rank & -rank) tree[rank] += by;
@@ -28259,11 +28274,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function drawOptions(/** @type {number} */ to) {
         to = Math.min(palette.items.length, to);
         if (!(to > (palette.drawn ?? 0))) return;
-        const list = $("palette-list"), html = optionsHtml(palette.drawn, to), tail = list.querySelector(":scope > [data-tail]");
-        if (tail) tail.insertAdjacentHTML("beforebegin", html);
-        else list.insertAdjacentHTML("beforeend", html);
+        // (Their keys drawn as they're made: the rows written before have theirs.)
+        const list = $("palette-list"), made = document.createElement("template");
+        made.innerHTML = optionsHtml(palette.drawn, to);
+        drawKeys(made.content);
+        list.insertBefore(made.content, list.querySelector(":scope > [data-tail]"));
         palette.drawn = to;
-        drawKeys(list);
       }
       /** The footer names what Enter does to the highlighted row. */
       function updatePaletteKeys() {
