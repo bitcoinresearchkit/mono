@@ -23627,7 +23627,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * (those two files, by a hash of them, and the chain's facts then), read back at once on a reload; made in a worker
        * (off the page's thread: Firefox took a fifth of a second) when either file changed, and looked at again behind
        * (made anew for the next reload when the chain's facts have changed: a pool's first block, a halving, a new year).
-       * Without the Cache API or a worker, made here as ever.
+       * Without the Cache API (Lockdown Mode's Safari: nothing to keep them in), made in the worker at each start all the
+       * same; without a worker, made here as ever.
        * @returns {Promise<Preset[]>}
        */
       async function presetsKept() {
@@ -23652,6 +23653,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           worker.onerror = (event) => (done(), reject(new Error(event.message || "The presets' worker failed")));
         });
         try {
+          if (typeof caches === "undefined") return JSON.parse(/** @type {string} */ ((await made(null)).text));
           const store = await caches.open("bitview-studio:presets");
           const texts = await Promise.all([presetsUrl, clientUrl].map((url) => fetch(url).then((response) => (response.ok ? response.text() : Promise.reject(new Error(`${url}: ${response.status}`))))));
           const hash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texts.join("\0"))))].map((byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -24906,6 +24908,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (document.activeElement?.matches?.("#inspector .color-editor .hex")) return void (inspectorDue = true);
         inspectorDue = false;
         const layer = layerById(selected);
+        if (layer) vividAhead();
         // (From the list to a layer's settings or back: the one left going as the other comes (no empty frame between),
         // the list on the left, a layer's settings on the right.)
         if (document.body.hasAttribute("data-inspect") !== Boolean(layer) && panelShown()) {
@@ -25440,6 +25443,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function colorMenu(/** @type {HTMLElement} */ anchor, /** @type {string} */ current, /** @type {string} */ target, /** @type {(color: string) => void} */ apply, again = () => colorMenu(anchor, current, target, apply), title = "") {
         const own = !SWATCHES.includes(current);
+        vividAhead();
         // (A dropdown as wide as its select, under it: Bitview's colors at a glance, each named on hover.)
         // (A phone's sheet, its width: the swatches across it.)
         const colors = `<div class="color-drop"${phone.matches ? "" : ` style="width: ${Math.max(232, Math.round(anchor.getBoundingClientRect().width) - 8)}px"`}>${swatchGrid(current)}</div><div class="menu-rule"></div>`;
@@ -25536,8 +25540,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       })();
       /**
        * The surface's grid made in idle moments, a few lines at a time, none of it a long task (folded whole in one go, it
-       * had held a phone without its JIT (Lockdown Mode) half a second), till it's made.
+       * had held a phone without its JIT (Lockdown Mode) half a second), till it's made: once a color can be picked soon
+       * (a layer's settings shown, a color menu open), not at every start (only a picker shows it).
        */
+      let vividStarted = false;
+      const vividAhead = () => !vividGrid && !vividStarted && ((vividStarted = true), whenIdle(vividSoon));
       function vividSoon(/** @type {{ timeRemaining: () => number }} */ deadline) {
         const until = performance.now() + Math.min(8, Math.max(2, deadline.timeRemaining()));
         while (!vividGrid && performance.now() < until) vividWork.next();
@@ -33412,9 +33419,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (document.body.hasAttribute("data-picture")) leavePicture();
         setTimeout(() => document.body.classList.remove("boot"), 1400);
         // Once the chart's asked for its data: the search's index builds, off the page, at once (search is this machine's
-        // a second or so after a load, not after an idle moment a hidden tab may give late); the color surface when idle.
+        // a second or so after a load, not after an idle moment a hidden tab may give late).
         startFinder();
-        whenIdle(vividSoon, { timeout: 3000, settle: 1500 });
         // Charts this Studio couldn't read: kept aside, said once (again only when they change), to be had as a file
         // (Download all has them too).
         const aside = storage.get(UNREAD, []), told = Array.isArray(aside) ? String(hashOf(JSON.stringify(aside))) : "";
