@@ -8,7 +8,7 @@
 
 > **CointimePriceWithRatio** = `object`
 
-Defined in: [modules/bitview-client/index.js:3227](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3227)
+Defined in: [modules/bitview-client/index.js:3245](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3245)
 
 ## Type Parameters
 

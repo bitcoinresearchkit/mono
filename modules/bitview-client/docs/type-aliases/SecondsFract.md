@@ -8,6 +8,6 @@
 
 > **SecondsFract** = `number`
 
-Defined in: [modules/bitview-client/index.js:1294](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1294)
+Defined in: [modules/bitview-client/index.js:1312](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1312)
 
 ## Type Parameters

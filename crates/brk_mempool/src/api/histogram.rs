@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use brk_error::Result;
-use brk_oracle::HistogramRaw;
+use brk_oracle::{HistogramRaw, Tally};
 use brk_types::BlockHash;
 
 use crate::ReadOnlyState;
@@ -17,13 +17,14 @@ impl ReadOnlyState {
     }
 
     /// Snapshot of pre-bucketed round-dollar-eligible bins across all live
-    /// mempool tx outputs. Maintained incrementally by `TxStore` on every
-    /// insert/remove, so this hot path is `O(NUM_BINS)` regardless of pool
-    /// size. Used by `live_price` to blend the mempool into the committed
-    /// oracle without re-parsing scripts per request. Requires a completed
-    /// publication at the requested confirmed-chain tip.
-    pub fn live_eligible_histogram(&self, tip: &BlockHash) -> Result<HistogramRaw> {
+    /// mempool tx outputs, with every live output under the filter rule that
+    /// skips it. Maintained incrementally by `TxStore` on every insert/remove,
+    /// so this hot path is `O(NUM_BINS)` regardless of pool size. Used by
+    /// `live_price` to blend the mempool into the committed oracle without
+    /// re-parsing scripts per request. Requires a completed publication at the
+    /// requested confirmed-chain tip.
+    pub fn live_payments(&self, tip: &BlockHash) -> Result<(HistogramRaw, Tally)> {
         let state = self.pool()?.at(tip)?;
-        Ok(state.txs.live_eligible_histogram())
+        Ok(state.txs.live_payments())
     }
 }

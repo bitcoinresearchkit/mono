@@ -6,7 +6,7 @@
 
 # Interface: UrpdParams
 
-Defined in: [modules/bitview-client/index.js:1558](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1558)
+Defined in: [modules/bitview-client/index.js:1576](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1576)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1558](https://github.com/bitcoinres
 
 > **cohort**: [`UrpdCohort`](../type-aliases/UrpdCohort.md)
 
-Defined in: [modules/bitview-client/index.js:1559](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1559)
+Defined in: [modules/bitview-client/index.js:1577](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1577)
 
 ***
 
@@ -22,6 +22,6 @@ Defined in: [modules/bitview-client/index.js:1559](https://github.com/bitcoinres
 
 > **point**: [`HeightOrDate`](../type-aliases/HeightOrDate.md)
 
-Defined in: [modules/bitview-client/index.js:1560](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1560)
+Defined in: [modules/bitview-client/index.js:1578](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1578)
 
 Confirmed block height (`840000`) or UTC calendar day (`YYYY-MM-DD`)

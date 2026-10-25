@@ -6,7 +6,7 @@
 
 # Interface: OraclePayments
 
-Defined in: [modules/bitview-client/index.js:922](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L922)
+Defined in: [modules/bitview-client/index.js:937](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L937)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:922](https://github.com/bitcoinrese
 
 > **blocks**: [`BlockPayments`](BlockPayments.md)[]
 
-Defined in: [modules/bitview-client/index.js:924](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L924)
+Defined in: [modules/bitview-client/index.js:939](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L939)
 
 ***
 
@@ -22,6 +22,6 @@ Defined in: [modules/bitview-client/index.js:924](https://github.com/bitcoinrese
 
 > **step**: `number`
 
-Defined in: [modules/bitview-client/index.js:923](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L923)
+Defined in: [modules/bitview-client/index.js:938](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L938)
 
 A bucket's width in oracle bins (a bin is 1/200 of a decade of price).

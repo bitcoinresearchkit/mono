@@ -8,6 +8,6 @@
 
 > **RangeIndex** = `number` \| `string` \| `string`
 
-Defined in: [modules/bitview-client/index.js:1187](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1187)
+Defined in: [modules/bitview-client/index.js:1205](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1205)
 
 ## Type Parameters

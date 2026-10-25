@@ -8,6 +8,6 @@
 
 > **HalvingEpoch** = `number`
 
-Defined in: [modules/bitview-client/index.js:626](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L626)
+Defined in: [modules/bitview-client/index.js:641](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L641)
 
 ## Type Parameters

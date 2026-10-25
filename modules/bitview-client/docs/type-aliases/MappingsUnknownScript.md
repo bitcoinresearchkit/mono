@@ -8,7 +8,7 @@
 
 > **MappingsUnknownScript** = `object`
 
-Defined in: [modules/bitview-client/index.js:6493](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6493)
+Defined in: [modules/bitview-client/index.js:6511](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6511)
 
 ## Type Parameters
 

@@ -6,7 +6,7 @@
 
 # Interface: PoolSlugAndHeightParam
 
-Defined in: [modules/bitview-client/index.js:1132](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1132)
+Defined in: [modules/bitview-client/index.js:1150](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1150)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1132](https://github.com/bitcoinres
 
 > **height**: `number`
 
-Defined in: [modules/bitview-client/index.js:1134](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1134)
+Defined in: [modules/bitview-client/index.js:1152](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1152)
 
 ***
 
@@ -22,4 +22,4 @@ Defined in: [modules/bitview-client/index.js:1134](https://github.com/bitcoinres
 
 > **slug**: [`PoolSlug`](../type-aliases/PoolSlug.md)
 
-Defined in: [modules/bitview-client/index.js:1133](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1133)
+Defined in: [modules/bitview-client/index.js:1151](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1151)

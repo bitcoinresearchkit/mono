@@ -738,23 +738,6 @@ class PoolSlugAndHeightParam(TypedDict):
     slug: PoolSlug
     height: Height
 
-class OracleSearch(TypedDict):
-    """
-    The oracle's search for one block: each candidate bin it scored, the one it picked, and the
-    histogram it scored them on.
-
-    Attributes:
-        first_bin: The window's first candidate bin, on the oracle's log scale (200 bins a decade; a bin is where $100 lands in sats: the price is `10^(10 - bin / 200)` dollars).
-        scores: Each candidate's score, from `first_bin` on: its round-dollar arms' counts, each over that arm's peak in the window, summed. The highest is the pick's bin.
-        bin: The bin it picked, refined between bins: the block's price.
-        histogram: The smoothed histogram it scored: the payments of the block and the 11 before it (and, live, the mempool's as the next block's), counted by amount in sats on the same scale (a bin is `round(log10(sats) * 200)`), the newest weighing most.
-    """
-    height: Height
-    first_bin: int
-    scores: List[float]
-    bin: float
-    histogram: List[float]
-
 class MerkleProof(TypedDict):
     """
     Merkle inclusion proof for a transaction
@@ -954,6 +937,50 @@ class DataRangeFormat(TypedDict, total=False):
     end: Union[RangeIndex, None]
     limit: Union[Limit, None]
     format: Format
+
+class FilteredOutputs(TypedDict):
+    """
+    A block's outputs as the oracle's filter judged them: each skipped one under the first rule
+    that skips it, in the filter's order, and the payments it kept. They add up to the block's
+    outputs.
+
+    Attributes:
+        coinbase: The coinbase's: new coins, not payments.
+        fan_out: Those of transactions with more outputs than the fan-out cap (250; 100 before height 630,000): batch payouts.
+        op_return: Those of transactions carrying an OP_RETURN output: data, not payments.
+        taproot: Taproot outputs: mostly protocol traffic.
+        dust: Under 1,000 sats.
+        round_btc: Round amounts in bitcoin (within 0.1% of 1, 2, 3, 5 or 6 times a power of ten sats).
+        payments: The rest: the payments it counted.
+    """
+    coinbase: int
+    fan_out: int
+    op_return: int
+    taproot: int
+    dust: int
+    round_btc: int
+    payments: int
+
+class OracleSearch(TypedDict):
+    """
+    The oracle's search for one block: each candidate bin it scored, the one it picked, and the
+    histogram it scored them on.
+
+    Attributes:
+        first_bin: The window's first candidate bin, on the oracle's log scale (200 bins a decade; a bin is where $100 lands in sats: the price is `10^(10 - bin / 200)` dollars).
+        scores: Each candidate's score, from `first_bin` on: its round-dollar arms' counts, each over that arm's peak in the window, summed. The highest is the pick's bin.
+        bin: The bin it picked, refined between bins: the block's price.
+        histogram: The smoothed histogram it scored: the payments of the block and the 11 before it (and, live, the mempool's as the next block's), counted by amount in sats on the same scale (a bin is `round(log10(sats) * 200)`), the newest weighing most.
+        outputs: The block's own outputs (live, the mempool's) as the oracle's filter judged them.
+        mempool: Whether it's the live search with the mempool blended in as the next block (`height` the next block's, `outputs` the mempool's), rather than a block's.
+    """
+    height: Height
+    first_bin: int
+    scores: List[float]
+    bin: float
+    histogram: List[float]
+    outputs: FilteredOutputs
+    mempool: bool
 
 class _RbfTxRequired(TypedDict):
     txid: Txid
@@ -6792,7 +6819,7 @@ class BitviewClient(BitviewClientBase):
     def get_oracle_search(self, height: Height) -> OracleSearch:
         """The oracle's search at a block.
 
-        The oracle's search behind a block's price, after height 508,000: every candidate bin in its window, 12 below the block before's answer to 11 above, with its score (each round-dollar arm's count over that arm's peak in the window, summed), the bin it picked, and the smoothed histogram it scored them on.
+        The oracle's search behind a block's price, after height 508,000: every candidate bin in its window, 12 below the block before's answer to 11 above, with its score (each round-dollar arm's count over that arm's peak in the window, summed), the bin it picked, the smoothed histogram it scored them on, and the block's outputs as the filter judged them (each skipped one under the first rule that skips it, the rest payments).
 
         Endpoint: `GET /api/oracle/searches/{height}`"""
         return self.get_json(f'/api/oracle/searches/{_segment(height)}')

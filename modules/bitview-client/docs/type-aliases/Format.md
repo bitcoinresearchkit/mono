@@ -8,6 +8,6 @@
 
 > **Format** = `"json"` \| `"csv"`
 
-Defined in: [modules/bitview-client/index.js:622](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L622)
+Defined in: [modules/bitview-client/index.js:637](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L637)
 
 ## Type Parameters

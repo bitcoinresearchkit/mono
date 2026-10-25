@@ -6,7 +6,7 @@
 
 # Interface: Utxo
 
-Defined in: [modules/bitview-client/index.js:1578](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1578)
+Defined in: [modules/bitview-client/index.js:1596](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1596)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:1578](https://github.com/bitcoinres
 
 > **status**: [`TxStatus`](TxStatus.md)
 
-Defined in: [modules/bitview-client/index.js:1581](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1581)
+Defined in: [modules/bitview-client/index.js:1599](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1599)
 
 ***
 
@@ -22,7 +22,7 @@ Defined in: [modules/bitview-client/index.js:1581](https://github.com/bitcoinres
 
 > **txid**: `string`
 
-Defined in: [modules/bitview-client/index.js:1579](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1579)
+Defined in: [modules/bitview-client/index.js:1597](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1597)
 
 ***
 
@@ -30,7 +30,7 @@ Defined in: [modules/bitview-client/index.js:1579](https://github.com/bitcoinres
 
 > **value**: `number`
 
-Defined in: [modules/bitview-client/index.js:1582](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1582)
+Defined in: [modules/bitview-client/index.js:1600](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1600)
 
 Output value in satoshis
 
@@ -40,4 +40,4 @@ Output value in satoshis
 
 > **vout**: `number`
 
-Defined in: [modules/bitview-client/index.js:1580](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1580)
+Defined in: [modules/bitview-client/index.js:1598](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1598)

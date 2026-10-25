@@ -6,7 +6,7 @@
 
 # Interface: Health
 
-Defined in: [modules/bitview-client/index.js:656](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L656)
+Defined in: [modules/bitview-client/index.js:671](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L671)
 
 ## Properties
 
@@ -14,7 +14,7 @@ Defined in: [modules/bitview-client/index.js:656](https://github.com/bitcoinrese
 
 > **blocksBehind**: `number`
 
-Defined in: [modules/bitview-client/index.js:667](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L667)
+Defined in: [modules/bitview-client/index.js:682](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L682)
 
 Number of blocks behind the tip
 
@@ -24,7 +24,7 @@ Number of blocks behind the tip
 
 > **computedHeight**: `number`
 
-Defined in: [modules/bitview-client/index.js:664](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L664)
+Defined in: [modules/bitview-client/index.js:679](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L679)
 
 Height of the last computed block (series)
 
@@ -34,7 +34,7 @@ Height of the last computed block (series)
 
 > **indexedHeight**: `number`
 
-Defined in: [modules/bitview-client/index.js:663](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L663)
+Defined in: [modules/bitview-client/index.js:678](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L678)
 
 Height of the last indexed block
 
@@ -44,7 +44,7 @@ Height of the last indexed block
 
 > **lastIndexedAt**: `string`
 
-Defined in: [modules/bitview-client/index.js:668](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L668)
+Defined in: [modules/bitview-client/index.js:683](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L683)
 
 Human-readable timestamp of the last indexed block (ISO 8601)
 
@@ -54,7 +54,7 @@ Human-readable timestamp of the last indexed block (ISO 8601)
 
 > **lastIndexedAtUnix**: `number`
 
-Defined in: [modules/bitview-client/index.js:669](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L669)
+Defined in: [modules/bitview-client/index.js:684](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L684)
 
 Unix timestamp of the last indexed block
 
@@ -64,7 +64,7 @@ Unix timestamp of the last indexed block
 
 > **service**: `"brk"`
 
-Defined in: [modules/bitview-client/index.js:658](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L658)
+Defined in: [modules/bitview-client/index.js:673](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L673)
 
 ***
 
@@ -72,7 +72,7 @@ Defined in: [modules/bitview-client/index.js:658](https://github.com/bitcoinrese
 
 > **startedAt**: `string`
 
-Defined in: [modules/bitview-client/index.js:661](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L661)
+Defined in: [modules/bitview-client/index.js:676](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L676)
 
 Server start time (ISO 8601)
 
@@ -82,7 +82,7 @@ Server start time (ISO 8601)
 
 > **status**: `"healthy"`
 
-Defined in: [modules/bitview-client/index.js:657](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L657)
+Defined in: [modules/bitview-client/index.js:672](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L672)
 
 ***
 
@@ -90,7 +90,7 @@ Defined in: [modules/bitview-client/index.js:657](https://github.com/bitcoinrese
 
 > **timestamp**: `string`
 
-Defined in: [modules/bitview-client/index.js:660](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L660)
+Defined in: [modules/bitview-client/index.js:675](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L675)
 
 Current server time (ISO 8601)
 
@@ -100,7 +100,7 @@ Current server time (ISO 8601)
 
 > **tipHeight**: `number`
 
-Defined in: [modules/bitview-client/index.js:665](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L665)
+Defined in: [modules/bitview-client/index.js:680](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L680)
 
 Height of the Bitcoin node's chain tip; `/health` reports `indexed_height` instead, without
 asking the node
@@ -111,7 +111,7 @@ asking the node
 
 > **uptimeSeconds**: `number`
 
-Defined in: [modules/bitview-client/index.js:662](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L662)
+Defined in: [modules/bitview-client/index.js:677](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L677)
 
 Uptime in seconds
 
@@ -121,4 +121,4 @@ Uptime in seconds
 
 > **version**: `string`
 
-Defined in: [modules/bitview-client/index.js:659](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L659)
+Defined in: [modules/bitview-client/index.js:674](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L674)

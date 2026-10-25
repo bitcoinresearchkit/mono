@@ -30,7 +30,7 @@ mod stencil;
 mod window;
 
 pub use config::{Config, START_HEIGHT_FAST, START_HEIGHT_SLOW};
-pub use filter::PaymentFilter;
+pub use filter::{PaymentFilter, Skip, Tally};
 use scale::NUM_BINS;
 pub use scale::{bin_to_cents, cents_to_bin, sats_to_bin};
 pub use seed::{FIRST_PRICE_HEIGHT, pre_oracle_prices_from};

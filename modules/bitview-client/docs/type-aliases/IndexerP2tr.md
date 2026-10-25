@@ -8,7 +8,7 @@
 
 > **IndexerP2tr** = `object`
 
-Defined in: [modules/bitview-client/index.js:6700](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6700)
+Defined in: [modules/bitview-client/index.js:6718](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L6718)
 
 ## Type Parameters
 

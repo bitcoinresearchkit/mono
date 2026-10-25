@@ -654,7 +654,7 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/oracle/searches/{height}",
         summary: "The oracle's search at a block",
-        description: "The oracle's search behind a block's price, after height 508,000: every candidate bin in its window, 12 below the block before's answer to 11 above, with its score (each round-dollar arm's count over that arm's peak in the window, summed), the bin it picked, and the smoothed histogram it scored them on.",
+        description: "The oracle's search behind a block's price, after height 508,000: every candidate bin in its window, 12 below the block before's answer to 11 above, with its score (each round-dollar arm's count over that arm's peak in the window, summed), the bin it picked, the smoothed histogram it scored them on, and the block's outputs as the filter judged them (each skipped one under the first rule that skips it, the rest payments).",
         path_parameters: &[
             Parameter { api_name: "height", name: "height", required: true, value_name: "Height", repeatable: false, description: None },
         ],

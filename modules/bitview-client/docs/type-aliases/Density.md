@@ -8,7 +8,7 @@
 
 > **Density** = `object`
 
-Defined in: [modules/bitview-client/index.js:3345](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3345)
+Defined in: [modules/bitview-client/index.js:3363](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L3363)
 
 ## Type Parameters
 

@@ -61,6 +61,7 @@
 - [EmptyCpfp](interfaces/EmptyCpfp.md)
 - [ErrorBody](interfaces/ErrorBody.md)
 - [ErrorDetail](interfaces/ErrorDetail.md)
+- [FilteredOutputs](interfaces/FilteredOutputs.md)
 - [HashrateEntry](interfaces/HashrateEntry.md)
 - [HashrateSummary](interfaces/HashrateSummary.md)
 - [Health](interfaces/Health.md)

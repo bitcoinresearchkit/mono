@@ -8,6 +8,6 @@
 
 > **UnknownScriptOutputIndex** = [`TypeIndex`](TypeIndex.md)
 
-Defined in: [modules/bitview-client/index.js:1504](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1504)
+Defined in: [modules/bitview-client/index.js:1522](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1522)
 
 ## Type Parameters

@@ -6,7 +6,7 @@
 
 # Interface: TxidParam
 
-Defined in: [modules/bitview-client/index.js:1482](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1482)
+Defined in: [modules/bitview-client/index.js:1500](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1500)
 
 ## Properties
 
@@ -14,4 +14,4 @@ Defined in: [modules/bitview-client/index.js:1482](https://github.com/bitcoinres
 
 > **txid**: `string`
 
-Defined in: [modules/bitview-client/index.js:1483](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1483)
+Defined in: [modules/bitview-client/index.js:1501](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1501)

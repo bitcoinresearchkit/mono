@@ -8,7 +8,7 @@
 
 > **HoldersValueFlow** = `object`
 
-Defined in: [modules/bitview-client/index.js:4210](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4210)
+Defined in: [modules/bitview-client/index.js:4228](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4228)
 
 ## Type Parameters
 

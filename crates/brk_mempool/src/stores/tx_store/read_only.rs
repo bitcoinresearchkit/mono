@@ -1,9 +1,9 @@
-use brk_oracle::HistogramRaw;
+use brk_oracle::{HistogramRaw, Tally};
 use brk_types::{MempoolRecentTx, Transaction, Txid};
 use indexmap::IndexMap;
 use rustc_hash::FxBuildHasher;
 
-use crate::{key::TxKey, state::TxEntry, stores::LiveHistogram};
+use crate::{key::TxKey, state::TxEntry, stores::LivePayments};
 
 use super::TxRecord;
 
@@ -14,7 +14,7 @@ pub struct ReadOnlyTxStore {
     pub(super) txids_hash: u64,
     pub(super) content_revision: u64,
     pub(super) recent: Vec<MempoolRecentTx>,
-    pub(super) histogram: LiveHistogram,
+    pub(super) payments: LivePayments,
 }
 
 impl ReadOnlyTxStore {
@@ -68,9 +68,9 @@ impl ReadOnlyTxStore {
     }
 
     /// Snapshot the round-dollar-eligible histogram that feeds the oracle
-    /// blend. Maintained incrementally, so this is `O(NUM_BINS)`, not
-    /// `O(live_outputs)`.
-    pub fn live_eligible_histogram(&self) -> HistogramRaw {
-        self.histogram.eligible()
+    /// blend, with the live outputs' filter tally. Maintained incrementally, so
+    /// this is `O(NUM_BINS)`, not `O(live_outputs)`.
+    pub fn live_payments(&self) -> (HistogramRaw, Tally) {
+        self.payments.payments()
     }
 }

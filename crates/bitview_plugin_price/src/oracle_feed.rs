@@ -3,7 +3,7 @@ use std::ops::Range;
 use bitview_plugin_indexer::Indexer;
 use bitview_primitives::{Index40, Lengths, TxOutIndex};
 use brk_error::{Error, Result};
-use brk_oracle::{HistogramRaw, Oracle, PaymentFilter};
+use brk_oracle::{HistogramRaw, Oracle, PaymentFilter, Tally};
 use brk_types::{OutputType, Sats};
 use rayon::prelude::*;
 use vecdb::{AnyVec, ReadableVec, StorageMode, VecIndex};
@@ -38,6 +38,18 @@ pub fn feed_blocks_with<IM: StorageMode>(
     })
 }
 
+/// The block at `height`'s outputs, each under the first rule of the oracle's filter that skips it,
+/// or a payment.
+pub fn block_tally<IM: StorageMode>(
+    indexer: &Indexer<IM>,
+    height: usize,
+    cap: Option<&Lengths>,
+) -> Result<Tally> {
+    let mut tally = Tally::default();
+    read_blocks(indexer, height..height + 1, cap, &Tallies, |_, t| tally = t)?;
+    Ok(tally)
+}
+
 /// Each block's payments as the oracle filters them, at their exact amounts, in block order.
 pub fn block_payments<IM: StorageMode>(
     indexer: &Indexer<IM>,
@@ -48,11 +60,17 @@ pub fn block_payments<IM: StorageMode>(
     read_blocks(indexer, range, cap, &Payments, each)
 }
 
-/// What each block's non-coinbase transactions' outputs are read into, block by block in parallel.
+/// What each block's outputs are read into, block by block in parallel: its coinbase's count, and
+/// its other transactions' outputs.
 trait ReadBlock: Sync {
     type Out: Send;
 
-    fn read<Outputs>(&self, filter: PaymentFilter, txs: impl Iterator<Item = Outputs>) -> Self::Out
+    fn read<Outputs>(
+        &self,
+        filter: PaymentFilter,
+        coinbase: usize,
+        txs: impl Iterator<Item = Outputs>,
+    ) -> Self::Out
     where
         Outputs: ExactSizeIterator<Item = (Sats, OutputType)> + Clone;
 }
@@ -66,6 +84,7 @@ impl ReadBlock for Histograms {
     fn read<Outputs>(
         &self,
         filter: PaymentFilter,
+        _: usize,
         txs: impl Iterator<Item = Outputs>,
     ) -> HistogramRaw
     where
@@ -81,7 +100,12 @@ struct Payments;
 impl ReadBlock for Payments {
     type Out = Vec<Sats>;
 
-    fn read<Outputs>(&self, filter: PaymentFilter, txs: impl Iterator<Item = Outputs>) -> Vec<Sats>
+    fn read<Outputs>(
+        &self,
+        filter: PaymentFilter,
+        _: usize,
+        txs: impl Iterator<Item = Outputs>,
+    ) -> Vec<Sats>
     where
         Outputs: ExactSizeIterator<Item = (Sats, OutputType)> + Clone,
     {
@@ -90,6 +114,25 @@ impl ReadBlock for Payments {
             filter.for_each_payment(outputs, |sats| payments.push(sats));
         }
         payments
+    }
+}
+
+/// Each output of the block, coinbase included, under the first rule that skips it, or a payment.
+struct Tallies;
+
+impl ReadBlock for Tallies {
+    type Out = Tally;
+
+    fn read<Outputs>(
+        &self,
+        filter: PaymentFilter,
+        coinbase: usize,
+        txs: impl Iterator<Item = Outputs>,
+    ) -> Tally
+    where
+        Outputs: ExactSizeIterator<Item = (Sats, OutputType)> + Clone,
+    {
+        filter.tally(coinbase, txs)
     }
 }
 
@@ -192,7 +235,13 @@ fn read_blocks<IM: StorageMode, R: ReadBlock>(
                         .copied()
                         .zip(output_types[lo..hi].iter().copied())
                 });
-                reader.read(PaymentFilter::for_height(range.start + idx), tx_outputs)
+                // (The coinbase's outputs run up to the next transaction's, or the block's end.)
+                let coinbase = txs.clone().next().map_or(block_out_end, first_output) - out_at(idx);
+                reader.read(
+                    PaymentFilter::for_height(range.start + idx),
+                    coinbase,
+                    tx_outputs,
+                )
             })
             .collect::<Vec<_>>();
 

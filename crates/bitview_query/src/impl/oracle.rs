@@ -1,13 +1,15 @@
 use std::{collections::HashMap, sync::Arc};
 
-use bitview_plugin_price::{block_payments, feed_blocks_for_warmup, feed_blocks_with};
+use bitview_plugin_price::{block_payments, block_tally, feed_blocks_for_warmup, feed_blocks_with};
 use bitview_primitives::Lengths;
 use bitview_types::{BlockPayments, OraclePayments, OracleSearch};
-use brk_oracle::{Config, Oracle, ROUND_DOLLARS, START_HEIGHT_FAST, START_HEIGHT_SLOW, Search};
+use brk_oracle::{
+    Config, Oracle, ROUND_DOLLARS, START_HEIGHT_FAST, START_HEIGHT_SLOW, Search, Tally,
+};
 use brk_types::{Dollars, Height};
 use vecdb::{AnyVec, ReadableVec, VecIndex};
 
-use crate::{Error, Query, Result, check_bound};
+use crate::{Error, Query, ReadPin, Result, check_bound};
 
 /// Blocks in one chunk of payments: a day's. Chunks start at its multiples, so their requests are
 /// few and fixed, and a settled one never changes.
@@ -37,8 +39,9 @@ impl Query {
             .search(prev)
             .ok_or_else(|| Error::NotFound(format!("no oracle search at height {height}")))?;
         let bin = self.seed_bin_at(height)?;
+        let tally = block_tally(self.indexer(), height, Some(&safe))?;
         Ok((
-            searched(height, search, bin, &oracle),
+            searched(height, search, bin, &oracle, tally),
             pin.lengths().is_settled(Height::from(height)),
         ))
     }
@@ -150,6 +153,11 @@ impl Query {
             Some(prev) => (live.oracle, live.next, prev),
             None => (live.oracle, live.next - 1, live.tip_prev),
         };
+        // (The mempool's outputs, from the same publication as its histogram; without it, the tip's.)
+        let tally = match live.mempool {
+            Some(tally) => tally,
+            None => block_tally(self.indexer(), height, Some(&live.pin.lengths()))?,
+        };
         if height <= START_HEIGHT_FAST {
             return Err(Error::OutOfRange(
                 format!("oracle searches: after height {START_HEIGHT_FAST}").into(),
@@ -158,7 +166,9 @@ impl Query {
         let search = oracle
             .search(prev)
             .ok_or_else(|| Error::NotFound("no oracle search at the tip".to_owned()))?;
-        Ok(searched(height, search, oracle.ref_bin(), &oracle))
+        let mut search = searched(height, search, oracle.ref_bin(), &oracle, tally);
+        search.mempool = live.mempool.is_some();
+        Ok(search)
     }
 
     pub fn live_price(&self) -> Result<Dollars> {
@@ -173,8 +183,8 @@ impl Query {
         // Capture the completed mempool publication while the confirmed anchor
         // is held stable, before doing potentially expensive window work. A pool
         // not yet at this tip has nothing to blend.
-        let live = match mempool.map(|mempool| mempool.live_eligible_histogram(&tip)) {
-            Some(Ok(histogram)) => Some(histogram),
+        let live = match mempool.map(|mempool| mempool.live_payments(&tip)) {
+            Some(Ok(payments)) => Some(payments),
             None | Some(Err(brk_error::Error::StateUpdating)) => None,
             Some(Err(error)) => return Err(error.into()),
         };
@@ -188,18 +198,22 @@ impl Query {
             .0
             .live_oracle
             .get_or_try_init(pin.revision(), || self.warm_oracle(seed_bin, height, &safe))?;
-        let blended_from = live.map(|histogram| {
-            let from = oracle.ref_bin();
-            oracle.process_histogram(&histogram);
-            from
-        });
+        let (blended_from, mempool) = live
+            .map(|(histogram, tally)| {
+                let from = oracle.ref_bin();
+                oracle.process_histogram(&histogram);
+                (from, tally)
+            })
+            .unzip();
         // (Under the same pin as the oracle: a reorganization can't put another fork's answer here.)
         let tip_prev = self.seed_bin_at(last.saturating_sub(1))?;
         Ok(LiveOracle {
             oracle,
             blended_from,
+            mempool,
             next: height,
             tip_prev,
+            pin,
         })
     }
 
@@ -251,14 +265,23 @@ impl Query {
     }
 }
 
-/// A block's search, for the wire, with the histogram `oracle` scored.
-fn searched(height: usize, search: Search, bin: f64, oracle: &Oracle) -> OracleSearch {
+/// A block's search, for the wire, with the histogram `oracle` scored and the block's outputs as
+/// the filter judged them.
+fn searched(
+    height: usize,
+    search: Search,
+    bin: f64,
+    oracle: &Oracle,
+    tally: Tally,
+) -> OracleSearch {
     OracleSearch {
         height: Height::from(height),
         first_bin: search.first_bin as u16,
         scores: search.scores,
         bin,
         histogram: oracle.ema().clone(),
+        outputs: tally.into(),
+        mempool: false,
     }
 }
 
@@ -267,10 +290,14 @@ struct LiveOracle {
     oracle: Oracle,
     /// With the mempool blended in, the reference its search started from: the tip's answer.
     blended_from: Option<f64>,
+    /// With the mempool blended in, its outputs as the filter judged them.
+    mempool: Option<Tally>,
     /// The next block's height.
     next: usize,
     /// The tip block's previous answer: where its own search started.
     tip_prev: f64,
+    /// The pin it was read under, held while it's used: no reorganization between its parts.
+    pin: ReadPin,
 }
 
 /// Payment chunks already replayed: a settled one kept for good (it never changes), the others for

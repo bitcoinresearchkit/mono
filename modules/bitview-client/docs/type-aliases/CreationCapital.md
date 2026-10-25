@@ -8,7 +8,7 @@
 
 > **CreationCapital** = `object`
 
-Defined in: [modules/bitview-client/index.js:4569](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4569)
+Defined in: [modules/bitview-client/index.js:4587](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L4587)
 
 ## Type Parameters
 

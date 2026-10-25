@@ -8,6 +8,6 @@
 
 > **TxOutIndex** = `number`
 
-Defined in: [modules/bitview-client/index.js:1446](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1446)
+Defined in: [modules/bitview-client/index.js:1464](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1464)
 
 ## Type Parameters

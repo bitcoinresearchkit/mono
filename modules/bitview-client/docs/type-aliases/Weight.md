@@ -8,6 +8,6 @@
 
 > **Weight** = `number`
 
-Defined in: [modules/bitview-client/index.js:1665](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1665)
+Defined in: [modules/bitview-client/index.js:1683](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1683)
 
 ## Type Parameters

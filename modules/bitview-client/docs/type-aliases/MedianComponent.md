@@ -8,7 +8,7 @@
 
 > **MedianComponent**\<`A`\> = `object`
 
-Defined in: [modules/bitview-client/index.js:2964](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2964)
+Defined in: [modules/bitview-client/index.js:2982](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L2982)
 
 ## Type Parameters
 

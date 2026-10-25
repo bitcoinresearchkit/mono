@@ -9,7 +9,7 @@ mod split;
 
 pub use dependencies::Dependencies;
 pub use has::HasPrice;
-pub use oracle_feed::{block_payments, feed_blocks_for_warmup, feed_blocks_with};
+pub use oracle_feed::{block_payments, block_tally, feed_blocks_for_warmup, feed_blocks_with};
 
 use bitview_plugin::{Plugin, PluginId, PluginStorage};
 use bitview_primitives::Float64;

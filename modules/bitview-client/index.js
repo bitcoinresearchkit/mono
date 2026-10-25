@@ -615,6 +615,21 @@ mainnet, as mempool.space
  * @typedef {number} FeeRate
  */
 /**
+ * A block's outputs as the oracle's filter judged them: each skipped one under the first rule
+ * that skips it, in the filter's order, and the payments it kept. They add up to the block's
+ * outputs.
+ *
+ * @typedef {Object} FilteredOutputs
+ * @property {number} coinbase - The coinbase's: new coins, not payments.
+ * @property {number} fanOut - Those of transactions with more outputs than the fan-out cap (250; 100 before height
+630,000): batch payouts.
+ * @property {number} opReturn - Those of transactions carrying an OP_RETURN output: data, not payments.
+ * @property {number} taproot - Taproot outputs: mostly protocol traffic.
+ * @property {number} dust - Under 1,000 sats.
+ * @property {number} roundBtc - Round amounts in bitcoin (within 0.1% of 1, 2, 3, 5 or 6 times a power of ten sats).
+ * @property {number} payments - The rest: the payments it counted.
+ */
+/**
  * A floating-point value without a specific unit.
  *
  * @typedef {number} Float
@@ -937,6 +952,9 @@ arm's peak in the window, summed. The highest is the pick's bin.
  * @property {number[]} histogram - The smoothed histogram it scored: the payments of the block and the 11 before it (and,
 live, the mempool's as the next block's), counted by amount in sats on the same scale (a
 bin is `round(log10(sats) * 200)`), the newest weighing most.
+ * @property {FilteredOutputs} outputs - The block's own outputs (live, the mempool's) as the oracle's filter judged them.
+ * @property {boolean} mempool - Whether it's the live search with the mempool blended in as the next block (`height` the
+next block's, `outputs` the mempool's), rather than a block's.
  */
 /**
  * The output a transaction input spends: its transaction index and output position, written as
@@ -9622,7 +9640,7 @@ anything else answers 400, as mempool.space does
   /**
    * The oracle's search at a block
    *
-   * The oracle's search behind a block's price, after height 508,000: every candidate bin in its window, 12 below the block before's answer to 11 above, with its score (each round-dollar arm's count over that arm's peak in the window, summed), the bin it picked, and the smoothed histogram it scored them on.
+   * The oracle's search behind a block's price, after height 508,000: every candidate bin in its window, 12 below the block before's answer to 11 above, with its score (each round-dollar arm's count over that arm's peak in the window, summed), the bin it picked, the smoothed histogram it scored them on, and the block's outputs as the filter judged them (each skipped one under the first rule that skips it, the rest payments).
    *
    * Endpoint: `GET /api/oracle/searches/{height}`
    *

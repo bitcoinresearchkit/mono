@@ -8,6 +8,6 @@
 
 > **WeightFract** = `number`
 
-Defined in: [modules/bitview-client/index.js:1670](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1670)
+Defined in: [modules/bitview-client/index.js:1688](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L1688)
 
 ## Type Parameters

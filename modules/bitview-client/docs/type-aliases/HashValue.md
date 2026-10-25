@@ -8,6 +8,6 @@
 
 > **HashValue** = `number`
 
-Defined in: [modules/bitview-client/index.js:636](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L636)
+Defined in: [modules/bitview-client/index.js:651](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L651)
 
 ## Type Parameters
