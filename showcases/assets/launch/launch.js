@@ -3,6 +3,9 @@
 // (`<script src="/assets/launch/launch.js"></script>`, `data-wait` for a page that says itself when it's ready: see
 // `bitviewLaunch.ready`).
 //
+// - Every showcase is one app, Bitview, whichever page it's added from (its manifest starts at "/", every showcase in
+//   its scope): said here, for all of them. iOS takes it, its icon and its launch screen from the page it's added from,
+//   at that moment.
 // - In Safari, where a page is added to a home screen: its launch screen, Bitview's orange at the phone's size (iOS's
 //   white else while the app starts), made as soon as the page starts, not once it has loaded: added to a home screen
 //   before then, an app would launch white for good.
@@ -19,8 +22,13 @@
   const standalone = /** @type {any} */ (navigator).standalone;
   // (A newer version of the page, said: its own file, every showcase's from here.)
   document.head.append(Object.assign(document.createElement("script"), { src: "/assets/version/version.js" }));
-  // (iOS uses a launch screen only for a page that says it's an app: said here, for every showcase.)
-  if (!document.querySelector('meta[name="apple-mobile-web-app-capable"]')) document.head.append(Object.assign(document.createElement("meta"), { name: "apple-mobile-web-app-capable", content: "yes" }));
+  for (const [tag, attributes] of /** @type {const} */ ([
+    ["link", { rel: "manifest", href: "/assets/favicon/site.webmanifest" }],
+    ["link", { rel: "apple-touch-icon", href: "/assets/favicon/apple-touch-icon.png" }],
+    ["meta", { name: "apple-mobile-web-app-title", content: "Bitview" }],
+    // (iOS uses a launch screen only for a page that says it's an app.)
+    ["meta", { name: "apple-mobile-web-app-capable", content: "yes" }],
+  ])) document.head.append(Object.assign(document.createElement(tag), attributes));
   if (standalone === false) {
     setTimeout(() => {
       const canvas = document.createElement("canvas"), context = canvas.getContext("2d"), link = document.createElement("link");
