@@ -540,12 +540,11 @@ pub static COMMANDS: &[Command] = &[
         method: "GET",
         path: "/api/server/logs",
         summary: "Logs",
-        description: "The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, pass the answer's `started_unix_ms` and its last line's `seq` as `after`: the lines since then, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted. Answers are cached for a second.",
+        description: "The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.",
         path_parameters: &[
         ],
         query_parameters: &[
-            Parameter { api_name: "started_unix_ms", name: "started-unix-ms", required: false, value_name: "integer", repeatable: false, description: Some("The `started_unix_ms` of the last answer: `after` counts in that process's log.") },
-            Parameter { api_name: "after", name: "after", required: false, value_name: "integer", repeatable: false, description: Some("Only the lines after this `seq`, when `started_unix_ms` is this process's; otherwise every kept line.") },
+            Parameter { api_name: "after", name: "after", required: false, value_name: "string", repeatable: false, description: Some("The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.") },
         ],
         request_body: None,
     },

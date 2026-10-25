@@ -742,15 +742,17 @@ asking the node
  * The server's last log lines, oldest first.
  *
  * @typedef {Object} Logs
- * @property {number} startedUnixMs - When this server process began its log, in Unix milliseconds: a `seq` counts within it.
+ * @property {number} startedUnixMs - When this server process began its log, in Unix milliseconds: another than the last answer's shows the
+server restarted.
  * @property {LogLine[]} lines
+ * @property {string} next - Where this answer ends: sent back as `after`, the lines since. `{started_unix_ms}-{seq}`, the process and the
+`seq` of the next line it will log; to pass back as it is, not to read.
  */
 /**
  * Where a reader of the log left off.
  *
  * @typedef {Object} LogsQuery
- * @property {?number=} startedUnixMs - The `started_unix_ms` of the last answer: `after` counts in that process's log.
- * @property {?number=} after - Only the lines after this `seq`, when `started_unix_ms` is this process's; otherwise every kept line.
+ * @property {?string=} after - The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.
  */
 /**
  * Block info in a mempool.space like format for fee estimation.
@@ -8055,18 +8057,16 @@ class BitviewClient extends BitviewClientBase {
   /**
    * Logs
    *
-   * The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, pass the answer's `started_unix_ms` and its last line's `seq` as `after`: the lines since then, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted. Answers are cached for a second.
+   * The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.
    *
    * Endpoint: `GET /api/server/logs`
    *
-   * @param {number=} [started_unix_ms] - The `started_unix_ms` of the last answer: `after` counts in that process's log.
-   * @param {number=} [after] - Only the lines after this `seq`, when `started_unix_ms` is this process's; otherwise every kept line.
+   * @param {string=} [after] - The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.
    * @param {{ signal?: AbortSignal, onValue?: (value: Logs) => void, cache?: boolean, memCache?: boolean }} [options]
    * @returns {Promise<Logs>}
    */
-  async getLogs(started_unix_ms, after, { signal, onValue, cache, memCache } = {}) {
+  async getLogs(after, { signal, onValue, cache, memCache } = {}) {
     const params = new URLSearchParams();
-    if (started_unix_ms !== undefined) params.set('started_unix_ms', String(started_unix_ms));
     if (after !== undefined) params.set('after', String(after));
     const query = params.toString();
     const path = `/api/server/logs${query ? '?' + query : ''}`;

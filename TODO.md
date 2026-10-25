@@ -24,10 +24,6 @@ Served by the server at DOMAIN/studio/ (bitview.space, next.bitview.space; studi
 The website is gone: the server serves the showcases, Bitview's front page (`showcases/index.html`) at `/`.
 
 - A home for what only the website had: block, transaction and address pages.
-- `/api/server/logs` with one cursor: each answer's `next` (`{started_unix_ms}-{seq}`), sent back as `?after=`, in
-  place of `started_unix_ms` and `after` (a restart still answers every kept line). With the clients regenerated and
-  /logs reading on by `next`, in one change, once no other session is using the local server (it serves /logs from
-  disk: the page and the server must change together).
 
 ## Back end
 

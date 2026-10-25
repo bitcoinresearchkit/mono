@@ -25,6 +25,8 @@ pub struct Line {
 pub struct Recent {
     /// When this process began its log: a `seq` means something only with it.
     pub started: Timestamp,
+    /// The `seq` the next line logged will have.
+    pub next: u64,
     pub lines: Vec<Line>,
 }
 
@@ -33,16 +35,17 @@ pub fn started() -> Timestamp {
     TAIL.lock().started
 }
 
-/// The kept lines after `after` (a `seq`), or all of them; lines that left memory meanwhile are
+/// The kept lines from `from` (a `seq`) on, or all of them; lines that left memory meanwhile are
 /// skipped, as the jump in `seq` shows.
-pub fn recent(after: Option<u64>) -> Recent {
+pub fn recent(from: Option<u64>) -> Recent {
     let tail = TAIL.lock();
     let first = tail.next - tail.lines.len() as u64;
-    // (Saturating: `after` comes from requests, and a panic here would hold the lock its own log line waits on.)
-    let skip = after.map_or(0, |after| after.saturating_add(1).saturating_sub(first));
+    // (Saturating: `from` comes from requests, and a panic here would hold the lock its own log line waits on.)
+    let skip = from.map_or(0, |from| from.saturating_sub(first));
     let skip = usize::try_from(skip).unwrap_or(usize::MAX);
     Recent {
         started: tail.started,
+        next: tail.next,
         lines: tail.lines.iter().skip(skip).cloned().collect(),
     }
 }

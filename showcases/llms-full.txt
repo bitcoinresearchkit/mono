@@ -841,11 +841,10 @@ Returns: JSON `DiskUsage`
 
 Logs
 
-The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, pass the answer's `started_unix_ms` and its last line's `seq` as `after`: the lines since then, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted. Answers are cached for a second.
+The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.
 
 Parameters:
-- `started_unix_ms` (query, integer, optional): The `started_unix_ms` of the last answer: `after` counts in that process's log.
-- `after` (query, integer, optional): Only the lines after this `seq`, when `started_unix_ms` is this process's; otherwise every kept line.
+- `after` (query, string, optional): The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.
 
 Returns: JSON `Logs`
 
@@ -1505,8 +1504,9 @@ Returns: JSON `ServerVersion`
 
 ### `Logs`
 
-- `started_unix_ms`: `integer` (required) — When this server process began its log, in Unix milliseconds: a `seq` counts within it.
+- `started_unix_ms`: `integer` (required) — When this server process began its log, in Unix milliseconds: another than the last answer's shows the server restarted.
 - `lines`: `LogLine[]` (required)
+- `next`: `string` (required) — Where this answer ends: sent back as `after`, the lines since. `{started_unix_ms}-{seq}`, the process and the `seq` of the next line it will log; to pass back as it is, not to read.
 
 ### `MempoolBlock`
 

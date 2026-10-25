@@ -6,24 +6,14 @@
 
 # Interface: LogsQuery
 
-Defined in: [modules/bitview-client/index.js:751](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L751)
+Defined in: [modules/bitview-client/index.js:754](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L754)
 
 ## Properties
 
 ### after?
 
-> `optional` **after?**: `number` \| `null`
+> `optional` **after?**: `string` \| `null`
 
-Defined in: [modules/bitview-client/index.js:753](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L753)
+Defined in: [modules/bitview-client/index.js:755](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L755)
 
-Only the lines after this `seq`, when `started_unix_ms` is this process's; otherwise every kept line.
-
-***
-
-### startedUnixMs?
-
-> `optional` **startedUnixMs?**: `number` \| `null`
-
-Defined in: [modules/bitview-client/index.js:752](https://github.com/bitcoinresearchkit/mono/blob/main/modules/bitview-client/index.js#L752)
-
-The `started_unix_ms` of the last answer: `after` counts in that process's log.
+The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.

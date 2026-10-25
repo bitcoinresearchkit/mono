@@ -2376,14 +2376,11 @@ impl BitviewClient {
 
     /// Logs
     ///
-    /// The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, pass the answer's `started_unix_ms` and its last line's `seq` as `after`: the lines since then, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted. Answers are cached for a second.
+    /// The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.
     ///
     /// Endpoint: `GET /api/server/logs`
-    pub fn get_logs(&self, started_unix_ms: Option<i64>, after: Option<u64>) -> Result<Logs> {
+    pub fn get_logs(&self, after: Option<&str>) -> Result<Logs> {
         let mut query = Vec::new();
-        if let Some(v) = started_unix_ms {
-            query.push(query_pair("started_unix_ms", v));
-        }
         if let Some(v) = after {
             query.push(query_pair("after", v));
         }

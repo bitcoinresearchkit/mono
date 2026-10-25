@@ -654,11 +654,9 @@ class LogsQuery(TypedDict, total=False):
     Where a reader of the log left off.
 
     Attributes:
-        started_unix_ms: The `started_unix_ms` of the last answer: `after` counts in that process's log.
-        after: Only the lines after this `seq`, when `started_unix_ms` is this process's; otherwise every kept line.
+        after: The last answer's `next`: only the lines since. From a process that's since restarted, or none, every kept line.
     """
-    started_unix_ms: Optional[int]
-    after: Optional[int]
+    after: Optional[str]
 
 class LogLine(TypedDict):
     """
@@ -679,10 +677,12 @@ class Logs(TypedDict):
     The server's last log lines, oldest first.
 
     Attributes:
-        started_unix_ms: When this server process began its log, in Unix milliseconds: a `seq` counts within it.
+        started_unix_ms: When this server process began its log, in Unix milliseconds: another than the last answer's shows the server restarted.
+        next: Where this answer ends: sent back as `after`, the lines since. `{started_unix_ms}-{seq}`, the process and the `seq` of the next line it will log; to pass back as it is, not to read.
     """
     started_unix_ms: int
     lines: List[LogLine]
+    next: str
 
 class SeriesNameWithIndex(TypedDict):
     series: SeriesName
@@ -5929,14 +5929,13 @@ class BitviewClient(BitviewClientBase):
         Endpoint: `GET /api/server/sync`"""
         return self.get_json('/api/server/sync')
 
-    def get_logs(self, started_unix_ms: Optional[int] = None, after: Optional[int] = None) -> Logs:
+    def get_logs(self, after: Optional[str] = None) -> Logs:
         """Logs.
 
-        The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, pass the answer's `started_unix_ms` and its last line's `seq` as `after`: the lines since then, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted. Answers are cached for a second.
+        The server's last log lines, at most 1,000, oldest first: requests (status, path and duration; never who made them) and everything else it logs. To read on, send the answer's `next` back as `after`: the lines since, each once. A jump in `seq` shows lines that left memory before the next request; another `started_unix_ms` shows the server restarted (and its answer has every kept line). Answers are cached for a second.
 
         Endpoint: `GET /api/server/logs`"""
         params: List[Tuple[str, Any]] = []
-        if started_unix_ms is not None: params.append(('started_unix_ms', started_unix_ms))
         if after is not None: params.append(('after', after))
         query = urlencode(params)
         path = f'/api/server/logs{"?" + query if query else ""}'
