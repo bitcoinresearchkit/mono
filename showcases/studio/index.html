@@ -5495,12 +5495,6 @@
         }
       }
 
-      @keyframes vanish {
-        to {
-          opacity: 0;
-        }
-      }
-
       @keyframes slide {
         from {
           opacity: 0;
@@ -6616,49 +6610,47 @@
       }
 
       /* The interface settles in once, as its first render's done. */
-      html[data-ready] body.boot :is(.sidebar > *, .card) {
+      html[data-ready] body.boot :is(.sidebar > *, .card, .home) {
         animation: rise var(--dur-page) var(--ease) backwards;
         animation-delay: calc(var(--i, 0) * 40ms);
       }
 
       /* ── The Charts page (your Library and the presets, wherever in them): a page as "Start a chart" is, on the app
-         itself (no card around it: each chart is one), over the open chart (laid out under it, to come back at once) ── */
+         itself (no card around it: each chart is one), in the open chart's place, to its window's edges; the chart
+         under it laid out as it is, not drawn, to come back at once. While a chart grows out of a tile or shrinks back
+         into one (data-morph, see morph), both shown, the chart's card over the page. ── */
 
-      .home {
-        position: absolute;
-        /* Out to the window's edges: past the card it's in (none to see here), its margin and its border. */
-        inset: -9px -9px -9px -1px;
-        z-index: 8;
-        display: none;
+      :is(.card, .home) {
+        grid-row: 1;
+        grid-column: -2;
       }
 
-      body[data-home] {
-        .home {
+      .home {
+        position: relative;
+        z-index: 1;
+        display: none;
+        min-width: 0;
+        min-height: 0;
+
+        body:is([data-home], [data-morph]) & {
           display: block;
         }
+      }
 
-        .card {
-          overflow: visible;
-          border-color: transparent;
-          background: none;
-          box-shadow: none;
-          outline: none;
+      body[data-home]:not([data-morph]) .card {
+        visibility: hidden;
+      }
 
-          &::before {
-            display: none;
-          }
+      body[data-morph] .card {
+        z-index: 2;
+        /* (Moved from its top left, see morph: WebKit takes no origin from an animation's frames.) */
+        transform-origin: 0 0;
+      }
 
-          > :is(.card-head, .card-body) {
-            overflow: clip;
-            visibility: hidden;
-          }
-        }
-
-        /* (Where you are: the page's top.) */
-        #charts-nav[aria-current="page"] {
-          color: var(--ink);
-          background: var(--press);
-        }
+      /* (Where you are: the page's top.) */
+      body[data-home] #charts-nav[aria-current="page"] {
+        color: var(--ink);
+        background: var(--press);
       }
 
       .home-scroll {
@@ -7512,55 +7504,9 @@
         white-space: nowrap;
       }
 
-      /* Between the grid and a chart: the chart grows out of its tile, and shrinks back into it. Each picture keeps
-         its shape, its top at the card's top (the chart revealed from its top as the card grows, never squashed); the
-         tile's shows only near its own size, never seen magnified, the chart's over the rest (data-morph, see morph):
-         growing, gone over its first 8% (the ease is quick at first: a third of the way), shrinking, back over its last
-         30% (its last 1.4%). */
-      ::view-transition-group(stage) {
-        animation-duration: var(--dur-page);
-        animation-timing-function: var(--ease);
-      }
-
-      ::view-transition-old(stage),
-      ::view-transition-new(stage) {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: top;
-        mix-blend-mode: plus-lighter;
-        animation: appear calc(var(--dur-page) * 0.08) linear both;
-      }
-
-      ::view-transition-old(stage) {
-        animation-name: vanish;
-      }
-
-      html[data-morph="shrink"]::view-transition-old(stage),
-      html[data-morph="shrink"]::view-transition-new(stage) {
-        animation-duration: calc(var(--dur-page) * 0.3);
-        animation-delay: calc(var(--dur-page) * 0.7);
-      }
-
       ::view-transition-old(root),
       ::view-transition-new(root) {
         animation-duration: var(--dur-panel);
-      }
-
-      /* (The tab bar, live through it: no picture of it as it was, nothing faded; over what moves under it, whatever
-         came first (WebKit puts a picture only the new page has over those both have: the chart's, grown from no card,
-         had hidden it).) */
-      ::view-transition-old(tabs) {
-        display: none;
-      }
-
-      ::view-transition-group(tabs) {
-        z-index: 1;
-      }
-
-      ::view-transition-group(tabs),
-      ::view-transition-new(tabs) {
-        animation: none;
       }
 
       .mobile-bar {
@@ -7694,8 +7640,6 @@
         }
 
         .home {
-          inset: 0;
-
           /* Installed, the status bar over the grid: what scrolls under it hidden, as an app's own lists (Safari's own
              bar is its own; no room there, nothing). */
           &::after {
@@ -8282,8 +8226,6 @@
           gap: 2px;
           padding: 4px;
           transition: opacity var(--dur-small) var(--ease), visibility var(--dur-small);
-          /* (Not in a change of place's crossfade: itself, live, its tabs moving as they do, see the page's transitions.) */
-          view-transition-name: tabs;
 
           .tab {
             position: relative;
@@ -8529,8 +8471,7 @@
           }
 
           .home {
-            right: env(safe-area-inset-right);
-            left: calc(var(--rail) + env(safe-area-inset-left));
+            margin: 0 env(safe-area-inset-right) 0 calc(var(--rail) + env(safe-area-inset-left));
           }
 
           /* (One row there, as on a wide screen: the ranges their own width (the foot's whole would stretch each across a
@@ -9591,56 +9532,57 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           </aside>
         </div>
 
-        <section id="home" class="home" aria-labelledby="home-title">
-          <div class="home-scroll">
-            <div class="home-inner">
-              <!-- (On a phone, the way back to Bitview, as every showcase has it: elsewhere, the sidebar's.) -->
-              <a class="brand home-brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-              <!-- (Above its name: the way up, each level a step to; the page itself only named once, by its name.) -->
-              <nav id="gallery-path" class="crumbs gallery-path" aria-label="Where it is" hidden></nav>
-              <div class="home-head">
-                <h1 id="home-title" tabindex="-1">Charts</h1>
-                <button id="home-title-more" class="cap small" type="button" aria-haspopup="menu" data-icon="more" hidden></button>
-                <!-- (Undo and Redo where a chart has them, its top right: what's done here, a toast's, undone there.) -->
-                <span class="home-undo">
-                  <button id="home-undo" class="cap" type="button" aria-label="Undo" data-tip="Undo" data-kbd="⌘ Z" data-icon="undo" aria-disabled="true"></button>
-                  <button id="home-redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo" aria-disabled="true"></button>
-                </span>
-              </div>
-              <!-- (What Studio is, said till your Library has a chart: in one line, a phone's shorter.) -->
-              <p id="home-lede" class="home-lede" hidden><span class="lede-long">Charts of Bitcoin's on-chain data. </span>Open a preset, change it, share it as a link.</p>
-              <div id="home-tools" class="home-tools">
-              <label class="home-filter">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" stroke-linecap="round" /></svg>
-                <input id="home-filter" aria-label="Filter charts" enterkeyhint="search" autocomplete="off" spellcheck="false" />
-                <span id="home-count" class="home-count"></span>
-              </label>
-              <button id="home-new-folder" class="cap field-cap" type="button" aria-label="New folder" data-tip="New folder" data-icon="folderAdd"></button>
-              </div>
-              <div id="home-grid" class="home-grid"></div>
-              <div id="gallery" class="gallery" hidden></div>
-              <div id="home-foot" class="home-foot" hidden>
-                <p>Your Library is kept in this browser, the presets as you've edited them too. Download it all, folders and all, to import it anywhere else.</p>
-                <div><button class="btn ghost small" type="button" data-action="download-all"><span data-icon="download"></span>Download all charts</button><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import charts</button></div>
-              </div>
-              <div class="home-device" role="group" aria-label="This device">
-                <span id="home-live" class="home-live">Connecting</span>
-                <button id="home-theme" class="btn ghost small" type="button" data-action="theme" aria-haspopup="menu"></button>
-              </div>
+      </main>
+
+      <section id="home" class="home" role="main" style="--i: 2" aria-labelledby="home-title">
+        <div class="home-scroll">
+          <div class="home-inner">
+            <!-- (On a phone, the way back to Bitview, as every showcase has it: elsewhere, the sidebar's.) -->
+            <a class="brand home-brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+            <!-- (Above its name: the way up, each level a step to; the page itself only named once, by its name.) -->
+            <nav id="gallery-path" class="crumbs gallery-path" aria-label="Where it is" hidden></nav>
+            <div class="home-head">
+              <h1 id="home-title" tabindex="-1">Charts</h1>
+              <button id="home-title-more" class="cap small" type="button" aria-haspopup="menu" data-icon="more" hidden></button>
+              <!-- (Undo and Redo where a chart has them, its top right: what's done here, a toast's, undone there.) -->
+              <span class="home-undo">
+                <button id="home-undo" class="cap" type="button" aria-label="Undo" data-tip="Undo" data-kbd="⌘ Z" data-icon="undo" aria-disabled="true"></button>
+                <button id="home-redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo" aria-disabled="true"></button>
+              </span>
+            </div>
+            <!-- (What Studio is, said till your Library has a chart: in one line, a phone's shorter.) -->
+            <p id="home-lede" class="home-lede" hidden><span class="lede-long">Charts of Bitcoin's on-chain data. </span>Open a preset, change it, share it as a link.</p>
+            <div id="home-tools" class="home-tools">
+            <label class="home-filter">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" stroke-linecap="round" /></svg>
+              <input id="home-filter" aria-label="Filter charts" enterkeyhint="search" autocomplete="off" spellcheck="false" />
+              <span id="home-count" class="home-count"></span>
+            </label>
+            <button id="home-new-folder" class="cap field-cap" type="button" aria-label="New folder" data-tip="New folder" data-icon="folderAdd"></button>
+            </div>
+            <div id="home-grid" class="home-grid"></div>
+            <div id="gallery" class="gallery" hidden></div>
+            <div id="home-foot" class="home-foot" hidden>
+              <p>Your Library is kept in this browser, the presets as you've edited them too. Download it all, folders and all, to import it anywhere else.</p>
+              <div><button class="btn ghost small" type="button" data-action="download-all"><span data-icon="download"></span>Download all charts</button><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import charts</button></div>
+            </div>
+            <div class="home-device" role="group" aria-label="This device">
+              <span id="home-live" class="home-live">Connecting</span>
+              <button id="home-theme" class="btn ghost small" type="button" data-action="theme" aria-haspopup="menu"></button>
             </div>
           </div>
-          <div id="home-bar" class="pick-bar home-bar" role="group" aria-label="Selected charts" hidden>
-            <span id="home-picked" class="pick-count" aria-live="polite"></span>
-            <button class="btn ghost" type="button" data-batch="rename" aria-label="Rename"><span data-icon="pencil"></span><span class="label">Rename</span></button>
-            <button class="btn ghost" type="button" data-batch="duplicate" aria-label="Duplicate"><span data-icon="duplicate"></span><span class="label">Duplicate</span></button>
-            <button class="btn ghost" type="button" data-batch="folder" aria-label="Move to folder" aria-haspopup="menu"><span data-icon="folder"></span><span class="label">Move</span></button>
-            <button class="btn ghost" type="button" data-batch="export" aria-label="Download" data-tip="One chart file, to import again"><span data-icon="file"></span><span class="label">Download</span></button>
-            <button class="btn ghost" type="button" data-batch="delete" aria-label="Delete" data-kbd="⌫"><span data-icon="trash"></span><span class="label">Delete</span></button>
-            <span class="divider"></span>
-            <button class="cap small" type="button" data-batch="clear" aria-label="Clear the selection" data-tip="Clear the selection" data-kbd="esc" data-icon="close"></button>
-          </div>
-        </section>
-      </main>
+        </div>
+        <div id="home-bar" class="pick-bar home-bar" role="group" aria-label="Selected charts" hidden>
+          <span id="home-picked" class="pick-count" aria-live="polite"></span>
+          <button class="btn ghost" type="button" data-batch="rename" aria-label="Rename"><span data-icon="pencil"></span><span class="label">Rename</span></button>
+          <button class="btn ghost" type="button" data-batch="duplicate" aria-label="Duplicate"><span data-icon="duplicate"></span><span class="label">Duplicate</span></button>
+          <button class="btn ghost" type="button" data-batch="folder" aria-label="Move to folder" aria-haspopup="menu"><span data-icon="folder"></span><span class="label">Move</span></button>
+          <button class="btn ghost" type="button" data-batch="export" aria-label="Download" data-tip="One chart file, to import again"><span data-icon="file"></span><span class="label">Download</span></button>
+          <button class="btn ghost" type="button" data-batch="delete" aria-label="Delete" data-kbd="⌫"><span data-icon="trash"></span><span class="label">Delete</span></button>
+          <span class="divider"></span>
+          <button class="cap small" type="button" data-batch="clear" aria-label="Clear the selection" data-tip="Clear the selection" data-kbd="esc" data-icon="close"></button>
+        </div>
+      </section>
 
       <nav class="mobile-bar" aria-label="Studio">
         <button id="mobile-charts" class="tab" type="button" data-action="charts"><span data-icon="grid"></span><span>Charts</span></button>
@@ -21305,36 +21247,35 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         step();
       });
       /**
-       * A change of place: what `update` shows grows out of `before`, into what it returns (a card into the chart, or
-       * back); the rest crossfades. Where the browser can't show that (Firefox before 144: Mullvad's), what's `left`
-       * fades out over what comes, a copy of it as it was (see fadeOut), never a cut. Resolves once it's over.
-       * @param {HTMLElement | null} before @param {() => (HTMLElement | null | undefined) | Promise<HTMLElement | null | undefined>} update
-       * @param {HTMLElement[]} [left]
+       * A change of place between the Charts page and a chart, both live (no pictures of them, every browser alike): the
+       * chart's card grows out of a tile over the page (`opening`), or shrinks back into it, the page under it all along
+       * (data-morph: both shown); with no tile, it fades in or out over the page. `update` changes the place and returns
+       * the tile (none: null). The card keeps its shape: at the tile's end, the tile's width, its top in the tile,
+       * clipped to the tile's height; shown over the tile only near its size (in over the first 8% as it grows: the ease
+       * is quick at first, a third of the way; out over the last 30% as it shrinks, its last 1.4%), the live tile under
+       * it meanwhile. Moved and clipped only (its compositor's work), its chart drawing as it goes. Resolves once over.
+       * @param {boolean} opening @param {() => HTMLElement | null} update
        */
-      /** What the last change of place left, fading out where the browser has no transition of its own (see morph). @type {HTMLElement[]} */
-      let morphLeft = [];
-      function morph(before, update, left = []) {
-        if (reduced.matches) return Promise.resolve(update()).then(() => {});
-        if (!document.startViewTransition) {
-          // (What the last one left, coming back before its copy's gone: its copy gone at once, not over it.)
-          for (const element of morphLeft) cutFade(element);
-          morphLeft = left;
-          for (const element of left) fadeOut(element, [{ opacity: 1 }, { opacity: 0 }], MOTION.panel, true, MOTION.ease);
-          return Promise.resolve(update()).then(() => {});
-        }
-        if (before) before.style.viewTransitionName = "stage";
-        /** @type {HTMLElement | null | undefined} */
-        let after = null;
-        const transition = document.startViewTransition(async () => {
-          if (before) before.style.viewTransitionName = "";
-          after = await update();
-          if (after) after.style.viewTransitionName = "stage";
-          // (Out of a tile or into one: its picture shown at that end, see ::view-transition-old(stage).)
-          document.documentElement.dataset.morph = before?.matches(".tile") ? "grow" : after?.matches(".tile") ? "shrink" : "";
-        });
-        transition.ready.catch(() => {});
-        // (Over, its page whole again: what follows it, after.)
-        return transition.finished.catch(() => {}).finally(() => (after && (after.style.viewTransitionName = ""), delete document.documentElement.dataset.morph));
+      let morphing = /** @type {Animation[]} */ ([]);
+      function morph(opening, update) {
+        for (const animation of morphing) animation.cancel();
+        if (reduced.matches) return (update(), Promise.resolve());
+        document.body.dataset.morph = "";
+        const tile = update(), card = $("main"), at = card.getBoundingClientRect(), box = tile?.getBoundingClientRect();
+        const ends = (/** @type {Keyframe[]} */ frames) => (opening ? frames : [...frames].reverse());
+        const timing = { duration: box?.width ? MOTION.page : MOTION.panel, easing: MOTION.ease };
+        const animations = [];
+        if (box?.width) {
+          const scale = box.width / at.width, radius = parseFloat(getComputedStyle(/** @type {HTMLElement} */ (tile)).borderTopLeftRadius) / scale;
+          animations.push(card.animate(ends([
+            { transform: `translate(${box.left - at.left}px, ${box.top - at.top}px) scale(${scale})`, clipPath: `inset(0 0 ${at.height - box.height / scale}px 0 round ${radius}px)` },
+            { transform: "none", clipPath: "inset(-48px round 0px)" },
+          ]), timing));
+          animations.push(card.animate(opening ? [{ opacity: 0 }, { opacity: 1, offset: 0.08 }, { opacity: 1 }] : [{ opacity: 1 }, { opacity: 1, offset: 0.7 }, { opacity: 0 }], { duration: timing.duration }));
+        } else animations.push(card.animate(ends([{ opacity: 0 }, { opacity: 1 }]), timing));
+        morphing = animations;
+        // (Over, the chart laid out as it shows, at its own size: measured while it moved, it was measured scaled.)
+        return Promise.all(animations.map((animation) => animation.finished)).then(() => {}, () => {}).finally(() => morphing === animations && ((morphing = []), delete document.body.dataset.morph, opening && relayout()));
       }
       /**
        * The Charts page, where `homeAt` is; the open one shrinks into its card (one of yours that's never had anything in
@@ -21379,11 +21320,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         prefs.home = true;
         savePrefs();
         if (push) history.pushState(homeState(uid()), "");
-        void morph(draft ? null : $("main"), () => {
-          // Once the page as it was is pictured (the new chart, empty), it's taken back and the one before it goes under
-          // the grid (else that one's foot would show, fading, as the page leaves).
-          // (An empty preview left simply goes.)
-          if (draft) openChart(previousChart() ?? newDraft());
+        void morph(false, () => {
           document.body.toggleAttribute("data-home", true);
           // (What's in hand let go of once the page is over the chart: the chart not drawn again for it, see
           // repaintDrawings.)
@@ -21402,7 +21339,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (seen) tileOpen(chart.id)?.focus({ preventScroll: true });
           else if (focusLeaves && (document.activeElement === document.body || onChart())) $("home-title").focus({ preventScroll: true });
           return draft || !seen ? null : card;
-        }, all$(":scope > :is(.card-head, .card-body)", $("main")));
+          // The new chart, empty, taken back once it's faded out over the page, the one before it under the grid then
+          // (else that one would show, fading); none opened meanwhile. (An empty preview left simply goes.)
+        }).then(() => draft && home && chart === draft && openChart(previousChart() ?? newDraft()));
       }
       /**
        * Leaves the grid: `show` opens the chart to go to (or leaves the one under the grid), and it grows out of
@@ -21424,7 +21363,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (push && history.state?.home) (history.replaceState({ ...history.state, ...homeState(), place: leftPlace }, ""), leftPlaces.set(history.state.key, leftPlace));
         if (push) history.pushState({ chart: chart.id, fromHome: true, place: leftPlace }, "");
         const focused = $("home").contains(document.activeElement);
-        return morph(before, async () => {
+        return morph(true, () => {
           // (Pressed as it was tapped, see go: as it grows, as it is.)
           before?.classList.remove("opening");
           document.body.removeAttribute("data-home");
@@ -21434,10 +21373,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (blockAtHome) (blockAtHome = false), void draw(false, true);
           const row = /** @type {HTMLElement | null} */ ($("chart-list").querySelector(`[data-open-chart="${chart.id}"]`));
           if (focused && row?.checkVisibility()) row.focus({ preventScroll: true });
-          // Drawn first (its data is usually at hand, from its tile), to grow into itself.
-          await until(settled, 400);
-          return $("main");
-        }, [$("home")]);
+          // (Drawn as it grows, live: its data is usually at hand, from its tile.)
+          return before;
+        });
       }
       /**
        * Opens a chart someone picked; from the grid, its card grows into it (`push`: a new step, for Back).
