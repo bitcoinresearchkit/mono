@@ -1434,16 +1434,12 @@
         /** Bedrock's floors, highest to deepest, and the share of the savings bought each day the price closes at or
          * under one (the deepest it's under): a tenth, doubling with each, all at the last. */
         const FLOORS = [["p95", 0.1], ["p98", 0.2], ["p99", 0.4], ["p99_5", 0.8], ["p99_9", 1]];
-        /** The ladder: the young coins' (younger than 6 months) cost basis by dollar, 5th to 95th percentile; each saving
-         * bought times its rung's multiplier, 1x on the 95th's rung rising evenly to 3x at or under the 5th, none above
-         * the 95th. */
-        const RUNGS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95];
-        const multiplier = (/** @type {number} */ rung) => 1 + (2 * (95 - rung)) / 90;
+        /** The young coins: younger than 6 months. */
         const young = "age_under_6m_mobile";
-        /** Per day: what it does then (WAIT nothing, FLOOR a share of the savings, RETAKE all of them, LADDER each saving
-         * times a multiplier), and that share or multiplier. */
-        const WAIT = 0, FLOOR = 1, RETAKE = 2, LADDER = 3;
-        let phase = new Uint8Array(), share = new Float64Array(), times = new Float64Array();
+        /** Per day: what it does then (WAIT nothing, FLOOR a share of the savings, RETAKE all of them, DCA each saving as
+         * it comes), and on a floor's day, that share. */
+        const WAIT = 0, FLOOR = 1, RETAKE = 2, DCA = 3;
+        let phase = new Uint8Array(), share = new Float64Array();
         /** Its series' first day, for the fine print. */
         let since = 0;
 
@@ -1453,7 +1449,6 @@
             ...FLOORS.map(([p]) => `bedrock_mobile_floor_${p}`),
             `${young}_capitalized_price`,
             `${young}_median_capitalized_price`,
-            ...RUNGS.map((p) => `${young}_cost_basis_by_dollar_${p === 50 ? "median" : `p${p}`}`),
           ];
           const all = await Promise.all(ids.map(read));
           // (Each whole over the plans' days, from the first price to the last: a day missing would change the rule's answer,
@@ -1461,31 +1456,26 @@
           for (const series of all) {
             if (series.start > first || series.start + series.data.length - 1 < last || series.data.slice(first - series.start).some((v) => v === null)) throw new Error("its series have days missing");
           }
-          // (Where each sits among `ids`: the floors, then the young coins' capitalized price and its median, then the rungs.)
+          // (Where each sits among `ids`: the floors, then the young coins' capitalized price and its median.)
           const at = (/** @type {number} */ k, /** @type {number} */ d) => /** @type {number} */ (all[k].data[d - all[k].start]);
-          const MEAN = FLOORS.length, MEDIAN = MEAN + 1, RUNG = MEDIAN + 1;
+          const MEAN = FLOORS.length, MEDIAN = MEAN + 1;
           phase = new Uint8Array(last + 1);
           share = new Float64Array(last + 1);
-          times = new Float64Array(last + 1);
           let now = WAIT, high = 0;
           for (let d = first; d <= last; d++) {
             const p = price[d], record = d > first && p > high;
             high = Math.max(high, p);
             // (A new high: waiting again. Waiting, a close at or under the first floor begins the floor; there, the first close
             // above the young coins' capitalized price and its median, both, takes them back, the same day too: all in that
-            // day, the ladder after.)
+            // day, each saving as it comes after.)
             if (record) now = WAIT;
-            else if (now === RETAKE) now = LADDER;
+            else if (now === RETAKE) now = DCA;
             else {
               if (now === WAIT && p <= at(0, d)) now = FLOOR;
               if (now === FLOOR && p > Math.max(at(MEAN, d), at(MEDIAN, d))) now = RETAKE;
             }
             phase[d] = now;
             if (now === FLOOR) FLOORS.forEach(([, s], k) => p <= at(k, d) && (share[d] = s));
-            if (now === LADDER) {
-              const k = RUNGS.findIndex((_, j) => p <= at(RUNG + j, d));
-              times[d] = k < 0 ? 0 : multiplier(RUNGS[k]);
-            }
           }
           since = first;
         }
@@ -1502,7 +1492,7 @@
                 this.put += amount;
                 this.cash += amount;
               }
-              const spend = Math.min(this.cash, phase[d] === FLOOR ? this.cash * share[d] : phase[d] === RETAKE ? this.cash : phase[d] === LADDER && deposit ? amount * times[d] : 0);
+              const spend = Math.min(this.cash, phase[d] === FLOOR ? this.cash * share[d] : phase[d] === RETAKE ? this.cash : phase[d] === DCA && deposit ? amount : 0);
               if (spend > 0) {
                 this.coins += spend / price[d];
                 this.cash -= spend;
@@ -1514,9 +1504,9 @@
 
         /** Its words on the page: its rule, a few words for a plan, and the fine print's line. */
         const words = {
-          rule: "The smart plan saves the same dollars and buys from a cycle's floor to its next all-time high. From a high, it waits. From the day the price first closes at or under Bedrock's first floor, each day it closes at or under a floor it buys a tenth of its savings, twice as much at each deeper floor, all of them at the fifth. The first day it closes above what coins younger than six months cost, on average and at the median, it puts in all that's left; then it buys each saving as it comes, up to 3 times as much the lower the price sits among those coins' costs, none above their 95th percentile. The plain plan buys the amount each time.",
+          rule: "The smart plan saves the same dollars and buys from a cycle's floor to its next all-time high. From a high, it waits. From the day the price first closes at or under Bedrock's first floor, each day it closes at or under a floor it buys a tenth of its savings, twice as much at each deeper floor, all of them at the fifth. The first day it closes above what coins younger than six months cost, on average and at the median, it puts in all that's left; then it buys each saving as it comes, until the next high. The plain plan buys the amount each time.",
           plan: "saved, bought from the cycle's floor",
-          fine: "Mobile-weighted throughout: each age of coins counted by how likely they are ever to move. Bedrock's floors are the prices at which as many of them would sit in loss as at the 95th, 98th, 99th, 99.5th and 99.9th percentile of their history. The young coins' cost: their capitalized price and median capitalized price, and their cost basis by dollar from the 5th to the 95th percentile, 1× just under the 95th rising evenly to 3× at or under the 5th. Of the plans from 2017 on of four years, or running to today, it ended ahead of the plain plan in every one; a shorter plan ending in a bull run, its savings still waiting for the next floor, can end far behind. That's three cycles, and any look back is hindsight.",
+          fine: "Mobile-weighted throughout: each age of coins counted by how likely they are ever to move. Bedrock's floors are the prices at which as many of them would sit in loss as at the 95th, 98th, 99th, 99.5th and 99.9th percentile of their history. The young coins' cost: their capitalized price and median capitalized price. Of the plans from 2017 on of four years, or running to today, it ended ahead of the plain plan in every one; a shorter plan ending in a bull run, its savings still waiting for the next floor, can end far behind. That's three cycles, and any look back is hindsight.",
         };
         return { prepare, start, words, since: () => since };
       })();
