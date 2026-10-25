@@ -12174,6 +12174,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           catalogIndex = index;
           seriesCount = index.size - byBlock.size;
           $("cta-label").textContent = `Search ${grouped.format(seriesCount)} series`;
+          whenIdle(rankTops);
           // (After what asked for it: its work isn't held up, nor failed, by this.)
           queueMicrotask(() => {
             // (Saved if that learned anything: a series' path, a formula's.)
@@ -23724,6 +23725,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderCharts();
           // (Their addresses made while the page is idle: not by the first page change that names one, mid-change.)
           whenIdle(() => void addresses());
+          whenIdle(rankTops);
           // (An address that waited for them, opened now.)
           if (pendingRoute && started) {
             // (Still on the step it was asked from, there; gone on since (a retry later, elsewhere), where it is now: a
@@ -27730,19 +27732,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let topRanks = /** @type {{ for: Preset[], ranks: Map<string, number> } | null} */ (null);
       function catalogTops(/** @type {any} */ node) {
         const keys = Object.keys(node ?? {});
-        if (!presets || !catalogIndex) return keys;
-        if (topRanks?.for !== presets) {
-          const ranks = new Map();
-          presets.forEach((preset, i) => {
-            for (const layer of preset.c.layers) for (const name of [layer.series, ...(typeof layer.formula === "string" ? seriesNamed(layer.formula) : [])]) {
-              const top = typeof name === "string" && !sharedTops.has(name) ? catalogIndex?.get(name)?.split(".")[0] : undefined;
-              if (top && !ranks.has(top)) ranks.set(top, i);
-            }
-          });
-          topRanks = { for: presets, ranks };
-        }
-        const { ranks } = topRanks, last = presets.length;
+        if (!rankTops()) return keys;
+        const { ranks } = /** @type {NonNullable<typeof topRanks>} */ (topRanks), last = /** @type {Preset[]} */ (presets).length;
         return keys.sort((a, b) => (ranks.get(a) ?? last) - (ranks.get(b) ?? last));
+      }
+      /**
+       * The catalog's top folders ranked, once both the presets and the catalog are read (made at idle as either comes, see
+       * loadPresets and indexCatalog: not by the first ⌘K, 32 ms at a phone's 4× slower CPU). Whether they are.
+       */
+      function rankTops() {
+        if (!presets || !catalogIndex) return false;
+        if (topRanks?.for === presets) return true;
+        const ranks = new Map();
+        presets.forEach((preset, i) => {
+          for (const layer of preset.c.layers) for (const name of [layer.series, ...(typeof layer.formula === "string" ? seriesNamed(layer.formula) : [])]) {
+            const top = typeof name === "string" && !sharedTops.has(name) ? catalogIndex?.get(name)?.split(".")[0] : undefined;
+            if (top && !ranks.has(top)) ranks.set(top, i);
+          }
+        });
+        topRanks = { for: presets, ranks };
+        return true;
       }
       function showPalette() {
         // (Its list written anew (typed into, opened, a page turned): its row lit as keys light it, till the pointer moves.)
