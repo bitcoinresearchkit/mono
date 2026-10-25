@@ -16628,8 +16628,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A pane new to this build has no legend yet, placed a frame later: the room one took, every legend being one
         // row, so its lines don't start under it and move down.)
         if (legend) legendRoom = legend.offsetTop + legend.offsetHeight + 10;
+        // (A picture's legend wraps, all of it shown: room for it, however many lines, the lines under it (60% at most);
+        // the page's scrolls in one.)
         const room = doc.legend === "off" ? 14 : legendRoom;
-        return { top: clamp(room / height, 0.03, 0.35), bottom: pane.stack ? 0 : clamp(14 / height, 0.02, 0.08) };
+        return { top: clamp(room / height, 0.03, exporting ? 0.6 : 0.35), bottom: pane.stack ? 0 : clamp(14 / height, 0.02, 0.08) };
       }
       /** The room over a pane's lines a legend takes, as one last measured (a guess till then). */
       let legendRoom = 40;
