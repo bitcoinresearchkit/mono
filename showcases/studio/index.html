@@ -23709,6 +23709,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderRecommended();
           presetsArrived();
           renderCharts();
+          // (Their addresses made while the page is idle: not by the first page change that names one, mid-change.)
+          whenIdle(() => void addresses());
           // (An address that waited for them, opened now.)
           if (pendingRoute && started) {
             // (Still on the step it was asked from, there; gone on since (a retry later, elsewhere), where it is now: a
@@ -32080,7 +32082,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function redrawChart(/** @type {Redraw} */ redraw, refit = false) {
         if (redraw === "none") {
           updateLegends();
-          showDrawings(chart);
+          // (Under the Charts page, its drawings as they were, nothing painted unseen: painted as it's left, see leaveHome.)
+          if (!home) showDrawings(chart);
         } else if (resolved && drawnChart === chart.id && drawnData === dataKey(chart) && drawingData === drawnData) build(withLook(structuredClone(chart)), resolved, refit);
         else draw(refit);
       }
