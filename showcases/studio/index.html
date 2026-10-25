@@ -16018,7 +16018,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // moves nothing, and reading after would lay the page out again, each move; only in a legend wider than its
         // room, the one that can scroll, and not while the view moves: bands sweep under a pointer held still, the legend
         // kept where it is.)
-        const button = id && follow && !again && performance.now() - viewMovedAt >= 250 ? of(id).find((item) => item.closest(".legend")) : undefined;
+        const button = id && follow && !again && !viewMoving ? of(id).find((item) => item.closest(".legend")) : undefined;
         const row = button?.parentElement, place = button && row?.classList.contains("overflows") ? { left: button.offsetLeft, width: button.offsetWidth, at: row.scrollLeft, room: row.clientWidth, full: row.scrollWidth } : null;
         for (const item of items) item.classList.toggle("lit", (item.dataset.select ?? item.dataset.layer) === id);
         if (!place || !row) return;
@@ -16664,12 +16664,34 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       let valuesFrame = 0;
       const valuesSoon = () => (valuesFrame ||= requestAnimationFrame(() => ((valuesFrame = 0), updateValues())));
-      /** When the view last moved; once it rests (a moment later), what follows it is shown whole again (see updateRowChanges). */
-      let viewMovedAt = -Infinity, viewSettle = 0;
+      /**
+       * Whether the view moves: from a move (a pan, a fling, a zoom, a glide, the navigator, the wheel) till it's at rest,
+       * a frame drawn with it where it was, nothing held down on it (the chart, the navigator), no glide on its way: the
+       * moment a fling stops, a finger lifts. At rest, what waited for it: the rows' changes in full (see updateRowChanges),
+       * more data reached for (see reachOut).
+       */
+      let viewMoving = false, movedSince = false, restFrame = 0, wheelAt = -Infinity;
+      /**
+       * A wheel's (a trackpad's) end, unsaid by the browser: none for this long. Its momentum comes as more wheel events, a
+       * frame or two apart; a mouse's notches, a little more.
+       */
+      const WHEEL_QUIET = 150;
+      addEventListener("wheel", () => (wheelAt = performance.now()), { capture: true, passive: true });
+      const restSoon = () => void (restFrame ||= requestAnimationFrame(atRest));
       function viewMoved() {
-        viewMovedAt = performance.now();
-        clearTimeout(viewSettle);
-        viewSettle = setTimeout(() => ((viewMovedAt = -Infinity), valuesSoon()), 250);
+        viewMoving = movedSince = true;
+        restSoon();
+      }
+      /** Let go of (a press, the navigator's brush): a frame more, for a fling to start in. */
+      const released = () => ((movedSince = true), restSoon());
+      function atRest() {
+        restFrame = 0;
+        if (movedSince || glideTarget || performance.now() - wheelAt < WHEEL_QUIET) return void ((movedSince = false), restSoon());
+        // (Held, still or not: at rest once it's let go, see the release.)
+        if (pressed.size || brushDrag) return;
+        viewMoving = false;
+        valuesSoon();
+        reachOut();
       }
       /**
        * Each row's change from the view's start to the readout's point. Its figures keep the room of their widest
@@ -16677,7 +16699,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function updateRowChanges() {
         if (!resolved || !panelShown()) return;
-        const point = readPoint(), moving = performance.now() - viewMovedAt < 250, since = /** @type {Set<number>} */ (new Set());
+        const point = readPoint(), moving = viewMoving, since = /** @type {Set<number>} */ (new Set());
         for (const element of all$(".row-change[data-change]")) {
           const layer = layerById(element.dataset.change);
           const result = resolved.results.get(element.dataset.change);
@@ -17031,26 +17053,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (shown !== presetShown) setPresetShown(shown);
         prefetch();
         keepView();
-        rest();
       });
-      let reaching = false, restTimer = 0;
-      /**
-       * Reaching out waits for the view to rest (nothing held down, unmoved a moment): mid-gesture, the chart keeps a
-       * pan's start by its last bar, so points loaded under it would make the view leap.
-       */
-      const rest = () => {
-        clearTimeout(restTimer);
-        restTimer = setTimeout(reachOut, 200);
-      };
+      // (Reaching out waits for the view to rest (see viewMoving): mid-gesture, the chart keeps a pan's start by its last
+      // bar, so points loaded under it would make the view leap.)
+      let reaching = false;
       /** The pointers down on the chart (a pinch's two: pressed till both are up); of them, the fingers. */
       const pressed = new Set(), fingers = new Set();
       // (A scale gliding follows the plot again before the chart takes the press: a drag on its axis is the drag's.)
       $("chart").addEventListener("pointerdown", (event) => (pressed.add(event.pointerId), event.pointerType === "touch" && fingers.add(event.pointerId), endScaleGlide()), true);
       // (A press on the chart lets a ruler's measure go: the next one, or none.)
       $("chart").addEventListener("pointerdown", () => clearMeasure(), true);
-      for (const type of ["pointerup", "pointercancel"]) addEventListener(type, (event) => ((id) => (fingers.delete(id), pressed.delete(id) && !pressed.size && rest()))(/** @type {PointerEvent} */ (event).pointerId));
+      for (const type of ["pointerup", "pointercancel"]) addEventListener(type, (event) => ((id) => (fingers.delete(id), pressed.delete(id) && !pressed.size && released()))(/** @type {PointerEvent} */ (event).pointerId));
       // (The window let go of, a press's up may never come: none down after it.)
-      addEventListener("blur", () => (fingers.clear(), pressed.size && (pressed.clear(), rest())));
+      addEventListener("blur", () => (fingers.clear(), pressed.size && (pressed.clear(), released()), dropBrush()));
       /**
        * The end of what a fine interval holds that the view is close to (in the chunk at that end, or half a view from
        * it, the wider), with more beyond it: -1 the older, 1 the newer, 0 neither.
@@ -17087,7 +17102,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function reachOut() {
         const span = FINE.has(chart.index) ? spans.get(spanKey(chart.id, chart.index)) : null, n = resolved?.times.length ?? 0;
         const range = view.timeScale().getVisibleLogicalRange();
-        if (!span || reaching || pressed.size || brushDrag || presetShown || glideTarget || !settled() || !range || n < 2 || Date.now() < (span.rest ?? 0)) return;
+        if (!span || reaching || viewMoving || pressed.size || brushDrag || presetShown || glideTarget || !settled() || !range || n < 2 || Date.now() < (span.rest ?? 0)) return;
         const side = nearEnd(span, range, n), near = Math.max(CHUNK, (range.to - range.from) / 2);
         // Holding the most, growing at one end lets go of the other: not when the view would then be close to that one
         // (it would grow back there, and on, to and fro).
@@ -17252,9 +17267,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           return;
         }
-        // Once the chart has moved the view onto its new points (on its next frame): judged before, the view it had would
-        // ask for the same chunk out again.
-        requestAnimationFrame(reachOut);
+        // Once the chart has moved the view onto its new points, at rest again: judged before, the view it had would ask
+        // for the same chunk out again.
+        restSoon();
       }
 
       let brushDrag = null;
@@ -17326,13 +17341,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // An edge dragged out past the most the view shows: the other edge gives way.
         view.timeScale().setVisibleLogicalRange(within({ from, to }, brushDrag.mode === "left" ? "to" : brushDrag.mode === "right" ? "from" : "middle"));
       });
-      const endBrush = (/** @type {PointerEvent} */ event) => {
-        if (!brushDrag || event.pointerId !== brushDrag.pointer) return;
+      /** The brush let go of: its release, or the window left (its release may never come here). */
+      function dropBrush() {
+        if (!brushDrag) return;
         brushDrag = null;
         $("brush").classList.remove("dragging");
         placeBrush();
-        rest();
-      };
+        released();
+      }
+      const endBrush = (/** @type {PointerEvent} */ event) => event.pointerId === brushDrag?.pointer && dropBrush();
       $("navigator").addEventListener("pointerup", endBrush);
       // Focused (tabbed to, pressed or dragged, after Go to a date), its keys move the view as its drags do: ← → a tenth of
       // it along (⇧, all of it), ↑ ↓ in and out (⇧, twice as far), Home and End to the start and to the latest.
