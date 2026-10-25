@@ -20512,6 +20512,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * it goes into (yours, "": the Library's top; none: nothing, the previews').
        * @typedef {{ kind: "head", name: string, count: number } | { kind: "grid", docs: Chart[], previews?: boolean } | { kind: "shelf", name: string, place: Place, folder?: string, docs: Chart[], count: number, previews?: boolean, empty?: string } | { kind: "note", html: string, card?: boolean }} YoursPart
        */
+      // Your charts' and the previews' tiles, each drawn (if it's out of date) once it's in view, one chart at a time while
+      // the page shows, as the presets' are (see galleryTilesSeen); let go of if it's left before its turn.
+      const yourQueue = /** @type {Set<string>} */ (new Set()), yoursSeen = /** @type {Set<Element>} */ (new Set());
+      const yourTilesSeen = new IntersectionObserver((entries) => {
+        for (const entry of entries) entry.isIntersecting ? yoursSeen.add(entry.target) : yoursSeen.delete(entry.target);
+        queueYours();
+      });
+      /** The tiles in view, waited for again (a frame written anew, a fetch that failed). */
+      function queueYours() {
+        yourQueue.clear();
+        for (const frame of yoursSeen) if (frame.isConnected) yourQueue.add(/** @type {string} */ (/** @type {HTMLElement} */ (frame).dataset.plot));
+        void drawYours();
+      }
+      const drawYours = serial(async () => {
+        for (const id of yourQueue) {
+          yourQueue.delete(id);
+          const doc = chartById(id);
+          // Drawn already (maybe from ⌘K), it's shown where it's still waited for. A failed fetch isn't drawn (nor
+          // kept): it says so, and it's asked for again as the server answers (see paint, retryPlots).
+          if (home && doc?.layers.length) paint(doc.id, await drawPreview(doc));
+        }
+      });
       /**
        * Your charts' side of the page, where it is (none in a section of the presets): at the top, the previews and yours
        * as shelves (yours leading to their page); on their page or a folder's, its charts as a grid, then each folder in
@@ -20576,7 +20598,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         visible.forEach((doc, i) => drawnTiles.set(doc.id, html[i]));
         if (focused) tileOpen(focused)?.focus({ preventScroll: true });
         renderPicked();
-        schedulePreviews();
+        for (const frame of all$("[data-plot]", grid)) yourTilesSeen.observe(frame);
         keepNaming();
       }
       /**
@@ -21185,15 +21207,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           event.preventDefault();
           if (event.key === "Enter" && tiles.length === 1) first.click();
           else first.focus();
-        }
-      });
-      /** Draws every tile that's out of date (the previews', then your charts'), one chart at a time, while the page shows. */
-      const schedulePreviews = serial(async () => {
-        for (const doc of [...previewCharts, ...library.charts]) {
-          if (!home) break;
-          // Drawn already (maybe from ⌘K), it's shown where it's still waited for. A failed fetch isn't drawn (nor
-          // kept): it says so, and it's asked for again as the server answers (see paint, retryPlots).
-          if (doc.layers.length) paint(doc.id, await drawPreview(doc));
         }
       });
       /**
@@ -23507,7 +23520,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const frame of failed) ((card) => card && cardQueue.add(Number(card.dataset.template)))(/** @type {HTMLElement | null} */ (frame.closest("[data-template]")));
         void drawCards();
         if (!home) return;
-        void schedulePreviews();
+        queueYours();
         for (const frame of gallerySeen) if (frame.classList.contains("pending")) galleryQueue.add(presetOf(frame));
         void drawGallery();
       }
