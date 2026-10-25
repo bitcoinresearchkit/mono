@@ -2,8 +2,11 @@
 
 Applied by hand to `dist/lightweight-charts.standalone.production.mjs`, the only file Studio loads (the dev page imports
 it, the build inlines it). A fresh download loses them: apply each again at its anchor (minified names are 5.2.1's),
-then open `tests.html` (served from the repo) in a window wide enough for its two charts side by side and check it says
-0 failing and every step the same.
+then open `tests.html` (served from the repo) and check it says 0 failing and every step the same. (Its two charts, the
+published library's and the patched one's, one under the other at the same left edge: side by side, the second sat at a
+fraction of a pixel and drew its bars and dotted lines a pixel apart, 175 steps differing between two copies of the
+same published file. At a device pixel ratio of 2, two corner checks fail as they should not: a radius of 2 or more at a
+3.5 px spacing, bars too thin for a corner to show; at 1 they aren't asked.)
 
 The plots draw exactly what the library does, but for the log marks (1, 12) and the rounded bars (7, only where a radius
 is set); the axes' tags are rounded (6), the time axis's labels fade before its ends (10), a price axis's tags stay inside
