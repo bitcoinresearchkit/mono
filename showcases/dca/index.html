@@ -1232,7 +1232,6 @@
                 <button type="button" class="pill" data-years="2">2Y</button>
                 <button type="button" class="pill" data-years="4">4Y</button>
                 <button type="button" class="pill" data-years="8">8Y</button>
-                <button type="button" class="pill" data-years="0">All</button>
               </div>
               <label class="picker"><select id="tops" aria-label="From a cycle's top, or the latest all-time high, to the last day"><option value="">From a top</option></select></label>
             </div>
@@ -1754,8 +1753,8 @@
         for (const button of document.querySelectorAll("[data-atlas]")) button.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (button).dataset.atlas === state.atlas));
       }
 
-      /** The first day of the last `years` up to the plan's last day (0: all of them). */
-      const spanStart = (/** @type {number} */ years) => (years ? Math.max(first, yearsBefore(state.to, years) + 1) : first);
+      /** The first day of the last `years` up to the plan's last day. */
+      const spanStart = (/** @type {number} */ years) => Math.max(first, yearsBefore(state.to, years) + 1);
 
       amountInput.addEventListener("input", () => {
         fitAmount();
