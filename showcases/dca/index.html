@@ -1251,7 +1251,7 @@
                 <div data-fact="bought"><dt>Bitcoin bought<small>&nbsp;</small></dt><dd><span class="bone"></span></dd></div>
                 <div data-fact="spent"><dt>Put in<small>&nbsp;</small></dt><dd><span class="bone"></span></dd></div>
                 <div data-fact="cost"><dt>Average cost<small>&nbsp;</small></dt><dd><span class="bone"></span></dd></div>
-                <div data-fact="lump"><dt>All on day one<small>&nbsp;</small></dt><dd><span class="bone"></span></dd></div>
+                <div data-fact="yearly"><dt>Annual return<small>&nbsp;</small></dt><dd><span class="bone"></span></dd></div>
                 <div data-fact="low"><dt>Lowest point<small>&nbsp;</small></dt><dd><span class="bone"></span></dd></div>
               </dl>
             </section>
@@ -1569,6 +1569,33 @@
       const worthOf = (/** @type {Run} */ r, /** @type {number} */ i) => r.held[i] * price[r.from + i] + r.cash[i];
       /** What a coin cost it: the dollars it put into bitcoin over the bitcoin; NaN before it's bought any. */
       const costOf = (/** @type {Run} */ r, /** @type {number} */ i) => (r.held[i] > 0 ? (r.spent[i] - r.cash[i]) / r.held[i] : NaN);
+      /**
+       * What a plan returned a year by its i-th day, as a multiple (1.38: +38% a year): the yearly rate at which each
+       * day's dollars in, each growing from its own day, come to what the plan's worth then (money-weighted, as a bank
+       * rate is, so the dollars put in late count for less time). Null under a year, where a year's rate would make a
+       * few weeks' luck look like a fortune, and NaN past what it looks between (−99.995% to +2,200,000% a year).
+       */
+      function yearlyOf(/** @type {Run} */ r, /** @type {number} */ i) {
+        if (i < 365) return null;
+        const worth = worthOf(r, i);
+        // Worth against the rate (as its log, ln(1 + rate)): it only grows with the rate, so halving the range finds it.
+        const at = (/** @type {number} */ g) => {
+          let total = 0;
+          for (let d = 0; d <= i; d++) {
+            const put = r.spent[d] - (d ? r.spent[d - 1] : 0);
+            if (put) total += put * Math.exp((g * (i - d)) / 365.25);
+          }
+          return total;
+        };
+        let low = -10, high = 10;
+        if (!(at(low) <= worth && worth <= at(high))) return NaN;
+        for (let k = 0; k < 60; k++) {
+          const mid = (low + high) / 2;
+          if (at(mid) < worth) low = mid;
+          else high = mid;
+        }
+        return Math.exp((low + high) / 2);
+      }
 
       /** @typedef {{ start: number, cols: number, rows: number, cells: Float64Array, smartCells: Float64Array, edges: Float64Array }} Grid */
 
@@ -1836,7 +1863,7 @@
       function tell() {
         const n = lead.to - lead.from, spent = lead.spent[n], held = lead.held[n], end = price[lead.to], worth = worthOf(lead, n);
         const multiple = worth / spent, cost = costOf(lead, n), latest = lead.to === last;
-        const lump = (spent / price[lead.from]) * end;
+        const yearly = yearlyOf(lead, n);
         // (The lowest the plan's worth stood against what had gone in, and when.)
         let low = Infinity, lowDay = lead.from;
         for (let i = 0; i <= n; i++) {
@@ -1852,7 +1879,9 @@
         fact("bought", btc(held), lead.buys ? `${grouped(lead.buys)} buy${lead.buys > 1 ? "s" : ""}${lead.cash[n] > 0.005 ? `, ${usd(lead.cash[n])} still saved` : ""}` : "none yet: all still saved");
         fact("spent", usd(spent), `worth ${times(multiple)} that ${latest ? "now" : "at the end"}`);
         fact("cost", Number.isNaN(cost) ? "–" : usd(cost), `a coin, against ${usd(end)} ${latest ? "now" : "at the end"}`);
-        fact("lump", `<span class="${tone(lump / spent)}">${percent(lump / spent)}</span>`, `${usd(lump)} from ${usd(spent)}`);
+        if (yearly === null) fact("yearly", "–", "after a year of the plan");
+        else if (Number.isNaN(yearly)) fact("yearly", "–", "out of reach");
+        else fact("yearly", `<span class="${tone(yearly)}">${percent(yearly)}</span>`, "like a savings account's yield");
         if (lost(low)) fact("low", `<span class="loss">${percent(low)}</span>`, `on ${dated(lowDay)}`);
         else fact("low", "None", "never below what went in");
         // The smart plan against its baseline, the plain one: what each was worth from the same dollars, then their facts
