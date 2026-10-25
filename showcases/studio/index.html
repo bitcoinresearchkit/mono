@@ -13225,7 +13225,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const panelShown = () => (phone.matches ? document.body.dataset.sheet === "panel" : document.body.dataset.panel === "open" || document.body.hasAttribute("data-peek"));
       // (Its rows' values written only while it shows (see updateReadout): shown again with some left behind, at once.)
       let rowsBehind = false;
-      new MutationObserver(() => rowsBehind && panelShown() && valuesSoon()).observe(document.body, { attributes: true, attributeFilter: ["data-panel", "data-sheet", "data-peek"] });
+      new MutationObserver(() => panelShown() && (layersBehind ? writeLayers() : rowsBehind && valuesSoon())).observe(document.body, { attributes: true, attributeFilter: ["data-panel", "data-sheet", "data-peek"] });
       function togglePanel(open = !panelShown()) {
         if (!chart.layers.length) return;
         if (!open) stopCarrying();
@@ -24497,7 +24497,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const setLegend = (/** @type {string} */ mode) => (chart.legend ?? "") !== mode && commit((doc) => (mode === "off" ? (doc.legend = "off") : delete doc.legend), { look: true });
       /** The layer list's parts as last written, by key (its panes', then what's under them). */
       let layersWritten = { keys: /** @type {string[]} */ ([]), tail: /** @type {[string, string][]} */ ([]) };
+      /** The layers' list behind the chart (written while hidden: not yet). */
+      let layersBehind = false;
+      /**
+       * The layers' list, as the chart is now: where it shows, at once; hidden (a phone's sheet put away, the panel shut),
+       * while the page is idle after, or as it shows, whichever comes first, not in the change that asked (a chart's
+       * opening: 31 ms of its tap at a phone's 4× slower CPU). What of it shows on the chart (a lit legend, the values)
+       * at once either way.
+       */
       function renderLayers() {
+        if (panelShown()) return writeLayers();
+        lightLegend(litLayer, true);
+        updateValues();
+        if (layersBehind) return;
+        layersBehind = true;
+        whenIdle(() => layersBehind && writeLayers());
+      }
+      function writeLayers() {
+        layersBehind = false;
         const list = $("layer-list");
         const focus = focusKey(list);
         $("layer-count").textContent = String(chart.layers.length);
