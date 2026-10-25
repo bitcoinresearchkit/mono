@@ -14812,6 +14812,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // Data from memory, asked before the latest block: its tails come again. (Its span as asked: what it reaches.)
         const live = !FINE.has(doc.index) || spanOf(doc)?.live !== false;
         const result = await resolve(doc, fresh || stale(doc));
+        // (Its data come while the chart grows out of its tile: drawn once it's grown, not built mid-motion (a phone's
+        // build of a big one, a second, held the motion still).)
+        if (showLoading) await Promise.all(morphing.map((animation) => animation.finished.catch(() => {})));
         if (version !== drawVersion) return false;
         $("loading").hidden = true;
         $("progress").hidden = true;
