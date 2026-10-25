@@ -1099,17 +1099,12 @@
       .chart-row {
 
         /* ⌘1–⌘9, shown while ⌘ is held: in the ⋯ button's place, on the search's ⌘K edge. */
-        .chart-item kbd {
+        .chart-item kbd.mod {
           position: absolute;
           top: 50%;
           right: 8px;
           display: none;
           transform: translateY(-50%);
-        }
-
-        /* (Centred in the list's 1px gap.) */
-        &.drop-after::after {
-          bottom: -2px;
         }
 
         /* (Its ⋯ on hover, or reached by a key: a click leaves nothing showing.) */
@@ -1473,20 +1468,11 @@
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
 
-        /* (A named value: in its band's color, see .named.) */
-        &.named {
-          color: light-dark(color-mix(in oklab, var(--c), black 32%), var(--c));
-        }
-
         /* A cloud's: its highest over its lowest. */
         &[data-lines] {
           line-height: 16px;
           text-align: right;
           white-space: pre;
-        }
-
-        .layer-row.hidden & {
-          color: var(--muted);
         }
       }
 
@@ -1683,18 +1669,6 @@
 
           &::backdrop {
             opacity: 0;
-          }
-        }
-
-        /* (Going, a copy of it plays its way out, see fadeOut: itself, gone at once.) */
-        .menu {
-          transition: opacity var(--dur-micro) var(--ease), transform var(--dur-micro) var(--ease);
-
-          &[hidden] {
-            visibility: hidden;
-            opacity: 0;
-            transform: scale(0.96);
-            pointer-events: none;
           }
         }
 
@@ -2458,10 +2432,6 @@
           background: var(--live);
         }
 
-        &.fade {
-          animation: fade 2.6s ease forwards;
-        }
-
         &.error {
           color: var(--danger);
 
@@ -2472,17 +2442,6 @@
 
         &:empty {
           display: none;
-        }
-      }
-
-      @keyframes fade {
-        0%,
-        55% {
-          opacity: 1;
-        }
-
-        100% {
-          opacity: 0;
         }
       }
 
@@ -3038,9 +2997,8 @@
         bottom: 0;
         /* Its window (--from, --to: shares of the strip), never narrower than --brush-min, to take hold of, and within the
            strip: as it's painted and hit-tested (brushSpan). */
-        --end: max(var(--to), min(100%, var(--from) + var(--brush-min)));
-        left: calc(var(--end) - max(var(--end) - var(--from), var(--brush-min)));
-        width: max(var(--end) - var(--from), var(--brush-min));
+        left: min(var(--from), 100% - var(--brush-min));
+        width: max(var(--to) - var(--from), var(--brush-min));
         border-radius: var(--radius-md);
         box-shadow: inset 0 0 0 1px var(--ring);
         transition: box-shadow var(--fade);
@@ -3959,7 +3917,7 @@
             color: var(--muted);
           }
 
-          &:hover:where(.can-hover *) {
+          &:hover:where(.can-hover *):not([aria-disabled="true"]) {
             color: var(--ink);
 
             svg {
@@ -3967,16 +3925,16 @@
             }
           }
 
-          &.danger:hover:where(.can-hover *) {
+          &.danger:hover:where(.can-hover *):not([aria-disabled="true"]) {
             &,
             svg {
               color: var(--danger);
             }
           }
 
-          &:disabled {
+          &[aria-disabled="true"] {
             opacity: 0.35;
-            pointer-events: none;
+            cursor: default;
           }
         }
       }
@@ -4391,7 +4349,7 @@
           color: var(--muted);
         }
 
-        /* Mid-word, a formula isn't wrong yet: the error waits for a pause in the typing. */
+        /* Being typed, a formula isn't wrong yet: the error waits till it's left (see markTyping). */
         &.typing {
           &.invalid {
             box-shadow: var(--field-focus);
@@ -4531,7 +4489,7 @@
         .call-error {
           color: var(--danger);
 
-          /* Mid-word, as on the status line, it waits for a pause. */
+          /* Being typed, as on the status line, it waits. */
           .typing & {
             color: var(--muted);
           }
@@ -4664,13 +4622,6 @@
       .number-input {
         padding: 0 56px 0 9px;
         font-variant-numeric: tabular-nums;
-        appearance: textfield;
-
-        &::-webkit-inner-spin-button,
-        &::-webkit-outer-spin-button {
-          margin: 0;
-          appearance: none;
-        }
       }
 
       .number-field {
@@ -4830,7 +4781,9 @@
           line-height: 18px;
         }
 
+        /* (Cut short, never widening the popover: it's as wide as its code.) */
         .share-title {
+          contain: inline-size;
           overflow: hidden;
           color: var(--ink);
           font-size: 13px;
@@ -4997,12 +4950,12 @@
         }
       }
 
-      /* Custom's hex, under its surface: typed, it's picked; picked on the surface, it follows. */
+      /* Custom's hex, joined under its surface, edged as one with it (the surface's edge their seam): typed, it's picked;
+         picked on the surface, it follows. */
       .hex-field {
         display: flex;
         align-items: center;
         gap: 8px;
-        margin-top: 8px;
         color: var(--muted);
         font-size: 12px;
 
@@ -5013,9 +4966,9 @@
           align-items: center;
           min-width: 0;
           height: 28px;
-          border-radius: var(--radius-sm);
+          border-radius: 0 0 var(--radius-md) var(--radius-md);
           background: var(--field);
-          box-shadow: inset 0 0 0 1px var(--line);
+          box-shadow: inset 1px 0 0 var(--line-strong), inset -1px 0 0 var(--line-strong), inset 0 -1px 0 var(--line-strong);
           cursor: text;
 
           &:focus-within {
@@ -5054,7 +5007,7 @@
          would fade into the popover). */
       .color-box .plane {
         margin-top: 6px;
-        border-radius: var(--radius-md);
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
 
         &::after {
           content: "";
@@ -5063,25 +5016,6 @@
           border-radius: inherit;
           box-shadow: inset 0 0 0 1px var(--line-strong);
           pointer-events: none;
-        }
-      }
-
-      /* Its hex joined under it, edged as one with it: one control (the surface's edge their seam). */
-      .color-box:has(.hex-field) .plane {
-        border-bottom-right-radius: 0;
-        border-bottom-left-radius: 0;
-      }
-
-      .color-box .hex-field {
-        margin-top: 0;
-
-        .hex-box {
-          border-radius: 0 0 var(--radius-md) var(--radius-md);
-          box-shadow: inset 1px 0 0 var(--line-strong), inset -1px 0 0 var(--line-strong), inset 0 -1px 0 var(--line-strong);
-
-          &:focus-within {
-            box-shadow: var(--field-focus);
-          }
         }
       }
 
@@ -5435,17 +5369,9 @@
           transform: translateY(-50%);
         }
 
+        /* (Its unit's in the heading: no room kept for one.) */
         .number-field .number-input {
-          padding-left: 25px;
-        }
-
-        /* (No unit, no room kept for one; one, as much as the longest takes: "sat/vB", 37px, 10 from the edge.) */
-        .number-field:has(> .unit:empty) .number-input {
-          padding-right: 10px;
-        }
-
-        .number-field:has(> .unit:not(:empty)) .number-input {
-          padding-right: 48px;
+          padding: 0 10px 0 25px;
         }
 
         .level-name {
@@ -5819,7 +5745,6 @@
           margin: 0 2px;
         }
 
-        .item-meta svg,
         .item-mark svg {
           vertical-align: -3px;
           color: var(--ink);
@@ -6027,15 +5952,6 @@
             color: var(--soft);
             font-size: 12px;
           }
-        }
-
-        .dot {
-          display: inline-block;
-          width: 7px;
-          height: 7px;
-          margin-right: 8px;
-          border-radius: 50%;
-          background: var(--c);
         }
 
         :is(.spark, .palette-plot) {
@@ -7230,12 +7146,6 @@
         }
       }
 
-      /* While something's carried, the bars over the lists' foot (a selection's; upright, the tabs) fade out of its way and
-         let it through (a row there is landed on, the edge there scrolls the list), and back after. */
-      :is(.pick-bar, .mobile-bar) {
-        transition: opacity var(--dur-small) var(--ease);
-      }
-
       /* A selection's bar, its selection cleared: it leaves as it came (down a little as it fades), out of reach meanwhile. */
       .pick-bar {
         transition: opacity var(--dur-small) var(--ease), translate var(--dur-small) var(--ease), visibility var(--dur-small), display var(--dur-small) allow-discrete;
@@ -7248,6 +7158,8 @@
         }
       }
 
+      /* While something's carried, the bars over the lists' foot (a selection's; upright, the tabs) fade out of its way and
+         let it through (a row there is landed on, the edge there scrolls the list), and back after. */
       body.carrying .pick-bar {
         opacity: 0;
         pointer-events: none;
@@ -7278,8 +7190,8 @@
       }
 
       /*
-       * Mini charts draw each layer as its type, panes apart (strokes and latest-value dots keep their size as the
-       * frame stretches).
+       * Mini charts draw each layer as its type, panes apart (strokes, and Quick Look's latest-value dots, keep their
+       * size as the frame stretches).
        */
       svg.plot {
         position: absolute;
@@ -8150,7 +8062,7 @@
           margin-left: auto;
         }
 
-        /* Menus: sheets too, their rows a thumb's height, the page dimmed behind (by their shadow). */
+        /* Menus: sheets too, their rows a thumb's height, the page dimmed behind (see .menu-scrim). */
         .menu.as-sheet {
           right: 0;
           bottom: 0;
@@ -8161,11 +8073,6 @@
           /* (In and out from the foot, as the layers sheet: put away, it slides down (a copy of it, see fadeOut).) */
           transition: transform var(--dur-layout) var(--ease-layout);
           animation: none;
-
-          &[hidden] {
-            transform: translateY(100%);
-            pointer-events: none;
-          }
 
           @starting-style {
             &:not([hidden]) {
@@ -9674,7 +9581,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       </main>
 
       <nav class="mobile-bar" aria-label="Studio">
-        <button id="mobile-charts" class="tab" type="button" data-action="home"><span data-icon="grid"></span><span>Charts</span></button>
+        <button id="mobile-charts" class="tab" type="button" data-action="charts"><span data-icon="grid"></span><span>Charts</span></button>
         <button class="tab" type="button" data-action="palette" data-typing><span data-icon="browse"></span><span>Search</span></button>
         <button id="mobile-add" class="tab add" type="button" aria-haspopup="menu"><span data-icon="plus"></span><span class="label">Add</span></button>
         <button id="mobile-layers" class="tab" type="button" data-sheet="panel" aria-expanded="false"><span data-icon="panel"></span><span>Layers</span></button>
@@ -10221,7 +10128,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * recently used go first.
        */
       const KEPT_CHUNKS = 150;
-      /** The range presets: three spans back from the latest, and the most the chart shows (all of history, where it fits). @type {[string, string, number][]} */
+      /** The range presets: four spans back from the latest, and the most the chart shows (all of history, where it fits). @type {[string, string, number][]} */
       const RANGES = [["3m", "3M", 91], ["1y", "1Y", 365], ["4y", "4Y", 1461], ["8y", "8Y", 2922], ["max", "Max", 0]];
       /** A range's days (Max, or none, 0). */
       const rangeDays = (/** @type {string} */ id) => RANGES.find(([range]) => range === id)?.[2] ?? 0;
@@ -10229,8 +10136,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const DEFAULT_RANGE = "8y";
       /**
        * Bitview's palette, as the website defines it: lightness, chroma, hue in OKLCH. A layer's color is one of these
-       * names, "ink" (the page's own), an exact "oklch(l c h)", or a hex; the screen shows OKLCH as it is (wide-gamut where
-       * it can), and the chart, which only reads sRGB, gets each converted on demand.
+       * names, "ink" (the page's own), an exact "oklch(l c h)", or a hex; each is drawn in sRGB (the chart reads only
+       * that), converted on demand.
        */
       const OKLCH = {
         gray: [0.55, 0, 0], red: [0.607, 0.241, 26.328], orange: [0.6764, 0.191, 44.41], amber: [0.7175, 0.1835, 64.199],
@@ -10356,8 +10263,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       /** OKLCH to sRGB: its chroma lowered until it fits, so hue and lightness hold. @returns {string} */
       function oklchToHex(l, c, h) {
-        let chroma = c, rgb = oklchToLinear(l, chroma, h);
-        while (chroma > 0 && !inside(rgb)) rgb = oklchToLinear(l, (chroma = Math.max(0, chroma - 0.002)), h);
+        const wanted = oklchToLinear(l, c, h), rgb = inside(wanted) ? wanted : oklchToLinear(l, limit(l, h), h);
         return `#${rgb.map((v) => Math.round(gamma(clamp(v, 0, 1)) * 255).toString(16).padStart(2, "0")).join("")}`;
       }
       /** OKLCH to linear sRGB (outside 0–1 where sRGB can't show it). @returns {[number, number, number]} */
@@ -10408,15 +10314,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const TREND_SAYS = "On the lowest of them until its reference touches it, then on the highest until it touches that";
       /** Whether a signal shows: itself shown, on a layer there and shown (hidden with it, else). @param {Layer} layer @param {Chart} [doc] */
       const signalShown = (layer, doc = chart) => layer.type === "signal" && !layer.hidden && ((on) => Boolean(on && !on.hidden))(doc.layers.find((item) => item.id === layer.ref));
-      /** What a signal's marks can be on: a layer of one value drawn as itself (not a cloud, not a signal). @param {Chart} doc @param {Layer} signal */
-      const markable = (doc, signal) => doc.layers.filter((other) => other !== signal && other.type !== "cloud" && other.type !== "signal");
+      /** What a signal's marks can be on: a layer of one value drawn as itself (not a cloud, not a signal). @param {Chart} doc */
+      const markable = (doc) => doc.layers.filter((other) => other.type !== "cloud" && other.type !== "signal");
       /**
        * The layer a new signal is marked on: the first its formula reads that can be (by its letter, else by the series it
        * names, in its order), else the first that can be; of those, a shown one before a hidden one (its marks seen).
        * @param {Chart} doc @param {string} formula @returns {Layer | undefined}
        */
       const markFor = (doc, formula) => {
-        const can = markable(doc, /** @type {any} */ ({})).sort((a, b) => Number(Boolean(a.hidden)) - Number(Boolean(b.hidden)));
+        const can = markable(doc).sort((a, b) => Number(Boolean(a.hidden)) - Number(Boolean(b.hidden)));
         try {
           const node = parse(formula), by = (/** @type {Set<string>} */ read, /** @type {"letter" | "series"} */ key) => ((found) => found.find((layer) => !layer.hidden) ?? found[0])([...read].flatMap((name) => can.filter((layer) => layer[key] === name)));
           return by(refsOf(node), "letter") ?? by(refsOf(node, "series"), "series") ?? can[0];
@@ -10695,7 +10601,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function format(value, unit) {
         if (value === undefined || value === null || !Number.isFinite(value)) return "—";
-        // (A signal's: true, anything but 0.)
         // (A signal's state: above 0 up, below down, at 0 off.)
         if (unit === "signal") return value > 0 ? "Up" : value < 0 ? "Down" : "Off";
         // (A true minus, as the ruler writes it, outside the unit's sign: −$1,234.)
@@ -11296,8 +11201,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const EXAMPLE = `sma(${tree.price.close.name}, 200d)`;
 
       const plainOperators = (source) => source.replace(/[×·]/g, "*").replace(/÷/g, "/").replace(/[−–]/g, "-").replace(/≥/g, ">=").replace(/≤/g, "<=").replace(/≠/g, "!=");
+      /** Formulas as parsed, by their text (each edit normalizes every layer: its formula's read once, not again). */
+      const parsed = new Map();
       /** @returns {Node} */
-      function parse(source) {
+      function parse(/** @type {string} */ source) {
+        let node = parsed.get(source);
+        if (node) return node;
+        node = parseAnew(source);
+        if (parsed.size > 500) parsed.clear();
+        parsed.set(source, node);
+        return node;
+      }
+      /** @returns {Node} */
+      function parseAnew(source) {
         const tokens = tokenize(plainOperators(source));
         if (!tokens.length) throw new Error(`Write a formula, like A / B or ${EXAMPLE}`);
         let at = 0;
@@ -11437,9 +11353,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const sub = (/** @type {Node} */ child, within = inWindow) => evaluate(child, length, ref, index, within, memo);
         const vec = (value) => (typeof value === "number" ? new Float64Array(length).fill(value) : value);
         const lift = (a, b, f) => {
-          if (typeof a === "number" && typeof b === "number") return f(a, b);
-          const x = vec(a), y = vec(b);
-          return x.map((v, i) => f(v, y[i]));
+          if (typeof a === "number") return typeof b === "number" ? f(a, b) : b.map((v) => f(a, v));
+          return typeof b === "number" ? a.map((v) => f(v, b)) : a.map((v, i) => f(v, b[i]));
         };
         switch (node.k) {
           case "num":
@@ -11803,8 +11718,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** Drops empty panes, keeps every layer on a pane, keeps letters unique, draws layers pane by pane. @param {Chart} doc */
       function normalize(doc) {
-        // (A legend is on or off: "still", once a third way, is on.)
-        if (doc.legend !== "off") delete doc.legend;
         // A series follows its path: renamed in a newer client, it takes the new name; its path is learned (or
         // relearned) from the catalog once that is indexed.
         for (const layer of doc.layers) {
@@ -11848,7 +11761,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // whatever's used.)
         for (const layer of doc.layers) if (layer.colors !== undefined && (!(layer.type === "histogram" ? layer.colors === 1 || layer.colors === 4 : TWO_KEPT.has(layer.type) && layer.colors === 1 && layer.colorBelow !== undefined) || layer.colorFrom || layer.byLevels || layer.byLayers)) delete layer.colors;
         // (A signal's layer gone: none, said so (""), so a reload doesn't mark it on another; a trend's, none.)
-        for (const layer of doc.layers) if (layer.ref && !(layer.type === "trend" ? refsFor(doc, layer) : layer.type === "signal" ? markable(doc, layer) : []).some((other) => other.id === layer.ref)) layer.type === "signal" ? (layer.ref = "") : delete layer.ref;
+        for (const layer of doc.layers) if (layer.ref && !(layer.type === "trend" ? refsFor(doc, layer) : layer.type === "signal" ? markable(doc) : []).some((other) => other.id === layer.ref)) layer.type === "signal" ? (layer.ref = "") : delete layer.ref;
         // A signal: marks on its layer (in its pane, on its side: below; its layer gone, none till another's picked: never
         // moved to another on its own); nothing of a line's look.
         for (const layer of doc.layers) {
@@ -12074,8 +11987,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       library.order = orderOf(library.order);
       /**
        * The previews, newest first: charts a link (or a script) opened, not in your Library. Each stays, edited too, till
-       * kept (Keep, ⌘S) or closed (its ×), listed over your charts (in the sidebar, the page, ⌘K); edited, it's kept here
-       * too (PREVIEW_ASIDE), and back after a reload, the others gone then. The same chart opened again, the one there
+       * kept (Keep, ⌘S) or closed (its ×), listed over your charts (in the sidebar, the page, ⌘K); kept aside
+       * (PREVIEW_ASIDE), edited or as a link opened it, and back after a reload. The same chart opened again, the one there
        * is. (The empty chart in place of none, a first visit's, the last one deleted's, is one too: a draft, yours from
        * its first edit; an empty one, left, simply goes.)
        * @type {Chart[]}
@@ -12106,7 +12019,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The previews listed as such (a draft isn't: the empty chart in place of none, yours once something's in it). */
       const listedPreviews = () => previewCharts.filter((doc) => !drafts.has(doc));
       /** The preview already there that's the same chart (its range aside: a look, not what it is), if one is. @param {Chart} doc */
-      const previewLike = (doc) => (doc.layers.length ? previewCharts.find((item) => item !== doc && item.layers.length && contentOf({ ...item, range: doc.range }) === contentOf(doc)) : undefined);
+      const previewLike = (doc) => (doc.layers.length ? previewCharts.find((item) => item !== doc && sameChart(item, doc)) : undefined);
       /** A chart's view (where it's zoomed or panned to) given to another id. @param {string} from @param {string} to */
       const moveView = (from, to) => {
         const all = viewsNow();
@@ -12250,9 +12163,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $("cta-label").textContent = `Search ${grouped.format(seriesCount)} series`;
           // (After what asked for it: its work isn't held up, nor failed, by this.)
           queueMicrotask(() => {
-            const learned = [...library.charts, ...library.presets].some((doc) => doc.layers.some((layer) => layer.series && !layer.path && index.has(layer.series)));
-            for (const doc of [...library.charts, ...library.presets]) normalize(doc);
-            if (learned) save();
+            // (Saved if that learned anything: a series' path, a formula's.)
+            const docs = [...library.charts, ...library.presets], before = docs.map((doc) => JSON.stringify(doc));
+            for (const doc of docs) normalize(doc);
+            if (docs.some((doc, i) => JSON.stringify(doc) !== before[i])) save();
           });
         };
         const step = (/** @type {{ timeRemaining: () => number }} */ deadline) => {
@@ -12373,7 +12287,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let home = false;
 
       /** (`unsaved`: a write that failed, tried again on leaving: storage may take it by then.) */
-      let saveTimer = 0, savedTimer = 0, unsaved = false;
+      let saveTimer = 0, savedFade = /** @type {Animation | null} */ (null), unsaved = false;
       /** Whether the write coming says "Saved" (an edit asked for it meanwhile). */
       let announcing = false;
       /** The library as this tab last wrote it: storage still holding it, no other tab has saved since. */
@@ -12507,12 +12421,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (ok) saved.removeAttribute("role");
         else saved.setAttribute("role", "alert");
         if (!ok) tellUnsaved();
-        saved.classList.remove("fade");
-        void saved.offsetWidth;
-        clearTimeout(savedTimer);
+        // (Said a while, then faded: said again meanwhile, from the start.)
+        savedFade?.cancel();
         if (!ok) return;
-        saved.classList.add("fade");
-        savedTimer = setTimeout(() => (saved.textContent = ""), 2600);
+        savedFade = saved.animate([{ opacity: 1, offset: 0.55 }, { opacity: 0 }], { duration: 2600, easing: "ease", fill: "forwards" });
+        savedFade.finished.then(() => (saved.textContent = ""), () => {});
       }
 
       /**
@@ -12671,7 +12584,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         edits.held = holding;
         // (A view's step (a range) is a step, not an edit: nothing stamped, a preview untouched, as a pan.)
         if (!view) stampEdit(chart);
-        if (!view && isPreview(chart) && JSON.stringify({ ...JSON.parse(before), range: 0 }) !== JSON.stringify({ ...chart, range: 0 })) touchPreview(chart);
+        if (!view && isPreview(chart)) touchPreview(chart);
         if (isPreview(chart) && drafts.has(chart) && !quiet && !look) (keepPreview(false), keptByEdit.set(chart, edits.past.length));
         changed(!quiet, redraw, keepMenu);
       }
@@ -13564,7 +13477,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return ring(box) + ring(opening);
         };
         first.setAttribute("d", draw(1, REST));
-        if (reduced.matches) return;
 
         // It waits full, empties easing out, waits, fills easing out (seconds).
         const WAIT = 0.5, MOVE = 1.6, LOOP = 2 * (WAIT + MOVE);
@@ -13897,10 +13809,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             while (data.length < part.start - start) data.push(null);
             for (const value of part.data) data.push(value);
           }
-          // (A fine interval's steps are even: its times one from the next, as the client puts the last one; else each asked.)
+          // (A fine interval's steps are even, a fixed number of seconds: its times one from the next.)
           const begin = timeAt(index, start), step = FINE_STEP[/** @type {keyof typeof FINE_STEP} */ (index)], times = new Array(data.length);
-          if (data.length && timeAt(index, start + data.length - 1) === begin + (data.length - 1) * step) for (let i = 0; i < data.length; i++) times[i] = begin + i * step;
-          else for (let i = 0; i < data.length; i++) times[i] = timeAt(index, start + i);
+          for (let i = 0; i < data.length; i++) times[i] = begin + i * step;
           return { start, data, times };
         });
         const held = holder();
@@ -14844,9 +14755,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let drawnDoc = null;
       /** What the data on screen was resolved for (its `dataKey`), and what the latest draw resolves. */
       let drawnData = "", drawingData = "";
-      /** @type {[number, number] | null} first and last time of the last build */
-      let drawnSpan = null;
-      let drawnPoints = 0;
       /** @type {number[]} the last build's times, for where new data sits against them */
       let drawnTimes = [];
       let drawnPanes = "";
@@ -15079,11 +14987,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const sameView = !refit && drawnIndex === doc.index && drawnRange === doc.range && drawnChart === doc.id;
         const visible = sameView ? view.timeScale().getVisibleRange() : null;
         const logical = sameView ? view.timeScale().getVisibleLogicalRange() : null;
-        const showedAll = visible && drawnSpan && Number(visible.from) <= drawnSpan[0] && Number(visible.to) >= drawnSpan[1];
-        const sameTimeline = drawnSpan && data.times.length === drawnPoints && data.times[0] === drawnSpan[0] && data.times.at(-1) === drawnSpan[1];
+        const showedAll = visible && drawnTimes.length > 0 && Number(visible.from) <= drawnTimes[0] && Number(visible.to) >= /** @type {number} */ (drawnTimes.at(-1));
+        const sameTimeline = drawnTimes.length > 0 && data.times.length === drawnTimes.length && data.times[0] === drawnTimes[0] && data.times.at(-1) === drawnTimes.at(-1);
         // Points added (or dropped) at the start, at a fine interval (the view reaching out): the view holds still, its
         // bars shifted by as many.
-        const shift = sameView && !sameTimeline && FINE.has(doc.index) && drawnSpan && data.times.length ? Math.round((drawnSpan[0] - data.times[0]) / FINE_STEP[doc.index]) : 0;
+        const shift = sameView && !sameTimeline && FINE.has(doc.index) && drawnTimes.length && data.times.length ? Math.round((drawnTimes[0] - data.times[0]) / FINE_STEP[doc.index]) : 0;
         // Price scales stay as the person left them (a range set by hand, in any mode) while the panes and their modes
         // are the same: new data, a restyle. Otherwise they fit their data again.
         const panesShape = doc.panes.map((pane) => `${pane.id}:${pane.mode}:${pane.stack ?? ""}:${pane.reverse ? 1 : ""}`).join();
@@ -15111,8 +15019,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const stacked = stackOf(doc, data), shares = new Set(doc.panes.filter((pane) => pane.stack === "percent").map((pane) => pane.id));
         // Each layer drawn as before (its kind, place, scale and stacking the same) keeps its series, its look applied to
         // it; its data is set again only where it changed (its values new), so an edit to one layer redraws that layer
-        // alone, and a color or a width scrubbed stays smooth however many points there are. (A stack's bands and bars,
-        // their colors in their points, are set again whole.)
+        // alone, and a color or a width scrubbed stays smooth however many points there are. (Bars, their colors in
+        // their points, are set again whole.)
         const layerShape = (/** @type {Layer} */ layer, /** @type {number} */ i) => JSON.stringify([i, layer.type, layer.type === "signal" && layer.place === "shade", fromUnfit(doc, layer), paneIndex.get(layer.pane), layer.side, layer.fill ?? "", baseOf(layer), modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane), Boolean(doc.panes.find((pane) => pane.id === layer.pane)?.reverse), edgesOf(layer).length > 1]);
         /** @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, painted?: any[] | null, low?: Vector }>} */
         const kept = new Map();
@@ -15289,7 +15197,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // on a carrier: a series of each scale that draws nothing and takes no part in its range, under all the others.
         const lines = new Map();
         for (const line of across) {
-          if (line.mode > 1 || !Number.isFinite(line.value) || (line.mode === 1 && line.value <= 0)) continue;
+          if (!Number.isFinite(line.value) || (line.mode === 1 && line.value <= 0)) continue;
           const key = `${line.pane}|${line.layer.side}|${line.value}`;
           (lines.get(key) ?? lines.set(key, []).get(key))?.push(line);
         }
@@ -15401,17 +15309,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (sameView && !sameTimeline && drawnTimes.length > 1 && data.times.length > 1 && !reduced.matches) {
           // Where the old first point sits in the new data (before its start, negative: the oldest let go).
           const offset = data.times[0] > drawnTimes[0] ? -lowerBound(drawnTimes, data.times[0]) : lowerBound(data.times, drawnTimes[0]);
-          morphFrom = { from: offset, to: offset + drawnPoints - 1, ...overviewScale, at: performance.now() };
+          morphFrom = { from: offset, to: offset + drawnTimes.length - 1, ...overviewScale, at: performance.now() };
           // (More come the way one's going (a second chunk as the first shows): it goes on, its join where its data is
           // now, all past it what it shows; the other way, a reveal of its own.)
           if (inReveal) inReveal.join += offset;
-          const outward = offset > 0 ? -1 : offset + drawnPoints < data.times.length ? 1 : 0;
-          if (outward && inReveal?.outward !== outward) reveal(outward < 0 ? offset - 0.5 : offset + drawnPoints - 0.5, outward);
+          const outward = offset > 0 ? -1 : offset + drawnTimes.length < data.times.length ? 1 : 0;
+          if (outward && inReveal?.outward !== outward) reveal(outward < 0 ? offset - 0.5 : offset + drawnTimes.length - 0.5, outward);
         }
         drawnIndex = doc.index;
         drawnRange = doc.range;
-        drawnSpan = data.times.length ? [data.times[0], data.times.at(-1)] : null;
-        drawnPoints = data.times.length;
         drawnTimes = data.times;
         // (The build before let go of: the chart's own closures, made here, keep this scope, and so these, alive.)
         was.clear();
@@ -15671,6 +15577,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const legends = () => /** @type {HTMLElement[]} */ ([...$("chart").querySelectorAll(".legend")]);
       /** What each legend last showed (written again only when it changes). @type {WeakMap<HTMLElement, string>} */
       const legendShown = new WeakMap();
+      /**
+       * What an element was last given to hold, by its HTML as written (as the page reads it back, it's another: an SVG's
+       * `<path/>` reads `<path></path>`), so the same again writes nothing.
+       */
+      const htmlWritten = new WeakMap();
+      const writeHtml = (/** @type {Element} */ element, /** @type {string} */ html) => void (htmlWritten.get(element) !== html && (htmlWritten.set(element, html), (element.innerHTML = html)));
 
       /** A legend whose width changes (the window, a price scale) checks again whether it scrolls. */
       const legendFit = new ResizeObserver((entries) => entries.forEach(({ target }) => fitStrip(/** @type {HTMLElement} */ (target))));
@@ -15792,7 +15704,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const leads = named.map((band, k) => (`<path d="M0 ${band.mid.toFixed(1)}C7 ${band.mid.toFixed(1)} 7 ${ys[k].toFixed(1)} 14 ${ys[k].toFixed(1)}" stroke="${escape(ink(colorNow(band.layer) ?? band.layer.color))}"/>`)).join("");
           // (Its look its own, not the page's: a picture draws it as it is, see measureLegends.)
           const html = `<svg class="gutter-leads" width="14" height="${height}" fill="none" stroke-width="1" opacity="0.6">${leads}</svg>` + named.map((band, k) => `<span class="gutter-label" style="top: ${ys[k].toFixed(1)}px; --c: ${escape(ink(colorNow(band.layer) ?? band.layer.color))}"><i></i><span class="name">${escape(labelOf(band.layer))}</span><span class="value">${escape(band.value)}</span></span>`).join("");
-          if (gutter.innerHTML !== html) gutter.innerHTML = html;
+          writeHtml(gutter, html);
         });
         for (const gutter of /** @type {HTMLElement[]} */ (all$("#chart .gutter"))) if (!wanted.has(gutter)) (gutterFit.unobserve(gutter), gutter.remove());
       }
@@ -15853,7 +15765,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Selected or picked, as markPicks marks a legend's; its mark and name as they are now (renamed, recolored).)
         button.classList.toggle("selected", on.id === selected || layerPicks.has(on.id));
         const name = legendNameHtml(on), named = /** @type {HTMLElement} */ (button.querySelector(".legend-name"));
-        if (named.innerHTML !== name) named.innerHTML = name;
+        writeHtml(named, name);
         if (button.dataset.select === on.id) return;
         // (Another band: its values its own, written with the readout.)
         button.dataset.select = on.id;
@@ -15861,6 +15773,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (share) (share.dataset.bandShare = on.id), (share.textContent = "");
         value.dataset.value = on.id;
         value.textContent = "";
+        // (Its name another's, as wide as it is: measured again.)
+        fitSoon(element);
       }
       /** Every keyed legend's band, as the pointer or the selection has it now (its values with the next readout). */
       function paintBands() {
@@ -16449,7 +16363,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const result = resolved?.results.get(layer.id);
         const values = result?.values;
         if (!values || !range || !resolved.times.length) return null;
-        const n = resolved.times.length, last = lastShown(), first = firstInView(), unit = unitFor(layer, result);
+        const last = lastShown(), first = firstInView(), unit = unitFor(layer, result);
         if (windows.data !== resolved || windows.view !== `${first}:${last}`) windows = { data: resolved, view: `${first}:${last}`, by: new Map() };
         const key = `${layer.id}:${unit}`;
         if (windows.by.has(key)) return windows.by.get(key);
@@ -16527,8 +16441,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function sayValue(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ point) {
         const result = resolved?.results.get(layer.id);
         if (!result || result.error) return (result?.error ?? "no data").toLowerCase();
-        const value = valueAt(layer, point), since = asOf(layer, point);
-        return `${result.low ? rangeAt(layer, point, unitFor(layer, result)) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "no value"}${since ? `, as of ${since}` : ""}`;
+        // (As its legend writes it: a named band's name, a cloud's range, else its value.)
+        const value = valueAt(layer, point), since = asOf(layer, point), band = result.low ? null : bandOf(layer, value);
+        return `${band ? band.name : result.low ? rangeAt(layer, point, unitFor(layer, result)) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "no value"}${since ? `, as of ${since}` : ""}`;
       }
       /** What the chart shows, in words: its interval and dates, each pane's layers with their values at the view's end. */
       function chartFacts() {
@@ -16899,8 +16814,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Not shown, or no room for it (a phone on its side, the layers beside): nothing to draw.)
         if (!rect.width) return;
         const ratio = (overviewRatio = devicePixelRatio || 1);
-        canvas.width = Math.max(1, Math.round(rect.width * ratio));
-        canvas.height = Math.max(1, Math.round(rect.height * ratio));
+        // (Its size set only when it changes: set at all, the canvas starts over.)
+        const width = Math.max(1, Math.round(rect.width * ratio)), height = Math.max(1, Math.round(rect.height * ratio));
+        if (canvas.width !== width || canvas.height !== height) (canvas.width = width), (canvas.height = height);
         const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
         context.clearRect(0, 0, canvas.width, canvas.height);
         const source = overviewSource();
@@ -16956,8 +16872,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("navigator").style.setProperty("--brush-min", `${BRUSH_MIN}px`);
       /** The window's edges as shown, in pixels of a strip `width` wide: no narrower than `min`, within the strip. */
       function brushSpan(/** @type {number} */ left, /** @type {number} */ right, /** @type {number} */ width, min = BRUSH_MIN) {
-        const end = Math.max(right, Math.min(width, left + min));
-        return [end - Math.max(end - left, min), end];
+        const from = Math.min(left, width - min);
+        return [from, from + Math.max(right - left, min)];
       }
       /** Where the window shows on the navigator (`rect`), in its pixels, and how near its edges a pointer takes them. */
       function brushOn(/** @type {DOMRect} */ rect, /** @type {number} */ n, /** @type {{ from: number, to: number }} */ range) {
@@ -16982,8 +16898,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         brush.style.setProperty("--to", `${right * 100}%`);
         paintNavigator({ left, right });
       }
-      /** The overview dimmed outside the window, made on each move (the dimming touches the shape only, not the marks under it). */
-      const overviewLit = document.createElement("canvas");
       /** The navigator's font as its canvas last took it (see paintNavigator). */
       let navigatorFont = "";
       /** Whether the pointer's over the navigator (its window's dates show then, and while it's dragged). */
@@ -17022,8 +16936,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const [left, right] = brushSpan(lit.left * w, lit.right * w, w, BRUSH_MIN * ratio);
           outside.rect(0, 0, w, h);
           outside.roundRect(left, 0, right - left, h, 8 * ratio);
-          context.fillStyle = alpha(css("--card"), 0.5);
-          context.fill(outside, "evenodd");
           // (Said, always; painted, and so measured, only while it's pointed at or dragged: at rest, the time axis above
           // says them, and a canvas measuring text works out the page's styles first.)
           const near = navigatorNear || $("brush").classList.contains("dragging");
@@ -17041,16 +16953,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (x !== undefined) dates.push({ text, width, x });
           }
         }
+        // (The overview, dimmed outside the window: the strip's ground half over it.)
+        context.drawImage(overviewBase, 0, 0);
         if (lit && shown) {
-          if (overviewLit.width !== w || overviewLit.height !== h) (overviewLit.width = w), (overviewLit.height = h);
-          const shape = /** @type {CanvasRenderingContext2D} */ (overviewLit.getContext("2d"));
-          shape.globalCompositeOperation = "copy";
-          shape.drawImage(overviewBase, 0, 0);
-          shape.globalCompositeOperation = "source-atop";
-          shape.fillStyle = alpha(css("--card"), 0.5);
-          shape.fill(outside, "evenodd");
-          context.drawImage(overviewLit, 0, 0);
-        } else context.drawImage(overviewBase, 0, 0);
+          context.fillStyle = alpha(css("--card"), 0.5);
+          context.fill(outside, "evenodd");
+        }
         context.lineWidth = 3 * ratio;
         context.lineJoin = "round";
         context.strokeStyle = css("--card");
@@ -17142,7 +17050,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         keepView();
         rest();
       });
-      let reaching = false, pressing = false, restTimer = 0;
+      let reaching = false, restTimer = 0;
       /**
        * Reaching out waits for the view to rest (nothing held down, unmoved a moment): mid-gesture, the chart keeps a
        * pan's start by its last bar, so points loaded under it would make the view leap.
@@ -17154,12 +17062,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The pointers down on the chart (a pinch's two: pressed till both are up); of them, the fingers. */
       const pressed = new Set(), fingers = new Set();
       // (A scale gliding follows the plot again before the chart takes the press: a drag on its axis is the drag's.)
-      $("chart").addEventListener("pointerdown", (event) => (pressed.add(event.pointerId), event.pointerType === "touch" && fingers.add(event.pointerId), (pressing = true), endScaleGlide()), true);
+      $("chart").addEventListener("pointerdown", (event) => (pressed.add(event.pointerId), event.pointerType === "touch" && fingers.add(event.pointerId), endScaleGlide()), true);
       // (A press on the chart lets a ruler's measure go: the next one, or none.)
       $("chart").addEventListener("pointerdown", () => clearMeasure(), true);
-      for (const type of ["pointerup", "pointercancel"]) addEventListener(type, (event) => ((id) => (pressed.delete(id), fingers.delete(id), pressing && !pressed.size && (rest(), (pressing = false))))(/** @type {PointerEvent} */ (event).pointerId));
-      // (The window let go of, a finger's up may never come: none down after it.)
-      addEventListener("blur", () => fingers.clear());
+      for (const type of ["pointerup", "pointercancel"]) addEventListener(type, (event) => ((id) => (fingers.delete(id), pressed.delete(id) && !pressed.size && rest()))(/** @type {PointerEvent} */ (event).pointerId));
+      // (The window let go of, a press's up may never come: none down after it.)
+      addEventListener("blur", () => (fingers.clear(), pressed.size && (pressed.clear(), rest())));
       /**
        * The end of what a fine interval holds that the view is close to (in the chunk at that end, or half a view from
        * it, the wider), with more beyond it: -1 the older, 1 the newer, 0 neither.
@@ -17196,7 +17104,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function reachOut() {
         const span = FINE.has(chart.index) ? spans.get(spanKey(chart.id, chart.index)) : null, n = resolved?.times.length ?? 0;
         const range = view.timeScale().getVisibleLogicalRange();
-        if (!span || reaching || pressing || brushDrag || presetShown || glideTarget || !settled() || !range || n < 2 || Date.now() < (span.rest ?? 0)) return;
+        if (!span || reaching || pressed.size || brushDrag || presetShown || glideTarget || !settled() || !range || n < 2 || Date.now() < (span.rest ?? 0)) return;
         const side = nearEnd(span, range, n), near = Math.max(CHUNK, (range.to - range.from) / 2);
         // Holding the most, growing at one end lets go of the other: not when the view would then be close to that one
         // (it would grow back there, and on, to and fro).
@@ -17248,13 +17156,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether a formula can be computed at an interval: its windows (all of history among them) within what a fine one holds, two points at least where it needs them. */
       const computableAt = (/** @type {string} */ formula, /** @type {string} */ id) => windowsOf(formula).every(({ days, two }) => (!FINE.has(id) || (Number.isFinite(days) && windowPoints(days, id) < CHUNK)) && (!two || windowPoints(days, id) >= 2));
       /**
-       * Why formulas a click adds can't be computed at the chart's interval, if they can't: the interval they'd need (the
-       * chart stays where it's put). @param {string[]} formulas
+       * Why formulas a click adds can't be computed at the chart's interval, if they can't: the intervals they can be
+       * (the chart stays where it's put). @param {string[]} formulas
        */
       const unfitHere = (formulas) => {
         if (formulas.every((formula) => computableAt(formula, chart.index))) return "";
-        const supported = supportedIntervals(chart), from = INTERVAL_ORDER.slice(INTERVAL_ORDER.indexOf(chart.index) + 1).find((id) => supported(id) && formulas.every((formula) => computableAt(formula, id)));
-        return `Not at ${INTERVAL_LABEL[chart.index]}${from ? `: ${INTERVAL_LABEL[from]} and up` : ""}`;
+        // (Those they can be, one run of them: a fine one's too short, a coarse one's too few points.)
+        const supported = supportedIntervals(chart), fit = INTERVAL_ORDER.filter((id) => supported(id) && formulas.every((formula) => computableAt(formula, id)));
+        return `Not at ${INTERVAL_LABEL[chart.index]}${fit.length ? `: ${INTERVAL_LABEL[fit[0]]}${fit.length > 1 ? ` to ${INTERVAL_LABEL[/** @type {string} */ (fit.at(-1))]}` : ""}` : ""}`;
       };
       /** Each scale's range as it's held, where it follows the plot (auto scaled). */
       function heldScales() {
@@ -17503,8 +17412,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A new drawing, in the pen's look (the belt shows it, and sets it). @param {DrawingKind} kind @returns {Drawing} */
       function newDrawing(kind, layer, points) {
-        const { start, end, size, back, opacity, ...look } = prefs.pen;
-        return { id: uid(), kind, layer, points, ...look, ...(opacity && kind !== "ruler" ? { opacity } : {}), ...(kind === "trend" ? { ...(start ? { start } : {}), ...(end ? { end } : {}) } : {}), ...(kind === "text" || LINES.has(kind) ? { size, ...(back ? { back } : {}) } : {}), ...(kind === "text" ? { text: "" } : {}) };
+        return { id: uid(), kind, layer, points, ...lookOfDrawing(kind, prefs.pen), ...(kind === "text" ? { text: "" } : {}) };
       }
 
       /** A time on the interval's calendar, in bars from its first (within a bar, the share of it gone). */
@@ -17591,7 +17499,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return reach(a, b, size, drawing.start === "extend", drawing.end === "extend");
       }
       /** A line through two points, out to a box's edges: on past the second (`forth`), the first (`back`). */
-      function reach(a, b, size, back, forth = true) {
+      function reach(a, b, size, back, forth) {
         const dx = b.x - a.x, dy = b.y - a.y;
         if (!dx && !dy) return [a, b];
         const exit = (from, d, edge) => (d > 0 ? (edge - from) / d : d < 0 ? -from / d : Infinity);
@@ -17609,7 +17517,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (let i = 1; i < points.length; i++) context.lineTo(points[i].x, points[i].y);
       }
       const ordinal = (/** @type {number} */ n) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
-      /** The halvings across a pane, faint and dashed, behind its series; in the lowest pane, named at their foot by number. */
+      /** The halvings across a pane, faint and dashed (named by paintHalvingNames; placed among the series by markOrder). */
       function paintHalvings(context, size, /** @type {{ x: number, n: number, next: boolean }[]} */ marks) {
         const soft = css("--soft");
         context.save();
@@ -18502,13 +18410,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const panes = view.panes(), first = panes[0]?.getHTMLElement(), last = panes.at(-1)?.getHTMLElement();
         if (!first || !last) return null;
         const canvas = $("canvas").getBoundingClientRect(), chartBox = $("chart").getBoundingClientRect(), element = view.chartElement().getBoundingClientRect();
-        // (A pane's scale not there yet, a chart being switched: no box this frame.)
-        let axis = 0;
-        try {
-          axis = view.priceScale("left", 0).width();
-        } catch {
-          return null;
-        }
+        // (A scale not laid out yet: 0 wide, see patch 21 of lightweight-charts.)
+        const axis = view.priceScale("left", 0).width();
         // (What shows of it: held larger than its box through a layout's motion, the chart's cut at the box's edges.)
         const left = Math.max(element.left + axis, chartBox.left), right = Math.min(element.left + axis + view.timeScale().width(), chartBox.right);
         const top = Math.max(first.getBoundingClientRect().top, chartBox.top), bottom = Math.min(last.getBoundingClientRect().bottom, chartBox.bottom);
@@ -18875,7 +18778,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         let best = null;
         for (const layer of chart.layers) {
           const made = built.get(layer.id), series = drawn.get(layer.id);
-          if (layer.pane !== pane || layer.hidden || !made || !series) continue;
+          // (Not a signal's: its carrier's drawn nowhere.)
+          if (layer.pane !== pane || layer.hidden || layer.type === "signal" || !made || !series) continue;
           for (const value of layer.type === "candles" && !made.stacked && made.ohlc?.[bar] ? made.ohlc[bar] : made.low ? [made.low[bar], made.shown?.[bar]] : [made.shown?.[bar]]) {
             const at = Number.isFinite(value) ? series.priceToCoordinate(value) : null;
             if (at !== null && Math.abs(at - y) <= PULL && (!best || Math.abs(at - y) < best.off)) best = { layer: layer.id, value, y: at, off: Math.abs(at - y) };
@@ -19140,10 +19044,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!hit) return;
         event.preventDefault();
         if (!chosen.has(hit.drawing.id)) chooseDrawings([hit.drawing.id]);
-        drawingMenu(hit.drawing, { x: event.clientX, y: event.clientY });
+        drawingMenu({ x: event.clientX, y: event.clientY });
       });
       /** A right-click on a drawing: what the chosen ones do. */
-      const drawingMenu = (/** @type {Drawing} */ drawing, /** @type {{ x: number, y: number }} */ point) => ((ids) => menuOf($("plot-keys"), drawingRows(ids), point, "", { named: ids.length > 1 ? plural(ids.length, "drawing") : drawingNames().get(ids[0]) ?? "Drawing" }))([...chosen].length ? [...chosen] : [drawing.id]);
+      const drawingMenu = (/** @type {{ x: number, y: number }} */ point) => ((ids) => menuOf($("plot-keys"), drawingRows(ids), point, "", { named: ids.length > 1 ? plural(ids.length, "drawing") : drawingNames().get(ids[0]) ?? "Drawing" }))([...chosen]);
       /** What drawings do (one: its text, its label too). @param {string[]} ids @returns {Action[]} */
       function drawingRows(ids) {
         const several = ids.length > 1, one = several ? null : drawingById(ids[0]);
@@ -19261,8 +19165,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         } else if (BOXES.has(original.kind)) {
           const [[t0, v0], [t1, v1]] = original.points, held = /** @type {[number, number]} */ ([[t0, v0], [t1, v0], [t1, v1], [t0, v1]][(handle + 2) % 4]);
           points = [held, point() ?? original.points[1]];
-        } else if (original.kind === "brush") points = scaled(original, series, line, handle, at);
-        else points = movedBy(original, series, line, at.x - moving.start.x, at.y - moving.start.y);
+        } else points = scaled(original, series, line, handle, at);
         reshaped.set(target, { ...original, points });
         repaintDrawings();
       }
@@ -19855,9 +19758,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Whether a series of a chart failed to come, each forgotten to be fetched again next time: a failed fetch leaves
        * nothing behind, no blank drawing, no cached failure. (A series the server doesn't have, or not at this interval,
        * isn't a failure to retry: it's drawn without.)
-       * @param {Chart} doc @param {Resolved} data
+       * @param {Resolved} data @param {string} index
        */
-      function retryFailed(doc, data, index = doc.index) {
+      function retryFailed(data, index) {
         for (const name of data.failed) {
           forget(name, index);
           retryInfo(name);
@@ -19868,7 +19771,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       async function drawThumb(doc) {
         const index = await sampleable(doc, sampleIndex(doc, "month1", THUMB_POINTS));
         const data = await resolve({ ...doc, index });
-        if (retryFailed(doc, data, index)) return null;
+        if (retryFailed(data, index)) return null;
         /** @type {Map<string, ReturnType<typeof shapeOf>>} */
         // (The chart's lines as it draws them, stacked; each layer's own mark, its own values.)
         const shapes = new Map(), own = new Map(), stacked = stackOf(doc, data, false);
@@ -19993,7 +19896,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       // ── The page's tiles: each chart drawn as it shows; a chart grows out of its card ──────────────────
       // A card is the chart's plot, small: every pane in its band (with the chart's scale margins), every layer shown in
-      // it as a line (bars as bars), over the view the chart was left at (else its range), a point per few pixels. Drawn
+      // it as its type (see previewSvg), over the view the chart was left at (else its range), a point per few pixels. Drawn
       // from the chart's own data, which is then at hand when it opens.
 
       const PREVIEWS = "bitview-studio:previews";
@@ -20103,7 +20006,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // at up to four bars a pixel the chart shows every bar, so its peaks and troughs show; an average would round
               // them off.
               const lows = new Float64Array(B).fill(Infinity), highs = new Float64Array(B).fill(-Infinity), lowAt = new Float64Array(B), highAt = new Float64Array(B);
-              let latest = -1;
+              let latest = -1, latestIn = -1;
               const breaks = data.results.get(layer.id)?.breaks, cut = breaks ? new Uint8Array(B) : null;
               for (let i = first; i <= last; i++) {
                 // (The point at the view's very end is its last bucket's, not past it.)
@@ -20112,7 +20015,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 if (!Number.isFinite(value) || b < 0 || b >= B) continue;
                 if (value < lows[b]) (lows[b] = value), (lowAt[b] = i);
                 if (value > highs[b]) (highs[b] = value), (highAt[b] = i);
-                latest = i;
+                (latest = i), (latestIn = b);
               }
               /** @type {([number, number][] | null)[]} */
               const points = Array.from({ length: B }, (_, b) => {
@@ -20120,7 +20023,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 const low = /** @type {[number, number]} */ ([lowAt[b], lows[b]]), high = /** @type {[number, number]} */ ([highAt[b], highs[b]]);
                 return lowAt[b] === highAt[b] ? [low] : lowAt[b] < highAt[b] ? [low, high] : [high, low];
               });
-              const end = points.findLast(Boolean);
+              // (In its own bucket: one a break cuts, none, the gap kept.)
+              const end = latestIn >= 0 ? points[latestIn] : null;
               if (end && latest > end[end.length - 1][0]) end.push([latest, scaled(values[latest])]);
               // A cloud: each bucket from its lowest low to its highest high (to an edge, its values: the band's drawn to the
               // pane's edge, and its scale needn't read it; of its two edges, each bucket with a date, its scale none).
@@ -20196,7 +20100,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               /** @template T @param {{ color: string, points: T[] }[]} pieces @returns {Map<string, T[][]>} */
               const perColor = (pieces) => {
                 const by = new Map();
-                for (const piece of pieces) by.set(piece.color, [...(by.get(piece.color) ?? []), piece.points]);
+                for (const piece of pieces) (by.get(piece.color) ?? by.set(piece.color, []).get(piece.color))?.push(piece.points);
                 return by;
               };
               /** Runs one after another, a gap between each (for byColor). @template T @param {T[][]} parts @returns {(T | null)[]} */
@@ -20292,8 +20196,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * A drawing as an SVG: panes parted by a hairline, each layer as its type (an area fading down from its line, a
-       * baseline in its two colors about its base, a stacked band filled to the one under it, bars, dots), dashed as it is,
-       * and a dot on its latest value. Its ids are its place's (`place`: a tile's, a card's, ⌘K's, Quick Look's), the same each time:
+       * baseline in its two colors about its base, a stacked band filled to the one under it, bars, dots), dashed as it is
+       * (in Quick Look, a dot on its latest value). Its ids are its place's (`place`: a tile's, a card's, ⌘K's, Quick Look's), the same each time:
        * the same chart can show twice at once, and a tile drawn again is unchanged.
        * @param {Preview} drawn @param {string} place (`size`: a picture's, as previewOf drew it)
        */
@@ -20363,7 +20267,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           index = await sampleable(doc, index);
           const copy = { ...structuredClone(doc), index };
           const data = await resolve(copy).catch(() => null);
-          if (!data || retryFailed(copy, data, index) || previewKey(doc) !== key) return null;
+          if (!data || retryFailed(data, index) || previewKey(doc) !== key) return null;
           // Replaced meanwhile (another tab's edit): its successor is drawn on its own.
           if (!/^(recommended|preset):/.test(doc.id) && chartById(doc.id) !== doc) return null;
           // (A preset let go meanwhile, out of the last looked at: its drawing isn't kept either.)
@@ -21555,7 +21459,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * PointerEvent; the sheet follows from there); up, or a list scrolled, it scrolls as ever. The tap a pull ends on
        * isn't one.
        * @param {HTMLElement} element
-       * @param {{ grab: (event: PointerEvent | null) => boolean, move: (by: number) => void, release: (by: number, speed: number) => void, back: () => void, pulls?: () => boolean }} how
+       * @param {{ grab: (event: PointerEvent | null) => boolean, move: (by: number) => void, release: (by: number, speed: number) => void, back: () => void, pulls: () => boolean }} how
        */
       function dragSheet(element, { grab, move, release, back, pulls }) {
         // (`pointer` -1: a finger's pull, by touch events.)
@@ -21589,7 +21493,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         element.addEventListener("pointermove", (event) => event.pointerId === pull?.pointer && follow(event.clientY));
         element.addEventListener("pointerup", (event) => event.pointerId === pull?.pointer && end(event.clientY));
         for (const type of ["pointercancel", "lostpointercapture"]) element.addEventListener(type, (event) => event.pointerId === pull?.pointer && ((pull = null), letGo()));
-        if (!pulls) return;
         // (A finger's, by touch events: one that turns out a pull stops the list's scroll, as a pointer's can't. Its events
         // go to what it touched, out of the sheet or not: a list drawn anew under it (a search's answer, a layer's data)
         // leaves it out, heard there then. A finger more, while one pulls, changes nothing.)
@@ -22000,7 +21903,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const barsOf = (ys, n, base, place) => Array.from({ length: n }, (_, k) => {
         let far = -1;
         for (let i = Math.floor((k * ys.length) / n); i < Math.floor(((k + 1) * ys.length) / n); i++) if (ys[i] !== null && (far < 0 || Math.abs(ys[i] - base) > Math.abs(ys[far] - base))) far = i;
-        return far < 0 ? "" : place(k, ys[far], base, far);
+        return far < 0 ? "" : place(k, ys[far], far);
       }).join("");
       /** Marks as drawn, by the mini chart they're drawn from and the theme: the list written again, its marks aren't. */
       const marksDrawn = new WeakMap();
@@ -22024,7 +21927,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const color = escape(ink(raw)), below = escape(ink(under ?? raw)), x = (i) => 2 + (i / (ys.length - 1)) * 116, base = y(level);
           // (Painted date by date: a bar, a dot, a stretch of line in its points' color.)
           const tintAt = (/** @type {number} */ i) => escape(ink(dated?.[i] ?? raw));
-          if (kind === "bars") return barsOf(ys, 10, level, (k, value, _base, i) => `<rect x="${(4 + k * 11.6).toFixed(1)}" y="${Math.min(y(value), base).toFixed(1)}" width="7" height="${Math.max(1.5, Math.abs(y(value) - base)).toFixed(1)}" fill="${dated ? tintAt(i) : value >= level ? color : below}"/>`);
+          if (kind === "bars") return barsOf(ys, 10, level, (k, value, i) => `<rect x="${(4 + k * 11.6).toFixed(1)}" y="${Math.min(y(value), base).toFixed(1)}" width="7" height="${Math.max(1.5, Math.abs(y(value) - base)).toFixed(1)}" fill="${dated ? tintAt(i) : value >= level ? color : below}"/>`);
           if (kind === "dots") return byColor(ys.map((value, i) => (value === null || i % 2 ? null : { i, value })), ({ i }) => tintAt(i), false).map((piece) => `<path d="${piece.points.map(({ i, value }) => `M${x(i).toFixed(1)} ${y(value).toFixed(1)}h0`).join("")}" stroke="${piece.color}" stroke-width="2.2" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`).join("");
           if (dated) return byColor(ys.map((value, i) => (value === null ? null : { i, value })), ({ i }) => tintAt(i)).filter((piece) => piece.points.length > 1).map(({ color: stroke, points }) => {
             const part = points.map(({ i, value }) => `${x(i).toFixed(1)},${y(value).toFixed(1)}`);
@@ -22101,7 +22004,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           : `<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}: a preview, not in your Library (Save${doc === chart ? " or ⌘S" : ""} adds it${touched.has(doc) ? ", your edits with it" : ""})">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escape(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
         // (A draft, the empty chart in place of none, listed only while it's the one open: under the page, not one.)
         const listed = listedPreviews(), draft = home ? undefined : previewCharts.find((doc) => drafts.has(doc)), counts = chartCounts();
-        // (The presets under them as the page has them: named before they've arrived, nothing to change once they have.)
         // (Named always, nothing in it too: what's yours, and where New folder is.)
         libraryFolded = groupShut("library");
         const keys = numbered();
@@ -22114,8 +22016,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // The previews first, under their head, then your charts under theirs (the two told apart; none, no heads), a new
           // chart first among yours (where it'll be once something's in it).
           ...(listed.length ? [sideHead("previews", listed.length, Boolean(current && listed.includes(current))), ...(groupShut("previews") ? [] : listed.map((doc) => /** @type {[string, string]} */ ([`preview:${doc.id}`, previewRow(doc)])))] : []),
-          // (Yours named where something's around them to tell them from: previews over them, the presets under them; closed
-          // only where named, a way to open them again there.)
+          // (Yours under their name, always: closed, it's the way to open them again.)
           sideHead("library", library.charts.length, Boolean(current && (current === draft || (!isPreview(current) && current.preset === undefined)))),
           // (New chart first: what it makes is yours, here; in sight with them folded too.)
           /** @type {[string, string]} */ (["new", `<div class="chart-row new-row" style="--depth: 0"><button type="button" id="new-chart" class="nav-item chart-item side-action" data-action="new-chart" data-tip="New chart" data-kbd="N"><span data-icon="plus">${ICONS.plus}</span><span class="label">New chart</span><kbd>N</kbd></button></div>`]),
@@ -22137,7 +22038,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           fitSoon($("chart-list"), true);
           drawKeys($("chart-list"));
         }
-        roveList();
         // (The presets' rows in sight: their marks, drawn as they come; those drawn already, nothing to watch; those
         // gone, nothing to draw.)
         presetRowsSeen.disconnect();
@@ -22154,6 +22054,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (on) button.setAttribute("aria-current", "page");
           else button.removeAttribute("aria-current");
         }
+        // (Its Tab stop, the open one marked first.)
+        roveList();
         renderSideNav();
         // (A new chart, empty, has nothing to keep, nor anything ⋯ does: it's yours once something's in it; its Cancel takes it back.)
         $("preview-note").hidden = !isPreview(chart) || !chart.layers.length;
@@ -22263,7 +22165,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         drawPresetMarks();
       }, { root: $("chart-list") });
       const drawPresetMarks = serial(async () => {
-        for (const i of [...presetMarkQueue, ...presetMarksAsked]) {
+        // (One at a time, as the queue is now: a row scrolled away meanwhile, out of it.)
+        while (presetMarkQueue.size || presetMarksAsked.size) {
+          const [i] = presetMarkQueue.size ? presetMarkQueue : presetMarksAsked;
           presetMarkQueue.delete(i);
           presetMarksAsked.delete(i);
           if (!presets?.[i] || presetMarks.has(presetMarkKey(i))) continue;
@@ -22278,7 +22182,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       /**
        * The presets in the sidebar, under your Library, under their name: their sections as folders are (a section's name
-       * opens its page, its icon opens or closes it here, as kept), the presets in an open one as charts are (one opens it).
+       * opens or closes it here, as kept), the presets in an open one as charts are (one opens it).
        * @returns {[string, string][]}
        */
       function presetParts() {
@@ -22364,11 +22268,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (let at = id, steps = 0; at && steps <= library.folders.length; at = folderById(at)?.parent, steps++) if (at === outer) return true;
         return false;
       };
-      /** Whether an item shows in the sidebar: no folder it's in closed. @param {Chart | Folder} item */
-      const inSight = (item) => {
-        for (let at = parentOf(item), steps = 0; at && steps <= library.folders.length; at = folderById(at)?.parent, steps++) if (folderById(at)?.closed) return false;
-        return true;
-      };
       /** How many charts each folder holds, at any depth: one pass, each chart counted up through the folders it's in. */
       function chartCounts() {
         const byId = new Map(library.folders.map((folder) => [folder.id, folder])), counts = /** @type {Map<string, number>} */ (new Map());
@@ -22384,7 +22283,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether your Library's closed in the sidebar, as last drawn (named, so closed: see renderCharts). */
       let libraryFolded = false;
       /** The charts ⌘1–9 open: the first nine the sidebar shows (one in a closed folder or a closed Library, out of sight, out of reach). */
-      const numbered = () => (libraryFolded ? [] : listed().filter(inSight).slice(0, 9));
+      const numbered = () => (libraryFolded ? [] : treeOf(undefined, true).flatMap(({ item }) => ("layers" in item ? [item] : [])).slice(0, 9));
       /** A folder made (in `parent`, first there; none: at the top), named at once where it shows (`keys`: what it starts with). */
       function newFolder(/** @type {string[]} */ keys = [], /** @type {string | undefined} */ parent = undefined, { step = true, name = true } = {}) {
         const was = arrangement();
@@ -22792,7 +22691,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * its start), gliding there (from `dropY`, where let go); said, with an Undo (`quiet`: not). A folder never into
        * itself, nor into one in it.
        */
-      function placeItems(/** @type {string[]} */ keys, /** @type {string | undefined} */ into, /** @type {string | null} */ before = null, { first = false, quiet = false, dropY = /** @type {number | null} */ (null) } = {}) {
+      function placeItems(/** @type {string[]} */ keys, /** @type {string | undefined} */ into, /** @type {string | null} */ before = null, { quiet = false, dropY = /** @type {number | null} */ (null) } = {}) {
         // (Several, in the order the tree has them, however they were picked.)
         const order = keys.length > 1 ? treeOf().map(({ item }) => item) : [];
         const items = itemsOf(keys).sort((a, b) => order.indexOf(a) - order.indexOf(b)).filter((item) => (("layers" in item && isYours(item)) || (!("layers" in item) && !(into && isIn(into, item.id)))));
@@ -22800,7 +22699,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const was = arrangement();
         arrange(() => {
           for (const item of items) setParent(item, into);
-          const rest = childrenOf(into).filter((item) => !items.includes(item)), at = before ? rest.findIndex((item) => sideKey(item) === before) : first ? 0 : rest.length;
+          const rest = childrenOf(into).filter((item) => !items.includes(item)), at = before ? rest.findIndex((item) => sideKey(item) === before) : rest.length;
           rest.splice(at < 0 ? rest.length : at, 0, ...items);
           setChildren(rest);
         }, sideKey(items[0]), dropY, items.map(sideKey));
@@ -22840,12 +22739,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return !from.size ? "" : from.size === 1 ? `Move out of “${folderById([...from][0])?.name ?? ""}”` : "Move out of their folders";
       }
       /**
-       * Where items (keys) can go: each folder (theirs checked), a new one; and out of theirs, where nothing else offers it
-       * (`out`: a chart's own menu has it beside Move to folder).
+       * Where items (keys) can go: each folder (theirs checked), a new one, and out of theirs.
        * @param {HTMLElement} anchor @param {string[]} keys
        */
-      function folderMenu(anchor, keys, point = undefined, out = true) {
-        menuOf(anchor, folderChoices(keys, out), point, "", { title: phone.matches ? "Move to folder" : "" });
+      function folderMenu(anchor, keys) {
+        menuOf(anchor, folderChoices(keys), undefined, "", { title: phone.matches ? "Move to folder" : "" });
       }
       /**
        * Where items (keys) go, as choices: each folder as the sidebar has them, named with those it's in (theirs ticked;
@@ -22959,8 +22857,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return copy;
       }
-      /** Deletes a chart, with an Undo; if it was the open one, `next` opens, or its neighbor. @param {Chart} doc @param {Chart | null} [next] */
-      function deleteChart(doc, next = null) {
+      /** Deletes a chart, with an Undo; if it was the open one, its neighbor opens. @param {Chart} doc */
+      function deleteChart(doc) {
         const index = library.charts.indexOf(doc);
         if (index < 0) return;
         const wasOpen = doc === chart;
@@ -22985,7 +22883,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // The last chart gone (the open one), the preview there is stands in, else a blank one.
         const standIn = wasOpen && !away && !library.charts.length ? previewCharts[0] ?? newDraft() : null;
-        if (wasOpen && !away) openChart(standIn ?? (next && library.charts.includes(next) ? next : library.charts[Math.min(index, library.charts.length - 1)]));
+        if (wasOpen && !away) openChart(standIn ?? library.charts[Math.min(index, library.charts.length - 1)]);
         save();
         renderCharts();
         // (Gone back to the Charts page: said once another chart's under it, its Undo the page's last step then.)
@@ -23457,7 +23355,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * menu key or ⇧F10, its press, a right-click.
        */
       let listStop = "", keyMenuAt = 0;
-      const rowKeyOf = (/** @type {Element | null} */ row) => (row instanceof HTMLElement ? Object.entries(row.dataset).map(([key, value]) => `${key}:${value}`).join(" ") || row.className : "");
+      /** A row by what it is (its data, a fold under way aside): the same row once it's drawn again. */
+      const rowKeyOf = (/** @type {Element | null} */ row) => (row instanceof HTMLElement ? Object.entries(row.dataset).filter(([key]) => key !== "folding").map(([key, value]) => `${key}:${value}`).join(" ") || row.className : "");
       function roveList() {
         const list = $("chart-list"), rows = all$(".chart-row:not([inert]), .folder-row:not([inert]), .list-head", list);
         for (const button of all$("button", list)) button.tabIndex = -1;
@@ -23603,12 +23502,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const failed = all$("[data-plot].failed");
         if (!failed.length) return;
         for (const frame of failed) frame.classList.replace("failed", "pending");
+        // (The recommended cards, wherever they are: on the empty chart too.)
+        for (const frame of failed) ((card) => card && cardQueue.add(Number(card.dataset.template)))(/** @type {HTMLElement | null} */ (frame.closest("[data-template]")));
+        void drawCards();
         if (!home) return;
         void schedulePreviews();
         for (const frame of gallerySeen) if (frame.classList.contains("pending")) galleryQueue.add(presetOf(frame));
         void drawGallery();
-        for (const frame of failed) ((card) => card && cardQueue.add(Number(card.dataset.template)))(/** @type {HTMLElement | null} */ (frame.closest("[data-template]")));
-        void drawCards();
       }
       const cardsSeen = new IntersectionObserver((entries) => {
         for (const entry of entries) {
@@ -24387,8 +24287,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const setPaneMode = (id, mode) => editPane(id, (pane) => (pane.mode = mode), true);
       const setPaneStack = (id, stack) => editPane(id, (pane) => (stack ? (pane.stack = stack) : delete pane.stack));
       const setPaneReverse = (id, reverse) => editPane(id, (pane) => (reverse ? (pane.reverse = true) : delete pane.reverse));
-      /** A pane's two orders, named as it draws them: [reverse, its name, its short name]. @param {Pane} pane */
-      const ordersOf = (pane) => /** @type {[boolean, string, string][]} */ ([[false, pane.stack ? "First at the foot" : "First in front", "First"], [true, pane.stack ? "Last at the foot" : "Last in front", "Last"]]);
+      /** A pane's two orders, named as it draws them: [reverse, its name]. @param {Pane} pane */
+      const ordersOf = (pane) => /** @type {[boolean, string][]} */ ([[false, pane.stack ? "First at the foot" : "First in front"], [true, pane.stack ? "Last at the foot" : "Last in front"]]);
       const toggleLog = (id) => {
         const pane = chart.panes.find((item) => item.id === id);
         if (pane?.stack === "percent") notice("A 100% stack is in shares of its sum: no scale to choose");
@@ -24765,7 +24665,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const id of copies) layerPicks.add(id);
           layerPickLast = pickHead = copies[0];
           showPicks();
-        } else if (action === "move" && anchor) paneMenu(anchor, ids, undefined, () => refocus('[data-layers-batch="move"]'));
+        } else if (action === "move" && anchor) paneMenu(anchor, ids, () => refocus('[data-layers-batch="move"]'));
         else if (action === "cloud" || action === "trend") addFrom(action, ids);
         else if (action === "remove") removeLayers(ids);
       }
@@ -24822,8 +24722,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * order (`after`: then, the focus back where it was).
        * @param {HTMLElement} anchor @param {string[]} ids
        */
-      function paneMenu(anchor, ids, point = undefined, after = () => {}) {
-        menuOf(anchor, paneChoices(ids, after), point);
+      function paneMenu(anchor, ids, after = () => {}) {
+        menuOf(anchor, paneChoices(ids, after));
       }
       /**
        * Where layers go, as choices: each pane (theirs ticked), a new one.
@@ -24980,7 +24880,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <p id="formula-status" class="formula-status"></p>
               <details class="help"><summary>Functions and how letters work</summary>
                 <div class="functions">${Object.entries(FUNCTIONS).map(([name, [, signature, what]]) => `<button type="button" data-insert="${name}("><b>${escape(signature)}</b><span>${escape(what)}</span></button>`).join("")}</div>
-                <p>Capital letters are layers as drawn; a series by its name (${escape(tree.price.close.name)}) is the series itself. Comparisons (&gt; &lt; &gt;= &lt;= == !=) are 1 where true, 0 where not, joined with &amp; (and) and | (or): a signal marks where one turns true, or, signed, where it turns up (above 0) or down (below): (A &gt; B) - (A &lt; B). date is each point's date, compared with one written 2020-05-11: when(A, date &gt;= 2020-05-11) is A from then on. Use + − × ÷ ^ and parentheses. Windows are spans of time: 12h, 30d, 4w, 6mo, 2y, or 4 * 365d (a bare number is days); shorter than the interval, one point. A window is always last; at 1D and up, it holds what there is until it's full, and one left out (where it shows span?) is all of history so far.</p>
+                <p>Capital letters are layers as drawn; a series by its name (${escape(tree.price.close.name)}) is the series itself. Comparisons (&gt; &lt; &gt;= &lt;= == !=) are 1 where true, 0 where not, joined with &amp; (and) and | (or): a signal marks where one turns true, or, signed, where it turns up (above 0) or down (below): (A &gt; B) - (A &lt; B). date is each point's date, compared with one written 2020-05-11: when(A, date &gt;= 2020-05-11) is A from then on. Use + − × ÷ ^ and parentheses. Windows are spans of time: 12h, 30d, 4w, 6mo, 2y, or 4 * 365d (a bare number is days); shorter than the interval, one point. A window is always last; at 1D and up, it holds what there is until it's full, and one left out (where it shows span?) is the function's usual count of points where it has one (rsi's 14), else all of history so far.</p>
               </details>
               ${signal ? `<div class="field"><span>Marked on</span><button type="button" class="preset" id="signal-ref" aria-haspopup="menu" data-tip="The layer its marks are on">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>
               <div class="field"><span>Shown as</span><div class="tabs glyphs" role="group" aria-label="How it shows">${MARK_PLACES.map(([place]) => `<button type="button" data-place="${place}" aria-pressed="${(layer.place ?? "above") === place}" aria-label="${placeName(place)}" data-tip="${placeName(place)}">${glyphSvg(markBody(place, "currentColor"))}</button>`).join("")}</div></div>
@@ -25201,7 +25101,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return "one";
       }
       /** A way of coloring, named for a layer of its type (a pair, by what its two are for). */
-      const modeName = (/** @type {Layer} */ _layer, /** @type {string} */ mode) => (mode === "one" ? "One" : mode === "sides" ? "Two" : mode === "momentum" ? "Four" : mode === "levels" ? "By its levels" : mode === "layers" ? "By its layers" : "From a layer");
+      const modeName = (/** @type {string} */ mode) => (mode === "one" ? "One" : mode === "sides" ? "Two" : mode === "momentum" ? "Four" : mode === "levels" ? "By its levels" : mode === "layers" ? "By its layers" : "From a layer");
       /**
        * A layer's colors in its way of coloring, each with what it's for: [its key (a Layer's field; "from", the layer it
        * takes them from), its label].
@@ -25362,7 +25262,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * takes, each on its line, said by what it's for (from a layer: which).
        */
       function colorPicker(/** @type {Layer} */ layer) {
-        const mode = colorModeOf(layer), name = modeName(layer, mode), source = layerById(layer.colorFrom ?? ""), ways = modesOf(layer).length > 1;
+        const mode = colorModeOf(layer), name = modeName(mode), source = layerById(layer.colorFrom ?? ""), ways = modesOf(layer).length > 1;
         // The way: a choice, as every other, on its line's right (none to choose: its label alone).
         const head = `<div class="field"><span>${mode === "one" ? "Color" : "Colors"}</span>${ways ? `<button type="button" id="color-mode" class="preset" data-action="color-mode" aria-haspopup="menu" aria-label="Colors: ${escape(name)}"><span class="name">${escape(name)}</span>${CHEVRON}</button>` : ""}</div>`;
         if (mode === "from") return `${head}<div class="field color-slot"><span>Layer</span><button type="button" id="color-from" class="preset" data-action="color-from" aria-haspopup="menu" aria-label="Colors from: ${escape(source ? labelOf(source) : "")}">${source ? letterChip(source) : ""}<span class="name">${escape(source ? labelOf(source) : "")}</span>${CHEVRON}</button></div>`;
@@ -25418,7 +25318,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!layer) return [];
         const mode = colorModeOf(layer);
         return modesOf(layer).map((each) => ({
-          key: `mode:${each}`, icon: ((copy) => (setColorMode(copy, each), modeSwatch(copy, each)))(structuredClone(layer)), label: modeName(layer, each), aside: each === "sides" && layer.type === "trend" ? "Resistance and support" : each === "sides" && layer.type === "cloud" ? "The one over's, parting where they cross" : /** @type {Record<string, string>} */ (MODE_ASIDES)[each], current: mode === each,
+          key: `mode:${each}`, icon: ((copy) => (setColorMode(copy, each), modeSwatch(copy, each)))(structuredClone(layer)), label: modeName(each), aside: each === "sides" && layer.type === "trend" ? "Resistance and support" : each === "sides" && layer.type === "cloud" ? "The one over's, parting where they cross" : /** @type {Record<string, string>} */ (MODE_ASIDES)[each], current: mode === each,
           ...(each === "from" ? (colorSources(layer).length ? { page: () => choicePage("Colors from", () => fromChoices(id)) } : { disabled: "There's no other layer to take them from" })
             : each === "levels" && !layer.levels?.length ? { disabled: "Add a level first" }
             : { run: () => editById(id, (item) => setColorMode(item, each)), look: (/** @type {Chart} */ doc) => ((item) => item && setColorMode(item, each))(doc.layers.find((other) => other.id === id)) }),
@@ -25431,46 +25331,36 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const gives = { one: "Its color", sides: "Its two colors", momentum: "Its four colors", levels: "Its levels' colors", layers: "Its layers' colors", from: "The colors it takes" };
         return colorSources(layer).map((other) => ({ key: `from:${other.id}`, icon: letterChip(other), label: labelOf(other), aside: /** @type {Record<string, string>} */ (gives)[colorModeOf(other)], current: layer.colorFrom === other.id, run: () => editById(id, (item) => setColorMode(item, "from", other.id)), look: (/** @type {Chart} */ doc) => ((item) => item && setColorMode(item, "from", other.id))(doc.layers.find((one) => one.id === id)) }));
       }
-      /** A layer's color from its select: Bitview's colors, Custom; a fading one of four, its side's fainter too (its default). */
-      function layerColorMenu(/** @type {HTMLElement} */ button, /** @type {string} */ key) {
+      /** The color under a layer's levels, from its select: Bitview's colors, Custom. */
+      function underColorMenu(/** @type {HTMLElement} */ button) {
         const layer = layerById(selected);
         if (!layer) return;
-        const id = layer.id, fading = key === "colorFading" || key === "colorBelowFading", unset = fading && (key === "colorFading" ? layer.colorFading : layer.colorBelowFading) === undefined;
-        const side = key === "colorFading" ? layer.color : belowOf(layer);
-        const paler = fading ? `<div class="menu-rule"></div><button type="button" data-pick-paler="1" aria-checked="${unset}">${tick(unset)}<i class="swatch" style="--c:${escape(cssColor(faintOf(side)))}"></i>Fainter ${escape(colorName(side).toLowerCase())}<span>The growing one's</span></button>` : "";
-        colorMenu(button, colorOf(layer, key), `layer:${key}`, (color) => {
-          refocus(`#inspector [data-color-select="${key}"]`);
-          editById(id, (item) => setColor(item, key, color));
-        }, paler, ({ pickPaler }) => {
-          if (!pickPaler) return;
-          refocus(`#inspector [data-color-select="${key}"]`);
-          editById(id, (item) => setColor(item, key, ""));
-        }, unset, () => {
-          const now = $(`color-select-${key}`);
-          if (now) layerColorMenu(now, key);
-        }, key === "under" ? "Under its levels" : colorSlots(layer).find(([one]) => one === key)?.[1] ?? "");
+        const id = layer.id;
+        colorMenu(button, colorOf(layer, "under"), "layer:under", (color) => {
+          refocus('#inspector [data-color-select="under"]');
+          editById(id, (item) => setColor(item, "under", color));
+        }, () => ((now) => now && underColorMenu(now))($("color-select-under")), "Under its levels");
       }
       /**
        * A color from a select, its dropdown: Bitview's colors (a grid, at a glance), then Custom (any other: the surface, a
-       * page of its own), then what else picks it (`extra`, its picks to `onExtra`). One is ticked: colored otherwise (`borrowed`: by its levels, from
-       * another), none of the colors. Back from Custom, `again` opens it as things are then (a pick there redraws it).
+       * page of its own), the one it is ticked. Back from Custom, `again` opens it as things are then (a pick there redraws
+       * it).
        */
-      function colorMenu(/** @type {HTMLElement} */ anchor, /** @type {string} */ current, /** @type {string} */ target, /** @type {(color: string) => void} */ apply, extra = "", /** @type {(picked: DOMStringMap) => void} */ onExtra = () => {}, borrowed = false, again = () => colorMenu(anchor, current, target, apply, extra, onExtra, borrowed), title = "") {
-        const own = !borrowed && !SWATCHES.includes(current);
+      function colorMenu(/** @type {HTMLElement} */ anchor, /** @type {string} */ current, /** @type {string} */ target, /** @type {(color: string) => void} */ apply, again = () => colorMenu(anchor, current, target, apply), title = "") {
+        const own = !SWATCHES.includes(current);
         // (A dropdown as wide as its select, under it: Bitview's colors at a glance, each named on hover.)
         // (A phone's sheet, its width: the swatches across it.)
-        const colors = `<div class="color-drop"${phone.matches ? "" : ` style="width: ${Math.max(232, Math.round(anchor.getBoundingClientRect().width) - 8)}px"`}>${swatchGrid(borrowed ? "" : current)}</div><div class="menu-rule"></div>`;
+        const colors = `<div class="color-drop"${phone.matches ? "" : ` style="width: ${Math.max(232, Math.round(anchor.getBoundingClientRect().width) - 8)}px"`}>${swatchGrid(current)}</div><div class="menu-rule"></div>`;
         const custom = `<button type="button" data-pick-custom="1" aria-checked="${own}" aria-haspopup="menu">${tick(own)}<i class="swatch" style="${own ? `--c:${escape(cssColor(current))}` : "background: conic-gradient(from 90deg, #f43f5e, #f59e0b, #84cc16, #10b981, #06b6d4, #3b82f6, #8b5cf6, #ec4899, #f43f5e)"}"></i>Custom${own ? `<span>${escape(ink(current))}</span>` : ""}</button>`;
         // (A phone's sheet says what it's the color of: one of several, which.)
-        showMenu(anchor, `${title && phone.matches ? `<div class="menu-group">${escape(title)}</div>` : ""}${colors}${custom}${extra}`, (hit) => {
-          if (hit.pickCustom) colorPane(anchor, current, target, again, borrowed);
-          else if (hit.pickColor && (hit.pickColor !== current || borrowed)) apply(hit.pickColor);
-          else if (!hit.pickColor) onExtra(hit);
+        showMenu(anchor, `${title && phone.matches ? `<div class="menu-group">${escape(title)}</div>` : ""}${colors}${custom}`, (hit) => {
+          if (hit.pickCustom) colorPane(anchor, current, target, again);
+          else if (hit.pickColor && hit.pickColor !== current) apply(hit.pickColor);
         }, null, anchor.closest("#belt") ? beltSide() : "");
       }
       /** Custom: the surface alone, its color picked live (the page stays open), Bitview's colors a step back. */
-      function colorPane(/** @type {HTMLElement} */ anchor, /** @type {string} */ color, /** @type {string} */ target, /** @type {() => void} */ back, borrowed = false) {
-        showMenu(anchor, `<div class="field belt-pop color-pop color-pane"><span><button type="button" class="cap small" data-pane-back="1" aria-label="Bitview's colors" data-tip="Bitview's colors">${ICONS.back}</button>Custom</span><div class="color-box">${planeHtml(color, target)}${hexField(target, borrowed ? "" : color)}</div></div>`, ({ paneBack }) => paneBack && back(), null, anchor.closest("#belt") ? beltSide() : "");
+      function colorPane(/** @type {HTMLElement} */ anchor, /** @type {string} */ color, /** @type {string} */ target, /** @type {() => void} */ back) {
+        showMenu(anchor, `<div class="field belt-pop color-pop color-pane"><span><button type="button" class="cap small" data-pane-back="1" aria-label="Bitview's colors" data-tip="Bitview's colors">${ICONS.back}</button>Custom</span><div class="color-box">${planeHtml(color, target)}${hexField(target, color)}</div></div>`, ({ paneBack }) => paneBack && back(), null, anchor.closest("#belt") ? beltSide() : "");
         menuBack = back;
         drawPlanes();
         planeOf(target)?.focus({ preventScroll: true });
@@ -25481,7 +25371,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (look) colorMenu(button, look.color, "pen", (color) => {
           setLook("color", color);
           refocus(`#${button.id}`);
-        }, "", () => {}, false, () => ((now) => now && penColors(now))($(button.id)));
+        }, () => ((now) => now && penColors(now))($(button.id)));
       }
       /**
        * The surface's chroma at a lightness and hue: CHROMA, the same for every hue as OKLCH means it, eased down where
@@ -25559,7 +25449,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const l = lightAt((y + 0.5) / height);
             for (let x = 0; x < width; x++) {
               const u = (x + 0.5) / width, h = hueAt(u);
-              const rgb = oklchToLinear(l, Math.min(vivid(l, h), limit(l, h, 12)) * keepAt(u), h), i = (y * width + x) * 4;
+              // (Its limit searched for only where it's out of sRGB: the surface's kept in it, nearly always is.)
+              const chroma = vivid(l, h), wanted = oklchToLinear(l, chroma * keepAt(u), h), i = (y * width + x) * 4;
+              const rgb = inside(wanted) ? wanted : oklchToLinear(l, Math.min(chroma, limit(l, h, 12)) * keepAt(u), h);
               data[i] = gamma(clamp(rgb[0], 0, 1)) * 255;
               data[i + 1] = gamma(clamp(rgb[1], 0, 1)) * 255;
               data[i + 2] = gamma(clamp(rgb[2], 0, 1)) * 255;
@@ -26112,7 +26004,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...STARTERS.filter((starter) => starter.formulas.length === 1).map((starter) => recipe(starter.formulas[0].replaceAll("X", on.letter), `${starter.label} of ${labelOf(on)}`, starter.over)),
         ].filter((item) => !unfitHere([item.insert]));
       }
-      const formulaInputs = (self) => chart.layers.filter((layer) => layer !== self && layer.type !== "cloud" && !readsOf(layer).has(self?.letter ?? "")).map((layer) => ({ insert: layer.letter, title: layer.letter, text: labelOf(layer), layer: layer.id }));
+      const formulaInputs = (self) => chart.layers.filter((layer) => layer !== self && layer.type !== "cloud" && (!self || !readsOf(layer).has(self.letter))).map((layer) => ({ insert: layer.letter, title: layer.letter, text: labelOf(layer), layer: layer.id }));
       /** Whether a formula's only fault is that it isn't finished. */
       const isUnfinished = (/** @type {string} */ text) => {
         try {
@@ -26243,17 +26135,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       let pointerDown = false;
       addEventListener("pointerdown", () => (pointerDown = true), true);
-      for (const type of ["pointerup", "pointercancel"]) addEventListener(type, () => (pointerDown = false), true);
+      // (Its end: let go, or the window left, where a let go may never come here. A blur heard on the window, not
+      // captured, is the window's own.)
+      const PRESS_ENDS = /** @type {const} */ ([["pointerup", true], ["pointercancel", true], ["blur", false]]);
+      for (const [type, capture] of PRESS_ENDS) addEventListener(type, () => (pointerDown = false), capture);
       /** Now, or once the press under way is let go (its click done). @param {() => void} run */
       function afterPress(run) {
         if (!pointerDown) return run();
         const done = () => {
-          removeEventListener("pointerup", done, true);
-          removeEventListener("pointercancel", done, true);
+          for (const [type, capture] of PRESS_ENDS) removeEventListener(type, done, capture);
           setTimeout(run);
         };
-        addEventListener("pointerup", done, true);
-        addEventListener("pointercancel", done, true);
+        for (const [type, capture] of PRESS_ENDS) addEventListener(type, done, capture);
       }
       /**
        * An edit to one layer (or drawing), by its id; `editLayer`, to the selected one. A drawing's leaves the series as
@@ -26415,7 +26308,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("inspector").addEventListener("click", (event) => {
         const button = closest(event, "button");
         if (!button) return;
-        const { type, dash, shape, fill, place, side, priceLine, results, action, insert, index, reset, colorSelect, replace, removeLevel, lineColor, lineDash, lineTag, levelMenu, act, colorSlot: slot, pickColor, colorSource: source } = button.dataset;
+        const { type, dash, shape, fill, place, side, priceLine, results, action, insert, index, reset, colorSelect, replace, lineColor, lineDash, lineTag, levelMenu, act, colorSlot: slot, pickColor, colorSource: source } = button.dataset;
         const paletteKey = button.closest("[data-palette]")?.getAttribute("data-palette");
         if (index) switchInterval(index);
         else if (slot) colorSlot.set(`${chart.id}:${selected}`, slot), renderInspector();
@@ -26426,7 +26319,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (source === "auto") editById(selected, (item) => setColor(item, paletteKey, ""));
           renderInspector();
         } else if (pickColor && paletteKey) editById(selected, (item) => setColor(item, paletteKey, pickColor));
-        else if (colorSelect) layerColorMenu(button, colorSelect);
+        else if (colorSelect) underColorMenu(button);
         else if (act !== undefined) {
           const row = layerActions(selected, "panel")[Number(act)], at = chart.layers.findIndex((layer) => layer.id === selected);
           if (!row) return;
@@ -26436,7 +26329,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Removed: the focus on the row in its place, or the way to add one.)
           if (row.key === "remove") (all$(".layer-row .row-main", $("layer-list"))[Math.min(at, chart.layers.length - 1)] ?? /** @type {HTMLElement | null} */ (document.querySelector("#empty [data-action='add-series']")))?.focus();
         }
-        else if (action === "pane-menu") paneMenu(button, [selected], undefined, () => refocus("#pane"));
+        else if (action === "pane-menu") paneMenu(button, [selected], () => refocus("#pane"));
         else if (button.id === "trend-ref" || button.id === "signal-ref") refMenu(button, selected);
         else if (button.id === "signal-times") resolved?.results.get(selected)?.values ? openPage(timesPage(selected)) : notice("Its data is still loading");
         else if (place) editLayer((layer) => (layer.place = place === "above" ? undefined : place));
@@ -26470,11 +26363,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (The panel isn't drawn again under a level's value being typed (Safari leaves the focus there): the button says it.)
           button.setAttribute("aria-pressed", String(on));
           button.dataset.tip = on ? "Its value on the axis" : "Show its value on the axis";
-        }
-        else if (removeLevel) {
-          const i = Number(removeLevel);
-          editLayer((layer) => withoutLevel(layer, i));
-          refocus(i ? `#level-${i - 1}` : '[data-action="add-level"]');
         }
         else if (side) editLayer((layer) => (layer.side = side));
         else if (priceLine) editLayer((layer) => (layer.priceLine = priceLine === "1" || undefined));
@@ -26566,7 +26454,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return `<div class="level" role="listitem" data-level="${i}">
             <button type="button" class="cap small" data-line-color="${i}" aria-haspopup="menu" aria-label="${escape(said)}, its color: ${escape(colorName(color))}" data-tip="Color">${swatch(color)}</button>
             <input id="level-name-${i}" class="level-name named" style="--c:${escape(cssColor(color))}" enterkeyhint="done" aria-label="${escape(said)}, its name" placeholder="Name" type="text" autocomplete="off" spellcheck="false" maxlength="40" value="${escape(level.name ?? "")}" />
-            <span class="number-field"><span class="sign" aria-hidden="true">≥</span><input id="level-${i}" class="number-input" enterkeyhint="done" aria-label="${escape(said)}, its value" type="text" autocomplete="off" spellcheck="false" value="${level.value}" /><span class="unit"></span></span>
+            <span class="number-field"><span class="sign" aria-hidden="true">≥</span><input id="level-${i}" class="number-input" enterkeyhint="done" aria-label="${escape(said)}, its value" type="text" autocomplete="off" spellcheck="false" value="${level.value}" /></span>
             <button type="button" class="cap small" data-level-menu="${i}" aria-haspopup="menu" aria-label="More for the level ${escape(said.toLowerCase())}" data-tip="More">${ICONS.more}</button>
           </div>`;
         };
@@ -26607,7 +26495,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           refocus(`[data-line-${part}="${key}"]`);
           setLineLook(selected, key, part, value);
         };
-        if (part === "color") return colorMenu(anchor, current, `line:${key}`, apply, "", () => {}, false, () => {
+        if (part === "color") return colorMenu(anchor, current, `line:${key}`, apply, () => {
           const now = /** @type {HTMLElement | null} */ (document.querySelector(`#inspector [data-line-color="${key}"]`));
           if (now) lineMenu(now, key, "color");
         });
@@ -26871,7 +26759,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Adding a signal: its formula written in ⌘K's formula page, as a formula's is, started on one to change (its layer over its 200-day average). */
       function addSignal() {
-        const on = markable(chart, /** @type {any} */ ({}))[0];
+        const on = markable(chart)[0];
         if (!on) return notice("A signal marks a layer: add one first");
         if (!roomFor(chart)) return;
         openPalette({ formula: true, signal: true, query: `${on.letter} > sma(${on.letter}, 200d)` });
@@ -27048,7 +26936,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function refChoices(/** @type {string} */ id) {
         const trend = layerById(id);
         if (!trend) return [];
-        return (trend.type === "signal" ? markable(chart, trend) : refsFor(chart, trend).filter((layer) => oneScale(layer, trend) || layer.id === trend.ref)).map((layer) => ({ key: layer.id, icon: letterChip(layer), label: labelOf(layer), current: trend.ref === layer.id, run: () => trend.ref === layer.id || editById(id, (item) => (item.ref = layer.id)) }));
+        return (trend.type === "signal" ? markable(chart) : refsFor(chart, trend).filter((layer) => oneScale(layer, trend) || layer.id === trend.ref)).map((layer) => ({ key: layer.id, icon: letterChip(layer), label: labelOf(layer), current: trend.ref === layer.id, run: () => trend.ref === layer.id || editById(id, (item) => (item.ref = layer.id)) }));
       }
       /**
        * Formulas from a layer: the starters (each its first formula, on its letter), or one's own.
@@ -27837,7 +27725,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (palette.formula) return showFormula();
         if (palette.pages.length) return showPage();
         // In a folder, a search searches it first, at once (the crumbs say which), then every series, as the search answers:
-        // one list, one ↵ (browsing, a last row searches everything, commands and charts too).
+        // one list, one ↵.
         if (query && palette.path.length) {
           const words = query.toLowerCase().split(/[\s_]+/).filter(Boolean);
           const found = new Set();
@@ -27849,14 +27737,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             } else if (node && typeof node === "object") for (const key of Object.keys(node).reverse()) stack.push([aside(node, key), `${keys} ${humanizeKey(key)}`]);
           }
           const here = [...found].map((name) => ({ kind: "series", key: name, name, group: "In this folder" }));
-          const widen = palette.adding || palette.replacing ? [] : [{ kind: "widen", key: "widen", group: "Everything" }];
-          palette.items = [...here, ...widen];
+          palette.items = here;
           palette.active = 0;
           palette.moved = false;
           // (Searching, said by the glow, as the whole search says it, till every series is in; failing, said too.)
           $("palette-glow").hidden = false;
           renderPalette(true);
-          return searchSeries(query, (names) => [...here, ...(names ?? []).filter((name) => isSeriesName(name) && !found.has(name)).map((name) => ({ kind: "series", key: name, name, group: "Every series" })), ...widen]);
+          return searchSeries(query, (names) => [...here, ...(names ?? []).filter((name) => isSeriesName(name) && !found.has(name)).map((name) => ({ kind: "series", key: name, name, group: "Every series" }))]);
         }
         if (!query) {
           const node = nodeAt(palette.path);
@@ -28044,7 +27931,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // date, date >= 2020-05-11, too: a signal of them.)
         // (Series alone, only names the catalog has: before it's indexed, a search, "short-term" isn't short - term.)
         const names = seriesNamed(text), known = (/** @type {string} */ name) => isSeriesName(name) && (!catalogIndex || catalogIndex.has(name));
-        return letters.length > 0 || (isCondition(text) ? markable(chart, /** @type {any} */ ({})).length > 0 && (dated || names.some(known)) : names.length > 0 && names.every((name) => isSeriesName(name) && Boolean(catalogIndex?.has(name))));
+        return letters.length > 0 || (isCondition(text) ? markable(chart).length > 0 && (dated || names.some(known)) : names.length > 0 && names.every((name) => isSeriesName(name) && Boolean(catalogIndex?.has(name))));
       }
       /** Whether a formula is a condition (a comparison, or two joined): typed in ⌘K, it's added as a signal. */
       const isCondition = (/** @type {string} */ text) => {
@@ -28178,7 +28065,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return;
           }
           const doc = structuredClone(chart);
-          // Edited, the layer itself with the new formula; added, a new layer in a new pane.
+          // Edited, the layer itself with the new formula; added, a new layer: a signal on the layer it marks, else in the
+          // pane chosen (none: a new one).
           let layer = palette.editing ? doc.layers.find((item) => item.id === palette.editing) : null;
           if (layer) layer.formula = text;
           else if (asSignal(text)) doc.layers.push((layer = makeLayer({ formula: text, type: "signal", ref: markFor(doc, text)?.id }, doc)));
@@ -28322,7 +28210,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const searching = Boolean(palette.query.trim());
         const list = $("palette-list");
         const tail = pending ? `<li class="note"><span class="shimmer">Searching ${seriesCount ? grouped.format(seriesCount) : "every"} series…</span></li>` : note ? `<li class="note">${escape(note)}</li>` : "";
-        palette.items = palette.items.filter((item) => ((palette.replacing || palette.adding) && !palette.pages.length ? item.kind === "series" || item.kind === "folder" || item.kind === "widen" || (palette.adding && item.other) : item.kind !== "chart" || Boolean(chartById(item.key))));
+        palette.items = palette.items.filter((item) => ((palette.replacing || palette.adding) && !palette.pages.length ? item.kind === "series" || item.kind === "folder" || (palette.adding && item.other) : item.kind !== "chart" || Boolean(chartById(item.key))));
         // (Nothing found: the list alone, across.)
         $("palette").toggleAttribute("data-none", !palette.items.length && !pending);
         if (!palette.items.length) {
@@ -28390,8 +28278,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const end = blocked ? `<span class="item-meta">By block only</span>` : `<span class="item-meta"><code>${escape(item.name)}</code></span>${shown.has(item.name) ? `<span class="item-mark" role="img" aria-label="In this chart">${ICONS.check}</span>` : ""}`;
             return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="series" data-option="${i}" aria-selected="${i === palette.active}" ${blocked ? 'class="dim" aria-disabled="true"' : ""}>${item.group === "Recent series" ? ICONS.recent : ICONS.series}<span class="item-name">${searching ? highlightMatch(human, palette.query) : escape(human)}</span>${end}</li>`;
           }
-          const icon = item.kind === "widen" ? ICONS.browse : item.kind === "folder" ? ICONS.folder : item.kind === "command" ? ICONS[item.command.icon] ?? ICONS.series : doc ? chartMark(doc) : ICONS.series;
-          const name = item.kind === "widen" ? `Search everything for “${escape(palette.query.trim())}”` : item.kind === "folder" ? escape(humanizeKey(item.key)) : item.kind === "command" ? (searching ? highlightMatch(item.command.title, palette.query) : escape(item.command.title)) : doc ? (searching ? highlightMatch(titleOf(doc), palette.query) : escape(titleOf(doc))) : "";
+          const icon = item.kind === "folder" ? ICONS.folder : item.kind === "command" ? ICONS[item.command.icon] ?? ICONS.series : doc ? chartMark(doc) : ICONS.series;
+          const name = item.kind === "folder" ? escape(humanizeKey(item.key)) : item.kind === "command" ? (searching ? highlightMatch(item.command.title, palette.query) : escape(item.command.title)) : doc ? (searching ? highlightMatch(titleOf(doc), palette.query) : escape(titleOf(doc))) : "";
           const meta = item.kind === "folder" ? `<span class="item-mark"><span class="item-next" aria-hidden="true">${ICONS.next}</span></span>` : item.kind === "command" ? (item.command.current ? `<span class="item-mark" role="img" aria-label="In effect">${ICONS.check}</span>` : item.command.kbd && item.command.run && answers(item.command.kbd) ? `${keycaps(item.command.kbd)}` : "") : doc ? `<span class="item-meta">${plural(doc.layers.length, "layer")}</span>` : "";
           const idle = item.kind === "command" && !item.command.run && !item.command.current;
           return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}" ${idle ? 'class="dim" aria-disabled="true"' : ""}>${icon}<span class="item-name">${name}</span>${meta}</li>`;
@@ -28413,20 +28301,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A series this chart has already: another of it, said so.)
         const twin = !home && item?.kind === "series" && chart.layers.some((layer) => layer.series === item.name);
         const adds = home ? "New chart with it" : twin ? "Add again" : palette.into === "new" && chart.layers.length ? "Add to a new pane" : "Add to chart";
-        $("palette-primary").textContent = !item ? adds : item.kind === "widen" ? "Search" : item.kind === "command" ? (item.command.run ? "Run" : "Close") : item.kind === "chart" ? "Open chart" : item.kind === "folder" ? "Open folder" : palette.replacing ? "Use instead" : adds;
+        $("palette-primary").textContent = !item ? adds : item.kind === "command" ? (item.command.run ? "Run" : "Close") : item.kind === "chart" ? "Open chart" : item.kind === "folder" ? "Open folder" : palette.replacing ? "Use instead" : adds;
         if (item?.kind === "insert") $("palette-primary").textContent = item.recipe ? adds : "Insert";
         if (item?.kind === "row") $("palette-primary").textContent = item.verb ?? (item.page ? "Open" : "Run");
         if (item?.kind === "formula" && palette.editing) $("palette-primary").textContent = "Apply";
         $("palette-more").hidden = actionsFor(item).length < 2;
         // (A row saying how things are, or what's still wanting, has nothing for ↵ to do: esc says that.)
-        $("palette-enter").hidden = $("palette-close-sep").hidden = !item || (item.kind !== "formula" && item.kind !== "insert" && item.kind !== "widen" && item.kind !== "folder" && item.kind !== "chart" && !actionable(item));
+        $("palette-enter").hidden = $("palette-close-sep").hidden = !item || (item.kind !== "formula" && item.kind !== "insert" && item.kind !== "folder" && item.kind !== "chart" && !actionable(item));
         // (How many it found, while searching: the series' search stops at its 80, then "80+"; else how many series there are,
         // where they're searched. Not on a page, nor writing a formula.)
         $("palette-count").hidden = palette.pages.length > 0 || palette.formula;
         if (!$("palette-glow").hidden) $("palette-count").textContent = "";
         else if (palette.query.trim()) {
           // (A row to look elsewhere (out of this folder, or to browse instead) isn't one found.)
-          const found = palette.items.filter((row) => row.kind !== "widen" && !row.elsewhere).length, more = palette.items.filter((row) => row.kind === "series").length >= 80;
+          const found = palette.items.filter((row) => !row.elsewhere).length, more = palette.items.filter((row) => row.kind === "series").length >= 80;
           $("palette-count").textContent = found ? `${grouped.format(found)}${more ? "+" : ""} ${found === 1 && !more ? "result" : "results"}` : "No results";
           // (Said for a screen reader once the typing settles: one count a search, not one a key, nor again as the
           // highlight moves.)
@@ -28459,10 +28347,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         preview();
       }
 
-      let previewTimer = 0;
       const sparks = new Map();
       function preview() {
-        clearTimeout(previewTimer);
         updatePaletteKeys();
         const item = palette.items[palette.active];
         const panel = $("palette-preview");
@@ -28476,7 +28362,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (item.recipe) return previewFormula(panel, item);
         if (item.kind === "row") return previewRow(panel, item);
         if (item.kind === "insert" && !item.series) return void (panel.innerHTML = previewPiece(item));
-        if (item.kind === "widen") return void (panel.innerHTML = `<h4 class="plain">Everything</h4><p class="description">The same words, out of this folder: commands, charts and presets too, with every series.</p>`);
         if (item.kind === "folder") {
           const node = nodeAt(item.path);
           const keys = Object.keys(node ?? {}).filter((key) => node[key] && typeof node[key] === "object");
@@ -28533,12 +28418,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const key = `${name}@${index}`, count = index === "week1" ? 520 : 1500;
             const tail = () => {
               // (Kept for the last hundred looked at.)
-              if (sparks.size > 100) sparks.delete(sparks.keys().next().value);
-              if (!sparks.has(key)) sparks.set(key, client.seriesEndpoint(name, /** @type {"day1"} */ (index)).last(count).fetch().catch((error) => {
+              const kept = sparks.get(key);
+              if (kept) return lastUsed(sparks, key, kept);
+              const asked = client.seriesEndpoint(name, /** @type {"day1"} */ (index)).last(count).fetch().catch((error) => {
                 sparks.delete(key);
                 throw error;
-              }));
-              return sparks.get(key);
+              });
+              sparks.set(key, asked);
+              while (sparks.size > 100) sparks.delete(sparks.keys().next().value);
+              return asked;
             };
             // A series a chart loaded at that interval is at hand: its tail, without asking.
             const held = loads.get(key);
@@ -28615,7 +28503,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const going = [{ label: "Add and keep going", icon: ICONS.plus, kbd: "⌘↵", run: () => add(at, true) }, ...(recipe ? [{ label: "Change it first", icon: ICONS.pencil, kbd: "⇥", run: () => insertPiece(recipe) }] : [])];
           // (A signal: on a layer, the one it reads first; no pane of its own.)
           if (asSignal(text)) {
-            const first = markFor(chart, text), on = [...(first ? [first] : []), ...markable(chart, /** @type {any} */ ({})).filter((layer) => layer !== first)].map((layer, i) => ({ label: `Add on ${labelOf(layer)}`, icon: ICONS.signal, aside: layer.letter, ...(i ? {} : { kbd: "↵" }), run: () => add(at, false, layer.id) }));
+            const first = markFor(chart, text), on = [...(first ? [first] : []), ...markable(chart).filter((layer) => layer !== first)].map((layer, i) => ({ label: `Add on ${labelOf(layer)}`, icon: ICONS.signal, aside: layer.letter, ...(i ? {} : { kbd: "↵" }), run: () => add(at, false, layer.id) }));
             return [...on.slice(0, 1), ...going, ...on.slice(1)].map((action) => ({ ...action, stay: true }));
           }
           // Open until the formula is added, as with ↵: an unfinished one stays, to be finished.
@@ -28908,15 +28796,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** How many bars a signal's time is shown among, at most: what led to it and what followed, seen (zoomed out further, in to that). */
       const AROUND = 240;
       /** A bar's time, gone to: centered, among no more than AROUND bars (closer, at the zoom the chart has). @param {number} time */
-      function goToTime(time) {
-        // (Drawn first: a view set while it loads is the one it lands on undone.)
-        // (For this chart only: another opened meanwhile, it's dropped.)
-        const asked = navigations;
-        if (!settled()) return void until(settled, 4000).then(() => navigations === asked && goToTime(time));
+      function goToTime(time, go = ++dateGoes) {
+        // (Drawn first: a view set while it loads is the one it lands on undone. For this chart only, the latest Go: see
+        // afterDrawn.)
+        if (!settled()) return afterDrawn(go, () => goToTime(time, go));
         const range = view.timeScale().getVisibleLogicalRange(), at = resolved ? lowerBound(resolved.times, time) : -1;
         if (!range || !resolved) return;
         // (Not in what's loaded now (an interval since, the oldest let go): there by its date, loaded first.)
-        if (resolved.times[at] !== time) return goToDate({ from: time, to: time + INTERVAL_DAYS[chart.index] * 86400 - 1, day: true, label: pointLabel(time, chart.index) });
+        if (resolved.times[at] !== time) return goToDate({ from: time, to: time + INTERVAL_DAYS[chart.index] * 86400 - 1, day: true, label: pointLabel(time, chart.index) }, 0, go);
         const half = Math.min(AROUND, range.to - range.from) / 2;
         autoScale();
         glide({ from: at - half, to: at + half });
@@ -29026,7 +28913,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const since = new Set(statesOf(now)), redo = new Map([...undid].map(([from, to]) => [to, from]));
           return () => ((again) => again && (again.title ?? "") === was && renameChart(again, title, true, new Map([...redo, ...retitled(again, was, title, since)])))(chartById(doc.id));
         }, "Name put back");
-        Object.assign(doc, { title, updated: Date.now() });
+        doc.title = title;
+        stampEdit(doc);
         if (doc === chart) refresh("none");
         // (A chart started here, named: it's yours; another's preview stays one till kept.)
         if (isPreview(doc) && drafts.has(doc)) return keepPreview(false, doc);
@@ -29107,7 +28995,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           /** @type {Page | null} */
           let page = null;
           for (const [lead, rest, within] of splits) {
-            if (many && (within || lead.length > 4)) continue;
             const head = lead.map((word) => word.toLowerCase()), value = rest.join(" ");
             // The words name the setting itself, not only what it's of: "mvrv base 1", not "mvrv 1".
             const score = fitScore(name, head);
@@ -29149,7 +29036,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(chart.layers.length ? [
             { kind: "row", key: "add:cloud", icon: ICONS.cloud, label: "Cloud", aside: "Filled between two layers", words: "cloud band fill area between range cross edge", group: "Other layers", other: true, verb: "Add", page: () => cloudPage() },
           ] : []),
-          ...(markable(chart, /** @type {any} */ ({})).length ? [
+          ...(markable(chart).length ? [
             { kind: "row", key: "add:signal", icon: ICONS.signal, label: "Signal", aside: "Marks where a formula turns up or down", words: "signal mark marker when condition cross crosses above below event alert", group: "Other layers", other: true, verb: "Add", run: () => addSignal() },
           ] : []),
           ...(cloudable() ? [
@@ -29357,7 +29244,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc || (layer.series && isOhlc(layer.series))).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => retype(item, type)) }))) },
             ...(layer.type === "baseline" || layer.type === "histogram" ? [{ key: "base", icon: ICONS.ruler, label: "Base", aside: format(baseOf(layer), unit), group: "Style", page: () => numberPage({ title: "Base", value: String(baseOf(layer)), fallback: 0, apply: (n) => editById(id, (item) => (item.base = n || undefined)) }) }] : []),
             ...(layer.type === "baseline" ? [lineRow(id, "base", "Base line", "Style")] : []),
-            ...(modesOf(layer).length > 1 ? [{ key: "colors", icon: modeSwatch(layer, colorModeOf(layer)), label: "Colors", aside: modeName(layer, colorModeOf(layer)), words: `colors color way ${modesOf(layer).map((mode) => /** @type {Record<string, string>} */ (MODE_WORDS)[mode] + (mode === "sides" && layer.type === "trend" ? " resistance support" : mode === "sides" && layer.type === "cloud" ? " cross over under crossing" : "")).join(" ")}`, group: "Style", page: () => choicePage("Colors", () => colorModeChoices(id), lookOfChoice) }] : []),
+            ...(modesOf(layer).length > 1 ? [{ key: "colors", icon: modeSwatch(layer, colorModeOf(layer)), label: "Colors", aside: modeName(colorModeOf(layer)), words: `colors color way ${modesOf(layer).map((mode) => /** @type {Record<string, string>} */ (MODE_WORDS)[mode] + (mode === "sides" && layer.type === "trend" ? " resistance support" : mode === "sides" && layer.type === "cloud" ? " cross over under crossing" : "")).join(" ")}`, group: "Style", page: () => choicePage("Colors", () => colorModeChoices(id), lookOfChoice) }] : []),
             ...colorSlots(layer).map(([key, label]) => (key === "from"
               ? { key: "color-from", icon: source ? letterChip(source) : ICONS.series, label: "Colors from", aside: source ? labelOf(source) : "", group: "Style", page: () => choicePage("Colors from", () => fromChoices(id), lookOfChoice) }
               : color(key, colorSlots(layer).length > 1 || colorModeOf(layer) === "levels" ? `Color ${label.replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase())}` : "Color"))),
@@ -29791,11 +29678,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (item.recipe) return addFromPalette(item.into, keep, undefined, item);
         if (item.kind === "insert") return insertPiece(item);
         if (item.kind === "formula") return addFromPalette(undefined, keep);
-        if (item.kind === "widen") {
-          palette.path = [];
-          showPalette();
-          return;
-        }
         if (item.kind === "folder") {
           palette.path = item.path;
           showPalette();
@@ -29964,6 +29846,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** What opened the menu, as it is now: a redraw (the inspector's) puts a new one in its place, by the same id. */
       const ownerNow = () => (menuOwner && !menuOwner.isConnected && menuOwner.id ? document.getElementById(menuOwner.id) : menuOwner);
+      /** Each menu shown, counted (see Share: one shown since its press, gone again or not, and it shows nothing). */
+      let menusShown = 0;
       /**
        * A menu under (or over) its anchor, or at `point` for a right-click; focus goes back to the anchor. `side`: where
        * it opens, if it fits there (else across): "above", "below", "left" or "right" of what opened it. `asFlyout`: shown
@@ -29971,6 +29855,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function showMenu(anchor, html, onPick, /** @type {{ x: number, y: number } | null} */ point = null, side = "", asFlyout = false, named = "") {
         const menu = $("menu");
+        menusShown++;
         if (cascadeRow && !menu.hidden) return showSubmenu(cascadeRow, html, onPick);
         if (ownerNow() === anchor && !menu.hidden && !point) return hideMenu();
         hideSubmenu();
@@ -30833,19 +30718,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return null;
         }
       }
-      /** Each press of Share, numbered: one asked again (or let go) shows nothing of the one before. */
+      /** Each press of Share, numbered: one asked again (or moved on from) shows nothing of the one before. */
       let shareAsk = 0;
       $("share").addEventListener("click", () => {
         const button = $("share");
         // (Open: a press closes it, as a menu's button does.)
         if (ownerNow() === button && !$("menu").hidden) return hideMenu();
-        const doc = chart, ask = ++shareAsk, { copy, short } = linksOf(doc), copying = SHEET_SHARE ? Promise.resolve(false) : copyLink(copy);
+        const doc = chart, ask = ++shareAsk, shown = menusShown, { copy, short } = linksOf(), copying = SHEET_SHARE ? Promise.resolve(false) : copyLink(copy);
+        // (Anything pressed while it's made, a key or the page (Escape, elsewhere, ⌘K): moved on from it.)
+        const movedOn = () => ask === shareAsk && ++shareAsk;
+        for (const type of ["pointerdown", "keydown"]) addEventListener(type, movedOn, { capture: true, once: true });
         void (async () => {
           // (Its code as large as the popover takes: a phone's sheet, the screen's width.)
           const [copied, url, qr] = await Promise.all([copying, copy.catch(() => ""), short.then(qrCode)]);
+          for (const type of ["pointerdown", "keydown"]) removeEventListener(type, movedOn, true);
           if (!url) return notice("Couldn't make the link");
-          // (Pressed again, another chart or the grid shown, another menu opened meanwhile: nothing shown, what was done said.)
-          if (ask !== shareAsk || chart !== doc || document.body.hasAttribute("data-home") || !$("menu").hidden) return void (copied && toast("Copied a link: it opens this chart for anyone"));
+          // (Pressed again, moved on from, another chart or the grid shown, another menu opened meanwhile (closed since
+          // too): nothing shown, what was done said.)
+          if (ask !== shareAsk || shown !== menusShown || chart !== doc || document.body.hasAttribute("data-home") || !$("menu").hidden) return void (copied && toast("Copied a link: it opens this chart for anyone"));
           const done = SHEET_SHARE ? "" : copied ? "Link copied" : "Couldn't copy the link";
           const code = qr ? (SHEET_SHARE && phone.matches ? "Scan to open it on another phone" : "Scan to open it on a phone") : "Too long for a QR code";
           say([done, code].filter(Boolean).join(". "));
@@ -31021,7 +30911,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (!same()) return keptAsEdited([doc]);
             const now = chartById(doc.id);
             if (!now) return;
-            if (now) discard(now);
+            discard(now);
             if (chart.id === doc.id) openChart(chartById(before.id) ?? previousChart() ?? library.charts[0] ?? newDraft());
             save();
             renderCharts();
@@ -31167,26 +31057,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return Uint8Array.from(bytes);
       }
       /**
-       * A chart's links, from one compressing of it (the same chart in both): the one to copy, and the one for a QR code
-       * (base32: the fewest modules; compressing failed, the copy's, written out). @param {Chart} doc
+       * The open chart's links, from one compressing of it (the same chart in both): the one to copy, and the one for a QR
+       * code (base32: the fewest modules; compressing failed, the copy's, written out).
        */
-      function linksOf(doc) {
+      function linksOf(doc = chart) {
         // (A preset as it's made, shown as it opens (its range, the view at it, its own drawing there: one still loading
         // may come back to a view of its own): its address, which opens it, itself, wherever. Moved, zoomed, at another
         // range: the link, with the view.)
         const i = doc.preset !== undefined && !presetEdited(doc) ? presetIndex(doc) : -1;
-        const at = i >= 0 && (doc !== chart || (settled() && presetShown && chart.range === freshPreset(i).range)) ? addresses()?.presets[i] : null;
+        const at = i >= 0 && settled() && presetShown && doc.range === freshPreset(i).range ? addresses()?.presets[i] : null;
         if (at) return { copy: Promise.resolve(`${ORIGIN}${at}`), short: Promise.resolve(`${ORIGIN}${at}`) };
         const bytes = packedBytes(doc), copy = shareLink(doc, bytes);
         return { copy, short: bytes.then((packed) => `${location.href.replace(/[?#].*$/, "")}#c=${toBase32(packed)}`, () => copy) };
       }
       /**
-       * Base64 as bytes (`url`: its URL-safe alphabet), by the platform's own decoder where there's one (a byte at a time
-       * otherwise: the presets' half a megabyte, 17 ms against 0.1).
+       * A link's base64 as bytes, in either alphabet (its URL-safe one, or one with "+" and "/", as links always opened:
+       * its "+" read from the address as a space, a form's way, a "+" again), by the platform's own decoder where there's
+       * one (a byte at a time otherwise).
        */
-      function fromBase64(/** @type {string} */ text, url = false) {
-        // (A link's read in either alphabet, as it always was: one with "+" or "/" opens too.)
-        const plain = url ? text.replace(/-/g, "+").replace(/_/g, "/") : text;
+      function fromBase64(/** @type {string} */ text) {
+        const plain = text.replace(/[- ]/g, "+").replace(/_/g, "/");
         return /** @type {Uint8Array<ArrayBuffer>} */ (/** @type {any} */ (Uint8Array).fromBase64?.(plain) ?? Uint8Array.from(atob(plain), (char) => char.charCodeAt(0)));
       }
       /** Bytes as a link writes them: base64's URL-safe alphabet, unpadded (by the platform's own encoder where there's one). */
@@ -31199,7 +31089,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A compressed link's chart: base64url (`#chart=`), or base32 (`#c=`, a QR code's). @param {string} encoded */
       async function fromLink(encoded, base32 = false) {
-        const bytes = base32 ? fromBase32(encoded) : fromBase64(encoded, true);
+        const bytes = base32 ? fromBase32(encoded) : fromBase64(encoded);
         // A chart is a few kilobytes (its drawings at most, about a megabyte): inflating stops at two, whatever the link claims.
         const reader = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("deflate-raw")).getReader();
         const chunks = [];
@@ -31212,7 +31102,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
           chunks.push(value);
         }
-        // (A sketch, as now; a chart's whole record, as older links held it.)
+        // (A sketch, as now; a chart's whole record, as older links held it, read as it was written: no sketch's defaults.)
         const input = JSON.parse(await new Blob(chunks).text());
         if (input?.v === undefined) return readChart(input);
         const doc = validate(input);
@@ -31317,7 +31207,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(kind ? { [kind]: members } : {}),
             ...(typeof layer.ref === "string" ? { ref: letterId(layer.ref) } : {}),
             ...(typeof layer.colorFrom === "string" ? { colorFrom: letterId(layer.colorFrom) } : {}),
-            ...(layer.byLevels === true ? { byLevels: true } : {}),
           };
         }) };
       }
@@ -31404,7 +31293,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A layer named that isn't one: none, to pick (not another put in its place).)
         for (const layer of doc.layers) if (layer.ref) layer.ref = layerIds.get(layer.ref) ?? "";
         // (A signal said without its layer: marked on the first that can be.)
-        for (const layer of doc.layers) if (layer.type === "signal" && layer.ref === undefined) layer.ref = markable(doc, layer)[0]?.id;
+        for (const layer of doc.layers) if (layer.type === "signal" && layer.ref === undefined) layer.ref = markable(doc)[0]?.id;
         for (const layer of doc.layers) if (layer.colorFrom) layer.colorFrom = layerIds.get(layer.colorFrom);
         for (const layer of doc.layers) if (layer.from) layer.from = layer.from.flatMap((id) => (EDGES.includes(id) ? [id] : layerIds.has(id) ? [/** @type {string} */ (layerIds.get(id))] : []));
         // Drawings: each on a layer read, its points numbers (as many as its kind takes), its look where valid.
@@ -32174,7 +32063,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("guide").addEventListener("click", async (event) => {
         const kind = /** @type {HTMLElement | null} */ (closest(event, "[data-guide]"))?.dataset.guide;
         if (!kind) return;
-        const copied = await copyLink(kind === "link" ? linksOf(chart).copy : Promise.resolve(JSON.stringify(portable(chart), null, 2)));
+        const copied = await copyLink(kind === "link" ? linksOf().copy : Promise.resolve(JSON.stringify(portable(chart), null, 2)));
         copied ? toast(kind === "link" ? "Copied the link" : "Copied the JSON") : notice("Couldn't copy");
       });
       /** The shortcuts sheet opens on itself, not on a ringed close button. */
@@ -32362,13 +32251,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (action === "palette") openPalette({ resume: true, typing: target.hasAttribute("data-typing") });
         else if (action === "new-chart") newChart();
         else if (action === "close-preview") closePreview(chartById(target.dataset.preview ?? "") ?? chart);
-        // (From a chart, the page as it was left, where it was; on the page, its top: the phone's Charts as the sidebar's.)
-        else if (action === "home") home ? goTo({ top: true }) : showHome(true, leftPlace);
         else if (action === "add-series") openPalette({ add: true, typing: target.hasAttribute("data-typing") });
         else if (action === "leave-empty") leaveEmpty();
         else if (action === "import") $("import-file").click();
         else if (action === "download-all") downloadAll();
-        // (From a chart, the page as it was left, where it was; on the page, its top.)
+        // (From a chart, the page as it was left, where it was; on the page, its top: the sidebar's, the phone's tab's.)
         else if (action === "charts") home ? goTo({ top: true }) : showHome(true, leftPlace);
         else if (action === "toggle-sidebar") toggleSidebar();
         else if (action === "toggle-panel") togglePanel();
@@ -32676,7 +32563,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         event.preventDefault();
       });
 
-      // ── Keys on screen: hold ⌘ and every visible control shows the key it answers to ──
+      // ── Keys on screen: hold ⌘ and every visible control with a ⌘ key shows it ──
 
       const HOLD = MAC ? "Meta" : "Control";
       // The page's own keys as this platform writes them (the shortcuts sheet, "Hold ⌘", the search's ⌘K).
@@ -32741,7 +32628,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }, HINT_DELAY);
           return;
         }
-        // Once the keys are up, ⇧ keeps them (⇧F is among them); before, it's a chord like any other key.
+        // Once the keys are up, ⇧ keeps them (a ⌘⇧ key is among them); before, it's a chord like any other key.
         if (event.key === "Shift" && hinting()) return;
         // Any other key is a chord: the keys don't come up. Once up, they follow what the key changed (⌘1, ⌘2…).
         clearTimeout(hintTimer);
@@ -32843,8 +32730,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function widened(/** @type {Resolved} */ data, /** @type {number[]} */ added) {
         const grown = (/** @type {any} */ values) => {
           if (!values) return values;
-          const out = new Float64Array(values.length + added.length).fill(NaN);
+          const out = new Float64Array(values.length + added.length);
           out.set(values);
+          out.fill(NaN, values.length);
           ownLive.add(out);
           return out;
         };
@@ -32853,7 +32741,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const ohlc = result.ohlc && [...result.ohlc, ...added.map(() => null)];
           if (ohlc) ownLive.add(ohlc);
           // (A trend's breaks and sides too, a cloud's sides, none on the bars added.)
-          const more = (/** @type {Uint8Array | undefined} */ marks) => marks && Uint8Array.from({ length: marks.length + added.length }, (_, i) => marks[i] ?? 0);
+          const more = (/** @type {Uint8Array | undefined} */ marks) => marks && ((out) => (out.set(marks), out))(new Uint8Array(marks.length + added.length));
           return [id, { ...result, values, ohlc, ...(result.low ? { low: grown(result.low) } : {}), ...(result.breaks ? { breaks: more(result.breaks) } : {}), ...(result.sides ? { sides: more(result.sides) } : {}) }];
         }));
         return { ...data, times: [...data.times, ...added], results };
@@ -32875,8 +32763,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (added.length) {
           resolved = widened(resolved, added);
           // What's drawn now (a build from it is the same timeline, not one that grew).
-          drawnSpan = [resolved.times[0], /** @type {number} */ (resolved.times.at(-1))];
-          drawnPoints = resolved.times.length;
           drawnTimes = resolved.times;
         }
         const data = /** @type {Resolved} */ (resolved), at = data.times.length - 1, time = data.times[at];
@@ -32984,8 +32870,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let lostDrawings = 0;
       /**
        * The chart a link carries in the URL's hash, if any (let go once read: see clearLink): as JSON as one writes it (see
-       * the guide, the "About" section: "{" first, as typed or URL-encoded), else compressed (older links, the longest, and
-       * a QR code's, "#c=", in base32).
+       * the guide, the "About" section: "{" first, as typed or URL-encoded), else compressed, as Studio writes them ("#chart=",
+       * base64; a QR code's, "#c=", base32).
        * A chart already kept is the one opened, at the link's window (or its range, the link having none).
        */
       async function fromHash(run = linkRun, at = 0) {
@@ -33197,8 +33083,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         event.preventDefault();
         leavePicture();
       });
-      // A picture's page takes no keys for the chart out of sight under it (⌘K, P, a layer removed): its link's, as ever.
-      window.addEventListener("keydown", (event) => document.body.hasAttribute("data-picture") && !(/** @type {Element} */ (event.target)).closest?.("#picture") && event.stopImmediatePropagation(), true);
+      // A picture's page takes no keys for the chart out of sight under it (⌘K, P, a layer removed), wherever the focus
+      // is: its link's and button's own (↵, Tab) as ever, the browser's.
+      window.addEventListener("keydown", (event) => document.body.hasAttribute("data-picture") && event.stopImmediatePropagation(), true);
 
       /**
        * The chart open (or opening: failing as a script's open failed) drawn whole, with what data it has (its reveal and
@@ -33232,7 +33119,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!document.hidden) await new Promise((done) => (requestAnimationFrame(() => done(undefined)), setTimeout(done, Math.min(100, left()))));
         ended();
       }
-      /** The picture a script last had (see png): made once for the chart as it was, read again in parts. @type {{ key: string, wanted: string, url: string } | null} */
+      /** The picture a script last had (see png): made for the chart as it was, read again in parts. @type {{ wanted: string, url: string } | null} */
       let picture = null;
       /** A script's number checked: from `low` to `high`, else it's told so. */
       const bounded = (/** @type {unknown} */ value, /** @type {string} */ name, /** @type {number} */ low, /** @type {number} */ high) => {
@@ -33279,17 +33166,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const type = options.type ?? "image/png", quality = bounded(options.quality ?? 0.9, "quality", 0.01, 1), partSize = Math.round(bounded(options.partSize ?? 45_000, "partSize", 1000, 1e8));
           if (!["image/png", "image/webp", "image/jpeg"].includes(type)) throw new Error('type: "image/png", "image/webp" or "image/jpeg"');
           await studio.ready();
-          // (Made once for the chart as it is now: its drawing, its live price, its view, the theme, the size asked for.)
-          // (Its parts after the first from the same chart, cut alike.)
-          const wanted = JSON.stringify([chart.id, width, height, scale, type, quality, partSize]), key = JSON.stringify([contentOf(chart), drawVersion, liveMoves, view.timeScale().getVisibleLogicalRange(), light, wanted]);
-          // (A part after the first: from the picture made with it, whatever's moved since, a live price each second; one
-          // asked for otherwise, none.)
+          // (Made for the chart as it is now, whole or its part 0; its parts after the first from that same picture, of the
+          // same chart, cut alike, whatever's moved since (a live price each second); one asked for otherwise, none.)
+          const wanted = JSON.stringify([chart.id, width, height, scale, type, quality, partSize]);
           if (options.part !== undefined && options.part !== 0) {
             if (picture?.wanted !== wanted) throw new Error("Read part 0 first, of this chart, with the same options");
-          } else if (picture?.key !== key) {
+          } else {
             const at = navigations, url = (await chartImage({ width, height, scale })).toDataURL(type, quality);
             if (at !== navigations) throw new Error("Another chart was opened meanwhile");
-            picture = { key, wanted, url };
+            picture = { wanted, url };
           }
           if (options.part === undefined) return picture.url;
           const { url } = picture, mime = url.slice(5, url.indexOf(";")), base64 = url.slice(url.indexOf(",") + 1), parts = Math.ceil(base64.length / partSize);
@@ -33372,7 +33257,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const index = await sampleable(doc, sampleIndex(doc, "week1", QUICK_PICTURE.points)), copy = { ...structuredClone(doc), index };
           const data = await resolve(copy).catch(() => null);
           // (Not drawn, or some of it missing: not kept, asked again next time.)
-          if (!data || retryFailed(copy, data, index)) return void quickPictures.delete(key), null;
+          if (!data || retryFailed(data, index)) return void quickPictures.delete(key), null;
           const drawn = previewOf(copy, data, previewBars(doc, index), QUICK_PICTURE);
           // (Each layer's value at the picture's end, as the legend reads it there: a cloud to an edge, its one side.)
           const values = new Map(copy.layers.flatMap((layer) => {
@@ -33542,7 +33427,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         whenIdle(vividSoon, { timeout: 3000, settle: 1500 });
         // Charts this Studio couldn't read: kept aside, said once (again only when they change), to be had as a file
         // (Download all has them too).
-        const aside = storage.get(UNREAD, []), told = Array.isArray(aside) ? String(JSON.stringify(aside).length) : "";
+        const aside = storage.get(UNREAD, []), told = Array.isArray(aside) ? String(hashOf(JSON.stringify(aside))) : "";
         if (Array.isArray(aside) && aside.length && storage.get(`${UNREAD}:told`, "") !== told && storage.set(`${UNREAD}:told`, told)) notice(`${plural(aside.length, "saved chart")} couldn't be read here: kept aside`, { label: "Download", run: () => download("bitview-charts-kept-aside.json", new Blob([JSON.stringify({ v: 2, charts: aside }, null, 2)], { type: "application/json" })) });
       }
       // (Shown whatever start makes of it: one failing shows what it got to, not a page held out of sight.)

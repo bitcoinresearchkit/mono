@@ -37,9 +37,8 @@ const entries = (n) => (n && typeof n === "object" && !isLeaf(n) ? Object.entrie
 // ── Words ──────────────────────────────────────────────────────────────────
 
 const UNIT_WORDS = { h: ["hour", "hours"], d: ["day", "days"], w: ["week", "weeks"], m: ["month", "months"], y: ["year", "years"] };
-/** A window's key as said: `_24h` "24 hours", `_1w` "1 week", `_200d` "200 days", `cumulative` "All time". */
+/** A window's key as said: `_24h` "24 hours", `_1w` "1 week", `_200d` "200 days". */
 function windowLabel(/** @type {string} */ key) {
-  if (key === "cumulative") return "All time";
   const match = /^_(\d+)([hdwmy])$/.exec(key);
   if (!match) return key;
   const [, n, unit] = match, words = UNIT_WORDS[/** @type {keyof typeof UNIT_WORDS} */ (unit)];
@@ -105,9 +104,13 @@ const SKY = "#58bbc4";
 const LANDSCAPE = ["#3da8b4", "#25879d", "#176b8b", "#105272", "#093a5b", "#c9a54b", "#b68134", "#965a2f", "#714331", "#4b342e", "#83878a", "#666a6e", "#4b4f53", "#303438", "#181b1e"];
 /** The windows' colors, short to long: cool to warm around the wheel, the usual four (24 hours to 1 year) in blues. */
 const WINDOW_COLORS = ["cyan", "sky", "blue", "indigo", "violet", "purple", "fuchsia", "pink", "rose", "red", "orange", "amber", "yellow"];
-/** A family's members' colors, in their order: hues around the wheel, evenly, as many as there are. */
+/** Each ramp as made, by its count and hues (one a member's, asked for each of its family's members: made once). */
+const ramps = new Map();
+/** A family's members' colors, in their order: hues around the wheel, evenly, as many as there are. @returns {readonly string[]} */
 function ramp(/** @type {number} */ count, from = 25, to = 320) {
-  return Array.from({ length: count }, (_, i) => `oklch(0.72 0.15 ${Math.round(count > 1 ? from + ((to - from) * i) / (count - 1) : from)})`);
+  const key = `${count} ${from} ${to}`;
+  if (!ramps.has(key)) ramps.set(key, Array.from({ length: count }, (_, i) => `oklch(0.72 0.15 ${Math.round(count > 1 ? from + ((to - from) * i) / (count - 1) : from)})`));
+  return ramps.get(key);
 }
 /**
  * A baseline's two colors, the `i`th of `count` alike (its windows, short to long): green above its base and red below,
@@ -174,15 +177,15 @@ export function studioPresets(client, facts) {
    * logarithmic; else linear) and stacks.
    * @param {string} name @param {string} title @param {Layer[]} layers
    * `priceHidden`: the price on top starts hidden (a chart whose subject already moves with it, as market cap).
-   * @param {{ log?: number[], linear?: number[], stack?: Record<number, string>, sizes?: number[], range?: string, halvings?: boolean, priceHidden?: boolean }} [options]
+   * @param {{ log?: number[], stack?: Record<number, string>, range?: string, halvings?: boolean, priceHidden?: boolean }} [options]
    * @returns {ChartNode}
    */
   const chart = (name, title, layers, options = {}) => {
     const count = Math.max(1, ...layers.map((layer) => layer.pane ?? 1));
     const panes = Array.from({ length: count }, (_, i) => {
       const n = i + 1, withPrice = layers.some((layer) => (layer.pane ?? 1) === n && layer.type === "candles");
-      const log = options.log?.includes(n) || (withPrice && !options.linear?.includes(n));
-      return { mode: log ? 1 : 0, ...(options.stack?.[n] ? { stack: options.stack[n] } : {}), ...(options.sizes?.[i] ? { size: options.sizes[i] } : {}) };
+      const log = options.log?.includes(n) || withPrice;
+      return { mode: log ? 1 : 0, ...(options.stack?.[n] ? { stack: options.stack[n] } : {}) };
     });
     return { name, title, c: { layers, panes, ...(options.range ? { range: options.range } : {}), ...(options.halvings ? { halvings: true } : {}) }, ...(options.priceHidden ? { priceHidden: true } : {}) };
   };
@@ -203,7 +206,7 @@ export function studioPresets(client, facts) {
    * A measure over windows as layers: each window's series (`pick` takes it from the window's node), the month shown
    * (or those in `show`, none if it's empty), the others hidden; each labeled `what` and its window. Read `around` a
    * base (a ratio's 1, a change's 0): each a baseline there, in its shades.
-   * @param {any} node @param {string} what @param {{ pick?: (n: any) => any, show?: string[], pane?: number, colors?: string[], extra?: Layer, around?: number }} [options]
+   * @param {any} node @param {string} what @param {{ pick?: (n: any) => any, show?: string[], pane?: number, extra?: Layer, around?: number }} [options]
    * @returns {Layer[]}
    */
   const windows = (node, what, options = {}) => {
@@ -211,7 +214,7 @@ export function studioPresets(client, facts) {
     // (Said, as said, none at all too; else the month, or the longest where there's no month.)
     const shown = options.show ?? (list.some(([key]) => key === "_1m") ? ["_1m"] : [list.at(-1)?.[0]]);
     return list.map(([key, value], i) => series(pick(value), what ? `${what}, ${windowShort(key)}` : windowLabel(key), {
-      color: (options.colors ?? WINDOW_COLORS)[i % (options.colors ?? WINDOW_COLORS).length],
+      color: WINDOW_COLORS[i % WINDOW_COLORS.length],
       ...(shown.includes(key) ? {} : { hidden: true }),
       ...(options.pane ? { pane: options.pane } : {}),
       ...options.extra,
@@ -407,16 +410,16 @@ export function studioPresets(client, facts) {
   };
   /**
    * Percentiles of a price (`p5`… keys) over the price, as a fan: each its own line, the median solid, colored from
-   * low to high; with `more` layers after them. None, no chart.
-   * @param {any} node @param {string} name @param {string} title @param {Layer[]} [more] @param {{ log?: number[] }} [options]
+   * low to high. None, no chart.
+   * @param {any} node @param {string} name @param {string} title
    */
-  const percentiles = (node, name, title, more = [], options = {}) => {
+  const percentiles = (node, name, title) => {
     const list = entries(node).filter(([key, value]) => isLeaf(value) && Number.isFinite(percentile(key))).sort(([a], [b]) => percentile(a) - percentile(b));
     if (!list.length) return [];
     const colors = ramp(list.length, 25, 160);
     // (The median by its well-known name where it has one: a cohort's median realized or capitalized price.)
     const median = [node.medianRealizedPrice, node.medianCapitalizedPrice].find(isLeaf);
-    return [chart(name, title, [price(), ...list.map(([key, value], i) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color: colors[i], width: key === "median" ? 2 : 1 })), ...more], options)];
+    return [chart(name, title, [price(), ...list.map(([key, value], i) => series(key === "median" && median ? median : value, percentileLabel(percentile(key)), { color: colors[i], width: key === "median" ? 2 : 1 }))])];
   };
   /**
    * A rarity meter component's charts: its price bands over the price, with its reference price, and its ratio
@@ -732,8 +735,7 @@ export function studioPresets(client, facts) {
           ...windows(share, what, { extra: { color } }),
         ])),
         // (A day's issuance in dollars against its year's average, the server's rolling sums (the same at every interval):
-        // miners' income high or low for the time. From a year after the first price on: before it, issuance is worth 0,
-        // the year's sum short; the guard a year back, 1 or 0 over 0, hides it.)
+        // miners' income high or low for the time.)
         ((day, year) => chart("Puell multiple", "Puell multiple", [price(), { formula: `365 * ${day} / ${year}`, label: "Puell multiple", format: "ratio", pane: 2, ...around(1), levels: [{ value: 4, color: "red", dash: 3 }, { value: 0.5, color: "green", dash: 3 }] }], { log: [2] }))(mining.rewards.subsidy.sum._24h.usd.name, mining.rewards.subsidy.sum._1y.usd.name),
         ...["avg", "min", "max", "p10", "p25", "median", "p75", "p90"].filter((key) => mining.rewards.fees[key]).length
           ? [chart("Fees per block", "Fees per block", [...["avg", "min", "p10", "p25", "median", "p75", "p90", "max"].filter((key) => mining.rewards.fees[key]).flatMap((key, i) => windows(mining.rewards.fees[key], key === "avg" ? "Average" : key === "min" ? "Lowest" : key === "max" ? "Highest" : percentileLabel(percentile(key)), { pick: btc, show: key === "median" || key === "avg" ? ["_1m"] : [], extra: { color: ramp(8, 25, 300)[i] } }))], { log: [1] }),
@@ -1066,7 +1068,7 @@ export function studioPresets(client, facts) {
     const naming = (/** @type {string} */ key) => ({ name: holderName(key).name, who: holderName(key).of(holderName(on).name) });
     return holderSets(entries(cohorts).map(([key, c]) => [key, c[on]]), (members, by) => family(members, naming, { by: `${by}, ${holderName(on).name.toLowerCase()}`, charts: (key, c, who) => weighted(c, cohorts[key][off], who, onLabel, offLabel) }));
   }
-  /** Cointime by age band: coin days created and consumed, wakefulness, awake and dormant supply. @param {any} ranges */
+  /** Cointime by age band: coin days consumed, wakefulness, awake and dormant supply. @param {any} ranges */
   function cointimeBands(ranges) {
     const list = entries(ranges), name = (/** @type {string} */ key) => named(client.AGE_RANGE_NAMES, key).replace(/ old$/, ""), colors = ramp(list.length);
     return [
