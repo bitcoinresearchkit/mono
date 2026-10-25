@@ -63,6 +63,27 @@
         font: inherit;
       }
 
+      /* The way back to Bitview, as every showcase has it: in the screen's corner, over the scene (not turned with it). */
+      .brand {
+        position: fixed;
+        z-index: 10;
+        top: calc(env(safe-area-inset-top) + 16px);
+        left: calc(env(safe-area-inset-left) + 18px);
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--foreground);
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-decoration: none;
+
+        img {
+          width: 16px;
+          height: 19px;
+        }
+      }
+
       .app {
         --stage-scale: 1;
         --stage-rotation: 0deg;
@@ -428,6 +449,7 @@
     </style>
   </head>
   <body>
+    <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
     <main id="app" class="app">
       <canvas
         id="terrain"
