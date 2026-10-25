@@ -1136,13 +1136,18 @@
       /** A [lon, lat] as a point on the unit sphere. */
       const unit = (/** @type {number} */ lon, /** @type {number} */ lat) => [Math.cos(lat * RAD) * Math.cos(lon * RAD), Math.cos(lat * RAD) * Math.sin(lon * RAD), Math.sin(lat * RAD)];
 
+      /** The names placed this frame, as boxes. @type {number[][]} */
+      let placed = [];
       /** A name beside its mark, on whichever side it fits (neither: none), haloed in the page's color. */
       function label(/** @type {string} */ text, /** @type {number} */ x, /** @type {number} */ y, /** @type {number} */ radius) {
         const width = ctx.measureText(text).width;
         // (Clear of the box's faded top and bottom, where the planet runs past it.)
         if (W > H * 1.3 && (y < H * 0.12 || y > H * 0.86)) return;
-        const sides = [x + radius + 8, x - radius - 8 - width].filter((left) => left >= 4 && left + width <= W - 4);
+        // (Nor over a name already placed: the larger share, named first, keeps its place.)
+        const free = (/** @type {number} */ left) => !placed.some(([l, t, r, b]) => left < r && left + width > l && y - 10 < b && y + 6 > t);
+        const sides = [x + radius + 8, x - radius - 8 - width].filter((left) => left >= 4 && left + width <= W - 4 && free(left));
         if (!sides.length) return;
+        placed.push([sides[0] - 4, y - 12, sides[0] + width + 4, y + 8]);
         const right = sides[0] > x, tx = right ? sides[0] : sides[0] + width;
         ctx.textAlign = right ? "left" : "right";
         ctx.lineWidth = 4;
@@ -1222,6 +1227,7 @@
         ctx.globalAlpha = 1;
         // The five biggest and the one picked, named beside a mark at their middle.
         marks = [];
+        placed = [];
         [...byCountry].sort((a, b) => b[1] - a[1]).forEach(([cc, share], rank) => {
           const v = view(COUNTRIES[cc].at);
           if (v[2] <= 0.05) return;
