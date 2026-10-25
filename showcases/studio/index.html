@@ -7564,6 +7564,16 @@
         animation-duration: var(--dur-panel);
       }
 
+      /* (The tab bar, live through it: no picture of it as it was, nothing faded.) */
+      ::view-transition-old(tabs) {
+        display: none;
+      }
+
+      ::view-transition-group(tabs),
+      ::view-transition-new(tabs) {
+        animation: none;
+      }
+
       .mobile-bar {
         display: none;
       }
@@ -8254,7 +8264,9 @@
           grid-template-columns: 1fr 1fr 1fr 1fr;
           gap: 2px;
           padding: 4px;
-          transition: grid-template-columns var(--dur-layout) var(--ease-layout), padding var(--dur-layout) var(--ease-layout), opacity var(--dur-small) var(--ease), visibility var(--dur-small);
+          transition: opacity var(--dur-small) var(--ease), visibility var(--dur-small);
+          /* (Not in a change of place's crossfade: itself, live, its tabs moving as they do, see the page's transitions.) */
+          view-transition-name: tabs;
 
           .tab {
             position: relative;
@@ -8270,7 +8282,7 @@
             color: var(--muted);
             background: none;
             font: 510 10px/12px var(--sans);
-            transition: color var(--fade), background var(--fade), box-shadow var(--fade);
+            transition: color var(--fade), background var(--fade), box-shadow var(--fade), translate var(--dur-layout) var(--ease-layout);
 
             > span[data-icon] {
               display: grid;
@@ -8293,11 +8305,20 @@
           }
         }
 
-        /* (The Charts page's three, the bar's width between them: Layers, an open chart's, folds away as the page comes,
-           the gap before it taken from the bar's end, the ends alike.) */
+        /* (The Charts page's three, the bar's width between them: Layers, an open chart's, fades away as the page comes,
+           the others moving into thirds of it: moved, not laid out again, smooth whatever the page does meanwhile.) */
         body[data-home] .mobile-bar {
-          grid-template-columns: 1fr 1fr 1fr 0fr;
-          padding-right: 2px;
+          > :nth-child(1) {
+            translate: 16.667% 0;
+          }
+
+          > :nth-child(2) {
+            translate: 50% 0;
+          }
+
+          > :nth-child(3) {
+            translate: 83.333% 0;
+          }
         }
 
         #mobile-layers {
@@ -8342,9 +8363,9 @@
           }
         }
 
-        /* Where you are, on a tinted chip (a raised one, white on the white pill, didn't show in light): Charts, the grid
-           or a chart in it; Layers, while its sheet is open. */
-        body:not([data-sheet="panel"]) #mobile-charts,
+        /* Where you are, on a tinted chip (a raised one, white on the white pill, didn't show in light): Charts, on the
+           Charts page; Layers, while its sheet is open. */
+        body[data-home] #mobile-charts,
         body[data-sheet="panel"] #mobile-layers {
           color: var(--ink);
           background: var(--press);
@@ -8517,15 +8538,11 @@
             grid-template-columns: 1fr;
             grid-template-rows: 52px 52px 52px 52px;
             translate: 0 -50%;
-            transition: grid-template-rows var(--dur-layout) var(--ease-layout), padding var(--dur-layout) var(--ease-layout), opacity var(--dur-small) var(--ease), visibility var(--dur-small);
           }
 
-          /* (A rail: Layers folds up, the rail a tab shorter, its ends alike.) */
-          body[data-home] .mobile-bar {
-            grid-template-columns: 1fr;
-            grid-template-rows: 52px 52px 52px 0px;
-            padding-right: 4px;
-            padding-bottom: 2px;
+          /* (A rail: Layers fades away, the others moving down half a tab, centered in it.) */
+          body[data-home] .mobile-bar > :is(:nth-child(1), :nth-child(2), :nth-child(3)) {
+            translate: 0 50%;
           }
 
           /* (The grid's centered on what the rail leaves; the sheet's, in the sheet, at its foot.) */
