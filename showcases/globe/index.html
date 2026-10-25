@@ -453,6 +453,8 @@
         --name: 8.5rem;
         --value: 3.5rem;
         --gap: 12px;
+        /* (A row's plot: the rows, nine always, take their height before they load, so nothing moves when they do.) */
+        --plot: clamp(22px, 3.2vh, 30px);
 
         /* (On a phone: narrower names, no event labels (each row shows them), every fourth year.) */
         @media (max-width: 640px) {
@@ -512,6 +514,11 @@
           opacity: 0.35;
           cursor: default;
         }
+      }
+
+      .history .message {
+        min-height: calc(9 * (var(--plot) + 1px));
+        margin: 0;
       }
 
       .message {
@@ -583,7 +590,7 @@
         svg {
           display: block;
           width: 100%;
-          height: clamp(22px, 3.2vh, 30px);
+          height: var(--plot);
           padding-top: 3px;
         }
 
