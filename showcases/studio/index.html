@@ -10116,6 +10116,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const FINE_STEP = { minute10: 600, minute30: 1800, hour1: 3600, hour4: 14400, hour12: 43200 };
       /** An index's time (unix seconds, where its bucket starts) and the index a time falls in, by the client (a time before the first is in the first). */
       const timeAt = (/** @type {string} */ index, /** @type {number} */ i) => client.indexToDate(/** @type {"day1"} */ (index), i).getTime() / 1000;
+      /** Each index's times from its first, as far as they've been asked for: the same for every series at it, made once. @type {Map<string, number[]>} */
+      const indexTimes = new Map();
+      /** An index's times from `start`, `count` of them (a series' as loaded). */
+      function timesAt(/** @type {string} */ index, /** @type {number} */ start, /** @type {number} */ count) {
+        const times = indexTimes.get(index) ?? [];
+        indexTimes.set(index, times);
+        for (let i = times.length; i < start + count; i++) times.push(timeAt(index, i));
+        return times.slice(start, start + count);
+      }
       const indexAt = (/** @type {string} */ index, /** @type {number} */ time) => client.dateToIndex(/** @type {"day1"} */ (index), new Date(Math.max(time, timeAt(index, 0)) * 1000));
       /** A chunk's points, aligned on the indexes: the latest two load at first, then each the view reaches. */
       const CHUNK = 8000;
@@ -13697,7 +13706,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function load(name, index, fresh = false, span = /** @type {Span | null} */ (null)) {
         if (span) return loadSpan(name, index, span, fresh);
         const key = `${name}@${index}`;
-        const times = (/** @type {number} */ start, /** @type {number} */ count) => Array.from({ length: count }, (_, k) => timeAt(index, start + k));
+        const times = (/** @type {number} */ start, /** @type {number} */ count) => timesAt(index, start, count);
         return cachedLoad(loads, key, fresh, KEPT_LOADS, async (cached) => {
           askedAt.set(key, liveHeight);
           const endpoint = client.seriesEndpoint(name, /** @type {"day1"} */ (index));
