@@ -1312,6 +1312,14 @@ has to be deleted by hand.
   `/globe/`; was the root `index.html`), dotted folder names included (they answered 404); anything else answers 404
   (unknown paths without an extension served the root page)
 
+#### `quickmatch` and `quickmatch-js`
+
+- A query's adjacent words joined match an item word, as an item's adjacent words joined already matched a query
+  word: "hash rate" finds `hashrate` whole (so first), "hash ra" its start and "hash rates" its plural. The series
+  search lists `hashrate` first for "hash rate" (it was seventh, found only by descriptions saying "hash rate")
+- A query may have twice an item's words, plus two (was an item's words plus two), and be as much longer as an item
+  has words: each typed in two
+
 #### Rust APIs
 
 - `bitview_traversable::Compact<V, T>`: a vec stored in a compact type and published as a wider one under its id;
@@ -1685,6 +1693,12 @@ has to be deleted by hand.
   and `unrealized_pnl` use grid creation prices within 0.05% of each coin's, rounded to the cent per bucket, and
   weighted supply under a weight)
 
+#### `quickmatch` and `quickmatch-js`
+
+- A word one letter past another's end (a plural) takes the items of that whole word, not of every word starting with
+  it: a typo it held reads as the typo it is ("stas" finds `sats`; it found words starting "sta"), and a query matches
+  fewer items on part of its words
+
 ### Performance Improvements
 
 #### Compute and indexing
@@ -1775,6 +1789,7 @@ has to be deleted by hand.
 #### `quickmatch-js`
 
 - Indexes whole words and trigrams once into typed postings and merges them, with the same results
+- Two posting lists merge in one pass (both are sorted), as in Rust: a search over descriptions about 20% faster
 
 ### Internal Changes
 

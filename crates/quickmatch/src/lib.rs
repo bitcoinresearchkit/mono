@@ -27,8 +27,9 @@ fn select_and_sort(bucket: &mut [RankedItem], take: usize) {
 
 /// Instant search over a list of strings.
 ///
-/// Supports exact words, prefixes ("dom" → "dominance"), joined words
-/// ("hashrate" → "hash_rate"), and typo tolerance ("suply" → "supply").
+/// Supports exact words, prefixes ("dom" → "dominance"), joined words both ways
+/// ("hashrate" → "hash_rate", "hash rate" → "hashrate"), and typo tolerance
+/// ("suply" → "supply").
 /// Results are ranked: exact matches first, then by specificity.
 pub struct QuickMatch<'a> {
     items: Vec<Cow<'a, str>>,
@@ -38,8 +39,10 @@ pub struct QuickMatch<'a> {
     max_query_len: usize,
     /// Every word and adjacent-pair compound prefix (prefix and fuzzy search).
     word_index: FxHashMap<String, Vec<ItemId>>,
-    /// Complete words and compounds only (exact search).
-    exact_index: FxHashMap<String, Vec<ItemId>>,
+    /// Complete words only (exact search, and a plural's word).
+    exact_words: FxHashMap<String, Vec<ItemId>>,
+    /// Complete adjacent-pair compounds only (exact search).
+    exact_compounds: FxHashMap<String, Vec<ItemId>>,
     trigram_index: FxHashMap<[u8; 3], Vec<ItemId>>,
 }
 
@@ -60,7 +63,8 @@ impl<'a> QuickMatch<'a> {
         );
 
         let mut word_index: FxHashMap<String, Vec<ItemId>> = FxHashMap::default();
-        let mut exact_index: FxHashMap<String, Vec<ItemId>> = FxHashMap::default();
+        let mut exact_words: FxHashMap<String, Vec<ItemId>> = FxHashMap::default();
+        let mut exact_compounds: FxHashMap<String, Vec<ItemId>> = FxHashMap::default();
         let mut trigram_index: FxHashMap<[u8; 3], Vec<ItemId>> = FxHashMap::default();
         let mut max_word_len = 0;
         let mut max_query_len = 0;
@@ -80,7 +84,7 @@ impl<'a> QuickMatch<'a> {
                 for len in 1..=word.len() {
                     Self::insert_word(&mut word_index, &word[..len], id);
                 }
-                Self::insert_word(&mut exact_index, word, id);
+                Self::insert_word(&mut exact_words, word, id);
 
                 let mut bytes = word.bytes();
                 if let (Some(mut a), Some(mut b)) = (bytes.next(), bytes.next()) {
@@ -104,7 +108,7 @@ impl<'a> QuickMatch<'a> {
                     for len in from..=compound.len() {
                         Self::insert_word(&mut word_index, &compound[..len], id);
                     }
-                    Self::insert_word(&mut exact_index, &compound, id);
+                    Self::insert_word(&mut exact_compounds, &compound, id);
                 }
                 previous_word = Some(word);
             }
@@ -132,13 +136,15 @@ impl<'a> QuickMatch<'a> {
         };
 
         Self {
-            max_query_len: max_query_len + 6,
+            // (Each word typed in two, "hash rate", at most: a space more each.)
+            max_query_len: max_query_len + max_words + 6,
             max_word_len: max_word_len + 4,
-            max_word_count: max_words + 2,
+            max_word_count: 2 * max_words + 2,
             items,
             item_rank,
             word_index,
-            exact_index,
+            exact_words,
+            exact_compounds,
             trigram_index,
         }
     }
@@ -218,40 +224,50 @@ impl<'a> QuickMatch<'a> {
         let mut unmatched: Vec<&str> = vec![];
         let mut known_lists: Vec<&[ItemId]> = vec![];
 
-        // A word one letter past another's end, a plural or a slip there
-        // ("prices"): that one's items too.
-        let widened: Vec<Option<Vec<ItemId>>> = query_words
+        // Each word's items, and whether it's held only as a slip, not as a word
+        // of its own ("pice" past "pic"): its own, and those of it joined to the
+        // word before it ("hash rate" as "hashrate").
+        // (A pair the index holds nothing under fits nothing: left out.)
+        let typed = words(&query, &sep).collect::<Vec<_>>();
+        let joins = joins(&typed, &query_words, |pair, from| {
+            self.word_index.contains_key(pair)
+                || (!EXACT_WORDS
+                    && pair.len() >= 4
+                    && pair.len() - 1 > from
+                    && self.exact_words.contains_key(&pair[..pair.len() - 1]))
+        });
+        let held: Vec<Option<(Cow<'_, [ItemId]>, bool)>> = query_words
             .iter()
-            .map(|&word| {
-                if EXACT_WORDS || word.len() < 4 {
-                    return None;
-                }
-                let shorter = self.word_index.get(&word[..word.len() - 1])?;
-                Some(match self.word_index.get(word) {
-                    Some(own) => {
-                        let mut both = Self::union_lists(&[own.as_slice(), shorter.as_slice()]);
-                        both.sort_unstable();
-                        both
+            .zip(&joins)
+            .map(|(&word, pairs)| {
+                let mut lists: Vec<&[ItemId]> = vec![];
+                let mut firm = false;
+                // (`from`: a plural of the two joined takes more than the
+                // first, "hash rates", not "tatmaspool h".)
+                let joined = pairs.iter().filter(|pair| pair.second).map(|pair| (pair.text.as_str(), pair.from));
+                for (key, from) in iter::once((word, 0)).chain(joined) {
+                    if let Some(own) = self.word_index.get(key) {
+                        firm = true;
+                        lists.push(own);
                     }
-                    None => shorter.clone(),
-                })
-            })
-            .collect();
-        // Each word's items, and whether it's held only as such a slip, not as a
-        // word of its own ("pice" past "pic").
-        let held: Vec<Option<(&[ItemId], bool)>> = query_words
-            .iter()
-            .zip(&widened)
-            .map(|(&word, wide)| {
-                let own = self.word_index.get(word);
-                wide.as_deref().or(own.map(Vec::as_slice)).map(|items| (items, own.is_none()))
+                    // (A word one letter past another's end, a plural or a slip
+                    // there, "prices": that one's items too.)
+                    if !EXACT_WORDS
+                        && key.len() >= 4
+                        && key.len() - 1 > from
+                        && let Some(shorter) = self.exact_words.get(&key[..key.len() - 1])
+                    {
+                        lists.push(shorter);
+                    }
+                }
+                Self::sorted_union(&lists).map(|items| (items, !firm))
             })
             .collect();
         // A slip that leaves the words nothing in common, as the others have, is
         // read as a typo instead ("pice" as "price", not as "pic…").
         let slips_as_typos = {
-            let all = held.iter().flatten().map(|&(items, _)| items).collect::<Vec<_>>();
-            let firm = held.iter().flatten().filter(|&&(_, slip)| !slip).map(|&(items, _)| items).collect::<Vec<_>>();
+            let all = held.iter().flatten().map(|(items, _)| items.as_ref()).collect::<Vec<_>>();
+            let firm = held.iter().flatten().filter(|(_, slip)| !slip).map(|(items, _)| items.as_ref()).collect::<Vec<_>>();
             firm.len() != all.len()
                 && Self::intersect_lists(&all).is_some_and(|ids| ids.is_empty())
                 && !Self::intersect_lists(&firm).is_some_and(|ids| ids.is_empty())
@@ -260,10 +276,10 @@ impl<'a> QuickMatch<'a> {
         let mut slip_lists: Vec<&[ItemId]> = vec![];
         for (&word, held) in query_words.iter().zip(&held) {
             match held {
-                Some((items, slip)) if !(*slip && slips_as_typos) => known_lists.push(items),
+                Some((items, slip)) if !(*slip && slips_as_typos) => known_lists.push(items.as_ref()),
                 _ if word.len() >= 3 => {
                     if let Some((items, _)) = held {
-                        slip_lists.push(items);
+                        slip_lists.push(items.as_ref());
                     }
                     unmatched.push(word);
                     if unknown_words.len() < TRIGRAM_BUDGET {
@@ -275,10 +291,20 @@ impl<'a> QuickMatch<'a> {
         }
 
         if EXACT_WORDS {
+            // (A word, or it joined to one beside it, "hash rate": an item word
+            // it makes whole, "hashrate".)
             let known_lists = query_words
                 .iter()
-                .filter_map(|&word| self.exact_index.get(word).map(Vec::as_slice))
+                .zip(&joins)
+                .filter_map(|(&word, pairs)| {
+                    let lists = iter::once(word)
+                        .chain(pairs.iter().map(|pair| pair.text.as_str()))
+                        .flat_map(|key| self.exact(key))
+                        .collect::<Vec<_>>();
+                    Self::sorted_union(&lists)
+                })
                 .collect::<Vec<_>>();
+            let known_lists = known_lists.iter().map(AsRef::as_ref).collect::<Vec<_>>();
             if !config.union_fallback && known_lists.len() != query_words.len() {
                 return Vec::new();
             }
@@ -290,6 +316,7 @@ impl<'a> QuickMatch<'a> {
             return self.rank::<true>(
                 candidates.into_iter().map(|id| (id, 0)),
                 &query_words,
+                &joins,
                 &sep,
                 limit,
                 if config.union_fallback { 1 } else { query_words.len() },
@@ -331,7 +358,7 @@ impl<'a> QuickMatch<'a> {
                     let mut corrected = bytes.to_vec();
                     corrected.swap(at, at + 1);
                     let corrected = String::from_utf8(corrected).expect("query is ASCII");
-                    if let Some(hits) = self.exact_index.get(corrected.as_str()) {
+                    for hits in self.exact(&corrected) {
                         corrections[i].extend_from_slice(hits);
                     }
                 }
@@ -352,6 +379,7 @@ impl<'a> QuickMatch<'a> {
                     return self.rank::<false>(
                         candidates.into_iter().map(|id| (id, 0)),
                         &query_words,
+                        &joins,
                         &sep,
                         limit,
                         0,
@@ -372,6 +400,7 @@ impl<'a> QuickMatch<'a> {
                     s >= min_score && typos.iter_mut().all(|typo| typo.of(self.item(id), &sep))
                 }),
                 &query_words,
+                &joins,
                 &sep,
                 limit,
                 0,
@@ -396,6 +425,7 @@ impl<'a> QuickMatch<'a> {
         self.rank::<false>(
             candidates.into_iter().map(|id| (id, 0)),
             &query_words,
+            &joins,
             &sep,
             limit,
             0,
@@ -424,6 +454,50 @@ impl<'a> QuickMatch<'a> {
         )
     }
 
+    /// The items with `key` as a complete word, then as a complete compound.
+    fn exact<'k>(&'k self, key: &'k str) -> impl Iterator<Item = &'k [ItemId]> {
+        [&self.exact_words, &self.exact_compounds].into_iter().filter_map(move |index| index.get(key).map(Vec::as_slice))
+    }
+
+    /// Union of ascending posting lists, ascending (borrowed when there's one),
+    /// or `None` when there are none.
+    fn sorted_union<'l>(lists: &[&'l [ItemId]]) -> Option<Cow<'l, [ItemId]>> {
+        match lists {
+            [] => None,
+            [one] => Some(Cow::Borrowed(one)),
+            // (Two, the most often: in one pass, side by side.)
+            [a, b] => {
+                let mut merged = Vec::with_capacity(a.len() + b.len());
+                let (mut i, mut j) = (0, 0);
+                while i < a.len() && j < b.len() {
+                    match a[i].cmp(&b[j]) {
+                        Ordering::Less => {
+                            merged.push(a[i]);
+                            i += 1;
+                        }
+                        Ordering::Greater => {
+                            merged.push(b[j]);
+                            j += 1;
+                        }
+                        Ordering::Equal => {
+                            merged.push(a[i]);
+                            i += 1;
+                            j += 1;
+                        }
+                    }
+                }
+                merged.extend_from_slice(&a[i..]);
+                merged.extend_from_slice(&b[j..]);
+                Some(Cow::Owned(merged))
+            }
+            _ => {
+                let mut all = Self::union_lists(lists);
+                all.sort_unstable();
+                Some(Cow::Owned(all))
+            }
+        }
+    }
+
     /// Union of all posting lists.
     fn union_lists(lists: &[&[ItemId]]) -> Vec<ItemId> {
         lists
@@ -440,12 +514,13 @@ impl<'a> QuickMatch<'a> {
         &self,
         candidates: impl IntoIterator<Item = (ItemId, usize)>,
         query_words: &[&str],
+        joins: &[Vec<Pair>],
         sep: &[bool; 256],
         limit: usize,
         min_matched: usize,
     ) -> Vec<(u32, u32)> {
         let candidates = candidates.into_iter().filter_map(|(item, fuzzy)| {
-            let (matched, whole, position) = word_match(self.item(item), query_words, sep, EXACT_WORDS);
+            let (matched, whole, position) = word_match(self.item(item), query_words, joins, sep, EXACT_WORDS);
             (matched >= min_matched).then_some((item, fuzzy, matched, whole, position))
         });
         let mut buckets: Vec<Vec<RankedItem>> = vec![vec![]; query_words.len() + 1];
@@ -588,33 +663,102 @@ fn past(query_word: &str, item_word: &str) -> bool {
     query_word.len() >= 4 && query_word.len() == item_word.len() + 1 && query_word.starts_with(item_word)
 }
 
-/// Matches query words in any order against item words or adjacent joined pairs.
-/// Returns the matched count, how many of them match a word whole (or a joined
-/// pair whole: not a prefix, nor a plural), and the earliest item position (the
-/// item's word count when nothing matches).
-fn word_match(item: &str, query_words: &[&str], sep: &[bool; 256], exact: bool) -> (usize, usize, usize) {
+/// A query word joined to a word beside it as typed ("hash rate":
+/// "hashrate").
+struct Pair {
+    text: String,
+    /// The first word's length.
+    from: usize,
+    /// Whether the word it's of is the second.
+    second: bool,
+}
+
+/// Each query word's pairs: it joined to a word beside it as typed. Never
+/// across a word left out (too long), nor a word with itself; one that can't
+/// fit (`live` says, by the pair and its first word's length) left out.
+fn joins(typed: &[&str], query_words: &[&str], live: impl Fn(&str, usize) -> bool) -> Vec<Vec<Pair>> {
+    let mut joins: Vec<Vec<Pair>> = query_words.iter().map(|_| vec![]).collect();
+    for side in typed.windows(2) {
+        let (Some(a), Some(b)) = (
+            query_words.iter().position(|word| *word == side[0]),
+            query_words.iter().position(|word| *word == side[1]),
+        ) else {
+            continue;
+        };
+        let (text, from) = (format!("{}{}", side[0], side[1]), side[0].len());
+        if a == b || joins[b].iter().any(|pair| pair.text == text && pair.from == from) || !live(&text, from) {
+            continue;
+        }
+        joins[a].push(Pair { text: text.clone(), from, second: false });
+        joins[b].push(Pair { text, from, second: true });
+    }
+    joins
+}
+
+const FITS: u8 = 1;
+const WHOLE: u8 = 2;
+const JOINED: u8 = 4;
+
+/// How a query word (or two joined, the first `from` letters long; else 0)
+/// fits an item word, or the item word joined to the one before it: `FITS`, and
+/// `WHOLE` when it's not a prefix nor a plural, `JOINED` when it takes the word
+/// before; else 0. (A plural of two joined takes more than the first: "hash
+/// rates", not "tatmaspool h".)
+#[inline]
+fn fit(qw: &str, iw: &str, previous: Option<&str>, exact: bool, from: usize) -> u8 {
+    // (Too long for the word, a letter past it at most, and for it joined to
+    // the one before: most pairs are passed so.)
+    if iw.len() + 1 < qw.len() && previous.is_none_or(|pw| pw.len() >= qw.len()) {
+        return 0;
+    }
+    let rest = previous.filter(|pw| qw.len() > pw.len() && qw.starts_with(pw)).map(|pw| &qw[pw.len()..]);
+    let joined = rest.is_some_and(|rest| if exact { iw == rest } else { iw.starts_with(rest) });
+    if !joined && !(if exact { iw == qw } else { iw.starts_with(qw) || (past(qw, iw) && iw.len() > from) }) {
+        return 0;
+    }
+    FITS | if iw == qw || rest == Some(iw) { WHOLE } else { 0 } | if joined { JOINED } else { 0 }
+}
+
+/// Matches query words in any order against item words or adjacent joined
+/// pairs, an item's or the query's (`joins`). Returns the matched count, how
+/// many of them match a word whole (or a joined pair whole: not a prefix, nor a
+/// plural), and the earliest item position (the item's word count when nothing
+/// matches).
+fn word_match(
+    item: &str,
+    query_words: &[&str],
+    joins: &[Vec<Pair>],
+    sep: &[bool; 256],
+    exact: bool,
+) -> (usize, usize, usize) {
     let mut matched = 0;
     let mut whole = 0;
     let mut first_position = words(item, sep).count();
-    for qw in query_words {
+    for (&qw, pairs) in query_words.iter().zip(joins) {
+        let own = qw.as_bytes().first();
         let mut previous: Option<&str> = None;
         let mut found = false;
         for (position, iw) in words(item, sep).enumerate() {
-            let rest = previous.filter(|pw| qw.len() > pw.len() && qw.starts_with(pw)).map(|pw| &qw[pw.len()..]);
-            let joined = rest.is_some_and(|rest| if exact { iw == rest } else { iw.starts_with(rest) });
-            if (if exact {
-                iw == *qw
-            } else {
-                iw.starts_with(*qw) || past(qw, iw)
-            }) || joined
-            {
+            let letter = iw.as_bytes().first();
+            let letter_before = previous.and_then(|pw| pw.as_bytes().first());
+            // (The word, or it joined to one beside it, "hash rate" as
+            // "hashrate": either fits a word starting as it does, or the one
+            // before it; most are passed by a letter.)
+            let mut how = if letter == own || letter_before == own { fit(qw, iw, previous, exact, 0) } else { 0 };
+            for pair in pairs {
+                let start = pair.text.as_bytes().first();
+                if letter == start || letter_before == start {
+                    how |= fit(&pair.text, iw, previous, exact, pair.from);
+                }
+            }
+            if how & FITS != 0 {
                 if !found {
                     found = true;
                     matched += 1;
-                    first_position = first_position.min(if joined { position - 1 } else { position });
+                    first_position = first_position.min(if how & JOINED != 0 { position - 1 } else { position });
                 }
                 // (Held only as a prefix so far: a word further on may hold it whole.)
-                if iw == *qw || rest == Some(iw) {
+                if how & WHOLE != 0 {
                     whole += 1;
                     break;
                 }
