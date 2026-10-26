@@ -32177,12 +32177,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         resampled.drawImage(canvas, 0, 0, out.width, out.height);
         return out;
       }
-      /** The view's dates, as the foot says them, and the date of the values the legends show (the view's last point). */
+      /**
+       * The view's dates, as the foot says them, and the date of the values the legends show (the view's last point): each
+       * written whole, as "Values on" writes its own (the navigator's tight form, ’18, beside a whole 2026 read as two).
+       */
       function viewDates() {
         const times = resolved.times, span = view.timeScale().getVisibleRange();
         if (!times.length) return { span: "", values: "" };
-        const last = times[lastShown()];
-        return { span: spanParts(Number(span?.from ?? times[0]), Number(span?.to ?? last)).join(" – "), values: chart.legend === "off" ? "" : `Values on ${pointLabel(last)}` };
+        const last = times[lastShown()], [from, to] = [pointLabel(Number(span?.from ?? times[0])), pointLabel(Number(span?.to ?? last))];
+        return { span: from === to ? to : `${from} – ${to}`, values: chart.legend === "off" ? "" : `Values on ${pointLabel(last)}` };
       }
       /** A text cut with an ellipsis to fit a width, as the page cuts a long name. */
       function fitted(context, text, width) {
