@@ -406,5 +406,63 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   }
   say(`Points kept: 3 checks, ${lost.length} failing`);
   for (const f of lost) say(`  ✗ ${f}`);
-  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length };
+
+  // 7. A pan's line drawn from the frame before's points (patches 29, 30 and 36, the patched library alone): a simplified
+  // line and area panned a step a frame, their price range held then free, fills at half resolution, each frame's paths
+  // (strokes, fills) within the radius of every point in view (a quarter of a CSS pixel to a whole one, by the bars a
+  // pixel: see 29), at their canvas's own pixel ratios.
+  const far = []; let farChecks = 0;
+  {
+    const P = CanvasRenderingContext2D.prototype, keep = { moveTo: P.moveTo, lineTo: P.lineTo, stroke: P.stroke, fill: P.fill, beginPath: P.beginPath };
+    let path = [], paths = [];
+    P.beginPath = function () { path = []; return keep.beginPath.call(this); };
+    P.moveTo = function (x, y) { path.push([x, y]); return keep.moveTo.call(this, x, y); };
+    P.lineTo = function (x, y) { path.push([x, y]); return keep.lineTo.call(this, x, y); };
+    P.stroke = function () { paths.push({ kind: "stroke", canvas: this.canvas, points: path }); return keep.stroke.call(this); };
+    P.fill = function (...a) { paths.push({ kind: "fill", canvas: this.canvas, points: path }); return keep.fill.apply(this, a); };
+    const off = (px, py, line) => { let best = Infinity; for (let k = 1; k < line.length; k++) { const [ax, ay] = line[k - 1], [bx, by] = line[k]; if (Math.min(ax, bx) > px + 4 || Math.max(ax, bx) < px - 4) continue; const dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy, u = l ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l)) : 0; best = Math.min(best, Math.hypot(ax + u * dx - px, ay + u * dy - py)); } return best; };
+    try {
+      for (const kind of ["LineSeries", "AreaSeries"]) for (const held of [true, false]) {
+        document.getElementById("a").innerHTML = ""; window.__charts = [];
+        seed = 37;
+        const c = base(B, document.getElementById("a"), { bvHalfFills: true }), ts = c.timeScale(), data = walk(3000, 100, 0.02);
+        for (let k = 0; k < data.length; k += 97) data[k].value *= 1.08;
+        const series = c.addSeries(B[kind], { bvSimplify: true, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+        series.setData(data);
+        ts.setVisibleLogicalRange({ from: 900, to: 2600 });
+        await frames();
+        if (held) c.priceScale("right").applyOptions({ autoScale: false });
+        // (The pane's canvas: its bitmap over its CSS size; the fills' own, off the page, at half its ratios, see 30.)
+        const pane = [...document.getElementById("a").querySelectorAll("canvas")].reduce((a, b) => (b.width * b.height > a.width * a.height ? b : a));
+        const ratios = (canvas) => { const h = pane.width / ts.width(), v = pane.height / pane.getBoundingClientRect().height; return canvas.isConnected ? [h, v] : [h / 2, v / 2]; };
+        const p0 = ts.scrollPosition();
+        for (let step = 1; step <= 12; step++) {
+          ts.scrollToPosition(p0 - step * (step % 3 ? 7 : -11), false);
+          paths = [];
+          await frames();
+          const r = ts.getVisibleLogicalRange(), spacing = ts.logicalToCoordinate(1) - ts.logicalToCoordinate(0), longest = Math.max(0, ...paths.map((q) => q.points.length));
+          const drawn = paths.filter((q) => q.points.length > longest / 2 && (q.kind === "stroke" ? q.canvas === pane : !q.canvas.isConnected));
+          const label = `${kind}, range ${held ? "held" : "free"}, step ${step}`;
+          // (A frame drawing nothing passes nothing: its line, and an area's fill too, each checked.)
+          for (const want of kind === "AreaSeries" ? ["stroke", "fill"] : ["stroke"]) if (!drawn.some((q) => q.kind === want)) (farChecks++, far.push(`${label}: no ${want} drawn`));
+          for (const { kind: how, canvas, points: line } of drawn) {
+            const [h, v] = ratios(canvas), radius = Math.min(h, v) * Math.min(1, Math.max(0.25, 0.25 / spacing));
+            let worst = 0, at = -1;
+            for (let k = Math.max(0, Math.ceil(r.from)); k <= Math.min(data.length - 1, Math.floor(r.to)); k++) {
+              const x = ts.logicalToCoordinate(k);
+              if (x < 0 || x > ts.width()) continue;
+              const d = off(x * h, series.priceToCoordinate(data[k].value) * v, line);
+              if (d > worst) (worst = d), (at = k);
+            }
+            farChecks++;
+            if (!(worst <= radius + 0.01)) far.push(`${label}, its ${how} at ${h}×${v}: point ${at} ${worst.toFixed(2)} px off (radius ${radius.toFixed(2)}), ${line.length} points drawn`);
+          }
+        }
+        c.remove(); window.__charts = [];
+      }
+    } finally { Object.assign(P, keep); }
+  }
+  say(`A pan's line from the frame before's: ${farChecks} checks, ${far.length} failing`);
+  for (const f of far.slice(0, 10)) say(`  ✗ ${f}`);
+  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length };
 </script>

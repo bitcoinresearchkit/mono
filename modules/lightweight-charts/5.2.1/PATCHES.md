@@ -617,3 +617,38 @@ relative luminance against white's and black's): 4.5:1 or more on any color the 
   luminance's pick instead of `S(i)>160?"black":"white"`.
 
 Studio's own tags (a drawing's on the axis, a solid text's ground) pick alike (`textOn`).
+
+## 36. A pan's line drawn from the frame before's points
+
+A pan moves every point the same way, sideways: the same bars a pixel, the same prices to the same heights. Yet each
+frame simplified each line again (29), point by point over all of them in view: 24 stacked areas of ~3,100 points,
+~77,000 a frame. Where JavaScript runs without its JIT (iOS's Lockdown Mode: Studio's HODL waves on the phone), that
+walk was most of a frame (pans at 40 ms). Now a line's points kept in the frame before are drawn again where only the
+view moved: the same points array (new data is a new one), the same price mapping (its `bvMap`, see 4), the same bar
+spacing, pixel ratios and radius.
+
+After any point it keeps, the walk goes on exactly as one started at that point would: the point after it, a cone from
+it, nothing else carried. So the new frame's walk, from its own first point, joins the last frame's at the first point
+both keep; from there it's the last frame's points, drawn (but its last, kept only as the end of that frame's path),
+then the walk again from the last of them on to this frame's end. A frame's walk is its first points, until the two
+meet, and the ones newly in view; their coordinates are this frame's, each point within the radius of its line as
+before (the same points, moved by a fraction of a pixel's rounding).
+
+- `fe`: `bvB` (its bar spacing, `e`, as the `else` that shadows it starts); the kept record (`bvKeep`) holds the price
+  mapping (`y`, the points' `bvY`), `b`, `o`, `v` (pixel ratios) beside the paint, range and radius; a new paint with them
+  all the same (the radius to a billionth: its span's division rounds) takes the last list (`bvO`) and starts a new one.
+  As a point is kept (`lineTo` of the pending one), `bvJ` walks `bvO` (sorted) to it: the same, its later points before
+  this frame's end are drawn and recorded, the walk set back to a start at the last of them (`h`, `bvAx`/`bvAy`,
+  `bvP`, `bvF`, `bvD`), `bvO` let go.
+- Line-like `OM()`: the price mapping's key (`t.bvMap(n)`, already made for `bvRun`) set on the points as `bvY`.
+
+`tests.html`, 7: a simplified line and an area panned a step a frame (12 steps, back and forth), their price range held
+(the points kept) then free (made again), fills at half resolution (30), each frame's strokes and fills within the radius
+of every point in view, at their own canvas's pixel ratios (the pane's; the fills' own, half), a frame drawing no line
+(or an area no fill) failing: 144 checks, 0 failing, at 2x and at 1.25x; with the join taken at a later point than the
+one both keep, 78 failing.
+
+Measured, HODL waves (24 areas, 8.5 years in view), panning as a drag does (the right offset alone): the iPhone (Lockdown
+Mode), 2 s: 49 → 86 frames, median 40 → 22 ms, lost 1.2 → 0.6 s; a pan step's redraw, Chromium 2x 2.3–3.2 → 1.0–1.3 ms,
+Mullvad 2x 22.8 → 21.8 ms (its frame is the canvas's), windowed 24.4 → 22.5. "Realized price by age band" (24 lines):
+Chromium 2.2–2.8 → 0.9–1.0, Mullvad 11.1 → 10.0. A zoom (its bar spacing changing) walks all as before.
