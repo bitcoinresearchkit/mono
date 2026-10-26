@@ -25800,6 +25800,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const now = sharedBy(layers, (layer) => layer.type), ohlc = layers.every((layer) => resolved?.results.get(layer.id)?.ohlc || (layer.series && isOhlc(layer.series)));
         return `<div class="field"><span>Type<span class="color-now">${escape(now === undefined ? "Mixed" : TYPES.find(([type]) => type === now)?.[1] ?? "")}</span></span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${now === type}" aria-label="${text}" ${type === "candles" && !ohlc ? "aria-disabled=\"true\" data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>`;
       };
+      /**
+       * Several layers' color (one's has its own picker, colorPicker): where each is one color all along, Bitview's colors,
+       * the one they all have pressed ("Mixed" where they differ), picked for all of them; else none (a way of coloring
+       * of their own, which one color can't say).
+       */
+      const colorField = (/** @type {Layer[]} */ layers) => {
+        if (!layers.every((layer) => colorModeOf(layer) === "one")) return "";
+        const now = sharedBy(layers, (layer) => layer.color);
+        return `<div class="field"><span>Color<span class="color-now">${escape(now === undefined ? "Mixed" : colorName(now))}</span></span></div><div class="color-editor" data-palette="color"><div class="color-pick">${swatchGrid(now && SWATCHES.includes(now) ? now : "")}</div></div>`;
+      };
       const opacityField = (/** @type {Layer[]} */ layers) => `<div class="field"><span>Opacity${resetFor("opacity", layers)}</span>${slider("opacity", layers)}</div>`;
       const widthField = (/** @type {Layer[]} */ layers) => {
         if (!layers.every((layer) => layer.type !== "histogram" && layer.type !== "cloud" && layer.type !== "signal")) return "";
@@ -25843,7 +25853,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const key = `many:${layers.map((layer) => layer.id).join()}`, focus = inspected === key ? focusKey(panel) : null, another = inspected !== key;
         inspected = key;
         actionsShown = "";
-        const style = [typeField(layers), opacityField(layers), widthField(layers), lineField(layers), fillField(layers), priceLineField(layers)].join(""), layout = [paneField(layers), axisField(layers)].join("");
+        const style = [typeField(layers), colorField(layers), opacityField(layers), widthField(layers), lineField(layers), fillField(layers), priceLineField(layers)].join(""), layout = [paneField(layers), axisField(layers)].join("");
         rewrite(panel, `
           <div class="inspector-head">
             <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Back to the layers" data-kbd="esc">${ICONS.back}</button>
@@ -27264,7 +27274,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           colorSource.set(`${chart.id}:${selected}:${paletteKey}`, { source, color: source === "auto" ? undefined : layer && ownColor(layer, paletteKey) });
           if (source === "auto") editById(selected, (item) => setColor(item, paletteKey, ""));
           renderInspector();
-        } else if (pickColor && paletteKey) editById(selected, (item) => setColor(item, paletteKey, pickColor));
+        } else if (pickColor && paletteKey) editLayer((item) => setColor(item, paletteKey, pickColor));
         else if (colorSelect) underColorMenu(button);
         else if (act !== undefined) {
           const row = layerActions(selected, "panel")[Number(act)], at = chart.layers.findIndex((layer) => layer.id === selected);
