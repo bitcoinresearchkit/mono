@@ -12254,7 +12254,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const name of found.sharedTops) sharedTops.add(name);
           seriesCount = catalogIndex.size - byBlock.size;
           $("cta-label").textContent = `Search ${grouped.format(seriesCount)} series`;
-          whenIdle(rankTops);
+          whenIdle(ranksSoon);
           // (After what asked for it: its work isn't held up, nor failed, by this.)
           queueMicrotask(() => {
             // (Saved if that learned anything: a series' path, a formula's.)
@@ -23831,8 +23831,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           presetsArrived();
           renderCharts();
           // (Their addresses made while the page is idle: not by the first page change that names one, mid-change.)
-          whenIdle(() => void addresses());
-          whenIdle(rankTops);
+          whenIdle(addressesSoon);
+          whenIdle(ranksSoon);
           // (An address that waited for them, opened now.)
           if (pendingRoute && started) {
             // (Still on the step it was asked from, there; gone on since (a retry later, elsewhere), where it is now: a
@@ -23919,10 +23919,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * /presets/valuation/, a preset /presets/valuation/mvrv (a section's ending in a slash, as a folder's does: the page
        * knows which before they're read). Names as an address writes them: lowercase words joined by dashes, signs as words
        * (>4M RP: over-4m-rp; +90%: plus-90-percent). Two under one place still alike, each tagged by its own name (a short
-       * hash of it): an address is the same whatever else there is, and in whatever order.
+       * hash of it): an address is the same whatever else there is, and in whatever order. Made a few hundred places a
+       * step (a generator: the page makes them while it's idle, a slice at a time); addressesOf, all at once.
        * @param {{ p: string[] }[]} list
+       * @returns {Generator<void, { presets: string[], sections: Map<string, string>, at: Map<string, { path: string[] } | { preset: number }> }>}
        */
-      function addressesOf(list) {
+      function* addressSteps(list) {
+        const STEP = 200;
+        let done = 0;
         // (A name's word made once: names come again and again, a section's under each of its presets.)
         const words = new Map();
         const word = (/** @type {string} */ text) => words.get(text) ?? words.set(text, slug(text)).get(text);
@@ -23935,13 +23939,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         // (How many under one place would be written alike, sections and presets together: those, tagged.)
         const sectionPaths = new Map();
-        for (const preset of list) for (let depth = 1; depth < preset.p.length; depth++) sectionPaths.set(JSON.stringify(preset.p.slice(0, depth)), preset.p.slice(0, depth));
+        for (const preset of list) {
+          for (let depth = 1; depth < preset.p.length; depth++) sectionPaths.set(JSON.stringify(preset.p.slice(0, depth)), preset.p.slice(0, depth));
+          if (++done % STEP === 0) yield;
+        }
         const alike = new Map(), count = (/** @type {string} */ key) => alike.set(key, (alike.get(key) ?? 0) + 1);
         const keyOf = (/** @type {string[]} */ path) => `${JSON.stringify(path.slice(0, -1))}|${word(/** @type {string} */ (path.at(-1)))}`;
         // (Each path's key made once, for its count and its name alike.)
         const keys = new Map(), keyed = (/** @type {string[]} */ path) => ((at) => keys.get(at) ?? keys.set(at, keyOf(path)).get(at))(JSON.stringify(path));
         for (const path of sectionPaths.values()) count(keyed(path));
-        for (const preset of list) count(keyed(preset.p));
+        for (const preset of list) {
+          count(keyed(preset.p));
+          if (++done % STEP === 0) yield;
+        }
         const named = (/** @type {string[]} */ path) => ((name) => (alike.get(keyed(path)) > 1 ? `${word(name)}-${tag(name)}` : word(name)))(/** @type {string} */ (path.at(-1)));
         const sections = new Map([["[]", "/presets/"]]), at = /** @type {Map<string, { path: string[] } | { preset: number }>} */ (new Map([["/presets/", { path: [] }]]));
         const sectionAt = (/** @type {string[]} */ path) => {
@@ -23952,12 +23962,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           at.set(address, { path });
           return address;
         };
-        const presetsAt = list.map((preset, i) => {
+        const presetsAt = [];
+        for (const [i, preset] of list.entries()) {
           const address = `${sectionAt(preset.p.slice(0, -1))}${named(preset.p)}`;
           at.set(address, { preset: i });
-          return address;
-        });
+          presetsAt.push(address);
+          if (++done % STEP === 0) yield;
+        }
         return { presets: presetsAt, sections, at };
+      }
+      /** The presets' addresses, all at once (see addressSteps). @param {{ p: string[] }[]} list */
+      function addressesOf(list) {
+        const steps = addressSteps(list);
+        let step = steps.next();
+        while (!step.done) step = steps.next();
+        return step.value;
       }
       /* /addresses */
       /** Where Studio's served on a domain: DOMAIN/studio/, its own addresses (the presets') under it. */
@@ -23965,8 +23984,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether the page is Studio's own, at BASE (its server serving the page at every address under it): an address of the presets' read as it starts; elsewhere (a file, another server's), none. */
       const ROUTED = /^\/studio\/(?:$|presets(?:\/|$)|chart\/)/.test(location.pathname);
       /** The presets' addresses, made once they're read. */
-      let addressBook = /** @type {{ for: Preset[] | null, book: ReturnType<typeof addressesOf> | null }} */ ({ for: null, book: null });
-      const addresses = () => (!presets ? null : addressBook.for === presets ? addressBook.book : (addressBook = { for: presets, book: addressesOf(presets) }).book);
+      let addressBook = /** @type {{ for: Preset[] | null, steps: ReturnType<typeof addressSteps> | null, book: ReturnType<typeof addressesOf> | null }} */ ({ for: null, steps: null, book: null });
+      /** The presets' addresses as they are now: those made already, else the rest made at once. */
+      const addresses = () => {
+        if (!presets) return null;
+        if (addressBook.for !== presets) addressBook = { for: presets, steps: addressSteps(presets), book: null };
+        while (!addressBook.book) ((step) => step.done && (addressBook.book = step.value))(/** @type {NonNullable<typeof addressBook.steps>} */ (addressBook.steps).next());
+        return addressBook.book;
+      };
+      /** The presets' addresses made while the page is idle, a slice at a time (all at once, 27 ms of a phone's). @param {{ timeRemaining: () => number }} deadline */
+      const addressesSoon = (deadline) => {
+        if (!presets || (addressBook.for === presets && addressBook.book)) return;
+        if (addressBook.for !== presets) addressBook = { for: presets, steps: addressSteps(presets), book: null };
+        const steps = /** @type {NonNullable<typeof addressBook.steps>} */ (addressBook.steps);
+        do {
+          const step = steps.next();
+          if (step.done) return void (addressBook.book = step.value);
+        } while (deadline.timeRemaining() > 1);
+        whenIdle(addressesSoon);
+      };
       /**
        * What an address opens: a preset, a place of the presets'; none, nothing of theirs. Its slash as written, else the
        * other way (a section's without it, a preset's with it); an old preset's, /chart/ and its place, as /presets/ (a
@@ -27908,21 +27944,42 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return keys.sort((a, b) => (ranks.get(a) ?? last) - (ranks.get(b) ?? last));
       }
       /**
-       * The catalog's top folders ranked, once both the presets and the catalog are read (made at idle as either comes, see
-       * loadPresets and indexCatalog: not by the first ⌘K, 32 ms at a phone's 4× slower CPU). Whether they are.
+       * The catalog's top folders ranked, once both the presets and the catalog are read (made at idle as either comes, a
+       * slice at a time, see loadPresets and indexCatalog: not by the first ⌘K, 32 ms at a phone's 4× slower CPU); the rest
+       * at once where they're needed first. Whether they are.
        */
       function rankTops() {
         if (!presets || !catalogIndex) return false;
-        if (topRanks?.for === presets) return true;
-        const ranks = new Map();
-        presets.forEach((preset, i) => {
-          for (const layer of preset.c.layers) for (const name of [layer.series, ...(typeof layer.formula === "string" ? seriesNamed(layer.formula) : [])]) {
-            const top = typeof name === "string" && !sharedTops.has(name) ? catalogIndex?.get(name)?.split(".")[0] : undefined;
-            if (top && !ranks.has(top)) ranks.set(top, i);
-          }
-        });
-        topRanks = { for: presets, ranks };
+        const steps = rankSteps();
+        if (steps) while (!steps.next().done);
         return true;
+      }
+      /** The ranks made while the page is idle, a slice at a time (all at once, 30 ms of a phone's). @param {{ timeRemaining: () => number }} deadline */
+      function ranksSoon(deadline) {
+        const steps = presets && catalogIndex ? rankSteps() : null;
+        if (!steps) return;
+        do if (steps.next().done) return;
+        while (deadline.timeRemaining() > 1);
+        whenIdle(ranksSoon);
+      }
+      /** The ranks being made, a few hundred presets a step, for the presets they're of (none: made, or none yet). */
+      let ranking = /** @type {{ for: Preset[], steps: Generator<void, void> } | null} */ (null);
+      /** The ranks' steps, those left (null: they're made). */
+      function rankSteps() {
+        const list = /** @type {Preset[]} */ (presets);
+        if (topRanks?.for === list) return null;
+        if (ranking?.for !== list) ranking = { for: list, steps: (function* () {
+          const ranks = new Map();
+          for (const [i, preset] of list.entries()) {
+            for (const layer of preset.c.layers) for (const name of [layer.series, ...(typeof layer.formula === "string" ? seriesNamed(layer.formula) : [])]) {
+              const top = typeof name === "string" && !sharedTops.has(name) ? catalogIndex?.get(name)?.split(".")[0] : undefined;
+              if (top && !ranks.has(top)) ranks.set(top, i);
+            }
+            if ((i + 1) % 200 === 0) yield;
+          }
+          topRanks = { for: list, ranks };
+        })() };
+        return ranking.steps;
       }
       function showPalette() {
         // (Its list written anew (typed into, opened, a page turned): its row lit as keys light it, till the pointer moves.)
