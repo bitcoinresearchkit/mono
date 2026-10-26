@@ -610,13 +610,17 @@ Studio, the iPhone simulator, a fling at the latest bar's end: 121, 74, 37, 21, 
 
 A price axis's tag (a series' last value, its price line's, the crosshair's) writes its words black or white by the
 tag's grey (`0.199 r + 0.687 g + 0.114 b` over 160: black): a mid green, an orange, a blue, a violet took white at 2.7
-to 4:1 (Studio's MVRV green 2.7). Now the one of the two with the higher contrast, as WCAG measures it (the tag's
-relative luminance against white's and black's): 4.5:1 or more on any color the axis shows but the mid greys.
+to 4:1 (Studio's MVRV green 2.7). Now the one of the two that reads more on it, as APCA measures (its Lc: the tag's
+luminance, `0.2126729 r^2.4 + 0.7151522 g^2.4 + 0.072175 b^2.4`, soft-clamped near black, against white's and black's,
+each polarity its own exponents; the scale's offsets alike for both, left out). Not WCAG 2's ratio, which overrates black
+on a vivid color: it gave a red, a blue, a pink black, 4.6:1 to white's 4.3, where white reads twice as much (Lc 73 to
+37). Black stays on the light ones (yellow, lime).
 
-- `generateContrastColors` (minified: the method returning `{Z:` the background, `X:` the foreground `}`): `X:` the
-  luminance's pick instead of `S(i)>160?"black":"white"`.
+- `generateContrastColors` (minified: the method returning `{Z:` the background, `X:` the foreground `}`): `X:` white
+  where `1 − y^0.65 ≥ y^0.56 − Yk^0.57` (`y` the tag's clamped luminance, `Yk` black's, `0.022^1.414`), else black;
+  instead of `S(i)>160?"black":"white"`.
 
-Studio's own tags (a drawing's on the axis, a solid text's ground) pick alike (`textOn`).
+Studio's own tags (a drawing's on the axis, a solid text's ground) pick alike (`textOn`, `readsOn`).
 
 ## 36. A pan's line drawn from the frame before's points
 

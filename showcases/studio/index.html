@@ -18476,11 +18476,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
       }
       /**
-       * Words on a color (OKLCH, as shown): white or the ink's black, whichever reads more on it, as WCAG measures (as the
-       * chart's own tags pick, patch 35): by lightness alone, a mid green, an orange, a blue had white at 2.7-4:1.
+       * Words on a color (OKLCH, as shown): white or the ink's black, whichever reads more on it, as APCA measures (as the
+       * chart's own tags pick, patch 35): WCAG's ratio, which overrates black on a vivid color, gave a red, a blue, a pink
+       * black (4.6:1 to white's 4.3, where white reads twice as much: Lc 73 to 37); by lightness alone, a mid green, an
+       * orange had white at 2.7-4:1.
        * @param {[number, number, number]} oklch
        */
-      const textOn = (oklch) => ((ground) => (contrastOf(ground, "#ffffff") >= contrastOf(ground, "#08090a") ? "#ffffff" : "#08090a"))(oklchToHex(...oklch));
+      const textOn = (oklch) => ((ground) => (readsOn("#ffffff", ground) >= readsOn("#08090a", ground) ? "#ffffff" : "#08090a"))(oklchToHex(...oklch));
+      /** How much words in one color read on another, as APCA measures (its Lc, unsigned; sRGB hex, both). */
+      function readsOn(/** @type {string} */ text, /** @type {string} */ ground) {
+        const y = (/** @type {string} */ hex) => ((v) => (v < 0.022 ? v + (0.022 - v) ** 1.414 : v))([1, 3, 5].reduce((sum, i, k) => sum + (parseInt(hex.slice(i, i + 2), 16) / 255) ** 2.4 * [0.2126729, 0.7151522, 0.072175][k], 0));
+        const t = y(text), g = y(ground);
+        // (Dark words on a lighter ground, or light ones on a darker: each its own exponents.)
+        const s = 1.14 * (g > t ? g ** 0.56 - t ** 0.57 : t ** 0.62 - g ** 0.65);
+        return s < 0.1 ? 0 : (s - 0.027) * 100;
+      }
       /** Words on a color as it's named (shown as the theme tones it). */
       const contrastOn = (/** @type {string} */ color) => textOn(shownOklch(color));
       /** A color's luminance as WCAG reads it (sRGB hex), and two colors' contrast. */
