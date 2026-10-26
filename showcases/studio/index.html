@@ -3537,9 +3537,16 @@
         gap: 8px;
         margin-bottom: 24px;
 
+        /* A page's title, as an empty chart's heading is, and as its name typed in place (it had the browser's own: bold,
+           in the body's grey). */
         h1 {
           margin: 0;
           overflow: hidden;
+          color: var(--ink);
+          font-size: 28px;
+          font-weight: 590;
+          line-height: 1.2;
+          letter-spacing: -0.026em;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
@@ -4311,7 +4318,7 @@
         position: relative;
         border-radius: var(--radius-md);
         background: var(--field);
-        box-shadow: inset 0 0 0 1px var(--line-strong);
+        box-shadow: inset 0 0 0 1px var(--line);
 
         &:hover:where(.can-hover *) {
           box-shadow: inset 0 0 0 1px var(--faint);
@@ -4644,7 +4651,7 @@
         border-radius: var(--radius-md);
         color: var(--text);
         background: var(--field);
-        box-shadow: inset 0 0 0 1px var(--line-strong);
+        box-shadow: inset 0 0 0 1px var(--line);
         font: 13px var(--sans);
 
         &:is(:hover:where(.can-hover *), [aria-expanded="true"]) {
@@ -4690,7 +4697,7 @@
         height: 28px;
         border-radius: var(--radius-md);
         background: var(--field);
-        box-shadow: inset 0 0 0 1px var(--line-strong);
+        box-shadow: inset 0 0 0 1px var(--line);
         cursor: pointer;
         touch-action: pan-y;
         user-select: none;
@@ -5006,7 +5013,7 @@
           height: 28px;
           border-radius: 0 0 var(--radius-md) var(--radius-md);
           background: var(--field);
-          box-shadow: inset 1px 0 0 var(--line-strong), inset -1px 0 0 var(--line-strong), inset 0 -1px 0 var(--line-strong);
+          box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line);
           cursor: text;
 
           &:focus-within {
@@ -5367,7 +5374,7 @@
         padding: 0 6px;
         border-radius: var(--radius-md);
         background: var(--field);
-        box-shadow: inset 0 0 0 1px var(--line-strong);
+        box-shadow: inset 0 0 0 1px var(--line);
 
         .level {
           display: grid;
@@ -7793,10 +7800,10 @@
           justify-content: center;
           width: 28px;
           height: 28px;
-          border: 0;
           padding: 0;
           color: var(--soft);
           background: none;
+          box-shadow: none;
 
           &:hover:where(.can-hover *):not(:disabled) {
             color: var(--ink);
@@ -9286,6 +9293,12 @@
         :focus-visible {
           outline: 2px solid Highlight !important;
           outline-offset: 2px;
+        }
+
+        /* (A control edged by an inset ring, every one: the ring's a shadow, gone here; an outline in its place.) */
+        :is(.btn:not(.ghost), .tabs, .search, .home-filter, .search-cta, .navigator, #link-view, .field-cap, .stepper, .number-input, .preset, .hex-box, .formula-editor, .pane-scale) {
+          outline: 1px solid ButtonBorder;
+          outline-offset: -1px;
         }
 
         .layer-row:has(> .row-main:focus-visible) {
