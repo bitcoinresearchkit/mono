@@ -31,7 +31,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     #[traversable(skip)]
     db: Database,
 
-    /// Separate open, high, low, and close views of BRK's block-level BTC/USD
+    /// Separate open, high, low, and close views of Bitview's block-level BTC/USD
     /// price series for each supported time period. Heights before 340,000 use
     /// baked historical exchange prices; later heights use an on-chain oracle
     /// that estimates price from round-USD transaction-output patterns. Zero
@@ -47,7 +47,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// there, and earlier periods are flat zero candles.
     #[traversable(lead = "Candles: each period's opening, highest, lowest and closing prices.")]
     ohlc: OhlcPrice,
-    /// BRK's block-level Bitcoin (BTC/USD) spot-price estimate. Heights before
+    /// Bitview's block-level Bitcoin (BTC/USD) spot-price estimate. Heights before
     /// 340,000 use baked historical exchange prices; later heights use an on-chain oracle
     /// that estimates price from round-USD transaction-output patterns. This is
     /// a model-derived block price, not a contemporaneous exchange ticker. Before

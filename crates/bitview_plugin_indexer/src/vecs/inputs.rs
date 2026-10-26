@@ -55,11 +55,11 @@ pub struct InputsVecs<M: StorageMode = Rw> {
     pub txout_index: Compact<PcoVec<TxInIndex, TxOutIndex>, Option<TxOutIndex>, M>,
     /// The transaction containing the input.
     pub tx_index: M::Stored<PcoVec<TxInIndex, TxIndex>>,
-    /// BRK locking-script classification of an output. At `txout_index`, this
+    /// Bitview's locking-script classification of an output. At `txout_index`, this
     /// classifies the indexed output; at `txin_index`, it classifies the
     /// previous output spent by the input. Coinbase inputs use `unknown_script`.
     pub output_type: M::Stored<PcoVec<TxInIndex, OutputType>>,
-    /// Zero-based index within the output's BRK type-specific collection. At
+    /// Zero-based index within Bitview's collection of the output's type. At
     /// `txout_index`, this identifies the indexed output; at `txin_index`, it
     /// identifies the previous output spent by the input, null for a coinbase
     /// input. Address types index distinct addresses, while other types index

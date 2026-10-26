@@ -1196,6 +1196,8 @@ has to be deleted by hand.
   exact definition as before. The definitions keep their Markdown (paragraphs, lists, code, fenced blocks; each
   paragraph's source lines joined; they were one line, their paragraphs run together). 99% of the series have a lead;
   the rest are internal indexes. The search reads both
+- Descriptions name Bitview, not BRK, where a series is Bitview's: the price's ("Bitview's block-level BTC/USD"),
+  nonstandard transactions' and the output type's and its index's
 - `GET /api/series/{name}` returns `unit`, what the value type measures (e.g. "A duration in days."), and `nullable`,
   the indexes whose values can be `null`; the catalog carries `nullable` too. Every series value type has a description
 - Bedrock entry supply and capital, `bedrock.<mode>.{entry_supply, entry_capital}.{p95_to_p98, p98_to_p99,

@@ -57,7 +57,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub fees: FeesVecs<M>,
     inscription: InscriptionVecs<M>,
     patterns: PatternsVecs<M>,
-    /// Transactions nonstandard under BRK's transaction-local approximation of
+    /// Transactions nonstandard under Bitview's transaction-local approximation of
     /// default Bitcoin Core relay standardness at the represented block height.
     /// It checks version, size and weight, scripts and witnesses,
     /// signature-operation limits, dust, and `OP_RETURN` policy. It does not
