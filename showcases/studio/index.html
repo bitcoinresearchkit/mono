@@ -4107,19 +4107,43 @@
         .many-letters {
           display: flex;
 
+          /* (Each on its tint over the panel's ground, opaque where they overlap; its own edge, and a ring of the ground
+             parting it from the one before.) */
+          > .letter {
+            background: linear-gradient(color-mix(in srgb, var(--c) 13%, transparent), color-mix(in srgb, var(--c) 13%, transparent)), var(--panel-ground, var(--card));
+          }
+
           > .letter + .letter {
             margin-left: -6px;
-            box-shadow: 0 0 0 2px var(--panel-ground, var(--card));
+            box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 18%, transparent), 0 0 0 2px var(--panel-ground, var(--card));
           }
         }
 
+        /* (Their names under it, quiet, cut at the end: what's edited, said on any screen, no tip needed.) */
         .many-name {
+          display: grid;
           flex: 1;
           min-width: 0;
-          padding: 4px 6px;
+          padding: 0 6px;
           color: var(--ink);
           font-size: 13px;
           font-weight: 590;
+          line-height: 17px;
+        }
+
+        .many-of {
+          overflow: hidden;
+          color: var(--muted);
+          font: 400 11px/15px var(--sans);
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        /* (Past four, how many more, their names its tip.) */
+        .letter.rest {
+          --c: var(--muted);
+          --t: var(--text);
+          font-variant-numeric: tabular-nums;
         }
       }
 
@@ -10770,14 +10794,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The formats that start a group in the format menu. */
       const FORMAT_GROUPS = new Set(["usd", "percent", "days", "bytes", "hashrate", "coindays"]);
       /** A layer's letter, its badge wherever it shows (the panel, ⌘K's rows, its previews): in its color. @param {Layer} layer */
-      function letterChip(layer) {
+      /** `tip`: its name as its tip, where the letter stands alone for it (several layers' heads). */
+      function letterChip(layer, tip = false) {
         const colored = (layer.colorFrom && ownerOf(layer)?.layers.find((other) => other.id === layer.colorFrom)) || layer;
         const color = ink(colored.color);
         // (Its letter in a tone of it that reads on its own tint, 4.5:1, on each ground it's on: the card, a raised
         // surface, a lit row on it; the tint and edge its color.)
         const grounds = [css("--card"), css("--raise"), laidOver(css("--raise"), light ? "#000000" : "#ffffff", 0.07)];
         const tone = grounds.reduce((each, ground) => wordsOn(each, laidOver(ground, color, 0.13)), color);
-        return `<span class="letter" style="--c:${escape(color)};--t:${escape(tone)}">${escape(layer.letter)}</span>`;
+        return `<span class="letter" style="--c:${escape(color)};--t:${escape(tone)}"${tip ? ` data-tip="${escape(labelOf(layer))}"` : ""}>${escape(layer.letter)}</span>`;
       }
       /** A layer's format by name: the one chosen, or "Automatic" with its unit's. */
       const formatName = (layer, result) => (layer.format ? FORMATS.find(([format]) => format === layer.format)?.[1] ?? "Number" : `Automatic (${UNIT_NAMES[unitFor({ ...layer, format: undefined }, result)] ?? "Number"})`);
@@ -20799,7 +20824,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return `<div class="tile ${on ? "picked" : ""} ${preview ? "preview" : ""} ${preview && touched.has(doc) ? "edited" : ""}" data-home-card="${doc.id}" data-chart="${doc.id}">
             <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</span>${plotHtml(doc)}</button>
             <button type="button" class="cap small tile-more" data-tile-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button>
-            ${preview ? "" : `<input type="checkbox" class="pick-check tile-check" style="--tick:${escape(tickOn("ink"))}" aria-label="Select ${title}" ${on ? "checked" : ""} />`}
+            ${preview ? "" : `<input type="checkbox" class="pick-check tile-check" style="--tick:${escape(tickOn("ink"))}" aria-label="Select ${title}" data-tip="${on ? "Deselect" : "Select"}" ${on ? "checked" : ""} />`}
           </div>`;
       }
       /**
@@ -21478,7 +21503,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const tile of all$(".tile:not(.preview)", $("home-grid"))) {
           const on = picked.has(/** @type {string} */ (tile.dataset.homeCard));
           tile.classList.toggle("picked", on);
-          /** @type {HTMLInputElement} */ (tile.querySelector(".tile-check")).checked = on;
+          ((check) => ((check.checked = on), (check.dataset.tip = on ? "Deselect" : "Select")))(/** @type {HTMLInputElement} */ (tile.querySelector(".tile-check")));
         }
         $("home-bar").hidden = n === 0;
         document.body.toggleAttribute("data-charts-picked", n > 0);
@@ -25097,7 +25122,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const loading = layer.series && !result;
               const sub = result?.error ? `<span class="sub error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>` : layer.from ? `<span class="sub">${escape(fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`)}</span>` : layer.formula !== undefined ? (layer.label ? `<span class="sub code">ƒ ${escape(layer.formula)}</span>` : `<span class="sub">${escape(formulaLine(layer))}</span>`) : `<span class="sub code">${escape(layer.series ?? "")}</span>`;
               return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
-                <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" ${layerPicks.has(layer.id) ? "checked" : ""} />
+                <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" data-tip="${layerPicks.has(layer.id) ? "Deselect" : "Select"}" ${layerPicks.has(layer.id) ? "checked" : ""} />
                 <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}>
                   ${letterChip(layer)}
                   <span class="row-text"><span class="name">${escape(labelOf(layer))}</span>${sub}</span>
@@ -25264,7 +25289,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           row.classList.toggle("picked", on);
           row.classList.toggle("selected", row.dataset.layer === selected);
           row.querySelector(".row-main")?.toggleAttribute("aria-current", row.dataset.layer === selected);
-          /** @type {HTMLInputElement} */ (row.querySelector(".row-check")).checked = on;
+          ((check) => ((check.checked = on), (check.dataset.tip = on ? "Deselect" : "Select")))(/** @type {HTMLInputElement} */ (row.querySelector(".row-check")));
         }
         for (const item of all$(".legend [data-select]")) item.classList.toggle("selected", item.dataset.select === selected || layerPicks.has(/** @type {string} */ (item.dataset.select)));
         // (Marked here, not as last written: the next writes write them whole.)
@@ -25687,8 +25712,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         rewrite(panel, `
           <div class="inspector-head">
             <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Back to the layers" data-kbd="esc">${ICONS.back}</button>
-            <span class="many-letters">${layers.slice(0, 4).map(letterChip).join("")}</span>
-            <span class="many-name">${plural(layers.length, "layer")}</span>
+            <span class="many-letters">${layers.slice(0, 4).map((layer) => letterChip(layer, true)).join("")}${layers.length > 4 ? `<span class="letter rest" data-tip="${escape(layers.slice(4).map(labelOf).join(", "))}">+${layers.length - 4}</span>` : ""}</span>
+            <span class="many-name">${plural(layers.length, "layer")}<span class="many-of">${escape(layers.map(labelOf).join(", "))}</span></span>
             <button type="button" class="cap small sheet-close" data-action="close-sheet" aria-label="Close" data-tip="Close">${ICONS.close}</button>
           </div>
           <section><h3>Style</h3>${style}</section>
