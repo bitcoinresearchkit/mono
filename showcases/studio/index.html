@@ -20813,7 +20813,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const left = home && !same ? galleryPlace() : null, scrolledDown = !home || homeScroll().scrollTop !== 0;
         // (The page left fades out over the one coming in (see pageIn), as it was, scrolled where it was: never a frame
         // of neither.)
-        if (home && !same && !reduced.matches) fadeOut(homeScroll(), [{ opacity: 1 }, { opacity: 0 }], MOTION.small, true, MOTION.ease);
+        if (home && !same && !reduced.matches) fadeOut(homeScroll(), [{ opacity: 1 }, { opacity: 0 }], MOTION.small, true, MOTION.ease, true);
         /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
         if (!same) {
           if (left) {
@@ -30549,6 +30549,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const other of scrolled) if (!other.isConnected) scrolled.delete(other);
         scrolled.add(element);
       }, { capture: true, passive: true });
+      /**
+       * Of a box that clips what's in it, its parts wholly out of its sight, the outermost (not looked into: a drawing's
+       * own parts; nor what moves (`moving`), what's in it might come into sight), each with its twin in the box's copy
+       * (walked alongside) and what holds its place as it's laid out (its display, its size: not as it shows, transformed);
+       * a part laid out in a line (inline, its size its content's) or a table's, none.
+       * @param {Element} element @param {Element} copy @param {Set<Element | null>} moving
+       * @returns {[Element, HTMLElement, Record<string, string>][]}
+       */
+      function outOfSight(element, copy, moving) {
+        const view = element.getBoundingClientRect(), out = /** @type {[Element, HTMLElement, Record<string, string>][]} */ ([]);
+        const walk = (/** @type {Element} */ node, /** @type {Element} */ twin) => {
+          for (let i = 0; i < node.children.length; i++) {
+            const part = node.children[i], box = part.getBoundingClientRect();
+            if (moving.has(part)) continue;
+            if (box.bottom <= view.top || box.top >= view.bottom || box.right <= view.left || box.left >= view.right) {
+              const { display, width, height, boxSizing } = getComputedStyle(part);
+              if (box.width && box.height && /^(block|flex|grid|flow-root|inline-block|inline-flex|inline-grid|list-item)$/.test(display)) out.push([part, /** @type {HTMLElement} */ (twin.children[i]), { display, width, height, "box-sizing": boxSizing, "min-width": width, "max-width": width, "min-height": height, "max-height": height, flex: "none" }]);
+            } else if (part.childElementCount && !(part instanceof SVGElement)) walk(part, twin.children[i]);
+          }
+        };
+        if (!moving.has(element)) walk(element, copy);
+        return out;
+      }
       /** A copy's twin of an element in what it's a copy of: the same way down. @param {Element} copy @param {Element} of @param {Element} element */
       function twinIn(copy, of, element) {
         const way = [];
@@ -30559,9 +30582,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * What's put away (a menu, a tip) seen going as it came: a copy of it as it was, where it was, playing its way out
        * (out of reach, unread), the thing itself gone at once, as everything here knows it (a browser that doesn't play
        * `display` out, Firefox, would drop it at once). Done once its copy's gone (at once, none made).
+       * (`prune`: its parts out of its sight copied empty, see below.)
        * @param {HTMLElement} element @param {Keyframe[]} frames @returns {Promise<void> | undefined}
        */
-      function fadeOut(element, frames, duration = MOTION.micro, placed = false, easing = MOTION.easeLayout) {
+      function fadeOut(element, frames, duration = MOTION.micro, placed = false, easing = MOTION.easeLayout, prune = false) {
         // (Hidden already, its way out is under way: left be. Shown, a copy going before is gone first.)
         if (element.hidden) return;
         cutFade(element);
@@ -30577,6 +30601,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // then, not as it'd be once in.)
         const shows = /** @type {Keyframe} */ ({ ...frames[0] });
         for (const property of ["opacity", "transform", "translate", "scale"]) if (property in shows) shows[property] = style.getPropertyValue(property);
+        // (`prune`, where it's asked (the Charts page's step: a page of tiles copied whole had every one styled and laid out
+        // again for its way out): of what clips what's in it, its parts wholly out of its sight copied as boxes of the size
+        // they're laid out at, empty (a space in them: not :empty), held at it (their display and size theirs, firmly).)
+        const unseen = prune && (style.overflowX !== "visible" || style.overflowY !== "visible") ? outOfSight(element, copy, new Set(moving.map((animation) => /** @type {KeyframeEffect | null} */ (animation.effect)?.target))) : [];
+        const seen = (/** @type {Element} */ source) => !unseen.some(([part]) => part.contains(source));
+        for (const [, twin, held] of unseen) {
+          twin.replaceChildren(" ");
+          for (const [property, value] of Object.entries(held)) twin.style.setProperty(property, value, "important");
+        }
         // (Its ids kept, as its styles and its drawings' references (an SVG's url(#…)) need them: after it, it's never the
         // one an id finds while it's there.)
         copy.inert = true;
@@ -30589,11 +30622,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (placed) Object.assign(copy.style, { position: "absolute", left: `${element.offsetLeft}px`, top: `${element.offsetTop}px`, width: `${element.offsetWidth}px`, height: `${element.offsetHeight}px`, margin: "0", display: style.display, visibility: "visible", zIndex: "3", pointerEvents: "none", ...(after.content !== "none" ? { paddingBottom: `calc(${style.paddingBottom} + ${after.height})` } : {}) });
         element.after(copy);
         // (Scrolled as it was, its own and what's in it; its drawings (a canvas) as they were.)
-        for (const [source, top, left] of scrolls) Object.assign(twinIn(copy, element, source), { scrollTop: top, scrollLeft: left });
-        for (const source of /** @type {HTMLCanvasElement[]} */ (all$("canvas", element))) if (source.width && source.height) /** @type {HTMLCanvasElement} */ (twinIn(copy, element, source)).getContext("2d")?.drawImage(source, 0, 0);
+        for (const [source, top, left] of scrolls) if (seen(source)) Object.assign(twinIn(copy, element, source), { scrollTop: top, scrollLeft: left });
+        for (const source of /** @type {HTMLCanvasElement[]} */ (all$("canvas", element))) if (source.width && source.height && seen(source)) /** @type {HTMLCanvasElement} */ (twinIn(copy, element, source)).getContext("2d")?.drawImage(source, 0, 0);
         // (Moving as it was, its own and what's in it (a glide to a new place), on from where they'd got: not at their ends.)
         for (const animation of moving) {
-          const effect = animation.effect, into = effect instanceof KeyframeEffect && !effect.pseudoElement && effect.target ? twinIn(copy, element, effect.target) : undefined;
+          const effect = animation.effect, into = effect instanceof KeyframeEffect && !effect.pseudoElement && effect.target && seen(effect.target) ? twinIn(copy, element, effect.target) : undefined;
           if (!into || animation instanceof CSSAnimation || animation instanceof CSSTransition || animation.playState === "idle") continue;
           const twin = into.animate(/** @type {KeyframeEffect} */ (effect).getKeyframes(), effect.getTiming());
           twin.currentTime = animation.currentTime;
