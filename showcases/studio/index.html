@@ -5056,7 +5056,9 @@
         border-radius: var(--radius-md);
         background: light-dark(rgb(0 0 0 / 0.055), var(--field));
 
-        > * + * {
+        /* (Named, not `* + *`: a sibling rule ending in any element at all has a list anywhere on the page styled again
+           whole as one of its children goes (the sidebar's, ~870 elements at each edit).) */
+        > :is(.color-source, .color-pick):not(:first-child) {
           border-top: 1px solid var(--line);
         }
 
