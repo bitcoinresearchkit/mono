@@ -4101,6 +4101,26 @@
         flex-shrink: 0;
         height: 50px;
         padding: 0 10px 0 8px;
+
+        /* Several layers edited together: their letters, overlapping a little as a stack, then how many (as a layer's
+           name sits). */
+        .many-letters {
+          display: flex;
+
+          > .letter + .letter {
+            margin-left: -6px;
+            box-shadow: 0 0 0 2px var(--panel-ground, var(--card));
+          }
+        }
+
+        .many-name {
+          flex: 1;
+          min-width: 0;
+          padding: 4px 6px;
+          color: var(--ink);
+          font-size: 13px;
+          font-weight: 590;
+        }
       }
 
       /* Inside a layer's Layout: what's its pane's (shared by its layers), under a quiet line. */
@@ -4849,6 +4869,12 @@
 
         i.under {
           opacity: 0;
+        }
+
+        /* (Several layers at different stops: no handle, no fill; its value says "Mixed".) */
+        &.mixed::before,
+        &.mixed::after {
+          visibility: hidden;
         }
 
         &[data-value-side="start"] .value {
@@ -7626,7 +7652,7 @@
         display: flex;
         align-items: center;
         gap: 2px;
-        max-width: calc(100% - 24px);
+        max-width: calc(100% - 12px);
         border-radius: var(--radius-xl);
         padding: 5px;
         background: var(--raise);
@@ -7639,10 +7665,6 @@
           svg {
             color: var(--danger);
           }
-        }
-
-        .divider {
-          height: 18px;
         }
 
         /* (The layers' actions by their icons, their tips naming them; a phone names them under them.) */
@@ -7674,9 +7696,17 @@
         margin: auto 0 12px;
       }
 
+      /* A selection's count and the × that ends it, one chip at the bar's start (as Linear's): what's picked, and letting go
+         of it, together. */
       .pick-count {
-        padding: 0 10px 0 9px;
+        display: inline-flex;
+        flex: none;
+        align-items: center;
+        margin-right: 2px;
+        border-radius: var(--radius-lg);
+        padding: 2px 2px 2px 10px;
         color: var(--ink);
+        background: var(--field);
         font-weight: 510;
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
@@ -8520,9 +8550,10 @@
           }
         }
 
-        /* (Picks said by the body (renderPicked, renderLayersBar): see .stage[data-belt-shown].) */
+        /* (Picks said by the body (renderPicked, renderLayersBar): see .stage[data-belt-shown]. Several edited together,
+           their bar's in the list, out of sight: the tab bar stays.) */
         body[data-home][data-charts-picked] .mobile-bar,
-        body[data-sheet="panel"][data-layers-picked] .mobile-bar {
+        body[data-sheet="panel"][data-layers-picked]:not([data-inspect]) .mobile-bar {
           visibility: hidden;
           opacity: 0;
         }
@@ -8648,7 +8679,7 @@
 
           /* (The tabs a rail there, a selection's bar floating over the foot: the rail stays.) */
           body[data-home][data-charts-picked] .mobile-bar,
-          body[data-sheet="panel"][data-layers-picked] .mobile-bar {
+          body[data-sheet="panel"][data-layers-picked]:not([data-inspect]) .mobile-bar {
             visibility: visible;
             opacity: 1;
           }
@@ -8851,7 +8882,7 @@
           }
 
           .pick-count {
-            padding: 0 8px 0 10px;
+            padding: 2px 2px 2px 10px;
           }
 
           /* (On its side, where the bar is its own width: each action as wide as its name needs.) */
@@ -9706,14 +9737,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               </div>
               <div id="layer-list" class="layer-list"></div>
               <div id="layers-bar" class="pick-bar layers-bar" role="group" aria-label="Selected layers" hidden>
-                <span id="layers-picked" class="pick-count" aria-live="polite"></span>
+                <span class="pick-count"><span id="layers-picked" aria-live="polite"></span><button class="cap small" type="button" data-layers-batch="clear" aria-label="Clear the selection" data-tip="Clear the selection" data-kbd="esc" data-icon="close"></button></span>
+                <button class="cap" type="button" data-layers-batch="edit" aria-label="Edit together" data-tip="Edit together" data-icon="sliders"><span class="label">Edit</span></button>
                 <button class="cap" type="button" data-layers-batch="hide" data-kbd="H"></button>
                 <button class="cap" type="button" data-layers-batch="duplicate" aria-label="Duplicate" data-tip="Duplicate" data-kbd="⌘ D" data-icon="duplicate"><span class="label">Duplicate</span></button>
                 <button class="cap" type="button" data-layers-batch="move" aria-haspopup="menu" aria-label="Move to pane" data-tip="Move to pane" data-icon="pane"><span class="label">Move</span></button>
                 <button class="cap" type="button" data-layers-batch="cloud" aria-label="A cloud between them" data-tip="A cloud between them" data-icon="cloud"><span class="label">Cloud</span></button>
                 <button class="cap" type="button" data-layers-batch="remove" aria-label="Remove" data-tip="Remove" data-kbd="⌫" data-icon="trash"><span class="label">Remove</span></button>
-                <span class="divider"></span>
-                <button class="cap small" type="button" data-layers-batch="clear" aria-label="Clear the selection" data-tip="Clear the selection" data-kbd="esc" data-icon="close"></button>
               </div>
             </section>
             <section id="inspector" class="panel-view inspector" aria-label="Layer settings"></section>
@@ -9761,14 +9791,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           </div>
         </div>
         <div id="home-bar" class="pick-bar home-bar" role="group" aria-label="Selected charts" hidden>
-          <span id="home-picked" class="pick-count" aria-live="polite"></span>
+          <span class="pick-count"><span id="home-picked" aria-live="polite"></span><button class="cap small" type="button" data-batch="clear" aria-label="Clear the selection" data-tip="Clear the selection" data-kbd="esc" data-icon="close"></button></span>
           <button class="btn ghost" type="button" data-batch="rename" aria-label="Rename"><span data-icon="pencil"></span><span class="label">Rename</span></button>
           <button class="btn ghost" type="button" data-batch="duplicate" aria-label="Duplicate"><span data-icon="duplicate"></span><span class="label">Duplicate</span></button>
           <button class="btn ghost" type="button" data-batch="folder" aria-label="Move to folder" aria-haspopup="menu"><span data-icon="folder"></span><span class="label">Move</span></button>
           <button class="btn ghost" type="button" data-batch="export" aria-label="Download" data-tip="One chart file, to import again"><span data-icon="file"></span><span class="label">Download</span></button>
           <button class="btn ghost" type="button" data-batch="delete" aria-label="Delete" data-kbd="⌫"><span data-icon="trash"></span><span class="label">Delete</span></button>
-          <span class="divider"></span>
-          <button class="cap small" type="button" data-batch="clear" aria-label="Clear the selection" data-tip="Clear the selection" data-kbd="esc" data-icon="close"></button>
         </div>
       </section>
 
@@ -21921,15 +21949,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
         };
         let panelOpen = false;
-        // (On a layer's settings, Back is the list's way back, as ‹ is; on the list, the sheet goes.)
+        // (On a layer's settings (or several layers', together), Back is the list's way back, as ‹ is; on the list, the
+        // sheet goes.)
         const closeSheet = () => {
-          if (selected && document.body.dataset.sheet === "panel") {
+          if ((selected || editingMany()) && document.body.dataset.sheet === "panel") {
             deselect();
             watch("sheet", true, closeSheet);
           } else delete document.body.dataset.sheet;
         };
         const sync = () => {
-          if (panelOpen && document.body.dataset.sheet !== "panel" && selected) deselect();
+          if (panelOpen && document.body.dataset.sheet !== "panel" && (selected || editingMany())) deselect();
           panelOpen = document.body.dataset.sheet === "panel";
           // (The tab bar's Layers says its sheet's open, as it shows: lit.)
           $("mobile-layers").setAttribute("aria-expanded", String(panelOpen));
@@ -25242,6 +25271,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         layersWritten = { keys: [], tail: [] };
         for (const legend of legends()) legendShown.delete(legend);
         renderLayersBar();
+        if (multiEdit) renderInspector();
       }
       /** No more picks; `refocus`: the focus goes back to the row last picked (from the bar's ×, it'd be lost). */
       function clearLayerPicks(refocus = false) {
@@ -25274,7 +25304,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function layersBatch(action, anchor) {
         const ids = pickedLayers().map((layer) => layer.id);
         if (action === "clear" || !ids.length) return clearLayerPicks(action === "clear");
-        if (action === "hide") hideLayers(ids);
+        if (action === "edit") {
+          // (One picked: its own settings, as selecting it opens them.)
+          if (ids.length === 1) return select(ids[0]);
+          multiEdit = true;
+          renderInspector();
+          /** @type {HTMLElement | null} */ ($("inspector").querySelector('[data-action="deselect"]'))?.focus();
+        } else if (action === "hide") hideLayers(ids);
         else if (action === "duplicate") {
           const copies = duplicateLayers(ids);
           if (!copies.length) return;
@@ -25407,6 +25443,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (fromList && selected) /** @type {HTMLElement | null} */ ($("inspector").querySelector('[data-action="deselect"]'))?.focus();
       }
       function deselect() {
+        // (Several opened together: back to the list, still picked.)
+        if (editingMany()) {
+          multiEdit = false;
+          renderInspector();
+          return void /** @type {HTMLElement | null} */ ($("layers-bar").querySelector('[data-layers-batch="edit"]'))?.focus();
+        }
         const was = selected, fromSettings = $("inspector").contains(document.activeElement), peeking = document.body.hasAttribute("data-peek");
         selected = "";
         lastOpen = was;
@@ -25418,6 +25460,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       let inspected = "";
+      /** Whether the inspector edits the layers picked, together (the bar's Edit), while none's selected. */
+      let multiEdit = false;
+      const editingMany = () => multiEdit && !selected && pickedLayers().length > 1;
+      /** The layers the inspector edits: the one selected, or those picked, edited together (see multiEdit). */
+      const inHand = () => (editingMany() ? pickedLayers() : [layerById(selected)].filter((layer) => layer !== undefined));
+      /** What every one of some layers has, by `of`: that, or undefined where they differ (said "Mixed"). @template T @param {Layer[]} layers @param {(layer: Layer) => T} of */
+      const sharedBy = (layers, of) => (layers.length && layers.every((layer) => of(layer) === of(layers[0])) ? of(layers[0]) : undefined);
       /** How many levels the layer had as its panel was last drawn (a field kept as it's typed in only while they're the same). */
       let inspectedLevels = 0;
       let expanded = false;
@@ -25438,14 +25487,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         inspectorDue = false;
         const layer = layerById(selected);
         if (layer) vividAhead();
+        // (Several picked and opened together: theirs; down to one or none picked, back to the list.)
+        if (multiEdit && !editingMany()) multiEdit = false;
+        const many = editingMany() ? pickedLayers() : null, open = Boolean(layer || many);
         // (From the list to a layer's settings or back: the one left going as the other comes (no empty frame between),
         // the list on the left, a layer's settings on the right.)
-        if (document.body.hasAttribute("data-inspect") !== Boolean(layer) && panelShown()) {
-          cutFade(layer ? $("inspector") : $("layers-view"));
-          fadeOut(layer ? $("layers-view") : $("inspector"), [{ opacity: 1, transform: "none" }, { opacity: 0, transform: `translateX(${layer ? -8 : 8}px)` }], MOTION.micro, true);
+        if (document.body.hasAttribute("data-inspect") !== open && panelShown()) {
+          cutFade(open ? $("inspector") : $("layers-view"));
+          fadeOut(open ? $("layers-view") : $("inspector"), [{ opacity: 1, transform: "none" }, { opacity: 0, transform: `translateX(${open ? -8 : 8}px)` }], MOTION.micro, true);
         }
-        document.body.toggleAttribute("data-inspect", Boolean(layer));
+        document.body.toggleAttribute("data-inspect", open);
         const panel = $("inspector");
+        if (many) return renderMany(panel, many);
         if (!layer) {
           panel.innerHTML = "";
           inspected = "";
@@ -25533,23 +25586,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ${sourceSection}
           <section>
             <h3>Style</h3>
-            ${layer.from || signal ? "" : `<div class="field"><span>Type<span class="color-now">${escape(TYPES.find(([type]) => type === layer.type)?.[1] ?? "")}</span></span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${layer.type === type}" aria-label="${text}" ${type === "candles" && !(result?.ohlc || (layer.series && isOhlc(layer.series))) ? "aria-disabled=\"true\" data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>`}
+            ${typeField([layer])}
             ${["baseline", "histogram"].includes(layer.type) ? `<div class="field"><span>Base${resetFor("base", layer)}</span><span class="level">${layer.type === "baseline" ? lineButtons(layer, "base", "Base line") : ""}<span class="number-field"><input id="base" class="number-input" aria-label="Base" enterkeyhint="done" type="text" autocomplete="off" spellcheck="false" value="${baseOf(layer)}" data-tip="${layer.type === "histogram" ? "Bars grow from here: above in the first color, below in the second" : "The line's colors part here, marked by a line across"}" /><span class="unit">${escape(fieldUnit(unit))}</span></span></span></div>${layer.type === "baseline" && acrossUnfit(chart, layer) ? `<p class="from-status" role="status">Its line ${escape(acrossUnfit(chart, layer).toLowerCase())}.</p>` : ""}` : ""}
             ${colorPicker(layer)}
-            <div class="field"><span>Opacity${resetFor("opacity", layer)}</span>${slider("opacity", layer)}</div>
-            ${layer.type !== "histogram" && layer.type !== "cloud" && !signal ? `<div class="field"><span>Width${resetFor("width", layer)}</span>${slider("width", layer, layer.type === "candles" ? "The line candles turn into, zoomed out" : layer.type === "dots" ? "Dot size, which also follows the zoom" : "")}</div>` : ""}
-            ${LINED.has(layer.type) ? `<div class="field"><span>Line</span><div class="pair">
-              <div class="tabs glyphs" role="group" aria-label="Line style" style="flex: ${DASHES.length}">${DASHES.map(([dash, text, length, gap]) => `<button type="button" data-dash="${dash}" aria-pressed="${layer.dash === dash}" aria-label="${text}" data-tip="${text}">${dashGlyph(length, gap)}</button>`).join("")}</div>
-              ${layer.type === "trend" ? "" : `<div class="tabs glyphs" role="group" aria-label="Line shape" style="flex: ${SHAPES.length}">${SHAPES.map(([shape, text]) => `<button type="button" data-shape="${shape}" aria-pressed="${(layer.shape ?? "straight") === shape}" aria-label="${text}" data-tip="${shape === "steps" ? "Steps: each value held until the next" : text}">${shapeGlyph(shape)}</button>`).join("")}</div>`}
-            </div></div>` : ""}
-            ${layer.type === "area" ? `<div class="field"><span>Fill</span><div class="tabs" role="group" aria-label="Fill">${[["below", "Below", "Filled from the line down"], ["above", "Above", "Filled from the line up"]].map(([fill, text, tip]) => `<button type="button" data-fill="${fill}" aria-pressed="${(layer.fill ?? "below") === fill}" data-tip="${tip}">${text}</button>`).join("")}</div></div>` : ""}
-            ${layer.type === "cloud" || signal ? "" : `<div class="field switch"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${Boolean(layer.priceLine) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>${layer.priceLine && stackOfPane ? `<p class="from-status" role="status">Not drawn in a stack.</p>` : ""}`}
+            ${opacityField([layer])}
+            ${widthField([layer])}
+            ${lineField([layer])}
+            ${fillField([layer])}
+            ${priceLineField([layer])}
             ${layer.from || signal ? "" : levelsField(layer, unit, result)}
           </section>
           ${signal ? "" : `<section>
             <h3>Layout</h3>
-            ${follows(layer) ? "" : `<div class="field"><span>Pane</span><button type="button" id="pane" class="preset" data-action="pane-menu" aria-haspopup="menu" aria-label="Pane: ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}"><span class="name">Pane ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}</span>${CHEVRON}</button></div>
-            <div class="field"><span>Axis</span><div class="tabs" role="group" aria-label="Axis side">${[["left", "Left"], ["right", "Right"]].map(([side, text]) => `<button type="button" data-side="${side}" aria-pressed="${layer.side === side}">${text}</button>`).join("")}</div></div>`}
+            ${paneField([layer])}
+            ${axisField([layer])}
             <div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escape(formatName(layer, result))}"><span class="name">${escape(formatName(layer, result))}</span>${CHEVRON}</button></div>
             <p class="shared-head">Pane ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}'s, for every layer in it</p>
             ${stackOfPane === "percent" ? "" : `<div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip, name }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" ${modesFor(layerPane).includes(mode) ? `data-tip="${mode < 2 ? `${tip} scale` : tip}"` : `aria-disabled="true" data-tip="${name}: not in a stack (linear or log)"`}>${chip}</button>`).join("")}</div></div>`}
@@ -25580,6 +25630,73 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (result?.missing) suggestReplacement(layer);
       }
 
+      /**
+       * The inspector's fields for the layers in hand (see inHand: one, or those picked, edited together): each shown where
+       * it applies to every one of them, its choice pressed where they all have it, none where they differ ("Mixed").
+       * One layer's fields are these with it alone.
+       */
+      const typeField = (/** @type {Layer[]} */ layers) => {
+        if (!layers.every((layer) => !layer.from && layer.type !== "signal")) return "";
+        const now = sharedBy(layers, (layer) => layer.type), ohlc = layers.every((layer) => resolved?.results.get(layer.id)?.ohlc || (layer.series && isOhlc(layer.series)));
+        return `<div class="field"><span>Type<span class="color-now">${escape(now === undefined ? "Mixed" : TYPES.find(([type]) => type === now)?.[1] ?? "")}</span></span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${now === type}" aria-label="${text}" ${type === "candles" && !ohlc ? "aria-disabled=\"true\" data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>`;
+      };
+      const opacityField = (/** @type {Layer[]} */ layers) => `<div class="field"><span>Opacity${resetFor("opacity", layers)}</span>${slider("opacity", layers)}</div>`;
+      const widthField = (/** @type {Layer[]} */ layers) => {
+        if (!layers.every((layer) => layer.type !== "histogram" && layer.type !== "cloud" && layer.type !== "signal")) return "";
+        const type = sharedBy(layers, (layer) => layer.type);
+        return `<div class="field"><span>Width${resetFor("width", layers)}</span>${slider("width", layers, type === "candles" ? "The line candles turn into, zoomed out" : type === "dots" ? "Dot size, which also follows the zoom" : "")}</div>`;
+      };
+      const lineField = (/** @type {Layer[]} */ layers) => {
+        if (!layers.every((layer) => LINED.has(layer.type))) return "";
+        const dash = sharedBy(layers, (layer) => layer.dash), shape = sharedBy(layers, (layer) => layer.shape ?? "straight");
+        return `<div class="field"><span>Line</span><div class="pair">
+              <div class="tabs glyphs" role="group" aria-label="Line style" style="flex: ${DASHES.length}">${DASHES.map(([value, text, length, gap]) => `<button type="button" data-dash="${value}" aria-pressed="${dash === value}" aria-label="${text}" data-tip="${text}">${dashGlyph(length, gap)}</button>`).join("")}</div>
+              ${layers.some((layer) => layer.type === "trend") ? "" : `<div class="tabs glyphs" role="group" aria-label="Line shape" style="flex: ${SHAPES.length}">${SHAPES.map(([value, text]) => `<button type="button" data-shape="${value}" aria-pressed="${shape === value}" aria-label="${text}" data-tip="${value === "steps" ? "Steps: each value held until the next" : text}">${shapeGlyph(value)}</button>`).join("")}</div>`}
+            </div></div>`;
+      };
+      const fillField = (/** @type {Layer[]} */ layers) => {
+        if (!layers.every((layer) => layer.type === "area")) return "";
+        const now = sharedBy(layers, (layer) => layer.fill ?? "below");
+        return `<div class="field"><span>Fill</span><div class="tabs" role="group" aria-label="Fill">${[["below", "Below", "Filled from the line down"], ["above", "Above", "Filled from the line up"]].map(([fill, text, tip]) => `<button type="button" data-fill="${fill}" aria-pressed="${now === fill}" data-tip="${tip}">${text}</button>`).join("")}</div></div>`;
+      };
+      const priceLineField = (/** @type {Layer[]} */ layers) => {
+        if (!layers.every((layer) => layer.type !== "cloud" && layer.type !== "signal")) return "";
+        const now = sharedBy(layers, (layer) => Boolean(layer.priceLine)), stacked = layers.some((layer) => layer.priceLine && chart.panes.find((pane) => pane.id === layer.pane)?.stack);
+        return `<div class="field switch"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${now === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>${stacked ? `<p class="from-status" role="status">Not drawn in a stack.</p>` : ""}`;
+      };
+      const paneField = (/** @type {Layer[]} */ layers) => {
+        if (layers.some(follows)) return "";
+        const at = sharedBy(layers, (layer) => chart.panes.findIndex((pane) => pane.id === layer.pane)), name = at === undefined ? "Mixed" : `Pane ${at + 1}`;
+        return `<div class="field"><span>Pane</span><button type="button" id="pane" class="preset" data-action="pane-menu" aria-haspopup="menu" aria-label="Pane: ${at === undefined ? "mixed" : at + 1}"><span class="name">${name}</span>${CHEVRON}</button></div>`;
+      };
+      const axisField = (/** @type {Layer[]} */ layers) => {
+        if (layers.some(follows)) return "";
+        const now = sharedBy(layers, (layer) => layer.side);
+        return `<div class="field"><span>Axis</span><div class="tabs" role="group" aria-label="Axis side">${[["left", "Left"], ["right", "Right"]].map(([side, text]) => `<button type="button" data-side="${side}" aria-pressed="${now === side}">${text}</button>`).join("")}</div></div>`;
+      };
+      /**
+       * The inspector for several layers, opened together from the bar (see multiEdit): their letters and how many, then
+       * what they all have (see typeField), each change to every one of them, in one step.
+       * @param {HTMLElement} panel @param {Layer[]} layers
+       */
+      function renderMany(panel, layers) {
+        const key = `many:${layers.map((layer) => layer.id).join()}`, focus = inspected === key ? focusKey(panel) : null, another = inspected !== key;
+        inspected = key;
+        actionsShown = "";
+        const style = [typeField(layers), opacityField(layers), widthField(layers), lineField(layers), fillField(layers), priceLineField(layers)].join(""), layout = [paneField(layers), axisField(layers)].join("");
+        rewrite(panel, `
+          <div class="inspector-head">
+            <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Back to the layers" data-kbd="esc">${ICONS.back}</button>
+            <span class="many-letters">${layers.slice(0, 4).map(letterChip).join("")}</span>
+            <span class="many-name">${plural(layers.length, "layer")}</span>
+            <button type="button" class="cap small sheet-close" data-action="close-sheet" aria-label="Close" data-tip="Close">${ICONS.close}</button>
+          </div>
+          <section><h3>Style</h3>${style}</section>
+          ${layout ? `<section><h3>Layout</h3>${layout}</section>` : ""}`);
+        drawKeys(panel);
+        restoreFocus(panel, focus);
+        if (another) panel.scrollTop = 0;
+      }
       /** A reset appears only away from the default (tabs need none: their default is one click away). */
       const DEFAULTS = {
         opacity: { is: (layer) => layer.opacity === undefined, set: (layer) => (layer.opacity = undefined), text: (layer) => `${Math.round(defaultOpacity(layer) * 100)}%`, focus: "#opacity" },
@@ -25587,7 +25704,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         base: { is: (layer) => baseOf(layer) === 0, set: (layer) => (layer.base = undefined), text: "0", focus: "#base" },
         format: { is: (layer) => !layer.format, set: (layer) => (layer.format = undefined), text: "Automatic", focus: "#format" },
       };
-      const resetFor = (key, layer) => ((text) => (DEFAULTS[key].is(layer) ? "" : `<button type="button" class="reset" data-reset="${key}" aria-label="Reset to ${text}" data-tip="Reset to ${text}">${ICONS.undo}</button>`))(typeof DEFAULTS[key].text === "function" ? DEFAULTS[key].text(layer) : DEFAULTS[key].text);
+      const resetFor = (key, /** @type {Layer | Layer[]} */ target) => {
+        const layers = [target].flat(), spec = DEFAULTS[key];
+        if (layers.every(spec.is)) return "";
+        // (Several, their defaults apart (an area's opacity isn't a line's): to each one's.)
+        const text = sharedBy(layers, (layer) => (typeof spec.text === "function" ? spec.text(layer) : spec.text)) ?? "each one's default";
+        return `<button type="button" class="reset" data-reset="${key}" aria-label="Reset to ${text}" data-tip="Reset to ${text}">${ICONS.undo}</button>`;
+      };
       /** The inspector's sliders, each a few values in order: what it steps through, how its value reads, what it sets. */
       const SLIDERS = {
         width: { label: "Width", stops: WIDTHS, of: (layer) => layer.width, text: (v) => `${v}px`, say: (v) => `${v} pixels`, set: (layer, v) => (layer.width = v) },
@@ -25601,20 +25724,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Where a slider's handle sits for a layer, from 0 to 1 (its stop's place among its stops). */
       const sliderAt = (/** @type {keyof typeof SLIDERS} */ id, /** @type {Layer} */ layer) => Math.max(0, SLIDERS[id].stops.indexOf(SLIDERS[id].of(layer))) / (SLIDERS[id].stops.length - 1);
       /** A slider: its stops, a handle at the value, and the value written out at the end away from the handle. */
-      function slider(id, layer, tip = "") {
-        const spec = SLIDERS[id], value = spec.of(layer), index = spec.stops.indexOf(value), n = spec.stops.length - 1;
-        const at = sliderAt(id, layer);
-        return `<div id="${id}" class="stepper" role="slider" tabindex="0" aria-label="${spec.label}" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${Math.max(0, index)}" aria-valuetext="${escape(spec.say(value))}" data-value-side="${at > 0.5 ? "start" : "end"}" style="--at: ${at}" ${tip ? `data-tip="${escape(tip)}"` : ""}>
-          ${spec.stops.map((_, i) => `<i ${(at > 0.5 ? i / n <= 0.25 : i / n >= 0.75) ? 'class="under"' : ""} style="--k: ${i / n}"></i>`).join("")}<span class="value">${escape(spec.text(value))}</span></div>`;
+      function slider(id, /** @type {any} */ target, tip = "") {
+        // (Several layers at different stops: "Mixed", no handle, no fill, till one's set for all.)
+        const spec = SLIDERS[id], list = [target].flat(), value = sharedBy(list, spec.of), mixed = value === undefined, index = spec.stops.indexOf(value), n = spec.stops.length - 1;
+        const at = mixed ? 0 : sliderAt(id, list[0]);
+        return `<div id="${id}" class="stepper${mixed ? " mixed" : ""}" role="slider" tabindex="0" aria-label="${spec.label}" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${Math.max(0, index)}" aria-valuetext="${mixed ? "Mixed" : escape(spec.say(value))}" data-value-side="${at > 0.5 ? "start" : "end"}" style="--at: ${at}" ${tip ? `data-tip="${escape(tip)}"` : ""}>
+          ${spec.stops.map((_, i) => `<i ${(at > 0.5 ? i / n <= 0.25 : i / n >= 0.75) ? 'class="under"' : ""} style="--k: ${i / n}"></i>`).join("")}<span class="value">${mixed ? "Mixed" : escape(spec.text(value))}</span></div>`;
       }
       /** A value, as a slider sets it: one undo step per drag or run of keys, the chart rebuilt at each stop. */
       function setSlider(id, value) {
-        const layer = layerById(selected);
-        if (!layer || SLIDERS[id].of(layer) === value) return;
-        editLayer((target) => SLIDERS[id].set(target, value), { coalesce: `${id}:${selected}` });
+        const layers = inHand();
+        if (!layers.length || layers.every((layer) => SLIDERS[id].of(layer) === value)) return;
+        editLayer((target) => SLIDERS[id].set(target, value), { coalesce: `${id}:${layers.map((layer) => layer.id).join()}` });
         // (Dragged, the page isn't drawn again till it ends: the slider shows its new value itself, as the belt's do.)
-        const element = $(id), now = layerById(selected);
-        if (holding && element && now) {
+        const element = $(id), now = inHand();
+        if (holding && element && now.length) {
           element.outerHTML = slider(id, now, element.dataset.tip ?? "");
           $(id)?.focus({ preventScroll: true });
         }
@@ -25715,7 +25839,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           set(element.id, /** @type {number} */ (to));
         });
       }
-      sliders($("inspector"), { valueOf: (id) => ((layer) => (layer ? SLIDERS[id].of(layer) : undefined))(layerById(selected)), set: setSlider });
+      // (Several at different stops ("Mixed"): a key steps from the first's, and sets them all there.)
+      sliders($("inspector"), { valueOf: (id) => ((layers) => (layers.length ? sharedBy(layers, SLIDERS[id].of) ?? SLIDERS[id].of(layers[0]) : undefined))(inHand()), set: setSlider });
 
       /** How a layer's colors are chosen now (see COLOR_MODES). @param {Layer} layer */
       function colorModeOf(layer) {
@@ -26819,7 +26944,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (item) edit(item, doc);
         }, drawing ? { redraw: "none", ...options } : options);
       }
-      const editLayer = (/** @type {(item: any, doc: Chart) => void} */ edit, /** @type {Parameters<typeof commit>[1]} */ options = undefined) => editById(selected, edit, options);
+      /** An edit to the layers in hand (see inHand): the selected one's, or each picked one's, edited together, in one step. */
+      const editLayer = (/** @type {(item: any, doc: Chart) => void} */ edit, /** @type {Parameters<typeof commit>[1]} */ options = undefined) =>
+        editingMany() ? commit((doc) => doc.layers.forEach((item) => layerPicks.has(item.id) && edit(item, doc)), options) : editById(selected, edit, options);
       /** A series' name to the clipboard, and a word either way. @param {string} name */
       const copyName = (name) => (navigator.clipboard?.writeText(name) ?? Promise.reject()).then(() => toast("Copied the series name"), () => notice("Couldn't copy the series name"));
 
@@ -26988,7 +27115,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Removed: the focus on the row in its place, or the way to add one.)
           if (row.key === "remove") (all$(".layer-row .row-main", $("layer-list"))[Math.min(at, chart.layers.length - 1)] ?? /** @type {HTMLElement | null} */ (document.querySelector("#empty [data-action='add-series']")))?.focus();
         }
-        else if (action === "pane-menu") paneMenu(button, [selected], () => refocus("#pane"));
+        else if (action === "pane-menu") paneMenu(button, inHand().map((layer) => layer.id), () => refocus("#pane"));
         else if (button.id === "trend-ref" || button.id === "signal-ref") refMenu(button, selected);
         else if (button.id === "signal-times") noValues(selected) ? notice(noValues(selected)) : openPage(timesPage(selected));
         else if (place) editLayer((layer) => (layer.place = place === "above" ? undefined : place));
@@ -33187,6 +33314,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else if (!home && (placing || moving || boxing)) stopDrawing();
           else if (!home && (tool || selectingArea || magnifying)) takeUp("");
           else if (!home && chosen.size) chooseDrawings([]);
+          else if (!home && editingMany()) deselect();
           else if (!home && layerPicks.size) clearLayerPicks(true);
           else if (!home && selected) deselect();
           else if (document.body.hasAttribute("data-peek")) {
