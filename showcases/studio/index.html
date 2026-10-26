@@ -27762,8 +27762,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         palette.op = replace ? { kind: "replace", layer: replace } : formula ? { kind: "formula", editing, into, signal, side } : add ? { kind: "add", into } : { kind: "browse" };
         const dialog = $("palette"), input = $("palette-input");
         if (!dialog.open) (trailDrawn = ""), dialog.removeAttribute("data-half");
-        // (By touch, opened with the focus on ⌘K, not its field: no keyboard till it's tapped. Opened by a tap on a search
-        // field, or Search, its field at once: the keyboard with it, as that tap asked, in it for iOS to allow it.)
+        // (By touch, opened with the focus on ⌘K, not its field: no keyboard till it's tapped (the Search tab too: a keyboard
+        // comes only when asked for). Opened by a tap on what's drawn as a field (an empty chart's search), its field at
+        // once: the keyboard with it, as that tap asked, in it for iOS to allow it.)
         const keys = !TOUCH || byKeys || typing;
         // (Opened again as it leaves: it stays, put away no more.)
         if (dialog.dataset.leaving) (dismissing = false), arrive(dialog);
@@ -32555,7 +32556,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (paneMode) target.getAttribute("aria-disabled") === "true" ? notice(/** @type {string} */ (target.dataset.tip)) : setPaneMode(paneMode, Number(mode));
         else if (paneStack) setPaneStack(paneStack, target.dataset.stack ?? "");
         else if (paneReverse) setPaneReverse(paneReverse, Boolean(target.dataset.reverse));
-        else if (action === "palette") openPalette({ resume: true, typing: target.hasAttribute("data-typing") });
+        // (The Search tab opens ⌘K, not the keyboard: that comes with a tap in its field, see openPalette.)
+        else if (action === "palette") openPalette({ resume: true });
         else if (action === "new-chart") newChart();
         else if (action === "close-preview") closePreview(chartById(target.dataset.preview ?? "") ?? chart);
         else if (action === "add-series") openPalette({ add: true, typing: target.hasAttribute("data-typing") });
