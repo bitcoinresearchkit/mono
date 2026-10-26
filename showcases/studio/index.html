@@ -16005,12 +16005,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const legendNameHtml = (layer) => `<span class="legend-eye${layer.hidden ? " off" : ""}" data-toggle="${layer.id}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${seriesMark(layer)}<span class="eye">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</span></span><span class="name">${escape(labelOf(layer))}</span>`;
       function updateLegends() {
         if (!chart) return;
+        // (Nothing reached, the plot says so once: no layer's legend says it again.)
+        const said = !$("unreached").hidden;
         for (const element of legends()) {
           const pane = chart.panes.find((item) => item.id === element.dataset.pane);
           element.classList.toggle("keyed", Boolean(pane && keyedPane(pane)));
           const html = pane && keyedPane(pane) ? keyHtml(pane) : chart.layers.filter((layer) => layer.pane === element.dataset.pane).map((layer) => {
             const result = resolved?.results.get(layer.id);
-            const value = result?.error ? `<span class="legend-error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>`
+            const value = result?.error && !said ? `<span class="legend-error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>`
               : fromUnfit(chart, layer) ? `<span class="legend-error">${fromUnfit(chart, layer)}</span>`
               : layer.hidden || !result?.values || (layer.type === "signal" && !signalShown(layer)) ? '<span class="legend-value"></span>'
               : `<span class="legend-value" data-value="${layer.id}" style="min-width: ${valueSlot(layer, 12)}px"></span>`;
@@ -18688,7 +18690,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // Measured at rest: a glide still going ends where it was going (its coming in, a fade and 4px, isn't one: it plays).
         belt.getAnimations().forEach((animation) => animation instanceof CSSAnimation || animation.finish());
         // A phone's: in the stage foot's place while it shows (the interval and range wait under it), one row sliding
-        // sideways, its tool in sight, what the tool does just above it; never over the chart (no grip: nowhere to take it).
+        // sideways, its tool in sight, what the tool does over the plot's foot; the belt never over the chart (no grip:
+        // nowhere to take it).
         if (phone.matches) {
           const foot = $("stage-foot").getBoundingClientRect(), canvas = $("canvas").getBoundingClientRect();
           belt.classList.remove("upright");
@@ -18701,8 +18704,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (More past an edge: that edge fades, as a strip's.)
           const row = /** @type {HTMLElement | null} */ (belt.querySelector(".belt-row"));
           if (row) fitStrip(row);
+          // (Its caption on the plot's side, as a belt's elsewhere: over the plot, above the dates, which a finger drawing reads.)
           const caption = /** @type {HTMLElement | null} */ (belt.querySelector(".belt-caption"));
-          if (caption) Object.assign(caption.style, { position: "fixed", top: "auto", right: "auto", left: `${foot.left + 10}px`, bottom: `${innerHeight - foot.top + 6}px`, translate: "none", transform: "none" });
+          if (caption) Object.assign(caption.style, { position: "fixed", top: "auto", right: "auto", left: `${foot.left + 10}px`, bottom: `${innerHeight - $("chart").getBoundingClientRect().bottom + view.timeScale().height() + 6}px`, translate: "none", transform: "none" });
           return;
         }
         belt.style.width = belt.style.height = "";
@@ -32462,7 +32466,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // page without JavaScript left out.)
         const parts = [...$("about").children], [first, next] = parts.filter((part) => part.tagName === "H2").map((head) => parts.indexOf(head));
         const html = (/** @type {Element[]} */ list) => codeIn(list.map((part) => part.outerHTML).join("")), rest = next === undefined ? [] : parts.slice(next);
-        $("guide-body").innerHTML = `<section class="guide-start"><p>A chart's link opens it, for anyone, as it is here: its layers, their look, its view. It holds the chart itself (as JSON): nothing's stored on a server. Your Library, and the presets as you've edited them, are kept in this browser.</p>${open ? `<div class="guide-actions"><button type="button" class="btn small" data-guide="link">${ICONS.link}Copy this chart's link</button><button type="button" class="btn small" data-guide="json">${ICONS.copy}Copy its JSON</button></div>` : ""}</section>${html(parts.slice(first, next))}${rest.length ? `<details class="help guide-more"><summary>For scripts and assistants</summary>${html(rest)}</details>` : ""}`;
+        $("guide-body").innerHTML = `<section class="guide-start"><p>A chart's link opens it, for anyone, as it is here: its layers, their look, its view. It holds the chart itself (as JSON): nothing's stored on a server. Your Library, and the presets as you've edited them, are kept in this browser.</p>${open ? `<div class="guide-actions"><button type="button" class="btn small" data-guide="link">${ICONS.copy}Copy this chart's link</button><button type="button" class="btn small" data-guide="json">${ICONS.copy}Copy its JSON</button></div>` : ""}</section>${html(parts.slice(first, next))}${rest.length ? `<details class="help guide-more"><summary>For scripts and assistants</summary>${html(rest)}</details>` : ""}`;
         arrive($("guide"));
         if (!$("guide").open) $("guide").showModal();
         $("guide").focus();
