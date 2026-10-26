@@ -50,34 +50,49 @@ pub const AMOUNT_RANGE_NAMES: AmountRange<CohortName> = AmountRange {
 /// holds less (its values all zero).
 pub struct AmountRange<T, Z = T> {
     /// Uses zero-satoshi values.
+    #[cfg_attr(feature = "storage", traversable(lead = "0 sats."))]
     _0_sats: Z,
     /// Uses values of at least 1 and less than 10 satoshis.
+    #[cfg_attr(feature = "storage", traversable(lead = "1 to 10 sats."))]
     _1_to_10_sats: T,
     /// Uses values of at least 10 and less than 100 satoshis.
+    #[cfg_attr(feature = "storage", traversable(lead = "10 to 100 sats."))]
     _10_to_100_sats: T,
     /// Uses values of at least 100 and less than 1,000 satoshis.
+    #[cfg_attr(feature = "storage", traversable(lead = "100 to 1,000 sats."))]
     _100_to_1k_sats: T,
     /// Uses values of at least 1,000 and less than 10,000 satoshis.
+    #[cfg_attr(feature = "storage", traversable(lead = "1,000 to 10,000 sats."))]
     _1k_to_10k_sats: T,
     /// Uses values of at least 10,000 and less than 100,000 satoshis.
+    #[cfg_attr(feature = "storage", traversable(lead = "10,000 to 100,000 sats."))]
     _10k_to_100k_sats: T,
     /// Uses values of at least 100,000 and less than 1,000,000 satoshis.
+    #[cfg_attr(feature = "storage", traversable(lead = "100,000 sats to 0.01 BTC."))]
     _100k_to_1m_sats: T,
     /// Uses values of at least 1,000,000 and less than 10,000,000 satoshis.
+    #[cfg_attr(feature = "storage", traversable(lead = "0.01 to 0.1 BTC."))]
     _1m_to_10m_sats: T,
     /// Uses values of at least 10,000,000 satoshis and less than 1 BTC.
+    #[cfg_attr(feature = "storage", traversable(lead = "0.1 to 1 BTC."))]
     _10m_to_100m_sats: T,
     /// Uses values of at least 1 and less than 10 BTC.
+    #[cfg_attr(feature = "storage", traversable(lead = "1 to 10 BTC."))]
     _1_to_10_btc: T,
     /// Uses values of at least 10 and less than 100 BTC.
+    #[cfg_attr(feature = "storage", traversable(lead = "10 to 100 BTC."))]
     _10_to_100_btc: T,
     /// Uses values of at least 100 and less than 1,000 BTC.
+    #[cfg_attr(feature = "storage", traversable(lead = "100 to 1,000 BTC."))]
     _100_to_1k_btc: T,
     /// Uses values of at least 1,000 and less than 10,000 BTC.
+    #[cfg_attr(feature = "storage", traversable(lead = "1,000 to 10,000 BTC."))]
     _1k_to_10k_btc: T,
     /// Uses values of at least 10,000 and less than 100,000 BTC.
+    #[cfg_attr(feature = "storage", traversable(lead = "10,000 to 100,000 BTC."))]
     _10k_to_100k_btc: T,
     /// Uses values of at least 100,000 BTC.
+    #[cfg_attr(feature = "storage", traversable(lead = "100,000 BTC or more."))]
     over_100k_btc: T,
 }
 

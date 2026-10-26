@@ -38,6 +38,58 @@ pub use vecdb::{AnyExportableVec, AnyStoredVec, ReadOnlyClone, Ro, Rw, StorageMo
 #[cfg(feature = "derive")]
 pub use bitview_traversable_derive::Traversable;
 
+/// A piece of a series' description, from a field on its path: the field's lead, a few plain
+/// words for anyone (`#[traversable(lead = "..")]`), or its doc comment, the detail.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Fragment {
+    Lead(&'static str),
+    Detail(&'static str),
+}
+
+/// Whether Markdown text starts a block of its own (a list's item, a quote, a table's row, a
+/// heading, a fence, indented code), as the derive's doc comments read it.
+fn starts_block(text: &str) -> bool {
+    let line = text.trim_start();
+    let ordered = line
+        .split_once(". ")
+        .is_some_and(|(number, _)| !number.is_empty() && number.bytes().all(|byte| byte.is_ascii_digit()));
+    ordered || text.starts_with("    ") || ["- ", "* ", "+ ", "> ", "|", "#", "```"].iter().any(|start| line.starts_with(start))
+}
+
+/// A series' description, Markdown, from its path's fragments: the leads, one paragraph, then
+/// the details, each in the path's order (a cohort's words before its measure's, a measure's
+/// before its window's). Fragments of one paragraph each run on in one; one of several, or one
+/// that's a block (a list, a heading, a fenced block), stands apart, a blank line around it.
+pub fn describe(fragments: &[Fragment]) -> String {
+    let leads = fragments.iter().filter_map(|fragment| match fragment {
+        Fragment::Lead(text) => Some(*text),
+        Fragment::Detail(_) => None,
+    });
+    let details = fragments.iter().filter_map(|fragment| match fragment {
+        Fragment::Detail(text) => Some(*text),
+        Fragment::Lead(_) => None,
+    });
+    let paragraph = |texts: &mut dyn Iterator<Item = &str>| {
+        let mut markdown = String::new();
+        let mut apart = false;
+        for text in texts {
+            let own = text.contains('\n') || starts_block(text);
+            if !markdown.is_empty() {
+                markdown.push_str(if apart || own { "\n\n" } else { " " });
+            }
+            markdown.push_str(text);
+            apart = own;
+        }
+        markdown
+    };
+    let (leads, details) = (paragraph(&mut leads.into_iter()), paragraph(&mut details.into_iter()));
+    match (leads.is_empty(), details.is_empty()) {
+        (false, false) => format!("{leads}\n\n{details}"),
+        (true, _) => details,
+        (_, true) => leads,
+    }
+}
+
 pub trait Traversable {
     fn to_tree_node(&self) -> TreeNode;
     /// All vecs including hidden — used for disk writes, flushes, exports.
@@ -56,8 +108,8 @@ pub trait Traversable {
     /// Collects public series description fragments from documented field paths.
     fn collect_series_descriptions<'a>(
         &'a self,
-        description_fragments: &mut Vec<&'static str>,
-        descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>,
+        description_fragments: &mut Vec<Fragment>,
+        descriptions: &mut BTreeMap<&'a str, Vec<Fragment>>,
     ) {
         if description_fragments.is_empty() {
             return;
@@ -255,8 +307,8 @@ impl<T: Traversable + ?Sized> Traversable for Box<T> {
 
     fn collect_series_descriptions<'a>(
         &'a self,
-        description_fragments: &mut Vec<&'static str>,
-        descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>,
+        description_fragments: &mut Vec<Fragment>,
+        descriptions: &mut BTreeMap<&'a str, Vec<Fragment>>,
     ) {
         (**self).collect_series_descriptions(description_fragments, descriptions);
     }
@@ -286,8 +338,8 @@ impl<K: Display, V: Traversable> Traversable for BTreeMap<K, V> {
 
     fn collect_series_descriptions<'a>(
         &'a self,
-        description_fragments: &mut Vec<&'static str>,
-        descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>,
+        description_fragments: &mut Vec<Fragment>,
+        descriptions: &mut BTreeMap<&'a str, Vec<Fragment>>,
     ) {
         for value in self.values() {
             value.collect_series_descriptions(description_fragments, descriptions);

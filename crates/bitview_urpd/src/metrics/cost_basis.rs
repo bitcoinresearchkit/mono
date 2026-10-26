@@ -21,10 +21,12 @@ pub struct CostBasisVecs<M: StorageMode = Rw> {
     pub by_dollar: CostBasisByDollar<M>,
     /// Share of the cohort's weighted supply with a creation price near spot; undefined (null)
     /// without weighted supply or a positive spot price.
+    #[traversable(lead = "Supply near the price: the share of coins that last moved within 5% of the price of the day.")]
     supply_density: DensityVecs<M>,
     /// Share of the cohort's weighted invested capital (satoshis times creation
     /// price) with a creation price near spot; undefined (null) without weighted capital or a
     /// positive spot price.
+    #[traversable(lead = "Capital near the price: the share of what holders paid that was paid within 5% of the price of the day.")]
     capital_density: DensityVecs<M>,
     #[traversable(hidden)]
     by_coin_percentiles: PercentilesVecs<M>,

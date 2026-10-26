@@ -15,9 +15,11 @@ pub struct RateVecs<M: StorageMode = Rw> {
     pub sma: HashRateSmaVecs<M>,
     /// Running all-time high of the estimated network hash rate, in hashes per
     /// second.
+    #[traversable(lead = "Its all-time high.")]
     pub ath: PerBlock<Hashrate, M>,
     /// Estimated network hash rate divided by its running all-time high, minus
     /// one. Zero marks an all-time high; negative values measure the drawdown
     /// below it.
+    #[traversable(lead = "How far below its all-time high it is.")]
     pub drawdown: PercentPerBlock<PartsPerMillionSigned32, M>,
 }

@@ -29,11 +29,13 @@ pub struct Vecs<M: StorageMode = Rw> {
     flag: FlagView,
     /// Metrics across every `OP_RETURN` output and every transaction creating at least one.
     #[traversable(flatten)]
+    #[traversable(lead = "OP_RETURN outputs: data written on the chain, never spendable.")]
     total: BucketVecs<M>,
     /// Metrics by detected `OP_RETURN` payload protocol. Output bytes belong
     /// to one protocol, while transaction counts, full virtual sizes, and full
     /// fees are counted once for every protocol present in a transaction, so
     /// those metrics can overlap across protocols.
+    #[traversable(lead = "OP_RETURN outputs, by the protocol that wrote them.")]
     protocols: KindBreakdownVecs<M>,
     /// Metrics by the size and count limits of the pre-v30 `OP_RETURN` relay
     /// policy, over non-coinbase transactions. These categories check output

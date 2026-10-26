@@ -40,18 +40,22 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// price instead weights by creation-date value and is
     /// `sum(creation price squared x unspent sats) / sum(creation price x
     /// unspent sats)`.
+    #[traversable(lead = "Rarity Meter, one reference price at a time.")]
     components: Components<M>,
     extremes: Extremes<M>,
     /// Full Rarity Meter: the local and cycle meters' 16 reference models together,
     /// showing how unusual spot price is for any of them.
+    #[traversable(lead = "Rarity Meter: how rare the price is, by any of its 16 reference prices.")]
     full: RarityMeterInner<M>,
     /// Local Rarity Meter, young-coin positioning: the short-term holders' and
     /// under-six-month cohorts' realized and capitalized prices and the short-term
     /// holders' BTC- and USD-weighted median creation prices.
+    #[traversable(lead = "Local Rarity Meter: how rare the price is against what recent buyers paid.")]
     local: RarityMeterInner<M>,
     /// Cycle Rarity Meter, long-cycle valuation: the all-chain realized and
     /// capitalized prices, the all-chain and mobile supply's BTC- and USD-weighted median
     /// creation prices, the vaulted price, True Market Mean, and the awake and mobile
     /// realized prices.
+    #[traversable(lead = "Cycle Rarity Meter: how rare the price is against what holders paid over the cycle.")]
     cycle: RarityMeterInner<M>,
 }

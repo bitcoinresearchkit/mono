@@ -33,6 +33,7 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     /// Amount of unspent bitcoin that ages out of the range during the
     /// represented block interval.
     #[traversable(wrap = "supply", rename = "aged_out")]
+    #[traversable(lead = "Aged out: the bitcoin growing older than the range, leaving it.")]
     aged_out: LazyValuePerBlockCumulativeRolling,
     #[traversable(hidden)]
     aged_out_sources:
@@ -41,14 +42,17 @@ pub struct RangeVecs<M: StorageMode = Rw> {
     /// duration, supply crossing into an older range counted in each range for its time there,
     /// one coin day per BTC per day.
     #[traversable(wrap = "activity", rename = "coindays_created")]
+    #[traversable(lead = "Coin days created: holding time added, one per bitcoin per day.")]
     pub coindays_created: PerBlockCumulativeRolling<CoinDays, M>,
     /// Value of the outputs spent in each block whose spending price is greater than or equal to
     /// their creation price; USD at the spending block's spot price.
     #[traversable(wrap = "activity/transfer_volume", rename = "in_profit")]
+    #[traversable(lead = "Transfer volume in profit: the bitcoin spent at or above its cost.")]
     pub transfer_volume_in_profit: CumulativeValue<M>,
     /// Value of the outputs spent in each block whose spending price is below their creation
     /// price; USD at the spending block's spot price.
     #[traversable(wrap = "activity/transfer_volume", rename = "in_loss")]
+    #[traversable(lead = "Transfer volume in loss: the bitcoin spent below its cost.")]
     pub transfer_volume_in_loss: CumulativeValue<M>,
     #[traversable(hidden)]
     pub raw: RawSources<M>,

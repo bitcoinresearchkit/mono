@@ -17,6 +17,7 @@ pub struct DataBytesSeries<M: StorageMode = Rw> {
     pub data_bytes: PerBlockCumulativeRolling<Bytes, M>,
     /// These data bytes divided by all serialized block bytes in the chain over the same
     /// cumulative or trailing window.
+    #[traversable(lead = "Their share of all the chain's bytes.")]
     pub chain_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
 }
 

@@ -17,21 +17,27 @@ use crate::{by_kind::ByKind, policy::Policy};
 #[derive(Traversable)]
 pub struct BucketVecs<M: StorageMode = Rw> {
     /// Number of the outputs.
+    #[traversable(lead = "Outputs: how many were made.")]
     pub output_count: PerBlockCumulativeRolling<Count, M>,
     /// Script bytes following the `OP_RETURN` opcode, push opcodes and push-length prefixes
     /// included, summed over the outputs.
+    #[traversable(lead = "Data: the bytes they carry.")]
     pub data_bytes: DataBytesSeries<M>,
     /// Number of transactions creating at least one of the outputs; each
     /// transaction counts once.
+    #[traversable(lead = "Transactions making them.")]
     pub tx_count: PerBlockCumulativeRolling<Count, M>,
     /// Transactions creating at least one of the outputs, as a share of all transactions,
     /// coinbase included.
+    #[traversable(lead = "Transactions making them, as a share of all transactions.")]
     pub tx_share: LazyPercentCumulativeRolling<PartsPerMillion32>,
     /// Full virtual sizes of the transactions creating the outputs, in vbytes;
     /// each transaction is included once.
+    #[traversable(lead = "The space taken by the transactions making them, in virtual bytes.")]
     pub tx_vsize: PerBlockCumulativeRolling<VSize, M>,
     /// Full fees of the transactions creating the outputs; each transaction is
     /// included once.
+    #[traversable(lead = "Fees paid by the transactions making them.")]
     pub fees: FeesSeries<M>,
 }
 

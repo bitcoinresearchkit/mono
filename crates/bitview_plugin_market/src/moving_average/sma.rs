@@ -45,6 +45,7 @@ pub struct SmaVecs<M: StorageMode = Rw> {
     /// average, computed from cent-precision prices; null before the first exchange
     /// price (block 74,641), approximate while prices are a few cents.
     #[traversable(wrap = "200d", rename = "mayer_multiple")]
+    #[traversable(lead = "Mayer Multiple: the price against its 200-day average.")]
     pub mayer_multiple: LazyPerBlock<Multiple>,
 }
 

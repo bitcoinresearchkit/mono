@@ -110,78 +110,103 @@ pub const PROFITABILITY_RANGE_NAMES: ProfitabilityRange<CohortName> = Profitabil
 pub struct ProfitabilityRange<T> {
     /// Uses UTXOs whose represented-block spot price is more than 1,000% above
     /// creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins up more than 1,000% since they last moved."))]
     profit_over_1000_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 500% and no
     /// more than 1,000% above creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins up 500 to 1,000% since they last moved."))]
     profit_500_to_1000_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 300% and no
     /// more than 500% above creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins up 300 to 500% since they last moved."))]
     profit_300_to_500_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 200% and no
     /// more than 300% above creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins up 200 to 300% since they last moved."))]
     profit_200_to_300_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 100% and no
     /// more than 200% above creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins up 100 to 200% since they last moved."))]
     profit_100_to_200_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 90% and no
     /// more than 100% above creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins up 90 to 100% since they last moved."))]
     profit_90_to_100_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 80% and no
     /// more than 90% above creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins up 80 to 90% since they last moved."))]
     profit_80_to_90_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 70% and no
     /// more than 80% above creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins up 70 to 80% since they last moved."))]
     profit_70_to_80_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 60% and no
     /// more than 70% above creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins up 60 to 70% since they last moved."))]
     profit_60_to_70_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 50% and no
     /// more than 60% above creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins up 50 to 60% since they last moved."))]
     profit_50_to_60_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 40% and no
     /// more than 50% above creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins up 40 to 50% since they last moved."))]
     profit_40_to_50_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 30% and no
     /// more than 40% above creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins up 30 to 40% since they last moved."))]
     profit_30_to_40_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 20% and no
     /// more than 30% above creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins up 20 to 30% since they last moved."))]
     profit_20_to_30_percent: T,
     /// Uses UTXOs whose represented-block spot price is more than 10% and no
     /// more than 20% above creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins up 10 to 20% since they last moved."))]
     profit_10_to_20_percent: T,
     /// Uses UTXOs whose represented-block spot price equals creation price or
     /// is above it by no more than 10%.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins up 0 to 10% since they last moved."))]
     profit_0_to_10_percent: T,
     /// Uses UTXOs whose represented-block spot price is less than 10% below
     /// creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins down 0 to 10% since they last moved."))]
     loss_0_to_10_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 10% and less
     /// than 20% below creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins down 10 to 20% since they last moved."))]
     loss_10_to_20_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 20% and less
     /// than 30% below creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins down 20 to 30% since they last moved."))]
     loss_20_to_30_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 30% and less
     /// than 40% below creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins down 30 to 40% since they last moved."))]
     loss_30_to_40_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 40% and less
     /// than 50% below creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins down 40 to 50% since they last moved."))]
     loss_40_to_50_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 50% and less
     /// than 60% below creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins down 50 to 60% since they last moved."))]
     loss_50_to_60_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 60% and less
     /// than 70% below creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins down 60 to 70% since they last moved."))]
     loss_60_to_70_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 70% and less
     /// than 80% below creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins down 70 to 80% since they last moved."))]
     loss_70_to_80_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 80% and less
     /// than 90% below creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins down 80 to 90% since they last moved."))]
     loss_80_to_90_percent: T,
     /// Uses UTXOs whose represented-block spot price is at least 90% below
     /// creation price.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins down 90% or more since they last moved."))]
     loss_90_to_100_percent: T,
 }
 

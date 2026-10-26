@@ -10,16 +10,19 @@ pub struct DerivedVecs<M: StorageMode = Rw> {
     /// accumulated by the supply has been consumed by spending; a value nearer
     /// zero means more remains stored in unspent outputs. Undefined (null) while
     /// cumulative coinblocks created is zero (block 0). As a ratio.
+    #[traversable(lead = "Liveliness: how much of all coins' holding time has been spent, rising when old coins move.")]
     pub liveliness: LazyPerBlock<Ratio, BoundedRatio>,
     /// One minus liveliness, where liveliness is cumulative coinblocks
     /// destroyed divided by cumulative coinblocks created. A value nearer one
     /// means more accumulated holding time remains stored in unspent outputs.
     /// Undefined (null) while cumulative coinblocks created is zero (block 0). As
     /// a ratio.
+    #[traversable(lead = "Vaultedness: how much of all coins' holding time is still stored, the rest of liveliness.")]
     pub vaultedness: LazyPerBlock<Ratio, BoundedRatio>,
     /// Ratio of consumed to still-stored holding time: liveliness divided by
     /// vaultedness, or `liveliness / (1 - liveliness)`. Values above one mean
     /// consumed holding time exceeds stored holding time.
+    #[traversable(lead = "Liveliness against vaultedness: holding time spent, for each unit still stored.")]
     pub liveliness_to_vaultedness: LazyPerBlock<Multiple, BoundedRatio>,
     /// Canonical bounded source; cumulative coinblock inputs remain unrounded.
     #[traversable(hidden)]

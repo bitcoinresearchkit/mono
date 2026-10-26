@@ -21,6 +21,7 @@ use crate::{
 pub struct BalanceVecs<M: StorageMode = Rw> {
     /// Funded addresses whose balance falls in the band.
     #[traversable(rename = "funded")]
+    #[traversable(lead = "Addresses: how many hold a balance in the band.")]
     pub address_count: CountWithDeltas<M>,
     pub supply: CohortSupply<M>,
     pub capital: CohortCapital<M>,
@@ -32,6 +33,7 @@ pub struct BalanceVecs<M: StorageMode = Rw> {
 #[derive(Traversable)]
 pub struct BalanceUtxos<M: StorageMode = Rw> {
     /// Number of unspent outputs the band's addresses hold.
+    #[traversable(lead = "Unspent outputs these addresses hold.")]
     pub count: CountWithDeltas<M>,
 }
 
@@ -41,6 +43,7 @@ pub struct BalanceUtxos<M: StorageMode = Rw> {
 pub struct ZeroBalanceVecs<M: StorageMode = Rw> {
     /// Funded addresses whose balance falls in the band.
     #[traversable(rename = "funded")]
+    #[traversable(lead = "Addresses: how many hold a balance in the band.")]
     pub address_count: CountWithDeltas<M>,
     pub utxos: BalanceUtxos<M>,
 }
@@ -95,6 +98,7 @@ pub struct BalanceActivity<M: StorageMode = Rw> {
     /// balance immediately before that input is applied, so one address can contribute to
     /// several bands within a block. BTC representations use the spent output value; USD
     /// representations value it at the spending block's spot price.
+    #[traversable(lead = "Transfer volume: the bitcoin these addresses spent.")]
     pub transfer_volume: CumulativeValue<M>,
 }
 
@@ -103,10 +107,12 @@ pub struct BalanceRealized<M: StorageMode = Rw> {
     /// Profit realized by the band's spends, each attributed by its address's balance
     /// immediately before that input is applied: spending value minus creation-date value,
     /// counted only for profitable spends.
+    #[traversable(lead = "Realized profit: what these addresses' spends gained over what the coins cost.")]
     pub profit: CumulativeFiat<Cents, M>,
     /// Loss realized by the band's spends, each attributed by its address's balance immediately
     /// before that input is applied: creation-date value minus spending value, counted only for
     /// losing spends.
+    #[traversable(lead = "Realized loss: what these addresses' spends lost against what the coins cost.")]
     pub loss: CumulativeFiat<Cents, M>,
 }
 
@@ -211,6 +217,7 @@ impl BalanceVecs {
 pub struct Balances<M: StorageMode = Rw> {
     /// Address balance bands classify addresses by their aggregate balance.
     #[traversable(flatten)]
+    #[traversable(lead = "Addresses, each with a balance of")]
     pub bands: AmountRange<BalanceVecs<M>, ZeroBalanceVecs<M>>,
     #[traversable(hidden)]
     pub capital: CachedSeries<Height, Cents, M>,

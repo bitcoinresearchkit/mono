@@ -12,14 +12,17 @@ use super::DerivedVecs;
 pub struct Vecs<M: StorageMode = Rw> {
     /// Coinblocks created by each block, equal to the circulating supply in BTC
     /// at that height.
+    #[traversable(lead = "Coinblocks created: holding time added, one per bitcoin per block.")]
     pub coinblocks_created: PerBlockCumulativeRolling<CoinBlocks, M>,
     /// Coinblocks destroyed by each block: each spent output's BTC value
     /// multiplied by the blocks it stayed unspent.
+    #[traversable(lead = "Coinblocks destroyed: holding time spent as coins move.")]
     pub coinblocks_destroyed: LazyPerBlockCumulativeRolling<CoinBlocks>,
     /// Net coinblocks stored. Its cumulative value is cumulative coinblocks
     /// created minus cumulative coinblocks destroyed; its per-block value is
     /// the change in that cumulative stock, negative (as are window sums) when more was
     /// destroyed than created.
+    #[traversable(lead = "Coinblocks stored: holding time kept, added minus spent.")]
     pub coinblocks_stored: PerBlockCumulativeRolling<CoinBlocks, M>,
     #[deref]
     #[deref_mut]
@@ -28,5 +31,6 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Concurrent liveliness: coinblocks destroyed divided by coinblocks
     /// created within a trailing window. Above one, spending consumed more
     /// holding time than the window added.
+    #[traversable(lead = "Concurrent liveliness: holding time spent against holding time added, over a window.")]
     pub concurrent_liveliness: LazyRatioRollingWindows<PartsPerMillion64>,
 }

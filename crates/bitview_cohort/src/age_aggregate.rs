@@ -13,16 +13,22 @@ pub struct AgeAggregate<T, All = T, Old = T> {
     /// Uses all UTXOs.
     pub all: All,
     /// Uses short-term-holder UTXOs younger than 150 days.
+    #[cfg_attr(feature = "storage", traversable(lead = "Short-term holders: coins that moved within the last 150 days."))]
     pub sth: T,
     /// Uses long-term-holder UTXOs at least 150 days old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Long-term holders: coins unmoved for 150 days or more."))]
     pub lth: Old,
     /// Younger than 120 days.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins that moved within the last 4 months (120 days)."))]
     pub under_4m: T,
     /// Younger than 180 days.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins that moved within the last 6 months (180 days)."))]
     pub under_6m: T,
     /// At least 120 days old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins unmoved for 4 months (120 days) or more."))]
     pub over_4m: Old,
     /// At least 180 days old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins unmoved for 6 months (180 days) or more."))]
     pub over_6m: Old,
 }
 

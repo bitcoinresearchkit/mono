@@ -11,6 +11,7 @@ use super::SupplyChange;
 #[derive(Clone, Traversable)]
 pub struct SupplyViews {
     /// Supply: amount of bitcoin held in the cohort's unspent transaction outputs.
+    #[traversable(lead = "Supply: the bitcoin held.")]
     total: LazySpotValuePerBlock,
     #[traversable(flatten)]
     change: SupplyChange,

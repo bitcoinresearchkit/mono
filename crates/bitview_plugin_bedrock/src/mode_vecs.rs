@@ -14,6 +14,7 @@ pub struct ModeVecs<M: StorageMode = Rw> {
     /// and the value is unavailable until its loss share exists and at least
     /// 52,560 prior block observations are available. Stored as a bounded share and
     /// exposed as a percentage. Calibration remains full precision.
+    #[traversable(lead = "Stress threshold: the share of coins in loss it calls extreme.")]
     pub supply_in_loss_share_threshold: Percentiles<LazyPerBlock<Percent, BoundedRatio>>,
     #[traversable(flatten)]
     /// Bedrock maps historically stressed supply-in-loss shares onto the

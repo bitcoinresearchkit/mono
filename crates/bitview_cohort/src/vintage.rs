@@ -33,42 +33,61 @@ pub const VINTAGE_NAMES: Vintage<CohortName> = Vintage {
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct Vintage<T> {
     /// Uses UTXOs created in calendar year 2009.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2009."))]
     _2009: T,
     /// Uses UTXOs created in calendar year 2010.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2010."))]
     _2010: T,
     /// Uses UTXOs created in calendar year 2011.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2011."))]
     _2011: T,
     /// Uses UTXOs created in calendar year 2012.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2012."))]
     _2012: T,
     /// Uses UTXOs created in calendar year 2013.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2013."))]
     _2013: T,
     /// Uses UTXOs created in calendar year 2014.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2014."))]
     _2014: T,
     /// Uses UTXOs created in calendar year 2015.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2015."))]
     _2015: T,
     /// Uses UTXOs created in calendar year 2016.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2016."))]
     _2016: T,
     /// Uses UTXOs created in calendar year 2017.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2017."))]
     _2017: T,
     /// Uses UTXOs created in calendar year 2018.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2018."))]
     _2018: T,
     /// Uses UTXOs created in calendar year 2019.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2019."))]
     _2019: T,
     /// Uses UTXOs created in calendar year 2020.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2020."))]
     _2020: T,
     /// Uses UTXOs created in calendar year 2021.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2021."))]
     _2021: T,
     /// Uses UTXOs created in calendar year 2022.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2022."))]
     _2022: T,
     /// Uses UTXOs created in calendar year 2023.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2023."))]
     _2023: T,
     /// Uses UTXOs created in calendar year 2024.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2024."))]
     _2024: T,
     /// Uses UTXOs created in calendar year 2025.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2025."))]
     _2025: T,
     /// Uses UTXOs created in calendar year 2026.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2026."))]
     _2026: T,
     /// Uses UTXOs created in calendar year 2027.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved in 2027."))]
     _2027: T,
 }
 

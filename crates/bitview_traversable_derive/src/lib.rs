@@ -19,6 +19,8 @@ struct FieldModel<'a> {
     hidden: bool,
     rename: Option<String>,
     wrap: Option<String>,
+    /// A few plain words for anyone, opening the description of every series under the field.
+    lead: Option<String>,
     description: Option<String>,
 }
 
@@ -93,6 +95,7 @@ fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
         hidden: false,
         rename: None,
         wrap: None,
+        lead: None,
         description: doc_comment(field),
     };
     for meta in traversable_metas(&field.attrs)? {
@@ -101,26 +104,35 @@ fn parse_field(index: usize, field: &Field) -> Result<FieldModel<'_>> {
             Meta::Path(path) if path.is_ident("flatten") => model.flatten = true,
             Meta::Path(path) if path.is_ident("hidden") => model.hidden = true,
             Meta::NameValue(name_value)
-                if name_value.path.is_ident("rename") || name_value.path.is_ident("wrap") =>
+                if name_value.path.is_ident("rename")
+                    || name_value.path.is_ident("wrap")
+                    || name_value.path.is_ident("lead") =>
             {
+                // (A string a declarative macro passed in arrives in an invisible group.)
+                let mut value = &name_value.value;
+                while let Expr::Group(group) = value {
+                    value = &group.expr;
+                }
                 let Expr::Lit(ExprLit {
                     lit: Lit::Str(value),
                     ..
-                }) = &name_value.value
+                }) = value
                 else {
                     return Err(Error::new_spanned(&name_value.value, "expected a string"));
                 };
                 let slot = if name_value.path.is_ident("rename") {
                     &mut model.rename
-                } else {
+                } else if name_value.path.is_ident("wrap") {
                     &mut model.wrap
+                } else {
+                    &mut model.lead
                 };
                 *slot = Some(value.value());
             }
             _ => {
                 return Err(Error::new_spanned(
                     meta,
-                    "expected `skip`, `flatten`, `hidden`, `rename = \"..\"` or `wrap = \"..\"`",
+                    "expected `skip`, `flatten`, `hidden`, `rename = \"..\"`, `wrap = \"..\"` or `lead = \"..\"`",
                 ));
             }
         }
@@ -153,7 +165,13 @@ fn parse_fields<'a>(input: &'a DeriveInput, merge: bool) -> Result<Vec<FieldMode
     }
 }
 
+/// A field's doc comment, as the Markdown it is: each paragraph's lines (wrapped where the code
+/// was) joined into one, and the lines Markdown reads apart kept apart (a list's items, a quote's,
+/// a table's rows, a heading, indented code); a fenced block as written; paragraphs and blocks a
+/// blank line apart.
 fn doc_comment(field: &Field) -> Option<String> {
+    // (Each `///` line is an attribute of its own, a blank one empty; a block comment's holds its
+    // lines.)
     let lines = field
         .attrs
         .iter()
@@ -168,25 +186,92 @@ fn doc_comment(field: &Field) -> Option<String> {
             },
             _ => None,
         })
-        .map(|line| line.trim().to_string())
-        .collect::<Vec<_>>();
-
-    (!lines.is_empty()).then(|| lines.join(" "))
+        .flat_map(|text| text.split('\n').map(str::to_owned).collect::<Vec<_>>());
+    let mut markdown = String::new();
+    // (The open fence's backticks, inside a fenced block: closed by as many or more.)
+    let mut fence: Option<usize> = None;
+    // (The last line one that takes no other on it: a heading, a table's row, indented code.)
+    let mut closed = false;
+    for line in lines {
+        // (`/// text` is " text": the space after the slashes isn't the text's.)
+        let raw = line.strip_prefix(' ').unwrap_or(&line);
+        let line = raw.trim_end();
+        let text = line.trim_start();
+        let ticks = text.bytes().take_while(|&byte| byte == b'`').count();
+        let indented = line.starts_with("    ");
+        if let Some(open) = fence {
+            markdown.push('\n');
+            if ticks >= open && text[ticks..].trim().is_empty() {
+                markdown.push_str(line);
+                fence = None;
+                apart(&mut markdown);
+            } else {
+                markdown.push_str(raw);
+            }
+            continue;
+        }
+        if ticks >= 3 {
+            apart(&mut markdown);
+            markdown.push_str(line);
+            fence = Some(ticks);
+        } else if text.is_empty() {
+            apart(&mut markdown);
+        } else if markdown.is_empty() || markdown.ends_with("\n\n") {
+            markdown.push_str(if indented { line } else { text });
+        } else if indented || starts_block(text) {
+            markdown.push('\n');
+            markdown.push_str(line);
+        } else if closed {
+            apart(&mut markdown);
+            markdown.push_str(text);
+        } else {
+            markdown.push(' ');
+            markdown.push_str(text);
+        }
+        closed = indented || text.starts_with('#') || text.starts_with('|');
+    }
+    let markdown = markdown.trim_end();
+    (!markdown.is_empty()).then(|| markdown.to_owned())
 }
 
-fn with_description_fragment(
-    description: Option<&str>,
-    collect: ProcMacro2TokenStream,
-) -> ProcMacro2TokenStream {
-    let Some(description) = description else {
+/// What follows starts a paragraph or a block of its own: a blank line before it.
+fn apart(markdown: &mut String) {
+    if !markdown.is_empty() && !markdown.ends_with("\n\n") {
+        markdown.push_str("\n\n");
+    }
+}
+
+/// Whether a Markdown line starts a block of its own: a list's item, a quote, a table's row, a
+/// heading.
+fn starts_block(text: &str) -> bool {
+    let ordered = text
+        .split_once(". ")
+        .is_some_and(|(number, _)| !number.is_empty() && number.bytes().all(|byte| byte.is_ascii_digit()));
+    ordered || ["- ", "* ", "+ ", "> ", "|", "#"].iter().any(|start| text.starts_with(start))
+}
+
+/// `collect` with the field's description fragments on the path, its lead's and its doc
+/// comment's, as long as it runs.
+fn with_description_fragment(field: &FieldModel, collect: ProcMacro2TokenStream) -> ProcMacro2TokenStream {
+    let fragments = field
+        .lead
+        .as_deref()
+        .map(|lead| quote! { bitview_traversable::Fragment::Lead(#lead) })
+        .into_iter()
+        .chain(field.description.as_deref().map(|detail| quote! { bitview_traversable::Fragment::Detail(#detail) }))
+        .collect::<Vec<_>>();
+    if fragments.is_empty() {
         return collect;
-    };
+    }
+    let expected = fragments.iter().rev();
 
     quote! {{
-        description_fragments.push(#description);
+        #(description_fragments.push(#fragments);)*
         #collect
-        let popped = description_fragments.pop();
-        debug_assert_eq!(popped, Some(#description));
+        #(
+            let popped = description_fragments.pop();
+            debug_assert_eq!(popped, Some(#expected));
+        )*
     }}
 }
 
@@ -425,7 +510,7 @@ fn gen_traversable(
     {
         let where_clause = build_where_clause(generics, &[field.ty]);
         let collect_description = with_description_fragment(
-            field.description.as_deref(),
+            field,
             quote! {
                 self.0.collect_series_descriptions(description_fragments, descriptions);
             },
@@ -450,8 +535,8 @@ fn gen_traversable(
 
                 fn collect_series_descriptions<'a>(
                     &'a self,
-                    description_fragments: &mut Vec<&'static str>,
-                    descriptions: &mut std::collections::BTreeMap<&'a str, Vec<&'static str>>,
+                    description_fragments: &mut Vec<bitview_traversable::Fragment>,
+                    descriptions: &mut std::collections::BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>,
                 ) {
                     #collect_description
                 }
@@ -641,7 +726,7 @@ fn generate_description_impl(visible: &[&FieldModel]) -> ProcMacro2TokenStream {
     let fields = visible.iter().map(|field| {
         let member = &field.member;
         with_description_fragment(
-            field.description.as_deref(),
+            field,
             quote! {
                 self.#member.collect_series_descriptions(description_fragments, descriptions);
             },
@@ -651,8 +736,8 @@ fn generate_description_impl(visible: &[&FieldModel]) -> ProcMacro2TokenStream {
     quote! {
         fn collect_series_descriptions<'a>(
             &'a self,
-            description_fragments: &mut Vec<&'static str>,
-            descriptions: &mut std::collections::BTreeMap<&'a str, Vec<&'static str>>,
+            description_fragments: &mut Vec<bitview_traversable::Fragment>,
+            descriptions: &mut std::collections::BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>,
         ) {
             #(#fields)*
         }

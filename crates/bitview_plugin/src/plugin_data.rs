@@ -12,7 +12,7 @@ pub trait PluginData {
     fn for_each_exportable<'a>(&'a self, visit: &mut dyn FnMut(&'a dyn AnyExportableVec));
 
     /// Adds each public series' documentation fragments, keyed by series id.
-    fn collect_descriptions<'a>(&'a self, descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>);
+    fn collect_descriptions<'a>(&'a self, descriptions: &mut BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>);
 }
 
 impl<T> PluginData for T
@@ -27,7 +27,7 @@ where
         self.iter_any_exportable().for_each(visit);
     }
 
-    fn collect_descriptions<'a>(&'a self, descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>) {
+    fn collect_descriptions<'a>(&'a self, descriptions: &mut BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>) {
         let mut fragments = Vec::new();
         self.collect_series_descriptions(&mut fragments, descriptions);
         debug_assert!(

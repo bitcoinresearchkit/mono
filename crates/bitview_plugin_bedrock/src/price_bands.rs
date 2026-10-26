@@ -10,10 +10,12 @@ pub struct PriceBands<T> {
     /// digits of cents (exact under $100, then steps of at most 0.1%). If spot equaled this floor, that higher-cost
     /// supply would be in loss. Unavailable when no mode-weighted supply has a
     /// positive creation price, or without a historical threshold.
+    #[traversable(lead = "The floor price.")]
     pub floor: Percentiles<T>,
     /// Creation-price percentiles of the mode-weighted supply at or above the
     /// mode's 95th-percentile floor, on the same rounded creation prices. Unavailable when that floor or the
     /// conditional supply subset is unavailable.
+    #[traversable(lead = "Cost basis above the 95th-percentile floor: the prices the coins above it last moved at.")]
     pub cost_basis_above_p95_floor: Levels<T>,
 }
 

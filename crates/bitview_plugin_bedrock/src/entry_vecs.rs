@@ -13,10 +13,12 @@ use super::{FloorBands, Holding};
 pub struct EntryVecs<M: StorageMode = Rw> {
     /// Supply created since the second halving (block 420,000) while spot sat in this band of
     /// the mode's floors at its creation block, less what has been spent since.
+    #[traversable(lead = "Entry supply: the bitcoin bought while the price sat in this band, still held.")]
     pub entry_supply: FloorBands<LazySpotValuePerBlock>,
     /// Capital of the supply created since the second halving (block 420,000) while spot sat in
     /// this band of the mode's floors at its creation block and not spent since: each unspent
     /// output at its creation price (the band's realized cap).
+    #[traversable(lead = "Entry capital: what was paid for that bitcoin.")]
     pub entry_capital: FloorBands<LazyFiatPerBlock<Cents>>,
     #[traversable(hidden)]
     supply_stored: FloorBands<CachedSeries<Height, Sats, M>>,

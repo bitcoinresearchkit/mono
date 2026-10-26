@@ -31,8 +31,10 @@ pub struct Vecs<M: StorageMode = Rw> {
     pub spends: M::WriteOnly<Spends>,
 
     /// Number of transaction inputs, excluding coinbase inputs.
+    #[traversable(lead = "Inputs: how many coins were spent.")]
     pub count: PerBlockFullFromCumulative<Count16, M>,
     /// Transaction-input rate, excluding coinbase inputs.
+    #[traversable(lead = "Inputs per second.")]
     per_second: LazyPerSecondWindows,
     /// Transaction inputs by the locking-script type of the output they spend,
     /// excluding coinbase inputs and coinbase transactions.

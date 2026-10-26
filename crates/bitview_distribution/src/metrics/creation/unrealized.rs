@@ -13,13 +13,16 @@ pub struct CreationUnrealized<M: StorageMode = Rw> {
     /// Unrealized profit of the cohort's unspent outputs: market value at the
     /// represented block minus creation-date value, summed where spot is above
     /// creation price.
+    #[traversable(lead = "Unrealized profit: holders' paper gains, on coins worth more than they paid.")]
     pub profit: Fiat<Cents, M>,
     /// Unrealized loss of the cohort's unspent outputs: creation-date value
     /// minus market value at the represented block, summed where spot is below
     /// creation price.
+    #[traversable(lead = "Unrealized loss: holders' paper losses, on coins worth less than they paid.")]
     pub loss: Fiat<Cents, M>,
     /// Net unrealized profit and loss of the cohort: unrealized profit minus
     /// unrealized loss.
+    #[traversable(lead = "Net unrealized profit and loss: paper gains minus paper losses.")]
     net_pnl: Fiat<CentsSigned, M>,
 }
 

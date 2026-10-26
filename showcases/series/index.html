@@ -873,6 +873,19 @@
           font-size: 0.88em;
         }
 
+        /* (Its own blocks, its paragraphs and lists, a step apart.) */
+        > :is(p, ul, ol, pre) {
+          margin: 0;
+
+          &:not(:first-child) {
+            margin-top: 10px;
+          }
+        }
+
+        > :is(ul, ol) {
+          padding-inline-start: 20px;
+        }
+
         &:empty {
           display: none;
         }
@@ -1453,7 +1466,7 @@
             <div id="view"><div class="message">Loading…</div></div>
           </div>
           <div class="actions" id="actions"></div>
-          <p class="about" id="about">${known.has(name) ? prose(known.get(name).description ?? "") : "&nbsp;"}</p>
+          <div class="about" id="about">${known.has(name) ? prose(known.get(name).description ?? "") : "&nbsp;"}</div>
           <dl class="facts" id="facts">${known.has(name) ? factsHtml(known.get(name)) : ""}</dl>
         </article>`;
       }
@@ -1462,7 +1475,44 @@
         `<button type="button" class="copyable"${id ? ` id="${id}"` : ""} data-copy="${escape(copied)}" aria-label="${escape(`${label}, ${shown}`)}" title="${escape(label)}"><code>${wrappable(shown)}</code>${ICON.copy}${ICON.copied}</button>`;
       const wrappable = (/** @type {string} */ text) => escape(text).replace(/[_/?&]/g, "$&<wbr>");
       /** The server's words: what's between backticks as code. */
-      const prose = (/** @type {string} */ text) => escape(text).replace(/`([^`]+)`/g, "<code>$1</code>");
+      /**
+       * The server's words (a series' description: Markdown) as HTML: its paragraphs, lists and fenced blocks; inline, code,
+       * strong, emphasis and links to the web. Anything else stays text, escaped: never markup of its own.
+       */
+      function prose(/** @type {string} */ markdown) {
+        // (Code first: what's in it is as written.)
+        const inline = (/** @type {string} */ text) => text.split(/(`[^`]+`)/).map((part, i) => (i % 2 ? `<code>${escape(part.slice(1, -1))}</code>` : escape(part)
+          .replace(/\*\*(?=\S)(.+?)\*\*/g, "<strong>$1</strong>")
+          .replace(/\*(?=\S)([^*]+?)\*/g, "<em>$1</em>")
+          .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>'))).join("");
+        // (Line by line: a fenced block whole, blank lines and all; a list's items together, a line under one going on
+        // with it; the rest paragraphs, a blank line between them.)
+        const html = /** @type {string[]} */ ([]), lines = markdown.trim().split("\n");
+        let paragraph = /** @type {string[]} */ ([]), list = /** @type {{ tag: string, items: string[] } | null} */ (null);
+        const close = () => {
+          if (paragraph.length) html.push(`<p>${inline(paragraph.join(" "))}</p>`);
+          if (list) html.push(`<${list.tag}>${list.items.map((item) => `<li>${inline(item)}</li>`).join("")}</${list.tag}>`);
+          paragraph = [];
+          list = null;
+        };
+        for (let at = 0; at < lines.length; at++) {
+          const line = lines[at], fence = /^\s*(`{3,})/.exec(line), item = /^\s*([-*+]|\d+\.)\s+/.exec(line);
+          if (fence) {
+            close();
+            const code = [];
+            for (at++; at < lines.length && !(/^`+$/.test(lines[at].trim()) && lines[at].trim().length >= fence[1].length); at++) code.push(lines[at]);
+            html.push(`<pre><code>${escape(code.join("\n"))}</code></pre>`);
+          } else if (!line.trim()) close();
+          else if (item) {
+            const tag = /\d/.test(item[1]) ? "ol" : "ul";
+            if (paragraph.length || list?.tag !== tag) close();
+            (list ??= { tag, items: [] }).items.push(line.slice(item[0].length));
+          } else if (list) list.items[list.items.length - 1] += ` ${line.trim()}`;
+          else paragraph.push(line.trim());
+        }
+        close();
+        return html.join("");
+      }
 
       // ── A series: its facts, its history ──
       /** @type {AbortController | null} */

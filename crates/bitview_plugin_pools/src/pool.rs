@@ -16,17 +16,22 @@ use crate::pool_heights::{Column, PoolCumulativeVec, PoolHeights};
 #[derive(Clone, Traversable)]
 pub struct PoolVecs {
     /// Blocks attributed to the pool.
+    #[traversable(lead = "Blocks the pool mined.")]
     pub block_count: LazyCumulativeRolling<Count>,
     /// Share of all blocks attributed to the pool: from genesis through the represented block
     /// (`cumulative`) or over a trailing window.
+    #[traversable(lead = "The pool's share of all blocks mined.")]
     block_share: BlockShare,
     /// Coinbase output value of the pool's blocks, with USD valuing each block's coinbase at its
     /// spot price.
+    #[traversable(lead = "What the pool's blocks paid it, new coins and fees together.")]
     pub coinbase: Coinbase,
     /// Transaction fees of the pool's blocks.
+    #[traversable(lead = "Fees in the pool's blocks.")]
     fees: PoolFees,
     /// Estimated hash rate over a trailing window, in hashes per second: the pool's share of the
     /// window's blocks times the network hash-rate estimate for the same window.
+    #[traversable(lead = "The pool's hash rate, estimated from its share of the blocks.")]
     hashrate: Windows<LazyPerBlock<Hashrate>>,
 }
 
@@ -48,6 +53,7 @@ pub struct Coinbase {
 pub struct PoolFees {
     /// Average transaction fees of the pool's blocks over a trailing window: the fees of its
     /// blocks in the window divided by their number; null when it mined none.
+    #[traversable(lead = "On average, per block.")]
     pub avg: Windows<FeesAvg>,
 }
 

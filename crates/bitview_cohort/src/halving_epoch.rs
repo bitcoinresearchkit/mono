@@ -20,16 +20,22 @@ pub const HALVING_EPOCH_NAMES: ByHalvingEpoch<CohortName> = ByHalvingEpoch {
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct ByHalvingEpoch<T> {
     /// Uses UTXOs created during subsidy-halving epoch 0.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved before the first halving (2009 to November 2012)."))]
     _0: T,
     /// Uses UTXOs created during subsidy-halving epoch 1.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved between the first and second halvings (November 2012 to July 2016)."))]
     _1: T,
     /// Uses UTXOs created during subsidy-halving epoch 2.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved between the second and third halvings (July 2016 to May 2020)."))]
     _2: T,
     /// Uses UTXOs created during subsidy-halving epoch 3.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved between the third and fourth halvings (May 2020 to April 2024)."))]
     _3: T,
     /// Uses UTXOs created during subsidy-halving epoch 4.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved between the fourth and fifth halvings (from April 2024)."))]
     _4: T,
     /// Uses UTXOs created during subsidy-halving epoch 5.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved between the fifth and sixth halvings."))]
     _5: T,
 }
 

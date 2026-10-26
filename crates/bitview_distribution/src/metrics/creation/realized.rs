@@ -11,15 +11,19 @@ use vecdb::{Database, Rw, StorageMode};
 pub struct CreationRealized<M: StorageMode = Rw> {
     /// Profit realized by the cohort's outputs: spending value minus
     /// creation-date value, counted only for profitable spends.
+    #[traversable(lead = "Realized profit: what sellers gained over what their coins cost.")]
     pub profit: CumulativeFiat<Cents, M>,
     /// Loss realized by the cohort's outputs: creation-date value minus
     /// spending value, counted only for losing spends.
+    #[traversable(lead = "Realized loss: what sellers lost against what their coins cost.")]
     pub loss: CumulativeFiat<Cents, M>,
     /// Net realized profit and loss of the cohort's outputs when spent:
     /// realized profit minus realized loss.
+    #[traversable(lead = "Net realized profit and loss: realized profit minus realized loss.")]
     pub net_pnl: CumulativeFiat<CentsSigned, M>,
     /// Creation-date value destroyed by the cohort's spent outputs: the sum of
     /// each spent output's creation price multiplied by its BTC value.
+    #[traversable(lead = "Value destroyed: what the coins spent had cost their holders.")]
     pub value_destroyed: CumulativeFiat<Cents, M>,
 }
 

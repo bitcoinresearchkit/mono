@@ -32,6 +32,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// minus one. Positive values mean price increased and negative values mean
     /// it decreased. Null when that price is zero (before the first price) or
     /// the window starts at genesis.
+    #[traversable(lead = "Returns: how much the price changed over the window.")]
     returns: Returns,
     range: RangeVecs<M>,
     #[traversable(flatten)]

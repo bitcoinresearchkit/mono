@@ -166,59 +166,82 @@ pub const AGE_RANGE_NAMES: AgeRange<CohortName> = AgeRange {
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct AgeRange<T> {
     /// Uses UTXOs less than 1 hour old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins that moved within the last hour."))]
     pub under_1h: T,
     /// Uses UTXOs at least 1 hour and less than 1 day old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 1 hour to 1 day ago."))]
     pub _1h_to_1d: T,
     /// Uses UTXOs at least 1 day and less than 7 days old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 1 day to 1 week ago."))]
     pub _1d_to_1w: T,
     /// Uses UTXOs at least 7 days and less than 30 days old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 1 week to 1 month ago."))]
     pub _1w_to_1m: T,
     /// Uses UTXOs at least 30 days and less than 60 days old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 1 to 2 months ago."))]
     pub _1m_to_2m: T,
     /// Uses UTXOs at least 60 days and less than 90 days old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 2 to 3 months ago."))]
     pub _2m_to_3m: T,
     /// Uses UTXOs at least 90 days and less than 120 days old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 3 to 4 months ago."))]
     pub _3m_to_4m: T,
     /// Uses UTXOs at least 120 days and less than 150 days old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 4 to 5 months ago."))]
     pub _4m_to_5m: T,
     /// Uses UTXOs at least 150 days and less than 180 days old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 5 to 6 months ago."))]
     pub _5m_to_6m: T,
     /// Uses UTXOs at least 180 days and less than 270 days old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 6 to 9 months ago."))]
     pub _6m_to_9m: T,
     /// Uses UTXOs at least 270 days and less than 365 days old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 9 months to 1 year ago."))]
     pub _9m_to_1y: T,
     /// Uses UTXOs at least 365 days and less than 545 days old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 1 year to 18 months ago."))]
     pub _1y_to_18m: T,
     /// Uses UTXOs at least 545 days and less than 730 days old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 18 months to 2 years ago."))]
     pub _18m_to_2y: T,
     /// Uses UTXOs at least 2 years and less than 3 years old, using 365-day
     /// years.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 2 to 3 years ago."))]
     pub _2y_to_3y: T,
     /// Uses UTXOs at least 3 years and less than 4 years old, using 365-day
     /// years.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 3 to 4 years ago."))]
     pub _3y_to_4y: T,
     /// Uses UTXOs at least 4 years and less than 5 years old, using 365-day
     /// years.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 4 to 5 years ago."))]
     pub _4y_to_5y: T,
     /// Uses UTXOs at least 5 years and less than 6 years old, using 365-day
     /// years.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 5 to 6 years ago."))]
     pub _5y_to_6y: T,
     /// Uses UTXOs at least 6 years and less than 7 years old, using 365-day
     /// years.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 6 to 7 years ago."))]
     pub _6y_to_7y: T,
     /// Uses UTXOs at least 7 years and less than 8 years old, using 365-day
     /// years.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 7 to 8 years ago."))]
     pub _7y_to_8y: T,
     /// Uses UTXOs at least 8 years and less than 10 years old, using 365-day
     /// years.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 8 to 10 years ago."))]
     pub _8y_to_10y: T,
     /// Uses UTXOs at least 10 years and less than 12 years old, using 365-day
     /// years.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 10 to 12 years ago."))]
     pub _10y_to_12y: T,
     /// Uses UTXOs at least 12 years and less than 15 years old, using 365-day
     /// years.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins last moved 12 to 15 years ago."))]
     pub _12y_to_15y: T,
     /// Uses UTXOs at least 15 years old, using 365-day years.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins unmoved for 15 years or more."))]
     pub over_15y: T,
 }
 

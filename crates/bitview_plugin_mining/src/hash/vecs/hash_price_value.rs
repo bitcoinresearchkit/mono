@@ -17,10 +17,12 @@ where
     pub value: PerBlock<T, M>,
     /// Running all-time low of the per-PH/s series, skipping zero and null values;
     /// null until the first positive value exists.
+    #[traversable(lead = "Its all-time low.")]
     pub atl: PerBlock<T, M>,
     /// Per-PH/s value at the represented block divided by its running all-time
     /// low, minus one. Zero marks the historical floor and positive values
     /// measure the rebound above it. Undefined (null) before a nonzero low exists.
+    #[traversable(lead = "How far above its all-time low it is.")]
     pub rebound: PercentPerBlock<PartsPerMillionSigned32, M>,
 }
 

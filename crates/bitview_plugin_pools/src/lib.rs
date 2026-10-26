@@ -32,6 +32,7 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Mining pool attributed to each block: the first pool in the known-pool list that matches
     /// either a payout address among the coinbase transaction's outputs or, by case-insensitive
     /// substring, the coinbase tag (mempool.space's order). Unmatched blocks are `unknown`.
+    #[traversable(lead = "Which mining pool mined each block.")]
     pub block_pool: M::Stored<BytesVec<Height, PoolSlug>>,
     #[traversable(skip)]
     pub heights: PoolHeights,
@@ -71,12 +72,12 @@ impl Traversable for BySlug {
 
     fn collect_series_descriptions<'a>(
         &'a self,
-        description_fragments: &mut Vec<&'static str>,
-        descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>,
+        description_fragments: &mut Vec<bitview_traversable::Fragment>,
+        descriptions: &mut BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>,
     ) {
         let pools = bitview_primitives::pools();
         for (slug, vecs) in &self.0 {
-            let lead = pools.get(*slug).lead;
+            let lead = bitview_traversable::Fragment::Lead(pools.get(*slug).lead);
             description_fragments.push(lead);
             vecs.collect_series_descriptions(description_fragments, descriptions);
             let popped = description_fragments.pop();

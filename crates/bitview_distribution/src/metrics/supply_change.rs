@@ -12,10 +12,12 @@ use vecdb::{BinaryTransform, ReadableCloneableVec};
 #[derive(Clone, Traversable)]
 pub struct SupplyChange {
     /// Change in the cohort's supply over a trailing window.
+    #[traversable(lead = "Supply change: how much the bitcoin held changed.")]
     delta: LazyRollingDeltasAmountFromHeight<Sats, SatsSigned, PartsPerMillionSigned64>,
     /// The cohort's share of the supply it is part of: all unspent outputs', or for address
     /// balance bands, all addresses'. Across UTXO age ranges, these shares are the HODL waves.
     /// Undefined (null) while that supply is zero.
+    #[traversable(lead = "Supply share: their part of all the supply.")]
     share: LazyPercentPerBlock<PartsPerMillion32>,
 }
 

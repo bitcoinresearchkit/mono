@@ -48,7 +48,8 @@ pub fn render_api(plugins: &DefaultPlugins) -> Result<Vec<Snapshot>> {
         leaves
             .descriptions
             .iter()
-            .map(|(series, description)| format!("{series}\t{description}")),
+            // (One line each: a description's line breaks, Markdown's, written as `\n`.)
+            .map(|(series, description)| format!("{series}\t{}", description.replace('\n', "\\n"))),
     );
     section(
         &mut out,

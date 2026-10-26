@@ -875,6 +875,9 @@ has to be deleted by hand.
 
 #### Rust APIs
 
+- `Traversable::collect_series_descriptions` collects `bitview_traversable::Fragment`s (a field's lead or its
+  doc comment), not `&'static str`s; `bitview_traversable::describe` makes a description of them. A hand-written
+  impl pushes and pops its fragments as the derive does
 - `bitview_compute`'s ratio transforms are `bitview_vecs::ops::Quotient<P>` (was `RatioU64`, `RatioBytes`, `RatioSats`,
   `RatioCents`, `RatioCentsSignedCents`, `RatioDollars` and `RatioCentsF32`) and `RelativeChange<P>` (was
   `RatioDiffF32`, `RatioDiffCents` and `RatioDiffDollars`); both return NaN (or an infinity) for a zero denominator or
@@ -1187,6 +1190,12 @@ has to be deleted by hand.
 
 #### API
 
+- A series' description is Markdown and opens, for anyone, with a few plain words on what the series is (its fields'
+  `#[traversable(lead = "..")]`, a cohort's or pool's, then the measure's: "Long-term holders: coins unmoved for 150
+  days or more. Realized price: what holders paid for their bitcoin, on average, ..."), then a blank line and the
+  exact definition as before. The definitions keep their Markdown (paragraphs, lists, code, fenced blocks; each
+  paragraph's source lines joined; they were one line, their paragraphs run together). 99% of the series have a lead;
+  the rest are internal indexes. The search reads both
 - `GET /api/series/{name}` returns `unit`, what the value type measures (e.g. "A duration in days."), and `nullable`,
   the indexes whose values can be `null`; the catalog carries `nullable` too. Every series value type has a description
 - Bedrock entry supply and capital, `bedrock.<mode>.{entry_supply, entry_capital}.{p95_to_p98, p98_to_p99,

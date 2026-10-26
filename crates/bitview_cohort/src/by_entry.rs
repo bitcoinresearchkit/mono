@@ -29,11 +29,13 @@ pub struct ByEntry<T> {
     /// outputs weighted by each output's creation-date USD value. An undefined
     /// capitalized price (no priced capital yet) also selects this cohort. Membership is set at
     /// creation and kept until the output is spent.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins that last moved at or below the market's average cost: bought at a discount."))]
     pub discount: T,
     /// Uses UTXOs created when spot price was above the previous block's all-chain
     /// capitalized price, the mean creation price of all unspent outputs
     /// weighted by each output's creation-date USD value. Membership is set at creation and kept
     /// until the output is spent.
+    #[cfg_attr(feature = "storage", traversable(lead = "Coins that last moved above the market's average cost: bought at a premium."))]
     pub premium: T,
 }
 

@@ -69,6 +69,7 @@ where
     /// The source value at this percentile of the accepted observations before the represented
     /// one (the series' model sets the history).
     #[traversable(flatten)]
+    #[traversable(lead = "Its rarity bands: the values as rare as each percentile of its history.")]
     pub bands: RarityPercentiles<PerBlock<T, M>>,
 
     history: M::WriteOnly<LiveHistory>,

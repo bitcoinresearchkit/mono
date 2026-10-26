@@ -14,8 +14,10 @@ pub const TERM_NAMES: ByTerm<CohortName> = ByTerm {
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct ByTerm<T> {
     /// Uses short-term-holder UTXOs younger than 150 days.
+    #[cfg_attr(feature = "storage", traversable(lead = "Short-term holders: coins that moved within the last 150 days."))]
     pub short: T,
     /// Uses long-term-holder UTXOs at least 150 days old.
+    #[cfg_attr(feature = "storage", traversable(lead = "Long-term holders: coins unmoved for 150 days or more."))]
     pub long: T,
 }
 

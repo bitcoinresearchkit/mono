@@ -15,8 +15,10 @@ use crate::families::{CountWithDeltas, CumulativeQuantity};
 #[derive(Clone, Traversable)]
 pub struct CohortUtxos<U, S> {
     /// Number of transaction outputs that are unspent at the represented block.
+    #[traversable(lead = "UTXO count: how many unspent outputs (separate coins) there are.")]
     pub count: U,
     /// Number of the cohort's outputs spent in each block.
+    #[traversable(lead = "Outputs spent: how many were spent in each block.")]
     pub spent_count: S,
 }
 

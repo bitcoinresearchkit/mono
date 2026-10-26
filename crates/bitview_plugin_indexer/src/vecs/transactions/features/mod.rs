@@ -25,8 +25,10 @@ macro_rules! define_vecs {
             $($(#[$doc])* pub $feature: FeatureVecs<M>,)+
             $($(#[$flag_attribute])* pub $flag_vector: M::Stored<PcoVec<TxIndex, Boolean>>,)+
             /// Transactions with exactly one input, including the coinbase transaction.
+            #[traversable(lead = "Transactions with a single input.")]
             pub one_input: CountVecs<M>,
             /// Transactions with exactly one output, including the coinbase transaction.
+            #[traversable(lead = "Transactions with a single output.")]
             pub one_output: CountVecs<M>,
         }
 

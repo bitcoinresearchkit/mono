@@ -40,9 +40,11 @@ pub struct BlocksVecs<M: StorageMode = Rw> {
     /// Serialized block size in bytes, including witness data: its 80-byte header,
     /// transaction-count CompactSize, and every serialized transaction. Value for the represented
     /// block.
+    #[traversable(lead = "Block size: the bytes each block takes, witness data included.")]
     pub size: Compact<PcoVec<Height, Bytes32>, Bytes, M>,
     /// BIP-141 block weight in weight units: non-witness bytes count as four
     /// weight units and witness bytes count as one. Value for the represented block.
+    #[traversable(lead = "Block weight: each block measured against the limit of 4 million weight units.")]
     pub weight: Compact<PcoVec<Height, Weight32>, Weight, M>,
     #[traversable(hidden)]
     pub position: M::Stored<PcoVec<Height, BlkPosition>>,

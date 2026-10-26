@@ -25,6 +25,7 @@ pub struct RarityMeterInner<M: StorageMode = Rw> {
     /// 90th percentiles are logarithmically interpolated between the combined 5th and 95th
     /// boundaries when both are positive, otherwise linearly interpolated. Null before
     /// height 210,000, where calibration starts.
+    #[traversable(lead = "Rarity bands: the prices any of its references calls rare.")]
     pub prices: RarityPercentiles<Price<PerBlock<Cents, M>>>,
     /// Signed count of combined extreme boundaries crossed by spot price.
     /// Negative values mean spot is below lower bands and therefore unusually
@@ -32,11 +33,13 @@ pub struct RarityMeterInner<M: StorageMode = Rw> {
     /// zero means neither side is crossed. It equals upper boundaries exceeded
     /// minus lower boundaries not reached and ranges from -5 through 5. Null before
     /// height 210,000.
+    #[traversable(lead = "Rarity level: from -5, the price rarely low, to 5, rarely high.")]
     pub level: PerBlock<Score, M>,
     /// Agreement score across the meter's component models. More negative
     /// values mean more models identify a rare low valuation; more positive
     /// values mean more models identify a rare high valuation. It sums each
     /// component's rarity level, from -5 through 5. Null before height 210,000.
+    #[traversable(lead = "Rarity score: its references' rarity levels added up, below 0 when they find the price rarely low, above when rarely high.")]
     pub score: PerBlock<Score, M>,
 }
 

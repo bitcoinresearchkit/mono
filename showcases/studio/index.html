@@ -4188,6 +4188,23 @@
         font-size: 13px;
         line-height: 1.6;
 
+        /* (A description's own blocks, its paragraphs and lists, a short step apart.) */
+        > :is(p, ul, ol, pre) {
+          margin: 0;
+
+          &:not(:first-child) {
+            margin-top: 6px;
+          }
+        }
+
+        > :is(ul, ol) {
+          padding-inline-start: 18px;
+        }
+
+        a {
+          color: var(--text);
+        }
+
         &.clamped {
           display: -webkit-box;
           overflow: hidden;
@@ -9956,6 +9973,44 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** @returns {HTMLElement[]} */
       const all$ = (selector, root = /** @type {ParentNode} */ (document)) => [...root.querySelectorAll(selector)];
       const escape = (text) => String(text).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+      /**
+       * The server's words (a series' description: Markdown) as HTML: its paragraphs, lists and fenced blocks; inline, code,
+       * strong, emphasis and links to the web. Anything else stays text, escaped: never markup of its own.
+       */
+      function proseHtml(/** @type {string} */ markdown) {
+        // (Code first: what's in it is as written.)
+        const inline = (/** @type {string} */ text) => text.split(/(`[^`]+`)/).map((part, i) => (i % 2 ? `<code>${escape(part.slice(1, -1))}</code>` : escape(part)
+          .replace(/\*\*(?=\S)(.+?)\*\*/g, "<strong>$1</strong>")
+          .replace(/\*(?=\S)([^*]+?)\*/g, "<em>$1</em>")
+          .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>'))).join("");
+        // (Line by line: a fenced block whole, blank lines and all; a list's items together, a line under one going on
+        // with it; the rest paragraphs, a blank line between them.)
+        const html = /** @type {string[]} */ ([]), lines = markdown.trim().split("\n");
+        let paragraph = /** @type {string[]} */ ([]), list = /** @type {{ tag: string, items: string[] } | null} */ (null);
+        const close = () => {
+          if (paragraph.length) html.push(`<p>${inline(paragraph.join(" "))}</p>`);
+          if (list) html.push(`<${list.tag}>${list.items.map((item) => `<li>${inline(item)}</li>`).join("")}</${list.tag}>`);
+          paragraph = [];
+          list = null;
+        };
+        for (let at = 0; at < lines.length; at++) {
+          const line = lines[at], fence = /^\s*(`{3,})/.exec(line), item = /^\s*([-*+]|\d+\.)\s+/.exec(line);
+          if (fence) {
+            close();
+            const code = [];
+            for (at++; at < lines.length && !(/^`+$/.test(lines[at].trim()) && lines[at].trim().length >= fence[1].length); at++) code.push(lines[at]);
+            html.push(`<pre><code>${escape(code.join("\n"))}</code></pre>`);
+          } else if (!line.trim()) close();
+          else if (item) {
+            const tag = /\d/.test(item[1]) ? "ol" : "ul";
+            if (paragraph.length || list?.tag !== tag) close();
+            (list ??= { tag, items: [] }).items.push(line.slice(item[0].length));
+          } else if (list) list.items[list.items.length - 1] += ` ${line.trim()}`;
+          else paragraph.push(line.trim());
+        }
+        close();
+        return html.join("");
+      }
       const clamp = (value, lo, hi) => Math.max(lo, Math.min(hi, value));
       /** How far an arrow, Home or End moves a place in a row: one on or back, or to an end. */
       const KEY_STEPS = /** @type {Record<string, number | undefined>} */ ({ ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1, Home: -Infinity, End: Infinity });
@@ -25323,7 +25378,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 <button type="button" class="cap small" data-action="copy-name" aria-label="Copy the series name" data-tip="Copy the series name">${ICONS.copy}</button>
               </div>
               ${result?.error ? errorBox(result, layer.series ?? "") : ""}
-              ${meta?.description ? `<p class="description ${expanded ? "" : "clamped"}">${escape(meta.description)}</p>${meta.description.length > 220 ? `<button type="button" class="more" data-action="more">${expanded ? "Show less" : "Show more"}</button>` : ""}` : ""}
+              ${meta?.description ? `<div class="description ${expanded ? "" : "clamped"}">${proseHtml(meta.description)}</div>${meta.description.length > 220 ? `<button type="button" class="more" data-action="more">${expanded ? "Show less" : "Show more"}</button>` : ""}` : ""}
               ${meta ? `<div class="facts"><span class="chip">${escape(UNIT_NAMES[unitOf(meta.type)] ?? "Number")}</span><span class="chip">${meta.indexes.length} intervals</span></div>` : ""}
             </section>`;
         const html = `
@@ -28839,7 +28894,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const unit = unitOf(meta.type);
             units.set(name, unit);
             panel.innerHTML = `${head}
-              ${meta.description ? `<p class="description clamped">${escape(meta.description)}</p>` : ""}
+              ${meta.description ? `<div class="description clamped">${proseHtml(meta.description)}</div>` : ""}
               <svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>
               <div class="info"><h5>Information</h5><dl>
                 <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit])}</dd></div>
@@ -29765,7 +29820,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const about = layer.series ? known.get(layer.series)?.description : null;
         panel.innerHTML = `<h4 class="plain">${escape(labelOf(layer))}</h4>
           <p class="description">${layer.from ? escape(`Between ${fromSpan(layer) || "no layers"}`) : `<code>${escape(layer.series ?? layer.formula ?? "")}</code>`}</p>
-          ${about ? `<p class="description clamped">${escape(about)}</p>` : ""}
+          ${about ? `<div class="description clamped">${proseHtml(about)}</div>` : ""}
           ${result?.error ? `<div class="error-box">${escape(result.detail ?? result.error)}.</div>` : layer.type === "cloud" ? "" : '<svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>'}
           <div class="info"><h5>Layer ${escape(layer.letter)}</h5><dl>
             <div><dt>Type</dt><dd>${escape(typeName(layer.type))}</dd></div>

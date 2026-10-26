@@ -87,7 +87,7 @@ impl<'a> Vecs<'a> {
     fn finish_build(
         mut builder: Builder<'a>,
         mut catalog: TreeNode,
-        descriptions_by_plugin: Vec<(&'a str, BTreeMap<&'a str, Vec<&'static str>>)>,
+        descriptions_by_plugin: Vec<(&'a str, BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>)>,
     ) -> Self {
         let Resolution {
             shared,
@@ -125,7 +125,7 @@ impl<'a> Vecs<'a> {
             );
             let description = interned_descriptions
                 .entry(fragments)
-                .or_insert_with_key(|fragments| Arc::from(fragments.join(" ")))
+                .or_insert_with_key(|fragments| Arc::from(bitview_traversable::describe(fragments)))
                 .clone();
             descriptions.insert(series, description);
         }

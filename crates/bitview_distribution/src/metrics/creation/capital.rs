@@ -17,9 +17,11 @@ pub struct CreationCapital<M: StorageMode = Rw> {
     base: CohortCapital<M>,
     /// Capital in profit: creation-date USD value of the cohort's outputs whose creation price is
     /// at or below the represented block's spot price.
+    #[traversable(lead = "Capital in profit: what holders paid for the coins now at or above their cost.")]
     pub in_profit: Fiat<Cents, M>,
     /// Capital in loss: creation-date USD value of the cohort's outputs whose creation price is
     /// above the represented block's spot price.
+    #[traversable(lead = "Capital in loss: what holders paid for the coins now below their cost.")]
     pub in_loss: Fiat<Cents, M>,
 }
 

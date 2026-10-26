@@ -184,8 +184,8 @@ where
 
     fn collect_series_descriptions<'a>(
         &'a self,
-        description_fragments: &mut Vec<&'static str>,
-        descriptions: &mut BTreeMap<&'a str, Vec<&'static str>>,
+        description_fragments: &mut Vec<bitview_traversable::Fragment>,
+        descriptions: &mut BTreeMap<&'a str, Vec<bitview_traversable::Fragment>>,
     ) {
         self.vecs
             .collect_series_descriptions(description_fragments, descriptions);

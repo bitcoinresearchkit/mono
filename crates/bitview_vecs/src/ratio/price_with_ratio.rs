@@ -18,6 +18,7 @@ pub struct PriceWithRatio<M: StorageMode = Rw> {
     /// Spot price divided by the price described above, computed from cent-precision prices:
     /// null while that price rounds to zero (2010), approximate while prices are a few cents.
     #[traversable(flatten, rename = "ratio")]
+    #[traversable(lead = "Its ratio: the price divided by it.")]
     pub relative: RatioPerBlock<PriceRatio, M, Multiple>,
 }
 

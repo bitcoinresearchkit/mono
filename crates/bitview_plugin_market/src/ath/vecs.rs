@@ -8,10 +8,12 @@ use vecdb::{Rw, StorageMode};
 pub struct Vecs<M: StorageMode = Rw> {
     /// Running all-time high of the Bitcoin spot price through the represented
     /// block. Zero before the first exchange price (block 74,641, August 2010).
+    #[traversable(lead = "All-time high: the highest price yet.")]
     pub high: Price<PerBlock<Cents, M>>,
     /// Bitcoin spot price divided by its running all-time high, minus one. Zero
     /// marks an all-time high; negative values measure the drawdown below it.
     /// Null while the all-time high is zero.
+    #[traversable(lead = "Drawdown: how far the price is below its all-time high.")]
     pub drawdown: LazyPercentPerBlock<PartsPerMillionSigned32>,
     /// Exact elapsed seconds preserve the ATH timestamp across incremental updates.
     #[traversable(hidden)]
@@ -19,10 +21,12 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Fractional days, using monotonic block time, since the latest block whose
     /// spot price equaled the running all-time high. Resets to zero at equality.
     /// Null before the first price.
+    #[traversable(lead = "Days since the price was last at its all-time high.")]
     pub days_since: LazyPerBlock<Days, Seconds>,
     /// Longest fractional-day interval between consecutive Bitcoin spot-price
     /// all-time highs through the represented block, including the ongoing
     /// interval since the latest one. Null before the first price, the first
     /// all-time high.
+    #[traversable(lead = "Longest wait between all-time highs, in days, the current one included.")]
     pub days_between_max: PerBlock<Days, M>,
 }

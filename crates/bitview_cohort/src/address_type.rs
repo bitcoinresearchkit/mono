@@ -11,16 +11,22 @@ use super::SpendableTypeId;
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct AddressType<T> {
     /// Uses pay-to-public-key addresses, with a 33- or 65-byte key.
+    #[cfg_attr(feature = "storage", traversable(lead = "Pay-to-public-key (P2PK) addresses, the oldest kind."))]
     p2pk: T,
     /// Uses pay-to-public-key-hash addresses.
+    #[cfg_attr(feature = "storage", traversable(lead = "Pay-to-public-key-hash (P2PKH) addresses: legacy addresses, starting with 1."))]
     p2pkh: T,
     /// Uses pay-to-script-hash addresses.
+    #[cfg_attr(feature = "storage", traversable(lead = "Pay-to-script-hash (P2SH) addresses: addresses starting with 3."))]
     p2sh: T,
     /// Uses version-0 pay-to-witness-public-key-hash addresses.
+    #[cfg_attr(feature = "storage", traversable(lead = "SegWit pay-to-witness-public-key-hash (P2WPKH) addresses: addresses starting with bc1q."))]
     p2wpkh: T,
     /// Uses version-0 pay-to-witness-script-hash addresses.
+    #[cfg_attr(feature = "storage", traversable(lead = "SegWit pay-to-witness-script-hash (P2WSH) addresses: long addresses starting with bc1q."))]
     p2wsh: T,
     /// Uses pay-to-Taproot addresses.
+    #[cfg_attr(feature = "storage", traversable(lead = "Taproot (P2TR) addresses: addresses starting with bc1p."))]
     p2tr: T,
 }
 

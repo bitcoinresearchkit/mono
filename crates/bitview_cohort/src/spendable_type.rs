@@ -64,24 +64,34 @@ pub const SPENDABLE_TYPE_NAMES: SpendableType<CohortName> = SpendableType {
 #[cfg_attr(feature = "storage", derive(Traversable))]
 pub struct SpendableType<T> {
     /// Uses pay-to-public-key outputs, with a 33- or 65-byte key.
+    #[cfg_attr(feature = "storage", traversable(lead = "Pay-to-public-key (P2PK) outputs, the oldest kind."))]
     p2pk: T,
     /// Uses pay-to-public-key-hash outputs.
+    #[cfg_attr(feature = "storage", traversable(lead = "Pay-to-public-key-hash (P2PKH) outputs: legacy addresses, starting with 1."))]
     p2pkh: T,
     /// Uses bare pay-to-multisig outputs.
+    #[cfg_attr(feature = "storage", traversable(lead = "Bare multisig (P2MS) outputs."))]
     p2ms: T,
     /// Uses pay-to-script-hash outputs.
+    #[cfg_attr(feature = "storage", traversable(lead = "Pay-to-script-hash (P2SH) outputs: addresses starting with 3."))]
     p2sh: T,
     /// Uses version-0 pay-to-witness-public-key-hash outputs.
+    #[cfg_attr(feature = "storage", traversable(lead = "SegWit pay-to-witness-public-key-hash (P2WPKH) outputs: addresses starting with bc1q."))]
     p2wpkh: T,
     /// Uses version-0 pay-to-witness-script-hash outputs.
+    #[cfg_attr(feature = "storage", traversable(lead = "SegWit pay-to-witness-script-hash (P2WSH) outputs: long addresses starting with bc1q."))]
     p2wsh: T,
     /// Uses pay-to-Taproot outputs.
+    #[cfg_attr(feature = "storage", traversable(lead = "Taproot (P2TR) outputs: addresses starting with bc1p."))]
     p2tr: T,
     /// Uses pay-to-Anchor outputs.
+    #[cfg_attr(feature = "storage", traversable(lead = "Pay-to-anchor (P2A) outputs, which let a transaction's fee be raised later."))]
     p2a: T,
     /// Uses outputs with an empty locking script.
+    #[cfg_attr(feature = "storage", traversable(lead = "Outputs with an empty locking script."))]
     empty_script: T,
     /// Uses outputs that do not match another recognized locking-script type.
+    #[cfg_attr(feature = "storage", traversable(lead = "Outputs of no recognized type."))]
     unknown_script: T,
 }
 

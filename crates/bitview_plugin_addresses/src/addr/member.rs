@@ -30,29 +30,37 @@ pub struct ImportContext<'a> {
 #[derive(Traversable)]
 pub struct AddressVecs<M: StorageMode = Rw> {
     /// Addresses that hold at least one unspent output at the represented block.
+    #[traversable(lead = "Funded addresses: how many hold bitcoin.")]
     pub funded: CountWithDeltas<M>,
     /// Previously seen addresses that hold no unspent outputs at the represented
     /// block.
+    #[traversable(lead = "Empty addresses: used before, holding nothing now.")]
     pub empty: StoredCount<M>,
     /// All previously seen addresses, funded or empty.
+    #[traversable(lead = "Addresses: all ever used, funded or empty.")]
     pub total: LazyPerBlock<Count>,
     /// Addresses first observed in each block: the increase in the total address
     /// count.
+    #[traversable(lead = "New addresses: seen for the first time.")]
     pub new: NewAddressCount,
     pub activity: ActivityVecs<M>,
     /// Mean balance of a funded address: the supply held by the addresses divided
     /// by the funded address count. Undefined (null) while no address is funded.
+    #[traversable(lead = "Average balance of a funded address.")]
     pub avg_balance: AvgBalance,
     /// Addresses that have received more than one output over their lifetime. The two coinbase
     /// outputs overwritten by BIP30 duplicates at heights 91,842 and 91,880 do not count as
     /// received.
+    #[traversable(lead = "Reused addresses: ones that received more than once.")]
     pub reused: ReuseVecs<M>,
     /// Addresses from which more than one output has been spent over their
     /// lifetime.
+    #[traversable(lead = "Addresses spent from more than once.")]
     pub respent: ReuseVecs<M>,
     /// Addresses whose public key or spending script has appeared on-chain. P2PK
     /// and P2TR are exposed when funded; hashed script types become exposed when
     /// spent.
+    #[traversable(lead = "Exposed addresses: ones whose public key or spending script is visible on the chain.")]
     pub exposed: ExposedVecs<M>,
     /// The supply the addresses hold, and the outputs they received and inputs they spent:
     /// the shares' and average balance's denominators.
@@ -85,18 +93,23 @@ pub struct ActivityVecs<M: StorageMode = Rw> {
     /// represented block while holding no unspent outputs immediately before
     /// that receive was applied (an address holding only zero-value outputs
     /// is not reactivated).
+    #[traversable(lead = "Reactivated addresses: empty ones that received again.")]
     pub reactivated: PerBlockCumulativeAverage<Count, M>,
     /// Distinct addresses with at least one output spent in the represented block, zero-value
     /// outputs included.
+    #[traversable(lead = "Sending addresses: how many spent in each block.")]
     pub sending: PerBlockCumulativeAverage<Count, M>,
     /// Distinct addresses that received at least one output in the represented block,
     /// zero-value outputs included.
+    #[traversable(lead = "Receiving addresses: how many received in each block.")]
     pub receiving: PerBlockCumulativeAverage<Count, M>,
     /// Distinct addresses that both spent and received outputs in the
     /// represented block.
+    #[traversable(lead = "Addresses that both sent and received in each block.")]
     pub bidirectional: PerBlockCumulativeAverage<Count, M>,
     /// Distinct addresses active in the represented block: sending plus
     /// receiving minus bidirectional addresses.
+    #[traversable(lead = "Active addresses: how many sent or received in each block.")]
     pub active: PerBlockCumulativeAverage<Count, M>,
 }
 
@@ -115,6 +128,7 @@ pub struct ReuseVecs<M: StorageMode = Rw> {
     pub count: FundedTotal<M>,
     /// Balance held at the represented block by funded addresses meeting the
     /// predicate.
+    #[traversable(lead = "The bitcoin these addresses hold.")]
     pub supply: PredicateSupply<M>,
     pub events: ReuseEvents<M>,
 }
@@ -123,6 +137,7 @@ pub struct ReuseVecs<M: StorageMode = Rw> {
 pub struct ExposedVecs<M: StorageMode = Rw> {
     pub count: FundedTotal<M>,
     /// Balance held at the represented block by funded exposed addresses.
+    #[traversable(lead = "The bitcoin exposed addresses hold.")]
     pub supply: PredicateSupply<M>,
 }
 

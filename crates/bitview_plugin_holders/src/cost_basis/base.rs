@@ -27,17 +27,21 @@ pub struct CostBasis<M: StorageMode = Rw> {
     /// rounded to four significant digits of the price in cents (exact cents under $100, then steps
     /// of at most 0.1% up to $42,949,672.94, where higher prices cap). Undefined (null) without
     /// supply.
+    #[traversable(lead = "Lowest cost basis: the lowest price any coin held last moved at.")]
     pub min: Price<LazyPerBlock<Cents>>,
     /// Highest occupied bucket of the price grid among the cohort's unspent outputs: creation
     /// prices rounded to four significant digits of the price in cents (exact cents under $100,
     /// then steps of at most 0.1% up to $42,949,672.94, where higher prices cap). Undefined (null)
     /// without supply.
+    #[traversable(lead = "Highest cost basis: the highest price any coin held last moved at.")]
     pub max: Price<LazyPerBlock<Cents>>,
     /// Share of the cohort's unspent supply with a creation price near spot; undefined (null)
     /// without supply or a positive spot price.
+    #[traversable(lead = "Supply near the price: the share of coins that last moved within 5% of the price of the day.")]
     pub supply_density: Density<LazyPercentPerBlock<PartsPerMillion32>>,
     /// Share of the cohort's invested capital (satoshis times creation price) with a creation
     /// price near spot; undefined (null) without capital or a positive spot price.
+    #[traversable(lead = "Capital near the price: the share of what holders paid that was paid within 5% of the price of the day.")]
     pub capital_density: Density<LazyPercentPerBlock<PartsPerMillion32>>,
 }
 

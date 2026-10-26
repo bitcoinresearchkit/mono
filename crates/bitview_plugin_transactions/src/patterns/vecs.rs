@@ -9,10 +9,13 @@ pub struct Vecs<M: StorageMode = Rw> {
     /// Transactions heuristically classified as CoinJoin candidates: at least five inputs and
     /// outputs, neither count five times the other, sufficiently repeated input/output values, no
     /// recognized address reuse, and no detected `OP_RETURN` or inscription.
+    #[traversable(lead = "CoinJoins: transactions that look like many people mixing their coins together.")]
     pub coinjoin: Classified<M>,
     /// Transactions with at least five times as many inputs as outputs.
+    #[traversable(lead = "Consolidations: transactions gathering many inputs into few outputs.")]
     pub consolidation: Classified<M>,
     /// Non-coinbase transactions with at least five times as many outputs as inputs.
+    #[traversable(lead = "Batch payouts: transactions paying many outputs from few inputs.")]
     pub batch_payout: Classified<M>,
 }
 

@@ -29,6 +29,7 @@ pub struct Component<M: StorageMode = Rw> {
     /// so spot crosses a band only from a more extreme step, never by its own
     /// observation. Each price band equals the reference price multiplied by its
     /// historical ratio percentile.
+    #[traversable(lead = "Rarity bands: prices as rare, against that reference price, as each percentile of its history, the low ones cheap, the high ones dear.")]
     pub bands: RarityPercentiles<Band>,
 
     /// The stored ratio percentiles behind `bands`, in parts per million.

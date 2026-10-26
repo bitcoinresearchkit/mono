@@ -7,14 +7,17 @@ pub struct Modes<T> {
     /// Bedrock's awake mode weights each UTXO age range by wakefulness—the
     /// share of its accumulated coin days that has been consumed—and
     /// calibrates against the resulting weighted share of supply in loss.
+    #[traversable(lead = "Awake mode: coins weighted by how much of their holding time has been spent.")]
     pub awake: T,
     /// Bedrock's mobile mode weights each UTXO age range by mobility—the
     /// estimated probability that UTXOs of that age will ever be spent—and
     /// calibrates against the resulting weighted share of supply in loss.
+    #[traversable(lead = "Mobile mode: coins weighted by how likely they are to be spent.")]
     pub mobile: T,
     /// Bedrock's unweighted mode gives every unspent satoshi equal weight and
     /// calibrates against the share of all-chain supply whose creation price
     /// exceeds spot.
+    #[traversable(lead = "Unweighted mode: every coin counts the same.")]
     pub unweighted: T,
 }
 
