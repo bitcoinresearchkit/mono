@@ -3190,12 +3190,12 @@
         cursor: grabbing;
       }
 
+      /* (Its tools side by side, touching, as a toolbar's: a 15px icon in each 28px, a gap between them read as loose.) */
       .belt-tools,
       .belt-context {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        gap: 2px;
         min-width: 0;
       }
 
@@ -3771,8 +3771,10 @@
       }
 
       /* The sidebar's and the panel's widths, the person's: dragged at their inner edge (see setWidth), a line there as
-         it's pointed at, focused or dragged; side by side with the chart only (a rail, a floating panel, a sheet: none). */
-      .grip {
+         it's pointed at, focused or dragged; side by side with the chart only (a rail, a floating panel, a sheet: none).
+         (Separators: the drawing belt's handle, a grip too, keeps its place in its row: laid over its first tool, it hid
+         it.) */
+      .grip[role="separator"] {
         position: absolute;
         top: 0;
         bottom: 0;
