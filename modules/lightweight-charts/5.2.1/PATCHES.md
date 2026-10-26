@@ -652,3 +652,16 @@ Measured, HODL waves (24 areas, 8.5 years in view), panning as a drag does (the 
 Mode), 2 s: 49 → 86 frames, median 40 → 22 ms, lost 1.2 → 0.6 s; a pan step's redraw, Chromium 2x 2.3–3.2 → 1.0–1.3 ms,
 Mullvad 2x 22.8 → 21.8 ms (its frame is the canvas's), windowed 24.4 → 22.5. "Realized price by age band" (24 lines):
 Chromium 2.2–2.8 → 0.9–1.0, Mullvad 11.1 → 10.0. A zoom (its bar spacing changing) walks all as before.
+
+## 37. A point's x with its constants read once
+
+`Ic` maps each point in view to x: it read the time scale's right offset, width and bar spacing again at each point, and
+the point from its array twice. A JIT keeps them in registers; without one (iOS's Lockdown Mode), each read is a
+property lookup, at every point of every series, every frame of a pan (HODL waves: 25 × ~3,100). Now each is read once
+before the loop, the point once, the same arithmetic in the same order (`n + lc`, less the point's index, then as
+before): the same values, bit for bit.
+
+- `Ic(t,i)`: `n` is `Dc() + lc` (its sum as the loop made it), `h` the width (`k_`), `o` the bar spacing (`oc`).
+
+Measured on the iPhone (Lockdown Mode), x for 25 × 3,105 points: 7 → 4 ms, every value the same; a pan step's redraw in
+Chromium (1.0-1.2 ms) and Mullvad (22-23 ms), as before. `tests.html`: its pictures, 713 of 713 the same.
