@@ -712,3 +712,14 @@ it in the same sitting: median 32-36 → 20-23 ms a frame, lost 1.00-1.13 → 0.
 ms; Mullvad 21-23 ms both. A zoom's frame at a phone's size pictured against the same view at rest: the same to the eye.
 `tests.html`: pictures 713 of 713 the same; a pan's lines (7) 144 checks, 0 failing; a zoom's (8) 42 checks, 0 failing
 (the block's highest dropped: 30 failing).
+
+## 40. A pinch is no tap
+
+A touch's first finger lets go: a tap (the chart's click) unless it moved, but a pinch's moves are the pinch's, not
+its first finger's (`xp` returns while one is on), so a pinch, its fingers let go, tapped where its first one was:
+Studio opened the layer under it. A pinch begun marks its first finger moved: let go, it taps nothing (nor counts to a
+double tap); a tap alone, as before.
+
+- `Gp` (a pinch's start: its middle and its fingers' distance): `this.Wf=!0` first.
+
+`tests.html`: a pinch out and in, either finger let go first, no click; a tap, one (9).

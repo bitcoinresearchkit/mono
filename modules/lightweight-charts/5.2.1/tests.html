@@ -529,5 +529,41 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   say(`A zoom's line from each pixel's lowest and highest: ${zoomChecks} checks, ${zoomed.length} failing`);
   for (const f of zoomed.slice(0, 10)) say(`  ✗ ${f}`);
 
-  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length };
+  // 9. A pinch is no tap (patch 40, the patched library alone): two fingers on the plot, apart then together, either
+  // one let go first: no click; one finger on and off: one.
+  const tapped = [];
+  {
+    document.getElementById("a").innerHTML = ""; window.__charts = [];
+    seed = 47;
+    const c = base(B, document.getElementById("a"));
+    c.addSeries(B.LineSeries, { color: "#fff" }).setData(walk(800, 100, 0.03));
+    await frames();
+    let clicks = 0;
+    c.subscribeClick(() => clicks++);
+    const target = [...document.getElementById("a").querySelectorAll("canvas")].reduce((a, b) => (b.width * b.height > a.width * a.height ? b : a)), box = target.getBoundingClientRect(), x = box.left + box.width / 2, y = box.top + box.height / 2;
+    const finger = (id, dx) => new Touch({ identifier: id, target, clientX: x + dx, clientY: y, pageX: x + dx, pageY: y });
+    const touch = (type, on, changed) => target.dispatchEvent(new TouchEvent(type, { touches: on, targetTouches: on, changedTouches: changed, bubbles: true, cancelable: true, composed: true }));
+    for (const [label, spread, lastLetGo] of [["out, its first finger let go first", [10, 60], 1], ["in, its second let go first", [60, 10], 0]]) {
+      clicks = 0;
+      const [from, to] = spread;
+      touch("touchstart", [finger(0, -from)], [finger(0, -from)]);
+      touch("touchstart", [finger(0, -from), finger(1, from)], [finger(1, from)]);
+      for (let k = 1; k <= 6; k++) { const d = from + ((to - from) * k) / 6; touch("touchmove", [finger(0, -d), finger(1, d)], [finger(0, -d), finger(1, d)]); }
+      const first = lastLetGo ? 0 : 1, second = 1 - first, at = (id) => finger(id, id ? to : -to);
+      touch("touchend", [at(second)], [at(first)]);
+      touch("touchend", [], [at(second)]);
+      await frames();
+      if (clicks) tapped.push(`a pinch ${label}: ${clicks} clicks`);
+      await new Promise((done) => setTimeout(done, 600));
+    }
+    clicks = 0;
+    touch("touchstart", [finger(0, 30)], [finger(0, 30)]);
+    touch("touchend", [], [finger(0, 30)]);
+    await frames();
+    if (clicks !== 1) tapped.push(`a tap: ${clicks} clicks`);
+    c.remove(); window.__charts = [];
+  }
+  say(`A pinch is no tap: 3 checks, ${tapped.length} failing`);
+  for (const f of tapped) say(`  ✗ ${f}`);
+  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length, pinch: tapped.length };
 </script>
