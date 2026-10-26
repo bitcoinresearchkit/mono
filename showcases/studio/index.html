@@ -19913,9 +19913,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {HTMLElement} container @param {string} html
        */
       function rewrite(container, html) {
-        const top = container.scrollTop;
+        // (Never scrolled (see scrolled), at its top: nothing read, nothing put back. Either lays the page out at once,
+        // the Charts page's whole grid with it while a chart opens over it.)
+        const top = scrolled.has(container) ? container.scrollTop : 0;
         container.innerHTML = html;
-        container.scrollTop = top;
+        if (top) container.scrollTop = top;
       }
       /** Rebuilding a panel's HTML would drop focus: these find the same control again afterwards. */
       function focusKey(container) {
