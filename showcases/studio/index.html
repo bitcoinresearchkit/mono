@@ -15472,7 +15472,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             priceScaleId: layer.side,
             visible: !layer.hidden && !signal,
             priceLineVisible: Boolean(layer.priceLine) && !stack && !signal,
-            lastValueVisible: !layer.hidden && !stack && !signal,
+            // (Named at its end, with its value there (see placeGutters): not again on the axis.)
+            lastValueVisible: !layer.hidden && !stack && !signal && !namedAtEnd.has(layer.id),
             ...(stack ? { autoscaleInfoProvider: shares.has(layer.pane) ? () => ({ priceRange: { minValue: 0, maxValue: 100 } }) : fromZero(modeOf(doc, layer)) } : {}),
             // A 100% stacked pane's scale reads in percent, 0 to 100 (the margin over the top stays blank).
             // (Its ticks short; its latest's tag and the crosshair's, a digit or so more: see precise.)
@@ -16089,7 +16090,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * view moves, gone once that's out of view (its room the data's then).
        */
       function placeGutters() {
-        const width = view.timeScale().width(), on = Boolean(chart && resolved && drawnChart === chart.id && guttered(width));
+        const width = view.timeScale().width(), on = Boolean(chart && resolved && drawnChart === chart.id && guttered(width)), named = /** @type {Set<string>} */ (new Set());
         const panes = view.panes(), wanted = new Set(), last = (resolved?.times.length ?? 0) - 1, x = last < 0 ? null : view.timeScale().logicalToCoordinate(last);
         gutterScales.clear();
         chart?.panes.forEach((pane, i) => {
@@ -16114,7 +16115,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           /** @type {{ layer: Layer, mid: number, thick: number, value: string }[]} */
           const bands = [];
           for (const layer of bandsOf(pane)) {
-            const made = stacked.get(layer.id), series = drawn.get(layer.id);
+            const made = stacked.get(layer.id), series = drawn.get(layer.id), result = resolved.results.get(layer.id);
+            // (Lines, not stacked: each named at its latest value, as tall as the others (none kept over another).)
+            if (!pane.stack && series && result?.values && layer.type !== "cloud") {
+              gutterScales.set(layer.id, scaleKey(series));
+              // (Its latest drawn: on a log scale, over zero.)
+              const log = modeOf(chart, layer) === 1, drawable = (/** @type {number} */ value) => Number.isFinite(value) && (!log || value > 0);
+              let at = last;
+              while (at > 0 && !drawable(result.values[at])) at--;
+              if (!drawable(result.values[at])) continue;
+              const y = series.priceToCoordinate(result.values[at]);
+              if (y !== null && Number.isFinite(y)) bands.push({ layer, mid: y, thick: 1, value: format(result.values[at], unitFor(layer, result)) });
+              continue;
+            }
             if (!made || !series) continue;
             gutterScales.set(layer.id, scaleKey(series));
             let at = last;
@@ -16128,23 +16141,49 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // spreadLabels.)
           const legend = /** @type {HTMLElement | null} */ (plot.querySelector(`:scope > .legend[data-pane="${pane.id}"]`)), below = legend ? legend.offsetTop + legend.offsetHeight : 0;
           const kept = new Set([...bands].sort((a, b) => b.thick - a.thick).slice(0, Math.max(0, Math.floor((height - below) / GUTTER_LINE))));
-          const named = bands.filter((band) => kept.has(band)).sort((a, b) => a.mid - b.mid), ys = spreadLabels(named.map((band) => band.mid), GUTTER_LINE, below + GUTTER_LINE / 2, height - GUTTER_LINE / 2);
+          const shownBands = bands.filter((band) => kept.has(band)).sort((a, b) => a.mid - b.mid), ys = spreadLabels(shownBands.map((band) => band.mid), GUTTER_LINE, below + GUTTER_LINE / 2, height - GUTTER_LINE / 2);
+          // (Lines named here with their values: their axis tags step aside, see retag.)
+          if (!pane.stack) for (const band of shownBands) named.add(band.layer.id);
           // (Each tied to its band by a line in its color, from the band's end to its dot: level where it's at its middle,
           // curved where it's moved.)
-          const leads = named.map((band, k) => (`<path d="M0 ${band.mid.toFixed(1)}C7 ${band.mid.toFixed(1)} 7 ${ys[k].toFixed(1)} 14 ${ys[k].toFixed(1)}" stroke="${escape(ink(colorNow(band.layer) ?? band.layer.color))}"/>`)).join("");
+          const leads = shownBands.map((band, k) => (`<path d="M0 ${band.mid.toFixed(1)}C7 ${band.mid.toFixed(1)} 7 ${ys[k].toFixed(1)} 14 ${ys[k].toFixed(1)}" stroke="${escape(ink(colorNow(band.layer) ?? band.layer.color))}"/>`)).join("");
           // (Its look its own, not the page's: a picture draws it as it is, see measureLegends.)
-          const html = `<svg class="gutter-leads" width="14" height="${height}" fill="none" stroke-width="1" opacity="0.6">${leads}</svg>` + named.map((band, k) => `<span class="gutter-label" style="top: ${ys[k].toFixed(1)}px; --c: ${escape(ink(colorNow(band.layer) ?? band.layer.color))}"><i></i><span class="name">${escape(labelOf(band.layer))}</span><span class="value">${escape(band.value)}</span></span>`).join("");
+          const html = `<svg class="gutter-leads" width="14" height="${height}" fill="none" stroke-width="1" opacity="0.6">${leads}</svg>` + shownBands.map((band, k) => `<span class="gutter-label" style="top: ${ys[k].toFixed(1)}px; --c: ${escape(ink(colorNow(band.layer) ?? band.layer.color))}"><i></i><span class="name">${escape(labelOf(band.layer))}</span><span class="value">${escape(band.value)}</span></span>`).join("");
           writeHtml(gutter, html);
         });
         for (const gutter of /** @type {HTMLElement[]} */ (all$("#chart .gutter"))) if (!wanted.has(gutter)) (gutterFit.unobserve(gutter), gutter.remove());
+        retag(named);
       }
-      /** A stacked pane's layers, foot to top, as it stacks them (see stackOf: the panel's order, reversed if it's reversed). */
+      /** The lines named at their ends now (see placeGutters): their tags off the axis. */
+      let namedAtEnd = /** @type {Set<string>} */ (new Set());
+      /**
+       * Each line whose naming at its end changed, its axis tag set to match (a candle's on its close line, which
+       * carries it; one the spotlight has faded, the tags it gets back): the rest as they are.
+       * @param {Set<string>} next
+       */
+      function retag(next) {
+        const was = namedAtEnd;
+        namedAtEnd = next;
+        for (const id of new Set([...was, ...next])) {
+          if (was.has(id) === next.has(id)) continue;
+          const layer = layerById(id), series = drawn.get(id), close = closes.get(id);
+          if (!layer || !series) continue;
+          const tag = { lastValueVisible: !layer.hidden && layer.type !== "signal" && !chart.panes.find((pane) => pane.id === layer.pane)?.stack && !next.has(id) }, faded = fadedNow.get(id);
+          if (faded) Object.assign((close ? faded.close : faded.own) ?? {}, tag);
+          else (close?.series ?? series).applyOptions(tag);
+        }
+      }
+      /**
+       * A pane's layers as its key has them: stacked, those it stacks, foot to top (see stackOf: the panel's order, reversed
+       * if it's reversed); not, every one shown (a trend's, a cloud's too), in the panel's order. A signal's marks are its
+       * layer's.
+       */
       function bandsOf(/** @type {Pane} */ pane) {
-        const layers = chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden && !layer.from && layer.type !== "signal");
+        const layers = chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden && (!layer.from || !pane.stack) && layer.type !== "signal");
         return pane.reverse ? layers.reverse() : layers;
       }
-      /** Whether a pane's legend is its key: a stack of so many layers (see BANDS_FROM). */
-      const keyedPane = (/** @type {Pane} */ pane) => Boolean(pane.stack) && bandsOf(pane).length >= BANDS_FROM;
+      /** Whether a pane's legend is its key: so many layers (see BANDS_FROM), stacked or not: too many to list. */
+      const keyedPane = (/** @type {Pane} */ pane) => bandsOf(pane).length >= BANDS_FROM;
       /** The band the pointer's on, in a keyed pane: its readout in the legend, it lit among its pane's (see bandAt). */
       let bandLit = /** @type {string | null} */ (null);
       /**
@@ -16156,6 +16195,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const pane = param?.point && param.paneIndex !== undefined ? chart.panes[param.paneIndex] : undefined;
         if (!pane || !keyedPane(pane) || !resolved || param.logical === undefined) return null;
         const stacked = stackOf(chart, resolved), at = Math.round(param.logical);
+        // (Lines, not stacked: the one nearest the pointer at that date, a line's reach away at most.)
+        if (!pane.stack) {
+          let near = null, off = PULL;
+          const bands = bandsOf(pane);
+          for (const layer of bands) {
+            const value = layer.type === "cloud" ? NaN : resolved.results.get(layer.id)?.values?.[at], y = Number.isFinite(value) ? drawn.get(layer.id)?.priceToCoordinate(value) : null;
+            if (typeof y === "number" && Math.abs(y - param.point.y) <= off) (near = layer.id), (off = Math.abs(y - param.point.y));
+          }
+          // (None that near: the series the chart finds under it, a candle's wick, a bar's body, a cloud's fill.)
+          const under = param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null;
+          return near ?? (under && bands.some((layer) => layer.id === under) ? under : null);
+        }
         for (const layer of bandsOf(pane)) {
           // (Each on its own scale: a stack's left and right sides are stacked apart.)
           const price = drawn.get(layer.id)?.coordinateToPrice(param.point.y), made = stacked.get(layer.id), top = made?.values[at], foot = made ? made.under[at] * (made.scale?.[at] ?? 1) : NaN;
@@ -32405,6 +32456,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           marginsSet = "";
           fitMargins();
           sizeChart(width, height);
+          // (Its gutters at its size, and the axis tags they take off, before it's taken.)
+          placeGutters();
           // All of it read now: while the marks load, another chart can open. (The drawings as they are, none selected.)
           capturing = true;
           repaintDrawings();
@@ -33777,6 +33830,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         windows.data = null;
         drawOverview();
         updateValues();
+        // (Lines named at their ends: their values there as they are now.)
+        placeGutters();
       }
       let pricePending = false, priceTimer = 0, priceDelay = 1000;
       async function pollPrice() {
