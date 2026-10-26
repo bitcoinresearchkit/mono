@@ -16754,6 +16754,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The chart's height, as last laid out. */
       let chartHeight = 0;
+      /** The overview's box, as last laid out (see resized): none till it's first laid out. */
+      let overviewBox = { width: 0, height: 0 };
       /**
        * A pane's margins: over its lines, room for its legend (the legend's height, from the pane's: a share of the pane,
        * on a log scale a span of decades, would grow with it); under them, a little (none under a stack: it sits on its
@@ -16785,6 +16787,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Its size held through a layout's motion: the chart's own height, not its box's, till it follows it again.)
         // (The chart at its box's size, as the library's own watch would (see `view`): not while a motion holds it, nor
         // while a picture's made of it.)
+        // (The overview's box as laid out, not as it shows: a chart growing out of its tile is scaled, as it's drawn.)
+        for (const entry of entries) if (entry.target === $("overview")) overviewBox = entry.contentRect;
         for (const entry of entries) if (entry.target === $("chart") && !sizeHeld) {
           chartHeight = entry.contentRect.height;
           if (!exporting && (entry.contentRect.width !== chartSize.width || entry.contentRect.height !== chartSize.height)) sizeChart(entry.contentRect.width, entry.contentRect.height);
@@ -16793,6 +16797,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       resized.observe($("chart"));
       resized.observe($("navigator"));
+      resized.observe($("overview"));
       // Pane separators resize panes (the chart library's own drag); their sizes stay with the chart, kept as a pointer's
       // let go (a moment later: the library's last move in), wherever: a release lost, the next one keeps them. Only the
       // open chart's, drawn, no look on it: the panes on screen are its.
@@ -16971,8 +16976,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       let overviewShape = { key: "", n: 0, lo: NaN, hi: NaN, points: [] };
       function drawOverview() {
-        const canvas = overviewBase;
-        const rect = $("overview").getBoundingClientRect();
+        const canvas = overviewBase, rect = overviewBox;
         // (Not shown, or no room for it (a phone on its side, the layers beside): nothing to draw.)
         if (!rect.width) return;
         const ratio = (overviewRatio = devicePixelRatio || 1);
