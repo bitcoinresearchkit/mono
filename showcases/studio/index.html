@@ -20855,8 +20855,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * A part of the page's side of your charts: a shelf's `place`, where its name leads; its `folder`, what's dropped on
-       * it goes into (yours, "": the Library's top; none: nothing, the previews').
-       * @typedef {{ kind: "head", name: string, count: number } | { kind: "grid", docs: Chart[], previews?: boolean } | { kind: "shelf", name: string, place: Place, folder?: string, docs: Chart[], count: number, previews?: boolean, empty?: string } | { kind: "note", html: string, card?: boolean }} YoursPart
+       * it goes into (yours, "": the Library's top; none: nothing, the previews'); a note `flat`, its html as it is (a
+       * search's none, under its heading).
+       * @typedef {{ kind: "head", name: string, count: number } | { kind: "grid", docs: Chart[], previews?: boolean } | { kind: "shelf", name: string, place: Place, folder?: string, docs: Chart[], count: number, previews?: boolean, empty?: string } | { kind: "note", html: string, card?: boolean, flat?: boolean }} YoursPart
        */
       // Your charts' and the previews' tiles, each drawn (if it's out of date) once it's in view, one chart at a time while
       // the page shows, as the presets' are (see galleryTilesSeen); let go of if it's left before its turn.
@@ -20898,7 +20899,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const found = filtered().filter((doc) => !folderId || isIn(doc.folder, folderId)), previewed = top ? previewsShown() : [];
           if (previewed.length) parts.push({ kind: "head", name: "Previews", count: previewed.length }, { kind: "grid", docs: previewed, previews: true });
           if (top) parts.push({ kind: "head", name: "Library", count: found.length });
-          parts.push(found.length ? { kind: "grid", docs: found } : { kind: "note", html: `No charts match “${escape(query)}”` });
+          parts.push(found.length ? { kind: "grid", docs: found } : { kind: "note", html: `<p class="gallery-note">No charts match “${escape(query)}”</p>`, flat: true });
         } else if (top) {
           const previewed = listedPreviews(), all = listed();
           if (previewed.length) parts.push({ kind: "shelf", name: "Previews", place: { previews: true }, docs: previewed.slice(0, SHELF), count: previewed.length, previews: true });
@@ -20934,7 +20935,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           grid.innerHTML = parts.map((part) => (part.kind === "head" ? groupHead(part.name, part.count)
             : part.kind === "grid" ? `<div class="grid-tiles${part.previews ? " previews" : ""}">${tilesOf(part.docs)}</div>`
             : part.kind === "shelf" ? folderShelfHtml(part, tilesOf(part.docs))
-            : `<div class="${part.card ? "shelf-empty library-empty" : "home-none"}">${part.html}</div>`)).join("");
+            // (A search finding none says so under its heading, as the presets' does; a page with nothing, in its middle.)
+            : part.flat ? part.html : `<div class="${part.card ? "shelf-empty library-empty" : "home-none"}">${part.html}</div>`)).join("");
           for (const slot of all$("[data-slot]", grid)) slot.replaceWith(/** @type {HTMLElement} */ (old.get(/** @type {string} */ (slot.dataset.slot))));
           restoreFocus(grid, focus);
           shelvesSoon();
