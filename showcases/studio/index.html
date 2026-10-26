@@ -28317,8 +28317,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const recents = root && browsing ? recent().map((name) => ({ kind: "series", key: name, name, group: "Recent series" })) : [];
           const suggestions = root && browsing ? SUGGESTED.filter((name) => !gone.has(name) && !recents.some((item) => item.name === name)).map((name) => ({ kind: "series", key: name, name, group: "Suggested" })) : [];
           const suggested = root ? commands().filter((command) => command.suggested).map((command) => ({ kind: "command", key: command.title, command, group: "Commands" })) : [];
-          // What you pick most from here, lately: three, a step closer.
-          const usual = root && !browsing ? byUse([...commands().filter((command) => command.run).map((command) => ({ kind: "command", key: command.title, command })), ...browseRows(), ...(home ? [] : [...settingRows(), ...chart.layers.map(layerRow), ...chart.panes.map((pane, i) => paneRow(pane.id, i))])].filter((item) => useScore(item.key) > 0 && !dangerous(item) && !/^Download/.test(item.command?.title ?? item.label ?? ""))).slice(0, 3).map((item) => ({ ...item, group: "Recently used" })) : [];
+          // What you pick most from here, lately: three, a step closer. (Named for what orders them: "Recently used" read as
+          // "Recent charts" again, above it.)
+          const usual = root && !browsing ? byUse([...commands().filter((command) => command.run).map((command) => ({ kind: "command", key: command.title, command })), ...browseRows(), ...(home ? [] : [...settingRows(), ...chart.layers.map(layerRow), ...chart.panes.map((pane, i) => paneRow(pane.id, i))])].filter((item) => useScore(item.key) > 0 && !dangerous(item) && !/^Download/.test(item.command?.title ?? item.label ?? ""))).slice(0, 3).map((item) => ({ ...item, group: "Frequently used" })) : [];
           const fresh = (item) => !usual.some((other) => other.key === item.key);
           const others = root && palette.adding ? otherLayerRows() : [];
           // (Adding: series first, what's added most; then the other layers, then the catalog.)
