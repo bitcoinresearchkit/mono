@@ -4929,7 +4929,8 @@
         pointer-events: none;
       }
 
-      .preset-row.edited:is(:hover:where(.can-hover *), :has(:focus-visible))::after {
+      /* (Not on the rail: no ⋯ there, its pencil on its mark stays.) */
+      body:not([data-sidebar="collapsed"]) .preset-row.edited:is(:hover:where(.can-hover *), :has(:focus-visible))::after {
         visibility: hidden;
       }
 
@@ -30408,9 +30409,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Opened again as it fades: its fade ended first, its box measured whole and in place.)
         for (const motion of menu.getAnimations()) if (motion instanceof CSSTransition) motion.finish();
         const own = point ? new DOMRect(point.x, point.y, 0, 0) : anchor.getBoundingClientRect();
-        // (A belt's popover from the belt's edge, not its button's: as far from it as a menu from what opened it.)
-        const belt = side && !point ? anchor.closest("#belt")?.getBoundingClientRect() : null;
-        const rect = !belt ? own : side === "left" || side === "right" ? new DOMRect(belt.left, own.top, belt.width, own.height) : new DOMRect(own.left, belt.top, own.width, belt.height);
+        // (A row's of the sidebar's list, beside the list: under its ⋯, it hid the rows below, their ⋯ under it.)
+        if (!side && !point && anchor.closest("#chart-list")) side = "right";
+        // (A belt's popover from the belt's edge, a rail's menu from its icons' column (the search's), not their button's:
+        // as far from it as a menu from what opened it, whichever row (of different widths there: a group's head, a
+        // folder, a chart in one).)
+        const strip = side && !point ? (anchor.closest("#belt") ?? (railed() ? anchor.closest(".sidebar")?.querySelector(".search") : null))?.getBoundingClientRect() : null;
+        const rect = !strip ? own : side === "left" || side === "right" ? new DOMRect(strip.left, own.top, strip.width, own.height) : new DOMRect(own.left, strip.top, own.width, strip.height);
         const gap = point ? 2 : 6;
         // Measured from its origin, with all the room it can take; kept within the window, or within its dialog (and no
         // taller than it: a long one scrolls).
@@ -30423,7 +30428,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // Beside it (asked for): right or left, as fits, centered on it.
         if (side === "left" || side === "right") {
           const right = side === "right" ? rect.right + gap + width <= bounds.right - 8 : rect.left - gap - width < bounds.left + 8;
-          const x = right ? rect.right + gap : rect.left - gap - width, top = clamp(rect.top + rect.height / 2 - height / 2, bounds.top + 8, bounds.bottom - height - 8);
+          // (Fitting neither side, kept within its host all the same, over what opened it.)
+          const x = clamp(right ? rect.right + gap : rect.left - gap - width, bounds.left + 8, bounds.right - width - 8), top = clamp(rect.top + rect.height / 2 - height / 2, bounds.top + 8, bounds.bottom - height - 8);
           placeFixed(menu, origin, x, top);
           menu.style.transformOrigin = `${right ? "0" : "100%"} ${clamp(rect.top + rect.height / 2 - top, 0, height)}px`;
           void menu.offsetWidth;
@@ -30746,35 +30752,48 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         /**
          * Pointed at a moment (`wait`): if it still is (`ready` done, and true), and no menu was opened meanwhile (one shown
-         * this way gives way), its own shown (`open`).
+         * this way gives way), its own shown (`open`). `warm`: one shown this way already, its place taken (as a tip's,
+         * the next at once: no fading out, no growing in again).
          */
-        const lookSoon = (/** @type {HTMLElement} */ element, /** @type {number} */ wait, /** @type {() => void} */ open, ready = async () => true) => {
+        const lookSoon = (/** @type {HTMLElement} */ element, /** @type {number} */ wait, /** @type {() => void} */ open, ready = async () => true, warm = false) => {
           clearTimeout(flyTimer);
           flyTimer = window.setTimeout(async () => {
             if (!(await ready()) || !element.isConnected || !element.matches(":hover") || (!$("menu").hidden && !flyout)) return;
-            shut();
+            const inPlace = warm && flyout && !$("menu").hidden;
+            if (!inPlace) shut();
             from = element;
             open();
+            // (Placed again, its growing in starts over: done at once, in its place.)
+            if (inPlace) for (const animation of $("menu").getAnimations()) animation.finish();
           }, wait);
         };
+        /** A chart's row by what it opens (written anew, the same); else nothing. @param {HTMLElement} row */
+        const chartKey = (row) => (row.dataset.openChart ? `c:${row.dataset.openChart}` : row.dataset.openPreset !== undefined ? `p:${row.dataset.openPreset}` : "");
+        /** The chart last pressed on the rail, quiet till the pointer's left it (see chartKey). */
+        let pressed = "";
         /** Left: a moment later, off the menu, its submenu and what opened it, it goes. */
         const goSoon = () => {
           clearTimeout(flyTimer);
           flyTimer = window.setTimeout(() => !$("menu").matches(":hover") && !$("submenu").matches(":hover") && !from?.matches(":hover") && shut(), HOVER.go);
         };
         $("chart-list").addEventListener("pointerover", (event) => {
-          // (The rail's alone: a folder there is its icon, its name and its page out of sight: its menu says them.)
+          // (The rail's alone: a row there is its icon, its name out of sight: its menu says it, a chart's as a folder's.)
           if (event.pointerType !== "mouse" || !railed()) return;
-          const row = /** @type {HTMLElement | null} */ (closest(event, "#chart-list :is(.folder-item, .list-head-name)"));
+          const row = /** @type {HTMLElement | null} */ (closest(event, "#chart-list :is(.folder-item, .list-head-name, [data-open-chart], [data-open-preset])"));
           if (row && row === from && flyout) return clearTimeout(flyTimer);
           clearTimeout(flyTimer);
+          // (A chart just pressed: opened, its row written anew under the pointer, not its menu again, till it's left.)
+          if (row && pressed && chartKey(row) === pressed) return;
+          pressed = "";
           if (!row) return void (from && goSoon());
           if (!$("menu").hidden && !flyout) return;
           // (Over a sidebar still widening: once it's done, beside the row where it ends.)
           const widened = async () => (await Promise.all(sidebar.getAnimations().map((animation) => animation.finished)).catch(() => {}), railed());
-          lookSoon(row, HOVER.row, () => railMenu(row, true), widened);
+          // (One showing already: the next row's at once, in its place.)
+          const warm = flyout && !$("menu").hidden && Boolean(from);
+          lookSoon(row, warm ? 0 : HOVER.row, () => railMenu(row, true), widened, warm);
         });
-        $("chart-list").addEventListener("pointerleave", (event) => event.pointerType === "mouse" && from && goSoon());
+        $("chart-list").addEventListener("pointerleave", (event) => event.pointerType === "mouse" && ((pressed = ""), from && goSoon()));
         // (Pressed, or right-clicked, before it shows: it doesn't.)
         for (const type of ["pointerdown", "contextmenu"]) $("chart-list").addEventListener(type, () => clearTimeout(flyTimer), true);
         // (Over the menu or a submenu of it, it stays; off them and what opened it, it goes a moment later.)
@@ -30782,8 +30801,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $(id).addEventListener("pointerenter", () => flyout && clearTimeout(flyTimer));
           $(id).addEventListener("pointerleave", (event) => flyout && event.pointerType === "mouse" && goSoon());
         }
-        // (Pressed, its menu as pressed takes the flyout's place, see railMenu.)
-        $("chart-list").addEventListener("click", (event) => closest(event, "[data-folder-row], .list-head") && shut(), true);
+        // (A row pressed, its menu as pressed takes the flyout's place, see railMenu; a chart, opened, none. Its ⋯ isn't
+        // the row: a ⋯'s own menu, shown by its click as the pointer rests on it, is the flyout.)
+        $("chart-list").addEventListener("click", (event) => {
+          const item = /** @type {HTMLElement | null} */ (closest(event, ":is(.chart-row, .folder-row, .list-head) > :is(.chart-item, .folder-item, .list-head-name)"));
+          if (!item) return;
+          shut();
+          pressed = chartKey(item);
+        }, true);
         /**
          * A button whose menu (`open`) shows as it's pointed at a moment; pressed then, the menu's kept (a press with none
          * shown opens it, as its own click does). Found in `host` by `anchorOf` (one written anew, as the chart's place).
@@ -30793,11 +30818,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           host.addEventListener("pointerover", (event) => {
             const anchor = anchorOf(event);
             if (event.pointerType !== "mouse" || phone.matches || !anchor) return;
-            // (A folder's flyout still showing, on its way out: it goes now, not left behind.)
-            if (flyout && from !== anchor) shut();
+            if (anchor === from && flyout) return clearTimeout(flyTimer);
+            // (One shown this way already: the next ⋯'s at once, in its place, as the rail's rows (and a tip) do.)
+            const warm = flyout && !$("menu").hidden && Boolean(from);
             clearTimeout(flyTimer);
-            if (!$("menu").hidden) return;
-            lookSoon(anchor, HOVER.button, () => (hideTip(), open(anchor)), async () => !anchor.hidden);
+            if (!$("menu").hidden && !warm) return;
+            lookSoon(anchor, warm ? 0 : HOVER.button, () => (hideTip(), open(anchor)), async () => !anchor.hidden, warm);
           });
           host.addEventListener("pointerout", (event) => {
             const anchor = anchorOf(event);
@@ -32229,6 +32255,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The item a shown tip describes (as its description, to a screen reader, where its label doesn't say it already). */
       let described = /** @type {HTMLElement | null} */ (null);
       function tipWanted(/** @type {HTMLElement} */ target) {
+        // (On the rail, a row its menu names as the pointer rests on it: no tip before it. Reached by a key, its tip.)
+        if (railed() && tipPointed && target.matches("#chart-list :is(.folder-item, .list-head-name, [data-open-chart], [data-open-preset])")) return false;
         const name = target.querySelector(".name, .label, .head-name, .tile-name");
         const repeats = Boolean(name) && name.scrollWidth <= name.clientWidth && name.textContent.trim() === target.dataset.tip;
         const keys = Boolean(target.dataset.kbd && answers(target.dataset.kbd));
@@ -32710,13 +32738,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /**
-       * A folder's menu on the rail, a section's of the presets, a group's (there, it's its icon: no ⋯, no name): its name
-       * over its page and its opening or closing here (your Library's, what can be made in it), then a folder's charts
-       * (at any depth, one in a folder in it that folder named beside it). As the pointer rests on it, or pressed (a
-       * finger's way).
+       * A row's menu on the rail (there, it's its icon: no ⋯, no name), its name over it: a chart's, a preset's, as its ⋯
+       * (pressed, a chart opens: its menu shows as the pointer rests on it); a folder's, a section's of the presets, a
+       * group's, its page and its opening or closing here (your Library's, what can be made in it), then a folder's
+       * charts (at any depth, one in a folder in it that folder named beside it). As the pointer rests on it, or pressed
+       * (a container; a finger's way).
        */
       function railMenu(/** @type {HTMLElement} */ item, hover = false) {
         const folder = item.dataset.folderItem ? folderById(item.dataset.folderItem) : null, key = item.dataset.sectionItem, group = /** @type {Group | undefined} */ (item.dataset.groupItem);
+        const doc = item.dataset.openChart ? chartById(item.dataset.openChart) : undefined, preset = item.dataset.openPreset;
+        if (doc) return menuOf(item, chartActions(doc.id, "row"), null, "right", { title: titleOf(doc), hover });
+        if (preset !== undefined) return menuOf(item, presetActions(Number(preset), "row"), null, "right", { title: titleOf(presetDoc(Number(preset))), hover });
         if (group) return menuOf(item, groupRows(group), null, "right", { title: GROUP_OF[group][0], hover });
         if (key) return menuOf(item, sectionRows(key), null, "right", { title: /** @type {string} */ (JSON.parse(key).at(-1)), hover });
         if (!folder) return;
@@ -32926,6 +32958,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (composing(event)) return;
         const mod = event.metaKey || event.ctrlKey;
         const key = event.key.toLowerCase();
+        // (A modifier pressed alone (⇧, ⌘ held for the keys' hints): nothing pressed yet; a menu shown stays.)
+        if (flyout && event.getModifierState(event.key)) return;
         if (flyout) {
           // (↑ ↓ into it only from nowhere, or from what opened it: from a field, a list, they're theirs, and it goes.)
           const at = document.activeElement, free = !at || at === document.body || at === ownerNow();
