@@ -9785,7 +9785,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <div id="layer-list" class="layer-list"></div>
               <div id="layers-bar" class="pick-bar layers-bar" role="group" aria-label="Selected layers" hidden>
                 <span class="pick-count"><span id="layers-picked" aria-live="polite"></span><button class="cap small" type="button" data-layers-batch="clear" aria-label="Clear the selection" data-tip="Clear the selection" data-kbd="esc" data-icon="close"></button></span>
-                <button class="cap" type="button" data-layers-batch="edit" aria-label="Edit together" data-tip="Edit together" data-icon="sliders"><span class="label">Edit</span></button>
+                <button class="cap" type="button" data-layers-batch="edit" aria-label="Edit together" data-tip="Edit together" data-kbd="↵" data-icon="sliders"><span class="label">Edit</span></button>
                 <button class="cap" type="button" data-layers-batch="hide" data-kbd="H"></button>
                 <button class="cap" type="button" data-layers-batch="duplicate" aria-label="Duplicate" data-tip="Duplicate" data-kbd="⌘ D" data-icon="duplicate"><span class="label">Duplicate</span></button>
                 <button class="cap" type="button" data-layers-batch="move" aria-haspopup="menu" aria-label="Move to pane" data-tip="Move to pane" data-icon="pane"><span class="label">Move</span></button>
@@ -9967,6 +9967,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <div><dt>Select the layer in focus</dt><dd><kbd>space</kbd> or <kbd>X</kbd></dd></div>
             <div><dt>Move the layer in focus</dt><dd><kbd>⌥↑</kbd><kbd>⌥↓</kbd></dd></div>
             <div><dt>Select every layer, from the list</dt><dd><kbd>⌘A</kbd></dd></div>
+            <div><dt>Edit the selected layers together, from one of their rows</dt><dd><kbd>↵</kbd></dd></div>
             <div><dt>Hide or show the selected layers</dt><dd><kbd>H</kbd></dd></div>
             <div><dt>Show one layer alone in its pane</dt><dd><kbd>⌥</kbd> and click its eye</dd></div>
             <div><dt>Duplicate the selected layers</dt><dd><kbd>⌘D</kbd></dd></div>
@@ -33255,8 +33256,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           delete document.body.dataset.sheet;
           go(chartById(openChart));
         }
-        // ⌘ or ⇧, or a click while some are picked (not a key: ↵ opens it): picked with the others; else opened.
+        // ⌘ or ⇧, or a click while some are picked (not a key: ↵ opens it): picked with the others; else opened. (↵ on
+        // one picked among several: they're opened together, as the bar's Edit does.)
         else if (id && (event.metaKey || event.ctrlKey || event.shiftKey || (layerPicks.size && event.detail > 0))) pickLayer(id, event.shiftKey);
+        else if (id && event.detail === 0 && layerPicks.size > 1 && layerPicks.has(id) && target.closest("#layer-list")) layersBatch("edit");
         else if (id) select(id);
         else if (toggle) event.altKey ? soloLayer(toggle) : toggleHidden(toggle);
         else if (paneMode) target.getAttribute("aria-disabled") === "true" ? notice(/** @type {string} */ (target.dataset.tip)) : setPaneMode(paneMode, Number(mode));
