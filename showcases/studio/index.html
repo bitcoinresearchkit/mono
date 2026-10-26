@@ -18815,6 +18815,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           belt.classList.remove("upright");
         }
         belt.style.maxWidth = up ? "" : `${plot.width - 16}px`;
+        // (Lying, wider than the plot, it wraps: into even rows, as narrow as they stay that many (one tool alone on a
+        // row of its own read as dropped there).)
+        if (!up && belt.scrollHeight > belt.querySelector(".cap")?.getBoundingClientRect().height * 1.5 + 8) {
+          const rows = belt.offsetHeight;
+          let low = 0, high = belt.offsetWidth;
+          while (high - low > 2) {
+            const mid = (low + high) / 2;
+            belt.style.maxWidth = `${mid}px`;
+            belt.offsetHeight > rows ? (low = mid) : (high = mid);
+          }
+          belt.style.maxWidth = `${high}px`;
+        }
         const width = belt.offsetWidth, height = belt.offsetHeight;
         const along = (/** @type {number} */ from, /** @type {number} */ room, /** @type {number} */ size) => clamp(from + prefs.belt.at * room - size / 2, from + 8, from + room - size - 8);
         const was = { left: parseFloat(belt.style.left), top: parseFloat(belt.style.top) }, kept = stay && belt.dataset.dock === side;
