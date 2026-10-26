@@ -226,8 +226,11 @@
         color: inherit;
       }
 
+      /* (A button's words never selected, however fast it's pressed.) */
       button {
         cursor: pointer;
+        -webkit-user-select: none;
+        user-select: none;
       }
 
       /* (Code in the face set for it, wherever it's written: the browser's own monospace is another's.) */
@@ -447,15 +450,18 @@
         background: var(--press);
         font: 510 11px/1 var(--sans);
 
-        /* ⇧ and ↵ drawn (see drawKeys), in line with the rest; their glyphs kept for a screen reader. */
+        /* A key's symbols drawn (see drawKeys), in line with its letters; their glyphs kept for a screen reader. */
         &:has(.key) {
           grid-auto-flow: column;
-          gap: 1px;
+          /* (Together in a key wider than they are: the sidebar's ⌘K.) */
+          justify-content: center;
         }
 
+        /* (Its box's sides trimmed: as close to a letter as a font's symbol sits.) */
         .key {
           width: 1.1em;
           height: 1.1em;
+          margin: 0 -1px;
         }
       }
 
@@ -739,6 +745,26 @@
         .sidebar {
           padding-top: 20px;
           padding-bottom: 16px;
+        }
+      }
+
+      /* The brand, and at its row's end the theme, an icon: set once, rarely changed; a click, the menu of the three. */
+      .side-head {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      /* The foot's last row: Collapse, and at its end Shortcuts, an icon. */
+      .side-foot-row {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+
+        > .nav-item {
+          flex: 1;
+          min-width: 0;
         }
       }
 
@@ -1267,19 +1293,6 @@
         }
       }
 
-      /* The theme: a row as the others, the one chosen right after its name, quietly; a click, the menu of the three. */
-      #theme {
-        .label {
-          flex: 0 1 auto;
-        }
-
-        .theme-name {
-          margin-left: -4px;
-          color: var(--muted);
-          font-weight: 400;
-        }
-      }
-
       .layer-list {
         flex: 1;
         min-height: 0;
@@ -1527,34 +1540,27 @@
         padding-top: 8px;
       }
 
+      /* Live: a dot on the logo's corner, its words its tip (where from, the price, the last block and when). */
       .live {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        height: 30px;
-        padding: 0 8px 0 13px;
-        color: var(--muted);
-        font: 510 11px/1 var(--sans);
-        font-variant-numeric: tabular-nums;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        white-space: nowrap;
+        position: absolute;
+        top: 19px;
+        left: 26px;
+        display: grid;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        place-items: center;
 
-        i {
-          display: grid;
-          flex-shrink: 0;
-          width: 16px;
-          place-items: center;
-
-          &::before {
-            content: "";
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--live);
-            /* (Still: a new block rings it once, see .block; a loop would draw frames forever.) */
-            box-shadow: 0 0 8px var(--live);
-          }
+        i::before {
+          content: "";
+          display: block;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--live);
+          /* (Edged in the sidebar's ground, off the logo; still: a new block rings it once, see .block.) */
+          outline: 2px solid var(--app);
+          box-shadow: 0 0 8px var(--live);
         }
       }
 
@@ -1670,12 +1676,25 @@
 
           .brand > :not(.logo),
           .search > :not([data-icon]),
-          .nav-item > :not([data-icon], .chart-mark),
-          .live > :not(i) {
+          .nav-item > :not([data-icon], .chart-mark) {
             opacity: 0;
             pointer-events: none;
             /* (Going back to the rail, the words fade before its edge reaches them.) */
             transition: opacity var(--words-out) var(--ease);
+          }
+
+          /* (The theme and Shortcuts, the open sidebar's: gone with the words, out of Tab's reach once they are, and out of
+             the way: the logo and Expand as wide as the rail's other icons.) */
+          .side-cap {
+            position: absolute;
+            visibility: hidden;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity var(--words-out) var(--ease), visibility 0s linear var(--words-out);
+          }
+
+          .side-foot-row > .nav-item {
+            flex: none;
           }
 
           /* A group's head, its mark alone (the rest faded, out of reach: buttons), its rule short as Charts' is: at the
@@ -1779,10 +1798,9 @@
              rows that show it, the open chart's, a folder's charts coming into line, New chart: as it narrows; the others,
              once it's a rail: see there.) */
           .search,
-          :is(.chart-row, .folder-row):is(.active, .in-folder, .new-row) > :is(.chart-item, .folder-item),
+          :is(.chart-row, .folder-row):is(.active, .in-folder, .action-row) > :is(.chart-item, .folder-item),
           .side-action,
-          .side-foot .nav-item,
-          .live {
+          .side-foot .nav-item {
             width: 30px;
             margin-left: 6px;
             padding: 0 0 0 7px;
@@ -1830,13 +1848,18 @@
 
         /* Opening, the words come once there's room for them: as the sidebar settles, not cut by its edge (opacity alone,
            what a screen draws cheapest, a long list of them at once). */
-        .sidebar :is(.brand > :not(.logo), .search > :not([data-icon]), .nav-item > :not([data-icon], .chart-mark), .live > :not(i), .list-head :is(.head-name, .count, .list-head-add)) {
+        .sidebar :is(.brand > :not(.logo), .search > :not([data-icon]), .nav-item > :not([data-icon], .chart-mark), .list-head :is(.head-name, .count, .list-head-add)) {
           transition: opacity var(--words-in) var(--ease) var(--words-wait);
         }
 
-        /* (The widest words a little later, the search's, the live line's: once there's nearly room for them; a folder's
-           count, at the row's far end, once the edge has passed it.) */
-        .sidebar :is(.search > :not([data-icon]), .live > :not(i)) {
+        /* (The theme and Shortcuts as the words, and as the icons they are when pressed or pointed at.) */
+        .sidebar .side-cap {
+          transition: opacity var(--words-in) var(--ease) var(--words-wait), visibility 0s, background var(--fade), color var(--fade), transform var(--dur-micro) var(--ease);
+        }
+
+        /* (The widest words a little later, the search's: once there's nearly room for them; a folder's count, at the
+           row's far end, once the edge has passed it.) */
+        .sidebar .search > :not([data-icon]) {
           --words-wait: 170ms;
           --words-in: 110ms;
         }
@@ -1898,8 +1921,7 @@
            and back, a folder's charts into line), its icons still all the way. */
         .sidebar {
           .brand,
-          .nav-item,
-          .live {
+          .nav-item {
             transition: width var(--dur-layout) var(--ease-layout), margin var(--dur-layout) var(--ease-layout), padding var(--dur-layout) var(--ease-layout), background var(--fade), color var(--fade);
           }
 
@@ -1908,7 +1930,7 @@
           }
 
           /* (The list's rows that hold their shape: see above.) */
-          .chart-list :is(.chart-row, .folder-row):not(.active, .in-folder, .new-row) > .nav-item {
+          .chart-list :is(.chart-row, .folder-row):not(.active, .in-folder, .action-row) > .nav-item {
             transition: background var(--fade), color var(--fade);
           }
 
@@ -2387,8 +2409,8 @@
           }
         }
 
-        /* (The first, under New chart's rule, as far from it as the rule is from New chart and more.) */
-        .chart-list > &:first-child {
+        /* (The first, under Charts' rule, as far from it as the rule is from Charts and more.) */
+        .side-rule + & {
           margin-top: 6px;
         }
 
@@ -9197,7 +9219,7 @@
           padding-right: 58px;
         }
 
-        .nav-item[data-action="shortcuts"] {
+        .side-cap[data-action="shortcuts"] {
           display: none;
         }
 
@@ -9446,20 +9468,22 @@
     </script>
     <div class="app">
       <aside class="sidebar" id="sidebar" aria-label="Charts">
-        <a class="brand" href="/" data-tip="Bitview" style="--i: 0">
-          <span class="logo"><svg viewBox="-0.63 -0.7311 1.26 1.4622" aria-hidden="true"><path fill="oklch(64.34% 0.191 44.41)" fill-rule="evenodd" d="M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z"/></svg></span>
-          <span class="brand-name"><b>Bitview</b> Studio</span>
-        </a>
+        <div class="side-head" style="--i: 0">
+          <a class="brand" href="/" data-tip="Bitview">
+            <span class="logo"><svg viewBox="-0.63 -0.7311 1.26 1.4622" aria-hidden="true"><path fill="oklch(64.34% 0.191 44.41)" fill-rule="evenodd" d="M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z"/></svg></span>
+            <span class="brand-name"><b>Bitview</b> Studio</span>
+          </a>
+          <span id="live" class="live waiting" role="status" tabindex="0" aria-label="Connecting" data-tip="Connecting"><i></i></span>
+          <button id="theme" class="cap side-cap" type="button" data-action="theme" aria-haspopup="menu" aria-label="Theme" data-tip="Theme"><span id="theme-icon" data-icon="moon"></span></button>
+        </div>
         <button class="search" type="button" data-action="palette" data-tip="Search or run a command" data-kbd="⌘ K" style="--i: 1"><span data-icon="browse"></span><span class="label">Search or run a command</span><kbd class="mod">⌘K</kbd></button>
-        <button id="charts-nav" class="nav-item side-action" type="button" data-action="charts" data-tip="Your Library and the presets" style="--i: 1"><span data-icon="grid"></span><span class="label">Charts</span></button>
-        <div class="side-rule" style="--i: 1" aria-hidden="true"></div>
         <div id="chart-list" class="chart-list" style="--i: 2"></div>
         <input id="import-file" type="file" accept="application/json,.json" hidden />
         <div class="side-foot" style="--i: 3">
-          <div id="live" class="live waiting"><i></i><span id="stamp">Connecting</span></div>
-          <button class="nav-item side-action" type="button" id="theme" data-action="theme" data-tip="Theme" aria-haspopup="menu"><span id="theme-icon" data-icon="moon"></span><span class="label">Theme</span><span id="theme-name" class="theme-name"></span></button>
-          <button class="nav-item side-action" type="button" data-action="shortcuts" data-tip="Shortcuts" data-kbd="?"><span data-icon="keyboard"></span><span class="label">Shortcuts</span><kbd>?</kbd></button>
-          <button class="nav-item side-action" type="button" id="sidebar-toggle" data-action="toggle-sidebar" data-tip="Collapse" data-kbd="\" aria-expanded="true"><span data-icon="sidebar"></span><span class="label">Collapse</span><kbd>\</kbd></button>
+          <div class="side-foot-row">
+            <button class="nav-item side-action" type="button" id="sidebar-toggle" data-action="toggle-sidebar" data-tip="Collapse" data-kbd="\" aria-expanded="true"><span data-icon="sidebar"></span><span class="label">Collapse</span><kbd>\</kbd></button>
+            <button class="cap side-cap" type="button" data-action="shortcuts" aria-label="Shortcuts" data-tip="Shortcuts" data-kbd="?"><span data-icon="keyboard"></span></button>
+          </div>
         </div>
         <div id="side-grip" class="grip" role="separator" aria-orientation="vertical" aria-label="Sidebar width" tabindex="0" data-tip="Drag to resize, double-click to reset"></div>
       </aside>
@@ -9766,6 +9790,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         <div>
           <h3>General</h3>
           <dl>
+            <div><dt>These shortcuts</dt><dd><kbd>?</kbd></dd></div>
             <div><dt>Show the ⌘ shortcuts</dt><dd>Hold <kbd>⌘</kbd></dd></div>
             <div><dt>Search series, charts and commands</dt><dd><kbd>⌘K</kbd> or <kbd>/</kbd></dd></div>
             <div><dt>Undo, redo</dt><dd><kbd>⌘Z</kbd><kbd>⇧⌘Z</kbd></dd></div>
@@ -10204,10 +10229,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The caret of a control that opens a list. */
       const CHEVRON = '<svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       for (const element of all$("[data-icon]")) element.insertAdjacentHTML("afterbegin", ICONS[element.dataset.icon] ?? "");
-      /** ⇧ and ↵ as keycaps draw them: fonts draw these two thin and uneven. */
+      /**
+       * A key's symbols as keycaps draw them, one family with the icons (their stroke, their ends): a font draws each its
+       * own way (⌘ thin, ⇧ and ↵ uneven, some from another font), unlike each other and the icons beside them.
+       */
       const KEY_GLYPHS = /** @type {Record<string, string>} */ ({
-        "⇧": '<path d="M8 2.5 2.5 8.4h3.1v5.1h4.8V8.4h3.1Z"/>',
-        "↵": '<path d="M12.5 3v5a2 2 0 0 1-2 2H3.5"/><path d="M6.5 7 3.5 10l3 3"/>',
+        "⌘": '<path d="M9.8 4.6v6.8a1.6 1.6 0 1 0 1.6-1.6H4.6a1.6 1.6 0 1 0 1.6 1.6V4.6a1.6 1.6 0 1 0-1.6 1.6h6.8a1.6 1.6 0 1 0-1.6-1.6"/>',
+        "⇧": '<path d="M8 3.2 3.2 8.4h2.9V13h3.8V8.4h2.9Z"/>',
+        "⌥": '<path d="M2.8 4.5h3.1l4.2 7h3.1M9.6 4.5h3.6"/>',
+        "⌃": '<path d="M4 8.5 8 4.5l4 4"/>',
+        "↵": '<path d="M12.5 3.5V8a2 2 0 0 1-2 2H3.5M6.5 7l-3 3 3 3"/>',
+        "⇥": '<path d="M2.5 8h9M8.5 5l3 3-3 3M13.5 4v8"/>',
+        "⌫": '<path d="M6 3.5h6.5a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5H6L1.8 8Z"/><path d="m7.6 6.2 3.6 3.6m0-3.6-3.6 3.6"/>',
+        "←": '<path d="M13 8H3M7 4 3 8l4 4"/>',
+        "→": '<path d="M3 8h10M9 4l4 4-4 4"/>',
+        "↑": '<path d="M8 13V3M4 7l4-4 4 4"/>',
+        "↓": '<path d="M8 3v10M4 9l4 4 4-4"/>',
       });
       /** Keys by their names in aria-keyshortcuts, from how they're written here (a Mac's glyphs, or "Ctrl+"). */
       const ARIA_KEYS = /** @type {Record<string, string>} */ ({ "⌘": "Meta", "⇧": "Shift", "⌥": "Alt", "⌃": "Control", ctrl: "Control", shift: "Shift", alt: "Alt", "↵": "Enter", enter: "Enter", "⌫": "Backspace", backspace: "Backspace", esc: "Escape", space: "Space", "↑": "ArrowUp", "↓": "ArrowDown", "←": "ArrowLeft", "→": "ArrowRight", "−": "-", "+": "Plus", "⇥": "Tab", tab: "Tab" });
@@ -10242,10 +10279,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const name = control.matches('[role="option"], .belt-tools button') ? "" : ariaKey(text);
             if (name && !control.hasAttribute("aria-keyshortcuts")) control.setAttribute("aria-keyshortcuts", name);
           }
-          if (!/[⇧↵]/.test(text) || key.querySelector(".key")) continue;
+          if (![...text].some((glyph) => KEY_GLYPHS[glyph]) || key.querySelector(".key")) continue;
           key.textContent = "";
           for (const glyph of text) {
-            if (KEY_GLYPHS[glyph]) key.insertAdjacentHTML("beforeend", `<svg class="key" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${KEY_GLYPHS[glyph]}</svg><span class="vh">${glyph}</span>`);
+            if (KEY_GLYPHS[glyph]) key.insertAdjacentHTML("beforeend", `<svg class="key" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${KEY_GLYPHS[glyph]}</svg><span class="vh">${glyph}</span>`);
             else key.append(glyph);
           }
         }
@@ -22408,14 +22445,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           </div>`)(keys.indexOf(doc));
         /** @type {[string, string][]} */
         const parts = [
+          // Charts first (the Charts page), a rule under it, scrolled with the rest: only the brand, the search and the
+          // foot stay put.
+          /** @type {[string, string]} */ (["charts", `<div class="chart-row action-row" data-action-row="charts" style="--depth: 0"><button id="charts-nav" class="nav-item side-action" type="button" data-action="charts" data-tip="Your Library and the presets"${home && "top" in homeAt ? ' aria-current="page"' : ""}><span data-icon="grid">${ICONS.grid}</span><span class="label">Charts</span></button></div>`]),
+          /** @type {[string, string]} */ (["rule", `<div class="side-rule" aria-hidden="true"></div>`]),
           // The previews first, under their head, then your charts under theirs (the two told apart; none, no heads), a new
           // chart first among yours (where it'll be once something's in it).
           ...(listed.length ? [sideHead("previews", listed.length, Boolean(current && listed.includes(current))), ...(groupShut("previews") ? [] : listed.map((doc) => /** @type {[string, string]} */ ([`preview:${doc.id}`, previewRow(doc)])))] : []),
           // (Yours under their name, always: closed, it's the way to open them again.)
           sideHead("library", library.charts.length, Boolean(current && (current === draft || (!isPreview(current) && current.preset === undefined)))),
-          // (New chart first: what it makes is yours, here; in sight with them folded too.)
-          /** @type {[string, string]} */ (["new", `<div class="chart-row new-row" style="--depth: 0"><button type="button" id="new-chart" class="nav-item chart-item side-action" data-action="new-chart" data-tip="New chart" data-kbd="N"><span data-icon="plus">${ICONS.plus}</span><span class="label">New chart</span><kbd>N</kbd></button></div>`]),
           ...(groupShut("library") ? [] : [
+          // (New chart first: what it makes is yours, here; folded away with them.)
+          /** @type {[string, string]} */ (["new", `<div class="chart-row action-row" data-action-row="new" style="--depth: 0"><button type="button" id="new-chart" class="nav-item chart-item side-action" data-action="new-chart" data-tip="New chart" data-kbd="N"><span data-icon="plus">${ICONS.plus}</span><span class="label">New chart</span><kbd>N</kbd></button></div>`]),
           ...(draft ? [/** @type {[string, string]} */ ([`preview:${draft.id}`, previewRow(draft)])] : []),
           // (Your charts as a tree: each folder's under it, as deep as they go; a closed one's out of sight.)
           ...treeOf(undefined, true).map(({ item, depth }) => {
@@ -22476,7 +22517,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A count as the sidebar says it, short: whole thousands (1k, 11k, 111k), whole millions, never more than it is. */
       const shortCount = (/** @type {number} */ n) => (n < 1000 ? String(n) : n < 1e6 ? `${Math.floor(n / 1000)}k` : `${Math.floor(n / 1e6)}m`);
-      /** Whether one of the sidebar's groups is closed there (on the rail too: its head, its mark, opens it). @param {Group} group */
+      /** Whether one of the sidebar's groups is closed there (on the rail too: its head's menu opens it). @param {Group} group */
       const groupShut = (group) => prefs.groupsClosed.includes(group);
       /**
        * A group's head in the sidebar, as a folder's row: a click opens or closes it there (kept), how many it holds, a
@@ -22794,8 +22835,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function renderTheme() {
         const [, name, icon] = THEMES.find(([id]) => id === prefs.theme) ?? THEMES[2];
         $("theme-icon").innerHTML = ICONS[icon];
-        $("theme").dataset.tip = "Theme";
-        $("theme-name").textContent = name;
+        $("theme").setAttribute("aria-label", ($("theme").dataset.tip = `Theme: ${name}`));
         $("home-theme").innerHTML = `${ICONS[icon]}Theme: ${name}`;
       }
       /**
@@ -22865,8 +22905,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A group's: all up to the next group's head.)
         if (head.classList.contains("list-head")) {
           const under = [];
-          // (Your Library's New chart stays, folded or not.)
-          for (let row = head.nextElementSibling; row && !row.classList.contains("list-head"); row = row.nextElementSibling) if (!row.classList.contains("new-row")) under.push(/** @type {HTMLElement} */ (row));
+          // (Your Library's New chart with them: what it makes is theirs.)
+          for (let row = head.nextElementSibling; row && !row.classList.contains("list-head"); row = row.nextElementSibling) under.push(/** @type {HTMLElement} */ (row));
           return under;
         }
         const rows = all$(".chart-row, .folder-row", $("chart-list")), at = rows.indexOf(head);
@@ -30709,7 +30749,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("chart-list").addEventListener("pointerover", (event) => {
           // (The rail's alone: a folder there is its icon, its name and its page out of sight: its menu says them.)
           if (event.pointerType !== "mouse" || !railed()) return;
-          const row = /** @type {HTMLElement | null} */ (closest(event, "#chart-list .folder-item"));
+          const row = /** @type {HTMLElement | null} */ (closest(event, "#chart-list :is(.folder-item, .list-head-name)"));
           if (row && row === from && flyout) return clearTimeout(flyTimer);
           clearTimeout(flyTimer);
           if (!row) return void (from && goSoon());
@@ -30727,7 +30767,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $(id).addEventListener("pointerleave", (event) => flyout && event.pointerType === "mouse" && goSoon());
         }
         // (Pressed, its menu as pressed takes the flyout's place, see railMenu.)
-        $("chart-list").addEventListener("click", (event) => closest(event, "[data-folder-row]") && shut(), true);
+        $("chart-list").addEventListener("click", (event) => closest(event, "[data-folder-row], .list-head") && shut(), true);
         /**
          * A button whose menu (`open`) shows as it's pointed at a moment; pressed then, the menu's kept (a press with none
          * shown opens it, as its own click does). Found in `host` by `anchorOf` (one written anew, as the chart's place).
@@ -32576,21 +32616,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!liveHeight && !lost) {
           $("live").classList.remove("offline");
           $("live").classList.add("waiting");
-          $("stamp").textContent = $("home-live").textContent = "Connecting";
+          $("home-live").textContent = "Connecting";
           liveTip(`Connecting to ${SERVER_HOST}`);
           return;
         }
         $("live").classList.toggle("offline", lost);
         $("live").classList.remove("waiting");
-        $("stamp").textContent = $("home-live").textContent = [lost ? "Offline" : "Live", liveHeight ? `#${grouped.format(liveHeight)}` : "", !lost && livePrice ? dollarsAndCents(livePrice) : at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · ");
+        $("home-live").textContent = [lost ? "Offline" : "Live", liveHeight ? `#${grouped.format(liveHeight)}` : "", !lost && livePrice ? dollarsAndCents(livePrice) : at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join(" · ");
         const block = liveHeight ? `Last block ${grouped.format(liveHeight)}${at ? `, ${ago(at.getTime())}` : ""}` : "";
         liveTip(lost ? (navigator.onLine ? `${SERVER_HOST} isn't answering` : "This device is offline") : `Live from ${SERVER_HOST}`, ...(lost ? [block, "Trying again every 15 seconds"] : [livePrice ? `Price ${dollarsAndCents(livePrice)}, as it trades` : "", block, "A new block shows within seconds"]));
       }
-      /** The live line's tip, a line each (its first, what it is): the one open, said again. @param {...string} lines */
+      /** The live dot's tip, a line each (its first, what it is), its name all of it: the one open, said again. @param {...string} lines */
       function liveTip(...lines) {
         const said = lines.filter(Boolean).join("\n");
         if ($("live").dataset.tip === said) return;
         $("live").dataset.tip = said;
+        $("live").setAttribute("aria-label", lines.filter(Boolean).join(". "));
         if (tipTarget === $("live") && !$("tip").hidden) showTip($("live"));
       }
 
@@ -32653,12 +32694,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /**
-       * A folder's menu on the rail, or a section's of the presets (there, it's its icon: no ⋯, no name): its name over
-       * its page and its opening or closing here, then a folder's charts (at any depth, one in a folder in it that
-       * folder named beside it). As the pointer rests on it, or pressed (a finger's way).
+       * A folder's menu on the rail, a section's of the presets, a group's (there, it's its icon: no ⋯, no name): its name
+       * over its page and its opening or closing here (your Library's, what can be made in it), then a folder's charts
+       * (at any depth, one in a folder in it that folder named beside it). As the pointer rests on it, or pressed (a
+       * finger's way).
        */
       function railMenu(/** @type {HTMLElement} */ item, hover = false) {
-        const folder = item.dataset.folderItem ? folderById(item.dataset.folderItem) : null, key = item.dataset.sectionItem;
+        const folder = item.dataset.folderItem ? folderById(item.dataset.folderItem) : null, key = item.dataset.sectionItem, group = /** @type {Group | undefined} */ (item.dataset.groupItem);
+        if (group) return menuOf(item, groupRows(group), null, "right", { title: GROUP_OF[group][0], hover });
         if (key) return menuOf(item, sectionRows(key), null, "right", { title: /** @type {string} */ (JSON.parse(key).at(-1)), hover });
         if (!folder) return;
         const docs = treeOf(folder.id).flatMap(({ item: each }) => ("layers" in each ? [each] : []));
@@ -32685,7 +32728,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const sectionMenu = closest(event, "[data-section-menu]");
         if (sectionMenu) return menuOf(sectionMenu, sectionRows(/** @type {string} */ (sectionMenu.dataset.sectionMenu)));
         const groupItem = closest(event, "[data-group-item]");
-        if (groupItem) return toggleGroup(/** @type {Group} */ (groupItem.dataset.groupItem));
+        if (groupItem) return railed() ? railMenu(groupItem) : toggleGroup(/** @type {Group} */ (groupItem.dataset.groupItem));
         const groupMenu = closest(event, "[data-group-menu]");
         if (groupMenu) return menuOf(groupMenu, groupRows(/** @type {Group} */ (groupMenu.dataset.groupMenu)));
         const sectionItem = closest(event, "[data-section-item]");
