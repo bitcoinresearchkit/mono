@@ -20867,11 +20867,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A shelf's last tile, holding more than it shows: to its page, as its name is. @param {Place} place @param {number} count */
       const seeAll = (place, count) => (count > SHELF ? `<button type="button" class="shelf-all" data-see-all="" data-place="${escape(JSON.stringify(place))}">See all ${grouped.format(count)}${ICONS.next}</button>` : "");
       let galleryShown = GALLERY_PAGE;
-      /** Under a section, its charts: those right under it (`own`), and each section under it with all of its own. */
-      let sectionMade = { key: "", own: /** @type {number[]} */ ([]), groups: /** @type {Map<string, number[]>} */ (new Map()) };
+      /**
+       * Under a section, its charts: those right under it (`own`), and each section under it with all of its own. Each
+       * section's made once for the presets as read (a step into one and back made both again: all the presets looked
+       * through, each time).
+       */
+      let sectionsMade = { for: /** @type {Preset[] | null} */ (null), at: /** @type {Map<string, { own: number[], groups: Map<string, number[]> }>} */ (new Map()) };
       function sectionAt(/** @type {string[]} */ path) {
-        const list = /** @type {Preset[]} */ (presets), key = `${list.length}:${path.join(" › ")}`;
-        if (sectionMade.key === key) return sectionMade;
+        const list = /** @type {Preset[]} */ (presets), key = JSON.stringify(path);
+        if (sectionsMade.for !== list) sectionsMade = { for: list, at: new Map() };
+        const made = sectionsMade.at.get(key);
+        if (made) return made;
         const own = /** @type {number[]} */ ([]), groups = /** @type {Map<string, number[]>} */ (new Map());
         list.forEach((preset, i) => {
           if (preset.p.length <= path.length || !path.every((name, depth) => preset.p[depth] === name)) return;
@@ -20880,7 +20886,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!groups.has(name)) groups.set(name, []);
           /** @type {number[]} */ (groups.get(name)).push(i);
         });
-        return (sectionMade = { key, own, groups });
+        const section = { own, groups };
+        sectionsMade.at.set(key, section);
+        return section;
       }
       /** The recommended presets, by their place in the tree. */
       const recommendedPresets = () => RECOMMENDED.flatMap((place) => ((i) => (i < 0 ? [] : [i]))(/** @type {Preset[]} */ (presets).findIndex((preset) => preset.p.join(" › ") === place)));
