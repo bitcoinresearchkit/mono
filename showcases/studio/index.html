@@ -18257,10 +18257,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const box = boundsOf(drawing, points);
         return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
       }
-      /** Words on a color, by its lightness as shown: dark on a light one, white on a dark one. */
-      const textOn = (/** @type {number} */ lightness) => (lightness > 0.7 ? "#08090a" : "#ffffff");
+      /**
+       * Words on a color (OKLCH, as shown): white or the ink's black, whichever reads more on it, as WCAG measures (as the
+       * chart's own tags pick, patch 35): by lightness alone, a mid green, an orange, a blue had white at 2.7-4:1.
+       * @param {[number, number, number]} oklch
+       */
+      const textOn = (oklch) => ((ground) => (contrastOf(ground, "#ffffff") >= contrastOf(ground, "#08090a") ? "#ffffff" : "#08090a"))(oklchToHex(...oklch));
       /** Words on a color as it's named (shown as the theme tones it). */
-      const contrastOn = (/** @type {string} */ color) => textOn(shownOklch(color)[0]);
+      const contrastOn = (/** @type {string} */ color) => textOn(shownOklch(color));
       /** A color's luminance as WCAG reads it (sRGB hex), and two colors' contrast. */
       const luminance = (/** @type {string} */ hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)).reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
       const contrastOf = (/** @type {string} */ a, /** @type {string} */ b) => ((x, y) => (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05))(luminance(a), luminance(b));
@@ -18300,7 +18304,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const tickOn = (/** @type {string} */ color) => `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 8.2 2.6 2.6L12 5.4' fill='none' stroke='${encodeURIComponent(contrastOn(color))}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")`;
       /** A label on an axis, in a drawing's color as drawn (see colorOfDrawing: not toned again). @param {number} coordinate @param {string} text @param {string} color */
       function axisTag(coordinate, text, color) {
-        const back = color, fore = textOn(oklchOf(color)[0]);
+        const back = color, fore = textOn(oklchOf(color));
         return { coordinate: () => coordinate, text: () => text, textColor: () => fore, backColor: () => back, visible: () => Number.isFinite(coordinate) };
       }
 

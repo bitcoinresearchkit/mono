@@ -605,3 +605,15 @@ finger left it, falling faster, the view coming to rest against the end.
 
 Studio, the iPhone simulator, a fling at the latest bar's end: 121, 74, 37, 21, 11, 5, 3, 1.5 bars a frame, at rest in
 150 ms (before, the same fling: 131 … 47, then held).
+
+## 35. A tag's words in whichever reads more on it
+
+A price axis's tag (a series' last value, its price line's, the crosshair's) writes its words black or white by the
+tag's grey (`0.199 r + 0.687 g + 0.114 b` over 160: black): a mid green, an orange, a blue, a violet took white at 2.7
+to 4:1 (Studio's MVRV green 2.7). Now the one of the two with the higher contrast, as WCAG measures it (the tag's
+relative luminance against white's and black's): 4.5:1 or more on any color the axis shows but the mid greys.
+
+- `generateContrastColors` (minified: the method returning `{Z:` the background, `X:` the foreground `}`): `X:` the
+  luminance's pick instead of `S(i)>160?"black":"white"`.
+
+Studio's own tags (a drawing's on the axis, a solid text's ground) pick alike (`textOn`).
