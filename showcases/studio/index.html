@@ -28406,12 +28406,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const usual = root && !browsing ? byUse([...commands().filter((command) => command.run).map((command) => ({ kind: "command", key: command.title, command })), ...browseRows(), ...(home ? [] : [...settingRows(), ...chart.layers.map(layerRow), ...chart.panes.map((pane, i) => paneRow(pane.id, i))])].filter((item) => useScore(item.key) > 0 && !dangerous(item) && !/^Download/.test(item.command?.title ?? item.label ?? ""))).slice(0, 3).map((item) => ({ ...item, group: "Frequently used" })) : [];
           const fresh = (item) => !usual.some((other) => other.key === item.key);
           const others = root && palette.adding ? otherLayerRows() : [];
-          // (Adding: series first, what's added most; then the other layers, then the catalog.)
-          palette.items = browsing ? [...recents, ...suggestions, ...others, ...folder] : [...lastCharts, ...usual, ...browseRows().filter(fresh), ...suggested.filter(fresh)];
+          // (Adding: what else a layer can be, first, a few rows in sight on any screen; then the series, what's added most,
+          // then the catalog.)
+          palette.items = browsing ? [...others, ...recents, ...suggestions, ...folder] : [...lastCharts, ...usual, ...browseRows().filter(fresh), ...suggested.filter(fresh)];
           // Coming back up, the row you came from stays highlighted; going in, the first.
           palette.active = palette.items.findIndex((item) => (item.kind !== "series" || palette.path.length > 0) && item.key === palette.landOn);
-          // (Adding, it opens on the first series not in the chart yet: ↵ adds something new.)
-          if (palette.active < 0) palette.active = Math.max(0, palette.adding && !home ? palette.items.findIndex((item) => item.kind === "series" && actionable(item) && !chart.layers.some((layer) => layer.series === item.name)) : 0);
+          // (Adding with what else a layer can be first: it opens on the first, its list at its top, the kinds in sight;
+          // else on the first series not in the chart yet: ↵ adds something new.)
+          if (palette.active < 0) palette.active = Math.max(0, palette.adding && !home && !others.length ? palette.items.findIndex((item) => item.kind === "series" && actionable(item) && !chart.layers.some((layer) => layer.series === item.name)) : 0);
           palette.landOn = null;
           renderPalette();
           return;
@@ -29562,19 +29564,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }),
         })));
       }
-      /** Adding: what a layer can be besides a series, first on the page (and found by its words). */
+      /** Adding: what a layer can be besides a series, first on the page, in sight wherever it opens (and found by its words). */
       function otherLayerRows() {
         return [
-          { kind: "row", key: "add:formula", icon: ICONS.formula, label: "Formula", aside: "From the layers, by their letters", kbd: "F", preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Formula</h4><p class="description">A layer of its own, written from the others by their letters, with + − × ÷ and functions; or from any series by its name.</p><ul class="contents">${((letters) => [...(letters.length > 1 ? [`${letters[0]} / ${letters[1]}`] : []), `sma(${letters[0] ?? "A"}, 200d)`, `zscore(${letters[0] ?? "A"}, 1y)`, EXAMPLE])(chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter)).map((text) => `<li><code>${escape(text)}</code></li>`).join("")}</ul>`), group: "Other layers", other: true, under: true, verb: "Add", run: () => addFormula(palette.into) },
+          { kind: "row", key: "add:formula", icon: ICONS.formula, label: "Formula", aside: "From the layers, by their letters", kbd: "F", preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Formula</h4><p class="description">A layer of its own, written from the others by their letters, with + − × ÷ and functions; or from any series by its name.</p><ul class="contents">${((letters) => [...(letters.length > 1 ? [`${letters[0]} / ${letters[1]}`] : []), `sma(${letters[0] ?? "A"}, 200d)`, `zscore(${letters[0] ?? "A"}, 1y)`, EXAMPLE])(chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter)).map((text) => `<li><code>${escape(text)}</code></li>`).join("")}</ul>`), group: "Made from your layers", other: true, under: true, verb: "Add", run: () => addFormula(palette.into) },
           // (A cloud, wherever there are layers (its pane's two edges are two); a trend, from layers.)
           ...(chart.layers.length ? [
-            { kind: "row", key: "add:cloud", icon: ICONS.cloud, label: "Cloud", aside: "Filled between two layers", group: "Other layers", other: true, under: true, verb: "Add", page: () => cloudPage() },
+            { kind: "row", key: "add:cloud", icon: ICONS.cloud, label: "Cloud", aside: "Filled between two layers", group: "Made from your layers", other: true, under: true, verb: "Add", page: () => cloudPage() },
           ] : []),
           ...(markable(chart).length ? [
-            { kind: "row", key: "add:signal", icon: ICONS.signal, label: "Signal", aside: "Marks where a formula turns up or down", group: "Other layers", other: true, under: true, verb: "Add", run: () => addSignal() },
+            { kind: "row", key: "add:signal", icon: ICONS.signal, label: "Signal", aside: "Marks where a formula turns up or down", group: "Made from your layers", other: true, under: true, verb: "Add", run: () => addSignal() },
           ] : []),
           ...(cloudable() ? [
-            { kind: "row", key: "add:trend", icon: ICONS.riding, label: "Trend", aside: trendShort() || "Rides two layers, flipped by a third", group: "Other layers", other: true, under: true, verb: "Add", page: () => trendPage(), ...(trendShort() ? { disabled: trendShort() } : {}) },
+            { kind: "row", key: "add:trend", icon: ICONS.riding, label: "Trend", aside: trendShort() || "Rides two layers, flipped by a third", group: "Made from your layers", other: true, under: true, verb: "Add", page: () => trendPage(), ...(trendShort() ? { disabled: trendShort() } : {}) },
           ] : []),
         ];
       }
