@@ -3317,7 +3317,7 @@
         background: var(--line-strong);
       }
 
-      /* A select's dropdown of colors: Bitview's, ten to a row across its width (five, by touch: see below). */
+      /* A select's dropdown of colors: Bitview's, ten to a row across its width (by touch too: see below). */
       .color-drop {
         padding: 4px 4px 2px;
 
@@ -5355,17 +5355,11 @@
       }
 
       .color-pick {
-        /* Bitview's colors, ten to a row across it, a click each; by touch, five to a row, as a menu's (packed, each
-           as wide as a finger needs: the same colors, the same aim). */
+        /* Bitview's colors, ten to a row across it, a click each (by touch too, taller: see below). */
         .swatch-grid {
           grid-template-columns: repeat(10, minmax(0, 1fr));
           gap: 2px;
           padding: 10px;
-
-          @media (pointer: coarse) {
-            grid-template-columns: repeat(5, minmax(0, 1fr));
-            gap: 4px;
-          }
 
           button {
             width: auto;
@@ -9212,23 +9206,22 @@
         }
 
         /* (Rows, a list's, a menu's, ⌘K's, and a grid of swatches are reached as they are, no room between them: taller,
-           as a finger needs. Five swatches to a row, four rows: each wide enough to aim at; across a phone's sheet, each a
-           square in its fifth.) */
+           as a finger needs. Swatches ten to a row as anywhere, packed: each as wide as a keyboard's key, as tall as a
+           finger, a little larger (five to a row, spread across a sheet, read as loose).) */
         .swatch-grid,
-        .color-drop .swatch-grid {
-          grid-template-columns: repeat(5, minmax(0, 1fr));
-          gap: 4px;
+        :is(.color-drop, .color-pick) .swatch-grid {
+          grid-template-columns: repeat(10, minmax(0, 1fr));
+          gap: 0;
 
           button {
             width: auto;
-            height: 32px;
+            height: 40px;
           }
-        }
 
-        .menu.as-sheet .color-drop .swatch-grid button {
-          justify-self: center;
-          width: 44px;
-          height: 36px;
+          .swatch {
+            width: 22px;
+            height: 22px;
+          }
         }
 
         /* (A help's summary, a link set in words: tall enough to hit, their words where they were.) */
@@ -25801,14 +25794,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return `<div class="field"><span>Type<span class="color-now">${escape(now === undefined ? "Mixed" : TYPES.find(([type]) => type === now)?.[1] ?? "")}</span></span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${now === type}" aria-label="${text}" ${type === "candles" && !ohlc ? "aria-disabled=\"true\" data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>`;
       };
       /**
-       * Several layers' color (one's has its own picker, colorPicker): where each is one color all along, Bitview's colors,
-       * the one they all have pressed ("Mixed" where they differ), picked for all of them; else none (a way of coloring
-       * of their own, which one color can't say).
+       * Several layers' color, as one's picker is (colorPicker: Palette, or Custom, its surface and its hex): where each is
+       * one color all along, the one they all have shown ("Mixed" where they differ: the surface starts at the first's),
+       * picked for all of them; else none (a way of coloring of their own, which one color can't say).
        */
       const colorField = (/** @type {Layer[]} */ layers) => {
         if (!layers.every((layer) => colorModeOf(layer) === "one")) return "";
-        const now = sharedBy(layers, (layer) => layer.color);
-        return `<div class="field"><span>Color<span class="color-now">${escape(now === undefined ? "Mixed" : colorName(now))}</span></span></div><div class="color-editor" data-palette="color"><div class="color-pick">${swatchGrid(now && SWATCHES.includes(now) ? now : "")}</div></div>`;
+        const now = sharedBy(layers, (layer) => layer.color), last = colorSource.get(`${chart.id}:${layers.map((layer) => layer.id).join()}:color`);
+        const from = last && last.color === now ? last.source : now === undefined || SWATCHES.includes(now) ? "presets" : "custom";
+        const tabs = `<div class="tabs color-source" role="group" aria-label="Color, its color from">${[["presets", "Palette"], ["custom", "Custom"]].map(([source, name]) => `<button type="button" data-color-source="${source}" aria-pressed="${source === from}">${name}</button>`).join("")}</div>`;
+        const body = from === "custom" ? `<div class="color-box">${planeHtml(now ?? layers[0].color, "layer:color", "Color")}${hexField("layer:color", now ?? "")}</div>` : swatchGrid(now && SWATCHES.includes(now) ? now : "");
+        return `<div class="field"><span>Color<span class="color-now">${escape(now === undefined ? "Mixed" : colorName(now))}</span></span></div><div class="color-editor" data-palette="color">${tabs}<div class="color-pick">${body}</div></div>`;
       };
       const opacityField = (/** @type {Layer[]} */ layers) => `<div class="field"><span>Opacity${resetFor("opacity", layers)}</span>${slider("opacity", layers)}</div>`;
       const widthField = (/** @type {Layer[]} */ layers) => {
@@ -25865,6 +25861,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ${layout ? `<section><h3>Layout</h3>${layout}</section>` : ""}`);
         drawKeys(panel);
         restoreFocus(panel, focus);
+        drawPlanes();
         if (another) panel.scrollTop = 0;
       }
       /** A reset appears only away from the default (tabs need none: their default is one click away). */
@@ -26418,16 +26415,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         context.putImageData(planes.get(key), 0, 0);
       }
       /**
-       * What a surface picks for, by its name: the selected layer's colors ("layer:" and which: "color", "colorBelow"), the belt's (the pen's, and the selected
+       * What a surface picks for, by its name: the layers in hand's colors (the selected one's, or those picked, together: see
+       * inHand; "layer:" and which: "color", "colorBelow"), the belt's (the pen's, and the selected
        * drawings') ("pen"), a line across's ("line:" and its key). Its color now, and how a pick sets it: one undo step a
        * drag (or run of keys), the popover it's in left open.
        * @returns {{ color: string, set: (color: string) => void } | null}
        */
       function planeTarget(/** @type {string} */ name) {
-        const layer = layerById(selected);
-        if (name.startsWith("layer:") && layer) {
-          const key = name.slice(6), id = layer.id;
-          return { color: colorOf(layer, key), set: (color) => editById(id, (target) => setColor(target, key, color), { coalesce: `${key}:${id}`, keepMenu: true }) };
+        const layer = layerById(selected), layers = inHand();
+        if (name.startsWith("layer:") && layers.length) {
+          // (Those in hand now, kept: a pick is set a frame later, whatever's selected then. Their color, theirs alike;
+          // else none, so any pick differs: one matching the first's sets the others too.)
+          const key = name.slice(6), ids = new Set(layers.map((item) => item.id));
+          return { color: sharedBy(layers, (item) => colorOf(item, key)) ?? "", set: (color) => commit((doc) => doc.layers.forEach((item) => ids.has(item.id) && setColor(item, key, color)), { coalesce: `${key}:${[...ids].join()}`, keepMenu: true }) };
         }
         if (name === "pen") {
           const look = lookFor("color");
@@ -26494,7 +26494,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         event.preventDefault();
         event.stopPropagation();
         const color = event.key === "Enter" ? readColor(field.value) : null, key = field.closest("[data-palette]")?.getAttribute("data-palette");
-        if (color && key) editById(selected, (item) => setColor(item, key, color));
+        if (color && key) editLayer((item) => setColor(item, key, color));
         letGo(field);
       }, true);
       // (Another's hex (a level's, a popover's): ↵ takes what reads there too, before its menu closes.)
@@ -26537,8 +26537,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (c < 0.02) return { u: (HUES + fade + 1) / 2, t };
         return { u: (Math.min(h, 359.9) / 359.9) * HUES, t };
       }
-      /** The color being picked: the one waiting for its frame, else its target's now. */
-      const pickedOf = (/** @type {string} */ name) => (pickFrame && picking?.name === name ? picking.color : planeTarget(name)?.color ?? "gray");
+      /** The color being picked: the one waiting for its frame, else its target's now (several apart, the first's: as its surface shows). */
+      const pickedOf = (/** @type {string} */ name) => (pickFrame && picking?.name === name ? picking.color : planeTarget(name)?.color || (name.startsWith("layer:") && inHand()[0] ? colorOf(/** @type {Layer} */ (inHand()[0]), name.slice(6)) : "gray"));
       function pickAt(/** @type {string} */ name, clientX, clientY) {
         const plane = planeOf(name);
         if (!plane || !planeTarget(name)) return;
@@ -27269,10 +27269,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (index) switchInterval(index);
         else if (slot) colorSlot.set(`${chart.id}:${selected}`, slot), renderInspector();
         else if (source && paletteKey) {
-          // (Auto is a color: its own, set now; Palette and Custom, where to pick one: shown.)
-          const layer = layerById(selected);
-          colorSource.set(`${chart.id}:${selected}:${paletteKey}`, { source, color: source === "auto" ? undefined : layer && ownColor(layer, paletteKey) });
-          if (source === "auto") editById(selected, (item) => setColor(item, paletteKey, ""));
+          // (Auto is a color: its own, set now; Palette and Custom, where to pick one: shown. Several in hand, theirs.)
+          const layers = inHand();
+          colorSource.set(`${chart.id}:${layers.map((item) => item.id).join()}:${paletteKey}`, { source, color: source === "auto" ? undefined : sharedBy(layers, (item) => ownColor(item, paletteKey)) });
+          if (source === "auto") editLayer((item) => setColor(item, paletteKey, ""));
           renderInspector();
         } else if (pickColor && paletteKey) editLayer((item) => setColor(item, paletteKey, pickColor));
         else if (colorSelect) underColorMenu(button);
