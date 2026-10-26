@@ -10193,6 +10193,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         check: svg('<path d="m4 8.4 2.6 2.6L12 5.4"/>', 12),
         ruler: svg('<path d="m2 11 9-9 3 3-9 9Z"/><path d="m5 8 1.5 1.5M7 6l1 1M9 4l1.5 1.5"/>'),
         magnifier: svg('<circle cx="7" cy="7" r="4.75"/><path d="m10.5 10.5 3.5 3.5"/><path d="M5 7h4M7 5v4"/>'),
+        // (Zoom out: the magnifier's lens, its plus a minus.)
+        zoomOut: svg('<circle cx="7" cy="7" r="4.75"/><path d="m10.5 10.5 3.5 3.5"/><path d="M5 7h4"/>'),
         draw: svg('<path d="m10.5 2 3 3-7 7-3.6.6.6-3.6Z"/><path d="m8.5 4 3 3"/><path d="M9.5 14h4"/>'),
         ellipse: svg('<ellipse cx="8" cy="8" rx="6" ry="4.5"/>'),
         arrow: svg('<path d="M3 13 12.5 3.5M7 3.5h5.5V9"/>'),
@@ -23191,7 +23193,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const places = treeOf().flatMap(({ item }) => (!("layers" in item) && !moved.some((id) => isIn(item.id, id)) ? [item] : [])), counts = chartCounts();
         return [
           ...places.map((folder) => ({ key: folder.id, label: folderPath(folder.id), aside: plural(counts.get(folder.id) ?? 0, "chart"), current: from.size === 1 && from.has(folder.id), run: () => moveToFolder(keys, folder.id) })),
-          { key: "new", icon: ICONS.plus, label: "New folder", apart: true, run: () => ($("palette").open && dismissPalette(), newFolder(keys, from.size === 1 ? [...from][0] : undefined)) },
+          { key: "new", icon: ICONS.folderAdd, label: "New folder", apart: true, run: () => ($("palette").open && dismissPalette(), newFolder(keys, from.size === 1 ? [...from][0] : undefined)) },
           ...(out && outOf(keys) ? [{ key: "out", icon: ICONS.folderOut, label: outOf(keys), run: () => moveToFolder(keys, null) }] : []),
         ];
       }
@@ -24629,7 +24631,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return [
           { key: "top", icon: ICONS.grid, label: "Library", run: () => void copyPreset(i) },
           ...treeOf().flatMap(({ item }) => ("layers" in item ? [] : [{ key: item.id, icon: ICONS.folder, label: folderPath(item.id), run: () => void copyPreset(i, item.id) }])),
-          { key: "new", icon: ICONS.plus, label: "New folder", apart: true, run: () => copyToNewFolder(i) },
+          { key: "new", icon: ICONS.folderAdd, label: "New folder", apart: true, run: () => copyToNewFolder(i) },
         ];
       }
       /**
@@ -24714,7 +24716,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const presetRow = (/** @type {number} */ i, deep = false) => {
         const preset = /** @type {Preset[]} */ (presets)[i], edited = keptPreset(i), title = edited ? titleOf(edited) : preset.t;
         return {
-          kind: "row", key: `preset:${i}`, icon: ICONS.charts, label: title, ...(deep ? { aside: preset.p.slice(0, -1).join(" › "), under: true } : {}), verb: "Open",
+          kind: "row", key: `preset:${i}`, icon: ICONS.presets, label: title, ...(deep ? { aside: preset.p.slice(0, -1).join(" › "), under: true } : {}), verb: "Open",
           run: () => pickPreset(i),
           actions: () => presetActions(i, "palette"),
           preview: (/** @type {HTMLElement} */ panel) => {
@@ -28181,12 +28183,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ] : []),
           libraryRedo() || toastRedo?.mark === revision || (!home && edits.future.length) ? { title: "Redo", text: "Forward again.", icon: "redo", kbd: "⇧⌘Z", run: redoLast, anywhere: true } : { title: "Redo", text: "Nothing to redo.", icon: "redo", anywhere: true },
           ...(empty ? [] : [
-            { title: "Zoom in", text: "Closer, around the middle of the view (or its right edge, at the latest).", icon: "charts", kbd: "+", run: () => zoom(1 / 1.6) },
-            { title: "Zoom out", text: "Wider, around the middle of the view (or its right edge, at the latest).", icon: "charts", kbd: "−", run: () => zoom(1.6) },
+            { title: "Zoom in", text: "Closer, around the middle of the view (or its right edge, at the latest).", icon: "magnifier", kbd: "+", run: () => zoom(1 / 1.6) },
+            { title: "Zoom out", text: "Wider, around the middle of the view (or its right edge, at the latest).", icon: "zoomOut", kbd: "−", run: () => zoom(1.6) },
           ]),
           ...(chart.layers.some((layer) => signalShown(layer)) ? [
-            { title: "Next signal", text: "A signal's next mark, after the middle of the view.", icon: "calendar", kbd: ".", run: () => stepSignal(1) },
-            { title: "Previous signal", text: "A signal's last mark, before the middle of the view.", icon: "calendar", kbd: ",", run: () => stepSignal(-1) },
+            { title: "Next signal", text: "A signal's next mark, after the middle of the view.", icon: "signal", kbd: ".", run: () => stepSignal(1) },
+            { title: "Previous signal", text: "A signal's last mark, before the middle of the view.", icon: "signal", kbd: ",", run: () => stepSignal(-1) },
           ] : []),
           ...(empty ? [] : [{ title: "Go to a date", text: "A year, a month or a day: the chart shows it.", icon: "calendar", kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }]),
           { title: "Rename this chart", text: "Its title, typed here.", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
@@ -29480,7 +29482,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const browseInstead = () =>
         [
           ...(home ? [] : [{ key: "browse:series", icon: ICONS.series, label: "Browse every series", aside: "By topic", text: "Every series, in folders by topic", run: () => openPalette({ add: true, path: [] }) }]),
-          { key: "browse:presets", icon: ICONS.charts, label: "Browse the presets", aside: presets ? plural(presets.length, "chart") : "Loading…", text: "Ready-made charts, by section", page: () => presetsPage([]) },
+          { key: "browse:presets", icon: ICONS.presets, label: "Browse the presets", aside: presets ? plural(presets.length, "chart") : "Loading…", text: "Ready-made charts, by section", page: () => presetsPage([]) },
         ].map(({ text, ...row }) => ({ kind: "row", group: "Nothing matches. Browse instead", verb: "Open", elsewhere: true, preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">${escape(row.label)}</h4><p class="description">${text}. Or try other words: what a series measures, as you'd say it.</p>`), ...row }));
       function browseRows() {
         const any = chart.layers.length > 0;
@@ -29492,7 +29494,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { key: "page:panes", icon: ICONS.pane, label: "Panes", aside: plural(chart.panes.length, "pane"), page: panesPage },
             { key: "page:drawings", icon: ICONS.draw, label: "Drawings", aside: chart.drawings?.length ? plural(chart.drawings.length, "drawing") : "Lines, boxes, text", page: drawingsPage },
           ] : []),
-          { key: "page:presets", icon: ICONS.charts, label: "Presets", aside: presets ? plural(presets.length, "chart") : "Loading…", page: () => presetsPage([]) },
+          { key: "page:presets", icon: ICONS.presets, label: "Presets", aside: presets ? plural(presets.length, "chart") : "Loading…", page: () => presetsPage([]) },
         ].filter((row) => !home || row.key === "page:charts" || row.key === "page:presets").map((row) => ({ kind: "row", group: "Browse", verb: "Open", ...row }));
       }
       /** The previews and your charts, as ⌘K's page: the previews, yours in no folder, then each folder's under its name and those it's in (the sidebar's order); and making more. */
@@ -29659,7 +29661,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const rows = [
             ...(layer.type === "cloud" ? ["Between", "And"].map((label, k) => ((member) => ({ key: k ? "and" : "between", icon: member?.icon ?? ICONS.cloud, label, aside: member?.label ?? "None", group: "Cloud", ...(k ? {} : { leads: true }), page: () => choicePage(label, () => memberChoices(id, k)) }))(memberShown(layer.from?.[k])))
               : layer.from ? [{ key: "between", icon: ICONS.riding, label: "Between", aside: fromSpan(layer), group: "Trend", leads: true, page: () => trendPage(id) }]
-              : layer.series ? [{ key: "series", icon: ICONS.series, label: "Replace series", aside: layer.series, mono: true, verb: "Replace", group: first, leads: true, stay: true, run: () => changeSeries(id) }]
+              : layer.series ? [{ key: "series", icon: ICONS.swap, label: "Replace series", aside: layer.series, mono: true, verb: "Replace", group: first, leads: true, stay: true, run: () => changeSeries(id) }]
               : [{ key: "formula", icon: ICONS.formula, label: "Formula", aside: layer.formula, mono: true, verb: "Edit", group: first, leads: true, stay: true, run: () => editFormula(id) }]),
             ...(layer.type === "trend" ? [{ key: "ref", icon: ICONS.riding, label: "Flips when it touches", aside: ((ref) => (ref ? labelOf(ref) : "None"))(layerById(layer.ref ?? "")), group: "Trend", page: () => choicePage("Flips when it touches", () => refChoices(id)) }] : []),
             ...(layer.type === "signal" ? [
@@ -29739,7 +29741,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return [
           // (↵ selects one on the chart, ⌘K closed: the arrows move it there, ⌘ the arrows its end; all it is, in its actions.)
           ...(chart.drawings ?? []).map((drawing) => ({ kind: "row", key: drawing.id, icon: TOOLS[drawing.kind].icon, label: /** @type {string} */ (names.get(drawing.id)), aside: `On ${labelOf(layerById(drawing.layer) ?? { label: "" })}`, group: "On the chart", verb: "Select", run: () => selectInView(drawing.id), actions: () => [
-            { label: "Settings", icon: ICONS.next, page: () => drawingPage(drawing.id) },
+            { label: "Settings", icon: ICONS.sliders, page: () => drawingPage(drawing.id) },
             ...drawingPage(drawing.id).rows().filter((row) => row.key === "duplicate" || row.key === "remove"),
           ] })),
           ...KINDS.map((kind) => ({ kind: "row", key: `tool:${kind}`, icon: TOOLS[kind].icon, label: TOOLS[kind].verb, aside: TOOLS[kind].tip, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, verb: "Draw", group: "Draw", run: () => takeUp(kind) })),
