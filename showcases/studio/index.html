@@ -16191,7 +16191,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The panel's rows only while it shows: hidden, it's still laid out, and each written value lays the page out
         // again; shown, they're written at once, see rowsBehind.)
         rowsBehind = !panelShown();
-        for (const element of all$(rowsBehind ? "[data-value]:not(.row-value)" : "[data-value]")) {
+        // (Where they are, the legends' and the rows', looked for there: not through the whole page at each move.)
+        for (const element of [...all$("[data-value]", $("chart")), ...(rowsBehind ? [] : all$(".row-value[data-value]", $("layer-list")))]) {
           const layer = layerById(element.dataset.value);
           const result = resolved?.results.get(element.dataset.value);
           if (!layer || !result || result.error) continue;
@@ -16209,7 +16210,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             else element.style.removeProperty("--c");
           }
         }
-        for (const element of all$("[data-band-share]")) {
+        for (const element of all$("[data-band-share]", $("chart"))) {
           const layer = layerById(element.dataset.bandShare ?? ""), text = layer ? format(shareAt(layer, point), "percent") : "";
           if (element.textContent !== text) element.textContent = text;
         }
