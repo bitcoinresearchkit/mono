@@ -2805,8 +2805,7 @@
         position: absolute;
         inset: 0 auto 0 0;
         z-index: 2;
-        /* (Its room's (GUTTER) from the latest point, 8px clear of the scale.) */
-        width: 200px;
+        /* (Its room's (gutterRoom) from the latest point, 8px clear of the scale: set as it's placed.) */
         pointer-events: none;
 
         /* (Each label's line from its band's end to its dot's edge, in its color.) */
@@ -2849,6 +2848,11 @@
           margin-left: auto;
           color: var(--muted);
           font-variant-numeric: tabular-nums;
+        }
+
+        /* (Narrow, its names alone: a band's figure is the key's, as it's touched.) */
+        &[data-narrow] .value {
+          display: none;
         }
       }
 
@@ -14599,11 +14603,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * a share of the chart's width, a phone's narrower, a large screen's no wider than 48; a wide one's, with a stack of
        * many, its gutter's (see placeGutters).
        */
-      const rightGap = (width = view.timeScale().width()) => (guttered(width) ? GUTTER : plainGap(width));
+      const rightGap = (width = view.timeScale().width()) => (guttered(width) ? gutterRoom(width) : plainGap(width));
       /** The room after the latest point, any chart's (a preview's too, the open one's aside): see rightGap. */
       const plainGap = (width = view.timeScale().width()) => Math.round(clamp(width * 0.06, 16, 48));
       /** A stack of many's gutter: its width after the latest point, from how wide a plot it's made in, and a label's line. */
       const GUTTER = 208, GUTTER_FROM = 720, GUTTER_LINE = 14;
+      /** What a gutter's label has besides its name: its line in (14), its dot and the gap after it (6, 5), its room clear of the scale (8), a pixel's rounding. */
+      const GUTTER_CHROME = 34;
+      /**
+       * A stack of many's gutter's room on a plot: a wide one's (GUTTER_FROM), names and figures; a narrower one's (a
+       * phone's), names alone, as wide as its longest needs, at most half the plot (a name longer, cut).
+       */
+      const gutterRoom = (/** @type {number} */ width) => (width >= GUTTER_FROM ? GUTTER : Math.min(GUTTER, Math.floor(width / 2), GUTTER_CHROME + widest(chart?.panes.filter(keyedPane).flatMap((pane) => bandsOf(pane).map(labelOf)) ?? [], 510, 11, false)));
       /**
        * Labels each wanting to be at a height (`wants`, ascending), `step` apart at least, between `top` and `bottom`: each
        * as near its own as the others leave it, in their order. Neighbors too close move together, as one, to the mean of
@@ -14630,7 +14641,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return groups.flatMap((group) => Array.from({ length: group.count }, (_, k) => group.at + k * step));
       }
       /** Whether the open chart names its stack of many's bands after its latest point: a wide plot, a keyed pane, its legends on. */
-      const guttered = (/** @type {number} */ width) => width >= GUTTER_FROM && chart?.legend !== "off" && Boolean(chart?.panes.some(keyedPane));
+      const guttered = (/** @type {number} */ width) => width > 0 && chart?.legend !== "off" && Boolean(chart?.panes.some(keyedPane));
       /**
        * The least of the view its data keeps (a share of its width, all of the data when it holds less): a pan, a fling,
        * a zoom stops there, held by the chart itself as it moves (patch 13 of lightweight-charts), never a frame past it.
@@ -14966,7 +14977,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // no room there.)
         for (const gutter of all$(".gutter", element)) {
           const x = Number(gutter.dataset.x), at = leftAxis ? x * k + (held ? lead * (1 - k) : 0) : to - (to - x) * k + (held ? k * room - gap : 0);
-          Object.assign(gutter.style, { transform: `translateX(${Math.round(at)}px)`, visibility: at - (leftAxis ? 0 : to - from) + GUTTER <= from + 8 ? "" : "hidden" });
+          Object.assign(gutter.style, { transform: `translateX(${Math.round(at)}px)`, visibility: at - (leftAxis ? 0 : to - from) + Number(gutter.dataset.room) <= from + 8 ? "" : "hidden" });
         }
       }
       /**
@@ -16130,8 +16141,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             gutterFit.observe(gutter);
           }
           wanted.add(gutter);
-          const shown = Boolean(resolved && x !== null && x >= 0 && x + GUTTER <= width + 8);
+          const room = gutterRoom(width), shown = Boolean(resolved && x !== null && x >= 0 && x + room <= width + 8);
           gutter.hidden = !shown;
+          gutter.dataset.room = String(room);
+          gutter.style.width = `${room - 8}px`;
+          gutter.toggleAttribute("data-narrow", width < GUTTER_FROM);
           if (!shown || !resolved || x === null) return;
           // (Its latest point's place kept: a layout's motion moves it from there, see stretchDrawn.)
           gutter.dataset.x = String(Math.round(x));
@@ -16807,12 +16821,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const measure = /** @type {CanvasRenderingContext2D} */ (document.createElement("canvas").getContext("2d"));
       let figuresFont = "";
       /**
-       * The widest of some texts as the page sets figures (Inter's tabular ones: each a zero's width), at a weight and
-       * size, in whole pixels.
+       * The widest of some texts as the page sets them, at a weight and size, in whole pixels: figures (`figures`, Inter's
+       * tabular ones: each a zero's width), or words as they're written.
        */
-      function widest(texts, weight, size) {
+      function widest(texts, weight, size, figures = true) {
         measure.font = `${weight} ${size}px ${(figuresFont ||= css("--sans"))}`;
-        return Math.ceil(Math.max(0, ...texts.map((text) => measure.measureText(text.replace(/[0-9]/g, "0")).width)));
+        return Math.ceil(Math.max(0, ...texts.map((text) => measure.measureText(figures ? text.replace(/[0-9]/g, "0") : text).width)));
       }
       /** The widest a run of values can be written: its lowest, highest, last and a sample across it. */
       function slotOf(/** @type {Vector} */ values, /** @type {string} */ unit, /** @type {number} */ size) {
