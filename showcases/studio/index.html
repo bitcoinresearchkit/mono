@@ -6749,6 +6749,11 @@
         gap: 12px;
       }
 
+      /* (The presets': every row as tall as a tile, a row of slots too: see presetGridHtml.) */
+      #gallery .grid-tiles {
+        grid-auto-rows: 1fr;
+      }
+
       /* The presets' gallery: where it is (up a level, each level), then a section's own charts and a shelf for each
          section under it, a row of its charts its name leads into; a phone's, a row swiped across (the next one showing
          at its edge), to the window's edges. */
@@ -19699,8 +19704,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const keyOf = (element) => ({ tag: element.tagName, id: element.id, data: Object.entries(element.dataset).filter(([name]) => name !== "tip" && name !== "kbd") });
       function restoreFocus(container, key) {
         if (!key || container.contains(document.activeElement)) return;
-        const match = key.id ? container.querySelector(`#${CSS.escape(key.id)}`) : [...container.querySelectorAll(key.tag)].find((element) => element instanceof HTMLElement && key.data.length > 0 && key.data.every(([name, value]) => element.dataset[name] === value));
-        /** @type {HTMLElement | null} */ (match)?.focus();
+        const find = () => (key.id ? container.querySelector(`#${CSS.escape(key.id)}`) : [...container.querySelectorAll(key.tag)].find((element) => element instanceof HTMLElement && key.data.length > 0 && key.data.every(([name, value]) => element.dataset[name] === value)));
+        let match = find();
+        // (Its like on a preset's tile written as a slot yet: the tile written for it, see fillSlot.)
+        const preset = match ? undefined : key.data.find(([name]) => name === "openPreset" || name === "presetMenu")?.[1], slot = preset === undefined ? null : container.querySelector(`.tile-slot[data-slot="${CSS.escape(preset)}"]`);
+        if (slot) (fillSlot(/** @type {HTMLElement} */ (slot)), (match = find()));
+        /** @type {HTMLElement | null | undefined} */ (match)?.focus();
       }
       /**
        * The focus, where what had it goes (`away`: put away, the panel closed, the sidebar slid off; else removed, once
@@ -20762,7 +20771,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let pressedTile = null;
       $("home").addEventListener("click", (event) => (pressedTile = closest(event, ".tile[data-chart]") ?? pressedTile), true);
       /** A chart's tile: what the chart grows out of and shrinks into. */
-      const cardOf = (id) => /** @type {HTMLElement | null} */ (pressedTile?.isConnected && pressedTile.dataset.chart === id ? pressedTile : $("home").querySelector(`.tile[data-chart="${CSS.escape(id)}"]`));
+      // (A preset's written as a slot yet: written now, for what wants it (the way back from it shrinks into it).)
+      const cardOf = (id) => /** @type {HTMLElement | null} */ (pressedTile?.isConnected && pressedTile.dataset.chart === id ? pressedTile : $("home").querySelector(`.tile[data-chart="${CSS.escape(id)}"]`) ?? ((slot) => slot && fillSlot(slot))(/** @type {HTMLElement | null} */ ($("home").querySelector(`.tile-slot[data-slot="${presetById(id)}"]`))));
       const tileOpen = (id) => /** @type {HTMLElement | null} */ (cardOf(id)?.querySelector(".tile-open") ?? null);
 
       // ── The presets, as a gallery ─────────────────────────────────────────────
@@ -20879,8 +20889,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The gallery's lists as drawn, each by its place there (its grid's Show more finds its own by it). */
       let listsDrawn = 0;
       const listAt = () => listsDrawn++;
-      /** A grid of presets, as many as shown, more a button away. @param {number[]} list */
-      const presetGridHtml = (list) => `<div class="grid-tiles" data-list="${listAt()}">${list.slice(0, galleryShown).map((i) => presetTileHtml(i)).join("")}</div>${list.length > galleryShown ? `<button type="button" class="btn ghost small gallery-more" data-gallery-more>Show ${grouped.format(Math.min(GALLERY_PAGE, list.length - galleryShown))} more</button>` : ""}`;
+      /**
+       * A grid of presets, as many as shown, more a button away: its first tile written (every row as tall as it), the
+       * others a slot each, written once near sight (see nearTiles): a search typed writes what shows, not sixty.
+       * @param {number[]} list
+       */
+      const presetGridHtml = (list) => `<div class="grid-tiles" data-list="${listAt()}">${list.slice(0, galleryShown).map((i, k) => (k ? slotHtml(i) : presetTileHtml(i))).join("")}</div>${list.length > galleryShown ? `<button type="button" class="btn ghost small gallery-more" data-gallery-more>Show ${grouped.format(Math.min(GALLERY_PAGE, list.length - galleryShown))} more</button>` : ""}`;
       /** A shelf's steps, a page of tiles back and on (see stepShelf). */
       const SHELF_STEPS = `<button type="button" class="cap small shelf-step" data-shelf-step="-1" aria-label="Scroll back" data-tip="Scroll back">${ICONS.back}</button><button type="button" class="cap small shelf-step" data-shelf-step="1" aria-label="Scroll on" data-tip="Scroll on">${ICONS.next}</button>`;
       /**
@@ -20897,7 +20911,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * presets' fourteen) writes what can show, not every shelf's twelve.
        */
       const SHELF_WRITTEN = 3;
-      const shelfTilesHtml = (/** @type {number[]} */ list, /** @type {boolean} */ lead) => list.slice(0, SHELF).map((i, k) => (lead || k < SHELF_WRITTEN ? presetTileHtml(i) : `<div class="tile-slot" data-slot="${i}"></div>`)).join("");
+      const shelfTilesHtml = (/** @type {number[]} */ list, /** @type {boolean} */ lead) => list.slice(0, SHELF).map((i, k) => (lead || k < SHELF_WRITTEN ? presetTileHtml(i) : slotHtml(i))).join("");
+      /** A preset's tile's place, held till it's written (see fillSlot). */
+      const slotHtml = (/** @type {number} */ i) => `<div class="tile-slot" data-slot="${i}"></div>`;
       /** A shelf's slot, its tile written in its place, its mini chart drawn once in view. @param {HTMLElement} slot */
       function fillSlot(slot) {
         const made = document.createElement("template");
@@ -20959,9 +20975,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ].join("");
         }
         if (kept) placeGallery(kept);
-        // (The focus was on a tile written as a slot now: its row written whole, for it to come back to.)
-        const slot = focus?.data.find(([name]) => name === "openPreset")?.[1], held = slot === undefined ? null : $("gallery").querySelector(`[data-slot="${CSS.escape(String(slot))}"]`);
-        if (held) fillRow(/** @type {HTMLElement} */ (held.parentElement));
         restoreFocus($("gallery"), focus);
         for (const frame of all$(".pending[data-plot]", $("gallery"))) galleryTilesSeen.observe(frame);
         shelvesSoon();
@@ -20984,11 +20997,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Every shelf's steps and edges, once the page's writes this frame are in (one layout, not one a write), before it's shown. */
       let shelvesFrame = 0;
       const shelvesSoon = () => (shelvesFrame ||= requestAnimationFrame(() => ((shelvesFrame = 0), allShelfSteps())));
-      /** Every shelf's steps and edges (all read first, then written: one layout, not one a shelf), its slots watched. */
+      /** Every shelf's steps and edges, its slots watched, a grid's too (all read first, then written: one layout, not one a shelf). */
       function allShelfSteps() {
         const rows = all$(".shelf-row", $("home")), sizes = rows.map((row) => ({ at: row.scrollLeft, size: row.clientWidth, full: row.scrollWidth }));
-        rows.forEach((row, k) => fitShelf(row, sizes[k].at, sizes[k].size, sizes[k].full));
         nearTiles(rows);
+        rows.forEach((row, k) => fitShelf(row, sizes[k].at, sizes[k].size, sizes[k].full));
       }
       /** Each shelf whose slots are watched, and what watches them. @type {WeakMap<HTMLElement, IntersectionObserver>} */
       const rowsNear = new WeakMap();
@@ -20998,10 +21011,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * as they scroll (see nearTiles).
        */
       let shelvesNear = /** @type {IntersectionObserver | null} */ (null), nearReach = 0;
+      /** A grid's slots as near (see nearTiles). @type {IntersectionObserver | null} */
+      let slotsNear = null;
       /**
        * The shelves' slots, their tiles written once they're near sight: the shelf two screens' height from it, each slot
-       * two rows' width from it as the row scrolls. In time for a step or a fling, never one shown blank. The shelves on
-       * the page now watched, not those it had (written anew, gone).
+       * two rows' width from it as the row scrolls; a grid's, each two screens' height from it, those in sight at once (an
+       * observer's first word comes a frame on: blank till then). In time for a step or a fling, never one shown blank.
+       * The shelves and slots on the page now watched, not those it had (written anew, gone).
        * @param {HTMLElement[]} rows
        */
       function nearTiles(rows) {
@@ -21010,7 +21026,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!reach) return;
         if (!shelvesNear || reach !== nearReach) {
           shelvesNear?.disconnect();
+          slotsNear?.disconnect();
           nearReach = reach;
+          slotsNear = new IntersectionObserver((entries, own) => {
+            for (const entry of entries) if (entry.isIntersecting) (own.unobserve(entry.target), fillSlot(/** @type {HTMLElement} */ (entry.target)));
+          }, { root: scroller, rootMargin: `${2 * reach}px 0px` });
           shelvesNear = new IntersectionObserver((entries, own) => {
             // (Every shelf come near read first, then each written: one layout, not one a shelf.)
             const rows = entries.filter((entry) => entry.isIntersecting && !rowsNear.has(/** @type {HTMLElement} */ (entry.target))).map((entry) => /** @type {HTMLElement} */ (entry.target));
@@ -21018,9 +21038,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             rows.forEach((row, k) => (own.unobserve(row), fitShelf(row, sizes[k].at, sizes[k].room, sizes[k].full), tilesNear(row, sizes[k])));
           }, { root: scroller, rootMargin: `${2 * reach}px 0px` });
         }
-        const shelves = /** @type {IntersectionObserver} */ (shelvesNear);
+        const shelves = /** @type {IntersectionObserver} */ (shelvesNear), slots = /** @type {IntersectionObserver} */ (slotsNear);
         shelves.disconnect();
         for (const row of rows) if (!rowsNear.has(row)) shelves.observe(row);
+        // (All read first, then written: one layout, not one a slot.)
+        const view = scroller.getBoundingClientRect(), held = all$(".grid-tiles > .tile-slot", $("home")), boxes = held.map((slot) => slot.getBoundingClientRect());
+        slots.disconnect();
+        held.forEach((slot, k) => (boxes[k].bottom > view.top && boxes[k].top < view.bottom ? fillSlot(slot) : slots.observe(slot)));
       }
       /** A shelf's tile written anew where it was (a chart's changed). @param {HTMLElement} tile @param {string} html */
       function swapTile(tile, html) {
@@ -21054,7 +21078,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("home").addEventListener("scroll", (event) => /** @type {HTMLElement} */ (event.target).matches?.(".shelf-row") && shelfSteps(/** @type {HTMLElement} */ (event.target)), { capture: true, passive: true });
       // (A keyboard's focus come into it (Tab, the arrows, a menu's way back to its tile), for the keys to reach each; not
       // one put there by a click's or a tap's way back from its chart: that wrote its row whole, 15 ms on a desktop.)
-      $("home").addEventListener("focusin", (event) => ((row) => row && /** @type {HTMLElement} */ (event.target).matches(":focus-visible") && fillRow(row))(closest(event, ".shelf-row")));
+      $("home").addEventListener("focusin", (event) => ((row) => row && /** @type {HTMLElement} */ (event.target).matches(":focus-visible") && fillRow(row))(closest(event, ".shelf-row, .grid-tiles")));
       // Every shelf measured again as the page's size changes (the window's, the sidebar's, a phone turned), shown at
       // another size than it was left at too; not as it's simply shown again: hidden, its shelves stayed as they were.
       {
@@ -21095,7 +21119,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           galleryShown += GALLERY_PAGE;
           renderHome();
           placeGallery(place);
-          /** @type {HTMLElement | undefined} */ (all$(`[data-list="${grid}"] .tile-open`, $("gallery"))[from])?.focus({ preventScroll: true });
+          const tile = $("gallery").querySelector(`[data-list="${grid}"]`)?.children[from];
+          /** @type {HTMLElement | null | undefined} */ ((tile?.matches(".tile-slot") ? fillSlot(/** @type {HTMLElement} */ (tile)) : tile)?.querySelector(".tile-open"))?.focus({ preventScroll: true });
         }
         else if (closest(event, "[data-gallery-retry]")) retryPresets();
         else if (step && step.getAttribute("aria-disabled") !== "true") stepShelf(/** @type {HTMLElement} */ (step.closest(".shelf")?.querySelector(".shelf-row")), Number(step.dataset.shelfStep));
@@ -22030,8 +22055,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (event.key === "End") return lastCard($("gallery")).focus();
         nextCard(cards[at], event.key, $("gallery"))?.focus();
       });
-      /** A list's last card, its shelf's row written whole first (its last tiles may be slots yet). @param {HTMLElement} list */
-      const lastCard = (list) => (((row) => row && fillRow(row))(all$(".shelf-row", list).at(-1)), /** @type {HTMLElement} */ (all$(CARDS, list).at(-1)));
+      /** A list's last card, its last shelf's row (or grid) written whole first (its last tiles may be slots yet). @param {HTMLElement} list */
+      const lastCard = (list) => (((row) => row && fillRow(row))(all$(".shelf-row, .grid-tiles", list).at(-1)), /** @type {HTMLElement} */ (all$(CARDS, list).at(-1)));
       /** What the arrows go along in the grid: the cards, and a shelf's last tile, to them all. */
       const CARDS = ".tile-open, .shelf-all";
       /**
