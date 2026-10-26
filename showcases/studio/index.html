@@ -2881,6 +2881,28 @@
             gap: 8px;
             padding: 4px 8px 4px 6px;
             color: var(--soft);
+
+            /* (Its words each the button's own, as they were; where they don't fit after the key (a phone's), the same way
+               to the list: a turn alone.) */
+            .legend-all-words {
+              display: contents;
+            }
+
+            .legend-all-go {
+              display: none;
+            }
+
+            @media (max-width: 760px) {
+              padding: 4px 6px;
+
+              .legend-all-words {
+                display: none;
+              }
+
+              .legend-all-go {
+                display: inline-grid;
+              }
+            }
           }
 
           /* (Its value's line, as an item's value: its share, then its amount.) */
@@ -2922,6 +2944,11 @@
           i {
             width: 6px;
             background: var(--c);
+
+            /* (A phone's: half as wide, its names and its way to the list beside it whole.) */
+            @media (max-width: 760px) {
+              width: 3px;
+            }
           }
         }
 
@@ -7825,11 +7852,6 @@
        * clear of the notch).
        */
       @media (max-width: 760px), (max-height: 500px) {
-        /* (A stack of many's count and its View all: the bar's Layers is the list there.) */
-        .legend.keyed button.legend-all {
-          display: none;
-        }
-
         .app {
           grid-template-columns: minmax(0, 1fr);
           grid-template-rows: minmax(0, 1fr);
@@ -16233,7 +16255,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // stack's share first); in the key's place while it shows, see the stylesheet.)
         return `<button type="button" class="legend-on" hidden><span class="legend-name"></span><span class="legend-line">${pane.stack === "percent" ? '<span class="legend-share"></span><span aria-hidden="true"> · </span>' : ""}<span class="legend-value"></span></span></button>`
           + `<span class="legend-key" aria-hidden="true"><span>${escape(labelOf(bands[0]))}</span><span class="key-strip">${strip}</span><span>${escape(labelOf(/** @type {Layer} */ (bands.at(-1))))}</span></span>`
-          + `<button type="button" class="legend-all" data-action="pane-layers" data-pane="${pane.id}">${bands.length} layers<span aria-hidden="true"> · </span>View all</button>`;
+          + `<button type="button" class="legend-all" data-action="pane-layers" data-pane="${pane.id}" aria-label="View all ${bands.length} layers" data-tip="View all ${bands.length} layers"><span class="legend-all-words" aria-hidden="true">${bands.length} layers<span> · </span>View all</span><span class="legend-all-go" aria-hidden="true">${ICONS.next}</span></button>`;
       }
       /** A keyed legend's band, the pointer's else the selected one: its button the same, what it names set in place (a focus on it stays), its values written as they are (see updateReadout). */
       function paintBand(/** @type {HTMLElement} */ element, /** @type {Pane} */ pane) {
