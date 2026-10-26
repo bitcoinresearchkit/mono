@@ -150,6 +150,8 @@
         --words-wait: 120ms;
         --words-in: 160ms;
         --dur-page: 380ms;
+        /* A loading sweep's pass (text shimmering, a value's bar, a tile's): one rhythm, however many show at once. */
+        --dur-sweep: 1.4s;
         /* Corners by size: keys and chips, small controls, controls, popovers, cards and bars, sheets and dialogs. */
         --radius-xs: 4px;
         --radius-sm: 6px;
@@ -686,7 +688,7 @@
         background: linear-gradient(90deg, var(--muted) 0%, var(--muted) 35%, var(--ink) 50%, var(--muted) 65%, var(--muted) 100%) 0 0 / 250% 100%;
         -webkit-background-clip: text;
         background-clip: text;
-        animation: shimmer 1.7s linear infinite;
+        animation: shimmer var(--dur-sweep) linear infinite;
       }
 
       @keyframes shimmer {
@@ -1484,7 +1486,7 @@
         margin: 5px 0;
         border-radius: var(--radius-xs);
         background: linear-gradient(90deg, var(--press), var(--hover), var(--press)) 0 0 / 200% 100%;
-        animation: bar 1.1s linear infinite;
+        animation: bar var(--dur-sweep) linear infinite;
       }
 
       @keyframes bar {
@@ -7316,7 +7318,7 @@
           left: 0;
           width: 200%;
           background: linear-gradient(100deg, transparent 30%, var(--sweep) 50%, transparent 70%);
-          animation: sweep 1.4s linear infinite;
+          animation: sweep var(--dur-sweep) linear infinite;
         }
       }
 
@@ -9797,6 +9799,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <dl>
             <div><dt>Open one of your first nine charts</dt><dd><kbd>⌘1</kbd>–<kbd>⌘9</kbd></dd></div>
             <div><dt>New chart</dt><dd><kbd>N</kbd></dd></div>
+            <div><dt>Save a preview into your Library (all else saves as you go)</dt><dd><kbd>⌘S</kbd></dd></div>
             <div><dt>Move a chart in your list</dt><dd><kbd>⌥↑</kbd><kbd>⌥↓</kbd> or drag</dd></div>
             <div><dt>Open or close a folder in the sidebar, go in or out</dt><dd><kbd>←</kbd><kbd>→</kbd></dd></div>
             <div><dt>The menu of the row in focus</dt><dd><kbd>⇧F10</kbd></dd></div>
@@ -31358,7 +31361,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               parent ? (folder.parent = into.get(parent) ?? parent) : delete folder.parent;
             }
             // (Nothing new, charts nor folders: said, nothing changed.)
-            if (!docs.length && !edits.length && !folders.size && editsHere) return toast("It's all here already");
+            if (!docs.length && !edits.length && !folders.size && editsHere) return notice("It's all here already");
             if (!docs.length && !edits.length && !folders.size && already) return toast(`${already === 1 ? "That chart is" : `All ${grouped.format(already)} charts are`} here already`);
             // (A file of charts none of which reads: said so, not that it's no file of charts.)
             if (!docs.length && !edits.length && !folders.size && parsed.charts.length) return notice(parsed.charts.length === 1 ? "Its chart couldn't be read" : `None of its ${grouped.format(parsed.charts.length)} charts could be read`);
@@ -32984,7 +32987,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (mod && key === "s") {
           event.preventDefault();
           flushEdits();
-          if (isPreview(chart) && !home) return chart.layers.length ? keepChart() : toast("Nothing to save yet: add a layer");
+          if (isPreview(chart) && !home) return chart.layers.length ? keepChart() : notice("Nothing to save yet: add a layer");
           return save(true);
         }
         if (mod && key === "z" && !typing(event.target)) {
