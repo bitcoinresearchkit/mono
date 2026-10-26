@@ -15164,7 +15164,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Not while something's carried: the rows passed over aren't pointed at. A finger points at nothing: what it
         // touched, a row it scrolled the list by, would stay lit once it's lifted.)
         if (document.body.classList.contains("carrying")) return;
-        spotlight(event.pointerType === "touch" ? null : (closest(event, ".layer-row")?.dataset.layer ?? closest(event, ".legend [data-select]")?.dataset.select ?? (closest(event, "#chart") ? bandLit : null)));
+        // (The plot pointed at lights nothing: what's under the pointer is named in its legend, the rest as they are.)
+        spotlight(event.pointerType === "touch" ? null : (closest(event, ".layer-row")?.dataset.layer ?? closest(event, ".legend [data-select]")?.dataset.select ?? null));
       });
       /** @type {Resolved | null} */
       let resolved = null;
@@ -16223,7 +16224,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Whether a pane's legend is its key: so many layers (see BANDS_FROM), stacked or not: too many to list. */
       const keyedPane = (/** @type {Pane} */ pane) => bandsOf(pane).length >= BANDS_FROM;
-      /** The band the pointer's on, in a keyed pane: its readout in the legend, it lit among its pane's (see bandAt). */
+      /** The band the pointer's on, in a keyed pane: its readout in the legend (see bandAt). */
       let bandLit = /** @type {string | null} */ (null);
       /**
        * The band of a keyed pane under a point on the chart (the crosshair's, a click's): the one whose foot and top, as
@@ -16953,14 +16954,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       view.subscribeCrosshairMove((param) => {
         const time = param.time === undefined ? null : /** @type {number} */ (param.time);
-        // (In a keyed pane, the band under it, a finger's held too: its item in the key's place, it lit among its pane's.
-        // On the legend over the plot, the one it was (its item stays under the pointer).)
+        // (In a keyed pane, the band under it, a finger's held too: its item in the key's place (lit among its pane's only
+        // as that item, or its row, is pointed at: see spotlight). On the legend over the plot, the one it was (its item
+        // stays under the pointer).)
         const band = bandAt(param) ?? (onLegend ? bandLit : null);
         if (band !== bandLit) {
-          const was = bandLit;
           bandLit = band;
           paintBands();
-          if (spotlit === was || band) spotlight(band);
         }
         lightLegend(band ?? (param.point && param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null), false, Boolean(band));
         if (time === hoverTime) return;
