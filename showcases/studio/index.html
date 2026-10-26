@@ -88,12 +88,14 @@
         --faint: light-dark(#c4c7cc, #3e4147);
         /* How many, beside what's counted: muted (a step under it read under 4.5:1: 3.3-3.8 on the page). */
         --count: var(--muted);
-        /* Black over the light, white over the dark, rest to emphasis; a hover is a step above rest. */
-        --field: light-dark(rgb(0 0 0 / 0.03), rgb(255 255 255 / 0.035));
-        --hover: light-dark(rgb(0 0 0 / 0.04), rgb(255 255 255 / 0.04));
-        --fill: light-dark(rgb(0 0 0 / 0.05), rgb(255 255 255 / 0.05));
+        /* Black over the light, white over the dark. A control's ground, three steps, one each and nothing between (five
+           greys a step apart, side by side, read as five, none as a step): a field's, every control's at rest (a text
+           field, a select, a segmented control's track, a chip, the navigator); a hover, that same step, a bare one
+           pointed at; a press, what's pressed, current or chosen, and a key; then an active, pressed again. */
+        --field: light-dark(rgb(0 0 0 / 0.04), rgb(255 255 255 / 0.04));
+        --hover: var(--field);
         --line: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.06));
-        --press: light-dark(rgb(0 0 0 / 0.065), rgb(255 255 255 / 0.07));
+        --press: light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.07));
         /* A segment chosen: a step up on the dark, a white chip lifted off its track on the light. */
         --chosen: light-dark(#ffffff, rgb(255 255 255 / 0.07));
         --line-strong: light-dark(rgb(0 0 0 / 0.13), rgb(255 255 255 / 0.1));
@@ -481,19 +483,23 @@
         --fade: 0s;
       }
 
+      /* A button with words: a control's height and ground, edged as a field is (an inset ring, as every edged control:
+         a border made it a size of its own); the small one a small icon's (.cap.small). */
       .btn {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        height: 30px;
-        border: 1px solid var(--line);
+        height: 28px;
+        border: 0;
         border-radius: var(--radius-md);
-        padding: 0 11px;
+        padding: 0 10px;
         color: var(--ink);
-        background: var(--hover);
+        background: var(--field);
+        box-shadow: inset 0 0 0 1px var(--line);
+        font-size: 12px;
         font-weight: 510;
         white-space: nowrap;
-        transition: background var(--fade), border-color var(--fade), color var(--fade), transform var(--dur-micro) var(--ease);
+        transition: background var(--fade), box-shadow var(--fade), color var(--fade), transform var(--dur-micro) var(--ease);
 
         &:hover:where(.can-hover *):not(:disabled, [aria-disabled="true"]) {
           background: var(--press);
@@ -515,9 +521,9 @@
         }
 
         &.ghost {
-          border-color: transparent;
           color: var(--soft);
           background: none;
+          box-shadow: none;
 
           &:hover:where(.can-hover *):not(:disabled, [aria-disabled="true"]) {
             color: var(--ink);
@@ -525,11 +531,10 @@
           }
         }
 
-        /* The compact one, in a line of text: a toast, an error, a heading. */
+        /* The compact one, in a line of text: a toast, an error, a caption. */
         &.small {
-          height: 26px;
-          padding: 0 9px;
-          font-size: 12px;
+          height: 24px;
+          padding: 0 8px;
         }
       }
 
@@ -592,14 +597,13 @@
       }
 
       .tabs {
-        /* (Its unchosen options a tier up: on its deeper ground, the muted tone was under 4.5:1 in the light.) */
+        /* (Its unchosen options a tier up: on a field's ground, the muted tone is under 4.5:1 in the light.) */
         --muted: var(--soft);
         display: inline-flex;
         gap: 1px;
         border-radius: var(--radius-md);
         padding: 2px;
-        /* (On light, a deeper ground than a field's: the white chosen one stands out of it.) */
-        background: light-dark(rgb(0 0 0 / 0.055), var(--field));
+        background: var(--field);
         box-shadow: inset 0 0 0 1px var(--line);
 
         button {
@@ -638,7 +642,7 @@
         border-radius: var(--radius-xs);
         padding: 1px 6px;
         color: var(--soft);
-        background: var(--fill);
+        background: var(--field);
         font: 510 11px/18px var(--sans);
         white-space: nowrap;
       }
@@ -849,8 +853,7 @@
         kbd {
           flex-shrink: 0;
           color: var(--muted);
-          background: var(--fill);
-          transition: color var(--fade), background var(--fade);
+          transition: color var(--fade);
         }
 
         &:hover:where(.can-hover *) {
@@ -859,7 +862,6 @@
 
           kbd {
             color: var(--soft);
-            background: var(--press);
           }
         }
       }
@@ -2479,20 +2481,14 @@
 
       /* One width for every interval, so the ranges beside it never shift. */
       /* The interval, a field to pick from: its clock says it's one (beside the ranges, "3M" or "1Y" isn't one of them). */
+      /* (A select, a field: pointed at, its edge lit, as the search's, not its ground deepened, as a button's.) */
       .interval.btn {
         justify-content: flex-start;
         width: 74px;
-        height: 28px;
-        border: 0;
-        gap: 6px;
-        padding: 0 8px 0 8px;
-        background: var(--field);
-        box-shadow: inset 0 0 0 1px var(--line);
-        font: 510 12px var(--sans);
+        padding: 0 8px;
         font-variant-numeric: tabular-nums;
 
         &:hover:where(.can-hover *):not(:disabled) {
-          color: var(--soft);
           background: var(--field);
           box-shadow: inset 0 0 0 1px var(--faint);
         }
@@ -2851,10 +2847,12 @@
           pointer-events: auto;
           transition: background var(--fade), color var(--fade);
 
+          /* (Its ground a hover's over the card, solid, its words edged in it, as a selected one's is.) */
           &:hover:where(.can-hover *),
           &.lit {
+            --halo: light-dark(color-mix(in srgb, var(--card), #000 4%), color-mix(in srgb, var(--card), #fff 4%));
             color: var(--ink);
-            background: var(--fill);
+            background: var(--halo);
           }
 
           /* Off: its mark faded, its words a grey a step down (still read). */
@@ -2877,7 +2875,7 @@
           /* (Lit: its ground the press's over the card, solid, its words edged in it: the card's edge showed as a dark ring
              about them on it, and the lines under it showed through.) */
           &.selected {
-            --halo: light-dark(color-mix(in srgb, var(--card), #000 6.5%), color-mix(in srgb, var(--card), #fff 7%));
+            --halo: light-dark(color-mix(in srgb, var(--card), #000 7%), color-mix(in srgb, var(--card), #fff 7%));
             color: var(--ink);
             background: var(--halo);
           }
@@ -3972,7 +3970,7 @@
         border-radius: var(--radius-xs);
         padding: 0 6px 0 7px;
         color: var(--soft);
-        background: var(--fill);
+        background: var(--field);
         box-shadow: inset 0 0 0 1px var(--line);
         font: 510 11px/20px var(--sans);
         transition: background var(--fade), color var(--fade);
@@ -5109,7 +5107,7 @@
         margin-top: 10px;
         overflow: hidden;
         border-radius: var(--radius-md);
-        background: light-dark(rgb(0 0 0 / 0.055), var(--field));
+        background: var(--field);
 
         /* (Named, not `* + *`: a sibling rule ending in any element at all has a list anywhere on the page styled again
            whole as one of its children goes (the sidebar's, ~870 elements at each edit).) */
@@ -5822,7 +5820,7 @@
           border-radius: var(--radius-xs);
           place-items: center;
           color: var(--muted);
-          background: var(--fill);
+          background: var(--field);
           font: 590 10px/1 var(--mono);
           font-style: normal;
         }
@@ -9575,14 +9573,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           </div>
           <div class="head-actions">
             <span id="saved" class="saved"></span>
-            <span id="preview-note" class="preview-note" hidden><span class="preview-said">A preview</span><button id="keep" class="btn small" type="button" data-tip="Save puts it in your Library, as it is" data-kbd="⌘ S" aria-label="Save"><span data-icon="keep"></span><span class="label">Save</span></button></span>
-            <span id="preset-note" class="preview-note" hidden><button id="preset-reset" class="btn small ghost" type="button" data-tip="Back as the preset is: your edits let go of" hidden>Reset</button><button id="preset-copy" class="btn small" type="button" aria-label="Save a copy" data-tip="A copy of it, as it is, in your Library"><span data-icon="duplicate"></span><span class="label">Save a copy</span></button></span>
+            <span id="preview-note" class="preview-note" hidden><span class="preview-said">A preview</span><button id="keep" class="btn" type="button" data-tip="Save puts it in your Library, as it is" data-kbd="⌘ S" aria-label="Save"><span data-icon="keep"></span><span class="label">Save</span></button></span>
+            <span id="preset-note" class="preview-note" hidden><button id="preset-reset" class="btn ghost" type="button" data-tip="Back as the preset is: your edits let go of" hidden>Reset</button><button id="preset-copy" class="btn" type="button" aria-label="Save a copy" data-tip="A copy of it, as it is, in your Library"><span data-icon="duplicate"></span><span class="label">Save a copy</span></button></span>
             <button id="undo" class="cap" type="button" aria-label="Undo" data-tip="Undo" data-kbd="⌘ Z" data-icon="undo"></button>
             <button id="redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo" aria-disabled="true"></button>
             <span class="divider"></span>
             <button id="draw-toggle" class="cap" type="button" aria-pressed="false" aria-label="Drawing tools" data-tip="Drawing tools" data-kbd="D" data-action="draw" data-icon="draw"></button>
             <button id="add" class="cap" type="button" aria-haspopup="dialog" aria-label="Add a layer" data-tip="Add a layer" data-kbd="A" data-icon="plus"></button>
-            <button id="share" class="btn small" type="button" aria-haspopup="dialog" data-tip="Copy a share link"><span data-icon="share"></span><span class="label">Share</span></button>
+            <button id="share" class="btn" type="button" aria-haspopup="dialog" data-tip="Copy a share link"><span data-icon="share"></span><span class="label">Share</span></button>
             <button id="chart-more" class="cap" type="button" aria-haspopup="menu" aria-label="More for this chart" data-tip="More" data-icon="more"></button>
             <span class="divider"></span>
             <button id="panel-toggle" class="cap" type="button" aria-pressed="true" aria-label="Layers panel" data-tip="Layers panel" data-kbd="P" data-action="toggle-panel" data-icon="panel"></button>
@@ -9632,7 +9630,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               </div>
             </div>
             <footer id="stage-foot" class="stage-foot">
-              <button id="interval" class="btn ghost interval" type="button" aria-haspopup="menu" data-tip="Interval" data-kbd="[ ]"></button>
+              <button id="interval" class="btn interval" type="button" aria-haspopup="menu" data-tip="Interval" data-kbd="[ ]"></button>
               <div id="ranges" class="tabs" role="group" aria-label="Visible range"></div>
               <div id="navigator" class="navigator" role="group" tabindex="0" aria-label="The view over all of history: ← → move it, ↑ ↓ zoom, ⇧ further" data-tip="Drag to pan, drag an edge to zoom, click to jump; focused, ← → ↑ ↓">
                 <div class="navigator-clip"><canvas id="overview" aria-hidden="true"></canvas></div>
@@ -17305,11 +17303,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (x !== undefined) dates.push({ text, width, x });
           }
         }
-        // (The overview, dimmed outside the window: the strip's ground half over it.)
+        // (The overview, dimmed outside the window: half faded out, the strip's own ground through it (a ground painted over
+        // it, the card's, made the strip two greys where the field is translucent, the light's).)
         context.drawImage(overviewBase, 0, 0);
         if (lit && shown) {
-          context.fillStyle = alpha(css("--card"), 0.5);
+          context.globalCompositeOperation = "destination-out";
+          context.fillStyle = "rgb(0 0 0 / 0.5)";
           context.fill(outside, "evenodd");
+          context.globalCompositeOperation = "source-over";
         }
         context.lineWidth = 3 * ratio;
         context.lineJoin = "round";
