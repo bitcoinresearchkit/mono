@@ -2777,7 +2777,7 @@
             font-variant-numeric: tabular-nums;
             white-space: nowrap;
             paint-order: stroke fill;
-            -webkit-text-stroke: 4px var(--card);
+            -webkit-text-stroke: 4px var(--halo, var(--card));
 
             .legend-value {
               min-height: 0;
@@ -2849,12 +2849,15 @@
              (a short pane's) stops short of them. */
           :is(.name, .legend-value, .legend-error) {
             paint-order: stroke fill;
-            -webkit-text-stroke: 4px var(--card);
+            -webkit-text-stroke: 4px var(--halo, var(--card));
           }
 
+          /* (Lit: its ground the press's over the card, solid, its words edged in it: the card's edge showed as a dark ring
+             about them on it, and the lines under it showed through.) */
           &.selected {
+            --halo: light-dark(color-mix(in srgb, var(--card), #000 6.5%), color-mix(in srgb, var(--card), #fff 7%));
             color: var(--ink);
-            background: var(--press);
+            background: var(--halo);
           }
 
           .legend-name {
@@ -21436,7 +21439,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (On a picked card, it acts on every one picked; on another, on it alone: the picks stay as they are, it outlined.)
         const target = picked.size && !picked.has(id) ? cardOf(id) : null;
         queueMicrotask(() => target && !$("menu").hidden && (menuTarget = target).classList.add("menu-target"));
-        menuOf(anchor, picked.has(id) ? gridActions() : chartActions(id, "tile"), point ?? null);
+        // (A phone's sheet named for what it acts on, as the chart's own is: the tile may be out of sight under it.)
+        const title = phone.matches ? (picked.has(id) ? plural(picked.size, "chart") : titleOf(/** @type {Chart} */ (chartById(id)))) : "";
+        menuOf(anchor, picked.has(id) ? gridActions() : chartActions(id, "tile"), point ?? null, "", { title });
       }
       /** What the picked charts do together (a picked card's ⋯ or right-click). @returns {Action[]} */
       function gridActions() {
@@ -27074,7 +27079,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           event.preventDefault();
           if (TOUCH && presetAt.matches("[data-preset]")) return;
           const more = /** @type {HTMLElement} */ (presetAt.querySelector("[data-preset-menu]"));
-          return menuOf(more, presetActions(Number(more.dataset.presetMenu), presetAt.matches("[data-preset-row]") ? "row" : "tile"), { x: event.clientX, y: event.clientY });
+          return menuOf(more, presetActions(Number(more.dataset.presetMenu), presetAt.matches("[data-preset-row]") ? "row" : "tile"), { x: event.clientX, y: event.clientY }, "", { title: phone.matches ? titleOf(presetDoc(Number(more.dataset.presetMenu))) : "" });
         }
         const groupAt = closest(event, "#chart-list [data-group]");
         if (groupAt) {
@@ -32583,7 +32588,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       document.addEventListener("click", (event) => {
         // (A preset's ⋯, its row's in the sidebar, its tile's.)
         const presetMenu = closest(event, "[data-preset-menu]");
-        if (presetMenu) return menuOf(presetMenu, presetActions(Number(presetMenu.dataset.presetMenu), presetMenu.closest("#chart-list") ? "row" : "tile"));
+        if (presetMenu) return menuOf(presetMenu, presetActions(Number(presetMenu.dataset.presetMenu), presetMenu.closest("#chart-list") ? "row" : "tile"), null, "", { title: phone.matches ? titleOf(presetDoc(Number(presetMenu.dataset.presetMenu))) : "" });
         const menuFor = closest(event, "[data-chart-menu], [data-scale-menu], [data-pane-menu], [data-folder-menu]");
         if (menuFor) return menuFor.dataset.chartMenu ? chartMenu(menuFor, menuFor.dataset.chartMenu) : menuFor.dataset.paneMenu ? paneActions(menuFor, menuFor.dataset.paneMenu) : menuFor.dataset.folderMenu ? folderActions(menuFor, menuFor.dataset.folderMenu) : scaleMenu(menuFor, menuFor.dataset.scaleMenu);
         // A folder in the sidebar: each click opens or closes it there (one under way turns back from where it is: clicks
