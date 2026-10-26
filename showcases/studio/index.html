@@ -23753,6 +23753,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let presetLooks = /** @type {Map<string, Partial<Layer>>} */ (new Map());
       /** The presets, once read; each one's words (its title and place, lowercased) for the search. */
       let presets = /** @type {Preset[] | null} */ (null), presetWords = /** @type {string[]} */ ([]), presetsFailed = false;
+      /** Each preset's title, name and subject (its title before ": "), lowercased, as a search compares them. @type {{ title: string, name: string, subject: string }[]} */
+      let presetTitles = [];
       /** @type {Promise<Preset[]> | null} */
       let presetsLoad = null, presetsRead = /** @type {Promise<Preset[]> | null} */ (null);
       /**
@@ -23855,6 +23857,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           await aFrame();
           presets = list;
           presetWords = list.map((preset) => `${preset.t} ${preset.p.join(" ")}`.toLowerCase());
+          presetTitles = list.map((preset) => ((title) => ({ title, name: preset.p.at(-1)?.toLowerCase() ?? "", subject: title.split(": ")[0] }))(preset.t.toLowerCase()));
           // (Those opened and left as they were, before they could be told: let go of now; the open one, as the presets
           // have it now, if that's changed.)
           // (Adopted first: copies left as they were, stored, are still here for an adoption's stamp to pass.)
@@ -24456,18 +24459,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const copies = new Map();
         for (const doc of library.presets) ((i) => i >= 0 && !copies.has(i) && copies.set(i, doc))(presetIndex(doc));
         const renamed = new Map([...copies.keys()].map((i) => [i, presetSearchWords(i)]));
-        const wordsAt = (/** @type {number} */ i) => renamed.get(i) ?? presetWords[i];
-        if (among && !renamed.size) for (const i of among) words.every((word) => wordsAt(i).includes(word)) && found.push(i);
-        else for (let i = 0; i < presetWords.length; i++) if ((!under || under(i)) && words.every((word) => wordsAt(i).includes(word))) found.push(i);
+        const holds = (/** @type {string} */ text) => {
+          for (const word of words) if (!text.includes(word)) return false;
+          return true;
+        };
+        if (among && !renamed.size) for (const i of among) holds(presetWords[i]) && found.push(i);
+        else for (let i = 0; i < presetWords.length; i++) if ((!under || under(i)) && holds(renamed.get(i) ?? presetWords[i])) found.push(i);
         if (!under) presetsFound = { query, found };
         // The best first: what's typed its name or its title's subject; then all its words in its title, starting it; then
         // the nearest the top, the shortest. Bucketed (fit, then depth and length), not sorted: a word or two matches
         // thousands.
         const buckets = /** @type {number[][][]} */ ([[], [], [], [], []]);
+        // (Each one's title as read, but an edited one's as it is now.)
         for (const i of found) {
-          const title = ((kept) => (kept ? titleOf(kept) : list[i].t))(keptPreset(i, copies.get(i) ?? null)).toLowerCase();
-          const exact = list[i].p.at(-1)?.toLowerCase() === query || title.split(": ")[0] === query;
-          const fit = exact ? 4 : (words.every((word) => title.includes(word)) ? 2 : 0) + (title.startsWith(words[0]) ? 1 : 0);
+          const kept = copies.has(i) ? keptPreset(i, copies.get(i)) : undefined, named = presetTitles[i], title = kept ? titleOf(kept).toLowerCase() : named.title;
+          const exact = named.name === query || (kept ? title.split(": ")[0] : named.subject) === query;
+          const fit = exact ? 4 : (holds(title) ? 2 : 0) + (title.startsWith(words[0]) ? 1 : 0);
           (buckets[fit][list[i].p.length * 1000 + Math.min(title.length, 999)] ??= []).push(i);
         }
         const best = [];
