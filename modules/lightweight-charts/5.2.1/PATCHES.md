@@ -685,3 +685,30 @@ points kept the same there (3,718 of 77,500); HODL waves zoomed as a pinch does,
 0.95 → 0.83 s, its pan 60 fps (median 16 ms). Chromium, a zoom step's redraw 2.3-2.8 → 2.1-2.4 ms; Mullvad 24-25 → 24 ms
 (its frame the canvas's); a pan's as before. `tests.html`: pictures 713 of 713 the same, a pan's lines within their radius
 (7) 144 checks, 0 failing.
+
+## 39. A zoom's line from each pixel's lowest and highest
+
+Zoomed, every point's x moves: patch 36 has nothing to keep, and patch 29's walk visits every point in view, on a
+phone's dense chart (HODL waves, 26 × 3,000 points, 11 a CSS pixel) most of a zoom's frame without a JIT. While the bar
+spacing differs from the paint before's (a zoom's frame; the same paint drawn again keeps its first drawing's choice),
+at four points or more a CSS pixel, the walk visits only each block's lowest and highest point, in order: blocks of
+2^k points, the largest at most a CSS pixel wide, aligned on the series' own indices (still as a view pans); the view's
+ends, part blocks, scanned point by point; its last point always; a block wider than a CSS pixel (its dates apart, a
+gap in the series), each of its points. A block's two found once per data (`bvLevel`, on the
+series' points, an array new with each data: its levels built in turn, each from the one below, by value, `gt`, which a
+price scale maps to y in order or reversed, either way the two the same points; a value not a number never chosen
+over one, in a level or a part block). Every point in view within the radius and its block's width (a CSS pixel) of the line drawn, its spikes
+whole; the next paint at that spacing walks every point as before (no timer: the two the same to the eye). Under four
+a CSS pixel (a block of two or three points saves nothing), as before.
+
+- `bvLevel(t,k)` before `fe`: the 2^k blocks' lowest and highest indices (`{lo,hi}`, `Int32Array`s), kept as `t.bvMM`.
+- `fe`: `bvKp` read only in a paint counted (`0!==bvPaint`); `bvG` the points a CSS pixel; `bvC` the spacing's change
+  (kept in the record as `c`); with it, the indices walked put in `bvIx` (reused, `bvK.ix`), and the loop over them
+  (`h` the next of `bvIx`, else `h+1`). Patch 36's join refuses such a paint's points (`!bvK.c`).
+
+Measured on the iPhone (Lockdown Mode, no JIT), HODL waves zoomed as a pinch does, 2 s, each against the library before
+it in the same sitting: median 32-36 → 20-23 ms a frame, lost 1.00-1.13 → 0.44-0.60 s; again 35-39 → 24-26 ms,
+1.08-1.18 → 0.66-0.73 s. Chromium (at 1440 wide, 3 points a pixel: not taken), a zoom step's redraw 1.8-2.8 → 1.8-2.4
+ms; Mullvad 21-23 ms both. A zoom's frame at a phone's size pictured against the same view at rest: the same to the eye.
+`tests.html`: pictures 713 of 713 the same; a pan's lines (7) 144 checks, 0 failing; a zoom's (8) 42 checks, 0 failing
+(the block's highest dropped: 30 failing).

@@ -464,5 +464,70 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   }
   say(`A pan's line from the frame before's: ${farChecks} checks, ${far.length} failing`);
   for (const f of far.slice(0, 10)) say(`  ✗ ${f}`);
-  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length };
+
+  // 8. A zoom's line from each pixel's lowest and highest (patch 39, the patched library alone): a simplified line and
+  // area of many points a pixel (spiked, a gap in its dates), zoomed a step a frame, then panned: a zoom's frame's paths within a CSS pixel
+  // (a block's width) and the radius of every point in view, a pan's after it within the radius alone, as 7.
+  const zoomed = []; let zoomChecks = 0;
+  {
+    const P = CanvasRenderingContext2D.prototype, keep = { moveTo: P.moveTo, lineTo: P.lineTo, stroke: P.stroke, fill: P.fill, beginPath: P.beginPath };
+    let path = [], paths = [];
+    P.beginPath = function () { path = []; return keep.beginPath.call(this); };
+    P.moveTo = function (x, y) { path.push([x, y]); return keep.moveTo.call(this, x, y); };
+    P.lineTo = function (x, y) { path.push([x, y]); return keep.lineTo.call(this, x, y); };
+    P.stroke = function () { paths.push({ kind: "stroke", canvas: this.canvas, points: path }); return keep.stroke.call(this); };
+    P.fill = function (...a) { paths.push({ kind: "fill", canvas: this.canvas, points: path }); return keep.fill.apply(this, a); };
+    const off = (px, py, line) => { let best = Infinity; for (let k = 1; k < line.length; k++) { const [ax, ay] = line[k - 1], [bx, by] = line[k]; if (Math.min(ax, bx) > px + 8 || Math.max(ax, bx) < px - 8) continue; const dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy, u = l ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l)) : 0; best = Math.min(best, Math.hypot(ax + u * dx - px, ay + u * dy - py)); } return best; };
+    try {
+      for (const kind of ["LineSeries", "AreaSeries"]) {
+        document.getElementById("a").innerHTML = ""; window.__charts = [];
+        seed = 43;
+        const c = base(B, document.getElementById("a"), { bvHalfFills: true }), ts = c.timeScale(), data = walk(40000, 100, 0.01);
+        ts.applyOptions({ minBarSpacing: 0.01 });
+        for (let k = 0; k < data.length; k += 211) data[k].value *= k % 2 ? 1.1 : 0.9;
+        // (A gap in its dates, a block across it wider than a pixel: flat to it, a ramp up after, its foot neither the
+        // block's lowest nor its highest.)
+        const level = data[33980].value;
+        for (let k = 33980; k <= 34000; k++) data[k].value = level;
+        for (let k = 34001; k < 35500; k++) data[k] = { time: data[k].time };
+        for (let j = 0; j < 40; j++) data[35500 + j].value = level * (1.02 + 0.04 * Math.min(j, 7));
+        const series = c.addSeries(B[kind], { bvSimplify: true, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
+        series.setData(data);
+        ts.setVisibleLogicalRange({ from: 30000, to: 39999 });
+        await frames();
+        const pane = [...document.getElementById("a").querySelectorAll("canvas")].reduce((a, b) => (b.width * b.height > a.width * a.height ? b : a));
+        const ratios = (canvas) => { const h = pane.width / ts.width(), v = pane.height / pane.getBoundingClientRect().height; return canvas.isConnected ? [h, v] : [h / 2, v / 2]; };
+        for (let step = 1; step <= 14; step++) {
+          const zoom = step <= 10, r0 = ts.getVisibleLogicalRange();
+          if (zoom) ts.setVisibleLogicalRange({ from: r0.to - (r0.to - r0.from) * (step % 2 ? 1.21 : 0.93), to: r0.to });
+          else ts.scrollToPosition(ts.scrollPosition() - 9, false);
+          // (The step's own paint alone, drawn at once: a later frame's, at rest, as 7 checks.)
+          paths = [];
+          c.bvFlush();
+          const r = ts.getVisibleLogicalRange(), spacing = ts.logicalToCoordinate(1) - ts.logicalToCoordinate(0), longest = Math.max(0, ...paths.map((q) => q.points.length));
+          const drawn = paths.filter((q) => q.points.length > longest / 2 && (q.kind === "stroke" ? q.canvas === pane : !q.canvas.isConnected));
+          const label = `${kind}, ${zoom ? "zoom" : "pan"} step ${step}, ${(1 / spacing).toFixed(1)} bars a pixel`;
+          for (const want of kind === "AreaSeries" ? ["stroke", "fill"] : ["stroke"]) if (!drawn.some((q) => q.kind === want)) (zoomChecks++, zoomed.push(`${label}: no ${want} drawn`));
+          for (const { kind: how, canvas, points: line } of drawn) {
+            const [h, v] = ratios(canvas), radius = Math.min(h, v) * Math.min(1, Math.max(0.25, 0.25 / spacing)) + (zoom ? h : 0);
+            let worst = 0, at = -1;
+            for (let k = Math.max(0, Math.ceil(r.from)); k <= Math.min(data.length - 1, Math.floor(r.to)); k++) {
+              const x = ts.logicalToCoordinate(k);
+              if (x < 0 || x > ts.width()) continue;
+              const d = off(x * h, series.priceToCoordinate(data[k].value) * v, line);
+              if (d > worst) (worst = d), (at = k);
+            }
+            zoomChecks++;
+            if (!(worst <= radius + 0.01)) zoomed.push(`${label}, its ${how} at ${h}×${v}: point ${at} ${worst.toFixed(2)} px off (allowed ${radius.toFixed(2)}), ${line.length} points drawn`);
+          }
+          await frames();
+        }
+        c.remove(); window.__charts = [];
+      }
+    } finally { Object.assign(P, keep); }
+  }
+  say(`A zoom's line from each pixel's lowest and highest: ${zoomChecks} checks, ${zoomed.length} failing`);
+  for (const f of zoomed.slice(0, 10)) say(`  ✗ ${f}`);
+
+  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length };
 </script>
