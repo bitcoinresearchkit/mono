@@ -10724,22 +10724,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const UNIT_NAMES = { ...Object.fromEntries(FORMATS.slice(1)), ratio: "Multiple" };
       /**
        * Formulas made from a layer in one click (X its letter): those that read on its scale (`over`: an average, a
-       * band) in its pane and on its axis, the others in a pane of their own. A band is two layers. Each is a formula
-       * like any, its window to change in it.
+       * band) in its pane and on its axis, the others in a pane of their own. One layer each, but where it's a pair by
+       * its nature (a band's two edges, MACD's line and signal), named so and said as two (no surprise: a percentile
+       * is one line, the 95th; another, an edit of its formula away). Each is a formula like any, its window to change
+       * in it.
        * @type {{ id: string, label: string, text: string, formulas: string[], over: boolean }[]}
        */
       const STARTERS = [
         { id: "sma", label: "Moving average", text: "Its mean over a span", formulas: ["sma(X, 200d)"], over: true },
         { id: "ema", label: "Exponential average", text: "Its mean, the recent weighing more", formulas: ["ema(X, 200d)"], over: true },
-        { id: "bands", label: "Deviation bands", text: "Two standard deviations around its mean", formulas: ["sma(X, 1y) + 2 * stdev(X, 1y)", "sma(X, 1y) - 2 * stdev(X, 1y)"], over: true },
-        { id: "percentiles", label: "Percentile band", text: "Its 95th and 5th percentiles over a span", formulas: ["percentile(X, 95, 1y)", "percentile(X, 5, 1y)"], over: true },
+        { id: "bands", label: "Deviation bands", text: "Two lines, two standard deviations above and below its mean", formulas: ["sma(X, 1y) + 2 * stdev(X, 1y)", "sma(X, 1y) - 2 * stdev(X, 1y)"], over: true },
+        { id: "percentile", label: "Percentile", text: "Its 95th percentile over a span", formulas: ["percentile(X, 95, 1y)"], over: true },
         { id: "median", label: "Median", text: "The middle of its values over a span", formulas: ["median(X, 1y)"], over: true },
         { id: "zscore", label: "Z-score", text: "Its deviations from the rolling mean", formulas: ["zscore(X, 1y)"], over: false },
         { id: "change", label: "Change over time", text: "Its percent change over a span", formulas: ["change(X, 30d)"], over: false },
         { id: "ath", label: "All-time high", text: "Its highest so far", formulas: ["highest(X)"], over: true },
         { id: "log", label: "Logarithm", text: "Its base-10 logarithm", formulas: ["log(X)"], over: false },
         { id: "rsi", label: "RSI", text: "Its relative strength, 0 to 100, over its last 14 points", formulas: ["rsi(X)"], over: false },
-        { id: "macd", label: "MACD", text: "Its MACD line and signal (12, 26, 9)", formulas: ["macd(X)", "macd_signal(X)"], over: false },
+        { id: "macd", label: "MACD and signal", text: "Two lines, its MACD and its signal (12, 26, 9)", formulas: ["macd(X)", "macd_signal(X)"], over: false },
         { id: "volatility", label: "Volatility", text: "Its annualized volatility over 30 days, in %", formulas: ["volatility(X, 30d)"], over: false },
         { id: "drawdown", label: "Drawdown", text: "How far below its highest so far, in %", formulas: ["drawdown(X)"], over: false },
       ];
@@ -27518,7 +27520,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const layer = layerById(id);
         if (!layer) return [];
         return [
-          ...STARTERS.map((starter) => ({ key: starter.id, icon: ICONS.formula, label: starter.label, aside: `${starter.formulas[0].replaceAll("X", layer.letter)}${starter.formulas.length > 1 ? " …" : ""}`, mono: true, ...((why) => (why ? { disabled: why } : {}))(unfitHere(starter.formulas.map((formula) => formula.replaceAll("X", layer.letter)))), run: () => derive(id, starter.id) })),
+          ...STARTERS.map((starter) => ({ key: starter.id, icon: ICONS.formula, label: starter.label, aside: starter.formulas.length > 1 ? `${starter.formulas.length} layers` : starter.formulas[0].replaceAll("X", layer.letter), mono: starter.formulas.length === 1, ...((why) => (why ? { disabled: why } : {}))(unfitHere(starter.formulas.map((formula) => formula.replaceAll("X", layer.letter)))), run: () => derive(id, starter.id) })),
           { key: "own", icon: ICONS.pencil, label: "Write your own", aside: `From ${layer.letter}`, verb: "Write", apart: true, run: () => derive(id, "own") },
         ];
       }
