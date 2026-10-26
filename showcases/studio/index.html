@@ -7315,13 +7315,16 @@
           display: inline-flex;
           align-items: center;
           gap: 5px;
-        }
 
-        i {
-          width: 7px;
-          height: 7px;
-          border-radius: 50%;
-          background: var(--c);
+          /* (Its dot its own, not an element of its own: a page of tiles writes hundreds of these.) */
+          &::before {
+            content: "";
+            flex: none;
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--c);
+          }
         }
       }
 
@@ -20456,12 +20459,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // shown one's.)
         return `<span class="${frame} ${drawn && (!current || drawn.key === previewKey(doc)) ? "" : "pending"}" data-plot="${doc.id}">${drawn ? previewSvg(drawn, `${frame.split(" ")[0]}-${doc.id}`) : ""}</span>`;
       }
+      /** A layer in a tile's legend (Quick Look's: `after`, its value's place): its color's dot, its name. @param {Layer} layer */
+      const legendEntry = (layer, after = "") => `<span style="--c:${escape(ink(layer.color))}">${escape(labelOf(layer))}${after}</span>`;
       /** A tile's interval, where it isn't a day's. @param {Chart} doc */
       const tileIndexHtml = (doc) => (doc.index === "day1" ? "" : `<span class="tile-index">${INTERVAL_LABEL[doc.index]}</span>`);
       /** A chart in the grid, as its own card: title (and its interval, where it isn't a day's), its layers' legend, its mini chart; a tick to pick it. @param {Chart} doc */
       function tileHtml(doc) {
         const title = escape(titleOf(doc)), on = picked.has(doc.id), preview = isPreview(doc);
-        const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => `<span><i style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</span>`).join("");
+        const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => legendEntry(layer)).join("");
         return `<div class="tile ${on ? "picked" : ""} ${preview ? "preview" : ""} ${preview && touched.has(doc) ? "edited" : ""}" data-home-card="${doc.id}" data-chart="${doc.id}">
             <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</span>${plotHtml(doc)}</button>
             <button type="button" class="cap small tile-more" data-tile-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button>
@@ -20863,7 +20868,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function presetTileHtml(/** @type {number} */ i, doc = presetDoc(i), card = -1) {
         const title = escape(titleOf(doc));
-        const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => `<span><i style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}</span>`).join("");
+        const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => legendEntry(layer)).join("");
         return `<div class="tile preset-tile ${doc.preset !== undefined && presetEdited(doc) ? "edited" : ""}" data-preset="${i}"${card < 0 ? ` data-chart="${presetIdOf(presetKey(i))}"` : ""}><button type="button" class="tile-open" ${card < 0 ? `data-open-preset="${i}"` : `data-template="${card}"`} aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend}</span>${plotHtml(doc, true, card < 0 ? "tile-plot" : "template-plot tile-plot")}</button><button type="button" class="cap small tile-more" data-preset-menu="${i}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button></div>`;
       }
       /** The gallery's lists as drawn, each by its place there (its grid's Show more finds its own by it). */
@@ -33495,7 +33500,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const frame = $("quick-picture");
         frame.hidden = !look;
         if (look) {
-          const doc = look.doc, legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => `<span><i style="--c:${escape(ink(layer.color))}"></i>${escape(labelOf(layer))}<b data-quick-value="${escape(layer.id)}"></b></span>`).join("");
+          const doc = look.doc, legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => legendEntry(layer, `<b data-quick-value="${escape(layer.id)}"></b>`)).join("");
           frame.innerHTML = `<div class="tile-legend quick-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</div><div class="quick-chart"><span class="tile-plot quick-plot ${doc.layers.length ? "pending" : "blank"}"></span><div class="quick-scales"></div></div><div class="quick-ticks"></div>`;
           // (Drawn where the highlight rests: rows passed by, held ↓, ask for nothing.)
           if (doc.layers.length) requestAnimationFrame(() => quick?.key === key && void quickPicture(doc).then((made) => {
