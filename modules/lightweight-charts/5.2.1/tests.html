@@ -529,8 +529,8 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   say(`A zoom's line from each pixel's lowest and highest: ${zoomChecks} checks, ${zoomed.length} failing`);
   for (const f of zoomed.slice(0, 10)) say(`  ✗ ${f}`);
 
-  // 9. A pinch is no tap (patch 40, the patched library alone): two fingers on the plot, apart then together, either
-  // one let go first: no click; one finger on and off: one.
+  // 9. A pinch is no tap (patch 40, the patched library alone): two fingers on the plot (its top canvas, the one that
+  // listens), apart then together, either one let go first: no click; one finger on and off: one.
   const tapped = [];
   {
     document.getElementById("a").innerHTML = ""; window.__charts = [];
@@ -540,7 +540,7 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
     await frames();
     let clicks = 0;
     c.subscribeClick(() => clicks++);
-    const target = [...document.getElementById("a").querySelectorAll("canvas")].reduce((a, b) => (b.width * b.height > a.width * a.height ? b : a)), box = target.getBoundingClientRect(), x = box.left + box.width / 2, y = box.top + box.height / 2;
+    const target = [...document.getElementById("a").querySelectorAll("canvas")].reduce((a, b) => (b.width * b.height >= a.width * a.height ? b : a)), box = target.getBoundingClientRect(), x = box.left + box.width / 2, y = box.top + box.height / 2;
     const finger = (id, dx) => new Touch({ identifier: id, target, clientX: x + dx, clientY: y, pageX: x + dx, pageY: y });
     const touch = (type, on, changed) => target.dispatchEvent(new TouchEvent(type, { touches: on, targetTouches: on, changedTouches: changed, bubbles: true, cancelable: true, composed: true }));
     for (const [label, spread, lastLetGo] of [["out, its first finger let go first", [10, 60], 1], ["in, its second let go first", [60, 10], 0]]) {
@@ -565,5 +565,46 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   }
   say(`A pinch is no tap: 3 checks, ${tapped.length} failing`);
   for (const f of tapped) say(`  ✗ ${f}`);
-  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length, pinch: tapped.length };
+
+  // 10. A band its own (patch 41, the patched library alone, its fills at half resolution): two areas stacked, each
+  // `bvBandFill`, the foot's in front, straight, curved, the foot starting later, and in steps, the top's color changing at
+  // its last point (a run of no width): in each band, the pixel its area's alone draws there (none of the other's tint);
+  // where the foot has no data yet, the top's down to the floor. All of it in view, each pixel read inside the plot.
+  const owned = [];
+  {
+    const n = 200, foot = (k) => 1 + 0.3 * Math.sin(k / 9), top = (k) => foot(k) + 1 + 0.2 * Math.cos(k / 7);
+    const drawnAt = async (which, lineType, footFrom, recolor, at) => {
+      document.getElementById("a").innerHTML = ""; window.__charts = [];
+      const c = base(B, document.getElementById("a"), { bvHalfFills: true }), fixed = () => ({ priceRange: { minValue: 0, maxValue: 3 } });
+      const time = (k) => 1600000000 + k * 86400, series = {};
+      for (const [name, value, color, from] of [["top", top, "#ff0000", 0], ["foot", foot, "#0000ff", footFrom]]) {
+        if (!which.includes(name)) continue;
+        series[name] = c.addSeries(B.AreaSeries, { lineColor: color, topColor: `${color}80`, bottomColor: `${color}80`, bvBandFill: true, lineType, lineWidth: 1, priceLineVisible: false, lastValueVisible: false, autoscaleInfoProvider: fixed });
+        series[name].setData(Array.from({ length: n }, (_, k) => (k < from ? { time: time(k) } : { time: time(k), value: value(k), ...(recolor && name === "top" && k === n - 1 ? { lineColor: "#00ff00", topColor: "#00ff0080", bottomColor: "#00ff0080" } : {}) })));
+      }
+      c.timeScale().fitContent();
+      await frames();
+      const pane = [...document.getElementById("a").querySelectorAll("canvas")].reduce((a, b) => (b.width * b.height > a.width * a.height ? b : a)), h = pane.width / c.timeScale().width(), v = pane.height / pane.getBoundingClientRect().height;
+      const any = Object.values(series)[0], px = at.map(([k, value]) => {
+        const x = Math.round(c.timeScale().timeToCoordinate(time(k)) * h), y = Math.round(any.priceToCoordinate(value) * v);
+        if (!(x >= 0 && x < pane.width && y >= 0 && y < pane.height)) owned.push(`point ${k} at ${value} read outside the plot (${x}, ${y})`);
+        return [...pane.getContext("2d").getImageData(x, y, 1, 1).data];
+      });
+      c.remove(); window.__charts = [];
+      return px;
+    };
+    const off = (a, b) => Math.max(...a.map((value, k) => Math.abs(value - b[k])));
+    for (const [label, lineType, footFrom, recolor] of [["straight", 0, 0, false], ["curved", 2, 0, false], ["the foot starting later", 0, 100, false], ["in steps, its color changing at its last point", 1, 0, true]]) {
+      // (Inside the foot's band, the top's, and, before the foot starts, the top's down low.)
+      const k = 140, early = 50, inFoot = [k, foot(k) / 2], inTop = [k, (foot(k) + top(k)) / 2], low = [early, 0.3];
+      const [footBoth, topBoth, lowBoth] = await drawnAt(["top", "foot"], lineType, footFrom, recolor, [inFoot, inTop, low]);
+      const [footAlone] = await drawnAt(["foot"], lineType, footFrom, recolor, [inFoot]), [topAlone, lowAlone] = await drawnAt(["top"], lineType, footFrom, recolor, [inTop, low]);
+      if (off(footBoth, footAlone) > 2) owned.push(`${label}, the foot's band: ${footBoth} where its area alone draws ${footAlone}`);
+      if (off(topBoth, topAlone) > 2) owned.push(`${label}, the top's band: ${topBoth} where its area alone draws ${topAlone}`);
+      if (footFrom && off(lowBoth, lowAlone) > 2) owned.push(`${label}, the top's band before the foot: ${lowBoth} where its area alone draws ${lowAlone}`);
+    }
+  }
+  say(`A band its own: 9 checks, ${owned.length} failing`);
+  for (const f of owned) say(`  ✗ ${f}`);
+  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length, pinch: tapped.length, own: owned.length };
 </script>

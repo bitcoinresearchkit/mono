@@ -727,3 +727,33 @@ double tap); a tap alone, as before.
 - `Gp` (a pinch's start: its middle and its fingers' distance): `this.Wf=!0` first.
 
 `tests.html`: a pinch out and in, either finger let go first, no click; a tap, one (9).
+
+## 41. A stacked area's fill a band, from its line to the fills under it (an option)
+
+An area fills from its line to the pane's floor. Stacked (Studio's HODL waves, 24), each band showed every band over it
+too, their tints mixed (all the lower bands' blue-violet), and a fill fading with height read lighter the lower it sat.
+With `bvBandFill` set (to its stack's name: any value, the same for each of a stack's areas; and the chart's
+`bvHalfFills`, 30), its fill is a band: from its line back along the outline of its stack's fills drawn under it, the
+pane's floor where there are none, each band its own tint alone, nothing filled twice.
+
+- `bvBanding` (module): while a pane's fills are drawn at half resolution (`bvHalf`), the list of band fills met, not
+  drawn then; after the others, in a bitmap scope of the same target, drawn from the front back (the foot first, as
+  Studio orders a stack), an outline a stack (`S`, by its name).
+- `Ne.et` (the fills' renderer): a band fill (`rt.bvBand`, not `Lb`, inverted) put on the list. `Ne.bvBand(t,S)`: its
+  line walked as ever (`fe`, so patches 29, 36, 39 alike), drawn through a recorder that draws and keeps each vertex
+  (`bvRec`, 7 numbers: x, y, curved, a curve's two controls; a new path, a new run: a color's change, each its own
+  band), each run then closed by `bvBandFill`.
+- `bvBandFill(c,S,col)`: a run of no width (a step's color changing at its last point: a vertical alone) none; else,
+  from the run's last vertex down to the outline at its x (`at`, by halving: from the left, the
+  first vertex there; from the right, the last), back along it to its first's (a curve reversed, its controls swapped;
+  an end inside a segment, a straight piece to it), closed and filled; then the outline takes the run in: its vertices
+  before the run, a vertical step down at its start, the run, a step at its end, the rest (two buffers, swapped).
+- The area's view: `bvBand:t.bvBandFill` in its fill's data.
+
+Not where its line is drawn twice (`invertFilledArea`) or without `bvHalfFills`: filled as before. Two stacks in one
+pane (a scale's each), each its own outline.
+Measured: Mullvad (headless), HODL waves, a pan step's redraw 21-24 ms as before (fills cleared and filled again, a
+first try, 24-26); the iPhone, its zoom median 17 → 16 ms, its pan 19 → 20 ms a frame (each band's floor traced).
+`tests.html`: pictures 713 of 713 the same; a band its own (10), straight, curved, the foot starting later, in steps
+with a color changing at the last point, all in view, 9 checks, 0 failing (without the patch, 4 failing; without the
+rule for a run of no width, the page hangs).
