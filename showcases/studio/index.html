@@ -1978,6 +1978,37 @@
         transition: margin-top var(--dur-layout) var(--ease-layout), visibility 0s;
       }
 
+      /* A head too narrow for its buttons' words (a phone's, an iPad's upright beside the sidebar): Share, a preview's Save
+         and a preset's Copy by their icons, as the others are: the title keeps its room (under it, it ran under them). */
+      @container head (max-width: 40rem) {
+        #share,
+        #keep,
+        #preset-copy {
+          justify-content: center;
+          width: 28px;
+          height: 28px;
+          padding: 0;
+          color: var(--soft);
+          background: none;
+          box-shadow: none;
+
+          &:hover:where(.can-hover *):not(:disabled) {
+            color: var(--ink);
+            background: var(--hover);
+          }
+
+          svg {
+            width: 15px;
+            height: 15px;
+            color: inherit;
+          }
+
+          .label {
+            display: none;
+          }
+        }
+      }
+
       /* (Installed on a phone only: see the phone's.) */
       .top-strip {
         display: none;
@@ -7775,8 +7806,8 @@
           display: none;
         }
 
-        /* (Share by its icon, as the others are, a preview's Save and a preset's Copy too: the title keeps the room.
-           Edited, a preset's Undo is back in its place, its Copy in ⋯.) */
+        /* (Edited, a preset's Undo is back in its place, its Copy in ⋯; Share, Save and Copy by their icons: see the head's
+           narrow rule.) */
         #preset-note:has(#preset-reset:not([hidden])) {
           display: none;
         }
@@ -7784,33 +7815,6 @@
         /* (Read, not edited, till Rename: a tap on it is nothing's.) */
         .title[readonly] {
           pointer-events: none;
-        }
-
-        #share,
-        #keep,
-        #preset-copy {
-          justify-content: center;
-          width: 28px;
-          height: 28px;
-          padding: 0;
-          color: var(--soft);
-          background: none;
-          box-shadow: none;
-
-          &:hover:where(.can-hover *):not(:disabled) {
-            color: var(--ink);
-            background: var(--hover);
-          }
-
-          svg {
-            width: 15px;
-            height: 15px;
-            color: inherit;
-          }
-
-          .label {
-            display: none;
-          }
         }
 
         /* The navigator, upright, a row of its own over the interval and the ranges, the screen's width: a whole history
