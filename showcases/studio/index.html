@@ -4987,12 +4987,11 @@
         color: var(--text);
         font-size: inherit;
 
+        /* (A section's heading, as "In short" above it: words in sentence case, never shouted.) */
         > summary {
-          color: var(--muted);
-          font-size: 12px;
+          color: var(--ink);
+          font-size: 13px;
           font-weight: 590;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
         }
       }
 
@@ -8269,13 +8268,6 @@
           color: var(--muted);
           font: 510 12px/1 var(--sans);
           font-variant-numeric: tabular-nums;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-
-          .btn {
-            letter-spacing: normal;
-            text-transform: none;
-          }
 
           .home-live {
             min-width: 0;
