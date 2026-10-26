@@ -58,7 +58,7 @@ Each can have a "color" (yellow if none), "width" (0.5 to 5, by halves; 1.5 if n
 
 ## As a picture
 
-A chart shown as an image is its picture, not a screenshot of the page. Three ways to it: from a script in the page, await studio.png() (below), at a size of its own; from a link, https://bitview.space/studio/#image= followed by the chart's JSON, a page that is, once the chart is drawn across the whole window, its picture alone (one image, its alt text the chart's title; a click on it, the chart); by hand, Export (in the chart's ... menu, More, in its header), then Open image (the picture alone, in a tab of its own), Download image (PNG), or Copy as image (to the clipboard of whoever uses the browser: an embedded browser may not allow it). The picture is the chart with its title, its legends and a footer (its source, interval and dates).
+A chart shown as an image is its picture, not a screenshot of the page. Three ways to it: from a script in the page, await studio.png() (below), at a size of its own; from a link, https://bitview.space/studio/#image= followed by the chart's JSON, a page that is, once the chart is drawn across the whole window, its picture alone (one image, its alt text the chart's title; a click on it, the chart); by hand, Export (in the chart's ... menu, More, in its header), then Open image (the picture alone, in a tab of its own), Download image (PNG), or Copy image (to the clipboard of whoever uses the browser: an embedded browser may not allow it). The picture is the chart with its title, its legends and a footer (its source, interval and dates).
 
 ## From a script
 

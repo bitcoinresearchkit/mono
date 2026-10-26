@@ -5853,6 +5853,11 @@
             flex-shrink: 0;
           }
 
+          /* (A row's keys, laid out as the row's own (a two-line row's, one cell beside both lines).) */
+          .item-keys {
+            display: contents;
+          }
+
           /* (A row's name before its aside: the name as long as it is, the aside in what's left (a series' id, a path, cut
              first); a name longer than the row, cut at its end. What follows the name, at the row's end.) */
           .item-name {
@@ -5880,14 +5885,14 @@
             }
           }
 
-          .item-name + * {
+          .item-name + *,
+          .item-name + .item-keys > :first-child {
             margin-inline-start: auto;
           }
 
           .item-meta {
             flex: 1 1 0;
             min-width: 0;
-            max-width: 45%;
             text-align: end;
             overflow: hidden;
             color: var(--muted);
@@ -8127,10 +8132,12 @@
         }
 
         /* A series' row: the name people read, the API's name under it; a preset's found by a search, where it is under
-           it (beside it, there's no room: both were cut). */
+           it; another kind of layer, what it is (beside them, there's no room: both were cut). A row that can't be
+           picked says why whole. */
         .palette-list li:is([data-kind="series"], .under) {
           display: grid;
-          grid-template-columns: auto minmax(0, 1fr) auto auto;
+          /* (A fourth column only for a row's ⋯: without one, its › ends the row, as a folder's does.) */
+          grid-template-columns: auto minmax(0, 1fr) auto;
           column-gap: 10px;
           row-gap: 0;
           height: auto;
@@ -8147,10 +8154,13 @@
 
           .item-meta {
             grid-column: 2;
-            max-width: none;
             margin-inline-start: 0;
             line-height: 16px;
             text-align: start;
+          }
+
+          &[aria-disabled] .item-meta {
+            white-space: normal;
           }
 
           /* (Its ⋯, by touch: a column of its own, past its mark, through the row's padding: the row's whole height.) */
@@ -8160,9 +8170,14 @@
             margin-block: -6px;
           }
 
-          .item-mark {
+          :is(.item-mark, .item-keys) {
             grid-column: 3;
             grid-row: 1 / span 2;
+          }
+
+          .item-keys {
+            display: flex;
+            gap: 2px;
           }
         }
 
@@ -9486,7 +9501,7 @@
           <p>"drawings": [{"kind": "trend", "layer": "A", "points": [["2021-04-14", 64000], ["2021-11-10", 69000]]}]: each on a layer (by its letter, on its scale), its points each a date and a value. Kinds: trend (a line through two points), hline and vline (a line across, or down, through one point: an hline's date and a vline's value can be any), rect and ellipse (by two corners), ruler (a measure between two points), text (at one point, with its "text": up to 500 characters, centered there, "\n" for a new line) and brush (a free stroke, up to 300 points). Up to 100 drawings.</p>
           <p>Each can have a "color" (yellow if none), "width" (0.5 to 5, by halves; 1.5 if none), "dash" and "opacity", as a layer's; a ruler is drawn in its own colors and lines (no opacity, width or dash), a text without width or dash. A trend line can have a "start" and an "end" (its first point's and its second's): "arrow", an arrowhead there, or "extend", on past that point to the chart's edge (none: it ends at its point). A trend, hline or vline can have a "label" (up to 80 characters) and where along it ("at", 0 to 1: 0.5 for a trend, 1 for an hline, 0 for a vline if none). A text or a line's label can have a "size" (11, 13, 16 or 22) and a "back" (outline, soft, soft-outline or solid).</p>
           <h2>As a picture</h2>
-          <p>A chart shown as an image is its picture, not a screenshot of the page. Three ways to it: from a script in the page, await studio.png() (below), at a size of its own; from a link, https://bitview.space/studio/#image= followed by the chart's JSON, a page that is, once the chart is drawn across the whole window, its picture alone (one image, its alt text the chart's title; a click on it, the chart); by hand, Export (in the chart's ⋯ menu, More, in its header), then Open image (the picture alone, in a tab of its own), Download image (PNG), or Copy as image (to the clipboard of whoever uses the browser: an embedded browser may not allow it). The picture is the chart with its title, its legends and a footer (its source, interval and dates).</p>
+          <p>A chart shown as an image is its picture, not a screenshot of the page. Three ways to it: from a script in the page, await studio.png() (below), at a size of its own; from a link, https://bitview.space/studio/#image= followed by the chart's JSON, a page that is, once the chart is drawn across the whole window, its picture alone (one image, its alt text the chart's title; a click on it, the chart); by hand, Export (in the chart's ⋯ menu, More, in its header), then Open image (the picture alone, in a tab of its own), Download image (PNG), or Copy image (to the clipboard of whoever uses the browser: an embedded browser may not allow it). The picture is the chart with its title, its legends and a footer (its source, interval and dates).</p>
           <h2>From a script</h2>
           <p>For a script run in the page (a browser's console, an assistant driving a browser), window.studio:</p>
           <ul>
@@ -14909,6 +14924,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       /** @type {Resolved | null} */
       let resolved = null;
+      /** Why a layer has no values to give: what went wrong, if something did, else that they're on their way; "" once they're here. */
+      const noValues = (/** @type {string} */ id) => ((result) => (result?.values ? "" : result?.error ?? "Its data is still loading"))(resolved?.results.get(id));
       let drawVersion = 0;
       /** The draw whose data is on screen; behind `drawVersion` while one is loading. */
       let drawnVersion = 0;
@@ -22858,8 +22875,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const back = own ? "#home-title-more" : at.startsWith("#home-grid") ? `${at} .shelf-title` : `#chart-list [data-folder-item="${id}"]`;
         nameInPlace(host, { className: "folder-rename", value: folder.name, placeholder: "Folder", max: 60, label: "Folder name", apply: (name) => nameFolder(id, name, first), back: () => /** @type {HTMLElement | null} */ (document.querySelector(back))?.focus(), find: () => document.querySelector(at) });
       }
-      /** A folder's name, as ⌘K's page (read by its id when set: another tab may have changed it since). */
-      const renameFolderPage = (/** @type {string} */ id, first = false) => inputPage({ title: "Rename", value: folderById(id)?.name ?? "", placeholder: "The folder's name", hint: "A folder needs a name", verb: "Rename", read: (text) => (text.trim() ? `Rename to “${text.trim().slice(0, 60)}”` : null), apply: (text) => nameFolder(id, text.trim().slice(0, 60), first) });
+      /** A folder's name, as ⌘K's page (read by its id when set: another tab may have changed it since); one just made (`first`), named. */
+      const renameFolderPage = (/** @type {string} */ id, first = false) => inputPage({ title: first ? "New folder" : "Rename", value: folderById(id)?.name ?? "", placeholder: "The folder's name", hint: "A folder needs a name", verb: first ? "Name" : "Rename", read: (text) => (text.trim() ? `${first ? "Name it" : "Rename to"} “${text.trim().slice(0, 60)}”` : null), apply: (text) => nameFolder(id, text.trim().slice(0, 60), first) });
       /** A folder named (by its id: as it is now), the Library's step. */
       function nameFolder(/** @type {string} */ id, /** @type {string} */ name, first = false) {
         const folder = folderById(id), was = folder?.name;
@@ -26773,7 +26790,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         else if (action === "pane-menu") paneMenu(button, [selected], () => refocus("#pane"));
         else if (button.id === "trend-ref" || button.id === "signal-ref") refMenu(button, selected);
-        else if (button.id === "signal-times") resolved?.results.get(selected)?.values ? openPage(timesPage(selected)) : notice("Its data is still loading");
+        else if (button.id === "signal-times") noValues(selected) ? notice(noValues(selected)) : openPage(timesPage(selected));
         else if (place) editLayer((layer) => (layer.place = place === "above" ? undefined : place));
         else if (action === "format-menu") formatMenu(button);
         else if (action === "color-mode") menuOf(button, colorModeChoices(selected));
@@ -27055,7 +27072,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A cloud or a trend goes where its layers go, a signal where its layer goes.)
           ...(menu && !follows(layer) ? [{ key: "move", icon: ICONS.pane, label: "Move to pane", page: () => choicePage("Move to pane", () => paneChoices([id])) }] : []),
           // (Its data, as the chart has it, at its interval: any layer's, a formula's too; a series', where it comes from.)
-          { key: "data", icon: ICONS.table, label: "Download data", aside: "CSV", verb: "Download", ...(resolved?.results.get(id)?.values ? {} : { disabled: "Its data isn't here yet" }), run: () => exportData([layer]) },
+          { key: "data", icon: ICONS.table, label: "Download data", aside: "CSV", verb: "Download", ...(noValues(id) ? { disabled: noValues(id) } : {}), run: () => exportData([layer]) },
           ...(layer.series ? [{ key: "api", icon: ICONS.link, label: "Open in the API", aside: "As JSON", verb: "Open", run: () => window.open(`${client.baseUrl}/api/series/${encodeURIComponent(/** @type {string} */ (layer.series))}/${chart.index}`, "_blank", "noopener") }] : []),
           { key: "remove", icon: ICONS.trash, label: "Remove", kbd: "⌫", verb: "Remove", danger: true, run: () => removeLayer(id) },
         ];
@@ -28015,7 +28032,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(empty ? [] : [{ title: "Open image", text: "The chart's picture alone, in a tab of its own.", icon: "link", run: () => exportAs("open") }]),
           ...(!isYours(chart) ? [] : [{ title: "Move to folder", text: `${titleOf(chart)}: now ${chart.folder ? folderPath(chart.folder) : "in none"}.`, icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
           ...(empty || !SHARES_IMAGES ? [] : [{ title: "Share image", text: "The chart's picture, to Photos, a message, anywhere.", icon: "share", run: () => exportAs("share") }]),
-          ...(empty ? [] : [{ title: "Copy as image", text: "The chart, to paste anywhere.", icon: "copy", run: () => exportAs("copy") }]),
+          ...(empty ? [] : [{ title: "Copy image", text: "The chart, to paste anywhere.", icon: "copy", run: () => exportAs("copy") }]),
           ...(empty ? [] : [{ title: "Download image", text: "A PNG of the chart as it shows (on a phone, wider), with its title.", icon: "image", run: () => exportAs("png"), suggested: true }]),
           ...(empty ? [] : [{ title: "Download data", text: "A CSV of every layer's values (the hidden ones too), one row per date.", icon: "table", run: () => exportAs("csv") }]),
           { title: "Download chart file", text: "A JSON file you can import again later.", icon: "file", run: () => exportAs("json") },
@@ -29140,7 +29157,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const aside = item.aside ? (item.mono ? `<code>${escape(item.aside)}</code>` : escape(item.aside)) : "";
         const end = aside, marks = [item.current ? `<span role="img" aria-label="In effect">${ICONS.check}</span>` : "", item.page || item.leads ? `<span class="item-next" aria-hidden="true">${ICONS.next}</span>` : ""].filter(Boolean).join(" ");
         const query = palette.pages.at(-1)?.input ? "" : palette.query.trim();
-        return `${item.icon ?? (item.current === undefined ? "" : '<i class="menu-space"></i>')}<span class="item-name">${query ? highlightMatch(item.label, query) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${marks ? `<span class="item-mark">${marks}</span>` : ""}${item.kbd ? keycaps(item.kbd) : ""}`;
+        return `${item.icon ?? (item.current === undefined ? "" : '<i class="menu-space"></i>')}<span class="item-name">${query ? highlightMatch(item.label, query) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${marks ? `<span class="item-mark">${marks}</span>` : ""}${item.kbd ? `<span class="item-keys">${keycaps(item.kbd)}</span>` : ""}`;
       }
       /** A chart's layers as ⌘K's previews list them: each by its badge and name, what it draws across. @param {Layer[]} layers */
       const layerRows = (layers) => layers.map((layer) => `<div><dt>${letterChip(layer)}${escape(labelOf(layer))}${layer.hidden ? ' <span class="muted">(hidden)</span>' : ""}</dt><dd>${typeName(layer.type)}</dd></div>`).join("");
@@ -29347,16 +29364,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Adding: what a layer can be besides a series, first on the page (and found by its words). */
       function otherLayerRows() {
         return [
-          { kind: "row", key: "add:formula", icon: ICONS.formula, label: "Formula", aside: "From the layers, by their letters", kbd: "F", preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Formula</h4><p class="description">A layer of its own, written from the others by their letters, with + − × ÷ and functions; or from any series by its name.</p><ul class="contents">${((letters) => [...(letters.length > 1 ? [`${letters[0]} / ${letters[1]}`] : []), `sma(${letters[0] ?? "A"}, 200d)`, `zscore(${letters[0] ?? "A"}, 1y)`, EXAMPLE])(chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter)).map((text) => `<li><code>${escape(text)}</code></li>`).join("")}</ul>`), group: "Other layers", other: true, verb: "Add", run: () => addFormula(palette.into) },
+          { kind: "row", key: "add:formula", icon: ICONS.formula, label: "Formula", aside: "From the layers, by their letters", kbd: "F", preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Formula</h4><p class="description">A layer of its own, written from the others by their letters, with + − × ÷ and functions; or from any series by its name.</p><ul class="contents">${((letters) => [...(letters.length > 1 ? [`${letters[0]} / ${letters[1]}`] : []), `sma(${letters[0] ?? "A"}, 200d)`, `zscore(${letters[0] ?? "A"}, 1y)`, EXAMPLE])(chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter)).map((text) => `<li><code>${escape(text)}</code></li>`).join("")}</ul>`), group: "Other layers", other: true, under: true, verb: "Add", run: () => addFormula(palette.into) },
           // (A cloud, wherever there are layers (its pane's two edges are two); a trend, from layers.)
           ...(chart.layers.length ? [
-            { kind: "row", key: "add:cloud", icon: ICONS.cloud, label: "Cloud", aside: "Filled between two layers", group: "Other layers", other: true, verb: "Add", page: () => cloudPage() },
+            { kind: "row", key: "add:cloud", icon: ICONS.cloud, label: "Cloud", aside: "Filled between two layers", group: "Other layers", other: true, under: true, verb: "Add", page: () => cloudPage() },
           ] : []),
           ...(markable(chart).length ? [
-            { kind: "row", key: "add:signal", icon: ICONS.signal, label: "Signal", aside: "Marks where a formula turns up or down", group: "Other layers", other: true, verb: "Add", run: () => addSignal() },
+            { kind: "row", key: "add:signal", icon: ICONS.signal, label: "Signal", aside: "Marks where a formula turns up or down", group: "Other layers", other: true, under: true, verb: "Add", run: () => addSignal() },
           ] : []),
           ...(cloudable() ? [
-            { kind: "row", key: "add:trend", icon: ICONS.riding, label: "Trend", aside: trendShort() || "Rides two layers, flipped by a third", group: "Other layers", other: true, verb: "Add", page: () => trendPage(), ...(trendShort() ? { disabled: trendShort() } : {}) },
+            { kind: "row", key: "add:trend", icon: ICONS.riding, label: "Trend", aside: trendShort() || "Rides two layers, flipped by a third", group: "Other layers", other: true, under: true, verb: "Add", page: () => trendPage(), ...(trendShort() ? { disabled: trendShort() } : {}) },
           ] : []),
         ];
       }
@@ -29471,7 +29488,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...addRows("In it"),
             ...(any ? [
               { key: "share", icon: ICONS.share, label: SHARE, aside: "Its QR code too", verb: SHEET_SHARE ? "Share" : "Copy", group: "Out of it", run: () => $("share").click() },
-              { key: "copy-image", icon: ICONS.copy, label: "Copy as image", verb: "Copy", group: "Out of it", run: () => exportAs("copy") },
+              { key: "copy-image", icon: ICONS.copy, label: "Copy image", verb: "Copy", group: "Out of it", run: () => exportAs("copy") },
               { key: "export", icon: ICONS.download, label: "Export", aside: "An image, the data, the chart file", group: "Out of it", page: () => listPage("Export", exportRows) },
             ] : []),
             ...(!isYours(chart) ? [] : [{ key: "folder", icon: ICONS.folder, label: "Folder", aside: chart.folder ? folderPath(chart.folder) : "None", group: "Chart file", page: () => folderPage([chart.id]) }]),
@@ -31032,7 +31049,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Out of the open chart: its image (shared, where there's a share sheet for a picture: a phone's, its Photos and
        * messages; copied, opened, downloaded), its data, its file. @returns {Action[]}
        */
-      const exportRows = () => /** @type {[string, string, string, string, string][]} */ ([...(SHARES_IMAGES ? [["share", "Share image", "", ICONS.share, "Share"]] : []), ["copy", "Copy as image", "", ICONS.copy, "Copy"], ["open", "Open image", "In a tab of its own", ICONS.link, "Open"], ["png", "Download image", "PNG", ICONS.image, "Download"], ["csv", "Download data", "CSV", ICONS.table, "Download"], ["json", "Download chart file", "JSON", ICONS.file, "Download"]]).map(([kind, label, note, icon, verb]) => ({ key: kind, icon, label, aside: note, verb, apart: kind === "csv", run: () => exportAs(kind) }));
+      const exportRows = () => /** @type {[string, string, string, string, string][]} */ ([...(SHARES_IMAGES ? [["share", "Share image", "", ICONS.share, "Share"]] : []), ["copy", "Copy image", "", ICONS.copy, "Copy"], ["open", "Open image", "In a tab of its own", ICONS.link, "Open"], ["png", "Download image", "PNG", ICONS.image, "Download"], ["csv", "Download data", "CSV", ICONS.table, "Download"], ["json", "Download chart file", "JSON", ICONS.file, "Download"]]).map(([kind, label, note, icon, verb]) => ({ key: kind, icon, label, aside: note, verb, apart: kind === "csv", run: () => exportAs(kind) }));
       // The panel's adds, from the header (and the phone's bar): those made from layers too, once there are layers for one.
       // Adding: one page, the series, and the other kinds of layer first (in the grid, a new chart).
       for (const id of ["add", "mobile-add"]) $(id).addEventListener("click", () => (home ? newChart() : openPalette({ add: true })));
@@ -32375,8 +32392,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const frame = sheetBar ?? (home ? $("home") : $("stage-foot")).getBoundingClientRect();
         const belt = $("belt"), beltTop = !home && !belt.hidden && belt.dataset.dock === "bottom" ? belt.getBoundingClientRect().top : Infinity;
         const tabs = /** @type {HTMLElement} */ (document.querySelector(".mobile-bar")).getBoundingClientRect(), tabsTop = tabs.width > tabs.height ? tabs.top : Infinity;
-        // (A phone's menu sheet up: above it, not over its rows.)
-        const menuSheet = $("menu").classList.contains("as-sheet") && !$("menu").hidden ? $("menu").getBoundingClientRect().top : Infinity;
+        // (A phone's menu sheet up: above it, not over its rows; where it settles, sliding in as it may be.)
+        const menuSheet = $("menu").classList.contains("as-sheet") && !$("menu").hidden ? $("menu").offsetTop : Infinity;
         // (In the page's own measure: iOS's window is as short as its keyboard leaves, the page isn't. The chart's foot
         // hidden under the keyboard, above the keyboard.)
         const page = document.documentElement.clientHeight, shown = viewport.offsetTop + viewport.height, keys = shown < page - 1;
@@ -32388,7 +32405,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         element.style.maxWidth = center ? `${2 * Math.min(center, innerWidth - center) - 24}px` : "";
       }
       let toastFor = 0;
-      for (const target of [window, viewport]) target.addEventListener("resize", () => $("toast").classList.contains("visible") && placeToast());
+      // (Placed again while it shows: the screen changed (a turn, the keyboard), a sheet or a phone's menu sheet come up
+      // under it or gone; again where a sheet's motion leaves it.)
+      const replaceToast = () => {
+        if (!$("toast").classList.contains("visible")) return;
+        placeToast();
+        const moving = [$("panel"), $("menu")].flatMap((sheet) => sheet.getAnimations());
+        if (moving.length) Promise.allSettled(moving.map((motion) => motion.finished)).then(() => $("toast").classList.contains("visible") && placeToast());
+      };
+      for (const target of [window, viewport]) target.addEventListener("resize", replaceToast);
+      new MutationObserver(replaceToast).observe(document.body, { attributes: true, attributeFilter: ["data-sheet", "data-sheet-size"] });
+      new MutationObserver(replaceToast).observe($("menu"), { attributes: true, attributeFilter: ["hidden", "class"] });
       /** The toast up put away at once: what it said no longer true (an undo, a redo, a keep). */
       function hideToast() {
         closedToast = null;
