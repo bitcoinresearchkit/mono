@@ -6630,12 +6630,16 @@
       .home {
         position: relative;
         z-index: 1;
-        display: none;
         min-width: 0;
         min-height: 0;
 
-        body:is([data-home], [data-morph]) & {
-          display: block;
+        /* Under a chart, kept as it's laid out, out of sight and reach: shown again, it's only painted (from `display:
+           none`, every element of it styled and laid out anew: ~65 ms of a phone's way back). Clipped whole (from
+           painting, and from the pointer), not hidden by an inherited style (visibility, pointer-events): flipping one has
+           every element under it styled again. Out of Tab's and a screen reader's reach: inert, as the motions end (see
+           leaveHome, showHome). */
+        body:not([data-home], [data-morph]) & {
+          clip-path: inset(50%);
         }
       }
 
@@ -21488,6 +21492,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         prefs.home = true;
         savePrefs();
         if (push) history.pushState(homeState(uid()), "");
+        /** Where the focus goes once the page is there (see below), and where it was as the way back began. */
+        let focusTo = /** @type {HTMLElement | null} */ (null), focusWas = /** @type {Element | null} */ (null);
         void morph(false, () => {
           document.body.toggleAttribute("data-home", true);
           // (What's in hand let go of once the page is over the chart: the chart not drawn again for it, see
@@ -21504,12 +21510,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Its card in sight where the page came back to: the chart shrinks into it, the focus on it; else neither,
           // the page as it was left, a focus gone with the chart (or a menu over it) starting it: its name.)
           const box = card?.getBoundingClientRect(), view = homeScroll().getBoundingClientRect(), seen = Boolean(box && box.bottom > view.top && box.top < view.bottom);
-          if (seen) tileOpen(chart.id)?.focus({ preventScroll: true });
-          else if (focusLeaves && (document.activeElement === document.body || onChart())) $("home-title").focus({ preventScroll: true });
+          focusTo = seen ? tileOpen(chart.id) : focusLeaves && (document.activeElement === document.body || onChart()) ? $("home-title") : null;
+          focusWas = document.activeElement;
           return draft || !seen ? null : card;
+        }).then(() => {
+          if (!home) return;
+          // (In reach again once it's there, the focus on it then: inert is style, inherited, and lifting it has the whole
+          // page styled again, not in the motion's frames. Moved meanwhile, the focus is where it was put.)
+          $("home").inert = false;
+          // (Its tile gone meanwhile (stepped on, its page written anew): the page's name, as where it's not in sight.)
+          if (document.activeElement === focusWas || document.activeElement === document.body) (focusTo?.isConnected ? focusTo : focusTo && $("home-title"))?.focus({ preventScroll: true });
           // The new chart, empty, taken back once it's faded out over the page, the one before it under the grid then
           // (else that one would show, fading); none opened meanwhile. (An empty preview left simply goes.)
-        }).then(() => draft && home && chart === draft && openChart(previousChart() ?? newDraft()));
+          if (draft && chart === draft) openChart(previousChart() ?? newDraft());
+        });
       }
       /**
        * Leaves the grid: `show` opens the chart to go to (or leaves the one under the grid), and it grows out of
@@ -21531,6 +21545,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (push && history.state?.home) (history.replaceState({ ...history.state, ...homeState(), place: leftPlace }, ""), leftPlaces.set(history.state.key, leftPlace));
         if (push) history.pushState({ chart: chart.id, fromHome: true, place: leftPlace }, "");
         const focused = $("home").contains(document.activeElement);
+        // (Out of reach once the chart's over it: see .home, and showHome.)
         return morph(true, () => {
           // (Pressed as it was tapped, see go: as it grows, as it is.)
           before?.classList.remove("opening");
@@ -21543,7 +21558,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (focused && row?.checkVisibility()) row.focus({ preventScroll: true });
           // (Drawn as it grows, live: its data is usually at hand, from its tile.)
           return before;
-        });
+        }).then(() => void (home || ($("home").inert = true)));
       }
       /**
        * Opens a chart someone picked; from the grid, its card grows into it (`push`: a new step, for Back).
@@ -32865,7 +32880,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const element of all$("[data-kbd*='⌘']")) {
           // Controls that carry their key show it in place (on the rail, in place of their icon); the rest float one.
           if (element.querySelector(":scope > kbd.mod")) continue;
-          if (/** @type {HTMLButtonElement} */ (element).disabled || !element.checkVisibility({ checkVisibilityCSS: true })) continue;
+          // (Out of reach (inert: the Charts page under a chart, kept laid out), none either.)
+          if (/** @type {HTMLButtonElement} */ (element).disabled || element.closest("[inert]") || !element.checkVisibility({ checkVisibilityCSS: true })) continue;
           const rect = element.getBoundingClientRect();
           if (!rect.width || rect.bottom < 0 || rect.top > innerHeight) continue;
           const badge = document.createElement("kbd");
@@ -33696,6 +33712,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         home = !shared && Boolean(asked ? !(routed && "preset" in routed) : there ? there.home : first || prefs.home);
         started = true;
         document.body.toggleAttribute("data-home", home);
+        $("home").inert = !home;
         // (Asked by an address, its step is where it led (one waiting for the presets says so: a reload waits again).)
         if (!there || asked) history.replaceState({ ...(home ? homeState() : { chart: chart.id }), ...(pendingRoute ? { route: true } : {}) }, "");
         // (The address it was opened at, read: let go of, as a chart's link is (one waiting for the presets, once read).)
