@@ -24033,8 +24033,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Whether a preset's been changed here (it says so, and can be reset). @param {Chart} doc */
       const presetEdited = (doc) => doc.preset !== undefined && !pristine(doc);
-      /** A preset's copy kept here that still stands: edited, or left as it was of the preset as made now. */
-      const keptPreset = (/** @type {number} */ i) => ((had) => (had && (!pristine(had) || had.base === templateHash(i)) ? had : undefined))(editedPreset(i));
+      /**
+       * A preset's copy kept here that still stands: edited, or left as it was of the preset as made now (`had`: its copy,
+       * found already; null, none).
+       */
+      const keptPreset = (/** @type {number} */ i, had = editedPreset(i)) => (had && (!pristine(had) || had.base === templateHash(i)) ? had : undefined);
       /**
        * A preset's chart: as edited here, else as made now (one left as it was, made anew: the presets may have changed
        * since). Never edited: stamped 0 (past a reset, just after it), any edit's copy (here,
@@ -24305,8 +24308,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const list = /** @type {Preset[]} */ (presets), query = words.join(" ");
         // (Typed on from the last search, every match is among its matches.)
         const among = !under && presetsFound.query && query.startsWith(presetsFound.query) ? presetsFound.found : null, found = [];
-        // (An edited one's words, its title as it is now too.)
-        const renamed = new Map(library.presets.flatMap((doc) => ((i) => (i >= 0 ? [[i, presetSearchWords(i)]] : []))(presetIndex(doc))));
+        // (An edited one's words, its title as it is now too. The copies kept here by their place, found once, not looked for
+        // among them all at each match: thousands, a word or two typed.)
+        const copies = new Map();
+        for (const doc of library.presets) ((i) => i >= 0 && !copies.has(i) && copies.set(i, doc))(presetIndex(doc));
+        const renamed = new Map([...copies.keys()].map((i) => [i, presetSearchWords(i)]));
         const wordsAt = (/** @type {number} */ i) => renamed.get(i) ?? presetWords[i];
         if (among && !renamed.size) for (const i of among) words.every((word) => wordsAt(i).includes(word)) && found.push(i);
         else for (let i = 0; i < presetWords.length; i++) if ((!under || under(i)) && words.every((word) => wordsAt(i).includes(word))) found.push(i);
@@ -24316,7 +24322,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // thousands.
         const buckets = /** @type {number[][][]} */ ([[], [], [], [], []]);
         for (const i of found) {
-          const title = ((kept) => (kept ? titleOf(kept) : list[i].t))(keptPreset(i)).toLowerCase();
+          const title = ((kept) => (kept ? titleOf(kept) : list[i].t))(keptPreset(i, copies.get(i) ?? null)).toLowerCase();
           const exact = list[i].p.at(-1)?.toLowerCase() === query || title.split(": ")[0] === query;
           const fit = exact ? 4 : (words.every((word) => title.includes(word)) ? 2 : 0) + (title.startsWith(words[0]) ? 1 : 0);
           (buckets[fit][list[i].p.length * 1000 + Math.min(title.length, 999)] ??= []).push(i);
