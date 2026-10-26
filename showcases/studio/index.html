@@ -30568,10 +30568,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Not seen (no box, or hidden by what it's in): nothing to see go.)
         if (reduced.matches || !element.checkVisibility({ visibilityProperty: true })) return;
         const copy = /** @type {HTMLElement} */ (element.cloneNode(true)), style = getComputedStyle(element), after = getComputedStyle(element, "::after");
-        // (What moves in it and where it's scrolled (those of it scrolled: none else can be, not read one by one, a page's
-        // every element), asked before its copy's put in: after, the copy would be laid out at once for it.)
+        // (What moves in it, where it's scrolled (those of it scrolled: none else can be, not read one by one, a page's every
+        // element) and how it shows, asked before its copy's put in: after, the copy would be styled and laid out at once
+        // for it.)
         const moving = element.getAnimations({ subtree: true }), scrolls = /** @type {[Element, number, number][]} */ ([]);
         for (const source of scrolled) if (element.contains(source) && (source.scrollTop || source.scrollLeft)) scrolls.push([source, source.scrollTop, source.scrollLeft]);
+        // (From where it shows: caught on its way in (a menu shut as it opens), its opacity and its place as they are
+        // then, not as it'd be once in.)
+        const shows = /** @type {Keyframe} */ ({ ...frames[0] });
+        for (const property of ["opacity", "transform", "translate", "scale"]) if (property in shows) shows[property] = style.getPropertyValue(property);
         // (Its ids kept, as its styles and its drawings' references (an SVG's url(#…)) need them: after it, it's never the
         // one an id finds while it's there.)
         copy.inert = true;
@@ -30599,10 +30604,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (fading.get(element) === copy) fading.delete(element);
         };
         fading.set(element, copy);
-        // (From where it shows: caught on its way in (a menu shut as it opens), its opacity and its place as they are
-        // then, not as it'd be once in.)
-        const shows = /** @type {Keyframe} */ ({ ...frames[0] });
-        for (const property of ["opacity", "transform", "translate", "scale"]) if (property in shows) shows[property] = style.getPropertyValue(property);
         return copy.animate([shows, ...frames.slice(1)], { duration, easing, fill: "forwards" }).finished.then(gone, gone);
       }
       /** What's on its way out, by what it's a copy of (see fadeOut). @type {Map<HTMLElement, HTMLElement>} */
