@@ -665,3 +665,23 @@ before): the same values, bit for bit.
 
 Measured on the iPhone (Lockdown Mode), x for 25 × 3,105 points: 7 → 4 ms, every value the same; a pan step's redraw in
 Chromium (1.0-1.2 ms) and Mullvad (22-23 ms), as before. `tests.html`: its pictures, 713 of 713 the same.
+
+## 38. A line's simplification with one root a point
+
+Patch 29's walk narrows its cone, at each point it leaves out past the radius, to the two tangents from the anchor to
+the circle around that point: as unit vectors, two roots and four divisions a point (`d = √q`, `c = √(1 − (R/d)²)`, the
+direction `x/d`, `y/d`). Every test made with them is a sign (a cross product's, a direction in the cone or not, one
+edge left of another), and a vector scaled by any positive amount keeps its signs: the tangents are kept unnormalized,
+`(x·c ∓ y·R, y·c ± x·R)` with `c = √(q − R²)` (the unit ones times `d²`), one root and no division a point; the same
+decisions in exact arithmetic (a point exactly on a cone's edge, rounding may tip it the other way than before: either
+way within the radius; 10,000 random paths, 475,846 points, kept the same). Its running greatest distance (`bvD`) by a
+comparison, not `Math.max`'s call.
+
+- `fe`, the cone's narrowing (a point joining past the radius) and its start (a new anchor): `c=Math.sqrt(q-bvR2)`, the
+  tangents from `x`, `y`, `c` and `bvR`; `q>bvD&&(bvD=q)`.
+
+Measured on the iPhone (Lockdown Mode, no JIT): the walk over 25 × 3,100 points (HODL waves' size) 26 → 19 ms, the
+points kept the same there (3,718 of 77,500); HODL waves zoomed as a pinch does, 2 s: median 29-32 → 26-29 ms a frame, lost
+0.95 → 0.83 s, its pan 60 fps (median 16 ms). Chromium, a zoom step's redraw 2.3-2.8 → 2.1-2.4 ms; Mullvad 24-25 → 24 ms
+(its frame the canvas's); a pan's as before. `tests.html`: pictures 713 of 713 the same, a pan's lines within their radius
+(7) 144 checks, 0 failing.
