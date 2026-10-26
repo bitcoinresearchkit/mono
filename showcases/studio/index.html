@@ -29996,23 +29996,30 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let menuOwner = null;
       /** The menu a page of a menu came from (a phone's: its ‹, and Back), else null. @type {(() => void) | null} */
       let menuBack = null;
-      /** What a phone's menu sheet left inert (the page under it, out of reach, a screen reader's too), as it was. */
-      let menuInert = /** @type {Map<Element, boolean> | null} */ (null);
-      /** A phone's menu sheet modal, or not: what's beside it on the page out of reach (in a dialog, it's modal already). */
+      /** What a phone's menu sheet hid from a screen reader (the page under it), as it was. */
+      let menuHidden = /** @type {Map<Element, string | null> | null} */ (null);
+      /**
+       * A phone's menu sheet modal, or not: what's beside it on the page out of reach (in a dialog, it's modal already).
+       * A tap there is the scrim's, Tab closes the menu; a screen reader's kept off it by aria-hidden, not inert: inert is
+       * style, inherited, the whole page styled again at each open and close (the Charts page: 40-60 ms of the tap).
+       */
       function menuModal(/** @type {boolean} */ on) {
         const menu = $("menu");
-        if (on && !menuInert && menu.parentElement === document.body) {
-          menuInert = new Map();
+        if (on && !menuHidden && menu.parentElement === document.body) {
+          menuHidden = new Map();
           for (const element of document.body.children) {
             if ([menu, menuScrim, $("submenu"), $("toast"), $("tip")].includes(/** @type {HTMLElement} */ (element)) || element instanceof HTMLDialogElement || element instanceof HTMLScriptElement || element.matches(".vh")) continue;
-            menuInert.set(element, /** @type {HTMLElement} */ (element).inert);
-            /** @type {HTMLElement} */ (element).inert = true;
+            menuHidden.set(element, element.getAttribute("aria-hidden"));
+            element.setAttribute("aria-hidden", "true");
           }
-        } else if (!on && menuInert) {
-          for (const [element, was] of menuInert) /** @type {HTMLElement} */ (element).inert = was;
-          menuInert = null;
+        } else if (!on && menuHidden) {
+          for (const [element, was] of menuHidden) was === null ? element.removeAttribute("aria-hidden") : element.setAttribute("aria-hidden", was);
+          menuHidden = null;
         }
       }
+      // (The focus come to the page behind it all the same (a toast's button used, the toast written anew, then Tab): the
+      // menu put away, as Tab in it does.)
+      document.addEventListener("focusin", (event) => menuHidden && !closest(event, "#menu, #submenu, #toast, #tip") && dismissMenu());
       /** What opened the menu, as it is now: a redraw (the inspector's) puts a new one in its place, by the same id. */
       const ownerNow = () => (menuOwner && !menuOwner.isConnected && menuOwner.id ? document.getElementById(menuOwner.id) : menuOwner);
       /** Each menu shown, counted (see Share: one shown since its press, gone again or not, and it shows nothing). */
