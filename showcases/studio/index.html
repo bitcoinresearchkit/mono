@@ -77,9 +77,6 @@
            page behind showing through under its handle.) */
         --sheet-half-height: round(calc(var(--sheet-half) * 100dvh), 1px);
         --sheet-whole-height: round(calc(var(--sheet-whole) * 100dvh), 1px);
-        /* (How much of the page's foot a phone's keyboard covers, the script's (see data-keys): none till it's up. Set here,
-           its first write is none: written on the root, a token's change has every style on the page made again.) */
-        --keys: 0px;
         --app: light-dark(#f6f6f7, #08090a);
         --card: light-dark(#ffffff, #0e0f11);
         --raise: light-dark(#ffffff, #17181b);
@@ -8319,6 +8316,14 @@
             visibility: hidden;
             opacity: 0;
           }
+        }
+
+        /* How much of the page's foot a phone's keyboard covers, the script's (see data-keys): none till it's up. On the
+           sheets whose lists it lifts, not the root: there, a change of it had every style on the page made again (the
+           Charts page's: 32 ms on a phone, as the keyboard came and went with ⌘K). */
+        #panel,
+        #palette {
+          --keys: 0px;
         }
 
         /* The keyboard up (see data-keys): the bars out of the way of the field; a sheet's list on to its top (--keys,
@@ -32626,7 +32631,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (up) document.body.dataset.keys = covering ? "covering" : "shortening";
           else delete document.body.dataset.keys;
           const keys = up && covering ? under : 0;
-          if (keys !== covered) root.style.setProperty("--keys", `${(covered = keys)}px`);
+          if (keys !== covered) for (const sheet of [$("panel"), $("palette")]) sheet.style.setProperty("--keys", `${(covered = keys)}px`);
           if (up) keysCame(), reveal();
         };
         viewport.addEventListener("resize", read);
