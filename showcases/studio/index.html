@@ -1459,11 +1459,51 @@
         border-radius: var(--radius-sm);
       }
 
+      /* A row's figures: its value, then one line under it (a name and its id beside them, as tall): its change, and
+         when its value is older than the view's end, the date it's from, before it (see asOf). */
       .row-figures {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
+        display: grid;
+        grid-template-columns: auto auto;
+        justify-items: end;
+        /* (The date's letters and the change's on one line, at their own sizes.) */
+        align-items: baseline;
         flex-shrink: 0;
+
+        > .row-value {
+          grid-column: 1 / -1;
+        }
+
+        > .row-change {
+          grid-area: 2 / 2;
+          white-space: nowrap;
+        }
+
+        &[data-as-of]::after {
+          content: attr(data-as-of);
+          grid-area: 2 / 1;
+          margin-right: 6px;
+          color: var(--muted);
+          font: 400 11px/16px var(--sans);
+          white-space: nowrap;
+        }
+
+        &[data-as-of]:not(:has(> .row-change:not(:empty)))::after {
+          grid-column: 1 / -1;
+          margin-right: 0;
+        }
+
+        /* (A cloud's, its highest over its lowest already two lines: beside its lowest.) */
+        &:has(> .row-value[data-lines]) {
+          > .row-value {
+            grid-area: 1 / 2 / 3 / 3;
+          }
+
+          &[data-as-of]::after {
+            grid-area: 2 / 1;
+            align-self: end;
+            margin-right: 6px;
+          }
+        }
       }
 
       .row-value {
@@ -2087,10 +2127,11 @@
         background: var(--card);
         box-shadow: var(--pop);
         --dim: var(--backdrop);
+        /* (Its column its own, not its open state's: closed, it fades out laid out as it was, as ⌘K's does.) */
+        flex-direction: column;
 
         &:popover-open {
           display: flex;
-          flex-direction: column;
           animation: pop var(--dur-small) var(--ease);
         }
 
@@ -2389,7 +2430,8 @@
           border-radius: var(--radius-sm);
           color: var(--soft);
           background: none;
-          font: 510 12px/16px var(--sans);
+          /* (As the rows beside it, Charts', a folder's: a head with its mark is one of them, its rule what sets it apart.) */
+          font: 510 13px/16px var(--sans);
           text-align: left;
           white-space: nowrap;
 
@@ -5518,17 +5560,6 @@
         content: " · " attr(data-as-of);
         color: var(--muted);
         font-weight: 400;
-      }
-
-      /* (In the panel, under it: the layer's name keeps its room.) */
-      .row-value[data-as-of] {
-        text-align: right;
-
-        &::after {
-          content: attr(data-as-of);
-          display: block;
-          font-size: 11px;
-        }
       }
 
       [data-value].named {
@@ -16411,7 +16442,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (element.textContent !== text) element.textContent = text;
           // (Older than the rest: when it's from, after it.)
           const since = Number.isFinite(value) || result.low ? asOf(layer, point) : "";
-          if ((element.dataset.asOf ?? "") !== since) since ? (element.dataset.asOf = since) : delete element.dataset.asOf;
+          // (A legend's, after its value; a row's, on the line under it, beside its change: see .row-figures.)
+          const holder = element.classList.contains("row-value") ? /** @type {HTMLElement} */ (element.parentElement) : element;
+          if ((holder.dataset.asOf ?? "") !== since) since ? (holder.dataset.asOf = since) : delete holder.dataset.asOf;
           const color = band ? cssColor(band.color) : "";
           if ((element.dataset.band ?? "") !== color) {
             element.dataset.band = color;
@@ -17094,14 +17127,34 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Its tip open: it says the new dates, or goes.)
             if (tipTarget === element && !$("tip").hidden) tip ? showTip(element) : hideTip();
           }
-          const figures = /** @type {HTMLElement} */ (element.parentElement), width = layer.hidden || result.error ? "" : `${Math.max(valueSlot(layer, rowSizes.value), chipSlot(layer))}px`;
-          if (figures.style.minWidth !== width) figures.style.minWidth = width;
         }
         // (Over them, what they're since, once the view rests: the date they share, else each its own first in view.)
         if (moving) return;
+        for (const figures of all$(".row-figures", $("layer-list"))) {
+          const layer = layerById(/** @type {HTMLElement} */ (figures.closest("[data-layer]"))?.dataset.layer ?? ""), result = layer && resolved.results.get(layer.id);
+          if (!layer || !result) continue;
+          const width = figuresRoom(layer, result);
+          if (figures.style.minWidth !== width) figures.style.minWidth = width;
+        }
         const head = $("changes-since"), text = since.size === 1 ? `Since ${pointLabel([...since][0])}` : since.size ? "Since the view's start" : "";
         if (head.textContent !== text) head.textContent = text;
         head.hidden = !text;
+      }
+      /**
+       * The room a row's figures keep while the crosshair runs: their widest value, and the line under it, the date its
+       * value at rest is from (see asOf; gone as the crosshair reads a point) beside its widest change; a cloud's date
+       * beside its two lines.
+       */
+      function figuresRoom(/** @type {Layer} */ layer, /** @type {Result} */ result) {
+        if (layer.hidden || result.error) return "";
+        const lines = layer.type === "cloud" && Boolean(result.low), value = valueSlot(layer, rowSizes.value, lines);
+        // (Its date where the values' loop writes one: a value, or a cloud's; measured once a view, as the slots are.)
+        const rest = { at: lastShown(), rest: true }, since = Number.isFinite(valueAt(layer, rest)) || result.low ? asOf(layer, rest) : "", measured = slotsNow();
+        if (since && !measured.has(`asOf:${since}`)) measured.set(`asOf:${since}`, widest([since], 400, 11));
+        const date = since ? /** @type {number} */ (measured.get(`asOf:${since}`)) : 0;
+        if (lines) return `${value + (date && date + 6)}px`;
+        const chip = layer.type === "cloud" || layer.type === "signal" ? 0 : chipSlot(layer);
+        return `${Math.max(value, date && chip ? date + 6 + chip : Math.max(date, chip))}px`;
       }
       /**
        * The widest change a layer's chip can show in this view, padding included: those to its lowest and highest
@@ -30814,10 +30867,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const row = /** @type {HTMLElement | null} */ (closest(event, "#chart-list :is(.folder-item, .list-head-name, [data-open-chart], [data-open-preset])"));
           if (row && row === from && flyout) return clearTimeout(flyTimer);
           clearTimeout(flyTimer);
-          // (A chart just pressed: opened, its row written anew under the pointer, not its menu again, till it's left.)
+          // (A chart just pressed: opened, its row written anew under the pointer, not its menu again, till another's
+          // pointed at or the list's left: as the row's written anew, the pointer's over the list alone a moment.)
           if (row && pressed && chartKey(row) === pressed) return;
-          pressed = "";
           if (!row) return void (from && goSoon());
+          pressed = "";
           if (!$("menu").hidden && !flyout) return;
           // (Over a sidebar still widening: once it's done, beside the row where it ends.)
           const widened = async () => (await Promise.all(sidebar.getAnimations().map((animation) => animation.finished)).catch(() => {}), railed());
@@ -30833,11 +30887,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $(id).addEventListener("pointerenter", () => flyout && clearTimeout(flyTimer));
           $(id).addEventListener("pointerleave", (event) => flyout && event.pointerType === "mouse" && goSoon());
         }
-        // (A row pressed, its menu as pressed takes the flyout's place, see railMenu; a chart, opened, none. Its ⋯ isn't
-        // the row: a ⋯'s own menu, shown by its click as the pointer rests on it, is the flyout.)
+        /**
+         * A flyout pressed on what showed it, where a press shows that menu too: kept as it is, as a press opens one (the
+         * focus in it, for its keys), not put away and shown again (it'd blink).
+         * @param {Event} event @param {HTMLElement} anchor
+         */
+        const keepFlyout = (event, anchor) => {
+          if (from !== anchor || !flyout || $("menu").hidden || ownerNow() !== anchor) return false;
+          event.stopImmediatePropagation();
+          flyout = false;
+          from = null;
+          /** @type {HTMLElement | null} */ ($("menu").querySelector("button:not(:disabled)"))?.focus({ preventScroll: true });
+          return true;
+        };
+        // (A row pressed, its menu as pressed takes the flyout's place, see railMenu: its own already showing, kept; a
+        // chart, opened, none. Its ⋯ isn't the row: a ⋯'s own menu, shown by its click as the pointer rests on it, is the
+        // flyout.)
         $("chart-list").addEventListener("click", (event) => {
           const item = /** @type {HTMLElement | null} */ (closest(event, ":is(.chart-row, .folder-row, .list-head) > :is(.chart-item, .folder-item, .list-head-name)"));
           if (!item) return;
+          if (railed() && !item.matches("[data-open-chart], [data-open-preset]") && keepFlyout(event, item)) return;
           shut();
           pressed = chartKey(item);
         }, true);
@@ -30865,12 +30934,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const anchor = anchorOf(event);
             if (!anchor) return;
             if (from === anchor || !flyout) clearTimeout(flyTimer);
-            if (from !== anchor || !flyout || ownerNow() !== anchor) return;
-            event.stopImmediatePropagation();
-            flyout = false;
-            from = null;
-            // (Kept, as a press opens one: the focus in it, for its keys.)
-            /** @type {HTMLElement | null} */ ($("menu").querySelector("button:not(:disabled)"))?.focus({ preventScroll: true });
+            keepFlyout(event, anchor);
           }, true);
         };
         // The chart's ⋯ the same, and its place (the folder before its name): pointed at a moment, its menu.
