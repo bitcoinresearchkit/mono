@@ -9305,6 +9305,25 @@
       <button type="button" class="btn" onclick="location.reload()">Try again</button>
     </div>
     <script>
+      // The chart's Inter (see chartFont), begun with the page's own, from its file, and Lilex too (the layers' letters
+      // ask for it as they're first drawn, late): a face that loads after the page's lays the whole page out again
+      // (WebKit's every face, used or not: 20-100 ms on a phone). By its address, not its bytes: the page's own file,
+      // which a browser may parse once for both faces (from its bytes, parsed again, at once, on the page's thread).
+      try {
+        document.fonts.load("590 10px Lilex").catch(() => {});
+        found: for (const sheet of document.styleSheets) {
+          for (const rule of sheet.cssRules) {
+            if (!(rule instanceof CSSFontFaceRule) || rule.style.getPropertyValue("font-family").replace(/["']/g, "").trim() !== "Inter") continue;
+            const url = rule.style.getPropertyValue("src").match(/url\(["']?([^"')]+)["']?\)/)?.[1];
+            if (url) {
+              const face = new FontFace("Inter Chart", `url("${url}")`, { weight: "500 900", featureSettings: '"tnum" 1' });
+              document.fonts.add(face);
+              face.load().catch(() => {});
+            }
+            break found;
+          }
+        }
+      } catch {}
       // Before the first paint, the page as it was left: the sidebar, the layers panel, the grid or a chart (the module
       // settles it, later, by the same rules); else they'd be seen moving into place.
       try {
@@ -9791,7 +9810,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const node = nodeAt(path.split("."));
         return isLeaf(node) ? node.name : null;
       }
-      /** Every name the client knows, to its path: built once, in idle slices, the rest at once when needed (see indexCatalog). */
+      /**
+       * Every name the client knows, to its path: built once, in a worker (else here, in idle slices), at once when needed
+       * (see indexCatalog).
+       */
       let catalogIndex = /** @type {Map<string, string> | null} */ (null);
       /** How many series Studio can chart (by date), as the catalog here has them: known once it's indexed. */
       let seriesCount = 0;
@@ -12172,33 +12194,65 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         work({ timeRemaining: () => Math.max(0, end - performance.now()) });
       }, settle));
       /**
-       * The catalog indexed (`catalogIndex`), a slice at a time while the page is idle; then charts saved without paths get
-       * theirs (and survive renames). What needs it before (a search, a series added) has the rest done at once, never
-       * waiting on an idle moment: a hidden tab's are throttled (to one a minute, after five minutes hidden).
+       * The catalog walked, a node a step (a generator: the page goes on at its own pace): its names to their dotted paths
+       * as the client has them (a name in several places, its first), those by block only (by date in none of them), and
+       * those under more than one top folder (a folder's place among them isn't theirs: see catalogTops). On its own, its
+       * source made a worker's (see indexCatalog): its leaves told as isLeaf tells them, read as `aside` reads them.
+       * @param {any} tree @param {readonly string[]} dated
+       * @returns {Generator<void, { index: Map<string, string>, byBlock: Set<string>, sharedTops: Set<string> }>}
+       */
+      function* catalogWalk(tree, dated) {
+        const index = new Map(), byBlock = new Set(), sharedTops = new Set(), stack = [[tree, ""]];
+        while (stack.length) {
+          const [node, path] = stack.pop();
+          if (node && typeof node.name === "string" && typeof node.by === "object") {
+            // (A name in several places, each with its own intervals (an interval's first height, under each): by date if
+            // any of them is.)
+            const byDate = dated.some((id) => node.indexes().includes(id));
+            if (index.has(node.name)) {
+              if (byDate) byBlock.delete(node.name);
+              if (index.get(node.name).split(".")[0] !== path.split(".")[0]) sharedTops.add(node.name);
+            } else {
+              index.set(node.name, path);
+              if (!byDate) byBlock.add(node.name);
+            }
+          } else if (node && typeof node === "object") for (const key of Object.keys(node)) stack.push([Reflect.get(node, key, {}), path ? `${path}.${key}` : key]);
+          yield;
+        }
+        return { index, byBlock, sharedTops };
+      }
+      /**
+       * The catalog walked in a worker (see indexCatalog): its whole source, its arguments written in (the walk's own
+       * source among them). Posts what it found as JSON (read back at once: 3 ms of a phone's thread, not the walk's 180).
+       * @param {string} clientUrl @param {string} baseUrl @param {typeof catalogWalk} walk @param {readonly string[]} dated
+       */
+      async function catalogMaker(clientUrl, baseUrl, walk, dated) {
+        try {
+          const { BitviewClient } = await import(clientUrl), steps = walk(new BitviewClient({ baseUrl }).series, dated);
+          let step = steps.next();
+          while (!step.done) step = steps.next();
+          const { index, byBlock, sharedTops } = step.value;
+          postMessage({ text: JSON.stringify([[...index], [...byBlock], [...sharedTops]]) });
+        } catch (error) {
+          postMessage({ error: String(error) });
+        }
+      }
+      /**
+       * The catalog indexed (`catalogIndex`, `byBlock`, `sharedTops`): in a worker, off the page's thread (a phone without
+       * its JIT: 180 ms of it, in a launch's first seconds); without one (or it failing), here, a slice at a time while the
+       * page is idle. Then charts saved without paths get theirs (and survive renames). What needs it before (a search, a
+       * series added) has the rest done here at once, never waiting on the worker or an idle moment: a hidden tab's are
+       * throttled (to one a minute, after five minutes hidden).
        */
       const indexCatalog = (() => {
-        const index = new Map();
-        const stack = [[/** @type {any} */ (tree), ""]];
-        /** Nodes indexed while `more` says (it's told how many so far); the last, the index is the catalog's. */
-        const run = (/** @type {(done: number) => boolean} */ more) => {
-          for (let done = 0; stack.length && more(done); done++) {
-            const [node, path] = stack.pop();
-            if (isLeaf(node)) {
-              // (A name in several places, each with its own intervals (an interval's first height, under each): by date
-              // if any of them is.)
-              const dated = INTERVAL_ORDER.some((id) => node.indexes().includes(id));
-              if (index.has(node.name)) {
-                if (dated) byBlock.delete(node.name);
-                if (index.get(node.name).split(".")[0] !== path.split(".")[0]) sharedTops.add(node.name);
-                continue;
-              }
-              index.set(node.name, path);
-              if (!dated) byBlock.add(node.name);
-            } else if (node && typeof node === "object") for (const key of Object.keys(node)) stack.push([aside(node, key), path ? `${path}.${key}` : key]);
-          }
-          if (stack.length || catalogIndex) return;
-          catalogIndex = index;
-          seriesCount = index.size - byBlock.size;
+        const walk = catalogWalk(tree, INTERVAL_ORDER);
+        /** What it found, the catalog's: the first to come, the worker's or the page's own. */
+        const take = (/** @type {{ index: Map<string, string>, byBlock: Set<string>, sharedTops: Set<string> }} */ found) => {
+          if (catalogIndex) return;
+          catalogIndex = found.index;
+          for (const name of found.byBlock) byBlock.add(name);
+          for (const name of found.sharedTops) sharedTops.add(name);
+          seriesCount = catalogIndex.size - byBlock.size;
           $("cta-label").textContent = `Search ${grouped.format(seriesCount)} series`;
           whenIdle(rankTops);
           // (After what asked for it: its work isn't held up, nor failed, by this.)
@@ -12209,12 +12263,40 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (docs.some((doc, i) => JSON.stringify(doc) !== before[i])) save();
           });
         };
-        const step = (/** @type {{ timeRemaining: () => number }} */ deadline) => {
-          // (At least a few hundred nodes a turn: an idle callback timed out has no time left, and would never go on.)
-          run((done) => deadline.timeRemaining() > 1 || done < 400);
-          if (stack.length) whenIdle(step);
+        /** Walked here while `more` says (it's told how many nodes so far). */
+        const run = (/** @type {(done: number) => boolean} */ more) => {
+          for (let done = 0; !catalogIndex && more(done); done++) {
+            const step = walk.next();
+            if (step.done) return take(step.value);
+          }
         };
-        whenIdle(step, { timeout: 3000 });
+        const here = () => {
+          const step = (/** @type {{ timeRemaining: () => number }} */ deadline) => {
+            // (At least a few hundred nodes a turn: an idle callback timed out has no time left, and would never go on.)
+            run((done) => deadline.timeRemaining() > 1 || done < 400);
+            if (!catalogIndex) whenIdle(step);
+          };
+          whenIdle(step, { timeout: 3000 });
+        };
+        const clientUrl = new URL("/modules/bitview-client/index.js", location.origin).href;
+        const source = URL.createObjectURL(new Blob([`(${catalogMaker})(${JSON.stringify(clientUrl)}, ${JSON.stringify(client.baseUrl)}, ${catalogWalk}, ${JSON.stringify(INTERVAL_ORDER)});`], { type: "text/javascript" }));
+        try {
+          const worker = new Worker(source, { type: "module" }), done = () => (worker.terminate(), URL.revokeObjectURL(source));
+          // (Its answer unread (an error, one that can't be delivered or read): walked here, as without one.)
+          worker.onmessage = ({ data }) => {
+            done();
+            let found = null;
+            try {
+              const [index, block, shared] = JSON.parse(data.text);
+              found = { index: new Map(index), byBlock: new Set(block), sharedTops: new Set(shared) };
+            } catch {}
+            found ? take(found) : here();
+          };
+          worker.onerror = worker.onmessageerror = () => (done(), here());
+        } catch {
+          URL.revokeObjectURL(source);
+          here();
+        }
         return () => run(() => true);
       })();
       /** @type {Chart} */
@@ -14336,19 +14418,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       let chartSans = css("--sans");
       const chartFont = (async () => {
-        for (const sheet of document.styleSheets) {
-          for (const rule of sheet.cssRules) {
-            if (!(rule instanceof CSSFontFaceRule) || rule.style.getPropertyValue("font-family").replace(/["']/g, "").trim() !== "Inter") continue;
-            const url = rule.style.getPropertyValue("src").match(/url\(["']?([^"')]+)["']?\)/)?.[1];
-            if (!url) return false;
-            // (By its address, not its bytes: the page's own file, which a browser may parse once for both faces; from its
-            // bytes, it's parsed again, at once, on the page's thread (a long frame on a phone).)
-            const face = new FontFace("Inter Chart", `url("${url}")`, { weight: "500 900", featureSettings: '"tnum" 1' });
-            document.fonts.add(face);
-            return Boolean(await face.load());
-          }
-        }
-        return false;
+        // (Begun as the page started, with the page's own Inter: see the first script.)
+        const face = [...document.fonts].find((face) => face.family.replace(/["']/g, "") === "Inter Chart");
+        return Boolean(face && (await face.loaded));
       })().catch(() => false);
       // (Sized by the page, not by the library's own watch on its box: switching that on and off around a motion is an
       // options change, the whole chart drawn again, a long frame on a heavy one. See `resized`.)
