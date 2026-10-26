@@ -15520,8 +15520,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Colors are kept apart from the rest so a spotlight can fade them and give them back.
           const paint = layer.type === "cloud" ? { color: alpha(base, op), ...(banded ? Object.fromEntries(/** @type {string[]} */ (result?.memberIds).map((id, k) => [`band${k}`, alpha(ink(doc.layers.find((item) => item.id === id)?.color ?? layer.color), op)])) : {}) } : signal && layer.place === "shade" ? { color: alpha(base, 0.14 * op) } : candles ? { upColor: css("--card"), downColor: color, wickUpColor: color, wickDownColor: color, borderUpColor: color, borderDownColor: color }
             // An area filled above its line is evenly tinted: the fill's gradient runs by price, so above a line that runs
-            // high it would all but vanish.
-            : layer.type === "area" ? { lineColor: color, ...(layer.fill === "above" ? { topColor: alpha(base, 0.12 * op), bottomColor: alpha(base, 0.12 * op) } : { topColor: alpha(base, 0.2 * op), bottomColor: alpha(base, 0) }) }
+            // high it would all but vanish. Stacked, its band (from its line to the one under it, see bvBandFill) evenly too:
+            // a band fading by price would read lighter the lower it sits.
+            : layer.type === "area" ? { lineColor: color, ...(layer.fill === "above" ? { topColor: alpha(base, 0.12 * op), bottomColor: alpha(base, 0.12 * op) } : stack ? { topColor: alpha(base, STACK_FILL * op), bottomColor: alpha(base, STACK_FILL * op) } : { topColor: alpha(base, 0.2 * op), bottomColor: alpha(base, 0) }) }
             : layer.type === "histogram" ? { color: alpha(base, 0.75 * op) }
             : layer.type === "baseline" ? { topLineColor: color, topFillColor1: alpha(base, 0.24 * op), topFillColor2: alpha(base, 0.01 * op), bottomLineColor: below, bottomFillColor1: alpha(under, 0.01 * op), bottomFillColor2: alpha(under, 0.24 * op) }
             : { color };
@@ -15558,7 +15559,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           } else {
             const radius = dotRadius(layer.width);
             const [kind, options] = layer.type === "dots" ? [LC.LineSeries, { ...common, ...paint, ...marker, lineVisible: false, pointMarkersVisible: true, pointMarkersRadius: radius }]
-              : layer.type === "area" ? [LC.AreaSeries, { ...common, ...paint, ...marker, ...line, invertFilledArea: layer.fill === "above" }]
+              // (Stacked, its fill a band: from its line down to its stack's fills under it, a stack a side (patch 41).)
+              : layer.type === "area" ? [LC.AreaSeries, { ...common, ...paint, ...marker, ...line, invertFilledArea: layer.fill === "above", bvBandFill: stack && layer.fill !== "above" ? layer.side : undefined }]
               : layer.type === "histogram" ? [LC.HistogramSeries, { ...common, ...paint, base: baseOf(layer), cornerRadius: stack ? 0 : BAR_CORNER }]
               : layer.type === "baseline" ? [LC.BaselineSeries, { ...common, ...paint, ...marker, ...line, baseValue: { type: "price", price: baseOf(layer) } }]
               : [LC.LineSeries, { ...common, ...paint, ...marker, ...line, ...(layer.type === "trend" ? (dated ? { priceLineColor: "", crosshairMarkerBackgroundColor: "" } : { priceLineColor: color, crosshairMarkerBackgroundColor: color }) : {}) }];
@@ -15608,7 +15610,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const drawable = (value) => Number.isFinite(value) && (!log || value > 0);
             // (Painted date by date: a line's, dots' and bars' color, an area's line and fill, as its paint has them.)
             // (Its colors another layer's, they say something: its fill stronger, as a regime's.)
-            const regime = layer.colorFrom || layer.byLevels, fill = layer.fill === "above" ? (regime ? [0.3, 0.3] : [0.12, 0.12]) : regime ? [0.5, 0.04] : [0.2, 0];
+            const regime = layer.colorFrom || layer.byLevels, fill = layer.fill === "above" ? (regime ? [0.3, 0.3] : [0.12, 0.12]) : stack ? (regime ? [0.3, 0.3] : [STACK_FILL, STACK_FILL]) : regime ? [0.5, 0.04] : [0.2, 0];
             const paintWith = !dated ? null : layer.type === "area" ? (/** @type {string} */ c) => ({ lineColor: op < 1 ? alpha(c, op) : c, topColor: alpha(c, fill[0] * op), bottomColor: alpha(c, fill[1] * op) })
               : layer.type === "histogram" ? (/** @type {string} */ c) => ({ color: alpha(c, 0.75 * op) }) : (/** @type {string} */ c) => ({ color: op < 1 ? alpha(c, op) : c });
             const paintAt = paintWith && dated && ((/** @type {number} */ i) => paintWith(dated(i)));
@@ -20129,16 +20131,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       // ── Layers ────────────────────────────────────────────────────────────────
 
+      /** A stacked area's band, its tint: even, from its line to the one under it (a cloud's bands alike, each its own). */
+      const STACK_FILL = 0.2;
       /** The open chart's stacks as last made, and what they were made of (see stackOf). */
-      let stacksMade = { key: "", stacked: /** @type {Map<string, { values: Float64Array, under: Float64Array, scale: Float64Array | null }>} */ (new Map()) };
+      let stacksMade = { key: "", stacked: /** @type {Map<string, { values: Float64Array, under: Float64Array, scale: Float64Array | null, group: string, rank: number }>} */ (new Map()) };
       /**
        * What stacked panes draw: each layer shown on a side at its own value plus those of the layers before it in the
        * stack (the panel's order, its first at the foot: A, A+B, A+B+C; reversed, its last); in a 100% one, that as a
        * share of them all. Each is drawn as it is (its type, its look): only its values change. A layer without a value at
        * a point adds none there and shows none (it starts where its data does); in a 100% stack, a negative one counts as
-       * none (a share of a whole). `under` and `scale` take its own values there (a candle's open, high, low and close).
+       * none (a share of a whole). `under` and `scale` take its own values there (a candle's open, high, low and close);
+       * `group` names its stack (its pane and side), `rank` its place there (its foot 0).
        * @param {Chart} doc @param {{ results: Map<string, any> }} data
-       * @returns {Map<string, { values: Float64Array, under: Float64Array, scale: Float64Array | null }>} by layer
+       * @returns {Map<string, { values: Float64Array, under: Float64Array, scale: Float64Array | null, group: string, rank: number }>} by layer
        */
       function stackOf(doc, data, kept = true) {
         // The open chart's, kept while what they're made of is the same (the stacked panes, their layers, places and values):
@@ -20156,14 +20161,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const side of ["left", "right"]) {
             const layers = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && !layer.from && layer.type !== "signal" && data.results.get(layer.id)?.values);
             if (!layers.length) continue;
-            const n = data.results.get(layers[0].id).values.length, total = new Float64Array(n);
-            for (const layer of pane.reverse ? [...layers].reverse() : layers) {
+            const n = data.results.get(layers[0].id).values.length, total = new Float64Array(n), group = `${pane.id}:${side}`;
+            for (const [rank, layer] of (pane.reverse ? [...layers].reverse() : layers).entries()) {
               const own = data.results.get(layer.id).values, values = new Float64Array(n), under = Float64Array.from(total);
               for (let i = 0; i < n; i++) {
                 if (Number.isFinite(own[i])) values[i] = total[i] += shares && own[i] < 0 ? 0 : own[i];
                 else values[i] = NaN;
               }
-              stacked.set(layer.id, { values, under, scale: null });
+              stacked.set(layer.id, { values, under, scale: null, group, rank });
             }
             if (!shares) continue;
             const scale = total.map((sum) => (sum ? 100 / sum : NaN));
@@ -20585,9 +20590,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A layer drawn small, as its type draws on the chart: `k` its kind (a line, an area, a baseline, bars, dots, or one
        * of its lines across), `c` its color (`c2` under its base), `d` its line (or its bars above the base, `d2` those
-       * below), `y0` a baseline's base, `top`/`bottom` its pane's extent (`up`: an area filled above), `dash`
+       * below), `y0` a baseline's base, `top`/`bottom` its pane's extent (`up`: an area filled above; `band`: a stacked one's band, its path), `dash`
        * its line style, `op` its opacity, `end` its latest point.
-       * @typedef {{ k: string, c: string, c2?: string, d: string, d2?: string, y0?: number, top?: number, bottom?: number, up?: boolean, dash?: string, op?: number, end?: number[] }} PlotMark
+       * @typedef {{ k: string, c: string, c2?: string, d: string, d2?: string, y0?: number, top?: number, bottom?: number, up?: boolean, band?: string, dash?: string, op?: number, end?: number[] }} PlotMark
        * Quick Look's (a big one's) too: its dates along its foot (`ticks`, where), each pane side's highest and lowest
        * value (`scales`, where). A preset's: which preset it is, by its place in their tree (`of`, see templateDoc).
        * @typedef {{ seps: number[], marks: PlotMark[], end?: number, ticks?: { x: number, text: string }[], scales?: { y: number, text: string, side: string }[], of?: string }} Preview
@@ -20805,6 +20810,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               }
               const x = (/** @type {number} */ i) => round(((i - shown.from) / span) * W), at = ([i, value]) => `${x(i)} ${y(value)}`;
               const look = { c: layer.color, ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}) };
+              // (A stacked area's band, as the chart draws it (see bvBandFill): down to the nearest band under it with a value
+              // there, else the stack's floor: zero, the pane's foot on a log scale.)
+              const own = layer.type === "area" && layer.fill !== "above" ? stacked.get(layer.id) : undefined;
+              const under = own ? [...stacked].filter(([id, item]) => item.group === own.group && item.rank < own.rank && ((band) => band?.type === "area" && band.fill !== "above")(doc.layers.find((item) => item.id === id))).map(([, item]) => item).sort((a, b) => b.rank - a.rank) : [];
+              const floorAt = own && ((/** @type {number} */ i) => ((band) => ((at) => (Number.isFinite(at) ? Math.min(paneBottom, at) : paneBottom))(y(scaled(band ? band.values[i] : 0))))(under.find((band) => Number.isFinite(band.values[i]))));
               // (Painted date by date, as on the chart: a mark for each of its colors, its pieces in that color.)
               const dateColors = paintOf(doc, layer, data), tintAt = (/** @type {number} */ i) => (dateColors && dateColors(Math.round(i))) ?? layer.color;
               /** @template T @param {{ color: string, points: T[] }[]} pieces @returns {Map<string, T[][]>} */
@@ -20869,7 +20879,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                   continue;
                 }
                 const line = { ...look, c, d: parts.map((part) => `M${part.map(at).join("L")}`).join(""), ...(c === last.color ? { end: [x(endAt), y(endValue)] } : {}), ...(gap ? { dash: `${length} ${gap}` } : {}) };
-                if (layer.type === "area") drawn.marks.push({ ...line, k: "area", top: paneTop, bottom: paneBottom, ...(layer.fill === "above" ? { up: true } : {}) });
+                if (layer.type === "area") drawn.marks.push({ ...line, k: "area", top: paneTop, bottom: paneBottom, ...(layer.fill === "above" ? { up: true } : {}), ...(floorAt ? { band: parts.map((part) => `M${part.map(at).join("L")}L${[...part].reverse().map(([i]) => `${x(i)} ${floorAt(i)}`).join("L")}Z`).join("") } : {}) });
                 else if (layer.type === "baseline") drawn.marks.push({ ...line, k: "baseline", c2: belowOf(layer), y0: Number.isFinite(level) ? inPane(y(level)) : paneBottom, top: paneTop, bottom: paneBottom });
                 else drawn.marks.push({ ...line, k: "line" });
               }
@@ -20933,6 +20943,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           } else {
             let fill = "";
             if (mark.k === "area" && mark.up) fill = `<path class="fill" style="fill:color-mix(in srgb, ${c} 12%, transparent)" d="${closedTo(mark.d, mark.top)}"/>`;
+            else if (mark.k === "area" && mark.band) fill = `<path class="fill" style="fill:color-mix(in srgb, ${c} ${STACK_FILL * 100}%, transparent)" d="${mark.band}"/>`;
             else if (mark.k === "area") {
               defs.push(fade("u", c, mark.top, mark.bottom, 0.2, 0));
               fill = `<path class="fill" style="fill:url(#${g}u)" d="${closedTo(mark.d, mark.bottom)}"/>`;
