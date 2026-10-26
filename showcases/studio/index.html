@@ -77,6 +77,9 @@
            page behind showing through under its handle.) */
         --sheet-half-height: round(calc(var(--sheet-half) * 100dvh), 1px);
         --sheet-whole-height: round(calc(var(--sheet-whole) * 100dvh), 1px);
+        /* (How much of the page's foot a phone's keyboard covers, the script's (see data-keys): none till it's up. Set here,
+           its first write is none: written on the root, a token's change has every style on the page made again.) */
+        --keys: 0px;
         --app: light-dark(#f6f6f7, #08090a);
         --card: light-dark(#ffffff, #0e0f11);
         --raise: light-dark(#ffffff, #17181b);
@@ -9320,7 +9323,7 @@
           if (Number.isFinite(prefs.panelWidth)) document.documentElement.style.setProperty("--panel-kept", `${Math.min(Math.max(prefs.panelWidth, 300), most(300, 0.4, 560, side))}px`);
         }
         // (The theme, as chosen: the stylesheet does the rest.)
-        if (prefs.theme === "light" || prefs.theme === "system") document.documentElement.dataset.theme = prefs.theme;
+        document.documentElement.dataset.theme = prefs.theme === "light" || prefs.theme === "system" ? prefs.theme : "dark";
         const there = history.state;
         // (A picture's link, #image=: the picture alone, the page out of sight while it's made.)
         if (/[#&]image=/.test(location.hash)) document.body.toggleAttribute("data-picture", true);
@@ -9801,21 +9804,44 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** @type {(id: string) => any} */
       const $ = (id) => document.getElementById(id);
+      /** A phone's layout, as a media query: the screen narrow, or low (a phone on its side). */
+      const PHONE = "(max-width: 760px), (max-height: 500px)";
       /**
-       * Tokens stay cached until the theme changes (light-dark() colors resolved on a probe, in hex for the chart and
-       * canvases).
+       * The tokens, kept for what they change with (the theme, the device's light or dark, a phone's layout): one asked
+       * for after any of those changed, every one the page sets is read again, in one go (the page's style resolved once,
+       * not once a token between its writes); light-dark() colors resolved on probes, in hex for the chart and canvases.
        */
       const tokens = new Map(), probe = document.head.appendChild(document.createElement("i"));
+      /** What they were read for: the theme, the device's light or dark, a phone's layout. */
+      let tokensFor = "";
+      // (Read on lists of their own, which no one listens to: a list's matches read takes a change for itself
+      // (Chromium), its listeners never hearing of it.)
+      const tokensMedia = [matchMedia("(prefers-color-scheme: light)"), matchMedia(PHONE)];
       // (The theme's own colors for the chart, not a high-contrast mode's: the page around it takes those.)
       probe.style.forcedColorAdjust = "none";
-      function token(/** @type {string} */ name) {
-        const written = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-        if (!written.startsWith("light-dark(")) return written;
-        probe.style.color = `var(${name})`;
-        const [r, g, b, a = 1] = (getComputedStyle(probe).color.match(/[\d.]+/g) ?? []).map(Number);
-        return `#${[r, g, b, ...(a < 1 ? [a * 255] : [])].map((n) => Math.round(n).toString(16).padStart(2, "0")).join("")}`;
+      /** Tokens read in one go: those named, else every one the page's root lists. @param {Iterable<string>} [names] */
+      function readTokens(names) {
+        const style = getComputedStyle(document.documentElement), colors = [];
+        for (const name of names ?? style) {
+          if (!name.startsWith("--")) continue;
+          const written = style.getPropertyValue(name).trim();
+          if (written.startsWith("light-dark(")) colors.push(name);
+          else tokens.set(name, written);
+        }
+        probe.replaceChildren(...colors.map((name) => Object.assign(document.createElement("i"), { style: `color: var(${name})` })));
+        colors.forEach((name, k) => {
+          const [r, g, b, a = 1] = (getComputedStyle(probe.children[k]).color.match(/[\d.]+/g) ?? []).map(Number);
+          tokens.set(name, `#${[r, g, b, ...(a < 1 ? [a * 255] : [])].map((n) => Math.round(n).toString(16).padStart(2, "0")).join("")}`);
+        });
       }
-      const css = (/** @type {string} */ name) => tokens.get(name) ?? (tokens.set(name, token(name)), tokens.get(name));
+      /** A token's value (none set: ""). @param {string} name */
+      const css = (name) => {
+        const now = [document.documentElement.dataset.theme, ...tokensMedia.map((media) => media.matches)].join();
+        if (now !== tokensFor) (tokens.clear(), (tokensFor = now), readTokens());
+        // (One the page's root doesn't list, read by its name: a browser that lists none (Chromium before 141), one unset.)
+        if (!tokens.has(name)) readTokens([name]);
+        return tokens.get(name);
+      };
       const uid = () => Math.random().toString(36).slice(2, 10);
       /** A key that's part of an IME's composing (a candidate confirmed, put away): the IME's, not the page's. (Safari's
        * confirming Enter comes after the composition ends, as key 229.) @param {KeyboardEvent} event */
@@ -9892,9 +9918,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
       }
       const MOTION = { micro: parseFloat(css("--dur-micro")), small: parseFloat(css("--dur-small")), panel: parseFloat(css("--dur-panel")), page: parseFloat(css("--dur-page")), ease: css("--ease"), layout: parseFloat(css("--dur-layout")), easeLayout: css("--ease-layout") };
-      const phone = matchMedia("(max-width: 760px), (max-height: 500px)");
+      const phone = matchMedia(PHONE);
       /** A layer row's value and change sizes, as the stylesheet sets them now (a phone's are larger): their room measured at them. */
-      const readRowSizes = () => ({ value: parseFloat(token("--row-value-size")), change: parseFloat(token("--row-change-size")) });
+      const readRowSizes = () => ({ value: parseFloat(css("--row-value-size")), change: parseFloat(css("--row-change-size")) });
       let rowSizes = readRowSizes();
       // (Changed, the rows written again at them: a cloud's room is set as it's written.)
       phone.addEventListener("change", () => ((rowSizes = readRowSizes()), chart && renderLayers()));
@@ -14315,7 +14341,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (!(rule instanceof CSSFontFaceRule) || rule.style.getPropertyValue("font-family").replace(/["']/g, "").trim() !== "Inter") continue;
             const url = rule.style.getPropertyValue("src").match(/url\(["']?([^"')]+)["']?\)/)?.[1];
             if (!url) return false;
-            const face = new FontFace("Inter Chart", await (await fetch(url)).arrayBuffer(), { weight: "500 900", featureSettings: '"tnum" 1' });
+            // (By its address, not its bytes: the page's own file, which a browser may parse once for both faces; from its
+            // bytes, it's parsed again, at once, on the page's thread (a long frame on a phone).)
+            const face = new FontFace("Inter Chart", `url("${url}")`, { weight: "500 900", featureSettings: '"tnum" 1' });
             document.fonts.add(face);
             return Boolean(await face.load());
           }
@@ -20699,27 +20727,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function goTo(/** @type {Place} */ place) {
         quickHide();
         const same = JSON.stringify(place) === JSON.stringify(homeAt);
+        // (Where the page was, read before its copy's put in (after, it'd be laid out at once for it); at its top already,
+        // not put there again (a scroll written lays the page out first). Above it (Safari's bounce), not there.)
+        const left = home && !same ? galleryPlace() : null, scrolledDown = !home || homeScroll().scrollTop !== 0;
         // (The page left fades out over the one coming in (see pageIn), as it was, scrolled where it was: never a frame
         // of neither.)
         if (home && !same && !reduced.matches) fadeOut(homeScroll(), [{ opacity: 1 }, { opacity: 0 }], MOTION.small, true, MOTION.ease);
         /** @type {HTMLInputElement} */ ($("home-filter")).value = "";
         if (!same) {
-          if (home) {
-            const place = galleryPlace();
-            history.replaceState({ ...homeState(), place }, "");
-            leftPlaces.set(history.state.key, place);
+          if (left) {
+            history.replaceState({ ...homeState(), place: left }, "");
+            leftPlaces.set(history.state.key, left);
           }
           placeHome(place);
           galleryShown = GALLERY_PAGE;
           clearPicks();
         }
-        homeScroll().scrollTop = 0;
+        if (scrolledDown) homeScroll().scrollTop = 0;
         if (!home) return showHome();
         if (!same) history.pushState(homeState(uid()), "");
         const fromPage = $("home").contains(document.activeElement);
         renderHome();
         if (!same) pageIn();
-        homeScroll().scrollTop = 0;
+        if (scrolledDown) homeScroll().scrollTop = 0;
         // (Gone with the page it was on, the focus starts the new one: its name.)
         if (fromPage && !$("home").contains(document.activeElement)) $("home-title").focus({ preventScroll: true });
       }
@@ -20781,8 +20811,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const WAITING_TILE = '<div class="tile waiting" aria-hidden="true"><span class="tile-open"><span class="tile-head"><span class="tile-name">&nbsp;</span></span><span class="tile-legend"></span><span class="tile-plot pending" data-seen></span></span></div>';
       /**
        * The tiles a shelf writes as it's drawn (as many as a screen's widest row shows); the rest a slot each, as wide, its
-       * tile written as it comes near (see tilesNear), or the focus comes into its row: a page of shelves (the presets'
-       * fourteen) writes what can show, not every shelf's twelve.
+       * tile written as it comes near (see tilesNear), or a keyboard's focus comes into its row: a page of shelves (the
+       * presets' fourteen) writes what can show, not every shelf's twelve.
        */
       const SHELF_WRITTEN = 3;
       const shelfTilesHtml = (/** @type {number[]} */ list, /** @type {boolean} */ lead) => list.slice(0, SHELF).map((i, k) => (lead || k < SHELF_WRITTEN ? presetTileHtml(i) : `<div class="tile-slot" data-slot="${i}"></div>`)).join("");
@@ -20795,7 +20825,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const frame of all$(".pending[data-plot]", tile)) galleryTilesSeen.observe(frame);
         return tile;
       }
-      /** Every slot of a shelf's row filled (the focus come into it: Tab reaches each tile). @param {HTMLElement} row */
+      /** Every slot of a shelf's row filled (a keyboard's focus come into it: Tab reaches each tile). @param {HTMLElement} row */
       const fillRow = (row) => all$(":scope > .tile-slot", row).forEach(fillSlot);
       const shelfHtml = (name, list, to, count = list.length, lead = false) => `<section class="shelf${lead ? " lead" : ""}" data-list="${listAt()}"><div class="shelf-head">${to ? `<button type="button" class="shelf-title" data-place="${escape(JSON.stringify({ path: to }))}">${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>` : `<h2 class="shelf-title">${escape(name)}</h2>`}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${shelfTilesHtml(list, lead)}${to ? seeAll({ path: to }, count) : ""}</div></section>`;
       /** The presets' side of the page, where it is (none in your Library): at the top, one shelf (the recommended, leading to them all); on their page, the recommended, then each section as a shelf; in a section, its own as a grid, then each section in it. */
@@ -20940,7 +20970,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         edges(row, at, size, full);
       }
       $("home").addEventListener("scroll", (event) => /** @type {HTMLElement} */ (event.target).matches?.(".shelf-row") && shelfSteps(/** @type {HTMLElement} */ (event.target)), { capture: true, passive: true });
-      $("home").addEventListener("focusin", (event) => ((row) => row && fillRow(row))(/** @type {HTMLElement | null} */ (/** @type {HTMLElement} */ (event.target).closest?.(".shelf-row"))));
+      // (A keyboard's focus come into it (Tab, the arrows, a menu's way back to its tile), for the keys to reach each; not
+      // one put there by a click's or a tap's way back from its chart: that wrote its row whole, 15 ms on a desktop.)
+      $("home").addEventListener("focusin", (event) => ((row) => row && /** @type {HTMLElement} */ (event.target).matches(":focus-visible") && fillRow(row))(closest(event, ".shelf-row")));
       // Every shelf measured again as the page's size changes (the window's, the sidebar's, a phone turned), shown at
       // another size than it was left at too; not as it's simply shown again: hidden, its shelves stayed as they were.
       {
@@ -21902,7 +21934,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const at = cards.indexOf(/** @type {HTMLElement} */ (document.activeElement));
         if (at < 0 || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
         event.preventDefault();
-        if (event.key === "Home" || event.key === "End") return cards[event.key === "Home" ? 0 : cards.length - 1].focus();
+        if (event.key === "Home") return cards[0].focus();
+        if (event.key === "End") return lastCard($("home-grid")).focus();
         nextCard(cards[at], event.key)?.focus();
       });
       // (The presets' gallery's cards too: the arrows, Home and End, as the grid's.)
@@ -21911,9 +21944,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const cards = all$(CARDS, $("gallery")), at = cards.indexOf(/** @type {HTMLElement} */ (document.activeElement));
         if (at < 0 || !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
         event.preventDefault();
-        if (event.key === "Home" || event.key === "End") return cards[event.key === "Home" ? 0 : cards.length - 1].focus();
+        if (event.key === "Home") return cards[0].focus();
+        if (event.key === "End") return lastCard($("gallery")).focus();
         nextCard(cards[at], event.key, $("gallery"))?.focus();
       });
+      /** A list's last card, its shelf's row written whole first (its last tiles may be slots yet). @param {HTMLElement} list */
+      const lastCard = (list) => (((row) => row && fillRow(row))(all$(".shelf-row", list).at(-1)), /** @type {HTMLElement} */ (all$(CARDS, list).at(-1)));
       /** What the arrows go along in the grid: the cards, and a shelf's last tile, to them all. */
       const CARDS = ".tile-open, .shelf-all";
       /**
@@ -22114,7 +22150,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const openedPreset = current?.preset !== undefined ? presetIndex(current) : -1;
         for (const button of all$("[data-open-chart], [data-open-preset]", $("chart-list"))) {
           const on = button.dataset.openChart !== undefined ? button.dataset.openChart === current?.id : Number(button.dataset.openPreset) === openedPreset;
-          if (on && Number(button.dataset.openPreset) === presetToReveal) (presetToReveal = -1), button.scrollIntoView({ block: "nearest" });
+          // (Scrolled to on the next frame, as it's laid out anyway (shown in it all the same): not here, mid-change, the
+          // whole page laid out for it at once.)
+          if (on && Number(button.dataset.openPreset) === presetToReveal) (presetToReveal = -1), requestAnimationFrame(() => button.scrollIntoView({ block: "nearest" }));
           if (on === button.hasAttribute("aria-current")) continue;
           button.closest(".chart-row")?.classList.toggle("active", on);
           if (on) button.setAttribute("aria-current", "page");
@@ -22478,7 +22516,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           light = lightChosen();
           pickedAt.clear();
           document.documentElement.dataset.theme = prefs.theme;
-          tokens.clear();
           hexCache.clear();
           view.applyOptions(chartColors());
           refresh();
@@ -30356,6 +30393,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         hoverMenu($("chart-path"), (event) => /** @type {HTMLElement | null} */ (closest(event, "#chart-place")), (anchor) => menuOf(anchor, chartPathRows(), null, "", { hover: true }));
       }
       /**
+       * The elements scrolled, as their scroll events say (a scroll by hand or by script, its event at the next frame: one
+       * scrolled by script in the task it's faded out in isn't one yet): only they can be anywhere but at their start.
+       * Those gone let go of as another comes (a row written anew, its scroll put back, each time).
+       * @type {Set<Element>}
+       */
+      const scrolled = new Set();
+      addEventListener("scroll", (event) => {
+        const element = event.target instanceof Element ? event.target : /** @type {Element} */ (document.scrollingElement);
+        if (scrolled.has(element)) return;
+        for (const other of scrolled) if (!other.isConnected) scrolled.delete(other);
+        scrolled.add(element);
+      }, { capture: true, passive: true });
+      /** A copy's twin of an element in what it's a copy of: the same way down. @param {Element} copy @param {Element} of @param {Element} element */
+      function twinIn(copy, of, element) {
+        const way = [];
+        for (let at = element; at !== of; at = /** @type {Element} */ (at.parentElement)) way.push(Array.prototype.indexOf.call(/** @type {Element} */ (at.parentElement).children, at));
+        return way.reduceRight((into, i) => into.children[i], copy);
+      }
+      /**
        * What's put away (a menu, a tip) seen going as it came: a copy of it as it was, where it was, playing its way out
        * (out of reach, unread), the thing itself gone at once, as everything here knows it (a browser that doesn't play
        * `display` out, Firefox, would drop it at once). Done once its copy's gone (at once, none made).
@@ -30368,7 +30424,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Not seen (no box, or hidden by what it's in): nothing to see go.)
         if (reduced.matches || !element.checkVisibility({ visibilityProperty: true })) return;
         const copy = /** @type {HTMLElement} */ (element.cloneNode(true)), style = getComputedStyle(element), after = getComputedStyle(element, "::after");
-        const from = [element, ...all$("*", element)], to = [copy, ...all$("*", copy)];
+        // (What moves in it and where it's scrolled (those of it scrolled: none else can be, not read one by one, a page's
+        // every element), asked before its copy's put in: after, the copy would be laid out at once for it.)
+        const moving = element.getAnimations({ subtree: true }), scrolls = /** @type {[Element, number, number][]} */ ([]);
+        for (const source of scrolled) if (element.contains(source) && (source.scrollTop || source.scrollLeft)) scrolls.push([source, source.scrollTop, source.scrollLeft]);
         // (Its ids kept, as its styles and its drawings' references (an SVG's url(#…)) need them: after it, it's never the
         // one an id finds while it's there.)
         copy.inert = true;
@@ -30381,14 +30440,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (placed) Object.assign(copy.style, { position: "absolute", left: `${element.offsetLeft}px`, top: `${element.offsetTop}px`, width: `${element.offsetWidth}px`, height: `${element.offsetHeight}px`, margin: "0", display: style.display, visibility: "visible", zIndex: "3", pointerEvents: "none", ...(after.content !== "none" ? { paddingBottom: `calc(${style.paddingBottom} + ${after.height})` } : {}) });
         element.after(copy);
         // (Scrolled as it was, its own and what's in it; its drawings (a canvas) as they were.)
-        from.forEach((source, i) => {
-          const into = /** @type {HTMLElement} */ (to[i]);
-          if (source.scrollTop || source.scrollLeft) (into.scrollTop = source.scrollTop), (into.scrollLeft = source.scrollLeft);
-          if (source instanceof HTMLCanvasElement && into instanceof HTMLCanvasElement && source.width && source.height) into.getContext("2d")?.drawImage(source, 0, 0);
-        });
+        for (const [source, top, left] of scrolls) Object.assign(twinIn(copy, element, source), { scrollTop: top, scrollLeft: left });
+        for (const source of /** @type {HTMLCanvasElement[]} */ (all$("canvas", element))) if (source.width && source.height) /** @type {HTMLCanvasElement} */ (twinIn(copy, element, source)).getContext("2d")?.drawImage(source, 0, 0);
         // (Moving as it was, its own and what's in it (a glide to a new place), on from where they'd got: not at their ends.)
-        for (const animation of element.getAnimations({ subtree: true })) {
-          const effect = animation.effect, into = effect instanceof KeyframeEffect && !effect.pseudoElement ? to[from.indexOf(/** @type {HTMLElement} */ (effect.target))] : undefined;
+        for (const animation of moving) {
+          const effect = animation.effect, into = effect instanceof KeyframeEffect && !effect.pseudoElement && effect.target ? twinIn(copy, element, effect.target) : undefined;
           if (!into || animation instanceof CSSAnimation || animation instanceof CSSTransition || animation.playState === "idle") continue;
           const twin = into.animate(/** @type {KeyframeEffect} */ (effect).getKeyframes(), effect.getTiming());
           twin.currentTime = animation.currentTime;
@@ -32324,7 +32380,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const root = document.documentElement;
         /** The page's height with no keyboard, at each width it's had (a screen turned with the keyboard up, the other's). */
         const tallest = /** @type {Map<number, number>} */ (new Map());
-        let covered = -1;
+        /** How much of the page's foot the keyboard covers, as --keys says (none, as the stylesheet starts it). */
+        let covered = 0;
         /** The field typed into, scrolled into what shows (in the list that holds it, under its head), its sheet sized first. */
         const reveal = () => {
           const field = /** @type {HTMLElement} */ (document.activeElement), sheet = field.closest("#panel, #palette");
