@@ -86,8 +86,8 @@
         /* (Small text, axis labels among it: 4.5:1 or more on the card, in both.) */
         --muted: light-dark(#6b7079, #7c818a);
         --faint: light-dark(#c4c7cc, #3e4147);
-        /* How many, beside what's counted: a step under muted (the two greys over it read alike). */
-        --count: color-mix(in oklab, var(--muted), var(--faint) 30%);
+        /* How many, beside what's counted: muted (a step under it read under 4.5:1: 3.3-3.8 on the page). */
+        --count: var(--muted);
         /* Black over the light, white over the dark, rest to emphasis; a hover is a step above rest. */
         --field: light-dark(rgb(0 0 0 / 0.03), rgb(255 255 255 / 0.035));
         --hover: light-dark(rgb(0 0 0 / 0.04), rgb(255 255 255 / 0.04));
@@ -230,6 +230,12 @@
         cursor: pointer;
       }
 
+      /* (Code in the face set for it, wherever it's written: the browser's own monospace is another's.) */
+      code,
+      pre {
+        font-family: var(--mono);
+      }
+
       :focus-visible {
         outline: 2px solid var(--focus);
         outline-offset: 1px;
@@ -342,7 +348,7 @@
          faintly. */
       :is([aria-selected="true"], [aria-current]:not([aria-current="false"]), .chart-row.active, .menu > button:is(:hover:where(.can-hover *), :focus-visible, [aria-expanded="true"])) {
         --muted: var(--soft);
-        --count: color-mix(in oklab, var(--soft), var(--faint) 30%);
+        --count: var(--soft);
       }
 
       /* A link's picture alone (#image=): the page out of sight while the chart's made (as full screen lays it out), then
@@ -1015,7 +1021,7 @@
         right: -7px;
         min-width: 20px;
         height: 20px;
-        border-radius: 10px;
+        border-radius: 999px;
         padding: 0 6px;
         color: var(--app);
         background: var(--ink);
@@ -2152,17 +2158,24 @@
 
       /* A path's steps (a page's way up, the open chart's place): each a button to its page, "›" between. */
       .crumbs {
+        /* (Its name cut short in a span of its own: the button itself unclipped, a finger's reach about it, see
+           pointer: coarse.) */
         > button:where(:not(.cap)) {
+          display: flex;
           border: 0;
           border-radius: var(--radius-sm);
           min-width: 0;
-          overflow: hidden;
           padding: 2px 4px;
           color: var(--soft);
           background: none;
           font: inherit;
           letter-spacing: inherit;
-          text-overflow: ellipsis;
+
+          > span {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
 
           &:hover:where(.can-hover *) {
             color: var(--ink);
@@ -3163,7 +3176,7 @@
 
       .back-chip {
         padding: 2px 3.5px;
-        border-radius: 4px;
+        border-radius: var(--radius-xs);
         color: var(--c);
         font: 590 11px/1 var(--sans);
 
@@ -5837,8 +5850,10 @@
             flex-shrink: 0;
           }
 
+          /* (A row's name before its aside: the name as long as it is, the aside in what's left (a series' id, a path, cut
+             first); a name longer than the row, cut at its end. What follows the name, at the row's end.) */
           .item-name {
-            flex: 1;
+            flex: 0 1 auto;
             min-width: 0;
             overflow: hidden;
             color: var(--text);
@@ -5862,9 +5877,15 @@
             }
           }
 
+          .item-name + * {
+            margin-inline-start: auto;
+          }
+
           .item-meta {
+            flex: 1 1 0;
             min-width: 0;
             max-width: 45%;
+            text-align: end;
             overflow: hidden;
             color: var(--muted);
             font-size: 12px;
@@ -6784,8 +6805,19 @@
         margin-top: 24px;
       }
 
+      /* (A note, and what it offers beside it (Try again, Search all presets): on its line, else under it.) */
       .gallery-note {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
+        margin: 0;
         color: var(--soft);
+
+        .count {
+          margin-left: 6px;
+          color: var(--count);
+        }
       }
 
       .gallery-more {
@@ -7847,7 +7879,7 @@
             width: 36px;
             height: 5px;
             margin: 7px auto 0;
-            border-radius: 3px;
+            border-radius: 999px;
             background: var(--faint);
             transition: background var(--dur-small) var(--ease);
           }
@@ -8085,13 +8117,15 @@
             max-width: none;
             padding-inline-start: 26px;
             line-height: 16px;
+            text-align: start;
             white-space: normal;
             overflow-wrap: anywhere;
           }
         }
 
-        /* A series' row: the name people read, the API's name under it (beside it, there's no room). */
-        .palette-list li[data-kind="series"] {
+        /* A series' row: the name people read, the API's name under it; a preset's found by a search, where it is under
+           it (beside it, there's no room: both were cut). */
+        .palette-list li:is([data-kind="series"], .under) {
           display: grid;
           grid-template-columns: auto minmax(0, 1fr) auto auto;
           column-gap: 10px;
@@ -8111,7 +8145,9 @@
           .item-meta {
             grid-column: 2;
             max-width: none;
+            margin-inline-start: 0;
             line-height: 16px;
+            text-align: start;
           }
 
           /* (Its ⋯, by touch: a column of its own, past its mark, through the row's padding: the row's whole height.) */
@@ -8875,7 +8911,7 @@
             content: "";
             width: 36px;
             height: 5px;
-            border-radius: 3px;
+            border-radius: 999px;
             background: var(--faint);
             transition: background var(--dur-small) var(--ease);
           }
@@ -8919,7 +8955,7 @@
            bigger reach, wherever there's room about it (a row of them spaced so each reaches to the next). Fields are
            the desktop's size too; rows and a grid of swatches are as tall as a finger needs, reached as they are. */
         /* (No weight of its own: one placed otherwise, Full screen in the axis's corner, stays so.) */
-        :where(.cap, .btn, .interval.btn, .tabs button, .preset, .pane-scale, .source-pick, button.more, button.reset, .grip, .foot-action, button.search, .path button, .scope, .slot-chip) {
+        :where(.cap, .btn, .interval.btn, .tabs button, .preset, .pane-scale, .source-pick, button.more, button.reset, .grip, .foot-action, button.search, .path button, .crumbs button, .scope, .slot-chip, button.shelf-title) {
           position: relative;
 
           &::before {
@@ -8956,7 +8992,7 @@
 
         /* (A segment's reach up and down only, its neighbors flush (⌘K's crumbs and its scope too); a row's eye's away
            from the row, over its edge; a level's and a field head's button's, half the gap between them.) */
-        :is(.tabs button, .path button, .scope)::before {
+        :is(.tabs button, .path button, .crumbs button, .scope)::before {
           inset-inline: 0;
         }
 
@@ -16011,14 +16047,33 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function fitStrip(element, down = false) {
         const [at, size, full] = down ? [element.scrollTop, element.clientHeight, element.scrollHeight] : [element.scrollLeft, element.clientWidth, element.scrollWidth];
-        edges(element, at, size, full);
+        edges(element, at, size, full, down ? undefined : cutsOf(element));
       }
-      /** A scroller's faded edges, as it's scrolled (`at`) in what shows of it (`size`) of all of it (`full`). @param {HTMLElement} element */
-      function edges(element, /** @type {number} */ at, /** @type {number} */ size, /** @type {number} */ full) {
+      /**
+       * Which edges of a strip cut what's in it as it shows (a tile, an entry, crossing the edge): a faded edge says
+       * there's more where something's cut, not where the edge falls between two (a shelf stepped to its next tiles,
+       * each whole: a fade there read as the last one cut off). Read, before what's written.
+       * @param {HTMLElement} element
+       */
+      function cutsOf(element) {
+        const box = element.getBoundingClientRect(), cut = { start: false, end: false };
+        for (const child of element.children) {
+          const r = child.getBoundingClientRect();
+          if (r.left < box.left - 1 && r.right > box.left + 1) cut.start = true;
+          if (r.left < box.right - 1 && r.right > box.right + 1) cut.end = true;
+        }
+        return cut;
+      }
+      /**
+       * A scroller's faded edges, as it's scrolled (`at`) in what shows of it (`size`) of all of it (`full`); only where
+       * something's cut there (`cut`, see cutsOf; none given, wherever there's more).
+       * @param {HTMLElement} element
+       */
+      function edges(element, /** @type {number} */ at, /** @type {number} */ size, /** @type {number} */ full, cut = { start: true, end: true }) {
         const overflows = full > size + 1;
         element.classList.toggle("overflows", overflows);
-        element.style.setProperty("--edge-start", `${overflows ? clamp(at, 0, 28) : 0}px`);
-        element.style.setProperty("--edge-end", `${overflows ? clamp(full - size - at, 0, 28) : 0}px`);
+        element.style.setProperty("--edge-start", `${overflows && cut.start ? clamp(at, 0, 28) : 0}px`);
+        element.style.setProperty("--edge-end", `${overflows && cut.end ? clamp(full - size - at, 0, 28) : 0}px`);
       }
       /**
        * A list's highlight that glides from row to row as the pointer or the keys go along it, rather than each row lighting
@@ -20600,7 +20655,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** @typedef {{ name: string, at: Place }} Step */
       /** A path's steps as crumbs (see .crumbs): each a button to its place, "›" between. @param {Step[]} steps */
       function crumbsHtml(steps) {
-        return steps.map((step) => `<button type="button" dir="auto" data-place="${escape(JSON.stringify(step.at))}">${escape(step.name)}</button>`).join('<span class="sep" aria-hidden="true">›</span>');
+        return steps.map((step) => `<button type="button" dir="auto" data-place="${escape(JSON.stringify(step.at))}"><span>${escape(step.name)}</span></button>`).join('<span class="sep" aria-hidden="true">›</span>');
       }
       /**
        * The way to a place, the place last, from its group (none for the top): a section's, the Presets and the sections
@@ -20639,7 +20694,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Where the open chart is, before its name (see .chart-path): the section, folder or group it's in, its menu's anchor (see chartPathRows). */
       function renderChartPath() {
         const place = chartPlace(), steps = place ? stepsTo(place) : [], parent = steps.at(-1);
-        const html = parent ? `<button type="button" id="chart-place" dir="auto" aria-haspopup="menu" aria-label="In ${escape(steps.map((step) => step.name).join(", "))}" data-tip="In ${escape(steps.map((step) => step.name).join(" › "))}">${escape(parent.name)}</button><span class="sep" aria-hidden="true">›</span>` : "";
+        const html = parent ? `<button type="button" id="chart-place" dir="auto" aria-haspopup="menu" aria-label="In ${escape(steps.map((step) => step.name).join(", "))}" data-tip="In ${escape(steps.map((step) => step.name).join(" › "))}"><span>${escape(parent.name)}</span></button><span class="sep" aria-hidden="true">›</span>` : "";
         $("chart-path").hidden = !html;
         if (html !== chartPathDrawn) $("chart-path").innerHTML = chartPathDrawn = html;
       }
@@ -20989,7 +21044,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (words.length) {
           const found = presetsMatching(words, 1000, path.length ? (i) => path.every((name, depth) => /** @type {Preset[]} */ (presets)[i].p[depth] === name) : null);
           galleryFound = found.length;
-          $("gallery").innerHTML = head(found.length) + (found.length ? presetGridHtml(found) : `<p class="gallery-note">No presets match “${escape(field.value.trim())}”</p>`);
+          // (None in a section: said where, and the presets as a whole offered, where they hold some: no dead end.)
+          const elsewhere = found.length || !path.length ? 0 : presetsMatching(words, 1000).length;
+          $("gallery").innerHTML = head(found.length) + (found.length ? presetGridHtml(found) : `<p class="gallery-note">No presets ${path.length ? `in ${escape(/** @type {string} */ (path.at(-1)))} ` : ""}match “${escape(field.value.trim())}”${elsewhere ? ` <button type="button" class="btn small" data-search-all>Search all presets<span class="count">${grouped.format(elsewhere)}${elsewhere >= 1000 ? "+" : ""}</span></button>` : ""}</p>`);
         } else {
           const { own, groups } = sectionAt(path);
           // (At the top, the presets as one shelf, as your Library's is: the recommended, leading to them all.)
@@ -21009,7 +21066,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A shelf's steps: there only while its row scrolls, each off at its end. @param {HTMLElement} row */
       function shelfSteps(row) {
         shelfScrolls.set(row, row.scrollLeft);
-        fitShelf(row, row.scrollLeft, row.clientWidth, row.scrollWidth);
+        fitShelf(row, row.scrollLeft, row.clientWidth, row.scrollWidth, cutsOf(row));
       }
       /** A shelf a page on (`dir` 1) or back (-1), by whole tiles: the first one there whole at its start. */
       function stepShelf(/** @type {HTMLElement} */ row, /** @type {number} */ dir) {
@@ -21024,9 +21081,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const shelvesSoon = () => (shelvesFrame ||= requestAnimationFrame(() => ((shelvesFrame = 0), allShelfSteps())));
       /** Every shelf's steps and edges, its slots watched, a grid's too (all read first, then written: one layout, not one a shelf). */
       function allShelfSteps() {
-        const rows = all$(".shelf-row", $("home")), sizes = rows.map((row) => ({ at: row.scrollLeft, size: row.clientWidth, full: row.scrollWidth }));
+        const rows = all$(".shelf-row", $("home")), sizes = rows.map((row) => ({ at: row.scrollLeft, size: row.clientWidth, full: row.scrollWidth, cut: cutsOf(row) }));
         nearTiles(rows);
-        rows.forEach((row, k) => fitShelf(row, sizes[k].at, sizes[k].size, sizes[k].full));
+        rows.forEach((row, k) => fitShelf(row, sizes[k].at, sizes[k].size, sizes[k].full, sizes[k].cut));
       }
       /** Each shelf whose slots are watched, and what watches them. @type {WeakMap<HTMLElement, IntersectionObserver>} */
       const rowsNear = new WeakMap();
@@ -21059,8 +21116,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           shelvesNear = new IntersectionObserver((entries, own) => {
             // (Every shelf come near read first, then each written: one layout, not one a shelf.)
             const rows = entries.filter((entry) => entry.isIntersecting && !rowsNear.has(/** @type {HTMLElement} */ (entry.target))).map((entry) => /** @type {HTMLElement} */ (entry.target));
-            const sizes = rows.map((row) => ({ at: row.scrollLeft, room: row.clientWidth, full: row.scrollWidth, unit: row.children.length > 1 ? row.children[1].getBoundingClientRect().left - row.children[0].getBoundingClientRect().left : 0 }));
-            rows.forEach((row, k) => (own.unobserve(row), fitShelf(row, sizes[k].at, sizes[k].room, sizes[k].full), tilesNear(row, sizes[k])));
+            const sizes = rows.map((row) => ({ at: row.scrollLeft, room: row.clientWidth, full: row.scrollWidth, unit: row.children.length > 1 ? row.children[1].getBoundingClientRect().left - row.children[0].getBoundingClientRect().left : 0, cut: cutsOf(row) }));
+            rows.forEach((row, k) => (own.unobserve(row), fitShelf(row, sizes[k].at, sizes[k].room, sizes[k].full, sizes[k].cut), tilesNear(row, sizes[k])));
           }, { root: scroller, rootMargin: `${2 * reach}px 0px` });
         }
         const shelves = /** @type {IntersectionObserver} */ (shelvesNear), slots = /** @type {IntersectionObserver} */ (slotsNear);
@@ -21091,14 +21148,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         rowsNear.set(row, near);
         [...row.children].forEach((tile, i) => tile.matches(".tile-slot") && (i * unit < at + 3 * room && (i + 1) * unit > at - 2 * room ? fillSlot(/** @type {HTMLElement} */ (tile)) : near.observe(tile)));
       }
-      /** A shelf as it's scrolled: its steps there while it scrolls, each off at its end; its edges faded where there's more, as a strip's. */
-      function fitShelf(/** @type {HTMLElement} */ row, /** @type {number} */ at, /** @type {number} */ size, /** @type {number} */ full) {
+      /**
+       * A shelf as it's scrolled: its steps there while it scrolls, each off at its end; its edges faded where there's
+       * more and a tile's cut, as a strip's (see cutsOf).
+       * @param {HTMLElement} row @param {number} at @param {number} size @param {number} full @param {{ start: boolean, end: boolean }} cut
+       */
+      function fitShelf(row, at, size, full, cut) {
         const over = full - size;
         for (const step of all$("[data-shelf-step]", /** @type {HTMLElement} */ (row.closest(".shelf")))) {
           step.hidden = over <= 1;
           step.setAttribute("aria-disabled", String(Number(step.dataset.shelfStep) < 0 ? at <= 1 : at >= over - 1));
         }
-        edges(row, at, size, full);
+        edges(row, at, size, full, cut);
       }
       $("home").addEventListener("scroll", (event) => /** @type {HTMLElement} */ (event.target).matches?.(".shelf-row") && shelfSteps(/** @type {HTMLElement} */ (event.target)), { capture: true, passive: true });
       // (A keyboard's focus come into it (Tab, the arrows, a menu's way back to its tile), for the keys to reach each; not
@@ -21148,6 +21209,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           /** @type {HTMLElement | null | undefined} */ ((tile?.matches(".tile-slot") ? fillSlot(/** @type {HTMLElement} */ (tile)) : tile)?.querySelector(".tile-open"))?.focus({ preventScroll: true });
         }
         else if (closest(event, "[data-gallery-retry]")) retryPresets();
+        else if (closest(event, "[data-search-all]")) {
+          // (The same words, over every preset: the field as it was, its focus kept by keys, not a keyboard by touch.)
+          const words = /** @type {HTMLInputElement} */ ($("home-filter")).value;
+          goTo({ path: [] });
+          /** @type {HTMLInputElement} */ ($("home-filter")).value = words;
+          renderHome();
+          if (!byTouch) $("home-filter").focus({ preventScroll: true });
+        }
         else if (step && step.getAttribute("aria-disabled") !== "true") stepShelf(/** @type {HTMLElement} */ (step.closest(".shelf")?.querySelector(".shelf-row")), Number(step.dataset.shelfStep));
         else if (preset) pickPreset(Number(preset.dataset.openPreset));
       });
@@ -24525,7 +24594,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const presetRow = (/** @type {number} */ i, deep = false) => {
         const preset = /** @type {Preset[]} */ (presets)[i], edited = keptPreset(i), title = edited ? titleOf(edited) : preset.t;
         return {
-          kind: "row", key: `preset:${i}`, icon: ICONS.charts, label: title, ...(deep ? { aside: preset.p.slice(0, -1).join(" › ") } : {}), verb: "Open",
+          kind: "row", key: `preset:${i}`, icon: ICONS.charts, label: title, ...(deep ? { aside: preset.p.slice(0, -1).join(" › "), under: true } : {}), verb: "Open",
           run: () => pickPreset(i),
           actions: () => presetActions(i, "palette"),
           preview: (/** @type {HTMLElement} */ panel) => {
@@ -28618,7 +28687,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const header = item.group && item.group !== group ? `<li class="group" role="presentation" id="${(groupId = `palette-group-${i}`)}">${escape((group = item.group))}</li>` : "";
           const described = item.group ? ` aria-describedby="${groupId}"` : "";
           if (item.kind === "formula" || item.kind === "insert") return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}">${formulaRow(item)}</li>`;
-          if (item.kind === "row") return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="row" data-option="${i}" aria-selected="${i === palette.active}" class="${item.dim || item.disabled ? "dim" : ""}"${item.disabled ? ' aria-disabled="true"' : ""}>${rowHtml(item)}</li>`;
+          if (item.kind === "row") return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="row" data-option="${i}" aria-selected="${i === palette.active}" class="${item.dim || item.disabled ? "dim" : ""}${item.under ? " under" : ""}"${item.disabled ? ' aria-disabled="true"' : ""}>${rowHtml(item)}</li>`;
           const doc = item.kind === "chart" ? chartById(item.key) : null;
           if (item.kind === "series") {
             const blocked = byBlock.has(item.name), human = humanize(item.name);
