@@ -20083,8 +20083,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * its line style, `op` its opacity, `end` its latest point.
        * @typedef {{ k: string, c: string, c2?: string, d: string, d2?: string, y0?: number, top?: number, bottom?: number, up?: boolean, dash?: string, op?: number, end?: number[] }} PlotMark
        * Quick Look's (a big one's) too: its dates along its foot (`ticks`, where), each pane side's highest and lowest
-       * value (`scales`, where).
-       * @typedef {{ seps: number[], marks: PlotMark[], end?: number, ticks?: { x: number, text: string }[], scales?: { y: number, text: string, side: string }[] }} Preview
+       * value (`scales`, where). A preset's: which preset it is, by its place in their tree (`of`, see templateDoc).
+       * @typedef {{ seps: number[], marks: PlotMark[], end?: number, ticks?: { x: number, text: string }[], scales?: { y: number, text: string, side: string }[], of?: string }} Preview
        */
       /** Each kind, with what it can't be drawn without. */
       const PLOT_NEEDS = { line: [], dots: [], bars: [], across: [], band: [], area: ["top", "bottom"], baseline: ["y0", "top", "bottom"] };
@@ -20114,18 +20114,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       const savePreviewsSoon = writeSoon(savePreviews);
       /**
-       * The drawings kept: the recommended charts', then those of the charts edited last, within a budget (they're a cache: drawn
-       * again when missing, they never crowd out the charts themselves).
+       * The drawings kept: the recommended charts', then those of the charts edited last, then the presets' last drawn,
+       * within a budget (they're a cache: drawn again when missing, they never crowd out the charts themselves; a day old,
+       * see thumbKey). A launch's Charts page shows those it kept, not each drawn again from its data. Written oldest
+       * first, as they're read back: the last drawn last again.
        */
       function savePreviews() {
-        const kept = {}, when = (id) => (id.startsWith("recommended:") ? Infinity : chartById(id)?.updated ?? -Infinity);
+        const drawn = new Map([...previews.keys()].map((id, k) => [id, k]));
+        const kept = /** @type {[string, Preview & { key: string }][]} */ ([]), when = (/** @type {string} */ id) => (id.startsWith("recommended:") ? Infinity : chartById(id)?.updated ?? (id.startsWith("preset:") ? /** @type {number} */ (drawn.get(id)) : -Infinity));
         let size = 0;
         for (const [id, item] of [...previews].filter(([id]) => when(id) > -Infinity).sort(([a], [b]) => when(b) - when(a))) {
           size += JSON.stringify(item).length;
           if (size > 1_000_000) break;
-          kept[id] = item;
+          kept.push([id, item]);
         }
-        storage.set(PREVIEWS, kept);
+        storage.set(PREVIEWS, Object.fromEntries(kept.reverse()));
       }
       /**
        * @param {Chart} doc @param {{ times: number[], results: Map<string, any> }} data
@@ -20447,7 +20450,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!/^(recommended|preset):/.test(doc.id) && chartById(doc.id) !== doc) return null;
           // (A preset let go meanwhile, out of the last looked at: its drawing isn't kept either.)
           if (doc.id.startsWith("preset:") && !presetDocs.has(Number(doc.id.slice(7)))) return null;
-          const drawn = { key, ...previewOf(copy, data, previewBars(doc, index)) };
+          // (A preset's: which one, by its place, see templateDoc.)
+          const drawn = { key, ...previewOf(copy, data, previewBars(doc, index)), ...(doc.id.startsWith("preset:") ? { of: presetKey(Number(doc.id.slice(7))) } : {}) };
+          // (The last drawn last: kept first, see savePreviews.)
+          previews.delete(doc.id);
           previews.set(doc.id, drawn);
           savePreviewsSoon();
           return drawn;
@@ -23970,7 +23976,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function templateDoc(/** @type {number} */ i) {
         let doc = presetDocs.get(i);
         if (doc) presetDocs.delete(i);
-        else doc = Object.assign(fromPreset(/** @type {Preset[]} */ (presets)[i]), { id: `preset:${i}` });
+        else {
+          doc = Object.assign(fromPreset(/** @type {Preset[]} */ (presets)[i]), { id: `preset:${i}` });
+          // (A drawing kept by its place in the list is this preset's only if it says so: the list may be another now.)
+          if (previews.get(doc.id)?.of !== presetKey(i)) previews.delete(doc.id);
+        }
         presetDocs.set(i, doc);
         for (const [old] of presetDocs) {
           if (presetDocs.size <= 200) break;
