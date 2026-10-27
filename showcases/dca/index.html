@@ -1554,7 +1554,8 @@
       };
       const lasting = (/** @type {number} */ months) => {
         const years = Math.floor(months / 12), rest = months % 12;
-        const y = years ? `${years} year${years > 1 ? "s" : ""}` : "", m = rest ? `${rest} month${rest > 1 ? "s" : ""}` : "";
+        // (A number and its unit never split over two lines.)
+        const y = years ? `${years}\u00a0year${years > 1 ? "s" : ""}` : "", m = rest ? `${rest}\u00a0month${rest > 1 ? "s" : ""}` : "";
         return y && m ? `${y} and ${m}` : y || m;
       };
 
