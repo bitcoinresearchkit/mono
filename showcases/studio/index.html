@@ -21043,6 +21043,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
         return `<svg class="plot" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">${defs.length ? `<defs>${defs.join("")}</defs>` : ""}${body.join("")}</svg>`;
       }
+      /**
+       * Each drawing's own number, as a frame records the one it shows (`data-drawn`): two of one chart, at one key (a
+       * tile's from weekly data, the chart's as it's left), told apart. @type {WeakMap<object, number>}
+       */
+      const drawingIds = new WeakMap();
+      let drawingsNumbered = 0;
+      const drawingId = (/** @type {object} */ drawn) => drawingIds.get(drawn) ?? (drawingIds.set(drawn, ++drawingsNumbered), drawingsNumbered);
       /** The mini charts being drawn (a chart's tile, a card's, ⌘K's), by what they're drawn of: one ask at a time each. */
       const plotsDrawing = new Map();
       /**
@@ -21055,7 +21062,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const frame of all$(`[data-plot="${CSS.escape(id)}"]`)) {
           if (!all && !frame.classList.contains("pending")) continue;
           frame.classList.remove("pending");
-          if (drawn) frame.innerHTML = previewSvg(drawn, `${frame.classList[0]}-${id}`);
+          // (Which drawing it shows (see drawingId): a frame put back is painted again where it's another's, see renderGallery.)
+          if (drawn) (frame.innerHTML = previewSvg(drawn, `${frame.classList[0]}-${id}`)), (frame.dataset.drawn = String(drawingId(drawn)));
           // (None, and no picture before it: said, not a blank that reads as no data; asked for again, see retryPlots.
           // One from before stays: a sketch of the same chart.)
           frame.classList.toggle("failed", !drawn && !frame.querySelector("svg"));
@@ -21119,7 +21127,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (`current`: one drawn before it changed is drawn again, as it is now, once in view.)
         // (`frame`: its classes, the first naming its drawing's ids: two frames of one chart, a hidden one's ids not the
         // shown one's.)
-        return `<span class="${frame} ${drawn && (!current || drawn.key === previewKey(doc)) ? "" : "pending"}" data-plot="${doc.id}">${drawn ? previewSvg(drawn, `${frame.split(" ")[0]}-${doc.id}`) : ""}</span>`;
+        return `<span class="${frame} ${drawn && (!current || drawn.key === previewKey(doc)) ? "" : "pending"}" data-plot="${doc.id}"${drawn ? ` data-drawn="${drawingId(drawn)}"` : ""}>${drawn ? previewSvg(drawn, `${frame.split(" ")[0]}-${doc.id}`) : ""}</span>`;
       }
       /** A layer in a tile's legend (Quick Look's: `after`, its value's place): its color's dot, its name. @param {Layer} layer */
       const legendEntry = (layer, after = "") => `<span style="--c:${escape(ink(layer.color))}">${escape(labelOf(layer))}${after}</span>`;
@@ -21205,7 +21213,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           presetsFirst ? gallery.after(grid) : gallery.before(grid);
           if (focused instanceof HTMLElement && focused !== document.activeElement && focused.isConnected) focused.focus({ preventScroll: true });
         }
-        $("home-count").textContent = query ? `${grouped.format(shownYours.length + (home && ("top" in homeAt || "previews" in homeAt) ? previewsShown().length : 0) + galleryFound)}${galleryFound === 1000 ? "+" : ""} found` : "";
+        $("home-count").textContent = query ? `${grouped.format(shownYours.length + (home && ("top" in homeAt || "previews" in homeAt) ? previewsShown().length : 0) + galleryFound)} found` : "";
       }
       /** The page's head: its name (a folder of yours, its menu beside it), the way up (each level a step to), its search, what's there to do. */
       function renderHomeHead() {
@@ -21550,9 +21558,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A grid of presets, as many as shown, more a button away: its first tile written (every row as tall as it), the
        * others a slot each, written once near sight (see nearTiles): a search typed writes what shows, not sixty.
-       * @param {number[]} list
+       * `total`: how many there are in all (`list` may be only the first of them, as many as show and one).
+       * @param {number[]} list @param {number} [total]
        */
-      const presetGridHtml = (list) => `<div class="grid-tiles" data-list="${listAt()}">${list.slice(0, galleryShown).map((i, k) => (k ? slotHtml(i) : presetTileHtml(i))).join("")}</div>${list.length > galleryShown ? `<button type="button" class="btn ghost small gallery-more" data-gallery-more>Show ${grouped.format(Math.min(GALLERY_PAGE, list.length - galleryShown))} more</button>` : ""}`;
+      const presetGridHtml = (list, total = list.length) => `<div class="grid-tiles" data-list="${listAt()}">${list.slice(0, galleryShown).map((i, k) => (k ? slotHtml(i) : presetTileHtml(i))).join("")}</div>${total > galleryShown ? `<button type="button" class="btn ghost small gallery-more" data-gallery-more>Show ${grouped.format(Math.min(GALLERY_PAGE, total - galleryShown))} more</button>` : ""}`;
       /** A shelf's steps, a page of tiles back and on (see stepShelf). */
       const SHELF_STEPS = `<button type="button" class="cap small shelf-step" data-shelf-step="-1" aria-label="Scroll back" data-tip="Scroll back">${ICONS.back}</button><button type="button" class="cap small shelf-step" data-shelf-step="1" aria-label="Scroll on" data-tip="Scroll on">${ICONS.next}</button>`;
       /**
@@ -21610,6 +21619,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (drawn === galleryDrawn) return;
         // (The same place drawn anew (the theme switched): its scroll and its shelves' kept.)
         const kept = spot === gallerySpot ? galleryPlace() : null;
+        // (A search over the page as it was: that page kept aside, as drawn, to come back once the search is cleared.)
+        if (words.length && galleryPlain && presets) galleryAside = { drawn: galleryDrawn, lists: listsDrawn, nodes: [...$("gallery").childNodes] };
+        galleryPlain = !words.length;
         galleryDrawn = drawn;
         gallerySpot = spot;
         listsDrawn = 0;
@@ -21628,12 +21640,30 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return restoreFocus($("gallery"), focus);
         }
         if (words.length) {
-          const found = presetsMatching(words, 1000, path.length ? (i) => path.every((name, depth) => /** @type {Preset[]} */ (presets)[i].p[depth] === name) : null);
-          galleryFound = found.length;
+          // (The best of them as many as show, ranked; how many, all of them.)
+          const found = presetsMatching(words, galleryShown + 1, path.length ? (i) => path.every((name, depth) => /** @type {Preset[]} */ (presets)[i].p[depth] === name) : null), count = presetsCounted;
+          galleryFound = count;
           // (None in a section: said where, and the presets as a whole offered, where they hold some: no dead end.)
-          const elsewhere = found.length || !path.length ? 0 : presetsMatching(words, 1000).length;
-          $("gallery").innerHTML = head(found.length) + (found.length ? presetGridHtml(found) : `<p class="gallery-note">No presets ${path.length ? `in ${escape(/** @type {string} */ (path.at(-1)))} ` : ""}match “${escape(field.value.trim())}”${elsewhere ? ` <button type="button" class="btn small" data-search-all>Search all presets<span class="count">${grouped.format(elsewhere)}${elsewhere >= 1000 ? "+" : ""}</span></button>` : ""}</p>`);
+          const elsewhere = count || !path.length ? 0 : (presetsMatching(words, 0), presetsCounted);
+          $("gallery").innerHTML = head(count) + (count ? presetGridHtml(found, count) : `<p class="gallery-note">No presets ${path.length ? `in ${escape(/** @type {string} */ (path.at(-1)))} ` : ""}match “${escape(field.value.trim())}”${elsewhere ? ` <button type="button" class="btn small" data-search-all>Search all presets<span class="count">${grouped.format(elsewhere)}</span></button>` : ""}</p>`);
+        } else if (galleryAside?.drawn === drawn) {
+          // (The page as it was before the search, nothing it shows changed since: put back, not written again. Each
+          // tile's plot as a written tile's would be (see plotHtml): its preset's drawing as it is now, shown if it's
+          // another (a chart drawn anew as it's left, `data-drawn`); none, or out of date (a day on), waiting in sight to
+          // be drawn; a failed one waits in sight too, for a retry.)
+          $("gallery").replaceChildren(...galleryAside.nodes);
+          listsDrawn = galleryAside.lists;
+          galleryAside = null;
+          for (const frame of all$(".tile[data-preset] > .tile-open [data-plot]", $("gallery"))) {
+            // (A tile of its preset as it was (opened since: its copy's id now): written again, as a page written anew has it.)
+            const i = presetOf(frame), doc = presetDoc(i), now = previews.get(doc.id);
+            if (frame.dataset.plot !== doc.id) writeTile(/** @type {HTMLElement} */ (frame.closest(".tile")), i);
+            else if (!now || now.key !== previewKey(doc)) frame.classList.contains("failed") || frame.classList.add("pending");
+            else if (frame.dataset.drawn !== String(drawingId(now))) paint(doc.id, now, true);
+          }
+          for (const frame of all$(".failed[data-plot]", $("gallery"))) galleryTilesSeen.observe(frame);
         } else {
+          galleryAside = null;
           const { own, groups } = sectionAt(path);
           // (At the top, the presets as one shelf, as your Library's is: the recommended, leading to them all.)
           $("gallery").innerHTML = top ? shelfHtml("Presets", recommendedPresets(), [], presets.length, true) : [
@@ -21649,6 +21679,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The gallery as last drawn (where, the search, how much of it, the presets as read, the theme), its place, and how many it found. */
       let galleryDrawn = "", gallerySpot = "", galleryFound = 0;
+      /** Whether the gallery shows no search; the page it showed before a search, kept aside as drawn (see renderGallery). */
+      let galleryPlain = false, galleryAside = /** @type {{ drawn: string, lists: number, nodes: Node[] } | null} */ (null);
       /** A shelf's steps: there only while its row scrolls, each off at its end. @param {HTMLElement} row */
       function shelfSteps(row) {
         shelfScrolls.set(row, row.scrollLeft);
@@ -25171,6 +25203,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const presetSearchWords = (/** @type {number} */ i) => ((edited) => (edited ? `${presetWords[i]} ${titleOf(edited).toLowerCase()}` : presetWords[i]))(keptPreset(i));
       /** The last search over the presets (all of them, no `under`): typed on, it narrows what it found. */
       let presetsFound = { query: "", found: /** @type {number[]} */ ([]) };
+      /** How many the last search found, all of them (what it returns, the best few). */
+      let presetsCounted = 0;
       /**
        * The presets whose words hold every word typed, the best first (what's typed its name, or its title's subject,
        * before ": "; then every word in its title, then its title starting with the first; at each, the nearest the top
@@ -25198,6 +25232,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (!under && !renamed.size && only !== null) for (let i = 0; i < presetWords.length; i++) presetWords[i].includes(only) && found.push(i);
         else for (let i = 0; i < presetWords.length; i++) if ((!under || under(i)) && holds(renamed.get(i) ?? presetWords[i])) found.push(i);
         if (!under) presetsFound = { query, found };
+        presetsCounted = found.length;
         // The best first: what's typed its name or its title's subject; then all its words in its title, starting it; then
         // the nearest the top, the shortest (presetOrder). Each one's fit found as it's reached, the fits in turn, till
         // `most` are: a word or two matches thousands, a few dozen show.
