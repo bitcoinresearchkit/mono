@@ -1459,6 +1459,8 @@
       // (Widened past a phone, the filters can't fold: they open.)
       phone.addEventListener("change", (e) => e.matches || ($("filters").open = true));
       detail();
+      // (The tiles drawn at once, empty, so the first lines fill them in place rather than pushing the list down.)
+      tiles();
       loop();
 
       // Focus rings for keyboards only.
