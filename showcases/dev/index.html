@@ -617,6 +617,19 @@
         white-space: nowrap;
       }
 
+      /* (A copy button as wide as it says "Copied" from the start: saying it moves nothing beside it.) */
+      button[data-copy]:not([hidden]) {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+
+        &::after {
+          content: "Copied";
+          height: 0;
+          overflow: hidden;
+          visibility: hidden;
+        }
+      }
     </style>
   </head>
   <body>
@@ -786,10 +799,11 @@ fn main() -&gt; Result&lt;()&gt; {
           try {
             await navigator.clipboard.writeText(button.dataset.copy);
           } catch {
-            said = "Copy failed";
+            said = "Failed";
           }
+          // (The button's word short, no wider than "Copied"; the whole said aloud.)
           button.textContent = said;
-          copied.textContent = `${said}: ${button.dataset.copy}`;
+          copied.textContent = `${said === "Copied" ? "Copied" : "Copy failed"}: ${button.dataset.copy}`;
           setTimeout(() => (button.textContent = "Copy", copied.textContent = ""), 1500);
         });
       }

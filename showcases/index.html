@@ -630,6 +630,19 @@
           transition: none !important;
         }
       }
+      /* (A copy button as wide as it says "Copied" from the start: saying it moves nothing beside it.) */
+      button[data-copy]:not([hidden]) {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+
+        &::after {
+          content: "Copied";
+          height: 0;
+          overflow: hidden;
+          visibility: hidden;
+        }
+      }
     </style>
   </head>
   <body>
