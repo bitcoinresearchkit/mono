@@ -714,6 +714,19 @@
           display: none;
         }
 
+        /* (Faded at an edge only where buttons are cut there: see cuts().) */
+        &[data-cut="end"] {
+          mask-image: linear-gradient(to left, transparent, #000 32px);
+        }
+
+        &[data-cut="start"] {
+          mask-image: linear-gradient(to right, transparent, #000 32px);
+        }
+
+        &[data-cut="both"] {
+          mask-image: linear-gradient(to right, transparent, #000 32px, #000 calc(100% - 32px), transparent);
+        }
+
         button {
           flex: none;
           height: 28px;
@@ -1360,6 +1373,7 @@
           intervals.scrollLeft = sameSeries ? intervalsSlid : 0;
           const pressed = /** @type {HTMLElement | null} */ (intervals.querySelector('[aria-pressed="true"]'));
           if (pressed && pressed.offsetLeft + pressed.offsetWidth > intervals.scrollLeft + intervals.clientWidth) intervals.scrollLeft = pressed.offsetLeft + pressed.offsetWidth - intervals.clientWidth + 2;
+          stripSized.observe(intervals);
         }
         // (Its actions written now, before its place is scrolled back to.)
         if (leaf) showSeries(leaf);
@@ -1418,6 +1432,19 @@
         main.classList.toggle("whole", shown >= columns.length);
       }
       new ResizeObserver(() => fit()).observe(main);
+
+      /** A strip that slides sideways says where it's cut: `data-cut` start, end or both, faded there (none when whole). */
+      function cuts(/** @type {HTMLElement} */ strip) {
+        const start = strip.scrollLeft > 1, end = strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 1;
+        const cut = start && end ? "both" : start ? "start" : end ? "end" : "";
+        if (cut) strip.dataset.cut = cut;
+        else delete strip.dataset.cut;
+      }
+      document.addEventListener("scroll", (event) => event.target instanceof HTMLElement && event.target.matches(".seg") && cuts(event.target), { capture: true, passive: true });
+      // (Read again whenever a strip's own box changes, from the window or from within (a scrollbar, a font come in);
+      // observing one starts with a reading.)
+      const stripSized = new ResizeObserver((entries) => entries.forEach(({ target }) => cuts(/** @type {HTMLElement} */ (target))));
+      document.fonts.ready.then(() => document.querySelectorAll(".seg").forEach((strip) => cuts(/** @type {HTMLElement} */ (strip))));
       /** A folder's column: its folders and series, the one open marked; a phone's way back above. */
       function columnHtml(/** @type {Node} */ folder, /** @type {string | undefined} */ open, /** @type {number} */ depth, /** @type {boolean} */ end) {
         // (One Tab stop a column: its open row, else its first; the arrows move within it.)
