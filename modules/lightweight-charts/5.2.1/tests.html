@@ -681,5 +681,32 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   }
   say(`A simplified line's x's read later: 11 checks, ${later.length} failing`);
   for (const f of later) say(`  ✗ ${f}`);
-  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length, pinch: tapped.length, own: owned.length, later: later.length };
+
+  // 12. Marks' words edged (patch 47): a mark's words on a line, the chart's `layout.bvHalo` blue: blue about them; none
+  // without it, as published.
+  const edged = [];
+  {
+    const blueAbout = async (halo) => {
+      document.getElementById("a").innerHTML = ""; window.__charts = [];
+      const c = base(B, document.getElementById("a"), { layout: { background: { color: "#111" }, textColor: "#ccc", attributionLogo: false, ...(halo ? { bvHalo: "#0000ff" } : {}) } });
+      const time = (k) => 1600000000 + k * 86400, line = c.addSeries(B.LineSeries, { color: "#fff", priceLineVisible: false, lastValueVisible: false });
+      line.setData(Array.from({ length: 60 }, (_, k) => ({ time: time(k), value: 100 })));
+      B.createSeriesMarkers(line, [{ time: time(30), position: "inBar", shape: "circle", color: "#ff0000", text: "WWWWWW" }], { zOrder: "aboveSeries" });
+      c.timeScale().fitContent();
+      await frames();
+      let blue = 0;
+      for (const canvas of document.getElementById("a").querySelectorAll("canvas")) {
+        const data = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+        for (let i = 0; i < data.length; i += 4) if (data[i + 2] > 200 && data[i] < 60 && data[i + 1] < 60) blue++;
+      }
+      c.remove(); window.__charts = [];
+      return blue;
+    };
+    const [on, off] = [await blueAbout(true), await blueAbout(false)];
+    if (on < 50) edged.push(`edged in blue: ${on} blue pixels about its words`);
+    if (off) edged.push(`no halo: ${off} blue pixels`);
+  }
+  say(`Marks' words edged: 2 checks, ${edged.length} failing`);
+  for (const f of edged) say(`  ✗ ${f}`);
+  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length, pinch: tapped.length, own: owned.length, later: later.length, edged: edged.length };
 </script>

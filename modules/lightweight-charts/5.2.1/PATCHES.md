@@ -850,3 +850,16 @@ not restyled; else as before.
 Measured on the iPhone (Lockdown Mode): 25 lines' axis tags switched and drawn, 115-124 → 39-53 ms. `tests.html`:
 pictures 710 of 713 the same as before (restyles in every series type, mid-pan too: never restyling, 576 of 713).
 Codex's review: a baseline's base moved, its points' sides changed with no probe seeing it (its base now compared).
+
+## 47. Marks' words edged in a color of the chart's
+
+A series marker's text (`createSeriesMarkers`, a mark's `text`) is filled alone: over a line or the data it's crossed by
+them (Studio's signals' results, "+46.27%", read through the price line). A chart option, `layout.bvHalo` (a color,
+none by default), now edges each mark's words in it first (a 3 px stroke, round joins, under the fill), as Studio edges
+its legends' words in its card's color: the lines under them stop short of them. None set, as published.
+
+- The markers' view (`Or.renderer`): the chart's `layout.bvHalo` handed to its renderer (`Er`), each frame (a theme's
+  change, applied to the chart, in its next).
+- The marker drawn (`Br`): its text stroked in it before it's filled, where one is given.
+
+`tests.html` 12: a mark's words on a line, edged in blue (blue about them), and without a halo, none.
