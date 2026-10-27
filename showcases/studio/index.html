@@ -14709,7 +14709,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function chartColors() {
         const crosshair = { color: css("--crosshair"), labelBackgroundColor: css("--crosshair-label") };
         return {
-          layout: { textColor: css("--chart-text"), panes: { separatorColor: css("--line"), separatorHoverColor: css("--press") } },
+          // (Marks' words edged in the card's color, as the legends' are: see LWC patch 47.)
+          layout: { textColor: css("--chart-text"), bvHalo: css("--card"), panes: { separatorColor: css("--line"), separatorHoverColor: css("--press") } },
           grid: { horzLines: { color: css("--chart-grid") } },
           crosshair: { vertLine: crosshair, horzLine: { ...crosshair, color: css("--crosshair-faint") } },
         };
@@ -25863,9 +25864,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 <p>Capital letters are layers as drawn; a series by its name (${escape(tree.price.close.name)}) is the series itself. Comparisons (&gt; &lt; &gt;= &lt;= == !=) are 1 where true, 0 where not, joined with &amp; (and) and | (or): a signal marks where one turns true, or, signed, where it turns up (above 0) or down (below): (A &gt; B) - (A &lt; B). date is each point's date, compared with one written 2020-05-11: when(A, date &gt;= 2020-05-11) is A from then on. Use + − × ÷ ^ and parentheses. Windows are spans of time: 12h, 30d, 4w, 6mo, 2y, or 4 * 365d (a bare number is days); shorter than the interval, one point. A window is always last; at 1D and up, it holds what there is until it's full, and one left out (where it shows span?) is the function's usual count of points where it has one (rsi's 14), else all of history so far.</p>
               </details>
               ${signal ? `<div class="field"><span>Marked on</span><button type="button" class="preset" id="signal-ref" aria-haspopup="menu" data-tip="The layer its marks are on">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>
-              <div class="field"><span>Shown as</span><div class="tabs glyphs" role="group" aria-label="How it shows">${MARK_PLACES.map(([place]) => `<button type="button" data-place="${place}" aria-pressed="${(layer.place ?? "above") === place}" aria-label="${placeName(place)}" data-tip="${placeName(place)}">${glyphSvg(markBody(place, "currentColor"))}</button>`).join("")}</div></div>
+              <div class="field"><span>Shown as<span class="color-now">${escape(placeName(layer.place ?? "above"))}</span></span><div class="tabs glyphs" role="group" aria-label="How it shows">${MARK_PLACES.map(([place]) => `<button type="button" data-place="${place}" aria-pressed="${(layer.place ?? "above") === place}" aria-label="${placeName(place)}" data-tip="${placeName(place)}">${glyphSvg(markBody(place, "currentColor"))}</button>`).join("")}</div></div>
               <div class="field switch"><span>Results</span><div class="tabs" role="group" aria-label="Results">${[[false, "Off", "Marks alone"], [true, "On", "On each mark that ends a stretch, what it made: its layer's change over it, up; the opposite, down"]].map(([on, text, tip]) => `<button type="button" data-results="${on ? 1 : 0}" aria-pressed="${Boolean(layer.results) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>
-              <div class="field"><span>Times</span><button type="button" class="preset" id="signal-times" aria-haspopup="dialog" data-tip="Each time it marked, to go to">${((n) => (n === null ? `<span class="name">Loading</span>` : `<span class="name">${plural(n, "time")}</span>`))(result?.values ? marksOf(layer, result.values).length : null)}${CHEVRON}</button></div>` : ""}
+              <div class="field"><span>Times marked</span><button type="button" class="preset" id="signal-times" aria-haspopup="dialog" data-tip="Each time it marked, to go to">${((n) => (n === null ? `<span class="name">Loading</span>` : `<span class="name">${plural(n, "time")}</span>`))(result?.values ? marksOf(layer, result.values).length : null)}${CHEVRON}</button></div>` : ""}
             </section>`
           : `<section>
               <h3>Series</h3>
@@ -26863,10 +26864,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const status = $("formula-status");
         if (message || !node) status.textContent = message;
         else {
-          // (What it is as applied: its count or unit once its values are in, "Loading" till then; another formula typed,
-          // what it uses alone, its own to say once applied.)
+          // (What it is as applied: its unit once its values are in, "Loading" till then; another formula typed, what it
+          // uses alone, its own to say once applied. A signal's, nothing more: how many times it marked is its Times'.)
           const uses = usesOf(node), applied = text.trim() === (layer.formula ?? "").trim();
-          const what = !applied ? "" : !result ? "Loading" : layer.type === "signal" ? plural(marksOf(layer, result.values).length, "time") : UNIT_NAMES[unitFor(layer, result)] ?? "Number";
+          const what = !applied || layer.type === "signal" ? "" : !result ? "Loading" : UNIT_NAMES[unitFor(layer, result)] ?? "Number";
           status.textContent = `${uses.length ? `Uses ${uses.join(", ")}` : "A constant"}${what ? ` · ${what}` : ""}`;
         }
         status.classList.toggle("error", Boolean(message));
@@ -29197,7 +29198,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               <p class="description">${uses.length ? `Uses ${escape(uses.join(", "))}` : "A constant"}. ${layer.place === "shade" ? "Shaded while it's up or down" : "Marked where it turns up or down"} (above 0, up; below, down).</p>
               <div class="info"><h5>${editing ? "Layer" : "As layer"} ${escape(layer.letter)}</h5><dl>
                 <div><dt>Marked on</dt><dd>${on ? escape(labelOf(on)) : "No layer"}</dd></div>
-                <div><dt>Times</dt><dd>${grouped.format(marksOf(layer, result.values, data?.results.get(layer.ref ?? "")?.values ?? null).length)}</dd></div>
+                <div><dt>Times marked</dt><dd>${grouped.format(marksOf(layer, result.values, data?.results.get(layer.ref ?? "")?.values ?? null).length)}</dd></div>
                 <div><dt>Now</dt><dd>${escape(format(Array.prototype.findLast.call(result.values, (value) => Number.isFinite(value)) ?? NaN, unit))}</dd></div>
               </dl></div>`);
           }
