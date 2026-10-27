@@ -5489,6 +5489,12 @@
           width: 100%;
           height: 100%;
           border-radius: inherit;
+          transition: opacity var(--dur-small) var(--ease);
+        }
+
+        /* (Its colors still being worked out, in idle moments: the surface comes as they are, see drawPlane.) */
+        &[data-waiting] canvas {
+          opacity: 0;
         }
 
         /* Where the color is, its center on the very point: at an edge, it reaches over it. */
@@ -26500,6 +26506,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const until = performance.now() + Math.min(8, Math.max(2, deadline.timeRemaining()));
         while (!vividGrid && performance.now() < until) vividWork.next();
         if (!vividGrid) whenIdle(vividSoon);
+        // (Made: the surfaces shown meanwhile, waiting for it, drawn.)
+        else drawPlanes();
+      }
+      /**
+       * The grid made sooner, a surface showing and waiting for it: a few lines each frame (8 ms of one), not in idle
+       * moments (Safari has none to say: its are a slice every 40 ms, seconds of them for this). Made, the surfaces drawn.
+       */
+      let vividRushing = false;
+      function vividNow() {
+        if (vividGrid || vividRushing) return;
+        vividRushing = vividStarted = true;
+        const step = () => {
+          const until = performance.now() + 8;
+          while (!vividGrid && performance.now() < until) vividWork.next();
+          if (!vividGrid) return void requestAnimationFrame(step);
+          vividRushing = false;
+          drawPlanes();
+        };
+        requestAnimationFrame(step);
       }
       function vivid(l, h) {
         const rows = VIVID_ROWS;
@@ -26520,6 +26545,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function drawPlane(/** @type {HTMLElement} */ plane) {
         const canvas = /** @type {HTMLCanvasElement | null} */ (plane.querySelector("canvas"));
         if (!canvas || !plane.clientWidth) return;
+        // (Its grid not made yet, made in idle moments, not now: what it's in shows at once, the surface as it's made,
+        // faded in (made at once, a phone without its JIT had held half a second first). A pick reads the grid at once.)
+        plane.toggleAttribute("data-waiting", !vividGrid);
+        if (!vividGrid) return void vividNow();
         const width = plane.clientWidth, height = plane.clientHeight, key = `${width}x${height}`;
         canvas.width = width;
         canvas.height = height;
