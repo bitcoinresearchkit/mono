@@ -41,7 +41,6 @@
         --pressed: light-dark(#dcdcdc, #3d3d3d);
         --ink: light-dark(#000000, #ffffff);
         --soft: light-dark(#6b6b6b, #9a9a9f);
-        --faint: light-dark(#c7c7cc, #3a3a3c);
         --line: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.1));
         --hover: light-dark(rgb(0 0 0 / 0.05), rgb(255 255 255 / 0.07));
         --focus: light-dark(rgb(0 0 0 / 0.55), rgb(255 255 255 / 0.6));
@@ -60,6 +59,16 @@
         /* (A press gives a little and springs back; a choice slides.) */
         --spring: cubic-bezier(0.3, 0.7, 0.4, 1.4);
         --slide: cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
+         apart, the hairlines about twice as strong; the page's hues kept, nothing else changed. (Mixed in OKLab and
+         written out here, so every reader, the canvases' among them, gets plain colours.) */
+      @media (prefers-contrast: more) {
+        :root {
+          --soft: light-dark(#323232, #c1c1c4);
+          --line: light-dark(rgb(0 0 0 / 0.18), rgb(255 255 255 / 0.22));
+        }
       }
 
       * {
@@ -2882,6 +2891,8 @@
         drawMap();
         setTimeout(makeGridsIdle, 0);
       });
+      // (Its axis words in the soft grey, drawn again with Increase Contrast.)
+      matchMedia("(prefers-contrast: more)").addEventListener("change", () => plan && drawMap());
 
       async function load() {
         try {

@@ -57,6 +57,19 @@
         --gutter: max(16px, env(safe-area-inset-left));
       }
 
+      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
+         apart, the hairlines about twice as strong; the page's hues kept, nothing else changed. (Mixed in OKLab and
+         written out here, so every reader, the canvases' among them, gets plain colours.) */
+      @media (prefers-contrast: more) {
+        :root {
+          --text: light-dark(#1e222b, #d4d7de);
+          --soft: light-dark(#343943, #b7bcc7);
+          --faint: light-dark(#444a55, #9da3af);
+          --line: light-dark(rgb(15 18 23 / 0.22), rgb(255 255 255 / 0.18));
+          --line2: light-dark(rgb(15 18 23 / 0.4), rgb(255 255 255 / 0.33));
+        }
+      }
+
       *,
       *::before,
       *::after {

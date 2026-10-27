@@ -52,6 +52,19 @@
         --plot-height: 300px;
       }
 
+      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
+         apart, the hairlines about twice as strong; the page's hues kept, nothing else changed. (Mixed in OKLab and
+         written out here, so every reader, the canvases' among them, gets plain colours.) */
+      @media (prefers-contrast: more) {
+        :root {
+          --soft: light-dark(#3a3c42, #c3c4c7);
+          --faint: light-dark(#515359, #a8aaaf);
+          --line: light-dark(#c4c1bc, #3e3f44);
+          --line-strong: light-dark(#b6b3ac, #4b4e55);
+          --grid: light-dark(#c9c7c2, #393b3f);
+        }
+      }
+
       * {
         box-sizing: border-box;
       }
@@ -1934,10 +1947,13 @@
         }
         return `rgb(${inks.get(name)} / ${alpha})`;
       }
-      matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-        inks.clear();
-        paint();
-      });
+      // (The inks read again with the scheme or Increase Contrast.)
+      for (const query of ["(prefers-color-scheme: dark)", "(prefers-contrast: more)"]) {
+        matchMedia(query).addEventListener("change", () => {
+          inks.clear();
+          paint();
+        });
+      }
       /** The readout: the point read, else the latest. */
       function readout(/** @type {number | null} */ i) {
         hovered = i;

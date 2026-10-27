@@ -37,6 +37,19 @@
         --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
       }
 
+      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
+         apart, the hairlines about twice as strong; the page's hues kept, nothing else changed. (Mixed in OKLab and
+         written out here, so every reader, the canvases' among them, gets plain colours.) */
+      @media (prefers-contrast: more) {
+        :root {
+          --text: light-dark(#23252e, #d8dbe3);
+          --soft: light-dark(#3b3f49, #b3b7c2);
+          --faint: light-dark(#4a4e58, #a4a9b5);
+          --rule: light-dark(rgb(17 19 26 / 0.33), rgb(238 240 245 / 0.29));
+          --hair: light-dark(rgb(17 19 26 / 0.18), rgb(238 240 245 / 0.15));
+        }
+      }
+
       * {
         box-sizing: border-box;
       }

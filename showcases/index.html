@@ -59,6 +59,19 @@
         --radius: 14px;
       }
 
+      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
+         apart, the hairlines about twice as strong; the page's hues kept, nothing else changed. (Mixed in OKLab and
+         written out here, so every reader, the canvases' among them, gets plain colours.) */
+      @media (prefers-contrast: more) {
+        :root {
+          --text: light-dark(#27231d, #e6e1d9);
+          --soft: light-dark(#423c34, #c2bbb1);
+          --muted: light-dark(#49423a, #b4ada4);
+          --line: light-dark(rgb(22 19 15 / 0.2), rgb(246 243 238 / 0.18));
+          --line-strong: light-dark(rgb(22 19 15 / 0.35), rgb(246 243 238 / 0.31));
+        }
+      }
+
       * {
         box-sizing: border-box;
       }
