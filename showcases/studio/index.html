@@ -9967,7 +9967,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <div><dt>Quick Look at the highlighted chart</dt><dd><kbd>⌘Y</kbd></dd></div>
             <div><dt>Back up a page</dt><dd><kbd>←</kbd> or <kbd>⌫</kbd></dd></div>
             <div><dt>Move five rows at a time</dt><dd><kbd>⇧↑</kbd><kbd>⇧↓</kbd></dd></div>
-            <div><dt>Add a series in a new pane</dt><dd><kbd>⇧↵</kbd></dd></div>
+            <div><dt>Add a series or a formula in a new pane</dt><dd><kbd>⇧↵</kbd></dd></div>
             <div><dt>Add, and keep ⌘K open for the next</dt><dd><kbd>⌘↵</kbd></dd></div>
             <div><dt>Undo or redo the chart, ⌘K still open</dt><dd><kbd>⌘Z</kbd><kbd>⇧⌘Z</kbd></dd></div>
             <div><dt>Insert a completion in a formula</dt><dd><kbd>⇥</kbd></dd></div>
@@ -12065,6 +12065,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         notice(`A chart holds up to ${MAX_LAYERS} layers`);
         return false;
       }
+      /**
+       * Where a new layer of `unit` goes when no pane is asked for: a pane already showing that unit (not a stack: one
+       * added there would be summed into it), else none (a new one). A series added and a formula typed in ⌘K alike.
+       * @param {Chart} doc @param {string} unit
+       */
+      const paneShowing = (doc, unit) => doc.panes.find((candidate) => !candidate.stack && doc.layers.some((layer) => layer.pane === candidate.id && unitFor(layer, resolved?.results.get(layer.id)) === unit));
       /** A new pane, or the last one once a chart has as many as it can hold. @param {Chart} doc */
       function newPaneIn(doc) {
         if (doc.panes.length >= MAX_PANES) return doc.panes.at(-1);
@@ -27881,12 +27887,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const unit = meta ? unitOf(meta.type) : units.get(name) ?? "number";
         units.set(name, unit);
         // (A pane of its own wanted, every pane taken and the last a stack (where it would go): said, not summed into it.)
-        const own = into ? null : newPane || !chart.layers.length ? undefined : chart.panes.find((candidate) => !candidate.stack && chart.layers.some((layer) => layer.pane === candidate.id && unitFor(layer, resolved?.results.get(layer.id)) === unit));
+        const own = into ? null : newPane || !chart.layers.length ? undefined : paneShowing(chart, unit);
         if (!into && !own && chart.layers.length && chart.panes.length >= MAX_PANES && chart.panes.at(-1)?.stack) return void notice(`A chart holds up to ${MAX_PANES} panes, the last a stack: add it to a pane from ⌘K's Actions`);
         let added;
         commit((doc) => {
           const look = firstLook(name, new Set(doc.layers.map((layer) => layer.color)));
-          let pane = into ? doc.panes.find((candidate) => candidate.id === into) : newPane || !doc.layers.length ? undefined : doc.panes.find((candidate) => !candidate.stack && doc.layers.some((layer) => layer.pane === candidate.id && unitFor(layer, resolved?.results.get(layer.id)) === unit));
+          let pane = into ? doc.panes.find((candidate) => candidate.id === into) : newPane || !doc.layers.length ? undefined : paneShowing(doc, unit);
           const sibling = pane && doc.layers.find((layer) => layer.pane === pane.id && unitFor(layer, resolved?.results.get(layer.id)) === unit);
           // (One of its unit stacked: not summed into it unasked, a pane of its own. A chart emptied: its pane as new.)
           if (!pane) {
@@ -29129,7 +29135,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (item.kind === "formula") {
           const text = palette.query.trim(), kept = formulaProblem.text === text && formulaProblem.editing === palette.editing ? formulaProblem.problem : "";
           const editing = palette.editing ? layerById(palette.editing) : null, problem = formulaError(text) || kept;
-          return `${asSignal(text) || editing?.type === "signal" ? ICONS.signal : ICONS.formula}<span class="item-name">${editing ? "Apply" : "Add"} <code>${escape(palette.query.trim())}</code></span>${problem ? `<span class="item-meta ${isUnfinished(palette.query.trim()) ? "" : "error"}">${escape(problem)}</span>` : `<span class="item-meta">${editing ? `To ${escape(editing.letter)}` : asSignal(text) ? ((on) => (on ? `Signal on ${escape(on.letter)}` : ""))(markFor(chart, text)) : palette.into && palette.into !== "new" ? `Pane ${paneNumber(palette.into)}` : "New pane"}</span>`}`;
+          return `${asSignal(text) || editing?.type === "signal" ? ICONS.signal : ICONS.formula}<span class="item-name">${editing ? "Apply" : "Add"} <code>${escape(palette.query.trim())}</code></span>${problem ? `<span class="item-meta ${isUnfinished(palette.query.trim()) ? "" : "error"}">${escape(problem)}</span>` : `<span class="item-meta">${editing ? `To ${escape(editing.letter)}` : asSignal(text) ? ((on) => (on ? `Signal on ${escape(on.letter)}` : ""))(markFor(chart, text)) : formulaPlace(text)}</span>`}`;
         }
         const layer = item.layer ? layerById(item.layer) : null;
         const icon = layer ? `<i class="dot" style="--c:${escape(ink(layer.color))}"></i>` : item.series ? ICONS.series : item.group === "Spans" ? ICONS.recent : item.group === "Percents" ? ICONS.ruler : ICONS.formula;
@@ -29139,7 +29145,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function insertPiece(item) {
         const input = $("palette-input");
         // (A recipe's place carried, unless the page is for a pane: then it's that one's already.)
-        if (item.recipe && !palette.into) Object.assign(palette.op, { into: item.into, side: item.side });
+        // (Its new pane said as such: none, the formula's own place would be found for it, see formulaPane.)
+        if (item.recipe && !palette.into) Object.assign(palette.op, { into: item.into ?? "new", side: item.side });
         const end = (input.selectionEnd ?? input.value.length) + (/^\w*/.exec(input.value.slice(input.selectionEnd ?? input.value.length))?.[0].length ?? 0);
         input.setRangeText(completion(item.insert, input.value.slice(end)), Math.min(palette.from, end), end, "end");
         input.focus();
@@ -29152,7 +29159,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * the preview. `keep`: ⌘K stays, the formula selected, to write the next one.
        */
       function addFromPalette(pane = palette.into, keep = false, /** @type {string | undefined} */ on = undefined, recipe = /** @type {any} */ (undefined)) {
-        const text = recipe?.insert ?? palette.query.trim(), side = recipe && pane === recipe.into ? recipe.side : formulaSide(pane), editing = palette.editing ? layerById(palette.editing) : null, problem = formulaError(text) || (editing ? loopError(editing, text) : !asSignal(text) && stackedOnly(pane === "new" ? null : pane) ? STACKED_ONLY : "");
+        const text = recipe?.insert ?? palette.query.trim();
+        // (No pane asked for: a pane showing its unit, beside its like there; see formulaPane.)
+        const auto = recipe || palette.editing || palette.into != null ? null : formulaPane(text);
+        if (pane == null && auto) pane = auto;
+        const side = auto && pane === auto ? likeSide(auto) : recipe && pane === recipe.into ? recipe.side : formulaSide(pane), editing = palette.editing ? layerById(palette.editing) : null, problem = formulaError(text) || (editing ? loopError(editing, text) : !asSignal(text) && stackedOnly(pane === "new" ? null : pane) ? STACKED_ONLY : "");
         if (problem) return notice(problem);
         if (keep && !palette.editing) {
           // Added, and the formula stays, selected, to write the next one.
@@ -29176,6 +29187,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (layer?.formula !== undefined) openPalette({ formula: true, editing: id, query: layer.formula, signal: layer.type === "signal" });
       }
       let formulaRun = 0;
+      /** The formula typed's unit, as its preview computed it (on which chart): where it goes, none asked for (see formulaPane). */
+      let formulaGoes = { text: "", chart: "", unit: "" };
+      /**
+       * Where the formula typed goes when no pane's asked for: a pane showing its unit now (see paneShowing), its unit
+       * known (its preview's, this chart's); else none (a new one). @param {string} text
+       */
+      const formulaPane = (text) => (formulaGoes.text === text && formulaGoes.chart === chart.id ? paneShowing(chart, formulaGoes.unit)?.id ?? null : null);
+      /** The side a formula goes on in a pane showing its unit: its like's there. @param {string} pane */
+      const likeSide = (pane) => chart.layers.find((layer) => layer.pane === pane && unitFor(layer, resolved?.results.get(layer.id)) === formulaGoes.unit)?.side ?? null;
+      /** Where a layer added goes, as said: its pane, else a new one (at the most panes, the last; a stack there, nowhere). @param {string | null | undefined} pane */
+      const goesIn = (pane) => (pane ? `Pane ${paneNumber(pane)}` : chart.panes.length < MAX_PANES ? "New pane" : stackedOnly(null) ? "Nowhere: the last pane is a stack" : `Pane ${chart.panes.length}`);
+      /** Where the formula typed goes, as its row says: the pane asked for, else one showing its unit (see formulaPane), else a new one. */
+      const formulaPlace = (/** @type {string} */ text) => goesIn(palette.into && palette.into !== "new" ? palette.into : palette.into == null ? formulaPane(text) : null);
       /**
        * The formula computed as it would be added, with this chart's data: its line in its color, its latest value, what it
        * uses, its unit. As it's typed (what's unchanged is reused: the formula alone is computed); a run overtaken by a
@@ -29219,6 +29243,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (formulaProblem.text === text) formulaProblem = { text: "", editing: null, problem: "" };
           const uses = usesOf(node);
           const unit = unitFor(layer, result);
+          // (No pane asked for, not a new one: a pane already showing its unit, as a series added goes; see formulaPane.
+          // Its row says it too, written before its unit was known.)
+          if (!recipe && !palette.editing) formulaGoes = { text, chart: doc.id, unit };
+          const goes = into ?? (recipe || palette.editing || palette.into === "new" || layer.type === "signal" ? null : formulaPane(text));
+          const meta = recipe || palette.editing || layer.type === "signal" ? null : $("palette-list").querySelector('[data-kind="formula"] .item-meta:not(.error)');
+          if (meta) meta.textContent = formulaPlace(text);
           // (A signal: where its marks are, and how many; its 0s and 1s aren't a line to look at.)
           if (layer.type === "signal") {
             const on = doc.layers.find((item) => item.id === layer?.ref);
@@ -29236,7 +29266,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <div class="info"><h5>${editing ? "Layer" : "As layer"} ${escape(layer.letter)}</h5><dl>
               <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div>
               <div><dt>Latest</dt><dd class="spark-caption"></dd></div>
-              ${editing ? "" : `<div><dt>Goes in</dt><dd>${into ? `Pane ${paneNumber(into)}` : chart.panes.length < MAX_PANES ? "New pane" : stackedOnly(null) ? "Nowhere: the last pane is a stack" : `Pane ${chart.panes.length}`}</dd></div>`}
+              ${editing ? "" : `<div><dt>Goes in</dt><dd>${goesIn(goes)}</dd></div>`}
             </dl></div>`;
           drawSpark(panel, Array.from(result.values), unit, ink(layer.color));
         })();
@@ -29611,7 +29641,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (item.kind === "formula" || item.recipe) {
           if (palette.editing) return [];
           // (A recipe: its formula, where it goes, and ⇥ to write it in, to change first.)
-          const recipe = item.recipe ? item : undefined, text = recipe?.insert ?? palette.query.trim(), at = recipe ? recipe.into : palette.into;
+          const recipe = item.recipe ? item : undefined, text = recipe?.insert ?? palette.query.trim(), at = recipe ? recipe.into : palette.into ?? formulaPane(text);
           const add = (/** @type {string | null | undefined} */ pane = at, keep = false, /** @type {string | undefined} */ on = undefined) => addFromPalette(pane, keep, on, recipe);
           const found = chart.panes.findIndex((pane) => pane.id === at), into = found < 0 && !room ? chart.panes.length - 1 : found;
           const going = [{ label: "Add and keep going", icon: ICONS.plus, kbd: "⌘↵", run: () => add(at, true) }, ...(recipe ? [{ label: "Change it first", icon: ICONS.pencil, kbd: "⇥", run: () => insertPiece(recipe) }] : [])];
@@ -29623,7 +29653,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Open until the formula is added, as with ↵: an unfinished one stays, to be finished.
           return (into < 0
             ? [{ label: "Add to a new pane", icon: ICONS.pane, kbd: "↵", run: () => add("new") }, ...going, ...intoPanes((pane) => add(pane))]
-            : [{ label: `Add to pane ${into + 1}`, icon: ICONS.pane, kbd: "↵", run: () => add() }, ...going, ...(room ? [{ label: "Add to a new pane", icon: ICONS.pane, run: () => add("new") }] : []), ...intoPanes((pane) => add(pane)).filter((_, i) => i !== into)]
+            : [{ label: `Add to pane ${into + 1}`, icon: ICONS.pane, kbd: "↵", run: () => add() }, ...going, ...(room ? [{ label: "Add to a new pane", icon: ICONS.pane, ...(recipe ? {} : { kbd: "⇧↵" }), run: () => add("new") }] : []), ...intoPanes((pane) => add(pane)).filter((_, i) => i !== into)]
           ).map((action) => ({ ...action, stay: true }));
         }
         if (item.kind === "series" && item.name && home) return [
@@ -30698,7 +30728,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         quickHide();
         if (item.recipe) return addFromPalette(item.into, keep, undefined, item);
         if (item.kind === "insert") return insertPiece(item);
-        if (item.kind === "formula") return addFromPalette(undefined, keep);
+        // (⇧↵: in a new pane, as a series is (every pane taken: said, as a series's is); else where its row says.)
+        if (item.kind === "formula") {
+          if (newPane && !palette.editing && !asSignal(palette.query.trim()) && chart.layers.length && chart.panes.length >= MAX_PANES) return void notice(`A chart holds up to ${MAX_PANES} panes`);
+          return addFromPalette(newPane ? "new" : undefined, keep);
+        }
         if (item.kind === "folder") {
           palette.path = item.path;
           showPalette();
