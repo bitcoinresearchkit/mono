@@ -1199,12 +1199,12 @@
           <p>Each new block, it counts again: its payments and those of the 11 before, the newest weighing most.</p>
           <ol class="weights" id="weights" aria-label="Each of the last 12 blocks' weight, newest first"></ol>
           <div class="weights-axis" aria-hidden="true"><span id="newest">newest block</span><span id="oldest">12th</span></div>
-          <p>And it looks only near its last answer, never more than about <b>16% higher</b> or <b>13% lower</b>: never as far as the echoes at double or half the price. One odd block can't throw it far; the line moves a block at a time.</p>
+          <p>And it looks only near its last answer, never more than about <b>16% higher</b> or <b>13% lower</b>, so never as far as the echoes at double or half the price. One odd block can't throw it far; the line moves a block at a time.</p>
         </div>
       </section>
 
       <section class="chapter" aria-labelledby="c3">
-        <header><span class="n">03</span><h2 id="c3">What isn't a purchase, it skips</h2></header>
+        <header><span class="n">03</span><h2 id="c3">It skips what isn't a purchase</h2></header>
         <div>
           <p id="kept">Only outputs that look like someone paying someone count.</p>
           <ul class="skips" id="skips" aria-label="Each rule, in the order it asks, and the outputs it skipped at the block read in 01">
@@ -1231,7 +1231,7 @@
             <div><dt>Since 2022</dt><dd>none off by 10%</dd></div>
             <div><dt>Exchanges asked</dt><dd>none</dd></div>
           </dl>
-          <p class="note">These numbers aren't measured live: they're from brk_oracle's own test, in <a href="https://github.com/bitcoinresearchkit/mono/blob/main/crates/brk_oracle/README.md#accuracy">its README</a>. It ran the oracle over every block from 340,000 (January 2015) through 952,314 and measured the 596,251 that exchange data covers against exchanges' high and low at that block; a block inside that range counts as 0%. So 2026 is partial (its fainter bar). It was weakest in 2015 and 2017, when fewer payments made a fainter fingerprint.</p>
+          <p class="note">These numbers aren't measured live; they come from brk_oracle's own test, in <a href="https://github.com/bitcoinresearchkit/mono/blob/main/crates/brk_oracle/README.md#accuracy">its README</a>. It ran the oracle over every block from 340,000 (January 2015) through 952,314 and measured the 596,251 that exchange data covers against exchanges' high and low at that block; a block inside that range counts as 0%. So 2026 is partial (its fainter bar). It was weakest in 2015 and 2017, when fewer payments made a fainter fingerprint.</p>
         </div>
       </section>
     </main>
@@ -1684,7 +1684,7 @@
         // (03: what each rule skipped of that block's own outputs, the mempool's now.)
         const o = s.outputs, total = Object.values(o).reduce((a, b) => a + b, 0), share = (/** @type {number} */ n) => (total ? (n / total) * 100 : 0);
         const pct = (/** @type {number} */ n) => (n && share(n) < 0.05 ? "<0.1" : share(n) >= 9.95 ? share(n).toFixed(0) : share(n).toFixed(1));
-        $("kept").innerHTML = `Only outputs that look like someone paying someone count: ${mempool ? "in the mempool now" : `in block ${grouped(s.height)}`}, <b>${grouped(o.payments)}</b> of ${grouped(total)} (${pct(o.payments)}%).`;
+        $("kept").innerHTML = `Only outputs that look like someone paying someone count. ${mempool ? "In the mempool now" : `In block ${grouped(s.height)}`}, that's <b>${grouped(o.payments)}</b> of ${grouped(total)} (${pct(o.payments)}%).`;
         for (const li of $("skips").children) {
           const n = o[/** @type {keyof Outputs} */ (/** @type {HTMLElement} */ (li).dataset.rule)];
           li.querySelector("output").innerHTML = `${grouped(n)}<small>${pct(n)}%</small>`;
