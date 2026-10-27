@@ -751,16 +751,17 @@
         <dl class="totals" id="totals"></dl>
       </header>
 
-      <!-- In reading order: the pools, the year (or the day), its notes; on a desk the pools and notes in a column beside. -->
+      <!-- In reading order: the year (or the day), its pools, its notes (so on a phone the data comes first, and the pools,
+           as they come, push nothing above them); on a desk the pools and notes in a column beside. -->
       <main class="sheet">
-        <section class="pools" aria-labelledby="leaders-title">
-          <h2 class="kicker" id="leaders-title"></h2>
-          <ul class="leaders" id="leaders" aria-labelledby="leaders-title"></ul>
-        </section>
         <div class="year">
           <p class="kicker" id="lede"></p>
           <div id="view" aria-busy="true"></div>
         </div>
+        <section class="pools" aria-labelledby="leaders-title">
+          <h2 class="kicker" id="leaders-title"></h2>
+          <ul class="leaders" id="leaders" aria-labelledby="leaders-title"></ul>
+        </section>
         <section class="notes" id="notes" aria-labelledby="notes-title" hidden>
           <h2 class="kicker" id="notes-title">Notes</h2>
           <ol id="note-list"></ol>
