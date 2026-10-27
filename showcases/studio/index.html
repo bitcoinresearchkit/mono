@@ -13104,6 +13104,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // The step that kept a chart started here undone: a draft again, not one of your charts (redone, kept again).
         const keptAt = keptByEdit.get(chart);
         if (keptAt !== undefined && back === "past" && edits.past.length === keptAt - 1 && library.charts.includes(chart)) {
+          // (Its row gone with it (a draft isn't listed): the focus on it, to New chart, then the plot.)
+          keepFocus(null, () => $("new-chart"), () => $("plot-keys"));
           discard(chart);
           addPreview(chart);
           save(false);
@@ -22945,12 +22947,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function renderCharts() {
         const current = home ? null : chart;
-        /** A preview's row: a new chart's, empty, only that; another's, its × (but the open one with nothing to go back to). */
-        const previewRow = (/** @type {Chart} */ doc) => `<div class="chart-row preview" data-preview-row="${doc.id}">${drafts.has(doc)
-          ? `<button type="button" class="nav-item chart-item" data-open-chart="${doc.id}" data-tip="A new chart: in your Library once something's in it">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>`
-          : `<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}: a preview, not in your Library (Save${doc === chart ? " or ⌘S" : ""} adds it${touched.has(doc) ? ", your edits with it" : ""})">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escape(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
-        // (A draft, the empty chart in place of none, listed only while it's the one open: under the page, not one.)
-        const listed = listedPreviews(), draft = home ? undefined : previewCharts.find((doc) => drafts.has(doc)), counts = chartCounts();
+        /** A preview's row, its × (but the open one with nothing to go back to). */
+        const previewRow = (/** @type {Chart} */ doc) => `<div class="chart-row preview" data-preview-row="${doc.id}">${`<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}: a preview, not in your Library (Save${doc === chart ? " or ⌘S" : ""} adds it${touched.has(doc) ? ", your edits with it" : ""})">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escape(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
+        // (A draft, the empty chart in place of none (the open one deleted), isn't listed: it's the page to start one, not
+        // a chart, till something's in it.)
+        const listed = listedPreviews(), counts = chartCounts();
         // (Named always, nothing in it too: what's yours, and where New folder is.)
         libraryFolded = groupShut("library");
         const keys = numbered();
@@ -22968,11 +22969,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // chart first among yours (where it'll be once something's in it).
           ...(listed.length ? [sideHead("previews", listed.length, Boolean(current && listed.includes(current))), ...(groupShut("previews") ? [] : listed.map((doc) => /** @type {[string, string]} */ ([`preview:${doc.id}`, previewRow(doc)])))] : []),
           // (Yours under their name, always: closed, it's the way to open them again.)
-          sideHead("library", library.charts.length, Boolean(current && (current === draft || (!isPreview(current) && current.preset === undefined)))),
+          sideHead("library", library.charts.length, Boolean(current && !isPreview(current) && current.preset === undefined)),
           ...(groupShut("library") ? [] : [
           // (New chart first: what it makes is yours, here; folded away with them.)
           /** @type {[string, string]} */ (["new", `<div class="chart-row action-row" data-action-row="new" style="--depth: 0"><button type="button" id="new-chart" class="nav-item chart-item side-action" data-action="new-chart" data-tip="New chart" data-kbd="N"><span data-icon="plus">${ICONS.plus}</span><span class="label">New chart</span><kbd>N</kbd></button></div>`]),
-          ...(draft ? [/** @type {[string, string]} */ ([`preview:${draft.id}`, previewRow(draft)])] : []),
           // (Your charts as a tree: each folder's under it, as deep as they go; a closed one's out of sight.)
           ...treeOf(undefined, true).map(({ item, depth }) => {
             if ("layers" in item) return /** @type {[string, string]} */ ([item.id, row(item, depth)]);
