@@ -296,6 +296,8 @@
           height: auto;
           aspect-ratio: 16 / 10;
           object-fit: cover;
+          /* (Cropped where its box isn't 16:10, the side by side cards': a page's start, where its title and numbers are.) */
+          object-position: left top;
           border-bottom: 1px solid var(--line);
           background: var(--well);
         }
