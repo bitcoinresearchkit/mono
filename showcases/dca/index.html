@@ -1792,7 +1792,7 @@
         const worth = worthOf(r, i);
         // Worth against the rate (as its log, ln(1 + rate)): it only grows with the rate, so halving the range finds it.
         // (Over the days something was put in, found once: not every day again at each of its 60 halvings.)
-        const ages = [], puts = [];
+        const ages = /** @type {number[]} */ ([]), puts = /** @type {number[]} */ ([]);
         for (let d = 0; d <= i; d++) {
           const put = r.spent[d] - (d ? r.spent[d - 1] : 0);
           if (put) (ages.push((i - d) / 365.25), puts.push(put));
@@ -1812,7 +1812,10 @@
         return Math.exp((low + high) / 2);
       }
 
-      /** @typedef {{ start: number, cols: number, rows: number, cells: Float64Array, smartCells: Float64Array, edges: Float64Array }} Grid */
+      /** A schedule's plans by start and length; with, as they're made, its pictures (by measure and scheme) and its
+       * findings (by measure), which change with nothing else.
+       * @typedef {"returns" | "edge"} Atlas
+       * @typedef {{ every: Every, start: number, cols: number, rows: number, cells: Float64Array, smartCells: Float64Array, edges: Float64Array, pictures: Making<ImageData>, found: Map<string, [string, string]> }} Grid */
 
       /** Every plan from a month's first day for whole months, each its worth over what went in at its last day (the day
        * before a month's first), the smart plan's too, and the smart plan's worth over the plain plan's (the same dollars
@@ -1841,33 +1844,70 @@
           }
           yield;
         }
-        return /** @type {Grid} */ ({ start, cols, rows, cells, smartCells, edges });
+        return /** @type {Grid} */ ({ every, start, cols, rows, cells, smartCells, edges, pictures: new Map(), found: new Map() });
       }
       /** Each schedule's grid as it's made, by schedule: its steps, then (made) the grid. A schedule switched to takes its
        * grid made, or finishes it there; the others are made while the page is idle, a few milliseconds at a time, so a
        * switch never waits for every plan to be run again. */
-      const grids = /** @type {Map<Every, Generator<void, Grid> | Grid>} */ (new Map());
-      function gridOf(/** @type {Every} */ every) {
-        let made = grids.get(every);
-        if (!made) grids.set(every, (made = gridSteps(every)));
-        if ("cells" in made) return made;
-        let step = made.next();
-        while (!step.done) step = made.next();
-        grids.set(every, step.value);
+      /**
+       * Something made in steps once, kept in `store` under `key`: its steps (a generator: its yields between them, its
+       * return the thing) while it's being made, then the thing. Asked for, it's finished there (`madeNow`); idle, made a
+       * slice at a time (`makeSome`, until a time; true once made).
+       * @template T @typedef {Map<string, Generator<void, T> | T>} Making
+       */
+      const making = (/** @type {unknown} */ kept) => typeof (/** @type {any} */ (kept)?.next) === "function";
+      /** @template T @returns {T} */
+      function madeNow(/** @type {Making<T>} */ store, /** @type {string} */ key, /** @type {() => Generator<void, T>} */ steps) {
+        let kept = store.get(key);
+        if (kept === undefined) store.set(key, (kept = steps()));
+        if (!making(kept)) return /** @type {T} */ (kept);
+        const steps1 = /** @type {Generator<void, T>} */ (kept);
+        let step;
+        try {
+          step = steps1.next();
+          while (!step.done) step = steps1.next();
+        } catch (error) {
+          // (A thing whose making failed isn't kept half made: asked again, it's begun again.)
+          store.delete(key);
+          throw error;
+        }
+        store.set(key, step.value);
         return step.value;
       }
-      /** Makes the other schedules' grids a slice at a time (8 ms), yielding to the page between slices. */
+      /** @template T */
+      function makeSome(/** @type {Making<T>} */ store, /** @type {string} */ key, /** @type {() => Generator<void, T>} */ steps, /** @type {number} */ until) {
+        let kept = store.get(key);
+        if (kept === undefined) store.set(key, (kept = steps()));
+        if (!making(kept)) return true;
+        const steps1 = /** @type {Generator<void, T>} */ (kept);
+        let step;
+        try {
+          step = steps1.next();
+          while (!step.done && performance.now() < until) step = steps1.next();
+        } catch (error) {
+          store.delete(key);
+          throw error;
+        }
+        if (step.done) store.set(key, step.value);
+        return Boolean(step.done);
+      }
+      /** @type {Making<Grid>} */
+      const grids = new Map();
+      const gridOf = (/** @type {Every} */ every) => madeNow(grids, every, () => gridSteps(every));
+      /** What a switch would need made, in turn while the page is idle, 8 ms at a time between its frames: every
+       * schedule's grid, then each one's picture for either measure (the scheme in use) and its findings. */
       function makeGridsIdle() {
         const until = performance.now() + 8;
         for (const every of /** @type {Every[]} */ (["week", "day", "month"])) {
-          let made = grids.get(every);
-          if (made && "cells" in made) continue;
-          if (!made) grids.set(every, (made = gridSteps(every)));
-          let step = made.next();
-          while (!step.done && performance.now() < until) step = made.next();
-          if (step.done) grids.set(every, step.value);
-          setTimeout(makeGridsIdle, 0);
-          return;
+          if (!makeSome(grids, every, () => gridSteps(every), until)) return void setTimeout(makeGridsIdle, 0);
+        }
+        for (const every of /** @type {Every[]} */ (["week", "day", "month"])) {
+          const grid = gridOf(every);
+          for (const atlas of /** @type {Atlas[]} */ (["returns", "edge"])) {
+            if (!makeSome(grid.pictures, pictureKey(atlas), () => pictureSteps(grid, atlas), until)) return void setTimeout(makeGridsIdle, 0);
+            if (performance.now() >= until) return void setTimeout(makeGridsIdle, 0);
+            findingsOf(grid, atlas);
+          }
         }
       }
 
@@ -2074,6 +2114,7 @@
           fillForm();
           paintGrid();
           drawMap();
+          setTimeout(makeGridsIdle, 0);
         });
       }
       $("log").addEventListener("click", () => {
@@ -2232,18 +2273,28 @@
       const hermite = (/** @type {number} */ y0, /** @type {number} */ y1, /** @type {number} */ m0, /** @type {number} */ m1, /** @type {number} */ u, /** @type {number} */ width) =>
         (2 * u ** 3 - 3 * u ** 2 + 1) * y0 + (u ** 3 - 2 * u ** 2 + u) * width * m0 + (-2 * u ** 3 + 3 * u ** 2) * y1 + (u ** 3 - u ** 2) * width * m1;
 
-      /** That curve as a path, from the first point or (`reverse`) from the last: the same curve either way. */
-      function monotone(/** @type {[number, number][]} */ points, reverse = false) {
+      /** That curve as a path, from the first point, and (`reverse()`, the same curve) from the last: worked out and
+       * written once, either way read from the same pieces. */
+      function monotone(/** @type {[number, number][]} */ points) {
         const n = points.length, at = (/** @type {[number, number]} */ [x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`;
-        if (n < 3) return (reverse ? [...points].reverse() : points).map((p, k) => `${k ? "L" : "M"}${at(p)}`).join("");
-        const tangents = tangentsOf(points), segments = [];
+        if (n < 3) {
+          const written = points.map(at);
+          return { forward: written.map((p, k) => `${k ? "L" : "M"}${p}`).join(""), reverse: () => [...written].reverse().map((p, k) => `${k ? "L" : "M"}${p}`).join("") };
+        }
+        const tangents = tangentsOf(points), written = points.map(at), first = /** @type {string[]} */ ([]), second = /** @type {string[]} */ ([]);
         for (let k = 0; k < n - 1; k++) {
           const [[x0, y0], [x1, y1]] = [points[k], points[k + 1]], third = (x1 - x0) / 3;
-          /** @type {[number, number][]} */
-          const controls = [[x0 + third, y0 + tangents[k] * third], [x1 - third, y1 - tangents[k + 1] * third]];
-          segments.push(reverse ? `C${at(controls[1])},${at(controls[0])},${at(points[k])}` : `C${at(controls[0])},${at(controls[1])},${at(points[k + 1])}`);
+          first.push(at([x0 + third, y0 + tangents[k] * third]));
+          second.push(at([x1 - third, y1 - tangents[k + 1] * third]));
         }
-        return `M${at(points[reverse ? n - 1 : 0])}${(reverse ? segments.reverse() : segments).join("")}`;
+        let forward = `M${written[0]}`;
+        for (let k = 0; k < n - 1; k++) forward += `C${first[k]},${second[k]},${written[k + 1]}`;
+        const reverse = () => {
+          let path = `M${written[n - 1]}`;
+          for (let k = n - 2; k >= 0; k--) path += `C${second[k]},${first[k]},${written[k]}`;
+          return path;
+        };
+        return { forward, reverse };
       }
 
       /** No axes: the numbers are the value above and the keys below, at the day pointed at. The plan the page leads with:
@@ -2325,10 +2376,11 @@
         const pointsOf = (/** @type {Float64Array} */ line) => Array.from({ length: columns }, (_, j) => /** @type {[number, number]} */ ([colX(j), line[j]]));
         /** Draws the lines, the fill between the first two and its clips, from their samples. */
         const paint = (/** @type {Float64Array[]} */ shape) => {
-          const along = (/** @type {number} */ k, reverse = false) => monotone(pointsOf(shape[k]), reverse);
-          lines.forEach((path, k) => path.setAttribute("d", along(k)));
+          // (Each line's curve once a paint: its line, the fill's edge and (reversed) the fill's other side read from it.)
+          const curves = shape.map((line) => monotone(pointsOf(line)));
+          lines.forEach((path, k) => path.setAttribute("d", curves[k].forward));
           dots.forEach((dot, k) => dot.setAttribute("cy", shape[k][columns].toFixed(1)));
-          const edge = along(1 - good), between = `${along(good)}L${along(1 - good, true).slice(1)}Z`;
+          const edge = curves[1 - good].forward, between = `${curves[good].forward}L${curves[1 - good].reverse().slice(1)}Z`;
           fills.forEach((fill) => fill.setAttribute("d", between));
           under[0].setAttribute("d", `${edge}L${width},0L0,0Z`);
           under[1].setAttribute("d", `${edge}L${width},${height}L0,${height}Z`);
@@ -2542,7 +2594,7 @@
         },
       };
       const measure = () => MEASURES[state.atlas];
-      const scheme = () => /** @type {[number, string][]} */ (measure().stops[dark.matches ? "dark" : "light"]);
+      const scheme = (/** @type {Atlas} */ atlas = state.atlas) => /** @type {[number, string][]} */ (MEASURES[atlas].stops[dark.matches ? "dark" : "light"]);
       /** A color token as the scheme in use resolves it (a canvas can't read light-dark()). */
       const probe = document.createElement("i");
       const ink = (/** @type {string} */ token) => {
@@ -2556,30 +2608,35 @@
 
       /** The plans as one pixel each, drawn once per schedule and scheme; scaled up, unsmoothed. */
       const pixels = document.createElement("canvas");
-      function paintGrid() {
-        pixels.width = map.cols;
-        pixels.height = map.rows;
-        const context = /** @type {CanvasRenderingContext2D} */ (pixels.getContext("2d")), image = context.createImageData(map.cols, map.rows);
-        const { place, marks, lede } = measure(), cells = measure().cells(map);
+      /** A picture's measure and scheme, its key in a grid's pictures. */
+      const pictureKey = (/** @type {Atlas} */ atlas) => `${atlas} ${dark.matches ? "dark" : "light"}`;
+      /** A grid's picture for a measure, a pixel a plan, made once (see madeNow), a step a column. */
+      function* pictureSteps(/** @type {Grid} */ grid, /** @type {Atlas} */ atlas) {
+        const image = new ImageData(grid.cols, grid.rows), { place } = MEASURES[atlas], cells = MEASURES[atlas].cells(grid);
         // (Each cell its color between the two stops around it, the stops read once: not the scheme and every stop's hex
         // again for each of thousands of cells.)
-        const ramp = scheme().map(([at, hex]) => [at, ...rgb(hex)]), data = image.data;
-        for (let s = 0; s < map.cols; s++)
-          for (let d = 0; d < map.rows; d++) {
-            const m = cells[s * map.rows + d];
+        const ramp = scheme(atlas).map(([at, hex]) => [at, ...rgb(hex)]), data = image.data;
+        for (let s = 0; s < grid.cols; s++, yield)
+          for (let d = 0; d < grid.rows; d++) {
+            const m = cells[s * grid.rows + d];
             if (Number.isNaN(m)) continue;
             const t = place(m);
             let k = 1;
             while (k < ramp.length - 1 && ramp[k][0] < t) k++;
             const a = ramp[k - 1], b = ramp[k], f = Math.min(1, Math.max(0, (t - a[0]) / (b[0] - a[0])));
-            const at = ((map.rows - 1 - d) * map.cols + s) * 4;
+            const at = ((grid.rows - 1 - d) * grid.cols + s) * 4;
             data[at] = Math.round(a[1] + (b[1] - a[1]) * f);
             data[at + 1] = Math.round(a[2] + (b[2] - a[2]) * f);
             data[at + 2] = Math.round(a[3] + (b[3] - a[3]) * f);
             data[at + 3] = 255;
           }
-        context.putImageData(image, 0, 0);
-        const stops = scheme();
+        return image;
+      }
+      function paintGrid() {
+        pixels.width = map.cols;
+        pixels.height = map.rows;
+        /** @type {CanvasRenderingContext2D} */ (pixels.getContext("2d")).putImageData(madeNow(map.pictures, pictureKey(state.atlas), () => pictureSteps(map, state.atlas)), 0, 0);
+        const { place, marks, lede } = measure(), stops = scheme();
         $("ramp").style.background = `linear-gradient(to right, ${stops.map(([t, c]) => `${c} ${((t + 1) / 2) * 100}%`).join(", ")})`;
         $("marks").innerHTML = marks.map(([m, label]) => `<span style="left: ${((place(/** @type {number} */ (m)) + 1) / 2) * 100}%">${label}</span>`).join("");
         $("map-lede").textContent = `Every ${comparable ? "smart " : ""}plan from a month's first day, by start and length, ${lede}`;
@@ -2588,8 +2645,8 @@
       }
 
       /** The shortest length (rows above it too) at which every plan gained, by its cells; `rows` when none is. */
-      function sureFrom(/** @type {Float64Array} */ cells) {
-        const { cols, rows } = map;
+      function sureFrom(/** @type {Float64Array} */ cells, /** @type {Grid} */ grid) {
+        const { cols, rows } = grid;
         let sure = rows;
         for (let d = rows - 1; d >= 0; d--) {
           let short = false;
@@ -2604,19 +2661,29 @@
        * than the plain plans), and from what length every one ended worth more than went in (comparing: against the plain
        * plans'). Without the smart plan, the plain plans. */
       function findings() {
-        const cells = measure().cells(map), every = { day: "daily", week: "weekly", month: "monthly" }[state.every], kind = comparable ? "smart " : "";
+        const [wins, sure] = findingsOf(map);
+        $("wins").innerHTML = wins;
+        $("sure").innerHTML = sure;
+      }
+      /** A grid's two findings for a measure, made once. */
+      function findingsOf(/** @type {Grid} */ grid, /** @type {Atlas} */ atlas = state.atlas) {
+        const kept = grid.found.get(atlas);
+        if (kept) return kept;
+        const cells = MEASURES[atlas].cells(grid), every = { day: "daily", week: "weekly", month: "monthly" }[grid.every], kind = comparable ? "smart " : "";
         let wins = 0, all = 0;
         for (const m of cells) if (!Number.isNaN(m)) [all, wins] = [all + 1, wins + (gained(m) ? 1 : 0)];
-        const share = `<b>${Math.round((wins / all) * 100)}%</b> of the ${grouped(all)} ${every} ${kind}plans`, rows = map.rows;
-        if (state.atlas === "edge") {
-          const smarter = sureFrom(map.smartCells), plain = sureFrom(map.cells);
-          $("wins").innerHTML = `The smart plan beat the plain one in <b>${Math.round((wins / all) * 100)}%</b> of the ${grouped(all)} ${every} plans.`;
-          $("sure").innerHTML = smarter < rows ? `No smart plan of <b>${lasting(smarter + 1)}</b> or longer lost money (plain: ${plain < rows ? `from ${lasting(plain + 1)}` : "every length lost some"}).` : "";
+        const share = `<b>${Math.round((wins / all) * 100)}%</b> of the ${grouped(all)} ${every} ${kind}plans`, rows = grid.rows;
+        /** @type {[string, string]} */
+        let found;
+        if (atlas === "edge") {
+          const smarter = sureFrom(grid.smartCells, grid), plain = sureFrom(grid.cells, grid);
+          found = [`The smart plan beat the plain one in <b>${Math.round((wins / all) * 100)}%</b> of the ${grouped(all)} ${every} plans.`, smarter < rows ? `No smart plan of <b>${lasting(smarter + 1)}</b> or longer lost money (plain: ${plain < rows ? `from ${lasting(plain + 1)}` : "every length lost some"}).` : ""];
         } else {
-          const sure = sureFrom(cells);
-          $("wins").innerHTML = `${share[0].toUpperCase()}${share.slice(1)} ended worth more than went in.`;
-          $("sure").innerHTML = sure < rows ? `Every ${kind}plan of <b>${lasting(sure + 1)}</b> or longer did.` : "";
+          const sure = sureFrom(cells, grid);
+          found = [`${share[0].toUpperCase()}${share.slice(1)} ended worth more than went in.`, sure < rows ? `Every ${kind}plan of <b>${lasting(sure + 1)}</b> or longer did.` : ""];
         }
+        grid.found.set(atlas, found);
+        return found;
       }
 
       /** @type {{ s: number, d: number } | null} */
@@ -2783,6 +2850,7 @@
         if (!plan) return;
         paintGrid();
         drawMap();
+        setTimeout(makeGridsIdle, 0);
       });
 
       async function load() {
