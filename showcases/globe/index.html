@@ -1227,13 +1227,18 @@
         // orange, as strong as its share (the one picked, full).
         const sun = unit(...subsolar(new Date())), size = Math.max(0.6, R * STEP * RAD * 0.26);
         const buckets = Array.from({ length: 2 * ALPHAS }, () => new Path2D());
+        // (view() for every dot, from its unit vector: the spin and tilt's sines and cosines once a frame, then sums and
+        // products a dot, nothing made per dot: thousands of them, every frame the planet turns.)
+        const spin = rot[0] * RAD, tilt = rot[1] * RAD, cs = Math.cos(spin), ss = Math.sin(spin), ct = Math.cos(tilt), st = Math.sin(tilt);
+        const xyz = dots.xyz;
         for (let i = 0; i < dots.cc.length; i++) {
-          const v = view([dots.lon[i], dots.lat[i]]);
-          if (v[2] <= 0) continue;
-          const day = dots.xyz[3 * i] * sun[0] + dots.xyz[3 * i + 1] * sun[1] + dots.xyz[3 * i + 2] * sun[2];
-          const fade = Math.min(1, v[2] * 3) * (day > 0 ? 1 : 0.6), cc = dots.cc[i], share = cc ? byCountry.get(cc) : undefined;
+          const X = xyz[3 * i], Y = xyz[3 * i + 1], Z = xyz[3 * i + 2], sx = X * cs - Y * ss, depth = sx * ct - Z * st;
+          if (depth <= 0) continue;
+          const right = X * ss + Y * cs, up = Z * ct + sx * st;
+          const day = X * sun[0] + Y * sun[1] + Z * sun[2];
+          const fade = Math.min(1, depth * 3) * (day > 0 ? 1 : 0.6), cc = dots.cc[i], share = cc ? byCountry.get(cc) : undefined;
           const strength = share ? (cc === selected ? 1 : 0.45 + 0.55 * Math.sqrt(share / top)) * fade : 0.42 * fade;
-          const [x, y] = toScreen(v), r = size * (0.6 + 0.4 * v[2]) * (share ? 1.25 : 1);
+          const x = cx + R * right, y = cy - R * up, r = size * (0.6 + 0.4 * depth) * (share ? 1.25 : 1);
           const path = buckets[(share ? ALPHAS : 0) + Math.min(ALPHAS - 1, Math.floor(strength * ALPHAS))];
           path.moveTo(x + r, y);
           path.arc(x, y, r, 0, TAU);
