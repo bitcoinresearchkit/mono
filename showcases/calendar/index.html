@@ -1326,7 +1326,11 @@
           const tile = Object.assign(document.createElement("li"), { className: "block", tabIndex: i === stopAt ? 0 : -1 });
           tile.dataset.pool = block.pool;
           tile.dataset.height = String(block.height);
-          tile.dataset.tip = `Block ${grouped(block.height)}\n${name(block.pool)}, its ${ordinal(/** @type {number} */ (block.nth))} that day and ${ordinal(/** @type {number} */ (block.ever))} ever\nOn the chain at ${time} UTC; its miner wrote ${clock(/** @type {number} */ (block.time))}`;
+          // (Its time once where the chain's clock and its miner's agree to the minute; both where they don't, the
+          // miner's day too when it isn't the block's.)
+          const minerAt = /** @type {number} */ (block.time), minerDay = new Date(minerAt * 1000).toISOString().slice(0, 10);
+          const wrote = Math.floor(minerAt / 60) === Math.floor(block.at / 60) ? time : `${minerDay === block.day ? "" : `${shortDate(minerDay)} `}${clock(minerAt)}`;
+          tile.dataset.tip = `Block ${grouped(block.height)}\n${block.pool === "unknown" ? "Unknown pools'" : `${name(block.pool)}'s`} ${ordinal(/** @type {number} */ (block.nth))} that day, ${ordinal(/** @type {number} */ (block.ever))} ever\n${wrote === time ? `At ${time} UTC` : `At ${time} UTC by the chain's clock, ${wrote} by its miner's`}`;
           tile.setAttribute("aria-label", tile.dataset.tip.replaceAll("\n", ". "));
           tile.append(logo(block.pool), Object.assign(document.createElement("span"), { className: "num", textContent: time }));
           return tile;
