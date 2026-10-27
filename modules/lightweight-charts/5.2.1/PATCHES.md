@@ -832,3 +832,21 @@ bevel joins; wider, or not simplified, round as before.
 Measured, Mullvad (headless, 2x): HODL waves, a pan step 20.3-20.6 → 18.1 ms, a zoom step 21.3-22.1 → 18.8-19.6;
 "Realized price by age band" (24 lines), a pan step 7.5-8.1 → 6.4-6.9, a zoom step 9.2 → 8.3. Chromium as before.
 `tests.html` as before (its pictures not simplified; 7 to 11 by distance).
+
+## 46. A series' options set again, its points restyled only where their style changes
+
+Every `applyOptions` on a series restyled each of its points (`Pt("options")`: `BM`, its colorer asked for each point,
+the style assigned onto it), whatever the options were: Studio's axis tags shown again for 25 lines as a zoom takes their
+names' room (`lastValueVisible`), 25 × 5,000 points restyled in one frame. Now the style the options give a point of no
+colors of its own, rising and falling (a probe row each: a bar's, a candle's up and down colors; a baseline's top and
+bottom), is compared before and after: the same, the series drawn again (`"look"`: its views updated, `CM`), its points
+not restyled; else as before.
+
+- The series (`vr`, its `applyOptions`): `bvLook()`, its colorer's (`Sa().Mh`) styles for the two probe rows (values
+  ±1e308 from open to close) its `bvSimplify` (the restyle sets the points' `bvS`, 29) and its `baseValue` (a baseline's points' side of it), as
+  JSON; before and after
+  the options are merged, `Pt("look")` where they're the same.
+
+Measured on the iPhone (Lockdown Mode): 25 lines' axis tags switched and drawn, 115-124 → 39-53 ms. `tests.html`:
+pictures 710 of 713 the same as before (restyles in every series type, mid-pan too: never restyling, 576 of 713).
+Codex's review: a baseline's base moved, its points' sides changed with no probe seeing it (its base now compared).
