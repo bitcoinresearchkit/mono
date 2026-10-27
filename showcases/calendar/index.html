@@ -271,8 +271,10 @@
           font-weight: 500;
         }
 
+        /* (A line of its own on a phone, held while it's empty, so the totals come in without moving the page.) */
         @media (max-width: 640px) {
           width: 100%;
+          min-height: 1lh;
           margin: 0;
         }
       }
@@ -1216,7 +1218,7 @@
           const lead = leadersOf(dayBlocks);
           if (lead.count > biggest.count) biggest = { date, pools: lead.pools, count: lead.count, total: dayBlocks.length };
         }
-        if (biggest.count) notes.push({ key: "most", date: biggest.date, text: `The most one pool found in a day: ${biggest.count} of ${biggest.total}, ${biggest.pools.map(name).join(" and ")}` });
+        if (biggest.count) notes.push({ key: "most", date: biggest.date, text: `The most by one pool in a day: ${biggest.pools.map(name).join(" and ")}, ${biggest.count} of ${biggest.total} blocks${biggest.pools.length > 1 ? " each" : ""}` });
         return notes.sort((a, b) => a.date.localeCompare(b.date));
       }
       /** The margin's notes: when, what; a note of a day opens it (and keeps the focus by its key). @param {{ when: string, text: string, open?: string, key?: string }[]} notes */
