@@ -783,6 +783,46 @@
         line-height: 1.65;
       }
 
+      /* (The instrument's key: each mark as it's drawn, then what it is.) */
+      .key {
+        display: grid;
+
+        /* (Its own marks: not the instrument's (an SVG's .window is faint by opacity).) */
+        i {
+          opacity: 1;
+        }
+
+        gap: 6px;
+        padding: 0;
+        list-style: none;
+
+        li {
+          display: grid;
+          grid-template-columns: 14px minmax(0, 1fr);
+          gap: 10px;
+        }
+
+        i {
+          width: 14px;
+          height: 10px;
+          margin-top: 0.45em;
+        }
+
+        .counted {
+          background: var(--heat);
+          opacity: 0.45;
+        }
+
+        .lit {
+          background: var(--answer);
+        }
+
+        .window {
+          background: color-mix(in srgb, var(--answer) 24%, transparent);
+          box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--answer) 55%, transparent);
+        }
+      }
+
       /* ── 02: the twelve blocks, by weight ── */
       .weights {
         display: grid;
@@ -1145,7 +1185,11 @@
             </div>
             <dl class="sums" id="sums" aria-label="Round amounts in sats at this price"></dl>
           </div>
-          <p class="caption">Gray: the payments it counted at that block by amount in sats, smallest on the left (the block's and the 11 before it, the newest weighing most; now, the mempool's as the next block); lit, the counts under the teeth. At the bottom: how well the fingerprint fits wherever it's held; shaded, the only part the oracle looks at.</p>
+          <ul class="caption key">
+            <li><i class="counted" aria-hidden="true"></i>The payments it counted at that block, by amount in sats, smallest on the left: the block's and the 11 before it, the newest weighing most (now: the mempool's, as the next block).</li>
+            <li><i class="lit" aria-hidden="true"></i>The counts under the fingerprint's teeth.</li>
+            <li><i class="window" aria-hidden="true"></i>At the bottom, how well the fingerprint fits wherever it's held; shaded, the only part the oracle looks at.</li>
+          </ul>
         </div>
       </section>
 
@@ -1392,8 +1436,9 @@
 
       const chart = $("chart"), canvas = /** @type {HTMLCanvasElement} */ ($("heat")), svg = /** @type {SVGSVGElement} */ (/** @type {unknown} */ ($("lines")));
       const PAD = { top: 0, right: 0, bottom: 0 };
-      /** How far the week's lowest and highest prices sit from the bottom and top of the screen. */
-      const MARGIN = 0.12;
+      /** How far the week's lowest and highest prices sit, at least, from the words over the chart: the price above it,
+       * the foot below. */
+      const CLEAR = 28;
       /** Buckets a bin: the payments' price step, a tenth of the oracle's. */
       const PER_BIN = 10;
       /** How near a square at `bin` is a block's pick at `pick`: 1 on it, fading over about a bin. */
@@ -1402,15 +1447,25 @@
        * price and above the way down. */
       function frame() {
         const w = chart.clientWidth, h = chart.clientHeight, n = points.length;
-        // (The price axis is the oracle's bins, each an equal row of the whole screen, as many as put the week's lowest
-        // and highest prices about MARGIN from the bottom and top, rounded out to whole bins.)
+        // (The price axis is the oracle's bins, each an equal row of the whole screen, as many as keep the week's highest
+        // price CLEAR under the words at the top and its lowest CLEAR over the foot, rounded out to whole bins.)
         const prices = [...points.map((pt) => pt.p), ...(live ? [live] : [])];
+        const box = chart.getBoundingClientRect();
+        const above = Math.max(0, /** @type {HTMLElement} */ ($("change")).getBoundingClientRect().bottom - box.top) + CLEAR;
+        const below = Math.max(0, box.bottom - /** @type {HTMLElement} */ (document.querySelector(".week .foot")).getBoundingClientRect().top) + CLEAR;
+        const mTop = h > 0 ? Math.min(0.45, above / h) : 0, mBottom = h > 0 ? Math.min(0.3, below / h) : 0;
         let b0 = 0, b1 = 1;
         if (prices.length) {
+          // (The screen spans bins b0 - ½ to b1 + ½, `span` of them: whole bins, outward, till the margins hold at that
+          // span (a wider one only makes them more so).)
           const top = binOf(100, Math.max(...prices)), bottom = binOf(100, Math.min(...prices));
-          const rows = Math.max(1, Math.ceil((bottom - top) / (1 - 2 * MARGIN))), spare = rows - (bottom - top);
-          b0 = Math.round(top - spare / 2);
-          b1 = b0 + rows;
+          let span = Math.max(2, Math.ceil((bottom - top + 1) / (1 - mTop - mBottom)));
+          for (let tries = 0; tries < 8; tries++) {
+            b0 = Math.floor(top + 0.5 - mTop * span);
+            b1 = Math.max(b0 + 1, Math.ceil(bottom - 0.5 + mBottom * span));
+            if (b1 - b0 + 1 <= span) break;
+            span = b1 - b0 + 1;
+          }
         }
         const hi = priceOf(b0 - 0.5), lo = priceOf(b1 + 0.5);
         // (The squares: rows of whole buckets, a tenth of a bin each, about 10px tall; columns as wide, edge to edge,
@@ -1429,7 +1484,7 @@
        * its readings, brightest where a column's are densest. Gray where no block's search window reached. Then the
        * live strip: what the oracle searches now, the same readings from its smoothed histogram, a bin at a time. */
       function drawHeat() {
-        const f = frame(), ratio = devicePixelRatio || 1;
+        const f = framed ?? frame(), ratio = devicePixelRatio || 1;
         canvas.width = Math.round(f.w * ratio);
         canvas.height = Math.round(f.h * ratio);
         const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
@@ -1497,8 +1552,12 @@
 
       /** The line and its live end, no axes: pointing tells a block's date and price; the crosshair kept where it was. */
       let pointed = /** @type {number | null} */ (null);
+      /** The frame the line was drawn in, which the squares behind it and pointing share: measured as it's drawn (the
+       * words over it change as it's pointed at, and may wrap differently, but the line stays put).
+       * @type {ReturnType<typeof frame> | null} */
+      let framed = null;
       function draw() {
-        const f = frame();
+        const f = (framed = frame());
         if (!f.n) return;
         svg.setAttribute("viewBox", `0 0 ${f.w} ${f.h}`);
         const path = points.map((pt, k) => `${k ? "L" : "M"}${f.x(k).toFixed(1)},${f.y(pt.p).toFixed(1)}`).join("") + (live ? `L${f.now.toFixed(1)},${f.y(live).toFixed(1)}` : "");
@@ -1514,7 +1573,7 @@
         if (!cross) return;
         cross.setAttribute("visibility", pointed === null ? "hidden" : "visible");
         if (pointed !== null) {
-          const f = frame(), x = String(pointed >= points.length ? f.now : f.x(pointed)), line = /** @type {SVGLineElement} */ (cross.querySelector("line")), dot = /** @type {SVGCircleElement} */ (cross.querySelector("circle"));
+          const f = framed ?? frame(), x = String(pointed >= points.length ? f.now : f.x(pointed)), line = /** @type {SVGLineElement} */ (cross.querySelector("line")), dot = /** @type {SVGCircleElement} */ (cross.querySelector("circle"));
           line.setAttribute("x1", x);
           line.setAttribute("x2", x);
           dot.setAttribute("cx", x);
@@ -1556,7 +1615,7 @@
       across(chart, {
         hover: true,
         move: (e) => {
-          const f = frame(), box = chart.getBoundingClientRect();
+          const f = framed ?? frame(), box = chart.getBoundingClientRect();
           point(Math.round(((e.clientX - box.left) / f.span) * f.n));
         },
       });
