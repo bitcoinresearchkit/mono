@@ -615,6 +615,12 @@
       .stale {
         color: var(--brand-text);
         font-weight: 500;
+
+        /* (By a section's heading: as small as a card's name.) */
+        h2 > & {
+          font-size: 13px;
+          letter-spacing: 0;
+        }
       }
 
       footer {
@@ -887,12 +893,18 @@
 
       // ── Reading: every 30 seconds, one round at a time, each part shown as it answers ──
 
-      /** A part answered (its reading shown) or didn't (its last kept, its values dimmed, "not answering" by its name). */
+      /** A part answered (its reading shown) or didn't (its last kept, its values dimmed). Said once: by the section's
+       * heading when none of its parts answered ("this server isn't answering"), else by the name of each that didn't. */
       function answered(/** @type {string} */ id, /** @type {boolean} */ ok) {
-        const part = $(id), label = part.querySelector("h3, dt") ?? part;
+        const part = $(id), section = /** @type {HTMLElement} */ (part.closest("section"));
         part.toggleAttribute("data-failed", !ok);
-        label.querySelector(".stale")?.remove();
-        if (!ok) label.insertAdjacentHTML("beforeend", ` <span class="stale">· not answering</span>`);
+        const parts = PARTS.map(([id]) => $(id)).filter((p) => section.contains(p)), none = parts.length > 1 && parts.every((p) => p.hasAttribute("data-failed"));
+        const say = (/** @type {Element} */ where, /** @type {boolean} */ on, /** @type {string} */ words) => {
+          where.querySelector(":scope > .stale")?.remove();
+          if (on) where.insertAdjacentHTML("beforeend", ` <span class="stale">${words}</span>`);
+        };
+        say(/** @type {Element} */ (section.querySelector("h2")), none, "this server isn't answering");
+        for (const p of parts) say(p.querySelector("h3, dt") ?? p, !none && p.hasAttribute("data-failed"), "· not answering");
       }
 
       /** Each part: where it shows, what it reads, and how it shows it. @type {[string, string, (value: any) => void, string?][]} */
