@@ -9759,8 +9759,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           </div>
           <div class="head-actions">
             <span id="saved" class="saved"></span>
-            <span id="preview-note" class="preview-note" hidden><span class="preview-said">A preview</span><button id="keep" class="btn" type="button" data-tip="Save puts it in your Library, as it is" data-kbd="⌘ S" aria-label="Save"><span data-icon="keep"></span><span class="label">Save</span></button></span>
-            <span id="preset-note" class="preview-note" hidden><button id="preset-reset" class="btn ghost" type="button" data-tip="Back as the preset is: your edits let go of" hidden>Reset</button><button id="preset-copy" class="btn" type="button" aria-label="Save a copy" data-tip="A copy of it, as it is, in your Library"><span data-icon="duplicate"></span><span class="label">Save a copy</span></button></span>
+            <span id="preview-note" class="preview-note" hidden><span class="preview-said">A preview</span><button id="keep" class="btn" type="button" data-tip="Save this chart to your Library" data-kbd="⌘ S" aria-label="Save"><span data-icon="keep"></span><span class="label">Save</span></button></span>
+            <span id="preset-note" class="preview-note" hidden><button id="preset-reset" class="btn ghost" type="button" data-tip="Restore the preset, discarding your edits" hidden>Reset</button><button id="preset-copy" class="btn" type="button" aria-label="Save a copy" data-tip="Save a copy of this preset to your Library"><span data-icon="duplicate"></span><span class="label">Save a copy</span></button></span>
             <button id="undo" class="cap" type="button" aria-label="Undo" data-tip="Undo" data-kbd="⌘ Z" data-icon="undo"></button>
             <button id="redo" class="cap" type="button" aria-label="Redo" data-tip="Redo" data-kbd="⇧ ⌘ Z" data-icon="redo" aria-disabled="true"></button>
             <span class="divider"></span>
@@ -9811,14 +9811,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                     <div id="templates" class="templates strip"></div>
                   </div>
                   <div class="keys"><button class="btn ghost small keys-sheet" type="button" data-action="shortcuts"><span data-icon="keyboard"></span>Shortcuts<kbd>?</kbd></button><div class="keys-actions"><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import charts</button><button id="leave-empty" class="btn ghost small" type="button" data-action="leave-empty" hidden><span>Cancel</span><kbd>esc</kbd></button></div></div>
-                  <p class="links-note">Every chart is also a link, to share, or to have an assistant write. <button type="button" data-action="guide">How links work</button></p>
+                  <p class="links-note">Every chart is also a link: share it, or have an assistant write one. <button type="button" data-action="guide">How links work</button></p>
                 </div>
               </div>
             </div>
             <footer id="stage-foot" class="stage-foot">
               <button id="interval" class="btn interval" type="button" aria-haspopup="menu" data-tip="Interval" data-kbd="[ ]"></button>
               <div id="ranges" class="tabs" role="group" aria-label="Visible range"></div>
-              <div id="navigator" class="navigator" role="group" tabindex="0" aria-label="The view over all of history: ← → move it, ↑ ↓ zoom, ⇧ further" data-tip="Drag to pan, drag an edge to zoom, click to jump; focused, ← → ↑ ↓">
+              <div id="navigator" class="navigator" role="group" tabindex="0" aria-label="Overview of all history: ← → to move, ↑ ↓ to zoom, ⇧ for bigger steps" data-tip="Drag to pan, drag an edge to zoom, click to jump (or use the arrow keys)">
                 <div class="navigator-clip"><canvas id="overview" aria-hidden="true"></canvas></div>
                 <div id="brush" class="brush"></div>
               </div>
@@ -9883,7 +9883,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <div id="home-grid" class="home-grid"></div>
             <div id="gallery" class="gallery" hidden></div>
             <div id="home-foot" class="home-foot" hidden>
-              <p>Your Library is kept in this browser, the presets as you've edited them too. Download it all, folders and all, to import it anywhere else.</p>
+              <p>Your Library and your edited presets are stored in this browser. Download them all, with their folders, to move them elsewhere.</p>
               <div><button class="btn ghost small" type="button" data-action="download-all"><span data-icon="download"></span>Download all charts</button><button class="btn ghost small" type="button" data-action="import"><span data-icon="upload"></span>Import charts</button></div>
             </div>
             <div class="home-device" role="group" aria-label="This device">
@@ -9897,7 +9897,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <button class="btn ghost" type="button" data-batch="rename" aria-label="Rename"><span data-icon="pencil"></span><span class="label">Rename</span></button>
           <button class="btn ghost" type="button" data-batch="duplicate" aria-label="Duplicate"><span data-icon="duplicate"></span><span class="label">Duplicate</span></button>
           <button class="btn ghost" type="button" data-batch="folder" aria-label="Move to folder" aria-haspopup="menu"><span data-icon="folder"></span><span class="label">Move</span></button>
-          <button class="btn ghost" type="button" data-batch="export" aria-label="Download" data-tip="One chart file, to import again"><span data-icon="file"></span><span class="label">Download</span></button>
+          <button class="btn ghost" type="button" data-batch="export" aria-label="Download" data-tip="Download as a file you can import later"><span data-icon="file"></span><span class="label">Download</span></button>
           <button class="btn ghost" type="button" data-batch="delete" aria-label="Delete" data-kbd="⌫"><span data-icon="trash"></span><span class="label">Delete</span></button>
         </div>
       </section>
@@ -9964,7 +9964,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         <button class="cap small" type="button" data-action="close-shortcuts" aria-label="Close" data-tip="Close" data-kbd="esc" data-icon="close"></button>
       </div>
       <div class="keys-setting">
-        <span><span id="single-keys-label">Single-key shortcuts</span><span id="single-keys-text">A letter, a digit or a sign alone; off, only those with ⌘ or ⌥ act</span></span>
+        <span><span id="single-keys-label">Single-key shortcuts</span><span id="single-keys-text">Shortcuts that are a single letter, digit or symbol. When off, only shortcuts with ⌘ or ⌥ work</span></span>
         <div class="tabs" role="group" aria-labelledby="single-keys-label" aria-describedby="single-keys-text"><button type="button" data-single-keys="off" aria-pressed="false">Off</button><button type="button" data-single-keys="on" aria-pressed="true">On</button></div>
       </div>
       <div class="key-groups">
@@ -9978,13 +9978,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <div><dt>Show or hide the layers panel</dt><dd><kbd>P</kbd></dd></div>
             <div><dt>Collapse or expand the sidebar</dt><dd><kbd>\</kbd></dd></div>
             <div><dt>Full screen, or back</dt><dd><kbd>⇧F</kbd></dd></div>
-            <div><dt>Close, cancel the tool, deselect; then out of full screen</dt><dd><kbd>esc</kbd></dd></div>
+            <div><dt>Close, cancel the tool or deselect; then leave full screen</dt><dd><kbd>esc</kbd></dd></div>
           </dl>
           <h3>Charts</h3>
           <dl>
             <div><dt>Open one of your first nine charts</dt><dd><kbd>⌘1</kbd>–<kbd>⌘9</kbd></dd></div>
             <div><dt>New chart</dt><dd><kbd>N</kbd></dd></div>
-            <div><dt>Save a preview into your Library (all else saves as you go)</dt><dd><kbd>⌘S</kbd></dd></div>
+            <div><dt>Save a preview to your Library (everything else saves automatically)</dt><dd><kbd>⌘S</kbd></dd></div>
             <div><dt>Move a chart in your list</dt><dd><kbd>⌥↑</kbd><kbd>⌥↓</kbd> or drag</dd></div>
             <div><dt>Open or close a folder in the sidebar, go in or out</dt><dd><kbd>←</kbd><kbd>→</kbd></dd></div>
             <div><dt>The menu of the row in focus</dt><dd><kbd>⇧F10</kbd></dd></div>
@@ -10049,7 +10049,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           </dl>
           <h3>On the navigator</h3>
           <dl>
-            <div><dt>Reach it: Go to a date lands there</dt><dd><kbd>G</kbd> or <kbd>⇥</kbd></dd></div>
+            <div><dt>Focus it (Go to a date also lands there)</dt><dd><kbd>G</kbd> or <kbd>⇥</kbd></dd></div>
             <div><dt>Move the view, further with ⇧</dt><dd><kbd>←</kbd><kbd>→</kbd></dd></div>
             <div><dt>Zoom in or out, further with ⇧</dt><dd><kbd>↑</kbd><kbd>↓</kbd></dd></div>
             <div><dt>Its start, the latest</dt><dd><kbd>Home</kbd><kbd>End</kbd></dd></div>
@@ -10714,7 +10714,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The types of a layer made from layers. @type {[string, string][]} */
       const FROM_TYPES = [["cloud", "Cloud"], ["trend", "Trend"]];
       /** What a trend makes of its layers, said. */
-      const TREND_SAYS = "On the lowest of them until its reference touches it, then on the highest until it touches that";
+      const TREND_SAYS = "Follows the lowest until the layer that flips it touches it, then the highest until that layer touches it, and so on";
       /** Whether a signal shows: itself shown, on a layer there and shown (hidden with it, else). @param {Layer} layer @param {Chart} [doc] */
       const signalShown = (layer, doc = chart) => layer.type === "signal" && !layer.hidden && ((on) => Boolean(on && !on.hidden))(doc.layers.find((item) => item.id === layer.ref));
       /** What a signal's marks can be on: a layer of one value drawn as itself (not a cloud, not a signal). @param {Chart} doc */
@@ -10807,7 +10807,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return results.length ? results.reduce((total, result) => total * Math.max(0, 1 + result), 1) - 1 : undefined;
       };
       /** A signal, said: the layer its marks are on, how many there are (with its results, what they made). @param {Layer} layer */
-      const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it on" : on.hidden ? `Hidden with ${labelOf(on)}` : `Signal on ${labelOf(on)}${values ? ` · ${plural(marksOf(layer, values).length, "time")}${((total) => (total === undefined ? "" : ` · ${resultText(total)} in all`))(layer.results ? resultsOf(layer) : undefined)}${fineDrawn() ? " in what's loaded" : ""}` : ""}`))(chart.layers.find((item) => item.id === layer.ref), resolved?.results.get(layer.id)?.values);
+      const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it on" : on.hidden ? `Hidden while ${labelOf(on)} is hidden` : `Signal on ${labelOf(on)}${values ? ` · ${plural(marksOf(layer, values).length, "time")}${((total) => (total === undefined ? "" : ` · ${resultText(total)} in all`))(layer.results ? resultsOf(layer) : undefined)}${fineDrawn() ? " in the loaded range" : ""}` : ""}`))(chart.layers.find((item) => item.id === layer.ref), resolved?.results.get(layer.id)?.values);
       const typeName = (/** @type {string} */ type) => [...TYPES, ...FROM_TYPES].find(([id]) => id === type)?.[1] ?? type;
       /** @type {[string, string][]} */
       const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"]];
@@ -10857,8 +10857,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const MODES = [
         { chip: "Linear", name: "Linear", tip: "Linear" },
         { chip: "Log", name: "Log", tip: "Logarithmic" },
-        { chip: "Percent", name: "Percent", tip: "Change from the first in view" },
-        { chip: "Indexed", name: "Indexed", tip: "100 at the first in view" },
+        { chip: "Percent", name: "Percent", tip: "Change since the first value in view" },
+        { chip: "Indexed", name: "Indexed", tip: "Indexed to 100 at the first value in view" },
       ];
       /** @type {[string, string][]} */
       /** The formats a layer can be read in, by hand (Automatic: its unit's), in groups: each group's first starts it. */
@@ -10908,11 +10908,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const STARTERS = [
         { id: "sma", label: "Moving average", text: "Its mean over a span", formulas: ["sma(X, 200d)"], over: true },
-        { id: "ema", label: "Exponential average", text: "Its mean, the recent weighing more", formulas: ["ema(X, 200d)"], over: true },
+        { id: "ema", label: "Exponential average", text: "Its mean, weighting recent values more", formulas: ["ema(X, 200d)"], over: true },
         { id: "bands", label: "Deviation bands", text: "Two lines, two standard deviations above and below its mean", formulas: ["sma(X, 1y) + 2 * stdev(X, 1y)", "sma(X, 1y) - 2 * stdev(X, 1y)"], over: true },
         { id: "percentile", label: "Percentile", text: "Its 95th percentile over a span", formulas: ["percentile(X, 95, 1y)"], over: true },
         { id: "median", label: "Median", text: "The middle of its values over a span", formulas: ["median(X, 1y)"], over: true },
-        { id: "zscore", label: "Z-score", text: "Its deviations from the rolling mean", formulas: ["zscore(X, 1y)"], over: false },
+        { id: "zscore", label: "Z-score", text: "How many standard deviations it is from its rolling mean", formulas: ["zscore(X, 1y)"], over: false },
         { id: "change", label: "Change over time", text: "Its percent change over a span", formulas: ["change(X, 30d)"], over: false },
         { id: "ath", label: "All-time high", text: "Its highest so far", formulas: ["highest(X)"], over: true },
         { id: "log", label: "Logarithm", text: "Its base-10 logarithm", formulas: ["log(X)"], over: false },
@@ -12070,11 +12070,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const memberable = (item, /** @type {Layer | null} */ self = null, /** @type {Layer | null} */ on = null) => !item.from && item.type !== "signal" && item !== self && !(self && readsOf(item).has(self.letter)) && (!on || oneScale(item, on));
       /** Whether some of a cloud's or a trend's layers (what flips it too) are on another scale than it: their values not one's. @param {Chart} doc @param {Layer} layer */
       const offScale = (doc, layer) => [...(layer.from ?? []), ...(layer.type === "trend" && layer.ref ? [layer.ref] : [])].some((id) => ((other) => other && !oneScale(other, layer))(doc.layers.find((item) => item.id === id)));
-      const TREND_FLIP = "Needs a third layer, a price, to flip it", ONE_SCALE = "Not on one scale", FLIP_APART = "What flips it is on another scale";
+      const TREND_FLIP = "Needs a third layer, such as a price, to flip it", ONE_SCALE = "Not on one scale", FLIP_APART = "What flips it is on another scale";
       /** A trend's room on the chart: three layers not made from layers on one scale (two it rides, one to flip it), else why not. */
       const trendShort = () => {
         const bases = chart.layers.filter((layer) => !layer.from && layer.type !== "signal");
-        return bases.length < 3 ? "Needs three layers: two it rides, a third to flip it" : bases.some((layer) => bases.filter((other) => oneScale(other, layer)).length >= 3) ? "" : "Needs three layers in one pane, on one side";
+        return bases.length < 3 ? "Needs three layers: two to follow and a third that flips it" : bases.some((layer) => bases.filter((other) => oneScale(other, layer)).length >= 3) ? "" : "Needs three layers in one pane, on one side";
       };
       /**
        * Why a layer made from layers isn't drawn in its pane, if it isn't: it's its layers' values side by side, not a
@@ -12865,7 +12865,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (Date.now() - unsavedToldAt < 60_000) return;
         unsavedToldAt = Date.now();
         const why = readOnly ? unsavedWhy : "full";
-        if (why === "unreadable") return notice("Your saved charts can't be read here: changes can't be saved, and they're kept as they are", { label: "Download", run: () => (downloadStored(), downloadAll(true)) });
+        if (why === "unreadable") return notice("Your saved charts can't be read in this browser. They're left untouched, and changes here won't be saved", { label: "Download", run: () => (downloadStored(), downloadAll(true)) });
         notice(why === "newer" ? "A newer Studio saved your charts: changes here can't be saved. Download them, then reload" : "Not saved: storage is full or blocked. Download your charts to keep them", { label: "Download", run: () => downloadAll(true) });
       }
       /** The library as stored, as it is (one this can't read): a file of it. */
@@ -12874,7 +12874,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         try {
           stored = localStorage.getItem(STORE) ?? "";
         } catch {}
-        if (!stored) return notice("Nothing stored to download");
+        if (!stored) return notice("Nothing saved to download");
         download(`bitview-charts-as-stored-${new Date().toLocaleDateString("en-CA")}.json`, new Blob([stored], { type: "application/json" }));
       }
       /**
@@ -12986,7 +12986,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         chart = /** @type {Chart} */ (current);
         pruneDrafts();
         // (Its steps were of the chart as it was here: let go of, said (they'd take back the other tab's edit too).)
-        if (edits.past.length || edits.future.length) notice("Edited in another tab: undo starts again from here");
+        if (edits.past.length || edits.future.length) notice("Edited in another tab. Undo starts over from here");
         edits.past = [];
         edits.future = [];
         revision++;
@@ -13214,7 +13214,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (ids.length > 100) for (const id of ids.sort((a, b) => (all[a]?.at ?? 0) - (all[b]?.at ?? 0)).slice(0, ids.length - 100)) delete all[id];
         // (Storage full: the caches let go of first, then again; not written, said once till one is.)
         if (storage.set(VIEWS, all) || (storage.drop(PREVIEWS, THUMBS), storage.set(VIEWS, all))) (viewsBase = { ...all }), (viewsUnkept = false);
-        else if (!viewsUnkept) (viewsUnkept = true), notice("Where charts were left isn't kept: storage full or blocked");
+        else if (!viewsUnkept) (viewsUnkept = true), notice("Can't remember where each chart was left: this browser's storage is full or blocked");
       };
       // (Another tab's linked view, taken here at once out of sight: shown already as it's turned to (see followLinked).)
       addEventListener("storage", (event) => event.key === VIEWS && ((viewsLeft = null), document.visibilityState !== "visible" && followLinked()));
@@ -14290,7 +14290,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Chunks of two computations of the series (the server's anew since the older came): all of it again, once; still
           // two (a cache can go on serving the older for a while), an error to retry, never one series of both.
           if (new Set(loaded.map((part) => part.version)).size > 1) {
-            if (again) throw Object.assign(new Error("Being computed anew"), { recomputing: true });
+            if (again) throw Object.assign(new Error("Being recomputed"), { recomputing: true });
             forget(name, index);
             return loadSpan(name, index, { from, to, live }, false, true);
           }
@@ -14327,14 +14327,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         error?.unavailable ? `No ${INTERVAL_LABEL[index] ?? index} data`
         : error?.status === 404 ? "Not on Bitview"
         : error?.name === "TimeoutError" || error?.name === "AbortError" ? "Timed out"
-        : error?.recomputing ? "Bitview is computing it anew"
+        : error?.recomputing ? "Bitview is recomputing it"
         : "Couldn't load";
       /** The date intervals a series has, in order. */
       const datedIntervals = (meta) => INTERVAL_ORDER.filter((id) => meta?.indexes?.includes(id));
       /** The names a series by block's day could have, likeliest first (as the search's worker has them too). */
       const DAILY = (/** @type {string} */ name) => ((unit) => ["24h", "sum_24h", "avg_24h"].flatMap((end) => [`${name}_${end}`, ...(unit ? [`${unit[1]}_${end}_${unit[2]}`] : [])]))(/^(.*)_(usd|btc)$/.exec(name));
       /** Why a series by block isn't charted, said one way everywhere. */
-      const BY_BLOCK = "By block only: Studio charts by date";
+      const BY_BLOCK = "Only by block (Studio charts by date)";
       /** A series of text (a date, a hash, an address), said: its values aren't numbers. */
       const TEXT_VALUES = "Its values are text (a date, a hash, an address), not numbers to chart";
       /** Whether a series' data is text: its first value a string, or an object that isn't a candle. @param {{ data: any[] }} data */
@@ -17132,7 +17132,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return `${CADENCE[shownIndex()]}, ${span}. ${panes.join(". ")}.`;
       }
       /** The plot as its keys describe it: what it shows, and how to read it. */
-      const chartSummary = () => `${chartFacts()} The left and right arrows read it date by date (with shift, ten at a time); Home and End, the first and last shown. With a drawing tool in hand, Enter places a point there, and the up and down arrows move it off the line.`;
+      const chartSummary = () => `${chartFacts()} Use the left and right arrows to read it date by date (Shift for ten at a time), and Home and End for the first and last dates shown. With a drawing tool selected, Enter places a point there and the up and down arrows move it off the line.`;
       /**
        * Where the keys' crosshair is at a bar: on a layer (the one being drawn on; else the selected, else the first shown with
        * a value there), at its value as drawn (a stack's at its height); with a tool, at the value ↑ and ↓ moved it to, or, its
@@ -17651,10 +17651,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const outside = new Path2D();
         const shown = view.timeScale().getVisibleRange();
         // (Said: what it's over (a finer interval loads a stretch, not all of history), what it shows, its keys.)
-        const over = fineDrawn() ? "the stretch loaded" : "all of history";
-        const keys = "← → move it, ↑ ↓ zoom, ⇧ further";
+        const over = fineDrawn() ? "the stretch loaded" : "all history";
+        const keys = "← → to move, ↑ ↓ to zoom, ⇧ for bigger steps";
         const label = (/** @type {string} */ said) => $("navigator").getAttribute("aria-label") !== said && $("navigator").setAttribute("aria-label", said);
-        if (!(lit && shown)) label(`The view over ${over}: ${keys}`);
+        if (!(lit && shown)) label(`Overview of ${over}: ${keys}`);
         else {
           const [left, right] = brushSpan(lit.left * w, lit.right * w, w, BRUSH_MIN * ratio);
           outside.rect(0, 0, w, h);
@@ -17663,7 +17663,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // says them, and a canvas measuring text works out the page's styles first.)
           const near = navigatorNear || $("brush").classList.contains("dragging");
           const ends = spanParts(Number(shown.from), Number(shown.to)).map((text) => ({ text, width: near ? context.measureText(text).width : 0 }));
-          label(`The view over ${over}, showing ${ends.map((end) => end.text).join(" – ")}: ${keys}`);
+          label(`Overview of ${over}, showing ${ends.map((end) => end.text).join(" – ")}: ${keys}`);
           if (near && ends.length === 2) {
             const [start, end] = ends;
             const from = left - edge - start.width >= edge ? left - edge - start.width : left + inner;
@@ -19021,7 +19021,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const beltTool = (/** @type {string} */ each) =>
         each === "cursor" ? { name: "Cursor", key: "", kbd: "esc", icon: ICONS.cursor }
         : each === "select" ? { name: "Select", tip: `Select: drag a box around drawings, or ${keyText("⌘")} and drag anytime`, key: "S", kbd: "D S", icon: ICONS.select }
-        : each === "magnifier" ? { name: "Magnifier", tip: "Magnifier: the chart under the pointer, twice as large", key: "Z", kbd: "D Z", icon: ICONS.magnifier }
+        : each === "magnifier" ? { name: "Magnifier", tip: "Magnifier: shows the chart under the pointer at twice the size", key: "Z", kbd: "D Z", icon: ICONS.magnifier }
         : { name: TOOLS[each].name, key: TOOLS[each].key, kbd: each === "ruler" ? "M" : `D ${TOOLS[each].key}`, icon: TOOLS[each].icon };
       function renderBelt() {
         const belt = $("belt"), drawings = tool ? [] : /** @type {Drawing[]} */ ([...chosen].map(drawingById).filter(Boolean)), drawing = drawings.length === 1 ? drawings[0] : undefined;
@@ -19052,7 +19052,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const { name, tip = name, key, kbd, icon } = beltTool(each);
           // (The ways of looking, the magnifier and the drawings' eye, apart from the ways of drawing.)
           return `${each === "magnifier" ? '<i class="belt-rule"></i>' : ""}<button type="button" class="cap ${each === tool && toolKept ? "kept" : ""}" id="belt-${each}" data-tool="${each}" aria-pressed="${pressed(each)}" aria-label="${name}${each === tool && toolKept ? ", kept" : ""}" data-tip="${escape(tip)}" data-kbd="${kbd}">${icon}${key ? `<kbd>${key}</kbd>` : ""}</button>`;
-        }).join("") + (chart.drawings?.length ? `<button type="button" class="cap" id="belt-hide" data-belt="hide" aria-pressed="${drawingsHidden}" aria-label="${drawingsHidden ? "Show the drawings" : "Hide the drawings"}" data-tip="${drawingsHidden ? "Show the drawings" : "Hide the drawings: the chart as it is, without them"}" data-kbd="⇧ H">${drawingsHidden ? ICONS.eyeOff : ICONS.eye}</button>` : "");
+        }).join("") + (chart.drawings?.length ? `<button type="button" class="cap" id="belt-hide" data-belt="hide" aria-pressed="${drawingsHidden}" aria-label="${drawingsHidden ? "Show the drawings" : "Hide the drawings"}" data-tip="${drawingsHidden ? "Show the drawings" : "Hide the drawings (they're kept)"}" data-kbd="⇧ H">${drawingsHidden ? ICONS.eyeOff : ICONS.eye}</button>` : "");
         const button = (/** @type {string} */ part, /** @type {string} */ label, /** @type {string} */ body, menu = true, kbd = "") => `<button type="button" class="cap" id="belt-${part}" data-belt="${part}" ${menu ? 'aria-haspopup="menu"' : ""} aria-label="${escape(label)}" data-tip="${escape(label)}" ${kbd ? `data-kbd="${kbd}"` : ""}>${body}</button>`;
         // Each look shown as the first drawing that has it has it; set, it's set on each that has it.
         const has = (/** @type {string} */ part) => [...kinds].some((each) => hasLook(each, part));
@@ -20049,7 +20049,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const times = far ? 10 : 1, across = key === "ArrowLeft" ? -1 : key === "ArrowRight" ? 1 : 0, down = key === "ArrowDown" ? 1 : key === "ArrowUp" ? -1 : 0;
         // (A step: a bar, or as many as a pixel holds; ⇧, ten of them.)
         const dx = across * Math.max(1, Math.round(1 / line.step)) * times * line.step, dy = down * times;
-        if (end && !ids.some((id) => PAIRED.has(drawingById(id)?.kind ?? ""))) return void (!repeat && notice("Only a trend line or a box resizes: the arrows alone move it"));
+        if (end && !ids.some((id) => PAIRED.has(drawingById(id)?.kind ?? ""))) return void (!repeat && notice("Only trend lines and boxes can be resized. The arrow keys move this one"));
         commit((doc) => doc.drawings?.forEach((item) => {
           const series = drawn.get(item.layer);
           if (!ids.includes(item.id) || !series || (end && !PAIRED.has(item.kind))) return;
@@ -21414,7 +21414,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const query = $("home-filter").value.trim();
         if (!grid.hidden && onPreviews) {
           const previewed = query ? previewsShown() : listedPreviews();
-          parts.push(previewed.length ? { kind: "grid", docs: previewed, previews: true } : { kind: "note", html: query ? `No previews match “${escape(query)}”` : "<p>No previews: a chart a link opens shows here, till it's saved or closed.</p>" });
+          parts.push(previewed.length ? { kind: "grid", docs: previewed, previews: true } : { kind: "note", html: query ? `No previews match “${escape(query)}”` : "<p>No previews. Charts opened from a link appear here until you save or close them.</p>" });
         } else if (!grid.hidden && query) {
           const found = filtered().filter((doc) => !folderId || isIn(doc.folder, folderId)), previewed = top ? previewsShown() : [];
           if (previewed.length) parts.push({ kind: "head", name: "Previews", count: previewed.length }, { kind: "grid", docs: previewed, previews: true });
@@ -21431,7 +21431,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Its folders first, as the sidebar has them; then its own charts.)
           for (const folder of items.flatMap((item) => ("layers" in item ? [] : [item]))) parts.push({ kind: "shelf", name: folder.name, place: { folder: folder.id }, folder: folder.id, docs: treeOf(folder.id).flatMap(({ item }) => ("layers" in item ? [item] : [])).slice(0, SHELF), count: counts.get(folder.id) ?? 0 });
           if (own.length) parts.push({ kind: "grid", docs: own });
-          if (!items.length) parts.push({ kind: "note", html: folderId ? `<p>${TOUCH ? "Nothing in it yet. Hold a chart, then tap Move" : "Nothing in it yet: drag charts onto it in the sidebar, or move them from their menu"}</p>` : `<p>No charts yet. Start a new chart, or open a preset and save a copy.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`, card: true });
+          if (!items.length) parts.push({ kind: "note", html: folderId ? `<p>${TOUCH ? "Nothing in it yet. Hold a chart, then tap Move" : "Nothing in it yet. Drag charts onto it in the sidebar, or use Move in a chart's menu."}</p>` : `<p>No charts yet. Start a new chart, or open a preset and save a copy.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`, card: true });
         }
         const visible = parts.flatMap((part) => (part.kind === "grid" || part.kind === "shelf" ? part.docs : []));
         shownYours = visible.filter((doc) => !isPreview(doc));
@@ -22434,7 +22434,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!doc) {
           // (A preview closed since: said, and how it comes back.)
           const closed = closedPreviews.get(event.state?.chart);
-          if (closed) notice(`“${closed}” was closed${libraryEdits.past.at(-1)?.text === `Closed the preview “${closed}”` ? `: ${keyText("⌘Z")} in the Library brings it back` : ""}`);
+          if (closed) notice(`“${closed}” was closed${libraryEdits.past.at(-1)?.text === `Closed the preview “${closed}”` ? `. Press ${keyText("⌘Z")} on the Charts page to bring it back` : ""}`);
           return void history.replaceState(home ? homeState() : { chart: chart.id }, "");
         }
         go(doc, false);
@@ -22992,7 +22992,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function renderCharts() {
         const current = home ? null : chart;
         /** A preview's row, its × (but the open one with nothing to go back to). */
-        const previewRow = (/** @type {Chart} */ doc) => `<div class="chart-row preview" data-preview-row="${doc.id}">${`<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}: a preview, not in your Library (Save${doc === chart ? " or ⌘S" : ""} adds it${touched.has(doc) ? ", your edits with it" : ""})">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escape(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
+        const previewRow = (/** @type {Chart} */ doc) => `<div class="chart-row preview" data-preview-row="${doc.id}">${`<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}: a preview, not in your Library yet (Save${doc === chart ? " or ⌘S" : ""} to keep it${touched.has(doc) ? " with your edits" : ""})">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escape(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
         // (A draft, the empty chart in place of none (the open one deleted), isn't listed: it's the page to start one, not
         // a chart, till something's in it.)
         const listed = listedPreviews(), counts = chartCounts();
@@ -23198,7 +23198,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // (In its folders, by its own name, the folders saying the rest; its title on hover. Retitled here, by that.)
               const preset = /** @type {Preset[]} */ (presets)[item], doc = keptPreset(item), edited = Boolean(doc && presetEdited(doc));
               const title = escape(doc ? titleOf(doc) : preset.t), label = doc && titleOf(doc) !== preset.t ? title : escape(/** @type {string} */ (preset.p.at(-1)));
-              parts.push([`preset:${item}`, `<div class="chart-row preset-row in-folder ${edited ? "edited" : ""}" data-preset-row="${item}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-preset="${item}" data-tip="${title}${edited ? ": edited here" : ""}">${presetMark(item)}<span class="label">${label}</span></button><button type="button" class="cap small chart-more" data-preset-menu="${item}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button></div>`]);
+              parts.push([`preset:${item}`, `<div class="chart-row preset-row in-folder ${edited ? "edited" : ""}" data-preset-row="${item}" style="--depth: ${depth}"><button type="button" class="nav-item chart-item" data-open-preset="${item}" data-tip="${title}${edited ? " (edited)" : ""}">${presetMark(item)}<span class="label">${label}</span></button><button type="button" class="cap small chart-more" data-preset-menu="${item}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button></div>`]);
               continue;
             }
             const section = item, shown = open.has(section.key), name = /** @type {string} */ (section.path.at(-1)), key = escape(section.key);
@@ -23609,7 +23609,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         setChildren([...siblings.slice(0, place), ...members, ...siblings.slice(place + 1)]);
         save();
         renderCharts();
-        toast(`Deleted “${folder.name}”${members.length ? `; ${charts ? `its ${plural(charts, "chart")}` : "what was in it"} kept` : ""}`, { label: "Undo", run: () => {
+        toast(`Deleted “${folder.name}”${members.length ? ` (${charts === 1 ? "its chart was" : charts ? `its ${plural(charts, "chart")} were` : "what was in it was"} kept)` : ""}`, { label: "Undo", run: () => {
           if (folderById(id)) return;
           // (Back as a folder anew, its deletion standing: wherever that's been heard, this one isn't it.)
           // (What was in it, still where the delete put it; the folder that was around it gone since, wherever that took
@@ -23781,7 +23781,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { key: "new-folder", icon: ICONS.folderAdd, label: "New folder inside", run: () => ($("palette").open && dismissPalette(), newFolder([], id)) },
           { key: "folder", icon: ICONS.folder, label: "Move to folder", ...(inPalette ? { aside: folder.parent ? folderPath(folder.parent) : "None" } : {}), page: () => choicePage("Move to folder", () => folderChoices([`f:${id}`], inPalette)) },
           ...(leave ? [{ key: "out", icon: ICONS.folderOut, label: leave, run: () => moveToFolder([`f:${id}`], null) }] : []),
-          { key: "delete", icon: ICONS.trash, label: "Delete the folder", aside: "What's in it kept", verb: "Delete", danger: true, run: () => deleteFolder(id) },
+          { key: "delete", icon: ICONS.trash, label: "Delete the folder", aside: "Keeps its charts", verb: "Delete", danger: true, run: () => deleteFolder(id) },
         ];
       }
       /** A chart's menu, from its sidebar row (its ⋯, a right-click). */
@@ -25164,7 +25164,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (started && lost.includes(/** @type {Chart} */ (chart))) refresh(true);
         const moved = to.size;
         if (!told) return kept;
-        toast(`The presets were arranged anew: ${[moved ? `${plural(moved, "edited preset")} moved to ${moved === 1 ? "its new place" : "their new places"}` : "", kept ? `${plural(kept, "edited preset")} kept as ${kept === 1 ? "a chart" : "charts"} in your Library` : ""].filter(Boolean).join(", ")}`);
+        toast(`The presets were reorganized: ${[moved ? `${plural(moved, "edited preset")} moved with them` : "", kept ? `${plural(kept, "edited preset")} kept as ${kept === 1 ? "a chart" : "charts"} in your Library` : ""].filter(Boolean).join(", ")}`);
       }
       /** A preset back as made (its edits let go of), with an Undo; open, it shows as it is. @param {Chart} doc */
       function resetPreset(doc) {
@@ -25185,7 +25185,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (library.presets.includes(doc)) return;
           // (Edited again since: that's kept, as it is.)
           const now = library.presets.find((other) => other.preset === doc.preset);
-          if (now && presetEdited(now)) return notice(`“${titleOf(now)}” has been edited since: kept as it is`);
+          if (now && presetEdited(now)) return notice(`“${titleOf(now)}” has been edited since then, so it was left unchanged`);
           recover(doc);
           library.presets = [...library.presets.filter((other) => other !== now), doc];
           if (now === chart || (open && chart.preset === doc.preset)) {
@@ -25289,7 +25289,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { key: "copy", icon: ICONS.duplicate, label: "Save a copy", aside: "Into your Library", run: () => void copyPreset(i) },
           { key: "copy-to", icon: ICONS.folder, label: "Save a copy to…", page: () => choicePage("Save a copy to", () => copyChoices(i)) },
           ...(head && chart.layers.length ? [{ ...legendAction(), apart: true }, { key: "export", icon: ICONS.download, label: "Export", aside: "Image, data, file", page: () => listPage("Export", exportRows) }] : []),
-          ...(doc && presetEdited(doc) ? [{ key: "reset", icon: ICONS.undo, label: "Reset", aside: "As the preset is", apart: !head, run: () => resetPreset(doc) }] : []),
+          ...(doc && presetEdited(doc) ? [{ key: "reset", icon: ICONS.undo, label: "Reset", aside: "Discard your edits", apart: !head, run: () => resetPreset(doc) }] : []),
         ];
       }
       /** A preset's words for a search: its title as made, and as edited here, and where it is. */
@@ -25445,7 +25445,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const ordersOf = (pane) => /** @type {[boolean, string][]} */ ([[false, pane.stack ? "First at the foot" : "First in front"], [true, pane.stack ? "Last at the foot" : "Last in front"]]);
       const toggleLog = (id) => {
         const pane = chart.panes.find((item) => item.id === id);
-        if (pane?.stack === "percent") notice("A 100% stack is in shares of its sum: no scale to choose");
+        if (pane?.stack === "percent") notice("A 100% stack shows shares of the total, so there's no scale to choose");
         else if (pane) setPaneMode(id, paneMode(pane) === 1 ? 0 : 1);
       };
       /** A pane's scale, stack and order, from its chip. */
@@ -25459,7 +25459,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const pane = chart.panes.find((item) => item.id === id);
         if (!pane) return [];
         return [
-          ...(pane.stack === "percent" ? [] : MODES.map((mode, m) => ({ key: `scale:${m}`, group: "Scale", label: mode.name, aside: mode.tip === mode.name ? undefined : mode.tip, current: paneMode(pane) === m, ...(modesFor(pane).includes(m) ? {} : { disabled: `${mode.name}: not in a stack (linear or log)` }), run: () => setPaneMode(id, m) }))),
+          ...(pane.stack === "percent" ? [] : MODES.map((mode, m) => ({ key: `scale:${m}`, group: "Scale", label: mode.name, aside: mode.tip === mode.name ? undefined : mode.tip, current: paneMode(pane) === m, ...(modesFor(pane).includes(m) ? {} : { disabled: `${mode.name} isn't available in a stacked pane (use linear or log)` }), run: () => setPaneMode(id, m) }))),
           ...STACKS.map(([stack, name, says]) => ({ key: `stack:${stack || "off"}`, group: "Stack", label: name, aside: says, current: (pane.stack ?? "") === stack, run: () => setPaneStack(id, stack) })),
           ...(chart.layers.filter((layer) => layer.pane === id).length > 1 ? ordersOf(pane).map(([reverse, name]) => ({ key: `order:${reverse ? "last" : "first"}`, group: "Order", label: name, current: Boolean(pane.reverse) === reverse, run: () => setPaneReverse(id, reverse) })) : []),
         ];
@@ -25927,9 +25927,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { key: "hide", icon: hide ? ICONS.eyeOff : ICONS.eye, label: `${hide ? "Hide" : "Show"} ${n}`, text: layers.map(labelOf).join(", "), kbd: "H", run: () => layersBatch("hide") },
           { key: "duplicate", icon: ICONS.duplicate, label: `Duplicate ${n}`, text: "Each copy under its original.", kbd: "⌘D", ...(chart.layers.length + layers.length > MAX_LAYERS ? { disabled: `A chart holds up to ${MAX_LAYERS} layers` } : {}), run: () => layersBatch("duplicate") },
           { key: "move", icon: ICONS.pane, label: "Move to pane", text: "One of the others, or a new one.", page: () => choicePage("Move to pane", () => paneChoices(layers.map((layer) => layer.id))) },
-          { key: "cloud", icon: ICONS.cloud, label: "A cloud between them", text: "Filled between each two next to each other, in the color of the one over.", ...(bases.length < 2 ? { disabled: "A cloud is between two layers or more, not made from layers" } : fromShort({ type: "cloud", from: ids }) ? { disabled: ONE_SCALE } : {}), run: () => layersBatch("cloud") },
-          { key: "trend", icon: ICONS.riding, label: "A trend between them", text: "On the lowest of them until a price touches it, then on the highest until it touches that.", ...(bases.length < 2 ? { disabled: "Two layers at least, not made from layers" } : ((why) => (why ? { disabled: why } : {}))(fromShort({ type: "trend", from: ids }))), run: () => layersBatch("trend") },
-          { key: "remove", icon: ICONS.trash, label: `Remove ${n}`, text: "With an Undo.", kbd: "⌫", danger: true, run: () => layersBatch("remove") },
+          { key: "cloud", icon: ICONS.cloud, label: "A cloud between them", text: "A fill between each pair of neighbors, in the upper one's color.", ...(bases.length < 2 ? { disabled: "Needs two or more layers that aren't clouds, trends or signals" } : fromShort({ type: "cloud", from: ids }) ? { disabled: ONE_SCALE } : {}), run: () => layersBatch("cloud") },
+          { key: "trend", icon: ICONS.riding, label: "A trend between them", text: "Follows the lowest until a price touches it, then the highest until the price touches that, and so on.", ...(bases.length < 2 ? { disabled: "Needs two or more layers that aren't clouds, trends or signals" } : ((why) => (why ? { disabled: why } : {}))(fromShort({ type: "trend", from: ids }))), run: () => layersBatch("trend") },
+          { key: "remove", icon: ICONS.trash, label: `Remove ${n}`, text: "You can undo.", kbd: "⌫", danger: true, run: () => layersBatch("remove") },
         ];
       }
       /** The icons by their markup: an action's, named as a command names its own. */
@@ -26065,7 +26065,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ? `<section>
               <h3>${typeName(layer.type)}</h3>
               ${betweenField(layer)}
-              ${layer.type === "cloud" ? "" : `<div class="field"><span>Flips when it touches</span><button type="button" class="preset" id="trend-ref" aria-haspopup="menu" data-tip="The layer whose touching it flips it (a candle's wick counts)">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>`}
+              ${layer.type === "cloud" ? "" : `<div class="field"><span>Flips when it touches</span><button type="button" class="preset" id="trend-ref" aria-haspopup="menu" data-tip="The layer that flips the trend when it touches it (a candle's wick counts)">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>`}
               ${fromError || fromSays ? `<p class="from-status ${fromError ? "error" : ""}" role="status">${escape(fromError || `${capitalize(fromSays)}.`)}</p>` : ""}
             </section>`
           : isFormula
@@ -26088,7 +26088,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               ${signal ? `<div class="field"><span>Marked on</span><button type="button" class="preset" id="signal-ref" aria-haspopup="menu" data-tip="The layer its marks are on">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>
               <div class="field"><span>Shown as<span class="color-now">${escape(placeName(layer.place ?? "above"))}</span></span><div class="tabs glyphs" role="group" aria-label="How it shows">${MARK_PLACES.map(([place]) => `<button type="button" data-place="${place}" aria-pressed="${(layer.place ?? "above") === place}" aria-label="${placeName(place)}" data-tip="${placeName(place)}">${glyphSvg(markBody(place, "currentColor"))}</button>`).join("")}</div></div>
               <div class="field switch"><span>Results</span><div class="tabs" role="group" aria-label="Results">${[[false, "Off", "Marks alone"], [true, "On", "On each mark that ends a stretch, what it made: its layer's change over it, up; the opposite, down"]].map(([on, text, tip]) => `<button type="button" data-results="${on ? 1 : 0}" aria-pressed="${Boolean(layer.results) === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>
-              <div class="field"><span>Times marked</span><button type="button" class="preset" id="signal-times" aria-haspopup="dialog" data-tip="Each time it marked, to go to">${((n) => (n === null ? `<span class="name">Loading</span>` : `<span class="name">${plural(n, "time")}</span>`))(result?.values ? marksOf(layer, result.values).length : null)}${CHEVRON}</button></div>` : ""}
+              <div class="field"><span>Times marked</span><button type="button" class="preset" id="signal-times" aria-haspopup="dialog" data-tip="Every time it signaled; pick one to jump to it">${((n) => (n === null ? `<span class="name">Loading</span>` : `<span class="name">${plural(n, "time")}</span>`))(result?.values ? marksOf(layer, result.values).length : null)}${CHEVRON}</button></div>` : ""}
             </section>`
           : `<section>
               <h3>Series</h3>
@@ -26126,7 +26126,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ${axisField([layer])}
             <div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escape(formatName(layer, result))}"><span class="name">${escape(formatName(layer, result))}</span>${CHEVRON}</button></div>
             <p class="shared-head">Pane ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}'s, for every layer in it</p>
-            ${stackOfPane === "percent" ? "" : `<div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip, name }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" ${modesFor(layerPane).includes(mode) ? `data-tip="${mode < 2 ? `${tip} scale` : tip}"` : `aria-disabled="true" data-tip="${name}: not in a stack (linear or log)"`}>${chip}</button>`).join("")}</div></div>`}
+            ${stackOfPane === "percent" ? "" : `<div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip, name }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" ${modesFor(layerPane).includes(mode) ? `data-tip="${mode < 2 ? `${tip} scale` : tip}"` : `aria-disabled="true" data-tip="${name} isn't available in a stacked pane (use linear or log)"`}>${chip}</button>`).join("")}</div></div>`}
             <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" data-tip="${tip}">${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
             ${ordered ? `<div class="field"><span>Order</span><div class="tabs" role="group" aria-label="Order">${ordersOf(layerPane).map(([reverse, name]) => `<button type="button" data-pane-reverse="${layer.pane}" data-reverse="${reverse ? 1 : ""}" aria-pressed="${Boolean(layerPane.reverse) === reverse}">${name}</button>`).join("")}</div></div>` : ""}
           </section>`}
@@ -26979,7 +26979,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A series by block, not added: why, and its day's series to use instead, if there's one (on this chart, while it's open). */
       function blockOnly(/** @type {string} */ name, /** @type {(day: string) => void} */ use) {
         const day = dailyOf(name), target = chart;
-        notice(`${name} is by block only: Studio charts by date`, day ? { label: `Use ${day}`, run: () => chart === target && !home && use(day) } : undefined);
+        notice(`${name} is only available by block, and Studio charts by date`, day ? { label: `Use ${day}`, run: () => chart === target && !home && use(day) } : undefined);
       }
       /** The series closest to a gone one, by its words; asked once per name. */
       const nearestTo = new Map();
@@ -27705,7 +27705,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (No line, no value on the axis: nothing to turn on.)
           if (!layer || !lineAt(layer, lineTag)) return;
           // (Not to be had: why, said, as every control that can't be pressed says it (a finger has no tip).)
-          if (lineLook(layer, lineTag).line === false) return notice("No line, no value on the axis");
+          if (lineLook(layer, lineTag).line === false) return notice("Turn on the line to show its value on the axis");
           refocus(`[data-line-tag="${lineTag}"]`);
           const on = !lineLook(layer, lineTag).tag;
           setLineLook(selected, lineTag, "tag", on || undefined);
@@ -27809,13 +27809,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         const lowest = levels.length ? Math.min(...levels.map((level) => level.value)) : 0;
         const under = banded && levels.length ? `<div class="level under" role="listitem">
-            ${layer.byLevels ? `<button type="button" id="color-select-under" class="cap small" data-color-select="under" aria-haspopup="menu" aria-label="Under its levels, its color: ${escape(colorName(layer.color))}" data-tip="Under its levels">${swatch(layer.color)}</button>` : `<span class="cap small" role="img" aria-label="The line's own color" data-tip="The line's own color (its levels color it: Colors)">${swatch(layer.color)}</span>`}
+            ${layer.byLevels ? `<button type="button" id="color-select-under" class="cap small" data-color-select="under" aria-haspopup="menu" aria-label="Under its levels, its color: ${escape(colorName(layer.color))}" data-tip="Color below all its levels">${swatch(layer.color)}</button>` : `<span class="cap small" role="img" aria-label="The line's own color" data-tip="The line's color (its levels color it: see Colors)">${swatch(layer.color)}</span>`}
             <input id="level-name-under" class="level-name named" style="--c:${escape(cssColor(layer.color))}" enterkeyhint="done" aria-label="Under its levels, its name" placeholder="Name" type="text" autocomplete="off" spellcheck="false" maxlength="40" value="${escape(layer.underName ?? "")}" />
             <span class="under-label"><span class="sign" aria-hidden="true">&lt;</span><span class="vh">Under </span>${lowest}</span>
             <i class="cap small spacer" aria-hidden="true"></i>
           </div>` : "";
         // (Their unit said once, by their name: every value's; none said before there are any.)
-        return `<div class="field levels-field"><span><span>Levels${levels.length && fieldUnit(unit) ? `<span class="levels-unit"> · ${escape(fieldUnit(unit))}</span>` : ""}</span>${layer.byLevels ? '<span class="color-now">Colors the line</span>' : ""}<button type="button" class="reset" data-action="add-level" aria-label="Add a level" ${levels.length >= MAX_LEVELS ? `aria-disabled="true" data-tip="A layer holds up to ${MAX_LEVELS} levels"` : 'data-tip="Add a level, at a round value over the latest"'}>${ICONS.plus}</button></span>${levels.length ? `<div class="levels" role="list" aria-label="Levels, the highest first">${order.map(row).join("")}${under}</div>` : ""}${((why) => (why ? `<p class="from-status" role="status">${escape(why)}.</p>` : ""))(levels.length ? acrossUnfit(chart, layer) || (modeOf(chart, layer) === 1 && levels.some((level) => level.value <= 0) ? "Those at 0 or under aren't drawn on a log scale" : "") : "")}</div>`;
+        return `<div class="field levels-field"><span><span>Levels${levels.length && fieldUnit(unit) ? `<span class="levels-unit"> · ${escape(fieldUnit(unit))}</span>` : ""}</span>${layer.byLevels ? '<span class="color-now">Colors the line</span>' : ""}<button type="button" class="reset" data-action="add-level" aria-label="Add a level" ${levels.length >= MAX_LEVELS ? `aria-disabled="true" data-tip="A layer holds up to ${MAX_LEVELS} levels"` : 'data-tip="Add a level at a round value above the latest"'}>${ICONS.plus}</button></span>${levels.length ? `<div class="levels" role="list" aria-label="Levels, the highest first">${order.map(row).join("")}${under}</div>` : ""}${((why) => (why ? `<p class="from-status" role="status">${escape(why)}.</p>` : ""))(levels.length ? acrossUnfit(chart, layer) || (modeOf(chart, layer) === 1 && levels.some((level) => level.value <= 0) ? "Those at 0 or under aren't drawn on a log scale" : "") : "")}</div>`;
       }
       /** A level's ⋯: its line (none, its band alone; a dash), its value on the axis, removing it. @param {string} id @param {number} i */
       function levelRows(id, i) {
@@ -27824,7 +27824,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const look = lineLook(layer, i);
         return /** @type {any[]} */ ([
           { key: "line", icon: lineStyleGlyph(look), label: "Line", aside: lineStyleName(look), page: () => ({ title: "Line", rows: () => lineChoices(id, i) }) },
-          { key: "tag", icon: ICONS.label, label: "Value on the axis", current: Boolean(look.tag) && look.line !== false, ...(look.line === false ? { disabled: "No line, no value on the axis" } : {}), run: () => setLineLook(id, i, "tag", look.tag ? undefined : true) },
+          { key: "tag", icon: ICONS.label, label: "Value on the axis", current: Boolean(look.tag) && look.line !== false, ...(look.line === false ? { disabled: "Turn on the line to show its value on the axis" } : {}), run: () => setLineLook(id, i, "tag", look.tag ? undefined : true) },
           { key: "remove", icon: ICONS.trash, label: "Remove the level", danger: true, run: () => {
             editById(id, (item) => withoutLevel(item, i));
             refocus('[data-action="add-level"]');
@@ -27833,7 +27833,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       function lineButtons(layer, key, label) {
         const look = lineLook(layer, key), { color, tag } = look, dashName = lineStyleName(look);
-        return `<button type="button" class="cap small" data-line-tag="${key}" aria-pressed="${Boolean(tag) && look.line !== false}" ${look.line === false ? 'aria-disabled="true"' : ""} aria-label="${label}: its value on the axis" data-tip="${look.line === false ? "No line, no value on the axis" : tag ? "Its value on the axis" : "Show its value on the axis"}">${ICONS.label}</button><button type="button" class="cap small" data-line-color="${key}" aria-haspopup="menu" aria-label="${label} color: ${escape(colorName(color))}" data-tip="Color"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button><button type="button" class="cap small" data-line-dash="${key}" aria-haspopup="menu" aria-label="${label} line style: ${dashName}" data-tip="Line style">${lineStyleGlyph(look)}</button>`;
+        return `<button type="button" class="cap small" data-line-tag="${key}" aria-pressed="${Boolean(tag) && look.line !== false}" ${look.line === false ? 'aria-disabled="true"' : ""} aria-label="${label}: its value on the axis" data-tip="${look.line === false ? "Turn on the line to show its value on the axis" : tag ? "Its value on the axis" : "Show its value on the axis"}">${ICONS.label}</button><button type="button" class="cap small" data-line-color="${key}" aria-haspopup="menu" aria-label="${label} color: ${escape(colorName(color))}" data-tip="Color"><i class="swatch" style="--c:${escape(cssColor(color))}"></i></button><button type="button" class="cap small" data-line-dash="${key}" aria-haspopup="menu" aria-label="${label} line style: ${dashName}" data-tip="Line style">${lineStyleGlyph(look)}</button>`;
       }
       /** A line's color (Bitview's) or style, from a menu under its button; picking its default forgets the choice. */
       function lineMenu(anchor, key, part) {
@@ -28109,7 +28109,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Adding a signal: its formula written in ⌘K's formula page, as a formula's is, started on one to change (its layer over its 200-day average). */
       function addSignal() {
         const on = markable(chart)[0];
-        if (!on) return notice("A signal marks a layer: add one first");
+        if (!on) return notice("Add a layer first: a signal marks one");
         if (!roomFor(chart)) return;
         openPalette({ formula: true, signal: true, query: `${on.letter} > sma(${on.letter}, 200d)` });
       }
@@ -28128,7 +28128,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Where a new pane would go, at the most panes, is the last, and it's a stack (a layer there would be summed into it). @param {string | null | undefined} pane */
       const stackedOnly = (pane) => !(pane && chart.panes.some((item) => item.id === pane)) && chart.panes.length >= MAX_PANES && Boolean(chart.panes.at(-1)?.stack);
-      const STACKED_ONLY = `A chart holds up to ${MAX_PANES} panes, and the last is a stack: this needs one of its own`;
+      const STACKED_ONLY = `A chart holds up to ${MAX_PANES} panes, and the last is a stack: this needs a pane of its own`;
       /** A formula as a layer, selected: in `pane` (on `side`, its layer's it's made from), else in a new one (at the most panes, the last). */
       function addFormulaLayer(formula, pane = null, side = /** @type {string | null} */ (null)) {
         if (!roomFor(chart)) return;
@@ -28207,7 +28207,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         layerPicks.clear();
         select(added.id, false);
         const unfit = fromUnfit(chart, added);
-        toast(`Added the ${labelOf(added).replace(/^(Cloud|Trend)/, (noun) => noun.toLowerCase())}${unfit ? `; ${unfit === "Not in a stack" ? "its pane stacks, so it isn't drawn" : "its pane's scale doesn't draw it"}` : ""}`, editAdded(added));
+        toast(`Added the ${labelOf(added).replace(/^(Cloud|Trend)/, (noun) => noun.toLowerCase())}${unfit ? `, but ${unfit === "Not in a stack" ? "stacked panes don't draw it" : "this pane's scale can't draw it"}` : ""}`, editAdded(added));
       }
       /**
        * The layers a cloud or a trend (`made`, one there; none, to be made, its first ticked `first`) can be between: none
@@ -28300,7 +28300,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Over a stack, it would add to it: a pane of its own then too.)
         const over = Boolean(STARTERS.find((item) => item.id === starter)?.over) && !onStack(source);
         // (One that needs a pane of its own, at the most panes: not put in the last one, a stack's maybe.)
-        if (!(over && chart.panes.some((item) => item.id === source.pane)) && chart.panes.length >= MAX_PANES) return void notice(`A chart holds up to ${MAX_PANES} panes: this needs one of its own`);
+        if (!(over && chart.panes.some((item) => item.id === source.pane)) && chart.panes.length >= MAX_PANES) return void notice(`A chart holds up to ${MAX_PANES} panes: this needs a new one`);
         /** @type {Layer | undefined} */
         let first;
         commit((doc) => {
@@ -28857,8 +28857,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** Every pane's height set at once: all alike, or as at first. */
       const PANE_HEIGHTS = [
-        { key: "equal", label: "Equal pane heights", text: "Every pane as tall as the others", verb: "Apply", set: (/** @type {Pane} */ pane) => (pane.size = 1) },
-        { key: "reset", label: "Reset pane heights", text: "The first tall, the others shorter, as at first", verb: "Reset", set: (/** @type {Pane} */ pane) => delete pane.size },
+        { key: "equal", label: "Equal pane heights", text: "Makes every pane the same height", verb: "Apply", set: (/** @type {Pane} */ pane) => (pane.size = 1) },
+        { key: "reset", label: "Reset pane heights", text: "Restores the default heights: a tall first pane and shorter panes below", verb: "Reset", set: (/** @type {Pane} */ pane) => delete pane.size },
       ];
       /** Pane heights set, as a divider's drag sets them: a layout (no "Saved"; a chart started here not kept by it). */
       const setPaneHeights = (/** @type {(pane: Pane) => void} */ set) => commit((doc) => doc.panes.forEach(set), { quiet: true });
@@ -28881,11 +28881,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const collapsed = document.body.dataset.sidebar === "collapsed";
         const empty = !chart.layers.length;
         return /** @type {Command[]} */ ([
-          { title: "Add a layer", text: "Search every series, or browse them by topic; a formula, a cloud, a trend.", icon: "plus", kbd: "A", run: () => openPalette({ add: true }), suggested: true, keepOpen: true },
-          { title: "New chart", text: "A blank chart of yours, in your Library, to start from series or a file.", icon: "plus", kbd: "N", run: newChart, suggested: true, anywhere: true },
-          ...(isPreview(chart) && !home && chart.layers.length ? [{ title: "Save this chart", text: "A preview: into your Library, with your edits (till then, they're this preview's alone).", icon: "keep", run: () => keepChart(), suggested: true }] : []),
-          ...(isPreview(chart) && !home && chart.layers.length && previousChart() ? [{ title: "Close this preview", text: `${titleOf(chart)}: not in your Library, let go of.`, icon: "close", run: () => closePreview() }] : []),
-          { title: "New folder", text: "For charts that go together, named at once.", icon: "folderAdd", run: () => newFolder(), anywhere: true },
+          { title: "Add a layer", text: "Search or browse every series, or add a formula, a cloud or a trend.", icon: "plus", kbd: "A", run: () => openPalette({ add: true }), suggested: true, keepOpen: true },
+          { title: "New chart", text: "A blank chart in your Library, to fill with series or a file.", icon: "plus", kbd: "N", run: newChart, suggested: true, anywhere: true },
+          ...(isPreview(chart) && !home && chart.layers.length ? [{ title: "Save this chart", text: "Saves this preview to your Library, with your edits.", icon: "keep", run: () => keepChart(), suggested: true }] : []),
+          ...(isPreview(chart) && !home && chart.layers.length && previousChart() ? [{ title: "Close this preview", text: `Closes ${titleOf(chart)} without saving it to your Library.`, icon: "close", run: () => closePreview() }] : []),
+          { title: "New folder", text: "A folder for charts that belong together, named as you create it.", icon: "folderAdd", run: () => newFolder(), anywhere: true },
           // Each folder, by its name: its page (expand or collapse it, rename it, delete it, its charts).
           ...((counts) => library.folders.map((folder) => ({ title: folderPath(folder.id), text: `A folder: ${plural(counts.get(folder.id) ?? 0, "chart")}.`, icon: "folder", keepOpen: true, anywhere: true, run: () => openPage(folderOwnPage(folder.id)) })))(chartCounts()),
           // (The Charts page and your Library's: places to go; the one shown, not offered.)
@@ -28893,25 +28893,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(home && "folder" in homeAt && !homeAt.folder ? [] : [{ title: "Library", text: "Your charts and their folders, side by side.", icon: "grid", anywhere: true, run: () => goTo({ folder: "" }) }]),
           // (A cloud, wherever there are layers (its pane's two edges are two); a trend, from layers.)
           ...(chart.layers.length ? [
-            { title: "Add a cloud", text: "Filled between layers, two or more: between each two next to each other, in the color of the one over; or to the pane's top or bottom.", icon: "cloud", keepOpen: true, run: () => pushPage(fromPage("cloud")) },
+            { title: "Add a cloud", text: "A fill between two or more layers (each pair of neighbors, in the upper one's color), or out to the pane's top or bottom.", icon: "cloud", keepOpen: true, run: () => pushPage(fromPage("cloud")) },
           ] : []),
           ...(cloudable() ? [
             // (Not now, it says why: dimmed, nothing to run.)
             { title: "Add a trend", text: trendShort() ? `${trendShort()}.` : "From layers: on the lowest of them until a price touches it, then on the highest until it touches that.", icon: "riding", ...(trendShort() ? {} : { keepOpen: true, run: () => pushPage(fromPage("trend")) }) },
           ] : []),
-          ...(empty || chart.panes.length >= MAX_PANES ? [] : [{ title: "Add to a new pane", text: "A series in a pane of its own, under the others.", icon: "pane", keepOpen: true, run: () => openPalette({ add: true, into: "new" }) }]),
+          ...(empty || chart.panes.length >= MAX_PANES ? [] : [{ title: "Add to a new pane", text: "A series in a new pane, below the others.", icon: "pane", keepOpen: true, run: () => openPalette({ add: true, into: "new" }) }]),
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
           ...(chart.layers.some((layer) => layer.type !== "cloud" && layer.type !== "signal") ? [{ title: "Add a signal", text: "Marks on a layer where a formula turns up or down, like A > sma(A, 200d), or (A > B) - (A < B).", icon: "signal", run: addSignal, keepOpen: true }] : []),
           ...(empty ? [] : [{ title: SHARE, text: "A link that opens this chart for anyone.", icon: "share", run: () => $("share").click(), suggested: true }]),
-          ...(empty ? [] : [{ title: "Open image", text: "The chart's picture alone, in a tab of its own.", icon: "link", run: () => exportAs("open") }]),
-          ...(!isYours(chart) ? [] : [{ title: "Move to folder", text: `${titleOf(chart)}: now ${chart.folder ? folderPath(chart.folder) : "in none"}.`, icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
-          ...(empty || !SHARES_IMAGES ? [] : [{ title: "Share image", text: "The chart's picture, to Photos, a message, anywhere.", icon: "share", run: () => exportAs("share") }]),
-          ...(empty ? [] : [{ title: "Copy image", text: "The chart, to paste anywhere.", icon: "copy", run: () => exportAs("copy") }]),
-          ...(empty ? [] : [{ title: "Download image", text: "A PNG of the chart as it shows (on a phone, wider), with its title.", icon: "image", run: () => exportAs("png"), suggested: true }]),
+          ...(empty ? [] : [{ title: "Open image", text: "The chart's image, in a new tab.", icon: "link", run: () => exportAs("open") }]),
+          ...(!isYours(chart) ? [] : [{ title: "Move to folder", text: `${titleOf(chart)} ${chart.folder ? `is now in ${folderPath(chart.folder)}` : "isn't in a folder"}.`, icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
+          ...(empty || !SHARES_IMAGES ? [] : [{ title: "Share image", text: "Share the chart's image to Photos, Messages or anywhere else.", icon: "share", run: () => exportAs("share") }]),
+          ...(empty ? [] : [{ title: "Copy image", text: "Copies the chart's image, to paste anywhere.", icon: "copy", run: () => exportAs("copy") }]),
+          ...(empty ? [] : [{ title: "Download image", text: "A PNG of the chart as shown, with its title (wider on a phone).", icon: "image", run: () => exportAs("png"), suggested: true }]),
           ...(empty ? [] : [{ title: "Download data", text: "A CSV of every layer's values (the hidden ones too), one row per date.", icon: "table", run: () => exportAs("csv") }]),
           { title: "Download chart file", text: "A JSON file you can import again later.", icon: "file", run: () => exportAs("json") },
-          ...(anythingKept() ? [{ title: "Download all charts", text: "One file of them all, folders and all, to import anywhere else.", icon: "download", run: () => downloadAll(), anywhere: true }] : []),
-          { title: "Import charts", text: "A chart's file, several exported together, or all of them from anywhere else.", icon: "upload", run: () => $("import-file").click(), anywhere: true },
+          ...(anythingKept() ? [{ title: "Download all charts", text: "All charts in one file, with their folders, to import elsewhere.", icon: "download", run: () => downloadAll(), anywhere: true }] : []),
+          { title: "Import charts", text: "A chart file, or a file of several charts exported together.", icon: "upload", run: () => $("import-file").click(), anywhere: true },
           // A choice among a few (a theme, an interval, a scale, a legend): each, the one in effect ticked (typed, it says so).
           ...THEMES.map(([id, name, icon, text]) => ({ title: `Theme: ${name}`, text, icon, anywhere: true, ...(id === prefs.theme ? { current: true } : { run: () => setTheme(id) }) })),
           ...(empty ? [] : RANGES.map(([id, label], i) => ({ id, label, i })).filter(({ id }) => presetFits(id)).map(({ id, label, i }) => ({ title: `Show the ${periodOf(id)}`, text: id !== "max" ? "Change the visible range." : FINE.has(chart.index) ? "As far back as fits on the screen (at a day or coarser, all of history), the price scales back on auto." : "All of history, the price scales back on auto.", icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
@@ -28919,58 +28919,58 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string][]} */ ([[1, "Logarithmic scale"], [0, "Linear scale"]]).map(([mode, title]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
           ...(empty ? [] : [
             { title: prefs.belt.on ? "Hide the drawing tools" : "Show the drawing tools", text: prefs.belt.on ? "They show only while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", icon: "draw", run: toggleBelt },
-            ...(tool ? [{ title: "Stop drawing", text: `${TOOLS[tool].name}: a press on the chart pans it again.`, icon: tool, kbd: "esc", run: () => takeUp("") }] : []),
-            ...(tool && tool !== "text" && !toolKept ? [{ title: "Keep drawing", text: `The ${TOOLS[tool].noun} in hand after each one: draw several, till esc (as a double-click on its tool does).`, icon: tool, run: () => takeUp(tool, true) }] : []),
+            ...(tool ? [{ title: "Stop drawing", text: `Stops drawing; the chart pans again.`, icon: tool, kbd: "esc", run: () => takeUp("") }] : []),
+            ...(tool && tool !== "text" && !toolKept ? [{ title: "Keep drawing", text: `Keeps the tool after each drawing, to draw several (esc to stop; double-clicking a tool does the same).`, icon: tool, run: () => takeUp(tool, true) }] : []),
             ...KINDS.filter((kind) => kind !== tool).map((kind) => ({ title: TOOLS[kind].verb, text: kind === "text" ? `${TOOLS[kind].tip}.` : `${TOOLS[kind].tip}: one, then the chart pans again (to draw several, ${TOUCH ? "tap its tool twice" : "double-click its tool"}, or Keep drawing).`, icon: kind, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, run: () => takeUp(kind) })),
             { title: "Select drawings", text: `Drag a box around drawings to select them (or ${keyText("⌘")} and drag anytime); esc to stop.`, icon: "select", kbd: "D S", run: () => takeUp("select") },
-            { title: magnifying ? "Stop the magnifier" : "Magnifier", text: magnifying ? "The pointer is the pointer again." : `The chart under the pointer, twice as large${TOUCH ? " (pressed, above the finger)" : ""}; esc to stop.`, icon: "magnifier", kbd: "D Z", run: () => takeUp(magnifying ? "" : "magnifier") },
-            ...(prefs.belt.on ? [{ title: "Dock the drawing tools", text: `On a side of the chart: now the ${prefs.belt.dock}.`, icon: "draw", keepOpen: true, run: () => pushPage(choicePage("Dock the drawing tools", dockChoices)) }] : []),
-            ...(chart.drawings?.length ? [{ title: drawingsHidden ? "Show the drawings" : "Hide the drawings", text: drawingsHidden ? "Back on the chart." : "The chart as it is, without them (they're kept).", icon: drawingsHidden ? "eye" : "eyeOff", kbd: "⇧H", run: () => hideDrawings(!drawingsHidden, true) }] : []),
-            ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}, with an Undo.`, icon: "trash", danger: true, run: clearDrawings }] : []),
+            { title: magnifying ? "Stop the magnifier" : "Magnifier", text: magnifying ? "The pointer is the pointer again." : `Shows the chart under the pointer at twice the size${TOUCH ? " (above your finger as you press)" : ""}; esc to stop.`, icon: "magnifier", kbd: "D Z", run: () => takeUp(magnifying ? "" : "magnifier") },
+            ...(prefs.belt.on ? [{ title: "Dock the drawing tools", text: `Currently on the ${prefs.belt.dock} of the chart.`, icon: "draw", keepOpen: true, run: () => pushPage(choicePage("Dock the drawing tools", dockChoices)) }] : []),
+            ...(chart.drawings?.length ? [{ title: drawingsHidden ? "Show the drawings" : "Hide the drawings", text: drawingsHidden ? "Shows them on the chart again." : "Hides the drawings without deleting them.", icon: drawingsHidden ? "eye" : "eyeOff", kbd: "⇧H", run: () => hideDrawings(!drawingsHidden, true) }] : []),
+            ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}. You can undo.`, icon: "trash", danger: true, run: clearDrawings }] : []),
           ]),
           ...layersCommands(),
           // The selected drawings, as the picked layers: what the belt does to them.
           ...(((ids) => home || !ids.length ? [] : ((n) => [
             { title: `Duplicate ${n}`, text: "Each copy beside its original.", icon: "duplicate", kbd: "⌘D", run: () => duplicateDrawings(ids), suggested: true },
-            { title: `Remove ${n}`, text: "With an Undo.", icon: "trash", kbd: "⌫", danger: true, run: () => removeDrawings(ids), suggested: true },
+            { title: `Remove ${n}`, text: "You can undo.", icon: "trash", kbd: "⌫", danger: true, run: () => removeDrawings(ids), suggested: true },
             { title: "Clear the selection", text: `${n} selected.`, icon: "close", kbd: "esc", run: () => chooseDrawings([]), suggested: true },
           ])(plural(ids.length, "drawing")))([...chosen])),
           ...(empty ? [] : [{ title: chart.halvings ? "Hide the halvings" : "Show the halvings", text: chart.halvings ? "The lines at each halving, off this chart." : "A line at each halving, and at the next three, estimated.", icon: "halvings", run: toggleHalvings }]),
           ...(empty ? [] : LEGENDS.map(([id, text, tip]) => ({ title: `Legend: ${text}`, text: `${tip}.`, icon: "legend", ...(id === (chart.legend ?? "") ? { current: true } : { run: () => setLegend(id) }) }))),
           ...(empty && !fullOn() ? [] : [{ title: fullOn() ? "Exit full screen" : "Full screen", text: "The chart alone, on the whole screen.", icon: fullOn() ? "shrink" : "expand", kbd: "⇧F", run: () => setFull() }]),
-          { title: prefs.linkView ? "Unlink the view" : "Link the view", text: prefs.linkView ? "Each chart back on its own view; this one stays as it is." : "Every chart on the same dates, in every tab: moving the view moves it for all.", icon: "chain", kbd: "V", run: () => linkView(!prefs.linkView) },
+          { title: prefs.linkView ? "Unlink the view" : "Link the view", text: prefs.linkView ? "Each chart goes back to its own dates; this one stays where it is." : "Every chart on the same dates, in every tab: moving the view moves it for all.", icon: "chain", kbd: "V", run: () => linkView(!prefs.linkView) },
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your Library and the presets, beside the chart.", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
-          { title: "Studio's version", text: `${studioVersion ? `v${studioVersion}` : "Not said yet"}: Studio comes with Bitview, at its version.`, icon: "recent", run: () => notice(studioVersion ? `Bitview Studio v${studioVersion}` : "The server hasn't said its version yet"), anywhere: true },
-          ...(!keyboard() ? [] : [{ title: "Shortcuts", text: "Every key Bitview Studio answers to.", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
+          { title: "Studio's version", text: studioVersion ? `v${studioVersion}, the same as Bitview's.` : "The server hasn't reported its version yet.", icon: "recent", run: () => notice(studioVersion ? `Bitview Studio v${studioVersion}` : "The server hasn't reported its version yet"), anywhere: true },
+          ...(!keyboard() ? [] : [{ title: "Shortcuts", text: "Every keyboard shortcut in Studio.", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
           ...(!keyboard() ? [] : [true, false].map((on) => ({ title: `Single-key shortcuts: ${on ? "On" : "Off"}`, text: on ? "A letter, a digit or a sign alone acts (A adds a series, P the panel…)." : `Only shortcuts with ${keyText("⌘")} or ${keyText("⌥")} act: typing a letter by mistake does nothing.`, icon: "keyboard", anywhere: true, ...(prefs.keys === on ? { current: true } : { run: () => setSingleKeys(on) }) }))),
-          { title: "How links work", text: "A chart is a link: what one holds, and how to write it by hand or have an assistant write it (the guide, here).", icon: "link", run: showGuide, anywhere: true },
+          { title: "How links work", text: "What a chart link holds, and how to write one or have an assistant write it.", icon: "link", run: showGuide, anywhere: true },
           libraryUndo() || toastUndo?.mark === revision || (!home && edits.past.length) ? { title: "Undo", text: libraryUndo() ? `${libraryUndo()?.text}.` : toastUndo?.mark === revision ? "What the last toast offered to undo." : "Back one change.", icon: "undo", kbd: "⌘Z", run: undoLast, anywhere: true } : { title: "Undo", text: "Nothing to undo.", icon: "undo", anywhere: true },
           // The charts picked in the grid: what its bar does.
           ...(home && picked.size ? [
-            ...(picked.size === 1 ? [{ title: `Rename “${titleOf(chartById([...picked][0]) ?? { title: "" })}”`, text: "Its title, typed in place.", icon: "pencil", run: () => batch("rename"), anywhere: true }] : []),
-            { title: `Move ${plural(picked.size, "chart")} to folder`, text: "A folder, a new one, or out of theirs.", icon: "folder", keepOpen: true, run: () => openPage(folderPage([...picked])), anywhere: true },
+            ...(picked.size === 1 ? [{ title: `Rename “${titleOf(chartById([...picked][0]) ?? { title: "" })}”`, text: "Type a new title.", icon: "pencil", run: () => batch("rename"), anywhere: true }] : []),
+            { title: `Move ${plural(picked.size, "chart")} to folder`, text: "Into a folder, a new folder, or out of their folder.", icon: "folder", keepOpen: true, run: () => openPage(folderPage([...picked])), anywhere: true },
             { title: "Clear the selection", text: plural(picked.size, "chart") + " selected.", icon: "close", kbd: "esc", run: () => clearPicks(), anywhere: true },
-            { title: `Duplicate ${plural(picked.size, "chart")}`, text: "A copy of each, beside it.", icon: "duplicate", run: () => batch("duplicate"), anywhere: true },
-            { title: `Download ${plural(picked.size, "chart")}`, text: "One chart file, to import again.", icon: "file", run: () => batch("export"), anywhere: true },
-            { title: `Delete ${plural(picked.size, "chart")}`, text: "With an Undo.", icon: "trash", run: () => batch("delete"), anywhere: true, danger: true },
+            { title: `Duplicate ${plural(picked.size, "chart")}`, text: "A copy of each, placed next to it.", icon: "duplicate", run: () => batch("duplicate"), anywhere: true },
+            { title: `Download ${plural(picked.size, "chart")}`, text: "Downloads a file you can import later.", icon: "file", run: () => batch("export"), anywhere: true },
+            { title: `Delete ${plural(picked.size, "chart")}`, text: "You can undo.", icon: "trash", run: () => batch("delete"), anywhere: true, danger: true },
           ] : []),
           libraryRedo() || toastRedo?.mark === revision || (!home && edits.future.length) ? { title: "Redo", text: "Forward again.", icon: "redo", kbd: "⇧⌘Z", run: redoLast, anywhere: true } : { title: "Redo", text: "Nothing to redo.", icon: "redo", anywhere: true },
           ...(empty ? [] : [
-            { title: "Zoom in", text: "Closer, around the middle of the view (or its right edge, at the latest).", icon: "magnifier", kbd: "+", run: () => zoom(1 / 1.6) },
-            { title: "Zoom out", text: "Wider, around the middle of the view (or its right edge, at the latest).", icon: "zoomOut", kbd: "−", run: () => zoom(1.6) },
+            { title: "Zoom in", text: "Zooms in on the middle of the view (on its right edge when at the latest data).", icon: "magnifier", kbd: "+", run: () => zoom(1 / 1.6) },
+            { title: "Zoom out", text: "Zooms out from the middle of the view (from its right edge when at the latest data).", icon: "zoomOut", kbd: "−", run: () => zoom(1.6) },
           ]),
           ...(chart.layers.some((layer) => signalShown(layer)) ? [
-            { title: "Next signal", text: "A signal's next mark, after the middle of the view.", icon: "signal", kbd: ".", run: () => stepSignal(1) },
-            { title: "Previous signal", text: "A signal's last mark, before the middle of the view.", icon: "signal", kbd: ",", run: () => stepSignal(-1) },
+            { title: "Next signal", text: "The signal's next mark, after the middle of the view.", icon: "signal", kbd: ".", run: () => stepSignal(1) },
+            { title: "Previous signal", text: "The signal's previous mark, before the middle of the view.", icon: "signal", kbd: ",", run: () => stepSignal(-1) },
           ] : []),
-          ...(empty ? [] : [{ title: "Go to a date", text: "A year, a month or a day: the chart shows it.", icon: "calendar", kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }]),
-          { title: "Rename this chart", text: "Its title, typed here.", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
+          ...(empty ? [] : [{ title: "Go to a date", text: "Type a year, month or day to show it.", icon: "calendar", kbd: "G", keepOpen: true, run: () => pushPage(datePage()) }]),
+          { title: "Rename this chart", text: "Type a new title.", icon: "pencil", keepOpen: true, run: () => pushPage(renameChartPage(chart)) },
           ...(!isYours(chart) ? [] : [{ title: "Duplicate this chart", text: "A copy, right under it in your list.", icon: "duplicate", run: () => chartPick(chart.id, "duplicate") }]),
-          ...(!isYours(chart) ? [] : [{ title: "Delete this chart", text: "With an Undo.", icon: "trash", danger: true, run: () => deleteChart(chart) }]),
+          ...(!isYours(chart) ? [] : [{ title: "Delete this chart", text: "You can undo.", icon: "trash", danger: true, run: () => deleteChart(chart) }]),
           ...(chart.preset === undefined || presetIndex(chart) < 0 ? [] : [
-            { title: "Save a copy of this preset", text: `${titleOf(chart)}: a copy of it, as it is, in your Library, opened.`, icon: "duplicate", run: () => copyPreset(presetIndex(chart)) },
-            ...(presetEdited(chart) ? [{ title: "Reset this preset", text: "As the preset is: your edits to it let go of, with an Undo.", icon: "undo", run: () => resetPreset(chart) }] : []),
+            { title: "Save a copy of this preset", text: `Saves a copy of ${titleOf(chart)} to your Library and opens it.`, icon: "duplicate", run: () => copyPreset(presetIndex(chart)) },
+            ...(presetEdited(chart) ? [{ title: "Reset this preset", text: "Restores the preset, discarding your edits (you can undo).", icon: "undo", run: () => resetPreset(chart) }] : []),
           ]),
           ...(chart.layers.some((layer) => layer.hidden) ? [{ title: "Show every layer", text: "The hidden ones too.", icon: "eye", run: showEvery }] : []),
           ...(chart.panes.length > 1 ? [
@@ -30162,7 +30162,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const middle = glideTarget ? (glideTarget.from + glideTarget.to) / 2 : (range.from + range.to) / 2, turns = [...new Set(chart.layers.filter((layer) => signalShown(layer)).flatMap((layer) => marksOf(layer, resolved?.results.get(layer.id)?.values)))].sort((a, b) => a - b);
         const at = by > 0 ? turns.find((i) => i > middle + 0.01) : turns.findLast((i) => i < middle - 0.01);
         // (Minutes and hours: what's loaded only, said.)
-        if (at === undefined) return notice(`${by > 0 ? "No signal after this" : "No signal before this"}${fineDrawn() ? " in what's loaded" : ""}`);
+        if (at === undefined) return notice(`${by > 0 ? "No signal after this" : "No signal before this"}${fineDrawn() ? " in the loaded range" : ""}`);
         goToTime(resolved.times[at]);
       }
       /** A page of actions (each one acts and closes ⌘K), its rows as a menu has them. @returns {Page} */
@@ -30276,7 +30276,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Adding: what a layer can be besides a series, first on the page, in sight wherever it opens (and found by its words). */
       function otherLayerRows() {
         return [
-          { kind: "row", key: "add:formula", icon: ICONS.formula, label: "Formula", aside: "From the layers, by their letters", kbd: "F", preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Formula</h4><p class="description">A layer of its own, written from the others by their letters, with + − × ÷ and functions; or from any series by its name.</p><ul class="contents">${((letters) => [...(letters.length > 1 ? [`${letters[0]} / ${letters[1]}`] : []), `sma(${letters[0] ?? "A"}, 200d)`, `zscore(${letters[0] ?? "A"}, 1y)`, EXAMPLE])(chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter)).map((text) => `<li><code>${escape(text)}</code></li>`).join("")}</ul>`), group: "Made from your layers", other: true, under: true, verb: "Add", run: () => addFormula(palette.into) },
+          { kind: "row", key: "add:formula", icon: ICONS.formula, label: "Formula", aside: "From the layers, by their letters", kbd: "F", preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Formula</h4><p class="description">A new layer computed from the others by their letters, with + − × ÷ and functions, or from any series by name.</p><ul class="contents">${((letters) => [...(letters.length > 1 ? [`${letters[0]} / ${letters[1]}`] : []), `sma(${letters[0] ?? "A"}, 200d)`, `zscore(${letters[0] ?? "A"}, 1y)`, EXAMPLE])(chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter)).map((text) => `<li><code>${escape(text)}</code></li>`).join("")}</ul>`), group: "Made from your layers", other: true, under: true, verb: "Add", run: () => addFormula(palette.into) },
           // (A cloud, wherever there are layers (its pane's two edges are two); a trend, from layers.)
           ...(chart.layers.length ? [
             { kind: "row", key: "add:cloud", icon: ICONS.cloud, label: "Cloud", aside: "Filled between layers", group: "Made from your layers", other: true, under: true, verb: "Add", page: () => fromPage("cloud") },
@@ -30294,7 +30294,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         [
           ...(home ? [] : [{ key: "browse:series", icon: ICONS.series, label: "Browse every series", aside: "By topic", text: "Every series, in folders by topic", run: () => openPalette({ add: true, path: [] }) }]),
           { key: "browse:presets", icon: ICONS.presets, label: "Browse the presets", aside: presets ? plural(presets.length, "chart") : "Loading…", text: "Ready-made charts, by section", page: () => presetsPage([]) },
-        ].map(({ text, ...row }) => ({ kind: "row", group: "Nothing matches. Browse instead", verb: "Open", elsewhere: true, preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">${escape(row.label)}</h4><p class="description">${text}. Or try other words: what a series measures, as you'd say it.</p>`), ...row }));
+        ].map(({ text, ...row }) => ({ kind: "row", group: "Nothing matches. Browse instead", verb: "Open", elsewhere: true, preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">${escape(row.label)}</h4><p class="description">${text}. Or try other words, describing what the series measures.</p>`), ...row }));
       function browseRows() {
         const any = chart.layers.length > 0;
         return [
@@ -30404,7 +30404,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               { key: "export", icon: ICONS.download, label: "Export", aside: "An image, the data, the chart file", group: "Out of it", page: () => listPage("Export", exportRows) },
             ] : []),
             ...(!isYours(chart) ? [] : [{ key: "folder", icon: ICONS.folder, label: "Folder", aside: chart.folder ? folderPath(chart.folder) : "None", group: "Chart file", page: () => folderPage([chart.id]) }]),
-            ...(isPreview(chart) && chart.layers.length ? [{ key: "keep", icon: ICONS.keep, label: "Save", aside: "A preview: into your Library as it is", verb: "Save", group: "Chart file", run: () => keepChart() }] : []),
+            ...(isPreview(chart) && chart.layers.length ? [{ key: "keep", icon: ICONS.keep, label: "Save", aside: "Save this preview to your Library", verb: "Save", group: "Chart file", run: () => keepChart() }] : []),
             ...(!isYours(chart) ? [] : [{ key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", verb: "Duplicate", group: "Chart file", run: () => chartPick(chart.id, "duplicate") }]),
             ...(!isYours(chart) ? [] : [{ key: "delete", icon: ICONS.trash, label: "Delete", verb: "Delete", group: "Chart file", danger: true, run: () => deleteChart(chart) }]),
             .../** @type {any[]} */ (chart.preset !== undefined && presetIndex(chart) >= 0 ? presetActions(presetIndex(chart), "palette").filter((row) => row.key !== "open").map((row) => ({ ...row, group: "Preset" })) : []),
@@ -30555,7 +30555,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...drawingPage(drawing.id).rows().filter((row) => row.key === "duplicate" || row.key === "remove"),
           ] })),
           ...KINDS.map((kind) => ({ kind: "row", key: `tool:${kind}`, icon: TOOLS[kind].icon, label: TOOLS[kind].verb, aside: TOOLS[kind].tip, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, verb: "Draw", group: "Draw", run: () => takeUp(kind) })),
-          { kind: "row", key: "tool:magnifier", icon: ICONS.magnifier, label: "Magnifier", aside: "The chart under the pointer, twice as large", kbd: "D Z", verb: magnifying ? "Stop" : "Use", group: "Draw", run: () => takeUp(magnifying ? "" : "magnifier") },
+          { kind: "row", key: "tool:magnifier", icon: ICONS.magnifier, label: "Magnifier", aside: "The chart under the pointer at twice the size", kbd: "D Z", verb: magnifying ? "Stop" : "Use", group: "Draw", run: () => takeUp(magnifying ? "" : "magnifier") },
           ...(chart.drawings?.length ? [
             { kind: "row", key: "select-box", icon: ICONS.select, label: "Select drawings with a box", aside: "Drag a box around them", kbd: "D S", verb: "Select", group: "Select", run: () => takeUp("select") },
             { kind: "row", key: "select-all", icon: ICONS.select, label: "Select every drawing", aside: plural(chart.drawings.length, "drawing"), verb: "Select", group: "Select", run: () => chooseDrawings((chart.drawings ?? []).map((drawing) => drawing.id)) },
@@ -30594,7 +30594,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 { key: "width", icon: ICONS.sliders, label: "Width", aside: `${drawing.width}px`, group: "Style", page: () => choicePage("Width", () => WIDTHS.map((width) => ({ key: String(width), icon: ICONS.sliders, label: `${width}px`, current: now().width === width, ...both((item) => (item.width = width)) }))) },
                 { key: "dash", icon: dashGlyph(style[2], style[3]), label: "Line style", aside: style[1], group: "Style", page: () => choicePage("Line style", () => dashChoices(now().dash, (dash) => both((item) => (item.dash = dash)))) },
               ]),
-            ...(LINES.has(drawing.kind) ? [{ key: "label", icon: ICONS.label, label: "Label", aside: drawing.label ?? "None", group: "Style", page: () => inputPage({ title: "Label", value: drawing.label ?? "", placeholder: "Its words (empty: none)", hint: "No label", verb: "Set", read: (text) => (labelText(text) ? `Label it “${labelText(text)}”` : drawing.label ? "Remove its label" : null), apply: (text) => editById(id, (item) => {
+            ...(LINES.has(drawing.kind) ? [{ key: "label", icon: ICONS.label, label: "Label", aside: drawing.label ?? "None", group: "Style", page: () => inputPage({ title: "Label", value: drawing.label ?? "", placeholder: "Label text (leave empty for none)", hint: "No label", verb: "Set", read: (text) => (labelText(text) ? `Label it “${labelText(text)}”` : drawing.label ? "Remove its label" : null), apply: (text) => editById(id, (item) => {
               if (labelText(text)) item.label = labelText(text);
               else {
                 delete item.label;
@@ -30636,7 +30636,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(level ? [{ key: "value", icon: ICONS.pencil, label: "Value", aside: format(level.value, unitFor(layer, resolved?.results.get(layer.id))), page: () => numberPage({ title: "Value", value: String(level.value), apply: (n) => editById(id, (item) => item.levels?.[Number(key)] && (item.levels[Number(key)].value = n)) }) }] : []),
             { key: "color", icon: swatchOf(look.color), label: "Color", aside: colorName(look.color), page: () => choicePage("Color", () => colorRows(now().color, (name) => setLineLook(id, key, "color", name), (doc, name) => lineLookOn(doc, id, key, "color", name))) },
             { key: "dash", icon: lineStyleGlyph(look), label: "Line style", aside: lineStyleName(look), page: () => choicePage("Line style", () => lineChoices(id, key)) },
-            { key: "tag", icon: ICONS.label, label: "Value on the axis", aside: look.tag && look.line !== false ? "On" : "Off", verb: look.tag ? "Turn off" : "Turn on", stay: true, ...(look.line === false ? { disabled: "No line, no value on the axis" } : {}), run: () => setLineLook(id, key, "tag", now().tag ? undefined : true) },
+            { key: "tag", icon: ICONS.label, label: "Value on the axis", aside: look.tag && look.line !== false ? "On" : "Off", verb: look.tag ? "Turn off" : "Turn on", stay: true, ...(look.line === false ? { disabled: "Turn on the line to show its value on the axis" } : {}), run: () => setLineLook(id, key, "tag", now().tag ? undefined : true) },
             ...(level ? [{ key: "remove", icon: ICONS.trash, label: "Remove the level", verb: "Remove", danger: true, stay: true, run: () => {
               editById(id, (item) => withoutLevel(item, Number(key)));
               popPage();
@@ -31985,7 +31985,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Out of the open chart: its image (shared, where there's a share sheet for a picture: a phone's, its Photos and
        * messages; copied, opened, downloaded), its data, its file. @returns {Action[]}
        */
-      const exportRows = () => /** @type {[string, string, string, string, string][]} */ ([...(SHARES_IMAGES ? [["share", "Share image", "", ICONS.share, "Share"]] : []), ["copy", "Copy image", "", ICONS.copy, "Copy"], ["open", "Open image", "In a tab of its own", ICONS.link, "Open"], ["png", "Download image", "PNG", ICONS.image, "Download"], ["csv", "Download data", "CSV", ICONS.table, "Download"], ["json", "Download chart file", "JSON", ICONS.file, "Download"]]).map(([kind, label, note, icon, verb]) => ({ key: kind, icon, label, aside: note, verb, apart: kind === "csv", run: () => exportAs(kind) }));
+      const exportRows = () => /** @type {[string, string, string, string, string][]} */ ([...(SHARES_IMAGES ? [["share", "Share image", "", ICONS.share, "Share"]] : []), ["copy", "Copy image", "", ICONS.copy, "Copy"], ["open", "Open image", "In a new tab", ICONS.link, "Open"], ["png", "Download image", "PNG", ICONS.image, "Download"], ["csv", "Download data", "CSV", ICONS.table, "Download"], ["json", "Download chart file", "JSON", ICONS.file, "Download"]]).map(([kind, label, note, icon, verb]) => ({ key: kind, icon, label, aside: note, verb, apart: kind === "csv", run: () => exportAs(kind) }));
       // The panel's adds, from the header (and the phone's bar): those made from layers too, once there are layers for one.
       // Adding: one page, the series, and the other kinds of layer first (in the grid, a new chart).
       for (const id of ["add", "mobile-add"]) $(id).addEventListener("click", () => (home ? newChart() : openPalette({ add: true })));
@@ -32168,8 +32168,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               parent ? (folder.parent = into.get(parent) ?? parent) : delete folder.parent;
             }
             // (Nothing new, charts nor folders: said, nothing changed.)
-            if (!docs.length && !edits.length && !folders.size && editsHere) return notice("It's all here already");
-            if (!docs.length && !edits.length && !folders.size && already) return toast(`${already === 1 ? "That chart is" : `All ${grouped.format(already)} charts are`} here already`);
+            if (!docs.length && !edits.length && !folders.size && editsHere) return notice("You already have all of it");
+            if (!docs.length && !edits.length && !folders.size && already) return toast(`${already === 1 ? "You already have that chart" : `You already have all ${grouped.format(already)} charts`}`);
             // (A file of charts none of which reads: said so, not that it's no file of charts.)
             if (!docs.length && !edits.length && !folders.size && parsed.charts.length) return notice(parsed.charts.length === 1 ? "Its chart couldn't be read" : `None of its ${grouped.format(parsed.charts.length)} charts could be read`);
             if (!docs.length && !edits.length && !folders.size) throw new Error("No charts in it");
@@ -32231,7 +32231,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const doc = readChart(parsed);
           // One here already (the same chart, as a link opened again finds it): that one shown, at the file's view.
           const twin = twinOf(doc);
-          if (twin) return void (showLinked(twin), toast(`Opened “${titleOf(twin)}”: you have it already`));
+          if (twin) return void (showLinked(twin), toast(`Opened “${titleOf(twin)}”, which you already have`));
           // (Onto a new chart still empty, the file takes its place: an empty preview left simply goes.)
           const before = chart;
           adopt(doc);
@@ -32782,7 +32782,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return false;
         }
       }
-      const UNREADABLE = "This browser keeps the page from reading its own drawing (a privacy setting): allow it for this site to have the picture";
+      const UNREADABLE = "A privacy setting in this browser blocks reading the chart's image. Allow it for this site to export images";
       /**
        * The size a picture of yours is taken at: as the chart shows in a window wide enough; narrower, or upright (a
        * phone's), a picture's own, 16:9, as one's shared, not a strip as tall as the screen.
@@ -33184,7 +33184,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A toast whose Undo steps back only while that change is still the latest one (the chart's own step: see libraryEdits). */
       function undoToast(text) {
         const mark = revision;
-        toast(text, { label: "Undo", chart: true, run: () => (revision === mark ? undo() : notice(`Changed since: step back with ${keyText("⌘Z")}`)) });
+        toast(text, { label: "Undo", chart: true, run: () => (revision === mark ? undo() : notice(`Things have changed since then. Press ${keyText("⌘Z")} to step back`)) });
       }
       let toastTimer = 0;
       /**
@@ -33201,7 +33201,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("home-redo").setAttribute("aria-disabled", String(!forth));
         const edited = isPreview(chart) && touched.has(chart), keep = $("keep");
         keep.classList.toggle("edited", edited);
-        keep.dataset.tip = edited ? "Your edits aren't in your Library yet: Save puts it there, with them" : "Save puts it in your Library, as it is";
+        keep.dataset.tip = edited ? "Save this chart and your edits to your Library" : "Save this chart to your Library";
         keep.setAttribute("aria-label", edited ? "Save, edited" : "Save");
       }
       /** A toast's Undo, which ⌘Z presses while it's up and nothing has changed since (a deleted chart comes back too); its Redo, ⌘⇧Z. */
@@ -33245,7 +33245,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Sidebar keys as they are now (a folder made again, a chart given a new id: their new ones). */
       const keysNow = (/** @type {string[]} */ keys) => keys.map((key) => (key[0] === "f" ? `f:${folderNow(key.slice(2))}` : `c:${chartNow(key.slice(2))}`));
       /** Its refusal: the charts it'd let go of edited since, kept. @param {Chart[]} docs */
-      const keptAsEdited = (docs) => notice(docs.length === 1 ? `“${titleOf(docs[0])}” has been edited since: kept as it is` : "Edited since: kept as they are");
+      const keptAsEdited = (docs) => notice(docs.length === 1 ? `“${titleOf(docs[0])}” has been edited since then, so it was left unchanged` : "They've been edited since then, so they were left unchanged");
       /** A Library step kept (see libraryEdits): said by a toast's Undo, or by nothing (a rename, a reorder). @returns {LibraryStep | null} */
       function libraryStep(/** @type {string} */ text, /** @type {LibraryStep["run"]} */ run, /** @type {string | undefined} */ undone = undefined) {
         if (undoing) return null;
@@ -33273,7 +33273,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           undoing = false;
         }
         // (Nothing done (what it'd undo changed since, gone, back already): not said as done; its own word, if it had one.)
-        if (saves === saved) return void (syncUndo(), toasts === said && notice(`Changed since: nothing to undo (${step.text})`));
+        if (saves === saved) return void (syncUndo(), toasts === said && notice(`Nothing to undo: things have changed since then (${step.text})`));
         if (typeof again !== "function") return void (syncUndo(), toast(step.undone ?? "Undone"));
         const back = { text: step.text, run: again, undone: step.undone, mark: revision };
         libraryEdits.future.push(back);
@@ -33293,7 +33293,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           redoing = false;
         }
         syncUndo();
-        if (saves === saved && toasts === said) notice(`Changed since: nothing to redo (${step.text})`);
+        if (saves === saved && toasts === said) notice(`Nothing to redo: things have changed since then (${step.text})`);
       }
       /** The step the toast up came with: its chart, and how many steps back it is once made (undone, it's put away). */
       let toastStep = /** @type {{ chart: Chart, depth: number } | null} */ (null);
@@ -33341,9 +33341,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           toastUndo = toastRedo = null;
           syncUndo();
           // (A Library step's Undo: it, while it's the last of them.)
-          if (step) return libraryEdits.past.at(-1) === step ? undoLibrary() : notice(`Changed since: step back with ${keyText("⌘Z")}`);
+          if (step) return libraryEdits.past.at(-1) === step ? undoLibrary() : notice(`Things have changed since then. Press ${keyText("⌘Z")} to step back`);
           // (A Redo after a change since, as an Undo's: not done, said.)
-          if (redoes && revision !== mark && !(home && action?.run === redoLibrary)) return notice(`Changed since: nothing to redo`);
+          if (redoes && revision !== mark && !(home && action?.run === redoLibrary)) return notice(`Nothing to redo: things have changed since then`);
           const again = action?.run();
           // (Undone, and it can be done again: a Redo for it, as a chart's edit has.)
           if (undoes && typeof again === "function") toast(action?.undone ?? "Undone", { label: "Redo", run: again });
@@ -33441,7 +33441,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // page without JavaScript left out.)
         const parts = [...$("about").children], [first, next] = parts.filter((part) => part.tagName === "H2").map((head) => parts.indexOf(head));
         const html = (/** @type {Element[]} */ list) => codeIn(list.map((part) => part.outerHTML).join("")), rest = next === undefined ? [] : parts.slice(next);
-        $("guide-body").innerHTML = `<section class="guide-start"><p>A chart's link opens it, for anyone, as it is here: its layers, their look, its view. It holds the chart itself (as JSON): nothing's stored on a server. Your Library, and the presets as you've edited them, are kept in this browser.</p>${open ? `<div class="guide-actions"><button type="button" class="btn small" data-guide="link">${ICONS.copy}Copy this chart's link</button><button type="button" class="btn small" data-guide="json">${ICONS.copy}Copy its JSON</button></div>` : ""}</section>${html(parts.slice(first, next))}${rest.length ? `<details class="help guide-more"><summary>For scripts and assistants</summary>${html(rest)}</details>` : ""}`;
+        $("guide-body").innerHTML = `<section class="guide-start"><p>A chart's link opens it for anyone exactly as you see it: its layers, their look and the view. The link contains the whole chart (as JSON), so nothing is stored on a server. Your Library and your edited presets stay in this browser.</p>${open ? `<div class="guide-actions"><button type="button" class="btn small" data-guide="link">${ICONS.copy}Copy this chart's link</button><button type="button" class="btn small" data-guide="json">${ICONS.copy}Copy its JSON</button></div>` : ""}</section>${html(parts.slice(first, next))}${rest.length ? `<details class="help guide-more"><summary>For scripts and assistants</summary>${html(rest)}</details>` : ""}`;
         arrive($("guide"));
         if (!$("guide").open) $("guide").showModal();
         $("guide").focus();
@@ -33466,11 +33466,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         prefs.keys = on;
         savePrefs();
         renderSingleKeys();
-        toast(on ? "Single-key shortcuts on" : `Single-key shortcuts off: only those with ${keyText("⌘")} or ${keyText("⌥")} act`);
+        toast(on ? "Single-key shortcuts on" : `Single-key shortcuts off: only shortcuts with ${keyText("⌘")} or ${keyText("⌥")} work`);
       }
       function renderSingleKeys() {
         for (const button of all$("[data-single-keys]")) button.setAttribute("aria-pressed", String((button.dataset.singleKeys === "on") === prefs.keys));
-        $("single-keys-text").textContent = `A letter, a digit or a sign alone; off, only those with ${keyText("⌘")} or ${keyText("⌥")} act`;
+        $("single-keys-text").textContent = `Shortcuts that are a single letter, digit or symbol. When off, only shortcuts with ${keyText("⌘")} or ${keyText("⌥")} work`;
         // (Off, a single key's cap goes wherever it's shown: it would promise what it doesn't do.)
         document.body.toggleAttribute("data-single-off", !prefs.keys);
       }
@@ -34370,7 +34370,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (shared !== null) reading.hash = "";
           // (A preview says so in its header, Save beside it: shown again only what that can't say, that it's one you have,
           // or drawings of it lost; else said, for a screen reader, the header not being read out.)
-          if (!picturing) twin || lost ? toast(`Opened a shared chart${twin ? " you have already" : ""}${lost}`) : say("Opened a shared chart: a preview. Save puts it in your Library");
+          if (!picturing) twin || lost ? toast(`Opened a shared chart${twin ? " you already have" : ""}${lost}`) : say("Opened a shared chart as a preview. Save it to keep it in your Library");
           return twin ?? doc;
         } catch (error) {
           // (Written by hand, why: to tell whoever wrote it; a newer link meanwhile, or a chart opened, nothing.)
@@ -34872,7 +34872,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // Charts this Studio couldn't read: kept aside, said once (again only when they change), to be had as a file
         // (Download all has them too).
         const aside = storage.get(UNREAD, []), told = Array.isArray(aside) ? String(hashOf(JSON.stringify(aside))) : "";
-        if (Array.isArray(aside) && aside.length && storage.get(`${UNREAD}:told`, "") !== told && storage.set(`${UNREAD}:told`, told)) notice(`${plural(aside.length, "saved chart")} couldn't be read here: kept aside`, { label: "Download", run: () => download("bitview-charts-kept-aside.json", new Blob([JSON.stringify({ v: 2, charts: aside }, null, 2)], { type: "application/json" })) });
+        if (Array.isArray(aside) && aside.length && storage.get(`${UNREAD}:told`, "") !== told && storage.set(`${UNREAD}:told`, told)) notice(`${plural(aside.length, "saved chart")} couldn't be read here and ${aside.length === 1 ? "was" : "were"} set aside`, { label: "Download", run: () => download("bitview-charts-kept-aside.json", new Blob([JSON.stringify({ v: 2, charts: aside }, null, 2)], { type: "application/json" })) });
       }
       // (Shown whatever start makes of it: one failing shows what it got to, not a page held out of sight.)
       navigate(start().finally(() => ((document.documentElement.dataset.ready = ""), /** @type {any} */ (window).bitviewLaunch?.ready())));
