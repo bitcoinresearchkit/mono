@@ -252,9 +252,11 @@
           }
         }
 
+        /* (In the tile's own sans, as its unit is: a narrow tile's width holds it whole.) */
         .note {
           color: var(--faint);
-          font: 12px var(--mono);
+          font: 12px var(--sans);
+          font-variant-numeric: tabular-nums;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -1073,7 +1075,8 @@
           tile("Median response", p50 === null ? "–" : span(p50), "", spark(ms(0.5))) +
           tile("95th percentile", p95 === null ? "–" : span(p95), "", spark(ms(0.95))) +
           tile("Refused · failed", `${num(refused)} · ${num(failed)}`, "", spark(bars.map((ls) => ls.filter((l) => l.status >= 400).length))) +
-          tile("Last block", block ? num(block.block) : "–", block ? `in ${short(block.blockTook)}` : "", `<div class="note">${block ? clock(block.unix_ms) : "none in memory yet"}</div>`);
+          // (Its number alone at its size, whole in a narrow tile; when and how long it took under it.)
+          tile("Last block", block ? num(block.block) : "–", "", `<div class="note">${block ? `${clock(block.unix_ms)} · in ${short(block.blockTook)}` : "none in memory yet"}</div>`);
         const minutes = Math.max(1, Math.round(covered / 60_000));
         $("window").textContent = `last ${minutes} min`;
         $("tiles").setAttribute("aria-label", `The last ${minutes} minutes`);
