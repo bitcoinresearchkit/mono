@@ -9199,20 +9199,18 @@
           gap: 8px;
         }
 
-        /* (The floating belt, an iPad's beside the chart: a toolbar's tools closer, each reach meeting the next at 36
-           (44 apart, the gaps read as large), the divider in its gap with no room of its own. A phone's strip keeps 44.) */
-        @media (min-width: 761px) and (min-height: 501px) {
-          .belt :is(.belt-tools, .belt-context) {
-            gap: 8px;
-          }
+        /* (The belt, floating or a phone's strip: a toolbar's tools closer, each reach meeting the next at 36 (44 apart,
+           the gaps read as large, and a phone's strip ran past its edge), the divider in its gap with no room of its own.) */
+        .belt :is(.belt-tools, .belt-context) {
+          gap: 8px;
+        }
 
-          .belt .cap::before {
-            inset: min(0px, calc(50% - 18px));
-          }
+        .belt .cap::before {
+          inset: min(0px, calc(50% - 18px));
+        }
 
-          .belt .belt-rule {
-            margin: 0;
-          }
+        .belt .belt-rule {
+          margin: 0;
         }
 
         :is(.pane-head, .source-name, .level) .cap + .cap {
@@ -19070,7 +19068,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             button("back", `Background: ${backOf(words.back)[1]}`, backChip(words.back ?? "", words.color)),
           ])(tool ? prefs.pen : /** @type {Drawing} */ (wordsIn(drawings))) : []),
           ...(kinds.has("trend") ? [button("ends", `Ends: ${endName(look("ends").start)}, ${endName(look("ends").end).toLowerCase()}`, endsGlyph(look("ends").start, look("ends").end))] : []),
-          ...(drawings.length ? [
+          // (A phone's: what's done to them (its text, its label, duplicate, remove) behind one ⋯, as a layer's are, the
+          // looks in view: nothing past the strip's edge at any width. See selectionActions.)
+          ...(drawings.length && phone.matches ? [
+            ...([...kinds].some((each) => hasLook(each, "color")) ? ['<i class="belt-rule"></i>'] : []),
+            button("actions", drawings.length > 1 ? `More for ${drawings.length} drawings` : "More for the drawing", ICONS.more),
+          ] : drawings.length ? [
             ...([...kinds].some((each) => hasLook(each, "color")) ? ['<i class="belt-rule"></i>'] : []),
             ...(drawing?.kind === "text" ? [button("text", "Edit the text", ICONS.pencil, false)] : []),
             ...(drawing && LINES.has(drawing.kind) ? [button("label", TOUCH ? (drawing.label ? "Edit the label" : "Add a label") : drawing.label ? "Edit the label (or double-click it)" : "Add a label (or double-click the line)", ICONS.label, false)] : []),
@@ -19399,6 +19402,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (part === "text" && drawing) startTyping(drawing, button);
         else if (part === "duplicate") duplicateDrawings(drawings);
         else if (part === "remove") removeDrawings(drawings);
+        else if (part === "actions") menuOf(button, [
+          ...(drawing?.kind === "text" ? [{ key: "text", icon: ICONS.pencil, label: "Edit the text", run: () => startTyping(drawing, button) }] : []),
+          ...(drawing && LINES.has(drawing.kind) ? [{ key: "label", icon: ICONS.label, label: drawing.label ? "Edit the label" : "Add a label", run: () => startLabel(drawing, drawing.at, button) }] : []),
+          { key: "duplicate", icon: ICONS.duplicate, label: drawings.length > 1 ? `Duplicate ${drawings.length} drawings` : "Duplicate", kbd: "⌘D", run: () => duplicateDrawings(drawings) },
+          // (Its ⋯ gone with them: the focus on the plot, as the keys place it.)
+          { key: "remove", icon: ICONS.trash, label: drawings.length > 1 ? `Remove ${drawings.length} drawings` : "Remove", kbd: "⌫", danger: true, run: () => (keepFocus(null, () => $("plot-keys")), removeDrawings(drawings)) },
+        ], null, beltSide(), { title: drawing ? drawingNames().get(drawing.id) ?? "" : `${drawings.length} drawings` });
       });
       // A grid of swatches: the arrows go across it and up and down it (in a menu, before its own, which go down a list).
       document.addEventListener("keydown", (event) => {
