@@ -11101,9 +11101,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (One unit across the axis: ticks evenly apart, lettered apart (750E under 1.1Z), all at the largest's letter
         // (0.75Z), with the fewest digits that write each true; where that's too long, each its own as below. A log
         // scale's over decades (1M, 10K, 1K) each its own, however short: not 0.001M, nor one way or the other by the
-        // view.)
+        // view; two ticks alone say nothing of their spacing (1M and 10K: not 1.00M and 0.01M).)
         const letterOf = (/** @type {string} */ label) => /[A-Z]/.exec(label)?.[0] ?? "";
-        if (most - gap <= gap / 100 && new Set(labels.filter((_, i) => Math.abs(values[i]) >= 5e-10).map(letterOf)).size > 1) {
+        if (values.length > 2 && most - gap <= gap / 100 && new Set(labels.filter((_, i) => Math.abs(values[i]) >= 5e-10).map(letterOf)).size > 1) {
           const top = labels[values.reduce((at, value, i) => (Math.abs(value) > Math.abs(values[at]) ? i : at), 0)], tier = Math.max(0, SI.indexOf(letterOf(top)));
           for (let digits = 1; digits <= 9; digits++) {
             const parts = values.map((value) => ({ sign: value <= -5e-10 ? "−" : "", mantissa: Math.abs(value) < 5e-10 ? 0 : Number((Math.abs(value) / 1000 ** tier).toPrecision(digits)) }));
