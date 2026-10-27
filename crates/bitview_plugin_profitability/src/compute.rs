@@ -46,6 +46,7 @@ impl ComputePlugin for Vecs {
             for &spot in &spots[chunk.start - start..chunk.end - start] {
                 age_index::advance(
                     &mut live.index,
+                    &mut live.held,
                     &mut cursor,
                     &live.prices,
                     &live.timestamps,

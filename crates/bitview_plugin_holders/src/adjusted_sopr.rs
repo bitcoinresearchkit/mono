@@ -23,7 +23,9 @@ pub struct AdjustedRealized<M: StorageMode = Rw> {
     #[traversable(flatten)]
     pub realized: Realized<M>,
     /// Adjusted SOPR (aSOPR): SOPR without the outputs spent within an hour of their creation.
-    #[traversable(lead = "Adjusted SOPR (aSOPR): SOPR without the coins that moved again within an hour.")]
+    #[traversable(
+        lead = "Adjusted SOPR (aSOPR): SOPR without the coins that moved again within an hour."
+    )]
     pub adjusted_sopr: AdjustedSopr<M>,
 }
 

@@ -20,15 +20,21 @@ use crate::{
 pub struct Capital<M: StorageMode = Rw> {
     /// Total capital: the cohort's unspent outputs valued at Bitcoin's spot price when each was
     /// created.
-    #[traversable(lead = "Capital: what holders paid for these coins, in all, each at the price it last moved at.")]
+    #[traversable(
+        lead = "Capital: what holders paid for these coins, in all, each at the price it last moved at."
+    )]
     pub total: LazyFiatPerBlock<Cents>,
     /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
     /// created.
-    #[traversable(lead = "Realized cap: what holders paid for their bitcoin, in all, each coin at the price it last moved at.")]
+    #[traversable(
+        lead = "Realized cap: what holders paid for their bitcoin, in all, each coin at the price it last moved at."
+    )]
     pub realized_cap: LazyFiatPerBlock<Cents>,
     /// Capital in profit: creation-date USD value of the outputs whose creation price is at or
     /// below the current spot price.
-    #[traversable(lead = "Capital in profit: what holders paid for the coins now at or above their cost.")]
+    #[traversable(
+        lead = "Capital in profit: what holders paid for the coins now at or above their cost."
+    )]
     pub in_profit: Part<LazyFiatPerBlock<Cents>, M>,
     /// Capital in loss: creation-date USD value of the outputs whose creation price is above the
     /// current spot price.

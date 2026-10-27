@@ -32,7 +32,7 @@ impl CostBasisVecs {
                 Price::import(
                     db,
                     &id.metric_name(metric),
-                    aggregate_version + Version::ONE,
+                    aggregate_version + Version::TWO,
                     mappings,
                 )
             })
@@ -67,14 +67,8 @@ impl CostBasisVecs {
         for id in AgeAggregateId::ALL {
             let values = id.select(&cohort_values);
             let percentiles = &values.percentiles;
-            id.select_mut(&mut self.min)
-                .cents
-                .height
-                .push(percentiles.min_price);
-            id.select_mut(&mut self.max)
-                .cents
-                .height
-                .push(percentiles.max_price);
+            id.select_mut(&mut self.min).cents.height.push(values.min);
+            id.select_mut(&mut self.max).cents.height.push(values.max);
             id.select_mut(&mut self.supply_density)
                 .push(&values.supply_density);
             id.select_mut(&mut self.capital_density)

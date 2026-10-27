@@ -31,7 +31,9 @@ pub struct Activity<M: StorageMode = Rw> {
     #[traversable(lead = "Transfer volume in loss: the bitcoin spent below its cost.")]
     pub transfer_volume_in_loss: LazyValuePerBlockCumulativeRolling,
     /// Coin days destroyed (CDD): spent coin amounts multiplied by their age in fractional days.
-    #[traversable(lead = "Coin days destroyed (CDD): coins spent, each times the days it was held, so old coins moving count most.")]
+    #[traversable(
+        lead = "Coin days destroyed (CDD): coins spent, each times the days it was held, so old coins moving count most."
+    )]
     pub coindays_destroyed: LazyPerBlockCumulativeRolling<CoinDays>,
     /// Dormancy: coin days destroyed per spent coin over the window, the average age in days
     /// of the coins spent; undefined (null) when the window's transfer volume is zero.

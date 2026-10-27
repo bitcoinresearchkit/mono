@@ -19,11 +19,15 @@ use crate::families::import_stored;
 pub struct CapitalViews {
     /// Capital: the cohort's unspent outputs valued at Bitcoin's spot price when each was
     /// created.
-    #[traversable(lead = "Capital: what holders paid for these coins, in all, each at the price it last moved at.")]
+    #[traversable(
+        lead = "Capital: what holders paid for these coins, in all, each at the price it last moved at."
+    )]
     total: LazyFiatPerBlock<Cents>,
     /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
     /// created.
-    #[traversable(lead = "Realized cap: what holders paid for their bitcoin, in all, each coin at the price it last moved at.")]
+    #[traversable(
+        lead = "Realized cap: what holders paid for their bitcoin, in all, each coin at the price it last moved at."
+    )]
     realized_cap: LazyFiatPerBlock<Cents>,
     /// Change in the cohort's capital over a trailing window.
     #[traversable(lead = "Capital change: the change in what holders paid, in all.")]

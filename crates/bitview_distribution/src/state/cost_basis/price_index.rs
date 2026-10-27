@@ -1,7 +1,7 @@
 use std::array;
 
 use bitview_compute::FenwickTree;
-use bitview_primitives::{CentsCompact, PERCENTILES, PERCENTILES_LEN};
+use bitview_primitives::{CentsCompact, PERCENTILES};
 use bitview_urpd::{COST_BASIS_PRICE_DIGITS, DensityBand};
 use brk_types::{Cents, Version};
 
@@ -96,6 +96,14 @@ pub struct BucketedPrice {
     bucket: u32,
 }
 
+impl BucketedPrice {
+    /// The price itself.
+    #[inline]
+    pub fn price(self) -> Cents {
+        self.price.into()
+    }
+}
+
 impl From<CentsCompact> for BucketedPrice {
     #[inline]
     fn from(price: CentsCompact) -> Self {
@@ -181,16 +189,9 @@ impl<const N: usize> PriceIndex<N> {
         fields: impl Fn(usize, &PriceTotals<N>) -> (i64, i128),
     ) -> [PercentileResult; QUERIES] {
         let totals: [(i64, i128); QUERIES] = array::from_fn(|q| fields(q, &self.totals));
+        // Each percentile: nearest rank, the ceil(p% of total)-th unit.
         let sat_targets = totals.map(|(sats, _)| {
-            (sats > 0).then(|| {
-                // Min, each percentile (nearest rank: the ceil(p% of total)-th unit), then max.
-                let mut targets = [0; PERCENTILES_LEN + 2];
-                for (i, &p) in PERCENTILES.iter().enumerate() {
-                    targets[i + 1] = (sats * i64::from(p) + 99) / 100 - 1;
-                }
-                targets[PERCENTILES_LEN + 1] = sats - 1;
-                targets
-            })
+            (sats > 0).then(|| PERCENTILES.map(|p| (sats * i64::from(p) + 99) / 100 - 1))
         });
         let usd_targets = totals.map(|(sats, cap)| {
             (sats > 0 && cap > 0).then(|| PERCENTILES.map(|p| (cap * i128::from(p) + 99) / 100 - 1))
@@ -208,9 +209,7 @@ impl<const N: usize> PriceIndex<N> {
             }
         };
         array::from_fn(|q| PercentileResult {
-            min_price: price(sat_defined[q], sat_buckets[q][0]),
-            max_price: price(sat_defined[q], sat_buckets[q][PERCENTILES_LEN + 1]),
-            sat_prices: array::from_fn(|i| price(sat_defined[q], sat_buckets[q][i + 1])),
+            sat_prices: array::from_fn(|i| price(sat_defined[q], sat_buckets[q][i])),
             usd_prices: array::from_fn(|i| price(usd_defined[q], usd_buckets[q][i])),
         })
     }

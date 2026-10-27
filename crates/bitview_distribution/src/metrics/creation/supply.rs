@@ -18,11 +18,15 @@ pub struct CreationSupply<M: StorageMode = Rw> {
     base: CohortSupply<M>,
     /// Unspent supply in profit: the cohort's outputs whose creation price is
     /// less than or equal to the represented block's spot price.
-    #[traversable(lead = "Supply in profit: coins whose price now is at or above the one they last moved at.")]
+    #[traversable(
+        lead = "Supply in profit: coins whose price now is at or above the one they last moved at."
+    )]
     pub in_profit: Supply<M>,
     /// Unspent supply in loss: the cohort's outputs whose creation price is
     /// greater than the represented block's spot price.
-    #[traversable(lead = "Supply in loss: coins whose price now is below the one they last moved at.")]
+    #[traversable(
+        lead = "Supply in loss: coins whose price now is below the one they last moved at."
+    )]
     pub in_loss: Supply<M>,
 }
 

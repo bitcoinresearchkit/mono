@@ -7,20 +7,22 @@ use brk_types::{Cents, Height, Timestamp, Version};
 use statedb::{Cursor, Reader, State};
 use vecdb::ReadableVec;
 
-use super::{BucketedPrice, PriceIndex, PriceTotals};
+use super::{BucketedPrice, HeldExtremes, HeldOrigins, PriceIndex, PriceTotals};
 
 /// Writer-owned age-filtered price index, retained only after a complete update
-/// succeeds. Canonical origins remain owned by the history.
-pub struct AgeIndexLive<V> {
+/// succeeds. Canonical origins remain owned by the history. `H`: what it keeps of the
+/// origins holding coins beside it (their extremes, or nothing).
+pub struct AgeIndexLive<V, H = ()> {
     pub origins: State,
     pub index: PriceIndex<4>,
+    pub held: H,
     pub prices: Vec<BucketedPrice>,
     pub timestamps: Vec<Timestamp>,
     pub crossings: [usize; 3],
     version: V,
 }
 
-impl<V: PartialEq> AgeIndexLive<V> {
+impl<V: PartialEq, H: HeldOrigins> AgeIndexLive<V, H> {
     /// Reuses `live` if it ends at `start` under `version` and the same history,
     /// else rebuilds it from the history state at `start`. Then extends the price
     /// and timestamp history through `end` and returns the spot prices of
@@ -42,6 +44,7 @@ impl<V: PartialEq> AgeIndexLive<V> {
                 Self {
                     origins: history.state_at(start)?,
                     index: PriceIndex::default(),
+                    held: H::default(),
                     prices: Vec::new(),
                     timestamps: Vec::new(),
                     crossings: [0; 3],
@@ -66,9 +69,11 @@ impl<V: PartialEq> AgeIndexLive<V> {
                 "incomplete age-index price or timestamp history".into(),
             ));
         }
+        live.held.reserve(end);
         if !reuse {
             restore(
                 &mut live.index,
+                &mut live.held,
                 &live.origins,
                 &live.prices,
                 &live.timestamps,
@@ -98,6 +103,7 @@ fn filters(current: Timestamp, origin: Timestamp) -> [bool; 4] {
 
 fn restore(
     index: &mut PriceIndex<4>,
+    held: &mut impl HeldOrigins,
     origins: &State,
     prices: &[BucketedPrice],
     timestamps: &[Timestamp],
@@ -116,9 +122,11 @@ fn restore(
         }
     }
     index.build();
+    held.restore(origins.amounts(), prices);
 }
 pub fn advance(
     index: &mut PriceIndex<4>,
+    held: &mut impl HeldOrigins,
     cursor: &mut Cursor<'_>,
     prices: &[BucketedPrice],
     timestamps: &[Timestamp],
@@ -135,7 +143,7 @@ pub fn advance(
             let sats = cursor.state().amounts()[origin].sats;
             if sats != 0 {
                 let mut mask = [false; 4];
-                mask[[2, 1, 3][cutoff]] = true;
+                mask[CUTOFF_FILTERS[cutoff]] = true;
                 index.add(prices[origin], -(sats as i64), mask);
             }
         },
@@ -145,6 +153,7 @@ pub fn advance(
         .expect("validated age-filter history range");
     index.add(prices[h], diff.created.sats as i64, [true; 4]);
     for (origin, amount) in diff.removed() {
+        held.spend_from(origin);
         let origin = origin as usize;
         index.add(
             prices[origin],
@@ -152,19 +161,57 @@ pub fn advance(
             filters(current, timestamps[origin]),
         );
     }
+    held.settle(h, cursor.state().amounts(), prices);
     Ok(())
+}
+
+/// The index's filter of each age cutoff, in `for_each_age_cutoff`'s order (4, 5 and 6 months).
+const CUTOFF_FILTERS: [usize; 3] = [2, 1, 3];
+
+/// A cohort as an age cut: its cutoff and whether it's the young side of it; all of them, none.
+fn cut_of(id: AgeAggregateId) -> Option<(usize, bool)> {
+    match id {
+        AgeAggregateId::All => None,
+        AgeAggregateId::Under4M => Some((0, true)),
+        AgeAggregateId::Over4M => Some((0, false)),
+        AgeAggregateId::Sth => Some((1, true)),
+        AgeAggregateId::Lth => Some((1, false)),
+        AgeAggregateId::Under6M => Some((2, true)),
+        AgeAggregateId::Over6M => Some((2, false)),
+    }
+}
+
+/// A cohort's lowest and highest cost basis, exactly: of its origins still holding coins, the
+/// lowest and highest price, at the state's last height (`len` origins). An age cut's young side
+/// is its origins from the first its filter holds (the filter turns once: origins come in age
+/// order), its old side those before.
+pub fn extremes(
+    extremes: &HeldExtremes,
+    id: AgeAggregateId,
+    timestamps: &[Timestamp],
+    len: usize,
+) -> (Cents, Cents) {
+    let Some(last) = len.checked_sub(1) else {
+        return (Cents::NAN, Cents::NAN);
+    };
+    let current = timestamps[last];
+    let cut = |cutoff: usize| {
+        timestamps[..len].partition_point(|&t| !filters(current, t)[CUTOFF_FILTERS[cutoff]])
+    };
+    let (from, to) = match cut_of(id) {
+        None => (0, len),
+        Some((cutoff, true)) => (cut(cutoff), len),
+        Some((cutoff, false)) => (0, cut(cutoff)),
+    };
+    extremes.range(from, to)
 }
 
 /// The complementary filters share the same four independent index totals.
 pub fn selected(id: AgeAggregateId, totals: &PriceTotals<4>) -> (i64, i128) {
-    let (positive, negative) = match id {
-        AgeAggregateId::All => (0, None),
-        AgeAggregateId::Sth => (1, None),
-        AgeAggregateId::Lth => (0, Some(1)),
-        AgeAggregateId::Under4M => (2, None),
-        AgeAggregateId::Under6M => (3, None),
-        AgeAggregateId::Over4M => (0, Some(2)),
-        AgeAggregateId::Over6M => (0, Some(3)),
+    let (positive, negative) = match cut_of(id) {
+        None => (0, None),
+        Some((cutoff, true)) => (CUTOFF_FILTERS[cutoff], None),
+        Some((cutoff, false)) => (0, Some(CUTOFF_FILTERS[cutoff])),
     };
     (
         totals.sats[positive] - negative.map_or(0, |i| totals.sats[i]),

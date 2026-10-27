@@ -54,21 +54,29 @@ struct BandSupply {
     #[traversable(lead = "Supply: the bitcoin held.")]
     total: LazySpotValuePerBlock,
     /// The band's share of its age filter's supply; undefined (null) when that supply is zero.
-    #[traversable(lead = "Supply share: their part of their group's supply (all coins, or short- or long-term holders').")]
+    #[traversable(
+        lead = "Supply share: their part of their group's supply (all coins, or short- or long-term holders')."
+    )]
     share: LazyPercentPerBlock<PartsPerMillion32>,
 }
 
 #[derive(Clone, Traversable)]
 struct BandCapital {
     /// Capital: the band's unspent outputs valued at Bitcoin's spot price when each was created.
-    #[traversable(lead = "Capital: what holders paid for these coins, in all, each at the price it last moved at.")]
+    #[traversable(
+        lead = "Capital: what holders paid for these coins, in all, each at the price it last moved at."
+    )]
     total: LazyFiatPerBlock<Cents>,
     /// Realized cap: the sum of each unspent output's BTC value times the spot price when it was
     /// created.
-    #[traversable(lead = "Realized cap: what holders paid for their bitcoin, in all, each coin at the price it last moved at.")]
+    #[traversable(
+        lead = "Realized cap: what holders paid for their bitcoin, in all, each coin at the price it last moved at."
+    )]
     realized_cap: LazyFiatPerBlock<Cents>,
     /// The band's share of its age filter's capital; undefined (null) when that capital is zero.
-    #[traversable(lead = "Capital share: their part of their group's capital (all coins, or short- or long-term holders').")]
+    #[traversable(
+        lead = "Capital share: their part of their group's capital (all coins, or short- or long-term holders')."
+    )]
     share: LazyPercentPerBlock<PartsPerMillion32>,
 }
 

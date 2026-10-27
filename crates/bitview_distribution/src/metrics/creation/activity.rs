@@ -17,7 +17,9 @@ pub struct CreationActivity<M: StorageMode = Rw> {
     pub transfer_volume: CumulativeValue<M>,
     /// Coin days destroyed (CDD) by the cohort's outputs: each spent output's
     /// BTC value multiplied by its age in fractional days.
-    #[traversable(lead = "Coin days destroyed (CDD): coins spent, each times the days it was held, so old coins moving count most.")]
+    #[traversable(
+        lead = "Coin days destroyed (CDD): coins spent, each times the days it was held, so old coins moving count most."
+    )]
     pub coindays_destroyed: CumulativeQuantity<CoinDays, M>,
 }
 

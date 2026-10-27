@@ -46,6 +46,7 @@ impl ComputePlugin for Vecs {
                 let spot = spots[h - start];
                 age_index::advance(
                     &mut live.index,
+                    &mut live.held,
                     &mut cursor,
                     &live.prices,
                     &live.timestamps,
@@ -85,8 +86,11 @@ impl ComputePlugin for Vecs {
                     } else {
                         (Density::NAN, Density::NAN)
                     };
+                    let (min, max) = age_index::extremes(&live.held, id, &live.timestamps, h + 1);
                     CostBasisBlockData {
                         percentiles: percentiles.next().expect("one result per age filter"),
+                        min,
+                        max,
                         supply_density,
                         capital_density,
                     }
