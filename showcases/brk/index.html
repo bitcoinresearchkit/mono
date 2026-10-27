@@ -444,10 +444,24 @@
         color: var(--ink);
       }
 
+      /* (Its frame holds still; the code inside scrolls sideways, faded where it's cut.) */
       .code {
+        overflow: hidden;
+        border-radius: 10px;
         color: #e7e9ef;
         background: #12151c;
         box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
+
+
+        /* (Reached by keys to scroll it: the ring on the frame, the code's own clipped by it.) */
+        &:has(pre:focus-visible) {
+          outline: 2px solid var(--focus);
+          outline-offset: 3px;
+        }
+
+        pre:focus-visible {
+          outline: none;
+        }
 
         .k {
           color: #9cb2ff;
@@ -544,6 +558,19 @@
           }
         }
       }
+      /* (Code that runs past its block, faded at an edge only where it's cut there (data-cut, see the script); whole,
+         none.) */
+      pre[data-cut="end"] {
+        mask-image: linear-gradient(to left, transparent, #000 40px);
+      }
+
+      pre[data-cut="start"] {
+        mask-image: linear-gradient(to right, transparent, #000 40px);
+      }
+
+      pre[data-cut="both"] {
+        mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+      }
     </style>
   </head>
   <body>
@@ -622,7 +649,7 @@
             </div>
             <div>
               <pre class="command">cargo add brk_rpc</pre>
-              <pre class="code"><span class="k">use</span> brk_rpc::ConnectArgs;
+              <div class="code"><pre><span class="k">use</span> brk_rpc::ConnectArgs;
 
 <span class="k">fn</span> main() {
     <span class="k">let</span> rpc = ConnectArgs::default()
@@ -630,7 +657,7 @@
         .expect(<span class="s">"connect to Bitcoin Core"</span>);
     <span class="k">let</span> height = rpc.get_last_height().expect(<span class="s">"read chain tip"</span>);
     println!(<span class="s">"{height}"</span>);
-}</pre>
+}</pre></div>
             </div>
           </div>
           <p class="boundary"><b>Where it stops.</b> Bitcoin Core validates every block and picks the active chain. BRK reads and organizes what a configured node has; it is not a consensus implementation.</p>
@@ -679,6 +706,18 @@
           copied.textContent = `${said === "Copied" ? "Copied" : "Copy failed"}: ${button.dataset.copy}`;
           setTimeout(() => (button.textContent = "Copy", copied.textContent = ""), 1500);
         });
+      }
+      // A code block that scrolls sideways says where it's cut: data-cut start, end or both, read as it scrolls and as
+      // its box changes (none when it's whole).
+      for (const block of document.querySelectorAll("pre")) {
+        const cuts = () => {
+          const start = block.scrollLeft > 1, end = block.scrollLeft + block.clientWidth < block.scrollWidth - 1;
+          const cut = start && end ? "both" : start ? "start" : end ? "end" : "";
+          if (cut) block.dataset.cut = cut;
+          else delete block.dataset.cut;
+        };
+        block.addEventListener("scroll", cuts, { passive: true });
+        new ResizeObserver(cuts).observe(block);
       }
     </script>
   </body>
