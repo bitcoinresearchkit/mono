@@ -9706,7 +9706,7 @@
           <p>One of:</p>
           <ul>
             <li>{"series": "realized_price"}: a series, by its exact name.</li>
-            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes). date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 &amp; date &lt; 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo or y; some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
+            <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes); halving(A, n) is A over halving cycle n alone from 1× (0 the first, from the genesis block), and halving(A, 0, 2) that cycle moved to start where cycle 2 starts, day for day. date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 &amp; date &lt; 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo or y; some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
             <li>{"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns up or down: above 0 is up, below 0 down, 0 off (> < >= <= are 1 or 0, joined with &amp; and |: a condition is up where true; (B > 3.5) - (B < 1) is up, down or off). "place", "below" or "on" (above if none): where an up mark goes, a down one mirrored (above and below swapped), in "colorBelow" (red if none); or "shade": its stretches shaded, its layer's pane's height, down ones in "colorBelow". "results": true: on each mark that ends a stretch, what it made by layer A (A's change over it, up; the opposite, down), a dot where one ends off; their total, compounded, in its line.</li>
             <li>{"cloud": ["B", "C"]}: filled between those layers, two or more, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them). Between more, {"cloud": ["B", "C", "D"]}, a cloud between each two next to each other in that order (B and C, C and D), each in the color of whichever of its two is over: several clouds, made by one (where they cross out of order, two overlap). "color" alone, that one all along, from the lowest to the highest; between two alone, "color" and "colorBelow", those two (where B is over, where C is). "top" and "bottom" are its pane's edges: from its first layer up to the pane's top, from its last down to its bottom: {"cloud": ["A", "top"]}.</li>
             <li>{"trend": ["B", "C"], "ref": "A"}: a line on the lowest of those layers until layer A (a price, say) touches it, then on the highest until A touches that, and so on (a candle's wick counts); width and dash as a line's.</li>
@@ -11480,6 +11480,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** `f(value, the one a span earlier)`: the latest value `n` points back or before (a point may have none). */
       /**
+       * x over halving cycle `n` (its points where `epochs`, halving_epoch, is n) from 1× at its first value; moved by as many
+       * points as there are between cycle `n`'s first and cycle `at`'s, where `at` is given (its first past the data: all
+       * of it past it too).
+       * @param {Vector} x @param {Vector} epochs @param {number} n @param {number | undefined} at
+       */
+      function halvingOf(x, epochs, n, at) {
+        const own = rebaseOf(x.map((value, i) => (epochs[i] === n ? value : NaN)), null);
+        if (at === undefined || at === n) return own;
+        const firstOf = (/** @type {number} */ cycle) => ((i) => (i < 0 ? Infinity : i))(epochs.findIndex((epoch) => epoch >= cycle));
+        const by = firstOf(at) - firstOf(n), out = new Float64Array(x.length).fill(NaN);
+        if (!Number.isFinite(by)) return out;
+        for (let i = Math.max(0, by); i < x.length && i - by < x.length; i++) out[i] = own[i - by];
+        return out;
+      }
+      /**
        * Each stretch of `x` over its first value (from 1): a gap in `x` starts another, and with `by`, a change of by's
        * value (none of by's, no change). Values of 0 first (a price before there was one), none: it starts at the next.
        * @param {Vector} x @param {Vector | null} by
@@ -11574,6 +11589,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         min: [2, "min(a, b)", "smaller of two", null],
         max: [2, "max(a, b)", "larger of two", null],
         when: [2, "when(x, condition)", "x where the condition holds (not 0), none elsewhere: when(A, date >= 2020-05-11)", null],
+        halving: [3, "halving(x, n, at?)", "x over halving cycle n (0 the first, from the genesis block; 4 since 2024) from 1× at its start; with at, moved to start where cycle at starts (halving(A, 0, 2): the first cycle over the third's dates, day for day)", null, true],
         rebase: [2, "rebase(x, by?)", "each stretch of x over its first value, from 1×: a gap starts another, and with by, so does a change of by (rebase(A, halving_epoch): each cycle from its start)", null, true],
       };
       const hasFunction = (name) => Object.hasOwn(FUNCTIONS, name);
@@ -11702,15 +11718,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return node;
       }
 
-      /** The layers a formula reads, by letter, or with `kind` "series", the series it names. @param {Node} node @returns {Set<string>} */
+      /** The layers a formula reads, by letter, or with `kind` "series", the series it names, "call", the functions it calls. @param {Node} node @returns {Set<string>} */
       function refsOf(node, kind = "ref", into = new Set()) {
         if (node.k === "ref" || node.k === "series") {
           if (node.k === kind) into.add(node.v);
         }
         else if (node.k === "neg") refsOf(node.a, kind, into);
         else if (node.k === "bin") (refsOf(node.a, kind, into), refsOf(node.b, kind, into));
-        else if (node.k === "call") node.args.forEach((arg) => refsOf(arg, kind, into));
+        else if (node.k === "call") (kind === "call" && into.add(node.f), node.args.forEach((arg) => refsOf(arg, kind, into)));
         return into;
+      }
+      /** The series a formula reads without naming them: halving()'s cycles. @returns {string[]} */
+      function seriesUnnamed(/** @type {string} */ formula) {
+        try {
+          return refsOf(parse(formula), "call").has("halving") ? ["halving_epoch"] : [];
+        } catch {
+          return [];
+        }
       }
       /** The series a formula layer can turn into: those it names. @param {Layer} layer */
       const turnsInto = (layer) => (layer.formula !== undefined ? seriesNamed(layer.formula).filter(isSeriesName) : []);
@@ -11729,7 +11753,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Functions whose result is a percent, whatever their input's unit. */
       const IN_PERCENT = new Set(["change", "cagr", "drawdown", "volatility"]);
       /** The unit a function's result carries, from its input's. */
-      const unitOfCall = (/** @type {string} */ f, /** @type {string | null} */ unit) => (KEEPS_UNIT.has(f) ? unit : IN_PERCENT.has(f) ? "percent" : f === "rebase" ? "ratio" : "number");
+      const unitOfCall = (/** @type {string} */ f, /** @type {string | null} */ unit) => (KEEPS_UNIT.has(f) ? unit : IN_PERCENT.has(f) ? "percent" : f === "rebase" || f === "halving" ? "ratio" : "number");
       /** The unit a formula's result carries, from its parts (`unitOfRef(name, kind)`); null for plain numbers. @returns {string | null} */
       function unitOfNode(node, unitOfRef) {
         switch (node.k) {
@@ -11811,6 +11835,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Each stretch from its first value: all of history's, which a finer interval only loads part of.)
             if (node.f === "rebase" && FINE.has(index)) throw failing(`rebase: from each stretch's first value, in all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
             if (node.f === "rebase") return rebaseOf(vec(args[0]), args[1] === undefined ? null : vec(args[1]));
+            if (node.f === "halving") {
+              if (FINE.has(index)) throw failing(`halving: from its cycle's first value, in all of history: more than ${INTERVAL_LABEL[index]} loads; ${INTERVAL_LABEL[fitsFrom(Infinity, index)]} and up hold it`, `Needs ${INTERVAL_LABEL[fitsFrom(Infinity, index)]}+`);
+              const [n, at] = args.slice(1);
+              if ([n, at ?? 0].some((cycle) => typeof cycle !== "number" || !Number.isInteger(cycle) || cycle < 0)) throw new Error("halving(x, n, at?): n and at are cycles, 0, 1, 2 and on");
+              return halvingOf(vec(args[0]), vec(ref("halving_epoch", "series")), /** @type {number} */ (n), /** @type {number | undefined} */ (at));
+            }
             if (!run) return lift(args[0], args[1], node.f === "min" ? Math.min : Math.max);
             if (windowed) {
               // (A usual span, in points at any interval: 14 RSI's, 26 MACD's; its days for what's said.)
@@ -14362,7 +14392,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
 
       /** The series a chart's formulas name, each once. @param {Chart} doc */
-      const formulaSeries = (doc) => [...new Set(doc.layers.flatMap((layer) => (layer.formula !== undefined ? seriesNamed(layer.formula) : [])))];
+      const formulaSeries = (doc) => [...new Set(doc.layers.flatMap((layer) => (layer.formula !== undefined ? [...seriesNamed(layer.formula), ...seriesUnnamed(layer.formula)] : [])))];
       /** Every series a chart reads, its layers' and its formulas', each once. @param {Chart} doc @returns {string[]} */
       const seriesIn = (doc) => [...new Set([...doc.layers.flatMap((layer) => (layer.series ? [layer.series] : [])), ...formulaSeries(doc)])];
 
@@ -17873,7 +17903,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               found.push({ days: span ? spanDaysOf(span) : usual ? 0 : Infinity, two: TWO_POINTS.has(node.f) && Boolean(span) });
             }
             // (A drawdown's from the highest of all history; a rebase, from each stretch's first value in it.)
-            if (node.f === "drawdown" || node.f === "rebase") found.push({ days: Infinity, two: false });
+            if (node.f === "drawdown" || node.f === "rebase" || node.f === "halving") found.push({ days: Infinity, two: false });
             node.args.forEach(walk);
           } else (walk(node.a), walk(node.b));
         };
@@ -27333,6 +27363,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         "span?": "how far back, as 12h, 30d, 4w, 6mo or 2y; left out (at 1D and up), all of history so far",
         condition: "where it holds: a comparison, or two joined (date >= 2020-05-11 & A > 1); not 0",
         "by?": "a value whose change starts another stretch, as halving_epoch; left out, only a gap does",
+        n: "a halving cycle: 0 the first (from the genesis block), then 1 from 2012, 2 from 2016, 3 from 2020, 4 from 2024",
+        "at?": "the cycle whose start it's moved to, day for day (halving(A, 0, 2): the first over the third's dates); left out, where it is",
       };
       /** The innermost call the caret is in, and which of its arguments it's at; null outside of one. */
       function callAt(/** @type {string} */ text, /** @type {number} */ caret) {
@@ -28245,9 +28277,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       /** A layer's `n`th halving cycle, from its start. @param {Layer} layer @param {number} n */
-      const cycleFormula = (layer, n) => `rebase(when(${layer.letter}, halving_epoch == ${n}))`;
+      const cycleFormula = (layer, n) => `halving(${layer.letter}, ${n})`;
       /**
-       * A layer's halving cycles side by side, each from its start at 1× (rebase(when(A, halving_epoch == n))): a layer a
+       * A layer's halving cycles side by side, each from its start at 1× (halving(A, n)): a layer a
        * cycle mined, named by its years, each its own color, in a pane of their own on a log scale, all of history in
        * view. Formulas, there to read and change; not at an interval they can't be at. @param {string} id
        */
@@ -29388,12 +29420,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!node || typeof node !== "object") return "";
         if (node.k === "call") {
           const [arity, signature, , run] = FUNCTIONS[node.f] ?? [];
-          const span = arity >= 2 && run !== null && node.args.length === arity ? node.args[arity - 1] : null, p = arity === 3 ? node.args[1] : null;
+          const span = arity >= 2 && run !== null && node.args.length === arity ? node.args[arity - 1] : null, p = node.f === "percentile" ? node.args[1] : null;
           // (A number written, its sign as written: -(-30d) is 30d. Anything else is computing's to say.)
           const written = (/** @type {any} */ arg) => (arg?.k === "num" ? arg.v : arg?.k === "neg" ? -written(arg.a) : NaN);
           if (span && p?.k === "num" && p.unit) return `${signature}: p first, the span last`;
           if (span && !Number.isNaN(written(span)) && !(written(span) > 0)) return `${signature}: the window is a span of time, like 30d, 4w, 6mo or 2y`;
           if (p && !p.unit && !Number.isNaN(written(p)) && !(written(p) >= 0 && written(p) <= 100)) return `${signature}: p is a percent, from 0 to 100`;
+          if (node.f === "halving" && node.args.slice(1).some((/** @type {any} */ arg) => ((cycle) => !Number.isNaN(cycle) && !(Number.isInteger(cycle) && cycle >= 0))(written(arg)))) return `${signature}: n and at are cycles, 0, 1, 2 and on`;
           // (Each once: twice, a nest of them doubles at each level.)
           for (const arg of node.args) {
             const error = windowError(arg);

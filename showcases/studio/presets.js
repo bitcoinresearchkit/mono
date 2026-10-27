@@ -613,7 +613,7 @@ export function studioPresets(client, facts) {
         chart("Trailing stop", "A 20-day trailing stop", [price(), { formula: "lag(highest(A, 20d), 1d)", label: "20-day high", color: "gray", dash: 2, hidden: true }, { formula: "lag(lowest(A, 20d), 1d)", label: "20-day low", color: "gray", dash: 2, hidden: true }, { trend: ["B", "C"], ref: "A", label: "Trailing stop", color: "red", colorBelow: "green", width: 2 }], { range: "1y" }),
         // (Each halving cycle mined from its start, at 1×: as ⌘K's "Compare halving cycles" makes them; a cycle's years,
         // its halving's, every four.)
-        ((cycles) => chart("Halving cycles", "The price's halving cycles, each from its start", [price(), ...Array.from({ length: cycles }, (_, n) => ({ formula: `rebase(when(A, halving_epoch == ${n}))`, label: `${n ? 2008 + 4 * n : 2009}–${n + 1 < cycles ? 2012 + 4 * n : "now"}`, pane: 2, color: ["orange", "red", "blue", "violet", "green", "teal", "pink"][n % 7] }))], { log: [2], halvings: true, range: "max" }))(Math.floor((facts?.height ?? 840_000) / 210_000) + 1),
+        ((cycles) => chart("Halving cycles", "The price's halving cycles, each from its start", [price(), ...Array.from({ length: cycles }, (_, n) => ({ formula: `halving(A, ${n})`, label: `${n ? 2008 + 4 * n : 2009}–${n + 1 < cycles ? 2012 + 4 * n : "now"}`, pane: 2, color: ["orange", "red", "blue", "violet", "green", "teal", "pink"][n % 7] }))], { log: [2], halvings: true, range: "max" }))(Math.floor((facts?.height ?? 840_000) / 210_000) + 1),
       ]),
     ]),
     section("Valuation", [
