@@ -32719,14 +32719,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       async function chartImage(/** @type {{ width?: number, height?: number, scale?: number }} */ size = {}) {
         if (!canvasReadable()) throw new Error(UNREADABLE);
-        const PAD = 28, HEAD = 60, FOOT = 40;
+        const PAD = 28, FOOT = 40, title = titleOf(chart);
         // Laid out as its picture while it's read: at its size (a script's, whatever the window; else as shown), its panes
         // sized to it, its legends as the picture writes them (see presentLegends) and room made over the lines for them,
         // drawn at once (no frame waited for: a tab out of sight has none); then exactly as it was (its zoom, its size, its
         // margins, its legends).
         const element = $("chart"), wrapper = /** @type {HTMLElement} */ (element.firstElementChild), sized = Boolean(size.width && size.height);
         const style = element.getAttribute("style"), wrapped = [wrapper.style.width, wrapper.style.height], logical = view.timeScale().getVisibleLogicalRange(), heightWas = chartHeight;
-        const width = sized ? /** @type {number} */ (size.width) - PAD * 2 : element.clientWidth, height = sized ? /** @type {number} */ (size.height) - HEAD - FOOT : element.clientHeight;
+        const width = sized ? /** @type {number} */ (size.width) - PAD * 2 : element.clientWidth;
+        // (Its title on two lines where one doesn't hold it, its head taller only then: a picture has no hover, no tap, to
+        // read the rest.)
+        const titled = pictureTitle(title, width), HEAD = titled.length > 1 ? 86 : 60;
+        const height = sized ? /** @type {number} */ (size.height) - HEAD - FOOT : element.clientHeight;
         if (!width || !height) throw new Error("The chart has no room: the window is of no size");
         let shot, pieces, scale = 1, dates, axisHeight = 0, leftWidth = 0, restoreLegends = () => {};
         // (Its resizes aren't the chart's: the view held as it is, see holdView.)
@@ -32795,7 +32799,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // (The theme's colors too, as the shot has them: all read before the marks load, while another chart, theme or
         // size may come.)
-        const title = titleOf(chart), cadence = CADENCE[shownIndex()], [sans, cardColor, inkColor, softColor, mutedColor, lineColor] = ["--sans", "--card", "--ink", "--soft", "--muted", "--line"].map(css);
+        const cadence = CADENCE[shownIndex()], [sans, cardColor, inkColor, softColor, mutedColor, lineColor] = ["--sans", "--card", "--ink", "--soft", "--muted", "--line"].map(css);
         await drawMarks(pieces);
         const px = (n) => Math.round(n * scale);
         const font = (weight, size) => `${weight} ${px(size)}px ${sans}`;
@@ -32808,7 +32812,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         context.fillRect(0, 0, canvas.width, canvas.height);
         context.fillStyle = inkColor;
         context.font = font(590, 20);
-        context.fillText(fitted(context, title, canvas.width - pad * 2), pad, px(38));
+        titled.forEach((line, i) => context.fillText(fitted(context, line, canvas.width - pad * 2), pad, px(38 + 26 * i)));
         context.drawImage(shot, pad, head);
         // (A date cut by the plot's left edge fades into it, as on the page.)
         const axis = Math.round(axisHeight * scale), left = pad + Math.round(leftWidth * scale), fade = context.createLinearGradient(left, 0, left + px(14), 0);
@@ -32889,6 +32893,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!times.length) return { span: "", values: "" };
         const last = times[lastShown()], [from, to] = [pointLabel(Number(span?.from ?? times[0])), pointLabel(Number(span?.to ?? last))];
         return { span: from === to ? to : `${from} – ${to}`, values: chart.legend === "off" ? "" : `Values on ${pointLabel(last)}` };
+      }
+      /**
+       * A picture's title as it's set (590, 20px), in `width` CSS pixels: one line, else two, broken between words (the
+       * second cut with an ellipsis, if even that's too long; see fitted).
+       */
+      function pictureTitle(/** @type {string} */ text, /** @type {number} */ width) {
+        measure.font = `590 20px ${(figuresFont ||= css("--sans"))}`;
+        // (Its room less what the drawn size's rounding to whole pixels can add: 20 at a scale of 4/3 is drawn at 27.)
+        const words = text.split(" "), room = width * 0.97;
+        if (words.length < 2 || measure.measureText(text).width <= room) return [text];
+        let k = 1;
+        while (k < words.length - 1 && measure.measureText(words.slice(0, k + 1).join(" ")).width <= room) k++;
+        return [words.slice(0, k).join(" "), words.slice(k).join(" ")];
       }
       /** A text cut with an ellipsis to fit a width, as the page cuts a long name. */
       function fitted(context, text, width) {
