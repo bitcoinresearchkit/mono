@@ -35,10 +35,62 @@
         font-weight: 500 700;
         font-display: swap;
       }
+
+      /* The way home, every page's: in a bar Scalar keeps for a header (its --refs-header-height), over its sidebar on a
+         desk; on a phone beside its menu button, in its own bar. */
+      .brand {
+        position: fixed;
+        z-index: 1001;
+        top: 0;
+        left: 0;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        height: 52px;
+        padding: 0 16px;
+        color: #0f1012;
+        font: 600 14px / 1 Inter, -apple-system, system-ui, sans-serif;
+        letter-spacing: -0.01em;
+        text-decoration: none;
+
+        @media (prefers-color-scheme: dark) {
+          color: #f7f8f8;
+        }
+
+        @media (width < 1000px) {
+          left: 44px;
+          height: 50px;
+          padding-left: 10px;
+        }
+
+        img {
+          width: 18px;
+          height: 18px;
+        }
+      }
+
+      /* (Its bar on a desk, what scrolls passing under it; a phone's is Scalar's own.) */
+      @media (width >= 1000px) {
+        body::before {
+          content: "";
+          position: fixed;
+          z-index: 1000;
+          inset: 0 0 auto;
+          height: 52px;
+          border-bottom: 1px solid rgb(0 0 0 / 0.08);
+          background: #ffffff;
+
+          @media (prefers-color-scheme: dark) {
+            border-color: rgb(255 255 255 / 0.06);
+            background: #08090a;
+          }
+        }
+      }
     </style>
   </head>
 
   <body>
+    <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
     <div id="app"></div>
 
     <!-- Every endpoint, from the specification of the server that serves this page. -->
@@ -59,6 +111,21 @@
         mcp: { disabled: true },
         agent: { disabled: true },
         customCss: `
+          /* (Scalar's own breakpoint: its phone header under 1000px.) */
+          @media (width >= 1000px) {
+            .scalar-app {
+              --refs-header-height: 52px;
+            }
+            .references-rendered {
+              padding-top: 52px;
+            }
+          }
+          /* (On a phone its header names the section read, where the way home is: the section's own title says it.) */
+          @media (width < 1000px) {
+            .t-doc__header > header > span {
+              visibility: hidden;
+            }
+          }
           :root {
             --scalar-font: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
             --scalar-font-code: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
