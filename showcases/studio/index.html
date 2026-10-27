@@ -32688,13 +32688,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // network knows (a file, localhost, a private address), the data's.)
         const local = !location.hostname || location.hostname === "localhost" || /^(?:127\.|10\.|192\.168\.|172\.(?:1[6-9]|2\d|3[01])\.|\[::1\]|\[f[cd])/i.test(location.hostname) || location.hostname.endsWith(".local");
         const where = ` · ${local ? SERVER_HOST : location.host}`;
+        // Too narrow for all of it: the view's dates go first, then where it was made, then the interval; the values' date
+        // stays (cut, if even that's too long).
+        const last = dates.values || dates.span, full = [cadence, dates.span, dates.values].filter(Boolean).join(" · "), short = [cadence, last].filter(Boolean).join(" · ");
+        const room = (/** @type {boolean} */ placed) => canvas.width - pad - at - (placed ? context.measureText(where).width : 0) - px(24);
+        const fits = (/** @type {string} */ text, /** @type {boolean} */ placed) => context.measureText(text).width < room(placed);
+        const [said, placed] = fits(full, true) ? [full, true] : fits(short, true) ? [short, true] : fits(short, false) ? [short, false] : [fitted(context, last, room(false)), false];
         context.fillStyle = mutedColor;
-        context.fillText(where, at, baseline);
-        at += context.measureText(where).width;
-        // Too narrow for all of it: the view's dates go first, the values' date stays.
-        const full = [cadence, dates.span, dates.values].filter(Boolean).join(" · "), short = [cadence, dates.values || dates.span].join(" · ");
+        if (placed) context.fillText(where, at, baseline);
         context.textAlign = "right";
-        context.fillText(context.measureText(full).width < canvas.width - pad - at - px(24) ? full : short, canvas.width - pad, baseline);
+        context.fillText(said, canvas.width - pad, baseline);
         // At the scale asked for (a script's): the screen's density made that, smoothly.
         if (!sized || !size.scale || (Math.abs(canvas.width - /** @type {number} */ (size.width) * size.scale) < 1 && Math.abs(canvas.height - /** @type {number} */ (size.height) * size.scale) < 1)) return canvas;
         const out = document.createElement("canvas");
