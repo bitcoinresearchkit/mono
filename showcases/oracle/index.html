@@ -1337,7 +1337,9 @@
         return { at, whole, best, c0, c1 };
       }
 
-      const grouped = (/** @type {number} */ n) => Math.round(n).toLocaleString("en-US");
+      /** Numbers grouped as "1,234" by one formatter, made once (a number's toLocaleString makes one each call). */
+      const groupedFormat = new Intl.NumberFormat("en-US");
+      const grouped = (/** @type {number} */ n) => groupedFormat.format(Math.round(n));
       const dollars = (/** @type {number} */ a) => (a >= 1000 ? `$${a / 1000}k` : `$${a}`);
       const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
       const clock = (/** @type {number} */ unix) => {

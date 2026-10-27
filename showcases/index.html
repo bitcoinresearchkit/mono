@@ -867,7 +867,7 @@
       const precise = (/** @type {number} */ value) => {
         const abs = Math.abs(value), sign = value < 0 ? "−" : "";
         if (Math.round(abs) < 1e6) {
-          const text = abs >= 999.95 ? Math.round(abs).toLocaleString("en-US") : abs >= 100 ? String(Number(abs.toFixed(1))) : digits(abs);
+          const text = abs >= 999.95 ? groupedFormat.format(Math.round(abs)) : abs >= 100 ? String(Number(abs.toFixed(1))) : digits(abs);
           const short = Number(abs.toPrecision(4)).toExponential();
           return sign + (text.length <= 8 ? text : short.length <= 8 ? short : abs.toExponential(2));
         }
@@ -878,7 +878,9 @@
       const dollars = (/** @type {number} */ value) => `$${precise(value)}`;
       const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-      const grouped = (/** @type {number} */ n) => Math.round(n).toLocaleString("en-US");
+      /** Numbers grouped as "1,234" by one formatter, made once (a number's toLocaleString makes one each call). */
+      const groupedFormat = new Intl.NumberFormat("en-US");
+      const grouped = (/** @type {number} */ n) => groupedFormat.format(Math.round(n));
       /** A length of time in words: "40 s", "12 min", "3 h 5 min", "2 days". */
       const lasting = (/** @type {number} */ seconds) => {
         const s = Math.max(0, Math.round(seconds));

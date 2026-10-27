@@ -334,15 +334,16 @@
       /* The months: one or two a row on a phone, each day a finger's size with its date, four abreast on a desk, each day its leader's mark, a whole year in a screen. */
       .months {
         display: grid;
-        /* (A phone: one month a row, two once two fit with tiles a finger's size.) */
+        /* (A phone, and any touch screen: as many months a row as fit with tiles a finger's size. A pointer's screen:
+           the year packed, four abreast on a desk.) */
         grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
         gap: 20px clamp(16px, 2vw, 28px);
 
-        @media (min-width: 640px) {
+        @media (min-width: 640px) and (pointer: fine) {
           grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
         }
 
-        @media (min-width: 1024px) {
+        @media (min-width: 1024px) and (pointer: fine) {
           grid-template-columns: repeat(4, minmax(0, 1fr));
         }
       }
@@ -355,7 +356,7 @@
 
       /* (A phone's month no wider than tiles of 42px and their gaps: past that they'd only grow heavier.) */
       .month {
-        @media (max-width: 639px) {
+        @media (max-width: 639px), (pointer: coarse) {
           max-width: calc(7 * 42px + 6 * 8px);
         }
       }
@@ -375,7 +376,7 @@
         gap: 2px;
 
         /* (A phone's: room between its tiles, so a month reads as days, not a slab.) */
-        @media (max-width: 639px) {
+        @media (max-width: 639px), (pointer: coarse) {
           gap: 8px;
         }
       }
@@ -445,7 +446,7 @@
 
         /* (A phone's tiles: the logo centered, a size down; and where there's room (36px and more), the date small in
            the corner. Smaller, as at 320px or two months a row, the logo alone.) */
-        @media (max-width: 639px) {
+        @media (max-width: 639px), (pointer: coarse) {
           /* (A phone's logo in proportion with its type, whatever its tile's size.) */
           .logo {
             width: 40%;
@@ -874,7 +875,9 @@
       const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
       // (Logos drawn for one ground: these have their own for the light.)
       const LIGHT_LOGOS = new Set(["foundryusa", "ultimuspool", "unknown", "whitepool"]);
-      const grouped = (/** @type {number} */ n) => n.toLocaleString("en-US");
+      /** Numbers grouped as "1,234" by one formatter, made once (a number's toLocaleString makes one each call). */
+      const groupedFormat = new Intl.NumberFormat("en-US");
+      const grouped = (/** @type {number} */ n) => groupedFormat.format(n);
       const iso = (/** @type {number} */ time) => new Date(time).toISOString().slice(0, 10);
       /** A block's UTC day from its time in seconds, each day's written once (a year's blocks share 365). */
       const dayNames = /** @type {Map<number, string>} */ (new Map());
@@ -1217,8 +1220,27 @@
       }
 
       /** The year: its months, each day its leader; null, its frame (loading). */
+      /** Each year as drawn, by the read it was drawn from: the same read again (going back to a year seen in the last
+       * minute, the same day) shows the same drawing, not every day worked out and made again; a new day redraws it (its
+       * ring, its days and months to come).
+       * @typedef {{ day: string, months: HTMLElement, notes: { when: string, text: string, open?: string, key?: string }[], pairs: [string, string][], leaders: { pool: string, label: string, share: number }[] }} Drawn
+       * @type {WeakMap<Block[], Drawn>} */
+      const drawnYears = new WeakMap();
+      /** A year drawn, put in place: its grid (its one tab stop where it was, else today, else its first day), its notes,
+       * totals and pools. */
+      function showYear(/** @type {Drawn} */ { months, notes, pairs, leaders }) {
+        const stop = /** @type {HTMLElement | null} */ ($("view").querySelector('.day[tabindex="0"]'))?.dataset.date;
+        for (const tile of months.querySelectorAll('.day[tabindex="0"]')) tile.setAttribute("tabindex", "-1");
+        (months.querySelector(`.day[data-date="${stop}"]:not(:disabled)`) ?? months.querySelector(".day.today:not(:disabled)") ?? months.querySelector(".day:not(:disabled)"))?.setAttribute("tabindex", "0");
+        $("view").replaceChildren(months);
+        drawNotes(notes);
+        totals(pairs);
+        drawLeaders(leaders);
+      }
       function drawYear(/** @type {Block[] | null} */ blocks) {
         const y = year(), now = today(), byDay = new Map();
+        const drawn = blocks && drawnYears.get(blocks);
+        if (drawn?.day === now) return showYear(drawn);
         for (const block of blocks ?? []) (byDay.get(block.day) ?? byDay.set(block.day, []).get(block.day)).push(block);
         const months = Object.assign(document.createElement("div"), { className: `months${blocks ? "" : " loading"}` });
         /** @type {Map<string, number>} */
@@ -1276,13 +1298,9 @@
           card.append(Object.assign(document.createElement("h2"), { textContent: MONTHS[month] }), week, days);
           months.append(card);
         }
-        // (One tab stop for the grid: where it was, else today, else the first day; arrows from there.)
-        const stop = /** @type {HTMLElement | null} */ ($("view").querySelector('.day[tabindex="0"]'))?.dataset.date;
-        (months.querySelector(`.day[data-date="${stop}"]:not(:disabled)`) ?? months.querySelector(".day.today:not(:disabled)") ?? months.querySelector(".day:not(:disabled)"))?.setAttribute("tabindex", "0");
-        $("view").replaceChildren(months);
-        if (!blocks) return drawNotes([]);
+        // (Loading: its placeholder grid alone, as it'll be, nothing kept.)
+        if (!blocks) return showYear({ day: now, months, notes: [], pairs: [], leaders: [] });
         const notes = yearNotes(blocks, byDay, leaderOf, leads);
-        drawNotes(notes.map((note) => ({ ...note, when: shortDate(note.date), open: note.date })));
         const noted = new Set(notes.map((note) => note.date));
         for (const tile of months.querySelectorAll(".day")) {
           const date = /** @type {HTMLElement} */ (tile).dataset.date ?? "";
@@ -1290,10 +1308,18 @@
         }
         // (A leader's share of the year's blocks: only known pools lead, so their counts are all it needs.)
         const share = new Map([...yearCounts].map(([pool, count]) => [pool, count / blocks.length]));
-        totals([["Blocks", grouped(blocks.length)], ["Day leaders", grouped(led.size)]]);
         // (Its bar: its share of the days led; beside it, its share of the blocks.)
         const daysLed = [...led.values()].reduce((a, b) => a + b, 0) || 1;
-        drawLeaders([...led].sort((a, b) => b[1] - a[1] || (share.get(b[0]) ?? 0) - (share.get(a[0]) ?? 0)).slice(0, 12).map(([pool, days]) => ({ pool, share: days / daysLed, label: `${days} ${days === 1 ? "day" : "days"} · ${((share.get(pool) ?? 0) * 100).toFixed(1)}% of blocks` })));
+        /** @type {Drawn} */
+        const made = {
+          day: now,
+          months,
+          notes: notes.map((note) => ({ ...note, when: shortDate(note.date), open: note.date })),
+          pairs: [["Blocks", grouped(blocks.length)], ["Day leaders", grouped(led.size)]],
+          leaders: [...led].sort((a, b) => b[1] - a[1] || (share.get(b[0]) ?? 0) - (share.get(a[0]) ?? 0)).slice(0, 12).map(([pool, days]) => ({ pool, share: days / daysLed, label: `${days} ${days === 1 ? "day" : "days"} · ${((share.get(pool) ?? 0) * 100).toFixed(1)}% of blocks` })),
+        };
+        drawnYears.set(blocks, made);
+        showYear(made);
       }
 
       const plural = (/** @type {number} */ n, /** @type {string} */ word) => `${grouped(n)} ${word}${n === 1 ? "" : "s"}`;

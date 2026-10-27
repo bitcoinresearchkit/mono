@@ -760,6 +760,23 @@
             font-weight: 500;
           }
         }
+
+        /* (On a touch screen a finger's reach, inside the strip: it scrolls sideways, which clips a reach past its
+           edges. Its buttons a little taller, each reaching the strip's whole 44px.) */
+        @media (pointer: coarse) {
+          padding: 4px;
+
+          button {
+            position: relative;
+            height: 36px;
+
+            &::before {
+              content: "";
+              position: absolute;
+              inset: -4px 0;
+            }
+          }
+        }
       }
 
       .card {

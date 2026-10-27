@@ -837,26 +837,48 @@
           }
         }
 
+        /* (Each part holds the lines its longest wording takes at that width: editing the plan (its amount, its
+           schedule, its dates) never moves the card. Its thresholds, one or two, are the market's step's, not the plan's.) */
+        .now {
+          container-type: inline-size;
+        }
+
+        /* (One line once the card holds the longest, "Buy $999,999 on 28 May 2026", 452 px: millions read "$1.2M".) */
         .act {
+          min-height: 2lh;
           margin: 12px 0 0;
           font-size: 32px;
           font-weight: 700;
           line-height: 1.1;
           letter-spacing: -0.03em;
           font-variant-numeric: tabular-nums;
+
+          @container (min-width: 452px) {
+            min-height: 1lh;
+          }
         }
 
         .why {
+          min-height: 4lh;
           margin: 8px 0 0;
           font-size: 16px;
           line-height: 1.4;
+
+          @media (min-width: 960px) {
+            min-height: 3lh;
+          }
         }
 
         .when {
+          min-height: 2lh;
           margin: 8px 0 0;
           color: var(--soft);
           font-size: 13px;
           font-weight: 500;
+
+          @media (max-width: 359px) {
+            min-height: 3lh;
+          }
         }
 
         .rows {
@@ -1584,8 +1606,11 @@
 
       // ── Numbers ──
 
-      const grouped = (/** @type {number} */ n) => Math.round(n).toLocaleString("en-US");
-      const sig = (/** @type {number} */ n) => n.toLocaleString("en-US", { maximumSignificantDigits: 4 });
+      /** Numbers grouped as "1,234" by one formatter, made once (a number's toLocaleString makes one each call). */
+      const groupedFormat = new Intl.NumberFormat("en-US");
+      const sigFormat = new Intl.NumberFormat("en-US", { maximumSignificantDigits: 4 });
+      const grouped = (/** @type {number} */ n) => groupedFormat.format(Math.round(n));
+      const sig = (/** @type {number} */ n) => sigFormat.format(n);
       /** A large amount: under 1,000 to 4 digits, then whole and grouped, millions on as 4 digits and a letter. */
       const scaled = (/** @type {number} */ v) => {
         const [scale, letter] = /** @type {[number, string][]} */ ([[1e12, "T"], [1e9, "B"], [1e6, "M"]]).find(([scale]) => v >= scale) ?? [1, ""];
@@ -1843,7 +1868,8 @@
         };
         let low = -10, high = 10;
         if (!(at(low) <= worth && worth <= at(high))) return NaN;
-        for (let k = 0; k < 60; k++) {
+        // (40 halvings: the rate's log to 2e-11, far past the tenth of a percent shown.)
+        for (let k = 0; k < 40; k++) {
           const mid = (low + high) / 2;
           if (at(mid) < worth) low = mid;
           else high = mid;
@@ -2012,7 +2038,11 @@
       twin.setAttribute("aria-hidden", "true");
       /** @type {HTMLElement} */ (amountInput.parentElement).append(twin);
       /** The amount's field as wide as its text, and its size down from 48px as it would outgrow the card. */
-      const fitAmount = () => {
+      /** The amount last fitted: the field measured again only when it changes (or `again`: the fonts, the card's size). */
+      let fitted = "";
+      const fitAmount = (again = false) => {
+        if (!again && amountInput.value === fitted) return;
+        fitted = amountInput.value;
         // (Its size first, then the field exactly as wide as its text at that size, so the amount sits centered.)
         /** @type {HTMLElement} */ (amountInput.parentElement).style.setProperty("--chars", String(Math.max(4, amountInput.value.length + 1.4)));
         twin.textContent = amountInput.value || "0";
@@ -2020,9 +2050,9 @@
       };
       // (Sized from the start, so the card doesn't change once prices arrive; again once the fonts it's measured in are in,
       // and whenever the card's width, which sets its size, changes.)
-      fitAmount();
-      document.fonts.ready.then(fitAmount);
-      new ResizeObserver(fitAmount).observe(/** @type {HTMLElement} */ (document.querySelector(".plan")));
+      fitAmount(true);
+      document.fonts.ready.then(() => fitAmount(true));
+      new ResizeObserver(() => fitAmount(true)).observe(/** @type {HTMLElement} */ (document.querySelector(".plan")));
 
       /** What's wrong with an amount ("": nothing): a cent to a billion dollars. */
       const amountProblem = (/** @type {number} */ amount) => (amount >= 0.01 && amount <= 1e9 ? "" : "Enter dollars from 0.01 to 1,000,000,000.");
@@ -2314,9 +2344,11 @@
 
       /** That curve as a path, from the first point, and (`reverse()`, the same curve) from the last: worked out and
        * written once, either way read from the same pieces. */
-      function monotone(/** @type {[number, number][]} */ points) {
+      function monotone(/** @type {[number, number][]} */ points, smooth = true) {
         const n = points.length, at = (/** @type {[number, number]} */ [x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`;
-        if (n < 3) {
+        // (Moving, its points joined straight: a point every 3px reads as the curve while it glides, at a third of its
+        // work; at rest, the curve.)
+        if (n < 3 || !smooth) {
           const written = points.map(at);
           return { forward: written.map((p, k) => `${k ? "L" : "M"}${p}`).join(""), reverse: () => [...written].reverse().map((p, k) => `${k ? "L" : "M"}${p}`).join("") };
         }
@@ -2340,8 +2372,11 @@
        * worth is green, or red when the plan ends below what went in; faintly between its two lines, green where the plan
        * stood above (worth over what went in, the price over your cost), red below. Its baseline's line, thin, under it. A
        * new plan's lines glide from the old ones (`animate`). */
+      /** The chart's box, read once and again only as it's resized (see sizes), as the map's. @type {{ width: number, height: number } | null} */
+      let chartBox = null;
       function drawCharts(animate = false) {
-        const n = lead.to - lead.from + 1, width = plots.clientWidth, height = svg.getBoundingClientRect().height, pad = 12;
+        chartBox ??= { width: plots.clientWidth, height: svg.getBoundingClientRect().height };
+        const n = lead.to - lead.from + 1, { width, height } = chartBox, pad = 12;
         const at = (/** @type {number} */ i) => price[lead.from + i], worth = (/** @type {number} */ i) => worthOf(lead, i);
         // (A coin's cost, before the plan's first buy: none, its line drawn along the price's until there.)
         const spent = (/** @type {number} */ i) => lead.spent[i], cost = (/** @type {number} */ i) => costOf(lead, i);
@@ -2414,9 +2449,9 @@
         /** A line's samples as points on the chart. */
         const pointsOf = (/** @type {Float64Array} */ line) => Array.from({ length: columns }, (_, j) => /** @type {[number, number]} */ ([colX(j), line[j]]));
         /** Draws the lines, the fill between the first two and its clips, from their samples. */
-        const paint = (/** @type {Float64Array[]} */ shape) => {
+        const paint = (/** @type {Float64Array[]} */ shape, smooth = true) => {
           // (Each line's curve once a paint: its line, the fill's edge and (reversed) the fill's other side read from it.)
-          const curves = shape.map((line) => monotone(pointsOf(line)));
+          const curves = shape.map((line) => monotone(pointsOf(line), smooth));
           lines.forEach((path, k) => path.setAttribute("d", curves[k].forward));
           dots.forEach((dot, k) => dot.setAttribute("cy", shape[k][columns].toFixed(1)));
           const edge = curves[1 - good].forward, between = `${curves[good].forward}L${curves[1 - good].reverse().slice(1)}Z`;
@@ -2449,7 +2484,7 @@
             const t = Math.min(1, Math.max(0, (now - start) / GLIDE));
             if (t === 1) return finish();
             onScreen = target.map((to, k) => to.map((v, j) => from[k][j] + (v - from[k][j]) * eased(t)));
-            paint(onScreen);
+            paint(onScreen, false);
             glide = requestAnimationFrame(frame);
           };
           frame(start);
@@ -2731,8 +2766,12 @@
       let cursor = { s: 0, d: 0 };
       /** The map's frame. Lengths go up on a square-root scale, so the short plans, where the losses are, get room: a
        * length's height is `edge(months)`. */
+      /** The map's box, read once and again only as it's resized (see sizes): drawn after the page's other changes, a
+       * read here would lay the page out first. @type {{ width: number, height: number } | null} */
+      let mapBox = null;
       const geometry = () => {
-        const width = canvas.clientWidth, height = canvas.clientHeight;
+        mapBox ??= { width: canvas.clientWidth, height: canvas.clientHeight };
+        const { width, height } = mapBox;
         const plotW = width - MARGIN.left - MARGIN.right, plotH = height - MARGIN.top - MARGIN.bottom;
         const edge = (/** @type {number} */ months) => MARGIN.top + plotH * (1 - Math.sqrt(Math.max(0, months) / map.rows));
         return { width, height, plotW, plotH, cw: plotW / map.cols, edge };
@@ -2875,6 +2914,7 @@
       // (Each redrawn when its own box changes size, once a frame: the chart's height follows its card on a desk.)
       let queued = false;
       const sizes = new ResizeObserver(() => {
+        mapBox = chartBox = null;
         if (queued || !plan) return;
         queued = true;
         requestAnimationFrame(() => {

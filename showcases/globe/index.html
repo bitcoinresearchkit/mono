@@ -763,7 +763,9 @@
       // (world-atlas, kept beside the page).
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       const reduced = matchMedia("(prefers-reduced-motion: reduce)");
-      const grouped = (/** @type {number} */ n) => n.toLocaleString("en-US");
+      /** Numbers grouped as "1,234" by one formatter, made once (a number's toLocaleString makes one each call). */
+      const groupedFormat = new Intl.NumberFormat("en-US");
+      const grouped = (/** @type {number} */ n) => groupedFormat.format(n);
       const percent = (/** @type {number} */ share) => (share > 0 && share < 0.001 ? "<0.1%" : `${(share * 100).toFixed(share >= 0.1 ? 0 : 1)}%`);
       const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
       const canvas = /** @type {HTMLCanvasElement} */ ($("globe"));
