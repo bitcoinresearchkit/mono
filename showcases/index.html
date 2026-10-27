@@ -891,7 +891,9 @@
         $("server-state").innerHTML = !sync ? `<span class="behind">its state unavailable</span>`
           : behind ? `<span class="behind">syncing</span>, block <b>${grouped(sync.indexed_height)}</b> of ${grouped(sync.tip_height)}, ${grouped(sync.blocks_behind)} to go`
           : `<span class="ok">synced</span> to block <b>${grouped(sync.indexed_height)}</b>`;
-        $("server-more").textContent = `${health ? ` · Bitview ${health.version} · up ${lasting(health.uptime_seconds)}` : ""}${disk ? ` · ${disk}` : ""}`;
+        // (Each part whole on a line, the line breaking only between them: never "up 6 / h 47 min".)
+        const whole = (/** @type {string} */ part) => part.replaceAll(" ", "\u00a0");
+        $("server-more").textContent = `${health ? ` · ${whole(`Bitview ${health.version}`)} · ${whole(`up ${lasting(health.uptime_seconds)}`)}` : ""}${disk ? ` · ${whole(disk)}` : ""}`;
         if (state === stateSaid) return;
         stateSaid = state;
         $("status").textContent = state === "unread" ? "This server's state can't be read." : behind ? `This server is syncing, ${grouped(sync.blocks_behind)} blocks behind.` : "This server is synced.";
