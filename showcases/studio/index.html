@@ -13586,6 +13586,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!isPreview(doc)) return;
         const back = chart === doc ? previousChart() : chart;
         if (!back) return;
+        // (What's being typed, in first: its step before this one's start.)
+        flushEdits();
+        const from = revision;
         // (The focus on a row: the next one's, else the one before's, else the open chart's.)
         const focused = Boolean(document.activeElement?.closest("[data-preview-row]"));
         if (chart === doc) saveView();
@@ -13612,8 +13615,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderHome();
         };
         closedPreviews.set(doc.id, titleOf(doc));
-        if (touched.has(doc)) toast(`Closed the preview “${titleOf(doc)}”`, { label: "Undo", run: reopen, undone: "Preview back" }), (closedToast = doc);
-        else libraryStep(`Closed the preview “${titleOf(doc)}”`, reopen, "Preview back");
+        if (touched.has(doc)) toast(`Closed the preview “${titleOf(doc)}”`, { label: "Undo", run: reopen, undone: "Preview back", from }), (closedToast = doc);
+        else libraryStep(`Closed the preview “${titleOf(doc)}”`, reopen, "Preview back", from);
       }
       /** The previews closed in this tab, by id, with their titles: a step back to one (Back) says it was closed. */
       const closedPreviews = new Map();
@@ -33307,7 +33310,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A step of the Library's own (a chart or a folder deleted, moved, copied; one a toast offered to undo): what it
        * said, how it's undone (giving how it's done again, if it can be), and the revision it was done at.
        * (`folder`: the folder it made, whose first name is its own: see nameFolder.)
-       * @typedef {{ text: string, run: () => (void | (() => void)), undone?: string, mark: number, folder?: string }} LibraryStep
+       * @typedef {{ text: string, run: () => (void | (() => void)), undone?: string, mark: number, from?: number, folder?: string }} LibraryStep
        */
       /**
        * The Library's steps, kept however long ago they were (the toast that said one gone or not): ⌘Z and ⌘⇧Z take
@@ -33344,9 +33347,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Its refusal: the charts it'd let go of edited since, kept. @param {Chart[]} docs */
       const keptAsEdited = (docs) => notice(docs.length === 1 ? `“${titleOf(docs[0])}” has been edited since then, so it was left unchanged` : "They've been edited since then, so they were left unchanged");
       /** A Library step kept (see libraryEdits): said by a toast's Undo, or by nothing (a rename, a reorder). @returns {LibraryStep | null} */
-      function libraryStep(/** @type {string} */ text, /** @type {LibraryStep["run"]} */ run, /** @type {string | undefined} */ undone = undefined) {
+      function libraryStep(/** @type {string} */ text, /** @type {LibraryStep["run"]} */ run, /** @type {string | undefined} */ undone = undefined, /** @type {number | undefined} */ from = undefined) {
         if (undoing) return null;
-        const step = { text, run, undone, mark: revision };
+        // (`from`: the revision it was begun at, where what it does moved it on (a chart opened): see undoLibrary.)
+        const step = { text, run, undone, mark: revision, from };
         libraryEdits.past.push(step);
         if (libraryEdits.past.length > 50) libraryEdits.past.shift();
         // (Something new done: nothing to redo, a toast offering it put away.)
@@ -33361,6 +33365,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function undoLibrary() {
         const step = libraryEdits.past.pop();
         if (!step) return;
+        // (Undone from just where it left things, nothing since: see the step before's turn, below.)
+        const fresh = step.mark === revision;
         const saved = saves, said = toasts;
         undoing = true;
         let again;
@@ -33371,6 +33377,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // (Nothing done (what it'd undo changed since, gone, back already): not said as done; its own word, if it had one.)
         if (saves === saved) return void (syncUndo(), toasts === said && notice(`Nothing to undo: things have changed since then (${step.text})`));
+        // (The step before, done just before this one began (nothing between: two previews closed one after the other), its
+        // turn now, here, though this one moved on what's open.)
+        const before = libraryEdits.past.at(-1);
+        if (fresh && before && step.from !== undefined && before.mark === step.from) before.mark = revision;
         if (typeof again !== "function") return void (syncUndo(), toast(step.undone ?? "Undone"));
         const back = { text: step.text, run: again, undone: step.undone, mark: revision };
         libraryEdits.future.push(back);
@@ -33400,7 +33410,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * chart deleted, moved, copied, back and gone again as a chart's edits are.
        * An Undo said with a Library step (not `chart`, a chart's own step's: see undoToast) keeps that step (see
        * libraryEdits): the toast's button undoes it while it's still the last.
-       * @param {{ label: string, run: () => (void | (() => void)), undone?: string, chart?: boolean, folder?: string }} [action]
+       * @param {{ label: string, run: () => (void | (() => void)), undone?: string, chart?: boolean, folder?: string, from?: number }} [action]
        */
       function toast(text, action, done = true) {
         toasts++;
@@ -33420,7 +33430,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         const undoes = action?.label === "Undo";
         // (A Library step: kept, as long as the Library's are.)
-        const step = undoes && action && !action.chart ? libraryStep(text, action.run, action.undone) : null;
+        const step = undoes && action && !action.chart ? libraryStep(text, action.run, action.undone, action.from) : null;
         if (step && action?.folder) step.folder = action.folder;
         // (Said with an edit of the open chart, it's that edit's step; else, a deleted chart's, a copied link's, no step's.)
         toastStep = chartChanged ? { chart, depth: edits.past.length } : null;
