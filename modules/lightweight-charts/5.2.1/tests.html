@@ -63,7 +63,7 @@ const check = (bottom, top, H, Nl, why) => {
   if (bad.length) { fails++; failures.length < 40 && failures.push(`${why} [${bottom}, ${top}] H${H}: ${bad.slice(0, 3).join("; ")}`); }
 };
 // Hand-picked edges.
-const edges = [[0.006935, 487918], [15000, 140000], [52000, 125000], [53000, 92000], [82300, 82400], [82300, 82300.01], [1, 1 + 1e-9], [1e-9, 1e-8], [1e-12, 1e30], [1e-300, 1e300], [0.5, 2], [0.99, 1.01], [9.99, 10.01], [99999, 100001], [1, 10], [1, 100], [0.0001, 0.0002], [3e20, 1e22], [1e-6, 5e5], [0, 10], [-10, 10], [-5, -1], [5, 5], [NaN, 10], [1, Infinity], [1e-320, 1]];
+const edges = [[0.006935, 487918], [15000, 140000], [52000, 125000], [53000, 92000], [82300, 82400], [82300, 82300.01], [1, 1 + 1e-9], [1e-9, 1e-8], [1e-12, 1e30], [1e-300, 1e300], [0.5, 2], [0.99, 1.01], [9.99, 10.01], [99999, 100001], [1, 10], [1, 100], [0.0001, 0.0002], [3e20, 1e22], [1e-6, 5e5], [0, 10], [-10, 10], [-5, -1], [5, 5], [NaN, 10], [1, Infinity], [1e-320, 1], [5e-324, 1e-320]];
 for (const format of FORMATS) {
 FORMAT = format;
 for (const [b, t] of edges) for (const H of [40, 120, 300, 760, 1600]) for (const Nl of [1e-4, 1e-8]) check(b, t, H, Nl, `edge (${format.Fl})`);
@@ -76,6 +76,8 @@ for (let k = 0; k < 20000; k++) {
 }
 }
 FORMAT = FORMATS[0];
+// (Stretches alike parted alike: 63K to 88K over 760 px, its marks evenly stepped, not 1K under 72K and 2K over it.)
+{ cases++; const m = run(63000, 88000, 760).marks.map((x) => x.no), steps = new Set(m.slice(1).map((v, k) => Math.round(m[k] - v))); if (steps.size !== 1) (fails++, failures.push(`63K to 88K: stepped ${[...steps].join(", ")}`)); }
 for (const [b, t] of [[1, 10], [100, 110], [0.001, 1e6]]) { cases++; const t0 = performance.now(), res = run(b, t, 300, 1e-4, 7, 0); if (res.used || performance.now() - t0 > 5) (fails++, failures.push(`no gap [${b}, ${t}]: ${res.used ? "marked" : "slow"}`)); }
 
   say(`Log marks: ${cases} ranges, ${fails} failing, ${fallbacks} left to the library's marks; slowest ${worst.toFixed(2)} ms`);

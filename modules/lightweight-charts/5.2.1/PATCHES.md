@@ -22,7 +22,9 @@ The library steps a log scale's marks down from the top of the range, each step 
 land on values like 6.31 (written "6") and shift as the chart pans. Its log marks are now round values, as many as fit
 `tickMarkDensity` apart: every decade (every few, where they don't fit); in each decade 3, or 2 and 5, or more of 1 to 9;
 then each stretch between two marks parted evenly (by 5, else 2) while all of its parts fit (a stretch only partly in
-view, when at least two marks' height of it shows; zoomed into one, down to where marks show). None finer than the
+view, when at least two marks' height of it shows; zoomed into one, down to where marks show), a decade's stretches
+alike (as long) parted alike, a finer step only where it fits in each of them in view (a log scale's lower stretches
+are taller: parted alone, 63K to 88K was marked every 1K under 72K and every 2K over it). None finer than the
 price's least move (the format's `minMove`), no two written alike by the format. Ranges it can't mark (zero or below,
 not finite, 60 decades or more, no room between marks: a density of 0), or where no round value fits, keep the
 library's marks. Edge marks (`ensureEdgeTickMarksVisible`) over these: each mark closer to one than a mark's height goes
@@ -37,7 +39,8 @@ library's marks. Edge marks (`ensureEdgeTickMarksVisible`) over these: each mark
 hand-picked edges, each written three ways (unformatted; two decimals, a least move of 0.01, the library's default;
 three significant figures, Studio's): it ends (well under a millisecond), its marks are in the range and its margins, a
 mark's height apart, round at their step, none under the least move, none written alike; with no room between marks,
-it leaves them to the library at once.
+it leaves them to the library at once; 63K to 88K over 760 px, its marks evenly stepped; a range of subnormal
+numbers (5e-324 to 1e-320, its steps underflowing to 0) ends.
 
 ## 2. A point's style from its row, not a search for it
 
