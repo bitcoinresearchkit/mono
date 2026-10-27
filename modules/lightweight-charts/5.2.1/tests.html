@@ -606,5 +606,77 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   }
   say(`A band its own: 9 checks, ${owned.length} failing`);
   for (const f of owned) say(`  ✗ ${f}`);
-  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length, pinch: tapped.length, own: owned.length };
+
+  // 11. A simplified line's x's read by what isn't its walk (patch 43): a line's dots alone (point markers, no line,
+  // `bvSimplify`) over an area, panned a step a frame, by the patched library and the published one: the same picture each
+  // step, and the pointer then on each one's dots names the same series; a line, straight then curved, the pointer alone
+  // reading them.
+  const later = [];
+  {
+    document.getElementById("a").innerHTML = ""; document.getElementById("b").innerHTML = ""; window.__charts = [];
+    const made = [];
+    for (const [L, id] of [[A, "a"], [B, "b"]]) {
+      seed = 53;
+      const c = base(L, document.getElementById(id));
+      const dots = c.addSeries(L.LineSeries, { color: "#fff", lineVisible: false, pointMarkersVisible: true, bvSimplify: true });
+      dots.setData(walk(400, 100, 0.03));
+      c.addSeries(L.AreaSeries, { lineColor: "#f80" }).setData(walk(400, 80, 0.03));
+      c.timeScale().setVisibleLogicalRange({ from: 150, to: 260 });
+      made.push({ c, dots, hovered: [] });
+    }
+    await frames();
+    for (let step = 1; step <= 8; step++) {
+      for (const { c } of made) c.timeScale().scrollToPosition(c.timeScale().scrollPosition() + (step % 3 ? -4 : 6), false);
+      await frames();
+      const d = differ(plot(made[0].c), plot(made[1].c));
+      if (d !== 0) later.push(`step ${step}: ${d < 0 ? "pictures of other sizes" : `${d} values differing`}`);
+    }
+    for (const item of made) {
+      item.c.subscribeCrosshairMove((p) => item.hovered.push(p.hoveredSeries === item.dots ? "dots" : p.hoveredSeries ? "other" : "none"));
+      const r = item.c.timeScale().getVisibleLogicalRange(), k = Math.round((r.from + r.to) / 2), x = item.c.timeScale().logicalToCoordinate(k), y = item.dots.priceToCoordinate(item.dots.dataByIndex(k).value);
+      const pane = item.c.panes()[0].getHTMLElement(), canvas = [...pane.querySelectorAll("canvas")].reduce((a, b) => (b.width * b.height >= a.width * a.height ? b : a)), box = canvas.getBoundingClientRect();
+      for (const type of ["mouseenter", "mousemove"]) canvas.dispatchEvent(new MouseEvent(type, { clientX: box.left + x, clientY: box.top + y, bubbles: true }));
+    }
+    await frames();
+    const [a, b] = made.map((item) => item.hovered.at(-1) ?? "none");
+    if (a !== b || b !== "dots") later.push(`the pointer on the dots: ${b} (published: ${a})`);
+    for (const { c } of made) c.remove();
+    window.__charts = [];
+    // (The pointer alone reading them: a simplified line drawn as a line, panned, then the pointer on a point of it (mid-
+    // view), by both libraries: the same series named; again, the line made curved after its pans (a curve reads the points
+    // either side of those in view), the pointer at its view's end.)
+    for (const lineType of [0, 2]) {
+      document.getElementById("a").innerHTML = ""; document.getElementById("b").innerHTML = ""; window.__charts = [];
+      const lines = [];
+      for (const [L, id] of [[A, "a"], [B, "b"]]) {
+        seed = 59;
+        const c = base(L, document.getElementById(id)), line = c.addSeries(L.LineSeries, { color: "#fff", bvSimplify: true });
+        // (Smooth: its walk keeps few points, the rest of those in view unread by it.)
+        line.setData(walk(400, 100, 0).map((point, k) => ({ time: point.time, value: 100 + 10 * Math.sin(k / 40) })));
+        c.timeScale().setVisibleLogicalRange({ from: 150, to: 260 });
+        lines.push({ c, line, hovered: [] });
+      }
+      await frames();
+      for (let step = 1; step <= 6; step++) {
+        for (const { c } of lines) c.timeScale().scrollToPosition(c.timeScale().scrollPosition() + (step % 3 ? -25 : 9), false);
+        await frames();
+      }
+      // (Panned straight, then curved: a curve's first point reads the one before it, unread by the straight walks.)
+      if (lineType) for (const { line } of lines) line.applyOptions({ lineType });
+      for (const item of lines) {
+        item.c.subscribeCrosshairMove((p) => item.hovered.push(p.hoveredSeries === item.line ? "line" : p.hoveredSeries ? "other" : "none"));
+        const r = item.c.timeScale().getVisibleLogicalRange(), k = lineType ? Math.floor(r.to) - 1 : Math.round((r.from + r.to) / 2), x = item.c.timeScale().logicalToCoordinate(k), y = item.line.priceToCoordinate(item.line.dataByIndex(k).value);
+        const canvas = [...item.c.panes()[0].getHTMLElement().querySelectorAll("canvas")].reduce((a, b) => (b.width * b.height >= a.width * a.height ? b : a)), box = canvas.getBoundingClientRect();
+        for (const type of ["mouseenter", "mousemove"]) canvas.dispatchEvent(new MouseEvent(type, { clientX: box.left + x, clientY: box.top + y, bubbles: true }));
+      }
+      await frames();
+      const [a, b] = lines.map((item) => item.hovered.at(-1) ?? "none");
+      if (a !== b || b !== "line") later.push(`the pointer on a ${lineType ? "curved" : "straight"} line: ${b} (published: ${a})`);
+      for (const { c } of lines) c.remove();
+      window.__charts = [];
+    }
+  }
+  say(`A simplified line's x's read later: 11 checks, ${later.length} failing`);
+  for (const f of later) say(`  ✗ ${f}`);
+  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length, pinch: tapped.length, own: owned.length, later: later.length };
 </script>

@@ -10,7 +10,8 @@ same published file. At a device pixel ratio of 2, two corner checks fail as the
 
 The plots draw exactly what the library does, but for the log marks (1, 12) and the rounded bars (7, only where a radius
 is set); the axes' tags are rounded (6), the time axis's labels fade before its ends (10), a price axis's tags stay inside
-its pane (11), an indexed scale's labels are its series' (19). A view held on screen as a right scale's width changes, an option (20). A view keeps a share of it on its data, an option (13). The rest (2–5, 8, 9, 14, 22, 23) draw the same, faster; a tag hides the mark labels under it (15). `tests.html` runs the patched file and 5.2.1 as published side by side through every
+its pane (11), an indexed scale's labels are its series' (19), a curve's ends at the view's edges are drawn to its
+neighbors where they are, not where the frame before had them (43: three pan steps, 6 to 27 values). A view held on screen as a right scale's width changes, an option (20). A view keeps a share of it on its data, an option (13). The rest (2–5, 8, 9, 14, 22, 23) draw the same, faster; a tag hides the mark labels under it (15). `tests.html` runs the patched file and 5.2.1 as published side by side through every
 series type, every price scale mode (inverted too), pans, jumps, zooms, the crosshair, restyles, live updates, new data,
 resizes, margins, moves between scales, a held price range and conflation, and compares their plots pixel for pixel, the
 axes left out (713 steps).
@@ -768,3 +769,33 @@ it was: the walk stops at the join's last point, the end drawn after it.
 
 - `fe`, the join (36): its points drawn, then, the list's end this frame's (`bvO[m]===bvT-1`), the end the pending point
   (`bvPx`/`bvPy`, `bvPi`, `v`) and the walk done (`h=bvT-1`).
+
+## 43. A line's x's written as its walk reads them
+
+Each frame a view moved (a pan, a zoom), every line's every point in view had its x written again (`Ic`): HODL waves at
+Max on the iPhone, 155,000 a frame, a quarter of it; a simplified line's walk (29) reads only the points it visits
+(with 36, its first ones and those newly in view), and nothing else reads them while the pointer's away. A line's, an
+area's, a baseline's x's are now kept as a mapping (the time scale's base, width and spacing, and the range asked for)
+and written as they're read: by its walk, each point it visits (the formula `Ic`'s); by anything else, all of them
+first (the hit tests, a line's dots, a walk not simplified).
+
+- `bvLater(t,i,s)`: the mapping and range kept on the points (`t.bvXm`), a range grown where the mapping's the same.
+  `bvXsure(t)`: every point of its range written (`Ic`'s formula), and one either side (a curve's control points
+  read its neighbors, `we`: the library's own `Ic` left them as they were, a frame or more behind), the mapping let go.
+- `ye.bvX(t,i)` (the series' x's: `Ic`, as before; a histogram's bars read every x) and `Pe.bvX` (`bvLater`), called
+  where `OM` called `Ic` through `bvRun` (4).
+- `fe`: a simplified line (patch 29's `bvZ` conditions) writes each point's x as it reads it: its first (`u`) and last,
+  each visited, each joined (36), a block's span (39) by its points' bar indices; a replay reads them as written by the
+  first drawing of its paint. Any other line, all of them first.
+- `Rs` and the line's hit test, and the line's dots (`Me.et`): all of them first.
+
+Measured on the iPhone (Lockdown Mode), HODL waves, 2 s, each against the library before it: panned at Max, median
+37-39 → 31-33 ms a frame, lost 1.16-1.19 → 1.01-1.03 s; at 4Y, lost 0.17-0.19 → 0.13-0.16 s; zoomed, as before (lost
+0.78-0.84 s both). Chromium, a pan step 1.0-1.2 → 0.9-1.1 ms, a zoom step as before; Mullvad, a pan step 22.2-23.6 →
+20.3-20.6 ms, a zoom step 22.5-24.2 → 20.8-22.1 ms. `tests.html`: pictures 710 of 713 the same (the three: a curved line's ends at the view's edges, its neighbors where
+they are now, the published library's a frame behind; 6 to 27 values); 7, 8 and 10 as before;
+a simplified line's x's read later (11), its dots over an area panned against the published library and the pointer on
+them, then a line straight and curved panned and the pointer alone on it (mid-view; a curve's at the view's end), 11
+checks, 0 failing (without bringing them up to date first, the dots' 9 failing; the pointer's alone pass either way:
+those x's are there to read on these lines, a case where a pan's walk skips some of those near the pointer is Codex's,
+reproduced outside the page). Codex's review: a curve's neighbors, outside the range (fixed).
