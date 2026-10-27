@@ -962,6 +962,29 @@
           min-height: 46px;
         }
 
+        /* (None found: a way on, not a dead end.) */
+        .none {
+          margin: 0;
+          padding: 0 10px;
+          color: var(--soft);
+          font-size: 13px;
+
+          button {
+            border: 0;
+            padding: 0;
+            background: none;
+            color: var(--ink);
+            font: inherit;
+            text-decoration: underline;
+            text-decoration-color: var(--line);
+            text-underline-offset: 3px;
+
+            &:hover {
+              text-decoration-color: currentColor;
+            }
+          }
+        }
+
         .where {
           grid-column: 1 / -1;
           overflow: hidden;
@@ -1907,7 +1930,7 @@
         searching?.abort();
         searching = new AbortController();
         const signal = searching.signal;
-        if (!main.querySelector(".results")) main.innerHTML = `<section class="results" aria-label="Search results"><h2 id="found">Searching…</h2><ul role="listbox" id="found-list" aria-labelledby="found"></ul></section>`;
+        if (!main.querySelector(".results")) main.innerHTML = `<section class="results" aria-label="Search results"><h2 id="found">Searching…</h2><ul role="listbox" id="found-list" aria-labelledby="found"></ul><p class="none" id="found-none" hidden>Try other words, or <button type="button" data-path="[]">browse every series</button>.</p></section>`;
         try {
           const found = /** @type {string[]} */ (await json(`/api/series/search?${new URLSearchParams({ q: query, limit: "60" })}`, signal)), names = found.filter((name) => byName.has(name));
           if (signal.aborted) return;
@@ -1921,6 +1944,7 @@
               <span class="where">${escape(trail(node.path).slice(0, -1).map((n) => n.label).join(" › "))}</span>
             </button></li>`;
           }).join("");
+          $("found-none").hidden = names.length > 0;
           document.title = `“${query}” · Series · Bitview`;
           sayPicked();
         } catch (error) {
