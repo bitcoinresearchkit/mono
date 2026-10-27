@@ -14620,7 +14620,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A stack of many's gutter's room on a plot: a wide one's (GUTTER_FROM), names and figures; a narrower one's (a
        * phone's), names alone, as wide as its longest needs, at most half the plot (a name longer, cut).
        */
-      const gutterRoom = (/** @type {number} */ width) => (width >= GUTTER_FROM ? GUTTER : Math.min(GUTTER, Math.floor(width / 2), GUTTER_CHROME + widest(chart?.panes.filter(keyedPane).flatMap((pane) => bandsOf(pane).map(labelOf)) ?? [], 510, 11, false)));
+      const gutterRoom = (/** @type {number} */ width) => (width >= GUTTER_FROM ? GUTTER : Math.min(GUTTER, Math.floor(width / 2), GUTTER_CHROME + namesWidth()));
+      /**
+       * The longest of the open chart's gutter names, measured once a chart as it is (asked at every step of a pan: see
+       * showsPreset), and again once the fonts are in.
+       */
+      let namesMeasured = { key: "", width: 0 };
+      function namesWidth() {
+        const key = `${chart?.id}:${revision}:${document.fonts.status}`;
+        if (key !== namesMeasured.key) namesMeasured = { key, width: widest(chart?.panes.filter(keyedPane).flatMap((pane) => bandsOf(pane).map(labelOf)) ?? [], 510, 11, false) };
+        return namesMeasured.width;
+      }
       /**
        * Labels each wanting to be at a height (`wants`, ascending), `step` apart at least, between `top` and `bottom`: each
        * as near its own as the others leave it, in their order. Neighbors too close move together, as one, to the mean of
