@@ -1008,11 +1008,15 @@
           dismissed = "";
         }
         frame();
-        if (!again || loaded !== key) placeholder();
+        // (A new view read in the last minute is drawn from what's kept, at once, without a placeholder first; else its
+        // placeholder while it's read (a refresh: only when something else is shown). One decision, for both.)
+        const known = again || !fresh(key) ? undefined : kept.get(key);
+        if (again ? loaded !== key : !known) placeholder();
         try {
-          const [{ blocks, at: asked }] = await Promise.all([fetchBlocks(key, signal, again), poolNames()]);
+          const [{ blocks, at: asked }] = await Promise.all([known ?? fetchBlocks(key, signal), poolNames()]);
           if (signal.aborted) return;
-          const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest("[data-date], [data-leader], [data-note], [data-height]") ?? null);
+          // (A refresh keeps the focus where it was, on what it was drawn again as; a new view takes none from the last.)
+          const focused = again ? /** @type {HTMLElement | null} */ (document.activeElement?.closest("[data-date], [data-leader], [data-note], [data-height]") ?? null) : null;
           if (at.view === "year") drawYear(blocks);
           else drawDay(blocks);
           loaded = key;
@@ -1038,9 +1042,9 @@
           if (!signal.aborted) $("view").setAttribute("aria-busy", "false");
         }
       }
-      async function fetchBlocks(/** @type {string} */ key, /** @type {AbortSignal} */ signal, /** @type {boolean} */ again) {
-        const known = kept.get(key);
-        if (known && !again && Date.now() - known.at < 60_000) return known;
+      /** A year's or day's blocks read in the last minute, kept. */
+      const fresh = (/** @type {string} */ key) => Date.now() - (kept.get(key)?.at ?? -Infinity) < 60_000;
+      async function fetchBlocks(/** @type {string} */ key, /** @type {AbortSignal} */ signal) {
         const asked = Date.now(), blocks = at.view === "year" ? await blocksOf(`${key}-01-01`, `${Number(key) + 1}-01-01`, signal) : await ordinals(await blocksOf(key, shift(key, 1), signal, true), signal);
         const read = { at: asked, blocks };
         kept.set(key, read);
