@@ -13103,7 +13103,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (see track), not under the pointer at every step.
         if (holding) {
           heldEdits = true;
-          return redrawChart(redraw);
+          return redrawChart(redraw, false, true);
         }
         refresh(redraw);
       }
@@ -15187,6 +15187,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let drawnLive = true;
       /** Who waits for the chart to be drawn (see settle): woken as it is. @type {Set<() => void>} */
       const drawnWaiters = new Set();
+      /** A build asked for (see buildSoon): its frame's request (-1: run at once, a hidden tab's), and whether it fits the view anew. */
+      let buildAsked = 0, buildRefit = false;
       /** The chart as it was last drawn (a ⌘K preview's, while one shows): the live price paints its colors from it. @type {Chart | null} */
       let drawnDoc = null;
       /** What the data on screen was resolved for (its `dataKey`), and what the latest draw resolves. */
@@ -15202,8 +15204,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         renderRanges();
       };
 
-      /** Whether what's drawn is this chart with all its data. */
-      const settled = () => Boolean(resolved) && drawnChart === chart.id && drawnVersion === drawVersion;
+      /** Whether what's drawn is this chart with all its data (a build asked for, not yet: not yet, see buildSoon). */
+      const settled = () => Boolean(resolved) && drawnChart === chart.id && drawnVersion === drawVersion && !buildAsked;
       /** What a chart's data depends on: its interval and what each layer reads (in any order). */
       const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.layers.map(({ id, letter, series, formula, type, from, ref }) => [id, letter, series, formula, from ? type : null, from ?? null, ref ?? null]).sort()]);
 
@@ -15212,6 +15214,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @returns {Promise<boolean>} whether it drew (a newer draw can take its place)
        */
       async function draw(refit = false, fresh = false) {
+        // (A build asked for is this draw's, which builds as its data's in: see buildSoon.)
+        if (buildAsked) {
+          if (buildAsked > 0) cancelAnimationFrame(buildAsked);
+          (buildAsked = 0), (refit ||= buildRefit), (buildRefit = false);
+        }
         const version = ++drawVersion;
         // Drawn on the way out of the grid: the chart grows out of its card instead of wiping in.
         const fromHome = document.body.hasAttribute("data-home");
@@ -15417,6 +15424,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       }
       function build(doc, data, refit) {
+        // (One asked for, a frame on, is this one: see buildSoon.)
+        if (buildAsked) {
+          if (buildAsked > 0) cancelAnimationFrame(buildAsked);
+          (buildAsked = 0), (refit ||= buildRefit), (buildRefit = false);
+          // (Who waited for it, woken once this one's done: see settle.)
+          queueMicrotask(() => { for (const wake of [...drawnWaiters]) wake(); });
+        }
         // (A scale gliding follows the plot again: the scales are set anew.)
         endScaleGlide();
         // (What the live price paints its colors from: this, whatever builds it, a restyle and a preview too.)
@@ -23250,6 +23264,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           hexCache.clear();
           view.applyOptions(chartColors());
           refresh();
+          // (Its chart recolored inside the crossfade, not a frame after it: see buildSoon.)
+          buildNow();
           if (home) renderHome();
           if (presets && !$("empty").hidden) renderRecommended();
           // (Every chart's plot on screen in its tones: the tiles, the cards of charts to start from, ⌘K's preview, Quick
@@ -33223,15 +33239,41 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         renderBelt();
         redrawChart(redraw, refit);
       }
-      /** The chart drawn again as it is now: its legends and drawings only (`none`), restyled on its data, or resolved anew. */
-      function redrawChart(/** @type {Redraw} */ redraw, refit = false) {
+      /** The chart drawn again as it is now: its legends and drawings only (`none`), restyled on its data (`now`, a drag's: at once; else see buildSoon), or resolved anew. */
+      function redrawChart(/** @type {Redraw} */ redraw, refit = false, now = false) {
         if (redraw === "none") {
           updateLegends();
           // (Under the Charts page, its drawings as they were, nothing painted unseen: painted as it's left, see leaveHome.)
           if (!home) showDrawings(chart);
-        } else if (resolved && drawnChart === chart.id && drawnData === dataKey(chart) && drawingData === drawnData) build(withLook(structuredClone(chart)), resolved, refit);
+        } else if (builds()) now ? build(withLook(structuredClone(chart)), /** @type {Resolved} */ (resolved), refit) : buildSoon(refit);
         else draw(refit);
       }
+      /** Whether the open chart can be drawn again from the data at hand (its data the same, none other on its way). */
+      const builds = () => Boolean(resolved) && drawnChart === chart.id && drawnData === dataKey(chart) && drawingData === drawnData;
+      /**
+       * The open chart drawn again from the data at hand once what was pressed has shown: the row, the eye, the swatch answer
+       * on the next frame, the chart on the one after (a stack of many built again is a third of a second on a phone);
+       * however many edits ask by then, one build. A tab drawing no frames (hidden), at once. Any build meanwhile is it.
+       */
+      function buildSoon(/** @type {boolean} */ refit) {
+        buildRefit ||= refit;
+        if (buildAsked) return void (document.hidden && buildNow());
+        if (document.hidden) return void ((buildAsked = -1), buildNow());
+        buildAsked = requestAnimationFrame(() => (buildAsked = requestAnimationFrame(buildNow)));
+      }
+      /** The build asked for (see buildSoon), now: from the data at hand if it's still the chart's, else drawn anew (its id changed meanwhile, say). */
+      function buildNow() {
+        if (!buildAsked) return;
+        if (buildAsked > 0) cancelAnimationFrame(buildAsked);
+        buildAsked = 0;
+        const fit = buildRefit;
+        buildRefit = false;
+        if (builds()) build(withLook(structuredClone(chart)), /** @type {Resolved} */ (resolved), fit);
+        else draw(fit);
+        for (const wake of [...drawnWaiters]) wake();
+      }
+      // (A tab put away draws no frames: what was asked, built as it goes.)
+      document.addEventListener("visibilitychange", () => document.hidden && buildNow());
 
       /**
        * A row's menu on the rail (there, it's its icon: no ⋯, no name), its name over it: a chart's, a preset's, as its ⋯
