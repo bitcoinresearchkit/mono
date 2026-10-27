@@ -33894,10 +33894,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         answeredAt = Date.now();
         retryPlots();
+        // (A layer that couldn't load (bitview.space away a while): asked for again as it answers, not at the next block,
+        // ten minutes on; drawn once, a new block's draw if one came. Not while it's still being drawn (a slow answer
+        // never overtaken), nor under a menu (its button kept). Under the Charts page, once it's back: see leaveHome.)
+        const retry = Boolean(chart && !home && settled() && resolved?.failed.length && $("menu").hidden) && retryFailed(/** @type {Resolved} */ (resolved), chart.index);
         // (Each answer: back from offline, and how long ago the last block came, said anew.)
         updateStatus();
         const height = health.computedHeight;
-        if (!Number.isInteger(height) || height === liveHeight) return;
+        if (!Number.isInteger(height) || height === liveHeight) return void (retry && draw());
         const first = !liveHeight;
         liveHeight = height;
         liveAt = Number.isFinite(health.lastIndexedAtUnix) ? health.lastIndexedAtUnix : 0;
@@ -33907,7 +33911,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderLayers();
           repaintDrawings();
         }
-        if (first) return;
+        if (first) return void (retry && draw());
         const live = $("live");
         live.classList.remove("block");
         void live.offsetWidth;
