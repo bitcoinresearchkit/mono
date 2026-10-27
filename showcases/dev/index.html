@@ -235,14 +235,36 @@
         border-top: 1px solid var(--ink);
         border-bottom: 1px solid var(--rule);
 
+        /* (Three over two where five abreast would break a number; five from 1024px.) */
         @media (min-width: 760px) {
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+
+        @media (min-width: 1024px) {
           grid-template-columns: repeat(5, minmax(0, 1fr));
         }
 
         > div {
           padding: 16px 16px 18px 0;
 
-          @media (min-width: 760px) {
+          @media (min-width: 760px) and (max-width: 1023px) {
+            grid-column: span 2;
+
+            &:nth-child(n + 4) {
+              grid-column: span 3;
+            }
+
+            &:nth-child(-n + 3) {
+              border-bottom: 1px solid var(--hair);
+            }
+
+            &:not(:first-child, :nth-child(4)) {
+              border-left: 1px solid var(--hair);
+              padding-left: 18px;
+            }
+          }
+
+          @media (min-width: 1024px) {
             & + div {
               border-left: 1px solid var(--hair);
               padding-left: 18px;
@@ -280,9 +302,11 @@
           line-height: 1;
           letter-spacing: -0.035em;
           font-variant-numeric: tabular-nums;
+          white-space: nowrap;
 
           small {
             display: block;
+            white-space: normal;
             margin-top: 8px;
             color: var(--soft);
             font-size: 13px;
