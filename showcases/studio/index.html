@@ -164,6 +164,26 @@
         scrollbar-color: var(--faint) transparent;
       }
 
+      /* More contrast asked for (iOS's and macOS's Increase Contrast): the greys a step stronger, the hairlines, fields and
+         grid read, focus in ink; the chart's text and grid follow (chartColors reads these). The same tokens, nothing
+         else changed. */
+      @media (prefers-contrast: more) {
+        :root {
+          --text: light-dark(#16181c, #eef1f5);
+          --soft: light-dark(#3a3f47, #b4b9c2);
+          --muted: light-dark(#3a3f47, #b4b9c2);
+          --faint: light-dark(#8a8f98, #6b7079);
+          --line: light-dark(rgb(0 0 0 / 0.22), rgb(255 255 255 / 0.22));
+          --line-strong: light-dark(rgb(0 0 0 / 0.32), rgb(255 255 255 / 0.3));
+          /* (Its three steps raised together: a field, then pressed, then active, each still a step apart.) */
+          --field: light-dark(rgb(0 0 0 / 0.07), rgb(255 255 255 / 0.08));
+          --press: light-dark(rgb(0 0 0 / 0.12), rgb(255 255 255 / 0.13));
+          --active: light-dark(rgb(0 0 0 / 0.17), rgb(255 255 255 / 0.19));
+          --chart-grid: light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.09));
+          --focus: var(--ink);
+        }
+      }
+
       /* The theme chosen: light, or the device's (dark is the default above). */
       :root[data-theme="light"] {
         color-scheme: light;
@@ -10118,7 +10138,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let tokensFor = "";
       // (Read on lists of their own, which no one listens to: a list's matches read takes a change for itself
       // (Chromium), its listeners never hearing of it.)
-      const tokensMedia = [matchMedia("(prefers-color-scheme: light)"), matchMedia(PHONE)];
+      const tokensMedia = [matchMedia("(prefers-color-scheme: light)"), matchMedia(PHONE), matchMedia("(prefers-contrast: more)")];
       // (The theme's own colors for the chart, not a high-contrast mode's: the page around it takes those.)
       probe.style.forcedColorAdjust = "none";
       /** Tokens read in one go: those named, else every one the page's root lists. @param {Iterable<string>} [names] */
@@ -23371,8 +23391,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The page in the theme now chosen (the device's, with System), if it changed: drawn again, crossfaded (the chart
        * paints in the frame the crossfade ends on: nothing's waited for, the page is still while it's taken).
        */
-      function applyTheme() {
-        if (lightChosen() === light) return void (document.documentElement.dataset.theme = prefs.theme);
+      function applyTheme(/** @type {boolean} */ anyway = false) {
+        if (!anyway && lightChosen() === light) return void (document.documentElement.dataset.theme = prefs.theme);
         const swap = () => {
           // (As chosen when it runs: two changes queued are one. Where colors were picked, on the other surface.)
           light = lightChosen();
@@ -23396,7 +23416,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (document.startViewTransition && !reduced.matches) document.startViewTransition(swap);
         else swap();
       }
-      deviceLight.addEventListener("change", applyTheme);
+      deviceLight.addEventListener("change", () => applyTheme());
+      // (More contrast asked for, or no longer: the same theme's tones changed, everything drawn in them drawn again.)
+      matchMedia("(prefers-contrast: more)").addEventListener("change", () => applyTheme(true));
       // Another tab's choices, taken here too as they're shown (the theme, the sidebar, the panel, the belt, the pen).
       addEventListener("storage", ({ key, newValue }) => {
         if (key !== PREFS) return;
@@ -24451,6 +24473,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return [{ preset, doc }];
         });
         recommendedDrawn = recommendedKey();
+        // (The focus in them, back on its like once they're written anew: a theme's change, more contrast asked for.)
+        const focus = focusKey($("templates"));
         // (Each a preset's tile, as the gallery's; not read, said, with a way to try again, as the presets' page says it.)
         $("templates").innerHTML = list ? recommendedCards.map(({ preset, doc }, i) => presetTileHtml(preset, doc, i)).join("")
           : presetsFailed ? `<p class="gallery-note">The presets couldn't be read. <button type="button" class="btn ghost small" data-gallery-retry>Try again</button></p>`
@@ -24458,6 +24482,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Those drawn before, gone now, let go of first.)
         cardsSeen.disconnect();
         for (const card of all$("[data-template]")) cardsSeen.observe(card);
+        restoreFocus($("templates"), focus);
         fitStrip($("templates"));
       }
       /** The recommended cards as last drawn: by the theme and the presets edited among them (one edited since, drawn anew, see renderCharts). */
