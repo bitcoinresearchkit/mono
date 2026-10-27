@@ -1168,7 +1168,7 @@
       function empty() {
         const any = [...$("feed").children].some((li) => !li.hidden);
         $("empty").hidden = any;
-        $("empty").textContent = lines.length ? "No line matches." : "Waiting for the first line…";
+        $("empty").textContent = lines.length ? "No line matches." : online === false ? "This server couldn't be reached. Trying again…" : "Waiting for the first line…";
       }
 
       $("search").addEventListener("input", () => {
@@ -1399,6 +1399,8 @@
         if ($("state").dataset.state !== state) $("said").textContent = { live: "Live", paused: "Paused", offline: "Offline: can't reach the server", connecting: "Connecting" }[state];
         $("state").dataset.state = state;
         $("state").textContent = label;
+        // (Nothing read yet: the empty list says whether it's waiting or can't reach the server.)
+        if (!lines.length) empty();
         $("state").setAttribute("aria-label", `${label}; press to ${view.paused ? "resume" : "pause"}`);
       }
       $("state").addEventListener("click", () => {
