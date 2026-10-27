@@ -340,6 +340,13 @@
         font-size: 12px;
       }
 
+      /* (A phone's month no wider than tiles of 42px and their gaps: past that they'd only grow heavier.) */
+      .month {
+        @media (max-width: 639px) {
+          max-width: calc(7 * 42px + 6 * 8px);
+        }
+      }
+
       .month h2 {
         margin: 0 0 6px;
         border-bottom: 1px solid var(--line);
@@ -354,10 +361,15 @@
         grid-template-columns: repeat(7, minmax(0, 1fr));
         gap: 2px;
 
-        /* (Gaps as the tiles grow, a phone's.) */
+        /* (A phone's: room between its tiles, so a month reads as days, not a slab.) */
         @media (max-width: 639px) {
-          gap: 4px;
+          gap: 8px;
         }
+      }
+
+      /* (Its width read by its tiles: whether they've room to say their date.) */
+      .days {
+        container: days / inline-size;
       }
 
       .week {
@@ -418,46 +430,47 @@
           }
         }
 
-        /* (Tiles large enough to say their date, a phone's: in the corner, the logo a size down, under it.) */
+        /* (A phone's tiles: the logo centered, a size down; and where there's room (36px and more), the date small in
+           the corner. Smaller, as at 320px or two months a row, the logo alone.) */
         @media (max-width: 639px) {
-          &[data-pool] {
-            align-items: end;
-            padding-bottom: 12%;
-
-            &::before {
-              content: attr(data-n);
-              position: absolute;
-              top: 5%;
-              left: 8%;
-              color: var(--soft);
-              font-size: 9.5px;
-              line-height: 1;
-              font-variant-numeric: tabular-nums;
-            }
-
-            .logo {
-              width: 46%;
-              height: 46%;
-            }
+          /* (A phone's logo in proportion with its type, whatever its tile's size.) */
+          .logo {
+            width: 40%;
+            height: 40%;
           }
 
           &.tied .logo {
-            width: 34%;
-            height: 34%;
+            width: 30%;
+            height: 30%;
           }
 
-          &.today[data-pool]::before {
-            color: var(--answer);
-          }
+          @container days (min-width: 300px) {
+            &[data-pool] {
+              &::before {
+                content: attr(data-n);
+                position: absolute;
+                top: 3px;
+                left: 4px;
+                color: var(--soft);
+                font-size: 9px;
+                line-height: 1;
+                font-variant-numeric: tabular-nums;
+              }
+            }
 
-          /* (A day no pool led, still to come, or before the chain: its date alone, in the same corner.) */
-          &:not([data-pool]) {
-            place-items: start;
-            padding: 5% 8%;
-            font-size: 9.5px;
-            line-height: 1;
-            font-variant-numeric: tabular-nums;
+            &.today[data-pool]::before {
+              color: var(--answer);
+            }
+
+            /* (A day no pool led, still to come, or before the chain: its date alone, in the same corner.) */
+            &:not([data-pool]) {
+              place-items: start;
+              padding: 3px 4px;
+              font-size: 9px;
+              line-height: 1;
+              font-variant-numeric: tabular-nums;
           }
+        }
         }
 
         /* (A day with a note: a dot in the corner.) */
