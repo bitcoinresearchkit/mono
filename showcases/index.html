@@ -4,14 +4,14 @@
     <meta charset="utf-8" />
     <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f1ec" />
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d0c0b" />
+    <!-- (The band at the top is dark in either scheme: the bar above it too.) -->
+    <meta name="theme-color" content="#0d0c0b" />
     <title>Bitview</title>
-    <meta name="description" content="Bitview on this server: its apps (Studio, Series, DCA, Globe, Calendar, The Satoshi Trail, the API), fees and the mempool right now, and every way to use it." />
+    <meta name="description" content="Bitview on this server: its apps (Studio, Series, Oracle, DCA, Globe, Calendar, The Satoshi Trail, Logs), the API, the Bitcoin Research Kit, running your own, and the chain's height, price and fee right now." />
     <meta property="og:title" content="Bitview" />
-    <meta property="og:description" content="Bitview's apps, fees and the mempool right now, and every way to use it." />
+    <meta property="og:description" content="Bitview's apps, its API and tools, and the chain right now." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://bitview.space/" />
     <meta property="og:image" content="https://bitview.space/assets/favicon/web-app-manifest-512x512.png" />
@@ -32,36 +32,40 @@
         font-display: swap;
       }
 
-      /* Bitview's own mark, a cube, made the page's: a small one in the logo's orange heading each section, on warm paper
-         by day, warm black by night; one sans for words, a monospace for numbers and addresses. */
+      /* Bitview's home screen, as a television's: the title in view across the top, its picture out of the page; two
+         rows of covers under it, most opened first, each its picture and its name; the chain's state in the corner.
+         (The pictures, /assets/home/: each app's own screen cut close at twice its size, dark, with no number that
+         would go stale; the developers' set in type. A cover 960x600, a banner about 1900 wide.) */
       :root {
         color-scheme: light dark;
         --app: light-dark(#f3f1ec, #0d0c0b);
         --card: light-dark(#fbfaf7, #161411);
-        --well: light-dark(#f3f1ec, #0d0c0b);
+        --well: light-dark(#e9e6df, #151311);
         --ink: light-dark(#16130f, #f6f3ee);
         --text: light-dark(#3a342d, #d6cfc4);
         --soft: light-dark(#625a50, #a1988a);
         --muted: light-dark(#6f665b, #8a8175);
         --line: light-dark(rgb(22 19 15 / 0.09), rgb(246 243 238 / 0.08));
         --line-strong: light-dark(rgb(22 19 15 / 0.16), rgb(246 243 238 / 0.14));
-        --focus: light-dark(rgb(22 19 15 / 0.5), rgb(246 243 238 / 0.55));
+        --glass: light-dark(rgb(251 250 247 / 0.72), rgb(22 20 17 / 0.62));
+        --focus: light-dark(rgb(22 19 15 / 0.6), rgb(246 243 238 / 0.8));
         --live: light-dark(#0c7642, #3ccf7c);
-        /* The logo's orange, and its cube's three faces. */
         --brand: oklch(64.34% 0.191 44.41);
         --brand-text: light-dark(oklch(52% 0.16 44.41), var(--brand));
-        --cube-top: oklch(80% 0.13 62);
-        --cube-left: oklch(65% 0.19 46);
-        --cube-right: oklch(54% 0.17 40);
-        --sheen: inset 0 1px 0 light-dark(rgb(255 255 255 / 0.8), rgb(255 255 255 / 0.03));
         --sans: Inter, -apple-system, system-ui, "Segoe UI", Roboto, sans-serif;
         --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
-        --radius: 14px;
+        --gutter: 16px;
+        --lift: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+        @media (min-width: 720px) {
+          --gutter: 40px;
+        }
+
+        @media (min-width: 1280px) {
+          --gutter: 56px;
+        }
       }
 
-      /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
-         apart, the hairlines about twice as strong; the page's hues kept, nothing else changed. (Mixed in OKLab and
-         written out here, so every reader, the canvases' among them, gets plain colours.) */
       @media (prefers-contrast: more) {
         :root {
           --text: light-dark(#27231d, #e6e1d9);
@@ -80,7 +84,7 @@
         margin: 0;
         color: var(--text);
         background: var(--app);
-        font: 15px/1.55 var(--sans);
+        font: 15px/1.5 var(--sans);
         font-feature-settings: "cv11", "ss01";
         -webkit-font-smoothing: antialiased;
       }
@@ -90,28 +94,16 @@
         text-decoration: none;
       }
 
+      button {
+        font: inherit;
+        color: inherit;
+      }
+
       :focus-visible {
         outline: 2px solid var(--focus);
-        outline-offset: 2px;
+        outline-offset: 3px;
       }
 
-      .num,
-      code {
-        font-family: var(--mono);
-        font-variant-numeric: tabular-nums;
-      }
-
-      .page {
-        max-width: 1120px;
-        margin: 0 auto;
-        padding: 0 16px;
-
-        @media (min-width: 720px) {
-          padding: 0 32px;
-        }
-      }
-
-      /* Said to a screen reader only. */
       .vh {
         position: absolute;
         width: 1px;
@@ -121,21 +113,43 @@
         white-space: nowrap;
       }
 
-      /* ── The bar: the brand, and this server's state ── */
+      .num {
+        font-family: var(--mono);
+        font-variant-numeric: tabular-nums;
+      }
+
+      /* ── The corner: the brand; the chain's state, the price and the next block's fee ── */
+
+      /* (The band at the top, and each cover: dark in either scheme, as a television's are; their tokens resolve dark.) */
+      .top,
+      .banner,
+      .tile,
+      .info {
+        color-scheme: dark;
+      }
 
       .top {
+        position: absolute;
+        inset: 0 0 auto;
+        z-index: 3;
         display: flex;
         align-items: center;
-        height: 64px;
+        justify-content: space-between;
+        gap: 12px;
+        max-width: 1600px;
+        height: calc(64px + env(safe-area-inset-top));
+        margin: 0 auto;
+        padding: env(safe-area-inset-top) var(--gutter) 0;
       }
 
       .brand {
+        position: relative;
         display: flex;
         align-items: center;
         gap: 10px;
         color: var(--ink);
         font-size: 16px;
-        font-weight: 600;
+        font-weight: 650;
         letter-spacing: -0.01em;
 
         img {
@@ -143,27 +157,52 @@
           height: 25.5px;
         }
 
-        .top & {
-          margin-right: auto;
+        /* (A finger's reach: 44px tall, into the bar's room.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: -9px 0;
+          }
         }
       }
 
-      .tip {
-        display: inline-flex;
+      .status:not([hidden]) {
+        display: flex;
         align-items: center;
-        gap: 8px;
-        height: 28px;
-        border-radius: 14px;
-        padding: 0 12px;
+        height: 30px;
+        border-radius: 15px;
+        padding: 0 4px;
         color: var(--soft);
-        box-shadow: inset 0 0 0 1px var(--line-strong);
-        font-size: 13px;
+        background: var(--glass);
+        box-shadow: inset 0 0 0 1px var(--line);
+        font-size: 12.5px;
+        backdrop-filter: blur(16px) saturate(1.4);
+        -webkit-backdrop-filter: blur(16px) saturate(1.4);
 
-        &[hidden] {
-          display: none;
+        > span {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          padding: 0 9px;
+
+          & + span {
+            box-shadow: -1px 0 0 var(--line);
+          }
+
+          /* (The price and the fee, once read: never an empty place.) */
+          &[hidden] {
+            display: none;
+          }
         }
 
-        &::before {
+        b {
+          color: var(--ink);
+          font-weight: 500;
+        }
+
+        /* (Synced: the live green; syncing or unread: the brand's orange.) */
+        .tip::before {
           content: "";
           width: 6px;
           height: 6px;
@@ -172,428 +211,480 @@
           box-shadow: 0 0 0 3px color-mix(in oklab, var(--live), transparent 80%);
         }
 
-        b {
-          color: var(--ink);
-          font-weight: 500;
-        }
-
-        /* (Not at the tip, or its state unread: the brand's orange, not the live green.) */
-        &.behind::before {
+        .tip.behind::before {
           background: var(--brand);
           box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand), transparent 80%);
         }
-      }
 
-      /* A short orientation: what's here, in fact, not a pitch. */
-      .intro {
-        max-width: 60ch;
-        margin: 12px 0 0;
-        color: var(--soft);
-        font-size: 15px;
-
-        b {
-          color: var(--ink);
-          font-weight: 500;
-        }
-      }
-
-      /* ── Sections, each headed by a small cube ── */
-
-      section {
-        padding-top: 48px;
-      }
-
-      h2 {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 4px 10px;
-        margin: 0 0 16px;
-        color: var(--ink);
-        font-size: 18px;
-        font-weight: 600;
-        letter-spacing: -0.015em;
-
-        svg {
-          width: 13px;
-          height: 15px;
-        }
-      }
-
-      .mark .top-face {
-        fill: var(--cube-top);
-      }
-
-      .mark .left-face {
-        fill: var(--cube-left);
-      }
-
-      .mark .right-face {
-        fill: var(--cube-right);
-      }
-
-      .surface {
-        border-radius: var(--radius);
-        background: var(--card);
-        box-shadow: var(--sheen), 0 0 0 1px var(--line);
-      }
-
-      /* ── Apps: nine tiles, Studio, the Oracle and the API across two: three rows of four on a desk, rows of two on a
-         tablet (none alone); a row each on a phone, its picture small beside its words ── */
-
-      .apps {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 12px;
-
-        @media (min-width: 640px) {
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-
-          .wide {
-            grid-column: span 2;
+        /* (A phone: the chain's height and the price; the fee from 520px.) */
+        @media (max-width: 519px) {
+          .fee {
+            display: none;
           }
         }
 
-        @media (min-width: 960px) {
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+        [data-failed] b {
+          opacity: 0.5;
         }
       }
 
-      .card {
+      /* ── The banner: the title in view, its picture full bleed, out of the page at its top and foot, and on a desk at
+         its left, where its name is; on a desk, the first row rises over its foot ── */
+
+      .banner {
         position: relative;
         display: flex;
         flex-direction: column;
+        justify-content: flex-end;
+        padding: calc(56.25vw + 8px) 0 32px;
+        background: var(--app);
+
+        @media (min-width: 720px) {
+          /* (Held upright, a tablet's banner as tall as its width needs, not its height.) */
+          height: clamp(480px, min(72svh, 70vw), 780px);
+          padding: 0 0 64px;
+        }
+      }
+
+      .art {
+        position: absolute;
+        inset: 0 0 auto;
+        height: calc(56.25vw + 72px);
         overflow: hidden;
-        border-radius: var(--radius);
-        background: var(--card);
-        box-shadow: var(--sheen), 0 0 0 1px var(--line);
-        transition: box-shadow 0.15s, translate 0.15s;
+        mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.35), #000 22%, #000 62%, transparent);
 
-        /* Pointed at or focused (its link's ring, the card's): lifted a little. */
-        &:has(.stretch:hover) {
-          box-shadow: var(--sheen), 0 0 0 1px var(--line-strong), 0 10px 24px -14px rgb(0 0 0 / 0.3);
-          translate: 0 -1px;
+        @media (min-width: 720px) {
+          height: 100%;
+          mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.3) 0, #000 16%, #000 58%, transparent 92%),
+            linear-gradient(to right, transparent 0, rgb(0 0 0 / 0.1) 28%, rgb(0 0 0 / 0.65) 46%, #000 66%);
+          mask-composite: intersect;
         }
 
-        &:has(.stretch:focus-visible) {
-          box-shadow: var(--sheen), 0 0 0 2px var(--focus);
+        /* (Two layers: the picture in view, and the next fading in over it.) */
+        img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: 72% 40%;
+          transition: opacity 0.6s ease;
+
+          /* (On a desk, the picture in view drifts, slowly, as a television's: a little larger, a little left, and back,
+             over a minute.) */
+          @media (min-width: 720px) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+            animation: drift 60s ease-in-out infinite alternate;
+          }
+
+          &.out {
+            opacity: 0;
+          }
+        }
+      }
+
+      @keyframes drift {
+        to {
+          transform: scale(1.07) translateX(-2%);
+        }
+      }
+
+      .title {
+        position: relative;
+        width: 100%;
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 0 var(--gutter);
+
+        > div {
+          max-width: 560px;
         }
 
-        > .body {
-          display: flex;
-          flex: 1;
-          flex-direction: column;
-          padding: 16px 18px 18px;
-        }
-
-        h3 {
-          display: flex;
-          align-items: center;
-          gap: 10px;
+        .name {
           margin: 0;
           color: var(--ink);
-          font-size: 16px;
-          font-weight: 600;
+          font-size: clamp(32px, 3.5vw, 52px);
+          font-weight: 750;
+          line-height: 1.02;
+          letter-spacing: -0.035em;
         }
 
-        p {
-          margin: 6px 0 0;
+        .line {
+          margin: 10px 0 0;
+          color: var(--text);
+          font-size: clamp(16px, 1.3vw, 19px);
+          line-height: 1.4;
+        }
+
+        /* (Live, from this server: its dot, then the fact; the line held, empty, for a title with none.) */
+        /* (Its room held before it's read: a line, two on a phone, where the longest wraps.) */
+        .fact {
+          min-height: 1.5em;
+
+          @media (max-width: 519px) {
+            min-height: 3em;
+          }
+
+          margin: 8px 0 0;
           color: var(--soft);
-          font-size: 14px;
-          text-wrap: pretty;
+          font-size: 13.5px;
+
+          span::before {
+            content: "";
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            margin-right: 9px;
+            border-radius: 50%;
+            background: var(--live);
+            box-shadow: 0 0 0 3px color-mix(in oklab, var(--live), transparent 80%);
+            vertical-align: 1px;
+          }
+
+          b {
+            color: var(--ink);
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+          }
+        }
+      }
+
+      /* Open, About: a white pill that says what it does, and beside it a round glass i, as a television's are. */
+      .buttons {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 24px;
+
+        > * {
+          display: inline-grid;
+          place-items: center;
+          height: 44px;
+          border: 0;
+          border-radius: 22px;
+          font-size: 15px;
+          font-weight: 600;
+          letter-spacing: -0.01em;
+          cursor: pointer;
+          transition: background-color 0.2s, box-shadow 0.2s, scale 0.2s var(--lift);
+
+          &:active {
+            scale: 0.96;
+          }
         }
 
-        .shot {
+        .primary {
+          min-width: 128px;
+          padding: 0 28px;
+          color: var(--app);
+          background: var(--ink);
+          box-shadow: 0 8px 24px -10px rgb(0 0 0 / 0.5);
+
+          &:hover {
+            background: color-mix(in oklab, var(--ink), var(--app) 12%);
+          }
+        }
+
+        .secondary {
+          width: 44px;
+          padding: 0;
+          color: var(--ink);
+          background: color-mix(in oklab, var(--ink), transparent 86%);
+          box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--ink), transparent 88%);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+
+          &:hover {
+            background: color-mix(in oklab, var(--ink), transparent 78%);
+          }
+
+          svg {
+            width: 20px;
+            height: 20px;
+          }
+        }
+      }
+
+      /* ── The rows: a title over each, its covers in a grid, most opened first ── */
+
+      .rows {
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 32px var(--gutter) 0;
+
+        @media (min-width: 900px) {
+          padding-top: 40px;
+        }
+      }
+
+      .row + .row {
+        margin-top: 44px;
+      }
+
+      h2 {
+        margin: 0 0 14px;
+        color: var(--ink);
+        font-size: 17px;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+
+        @media (min-width: 900px) {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 20px;
+        }
+      }
+
+      /* A cover: its picture, its name over its foot, out of the picture as the banner's is; in view (pointed at or
+         focused), lifted and larger. */
+      .cover {
+        position: relative;
+        min-width: 0;
+      }
+
+      .tile {
+        position: relative;
+        display: block;
+        overflow: hidden;
+        aspect-ratio: 16 / 10;
+        border-radius: 12px;
+        background: var(--well);
+        box-shadow: 0 0 0 1px var(--line);
+        outline: none;
+        transition: scale 0.3s var(--lift), box-shadow 0.3s;
+
+        img {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        /* (Its name's ground: the picture fading into the page's colour at its foot.) */
+        &::after {
+          content: "";
+          position: absolute;
+          inset: 38% 0 0;
+          background: linear-gradient(
+            to top,
+            color-mix(in srgb, var(--app) 94%, transparent),
+            color-mix(in srgb, var(--app) 78%, transparent) 34%,
+            color-mix(in srgb, var(--app) 36%, transparent) 68%,
+            transparent
+          );
+        }
+
+        .name {
+          position: absolute;
+          left: 14px;
+          right: 44px;
+          bottom: 11px;
+          z-index: 1;
+          display: -webkit-box;
+          overflow: hidden;
+          color: var(--ink);
+          font-size: 14.5px;
+          font-weight: 700;
+          line-height: 1.2;
+          letter-spacing: -0.01em;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+
+          @media (min-width: 900px) {
+            left: 16px;
+            bottom: 13px;
+            font-size: 18px;
+          }
+        }
+
+        .cover:has(> .tile:hover) > &,
+        .cover:has(> .tile:focus-visible) > & {
+          scale: 1.045;
+          box-shadow: 0 0 0 1px var(--line-strong), 0 22px 44px -20px rgb(0 0 0 / 0.55);
+        }
+
+        .cover:has(> .tile:focus-visible) > & {
+          box-shadow: 0 0 0 2.5px var(--focus), 0 22px 44px -20px rgb(0 0 0 / 0.55);
+        }
+      }
+
+      /* Its description, asked for: an i at its corner, on a desk when it's in view, on a touch screen always. */
+      .info {
+        position: absolute;
+        right: 9px;
+        bottom: 9px;
+        z-index: 2;
+        display: grid;
+        place-items: center;
+        width: 26px;
+        height: 26px;
+        border: 0;
+        border-radius: 50%;
+        padding: 0;
+        color: var(--soft);
+        background: var(--glass);
+        box-shadow: inset 0 0 0 1px var(--line-strong);
+        cursor: pointer;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        transition: opacity 0.2s, scale 0.3s var(--lift), translate 0.3s var(--lift);
+
+        svg {
+          width: 15px;
+          height: 15px;
+        }
+
+        &:hover {
+          color: var(--ink);
+        }
+
+        @media (pointer: fine) {
+          opacity: 0;
+
+          .cover:hover > &,
+          .cover:focus-within > & {
+            opacity: 1;
+          }
+        }
+
+        /* (It rides with its cover when the cover lifts.) */
+        .cover:has(> .tile:hover) > &,
+        .cover:has(> .tile:focus-visible) > & {
+          translate: 2% 2%;
+        }
+
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: -8px;
+          }
+        }
+      }
+
+      /* About a title: a card in the middle of the screen (a sheet at a phone's foot), its picture, what it is, its
+         way in. */
+      .about {
+        width: min(460px, calc(100vw - 32px));
+        max-height: calc(100svh - 32px);
+        overflow: auto;
+        border: 0;
+        border-radius: 18px;
+        padding: 0;
+        color: var(--text);
+        background: var(--card);
+        box-shadow: 0 0 0 1px var(--line-strong), 0 40px 100px -30px rgb(0 0 0 / 0.6);
+
+        &::backdrop {
+          background: rgb(0 0 0 / 0.4);
+          backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
+        }
+
+        @media (max-width: 599px) {
+          width: 100%;
+          max-width: none;
+          margin: auto 0 0;
+          border-radius: 22px 22px 0 0;
+          padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        img {
           display: block;
           width: 100%;
           height: auto;
           aspect-ratio: 16 / 10;
           object-fit: cover;
-          /* (Cropped where its box isn't 16:10, the side by side cards': a page's start, where its title and numbers are.) */
-          object-position: left top;
-          border-bottom: 1px solid var(--line);
-          background: var(--well);
         }
 
-        /* (Across two: its picture, then beside it as tall, its words.) */
-        &.wide {
-          @media (min-width: 640px) {
-            display: grid;
-            grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
-
-            .shot {
-              height: 100%;
-              border-right: 1px solid var(--line);
-              border-bottom: 0;
-            }
-
-            .body {
-              justify-content: center;
-              padding: 24px;
-            }
-
-            h3 {
-              font-size: 20px;
-            }
-
-            p {
-              font-size: 15px;
-            }
-          }
+        > div {
+          padding: 20px 22px 22px;
         }
-
-        @media (max-width: 639px) {
-          display: grid;
-          grid-template-columns: 112px minmax(0, 1fr);
-          align-items: center;
-
-          .shot {
-            height: 100%;
-            border-right: 1px solid var(--line);
-            border-bottom: 0;
-          }
-
-          > .body {
-            padding: 12px 14px;
-          }
-
-          p {
-            margin-top: 2px;
-            font-size: 13px;
-          }
-        }
-      }
-
-      /* A card is one link, its title's stretched over it. */
-      .stretch {
-        outline: none;
-
-        &::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          border-radius: inherit;
-        }
-      }
-
-      .go {
-        margin-left: auto;
-        color: var(--muted);
-        pointer-events: none;
-        transition: translate 0.15s, color 0.15s;
-
-        .card:has(.stretch:hover) & {
-          color: var(--brand-text);
-          translate: 2px 0;
-        }
-      }
-
-      /* ── Right now: fees, the mempool, the price, the next difficulty adjustment ── */
-
-      .readings {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 12px;
-
-        @media (min-width: 960px) {
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-
-        .fees,
-        .difficulty {
-          grid-column: 1 / -1;
-        }
-
-        @media (min-width: 960px) {
-          .fees {
-            grid-column: span 2;
-          }
-        }
-      }
-
-      .reading {
-        padding: 16px 18px;
-
-        h3,
-        dt {
-          margin: 0;
-          color: var(--muted);
-          font-size: 12px;
-          font-weight: 500;
-        }
-
-        dl {
-          margin: 0;
-        }
-
-        dd {
-          margin: 4px 0 0;
-          color: var(--ink);
-          font-size: 22px;
-          letter-spacing: -0.02em;
-
-          &:empty::before {
-            content: "–";
-            color: var(--muted);
-          }
-
-          /* (A unit after a number: small, in words' face.) */
-          small {
-            color: var(--muted);
-            font-family: var(--sans);
-            font-size: 12px;
-            letter-spacing: 0;
-          }
-        }
-
-        p {
-          min-height: 1.5em;
-          margin: 4px 0 0;
-          color: var(--soft);
-          font-size: 13px;
-        }
-      }
-
-      /* The fees, by how soon: four, the soonest first (two by two on a phone). */
-      .fees dl {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 8px;
-        margin-top: 8px;
-
-        @media (min-width: 480px) {
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-
-        dd {
-          font-size: 20px;
-        }
-      }
-
-      /* How far through the difficulty's period: a bar. */
-      .progress {
-        height: 4px;
-        margin-top: 10px;
-        border-radius: 2px;
-        background: var(--line-strong);
-
-        i {
-          display: block;
-          height: 100%;
-          border-radius: inherit;
-          background: var(--brand);
-        }
-      }
-
-      /* ── Use it: three ways in, the same on any server; then this server, in a line ── */
-
-      /* (Three a row on a desk, else one: never one alone.) */
-      .uses {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 12px;
-
-        @media (min-width: 900px) {
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-        }
-      }
-
-      .use {
-        display: flex;
-        flex-direction: column;
-        padding: 18px;
 
         h3 {
           margin: 0;
           color: var(--ink);
-          font-size: 15px;
-          font-weight: 600;
+          font-size: 22px;
+          font-weight: 750;
+          letter-spacing: -0.025em;
         }
 
         p {
-          margin: 4px 0 0;
-          color: var(--soft);
-          font-size: 14px;
+          margin: 6px 0 0;
+          font-size: 15px;
           text-wrap: pretty;
         }
-      }
 
-      .links {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px 14px;
-
-        /* (Wrapped rows far enough apart on a touch screen for each link's reach.) */
-        @media (pointer: coarse) {
-          row-gap: 24px;
-        }
-        margin-top: auto;
-        padding-top: 16px;
-        font-size: 13px;
-
-        a {
-          color: var(--soft);
-
-          &:hover {
-            color: var(--ink);
-          }
+        .buttons {
+          margin-top: 20px;
         }
       }
 
-      /* What a way in looks like in use: a request and its answer, an address to copy, a command. */
-      .proof {
+      /* (A thing to copy, in a card: an address or a command, and Copy.) */
+      .copy {
         display: flex;
         align-items: center;
         gap: 10px;
-        margin-top: 16px;
-        border-radius: 8px;
+        margin-top: 14px;
+        border-radius: 10px;
         padding: 10px 12px;
         background: var(--well);
         box-shadow: inset 0 0 0 1px var(--line);
-        font-size: 12.5px;
+        font-size: 13px;
 
         code {
           flex: 1;
           min-width: 0;
-          overflow-wrap: break-word;
-          color: var(--text);
-        }
-
-        .reply {
-          display: block;
-          margin-top: 4px;
+          overflow-wrap: anywhere;
           color: var(--ink);
-        }
-
-        .verb {
-          color: var(--brand-text);
+          font-family: var(--mono);
         }
 
         button {
+          position: relative;
           flex: none;
           border: 0;
-          border-radius: 6px;
-          padding: 4px 8px;
+          border-radius: 7px;
+          padding: 5px 10px;
           color: var(--soft);
           background: var(--card);
           box-shadow: inset 0 0 0 1px var(--line-strong);
-          font: inherit;
-          font-family: var(--sans);
+          font-size: 12.5px;
+          font-weight: 550;
           cursor: pointer;
 
           &:hover {
             color: var(--ink);
           }
+
+          @media (pointer: coarse) {
+            &::before {
+              content: "";
+              position: absolute;
+              inset: -9px 0;
+            }
+          }
         }
       }
 
-      /* This server: its state, version, uptime and disk, one quiet line. */
-      .server {
-        margin: 16px 0 0;
-        color: var(--muted);
-        font-size: 13px;
+      /* ── The foot: this server, quietly; the brand's links ── */
 
-        b {
+      footer {
+        max-width: 1600px;
+        margin: 64px auto 0;
+        padding: 0 var(--gutter) calc(32px + env(safe-area-inset-bottom));
+        color: var(--muted);
+        font-size: 12.5px;
+
+        .server b {
           color: var(--text);
           font-weight: 500;
         }
@@ -605,52 +696,39 @@
         .behind {
           color: var(--brand-text);
         }
-      }
 
-      /* A reading that didn't answer: its last one kept, its values dimmed (its words not, still read), and said so. */
-      [data-failed] :is(dd, .reading p, .reply) {
-        opacity: 0.5;
-      }
+        nav {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          gap: 8px 20px;
+          margin-top: 14px;
+          border-top: 1px solid var(--line);
+          padding-top: 18px;
 
-      .stale {
-        color: var(--brand-text);
-        font-weight: 500;
-
-        /* (By a section's heading: as small as a card's name.) */
-        h2 > & {
-          font-size: 13px;
-          letter-spacing: 0;
-        }
-      }
-
-      footer {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 8px 20px;
-        margin-top: 72px;
-        border-top: 1px solid var(--line);
-        padding: 24px 0 40px;
-        color: var(--muted);
-        font-size: 13px;
-
-        /* (Wrapped rows far enough apart on a touch screen for each link's reach.) */
-        @media (pointer: coarse) {
-          row-gap: 24px;
-        }
-
-        a:hover {
-          color: var(--ink);
-        }
-
-        .brand {
-          margin-right: auto;
-          font-size: 14px;
-
-          img {
-            width: 16px;
-            height: 18.5px;
+          @media (pointer: coarse) {
+            row-gap: 24px;
           }
+
+          a {
+            position: relative;
+
+            &:hover {
+              color: var(--ink);
+            }
+
+            @media (pointer: coarse) {
+              &::before {
+                content: "";
+                position: absolute;
+                inset: -14px 0;
+              }
+            }
+          }
+        }
+
+        p {
+          margin: 0;
         }
       }
 
@@ -659,7 +737,7 @@
           transition: none !important;
         }
       }
-      /* (A copy button as wide as it says "Copied" from the start: saying it moves nothing beside it.) */
+
       button[data-copy]:not([hidden]) {
         display: inline-flex;
         flex-direction: column;
@@ -672,216 +750,202 @@
           visibility: hidden;
         }
       }
-      /* (A finger's reach, unseen: the brand, a card's links, a copy button, the foot's links, 44px tall whatever they're drawn at; up and down only, into the room
-         around them, never over a neighbour.) */
-      :is(a.brand, .links a, button[data-copy], footer a) {
-        position: relative;
-
-        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
-        @media (pointer: coarse) {
-          &::before {
-            content: "";
-            position: absolute;
-            inset: min(0px, calc((100% - 44px) / 2)) 0;
-          }
-        }
-      }
     </style>
   </head>
   <body>
-    <!-- The small cube heading each section, drawn once. -->
     <svg width="0" height="0" style="position: absolute" aria-hidden="true">
-      <symbol id="mark" viewBox="0 0 26 30">
-        <g class="mark"><path class="top-face" d="M13 0L26 7.5L13 15L0 7.5Z" /><path class="left-face" d="M0 7.5L13 15V30L0 22.5Z" /><path class="right-face" d="M26 7.5L13 15V30L26 22.5Z" /></g>
-      </symbol>
+      <symbol id="i-info" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7.25" fill="none" stroke="currentColor" stroke-width="1.5" /><path d="M10 9v5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" /><circle cx="10" cy="6.4" r="1" fill="currentColor" /></symbol>
     </svg>
 
-    <div class="page">
-      <header class="top">
-        <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-        <span class="tip" id="tip" hidden><span id="tip-state"></span> <b class="num" id="tip-height"></b></span>
-      </header>
+    <header class="top">
+      <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+      <p class="status" id="status-bar" hidden>
+        <span class="tip" id="tip"><span class="vh" id="tip-state"></span><b class="num" id="tip-height"></b></span>
+        <span id="price-panel" hidden><b class="num" id="price"></b><span class="vh" data-said></span></span>
+        <span class="fee" id="fees-panel" hidden><b class="num" id="fee"></b> sat/vB<span class="vh" data-said></span></span>
+      </p>
+    </header>
 
-      <main>
-        <h1 class="vh">Bitview on this server</h1>
-        <p class="intro">Every Bitcoin block, read and measured by this server: <b id="series-count">its</b> series, to chart, explore and fetch.</p>
+    <h1 class="vh">Bitview</h1>
 
-        <section aria-labelledby="apps-title">
-          <h2 id="apps-title"><svg aria-hidden="true"><use href="#mark" /></svg>Apps</h2>
-          <div class="apps">
-            <article class="card wide">
-              <img class="shot" src="/assets/previews/studio.jpg" alt="" width="800" height="500" />
-              <div class="body">
-                <h3><a class="stretch" href="/studio/">Studio</a><span class="go" aria-hidden="true">→</span></h3>
-                <p>Chart any series: overlay, stack, derive with formulas, then keep, share or export.</p>
-              </div>
-            </article>
-            <article class="card">
-              <img class="shot" src="/assets/previews/series.jpg" alt="" width="800" height="500" />
-              <div class="body">
-                <h3><a class="stretch" href="/series/">Series</a><span class="go" aria-hidden="true">→</span></h3>
-                <p>Every series, folder by folder: what it is, its history, and how to fetch it.</p>
-              </div>
-            </article>
-            <article class="card">
-              <img class="shot" src="/assets/previews/dca.jpg" alt="" width="800" height="500" />
-              <div class="body">
-                <h3><a class="stretch" href="/dca/">DCA</a><span class="go" aria-hidden="true">→</span></h3>
-                <p>Bitcoin on a schedule, more when it's cheap: any plan since 2010, beside the plain one.</p>
-              </div>
-            </article>
-            <article class="card wide">
-              <img class="shot" src="/assets/previews/oracle.jpg" alt="" width="800" height="500" />
-              <div class="body">
-                <h3><a class="stretch" href="/oracle/">Oracle</a><span class="go" aria-hidden="true">→</span></h3>
-                <p>Bitcoin's price read from the chain alone, block by block, with no exchange or feed; and how.</p>
-              </div>
-            </article>
-            <article class="card">
-              <img class="shot" src="/assets/previews/globe.jpg" alt="" width="800" height="500" loading="lazy" />
-              <div class="body">
-                <h3><a class="stretch" href="/globe/">Globe</a><span class="go" aria-hidden="true">→</span></h3>
-                <p>Where blocks are mined, by their pools' home countries, live and since 2011.</p>
-              </div>
-            </article>
-            <article class="card">
-              <img class="shot" src="/assets/previews/calendar.jpg" alt="" width="800" height="500" loading="lazy" />
-              <div class="body">
-                <h3><a class="stretch" href="/calendar/">Calendar</a><span class="go" aria-hidden="true">→</span></h3>
-                <p>Every day's leading pool, and every block of any day.</p>
-              </div>
-            </article>
-            <article class="card">
-              <img class="shot" src="/assets/previews/trail.jpg" alt="" width="800" height="500" loading="lazy" />
-              <div class="body">
-                <h3><a class="stretch" href="/trail/">The Satoshi Trail</a><span class="go" aria-hidden="true">→</span></h3>
-                <p>Supply by the price it last moved at, through time, in two or three dimensions.</p>
-              </div>
-            </article>
-            <article class="card">
-              <img class="shot" src="/assets/previews/logs.jpg" alt="" width="800" height="500" loading="lazy" />
-              <div class="body">
-                <h3><a class="stretch" href="/logs/">Logs</a><span class="go" aria-hidden="true">→</span></h3>
-                <p>This server at work, live: each block it reads, everything it computes, every request.</p>
-              </div>
-            </article>
-            <article class="card wide">
-              <img class="shot" src="/assets/previews/api.jpg" alt="" width="800" height="500" loading="lazy" />
-              <div class="body">
-                <h3><a class="stretch" href="/api/">API</a><span class="go" aria-hidden="true">→</span></h3>
-                <p>Every endpoint, documented, and tried live against this server.</p>
-              </div>
-            </article>
+    <!-- The title in view: drawn first from the first cover (the most opened), then from the one pointed at or focused. -->
+    <div class="banner">
+      <div class="art" aria-hidden="true"><img id="art-a" alt="" fetchpriority="high" /><img id="art-b" class="out" alt="" /></div>
+      <div class="title">
+        <div>
+          <p class="name" id="title-name"></p>
+          <p class="line" id="title-line"></p>
+          <p class="fact" id="title-fact"></p>
+          <div class="buttons">
+            <a class="primary" id="title-open" href="/">Open</a>
+            <button class="secondary" type="button" id="title-about" aria-label="About"><svg aria-hidden="true"><use href="#i-info" /></svg></button>
           </div>
-        </section>
+        </div>
+      </div>
+    </div>
 
-        <section aria-labelledby="now-title">
-          <h2 id="now-title"><svg aria-hidden="true"><use href="#mark" /></svg>Right now</h2>
-          <div class="readings">
-            <div class="surface reading fees" id="fees-panel">
-              <h3>Fees, by how soon</h3>
-              <dl>
-                <div><dt>Next block</dt><dd class="num" id="fee-fast"></dd></div>
-                <div><dt>30 minutes</dt><dd class="num" id="fee-half"></dd></div>
-                <div><dt>An hour</dt><dd class="num" id="fee-hour"></dd></div>
-                <div><dt>Economy</dt><dd class="num" id="fee-economy"></dd></div>
-              </dl>
-            </div>
-            <div class="surface reading" id="mempool-panel">
-              <dl><dt>Mempool</dt><dd class="num" id="mempool-count"></dd></dl>
-              <p id="mempool-more"></p>
-            </div>
-            <div class="surface reading" id="price-panel">
-              <dl><dt>Price</dt><dd class="num" id="price"></dd></dl>
-              <p>Derived from the chain by this server</p>
-            </div>
-            <div class="surface reading difficulty" id="difficulty-panel">
-              <dl><dt>Next difficulty adjustment</dt><dd class="num" id="difficulty"></dd></dl>
-              <p id="difficulty-more"></p>
-              <div class="progress" aria-hidden="true"><i id="difficulty-progress" style="width: 0"></i></div>
-            </div>
-          </div>
-        </section>
+    <main class="rows">
+      <section class="row" aria-labelledby="apps-title">
+        <h2 id="apps-title">Apps</h2>
+        <ul class="grid">
+          <li class="cover" data-id="studio" data-line="Chart any series: overlay, stack, derive, share"><a class="tile" href="/studio/"><img alt="" /><span class="name">Studio</span></a><button class="info" type="button" popovertarget="about-studio" aria-label="About Studio"><svg aria-hidden="true"><use href="#i-info" /></svg></button><div class="about" popover id="about-studio"><div><h3>Studio</h3><p>Chart any series: overlay, stack, derive with formulas, then keep, share or export.</p></div></div></li>
+          <li class="cover" data-id="series" data-line="Every series, what it is and how to fetch it"><a class="tile" href="/series/"><img alt="" /><span class="name">Series</span></a><button class="info" type="button" popovertarget="about-series" aria-label="About Series"><svg aria-hidden="true"><use href="#i-info" /></svg></button><div class="about" popover id="about-series"><div><h3>Series</h3><p>Every series, folder by folder: what it is, its history, and how to fetch it.</p></div></div></li>
+          <li class="cover" data-id="oracle" data-line="Bitcoin's price, read from the chain alone"><a class="tile" href="/oracle/"><img alt="" /><span class="name">Oracle</span></a><button class="info" type="button" popovertarget="about-oracle" aria-label="About Oracle"><svg aria-hidden="true"><use href="#i-info" /></svg></button><div class="about" popover id="about-oracle"><div><h3>Oracle</h3><p>Bitcoin's price read from the chain alone, block by block, with no exchange or feed; and how.</p></div></div></li>
+          <li class="cover" data-id="dca" data-line="Bitcoin on a schedule, more when it's cheap"><a class="tile" href="/dca/"><img alt="" /><span class="name">DCA</span></a><button class="info" type="button" popovertarget="about-dca" aria-label="About DCA"><svg aria-hidden="true"><use href="#i-info" /></svg></button><div class="about" popover id="about-dca"><div><h3>DCA</h3><p>Bitcoin on a schedule, more when it's cheap: any plan since 2010, beside the plain one.</p></div></div></li>
+          <li class="cover" data-id="globe" data-line="Where blocks are mined, live and since 2011"><a class="tile" href="/globe/"><img alt="" /><span class="name">Globe</span></a><button class="info" type="button" popovertarget="about-globe" aria-label="About Globe"><svg aria-hidden="true"><use href="#i-info" /></svg></button><div class="about" popover id="about-globe"><div><h3>Globe</h3><p>Where blocks are mined, by their pools' home countries, live and since 2011.</p></div></div></li>
+          <li class="cover" data-id="calendar" data-line="Every day's leading pool, every block of any day"><a class="tile" href="/calendar/"><img alt="" /><span class="name">Calendar</span></a><button class="info" type="button" popovertarget="about-calendar" aria-label="About Calendar"><svg aria-hidden="true"><use href="#i-info" /></svg></button><div class="about" popover id="about-calendar"><div><h3>Calendar</h3><p>Every day's leading pool, and every block of any day.</p></div></div></li>
+          <li class="cover" data-id="trail" data-line="Supply by the price it last moved at, in 3D"><a class="tile" href="/trail/"><img alt="" /><span class="name">The Satoshi Trail</span></a><button class="info" type="button" popovertarget="about-trail" aria-label="About The Satoshi Trail"><svg aria-hidden="true"><use href="#i-info" /></svg></button><div class="about" popover id="about-trail"><div><h3>The Satoshi Trail</h3><p>Supply by the price it last moved at, through time, in two or three dimensions.</p></div></div></li>
+          <li class="cover" data-id="logs" data-line="This server at work, live"><a class="tile" href="/logs/"><img alt="" /><span class="name">Logs</span></a><button class="info" type="button" popovertarget="about-logs" aria-label="About Logs"><svg aria-hidden="true"><use href="#i-info" /></svg></button><div class="about" popover id="about-logs"><div><h3>Logs</h3><p>This server at work, live: each block it reads, everything it computes, every request.</p></div></div></li>
+        </ul>
+      </section>
 
-        <section aria-labelledby="use-title">
-          <h2 id="use-title"><svg aria-hidden="true"><use href="#mark" /></svg>Use it</h2>
-          <div class="uses">
-            <div class="surface use" id="api-panel">
-              <h3>From code</h3>
-              <p>Every series, block, transaction and address on this server, over plain HTTP, from any language.</p>
-              <div class="proof"><code><a href="/api/series/price/day1/latest"><span class="verb">GET</span> <span id="origin"></span>/<wbr />api/<wbr />series/<wbr />price/<wbr />day1/<wbr />latest</a><span class="reply" id="reply"></span></code></div>
-              <div class="links">
-                <a href="/openapi.json">OpenAPI</a>
-                <a href="https://www.npmjs.com/package/bitview-client">JavaScript</a>
-                <a href="https://pypi.org/project/bitview-client/">Python</a>
-                <a href="https://crates.io/crates/bitview_client">Rust</a>
-              </div>
-            </div>
-            <div class="surface use">
-              <h3>For assistants</h3>
-              <p>Add Bitview's MCP server to Claude, ChatGPT or any MCP client, or hand one this server's llms.txt.</p>
-              <div class="proof"><code>https://mcp.bitview.space/</code><button type="button" data-copy="https://mcp.bitview.space/" aria-label="Copy the MCP server's address">Copy</button></div>
-              <div class="links">
-                <a href="/llms.txt">llms.txt</a>
-                <a href="https://mcp.bitview.space/">MCP server ↗</a>
-              </div>
-            </div>
-            <div class="surface use">
-              <h3>Run your own</h3>
-              <p>Bitview beside your own Bitcoin Core, on Linux or macOS. The same command installs it, or updates it.</p>
-              <div class="proof"><code>cargo install --locked bitviewd</code><button type="button" data-copy="cargo install --locked bitviewd" aria-label="Copy the install command">Copy</button></div>
-              <div class="links">
-                <a href="/dev/">Guide</a>
-                <a href="https://perf.bitview.dev">Benchmarks ↗</a>
-                <a href="/brk/">Bitcoin Research Kit</a>
-                <a href="https://github.com/bitcoinresearchkit/mono">Source ↗</a>
-              </div>
-            </div>
-          </div>
-          <p class="server" id="server">This server: <span id="server-state">–</span><span id="server-more"></span></p>
-        </section>
-      </main>
+      <section class="row" aria-labelledby="dev-title">
+        <h2 id="dev-title">For developers</h2>
+        <ul class="grid">
+          <li class="cover" data-id="api" data-line="Every endpoint, documented and tried live"><a class="tile" href="/api/"><img alt="" loading="lazy" /><span class="name">API</span></a><button class="info" type="button" popovertarget="about-api" aria-label="About the API"><svg aria-hidden="true"><use href="#i-info" /></svg></button><div class="about" popover id="about-api"><div><h3>API</h3><p>Every series, block, transaction and address on this server, over plain HTTP, from any language: each endpoint documented, and tried live. Clients for JavaScript, Python and Rust.</p></div></div></li>
+          <li class="cover" data-id="run" data-line="Bitview on your own node"><a class="tile" href="/dev/"><img alt="" loading="lazy" /><span class="name">Run your own</span></a><button class="info" type="button" popovertarget="about-run" aria-label="About running your own"><svg aria-hidden="true"><use href="#i-info" /></svg></button><div class="about" popover id="about-run"><div><h3>Run your own</h3><p>Bitview beside your own Bitcoin Core, on Linux or macOS. The same command installs it, or updates it.</p><div class="copy"><code>cargo install --locked bitviewd</code><button type="button" data-copy="cargo install --locked bitviewd" aria-label="Copy the install command">Copy</button></div></div></div></li>
+          <li class="cover" data-id="brk" data-line="Rust crates for Bitcoin Core data"><a class="tile" href="/brk/"><img alt="" loading="lazy" /><span class="name">Bitcoin Research Kit</span></a><button class="info" type="button" popovertarget="about-brk" aria-label="About the Bitcoin Research Kit"><svg aria-hidden="true"><use href="#i-info" /></svg></button><div class="about" popover id="about-brk"><div><h3>Bitcoin Research Kit</h3><p>Bitcoin Core's RPC, its block files in chain order, the live mempool, a price read from the chain: each its own Rust crate. Bitview is built from all of them.</p></div></div></li>
+          <li class="cover" data-id="mcp" data-line="Bitview for Claude, ChatGPT and any MCP client"><a class="tile" href="/llms.txt"><img alt="" loading="lazy" /><span class="name">For assistants</span></a><button class="info" type="button" popovertarget="about-mcp" aria-label="About Bitview for assistants"><svg aria-hidden="true"><use href="#i-info" /></svg></button><div class="about" popover id="about-mcp"><div><h3>For assistants</h3><p>Add Bitview's MCP server to Claude, ChatGPT or any MCP client, or hand one this server's llms.txt.</p><div class="copy"><code>https://mcp.bitview.space/</code><button type="button" data-copy="https://mcp.bitview.space/" aria-label="Copy the MCP server's address">Copy</button></div></div></div></li>
+        </ul>
+      </section>
+      <script>
+        // (Each row's covers, most opened on this device first, the rest as listed; their pictures; the
+        // first app on the banner. Before the first frame, and only on arriving: nothing moves while you look.)
+        (() => {
+          let opened = {};
+          try {
+            opened = JSON.parse(localStorage.getItem("bitview.opened") ?? "{}") ?? {};
+          } catch {}
+          const $ = (id) => document.getElementById(id);
+          for (const grid of document.querySelectorAll(".grid")) {
+            const count = (cover) => Number(opened[cover.dataset.id]) || 0;
+            grid.append(...[...grid.children].map((cover, i) => [cover, i]).sort(([a, i], [b, j]) => count(b) - count(a) || i - j).map(([cover]) => cover));
+            for (const cover of grid.children) cover.querySelector(".tile img").src = `/assets/home/covers/${cover.dataset.id}.jpg`;
+          }
+          const first = document.querySelector(".grid > .cover");
+          $("art-a").src = `/assets/home/banners/${first.dataset.id}.jpg`;
+          $("title-name").textContent = first.querySelector(".name").textContent;
+          $("title-line").textContent = first.dataset.line;
+          $("title-open").href = first.querySelector(".tile").href;
+          $("title-open").setAttribute("aria-label", `Open ${first.querySelector(".name").textContent}`);
+          $("title-about").setAttribute("aria-label", `About ${first.querySelector(".name").textContent}`);
+        })();
+      </script>
+    </main>
 
-      <p class="vh" id="status" role="status"></p>
-      <p class="vh" id="copied" role="status"></p>
-
-      <footer>
+    <footer>
+      <p class="server" id="server">This server: <span id="server-state">–</span><span id="server-more"></span></p>
+      <nav>
         <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
         <a href="https://bitview.space/" id="public">bitview.space ↗</a>
         <a href="https://github.com/bitcoinresearchkit/mono">Source ↗</a>
         <span>MIT license</span>
-      </footer>
-    </div>
+      </nav>
+    </footer>
+
+    <p class="vh" id="status" role="status"></p>
+    <p class="vh" id="copied" role="status"></p>
 
     <script type="module">
       // @ts-check
-      // The suite's home on any server running it, bitview.space or your own: its apps; fees, the mempool, the price and
-      // the next difficulty adjustment right now; the ways to use it; its state.
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
+      const covers = /** @type {HTMLElement[]} */ ([...document.querySelectorAll(".cover")]);
 
-      // Numbers as Studio writes them (its `precise`): thousands whole and grouped (82,156); under a thousand, four
-      // digits (123.4, 1.527); millions and up, four digits and a letter (1.655T), each threshold by the value as
-      // written; never wider than eight characters (0.0001234 as 1.234e-4).
-      const SI = ["", "K", "M", "B", "T", "P", "E", "Z", "Y"];
-      const digits = (/** @type {number} */ n) => String(Number(n.toPrecision(4)));
-      const precise = (/** @type {number} */ value) => {
-        const abs = Math.abs(value), sign = value < 0 ? "−" : "";
-        if (Math.round(abs) < 1e6) {
-          const text = abs >= 999.95 ? groupedFormat.format(Math.round(abs)) : abs >= 100 ? String(Number(abs.toFixed(1))) : digits(abs);
-          const short = Number(abs.toPrecision(4)).toExponential();
-          return sign + (text.length <= 8 ? text : short.length <= 8 ? short : abs.toExponential(2));
+      // ── The banner: the title in view; its picture faded in over the last once it's ready ──
+
+      /** The banner's fade, as its CSS says (none, with less motion asked for). */
+      const FADE = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 600;
+
+      let shown = /** @type {HTMLElement} */ (document.querySelector(".grid > .cover")), asked = 0;
+      let front = /** @type {HTMLImageElement} */ ($("art-a")), back = /** @type {HTMLImageElement} */ ($("art-b"));
+      /** The picture on the banner now (a title whose picture didn't load keeps the last one, and tries again when next
+       * in view); and the moment the last fade ends (till then a layer is still on screen, not to be reused). */
+      let pictured = front.getAttribute("src") ?? "", settled = 0;
+      /** What each title shows right now, where this server has said. @type {Record<string, string>} */
+      const facts = {};
+      function fact() {
+        const said = facts[shown.dataset.id ?? ""];
+        $("title-fact").innerHTML = said ? `<span>${said}</span>` : "";
+      }
+      function learned(/** @type {string} */ id, /** @type {string} */ html) {
+        facts[id] = html;
+        if (shown.dataset.id === id) fact();
+      }
+      /** A fact this round couldn't read: gone, not kept as if it were current. */
+      const forgot = (/** @type {string} */ id) => learned(id, "");
+      async function feature(/** @type {HTMLElement} */ cover, now = false) {
+        const src = `/assets/home/banners/${cover.dataset.id}.jpg`;
+        if (cover === shown && src === pictured && !now) return;
+        shown = cover;
+        const name = /** @type {HTMLElement} */ (cover.querySelector(".name")).textContent ?? "";
+        $("title-name").textContent = name;
+        $("title-line").textContent = cover.dataset.line ?? "";
+        fact();
+        /** @type {HTMLAnchorElement} */ ($("title-open")).href = /** @type {HTMLAnchorElement} */ (cover.querySelector(".tile")).href;
+        $("title-open").setAttribute("aria-label", `Open ${name}`);
+        $("title-about").setAttribute("aria-label", `About ${name}`);
+        const ask = ++asked;
+        if (now) return void ((front.src = pictured = src));
+        if (src === pictured) return;
+        // (The layer last faded out, once its fade is over; then the picture, once it's decoded; a later title meanwhile
+        // wins.)
+        await new Promise((ok) => setTimeout(ok, Math.max(0, settled - performance.now())));
+        if (ask !== asked) return;
+        back.src = src;
+        try {
+          await back.decode();
+        } catch {
+          return;
         }
-        let tier = Math.min(SI.length - 1, Math.floor(Math.log10(abs) / 3)), scaled = abs / 1000 ** tier;
-        if (Number(scaled.toPrecision(4)) >= 1000 && tier < SI.length - 1) (tier++), (scaled /= 1000);
-        return `${sign}${digits(scaled)}${SI[tier]}`;
-      };
-      const dollars = (/** @type {number} */ value) => `$${precise(value)}`;
-      const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        if (ask !== asked) return;
+        back.classList.remove("out");
+        front.classList.add("out");
+        [front, back] = [back, front];
+        pictured = src;
+        settled = performance.now() + FADE;
+      }
 
-      /** Numbers grouped as "1,234" by one formatter, made once (a number's toLocaleString makes one each call). */
+      // (A pointer resting on a cover, or the keyboard's focus: that title on the banner. A touch opens it.)
+      for (const cover of covers) {
+        const tile = /** @type {HTMLElement} */ (cover.querySelector(".tile"));
+        tile.addEventListener("pointerenter", (event) => event.pointerType === "mouse" && feature(cover));
+        tile.addEventListener("focus", () => feature(cover));
+        for (const kind of ["click", "auxclick"]) tile.addEventListener(kind, (event) => (kind === "click" || /** @type {MouseEvent} */ (event).button === 1) && opened(cover.dataset.id ?? ""));
+      }
+      $("title-open").addEventListener("click", () => opened(shown.dataset.id ?? ""));
+      $("title-about").addEventListener("click", () => /** @type {any} */ (shown.querySelector("[popover]")).showPopover({ source: $("title-about") }));
+
+      /** A title opened, counted on this device (its place next time). */
+      function opened(/** @type {string} */ id) {
+        try {
+          const counts = JSON.parse(localStorage.getItem("bitview.opened") ?? "{}") ?? {};
+          counts[id] = (Number(counts[id]) || 0) + 1;
+          localStorage.setItem("bitview.opened", JSON.stringify(counts));
+        } catch {}
+      }
+
+      // (Each About card: the title's picture, and its way in.)
+      for (const cover of covers) {
+        const card = /** @type {HTMLElement} */ (cover.querySelector("[popover]")), body = /** @type {HTMLElement} */ (card.firstElementChild);
+        const tile = /** @type {HTMLAnchorElement} */ (cover.querySelector(".tile")), name = /** @type {HTMLElement} */ (cover.querySelector(".name")).textContent;
+        const picture = Object.assign(document.createElement("img"), { alt: "", width: 960, height: 600 });
+        body.before(picture);
+        card.addEventListener("beforetoggle", (event) => {
+          if (/** @type {ToggleEvent} */ (event).newState === "open") picture.src = `/assets/home/covers/${cover.dataset.id}.jpg`;
+        });
+        const buttons = Object.assign(document.createElement("div"), { className: "buttons" });
+        const open = Object.assign(document.createElement("a"), { className: "primary", href: tile.href });
+        open.textContent = "Open";
+        open.setAttribute("aria-label", `Open ${name}`);
+        open.addEventListener("click", () => opened(cover.dataset.id ?? ""));
+        buttons.append(open);
+        body.append(buttons);
+      }
+
+      // ── What the chain and this server say: the corner, the facts, the foot ──
+
       const groupedFormat = new Intl.NumberFormat("en-US");
       const grouped = (/** @type {number} */ n) => groupedFormat.format(Math.round(n));
-      /** A length of time in words: "40 s", "12 min", "3 h 5 min", "2 days". */
       const lasting = (/** @type {number} */ seconds) => {
         const s = Math.max(0, Math.round(seconds));
         if (s < 60) return `${s} s`;
@@ -890,105 +954,77 @@
         const days = Math.floor(s / 86_400);
         return `${days} day${days > 1 ? "s" : ""}`;
       };
-      /** A fee rate: "1 sat/vB", "12.5 sat/vB". */
       const rate = (/** @type {number} */ r) => `${r >= 10 ? Math.round(r) : Number(r.toFixed(1))}`;
-
-      // ── Reading: every 30 seconds, one round at a time, each part shown as it answers ──
-
-      /** A part answered (its reading shown) or didn't (its last kept, its values dimmed). Said once: by the section's
-       * heading when none of its parts answered ("this server isn't answering"), else by the name of each that didn't. */
-      function answered(/** @type {string} */ id, /** @type {boolean} */ ok) {
-        const part = $(id), section = /** @type {HTMLElement} */ (part.closest("section"));
-        part.toggleAttribute("data-failed", !ok);
-        const parts = PARTS.map(([id]) => $(id)).filter((p) => section.contains(p)), none = parts.length > 1 && parts.every((p) => p.hasAttribute("data-failed"));
-        const say = (/** @type {Element} */ where, /** @type {boolean} */ on, /** @type {string} */ words) => {
-          where.querySelector(":scope > .stale")?.remove();
-          if (on) where.insertAdjacentHTML("beforeend", ` <span class="stale">${words}</span>`);
-        };
-        say(/** @type {Element} */ (section.querySelector("h2")), none, "this server isn't answering");
-        for (const p of parts) say(p.querySelector("h3, dt") ?? p, !none && p.hasAttribute("data-failed"), "· not answering");
-      }
-
-      /** Each part: where it shows, what it reads, and how it shows it. @type {[string, string, (value: any) => void, string?][]} */
-      const PARTS = [
-        ["fees-panel", "/api/v1/fees/recommended", (fees) => {
-          for (const [id, key] of [["fee-fast", "fastestFee"], ["fee-half", "halfHourFee"], ["fee-hour", "hourFee"], ["fee-economy", "economyFee"]])
-            $(id).innerHTML = `${rate(fees[key])} <small>sat/vB</small>`;
-        }],
-        ["mempool-panel", "/api/mempool", (pool) => {
-          $("mempool-count").innerHTML = `${grouped(pool.count)} <small>transactions</small>`;
-          $("mempool-more").textContent = `${(pool.vsize / 1e6).toFixed(1)} vMB waiting, ${precise(pool.total_fee / 1e8)} ₿ in fees`;
-        }],
-        ["price-panel", "/api/v1/prices", (prices) => ($("price").textContent = dollars(prices.USD))],
-        ["difficulty-panel", "/api/v1/difficulty-adjustment", (d) => {
-          const change = d.difficultyChange, at = new Date(d.estimatedRetargetDate);
-          $("difficulty").textContent = `${change >= 0 ? "+" : "−"}${Math.abs(change).toFixed(1)}%`;
-          $("difficulty-more").textContent = `An estimate, due at block ${grouped(d.nextRetargetHeight)} (about ${at.getUTCDate()} ${MONTHS[at.getUTCMonth()]}), ${grouped(d.remainingBlocks)} ${d.remainingBlocks === 1 ? "block" : "blocks"} from now`;
-          $("difficulty-progress").style.width = `${Math.min(100, Math.max(0, d.progressPercent))}%`;
-        }],
-        ["api-panel", "/api/series/price/day1/latest", (reply) => ($("reply").textContent = reply), "text"],
-      ];
-
-      /** This server: its sync and health as last read (null: not answering), its disk now and then. */
-      let sync = /** @type {any} */ (null), health = /** @type {any} */ (null), disk = "", stateRead = false;
-      /** Its state, and the words a screen reader is told when it changes (none on a first load that's synced). */
-      let stateSaid = "synced";
-      function showServer() {
-        const behind = sync && sync.blocks_behind > 0, state = sync ? (behind ? "syncing" : "synced") : "unread";
-        $("tip-state").textContent = sync ? `${behind ? "Syncing" : "Synced"} ·` : "State unavailable";
-        $("tip-height").textContent = sync ? grouped(sync.indexed_height) : "";
-        $("tip").classList.toggle("behind", state !== "synced");
-        $("tip").hidden = false;
-        $("server-state").innerHTML = !sync ? `<span class="behind">its state unavailable</span>`
-          : behind ? `<span class="behind">syncing</span>, block <b>${grouped(sync.indexed_height)}</b> of ${grouped(sync.tip_height)}, ${grouped(sync.blocks_behind)} to go`
-          : `<span class="ok">synced</span> to block <b>${grouped(sync.indexed_height)}</b>`;
-        // (Each part whole on a line, the line breaking only between them: never "up 6 / h 47 min".)
-        const whole = (/** @type {string} */ part) => part.replaceAll(" ", "\u00a0");
-        $("server-more").textContent = `${health ? ` · ${whole(`Bitview ${health.version}`)} · ${whole(`up ${lasting(health.uptime_seconds)}`)}` : ""}${disk ? ` · ${whole(disk)}` : ""}`;
-        if (state === stateSaid) return;
-        stateSaid = state;
-        $("status").textContent = state === "unread" ? "This server's state can't be read." : behind ? `This server is syncing, ${grouped(sync.blocks_behind)} blocks behind.` : "This server is synced.";
-      }
+      const dollars = (/** @type {number} */ v) => `$${grouped(v)}`;
 
       const read = (/** @type {string} */ path, kind = "json") => fetch(path, { signal: AbortSignal.timeout(10_000) }).then((response) => {
         if (!response.ok) throw new Error(String(response.status));
         return kind === "json" ? response.json() : response.text();
       });
-      // (The series' count until read once; the disk's sizes now and then.)
-      let counted = false, rounds = 0, reading = false;
+      /** A reading: shown as it answers; one that doesn't, its last kept and dimmed (none yet: not shown). */
+      const part = (/** @type {string} */ id, /** @type {Promise<any>} */ reading, /** @type {(value: any) => void} */ show) =>
+        reading.then((value) => (show(value), ($(id).hidden = false), $(id).removeAttribute("data-failed"), said(id, "")), () => {
+          $(id).setAttribute("data-failed", "");
+          said(id, ", not answering: the last reading");
+        });
+      /** A reading's state, said to a screen reader after it (its dimming says it to the eye). */
+      const said = (/** @type {string} */ id, /** @type {string} */ words) => (/** @type {HTMLElement} */ ($(id).querySelector("[data-said]")).textContent = words);
+
+      let sync = /** @type {any} */ (null), health = /** @type {any} */ (null), disk = "", stateSaid = "synced", counted = false, rounds = 0, reading = false;
+      function showServer() {
+        const behind = sync && sync.blocks_behind > 0, state = sync ? (behind ? "syncing" : "synced") : "unread";
+        $("tip-state").textContent = sync ? (behind ? "Syncing, at block" : "Synced to block") : "This server's state is unavailable";
+        $("tip-height").textContent = sync ? grouped(sync.indexed_height) : "Not answering";
+        $("tip-height").classList.toggle("num", !!sync);
+        $("tip").classList.toggle("behind", state !== "synced");
+        $("status-bar").hidden = false;
+        $("server-state").innerHTML = !sync ? `<span class="behind">its state unavailable</span>`
+          : behind ? `<span class="behind">syncing</span>, block <b>${grouped(sync.indexed_height)}</b> of ${grouped(sync.tip_height)}, ${grouped(sync.blocks_behind)} to go`
+          : `<span class="ok">synced</span> to block <b>${grouped(sync.indexed_height)}</b>`;
+        const whole = (/** @type {string} */ part) => part.replaceAll(" ", " ");
+        $("server-more").textContent = `${health ? ` · ${whole(`Bitview ${health.version}`)} · ${whole(`up ${lasting(health.uptime_seconds)}`)}` : ""}${disk ? ` · ${whole(disk)}` : ""}`;
+        if (health) learned("run", `This server runs <b>Bitview ${health.version}</b>, up ${lasting(health.uptime_seconds)}`);
+        else forgot("run");
+        if (state === stateSaid) return;
+        stateSaid = state;
+        $("status").textContent = state === "unread" ? "This server's state can't be read." : behind ? `This server is syncing, ${grouped(sync.blocks_behind)} blocks behind.` : "This server is synced.";
+      }
+
       async function round() {
         if (reading) return;
         reading = true;
-        const parts = PARTS.map(([id, path, show, kind]) => read(path, kind).then((value) => {
-          show(value);
-          answered(id, true);
-        }, () => answered(id, false)));
+        const parts = [
+          part("price-panel", read("/api/v1/prices"), (prices) => {
+            $("price").textContent = dollars(prices.USD);
+            learned("oracle", `<b>${dollars(prices.USD)}</b>, read from the chain just now`);
+          }).then(() => $("price-panel").hasAttribute("data-failed") && forgot("oracle")),
+          part("fees-panel", read("/api/v1/fees/recommended"), (fees) => ($("fee").textContent = rate(fees.fastestFee))),
+          read("/api/series/price/day1/latest", "text").then((reply) => learned("api", `Answering now: GET …/price/day1/latest → <b>${reply.trim()}</b>`), () => forgot("api")),
+          read("/api/v1/mining/pools/24h").then((d) => {
+            const top = d.pools?.[0];
+            if (top) learned("calendar", `<b>${top.name}</b> led the last 24 hours: ${grouped(top.blockCount)} of ${grouped(d.blockCount)} blocks`);
+            else forgot("calendar");
+          }, () => forgot("calendar")),
+          counted ? null : read("/api/series/count").then((c) => {
+            learned("series", `<b>${grouped(c.distinct)}</b> series on this server`);
+            counted = true;
+          }, () => {}),
+          rounds % 20 ? null : read("/api/server/disk").then((d) => (disk = `${d.brk} beside Bitcoin Core's ${d.bitcoin}`), () => {}),
+        ];
         const state = Promise.allSettled([read("/api/server/sync"), read("/health")]).then(([s, h]) => {
           [sync, health] = [s.status === "fulfilled" ? s.value : null, h.status === "fulfilled" ? h.value : null];
-          stateRead = true;
           showServer();
         });
-        const sizes = rounds % 20 ? null : read("/api/server/disk").then((d) => {
-          disk = `${d.brk} beside Bitcoin Core's ${d.bitcoin}`;
-          // (Before the state's first read, kept for it: no state shown, or said, from nothing.)
-          if (stateRead) showServer();
-        }, () => {});
-        const count = counted ? null : read("/api/series/count").then((c) => {
-          $("series-count").textContent = grouped(c.distinct);
-          counted = true;
-        }, () => {});
-        await Promise.allSettled([...parts, state, sizes, count]);
+        await Promise.allSettled([...parts, state]);
+        // (The disk's sizes, read this round, in its line.)
+        showServer();
         rounds++;
         reading = false;
       }
-      $("origin").textContent = location.origin;
-      // (Bitview's own server, on any other: on itself, no link to itself.)
       $("public").hidden = location.hostname === "bitview.space";
       round();
       setInterval(round, 30_000);
 
-      // Copied, said on the button a moment, and to a screen reader. Where the page can't write the clipboard (plain
-      // HTTP, but for localhost), no button: the text's there to select.
       for (const button of /** @type {NodeListOf<HTMLButtonElement>} */ (document.querySelectorAll("[data-copy]"))) {
         let back = 0;
         button.hidden = !navigator.clipboard;
