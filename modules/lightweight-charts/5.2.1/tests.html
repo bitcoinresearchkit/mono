@@ -776,14 +776,14 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   }
   say(`Last values' tags: 5 checks, ${tagged.length} failing`);
   for (const f of tagged) say(`  ✗ ${f}`);
-  // 15. A series' tag with its name (patch 50): a line named, its view leaving room after its end (a pill in the pane,
+  // 15. A series' tag after its end (patch 50): a line's, its view leaving room after its end (the tag in the pane,
   // past the end, none on the axis), then none (the tag on the axis, nothing in the pane). Each time, the pill's middle
   // on its tag, a corner of the pane not (patch 51).
   const pills = [];
   {
     document.getElementById("a").innerHTML = ""; window.__charts = [];
     seed = 71;
-    const c = base(B, document.getElementById("a")), line = c.addSeries(B.LineSeries, { color: "#00ff00", priceLineVisible: false, bvName: "Named" });
+    const c = base(B, document.getElementById("a")), line = c.addSeries(B.LineSeries, { color: "#00ff00", priceLineVisible: false, bvAtEnd: true });
     line.setData(walk(300, 100, 0.03));
     const mid = (canvas, from = 0) => { const d = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data; let n = 0, x = 0, y = 0; for (let i = 0; i < d.length; i += 4) if ((i / 4) % canvas.width >= from && d[i + 1] > 200 && d[i] < 60 && d[i + 2] < 60) n++, (x += (i / 4) % canvas.width), (y += Math.floor(i / 4 / canvas.width)); return n ? [x / n, y / n] : null; };
     const green = (canvas, from = 0) => { const d = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if ((i / 4) % canvas.width >= from && d[i + 1] > 200 && d[i] < 60 && d[i + 2] < 60) n++; return n; };
@@ -798,7 +798,7 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
     }
     c.remove(); window.__charts = [];
   }
-  say(`A tag with its name: 4 checks, ${pills.length} failing`);
+  say(`A tag after its end: 4 checks, ${pills.length} failing`);
   for (const f of pills) say(`  ✗ ${f}`);
   window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length, pinch: tapped.length, own: owned.length, later: later.length, edged: edged.length, shifted: shifted.length, tagged: tagged.length, pills: pills.length };
 </script>

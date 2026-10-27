@@ -2874,7 +2874,7 @@
             }
           }
 
-          /* (A plot too narrow for its ends' names: the strip alone, its tags naming the bands; a band's line its share
+          /* (A plot too narrow for its ends' names: the strip alone, a band named as it's pointed at; a band's line its share
              alone where it has one (a 100% stack's), its amount in the panel beside it.) */
           &[data-tight] {
             .legend-key > span:not(.key-strip),
@@ -14645,37 +14645,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const baseOf = (layer) => layer.base ?? 0;
 
       /**
-       * The room after the data's last value, in pixels, at any zoom: its series' tags' with their names (see LWC patch 50),
-       * a wide plot's whole, a narrower one's as its longest name needs, at most half the plot; its legends off, its line's
-       * end clear of the scale (as TradingView).
+       * The room after the data's last value, in pixels, at any zoom: its series' tags', each after its end (see LWC patch
+       * 50), as wide as the axis their tags fit and their lead in (14) and a few pixels; none on the right, its line's end
+       * clear of the scale (as TradingView).
        */
-      const rightGap = (width = view.timeScale().width()) => (namesTags(width) ? namedRoom(width) : plainGap(width));
+      const rightGap = (width = view.timeScale().width()) => ((axis) => (axis && chart?.layers.some(tagged) ? Math.max(plainGap(width), axis + 18) : plainGap(width)))(view.priceScale("right").width());
       /** The room after the latest point, any chart's (a preview's too, the open one's aside): see rightGap. */
       const plainGap = (width = view.timeScale().width()) => Math.round(clamp(width * 0.06, 16, 48));
-      /** The tags' room: its width after the latest point, from how wide a plot it's made in. */
-      const NAMED = 208, NAMED_FROM = 720;
-      /** What a named tag has besides its name: its lead in (14), its value and paddings (about 72), a pixel's rounding. */
-      const NAMED_CHROME = 87;
-      /** A plot's tags' room: a wide one's (NAMED_FROM), whole; a narrower one's (a phone's), as wide as its longest name needs, at most half the plot (a name longer, cut). */
-      const namedRoom = (/** @type {number} */ width) => (width >= NAMED_FROM ? NAMED : Math.min(NAMED, Math.floor(width / 2), NAMED_CHROME + namesWidth()));
       /**
-       * The layers a tag names: on the right (its pills go out into the plot that way), not a signal's or a cloud's (none on
-       * the axis); hidden too, its room kept (shown again, the view where it was).
+       * The layers whose tags follow their ends: on the right (out into the plot that way), not a signal's or a cloud's
+       * (none on the axis); hidden too, its room kept (shown again, the view where it was).
        * @param {Layer} layer
        */
-      const nameTagged = (layer) => layer.side === "right" && layer.type !== "signal" && layer.type !== "cloud";
-      /**
-       * The longest of the open chart's tags' names, measured once a chart as it is (asked at every step of a pan: see
-       * showsPreset), and again once the fonts are in.
-       */
-      let namesMeasured = { key: "", width: 0 };
-      function namesWidth() {
-        const key = `${chart?.id}:${revision}:${document.fonts.status}`;
-        if (key !== namesMeasured.key) namesMeasured = { key, width: widest(chart?.layers.filter(nameTagged).map(labelOf) ?? [], 510, 11, false) };
-        return namesMeasured.width;
-      }
-      /** Whether the open chart names its tags: its legends on, a tag to name. */
-      const namesTags = (/** @type {number} */ width) => width > 0 && chart?.legend !== "off" && chart.layers.some(nameTagged);
+      const tagged = (layer) => layer.side === "right" && layer.type !== "signal" && layer.type !== "cloud";
       /**
        * The least of the view its data keeps (a share of its width, all of the data when it holds less): a pan, a fling,
        * a zoom stops there, held by the chart itself as it moves (patch 13 of lightweight-charts), never a frame past it.
@@ -14803,8 +14785,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The chart as drawn, stretched to its box mid-motion (see stretchDrawn): its plot's width drawn, its scales' (`left`,
        * the left one's), its pinned side, the clipping let go of meanwhile (each element's own, as it was), and the room
        * after its data's last value and before its first (Max's) as drawn, a range showing (`ranged`: drawn again as a
-       * range at the motion's end, else its bars kept at its edges).
-       * @type {{ legends: [HTMLElement, number, number][], to: number, sides: number, left: number, leftAxis: boolean, clipped: [HTMLElement, string][], room: number, lead: number, ranged: boolean } | null}
+       * range at the motion's end, else its bars kept at its edges); where its data ends as drawn (`ends`, from the plot's
+       * right), a range showing or not.
+       * @type {{ legends: [HTMLElement, number, number][], to: number, sides: number, left: number, leftAxis: boolean, clipped: [HTMLElement, string][], room: number, lead: number, ranged: boolean, ends: number } | null}
        */
       let drawnStretch = null;
       function sizeOnce() {
@@ -14950,7 +14933,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const ranged = presetShown && !glideTarget && Boolean(resolved?.times.length), at = (/** @type {number | undefined} */ time) => (ranged && time !== undefined ? view.timeScale().timeToCoordinate(/** @type {any} */ (time)) : null);
         // (Max's room before the first value anything shown has, as applyRange keeps it.)
         const first = at(resolved && chart ? resolved.times[Math.min(firstShown(chart, resolved), resolved.times.length - 1)] : undefined), last = at(resolved?.times.at(-1));
-        drawnStretch = { legends: all$(".legend", element).map((legend) => /** @type {[HTMLElement, number, number]} */ ([legend, legend.offsetLeft, legend.offsetWidth])), to: width - left - right, sides: left + right, left, leftAxis: left > 0 && !(right > 0), clipped, room: last === null ? 0 : Math.max(0, width - left - right - last), lead: first !== null && first > 0.5 ? first : 0, ranged };
+        // (Where the data ends as drawn, from the plot's right: its tags after it, see stretchDrawn.)
+        const end = resolved?.times.length ? view.timeScale().logicalToCoordinate(/** @type {any} */ (resolved.times.length - 1)) : null;
+        drawnStretch = { ends: end === null ? 0 : width - left - right - end, legends: all$(".legend", element).map((legend) => /** @type {[HTMLElement, number, number]} */ ([legend, legend.offsetLeft, legend.offsetWidth])), to: width - left - right, sides: left + right, left, leftAxis: left > 0 && !(right > 0), clipped, room: last === null ? 0 : Math.max(0, width - left - right - last), lead: first !== null && first > 0.5 ? first : 0, ranged };
         stretchDrawn(shown);
         const frame = () => run === motionsSized && drawnStretch && (stretchDrawn(box.getBoundingClientRect().width), requestAnimationFrame(frame));
         requestAnimationFrame(frame);
@@ -14989,7 +14974,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           delete element.dataset.stretching;
           return;
         }
-        const { to, sides, left, leftAxis, clipped, room, lead, ranged } = drawnStretch, from = Math.max(1, shown - sides);
+        const { to, sides, left, leftAxis, clipped, room, lead, ranged, ends } = drawnStretch, from = Math.max(1, shown - sides);
         // (A pane's cells new meanwhile, their clipping let go of too.)
         for (const item of all$("tr > td > div", element)) if (!clipped.some(([held]) => held === item)) (clipped.push([item, item.style.overflow]), (item.style.overflow = "visible"));
         // (As it's drawn once the motion's over, nothing moving then: a range's data stretched between Max's room before
@@ -14997,7 +14982,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // kept; else all of it.)
         // (Too little between them to stretch (one value: the chart fits it instead), the whole of it.)
         const held = ranged && to - lead - room > 1, gap = held ? rightGap(from) : 0, k = held ? (from - lead - gap) / (to - lead - room) : from / to;
-        for (const canvas of canvases) Object.assign(canvas.style, { transformOrigin: leftAxis ? "left" : "right", transform: leftAxis ? `translateX(${held ? lead * (1 - k) : 0}px) scaleX(${k})` : `translateX(${held ? k * room - gap : 0}px) scaleX(${k})` });
+        // (Each pane's top canvas, its tags after their series' ends (see LWC patch 50) and the crosshair, not stretched:
+        // words would widen; moved as the ends are, its tags with them.)
+        const shift = leftAxis ? (k - 1) * (to - ends) + (held ? lead * (1 - k) : 0) : ends * (1 - k) + (held ? k * room - gap : 0);
+        for (const canvas of canvases) Object.assign(canvas.style, canvas.previousElementSibling instanceof HTMLCanvasElement ? { transformOrigin: "", transform: `translateX(${shift}px)` } : { transformOrigin: leftAxis ? "left" : "right", transform: leftAxis ? `translateX(${held ? lead * (1 - k) : 0}px) scaleX(${k})` : `translateX(${held ? k * room - gap : 0}px) scaleX(${k})` });
         // (The panes' rules (a separator's cell, across the scales' room too) from the chart's pinned edge; the last
         // pane's, along the plot.)
         for (const rule of rules) Object.assign(rule.style, { transformOrigin: leftAxis ? "left" : "right", transform: `scaleX(${(from + sides) / (to + sides)})` });
@@ -15154,7 +15142,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // A rebuild empties the chart for a moment: no range then, and nothing to decide.
         if (!range) return;
         const fit = view.timeScale().width() / Math.max(1, range.to - range.from) >= 2.5;
-        if (fit === candlesFit) return;
+        // (Each tag in its last candle in view's color, as the view moves: see tintClose.)
+        if (fit === candlesFit) return void closes.forEach((_, id) => tintClose(id));
         candlesFit = fit;
         for (const [id, close] of closes) {
           close.candles.applyOptions({ visible: !layerById(id)?.hidden && fit });
@@ -15165,15 +15154,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (marksMade?.doc.layers.some((layer) => layer.type === "signal" && layer.ref && closes.has(layer.ref))) markSignals(marksMade.doc, marksMade.data, marksMade.drawn, []);
       }
       /**
-       * The close line's color, its tag's (see `closes`): its last candle's while candles show, rising or falling (as the
-       * candle's own tag would be, though a hollow one's body is the background); the layer's while the line shows instead.
+       * The close line's color, its tag's (see `closes`): its last candle in view's while candles show (the one its tag
+       * reads), rising or falling (as the candle's own tag would be, though a hollow one's body is the background); the
+       * layer's while the line shows instead.
        * (Its colors another layer's date by date, those stay.)
        * @param {string} id
        */
       function tintClose(id) {
         const close = closes.get(id);
         if (!close || close.dated) return;
-        const bar = close.candles.dataByIndex(Number.MAX_SAFE_INTEGER, LC.MismatchDirection.NearestLeft);
+        const end = view.timeScale().getVisibleRange()?.to, at = end === undefined ? null : view.timeScale().timeToIndex(end, true);
+        const bar = close.candles.dataByIndex(at ?? Number.MAX_SAFE_INTEGER, LC.MismatchDirection.NearestLeft);
         const color = candlesFit && bar && "close" in bar && bar.close < bar.open ? close.fall : close.rise;
         if (color === close.paint.color) return;
         close.paint = { color };
@@ -15574,7 +15565,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Its value's tag, named (see LWC patch 50): a stacked band's at its middle, its own value (a 100% stack's, its
             // share).)
             lastValueVisible: !layer.hidden && !signal,
-            bvName: doc.legend !== "off" && layer.side === "right" ? labelOf(layer) : "",
+            bvAtEnd: layer.side === "right",
             ...(stack ? { bvTagOf: (/** @type {number} */ at) => bandTag(doc, layer, stack, at) } : {}),
             ...(stack ? { autoscaleInfoProvider: shares.has(layer.pane) ? () => ({ priceRange: { minValue: 0, maxValue: 100 } }) : fromZero(modeOf(doc, layer)) } : {}),
             // A 100% stacked pane's scale reads in percent, 0 to 100 (the margin over the top stays blank).
@@ -16165,7 +16156,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** From how many layers a stacked pane's legend is its key, not each of them: too many to read across its room. */
       const BANDS_FROM = 12;
-      /** Under how wide a plot a stack's key is its strip alone (its ends' names left out: its tags name its bands). */
+      /** Under how wide a plot a stack's key is narrow (its strip half as wide, no words to its list: a phone's). */
+      const KEY_NARROW = 720;
+      /** Under how wide a plot a stack's key is its strip alone (its ends' names left out: a band named as it's pointed at). */
       const KEY_TIGHT = 260;
       /**
        * The room after the latest point as the open chart has it now (its tags', or not: see rightGap), the view kept where
@@ -16186,7 +16179,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function fitLegends() {
         const width = view.timeScale().width();
-        if (width) for (const legend of legends()) legend.toggleAttribute("data-narrow", width < NAMED_FROM), legend.toggleAttribute("data-tight", width < KEY_TIGHT);
+        if (width) for (const legend of legends()) legend.toggleAttribute("data-narrow", width < KEY_NARROW), legend.toggleAttribute("data-tight", width < KEY_TIGHT);
         chart?.panes.forEach((pane, i) => {
           const legend = /** @type {HTMLElement | null} */ (document.querySelector(`#chart .legend[data-pane="${pane.id}"]`)), top = legend && !legend.hidden ? legend.offsetTop + legend.offsetHeight + 2 : 0;
           if (!view.panes()[i]) return;
