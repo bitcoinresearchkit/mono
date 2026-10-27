@@ -152,10 +152,9 @@
           letter-spacing: -0.01em;
           text-decoration: none;
 
-          svg {
+          img {
             width: 18px;
             height: 21px;
-            color: var(--accent);
           }
         }
 
@@ -375,11 +374,25 @@
         color: #e9e7e1;
         background: #161614;
         box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.06);
-        font: 13.5px/1.75 var(--mono);
+        font: 13px/1.75 var(--mono);
 
         .prompt {
           color: #ff8a3d;
           user-select: none;
+        }
+
+        /* (A command a line, wrapped where the block's too narrow, its turns indented past the prompt: read whole,
+           and copied whole by its button.) */
+        .line {
+          display: block;
+          padding-left: 2ch;
+          text-indent: -2ch;
+          white-space: pre-wrap;
+        }
+
+        /* (A word with hyphens kept whole: never "--" and "locked" on two lines.) */
+        .w {
+          white-space: nowrap;
         }
       }
 
@@ -574,14 +587,30 @@
         }
       }
 
+      /* (Its frame holds still; the code inside scrolls sideways, faded where it's cut.) */
       .code {
-        overflow-x: auto;
+        overflow: hidden;
         margin: 22px 0 0;
         border: 1px solid var(--rule);
         border-radius: 10px;
-        padding: 16px 18px;
         background: var(--card);
-        font: 13px/1.65 var(--mono);
+
+        pre {
+          overflow-x: auto;
+          margin: 0;
+          padding: 16px 18px;
+          font: 13px/1.65 var(--mono);
+        }
+
+        /* (Reached by keys to scroll it: the ring on the frame, the code's own clipped by it.) */
+        &:has(pre:focus-visible) {
+          outline: 2px solid var(--focus);
+          outline-offset: 3px;
+        }
+
+        pre:focus-visible {
+          outline: none;
+        }
 
         .c {
           color: var(--faint);
@@ -663,16 +692,26 @@
           }
         }
       }
+      /* (Code that runs past its block, faded at an edge only where it's cut there (data-cut, see the script); whole,
+         none.) */
+      pre[data-cut="end"] {
+        mask-image: linear-gradient(to left, transparent, #000 40px);
+      }
+
+      pre[data-cut="start"] {
+        mask-image: linear-gradient(to right, transparent, #000 40px);
+      }
+
+      pre[data-cut="both"] {
+        mask-image: linear-gradient(to right, transparent, #000 40px, #000 calc(100% - 40px), transparent);
+      }
     </style>
   </head>
   <body>
     <a class="skip" href="#main">Skip to content</a>
     <header class="bar">
       <nav class="shell" aria-label="Bitview">
-        <a class="brand" href="#top" aria-label="Bitview, top of the page">
-          <svg viewBox="0 0 173.2 200" aria-hidden="true"><polygon fill="currentColor" points="86.6,0 173.2,50 86.6,100 0,50" /><polygon fill="currentColor" opacity="0.72" points="0,50 86.6,100 86.6,200 0,150" /><polygon fill="currentColor" opacity="0.5" points="173.2,50 173.2,150 86.6,200 86.6,100" /></svg>
-          Bitview
-        </a>
+        <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
         <a href="#run">Run it</a>
         <a class="optional" href="#serves">What it serves</a>
         <a class="optional" href="#built">How it's built</a>
@@ -708,8 +747,7 @@
         </div>
         <div>
           <div class="term-head"><span class="label">Install, or update</span><button type="button" data-copy='rustup update &amp;&amp; RUSTFLAGS="-C target-cpu=native" cargo install --locked bitviewd'>Copy</button></div>
-          <pre class="terminal"><span class="prompt">$</span> rustup update &amp;&amp; RUSTFLAGS="-C target-cpu=native" cargo install --locked bitviewd
-<span class="prompt">$</span> bitviewd</pre>
+          <pre class="terminal"><span class="line"><span class="prompt">$</span> rustup update &amp;&amp; RUSTFLAGS="-C <span class="w">target-cpu=native</span>" cargo install <span class="w">--locked</span> bitviewd</span><span class="line"><span class="prompt">$</span> bitviewd</span></pre>
           <dl class="table">
             <div><dt>Bitcoin Core</dt><dd>Mainnet, with <code>server=1</code> and RPC credentials, and its <code>blk*.dat</code> files complete from genesis (not pruned).</dd></div>
             <div><dt>Machine</dt><dd>Linux or macOS, 16 GB of memory recommended, and about 290 GiB of disk on top of Bitcoin Core's.</dd></div>
@@ -772,7 +810,7 @@
             <li class="accent"><b>Plugins</b><span>index and compute every series; yours beside Bitview's own</span></li>
             <li><b>Serve</b><span>Studio, the API, clients</span></li>
           </ol>
-          <pre class="code"><span class="c">// A plugin: its storage, and what it keeps. (From the custom plugin example.)</span>
+          <div class="code"><pre><span class="c">// A plugin: its storage, and what it keeps. (From the custom plugin example.)</span>
 <span class="k">#[derive(Traversable, Plugin)]</span>
 <span class="k">#[plugin(storage = STORAGE)]</span>
 pub struct Vecs&lt;M: StorageMode = Rw&gt; {
@@ -786,7 +824,7 @@ pub struct Vecs&lt;M: StorageMode = Rw&gt; {
 <span class="c">// The binary: Bitview's runner, your composition.</span>
 fn main() -&gt; Result&lt;()&gt; {
     run(Plugins::import)
-}</pre>
+}</pre></div>
           <p class="caption">The whole example adds one series to Bitview's defaults and serves it through the same API.</p>
           <div class="actions">
             <a class="button primary" href="https://github.com/bitcoinresearchkit/mono/tree/main/examples/custom_plugin">Custom plugin example</a>
@@ -839,6 +877,18 @@ fn main() -&gt; Result&lt;()&gt; {
           copied.textContent = `${said === "Copied" ? "Copied" : "Copy failed"}: ${button.dataset.copy}`;
           setTimeout(() => (button.textContent = "Copy", copied.textContent = ""), 1500);
         });
+      }
+      // A code block that scrolls sideways says where it's cut: data-cut start, end or both, read as it scrolls and as
+      // its box changes (none when it's whole).
+      for (const block of document.querySelectorAll("pre")) {
+        const cuts = () => {
+          const start = block.scrollLeft > 1, end = block.scrollLeft + block.clientWidth < block.scrollWidth - 1;
+          const cut = start && end ? "both" : start ? "start" : end ? "end" : "";
+          if (cut) block.dataset.cut = cut;
+          else delete block.dataset.cut;
+        };
+        block.addEventListener("scroll", cuts, { passive: true });
+        new ResizeObserver(cuts).observe(block);
       }
     </script>
   </body>
