@@ -583,6 +583,11 @@
         text-align: center;
       }
 
+      /* (Nothing shown: the list takes no room, so what's said sits under the headings, not past an empty column.) */
+      .feed:has(+ .empty:not([hidden])) {
+        flex: none;
+      }
+
       .empty {
         padding: 48px 16px;
         color: var(--faint);
