@@ -165,7 +165,8 @@
       .axis-hint {
         width: max-content;
         margin: 0;
-        color: rgb(var(--foreground-rgb) / 0.36);
+        /* (Quiet beside the terrain, still read: 4.5:1 and more on the ground.) */
+        color: rgb(var(--foreground-rgb) / 0.5);
         font-weight: 500;
         line-height: 1.5;
         letter-spacing: 0.07em;
@@ -197,7 +198,7 @@
       }
 
       #source-credit .credit-copy {
-        opacity: 0.45;
+        opacity: 0.66;
       }
 
       #source-credit a {
@@ -278,7 +279,7 @@
 
       .profitability-item .profitability-amount {
         font-weight: 500;
-        opacity: 0.82;
+        opacity: 0.88;
       }
 
       .profitability-item.profit output {
@@ -424,7 +425,8 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        opacity: 0.42;
+        /* (The option not chosen: in the muted grey, read still (4.5:1); the chosen one in the full ink.) */
+        opacity: 0.78;
         transition:
           color 140ms ease,
           opacity 140ms ease;
