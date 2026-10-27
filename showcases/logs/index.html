@@ -997,7 +997,11 @@
         const d = new Date(ms);
         return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
       };
-      const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "medium" });
+      /** A line's moment whole, as the list's clock and the suite's dates write it: "27 Oct 2026, 11:44:34.566". */
+      const moment = (ms) => {
+        const d = new Date(ms);
+        return `${d.getDate()} ${d.toLocaleString("en", { month: "short" })} ${d.getFullYear()}, ${clock(ms)}.${pad(d.getMilliseconds(), 3)}`;
+      };
       const toMs = (d) => {
         const m = DURATION.exec(d ?? "");
         return m ? Number(m[1]) * MS[m[2]] : null;
@@ -1319,7 +1323,7 @@
         close.setAttribute("aria-label", "Close");
         close.innerHTML = `<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`;
         close.addEventListener("click", unselect);
-        add("p", { className: "when", textContent: dateFormat.format(l.unix_ms) });
+        add("p", { className: "when", textContent: moment(l.unix_ms) });
         if (l.status) {
           fill(add("dl", {}), [["Status", String(l.status), `s${String(l.status)[0]}`], ["Duration", short(l.took)], ["Route", l.route], ["Line", `#${num(l.seq)}`]]);
           add("h3", { textContent: "This route, last ten minutes" });
