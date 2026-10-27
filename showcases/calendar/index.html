@@ -863,10 +863,11 @@
       /** Pools' names in order, the reader's as localeCompare's (one collator for every comparison: a string's own
        * localeCompare makes one each call). */
       const byName = new Intl.Collator().compare;
-      /** A day's leaders: the known pools that found the most of its blocks, every one tied for first (Unknown isn't a pool). */
+      /** A day's leaders: the known pools that found the most of its blocks, every one tied for first (Unknown isn't a pool);
+       * with every known pool's count that day, and how many blocks it had. */
       function leadersOf(/** @type {Block[]} */ blocks) {
         const known = ranked(blocks.filter((block) => block.pool !== "unknown")), count = known[0]?.count ?? 0;
-        return { pools: known.filter((pool) => pool.count === count).map((pool) => pool.pool).sort((a, b) => byName(name(a), name(b))), count };
+        return { pools: known.filter((pool) => pool.count === count).map((pool) => pool.pool).sort((a, b) => byName(name(a), name(b))), count, known, total: blocks.length };
       }
       /** Pools by blocks found, the most first (a tie, by name). */
       function ranked(/** @type {Block[]} */ blocks) {
@@ -942,7 +943,13 @@
         if (tiles[to]) move(tiles[to]);
       }
       // (A block tapped or clicked: focused, so its tip shows, on a phone too.)
-      $("view").addEventListener("click", (event) => /** @type {HTMLElement | null} */ (/** @type {Element} */ (event.target).closest?.(".block"))?.focus({ preventScroll: true }));
+      $("view").addEventListener("click", (event) => {
+        const target = /** @type {Element} */ (event.target);
+        // (A year's day opens it (one listener for the grid's 365); a day's block takes the focus, its tip with it.)
+        const day = /** @type {HTMLButtonElement | null} */ (target.closest?.(".day"));
+        if (day?.dataset.date && !day.disabled) return go({ view: "day", date: day.dataset.date });
+        /** @type {HTMLElement | null} */ (target.closest?.(".block"))?.focus({ preventScroll: true });
+      });
 
       // ── What a tile says, beside it (pointed at or focused) ──
       const tip = $("tip");
@@ -1121,6 +1128,9 @@
         const led = new Map();
         /** @type {Map<string, string[]>} */
         const leaderOf = new Map();
+        /** Each day's leaders, as worked out for its tile, for the notes; and the known pools' blocks over the year, from
+         * each day's counts. @type {Map<string, ReturnType<typeof leadersOf>>} */
+        const leads = new Map(), yearCounts = /** @type {Map<string, number>} */ (new Map());
         for (let month = 0; month < 12; month++) {
           const card = document.createElement("section"), days = Object.assign(document.createElement("div"), { className: "days" });
           card.className = "month";
@@ -1140,6 +1150,10 @@
           for (let d = 1; d <= length; d++) {
             const date = iso(Date.UTC(y, month, d)), dayBlocks = byDay.get(date) ?? [], outside = date > now || date < GENESIS;
             const lead = leadersOf(dayBlocks);
+            if (dayBlocks.length) {
+              leads.set(date, lead);
+              for (const { pool, count } of lead.known) yearCounts.set(pool, (yearCounts.get(pool) ?? 0) + count);
+            }
             const tile = Object.assign(document.createElement("button"), { type: "button", className: `day${date === now ? " today" : ""}`, disabled: outside || !blocks, tabIndex: -1 });
             tile.dataset.date = date;
             const when = `${WEEKDAYS[(utc(date).getUTCDay() + 6) % 7]} ${d} ${MONTHS[month]}`;
@@ -1159,7 +1173,6 @@
               if (blocks && !outside) tile.dataset.tip = `${when}\n${dayBlocks.length ? `No known pool: ${plural(dayBlocks.length, "block")}` : "No blocks"}`;
             }
             tile.setAttribute("aria-label", `${when}${tile.dataset.tip ? `: ${tile.dataset.tip.split("\n")[1]}` : ""}`);
-            tile.addEventListener("click", () => go({ view: "day", date }));
             days.append(tile);
           }
           card.append(Object.assign(document.createElement("h2"), { textContent: MONTHS[month] }), week, days);
@@ -1170,14 +1183,15 @@
         (months.querySelector(`.day[data-date="${stop}"]:not(:disabled)`) ?? months.querySelector(".day.today:not(:disabled)") ?? months.querySelector(".day:not(:disabled)"))?.setAttribute("tabindex", "0");
         $("view").replaceChildren(months);
         if (!blocks) return drawNotes([]);
-        const notes = yearNotes(blocks, byDay, leaderOf);
+        const notes = yearNotes(blocks, byDay, leaderOf, leads);
         drawNotes(notes.map((note) => ({ ...note, when: shortDate(note.date), open: note.date })));
         const noted = new Set(notes.map((note) => note.date));
         for (const tile of months.querySelectorAll(".day")) {
           const date = /** @type {HTMLElement} */ (tile).dataset.date ?? "";
           tile.classList.toggle("noted", noted.has(date));
         }
-        const pools = ranked(blocks), share = new Map(pools.map(({ pool, count }) => [pool, count / blocks.length]));
+        // (A leader's share of the year's blocks: only known pools lead, so their counts are all it needs.)
+        const share = new Map([...yearCounts].map(([pool, count]) => [pool, count / blocks.length]));
         totals([["Blocks", grouped(blocks.length)], ["Day leaders", grouped(led.size)]]);
         // (Its bar: its share of the days led; beside it, its share of the blocks.)
         const daysLed = [...led.values()].reduce((a, b) => a + b, 0) || 1;
@@ -1190,9 +1204,10 @@
        * What an almanac would note of a year: its halvings (the blocks themselves), its busiest and quietest whole days,
        * the longest run of days one pool led, and the most blocks one pool found in a day.
        * @param {Block[]} blocks @param {Map<string, Block[]>} byDay @param {Map<string, string[]>} leaderOf
+       * @param {Map<string, ReturnType<typeof leadersOf>>} leads each day's, as its tile has them
        * @returns {{ key: string, date: string, text: string }[]}
        */
-      function yearNotes(blocks, byDay, leaderOf) {
+      function yearNotes(blocks, byDay, leaderOf, leads) {
         const notes = [], y = year();
         for (const block of blocks) {
           if (!block.height || block.height % 210_000) continue;
@@ -1227,10 +1242,7 @@
           notes.push({ key: "run", date: best.start, text: `${name(best.pool)} ${text}` });
         }
         let biggest = { date: "", pools: /** @type {string[]} */ ([]), count: 0, total: 0 };
-        for (const [date, dayBlocks] of byDay) {
-          const lead = leadersOf(dayBlocks);
-          if (lead.count > biggest.count) biggest = { date, pools: lead.pools, count: lead.count, total: dayBlocks.length };
-        }
+        for (const [date, lead] of leads) if (lead.count > biggest.count) biggest = { date, pools: lead.pools, count: lead.count, total: lead.total };
         if (biggest.count) notes.push({ key: "most", date: biggest.date, text: `The most by one pool in a day: ${biggest.pools.map(name).join(" and ")}, ${biggest.count} of ${biggest.total} blocks${biggest.pools.length > 1 ? " each" : ""}` });
         return notes.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
       }
