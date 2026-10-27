@@ -885,6 +885,19 @@
       }
 
       /* ── 03: what it skips ── */
+      /* (Its lines held: two on a desk, three on a phone (four on the narrowest), the count it says coming in without moving the rules.) */
+      #kept {
+        min-height: 2lh;
+
+        @media (max-width: 719px) {
+          min-height: 3lh;
+        }
+
+        @media (max-width: 359px) {
+          min-height: 4lh;
+        }
+      }
+
       .skips {
         display: grid;
         grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
@@ -904,11 +917,14 @@
           background: var(--app);
         }
 
+        /* (As wide as the widest count and share from the start, so a rule's name wraps the same before and after.) */
         output {
+          min-width: 12ch;
           color: var(--ink);
           font-size: 13px;
           font-variant-numeric: tabular-nums;
           text-align: right;
+          white-space: nowrap;
 
           small {
             margin-left: 8px;
@@ -1183,7 +1199,12 @@
             <div class="plate" id="plate" role="slider" tabindex="0" aria-label="The fingerprint's place: arrows move it, Home fits it">
               <svg id="spectrum" aria-hidden="true"></svg>
             </div>
-            <dl class="sums" id="sums" aria-label="Round amounts in sats at this price"></dl>
+            <dl class="sums" id="sums" aria-label="Round amounts in sats at this price">
+              <div><dt>$10</dt><dd>–<small>sats</small></dd></div>
+              <div><dt>$100</dt><dd>–<small>sats</small></dd></div>
+              <div><dt>$1k</dt><dd>–<small>sats</small></dd></div>
+              <div><dt>$10k</dt><dd>–<small>sats</small></dd></div>
+            </dl>
           </div>
           <ul class="caption key">
             <li><i class="counted" aria-hidden="true"></i>The payments it counted at that block, by amount in sats, smallest on the left: the block's and the 11 before it, the newest weighing most (now: the mempool's, as the next block).</li>
@@ -1208,12 +1229,12 @@
         <div>
           <p id="kept">Only outputs that look like someone paying someone count.</p>
           <ul class="skips" id="skips" aria-label="Each rule, in the order it asks, and the outputs it skipped at the block read in 01">
-            <li data-rule="coinbase"><b>The miner's reward</b><output></output><span>New coins, not a payment.</span><i aria-hidden="true"></i></li>
-            <li data-rule="fan_out"><b>Payouts to many</b><output></output><span>More than 250 outputs: an exchange or a pool paying out.</span><i aria-hidden="true"></i></li>
-            <li data-rule="op_return"><b>Transactions with data</b><output></output><span>Any with an OP_RETURN output: records, not purchases.</span><i aria-hidden="true"></i></li>
-            <li data-rule="taproot"><b>Taproot outputs</b><output></output><span>Mostly protocol traffic, which drowns the signal.</span><i aria-hidden="true"></i></li>
-            <li data-rule="dust"><b>Dust</b><output></output><span>Under 1,000 sats: too small to be a payment.</span><i aria-hidden="true"></i></li>
-            <li data-rule="round_btc"><b>Round bitcoin amounts</b><output></output><span>0.01 BTC, 50,000 sats: round in bitcoin, so not in dollars.</span><i aria-hidden="true"></i></li>
+            <li data-rule="coinbase"><b>The miner's reward</b><output>–</output><span>New coins, not a payment.</span><i aria-hidden="true"></i></li>
+            <li data-rule="fan_out"><b>Payouts to many</b><output>–</output><span>More than 250 outputs: an exchange or a pool paying out.</span><i aria-hidden="true"></i></li>
+            <li data-rule="op_return"><b>Transactions with data</b><output>–</output><span>Any with an OP_RETURN output: records, not purchases.</span><i aria-hidden="true"></i></li>
+            <li data-rule="taproot"><b>Taproot outputs</b><output>–</output><span>Mostly protocol traffic, which drowns the signal.</span><i aria-hidden="true"></i></li>
+            <li data-rule="dust"><b>Dust</b><output>–</output><span>Under 1,000 sats: too small to be a payment.</span><i aria-hidden="true"></i></li>
+            <li data-rule="round_btc"><b>Round bitcoin amounts</b><output>–</output><span>0.01 BTC, 50,000 sats: round in bitcoin, so not in dollars.</span><i aria-hidden="true"></i></li>
           </ul>
           <p class="note">Each output counts under the first rule that skips it, in this order: a whole transaction goes first, then its outputs one by one. The bars are shares of all the outputs.</p>
         </div>
@@ -1817,7 +1838,7 @@
           spectrum.innerHTML = `<text class="axis-text" x="${plate.clientWidth / 2}" y="${plate.clientHeight / 2}" text-anchor="middle">No payments counted at this block</text>`;
           for (const id of ["tried", "pct"]) $(id).textContent = "–";
           $("meter").style.width = "0";
-          $("sums").replaceChildren();
+          showSums(null);
           for (const attribute of ["aria-valuenow", "aria-valuemin", "aria-valuemax"]) plate.removeAttribute(attribute);
           plate.setAttribute("aria-valuetext", "No payments counted at this block");
           return;
@@ -1881,9 +1902,13 @@
         plate.setAttribute("aria-valuemin", String(Math.round(priceOf(center + REACH))));
         plate.setAttribute("aria-valuemax", String(Math.round(priceOf(center - REACH))));
         plate.setAttribute("aria-valuetext", `$${grouped(price)}, fit ${Math.round(score * 100)}%${fitted ? ": the price" : ""}`);
+        showSums(price);
+      }
+      /** The round amounts in sats at a price (none: a dash each, their place kept). */
+      function showSums(/** @type {number | null} */ price) {
         $("sums").replaceChildren(...[10, 100, 1000, 10000].map((a) => {
           const div = document.createElement("div");
-          div.innerHTML = `<dt>${dollars(a)}</dt><dd>${grouped((a / price) * 1e8)}<small>sats</small></dd>`;
+          div.innerHTML = `<dt>${dollars(a)}</dt><dd>${price ? grouped((a / price) * 1e8) : "–"}<small>sats</small></dd>`;
           return div;
         }));
       }
