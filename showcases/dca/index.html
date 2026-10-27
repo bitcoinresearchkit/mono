@@ -806,6 +806,11 @@
             border-radius: 999px;
             background: var(--brand);
           }
+
+          /* (Not lit till the step is known.) */
+          &:has(.bone)::before {
+            background: var(--pressed);
+          }
         }
 
         .act {
@@ -1309,6 +1314,13 @@
         animation: pulse 1.2s ease-in-out infinite alternate;
       }
 
+      /* (A line a phone's narrower card adds: its words wrap once more there.) */
+      .bone.narrow {
+        @media (min-width: 720px) {
+          display: none;
+        }
+      }
+
       @keyframes pulse {
         to {
           opacity: 0.35;
@@ -1414,14 +1426,17 @@
 
           </div>
 
-          <section class="card today" id="today" aria-labelledby="today-title" hidden>
-            <div class="head"><h2 id="today-title">Today</h2><span class="phase" id="today-phase"></span></div>
+          <!-- (Its shape held while the smart plan's series come, bones in place of its words; gone if they can't be read.) -->
+          <section class="card today" id="today" aria-labelledby="today-title">
+            <div class="head"><h2 id="today-title">Today</h2><span class="phase" id="today-phase"><span class="bone" style="--w: 7ch"></span></span></div>
             <div class="now">
-              <p class="act" id="today-act">&nbsp;</p>
-              <p class="why" id="today-why">&nbsp;</p>
-              <p class="when" id="today-when">&nbsp;</p>
+              <p class="act" id="today-act"><span class="bone" style="--w: 9ch"></span> <span class="bone narrow" style="--w: 60%"></span></p>
+              <p class="why" id="today-why"><span class="bone" style="--w: 100%"></span> <span class="bone narrow" style="--w: 100%"></span> <span class="bone" style="--w: 60%"></span></p>
+              <p class="when" id="today-when"><span class="bone" style="--w: 100%"></span> <span class="bone" style="--w: 40%"></span></p>
             </div>
-            <dl class="rows" id="today-levels" aria-label="What would change it"></dl>
+            <dl class="rows" id="today-levels" aria-label="What would change it">
+              <div><dt><span class="bone" style="--w: 8em"></span><small>&nbsp;</small></dt><dd><span class="bone"></span><small>&nbsp;</small></dd></div>
+            </dl>
           </section>
 
           <section class="card smart" id="smart" aria-labelledby="smart-title">
@@ -2786,6 +2801,7 @@
         } catch (error) {
           // (Said outside the calculator and the map, which stay inert without prices.)
           $("sentence").textContent = "";
+          $("today").hidden = true;
           for (const bone of document.querySelectorAll(".bone")) bone.replaceWith("—");
           // (Unreached, said plainly; else what went wrong.)
           $("failed").replaceChildren(
