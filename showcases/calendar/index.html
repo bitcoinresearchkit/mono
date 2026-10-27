@@ -152,6 +152,11 @@
         min-height: 64px;
         font-size: 13px;
 
+        /* (Wrapped on a phone, its totals under it: room above, and under the status bar.) */
+        @media (max-width: 640px) {
+          padding: max(14px, env(safe-area-inset-top)) 0 4px;
+        }
+
         .brand {
           display: inline-flex;
           align-items: center;
@@ -165,6 +170,40 @@
           }
         }
 
+      }
+
+      /* (A day's year, the way back to it: a crumb before the day's stepper.) */
+      .up {
+        position: relative;
+        margin-left: 10px;
+        border: 0;
+        padding: 0 2px;
+        background: none;
+        color: var(--soft);
+        font: italic 400 19px / 1 var(--serif);
+        cursor: pointer;
+        touch-action: manipulation;
+
+        &::after {
+          content: "/";
+          margin-left: 8px;
+          color: var(--faint);
+        }
+
+        &:hover {
+          color: var(--ink);
+        }
+
+        /* (A finger's reach, unseen.) */
+        &::before {
+          content: "";
+          position: absolute;
+          inset: -8px -4px;
+        }
+
+        + .stepper {
+          margin-left: 8px;
+        }
       }
 
       .stepper {
@@ -196,14 +235,17 @@
           }
         }
 
+        /* (Where we are, between its steps: a year, or a day.) */
         .current {
+          display: grid;
+          place-items: center;
+          min-width: 64px;
+          height: 30px;
+          border-inline: 1px solid var(--line);
+          padding: 0 10px;
           color: var(--ink);
           font: italic 400 19px / 1 var(--serif);
-
-          &:disabled {
-            color: var(--ink);
-            opacity: 1;
-          }
+          white-space: nowrap;
         }
       }
 
@@ -698,9 +740,10 @@
       <header class="top">
         <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
         <h1 class="sr">Calendar</h1>
+        <button type="button" id="up" class="up" hidden></button>
         <nav class="stepper" aria-label="Year or day">
           <button type="button" id="back" class="num"></button>
-          <button type="button" id="current" class="current num"></button>
+          <span id="current" class="current num"></span>
           <button type="button" id="forward" class="num"></button>
         </nav>
         <dl class="totals" id="totals"></dl>
@@ -838,7 +881,13 @@
       const year = () => Number(at.date.slice(0, 4));
       $("back").addEventListener("click", () => go(at.view === "year" ? { view: "year", date: `${year() - 1}-12-31` } : { view: "day", date: shift(at.date, -1) }));
       $("forward").addEventListener("click", () => go(at.view === "year" ? { view: "year", date: `${year() + 1}-01-01` } : { view: "day", date: shift(at.date, 1) }));
-      $("current").addEventListener("click", () => at.view === "day" && go({ view: "year", date: at.date }));
+      /** A day left for its year by keys: focus goes on to that day's tile once the year is drawn. */
+      let backTo = "";
+      const up = (/** @type {boolean} */ byKeys) => {
+        backTo = byKeys ? at.date : "";
+        go({ view: "year", date: at.date });
+      };
+      $("up").addEventListener("click", (event) => up(event.detail === 0));
 
       // ── The grid by keys: one tab stop, ← → a day, ↑ ↓ a week (across months), Home and End the month's ends ──
       $("view").addEventListener("keydown", (event) => {
@@ -911,6 +960,8 @@
       // (Scrolled: a pointer's tip goes, a focused tile's follows it.)
       addEventListener("scroll", () => !tip.hidden && showTip(tipByPointer ? null : tipTile), { passive: true });
       addEventListener("keydown", (event) => {
+        // (Escape: a tip put away first, else a day's view back to its year.)
+        if (event.key === "Escape" && tip.hidden && at.view === "day" && !event.defaultPrevented) return up(true);
         if (event.key !== "Escape" || tip.hidden) return;
         // (The focused tile's tip stays away, whether it or a pointer showed the one put away.)
         const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest?.("[data-tip]") ?? null);
@@ -944,6 +995,8 @@
           else drawDay(blocks);
           loaded = key;
           readAt = asked;
+          if (backTo && at.view === "year") /** @type {HTMLElement | null} */ (document.querySelector(`.day[data-date="${backTo}"]`))?.focus({ preventScroll: true });
+          backTo = "";
           if (focused && !focused.isConnected) {
             const { date, leader, note, height } = focused.dataset;
             const again = /** @type {HTMLElement | null} */ (document.querySelector(date ? `.day[data-date="${date}"]` : leader ? `[data-leader="${leader}"]` : height ? `.block[data-height="${height}"]` : `[data-note="${note}"]`));
@@ -1008,14 +1061,16 @@
         const y = year(), day = at.view === "day";
         $("back").textContent = "‹";
         $("forward").textContent = "›";
-        $("current").textContent = String(y);
+        // (Where we are in the middle, a year or a day; a day's year before it, the way back.)
+        $("current").textContent = day ? `${Number(at.date.slice(8, 10))} ${MONTHS[Number(at.date.slice(5, 7)) - 1].slice(0, 3)}` : String(y);
+        $("up").hidden = !day;
+        $("up").textContent = String(y);
+        $("up").setAttribute("aria-label", `Back to ${y}`);
         $("back").setAttribute("aria-label", day ? "The day before" : `${y - 1}`);
         $("forward").setAttribute("aria-label", day ? "The day after" : `${y + 1}`);
-        $("current").setAttribute("aria-label", day ? `Back to ${y}` : `${y}`);
         /** @type {HTMLButtonElement} */ ($("back")).disabled = day ? at.date <= GENESIS : y <= 2009;
         /** @type {HTMLButtonElement} */ ($("forward")).disabled = day ? at.date >= today() : y >= Number(today().slice(0, 4));
-        /** @type {HTMLButtonElement} */ ($("current")).disabled = !day;
-        $("lede").textContent = day ? `${longDate(at.date)}: every block, where it fell in its 24 hours` : "Each day, the pool that found the most blocks: the darker, the more of them";
+        $("lede").textContent = day ? `${longDate(at.date)}: every block, where it fell in its 24 hours` : "Each day, the pool that found the most blocks; the stronger its tile, the more of the day's it found";
         $("leaders-title").textContent = day ? "Pools, by blocks" : "Pools, by days led";
         document.title = `${day ? at.date : y} · Calendar · Bitview`;
       }
