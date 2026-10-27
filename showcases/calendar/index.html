@@ -783,6 +783,14 @@
       const LIGHT_LOGOS = new Set(["foundryusa", "ultimuspool", "unknown", "whitepool"]);
       const grouped = (/** @type {number} */ n) => n.toLocaleString("en-US");
       const iso = (/** @type {number} */ time) => new Date(time).toISOString().slice(0, 10);
+      /** A block's UTC day from its time in seconds, each day's written once (a year's blocks share 365). */
+      const dayNames = /** @type {Map<number, string>} */ (new Map());
+      const dayOf = (/** @type {number} */ seconds) => {
+        const k = Math.floor(seconds / 86_400);
+        let day = dayNames.get(k);
+        if (day === undefined) dayNames.set(k, (day = iso(k * DAY)));
+        return day;
+      };
       const today = () => iso(Date.now());
       const utc = (/** @type {string} */ date) => new Date(`${date}T00:00:00Z`);
       const shift = (/** @type {string} */ date, /** @type {number} */ days) => iso(utc(date).getTime() + days * DAY);
@@ -849,19 +857,22 @@
           return part;
         }));
         return parts.flatMap(([days, pools, times]) =>
-          days.data.map((time, i) => /** @type {Block} */ ({ height: days.start + i, day: iso(time * 1000), at: time, pool: pools.data[i], ...(times ? { time: times.data[i] } : {}) })),
+          days.data.map((time, i) => /** @type {Block} */ ({ height: days.start + i, day: dayOf(time), at: time, pool: pools.data[i], ...(times ? { time: times.data[i] } : {}) })),
         ).filter((block) => block.day >= from && block.day < to);
       }
+      /** Pools' names in order, the reader's as localeCompare's (one collator for every comparison: a string's own
+       * localeCompare makes one each call). */
+      const byName = new Intl.Collator().compare;
       /** A day's leaders: the known pools that found the most of its blocks, every one tied for first (Unknown isn't a pool). */
       function leadersOf(/** @type {Block[]} */ blocks) {
         const known = ranked(blocks.filter((block) => block.pool !== "unknown")), count = known[0]?.count ?? 0;
-        return { pools: known.filter((pool) => pool.count === count).map((pool) => pool.pool).sort((a, b) => name(a).localeCompare(name(b))), count };
+        return { pools: known.filter((pool) => pool.count === count).map((pool) => pool.pool).sort((a, b) => byName(name(a), name(b))), count };
       }
       /** Pools by blocks found, the most first (a tie, by name). */
       function ranked(/** @type {Block[]} */ blocks) {
         const counts = new Map();
         for (const block of blocks) counts.set(block.pool, (counts.get(block.pool) ?? 0) + 1);
-        return [...counts].map(([pool, count]) => ({ pool, count })).sort((a, b) => b.count - a.count || name(a.pool).localeCompare(name(b.pool)));
+        return [...counts].map(([pool, count]) => ({ pool, count })).sort((a, b) => b.count - a.count || byName(name(a.pool), name(b.pool)));
       }
 
       // ── Where we are: a year, or a day (in the address, for links and Back) ──
@@ -876,8 +887,9 @@
       function go(/** @type {{ view: "year" | "day", date: string }} */ to) {
         at = to;
         history.pushState(null, "", `?${new URLSearchParams(to)}`);
-        load();
+        // (To the top before the new view is built: after, scrolling would lay out what was just built, at once.)
         scrollTo({ top: 0 });
+        load();
       }
       addEventListener("popstate", () => ((at = read()), load()));
 
@@ -1220,7 +1232,7 @@
           if (lead.count > biggest.count) biggest = { date, pools: lead.pools, count: lead.count, total: dayBlocks.length };
         }
         if (biggest.count) notes.push({ key: "most", date: biggest.date, text: `The most by one pool in a day: ${biggest.pools.map(name).join(" and ")}, ${biggest.count} of ${biggest.total} blocks${biggest.pools.length > 1 ? " each" : ""}` });
-        return notes.sort((a, b) => a.date.localeCompare(b.date));
+        return notes.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
       }
       /** The margin's notes: when, what; a note of a day opens it (and keeps the focus by its key). @param {{ when: string, text: string, open?: string, key?: string }[]} notes */
       function drawNotes(notes) {
@@ -1301,7 +1313,7 @@
           ...(longest ? [{ when: clock(longest.after.at), text: `The longest wait: ${span(longest.gap)}, after block ${grouped(longest.after.height)}` }] : []),
           ...(quickest ? [{ when: clock(quickest.after.at), text: `The quickest: ${span(quickest.gap)} between blocks ${grouped(quickest.after.height)} and ${grouped(quickest.block.height)}` }] : []),
           { when: `${String(busiest).padStart(2, "0")}:00`, text: `The busiest hour: ${hours[busiest]} ${hours[busiest] === 1 ? "block" : "blocks"}` },
-        ].sort((a, b) => a.when.localeCompare(b.when)));
+        ].sort((a, b) => (a.when < b.when ? -1 : a.when > b.when ? 1 : 0)));
         // The dial: noon at the bottom, midnight at the top; a tick a block, in its pool's ink; the longest wait, an arc.
         const C = 200, inner = 132, outer = 168, start = Date.parse(`${at.date}T00:00:00Z`) / 1000;
         const angle = (/** @type {number} */ time) => ((time - start) / 86_400) * Math.PI * 2 - Math.PI / 2;
