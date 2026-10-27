@@ -29078,12 +29078,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return windowError(node.a) || windowError(node.b);
       }
-      /** Why a formula can't be added to this chart: it doesn't read, or a letter names no layer here; else "". */
+      /**
+       * Why a formula can't be added to this chart: it doesn't read, a letter names no layer here, or a series it names
+       * isn't on Bitview (said as its legend would once drawn, as it's typed: the catalog holds every series, once it's
+       * indexed); else "".
+       */
       function formulaError(/** @type {string} */ text) {
         const problem = parseError(text) || windowError(parse(text));
         if (problem) return problem;
         const missing = [...refsOf(parse(text))].find((letter) => !chart.layers.some((layer) => layer.letter === letter));
-        return missing ? goneLayer(chart, missing) ?? `There is no layer ${missing}` : "";
+        if (missing) return goneLayer(chart, missing) ?? `There is no layer ${missing}`;
+        const unknown = catalogIndex ? [...refsOf(parse(text), "series")].find((name) => !catalogIndex.has(name)) : undefined;
+        return unknown ? `${unknown}: not on Bitview` : "";
       }
       /** A row of the formula page: the formula to add, or a piece of one (a layer by its color). */
       /** The last formula found not to compute, what's wrong with it, and the layer it was for (its row says so while it's the one typed). */
