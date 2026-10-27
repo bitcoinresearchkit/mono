@@ -434,6 +434,11 @@
         box-shadow: inset 0 0 0 1px var(--answer);
       }
 
+      /* (Today's ring steps back with the other days' marks, unless the pool lit led it: two rings alike read as one.) */
+      .lit .day.today:not(.led) {
+        box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--answer) 25%, transparent);
+      }
+
       .gap {
         aspect-ratio: 1;
       }
