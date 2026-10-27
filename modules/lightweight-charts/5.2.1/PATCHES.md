@@ -295,7 +295,7 @@ callback is now kept as it's subscribed, and let go of on detach.
 
 `tests.html` doesn't use markers. Checked in Studio: marks moved from series to series, a series' data set after.
 
-## 18. A month's label not taken by a day's
+## 18. A month's label not taken by a day's, nor its room
 
 The time axis's marks are placed by weight (years, then months, then days…), each where it's as far from those placed as
 the widest label takes, in whole bars (rounded up). Months aren't as long as each other: at some zooms February's 28
@@ -303,11 +303,25 @@ days fall a bar short of that, so March's mark isn't placed, and a day's, the 2n
 (the axis read "Feb 2 Apr"). Marks of a month or more (weight 60 up: months, years, of calendar lengths) now need nine
 tenths of that room: 28 days of 31 are more than nine tenths; days and finer, all alike, need it all, as before.
 
+A month's mark left out for room, months dense at the zoom (shown every two), no day's mark goes in that month: its
+number alone read as the month before's ("Sep 8", for 8 October, at a year of daily data). A year's mark left out is
+its January's: the same. Months whose marks show, their days fill in as before ("Oct 20" after "Oct"); a month's mark
+left out where the data jumps (a bar or two after the mark before it: a lone point a year earlier, a month missing),
+its days as before (else a view inside it had none); finer marks (hours, minutes) as before, their labels whole times.
+
 - `class` of the tick marks (`Vu`, its marks by weight), its build's loop over weights: `bvNeed=i>=60?.9*t:t` with the
-  weight's marks, and their test `_-o>=bvNeed&&o-u>=bvNeed` for `_-o>=t&&o-u>=t`.
+  weight's marks, and their test `_-o>=bvNeed&&o-u>=bvNeed` for `_-o>=t&&o-u>=t`; a month's or year's mark not placed
+  (in reach, at least half its own month's bars from the mark before it: a month's mark a bar or two after the one
+  before, its month a few dozen, is the data jumping), its month (to the next mark of either: `bvB`, their places,
+  sorted once a build, searched; or the data's end) kept (`bvSkipped`); a day's mark in one of them not placed (the
+  months sorted, walked along with the days: a build O(N + B log B), N points, B months).
 
 `tests.html` leaves the axes out of its pictures. Checked in Studio: daily data from 7 Sep 2017 to 4 May 2018, its
-axis "Feb Mar Apr" (was "Feb 2 Apr"); other zooms and intervals read as before.
+axis "Feb Mar Apr" (was "Feb 2 Apr"); other zooms and intervals read as before. A year of the price: "2026 Mar May Jul
+Sep" (was "… Sep 8"); 3 months, 6 months, hourly: as before. Codex's reviews (a harness of the builder against the
+published one): 390 data jumps of one to five bars at rooms 2-40, weekly and monthly data as before; left: a jump into
+a last month only a few days long, at rooms 3-5, its days left out (a view of that month alone blank), and a view
+narrower than one label inside a month left out (one label before, none now).
 
 ## 19. An indexed scale's labels as its series writes them
 
