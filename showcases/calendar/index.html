@@ -518,8 +518,17 @@
         aspect-ratio: 1;
       }
 
+      /* (Its picture, its pool's: the light ground's, or the dark's; printed too, as a picture would be, the calendar
+         being its logos.) */
       .logo {
         display: block;
+        background: var(--light) center / contain no-repeat;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+
+        @media (prefers-color-scheme: dark) {
+          background-image: var(--dark);
+        }
 
         /* (A pool with no logo: its initials.) */
         &.initials {
@@ -531,13 +540,6 @@
           box-shadow: inset 0 0 0 1px var(--line);
           font-size: 9px;
           font-weight: 600;
-        }
-
-        img {
-          display: block;
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
         }
       }
 
@@ -902,25 +904,42 @@
 
       const names = new Map([["unknown", "Unknown"]]);
       const name = (/** @type {string} */ slug) => names.get(slug) ?? slug;
-      /** A pool's logo, the one drawn for the ground in use (a pool without one: its initials). */
+      /** A pool's logo, the one drawn for the ground in use (a pool without one: its initials): one element, its picture
+       * its background, by a rule written once for its pool (a year's tiles draw some 700, each a picture, a source and
+       * an image before: the phone's layout and paint of a year a third longer). */
+      const logoRules = /** @type {CSSStyleSheet} */ (document.head.appendChild(document.createElement("style")).sheet);
+      /** Each pool's logo: drawn (its rule written), missing (initials), or being tried, its marks so far kept to turn
+       * into initials if it's missing. @type {Map<string, "drawn" | "missing" | Set<HTMLElement>>} */
+      const logos = new Map();
       function logo(/** @type {string} */ slug) {
-        const picture = Object.assign(document.createElement("picture"), { className: "logo" }), img = document.createElement("img");
-        const of = (/** @type {string} */ id) => (LIGHT_LOGOS.has(id) ? [`/assets/pools/${id}.svg`, `/assets/pools/${id}.light.svg`] : [`/assets/pools/${id}.svg`, `/assets/pools/${id}.svg`]);
-        const [dark, light] = of(slug);
-        const source = Object.assign(document.createElement("source"), { srcset: dark, media: "(prefers-color-scheme: dark)" });
-        Object.assign(img, { src: light, alt: "", decoding: "async" });
-        // (A pool with no logo of its own: its initials, so two such pools still look apart.)
-        img.addEventListener("error", () => {
-          // (Two words, or a word's two humps, their first letters: BTC Guild BG, BitMinter BM, BWPool BW; one, its first
-          // letter and its next consonant: Bixin BX.)
-          const words = name(slug).replace(/[^A-Za-z0-9 ]/g, "").replace(/([a-z])([A-Z])/g, "$1 $2").split(/\s+/).filter(Boolean);
-          const one = words[0] ?? "?", initials = (words.length > 1 ? words.map((word) => word[0]).join("") : one[0] + (one.slice(1).match(/[^aeiouAEIOU]/)?.[0] ?? "")).slice(0, 2).toUpperCase();
-          const mark = Object.assign(document.createElement("span"), { className: "logo initials", textContent: initials });
-          mark.setAttribute("aria-hidden", "true");
-          picture.replaceWith(mark);
-        }, { once: true });
-        picture.append(source, img);
-        return picture;
+        const mark = Object.assign(document.createElement("span"), { className: "logo" });
+        mark.dataset.logo = slug;
+        let known = logos.get(slug);
+        if (known === undefined) {
+          const dark = `/assets/pools/${slug}.svg`, light = LIGHT_LOGOS.has(slug) ? `/assets/pools/${slug}.light.svg` : dark;
+          logoRules.insertRule(`.logo[data-logo="${CSS.escape(slug)}"] { --dark: url("${dark}"); --light: url("${light}"); }`);
+          logos.set(slug, (known = new Set()));
+          // (Each of its files tried once, as an image: a background says nothing when it's missing; either missing, its
+          // initials, on either ground.)
+          const tried = [...new Set([dark, light])].map((src) => new Promise((ok, no) => Object.assign(new Image(), { onload: ok, onerror: no, src })));
+          Promise.all(tried).then(() => logos.set(slug, "drawn"), () => {
+            for (const pending of /** @type {Set<HTMLElement>} */ (logos.get(slug))) initials(pending, slug);
+            logos.set(slug, "missing");
+          });
+        }
+        if (known === "missing") initials(mark, slug);
+        else if (known !== "drawn") known.add(mark);
+        return mark;
+      }
+      /** A pool with no logo of its own: its initials, so two such pools still look apart. (Two words, or a word's two
+       * humps, their first letters: BTC Guild BG, BitMinter BM, BWPool BW; one, its first letter and its next consonant:
+       * Bixin BX.) */
+      function initials(/** @type {HTMLElement} */ mark, /** @type {string} */ slug) {
+        const words = name(slug).replace(/[^A-Za-z0-9 ]/g, "").replace(/([a-z])([A-Z])/g, "$1 $2").split(/\s+/).filter(Boolean);
+        const one = words[0] ?? "?";
+        mark.textContent = (words.length > 1 ? words.map((word) => word[0]).join("") : one[0] + (one.slice(1).match(/[^aeiouAEIOU]/)?.[0] ?? "")).slice(0, 2).toUpperCase();
+        mark.classList.add("initials");
+        mark.setAttribute("aria-hidden", "true");
       }
 
       const json = (/** @type {string} */ path, /** @type {AbortSignal} */ signal) =>
