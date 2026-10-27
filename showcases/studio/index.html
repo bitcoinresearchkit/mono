@@ -24448,6 +24448,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let presets = /** @type {Preset[] | null} */ (null), presetWords = /** @type {string[]} */ ([]), presetsFailed = false;
       /** Each preset's title, name and subject (its title before ": "), lowercased, as a search compares them. @type {{ title: string, name: string, subject: string }[]} */
       let presetTitles = [];
+      /**
+       * The presets as a search ranks those alike in fit: the nearest the top of the tree, then the shortest title (as
+       * made; a renamed one's as it is now, placed at the search: see presetsMatching), then their order; each one's rank.
+       * Made once they're read.
+       */
+      let presetOrder = new Int32Array(0), presetRank = new Int32Array(0);
+      /** The presets whose name or title's subject is a search's words exactly (lowercased), by those words: its best. @type {Map<string, number[]>} */
+      let presetExact = new Map();
       /** @type {Promise<Preset[]> | null} */
       let presetsLoad = null, presetsRead = /** @type {Promise<Preset[]> | null} */ (null);
       /**
@@ -24551,6 +24559,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           presets = list;
           presetWords = list.map((preset) => `${preset.t} ${preset.p.join(" ")}`.toLowerCase());
           presetTitles = list.map((preset) => ((title) => ({ title, name: preset.p.at(-1)?.toLowerCase() ?? "", subject: title.split(": ")[0] }))(preset.t.toLowerCase()));
+          // (Counted into place, not sorted: no comparison called thousands of times, a phone's engine without a JIT.)
+          presetRank = Int32Array.from(list, (preset, i) => preset.p.length * 1000 + Math.min(presetTitles[i].title.length, 999));
+          const starts = new Int32Array(Math.max(0, ...presetRank) + 2);
+          for (let i = 0; i < presetRank.length; i++) starts[presetRank[i] + 1]++;
+          for (let r = 1; r < starts.length; r++) starts[r] += starts[r - 1];
+          presetOrder = new Int32Array(list.length);
+          for (let i = 0; i < presetRank.length; i++) presetOrder[starts[presetRank[i]]++] = i;
+          // (A search narrowed from the last one's found: of the list before, let go of.)
+          presetsFound = { query: "", found: [] };
+          presetExact = new Map();
+          presetTitles.forEach(({ name, subject }, i) => {
+            for (const words of new Set([name, subject])) (presetExact.get(words) ?? presetExact.set(words, []).get(words)).push(i);
+          });
           // (Those opened and left as they were, before they could be told: let go of now; the open one, as the presets
           // have it now, if that's changed.)
           // (Adopted first: copies left as they were, stored, are still here for an adoption's stamp to pass.)
@@ -25155,27 +25176,58 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // among them all at each match: thousands, a word or two typed.)
         const copies = new Map();
         for (const doc of library.presets) ((i) => i >= 0 && !copies.has(i) && copies.set(i, doc))(presetIndex(doc));
-        const renamed = new Map([...copies.keys()].map((i) => [i, presetSearchWords(i)]));
+        // (Only those renamed: a copy kept as it came (any preset opened) searched by its words as made, the quick way.)
+        const renamed = new Map([...copies.keys()].filter((i) => ((kept) => kept && titleOf(kept) !== list[i].t)(keptPreset(i, copies.get(i)))).map((i) => [i, presetSearchWords(i)]));
+        // (An index, not an iterator: called for each of thousands, a phone's engine without a JIT; a word alone, its own
+        // test.)
+        const only = words.length === 1 ? words[0] : null;
         const holds = (/** @type {string} */ text) => {
-          for (const word of words) if (!text.includes(word)) return false;
+          if (only !== null) return text.includes(only);
+          for (let k = 0; k < words.length; k++) if (!text.includes(words[k])) return false;
           return true;
         };
-        if (among && !renamed.size) for (const i of among) holds(presetWords[i]) && found.push(i);
+        if (among && !renamed.size) for (let k = 0; k < among.length; k++) holds(presetWords[among[k]]) && found.push(among[k]);
+        else if (!under && !renamed.size && only !== null) for (let i = 0; i < presetWords.length; i++) presetWords[i].includes(only) && found.push(i);
         else for (let i = 0; i < presetWords.length; i++) if ((!under || under(i)) && holds(renamed.get(i) ?? presetWords[i])) found.push(i);
         if (!under) presetsFound = { query, found };
         // The best first: what's typed its name or its title's subject; then all its words in its title, starting it; then
-        // the nearest the top, the shortest. Bucketed (fit, then depth and length), not sorted: a word or two matches
-        // thousands.
-        const buckets = /** @type {number[][][]} */ ([[], [], [], [], []]);
+        // the nearest the top, the shortest (presetOrder). Each one's fit found as it's reached, the fits in turn, till
+        // `most` are: a word or two matches thousands, a few dozen show.
+        const inFound = new Uint8Array(list.length), fits = new Int8Array(list.length).fill(-1);
+        for (let k = 0; k < found.length; k++) inFound[found[k]] = 1;
         // (Each one's title as read, but an edited one's as it is now.)
-        for (const i of found) {
-          const kept = copies.has(i) ? keptPreset(i, copies.get(i)) : undefined, named = presetTitles[i], title = kept ? titleOf(kept).toLowerCase() : named.title;
-          const exact = named.name === query || (kept ? title.split(": ")[0] : named.subject) === query;
-          const fit = exact ? 4 : (holds(title) ? 2 : 0) + (title.startsWith(words[0]) ? 1 : 0);
-          (buckets[fit][list[i].p.length * 1000 + Math.min(title.length, 999)] ??= []).push(i);
+        const fitOf = (/** @type {number} */ i) => {
+          if (fits[i] < 0) {
+            const kept = copies.has(i) ? keptPreset(i, copies.get(i)) : undefined, named = presetTitles[i], title = kept ? titleOf(kept).toLowerCase() : named.title;
+            const exact = named.name === query || (kept ? title.split(": ")[0] : named.subject) === query;
+            fits[i] = exact ? 4 : (holds(title) ? 2 : 0) + (title.startsWith(words[0]) ? 1 : 0);
+          }
+          return fits[i];
+        };
+        // (A renamed one ranked by its title as it is now: see presetRank.)
+        const rankOf = (/** @type {number} */ i) => (renamed.has(i) ? list[i].p.length * 1000 + Math.min(titleOf(/** @type {Chart} */ (keptPreset(i, copies.get(i)))).toLowerCase().length, 999) : presetRank[i]);
+        const byRank = (/** @type {number} */ a, /** @type {number} */ b) => rankOf(a) - rankOf(b) || a - b;
+        // (Exactly what's typed: looked up, and the copies kept, whose title may say it now.)
+        const best = [...new Set([...(presetExact.get(query) ?? []), ...copies.keys()])].filter((i) => inFound[i] && fitOf(i) === 4).sort(byRank).slice(0, most);
+        // (Those found in rank order: a few, sorted; many, read along the presets' order, the renamed ones (few) in their
+        // own places.)
+        const few = found.length * 16 < presetOrder.length ? found.slice().sort(byRank) : null;
+        const along = few ?? (!renamed.size ? presetOrder : ((moved) => {
+          const out = [];
+          let m = 0;
+          for (let k = 0; k < presetOrder.length; k++) {
+            const i = presetOrder[k];
+            if (renamed.has(i)) continue;
+            for (; m < moved.length && byRank(moved[m], i) < 0; m++) out.push(moved[m]);
+            out.push(i);
+          }
+          for (; m < moved.length; m++) out.push(moved[m]);
+          return out;
+        })([...renamed.keys()].sort(byRank)));
+        for (let fit = 3; fit >= 0 && best.length < most; fit--) for (let k = 0; k < along.length && best.length < most; k++) {
+          const i = along[k];
+          if ((few || inFound[i]) && fitOf(i) === fit) best.push(i);
         }
-        const best = [];
-        for (let fit = 4; fit >= 0 && best.length < most; fit--) for (const same of buckets[fit]) if (same && best.length < most) best.push(...same.slice(0, most - best.length));
         return best;
       }
       /** A preset's row: its title (as edited here, if it is; found by a search, its place too); its preview; ↵ opens it; its actions (⌘K). */
@@ -29502,6 +29554,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
 
       const sparks = new Map();
+      // (Out of a phone's size with ⌘K open, its pane beside the list shows: what it says, drawn.)
+      phone.addEventListener("change", () => $("palette").open && !phone.matches && preview());
       function preview() {
         updatePaletteKeys();
         const item = palette.items[palette.active];
@@ -29514,6 +29568,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!item) return void (panel.innerHTML = "");
         if (item.kind === "formula") return previewFormula(panel);
         if (item.recipe) return previewFormula(panel, item);
+        // (A phone's has no room for it (hidden): nothing drawn there at each letter typed. A formula's is computed above:
+        // its row says what it finds.)
+        if (phone.matches) return void (panel.firstChild && (panel.innerHTML = ""));
         if (item.kind === "row") return previewRow(panel, item);
         if (item.kind === "insert" && !item.series) return void (panel.innerHTML = previewPiece(item));
         if (item.kind === "folder") {
