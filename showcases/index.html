@@ -859,7 +859,7 @@
         ["difficulty-panel", "/api/v1/difficulty-adjustment", (d) => {
           const change = d.difficultyChange, at = new Date(d.estimatedRetargetDate);
           $("difficulty").textContent = `${change >= 0 ? "+" : "−"}${Math.abs(change).toFixed(1)}%`;
-          $("difficulty-more").textContent = `Estimated, at block ${grouped(d.nextRetargetHeight)}: ${grouped(d.remainingBlocks)} blocks to go, about ${at.getUTCDate()} ${MONTHS[at.getUTCMonth()]}`;
+          $("difficulty-more").textContent = `An estimate, due at block ${grouped(d.nextRetargetHeight)} (about ${at.getUTCDate()} ${MONTHS[at.getUTCMonth()]}), ${grouped(d.remainingBlocks)} ${d.remainingBlocks === 1 ? "block" : "blocks"} from now`;
           $("difficulty-progress").style.width = `${Math.min(100, Math.max(0, d.progressPercent))}%`;
         }],
         ["api-panel", "/api/series/price/day1/latest", (reply) => ($("reply").textContent = reply), "text"],
