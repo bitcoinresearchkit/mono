@@ -1464,6 +1464,14 @@
       const PER_BIN = 10;
       /** How near a square at `bin` is a block's pick at `pick`: 1 on it, fading over about a bin. */
       const nearPick = (/** @type {number} */ bin, /** @type {number} */ pick) => Math.exp(-((bin - pick) ** 2) / 0.5);
+      /** Where the words over the chart end at the top (the change's foot) and begin at the bottom (the caption's top),
+       * from the chart's top. */
+      function wordsOver() {
+        const box = chart.getBoundingClientRect();
+        const top = Math.max(0, /** @type {HTMLElement} */ ($("change")).getBoundingClientRect().bottom - box.top);
+        const bottom = Math.min(box.height, /** @type {HTMLElement} */ (document.querySelector(".week .foot")).getBoundingClientRect().top - box.top);
+        return { top, bottom: Math.max(top, bottom) };
+      }
       /** The frame: x of a block's index (the live point one past the last), y of a price (log); the data below the
        * price and above the way down. */
       function frame() {
@@ -1471,9 +1479,7 @@
         // (The price axis is the oracle's bins, each an equal row of the whole screen, as many as keep the week's highest
         // price CLEAR under the words at the top and its lowest CLEAR over the foot, rounded out to whole bins.)
         const prices = [...points.map((pt) => pt.p), ...(live ? [live] : [])];
-        const box = chart.getBoundingClientRect();
-        const above = Math.max(0, /** @type {HTMLElement} */ ($("change")).getBoundingClientRect().bottom - box.top) + CLEAR;
-        const below = Math.max(0, box.bottom - /** @type {HTMLElement} */ (document.querySelector(".week .foot")).getBoundingClientRect().top) + CLEAR;
+        const words = wordsOver(), above = words.top + CLEAR, below = h - words.bottom + CLEAR;
         const mTop = h > 0 ? Math.min(0.45, above / h) : 0, mBottom = h > 0 ? Math.min(0.3, below / h) : 0;
         let b0 = 0, b1 = 1;
         if (prices.length) {
@@ -1583,7 +1589,7 @@
         svg.setAttribute("viewBox", `0 0 ${f.w} ${f.h}`);
         const path = points.map((pt, k) => `${k ? "L" : "M"}${f.x(k).toFixed(1)},${f.y(pt.p).toFixed(1)}`).join("") + (live ? `L${f.now.toFixed(1)},${f.y(live).toFixed(1)}` : "");
         const endX = live ? f.now : f.x(f.n - 1), endY = f.y(live || points[f.n - 1].p);
-        svg.innerHTML = `<path class="price-glow" d="${path}"/><path class="price-line" d="${path}"/><circle class="end-glow" cx="${endX}" cy="${endY}" r="9"/><circle class="end" cx="${endX}" cy="${endY}" r="4.5"/><g class="cross" id="cross" visibility="hidden"><line y1="${PAD.top}" y2="${f.h - PAD.bottom}"/><circle r="4.5"/></g>`;
+        svg.innerHTML = `<path class="price-glow" d="${path}"/><path class="price-line" d="${path}"/><circle class="end-glow" cx="${endX}" cy="${endY}" r="9"/><circle class="end" cx="${endX}" cy="${endY}" r="4.5"/><g class="cross" id="cross" visibility="hidden"><line/><circle r="4.5"/></g>`;
         if (pointed !== null) point(pointed);
       }
 
@@ -1602,6 +1608,12 @@
         }
         tell(pointed);
         $("more").textContent = pointed !== null && pointed < points.length ? `How it read block ${grouped(points[pointed].h)}` : "How it reads the chain";
+        // (Its line clear of the words as they now read: told, they may wrap differently.)
+        if (pointed !== null) {
+          const words = wordsOver(), line = /** @type {SVGLineElement} */ (cross.querySelector("line"));
+          line.setAttribute("y1", String(words.top + 12));
+          line.setAttribute("y2", String(Math.max(words.top + 12, words.bottom - 12)));
+        }
       }
 
       /** Pointer input across an element: a touch that starts here scrolls the page unless it moves more across than
