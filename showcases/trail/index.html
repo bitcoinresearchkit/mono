@@ -382,11 +382,12 @@
         border-color: rgb(var(--warm-accent-rgb) / 0.58);
       }
 
+      /* The scene's 2D or 3D: in the screen's corner, as the brand is, not turned or scaled with the scene. */
       .dimension-toggle {
-        position: absolute;
-        bottom: 30px;
-        left: 28px;
-        z-index: 3;
+        position: fixed;
+        z-index: 10;
+        bottom: calc(env(safe-area-inset-bottom) + 18px);
+        left: calc(env(safe-area-inset-left) + 18px);
         display: flex;
         align-items: center;
         gap: 9px;
@@ -394,15 +395,22 @@
         padding: 0;
         border: 0;
         color: var(--muted);
-        font-size: var(--ui-font-size);
+        font-size: 13px;
         font-weight: 500;
         letter-spacing: 0.06em;
-        pointer-events: auto;
       }
 
       .dimension-option {
         position: relative;
         cursor: pointer;
+
+        /* (A finger's reach, unseen: 44px tall; as wide as it is, already a finger's, so it never reaches the scene's
+           credit, which a turned 2D scene puts just beside it.) */
+        &::before {
+          content: "";
+          position: absolute;
+          inset: -13px 0;
+        }
       }
 
       .dimension-option input {
@@ -450,6 +458,51 @@
   </head>
   <body>
     <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
+    <!-- (In the screen's corner, as the brand: upright on a phone too, where the scene is turned.) -->
+    <fieldset
+      id="dimension-toggle"
+      class="dimension-toggle"
+      aria-label="Terrain dimension"
+    >
+      <label class="dimension-option">
+        <input
+          id="dimension-2d"
+          type="radio"
+          name="dimension"
+          value="2d"
+        />
+        <span class="dimension-option-content">
+          <svg
+            class="dimension-icon"
+            viewBox="0 0 18 18"
+            aria-hidden="true"
+          >
+            <rect x="3" y="3" width="12" height="12" />
+          </svg>
+          <span>2D</span>
+        </span>
+      </label>
+      <span class="dimension-separator" aria-hidden="true">|</span>
+      <label class="dimension-option">
+        <input
+          id="dimension-3d"
+          type="radio"
+          name="dimension"
+          value="3d"
+        />
+        <span class="dimension-option-content">
+          <svg
+            class="dimension-icon"
+            viewBox="0 0 18 18"
+            aria-hidden="true"
+          >
+            <path d="M9 1.75 15.5 5.4v7.2L9 16.25 2.5 12.6V5.4Z" />
+            <path d="m2.5 5.4 6.5 3.65 6.5-3.65M9 9.05v7.2" />
+          </svg>
+          <span>3D</span>
+        </span>
+      </label>
+    </fieldset>
     <main id="app" class="app">
       <canvas
         id="terrain"
@@ -611,50 +664,6 @@
         </div>
       </header>
 
-      <fieldset
-        id="dimension-toggle"
-        class="dimension-toggle"
-        aria-label="Terrain dimension"
-      >
-        <label class="dimension-option">
-          <input
-            id="dimension-2d"
-            type="radio"
-            name="dimension"
-            value="2d"
-          />
-          <span class="dimension-option-content">
-            <svg
-              class="dimension-icon"
-              viewBox="0 0 18 18"
-              aria-hidden="true"
-            >
-              <rect x="3" y="3" width="12" height="12" />
-            </svg>
-            <span>2D</span>
-          </span>
-        </label>
-        <span class="dimension-separator" aria-hidden="true">|</span>
-        <label class="dimension-option">
-          <input
-            id="dimension-3d"
-            type="radio"
-            name="dimension"
-            value="3d"
-          />
-          <span class="dimension-option-content">
-            <svg
-              class="dimension-icon"
-              viewBox="0 0 18 18"
-              aria-hidden="true"
-            >
-              <path d="M9 1.75 15.5 5.4v7.2L9 16.25 2.5 12.6V5.4Z" />
-              <path d="m2.5 5.4 6.5 3.65 6.5-3.65M9 9.05v7.2" />
-            </svg>
-            <span>3D</span>
-          </span>
-        </label>
-      </fieldset>
     </main>
 
     <script>
