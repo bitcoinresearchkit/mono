@@ -192,6 +192,10 @@
       }
 
       .note {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 12px;
         margin: 12px 0 0;
         color: var(--loss);
         font-size: 14px;
@@ -390,8 +394,8 @@
       }
 
       /* An action: black (white at night). */
-      .share,
-      .share:hover:not(:disabled) {
+      .action,
+      .action:hover:not(:disabled) {
         color: var(--app);
         background: var(--ink);
       }
@@ -1337,7 +1341,7 @@
     <div class="page">
       <header class="top">
         <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
-        <button type="button" class="pill share" id="share" disabled>Share</button>
+        <button type="button" class="pill action" id="share" disabled>Share</button>
       </header>
 
       <main>
@@ -2734,7 +2738,10 @@
       async function load() {
         try {
           const read = async (/** @type {string} */ id, /** @type {AbortSignal | undefined} */ signal = undefined) => {
-            const response = await fetch(`/api/series/${id}/day1`, { signal });
+            // (Unreached, said as such: fetch's own TypeError, not one of the page's.)
+            const response = await fetch(`/api/series/${id}/day1`, { signal }).catch((error) => {
+              throw error instanceof TypeError ? Object.assign(new Error("this server couldn't be reached"), { name: "Unreached" }) : error;
+            });
             const body = await response.json().catch(() => null);
             if (!response.ok) throw new Error(body?.error?.message ?? `The server answered ${response.status}.`);
             return /** @type {{ start: number, data: (number | null)[] }} */ (body);
@@ -2780,7 +2787,11 @@
           // (Said outside the calculator and the map, which stay inert without prices.)
           $("sentence").textContent = "";
           for (const bone of document.querySelectorAll(".bone")) bone.replaceWith("—");
-          $("failed").textContent = `The daily price couldn't be read: ${error instanceof Error ? error.message : error}. Reload to try again.`;
+          // (Unreached, said plainly; else what went wrong.)
+          $("failed").replaceChildren(
+            error instanceof Error && error.name === "Unreached" ? "This server couldn't be reached. " : `The daily price couldn't be read: ${error instanceof Error ? error.message : error}. `,
+            Object.assign(document.createElement("button"), { type: "button", className: "pill action", textContent: "Try again", onclick: () => location.reload() }),
+          );
           $("calculator").setAttribute("aria-busy", "false");
         }
       }
