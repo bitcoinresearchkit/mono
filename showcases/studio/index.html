@@ -30770,7 +30770,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         } else {
           // Its middle when it's wider than the chart shows (as loaded for it), else all of it.
           const times = /** @type {Resolved} */ (resolved).times, middle = stretchOf(span);
-          glide({ from: Math.max(first, lowerBound(times, middle.from)) - 0.5, to: Math.min(last, lowerBound(times, middle.to) - 1) + 0.5 });
+          // (Its first and last bars whole at the edges: the library centres bar i at (i - from + 0.5) bars in, so a range from
+          // its first to its last shows each whole, none of the days around it.)
+          glide({ from: Math.max(first, lowerBound(times, middle.from)), to: Math.min(last, lowerBound(times, middle.to) - 1) });
         }
       }
       /** Where ↵ would take the view: the chart's overview, the span lit on it; when it starts and ends, how many points. */
