@@ -1791,12 +1791,15 @@
         if (i < 365) return null;
         const worth = worthOf(r, i);
         // Worth against the rate (as its log, ln(1 + rate)): it only grows with the rate, so halving the range finds it.
+        // (Over the days something was put in, found once: not every day again at each of its 60 halvings.)
+        const ages = [], puts = [];
+        for (let d = 0; d <= i; d++) {
+          const put = r.spent[d] - (d ? r.spent[d - 1] : 0);
+          if (put) (ages.push((i - d) / 365.25), puts.push(put));
+        }
         const at = (/** @type {number} */ g) => {
           let total = 0;
-          for (let d = 0; d <= i; d++) {
-            const put = r.spent[d] - (d ? r.spent[d - 1] : 0);
-            if (put) total += put * Math.exp((g * (i - d)) / 365.25);
-          }
+          for (let k = 0; k < puts.length; k++) total += puts[k] * Math.exp(g * ages[k]);
           return total;
         };
         let low = -10, high = 10;
