@@ -1215,9 +1215,17 @@
         const amount = (/** @type {number} */ i) => ["sats", "btc"].includes(parts[i + 1]) || (parts[i + 1] === "to" && ["sats", "btc"].includes(parts[i + 3]));
         return parts.map((part, i) => (/^p[\d.]+$/.test(part) ? `${ordinalOf(part.slice(1))} percentile` : amount(i) ? word(part) : windowOf(part) ?? word(part))).join(" ");
       };
-      /** A series id as words: "sth_realized_price" "STH realized price", "…_rarity_p99_9" "…rarity 99.9th percentile". */
-      const humanize = (/** @type {string} */ name) =>
-        capitalize(spoken(name.replace(/(^|_)p(\d+)_(\d+)(?=_|$)/g, "$1p$2.$3").replace(/(^|_)op_return(?=_|$)/g, "$1opreturn").split("_").filter(Boolean)));
+      /** Mining pools' names by their keys, as this server knows them ("btccom" "BTC.com"), once read (see below). */
+      const poolNames = /** @type {Map<string, string>} */ (new Map());
+      /** Whether anything's been drawn yet, and whether the last drawing had the pools' names (see render). */
+      let drawn = false, drawnNamed = false;
+      /** A series id as words: "sth_realized_price" "STH realized price", "…_rarity_p99_9" "…rarity 99.9th percentile"; a
+       * pool's by its name, "pool_btccom_hashrate_1m" "BTC.com hashrate 1 month". */
+      const humanize = (/** @type {string} */ name) => {
+        const parts = name.replace(/(^|_)p(\d+)_(\d+)(?=_|$)/g, "$1p$2.$3").replace(/(^|_)op_return(?=_|$)/g, "$1opreturn").split("_").filter(Boolean);
+        const pool = parts[0] === "pool" ? poolNames.get(parts[1] ?? "") : undefined;
+        return pool ? `${pool} ${spoken(parts.slice(2))}`.trim() : capitalize(spoken(parts));
+      };
       /** A tree key as words: "utxoSet" "UTXO set", "minute10" "Minute 10", "p2pkh" whole, "_2024" "2024", "_1m" "1 month". */
       const humanizeKey = (/** @type {string} */ key) =>
         percentileKey(key) ??
@@ -1356,6 +1364,8 @@
       const shownKey = () => JSON.stringify(at.path);
       let lastKey = "";
       function render() {
+        drawn = true;
+        drawnNamed = poolNames.size > 0;
         // (Another view: what the last one was asking for, stopped.)
         if (!at.query) searching?.abort();
         if (at.query || !nodeAt(at.path).name) showing?.abort();
@@ -2165,7 +2175,23 @@
         row.focus();
       }
 
-      render();
+      // (The pools by their names, read from the server: their keys as words till then, or if it can't say.)
+      const named = json("/api/v1/mining/pools", new AbortController().signal).then((/** @type {{ slug: string, name: string }[]} */ pools) => {
+        for (const { slug, name } of pools) poolNames.set(slug, name);
+        // (A key the tree begins with "_", its name beginning with a digit: "_1thash".)
+        for (const kid of nodeAt(["pools"]).kids ?? []) kid.label = poolNames.get(kid.key.replace(/^_/, "")) ?? kid.label;
+        return true;
+      }, () => false);
+      // (Opened inside the pools, it waits for their names a moment (a small answer), so they show from the start; else
+      // it's drawn at once, and the overview or a folder of pools drawn again as the names come. A series shown isn't:
+      // its chart, its request and the focus are the visitor's.)
+      const inPools = () => at.path[0] === "pools";
+      if (inPools()) await Promise.race([named, new Promise((ok) => setTimeout(ok, 800))]);
+      // (Unless the visitor drew something meanwhile: a search typed, a folder opened.)
+      if (!drawn) render();
+      named.then((ok) => {
+        if (ok && !drawnNamed && !at.query && !nodeAt(at.path).name && (inPools() || !at.path.length)) render();
+      });
     </script>
   </body>
 </html>
