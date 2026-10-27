@@ -625,21 +625,23 @@ finger left it, falling faster, the view coming to rest against the end.
 Studio, the iPhone simulator, a fling at the latest bar's end: 121, 74, 37, 21, 11, 5, 3, 1.5 bars a frame, at rest in
 150 ms (before, the same fling: 131 … 47, then held).
 
-## 35. A tag's words in whichever reads more on it
+## 35. A tag's words white or black by its lightness
 
 A price axis's tag (a series' last value, its price line's, the crosshair's) writes its words black or white by the
 tag's grey (`0.199 r + 0.687 g + 0.114 b` over 160: black): a mid green, an orange, a blue, a violet took white at 2.7
-to 4:1 (Studio's MVRV green 2.7). Now the one of the two that reads more on it, as APCA measures (its Lc: the tag's
-luminance, `0.2126729 r^2.4 + 0.7151522 g^2.4 + 0.072175 b^2.4`, soft-clamped near black, against white's and black's,
-each polarity its own exponents; the scale's offsets alike for both, left out). Not WCAG 2's ratio, which overrates black
-on a vivid color: it gave a red, a blue, a pink black, 4.6:1 to white's 4.3, where white reads twice as much (Lc 73 to
-37). Black stays on the light ones (yellow, lime).
+to 4:1 (Studio's MVRV green 2.7). Then by APCA (its Lc, white's against black's): better, but by luminance, which at one
+lightness swings with hue: a palette of one lightness (Studio's HODL waves' 23 bands, OKLab L 0.72) split by hue, its
+pinks and oranges white, its blues to yellows black, the lighter-looking ones taking the white. Now by the tag's
+lightness as OKLab measures it: black from L 0.7157, where APCA flips for a grey (its luminance, `v^2.4` of the
+sRGB value, 0.342: `#a4a4a4` and lighter, the two reading alike), so a grey goes as APCA has it and a hue as a grey of its lightness. Bitview's palette as before but amber (black
+now) and lime (white); the HODL bands black, all of them. Not WCAG 2's ratio, which overrates black on a vivid color: it gave a
+red, a blue, a pink black (white reads twice as much there).
 
 - `generateContrastColors` (minified: the method returning `{Z:` the background, `X:` the foreground `}`): `X:` white
-  where `1 − y^0.65 ≥ y^0.56 − Yk^0.57` (`y` the tag's clamped luminance, `Yk` black's, `0.022^1.414`), else black;
-  instead of `S(i)>160?"black":"white"`.
+  where the color's OKLab L (sRGB linearized, its LMS cube-rooted) is under 0.7157, else black; instead of
+  `S(i)>160?"black":"white"`.
 
-Studio's own tags (a drawing's on the axis, a solid text's ground) pick alike (`textOn`, `readsOn`).
+Studio's own tags (a drawing's on the axis, a solid text's ground) pick alike, from the same hex (`textOn`).
 
 ## 36. A pan's line drawn from the frame before's points
 
@@ -932,3 +934,50 @@ the series its scale formats by, the first value in view where the tag shows a p
 
 `tests.html` 14: three series' tags, a view off their end panned so its last bar changes: each step, the price scale
 as drawn once every tag's made again.
+
+## 50. A series' tag with its name: one pill, on the axis or after the series' end (an option)
+
+Studio named its series in a gutter of its own (DOM labels after the latest point, their values beside them) apart from
+the axis's tags, two looks for one value. Now a series' `bvName` makes its last value's tag a pill with its name, drawn
+by the tag itself (its color, its words' color, its corners, its height and the height the axis gives it): while there's
+no room after the series' last point, the tag on the axis as it is; with some, its name to its left in the pane, shown
+as far as the room reaches (cut at 14 CSS pixels after the series' end, as the room follows a pan, not animated); once
+the name's whole, the whole pill follows the series' end, sliding off the axis (the pane and the axis each drawing the
+same pill, cut to its canvas: no seam, no jump); a lead in its color, from the series' last point to the pill's left. A
+series' `bvTagOf(index)` gives the tag's price (or two: halfway between them as drawn, a stacked band's middle, on any
+scale) and words (its own value) for its last bar in view, where it gives them. A price scale's `bvTagsTop` keeps its tags under that height (Studio's legend over the
+pane). A price scale's `bvTagsWidth` is the widest its series' tags can be written (Studio's, from each series' values):
+the axis at least as wide all through a pan, not resized each frame by the values passing (a tag reads the last bar in
+view; across a stack's 23 bands the widest changed every few frames, the plot jumping 8 px); a tag wider than that
+(one Studio's sample of the values missed) widens it once, as wide as any has been since it was given. A tag's pane side (a title, a
+name) is drawn on the pane's top canvas alone, not under it too: it stays where it is as the picture moves (48), so
+titles no longer keep a pane from moving; a mark hides under a tag only while the tag's pill is on the axis.
+
+- `L.bvPill(t,i,n,s)`: the pill on either side (the axis's, `Pi` false; the pane's, `Pi` true, the right scale's only),
+  its room from the time scale's width and the series' end, read as it's drawn, its words measured on its own canvas
+  (both sides alike in a frame: the pane's measure cache keeps an old font family); whether it drew, else the tag as it
+  is.
+- `ut.Yi`: `bvTagOf` read for the bar in view; with `bvName`, on the right scale (the left one's axis isn't where its end is), `Ai.bvPill` (the name, the value, the end and the
+  width as functions) and the pane side named; none while hidden.
+- `bvAbove(t,i)`: the top views but a tag's pane side (`st`), in `bvMain`'s main canvas paint; `bvAway`, a tag whose
+  pill is off its axis, left out of the marks' clearance (`Bm`, 15); `bvInside`: its upward pass from `bvTagsTop`; `Cm`,
+  the axis's width: at least `bvTagsWidth`, and its series' tags' (`ut`) widest since (`bvSeen`, again from none when
+  it's given anew or the axis shows another scale).
+
+`tests.html` 15: a named series' tag, with room after its end (a pill in the pane, none on the axis) and with none (on
+the axis, nothing in the pane).
+
+## 51. Whether a point is on a series' tag
+
+Studio lights a layer's legend item as the pointer's on its line (the chart's hovered series), but not on its tag: on
+the axis, the chart says nothing (the crosshair's off the plot), and its name pill (50) in the plot isn't a series'
+hit. Now each tag remembers where it was last drawn (on the axis, or its pill in the pane, as far as it shows there),
+and a series says whether a point is on its tag.
+
+- `L.st`: `bvHit` on its view (`qt`), its canvas and its box in that canvas's CSS pixels: the tag's as drawn, or the
+  pill's (`bvPill`), cut to the canvas as it's drawn; none while it's not drawn.
+- `bvTagHit(x, y)` on a series (the API's, beside `priceToCoordinate`): a point in the client's coordinates on either
+  of its last value's tags (`ut`'s `zi`, the axis's; `Li`, the pane's), as last drawn and as far as its canvas shows
+  it (one spread past its pane's foot, not over the next); false while hidden.
+
+`tests.html` 15: the pill's middle on its tag, in the pane and on the axis; a corner of the pane not.

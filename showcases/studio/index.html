@@ -2820,64 +2820,6 @@
         margin: auto;
       }
 
-      /* A stack of many's bands named after its latest point, each at its middle there (see placeGutters). */
-      .gutter {
-        position: absolute;
-        inset: 0 auto 0 0;
-        z-index: 2;
-        /* (Its room's (gutterRoom, --room) from the latest point, 8px clear of the scale: set as it's placed. As wide as
-           the plot leaves it, cut there by itself: past the plot, the plot's cell would scroll (a focus, scrollIntoView),
-           its canvases with it.) */
-        overflow: clip;
-        pointer-events: none;
-
-        /* (Each label's line from its band's end to its dot's edge, in its color.) */
-        .gutter-leads {
-          position: absolute;
-          top: 0;
-          left: 0;
-          overflow: visible;
-        }
-
-        /* (Its names along its dots, after the lines, its figures in a column at its right.) */
-        .gutter-label {
-          position: absolute;
-          left: 14px;
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          width: calc(var(--room) - 14px);
-          color: var(--text);
-          font: 510 11px/14px var(--sans);
-          white-space: nowrap;
-          transform: translateY(-50%);
-        }
-
-        i {
-          flex-shrink: 0;
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: var(--c);
-        }
-
-        .name {
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .value {
-          margin-left: auto;
-          color: var(--muted);
-          font-variant-numeric: tabular-nums;
-        }
-
-        /* (Narrow, its names alone: a band's figure is the key's, as it's touched.) */
-        &[data-narrow] .value {
-          display: none;
-        }
-      }
-
       .legend {
         position: absolute;
         top: 4px;
@@ -2918,7 +2860,7 @@
               display: none;
             }
 
-            /* (A narrow plot's, as its gutter's: see setGap.) */
+            /* (A narrow plot's: see fitLegends.) */
             .legend[data-narrow] & {
               padding: 4px 6px;
 
@@ -2932,7 +2874,7 @@
             }
           }
 
-          /* (A plot too narrow for its ends' names: the strip alone, its gutter naming the bands; a band's line its share
+          /* (A plot too narrow for its ends' names: the strip alone, its tags naming the bands; a band's line its share
              alone where it has one (a 100% stack's), its amount in the panel beside it.) */
           &[data-tight] {
             .legend-key > span:not(.key-strip),
@@ -14698,59 +14640,37 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const baseOf = (layer) => layer.base ?? 0;
 
       /**
-       * The room after the data's last value, in pixels, at any zoom (its line's end clear of the scale, as TradingView):
-       * a share of the chart's width, a phone's narrower, a large screen's no wider than 48; a wide one's, with a stack of
-       * many, its gutter's (see placeGutters).
+       * The room after the data's last value, in pixels, at any zoom: its series' tags' with their names (see LWC patch 50),
+       * a wide plot's whole, a narrower one's as its longest name needs, at most half the plot; its legends off, its line's
+       * end clear of the scale (as TradingView).
        */
-      const rightGap = (width = view.timeScale().width()) => (guttered(width) ? gutterRoom(width) : plainGap(width));
+      const rightGap = (width = view.timeScale().width()) => (namesTags(width) ? namedRoom(width) : plainGap(width));
       /** The room after the latest point, any chart's (a preview's too, the open one's aside): see rightGap. */
       const plainGap = (width = view.timeScale().width()) => Math.round(clamp(width * 0.06, 16, 48));
-      /** A stack of many's gutter: its width after the latest point, from how wide a plot it's made in, and a label's line. */
-      const GUTTER = 208, GUTTER_FROM = 720, GUTTER_LINE = 14;
-      /** What a gutter's label has besides its name: its line in (14), its dot and the gap after it (6, 5), its room clear of the scale (8), a pixel's rounding. */
-      const GUTTER_CHROME = 34;
+      /** The tags' room: its width after the latest point, from how wide a plot it's made in. */
+      const NAMED = 208, NAMED_FROM = 720;
+      /** What a named tag has besides its name: its lead in (14), its value and paddings (about 72), a pixel's rounding. */
+      const NAMED_CHROME = 87;
+      /** A plot's tags' room: a wide one's (NAMED_FROM), whole; a narrower one's (a phone's), as wide as its longest name needs, at most half the plot (a name longer, cut). */
+      const namedRoom = (/** @type {number} */ width) => (width >= NAMED_FROM ? NAMED : Math.min(NAMED, Math.floor(width / 2), NAMED_CHROME + namesWidth()));
       /**
-       * A stack of many's gutter's room on a plot: a wide one's (GUTTER_FROM), names and figures; a narrower one's (a
-       * phone's), names alone, as wide as its longest needs, at most half the plot (a name longer, cut).
+       * The layers a tag names: on the right (its pills go out into the plot that way), not a signal's or a cloud's (none on
+       * the axis); hidden too, its room kept (shown again, the view where it was).
+       * @param {Layer} layer
        */
-      const gutterRoom = (/** @type {number} */ width) => (width >= GUTTER_FROM ? GUTTER : Math.min(GUTTER, Math.floor(width / 2), GUTTER_CHROME + namesWidth()));
+      const nameTagged = (layer) => layer.side === "right" && layer.type !== "signal" && layer.type !== "cloud";
       /**
-       * The longest of the open chart's gutter names, measured once a chart as it is (asked at every step of a pan: see
+       * The longest of the open chart's tags' names, measured once a chart as it is (asked at every step of a pan: see
        * showsPreset), and again once the fonts are in.
        */
       let namesMeasured = { key: "", width: 0 };
       function namesWidth() {
         const key = `${chart?.id}:${revision}:${document.fonts.status}`;
-        if (key !== namesMeasured.key) namesMeasured = { key, width: widest(chart?.panes.filter(keyedPane).flatMap((pane) => bandsOf(pane).map(labelOf)) ?? [], 510, 11, false) };
+        if (key !== namesMeasured.key) namesMeasured = { key, width: widest(chart?.layers.filter(nameTagged).map(labelOf) ?? [], 510, 11, false) };
         return namesMeasured.width;
       }
-      /**
-       * Labels each wanting to be at a height (`wants`, ascending), `step` apart at least, between `top` and `bottom`: each
-       * as near its own as the others leave it, in their order. Neighbors too close move together, as one, to the mean of
-       * where they'd be (moved again while that crowds the ones before). @returns {number[]}
-       */
-      function spreadLabels(/** @type {number[]} */ wants, /** @type {number} */ step, /** @type {number} */ top, /** @type {number} */ bottom) {
-        // (A group's `sum`: each's want less its steps from the group's first, so its mean is where its first goes.)
-        /** @type {{ at: number, count: number, sum: number }[]} */
-        const groups = [];
-        const place = (/** @type {{ at: number, count: number, sum: number }} */ group) => (group.at = clamp(group.sum / group.count, top, Math.max(top, bottom - (group.count - 1) * step)));
-        for (const want of wants) {
-          groups.push({ at: 0, count: 1, sum: want });
-          place(/** @type {{ at: number, count: number, sum: number }} */ (groups.at(-1)));
-          while (groups.length > 1) {
-            const before = groups[groups.length - 2], after = /** @type {{ at: number, count: number, sum: number }} */ (groups.at(-1));
-            if (before.at + before.count * step <= after.at) break;
-            // (Its labels, `before.count` steps further from the joined group's first.)
-            before.sum += after.sum - after.count * before.count * step;
-            before.count += after.count;
-            groups.pop();
-            place(before);
-          }
-        }
-        return groups.flatMap((group) => Array.from({ length: group.count }, (_, k) => group.at + k * step));
-      }
-      /** Whether the open chart names its stack of many's bands after its latest point: a wide plot, a keyed pane, its legends on. */
-      const guttered = (/** @type {number} */ width) => width > 0 && chart?.legend !== "off" && Boolean(chart?.panes.some(keyedPane));
+      /** Whether the open chart names its tags: its legends on, a tag to name. */
+      const namesTags = (/** @type {number} */ width) => width > 0 && chart?.legend !== "off" && chart.layers.some(nameTagged);
       /**
        * The least of the view its data keeps (a share of its width, all of the data when it holds less): a pan, a fling,
        * a zoom stops there, held by the chart itself as it moves (patch 13 of lightweight-charts), never a frame past it.
@@ -15061,7 +14981,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const item of [...canvases, ...edged, ...rules]) Object.assign(item.style, { transform: "", transformOrigin: "" });
           for (const side of ["left", "right"]) element.style.removeProperty(`--stretch-${side}`);
           for (const legend of all$(".legend", element)) legend.style.clipPath = "";
-          for (const gutter of all$(".gutter", element)) Object.assign(gutter.style, { transform: `translateX(${gutter.dataset.x}px)`, width: `${gutter.dataset.cut}px`, visibility: "", clipPath: "" });
           delete element.dataset.stretching;
           return;
         }
@@ -15085,12 +15004,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A legend running past the plot as it shows (narrower than drawn), cut at its edge, not over the price scale: by
         // where each was as the stretch began.)
         if (!leftAxis) for (const [legend, at, wide] of drawnStretch.legends) legend.style.clipPath = at + wide > from ? `inset(0 ${at + wide - from}px 0 0)` : "";
-        // (A stack of many's gutter with its latest point, where the canvases' stretch puts it: cut at the plot's edge
-        // there, as the plot cuts it at rest (see placeGutters); out of sight with its point past it.)
-        for (const gutter of all$(".gutter", element)) {
-          const x = Number(gutter.dataset.x), at = leftAxis ? x * k + (held ? lead * (1 - k) : 0) : to - (to - x) * k + (held ? k * room - gap : 0), on = at - (leftAxis ? 0 : to - from), past = on + Number(gutter.dataset.room) - 8 - from;
-          Object.assign(gutter.style, { transform: `translateX(${Math.round(at)}px)`, width: `${Number(gutter.dataset.room) - 8}px`, visibility: on <= from ? "" : "hidden", clipPath: past > 0 ? `inset(-100vh ${Math.ceil(past)}px -100vh -100vw)` : "" });
-        }
       }
       /**
        * A view kept at the chart's width now: its stretch of time (a preset showing, its window at this width), its bars
@@ -15223,7 +15136,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Candles as on Bitview: in the layer's color, hollow when the price rose, filled when it fell. Zoomed out until
        * a bar has no room for a hollow body (under 2.5px, where the chart library stops drawing one), the layer
        * shows its close as a line instead, and back. The close line also carries the layer's last-value label.
-       * @type {Map<string, { candles: any, series: any, paint: Record<string, string> }>}
+       * @type {Map<string, { candles: any, series: any, paint: Record<string, string>, rise: string, fall: string, dated: boolean }>}
        */
       const closes = new Map();
       let candlesFit = true;
@@ -15241,9 +15154,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const [id, close] of closes) {
           close.candles.applyOptions({ visible: !layerById(id)?.hidden && fit });
           close.series.applyOptions({ lineVisible: !fit, crosshairMarkerVisible: !fit });
+          tintClose(id);
         }
         // (A signal on candles: its marks on what's seen of them now.)
         if (marksMade?.doc.layers.some((layer) => layer.type === "signal" && layer.ref && closes.has(layer.ref))) markSignals(marksMade.doc, marksMade.data, marksMade.drawn, []);
+      }
+      /**
+       * The close line's color, its tag's (see `closes`): its last candle's while candles show, rising or falling (as the
+       * candle's own tag would be, though a hollow one's body is the background); the layer's while the line shows instead.
+       * (Its colors another layer's date by date, those stay.)
+       * @param {string} id
+       */
+      function tintClose(id) {
+        const close = closes.get(id);
+        if (!close || close.dated) return;
+        const bar = close.candles.dataByIndex(Number.MAX_SAFE_INTEGER, LC.MismatchDirection.NearestLeft);
+        const color = candlesFit && bar && "close" in bar && bar.close < bar.open ? close.fall : close.rise;
+        if (color === close.paint.color) return;
+        close.paint = { color };
+        // (Faded, as it'll be once lit again: see spotlight.)
+        if (!fadedNow.has(id)) close.series.applyOptions(close.paint);
       }
       /**
        * Dots as on Bitview: their radius follows the zoom, 1px when points crowd to 3px with room around them (by pixels
@@ -15636,8 +15566,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             priceScaleId: layer.side,
             visible: !layer.hidden && !signal,
             priceLineVisible: Boolean(layer.priceLine) && !stack && !signal,
-            // (Named at its end, with its value there (see placeGutters): not again on the axis.)
-            lastValueVisible: !layer.hidden && !stack && !signal && !namedAtEnd.has(layer.id),
+            // (Its value's tag, named (see LWC patch 50): a stacked band's at its middle, its own value (a 100% stack's, its
+            // share).)
+            lastValueVisible: !layer.hidden && !signal,
+            bvName: doc.legend !== "off" && layer.side === "right" ? labelOf(layer) : "",
+            ...(stack ? { bvTagOf: (/** @type {number} */ at) => bandTag(doc, layer, stack, at) } : {}),
             ...(stack ? { autoscaleInfoProvider: shares.has(layer.pane) ? () => ({ priceRange: { minValue: 0, maxValue: 100 } }) : fromZero(modeOf(doc, layer)) } : {}),
             // A 100% stacked pane's scale reads in percent, 0 to 100 (the margin over the top stays blank).
             // (Its ticks short; its latest's tag and the crosshair's, a digit or so more: see precise.)
@@ -15697,7 +15630,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             series = again ?? tracked(view.addSeries(LC.CandlestickSeries, options, pane));
             if (again) series.applyOptions(lookOf(options));
             if (closeAgain) closeAgain.applyOptions(lookOf(closeOptions));
-            closes.set(layer.id, { candles: series, series: closeAgain || tracked(view.addSeries(LC.LineSeries, closeOptions, pane)), paint: close });
+            closes.set(layer.id, { candles: series, series: closeAgain || tracked(view.addSeries(LC.LineSeries, closeOptions, pane)), paint: close, rise: color, fall: layer.colors === 1 ? color : below, dated: Boolean(dated) });
+            tintClose(layer.id);
           } else {
             const radius = dotRadius(layer.width);
             const [kind, options] = layer.type === "dots" ? [LC.LineSeries, { ...common, ...paint, ...marker, lineVisible: false, pointMarkersVisible: true, pointMarkersRadius: radius }]
@@ -15769,7 +15703,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               ? data.times.map((time, i) => (result.ohlc[i] && Number.isFinite(shown[i]) && (!log || at(result.ohlc[i][2], i) > 0) ? { time, open: at(result.ohlc[i][0], i), high: at(result.ohlc[i][1], i), low: at(result.ohlc[i][2], i), close: at(result.ohlc[i][3], i) } : { time }))
               : points);
             const close = closes.get(layer.id)?.series;
-            if (close) setRows(close, points);
+            if (close) {
+              setRows(close, points);
+              tintClose(layer.id);
+            }
             linesAcross(layer, pane, common.priceFormat, op);
           }
           drawn.set(layer.id, series);
@@ -15910,6 +15847,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         wasCloses.clear();
         kept.clear();
         showDrawings(doc);
+        fitTags(doc, data);
         if (relit) spotlight(relit);
         legendsDue = true;
         requestAnimationFrame(layOutLegends);
@@ -16222,11 +16160,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** From how many layers a stacked pane's legend is its key, not each of them: too many to read across its room. */
       const BANDS_FROM = 12;
-      /** Under how wide a plot a stack's key is its strip alone (its ends' names left out: its gutter names its bands). */
+      /** Under how wide a plot a stack's key is its strip alone (its ends' names left out: its tags name its bands). */
       const KEY_TIGHT = 260;
       /**
-       * The room after the latest point as the open chart has it now (a stack of many's gutter, or not: see rightGap), the
-       * view kept where it is (the library would scroll to it), and its gutters with it. As it's laid out, not as it moves.
+       * The room after the latest point as the open chart has it now (its tags', or not: see rightGap), the view kept where
+       * it is (the library would scroll to it), and its legends' forms with it. As it's laid out, not as it moves.
        */
       function setGap() {
         const width = view.timeScale().width(), gap = rightGap(width);
@@ -16235,127 +16173,87 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           view.applyOptions({ timeScale: { rightOffsetPixels: gap } });
           if (range) view.timeScale().setVisibleLogicalRange(range);
         }
-        placeGutters();
-      }
-      /** Each gutter's height changed (its pane's, by its grip): its labels placed again. (Not its width: cut by the plot's edge, see placeGutters.) */
-      const gutterHeights = new WeakMap();
-      const gutterFit = new ResizeObserver((entries) => {
-        let moved = false;
-        for (const entry of entries) if (gutterHeights.get(entry.target) !== entry.contentRect.height) (gutterHeights.set(entry.target, entry.contentRect.height), (moved = true));
-        if (moved) placeGutters();
-      });
-      /**
-       * Each gutter's bands' scales as its labels were placed on them (the prices at two heights of their pane, each band's
-       * own: a stack on both sides has two): a paint finding one moved (its axis dragged, reset, glided) places them again,
-       * a frame on. @type {Map<string, string>}
-       */
-      const gutterScales = new Map();
-      const scaleKey = (/** @type {any} */ series) => `${series.coordinateToPrice(0)}:${series.coordinateToPrice(100)}`;
-      let gutterFrame = 0;
-      /** Called each paint, from a band's drawings: its gutter placed again if its scale's moved. */
-      function gutterScaled(/** @type {string} */ id, /** @type {any} */ series) {
-        const placed = gutterScales.get(id);
-        if (placed === undefined || gutterFrame || scaleKey(series) === placed) return;
-        gutterFrame = requestAnimationFrame(() => ((gutterFrame = 0), placeGutters()));
+        fitLegends();
       }
       /**
-       * A stack of many's gutter (on a wide plot, its room after the latest point: see rightGap), one in each keyed pane's
-       * plot, none elsewhere: each band tall enough there named, with its share (a 100% stack's) or its value, at its
-       * middle, foot to top, none over another; thin ones the key's and the readout's. It follows the latest point as the
-       * view moves, gone once that's out of view (its room the data's then).
+       * Its legends' forms by the plot's width (narrow, no words after a key's strip; tight, the strip alone), and each
+       * pane's tags kept under its legend (see LWC patch 50: a crowded pane's spread up past it, else).
        */
-      function placeGutters() {
-        const width = view.timeScale().width(), on = Boolean(chart && resolved && drawnChart === chart.id && guttered(width)), named = /** @type {Set<string>} */ (new Set());
-        // (Its keys' forms by the plot's width, as its gutters': narrow, no words after the strip; tight, the strip alone.)
-        if (width) for (const legend of legends()) legend.toggleAttribute("data-narrow", width < GUTTER_FROM), legend.toggleAttribute("data-tight", width < KEY_TIGHT);
-        const panes = view.panes(), wanted = new Set(), last = (resolved?.times.length ?? 0) - 1, x = last < 0 ? null : view.timeScale().logicalToCoordinate(last);
-        gutterScales.clear();
+      function fitLegends() {
+        const width = view.timeScale().width();
+        if (width) for (const legend of legends()) legend.toggleAttribute("data-narrow", width < NAMED_FROM), legend.toggleAttribute("data-tight", width < KEY_TIGHT);
         chart?.panes.forEach((pane, i) => {
-          const plot = on && keyedPane(pane) ? panes[i]?.getHTMLElement()?.children[1]?.firstElementChild : null;
-          if (!plot) return;
-          let gutter = /** @type {HTMLElement | null} */ (plot.querySelector(`:scope > .gutter[data-pane="${pane.id}"]`));
-          if (!gutter) {
-            gutter = Object.assign(document.createElement("div"), { className: "gutter" });
-            Object.assign(gutter.dataset, { pane: pane.id });
-            gutter.setAttribute("aria-hidden", "true");
-            plot.append(gutter);
-            gutterFit.observe(gutter);
-          }
-          wanted.add(gutter);
-          // (Shown while the latest point is on the plot: past its edge, cut by it, as the data is (a pan moves it out and
-          // back, not on and off at once).)
-          const room = gutterRoom(width), shown = Boolean(resolved && x !== null && x >= 0 && x <= width);
-          gutter.hidden = !shown;
-          gutter.dataset.room = String(room);
-          gutter.style.setProperty("--room", `${room - 8}px`);
-          gutter.toggleAttribute("data-narrow", width < GUTTER_FROM);
-          if (!shown || !resolved || x === null) return;
-          // (Its latest point's place kept: a layout's motion moves it from there, see stretchDrawn.)
-          gutter.dataset.x = String(Math.round(x));
-          gutter.dataset.cut = String(clamp(Math.floor(width - Math.round(x)), 0, room - 8));
-          Object.assign(gutter.style, { transform: `translateX(${Math.round(x)}px)`, width: `${gutter.dataset.cut}px` });
-          const stacked = stackOf(chart, resolved), height = gutter.clientHeight;
-          /** @type {{ layer: Layer, mid: number, thick: number, value: string }[]} */
-          const bands = [];
-          for (const layer of bandsOf(pane)) {
-            const made = stacked.get(layer.id), series = drawn.get(layer.id), result = resolved.results.get(layer.id);
-            // (Lines, not stacked: each named at its latest value, as tall as the others (none kept over another).)
-            if (!pane.stack && series && result?.values && layer.type !== "cloud") {
-              gutterScales.set(layer.id, scaleKey(series));
-              // (Its latest drawn: on a log scale, over zero.)
-              const log = modeOf(chart, layer) === 1, drawable = (/** @type {number} */ value) => Number.isFinite(value) && (!log || value > 0);
-              let at = last;
-              while (at > 0 && !drawable(result.values[at])) at--;
-              if (!drawable(result.values[at])) continue;
-              const y = series.priceToCoordinate(result.values[at]);
-              if (y !== null && Number.isFinite(y)) bands.push({ layer, mid: y, thick: 1, value: format(result.values[at], unitFor(layer, result)) });
-              continue;
-            }
-            if (!made || !series) continue;
-            gutterScales.set(layer.id, scaleKey(series));
-            let at = last;
-            while (at > 0 && !Number.isFinite(made.values[at])) at--;
-            const top = made.values[at], foot = made.under[at] * (made.scale?.[at] ?? 1), high = series.priceToCoordinate(top), low = series.priceToCoordinate(foot);
-            if (high === null || low === null || !Number.isFinite(top - foot)) continue;
-            const value = pane.stack === "percent" ? format(top - foot, "percent") : format(top - foot, unitFor(layer, resolved.results.get(layer.id)));
-            bands.push({ layer, mid: (high + low) / 2, thick: Math.abs(low - high), value });
-          }
-          // (As many as the pane's height under its legend holds a line each, the thickest kept; then spread: see
-          // spreadLabels.)
-          const legend = /** @type {HTMLElement | null} */ (plot.querySelector(`:scope > .legend[data-pane="${pane.id}"]`)), below = legend ? legend.offsetTop + legend.offsetHeight : 0;
-          const kept = new Set([...bands].sort((a, b) => b.thick - a.thick).slice(0, Math.max(0, Math.floor((height - below) / GUTTER_LINE))));
-          const shownBands = bands.filter((band) => kept.has(band)).sort((a, b) => a.mid - b.mid), ys = spreadLabels(shownBands.map((band) => band.mid), GUTTER_LINE, below + GUTTER_LINE / 2, height - GUTTER_LINE / 2);
-          // (Lines named here with their values: their axis tags step aside, see retag; while the plot's edge cuts the
-          // names, theirs.)
-          if (!pane.stack && x + room <= width + 8) for (const band of shownBands) named.add(band.layer.id);
-          // (Each tied to its band by a line in its color, from the band's end to its dot: level where it's at its middle,
-          // curved where it's moved.)
-          const leads = shownBands.map((band, k) => (`<path d="M0 ${band.mid.toFixed(1)}C7 ${band.mid.toFixed(1)} 7 ${ys[k].toFixed(1)} 14 ${ys[k].toFixed(1)}" stroke="${escape(ink(colorNow(band.layer) ?? band.layer.color))}"/>`)).join("");
-          // (Its look its own, not the page's: a picture draws it as it is, see measureLegends.)
-          const html = `<svg class="gutter-leads" width="14" height="${height}" fill="none" stroke-width="1" opacity="0.6">${leads}</svg>` + shownBands.map((band, k) => `<span class="gutter-label" style="top: ${ys[k].toFixed(1)}px; --c: ${escape(ink(colorNow(band.layer) ?? band.layer.color))}"><i></i><span class="name">${escape(labelOf(band.layer))}</span><span class="value">${escape(band.value)}</span></span>`).join("");
-          writeHtml(gutter, html);
+          const legend = /** @type {HTMLElement | null} */ (document.querySelector(`#chart .legend[data-pane="${pane.id}"]`)), top = legend && !legend.hidden ? legend.offsetTop + legend.offsetHeight + 2 : 0;
+          if (!view.panes()[i]) return;
+          for (const side of ["left", "right"]) if (view.priceScale(side, i).options().bvTagsTop !== top) view.priceScale(side, i).applyOptions({ bvTagsTop: top });
         });
-        for (const gutter of /** @type {HTMLElement[]} */ (all$("#chart .gutter"))) if (!wanted.has(gutter)) (gutterFit.unobserve(gutter), gutter.remove());
-        retag(named);
       }
-      /** The lines named at their ends now (see placeGutters): their tags off the axis. */
-      let namedAtEnd = /** @type {Set<string>} */ (new Set());
       /**
-       * Each line whose naming at its end changed, its axis tag set to match (a candle's on its close line, which
-       * carries it; one the spotlight has faded, the tags it gets back): the rest as they are.
-       * @param {Set<string>} next
+       * Each price scale's tags' room (see LWC patch 50): the widest any of its series' tags can be written, shown or hidden (each
+       * magnitude's least and greatest and its latest, as its tag writes them: a stacked band's own value), so the axis keeps
+       * its width through a pan (a tag wider yet widens it, once); a scale in percent or indexed (its tags against the first
+       * value in view), none.
+       * @param {Chart} doc @param {Resolved} data
        */
-      function retag(next) {
-        const was = namedAtEnd;
-        namedAtEnd = next;
-        for (const id of new Set([...was, ...next])) {
-          if (was.has(id) === next.has(id)) continue;
-          const layer = layerById(id), series = drawn.get(id), close = closes.get(id);
-          if (!layer || !series) continue;
-          const tag = { lastValueVisible: !layer.hidden && layer.type !== "signal" && !chart.panes.find((pane) => pane.id === layer.pane)?.stack && !next.has(id) }, faded = fadedNow.get(id);
-          if (faded) Object.assign((close ? faded.close : faded.own) ?? {}, tag);
-          else (close?.series ?? series).applyOptions(tag);
+      function fitTags(doc, data) {
+        const stacked = stackOf(doc, data), widths = new Map();
+        for (const layer of doc.layers) {
+          const series = closes.get(layer.id)?.series ?? drawn.get(layer.id), result = data.results.get(layer.id), key = `${layer.pane}:${layer.side}`;
+          // (A hidden one's too: shown again, the axis as wide, the view where it is.)
+          if (!series || !result?.values || layer.type === "signal" || layer.type === "cloud" || widths.get(key) === 0) continue;
+          if (modeOf(doc, layer) >= 2) {
+            widths.set(key, 0);
+            continue;
+          }
+          // (Stacked, or to be once shown again: its band's value, its own (a 100% stack's, a share), as its band's tag writes it.)
+          const stack = doc.panes.find((pane) => pane.id === layer.pane)?.stack, banded = stacked.has(layer.id) || Boolean(layer.hidden && stack && !layer.from), percent = stack === "percent";
+          const kind = banded ? `band:${percent ? "percent" : unitFor(layer, result)}` : `own:${percent ? "%" : ""}`, from = banded && percent ? STACK_SHARES : result.values;
+          let width = tagsWidths.get(from)?.get(kind);
+          if (width === undefined) {
+            const write = banded ? (/** @type {number} */ value) => format(value, percent ? "percent" : unitFor(layer, result)) : (/** @type {number} */ value) => series.priceFormatter().format(value);
+            width = widest(magnitudes(from).map(write), 510, 11);
+            if (!tagsWidths.has(from)) tagsWidths.set(from, new Map());
+            tagsWidths.get(from)?.set(kind, width);
+          }
+          widths.set(key, Math.max(widths.get(key) ?? 0, width));
         }
+        doc.panes.forEach((pane, i) => {
+          if (!view.panes()[i]) return;
+          for (const side of ["left", "right"]) view.priceScale(side, i).applyOptions({ bvTagsWidth: widths.get(`${pane.id}:${side}`) ?? 0 });
+        });
+      }
+      /** Each series' tags' widest (see fitTags), by its values, by how they're written: made again only for new data. @type {WeakMap<Vector, Map<string, number>>} */
+      const tagsWidths = new WeakMap();
+      /** A 100% stack's band's values, shares: as wide as any is written (every magnitude to 100, decimals as far as written). */
+      const STACK_SHARES = Float64Array.of(0.000012345, 0.00012345, 0.0012345, 0.012345, 0.12345, 1.2345, 12.345, 99.995, 100);
+      /**
+       * The values whose written forms bound every other's: each order of magnitude's least and greatest, either sign
+       * (within one, the digits and the decimals a form has are alike), and the latest.
+       * @param {Vector} values @returns {number[]}
+       */
+      function magnitudes(values) {
+        const ends = new Map();
+        let last = NaN;
+        for (const value of values) {
+          if (!Number.isFinite(value)) continue;
+          last = value;
+          const key = value === 0 ? "0" : `${Math.sign(value)}:${Math.floor(Math.log10(Math.abs(value)))}`, end = ends.get(key);
+          if (!end) ends.set(key, [value, value]);
+          else (end[0] = Math.min(end[0], value)), (end[1] = Math.max(end[1], value));
+        }
+        return [...[...ends.values()].flat(), ...(Number.isFinite(last) ? [last] : [])];
+      }
+      /**
+       * A stacked band's tag, at its latest drawn as far as `at`: at its middle, its own value (a 100% stack's, its share).
+       * @param {Chart} doc @param {Layer} layer @param {{ values: Vector, under: Vector, scale?: Vector }} made @param {number} at
+       */
+      function bandTag(doc, layer, made, at) {
+        while (at > 0 && !Number.isFinite(made.values[at])) at--;
+        const top = made.values[at], foot = made.under[at] * (made.scale?.[at] ?? 1);
+        if (!Number.isFinite(top - foot)) return null;
+        const percent = doc.panes.find((pane) => pane.id === layer.pane)?.stack === "percent";
+        // (Where it shows: halfway between its ends as drawn, whatever the scale.)
+        return { price: [top, foot], text: format(top - foot, percent ? "percent" : unitFor(layer, resolved?.results.get(layer.id))) };
       }
       /**
        * A pane's layers as its key has them: stacked, those it stacks, foot to top (see stackOf: the panel's order, reversed
@@ -16492,7 +16390,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!holding) fitSoon(element);
         }
         // (Its bands named after the latest point too: renamed, recolored, as the legend is.)
-        placeGutters();
+        fitLegends();
         lightLegend(litLayer, true);
         updateValues();
       }
@@ -17105,15 +17003,48 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (In a keyed pane, the band under it, a finger's held too: its item in the key's place (lit among its pane's only
         // as that item, or its row, is pointed at: see spotlight). On the legend over the plot, the one it was (its item
         // stays under the pointer).)
-        const band = bandAt(param) ?? (onLegend ? bandLit : null);
+        // (A tag's pill under it, its layer's (see tagAt): in a keyed pane, as its band.)
+        crossIn = Boolean(param.point);
+        const tag = param.point && !param.hoveredSeries && !pointer.touch ? tagAt(pointer.x, pointer.y) : null;
+        const band = (tag && keyedOf(tag) ? tag : null) ?? bandAt(param) ?? (onLegend ? bandLit : null);
         if (band !== bandLit) {
           bandLit = band;
           paintBands();
         }
-        lightLegend(band ?? (param.point && param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null), false, Boolean(band));
+        lightLegend(band ?? (param.point && param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : tag), false, Boolean(band));
         if (time === hoverTime) return;
         hoverTime = time;
         valuesSoon();
+      });
+      /**
+       * The layer whose last value's tag is under a point (the client's coordinates): on its axis, or its pill in the plot
+       * (see LWC patch 51); its legend's item lit as a line pointed at lights it.
+       */
+      function tagAt(/** @type {number} */ x, /** @type {number} */ y) {
+        for (const [id, series] of drawn) if (/** @type {any} */ (closes.get(id)?.series ?? series).bvTagHit(x, y)) return id;
+        return null;
+      }
+      /** Whether a layer's in a keyed pane: its item kept in sight as it's lit (see lightLegend). */
+      const keyedOf = (/** @type {string} */ id) => ((pane) => Boolean(pane && keyedPane(pane)))(chart?.panes.find((pane) => pane.id === layerById(id)?.pane));
+      /** Where the pointer is over the chart (the client's coordinates; a finger's, `touch`), and whether it's in the plot (the crosshair's): a tag's read where it is. */
+      let pointer = { x: NaN, y: NaN, touch: false }, crossIn = false;
+      /** A tag pointed at (or none), its layer's legend item lit: in a keyed pane, as its band (its item in the key's place). */
+      const lightTag = (/** @type {string | null} */ tag) => {
+        const band = tag && keyedOf(tag) ? tag : null;
+        if (band !== bandLit) {
+          bandLit = band;
+          paintBands();
+        }
+        lightLegend(tag, false, Boolean(band));
+      };
+      // (Off the plot, on the axis, the crosshair says nothing: the tag under it here. A finger points at nothing.)
+      view.chartElement().addEventListener("pointermove", (event) => {
+        pointer = { x: event.clientX, y: event.clientY, touch: event.pointerType === "touch" };
+        if (!crossIn && !pointer.touch) lightTag(tagAt(event.clientX, event.clientY));
+      });
+      view.chartElement().addEventListener("pointerleave", () => {
+        pointer = { x: NaN, y: NaN, touch: false };
+        if (!crossIn) lightTag(null);
       });
       view.subscribeClick((param) => {
         // (A band of a keyed pane, anywhere in it; else a line, near it.)
@@ -17736,7 +17667,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           context.fillText(date.text, date.x, foot);
         }
       }
-      view.timeScale().subscribeSizeChange(() => (holdView(), relayout(), labelMarks(), placeGutters()));
+      view.timeScale().subscribeSizeChange(() => (holdView(), relayout(), labelMarks(), fitLegends()));
       /**
        * The view as left, by the chart's box (see boxView) and as the plot had it: what each resize of the box keeps (see
        * holdView), however many come and go (it isn't the view a resize made); and the view a resize made last (by the
@@ -17809,7 +17740,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         fitCandles();
         fitDots();
         labelMarks();
-        placeGutters();
+        fitLegends();
         valuesSoon();
         // (Mid-resize, a preset showing still is: the new width's layout puts it back, see relayout.)
         const shown = view.timeScale().width() !== laidWidth ? presetShown : showsPreset();
@@ -18646,20 +18577,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return x >= box.left && x <= box.right && y >= box.top && y <= box.bottom;
       }
       /**
-       * Words on a color (OKLCH, as shown): white or the ink's black, whichever reads more on it, as APCA measures (as the
-       * chart's own tags pick, patch 35): WCAG's ratio, which overrates black on a vivid color, gave a red, a blue, a pink
-       * black (4.6:1 to white's 4.3, where white reads twice as much: Lc 73 to 37); by lightness alone, a mid green, an
-       * orange had white at 2.7-4:1.
+       * Words on a color (OKLCH, as shown): white or the ink's black, by its lightness as drawn (its sRGB hex's, as the
+       * chart's own tags measure theirs, patch 35): black from 0.7157, where APCA flips for a gray (#a4a4a4 and lighter),
+       * so a color of one lightness goes one way whatever its hue (APCA, by luminance, split a palette of one lightness
+       * by hue; WCAG's ratio overrates black on a vivid color).
        * @param {[number, number, number]} oklch
        */
-      const textOn = (oklch) => ((ground) => (readsOn("#ffffff", ground) >= readsOn("#08090a", ground) ? "#ffffff" : "#08090a"))(oklchToHex(...oklch));
-      /** How much words in one color read on another, as APCA measures (its Lc, unsigned; sRGB hex, both). */
-      function readsOn(/** @type {string} */ text, /** @type {string} */ ground) {
-        const y = (/** @type {string} */ hex) => ((v) => (v < 0.022 ? v + (0.022 - v) ** 1.414 : v))([1, 3, 5].reduce((sum, i, k) => sum + (parseInt(hex.slice(i, i + 2), 16) / 255) ** 2.4 * [0.2126729, 0.7151522, 0.072175][k], 0));
-        const t = y(text), g = y(ground);
-        // (Dark words on a lighter ground, or light ones on a darker: each its own exponents.)
-        const s = 1.14 * (g > t ? g ** 0.56 - t ** 0.57 : t ** 0.62 - g ** 0.65);
-        return s < 0.1 ? 0 : (s - 0.027) * 100;
+      const textOn = (oklch) => (lightnessOf(oklchToHex(...oklch)) < 0.7157 ? "#ffffff" : "#08090a");
+      /** A color's lightness as OKLab measures it (sRGB hex). */
+      function lightnessOf(/** @type {string} */ hex) {
+        const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+        return 0.2104542553 * Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b) + 0.793617785 * Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b) - 0.0040720468 * Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
       }
       /** Words on a color as it's named (shown as the theme tones it). */
       const contrastOn = (/** @type {string} */ color) => textOn(shownOklch(color));
@@ -18751,7 +18679,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         updateAllViews() {
           this.priceTags = this.timeTags = null;
-          if (this.series) gutterScaled(this.layer, this.series);
           const line = timeLine(), series = this.series;
           // (Once a pane, the lowest pane's with their words: over its frontmost fill, a cloud's, an area's, bars, candles,
           // so none hides them; under the lines in front of it. No fill: under every series.)
@@ -20866,7 +20793,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (n < 2) return drawn;
         // (The view it opens on: its own; the open one's, linked, every chart's (as its chunks are, see spanOf).)
         const left = openView(doc);
-        // (Another chart's: the room any chart has after its latest point, not the open one's gutter.)
+        // (Another chart's: the room any chart has after its latest point, not the open one's tags'.)
         const shown = left ? within(viewOn(left, doc.index, times, plainGap()), "to") : presetWindow(doc, data, most, 0, 0);
         const span = shown.to - shown.from;
         if (!(span >= 1)) return drawn;
@@ -32960,8 +32887,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           marginsSet = "";
           fitMargins();
           sizeChart(width, height);
-          // (Its gutters at its size, and the axis tags they take off, before it's taken.)
-          placeGutters();
+          // (Its legends' forms at its size, before it's taken.)
+          fitLegends();
           // All of it read now: while the marks load, another chart can open. (The drawings as they are, none selected.)
           capturing = true;
           repaintDrawings();
@@ -32971,8 +32898,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             capturing = false;
             repaintDrawings();
           }
-          // (Its gutters at its size.)
-          placeGutters();
           scale = shot.width / width;
           // (The legends read at rest, the view's last point, as the foot dates them: not wherever the crosshair was.)
           const hovered = hoverTime;
@@ -32998,7 +32923,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           [wrapper.style.width, wrapper.style.height] = wrapped;
           sizePanes();
           if (sized && resolved && drawnChart === chart.id) fitSpacing(chart, resolved.times.length);
-          // (The room after the latest point the screen's again (a picture's, at its own width, may have had a gutter's).)
+          // (The room after the latest point the screen's again (a picture's, at its own width, may have had another).)
           if (sized) view.applyOptions({ timeScale: { rightOffsetPixels: rightGap() } });
           if (sized && logical) view.timeScale().setVisibleLogicalRange(logical);
           marginsSet = "";
@@ -33162,23 +33087,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // (A line's words as shown: a tight plot's band line its share alone, see the key's data-tight.)
               const text = element.matches(".legend-line") ? [...element.children].filter((part) => part.getClientRects().length).map((part) => part.textContent).join("").trim() : element.textContent.trim();
               pieces.push({ ...at, x: at.x + inset, width: at.width - inset, faded, text, font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ (["right", "end"].includes(style.textAlign) ? "right" : "left") });
-            }
-          }
-        }
-        // (A stack of many's bands named after its latest point: the lines to them, each dot, name and figure, as drawn.)
-        // (Cut where its plot cuts it: the latest point near the plot's edge, past it.)
-        for (const gutter of all$("#chart .gutter:not([hidden])")) {
-          const clip = (/** @type {HTMLElement} */ (gutter.parentElement).getBoundingClientRect().right - origin.left) * scale;
-          const leads = gutter.querySelector(".gutter-leads");
-          if (leads?.querySelector("path")) pieces.push({ ...box(leads), svg: leads.outerHTML, clip });
-          for (const label of /** @type {HTMLElement[]} */ (all$(".gutter-label", gutter))) {
-            const dot = label.querySelector("i");
-            if (dot) pieces.push({ ...box(dot), svg: `<svg viewBox="0 0 6 6" width="6" height="6"><circle cx="3" cy="3" r="3" fill="${getComputedStyle(dot).backgroundColor}"/></svg>`, clip });
-            // (One not drawn (a narrow gutter's figures), none: its box is nowhere.)
-            for (const element of /** @type {HTMLElement[]} */ ([...label.querySelectorAll(".name, .value")])) {
-              if (!element.getClientRects().length) continue;
-              const style = getComputedStyle(element);
-              pieces.push({ ...box(element), text: element.textContent?.trim() ?? "", font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ ("left"), clip });
             }
           }
         }
@@ -34377,6 +34285,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (made && !made.stacked) built.set(layer.id, { ...made, shown: values, ohlc });
           if (painted?.paintWith) toPaint.push({ id: layer.id, series, painted, point: { time, value } });
           else series?.update({ time, value });
+          if (close) tintClose(layer.id);
           moved = true;
         }
         // (And each layer taking its colors from one that moved, its latest point (a value, a cloud's band), where it has
@@ -34406,7 +34315,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         drawOverview();
         updateValues();
         // (Lines named at their ends: their values there as they are now.)
-        placeGutters();
+        fitLegends();
       }
       let pricePending = false, priceTimer = 0, priceDelay = 1000;
       async function pollPrice() {
