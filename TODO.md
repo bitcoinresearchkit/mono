@@ -12,11 +12,10 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Studio: raised by you, still open
 
-- Clicking a line in the plot: visual glitches, not smooth (your recording, 2026-10-27 17:18).
 - The folders on the rail: "a ton of polish" needed; what you saw beyond what's fixed (depth, one menu, the flash,
   menu-bar switching, the toggle's speed and stale rows).
-- Shortcuts opening by itself during quick sidebar toggles: the likely cause fixed (its button pressed as the sidebar
-  slid), not reproduced, so unconfirmed.
+- Shortcuts opening by itself during quick sidebar toggles: its button takes no press mid-slide now (5 presses on it as
+  it slid: none opened it); tell me if you still see it.
 
 ## Studio on the new server
 
