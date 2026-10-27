@@ -2898,7 +2898,8 @@
               display: none;
             }
 
-            @media (max-width: 760px) {
+            /* (A narrow plot's, as its gutter's: see setGap.) */
+            .legend[data-narrow] & {
               padding: 4px 6px;
 
               .legend-all-words {
@@ -2908,6 +2909,15 @@
               .legend-all-go {
                 display: inline-grid;
               }
+            }
+          }
+
+          /* (A plot too narrow for its ends' names: the strip alone, its gutter naming the bands; a band's line its share
+             alone where it has one (a 100% stack's), its amount in the panel beside it.) */
+          &[data-tight] {
+            .legend-key > span:not(.key-strip),
+            .legend-on .legend-line:has(> .legend-share) > :not(.legend-share) {
+              display: none;
             }
           }
 
@@ -2951,8 +2961,8 @@
             width: 6px;
             background: var(--c);
 
-            /* (A phone's: half as wide, its names and its way to the list beside it whole.) */
-            @media (max-width: 760px) {
+            /* (A narrow plot's: half as wide, its names and its way to the list beside it whole.) */
+            .legend[data-narrow] & {
               width: 3px;
             }
           }
@@ -16154,6 +16164,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** From how many layers a stacked pane's legend is its key, not each of them: too many to read across its room. */
       const BANDS_FROM = 12;
+      /** Under how wide a plot a stack's key is its strip alone (its ends' names left out: its gutter names its bands). */
+      const KEY_TIGHT = 260;
       /**
        * The room after the latest point as the open chart has it now (a stack of many's gutter, or not: see rightGap), the
        * view kept where it is (the library would scroll to it), and its gutters with it. As it's laid out, not as it moves.
@@ -16196,6 +16208,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function placeGutters() {
         const width = view.timeScale().width(), on = Boolean(chart && resolved && drawnChart === chart.id && guttered(width)), named = /** @type {Set<string>} */ (new Set());
+        // (Its keys' forms by the plot's width, as its gutters': narrow, no words after the strip; tight, the strip alone.)
+        if (width) for (const legend of legends()) legend.toggleAttribute("data-narrow", width < GUTTER_FROM), legend.toggleAttribute("data-tight", width < KEY_TIGHT);
         const panes = view.panes(), wanted = new Set(), last = (resolved?.times.length ?? 0) - 1, x = last < 0 ? null : view.timeScale().logicalToCoordinate(last);
         gutterScales.clear();
         chart?.panes.forEach((pane, i) => {
@@ -32960,7 +32974,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (key?.offsetParent) {
             const strip = /** @type {HTMLElement} */ (key.querySelector(".key-strip")), cells = all$("i", strip);
             pieces.push({ ...box(strip), svg: `<svg viewBox="0 0 ${cells.length} 1" width="${strip.offsetWidth}" height="${strip.offsetHeight}" preserveAspectRatio="none">${cells.map((cell, i) => `<rect x="${i}" width="1.02" height="1" fill="${getComputedStyle(cell).backgroundColor}"/>`).join("")}</svg>` });
+            // (Its ends' names where they show: a tight plot's key is its strip alone.)
             for (const end of /** @type {HTMLElement[]} */ (all$(":scope > span:not(.key-strip)", key))) {
+              if (!end.getClientRects().length) continue;
               const style = getComputedStyle(end);
               pieces.push({ ...box(end), text: end.textContent?.trim() ?? "", font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ ("left") });
             }
@@ -32975,7 +32991,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               if (!element?.textContent?.trim() || !element.getClientRects().length) continue;
               // (Its words where they're drawn: past its padding, a value's under its name.)
               const style = getComputedStyle(element), inset = parseFloat(style.paddingLeft) * scale, at = box(element);
-              pieces.push({ ...at, x: at.x + inset, width: at.width - inset, faded, text: element.textContent.trim(), font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ (["right", "end"].includes(style.textAlign) ? "right" : "left") });
+              // (A line's words as shown: a tight plot's band line its share alone, see the key's data-tight.)
+              const text = element.matches(".legend-line") ? [...element.children].filter((part) => part.getClientRects().length).map((part) => part.textContent).join("").trim() : element.textContent.trim();
+              pieces.push({ ...at, x: at.x + inset, width: at.width - inset, faded, text, font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ (["right", "end"].includes(style.textAlign) ? "right" : "left") });
             }
           }
         }
