@@ -1009,7 +1009,7 @@
       }
 
       .chart-list {
-        /* (Its rows' gap, the same open and on the rail: room there for an open folder's surface, see the rail.) */
+        /* (Its rows' gap, the same open and on the rail.) */
         --row-gap: 4px;
         /* (A row scrolled to clear of its edges' fade.) */
         scroll-padding-block: 28px;
@@ -1795,57 +1795,6 @@
             overflow: visible;
           }
 
-          /*
-           * An open folder, as a rail of servers has it: its icon and its charts on one surface, a field edged as the
-           * search is (the sidebar open, their line), drawn around their squares, 2px out, into the gaps between them
-           * (half of one: as much is left clear to the next): nothing moves as it opens or closes. Each row draws its
-           * slice, through the gap under it.
-           */
-          .folder-row:not(.in-folder):has(+ .in-folder),
-          :is(.chart-row, .folder-row).in-folder {
-            isolation: isolate;
-
-            &::before {
-              content: "";
-              position: absolute;
-              inset: 0 4px calc(-1 * var(--row-gap));
-              z-index: -1;
-              display: block;
-              width: auto;
-              border-radius: 0;
-              background: var(--field);
-              box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
-              pointer-events: none;
-            }
-          }
-
-          .folder-row:not(.in-folder):has(+ .in-folder)::before {
-            top: -2px;
-            border-radius: calc(var(--radius-md) + 2px) calc(var(--radius-md) + 2px) 0 0;
-            box-shadow: inset 0 1px 0 var(--line), inset 1px 0 0 var(--line), inset -1px 0 0 var(--line);
-          }
-
-          :is(.chart-row, .folder-row).in-folder {
-            &:not(:has(+ .in-folder))::before {
-              bottom: -2px;
-              border-radius: 0 0 calc(var(--radius-md) + 2px) calc(var(--radius-md) + 2px);
-              box-shadow: inset 1px 0 0 var(--line), inset -1px 0 0 var(--line), inset 0 -1px 0 var(--line);
-            }
-
-            /* (Dragged: its chart dimmed, its folder's surface whole.) */
-            &.dragging {
-              opacity: 1;
-
-              > * {
-                opacity: 0.35;
-              }
-            }
-
-            > :is(.chart-item, .folder-item) {
-              padding-left: 7px;
-            }
-          }
-
           /* (Centered under Charts' icon.) */
           .side-rule::after {
             left: 11px;
@@ -1853,9 +1802,22 @@
           }
 
           .chart-more,
-          .nav-item kbd,
-          .folder-row.holds .folder-item::after {
+          .nav-item kbd {
             visibility: hidden;
+          }
+
+          /* A folder holding the open chart, its dot on its icon's corner (the rail's folders never open: see railMenu),
+             ringed in the rail's ground. */
+          .folder-row.holds .folder-item {
+            position: relative;
+
+            &::after {
+              position: absolute;
+              top: 6px;
+              left: 19px;
+              margin: 0;
+              box-shadow: 0 0 0 1.5px var(--app);
+            }
           }
 
           /* The rail's icons stay where the open sidebar puts them (collapsing and expanding move nothing). (The list's
@@ -1914,6 +1876,12 @@
            what a screen draws cheapest, a long list of them at once). */
         .sidebar :is(.brand > :not(.logo), .search > :not([data-icon]), .nav-item > :not([data-icon], .chart-mark), .list-head :is(.head-name, .count, .list-head-add)) {
           transition: opacity var(--words-in) var(--ease) var(--words-wait);
+        }
+
+        /* (While it slides, the theme and Shortcuts take no press: opening, they come in beside the toggle, under a second
+           press of it, before the sidebar's wide enough to set them apart.) */
+        body[data-sliding] .sidebar .side-cap {
+          pointer-events: none;
         }
 
         /* (The theme and Shortcuts as the words, and as the icons they are when pressed or pointed at.) */
@@ -10023,7 +9991,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
     </dialog>
 
     <div id="menu" class="menu" role="menu" tabindex="-1" hidden></div>
-    <div id="submenu" class="menu" role="menu" hidden></div>
+    <div id="submenu" class="menu submenu" role="menu" hidden></div>
     <div id="loupe" class="loupe" aria-hidden="true" hidden><canvas></canvas></div>
     <div id="toast" class="toast"></div>
     <div id="tip" class="tip" role="tooltip" hidden></div>
@@ -10227,6 +10195,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let rowSizes = readRowSizes();
       // (Changed, the rows written again at them: a cloud's room is set as it's written.)
       phone.addEventListener("change", () => ((rowSizes = readRowSizes()), chart && renderLayers()));
+      // (The sidebar's list as the rail, or whole in a phone's sheet: see onRail.)
+      phone.addEventListener("change", () => renderCharts());
       /** What of the page shows (a keyboard over it, iOS's, shortens it; every browser Studio runs in has one). */
       const viewport = /** @type {VisualViewport} */ (window.visualViewport);
       /** A phone held upright (its sheet at half height first). */
@@ -13840,7 +13810,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Collapsed, the rail keeps only its icons (a group's head's too): a focus on what it puts away, a row's ⋯, a
         // folder's, on its toggle.)
         const putAway = prefs.sidebar === "collapsed" && document.activeElement?.closest(".sidebar") && !document.activeElement.matches(".nav-item, .list-head-name, .search, .brand a, #sidebar-toggle") ? document.activeElement : null;
+        // (A row in a folder, folding away (the rail's folders never open): its folder at the top takes the focus first.)
+        const inFolder = prefs.sidebar === "collapsed" ? document.activeElement?.closest("#chart-list .in-folder") : null;
+        let top = inFolder;
+        while (top?.classList.contains("in-folder")) top = top.previousElementSibling;
+        if (inFolder) /** @type {HTMLElement | null | undefined} */ (top?.querySelector(".folder-item"))?.focus({ preventScroll: true });
         applySidebar();
+        // (The rail's folders never open: the rows in them gone as it narrows, back as it widens, at once (their words
+        // fading as everything's do).)
+        renderCharts();
         // (No motion to it (transitions held off meanwhile: a width dragged): no slide to wait on.)
         if (!widthMoving()) document.body.removeAttribute("data-sliding");
         // (The list's one stop for Tab on a row in sight.)
@@ -16509,7 +16487,35 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       // The menus: the row pointed at (a mouse's; between rows, on a rule, it stays), or reached by keys (its edge its own:
       // the row keys act on, wherever the pointer is); on another of their controls (the colors' swatches), none.
-      for (const menu of [$("menu"), $("submenu")]) {
+      /**
+       * The menu's submenus, one a level (a row's own menu beside the one it's in: 1 beside the menu, 2 beside that, as
+       * deep as they go), each made as it's first needed, set up as the others (see whenSubmenu).
+       */
+      const submenus = [$("submenu")], subSetups = /** @type {((menu: HTMLElement) => void)[]} */ ([]);
+      /** Each submenu set up so, those made and those to be. */
+      function whenSubmenu(/** @type {(menu: HTMLElement) => void} */ setup) {
+        subSetups.push(setup);
+        for (const sub of submenus) setup(sub);
+      }
+      /** The submenu at a level (from 1), made if it's not yet. */
+      function subAt(/** @type {number} */ level) {
+        while (submenus.length < level) {
+          const sub = document.createElement("div");
+          Object.assign(sub, { id: `submenu-${submenus.length + 1}`, className: "menu submenu", hidden: true });
+          sub.setAttribute("role", "menu");
+          /** @type {HTMLElement} */ (submenus.at(-1)).after(sub);
+          submenus.push(sub);
+          for (const setup of subSetups) setup(sub);
+        }
+        return submenus[level - 1];
+      }
+      /** A menu's level: the menu's 0, a submenu's its own. */
+      const levelOf = (/** @type {Element} */ menu) => submenus.indexOf(/** @type {HTMLElement} */ (menu)) + 1;
+      /** Whether something's in one of the submenus. */
+      const inSubmenu = (/** @type {Element | null} */ element) => submenus.some((sub) => sub.contains(element));
+      /** Each menu's pick (its own rows', see fillMenu): a row's submenu asked of the menu it's in. @type {WeakMap<HTMLElement, (data: DOMStringMap) => void>} */
+      const menuPicks = new WeakMap();
+      const lightRows = (/** @type {HTMLElement} */ menu) => {
         const light = glides(menu), rowOf = (/** @type {Event} */ event) => /** @type {HTMLElement | null} */ (closest(event, ".menu > button"));
         const control = (/** @type {Event} */ event) => (closest(event, "button, input, select, textarea, a, [tabindex]") ?? menu) !== menu;
         menu.addEventListener("pointerover", (event) => {
@@ -16527,8 +16533,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
         // (Keys walking it, on the row focused already (Home on the first): it, once they're taken in.)
         menu.addEventListener("keydown", (event) => ["ArrowUp", "ArrowDown", "Home", "End"].includes(event.key) && setTimeout(() => focused() && light(focused(), true)));
-        menu.addEventListener("focusout", (event) => !menu.contains(/** @type {Node | null} */ (event.relatedTarget)) && !menu.matches(":hover") && light(null));
-      }
+        menu.addEventListener("focusout", (event) => !menu.contains(/** @type {Element | null} */ (event.relatedTarget)) && !menu.matches(":hover") && light(null));
+      };
+      lightRows($("menu"));
+      whenSubmenu(lightRows);
       /** Whether ⌘K's row was last moved to by the pointer (see move): its highlight glides there; by keys, at once. */
       let pointedOption = false;
       // ⌘K: the row ↵ runs, however it's come to (the arrows, the pointer, the list written anew); a finger's ⌘K has none
@@ -19825,6 +19833,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // A right-click on a drawing: its menu, as a layer's row has.
       $("chart").addEventListener("contextmenu", (event) => {
         const hit = tool || placing ? null : drawingAt(event.clientX, event.clientY);
+        // (Else a layer's, as its row's: its legend item, or its line or tag under the pointer (the one its legend lights).)
+        const item = !hit && !tool && !placing ? /** @type {HTMLElement | null} */ (closest(event, "#chart .legend [data-select]")) : null;
+        const layer = item?.dataset.select ?? (!hit && !tool && !placing && litLayer && layerById(litLayer) ? litLayer : null);
+        if (layer && !TOUCH) return void (event.preventDefault(), layerMenu(item ?? $("plot-keys"), layer, { x: event.clientX, y: event.clientY }));
         if (!hit) return;
         event.preventDefault();
         if (!chosen.has(hit.drawing.id)) chooseDrawings([hit.drawing.id]);
@@ -20459,8 +20471,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         parts.forEach(([key, html], i) => {
           const old = kept.get(key);
           kept.delete(key);
-          // (One folded away (inert, its fold's end held), shown again by another way than its fold: written anew.)
-          let element = old && !(/** @type {HTMLElement} */ (old.element).inert) && (old.html === html || rewriteInPlace(old.element, old.html, html)) ? old.element : null;
+          // (One folded away (inert, its fold's end held), shown again by another way than its fold: written anew. One
+          // still folding, as it is: its fold goes on.)
+          let element = old && !(/** @type {HTMLElement} */ (old.element).inert && foldOf.get(old.element)?.playState !== "running") && (old.html === html || rewriteInPlace(old.element, old.html, html)) ? old.element : null;
           if (old && element && old.html !== html) wrote = true;
           if (!element) {
             make.innerHTML = html;
@@ -22130,8 +22143,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (On a picked card, it acts on every one picked; on another, on it alone: the picks stay as they are, it outlined.)
         const target = picked.size && !picked.has(id) ? cardOf(id) : null;
         queueMicrotask(() => target && !$("menu").hidden && (menuTarget = target).classList.add("menu-target"));
-        // (A phone's sheet named for what it acts on, as the chart's own is: the tile may be out of sight under it.)
-        const title = phone.matches ? (picked.has(id) ? plural(picked.size, "chart") : titleOf(/** @type {Chart} */ (chartById(id)))) : "";
+        // (Picked, on a phone, its sheet named for all it acts on: the cards out of sight under it (one alone: named as any is).)
+        const title = phone.matches && picked.has(id) ? plural(picked.size, "chart") : "";
         menuOf(anchor, picked.has(id) ? gridActions() : chartActions(id, "tile"), point ?? null, "", { title });
       }
       /** What the picked charts do together (a picked card's ⋯ or right-click). @returns {Action[]} */
@@ -22229,7 +22242,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let deletedOpen = "";
       /** Whether the focus is on the open chart (its page, not the grid over it), or in a menu (or its submenu) it opened. */
       const onChart = () => {
-        const active = document.activeElement, at = active?.closest("#menu, #submenu") ? ownerNow() ?? closedOwner : active;
+        const active = document.activeElement, at = active?.closest("#menu, .submenu") ? ownerNow() ?? closedOwner : active;
         return Boolean(at?.closest("#main") && !at.closest("#home"));
       };
       function showHome(push = true, /** @type {{ top: number, rows: Record<string, number> } | null} */ place = null) {
@@ -23013,7 +23026,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const previewRow = (/** @type {Chart} */ doc) => `<div class="chart-row preview" data-preview-row="${doc.id}">${`<button type="button" class="nav-item chart-item${touched.has(doc) ? " edited" : ""}" data-open-chart="${doc.id}" data-tip="${escape(titleOf(doc))}: a preview, not in your Library yet (Save${doc === chart ? " or ⌘S" : ""} to keep it${touched.has(doc) ? " with your edits" : ""})">${chartMark(doc)}<span class="label">${escape(titleOf(doc))}</span></button>${doc !== chart || previousChart() ? `<button type="button" class="cap small chart-more" data-action="close-preview" data-preview="${doc.id}" aria-label="Close the preview ${escape(titleOf(doc))}" data-tip="Close the preview">${ICONS.close}</button>` : ""}`}</div>`;
         // (A draft, the empty chart in place of none (the open one deleted), isn't listed: it's the page to start one, not
         // a chart, till something's in it.)
-        const listed = listedPreviews(), counts = chartCounts();
+        // (On the rail, folders never open: each a door to what's in it, see railMenu.)
+        const listed = listedPreviews(), counts = chartCounts(), rail = onRail();
         // (Named always, nothing in it too: what's yours, and where New folder is.)
         libraryFolded = groupShut("library");
         const keys = numbered();
@@ -23036,11 +23050,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (New chart first: what it makes is yours, here; folded away with them.)
           /** @type {[string, string]} */ (["new", `<div class="chart-row action-row" data-action-row="new" style="--depth: 0"><button type="button" id="new-chart" class="nav-item chart-item side-action" data-action="new-chart" data-tip="New chart" data-kbd="N"><span data-icon="plus">${ICONS.plus}</span><span class="label">New chart</span><kbd>N</kbd></button></div>`]),
           // (Your charts as a tree: each folder's under it, as deep as they go; a closed one's out of sight.)
-          ...treeOf(undefined, true).map(({ item, depth }) => {
+          ...sideTree().map(({ item, depth }) => {
             if ("layers" in item) return /** @type {[string, string]} */ ([item.id, row(item, depth)]);
-            const folder = item, holds = Boolean(current?.folder && isIn(current.folder, folder.id));
-            return /** @type {[string, string]} */ ([`folder:${folder.id}`, `<div class="folder-row ${depth ? "in-folder" : ""} ${folder.closed ? "closed" : ""} ${folder.closed && holds ? "holds" : ""}" data-folder-row="${folder.id}" style="--depth: ${depth}">
-              <button type="button" class="nav-item folder-item" data-folder-item="${folder.id}" aria-expanded="${!folder.closed}" data-tip="${escape(folder.name)}"><span class="chart-mark folder-glyph">${folder.closed ? ICONS.folder : ICONS.folderOpen}</span><span class="label">${escape(folder.name)}</span><span class="folder-count">${shortCount(counts.get(folder.id) ?? 0)}</span></button>
+            const folder = item, closed = folder.closed || rail, holds = Boolean(current?.folder && isIn(current.folder, folder.id));
+            return /** @type {[string, string]} */ ([`folder:${folder.id}`, `<div class="folder-row ${depth ? "in-folder" : ""} ${closed ? "closed" : ""} ${closed && holds ? "holds" : ""}" data-folder-row="${folder.id}" style="--depth: ${depth}">
+              <button type="button" class="nav-item folder-item" data-folder-item="${folder.id}" aria-expanded="${!closed}" data-tip="${escape(folder.name)}"><span class="chart-mark folder-glyph">${closed ? ICONS.folder : ICONS.folderOpen}</span><span class="label">${escape(folder.name)}</span><span class="folder-count">${shortCount(counts.get(folder.id) ?? 0)}</span></button>
               <button type="button" class="cap small chart-more" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}" data-tip="More">${ICONS.more}</button>
             </div>`]);
           })]),
@@ -23204,7 +23218,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function presetParts() {
         const root = presetTree();
         if (!root || !presets) return [];
-        const open = new Set(prefs.presetsOpen);
+        // (On the rail, none open: see renderCharts.)
+        const open = new Set(onRail() ? [] : prefs.presetsOpen);
         // (The sections the open preset is in: one closed holds it, marked as a folder holding the open chart is.)
         const at = !home && chart.preset !== undefined ? presetIndex(chart) : -1, holding = new Set(at < 0 ? [] : sectionKeys(at));
         /** @type {[string, string][]} */
@@ -23299,7 +23314,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether your Library's closed in the sidebar, as last drawn (named, so closed: see renderCharts). */
       let libraryFolded = false;
       /** The charts ⌘1–9 open: the first nine the sidebar shows (one in a closed folder or a closed Library, out of sight, out of reach). */
-      const numbered = () => (libraryFolded ? [] : treeOf(undefined, true).flatMap(({ item }) => ("layers" in item ? [item] : [])).slice(0, 9));
+      const numbered = () => (libraryFolded ? [] : sideTree().flatMap(({ item }) => ("layers" in item ? [item] : [])).slice(0, 9));
+      /** Your charts and folders as the sidebar shows them: open, as a tree (a closed folder's out of sight); the rail, the top's alone. */
+      const sideTree = () => (onRail() ? childrenOf(undefined).map((item) => ({ item, depth: 0 })) : treeOf(undefined, true));
       /** A folder made (in `parent`, first there; none: at the top), named at once where it shows (`keys`: what it starts with). */
       function newFolder(/** @type {string[]} */ keys = [], /** @type {string | undefined} */ parent = undefined, { step = true, name = true } = {}) {
         const was = arrangement();
@@ -23367,9 +23384,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function foldRow(/** @type {() => HTMLElement | null} */ find, /** @type {boolean} */ closing) {
         let head = find();
-        if (reduced.matches || !head) return renderCharts();
+        // (On the rail, nothing unfolds: kept as it's set, shown once the sidebar's open.)
+        if (reduced.matches || !head || onRail()) return renderCharts();
         // (A group's head turns its arrow, as its class says.)
-        const group = head.classList.contains("list-head"), glyph = head.querySelector(".folder-glyph");
+        const glyph = head.querySelector(".folder-glyph");
         if (glyph) glyph.innerHTML = closing ? ICONS.folder : ICONS.folderOpen;
         head.classList.toggle("closed", closing);
         head.querySelector("[aria-expanded]")?.setAttribute("aria-expanded", String(!closing));
@@ -23382,9 +23400,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!head) return;
         }
         const folds = foldRows(rowsUnder(head), closing, (row) => shown.get(rowKey(row)));
-        // (On the rail, its own slice of their surface fades with them: a fade under way, from its closing, goes first.)
-        for (const animation of head.getAnimations({ subtree: true })) if (/** @type {KeyframeEffect | null} */ (animation.effect)?.pseudoElement === "::before") animation.cancel();
-        if (!head.classList.contains("in-folder") && !group) folds.push(head.animate({ opacity: closing ? [1, 0] : [0, 1] }, { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none", pseudoElement: "::before" }));
         // (The sidebar's highlight with its row as the rows slide, each frame till they're still.)
         let sliding = true;
         Promise.allSettled(folds.map((animation) => animation.finished)).then(() => {
@@ -23758,7 +23773,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const moving = itemsOf(keys).filter((item) => !("layers" in item && !isYours(item)) && (id ? parentOf(item) !== id : parentOf(item)));
         if (!moving.length) return;
         // (Into a closed folder, their rows out of sight: a focus that was on one, or in its menu, goes to the folder's.)
-        const hadFocus = Boolean(document.activeElement?.closest("#chart-list, #menu, #submenu"));
+        const hadFocus = Boolean(document.activeElement?.closest("#chart-list, #menu, .submenu"));
         if (id) placeItems(moving.map(sideKey), id, null, { quiet });
         else {
           // (Out: each folder's under it, in their order, one Undo for all.)
@@ -24390,7 +24405,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const box = onto.getBoundingClientRect(), share = (y - box.top) / box.height, folder = folderById(onto.dataset.folderRow);
             const first = places[places.indexOf(onto) + 1], inside = first && folder && parentOf(/** @type {Chart | Folder} */ (itemOf(sideId(first)))) === folder.id ? first : null;
             if (share < 0.25) return level({ item: onto, after: false });
-            if (share > 0.75) return folder?.closed ? level({ item: onto, after: true }) : inside ? level({ item: inside, after: false }) : { zone: onto };
+            if (share > 0.75) return folder?.closed || onRail() ? level({ item: onto, after: true }) : inside ? level({ item: inside, after: false }) : { zone: onto };
             return { zone: onto };
           }
           return level(landingIn(places, y, sideId, ids));
@@ -24502,6 +24517,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!event.altKey && !event.metaKey && !event.ctrlKey && !event.shiftKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
           const opens = folder !== undefined || section !== undefined || group !== undefined, open = opens && !row.classList.contains("closed"), depth = level(row), at = rows.indexOf(row);
           event.preventDefault();
+          // (On the rail, a folder's or a section's → is its menu, the focus in it, as a press shows it: they never open
+          // there.)
+          if (onRail() && (folder !== undefined || section !== undefined)) return void (event.key === "ArrowRight" && first(row) && railMenuKept(/** @type {HTMLElement} */ (first(row))));
           if (opens && open === (event.key === "ArrowLeft")) {
             if (folder) toggleFolder(folder);
             else if (group) toggleGroup(group);
@@ -24531,7 +24549,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("chart-more").addEventListener("click", (event) => {
         const button = /** @type {HTMLElement} */ (event.currentTarget);
         // (On a phone, headed by the chart's whole name: its title may be cut short there.)
-        menuOf(button, headMenu(), null, "", { title: phone.matches ? titleOf(chart) : "" });
+        menuOf(button, headMenu());
       });
       $("home-new-folder").addEventListener("click", (event) => {
         event.preventDefault();
@@ -25349,7 +25367,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function openPresetMenu(more, at = null) {
         const i = Number(more.dataset.presetMenu);
-        menuOf(more, presetActions(i, more.closest("#chart-list, [data-preset-row]") ? "row" : "tile"), at, "", { title: phone.matches ? titleOf(presetDoc(i)) : "" });
+        menuOf(more, presetActions(i, more.closest("#chart-list, [data-preset-row]") ? "row" : "tile"), at);
       }
       /**
        * A preset's actions, where they show (`where`, as a chart's): open it, copy it into your charts (or into a folder),
@@ -28068,6 +28086,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       document.addEventListener("contextmenu", (event) => {
         // (The browser's own, after the menu key opened a row's menu: that one's open.)
         if (event.isTrusted && performance.now() - keyMenuAt < 500 && closest(event, "#chart-list")) return void event.preventDefault();
+        // (A row on the rail: its one menu, as pointing at it or pressing it shows (see railMenu).)
+        const railItem = onRail() && !closest(event, ".row-rename, .folder-rename") ? /** @type {HTMLElement | null} */ (closest(event, "#chart-list > *")?.querySelector(":scope > :is([data-open-chart], [data-open-preset], [data-folder-item], [data-section-item], [data-group-item])") ?? null) : null;
+        if (railItem) {
+          event.preventDefault();
+          return railMenuKept(railItem);
+        }
         const tile = closest(event, "[data-home-card]");
         if (tile && !closest(event, ".tile-rename")) {
           event.preventDefault();
@@ -31174,7 +31198,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (on && !menuHidden && menu.parentElement === document.body) {
           menuHidden = new Map();
           for (const element of document.body.children) {
-            if ([menu, menuScrim, $("submenu"), $("toast"), $("tip")].includes(/** @type {HTMLElement} */ (element)) || element instanceof HTMLDialogElement || element instanceof HTMLScriptElement || element.matches(".vh")) continue;
+            if ([menu, menuScrim, ...submenus, $("toast"), $("tip")].includes(/** @type {HTMLElement} */ (element)) || element instanceof HTMLDialogElement || element instanceof HTMLScriptElement || element.matches(".vh")) continue;
             menuHidden.set(element, element.getAttribute("aria-hidden"));
             element.setAttribute("aria-hidden", "true");
           }
@@ -31185,7 +31209,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       // (The focus come to the page behind it all the same (a toast's button used, the toast written anew, then Tab): the
       // menu put away, as Tab in it does.)
-      document.addEventListener("focusin", (event) => menuHidden && !closest(event, "#menu, #submenu, #toast, #tip") && dismissMenu());
+      document.addEventListener("focusin", (event) => menuHidden && !closest(event, "#menu, .submenu, #toast, #tip") && dismissMenu());
       /** What opened the menu, as it is now: a redraw (the inspector's) puts a new one in its place, by the same id. */
       const ownerNow = () => (menuOwner && !menuOwner.isConnected && menuOwner.id ? document.getElementById(menuOwner.id) : menuOwner);
       /** Each menu shown, counted (see Share: one shown since its press, gone again or not, and it shows nothing). */
@@ -31200,6 +31224,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         menusShown++;
         if (cascadeRow && !menu.hidden) return showSubmenu(cascadeRow, html, onPick);
         if (ownerNow() === anchor && !menu.hidden && !point) return hideMenu();
+        // (Shown for another (a flyout moving on to the next row, pointed at): one menu, moving to this one's, its rows
+        // this one's, from where it shows now; not one fading as another comes. See showSubmenu.)
+        const was = !menu.hidden && !phone.matches && !point ? menu.getBoundingClientRect() : null;
+        if (was) for (const motion of menu.getAnimations()) motion.finish();
         hideSubmenu();
         menuPick = onPick;
         flyout = asFlyout || openingByHover;
@@ -31235,6 +31263,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!point && anchor.hasAttribute("aria-haspopup")) anchor.setAttribute("aria-expanded", "true");
         if (phone.matches) Object.assign(menu.style, { left: "", top: "", maxHeight: "", transformOrigin: "" });
         else placeMenu(menu, host, anchor, point, side);
+        if (was) {
+          menu.style.animation = "none";
+          const now = menu.getBoundingClientRect();
+          if (!reduced.matches) menu.animate({ translate: [`${was.left - now.left}px ${was.top - now.top}px`, "0 0"] }, { duration: MOTION.micro, easing: MOTION.easeLayout });
+        }
         // (The one ticked in sight, a long one's too: a select's choice low in its list. A flyout leaves the focus be; a
         // finger's menu takes it itself, no row lit as if a key had reached it: ↓ goes on from there.)
         const first = /** @type {HTMLElement | null} */ (menu.querySelector("button[aria-checked='true']") ?? menu.querySelector("button:not(:disabled, [data-menu-back])"));
@@ -31258,6 +31291,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const choice = row.current !== undefined;
           return `${apart ? '<div class="menu-rule"></div>' : ""}${head}<button type="button" data-pick="${escape(row.key ?? String(i))}"${choice ? ` aria-checked="${Boolean(row.current)}"` : ""}${row.danger ? ' class="danger"' : ""}${row.disabled ? ` aria-disabled="true" data-tip="${escape(row.disabled)}"` : ""}${row.page ? ' aria-haspopup="menu"' : ""}>${choice ? tick(Boolean(row.current)) : ""}${row.icon ?? ""}${escape(row.label)}${row.kbd ? `<kbd>${escape(keyText(row.kbd))}</kbd>` : row.disabled || row.aside ? `<span>${escape(row.disabled || row.aside || "")}</span>` : ""}</button>`;
         }).join("");
+        // (What it's for named on top wherever its name is out of sight: a row's on the rail; anything's on a phone, its
+        // sheet over the page. However it's opened. Not a submenu's.)
+        if (!title && !cascadeRow && (phone.matches || (onRail() && anchor.closest("#chart-list")))) title = menuNameOf(anchor);
         const head = back ? `<div class="menu-group menu-title"><button type="button" class="cap small" data-menu-back="1" aria-label="Back" data-tip="Back">${ICONS.back}</button>${escape(title)}</div>` : title ? `<div class="menu-group">${escape(title)}</div>` : "";
         showMenu(anchor, `${head}${html}`, ({ pick: key, menuBack: backed }) => {
           if (backed) return back?.();
@@ -31281,7 +31317,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A menu it leads to acts on the same: outlined still.)
         if (!menu.hidden) return void (target?.isConnected && (menuTarget = target).classList.add("menu-target"));
         const active = document.activeElement;
-        if (active && active !== document.body && !menu.contains(active) && !$("submenu").contains(active)) return;
+        if (active && active !== document.body && !menu.contains(active) && !inSubmenu(active)) return;
         if (owner?.isConnected) owner.focus({ preventScroll: true });
         else if (scope?.isConnected) restoreFocus(scope, key);
       }
@@ -31361,7 +31397,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * in it (always, `back`).
        */
       function dismissMenu(back = false) {
-        const had = back || $("menu").contains(document.activeElement) || $("submenu").contains(document.activeElement), owner = ownerNow();
+        const had = back || $("menu").contains(document.activeElement) || inSubmenu(document.activeElement), owner = ownerNow();
         hideMenu();
         if (had && owner?.isConnected) owner.focus({ preventScroll: true });
       }
@@ -31395,6 +31431,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (const button of all$("button", element)) if (!button.hasAttribute("role")) button.setAttribute("role", button.hasAttribute("aria-checked") ? "menuitemradio" : "menuitem");
         }
         element.setAttribute("aria-label", label);
+        menuPicks.set(element, onPick);
         element.onclick = (event) => {
           const button = closest(event, "button:not(:disabled)");
           if (!button) return;
@@ -31501,61 +31538,84 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * edge, the rows crossed on the way don't switch it), pressed, or → from the row; ← or esc from it closes it.
        * Color's Custom isn't one: it's a page of the same popover.
        */
-      const cascades = (/** @type {Element} */ button) => !phone.matches && button.getAttribute("aria-haspopup") === "menu" && !button.hasAttribute("data-pick-custom") && Boolean(button.closest("#menu"));
-      /** The row whose submenu is being asked for (while its menu's pick runs), the row one shows beside, the menu's pick, a pointer's wait to switch (and what it waits on). */
-      let cascadeRow = /** @type {HTMLElement | null} */ (null), subRow = /** @type {HTMLElement | null} */ (null), menuPick = /** @type {((data: DOMStringMap) => void) | null} */ (null), cascadeTimer = 0;
-      let cascadeWait = /** @type {{ row: Element | null, heading: boolean } | null} */ (null);
+      const cascades = (/** @type {Element} */ button) => !phone.matches && button.getAttribute("aria-haspopup") === "menu" && !button.hasAttribute("data-pick-custom") && Boolean(button.closest("#menu, .submenu"));
+      /** The row whose submenu is being asked for (while its menu's pick runs), the menu's pick, a pointer's wait to switch (and what it waits on, at which level). */
+      let cascadeRow = /** @type {HTMLElement | null} */ (null), menuPick = /** @type {((data: DOMStringMap) => void) | null} */ (null), cascadeTimer = 0;
+      let cascadeWait = /** @type {{ row: Element | null, heading: boolean, level: number } | null} */ (null);
+      /** The row each submenu shows beside, by its level (from 1). @type {(HTMLElement | undefined)[]} */
+      const subRows = [];
       function openCascade(/** @type {HTMLElement} */ row, focus = false) {
-        if ($("menu").hidden || !$("menu").contains(row)) return;
-        if (subRow !== row || $("submenu").hidden) {
-          hideSubmenu();
+        const own = /** @type {HTMLElement | null} */ (row.closest("#menu, .submenu"));
+        if ($("menu").hidden || !own || own.hidden) return;
+        const level = levelOf(own) + 1;
+        if (subRows[level] !== row || subAt(level).hidden) {
+          // (Another row's shown: it moves to this one, as it is (see showSubmenu); none, it comes.)
+          hideSubmenu(subAt(level).hidden ? level : level + 1);
           cascadeRow = row;
           try {
-            menuPick?.(row.dataset);
+            menuPicks.get(own)?.(row.dataset);
           } finally {
             cascadeRow = null;
           }
         }
         // (Its choice in effect first, as a menu opens on it.)
-        if (focus && !$("submenu").hidden) /** @type {HTMLElement | undefined} */ ($("submenu").querySelector("button[aria-checked='true']:not(:disabled)") ?? all$("button:not(:disabled)", $("submenu"))[0])?.focus();
+        const sub = subAt(level);
+        if (focus && !sub.hidden) /** @type {HTMLElement | undefined} */ (sub.querySelector("button[aria-checked='true']:not(:disabled)") ?? all$("button:not(:disabled)", sub)[0])?.focus();
       }
       function showSubmenu(/** @type {HTMLElement} */ row, /** @type {string} */ html, /** @type {(data: DOMStringMap) => void} */ onPick) {
-        // (Opened again as it fades: measured whole and in place, as a menu is.)
-        for (const motion of $("submenu").getAnimations()) if (motion instanceof CSSTransition) motion.finish();
-        const sub = $("submenu"), host = /** @type {HTMLElement} */ ($("menu").parentElement);
+        const own = /** @type {HTMLElement} */ (row.closest("#menu, .submenu")), level = levelOf(own) + 1, sub = subAt(level);
+        // (Shown for another row of its menu: one submenu, moving to this one's, its rows this one's (not one fading as
+        // another comes: a sweep down the rows, a flash a row); from where it shows now, a move under way too.)
+        const was = sub.hidden ? null : sub.getBoundingClientRect(), had = sub.contains(document.activeElement);
+        for (const motion of sub.getAnimations()) motion.finish();
+        // (Its menu still moving (gliding to another row, growing in): there first, this placed beside where it stays.)
+        for (const motion of own.getAnimations()) motion.finish();
+        const host = /** @type {HTMLElement} */ ($("menu").parentElement);
         fillMenu(sub, host, html, calledBy(row), onPick);
+        // (One leading on: its › at its end, as the menu's.)
+        for (const button of all$("button[aria-haspopup='menu']", sub)) if (!button.querySelector(".sub")) button.insertAdjacentHTML("beforeend", `<span class="sub">${ICONS.next}</span>`);
         cutFade(sub);
         sub.hidden = false;
-        subRow?.removeAttribute("aria-expanded");
-        (subRow = row).setAttribute("aria-expanded", "true");
-        // Beside its menu (right, or left where there's no room), its first row level with the row.
-        const parent = $("menu").getBoundingClientRect(), own = row.getBoundingClientRect(), bounds = host === document.body ? new DOMRect(0, 0, innerWidth, innerHeight) : host.getBoundingClientRect();
+        subRows[level]?.removeAttribute("aria-expanded");
+        (subRows[level] = row).setAttribute("aria-expanded", "true");
+        // Beside the menu it's from (right, or left where there's no room), its first row level with the row.
+        const parent = own.getBoundingClientRect(), at = row.getBoundingClientRect(), bounds = host === document.body ? new DOMRect(0, 0, innerWidth, innerHeight) : host.getBoundingClientRect();
         sub.style.maxHeight = host === document.body ? "" : `${bounds.height - 16}px`;
         sub.style.animation = "none";
         const origin = fixedOrigin(sub), width = sub.offsetWidth, height = sub.offsetHeight, right = parent.right + 4 + width <= bounds.right - 8;
-        const top = clamp(own.top - 4, bounds.top + 8, bounds.bottom - height - 8);
+        const top = clamp(at.top - 4, bounds.top + 8, bounds.bottom - height - 8);
         // (Fitting on neither side: on the roomier one, kept within its host, over its menu's edge.)
         const side = right || parent.left - 4 - width >= bounds.left + 8 ? right : bounds.right - parent.right >= parent.left - bounds.left;
         placeFixed(sub, origin, clamp(side ? parent.right + 4 : parent.left - 4 - width, bounds.left + 8, bounds.right - width - 8), top);
-        sub.style.transformOrigin = `${side ? "0" : "100%"} ${clamp(own.top + own.height / 2 - top, 0, height)}px`;
+        sub.style.transformOrigin = `${side ? "0" : "100%"} ${clamp(at.top + at.height / 2 - top, 0, height)}px`;
+        if (was) {
+          const now = sub.getBoundingClientRect();
+          if (!reduced.matches) sub.animate({ translate: [`${was.left - now.left}px ${was.top - now.top}px`, "0 0"] }, { duration: MOTION.micro, easing: MOTION.easeLayout });
+          // (The focus in its rows as they're swapped: on the row it's now beside, for the keys to go on from.)
+          if (had) row.focus({ preventScroll: true });
+          return;
+        }
         void sub.offsetWidth;
         sub.style.animation = "";
       }
-      /** The submenu gone (a wait to open one too); the focus in it, back on its row. */
-      function hideSubmenu() {
+      /** The submenus from a level on gone (a wait to open one too); the focus in them, back on the row the first was beside. */
+      function hideSubmenu(from = 1) {
         clearTimeout(cascadeTimer);
         cascadeWait = null;
-        const sub = $("submenu"), had = sub.contains(document.activeElement);
-        fadeOut(sub, [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(0.96)" }]);
-        sub.hidden = true;
-        subRow?.removeAttribute("aria-expanded");
-        if (had && subRow?.isConnected) subRow.focus({ preventScroll: true });
-        subRow = null;
+        const gone = submenus.slice(from - 1), had = gone.some((sub) => sub.contains(document.activeElement)), back = subRows[from];
+        for (const sub of gone.reverse()) {
+          if (sub.hidden) continue;
+          fadeOut(sub, [{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(0.96)" }]);
+          sub.hidden = true;
+        }
+        for (const row of subRows.splice(from)) row?.removeAttribute("aria-expanded");
+        if (had && back?.isConnected) back.focus({ preventScroll: true });
       }
       // Pointed at: a row's submenu, a moment after the pointer comes onto it (a pass over it opens none); one open, another
       // row with one switches it at once (a gap, a rule or a row without one closes it a moment later: crossing a rule to
       // the next doesn't close and open again). Heading for the open one, what's under the pointer waits while it's on its
-      // way (a moment, then as long as it still heads there), then shows its own; the triangle left switches at once.
+      // way (a moment, then as long as it still heads there), then shows its own; the triangle left switches at once. In
+      // the menu and in each submenu alike, for the one beside it.
       {
         let last = { x: 0, y: 0 }, toward = false, headedAt = -Infinity;
         const inTriangle = (/** @type {number[]} */ [px, py], /** @type {number[][]} */ [[ax, ay], [bx, by], [cx, cy]]) => {
@@ -31566,16 +31626,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** The wait done: the row under the pointer then shows its submenu, or none shows (still heading a moment ago, it waits on). */
         const waited = () => {
           if (cascadeWait?.heading && performance.now() - headedAt < 100) return void (cascadeTimer = window.setTimeout(waited, 100));
-          const row = cascadeWait?.row;
+          const row = cascadeWait?.row, level = cascadeWait?.level ?? 1;
           cascadeWait = null;
-          row && cascades(row) ? openCascade(/** @type {HTMLElement} */ (row)) : hideSubmenu();
+          row && cascades(row) ? openCascade(/** @type {HTMLElement} */ (row)) : hideSubmenu(level);
         };
-        $("menu").addEventListener("pointermove", (event) => {
+        const moves = (/** @type {HTMLElement} */ menu) => menu.addEventListener("pointermove", (event) => {
           if (event.pointerType !== "mouse" || phone.matches) return;
-          const row = /** @type {HTMLElement | null} */ (closest(event, "button:not(:disabled)")), sub = $("submenu"), at = [event.clientX, event.clientY];
+          const level = levelOf(menu) + 1, next = submenus[level - 1], open = next && !next.hidden ? next : null;
+          const row = /** @type {HTMLElement | null} */ (closest(event, "button:not(:disabled)")), at = [event.clientX, event.clientY];
           // Heading for the open submenu: judged over a few pixels (a hand's tremor doesn't turn it), toward it and a row
           // past each end (a curved path still counts).
-          const box = sub.hidden ? null : sub.getBoundingClientRect(), far = Math.hypot(at[0] - last.x, at[1] - last.y) >= 5;
+          const box = open?.getBoundingClientRect(), far = Math.hypot(at[0] - last.x, at[1] - last.y) >= 5;
           if (!box) toward = false;
           else if (far) {
             const edge = box.left >= last.x ? box.left : box.right;
@@ -31584,36 +31645,47 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!box || far) last = { x: at[0], y: at[1] };
           if (far && toward) headedAt = performance.now();
           const opens = row && cascades(row);
-          if ((row && row === subRow) || (!opens && sub.hidden)) return void (clearTimeout(cascadeTimer), (cascadeWait = null));
+          if ((row && row === subRows[level]) || (!opens && !open)) return void (clearTimeout(cascadeTimer), (cascadeWait = null));
           if (toward) {
             // (On its way: the wait as it was, or begun, for what's under the pointer now.)
             if (cascadeWait?.heading) return void (cascadeWait.row = row);
             clearTimeout(cascadeTimer);
-            cascadeWait = { row, heading: true };
+            cascadeWait = { row, heading: true, level };
             return void (cascadeTimer = window.setTimeout(waited, 300));
           }
-          if (opens && !sub.hidden) return void (clearTimeout(cascadeTimer), (cascadeWait = null), openCascade(/** @type {HTMLElement} */ (row)));
+          if (opens && open) return void (clearTimeout(cascadeTimer), (cascadeWait = null), openCascade(/** @type {HTMLElement} */ (row)));
           // (A first submenu: a moment from coming onto its row. A gap or a row without one: a moment from the first, the
           // open one closed then.)
           if (cascadeWait && !cascadeWait.heading && (cascadeWait.row === row || !opens)) return void (cascadeWait.row = row);
           clearTimeout(cascadeTimer);
-          cascadeWait = { row, heading: false };
+          cascadeWait = { row, heading: false, level };
           cascadeTimer = window.setTimeout(waited, 100);
         });
-        // (Left, for the submenu or anywhere: what it was about to do, it doesn't.)
-        for (const id of ["menu", "submenu"]) $(id).addEventListener(id === "menu" ? "pointerleave" : "pointerenter", () => (clearTimeout(cascadeTimer), (cascadeWait = null)));
+        moves($("menu"));
+        whenSubmenu(moves);
+        // (Left, for a submenu or anywhere: what it was about to do, it doesn't.)
+        const calm = () => (clearTimeout(cascadeTimer), (cascadeWait = null));
+        $("menu").addEventListener("pointerleave", calm);
+        whenSubmenu((sub) => (sub.addEventListener("pointerenter", calm), sub.addEventListener("pointerleave", calm)));
       }
-      $("submenu").addEventListener("keydown", (event) => {
+      whenSubmenu((sub) => sub.addEventListener("keydown", (event) => {
         if (event.key === "ArrowLeft" || event.key === "Escape") {
           event.preventDefault();
           event.stopPropagation();
-          return hideSubmenu();
+          return hideSubmenu(levelOf(sub));
         }
         if (event.key === "Tab") return dismissMenu(true);
-        walkMenu(event, $("submenu"));
-      });
+        if (event.key === "ArrowRight" && cascades(/** @type {HTMLElement} */ (event.target))) {
+          event.preventDefault();
+          event.stopPropagation();
+          return openCascade(/** @type {HTMLElement} */ (event.target), true);
+        }
+        if (walkMenu(event, sub)) hideSubmenu(levelOf(sub) + 1);
+      }));
       /** Whether the sidebar is a rail of icons. */
       const railed = () => document.body.dataset.sidebar === "collapsed";
+      /** Whether the sidebar's list shows as the rail (a phone's is a sheet, whole). */
+      const onRail = () => railed() && !phone.matches;
       /** A menu shown by a pointer's resting (a closed folder's charts): it leaves the focus be, goes as the pointer does, and as a key's pressed (a tip's way). */
       /** A ⋯ opening its menu as the pointer rests on it (see hoverMenu): the menu its click shows, shown as a flyout (gone as the pointer leaves it). */
       let openingByHover = false;
@@ -31648,9 +31720,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const inPlace = warm && flyout && !$("menu").hidden;
             if (!inPlace) shut();
             from = element;
+            // (One showing, it moves to this one's place: see showMenu.)
             open();
-            // (Placed again, its growing in starts over: done at once, in its place.)
-            if (inPlace) for (const animation of $("menu").getAnimations()) animation.finish();
           }, wait);
         };
         /** A chart's row by what it opens (written anew, the same); else nothing. @param {HTMLElement} row */
@@ -31660,7 +31731,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** Left: a moment later, off the menu, its submenu and what opened it, it goes. */
         const goSoon = () => {
           clearTimeout(flyTimer);
-          flyTimer = window.setTimeout(() => !$("menu").matches(":hover") && !$("submenu").matches(":hover") && !from?.matches(":hover") && shut(), HOVER.go);
+          flyTimer = window.setTimeout(() => !$("menu").matches(":hover") && !submenus.some((sub) => sub.matches(":hover")) && !from?.matches(":hover") && shut(), HOVER.go);
         };
         $("chart-list").addEventListener("pointerover", (event) => {
           // (The rail's alone: a row there is its icon, its name out of sight: its menu says it, a chart's as a folder's.)
@@ -31673,7 +31744,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (row && pressed && chartKey(row) === pressed) return;
           if (!row) return void (from && goSoon());
           pressed = "";
-          if (!$("menu").hidden && !flyout) return;
+          // (A menu pressed open on the rail: another row pointed at shows its own at once, as a menu bar's do.)
+          if (!$("menu").hidden && !flyout) return void (ownerNow()?.closest("#chart-list") && ownerNow() !== row && railMenu(row));
           // (Over a sidebar still widening: once it's done, beside the row where it ends.)
           const widened = async () => (await Promise.all(sidebar.getAnimations().map((animation) => animation.finished)).catch(() => {}), railed());
           // (One showing already: the next row's at once, in its place.)
@@ -31684,10 +31756,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Pressed, or right-clicked, before it shows: it doesn't.)
         for (const type of ["pointerdown", "contextmenu"]) $("chart-list").addEventListener(type, () => clearTimeout(flyTimer), true);
         // (Over the menu or a submenu of it, it stays; off them and what opened it, it goes a moment later.)
-        for (const id of ["menu", "submenu"]) {
-          $(id).addEventListener("pointerenter", () => flyout && clearTimeout(flyTimer));
-          $(id).addEventListener("pointerleave", (event) => flyout && event.pointerType === "mouse" && goSoon());
-        }
+        const keeps = (/** @type {HTMLElement} */ menu) => {
+          menu.addEventListener("pointerenter", () => flyout && clearTimeout(flyTimer));
+          menu.addEventListener("pointerleave", (event) => flyout && event.pointerType === "mouse" && goSoon());
+        };
+        keeps($("menu"));
+        whenSubmenu(keeps);
         /**
          * A flyout pressed on what showed it, where a press shows that menu too: kept as it is, as a press opens one (the
          * focus in it, for its keys), not put away and shown again (it'd blink).
@@ -31886,7 +31960,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       document.addEventListener("focusin", (event) => {
         const field = /** @type {HTMLElement} */ (event.target), from = /** @type {Element | null} */ (event.relatedTarget);
         if (!(field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) return;
-        if (closedOwner && (from?.closest("#menu, #submenu") || performance.now() - closedAt < 400)) fieldOpener.set(field, closedOwner);
+        if (closedOwner && (from?.closest("#menu, .submenu") || performance.now() - closedAt < 400)) fieldOpener.set(field, closedOwner);
         else fieldOpener.delete(field);
       });
       /**
@@ -31948,7 +32022,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // A press away closes the menu. (Inside it by its path as the press began: what it pressed may be redrawn meanwhile, as
       // a slider is at each step.)
       document.addEventListener("pointerdown", (event) => {
-        if (!$("menu").hidden && event.target !== menuScrim && !event.composedPath().includes($("menu")) && !event.composedPath().includes($("submenu")) && closest(event, "button") !== ownerNow()) hideMenu();
+        if (!$("menu").hidden && event.target !== menuScrim && !event.composedPath().includes($("menu")) && !submenus.some((sub) => event.composedPath().includes(sub)) && closest(event, "button") !== ownerNow()) hideMenu();
       });
 
       /** Why an interval isn't offered for this chart (shown, disabled, wherever intervals are). */
@@ -33702,17 +33776,66 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function railMenu(/** @type {HTMLElement} */ item, hover = false) {
         const folder = item.dataset.folderItem ? folderById(item.dataset.folderItem) : null, key = item.dataset.sectionItem, group = /** @type {Group | undefined} */ (item.dataset.groupItem);
         const doc = item.dataset.openChart ? chartById(item.dataset.openChart) : undefined, preset = item.dataset.openPreset;
-        if (doc) return menuOf(item, chartActions(doc.id, "row"), null, "right", { title: titleOf(doc), hover });
-        if (preset !== undefined) return menuOf(item, presetActions(Number(preset), "row"), null, "right", { title: titleOf(presetDoc(Number(preset))), hover });
-        if (group) return menuOf(item, groupRows(group), null, "right", { title: GROUP_OF[group][0], hover });
-        if (key) return menuOf(item, sectionRows(key), null, "right", { title: /** @type {string} */ (JSON.parse(key).at(-1)), hover });
-        if (!folder) return;
-        const docs = treeOf(folder.id).flatMap(({ item: each }) => ("layers" in each ? [each] : []));
-        menuOf(item, [
-          { key: "view", icon: ICONS.grid, label: "View", aside: "Its page", run: () => goTo({ folder: folder.id }) },
-          { key: "toggle", icon: folder.closed ? ICONS.folderOpen : ICONS.folder, label: folder.closed ? "Expand" : "Collapse", run: () => toggleFolder(folder.id) },
-          ...docs.map((doc, k) => ({ ...(k ? {} : { apart: true }), key: doc.id, icon: chartMark(doc), label: titleOf(doc), ...(doc.folder !== folder.id ? { aside: folderPath(/** @type {string} */ (doc.folder)).slice(folderPath(folder.id).length + 3) } : {}), run: () => go(chartById(doc.id)) })),
-        ], null, "right", { title: folder.name, hover });
+        if (doc) return menuOf(item, chartActions(doc.id, "row"), null, "right", { hover });
+        if (preset !== undefined) return menuOf(item, presetActions(Number(preset), "row"), null, "right", { hover });
+        if (group) return menuOf(item, groupRows(group), null, "right", { hover });
+        if (key) return menuOf(item, sectionFlyout(key), null, "right", { hover });
+        if (folder) menuOf(item, folderFlyout(folder.id), null, "right", { hover });
+      }
+      /** A rail row's menu kept open, the focus in it: shown already (pointed at), kept as it is; else shown, as a press does. */
+      function railMenuKept(/** @type {HTMLElement} */ item) {
+        if ($("menu").hidden || ownerNow() !== item) return railMenu(item);
+        flyout = false;
+        /** @type {HTMLElement | null} */ ($("menu").querySelector("button:not(:disabled)"))?.focus({ preventScroll: true });
+      }
+      /**
+       * The name of what a menu's for, as its menu says it where it's out of sight (see menuOf): by what opened it (its
+       * item, its ⋯, a right-click on it): a sidebar row's (a chart, a preset whole, a folder, a section, a group), a
+       * tile's, a folder's on the Charts page, a layer's, a pane's, the open chart's; else none.
+       * @param {HTMLElement} anchor
+       */
+      function menuNameOf(anchor) {
+        const chartName = (/** @type {string | undefined} */ id) => ((doc) => (doc ? titleOf(doc) : ""))(chartById(id ?? ""));
+        if (anchor.id === "chart-more") return titleOf(chart);
+        const item = /** @type {HTMLElement | null} */ (anchor.closest("#chart-list") ? anchor.closest("#chart-list > *")?.querySelector(".nav-item, .list-head-name") ?? null : null);
+        const at = (item ?? /** @type {HTMLElement | null} */ (anchor.closest("[data-home-card], [data-preset], [data-grid-folder], .layer-row[data-layer], [data-pane-menu]")))?.dataset ?? {};
+        if (at.openChart || at.homeCard) return chartName(at.openChart ?? at.homeCard);
+        if (at.openPreset !== undefined || at.preset !== undefined) return titleOf(presetDoc(Number(at.openPreset ?? at.preset)));
+        if (at.folderItem || at.gridFolder) return folderById(at.folderItem ?? at.gridFolder)?.name ?? "";
+        if (at.sectionItem) return /** @type {string} */ (JSON.parse(at.sectionItem).at(-1));
+        if (at.groupItem) return GROUP_OF[/** @type {Group} */ (at.groupItem)][0];
+        if (at.layer) return ((layer) => (layer ? labelOf(layer) : ""))(layerById(at.layer));
+        return at.paneMenu ? `Pane ${chart.panes.findIndex((pane) => pane.id === at.paneMenu) + 1}` : "";
+      }
+      /**
+       * A folder's menu on the rail (its folders never open there), however it's opened (pointed at, pressed,
+       * right-clicked): what's in it, in its order, a chart opened by a click, a folder's own beside it (a level at a
+       * time, each the same); then its own actions, as its ⋯ has them (opening and closing it aside: not there).
+       * @param {string} id @returns {Action[]}
+       */
+      function folderFlyout(id) {
+        const counts = chartCounts();
+        return [
+          ...childrenOf(id).map((each) => ("layers" in each
+            ? { key: each.id, icon: chartMark(each), label: titleOf(each), run: () => go(chartById(each.id)) }
+            : { key: `f:${each.id}`, icon: ICONS.folder, label: each.name, aside: shortCount(counts.get(each.id) ?? 0), page: () => ({ title: each.name, rows: () => folderFlyout(each.id) }) })),
+          ...folderRows(id, false, true).filter((row) => row.key !== "toggle").map((row, k) => (k ? row : { ...row, apart: true })),
+        ];
+      }
+      /** A section of the presets' menu on the rail, as a folder's (see folderFlyout): its presets, its sections; its page. @param {string} key @returns {Action[]} */
+      function sectionFlyout(key) {
+        const node = presetNodeAt(JSON.parse(key)), all = /** @type {Preset[]} */ (presets);
+        if (!node) return [];
+        // (Their marks drawn as they show, as a page of them has them.)
+        for (const each of node.items) if (typeof each === "number" && !presetMarks.has(presetMarkKey(each))) presetMarksAsked.add(each);
+        drawPresetMarks();
+        return [
+          ...node.items.map((each) => (typeof each === "number"
+            // (By its own name, as its row: retitled here, by that.)
+            ? { key: `p:${each}`, icon: presetMark(each), label: ((doc) => (doc && titleOf(doc) !== all[each].t ? titleOf(doc) : /** @type {string} */ (all[each].p.at(-1))))(keptPreset(each)), run: () => pickPreset(each) }
+            : { key: each.key, icon: ICONS.folder, label: /** @type {string} */ (each.path.at(-1)), aside: shortCount(each.count), page: () => ({ title: /** @type {string} */ (each.path.at(-1)), rows: () => sectionFlyout(each.key) }) })),
+          { key: "view", icon: ICONS.grid, label: "View", aside: "Its page", apart: true, run: () => goTo(asPlace({ path: JSON.parse(key) })) },
+        ];
       }
 
       // ── Global clicks and keys ────────────────────────────────────────────────
