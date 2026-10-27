@@ -15497,6 +15497,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Stacked: drawn as it is, at its running total (its tag and price line would say that total, not its value: the
           // legend says that); the scale from zero (the stack's foot), a 100% one's from 0 to 100.
           const stack = stacked.get(layer.id);
+          // (A stacked line: an area of no fill, its line where a line's is, the edge the band over it stops at (see
+          // bvBandFill): a band shows its own layer's share alone.)
+          const outline = layer.type === "line" && Boolean(stack);
           // (A signal's own series is never seen: its marks are on its layer's, see below. It's there as any layer's is, for
           // its values: the legend's, the crosshair's.)
           const signal = layer.type === "signal";
@@ -15537,6 +15540,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             : layer.type === "area" ? { lineColor: color, ...(layer.fill === "above" ? { topColor: alpha(base, 0.12 * op), bottomColor: alpha(base, 0.12 * op) } : stack ? { topColor: alpha(base, STACK_FILL * op), bottomColor: alpha(base, STACK_FILL * op) } : { topColor: alpha(base, 0.2 * op), bottomColor: alpha(base, 0) }) }
             : layer.type === "histogram" ? { color: alpha(base, 0.75 * op) }
             : layer.type === "baseline" ? { topLineColor: color, topFillColor1: alpha(base, 0.24 * op), topFillColor2: alpha(base, 0.01 * op), bottomLineColor: below, bottomFillColor1: alpha(under, 0.01 * op), bottomFillColor2: alpha(under, 0.24 * op) }
+            : outline ? { lineColor: color, topColor: alpha(base, 0), bottomColor: alpha(base, 0) }
             : { color };
           const marker = { crosshairMarkerRadius: 4, crosshairMarkerBorderWidth: 2, crosshairMarkerBorderColor: css("--card") };
           const line = { lineWidth, lineStyle: layer.dash, lineType: lineTypeOf(layer) };
@@ -15574,6 +15578,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // (Stacked, its fill a band: from its line down to its stack's fills under it, a stack a side (patch 41).)
               : layer.type === "area" ? [LC.AreaSeries, { ...common, ...paint, ...marker, ...line, invertFilledArea: layer.fill === "above", bvBandFill: stack && layer.fill !== "above" ? layer.side : undefined }]
               : layer.type === "histogram" ? [LC.HistogramSeries, { ...common, ...paint, base: baseOf(layer), cornerRadius: stack ? 0 : BAR_CORNER }]
+              : outline ? [LC.AreaSeries, { ...common, ...paint, ...marker, ...line, bvBandFill: layer.side }]
               : layer.type === "baseline" ? [LC.BaselineSeries, { ...common, ...paint, ...marker, ...line, baseValue: { type: "price", price: baseOf(layer) } }]
               : [LC.LineSeries, { ...common, ...paint, ...marker, ...line, ...(layer.type === "trend" ? (dated ? { priceLineColor: "", crosshairMarkerBackgroundColor: "" } : { priceLineColor: color, crosshairMarkerBackgroundColor: color }) : {}) }];
             series = again ?? tracked(view.addSeries(/** @type {any} */ (kind), options, pane));
@@ -15622,8 +15627,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const drawable = (value) => Number.isFinite(value) && (!log || value > 0);
             // (Painted date by date: a line's, dots' and bars' color, an area's line and fill, as its paint has them.)
             // (Its colors another layer's, they say something: its fill stronger, as a regime's.)
-            const regime = layer.colorFrom || layer.byLevels, fill = layer.fill === "above" ? (regime ? [0.3, 0.3] : [0.12, 0.12]) : stack ? (regime ? [0.3, 0.3] : [STACK_FILL, STACK_FILL]) : regime ? [0.5, 0.04] : [0.2, 0];
-            const paintWith = !dated ? null : layer.type === "area" ? (/** @type {string} */ c) => ({ lineColor: op < 1 ? alpha(c, op) : c, topColor: alpha(c, fill[0] * op), bottomColor: alpha(c, fill[1] * op) })
+            const regime = layer.colorFrom || layer.byLevels, fill = outline ? [0, 0] : layer.fill === "above" ? (regime ? [0.3, 0.3] : [0.12, 0.12]) : stack ? (regime ? [0.3, 0.3] : [STACK_FILL, STACK_FILL]) : regime ? [0.5, 0.04] : [0.2, 0];
+            const paintWith = !dated ? null : layer.type === "area" || outline ? (/** @type {string} */ c) => ({ lineColor: op < 1 ? alpha(c, op) : c, topColor: alpha(c, fill[0] * op), bottomColor: alpha(c, fill[1] * op) })
               : layer.type === "histogram" ? (/** @type {string} */ c) => ({ color: alpha(c, 0.75 * op) }) : (/** @type {string} */ c) => ({ color: op < 1 ? alpha(c, op) : c });
             const paintAt = paintWith && dated && ((/** @type {number} */ i) => paintWith(dated(i)));
             const points = layer.from && fromUnfit(doc, layer) ? [] : data.times.map((time, i) => (drawable(shown[i]) ? (result.breaks?.[i] ? { time, value: shown[i], color: "transparent" } : paintAt ? { time, value: shown[i], ...paintAt(i) } : { time, value: shown[i] }) : { time }));
@@ -20824,10 +20829,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               }
               const x = (/** @type {number} */ i) => round(((i - shown.from) / span) * W), at = ([i, value]) => `${x(i)} ${y(value)}`;
               const look = { c: layer.color, ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}) };
-              // (A stacked area's band, as the chart draws it (see bvBandFill): down to the nearest band under it with a value
-              // there, else the stack's floor: zero, the pane's foot on a log scale.)
+              // (A stacked area's band, as the chart draws it (see bvBandFill): down to the nearest band or line under it with
+              // a value there, else the stack's floor: zero, the pane's foot on a log scale.)
               const own = layer.type === "area" && layer.fill !== "above" ? stacked.get(layer.id) : undefined;
-              const under = own ? [...stacked].filter(([id, item]) => item.group === own.group && item.rank < own.rank && ((band) => band?.type === "area" && band.fill !== "above")(doc.layers.find((item) => item.id === id))).map(([, item]) => item).sort((a, b) => b.rank - a.rank) : [];
+              const under = own ? [...stacked].filter(([id, item]) => item.group === own.group && item.rank < own.rank && ((band) => (band?.type === "area" && band.fill !== "above") || band?.type === "line")(doc.layers.find((item) => item.id === id))).map(([, item]) => item).sort((a, b) => b.rank - a.rank) : [];
               const floorAt = own && ((/** @type {number} */ i) => ((band) => ((at) => (Number.isFinite(at) ? Math.min(paneBottom, at) : paneBottom))(y(scaled(band ? band.values[i] : 0))))(under.find((band) => Number.isFinite(band.values[i]))));
               // (Painted date by date, as on the chart: a mark for each of its colors, its pieces in that color.)
               const dateColors = paintOf(doc, layer, data), tintAt = (/** @type {number} */ i) => (dateColors && dateColors(Math.round(i))) ?? layer.color;
