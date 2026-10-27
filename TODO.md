@@ -12,6 +12,12 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Studio: raised by you, still open
 
+- The legend at the top of each pane: rethink it, the best UI/UX there is (you, 2026-10-27). Four directions mocked up
+  (https://claude.ai/artifact/CDMz5t92588LvsnhwYwKoR): your pick.
+- The rail's icons: every folder and preset section the same glyph (Codex's review). Mocked up (same link): an icon
+  per preset section, initials on a tint for your folders: your call.
+- Renaming or making a folder from the rail opens ⌘K's page, heavy for it (Codex's review). A compact editor beside
+  the row, mocked up (same link): your call.
 - The folders on the rail: "a ton of polish" needed; what you saw beyond what's fixed (depth, one menu, the flash,
   menu-bar switching, the toggle's speed and stale rows).
 - Shortcuts opening by itself during quick sidebar toggles: its button takes no press mid-slide now (5 presses on it as
