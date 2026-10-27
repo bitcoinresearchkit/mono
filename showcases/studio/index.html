@@ -6522,6 +6522,12 @@
             background: var(--press);
           }
 
+          /* (Its own ground only while its menu's highlight is out (the pointer gone into its submenu): lit, the highlight's
+             there, or gliding there, alone; its own at once with it, two grounds till it lands.) */
+          &[aria-expanded="true"]:where(.menu:is([data-glide="on"], [data-glide="keyed"]) > *) {
+            background: none;
+          }
+
           /* (Reached by keys: edged too, a tint alone too faint to find; the row keys act on, the highlight elsewhere or not.) */
           &:focus-visible {
             box-shadow: inset 0 0 0 1px var(--edge);
@@ -19007,6 +19013,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function renderBelt() {
         const belt = $("belt"), drawings = tool ? [] : /** @type {Drawing[]} */ ([...chosen].map(drawingById).filter(Boolean)), drawing = drawings.length === 1 ? drawings[0] : undefined;
         const was = belt.hidden || belt.classList.contains("held") || reduced.matches ? null : belt.getBoundingClientRect();
+        // (Its parts where they were, by their ids: kept ones move from there, see reshapeBelt.)
+        const partsWere = was ? new Map(all$("[id]", belt).map((part) => [part.id, part.getBoundingClientRect()])) : null;
         const hide = home || !chart.layers.length || !(prefs.belt.on || tool || selectingArea || magnifying || drawings.length || beltKeys);
         // (Put away, it goes as everything put away goes (see fadeOut); what it stood in for (a phone's foot) back once it's
         // gone, not under it as it goes.)
@@ -19095,7 +19103,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return renderBelt();
           }
           placeBelt(false, true);
-          if (was) reshapeBelt(was);
+          if (was) reshapeBelt(was, /** @type {Map<string, DOMRect>} */ (partsWere));
           return;
         }
         writeHow();
@@ -19113,13 +19121,46 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         rovingBelt();
       });
       phone.addEventListener("change", () => (renderBelt(), rovingBelt()));
-      /** The belt from its last shape to this one (its place, its size), what's in it coming in: no jump. */
-      function reshapeBelt(/** @type {DOMRect} */ was) {
-        const belt = $("belt"), now = belt.getBoundingClientRect();
+      /**
+       * The belt from its last shape to this one (its place, its size), each part kept (by its id: a tool, the grip, a
+       * look's button) moving from where it was with it, the new ones coming in: one motion, nothing jumping or blinking
+       * (all of them faded in again, each change, as the box moved: the tools blinked, and stood in their new places in
+       * a box still the old one's, cut).
+       */
+      /** The belt's reshaping under way (see reshapeBelt). @type {Animation | null} */
+      let beltMotion = null;
+      /** The belt at rest, at once: its motions cut short, its parts let go of (as laid out by the next measure, not later). */
+      function settleBelt() {
+        const belt = $("belt");
+        beltMotion = null;
+        for (const motion of belt.getAnimations({ subtree: true })) motion.cancel();
+        for (const child of all$(":scope > :not(.belt-row), :scope > .belt-row > *", belt)) Object.assign(child.style, { minWidth: "", minHeight: "" });
+      }
+      function reshapeBelt(/** @type {DOMRect} */ was, /** @type {Map<string, DOMRect>} */ partsWere) {
+        const belt = $("belt");
+        // (One under way (it changed again meanwhile): from where it shows, `was`, the box measured at rest.)
+        settleBelt();
+        const now = belt.getBoundingClientRect();
         if (Math.abs(now.left - was.left) + Math.abs(now.top - was.top) + Math.abs(now.width - was.width) + Math.abs(now.height - was.height) < 2) return;
         const timing = { duration: MOTION.small, easing: MOTION.ease }, left = parseFloat(belt.style.left), top = parseFloat(belt.style.top);
-        belt.animate({ left: [`${left + was.left - now.left}px`, `${left}px`], top: [`${top + was.top - now.top}px`, `${top}px`], width: [`${was.width}px`, `${now.width}px`], height: [`${was.height}px`, `${now.height}px`], overflow: ["hidden", "hidden"] }, timing);
-        for (const part of all$(":scope > .grip, .belt-row > *", belt)) part.animate({ opacity: [0, 1] }, timing);
+        // (Measured all first, where they come to rest, then moved: one layout, and the box's own motion not in it.)
+        const upright = belt.classList.contains("upright"), parts = all$(":scope > .grip, .belt-row :is(button, .belt-rule), .belt-caption, .belt-done", belt).map((part) => /** @type {[HTMLElement, DOMRect, DOMRect | undefined]} */ ([part, part.getBoundingClientRect(), part.id ? partsWere.get(part.id) : undefined]));
+        // (What's in it held at its size as the box reshapes (narrower, its row would wrap: a tool on a second line, cut),
+        // the box showing more of it or less.)
+        // (Its boxes as laid out: its row's own, the row itself none, see .belt-row.)
+        const held = all$(":scope > :not(.belt-row), :scope > .belt-row > *", belt).map((child) => /** @type {[HTMLElement, DOMRect]} */ ([child, child.getBoundingClientRect()]));
+        for (const [child, box] of held) Object.assign(child.style, { minWidth: `${box.width}px`, minHeight: `${box.height}px` });
+        const motion = belt.animate({ left: [`${left + was.left - now.left}px`, `${left}px`], top: [`${top + was.top - now.top}px`, `${top}px`], width: [`${was.width}px`, `${now.width}px`], height: [`${was.height}px`, `${now.height}px`], overflow: ["hidden", "hidden"] }, timing);
+        // (Let go once it's done: one cut short by the next (it changed again), not the next's holds.)
+        beltMotion = motion;
+        const release = () => beltMotion === motion && held.forEach(([child]) => Object.assign(child.style, { minWidth: "", minHeight: "" }));
+        motion.finished.then(release, release);
+        for (const [part, at, from] of parts) {
+          // (From where it was: less the box's own move, which carries it too, on the same curve, and its centering across
+          // the box (its height, upright its width) as that changes.)
+          if (from) part.animate({ translate: [`${from.left - at.left - (was.left - now.left) - (upright ? (was.width - now.width) / 2 : 0)}px ${from.top - at.top - (was.top - now.top) - (upright ? 0 : (was.height - now.height) / 2)}px`, "0 0"] }, timing);
+          else part.animate({ opacity: [0, 1] }, timing);
+        }
       }
       /** The plot, in the canvas' coordinates: from its first pane's top to its last pane's foot, between the price axes. */
       function plotBox() {
@@ -19219,7 +19260,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (belt.classList.contains("upright") === up) return;
         const parts = all$(".grip, .cap, .belt-rule", belt), from = belt.getBoundingClientRect(), before = parts.map((part) => part.getBoundingClientRect());
         // (A turn still going is let go from where it is: a quick turn back starts there.)
-        belt.getAnimations({ subtree: true }).forEach((animation) => animation.cancel());
+        settleBelt();
         belt.classList.toggle("upright", up);
         if (reduced.matches) return;
         const to = belt.getBoundingClientRect(), timing = { duration: MOTION.small, easing: MOTION.ease };
