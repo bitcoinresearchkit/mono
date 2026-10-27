@@ -3502,6 +3502,11 @@
         white-space: pre;
         caret-color: var(--on);
 
+        /* (Empty, what it's for: "Text", "Label", faint in its words' color.) */
+        &::placeholder {
+          color: color-mix(in srgb, var(--on) 50%, transparent);
+        }
+
         &:is([data-back="soft"], [data-back="soft-outline"]) {
           background: color-mix(in srgb, var(--c) 16%, var(--card));
         }
@@ -20102,6 +20107,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const field = /** @type {HTMLTextAreaElement} */ ($("draw-text")), fresh = !drawingById(drawing.id);
         writing = { drawing, fresh, back };
         field.maxLength = 500;
+        field.placeholder = "Text";
         field.setAttribute("aria-label", "Text");
         typingIn = drawing.id;
         field.value = drawing.text ?? "";
@@ -20121,6 +20127,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const field = /** @type {HTMLTextAreaElement} */ ($("draw-text"));
         writing = { drawing: { ...drawing, ...(at === undefined ? {} : { at }) }, fresh: false, label: true, back };
         field.maxLength = LABEL_MAX;
+        field.placeholder = "Label";
         field.setAttribute("aria-label", "Label");
         labelTyping = drawing.id;
         field.value = drawing.label ?? "";
@@ -20130,7 +20137,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         field.select();
         repaintDrawings();
       }
-      /** The field over where its text is drawn, as wide and tall as what's typed. */
+      /** The field over where its text is drawn, as wide and tall as what's typed (nothing yet: its placeholder, what it's for). */
       function placeField() {
         const field = /** @type {HTMLTextAreaElement} */ ($("draw-text")), drawing = writing?.drawing, layer = drawing && layerById(drawing.layer);
         const series = layer && drawn.get(layer.id), line = timeLine(), pane = layer && view.panes()[chart.panes.findIndex((item) => item.id === layer.pane)]?.getHTMLElement();
@@ -20138,12 +20145,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const canvasBox = $("canvas").getBoundingClientRect(), plotLeft = view.chartElement().getBoundingClientRect().left + view.priceScale("left", 0).width();
         if (writing.label) {
           // A label: centered where it sits (a trend line's at its angle; its field level).
-          const size = sketches.get(series)?.size, place = size && labelPlace(drawing, onScreen(drawing, series, line), size, field.value || " ");
+          const size = sketches.get(series)?.size, place = size && labelPlace(drawing, onScreen(drawing, series, line), size, field.value || field.placeholder);
           if (!place) return;
           return void Object.assign(field.style, { left: `${plotLeft - canvasBox.left + place.x - place.width / 2 - 6}px`, top: `${pane.getBoundingClientRect().top - canvasBox.top + place.y - place.height / 2}px`, width: `${Math.ceil(place.width) + 12}px`, height: `${place.height}px` });
         }
         // A text: its tag around its middle, as wide and tall as what's typed.
-        const place = textPlace(drawing, onScreen(drawing, series, line)[0], field.value || " ");
+        const place = textPlace(drawing, onScreen(drawing, series, line)[0], field.value || field.placeholder);
         Object.assign(field.style, { left: `${plotLeft - canvasBox.left + place.x - place.width / 2 - 6}px`, top: `${pane.getBoundingClientRect().top - canvasBox.top + place.y - place.height / 2}px`, width: `${Math.ceil(place.width) + 12}px`, height: `${place.height}px` });
       }
       function endTyping() {
