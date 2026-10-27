@@ -260,12 +260,24 @@
         padding: 0;
         list-style: none;
 
-        /* (On a phone, five rows' height, the rest scrolled to: a period or a month with more or fewer countries never
-           moves what's under it.) */
-        @media (max-width: 1023px) {
-          height: calc(5 * 59px);
-          overflow-y: auto;
-          overscroll-behavior: contain;
+        /* (Five rows' height, the rest scrolled to, on a desk as on a phone: the first answer fills them in place, and a
+           period or a month with more or fewer countries never moves what's under it.) */
+        flex: none;
+        height: calc(5 * 59px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+
+        /* (Faded at an edge only where rows go on past it: see the list's cuts.) */
+        &[data-cut="end"] {
+          mask-image: linear-gradient(to top, transparent, #000 44px);
+        }
+
+        &[data-cut="start"] {
+          mask-image: linear-gradient(to bottom, transparent, #000 44px);
+        }
+
+        &[data-cut="both"] {
+          mask-image: linear-gradient(transparent, #000 44px, #000 calc(100% - 44px), transparent);
         }
       }
 
@@ -676,8 +688,8 @@
         <canvas id="globe" role="img" aria-label="A globe, each country lit by its share of the blocks; the list of countries has the same."></canvas>
         <div class="board">
           <div class="board-head">
-            <span class="when" id="when"></span>
-            <span class="total num" id="total"></span>
+            <span class="when" id="when">&nbsp;</span>
+            <span class="total num" id="total">&nbsp;</span>
           </div>
           <div class="periods" role="group" aria-label="Over" id="periods"></div>
           <ol class="countries" id="countries" aria-label="Countries by blocks"></ol>
@@ -1487,7 +1499,8 @@
         const n = history.months.length, t0 = performance.now(), from = month !== null && month < n - 1 ? month : 0;
         $("play").textContent = "Pause";
         const step = (/** @type {number} */ now) => {
-          const k = Math.min(n - 1, from + Math.floor(((now - t0) / 12_000) * n));
+          // (A frame's time can come before the click's: never before where it starts.)
+          const k = Math.min(n - 1, from + Math.floor((Math.max(0, now - t0) / 12_000) * n));
           if (k !== month) setMonth((pinned = k));
           if (k < n - 1) playing = requestAnimationFrame(step);
           else stopPlaying();
@@ -1616,6 +1629,19 @@
           $("countries").replaceChildren(failure(error, begin));
           $("history-message").textContent = "Shown once the page has loaded.";
         });
+      }
+      // (The countries say where rows go on past the list's edges, as they're drawn again or scrolled.)
+      {
+        const list = $("countries");
+        const cuts = () => {
+          const start = list.scrollTop > 1, end = list.scrollTop + list.clientHeight < list.scrollHeight - 1;
+          const cut = start && end ? "both" : start ? "start" : end ? "end" : "";
+          if (cut) list.dataset.cut = cut;
+          else delete list.dataset.cut;
+        };
+        list.addEventListener("scroll", cuts, { passive: true });
+        new MutationObserver(cuts).observe(list, { childList: true });
+        new ResizeObserver(cuts).observe(list);
       }
       begin();
     </script>
