@@ -1935,11 +1935,11 @@
 
         /* (A row's mark at its far end, an edited preview's dot, an edited preset's pencil: out of sight while the sidebar
            slides (its row's shape changing under it), back as it settles.) */
-        .sidebar :is([data-preview-row] .chart-item, .preset-row).edited::after {
+        .sidebar :is([data-preview-row] .chart-item.edited, .preset-row.edited .chart-item)::after {
           transition: opacity var(--dur-small) var(--ease);
         }
 
-        body[data-sliding] .sidebar :is([data-preview-row] .chart-item, .preset-row).edited::after {
+        body[data-sliding] .sidebar :is([data-preview-row] .chart-item.edited, .preset-row.edited .chart-item)::after {
           opacity: 0;
           transition: none;
         }
@@ -5124,21 +5124,26 @@
         background: var(--ink);
       }
 
-      /* (A preset's row, edited: the pencil where a folder's count is, its ⋯ taking its place as it's pointed at.) */
-      .preset-row.edited::after {
-        content: "";
-        position: absolute;
-        right: 13px;
-        width: 11px;
-        height: 11px;
-        background: var(--count);
-        -webkit-mask: var(--edited-mark) center / contain no-repeat;
-        mask: var(--edited-mark) center / contain no-repeat;
-        pointer-events: none;
+      /* (A preset's row, edited: the pencil where a folder's count is, its ⋯ taking its place as it's pointed at. On its
+         button, as its words are: with them as the row folds, its height not theirs.) */
+      .preset-row.edited .chart-item {
+        position: relative;
+
+        &::after {
+          content: "";
+          position: absolute;
+          right: 13px;
+          width: 11px;
+          height: 11px;
+          background: var(--count);
+          -webkit-mask: var(--edited-mark) center / contain no-repeat;
+          mask: var(--edited-mark) center / contain no-repeat;
+          pointer-events: none;
+        }
       }
 
       /* (Not on the rail: no ⋯ there, its pencil on its mark stays.) */
-      body:not([data-sidebar="collapsed"]) .preset-row.edited:is(:hover:where(.can-hover *), :has(:focus-visible))::after {
+      body:not([data-sidebar="collapsed"]) .preset-row.edited:is(:hover:where(.can-hover *), :has(:focus-visible)) .chart-item::after {
         visibility: hidden;
       }
 
@@ -16601,6 +16606,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const list = $("palette-list"), light = glides(list), coarse = matchMedia("(hover: none) and (pointer: coarse)");
         new MutationObserver(() => (!coarse.matches || keyboard()) && light(list.querySelector('[aria-selected="true"]'), !pointedOption)).observe(list, { childList: true, subtree: true, attributeFilter: ["aria-selected"] });
       }
+      /** Each row's fold under way (see foldRows): no attribute, so a row written again in place keeps it. @type {WeakMap<Element, Animation>} */
+      const foldOf = new WeakMap();
       // The sidebar's charts and folders: the one pointed at (between rows, it stays; on a section's head, none; folding, none:
       // the highlight would show whole over a row half shown); a row written anew (a folder opened, a chart), its own, by its key.
       const sideLight = glides($("chart-list"), {
@@ -16608,7 +16615,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const key = [.../** @type {HTMLElement} */ (gone.parentElement).attributes].find(({ name }) => /^data-.+-row$/.test(name));
           return key ? $("chart-list").querySelector(`[${key.name}="${CSS.escape(key.value)}"] > :is(.chart-item, .folder-item)`) : null;
         },
-        can: (item) => !item.closest("[data-folding]"),
+        can: (item) => !foldOf.has(/** @type {Element} */ (item.closest("#chart-list > *"))),
       });
       $("chart-list").addEventListener("pointerover", (event) => {
         if (event.pointerType !== "mouse") return;
@@ -16625,7 +16632,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A row written anew (a layer's, a tool's), the one that's it now: by its id, else what names it.)
         const light = glides(group, {
           again: (gone) => {
-            const key = gone.id ? `#${CSS.escape(gone.id)}` : ((name) => name && `[${name.name}="${CSS.escape(name.value)}"]`)([...gone.attributes].find(({ name }) => name.startsWith("data-") && !["data-tip", "data-kbd", "data-icon", "data-folding"].includes(name)));
+            const key = gone.id ? `#${CSS.escape(gone.id)}` : ((name) => name && `[${name.name}="${CSS.escape(name.value)}"]`)([...gone.attributes].find(({ name }) => name.startsWith("data-") && !["data-tip", "data-kbd", "data-icon"].includes(name)));
             const row = key ? /** @type {HTMLElement | null} */ (group.querySelector(key)) : null;
             return row?.matches(rows) ? row : null;
           },
@@ -20448,9 +20455,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** What each keyed list last wrote: its parts, [key, html], each one element. */
       const listWritten = new WeakMap();
       /**
-       * A list written again only where it changed: each part kept as it is where its key and html are (its element, its
-       * hover, what it's doing: a row lit stays lit, a folder opened above doesn't draw it again), the others written, all
-       * in the parts' order; the focus put back on its like where its own was written. Whether anything was written.
+       * A list written again only where it changed: each part kept where its key is (its element, its hover, what it's
+       * doing: a row lit stays lit, a folder opened above doesn't draw it again, a press on it still clicks), brought to its
+       * new html in place where that changed (see rewriteInPlace), the others written, all in the parts' order; the focus put back
+       * on its like where its own was written. Whether anything was written.
        * @param {HTMLElement} container @param {[string, string][]} parts
        */
       function writeList(container, parts) {
@@ -20467,11 +20475,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         const make = document.createElement("template");
         let wrote = false;
+        // (Those gone, gone first: the others then where they are, not moved past them (a move loses a press on it).)
+        const keys = new Set(parts.map(([key]) => key));
+        for (const [key, { element }] of kept) if (!keys.has(key)) element.remove(), kept.delete(key), (wrote = true);
         parts.forEach(([key, html], i) => {
           const old = kept.get(key);
           kept.delete(key);
           // (One folded away (inert, its fold's end held), shown again by another way than its fold: written anew.)
-          let element = old?.html === html && !(/** @type {HTMLElement} */ (old.element).inert) ? old.element : null;
+          let element = old && !(/** @type {HTMLElement} */ (old.element).inert) && (old.html === html || rewriteInPlace(old.element, old.html, html)) ? old.element : null;
+          if (old && element && old.html !== html) wrote = true;
           if (!element) {
             make.innerHTML = html;
             element = /** @type {Element} */ (make.content.firstElementChild);
@@ -20489,6 +20501,32 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const { element } of kept.values()) element.remove(), (wrote = true);
         if (wrote) restoreFocus(container, focus);
         return wrote;
+      }
+
+      /**
+       * An element brought from the html it was written from (`was`) to new html, itself kept, and what's in it where its
+       * shape is the same: a piece the html didn't change kept as it is (what the page set on it since too), one it changed
+       * given the new html's attributes alone (as written anew: what the page set on it, set again by the page), one whose
+       * shape changed, or that the page wrote again, written anew. Whether it could be (its root the same tag).
+       * @param {Element} element @param {string} was @param {string} html
+       */
+      function rewriteInPlace(element, was, html) {
+        const read = (/** @type {string} */ markup) => ((make) => ((make.innerHTML = markup), make.content.firstElementChild))(document.createElement("template"));
+        return patchNode(element, read(was), read(html));
+      }
+      /** @param {ChildNode} live @param {ChildNode | null} a what it was written from @param {ChildNode | null} b what it's now @returns {boolean} */
+      function patchNode(live, a, b) {
+        if (!a || !b || live.nodeName !== a.nodeName || a.nodeName !== b.nodeName) return false;
+        if (a.isEqualNode(b)) return true;
+        if (!(a instanceof Element && b instanceof Element && live instanceof Element)) return ((live.nodeValue = b.nodeValue), true);
+        const from = [...a.childNodes], to = [...b.childNodes], now = [...live.childNodes];
+        // (Its children not as written (the page's own added, a field typed in): written anew, as a whole.)
+        if (now.length !== from.length) return false;
+        for (const { name } of [...live.attributes]) if (!b.hasAttribute(name)) live.removeAttribute(name);
+        for (const { name, value } of [...b.attributes]) if (live.getAttribute(name) !== value) live.setAttribute(name, value);
+        to.forEach((node, i) => (i < now.length ? patchNode(now[i], from[i], node) || live.replaceChild(node, now[i]) : live.append(node)));
+        for (const node of now.slice(to.length)) node.remove();
+        return true;
       }
 
       // ── Mini charts: each chart's own shape, and each layer's, from their data ───────────────────────
@@ -23046,8 +23084,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Scrolled to on the next frame, as it's laid out anyway (shown in it all the same): not here, mid-change, the
           // whole page laid out for it at once.)
           if (on && Number(button.dataset.openPreset) === presetToReveal) (presetToReveal = -1), requestAnimationFrame(() => button.scrollIntoView({ block: "nearest" }));
-          if (on === button.hasAttribute("aria-current")) continue;
+          // (Each, its row's mark and its own, set apart: a row written again in place keeps its button as it is.)
           button.closest(".chart-row")?.classList.toggle("active", on);
+          if (on === button.hasAttribute("aria-current")) continue;
           if (on) button.setAttribute("aria-current", "page");
           else button.removeAttribute("aria-current");
         }
@@ -23483,41 +23522,67 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Folders closing now: the list's drawn without their charts once the last is done (one before would cut the others short). */
       let closings = 0;
-      /** Each row's fold under way (see foldRows). @type {WeakMap<Element, Animation>} */
-      const foldOf = new WeakMap();
+      /** A CSS cubic-bezier's progress at a time (both 0 to 1), as the browser eases by it. @param {string} css */
+      function bezierOf(css) {
+        const [a, b, c, d] = (css.match(/-?[\d.]+/g) ?? []).map(Number);
+        const at = (/** @type {number} */ p1, /** @type {number} */ p2, /** @type {number} */ s) => 3 * p1 * s * (1 - s) ** 2 + 3 * p2 * s * s * (1 - s) + s ** 3;
+        return (/** @type {number} */ t) => {
+          let lo = 0, hi = 1;
+          for (let k = 0; k < 24; k++) ((s) => (at(a, c, s) < t ? (lo = s) : (hi = s)))((lo + hi) / 2);
+          return at(b, d, (lo + hi) / 2);
+        };
+      }
+      const layoutCurve = bezierOf(MOTION.easeLayout);
       /**
-       * Rows unfolding from nothing, or folding to it: clipped as they go, sliding out from under the one above and fading.
-       * One under way turns back from where it is. All measured first, then all moved (a long folder: one layout, not one
-       * a row). `was`: a row's height as shown before it was drawn anew.
+       * Rows unfolding from nothing, or folding to it, as one edge moving down from the one above them (or back up to it)
+       * on the layout's curve: each row opened (its gap, then itself) as the edge passes it, its words in place, fading in
+       * over its own height; what's below moves with the edge. One under way turns back from where its edge is. All
+       * measured first, then all moved (a long folder: one layout, not one a row). `was`: a row's height as shown before
+       * it was drawn anew.
        * @param {HTMLElement[]} elements @param {boolean} closing @param {(row: HTMLElement) => number | undefined} was
        */
       function foldRows(elements, closing, was = () => undefined) {
-        const now = elements.map((element) => (element.getAnimations().length ? element.getBoundingClientRect().height : undefined));
-        // (One turned back: its opacity as it is (held a while, see below), not as its height would have it.)
-        const seen = elements.map((element) => (element.getAnimations().length ? Number(getComputedStyle(element).opacity) : undefined));
-        for (const element of elements) for (const animation of element.getAnimations()) animation.cancel();
         // (Its gap from the one above, as wide as its list has it, goes and comes with it: a list's, read once.)
-        const gaps = new Map();
-        const measured = elements.map((element) => {
-          const list = /** @type {HTMLElement} */ (element.parentElement);
-          if (!gaps.has(list)) gaps.set(list, `-${parseFloat(getComputedStyle(list).rowGap) || 0}px`);
-          return { full: element.offsetHeight, gap: gaps.get(list) };
+        const gaps = new Map(), gapOf = (/** @type {HTMLElement} */ element) => ((list) => gaps.get(list) ?? (gaps.set(list, parseFloat(getComputedStyle(list).rowGap) || 0), gaps.get(list)))(element.parentElement);
+        // (Under way: how much of it shows, its gap and height as they are.)
+        const first = elements[0]?.getBoundingClientRect().top ?? 0, at = elements.map((element) => element.getBoundingClientRect().top - first);
+        const showing = elements.map((element) => {
+          const height = was(element) ?? (element.getAnimations().length ? element.getBoundingClientRect().height : undefined);
+          if (height === undefined) return undefined;
+          const margin = element.getAnimations().length ? parseFloat(getComputedStyle(element).marginTop) : height > 0 ? 0 : -gapOf(element);
+          return height + gapOf(element) + margin;
         });
-        return elements.map((element, i) => {
-          const { full, gap } = measured[i], from = was(element) ?? now[i] ?? (closing ? full : 0), shown = seen[i] ?? (full ? from / full : 1);
-          Object.assign(element.style, { overflow: "clip", overflowClipMargin: "1px", alignItems: "flex-end" });
+        for (const element of elements) for (const animation of element.getAnimations()) animation.cancel();
+        let y = 0;
+        const rows = elements.map((element, i) => {
+          const gap = gapOf(element), full = element.offsetHeight, top = y;
+          y += gap + full;
+          return { element, gap, full, top, at: at[i], now: Math.min(showing[i] ?? (closing ? gap + full : 0), gap + full) };
+        });
+        // (As far as it shows: past the list's visible end (now, rows above it maybe part folded, and whole), rows open at the
+        // last frame, out of sight by then, and fold at the first (as they are till then); the edge's time all spent in
+        // sight, a long group's not run through in a blink.)
+        const list = elements[0]?.parentElement, room = list ? Math.max(0, list.getBoundingClientRect().bottom - first) : 0;
+        const past = (/** @type {{ top: number, at: number }} */ row) => row.top >= room && row.at >= room, near = rows.filter((row) => !past(row));
+        const reach = Math.min(y, Math.max(room, ...near.map((row) => row.top + row.gap + row.full))), steps = Math.max(2, Math.ceil(MOTION.layout / 16));
+        // (The edge from where it changes nothing at first: closing, the lowest shown's end; opening, the highest part-shown
+        // one's. Each row then as the edge has it, never past what it shows now the other way: one folding inside, a
+        // folder's, as it is till the edge reaches it.)
+        const start = closing ? Math.max(0, ...near.map((row) => (row.now > 0 ? row.top + row.now : 0))) : Math.min(reach, ...near.map((row) => (row.now < row.gap + row.full ? row.top + row.now : reach)));
+        const edges = Array.from({ length: steps + 1 }, (_, j) => start + ((closing ? 0 : reach) - start) * layoutCurve(j / steps));
+        return rows.map((row) => {
+          const { element, gap, full, top, now } = row;
           element.inert = closing;
-          // (Seen only once it's nearly out: a row partly shown is its words sliced. Folding, gone by a third.)
-          const animation = element.animate([
-            { height: `${from}px`, marginTop: closing ? "0px" : gap, opacity: shown },
-            { opacity: closing ? 0 : shown, offset: closing ? 0.35 : 0.6 },
-            { height: `${closing ? 0 : full}px`, marginTop: closing ? gap : "0px", opacity: closing ? 0 : 1 },
-          ], { duration: MOTION.layout, easing: MOTION.easeLayout, fill: closing ? "forwards" : "none" });
+          // (Clipped, its words from its top, as it goes: the animation's, nothing left on the row.)
+          const frames = edges.map((edge, j) => {
+            const passed = Math.min(Math.max(edge - top, 0), gap + full), shown = past(row) ? (j === 0 ? now : j === steps && !closing ? gap + full : 0) : closing ? Math.min(now, passed) : Math.max(now, passed), height = Math.max(shown - gap, 0);
+            return { offset: j / steps, height: `${height}px`, marginTop: `${Math.min(shown, gap) - gap}px`, opacity: full ? height / full : 1, overflow: "clip", overflowClipMargin: "1px", alignItems: "flex-start" };
+          });
+          const animation = element.animate(frames, { duration: MOTION.layout, easing: "linear", fill: closing ? "forwards" : "none" });
           // (Folding, it's no row to light: see glides. Unmarked once this fold's done, unless another's begun meanwhile.)
-          element.dataset.folding = "";
           foldOf.set(element, animation);
-          const still = () => foldOf.get(element) === animation && (foldOf.delete(element), delete element.dataset.folding);
-          if (!closing) animation.finished.then(() => (Object.assign(element.style, { overflow: "", overflowClipMargin: "", alignItems: "" }), still()), still);
+          const still = () => foldOf.get(element) === animation && foldOf.delete(element);
+          if (!closing) animation.finished.then(still, still);
           return animation;
         });
       }
@@ -24124,6 +24189,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         function lift(/** @type {PointerEvent} */ event) {
           if (!press) return;
+          // (A drag: its press no click, even let go, cancelled, where it began: see pressStart.)
+          pressStart = null;
           const ids = how.carried?.(press.id) ?? [press.id], ghost = document.createElement("div");
           ghost.className = "drag-ghost";
           ghost.setAttribute("aria-hidden", "true");
@@ -24258,6 +24325,34 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         event.preventDefault();
         event.stopPropagation();
       }, true);
+      /**
+       * A press clicks what it pressed: a control that slid from under a still pointer while held (a fold above it, a
+       * glide) is still the one clicked. The browser's click, its release elsewhere, goes to what holds both (or, in some,
+       * nowhere): that one taken back, this one given, else given as the release's events are done.
+       */
+      let pressStart = /** @type {{ target: Element, x: number, y: number, box: DOMRect } | null} */ (null);
+      let slidFrom = /** @type {Element | null} */ (null);
+      const clickSlid = (/** @type {MouseEvent} */ { clientX, clientY, screenX, screenY, ctrlKey, shiftKey, altKey, metaKey, detail }) => ((target) => ((slidFrom = null), target?.isConnected && target.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, composed: true, view: window, clientX, clientY, screenX, screenY, ctrlKey, shiftKey, altKey, metaKey, detail: detail || 1 }))))(slidFrom);
+      window.addEventListener("pointerdown", (event) => ((slidFrom = null), (pressStart = event.isPrimary && event.button === 0 && event.target instanceof Element ? { target: event.target, x: event.clientX, y: event.clientY, box: event.target.getBoundingClientRect() } : null)), true);
+      // (Moved past the slop at any point, a drag's, even one let go where it began: no click of its own.)
+      window.addEventListener("pointermove", (event) => pressStart && event.isPrimary && Math.hypot(event.clientX - pressStart.x, event.clientY - pressStart.y) > SLOP && (pressStart = null), true);
+      window.addEventListener("pointerup", (event) => {
+        const was = pressStart, at = event.target;
+        pressStart = null;
+        if (!was || !event.isPrimary || !(at instanceof Node) || was.target.contains(at) || !was.target.isConnected || Math.hypot(event.clientX - was.x, event.clientY - was.y) > SLOP) return;
+        // (Slid: it's moved, not merely elsewhere than where the pointer's held by another, a grip's.)
+        const box = was.target.getBoundingClientRect();
+        if (Math.hypot(box.x - was.box.x, box.y - was.box.y) < 1) return;
+        slidFrom = was.target;
+        setTimeout(() => slidFrom === was.target && clickSlid(event));
+      }, true);
+      window.addEventListener("click", (event) => {
+        if (!slidFrom || !event.isTrusted) return;
+        if (event.target === slidFrom || event.defaultPrevented) return void (slidFrom = null);
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        clickSlid(event);
+      }, true);
       /** Where a drag in a list (along y) lands: by the row the pointer's over, or the nearest (never the end). @param {HTMLElement[]} rows */
       function landingIn(rows, /** @type {number} */ y, /** @type {(row: HTMLElement) => string} */ idOf, /** @type {string[]} */ ids) {
         // (Those carried aren't places: by the nearest of the others.)
@@ -24379,8 +24474,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * menu key or ⇧F10, its press, a right-click.
        */
       let listStop = "", keyMenuAt = 0;
-      /** A row by what it is (its data, a fold under way aside): the same row once it's drawn again. */
-      const rowKeyOf = (/** @type {Element | null} */ row) => (row instanceof HTMLElement ? Object.entries(row.dataset).filter(([key]) => key !== "folding").map(([key, value]) => `${key}:${value}`).join(" ") || row.className : "");
+      /** A row by what it is (its data): the same row once it's drawn again. */
+      const rowKeyOf = (/** @type {Element | null} */ row) => (row instanceof HTMLElement ? Object.entries(row.dataset).map(([key, value]) => `${key}:${value}`).join(" ") || row.className : "");
       function roveList() {
         const list = $("chart-list"), rows = all$(".chart-row:not([inert]), .folder-row:not([inert]), .list-head", list);
         for (const button of all$("button", list)) button.tabIndex = -1;
