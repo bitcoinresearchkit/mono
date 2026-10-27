@@ -9622,7 +9622,7 @@
             <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes); halving(A, n) is A over halving cycle n alone from 1× (0 the first, from the genesis block), and halving(A, 0, 2) that cycle moved to start where cycle 2 starts, day for day. date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 &amp; date &lt; 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo or y; some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
             <li>{"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns up or down: above 0 is up, below 0 down, 0 off (> < >= <= are 1 or 0, joined with &amp; and |: a condition is up where true; (B > 3.5) - (B < 1) is up, down or off). "place", "below" or "on" (above if none): where an up mark goes, a down one mirrored (above and below swapped), in "colorBelow" (red if none); or "shade": its stretches shaded, its layer's pane's height, down ones in "colorBelow". "results": true: on each mark that ends a stretch, what it made by layer A (A's change over it, up; the opposite, down), a dot where one ends off; their total, compounded, in its line.</li>
             <li>{"cloud": ["B", "C"]}: filled between those layers, two or more, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them). Between more, {"cloud": ["B", "C", "D"]}, a cloud between each two next to each other in that order (B and C, C and D), each in the color of whichever of its two is over: several clouds, made by one (where they cross out of order, two overlap). "color" alone, that one all along, from the lowest to the highest; between two alone, "color" and "colorBelow", those two (where B is over, where C is). "top" and "bottom" are its pane's edges: from its first layer up to the pane's top, from its last down to its bottom: {"cloud": ["A", "top"]}.</li>
-            <li>{"trend": ["B", "C"], "ref": "A"}: a line on the lowest of those layers until layer A (a price, say) touches it, then on the highest until A touches that, and so on (A drawn as candles, a wick counts; as a line, its value); width and dash as a line's.</li>
+            <li>{"trend": ["B", "C"], "ref": "A"}: a line on the lowest of those layers until layer A (a price, say) touches it, then on the highest until A touches that, and so on (A an OHLC series, its highs and lows count, drawn as candles or not; else its value); width and dash as a line's.</li>
           </ul>
           <p>Then, each if wanted:</p>
           <ul>
@@ -14555,8 +14555,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const ref = layer.type === "trend" ? doc.layers.find((item) => item.id === layer.ref) : null, by = ref ? computed(ref) : null;
           if (by?.error === LOOP) throw new Error(LOOP);
           if (layer.type === "trend" && !by?.values) return { unit: inputs[0].unit, error: !ref ? "Pick what flips it" : `${ref.letter} has no data` };
-          // (Its reference as it's drawn: candles, by their wicks (their highs and lows); else by its values.)
-          const wicks = ref?.type === "candles" ? by?.ohlc ?? null : null;
+          // (Its reference by its data: an OHLC series by its highs and lows, however it's drawn; else by its values.)
+          const wicks = by?.ohlc ?? null;
           const key = [frame.id, layer.type, edgesOf(layer).join(), inputIds.join(), cloudLayers(layer).length, ...inputs.map((input) => idOf(/** @type {Vector} */ (input.values))), by?.values ? idOf(by.values) : "", wicks ? idOf(/** @type {any} */ (wicks)) : ""].join("|");
           return kept(layer, key, () => {
             if (layer.type === "cloud" && edges && inputs.length < 2) {
@@ -15216,8 +15216,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether what's drawn is this chart with all its data (a build asked for, not yet: not yet, see buildSoon). */
       const settled = () => Boolean(resolved) && drawnChart === chart.id && drawnVersion === drawVersion && !buildAsked;
       /** What a chart's data depends on: its interval and what each layer reads (in any order). */
-      /** What a chart's data depends on: its layers' sources, and a trend's reference's type (as drawn, its wicks or its values: see made). */
-      const dataKey = (/** @type {Chart} */ doc) => ((refs) => JSON.stringify([doc.id, doc.index, doc.layers.map(({ id, letter, series, formula, type, from, ref }) => [id, letter, series, formula, from || refs.has(id) ? type : null, from ?? null, ref ?? null]).sort()]))(new Set(doc.layers.flatMap((layer) => (layer.type === "trend" && layer.ref ? [layer.ref] : []))));
+      const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.layers.map(({ id, letter, series, formula, type, from, ref }) => [id, letter, series, formula, from ? type : null, from ?? null, ref ?? null]).sort()]);
 
       /**
        * Cached data keeps each edit's rebuild cheap (missing data fetched first).
@@ -16667,14 +16666,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       }
       /**
-       * A trend between a low and a high, flipped by a reference: on the low (a support) until the reference touches it,
-       * then on the high (a resistance) until it touches that, and so on; the edges moving never flip it. A touch: drawn
-       * as candles, a candle's wick (its low on a support, its high on a resistance), else its value at or past the line
-       * (as it shows: a line of an OHLC series is its closes): from that
-       * date on, the other side. It starts on the low if the reference is above the middle of the two, else on the high;
-       * where the edges have no value, none (the side kept). `breaks`: each touch, the old side's last point (the date
-       * before it: nothing drawn up or down between). @param {Vector} low @param {Vector} high @param {Vector} ref
-       * @param {(number[] | null)[] | null} bars
+       * A trend between a low and a high, flipped by a reference: on the low (a support) until the reference touches
+       * it, then on the high (a resistance) until it touches that, and so on; the edges moving never flip it. A touch:
+       * of an OHLC series (drawn as candles or not), a bar's wick (its low on a support, its high on a resistance),
+       * else its value at or past the line: from that date on, the other side. It starts on the low if the reference is
+       * above the middle of the two, else on the high; where the edges have no value, none (the side kept). `breaks`:
+       * each touch, the old side's last point (the date before it: nothing drawn up or down between).
+       * @param {Vector} low @param {Vector} high @param {Vector} ref @param {(number[] | null)[] | null} bars
        */
       function trendOf(low, high, ref, bars) {
         const n = low.length, values = new Float64Array(n).fill(NaN), breaks = new Uint8Array(n), onSide = new Uint8Array(n);
@@ -19540,13 +19538,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return best;
       }
       /**
-       * A cloud as the chart draws it: from its lows up to its highs (or from its pane's bottom, up to its top: `bottom`,
-       * `top`), filled in its color, run by run (a gap in its data, a gap in it; a point alone, a sliver; a shade's, its bar's room), over the bars
-       * in view; where its two cross (`side`, which is over, changes from one column to the next), pinched to the point
-       * their lines cross at, a color of its own from there. By its layers (`banded`), a cloud of two between each two of
-       * them next to each other in its order (see drawBands): several clouds, made by one, each always between its own
-       * two (a color never on what its layer doesn't bound). One of the chart's own series: its scale fits its values (not
-       * its edges), its pane orders it.
+       * A cloud as the chart draws it: from its lows up to its highs (or from its pane's bottom, up to its top:
+       * `bottom`, `top`), filled in its color, run by run (a gap in its data, a gap in it; a point alone, a sliver; a
+       * shade's, its bar's room), over the bars in view and the one past each edge (lightweight-charts patch 52: to the
+       * edges, as its lines run); where its two cross (`side`, which is over, changes from one column to the next),
+       * pinched to the point their lines cross at, a color of its own from there. By its layers (`banded`), a cloud of
+       * two between each two of them next to each other in its order (see drawBands): several clouds, made by one, each
+       * always between its own two (a color never on what its layer doesn't bound). One of the chart's own series: its
+       * scale fits its values (not its edges), its pane orders it.
        */
       function cloudView() {
         /** @type {any} */
@@ -26179,7 +26178,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ? `<section>
               <h3>${typeName(layer.type)}</h3>
               ${betweenField(layer)}
-              ${layer.type === "cloud" ? "" : `<div class="field"><span>Flips when it touches</span><button type="button" class="preset" id="trend-ref" aria-haspopup="menu" data-tip="The layer that flips the trend when it touches it (drawn as candles, a wick counts)">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>`}
+              ${layer.type === "cloud" ? "" : `<div class="field"><span>Flips when it touches</span><button type="button" class="preset" id="trend-ref" aria-haspopup="menu" data-tip="The layer that flips the trend when it touches it (an OHLC series by its highs and lows, drawn as candles or not)">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Pick a layer</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>`}
               ${fromError || fromSays ? `<p class="from-status ${fromError ? "error" : ""}" role="status">${escape(fromError || `${capitalize(fromSays)}.`)}</p>` : ""}
             </section>`
           : isFormula

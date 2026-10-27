@@ -966,3 +966,12 @@ series says whether a point is on its tag.
   it (one spread past its pane's foot, not over the next); false while hidden.
 
 `tests.html` 15: a series' tag's middle on its tag, a corner of the pane not.
+
+## 52. A custom series drawn to the bar past each edge of the view, as a line is
+
+A line, an area and a baseline are drawn from the bar before the view's first to the bar after its last (their
+segments run on to the edges); a custom series was given the bars in view alone, so a fill drawn by its points (Studio's
+clouds) stopped at its last bar in view while its lines ran on to the edge, up to a bar short of it (zoomed in, a
+bar's spacing). Now a custom series' renderer is given the same range as a line's, the canvas clipping what's past.
+
+- `SeriesCustomPaneView`'s `super(t,i,!1)` (the base view's `extendedVisibleRange`): `!0`.
