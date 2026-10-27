@@ -318,10 +318,11 @@
         }
       }
 
-      /* The months: four abreast on a desk, each day its leader's mark, a whole year in a screen. */
+      /* The months: one or two a row on a phone, each day a finger's size with its date, four abreast on a desk, each day its leader's mark, a whole year in a screen. */
       .months {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        /* (A phone: one month a row, two once two fit with tiles a finger's size.) */
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
         gap: 20px clamp(16px, 2vw, 28px);
 
         @media (min-width: 640px) {
@@ -352,6 +353,11 @@
         display: grid;
         grid-template-columns: repeat(7, minmax(0, 1fr));
         gap: 2px;
+
+        /* (Gaps as the tiles grow, a phone's.) */
+        @media (max-width: 639px) {
+          gap: 4px;
+        }
       }
 
       .week {
@@ -409,6 +415,48 @@
           .logo {
             width: 42%;
             height: 42%;
+          }
+        }
+
+        /* (Tiles large enough to say their date, a phone's: in the corner, the logo a size down, under it.) */
+        @media (max-width: 639px) {
+          &[data-pool] {
+            align-items: end;
+            padding-bottom: 12%;
+
+            &::before {
+              content: attr(data-n);
+              position: absolute;
+              top: 5%;
+              left: 8%;
+              color: var(--soft);
+              font-size: 9.5px;
+              line-height: 1;
+              font-variant-numeric: tabular-nums;
+            }
+
+            .logo {
+              width: 46%;
+              height: 46%;
+            }
+          }
+
+          &.tied .logo {
+            width: 34%;
+            height: 34%;
+          }
+
+          &.today[data-pool]::before {
+            color: var(--answer);
+          }
+
+          /* (A day no pool led, still to come, or before the chain: its date alone, in the same corner.) */
+          &:not([data-pool]) {
+            place-items: start;
+            padding: 5% 8%;
+            font-size: 9.5px;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
           }
         }
 
@@ -1179,6 +1227,7 @@
             }
             const tile = Object.assign(document.createElement("button"), { type: "button", className: `day${date === now ? " today" : ""}`, disabled: outside || !blocks, tabIndex: -1 });
             tile.dataset.date = date;
+            tile.dataset.n = String(d);
             const when = `${WEEKDAYS[(utc(date).getUTCDay() + 6) % 7]} ${d} ${MONTHS[month]}`;
             if (lead.pools.length) {
               // (A tie: every pool in it led the day, each counted; the tile shows the first two.)
