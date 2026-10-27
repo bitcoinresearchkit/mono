@@ -16314,11 +16314,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return null;
       }
-      /** A band's share of its stack at a point (a 100% pane's), as drawn: its top less its foot. */
-      function shareAt(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ { at, rest }) {
-        const made = resolved ? stackOf(chart, resolved).get(layer.id) : undefined;
+      /**
+       * A band's share of its stack at a point (a 100% pane's), as drawn: its top less its foot; at rest, at its value's
+       * own point (see valuePointOf: the share and the amount of one date, none where the stack's total is none).
+       */
+      function shareAt(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ point) {
+        const made = resolved ? stackOf(chart, resolved).get(layer.id) : undefined, at = valuePointOf(layer, point);
         if (!made?.scale || at < 0) return NaN;
-        if (rest) while (at > 0 && !Number.isFinite(made.values[at])) at--;
         return made.values[at] - made.under[at] * made.scale[at];
       }
       /**
@@ -17060,13 +17062,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("plot-keys").setAttribute("aria-label", `Chart: ${titleOf(chart)}`);
         $("chart-summary").textContent = chartSummary();
       }
-      /** A layer's value at a point, as its legend writes it, or why it has none. */
+      /**
+       * A layer's value at a point, as its legend writes it, or why it has none (as its legend says it, set apart: its
+       * words as written, a name's capital kept, "(Not on Bitview)", "(A has no data)").
+       */
       function sayValue(/** @type {Layer} */ layer, /** @type {{ at: number, rest: boolean }} */ point) {
         const result = resolved?.results.get(layer.id);
-        if (!result || result.error) return (result?.error ?? "no data").toLowerCase();
-        // (As its legend writes it: a named band's name, a cloud's range, else its value.)
+        if (!result || result.error) return `(${result?.error ?? "No data"})`;
+        // (As its legend writes it: a named band's name, a cloud's range, else its value; in a 100% stack, its share first,
+        // its amount after it.)
         const value = valueAt(layer, point), since = asOf(layer, point), band = result.low ? null : bandOf(layer, value);
-        return `${band ? band.name : result.low ? rangeAt(layer, point, unitFor(layer, result)) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "no value"}${since ? `, as of ${since}` : ""}`;
+        const said = band ? band.name : result.low ? rangeAt(layer, point, unitFor(layer, result)) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "no value";
+        const share = chart.panes.find((pane) => pane.id === layer.pane)?.stack === "percent" ? shareAt(layer, point) : NaN;
+        return `${Number.isFinite(share) ? `${format(share, "percent")} (${said})` : said}${since ? `, as of ${since}` : ""}`;
       }
       /** What the chart shows, in words: its interval and dates, each pane's layers with their values at the view's end. */
       function chartFacts() {
