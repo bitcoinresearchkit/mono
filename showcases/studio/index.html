@@ -3941,17 +3941,14 @@
         scroll-padding-top: 50px;
 
         /* Its head (the list's, a layer's: ‹, its name, ×) stays at its top as it scrolls, on the panel's own ground
-           (over what passes under it, the color surface's ring too); a rule under it once something has. */
+           (over what passes under it, the color surface's ring too); a rule under it as something passes, as strong as
+           how far, whole by 16px (--scrolled: set as it scrolls), so a scroll about its top never flashes it on and off. */
         > :is(.panel-head, .inspector-head) {
           position: sticky;
           top: 0;
           z-index: 3;
           background: var(--panel-ground);
-          transition: box-shadow var(--fade);
-        }
-
-        &[data-scrolled] > :is(.panel-head, .inspector-head) {
-          box-shadow: 0 1px 0 var(--line), 0 8px 12px -10px rgb(0 0 0 / 0.45);
+          box-shadow: 0 1px 0 color-mix(in srgb, var(--line) calc(var(--scrolled, 0) * 100%), transparent), 0 8px 12px -10px rgb(0 0 0 / calc(0.45 * var(--scrolled, 0)));
         }
       }
 
@@ -20427,9 +20424,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         requestAnimationFrame(() => (line.textContent = text));
       }
       // The panel's views: a rule under their head once something has scrolled under it.
-      for (const view of all$(".panel-view")) view.addEventListener("scroll", () => view.toggleAttribute("data-scrolled", view.scrollTop > 0), { passive: true });
+      /** How far a panel's scrolled, for the rule under its head: 0 at its top, 1 from 16px. */
+      const scrolledBy = (/** @type {HTMLElement} */ view, /** @type {number} */ top) => view.style.setProperty("--scrolled", String(Math.min(1, Math.max(0, top) / 16)));
+      for (const view of all$(".panel-view")) view.addEventListener("scroll", () => scrolledBy(view, view.scrollTop), { passive: true });
       // (The list of layers scrolls inside its view: its head is ruled by its scroll.)
-      $("layer-list").addEventListener("scroll", () => $("layers-view").toggleAttribute("data-scrolled", $("layer-list").scrollTop > 0), { passive: true });
+      $("layer-list").addEventListener("scroll", () => scrolledBy($("layers-view"), $("layer-list").scrollTop), { passive: true });
       // A status line in the page and in each dialog, there from the start: what a toast says is read from it.
       for (const host of [document.body, ...all$("dialog")]) {
         const said = document.createElement("p");
