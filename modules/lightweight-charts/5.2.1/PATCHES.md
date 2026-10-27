@@ -817,3 +817,18 @@ Measured on the iPhone (Lockdown Mode), HODL waves at Max panned 2 s: median 31-
 0.54 s; at 4Y as before (its first point out of view). Chromium and Mullvad as before (their bench's view at 8.5 years).
 `tests.html`: a pan's line (7) with the whole series in view too (its first and last point there each step), 288
 checks, 0 failing.
+
+## 45. A thin simplified line's joins cut, not rounded
+
+A line's segments meet in round joins: a CPU canvas (Firefox's, Mullvad's) rasterizes each round join's arc, most of a
+thin line's stroke where its segments are short (a simplified line's: one every pixel or two). At 2 px or less, a cut
+join (`bevel`) differs from a round one by at most half the width at a sharp turn: the same to the eye (HODL waves at
+2x: a mean difference of 0.2 of 255 a pixel, its spikes alike). A simplified line (29) 2 px wide or less is drawn with
+bevel joins; wider, or not simplified, round as before.
+
+- `Me.et` (a line's renderer): `lineJoin` `bevel` where the points are simplified (`i.bvS`) and its width (`h`) is 2
+  or less.
+
+Measured, Mullvad (headless, 2x): HODL waves, a pan step 20.3-20.6 → 18.1 ms, a zoom step 21.3-22.1 → 18.8-19.6;
+"Realized price by age band" (24 lines), a pan step 7.5-8.1 → 6.4-6.9, a zoom step 9.2 → 8.3. Chromium as before.
+`tests.html` as before (its pictures not simplified; 7 to 11 by distance).
