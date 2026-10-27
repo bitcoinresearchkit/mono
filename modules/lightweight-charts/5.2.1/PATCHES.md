@@ -757,3 +757,14 @@ first try, 24-26); the iPhone, its zoom median 17 → 16 ms, its pan 19 → 20 m
 `tests.html`: pictures 713 of 713 the same; a band its own (10), straight, curved, the foot starting later, in steps
 with a color changing at the last point, all in view, 9 checks, 0 failing (without the patch, 4 failing; without the
 rule for a run of no width, the page hangs).
+
+## 42. A pan's line to its end as the frame before's, where that end is the same
+
+Patch 36 joins the frame before's points, draws them, and walks again from the last of them (its end aside) to this
+frame's end: a pan with the latest point in view (Studio's usual) walked the same stretch each frame, the frame before's
+last kept point to the end, the same walk on the same points, moved alike, finding again that none is kept there (a
+smooth band's last stretch: hundreds of points). Where the frame before ended at this frame's end, its end is taken as
+it was: the walk stops at the join's last point, the end drawn after it.
+
+- `fe`, the join (36): its points drawn, then, the list's end this frame's (`bvO[m]===bvT-1`), the end the pending point
+  (`bvPx`/`bvPy`, `bvPi`, `v`) and the walk done (`h=bvT-1`).
