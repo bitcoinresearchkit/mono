@@ -29971,10 +29971,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("palette-input").placeholder = page.input ? page.input.placeholder : page.placeholder ?? `Search ${pageTitle(page).toLowerCase()}`;
         $("palette-input").setAttribute("aria-label", page.input ? pageTitle(page) : `Search ${pageTitle(page).toLowerCase()}`);
       }
-      /** A row: its icon, its label, at its end its value (or a check for the choice in effect), › if it opens a page. */
+      /** A row: its icon, its label, at its end its value (or a check for the choice in effect), › if it opens a page (not while it can't). */
       function rowHtml(item) {
         const aside = item.aside ? (item.mono ? `<code>${escape(item.aside)}</code>` : escape(item.aside)) : "";
-        const end = aside, marks = [item.current ? `<span role="img" aria-label="In effect">${ICONS.check}</span>` : "", item.page || item.leads ? `<span class="item-next" aria-hidden="true">${ICONS.next}</span>` : ""].filter(Boolean).join(" ");
+        const end = aside, marks = [item.current ? `<span role="img" aria-label="In effect">${ICONS.check}</span>` : "", (item.page || item.leads) && !item.disabled ? `<span class="item-next" aria-hidden="true">${ICONS.next}</span>` : ""].filter(Boolean).join(" ");
         const query = palette.pages.at(-1)?.input ? "" : palette.query.trim();
         return `${item.icon ?? (item.current === undefined ? "" : '<i class="menu-space"></i>')}<span class="item-name">${query ? highlightMatch(item.label, query) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${marks ? `<span class="item-mark">${marks}</span>` : ""}${item.kbd ? `<span class="item-keys">${keycaps(item.kbd)}</span>` : ""}`;
       }
