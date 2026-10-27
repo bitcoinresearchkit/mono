@@ -14780,6 +14780,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Areas' fills, soft gradients, drawn at half resolution under every line: Firefox fills on the CPU; see LWC
           // patch 30.)
           bvHalfFills: true,
+          // (A pan moves the picture, only what comes into view drawn, the frame after it whole: see LWC patch 48.)
+          bvPanShift: true,
           layout: {
             ...colors.layout,
             background: { type: LC.ColorType.Solid, color: "transparent" },

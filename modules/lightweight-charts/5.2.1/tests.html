@@ -710,5 +710,71 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   }
   say(`Marks' words edged: 2 checks, ${edged.length} failing`);
   for (const f of edged) say(`  ✗ ${f}`);
-  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length, pinch: tapped.length, own: owned.length, later: later.length, edged: edged.length };
+  // 13. A pan moving the picture (patch 48): `bvPanShift` on, an area and a line panned a step a frame, by whole and part
+  // pixels, both ways, their scale held: frames drew strips alone, and once still (the frame after), the picture the
+  // published library draws.
+  const shifted = [];
+  {
+    document.getElementById("a").innerHTML = ""; document.getElementById("b").innerHTML = ""; window.__charts = [];
+    const made = [];
+    for (const [L, id] of [[A, "a"], [B, "b"]]) {
+      seed = 61;
+      const c = base(L, document.getElementById(id), L === B ? { bvPanShift: true } : {});
+      // (No price line: a dashed line across stays put as the picture moves, so its pane isn't moved.)
+      c.addSeries(L.AreaSeries, { lineColor: "#f80", priceLineVisible: false }).setData(walk(600, 80, 0.03));
+      c.addSeries(L.LineSeries, { color: "#fff", priceLineVisible: false }).setData(walk(600, 100, 0.03));
+      c.priceScale("right").applyOptions({ autoScale: false });
+      c.timeScale().setVisibleLogicalRange({ from: 200, to: 400 });
+      made.push(c);
+    }
+    await frames();
+    const proto = Object.getPrototypeOf(made[1].hv.ng[0]), shift = proto.bvShift;
+    let strips = 0;
+    proto.bvShift = function (t) { const r = shift.call(this, t); if (r) strips++; return r; };
+    const px = 1 / made[1].hv.sn.Bt().ml();
+    for (const [label, steps] of [["whole pixels", [3, 7, -4, 12, 1]], ["parts of pixels", [2.4, 0.7, -3.3, 5.5, 0.2]]]) {
+      for (const step of steps) {
+        for (const c of made) c.timeScale().scrollToPosition(c.timeScale().scrollPosition() - step * px, false);
+        await new Promise((r) => requestAnimationFrame(r));
+      }
+      await frames();
+      const d = differ(plot(made[0]), plot(made[1]));
+      if (d !== 0) shifted.push(`${label}, once still: ${d < 0 ? "pictures of other sizes" : `${d} values differing`}`);
+    }
+    proto.bvShift = shift;
+    if (strips < 6) shifted.push(`frames drawing a strip alone: ${strips}`);
+    for (const c of made) c.remove();
+    window.__charts = [];
+  }
+  say(`A pan moving the picture: 3 checks, ${shifted.length} failing`);
+  for (const f of shifted) say(`  ✗ ${f}`);
+
+  // 14. Last values' tags made again only once what they read changes (patch 49): three series' tags, a view off their
+  // end panned so its last bar changes: each step, the price scale as drawn once every tag's made again.
+  const tagged = [];
+  {
+    document.getElementById("a").innerHTML = ""; window.__charts = [];
+    seed = 67;
+    const c = base(B, document.getElementById("a"));
+    for (const [color, start] of [["#f80", 80], ["#fff", 100], ["#0af", 120]]) c.addSeries(B.LineSeries, { color, title: color }).setData(walk(600, start, 0.03));
+    c.timeScale().setVisibleLogicalRange({ from: 200, to: 400 });
+    await frames();
+    const canvases = () => [...document.getElementById("a").querySelectorAll("canvas")].filter((x) => x.width && x.width < 300 * devicePixelRatio && x.height > 300);
+    const read = () => canvases().map((x) => x.getContext("2d").getImageData(0, 0, x.width, x.height).data);
+    // (Read a few times first: Chromium moves a canvas that's read to the CPU, its words then drawn a pixel's shade apart.)
+    for (let k = 0; k < 4; k++) read();
+    c.applyOptions({}); await frames();
+    for (const step of [3, -5, 11, 0.6, -20]) {
+      c.timeScale().scrollToPosition(c.timeScale().scrollPosition() - step, false);
+      await frames();
+      const before = read();
+      c.applyOptions({}); await frames();
+      const d = before.reduce((n, x, k) => n + Math.max(0, differ(x, read()[k])), 0);
+      if (d) tagged.push(`a step of ${step} bars: ${d} values differing`);
+    }
+    c.remove(); window.__charts = [];
+  }
+  say(`Last values' tags: 5 checks, ${tagged.length} failing`);
+  for (const f of tagged) say(`  ✗ ${f}`);
+  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length, pinch: tapped.length, own: owned.length, later: later.length, edged: edged.length, shifted: shifted.length, tagged: tagged.length };
 </script>

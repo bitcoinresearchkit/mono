@@ -881,3 +881,54 @@ its legends' words in its card's color: the lines under them stop short of them.
 - The marker drawn (`Br`): its text stroked in it before it's filled, where one is given.
 
 `tests.html` 12: a mark's words on a line, edged in blue (blue about them), and without a halo, none.
+
+## 48. A pan moves the picture, only what comes into view drawn (an option)
+
+A pan redrew each pane whole: on the iPhone (no JIT) HODL waves' stack (24 bands) took ~8.5 ms a frame to draw, in
+Mullvad (canvases on the CPU) a pan step ~25 ms. With the chart's `bvPanShift: true`, a frame whose only change since
+the pane's last is the time scale's offset (the same pane, bitmap size, bar spacing, width, every price scale's mapping
+and the first value it's read from, the series hovered and what it was hit at, the last bar in view where a series'
+price line reads it, no option, data, price line, order or primitive changed; never where something can't move with the
+picture: a relative gradient (it spans the view), a curved line (it bows past its points), a dashed line (its dashes
+from where its path starts, or from the pane's edge: a series', a price line, the last price's, the base's, the grid's),
+a title or a percent at the pane's edge) moves the pane's main canvas by the offset's whole device pixels (its own
+pixels, drawn on it as a copy) and draws only the strip that came into view: under a clip, the pane as before
+(background, grid, views, fills), each series' points those in the strip alone, and those as far either side as the
+widest a series draws past its point (6 CSS pixels at least: joins, the half-resolution fills' sampling; half a bar, a
+point marker's radius, a line's width). It then asks for one more frame: the frame after the motion stops draws the pane
+whole, so at rest the picture is exactly a full draw's. Mid-motion the moved part can be up to half a device pixel from
+where a full draw puts it (the offset's rest, carried to the next frame) and antialiased a little apart (half-resolution
+fills on another grid); what's kept inside the plot's edge by a primitive (a label pinned to it) moves with the picture
+till the frame at rest.
+
+- `bvStrip` (module level): the strip being drawn, its device pixels (`a`, `b`) and its logical range (`Na`, `bi`), as a
+  visible range reads; null otherwise (set aside and put back around a pane's paint: one chart drawn inside another's
+  doesn't inherit it). `bvEdits`: a count of edits that change a picture without moving it, raised by a series' views
+  told of new data or options (`Es.Pt` with a reason), a primitive attached, detached or asking for an update (both
+  `attachPrimitive`s' `requestUpdate`), a price line made, removed or set (`createPriceLine`, `removePriceLine`, `ee`'s
+  `applyOptions`), a series' order (`setSeriesOrder`), the chart's options (`vr`), the time scale's and a price
+  scale's (`applyOptions`).
+- `Es` (a series' pane view): its visible range (`TM`) read from `bvStrip` where one is set (`LM`), and made again once
+  the strip's gone (`IM`: `bvSt`, the strip it was made for).
+- The pane widget: `bvMain(t)`, its main canvas's paint (in `Rm`); `bvFixed(t)`, what can't move; `bvShift(t)`, with the
+  option, the key above (`bvAt.k`) and where its picture shows (`bvAt.c`, in bars: moved by whole pixels, the rest
+  carried), the canvas moved (`drawImage` of itself, `copy`), the next frame asked for (`ka`), the strip returned;
+  `bvStripOf`, its logical range; `bvHalf` (30): only the strip's part of its half-resolution canvas cleared (`bvDirty`
+  kept: what's outside is old).
+
+`tests.html` 13: an area and a line panned by whole and part pixels, both ways, their scale held: strips drawn, and once
+still the published library's picture.
+
+## 49. A series' last-value tag made again only once what it reads changes
+
+A pan invalidates every view, and each series' last-value tag (`ut`) was made again each time it was read, many times a
+frame: the last bar in view found and its value formatted three ways (price, percent, indexed), shown or not. HODL
+waves' 23 series spent ~3.3 ms a frame on the iPhone. Now a tag is made again only once something's been asked of the
+chart since (`bvAsked`, raised by every invalidation, `kd`) and, then, once what it reads differs: `bvEdits` (48), the
+last bar in view (its index and its values), the price scale's mapping (`bvMap`, with the first value it's read from),
+the series its scale formats by, the first value in view where the tag shows a percentage.
+
+- `ut.Yi`: `bvA` (the `bvAsked` it was made at), `bvK` (what it read).
+
+`tests.html` 14: three series' tags, a view off their end panned so its last bar changes: each step, the price scale
+as drawn once every tag's made again.
