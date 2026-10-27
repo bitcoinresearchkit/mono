@@ -509,6 +509,11 @@
         display: flex;
         flex-wrap: wrap;
         gap: 4px 14px;
+
+        /* (Wrapped rows far enough apart on a touch screen for each link's reach.) */
+        @media (pointer: coarse) {
+          row-gap: 24px;
+        }
         margin-top: auto;
         padding-top: 16px;
         font-size: 13px;
@@ -610,6 +615,11 @@
         color: var(--muted);
         font-size: 13px;
 
+        /* (Wrapped rows far enough apart on a touch screen for each link's reach.) */
+        @media (pointer: coarse) {
+          row-gap: 24px;
+        }
+
         a:hover {
           color: var(--ink);
         }
@@ -641,6 +651,20 @@
           height: 0;
           overflow: hidden;
           visibility: hidden;
+        }
+      }
+      /* (A finger's reach, unseen: the brand, a card's links, a copy button, the foot's links, 44px tall whatever they're drawn at; up and down only, into the room
+         around them, never over a neighbour.) */
+      :is(a.brand, .links a, button[data-copy], footer a) {
+        position: relative;
+
+        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: min(0px, calc((100% - 44px) / 2)) 0;
+          }
         }
       }
     </style>

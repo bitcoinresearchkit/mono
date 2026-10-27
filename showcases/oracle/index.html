@@ -1144,6 +1144,20 @@
           }
         }
       }
+      /* (A finger's reach, unseen: the brand, the way down, 44px tall whatever they're drawn at; up and down only, into the room
+         around them, never over a neighbour.) */
+      :is(a.brand, a.more) {
+        position: relative;
+
+        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: min(0px, calc((100% - 44px) / 2)) 0;
+          }
+        }
+      }
     </style>
   </head>
   <body>

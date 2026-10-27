@@ -479,6 +479,12 @@
           display: flex;
           flex-wrap: wrap;
           gap: 8px 18px;
+
+          /* (Wrapped rows far enough apart on a touch screen for each link's reach.) */
+          @media (pointer: coarse) {
+            row-gap: 24px;
+          }
+
         }
       }
 
@@ -509,6 +515,20 @@
           height: 0;
           overflow: hidden;
           visibility: hidden;
+        }
+      }
+      /* (A finger's reach, unseen: the bar's and the foot's links, a copy button, 44px tall whatever they're drawn at; up and down only, into the room
+         around them, never over a neighbour.) */
+      :is(.bar a, button[data-copy], footer a) {
+        position: relative;
+
+        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: min(0px, calc((100% - 44px) / 2)) 0;
+          }
         }
       }
     </style>

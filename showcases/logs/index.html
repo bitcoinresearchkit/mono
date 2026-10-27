@@ -951,6 +951,40 @@
           }
         }
       }
+      /* (A finger's reach, unseen: the brand, 44px tall whatever they're drawn at; up and down only, into the room
+         around them, never over a neighbour.) */
+      :is(a.brand) {
+        position: relative;
+
+        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: min(0px, calc((100% - 44px) / 2)) 0;
+          }
+        }
+      }
+      /* (On a touch screen, the rows a finger tall: lines and filters are stacked with no room between to grow into.) */
+      @media (pointer: coarse) {
+        .line,
+        .line.block,
+        .facet {
+          min-height: 44px;
+        }
+      }
+
+      #state {
+        position: relative;
+      }
+
+      @media (pointer: coarse) {
+        #state::after {
+          content: "";
+          position: absolute;
+          inset: min(0px, calc((100% - 44px) / 2)) 0;
+        }
+      }
     </style>
   </head>
   <body>

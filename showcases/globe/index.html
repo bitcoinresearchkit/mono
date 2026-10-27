@@ -674,6 +674,33 @@
           transition: none !important;
         }
       }
+      /* (A finger's reach, unseen: the brand 44px tall; the periods 44px too, grown upward only, into the heading's room:
+         the countries are just under them.) */
+      a.brand {
+        position: relative;
+
+        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: min(0px, calc((100% - 44px) / 2)) 0;
+          }
+        }
+      }
+
+      .periods button {
+        position: relative;
+
+        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: -12px 0 0;
+          }
+        }
+      }
     </style>
   </head>
   <body>

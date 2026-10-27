@@ -867,6 +867,11 @@
         align-items: center;
         gap: 8px;
         margin-top: 14px;
+
+        /* (Wrapped rows far enough apart on a touch screen for each chip's reach, not over the next row's.) */
+        @media (pointer: coarse) {
+          row-gap: 16px;
+        }
       }
 
       /* What it is, below: the server's words (its `code` as code), its unit and type. */
@@ -1156,6 +1161,20 @@
         .chip,
         .seg button {
           transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+        }
+      }
+      /* (A finger's reach, unseen: the brand, a series' chips and buttons, 44px tall whatever they're drawn at; up and down only, into the room
+         around them, never over a neighbour.) */
+      :is(a.brand, .chip, .copyable, .back, #as-api) {
+        position: relative;
+
+        /* (For fingers: a pointer needs none, and rows that wrap stay apart.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: min(0px, calc((100% - 44px) / 2)) 0;
+          }
         }
       }
     </style>
