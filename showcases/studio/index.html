@@ -11048,15 +11048,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function axisTicks(/** @type {number[]} */ values, suffix = "") {
         const labels = values.map((value) => axisLabel(value, suffix));
-        let gap = Infinity;
-        for (let i = 1; i < values.length; i++) gap = Math.min(gap, Math.abs(values[i] - values[i - 1]));
+        let gap = Infinity, most = 0;
+        for (let i = 1; i < values.length; i++) (gap = Math.min(gap, Math.abs(values[i] - values[i - 1]))), (most = Math.max(most, Math.abs(values[i] - values[i - 1])));
         if (!gap) return labels;
         const near = (/** @type {number[]} */ read) => read.every((value, i) => Math.abs(value - values[i]) <= gap / 100);
         const fit = (/** @type {string[]} */ texts) => texts.every((text) => text.replace(/^−/, "").length <= AXIS_CHARS && !text.includes("e"));
-        // (One unit across the axis: ticks lettered apart (750E under 1.1Z) all at the largest's letter (0.75Z), with the
-        // fewest digits that write each true; where that's too long, a scale over decades, each its own as below.)
+        // (One unit across the axis: ticks evenly apart, lettered apart (750E under 1.1Z), all at the largest's letter
+        // (0.75Z), with the fewest digits that write each true; where that's too long, each its own as below. A log
+        // scale's over decades (1M, 10K, 1K) each its own, however short: not 0.001M, nor one way or the other by the
+        // view.)
         const letterOf = (/** @type {string} */ label) => /[A-Z]/.exec(label)?.[0] ?? "";
-        if (new Set(labels.filter((_, i) => Math.abs(values[i]) >= 5e-10).map(letterOf)).size > 1) {
+        if (most - gap <= gap / 100 && new Set(labels.filter((_, i) => Math.abs(values[i]) >= 5e-10).map(letterOf)).size > 1) {
           const top = labels[values.reduce((at, value, i) => (Math.abs(value) > Math.abs(values[at]) ? i : at), 0)], tier = Math.max(0, SI.indexOf(letterOf(top)));
           for (let digits = 1; digits <= 9; digits++) {
             const parts = values.map((value) => ({ sign: value <= -5e-10 ? "−" : "", mantissa: Math.abs(value) < 5e-10 ? 0 : Number((Math.abs(value) / 1000 ** tier).toPrecision(digits)) }));
