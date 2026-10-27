@@ -799,3 +799,21 @@ them, then a line straight and curved panned and the pointer alone on it (mid-vi
 checks, 0 failing (without bringing them up to date first, the dots' 9 failing; the pointer's alone pass either way:
 those x's are there to read on these lines, a case where a pan's walk skips some of those near the pointer is Codex's,
 reproduced outside the page). Codex's review: a curve's neighbors, outside the range (fixed).
+
+## 44. A pan's line from its start as the frame before's, where that start is the same
+
+Patch 36 joins the frame before's points at the first point both walks keep; till then this frame walks. With a
+series' first point in view (Studio's Max: all of it), both walks start there, on the same points moved alike: the
+same walk, which found the frame before's first kept point where this one finds it (HODL waves' early years, flat:
+1,500 points each band before it, 35,000 a frame). Where the frame before started at this frame's start, its points
+are taken from the start: drawn and kept, then the end as 42 has it (the same end, nothing walked at all), else the
+walk from the last of them on.
+
+- `fe`: the frame before's start kept as its record's is replaced (`bvOf`); before the walk, the list taken from the
+  start (each point's x written, 43), the end pending where it's the same, else the walk set to start at the last of
+  them (`bvH`, its anchor `bvAx`/`bvAy`), `bvO` let go.
+
+Measured on the iPhone (Lockdown Mode), HODL waves at Max panned 2 s: median 31-32 → 21 ms a frame, lost 1.02-1.04 →
+0.54 s; at 4Y as before (its first point out of view). Chromium and Mullvad as before (their bench's view at 8.5 years).
+`tests.html`: a pan's line (7) with the whole series in view too (its first and last point there each step), 288
+checks, 0 failing.

@@ -407,8 +407,9 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   say(`Points kept: 3 checks, ${lost.length} failing`);
   for (const f of lost) say(`  ✗ ${f}`);
 
-  // 7. A pan's line drawn from the frame before's points (patches 29, 30 and 36, the patched library alone): a simplified
-  // line and area panned a step a frame, their price range held then free, fills at half resolution, each frame's paths
+  // 7. A pan's line drawn from the frame before's points (patches 29, 30, 36, 42 and 44, the patched library alone): a
+  // simplified line and area panned a step a frame, their price range held then free, a part of them in view then all of
+  // them (their first and last point in view each step), fills at half resolution, each frame's paths
   // (strokes, fills) within the radius of every point in view (a quarter of a CSS pixel to a whole one, by the bars a
   // pixel: see 29), at their canvas's own pixel ratios.
   const far = []; let farChecks = 0;
@@ -422,14 +423,16 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
     P.fill = function (...a) { paths.push({ kind: "fill", canvas: this.canvas, points: path }); return keep.fill.apply(this, a); };
     const off = (px, py, line) => { let best = Infinity; for (let k = 1; k < line.length; k++) { const [ax, ay] = line[k - 1], [bx, by] = line[k]; if (Math.min(ax, bx) > px + 4 || Math.max(ax, bx) < px - 4) continue; const dx = bx - ax, dy = by - ay, l = dx * dx + dy * dy, u = l ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / l)) : 0; best = Math.min(best, Math.hypot(ax + u * dx - px, ay + u * dy - py)); } return best; };
     try {
-      for (const kind of ["LineSeries", "AreaSeries"]) for (const held of [true, false]) {
+      for (const kind of ["LineSeries", "AreaSeries"]) for (const held of [true, false]) for (const whole of [false, true]) {
         document.getElementById("a").innerHTML = ""; window.__charts = [];
         seed = 37;
         const c = base(B, document.getElementById("a"), { bvHalfFills: true }), ts = c.timeScale(), data = walk(3000, 100, 0.02);
         for (let k = 0; k < data.length; k += 97) data[k].value *= 1.08;
         const series = c.addSeries(B[kind], { bvSimplify: true, lineWidth: 1, priceLineVisible: false, lastValueVisible: false });
         series.setData(data);
-        ts.setVisibleLogicalRange({ from: 900, to: 2600 });
+        // (Whole: the series and room either side in view, its first and last point there each step: see 44.)
+        if (whole) ts.applyOptions({ minBarSpacing: 0.01 });
+        ts.setVisibleLogicalRange(whole ? { from: -400, to: 3400 } : { from: 900, to: 2600 });
         await frames();
         if (held) c.priceScale("right").applyOptions({ autoScale: false });
         // (The pane's canvas: its bitmap over its CSS size; the fills' own, off the page, at half its ratios, see 30.)
@@ -442,7 +445,7 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
           await frames();
           const r = ts.getVisibleLogicalRange(), spacing = ts.logicalToCoordinate(1) - ts.logicalToCoordinate(0), longest = Math.max(0, ...paths.map((q) => q.points.length));
           const drawn = paths.filter((q) => q.points.length > longest / 2 && (q.kind === "stroke" ? q.canvas === pane : !q.canvas.isConnected));
-          const label = `${kind}, range ${held ? "held" : "free"}, step ${step}`;
+          const label = `${kind}, range ${held ? "held" : "free"}${whole ? ", whole" : ""}, step ${step}`;
           // (A frame drawing nothing passes nothing: its line, and an area's fill too, each checked.)
           for (const want of kind === "AreaSeries" ? ["stroke", "fill"] : ["stroke"]) if (!drawn.some((q) => q.kind === want)) (farChecks++, far.push(`${label}: no ${want} drawn`));
           for (const { kind: how, canvas, points: line } of drawn) {
