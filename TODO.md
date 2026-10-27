@@ -10,6 +10,14 @@ Only what's left. An item done is removed: its history is in the commits and log
     - do the same at the latest bar;
     - turn the phone and back.
 
+## Studio: raised by you, still open
+
+- Clicking a line in the plot: visual glitches, not smooth (your recording, 2026-10-27 17:18).
+- The folders on the rail: "a ton of polish" needed; what you saw beyond what's fixed (depth, one menu, the flash,
+  menu-bar switching, the toggle's speed and stale rows).
+- Shortcuts opening by itself during quick sidebar toggles: the likely cause fixed (its button pressed as the sidebar
+  slid), not reproduced, so unconfirmed.
+
 ## Studio on the new server
 
 Served by the server at DOMAIN/studio/ (bitview.space, next.bitview.space; studio.bitview.space redirects there).
