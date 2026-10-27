@@ -1842,12 +1842,15 @@
 
       /** The plate: the counts as bars (sats, log), the 19 teeth where the fingerprint is held, and under them the
        * fit at every place the $100 tooth could be, the oracle's window shaded. */
+      /** What the plate's still layer was drawn for (see drawPlate). @type {unknown[] | null} */
+      let plateStill = null;
       function drawPlate() {
         if (!shownSearch) return;
         // (A block whose window counted no payments at all: nothing to fit, and it says so.)
         if (!most) {
           spectrum.setAttribute("viewBox", `0 0 ${plate.clientWidth} ${plate.clientHeight}`);
           spectrum.innerHTML = `<text class="axis-text" x="${plate.clientWidth / 2}" y="${plate.clientHeight / 2}" text-anchor="middle">No payments counted at this block</text>`;
+          plateStill = null;
           for (const id of ["tried", "pct"]) $(id).textContent = "–";
           $("meter").style.width = "0";
           showSums(null);
@@ -1866,8 +1869,10 @@
           const bh = (v / peak) * (base - top - 8);
           return `<rect${cls} x="${x(b - 0.5).toFixed(1)}" y="${(base - bh).toFixed(1)}" width="${bw.toFixed(2)}" height="${bh.toFixed(1)}"/>`;
         };
-        let bars = "";
-        for (let b = Math.floor(lo); b < hi; b++) bars += bar(b);
+        // (What stays put as the fingerprint moves (the counts, the scale, the fit along the bottom) drawn once per block
+        // and size; each frame of a drag or a glide draws only what moves: the teeth and the fit's mark.)
+        const drawnFor = [shownSearch, w, h, wide, most, own];
+        const redraw = !plateStill || plateStill.some((v, i) => v !== drawnFor[i]);
         // The teeth: a tick each at the top, a hairline down, and the count each lands on lit; each its amount above,
         // the powers of ten first and brightest, the others dimmer wherever they fit between.
         let teeth = "";
@@ -1885,24 +1890,27 @@
           taken.push([cx - half, cx + half]);
           teeth += `<text class="tooth-label${major ? "" : " minor"}" x="${cx.toFixed(1)}" y="${top - 12}" text-anchor="middle">${text}</text>`;
         }
-        // (The sats scale: each power of ten.)
-        let rule = `<line class="rule" x1="0" x2="${w}" y1="${base + 0.5}" y2="${base + 0.5}"/>`;
-        for (let d = Math.ceil(lo / PER_DECADE); d * PER_DECADE < hi; d++) {
-          const tx = x(d * PER_DECADE), sats = 10 ** d;
-          rule += `<line class="rule" x1="${tx}" x2="${tx}" y1="${base}" y2="${base + 5}"/><text class="axis-text" x="${tx}" y="${base + 17}" text-anchor="middle">${sats >= 1e6 ? `${sats / 1e6}M` : sats >= 1e3 ? `${sats / 1e3}k` : sats}</text>`;
-        }
         // The fit wherever the fingerprint could be held, across the strip at the bottom, the price it'd say under
         // each peak: the true one, and its echoes at double and half (where $50 payments pass for $100 ones).
         const s0 = h - strip + 28, s1 = h - 8, fx = (/** @type {number} */ c) => 8 + ((c - center + REACH) / (2 * REACH)) * (w - 16);
-        let fit = "";
-        {
+        if (redraw) {
+          let bars = "";
+          for (let b = Math.floor(lo); b < hi; b++) bars += bar(b);
+          // (The sats scale: each power of ten.)
+          let rule = `<line class="rule" x1="0" x2="${w}" y1="${base + 0.5}" y2="${base + 0.5}"/>`;
+          for (let d = Math.ceil(lo / PER_DECADE); d * PER_DECADE < hi; d++) {
+            const tx = x(d * PER_DECADE), sats = 10 ** d;
+            rule += `<line class="rule" x1="${tx}" x2="${tx}" y1="${base}" y2="${base + 5}"/><text class="axis-text" x="${tx}" y="${base + 17}" text-anchor="middle">${sats >= 1e6 ? `${sats / 1e6}M` : sats >= 1e3 ? `${sats / 1e3}k` : sats}</text>`;
+          }
           const pts = [];
           for (let c = center - REACH; c <= center + REACH; c += 0.5) pts.push(`${fx(c).toFixed(1)},${(s1 - (wide.at(c) / most) * (s1 - s0)).toFixed(1)}`);
           const marks = [-60, 0, 60].map((d) => `<text class="axis-text" x="${fx(center + d)}" y="${s0 - 6}" text-anchor="middle">${d ? `$${grouped(priceOf(center + d))}` : "price"}</text>`).join("");
-          fit = `<line class="rule" x1="0" x2="${w}" y1="${h - strip + 0.5}" y2="${h - strip + 0.5}"/><text class="axis-text" x="8" y="${s0 - 6}">fit</text>${marks}<rect class="window" x="${fx(own.c0)}" width="${fx(own.c1) - fx(own.c0)}" y="${s0}" height="${s1 - s0}"/><polygon class="fit-area" points="${fx(center - REACH)},${s1} ${pts.join(" ")} ${fx(center + REACH)},${s1}"/><polyline class="fit-line" points="${pts.join(" ")}"/><line class="here" x1="${fx(here)}" x2="${fx(here)}" y1="${s0 - 2}" y2="${s1}"/>`;
+          const fit = `<line class="rule" x1="0" x2="${w}" y1="${h - strip + 0.5}" y2="${h - strip + 0.5}"/><text class="axis-text" x="8" y="${s0 - 6}">fit</text>${marks}<rect class="window" x="${fx(own.c0)}" width="${fx(own.c1) - fx(own.c0)}" y="${s0}" height="${s1 - s0}"/><polygon class="fit-area" points="${fx(center - REACH)},${s1} ${pts.join(" ")} ${fx(center + REACH)},${s1}"/><polyline class="fit-line" points="${pts.join(" ")}"/>`;
+          spectrum.setAttribute("viewBox", `0 0 ${w} ${h}`);
+          spectrum.innerHTML = `<g class="bars">${bars}</g>${rule}${fit}<g id="moving"></g>`;
+          plateStill = drawnFor;
         }
-        spectrum.setAttribute("viewBox", `0 0 ${w} ${h}`);
-        spectrum.innerHTML = `<g class="bars">${bars}</g>${rule}${fit}${teeth}`;
+        /** @type {SVGGElement} */ (spectrum.querySelector("#moving")).innerHTML = `<line class="here" x1="${fx(here)}" x2="${fx(here)}" y1="${s0 - 2}" y2="${s1}"/>${teeth}`;
         // The readout: the price this place says, how well it fits, the round amounts in sats there.
         const price = priceOf(here), fitted = Math.abs(shift) < 0.5, score = wide.at(here) / most;
         $("tried").textContent = `$${grouped(price)}`;
