@@ -21552,11 +21552,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A preset's tile's place, held till it's written (see fillSlot). */
       const slotHtml = (/** @type {number} */ i) => `<div class="tile-slot" data-slot="${i}"></div>`;
       /** A shelf's slot, its tile written in its place, its mini chart drawn once in view. @param {HTMLElement} slot */
-      function fillSlot(slot) {
-        const made = document.createElement("template");
-        made.innerHTML = presetTileHtml(Number(slot.dataset.slot));
+      function fillSlot(/** @type {HTMLElement} */ slot) {
+        return writeTile(slot, Number(slot.dataset.slot));
+      }
+      /**
+       * Preset `i`'s tile written in `place`'s (a slot's, a tile's of it as it was: the focus in it kept on its like), its
+       * mini chart drawn once in view. @param {HTMLElement} place
+       */
+      function writeTile(place, /** @type {number} */ i) {
+        const made = document.createElement("template"), focus = focusKey(place);
+        made.innerHTML = presetTileHtml(i);
         const tile = /** @type {HTMLElement} */ (made.content.firstElementChild);
-        slot.replaceWith(tile);
+        place.replaceWith(tile);
+        restoreFocus(tile, focus);
         for (const frame of all$(".pending[data-plot]", tile)) galleryTilesSeen.observe(frame);
         return tile;
       }
@@ -21749,6 +21757,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           galleryQueue.delete(i);
           if (!presets?.[i] || !home || $("gallery").hidden || !$("gallery").querySelector(`[data-preset="${i}"] .pending`)) continue;
           const doc = presetDoc(i), have = previews.get(doc.id);
+          // (A tile written of it as it was, kept since as opened or edited (in another tab): written again, as it is.)
+          for (const tile of all$(`.tile[data-preset="${i}"]:has(> [data-open-preset])`, $("gallery"))) if (tile.querySelector("[data-plot]")?.getAttribute("data-plot") !== doc.id) writeTile(tile, i);
           if (have?.key === previewKey(doc)) paint(doc.id, have, true);
           else await drawPreview(doc, previewIndex(doc));
         }
