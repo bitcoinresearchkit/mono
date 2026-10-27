@@ -935,50 +935,34 @@ the series its scale formats by, the first value in view where the tag shows a p
 `tests.html` 14: three series' tags, a view off their end panned so its last bar changes: each step, the price scale
 as drawn once every tag's made again.
 
-## 50. A series' tag after its end (an option)
+## 50. A series' tag as its series says, the axis as wide all through a pan
 
-Studio named its series in a gutter of its own (DOM labels after the latest point, their values beside them) apart from
-the axis's tags, two looks for one value; then (the user's design) a pill of the name and the value, drawn by the tag,
-which read as too busy. Now a series' `bvAtEnd` has its last value's tag follow the series' end: while there's no room
-after the series' last point (14 CSS pixels and the tag), the tag on the axis as it is; with room, the same tag (its
-box, its color, its words where they sit in it, its height and the height the axis gives it) 14 pixels after the end,
-a lead in its color from the last point to it where it's moved off that height (level, a lead read as the line going
-on, past what's under the line: a cloud's fill seemed cut short); in between, across the axis's edge (the pane and the axis each drawing
-the same tag, cut to its canvas: no seam, no jump), as the room follows a pan, not animated. A series' `bvTagOf(index)`
-gives the tag's price (or two: halfway between them as drawn, a stacked band's middle, on any scale) and words (its own
-value) for its last bar in view, where it gives them. A price scale's `bvTagsTop` keeps its tags under that height
-(Studio's legend over the pane). A price scale's `bvTagsWidth` is the widest its series' tags can be written (Studio's,
-from each series' values): the axis at least as wide all through a pan, not resized each frame by the values passing (a
-tag reads the last bar in view; across a stack's 23 bands the widest changed every few frames, the plot jumping 8 px);
-a tag wider than that (one Studio's sample of the values missed) widens it once, as wide as any has been since it was
-given. A tag's pane side is drawn on the pane's top canvas alone, not under it too: it stays where it is as the picture
-moves (48), so titles no longer keep a pane from moving; a mark hides under a tag only while the tag's on the axis.
+A series' `bvTagOf(index)` gives its last value's tag's price (or two: halfway between them as drawn, a stacked band's
+middle, on any scale) and words (its own value) for its last bar in view, where it gives them. A price scale's
+`bvTagsTop` keeps its tags under that height (Studio's legend over the pane). A price scale's `bvTagsWidth` is the
+widest its series' tags can be written (Studio's, from each series' values): the axis at least as wide all through a
+pan, not resized each frame by the values passing (a tag reads the last bar in view; across a stack's 23 bands the
+widest changed every few frames, the plot jumping 8 px); a tag wider than that (one Studio's sample of the values
+missed) widens it once, as wide as any has been since it was given. A tag's pane side (a title) is drawn on the pane's
+top canvas alone, not under it too: it stays where it is as the picture moves (48), so titles no longer keep a pane
+from moving. (Its tag once followed its series' end into the plot, `bvAtEnd`, named, then not: it clashed with
+drawings and stacked where values are close; gone, the tags on the axis alone.)
 
-- `L.bvPill(t,i,n,s)`: the tag on either side (the axis's, `Pi` false; the pane's, `Pi` true, the right scale's only),
-  its room from the time scale's width and the series' end, read as it's drawn, its words measured on its own canvas
-  (both sides alike in a frame: the pane's measure cache keeps an old font family); whether it drew, else the tag as it
-  is.
-- `ut.Yi`: `bvTagOf` read for the bar in view; with `bvAtEnd`, on the right scale (the left one's axis isn't where its
-  end is), `Ai.bvPill` (the value, the end and the width as functions) and its pane side shown; none while hidden.
-- `bvAbove(t,i)`: the top views but a tag's pane side (`st`), in `bvMain`'s main canvas paint; `bvAway`, a tag whose
-  pill is off its axis, left out of the marks' clearance (`Bm`, 15); `bvInside`: its upward pass from `bvTagsTop`; `Cm`,
-  the axis's width: at least `bvTagsWidth`, and its series' tags' (`ut`) widest since (`bvSeen`, again from none when
-  it's given anew or the axis shows another scale).
-
-`tests.html` 15: a series' tag after its end, with room after it (in the pane, none on the axis) and with none (on the
-axis, nothing in the pane).
+- `ut.Yi`: `bvTagOf` read for the bar in view.
+- `bvAbove(t,i)`: the top views but a tag's pane side (`st`), in `bvMain`'s main canvas paint; `bvInside`: its upward
+  pass from `bvTagsTop`; `Cm`, the axis's width: at least `bvTagsWidth`, and its series' tags' (`ut`) widest since
+  (`bvSeen`, again from none when it's given anew or the axis shows another scale).
 
 ## 51. Whether a point is on a series' tag
 
 Studio lights a layer's legend item as the pointer's on its line (the chart's hovered series), but not on its tag: on
-the axis, the chart says nothing (the crosshair's off the plot), and its name pill (50) in the plot isn't a series'
-hit. Now each tag remembers where it was last drawn (on the axis, or its pill in the pane, as far as it shows there),
-and a series says whether a point is on its tag.
+the axis, the chart says nothing (the crosshair's off the plot). Now each tag remembers where it was last drawn, and a
+series says whether a point is on its tag.
 
-- `L.st`: `bvHit` on its view (`qt`), its canvas and its box in that canvas's CSS pixels: the tag's as drawn, or the
-  pill's (`bvPill`), cut to the canvas as it's drawn; none while it's not drawn.
+- `L.st`: `bvHit` on its view (`qt`), its canvas and its box in that canvas's CSS pixels, as drawn; none while it's
+  not drawn.
 - `bvTagHit(x, y)` on a series (the API's, beside `priceToCoordinate`): a point in the client's coordinates on either
   of its last value's tags (`ut`'s `zi`, the axis's; `Li`, the pane's), as last drawn and as far as its canvas shows
   it (one spread past its pane's foot, not over the next); false while hidden.
 
-`tests.html` 15: the pill's middle on its tag, in the pane and on the axis; a corner of the pane not.
+`tests.html` 15: a series' tag's middle on its tag, a corner of the pane not.

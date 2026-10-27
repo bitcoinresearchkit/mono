@@ -776,29 +776,23 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   }
   say(`Last values' tags: 5 checks, ${tagged.length} failing`);
   for (const f of tagged) say(`  ✗ ${f}`);
-  // 15. A series' tag after its end (patch 50): a line's, its view leaving room after its end (the tag in the pane,
-  // past the end, none on the axis), then none (the tag on the axis, nothing in the pane). Each time, the pill's middle
-  // on its tag, a corner of the pane not (patch 51).
+  // 15. Whether a point is on a series' tag (patch 51): a line's tag, its middle on it, a corner of the pane not.
   const pills = [];
   {
     document.getElementById("a").innerHTML = ""; window.__charts = [];
     seed = 71;
-    const c = base(B, document.getElementById("a")), line = c.addSeries(B.LineSeries, { color: "#00ff00", priceLineVisible: false, bvAtEnd: true });
+    const c = base(B, document.getElementById("a")), line = c.addSeries(B.LineSeries, { color: "#00ff00", priceLineVisible: false });
     line.setData(walk(300, 100, 0.03));
-    const mid = (canvas, from = 0) => { const d = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data; let n = 0, x = 0, y = 0; for (let i = 0; i < d.length; i += 4) if ((i / 4) % canvas.width >= from && d[i + 1] > 200 && d[i] < 60 && d[i + 2] < 60) n++, (x += (i / 4) % canvas.width), (y += Math.floor(i / 4 / canvas.width)); return n ? [x / n, y / n] : null; };
-    const green = (canvas, from = 0) => { const d = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if ((i / 4) % canvas.width >= from && d[i + 1] > 200 && d[i] < 60 && d[i + 2] < 60) n++; return n; };
+    const mid = (canvas) => { const d = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data; let n = 0, x = 0, y = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 1] > 200 && d[i] < 60 && d[i + 2] < 60) n++, (x += (i / 4) % canvas.width), (y += Math.floor(i / 4 / canvas.width)); return n ? [x / n, y / n] : null; };
     const canvases = () => { const cells = [...document.getElementById("a").querySelectorAll("td")].map((td) => [...td.querySelectorAll("canvas")]).filter((list) => list.length); return { pane: cells.find((list) => list[0].width > 400), axis: cells.find((list) => list[0].width < 400 && list[0].height > 300) }; };
-    for (const [label, from, to, room] of [["room", 100, 360, true], ["none", 100, 299, false]]) {
-      c.timeScale().setVisibleLogicalRange({ from, to });
-      await frames();
-      const { pane, axis } = canvases(), ratio = pane[1].width / pane[1].clientWidth, end = c.timeScale().logicalToCoordinate(299) * ratio, inPane = green(pane[1], Math.ceil(end + 10 * ratio)), onAxis = green(axis[0]);
-      if (room ? !(inPane > 50 && onAxis === 0) : !(inPane === 0 && onAxis > 50)) pills.push(`${label}: ${inPane} pill pixels in the pane, ${onAxis} on the axis`);
-      const where = room ? pane[1] : axis[0], middle = mid(where, room ? Math.ceil(end + 10 * ratio) : 0), box = where.getBoundingClientRect(), corner = pane[1].getBoundingClientRect();
-      if (!middle || !line.bvTagHit(box.left + middle[0] / ratio, box.top + middle[1] / ratio) || line.bvTagHit(corner.left + 5, corner.top + 5)) pills.push(`${label}: the pill's middle ${middle ? "not on its tag" : "not found"}, or the pane's corner on it`);
-    }
+    c.timeScale().setVisibleLogicalRange({ from: 100, to: 299 });
+    await frames();
+    const { pane, axis } = canvases(), ratio = axis[0].width / axis[0].clientWidth, middle = mid(axis[0]), box = axis[0].getBoundingClientRect(), corner = pane[1].getBoundingClientRect();
+    if (!middle || !line.bvTagHit(box.left + middle[0] / ratio, box.top + middle[1] / ratio)) pills.push(`the tag's middle ${middle ? "not on its tag" : "not found"}`);
+    if (line.bvTagHit(corner.left + 5, corner.top + 5)) pills.push("the pane's corner on the tag");
     c.remove(); window.__charts = [];
   }
-  say(`A tag after its end: 4 checks, ${pills.length} failing`);
+  say(`A tag's hit: 2 checks, ${pills.length} failing`);
   for (const f of pills) say(`  ✗ ${f}`);
   window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length, pinch: tapped.length, own: owned.length, later: later.length, edged: edged.length, shifted: shifted.length, tagged: tagged.length, pills: pills.length };
 </script>

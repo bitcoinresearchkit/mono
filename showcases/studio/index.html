@@ -14631,19 +14631,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const baseOf = (layer) => layer.base ?? 0;
 
       /**
-       * The room after the data's last value, in pixels, at any zoom: its series' tags', each after its end (see LWC patch
-       * 50), as wide as the axis their tags fit and their lead in (14) and a few pixels; none on the right, its line's end
-       * clear of the scale (as TradingView).
+       * The room after the data's last value, in pixels, at any zoom: its line's end clear of the scale (as TradingView), a
+       * share of the chart's width, a phone's narrower, a large screen's no wider than 48. Any chart's (a preview's too).
        */
-      const rightGap = (width = view.timeScale().width()) => ((axis) => (axis && chart?.layers.some(tagged) ? Math.max(plainGap(width), axis + 18) : plainGap(width)))(view.priceScale("right").width());
-      /** The room after the latest point, any chart's (a preview's too, the open one's aside): see rightGap. */
-      const plainGap = (width = view.timeScale().width()) => Math.round(clamp(width * 0.06, 16, 48));
-      /**
-       * The layers whose tags follow their ends: on the right (out into the plot that way), not a signal's or a cloud's
-       * (none on the axis); hidden too, its room kept (shown again, the view where it was).
-       * @param {Layer} layer
-       */
-      const tagged = (layer) => layer.side === "right" && layer.type !== "signal" && layer.type !== "cloud";
+      const rightGap = (width = view.timeScale().width()) => Math.round(clamp(width * 0.06, 16, 48));
       /**
        * The least of the view its data keeps (a share of its width, all of the data when it holds less): a pan, a fling,
        * a zoom stops there, held by the chart itself as it moves (patch 13 of lightweight-charts), never a frame past it.
@@ -14771,9 +14762,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The chart as drawn, stretched to its box mid-motion (see stretchDrawn): its plot's width drawn, its scales' (`left`,
        * the left one's), its pinned side, the clipping let go of meanwhile (each element's own, as it was), and the room
        * after its data's last value and before its first (Max's) as drawn, a range showing (`ranged`: drawn again as a
-       * range at the motion's end, else its bars kept at its edges); where its data ends as drawn (`ends`, from the plot's
-       * right), a range showing or not.
-       * @type {{ legends: [HTMLElement, number, number][], to: number, sides: number, left: number, leftAxis: boolean, clipped: [HTMLElement, string][], room: number, lead: number, ranged: boolean, ends: number } | null}
+       * range at the motion's end, else its bars kept at its edges).
+       * @type {{ legends: [HTMLElement, number, number][], to: number, sides: number, left: number, leftAxis: boolean, clipped: [HTMLElement, string][], room: number, lead: number, ranged: boolean } | null}
        */
       let drawnStretch = null;
       function sizeOnce() {
@@ -14919,9 +14909,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const ranged = presetShown && !glideTarget && Boolean(resolved?.times.length), at = (/** @type {number | undefined} */ time) => (ranged && time !== undefined ? view.timeScale().timeToCoordinate(/** @type {any} */ (time)) : null);
         // (Max's room before the first value anything shown has, as applyRange keeps it.)
         const first = at(resolved && chart ? resolved.times[Math.min(firstShown(chart, resolved), resolved.times.length - 1)] : undefined), last = at(resolved?.times.at(-1));
-        // (Where the data ends as drawn, from the plot's right: its tags after it, see stretchDrawn.)
-        const end = resolved?.times.length ? view.timeScale().logicalToCoordinate(/** @type {any} */ (resolved.times.length - 1)) : null;
-        drawnStretch = { ends: end === null ? 0 : width - left - right - end, legends: all$(".legend", element).map((legend) => /** @type {[HTMLElement, number, number]} */ ([legend, legend.offsetLeft, legend.offsetWidth])), to: width - left - right, sides: left + right, left, leftAxis: left > 0 && !(right > 0), clipped, room: last === null ? 0 : Math.max(0, width - left - right - last), lead: first !== null && first > 0.5 ? first : 0, ranged };
+        drawnStretch = { legends: all$(".legend", element).map((legend) => /** @type {[HTMLElement, number, number]} */ ([legend, legend.offsetLeft, legend.offsetWidth])), to: width - left - right, sides: left + right, left, leftAxis: left > 0 && !(right > 0), clipped, room: last === null ? 0 : Math.max(0, width - left - right - last), lead: first !== null && first > 0.5 ? first : 0, ranged };
         stretchDrawn(shown);
         const frame = () => run === motionsSized && drawnStretch && (stretchDrawn(box.getBoundingClientRect().width), requestAnimationFrame(frame));
         requestAnimationFrame(frame);
@@ -14960,7 +14948,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           delete element.dataset.stretching;
           return;
         }
-        const { to, sides, left, leftAxis, clipped, room, lead, ranged, ends } = drawnStretch, from = Math.max(1, shown - sides);
+        const { to, sides, left, leftAxis, clipped, room, lead, ranged } = drawnStretch, from = Math.max(1, shown - sides);
         // (A pane's cells new meanwhile, their clipping let go of too.)
         for (const item of all$("tr > td > div", element)) if (!clipped.some(([held]) => held === item)) (clipped.push([item, item.style.overflow]), (item.style.overflow = "visible"));
         // (As it's drawn once the motion's over, nothing moving then: a range's data stretched between Max's room before
@@ -14968,10 +14956,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // kept; else all of it.)
         // (Too little between them to stretch (one value: the chart fits it instead), the whole of it.)
         const held = ranged && to - lead - room > 1, gap = held ? rightGap(from) : 0, k = held ? (from - lead - gap) / (to - lead - room) : from / to;
-        // (Each pane's top canvas, its tags after their series' ends (see LWC patch 50) and the crosshair, not stretched:
-        // words would widen; moved as the ends are, its tags with them.)
-        const shift = leftAxis ? (k - 1) * (to - ends) + (held ? lead * (1 - k) : 0) : ends * (1 - k) + (held ? k * room - gap : 0);
-        for (const canvas of canvases) Object.assign(canvas.style, canvas.previousElementSibling instanceof HTMLCanvasElement ? { transformOrigin: "", transform: `translateX(${shift}px)` } : { transformOrigin: leftAxis ? "left" : "right", transform: leftAxis ? `translateX(${held ? lead * (1 - k) : 0}px) scaleX(${k})` : `translateX(${held ? k * room - gap : 0}px) scaleX(${k})` });
+        for (const canvas of canvases) Object.assign(canvas.style, { transformOrigin: leftAxis ? "left" : "right", transform: leftAxis ? `translateX(${held ? lead * (1 - k) : 0}px) scaleX(${k})` : `translateX(${held ? k * room - gap : 0}px) scaleX(${k})` });
         // (The panes' rules (a separator's cell, across the scales' room too) from the chart's pinned edge; the last
         // pane's, along the plot.)
         for (const rule of rules) Object.assign(rule.style, { transformOrigin: leftAxis ? "left" : "right", transform: `scaleX(${(from + sides) / (to + sides)})` });
@@ -15552,7 +15537,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Its value's tag, named (see LWC patch 50): a stacked band's at its middle, its own value (a 100% stack's, its
             // share).)
             lastValueVisible: !layer.hidden && !signal,
-            bvAtEnd: layer.side === "right",
             ...(stack ? { bvTagOf: (/** @type {number} */ at) => bandTag(doc, layer, stack, at) } : {}),
             ...(stack ? { autoscaleInfoProvider: shares.has(layer.pane) ? () => ({ priceRange: { minValue: 0, maxValue: 100 } }) : fromZero(modeOf(doc, layer)) } : {}),
             // A 100% stacked pane's scale reads in percent, 0 to 100 (the margin over the top stays blank).
@@ -17021,22 +17005,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (In a keyed pane, the band under it, a finger's held too: its item in the key's place (lit among its pane's only
         // as that item, or its row, is pointed at: see spotlight). On the legend over the plot, the one it was (its item
         // stays under the pointer).)
-        // (A tag's pill under it, its layer's (see tagAt): in a keyed pane, as its band.)
         crossIn = Boolean(param.point);
-        const tag = param.point && !param.hoveredSeries && !pointer.touch ? tagAt(pointer.x, pointer.y) : null;
-        const band = (tag && keyedOf(tag) ? tag : null) ?? bandAt(param) ?? (onLegend ? bandLit : null);
+        const band = bandAt(param) ?? (onLegend ? bandLit : null);
         if (band !== bandLit) {
           bandLit = band;
           paintBands();
         }
-        lightLegend(band ?? (param.point && param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : tag), false, Boolean(band));
+        lightLegend(band ?? (param.point && param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null), false, Boolean(band));
         if (time === hoverTime) return;
         hoverTime = time;
         valuesSoon();
       });
       /**
-       * The layer whose last value's tag is under a point (the client's coordinates): on its axis, or its pill in the plot
-       * (see LWC patch 51); its legend's item lit as a line pointed at lights it.
+       * The layer whose last value's tag is under a point (the client's coordinates), on its axis (see LWC patch 51); its
+       * legend's item lit as a line pointed at lights it.
        */
       function tagAt(/** @type {number} */ x, /** @type {number} */ y) {
         for (const [id, series] of drawn) if (/** @type {any} */ (closes.get(id)?.series ?? series).bvTagHit(x, y)) return id;
@@ -17044,8 +17026,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Whether a layer's in a keyed pane: its item kept in sight as it's lit (see lightLegend). */
       const keyedOf = (/** @type {string} */ id) => ((pane) => Boolean(pane && keyedPane(pane)))(chart?.panes.find((pane) => pane.id === layerById(id)?.pane));
-      /** Where the pointer is over the chart (the client's coordinates; a finger's, `touch`), and whether it's in the plot (the crosshair's): a tag's read where it is. */
-      let pointer = { x: NaN, y: NaN, touch: false }, crossIn = false;
+      /** Whether the pointer's in the plot (the crosshair's): off it, on an axis, its tags are read (see tagAt). */
+      let crossIn = false;
       /** A tag pointed at (or none), its layer's legend item lit: in a keyed pane, as its band (its item in the key's place). */
       const lightTag = (/** @type {string | null} */ tag) => {
         const band = tag && keyedOf(tag) ? tag : null;
@@ -17056,14 +17038,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         lightLegend(tag, false, Boolean(band));
       };
       // (Off the plot, on the axis, the crosshair says nothing: the tag under it here. A finger points at nothing.)
-      view.chartElement().addEventListener("pointermove", (event) => {
-        pointer = { x: event.clientX, y: event.clientY, touch: event.pointerType === "touch" };
-        if (!crossIn && !pointer.touch) lightTag(tagAt(event.clientX, event.clientY));
-      });
-      view.chartElement().addEventListener("pointerleave", () => {
-        pointer = { x: NaN, y: NaN, touch: false };
-        if (!crossIn) lightTag(null);
-      });
+      view.chartElement().addEventListener("pointermove", (event) => !crossIn && event.pointerType !== "touch" && lightTag(tagAt(event.clientX, event.clientY)));
+      view.chartElement().addEventListener("pointerleave", () => !crossIn && lightTag(null));
       view.subscribeClick((param) => {
         // (A band of a keyed pane, anywhere in it; else a line, near it.)
         const id = bandAt(param) ?? (param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null);
@@ -20868,7 +20844,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The view it opens on: its own; the open one's, linked, every chart's (as its chunks are, see spanOf).)
         const left = openView(doc);
         // (Another chart's: the room any chart has after its latest point, not the open one's tags'.)
-        const shown = left ? within(viewOn(left, doc.index, times, plainGap()), "to") : presetWindow(doc, data, most, 0, 0);
+        const shown = left ? within(viewOn(left, doc.index, times, rightGap()), "to") : presetWindow(doc, data, most, 0, 0);
         const span = shown.to - shown.from;
         if (!(span >= 1)) return drawn;
         // No more points than bars in view: each one then holds a bar at least, so only missing data breaks a line.
