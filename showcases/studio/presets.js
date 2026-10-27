@@ -170,8 +170,8 @@ export function studioPresets(client, facts) {
   };
   /** A chart's letter for its `i`th layer (fewer than 26). */
   const letter = (/** @type {number} */ i) => String.fromCharCode(65 + i);
-  /** The price, as its candles. @returns {Layer} */
-  const price = () => ({ series: t.price.ohlc.name, label: "Price", type: "candles", color: "ink", priceLine: true });
+  /** The price, as its candles: in one color, the page's ink (rising hollow, falling filled say which). @returns {Layer} */
+  const price = () => ({ series: t.price.ohlc.name, label: "Price", type: "candles", color: "ink", colors: 1, priceLine: true });
   /**
    * A chart: its layers, each with its pane (1 if none), and its panes' scales (a pane with the price, or `log` said,
    * logarithmic; else linear) and stacks.

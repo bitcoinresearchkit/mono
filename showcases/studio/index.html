@@ -11956,8 +11956,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const own = presetLooks.get(name), ownType = own?.type ?? (isOhlc(name) ? "candles" : "line"), look = asked ?? ownType;
         return { look, told: look === ownType ? own : undefined };
       };
-      /** A series' first type and base: its first look's, its color aside. @param {string} name @param {string} [asked] @returns {Partial<Layer>} */
-      const firstForm = (name, asked) => (({ look, told }) => ({ ...(look !== "line" ? { type: look } : {}), ...(told?.base ? { base: told.base } : {}) }))(seriesLook(name, asked));
+      /** A series' first type, base and colors (the price's candles, one): its first look's, its color aside. @param {string} name @param {string} [asked] @returns {Partial<Layer>} */
+      const firstForm = (name, asked) => (({ look, told }) => ({ ...(look !== "line" ? { type: look } : {}), ...(told?.base ? { base: told.base } : {}), ...(told?.colors ? { colors: told.colors } : {}) }))(seriesLook(name, asked));
       /** Whether Bitview says a series is open-high-low-close (its type, as known: asked for already). */
       const isOhlc = (/** @type {string} */ name) => /^OHLC/.test(known.get(name)?.type ?? "");
       /** @param {Partial<Layer>} spec @param {Chart} doc @returns {Layer} */
@@ -24655,12 +24655,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const counts = new Map();
         for (const preset of list) for (const layer of preset.c.layers) {
           if (typeof layer.series !== "string" || (!isNamed(layer.color) && layer.type !== "baseline")) continue;
-          const each = counts.get(layer.series) ?? new Map(), key = `${isNamed(layer.color) ? layer.color : ""}|${layer.type ?? "line"}|${layer.base ?? ""}`;
+          const each = counts.get(layer.series) ?? new Map(), key = `${isNamed(layer.color) ? layer.color : ""}|${layer.type ?? "line"}|${layer.base ?? ""}|${layer.colors ?? ""}`;
           counts.set(layer.series, each.set(key, (each.get(key) ?? 0) + 1));
         }
         return new Map([...counts].map(([name, each]) => {
-          const [color, type, base] = [...each].reduce((best, entry) => (entry[1] > best[1] ? entry : best))[0].split("|");
-          return [name, { ...(color ? { color } : {}), type, ...(base ? { base: Number(base) } : {}) }];
+          const [color, type, base, colors] = [...each].reduce((best, entry) => (entry[1] > best[1] ? entry : best))[0].split("|");
+          return [name, { ...(color ? { color } : {}), type, ...(base ? { base: Number(base) } : {}), ...(colors ? { colors: /** @type {1 | 4} */ (Number(colors)) } : {}) }];
         }));
       }
       /** See looksOf: empty till the presets are read. */
