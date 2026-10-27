@@ -3642,18 +3642,13 @@
         letter-spacing: -0.026em;
       }
 
-      /* What Studio is, under the Charts page's name till your Library has a chart: one line, a phone's shorter. */
+      /* What Studio is, under the Charts page's name till your Library has a chart: the same words on every screen (a
+         phone's on two lines). */
       .home-lede {
         margin: 2px 0 14px;
         color: var(--soft);
         font-size: 15px;
         line-height: 22px;
-
-        @media (max-width: 760px) {
-          .lede-long {
-            display: none;
-          }
-        }
       }
 
       /* The page's head: its name (a folder of yours, its menu beside it). */
@@ -6327,6 +6322,21 @@
             color: var(--ink);
             background: var(--hover);
           }
+        }
+      }
+
+      /* By touch, a hold on the app's own words doesn't select them (iOS's Copy and Look Up over a section's name, a
+         note, a legend's label): a hold is the app's (picking, a row's actions, a tile's menu). What's read or written
+         stays selectable: a description, the guide and the about page, code, a field. One rule, not part by part. */
+      @media (hover: none) {
+        body {
+          -webkit-user-select: none;
+          user-select: none;
+        }
+
+        :is(.description, #about, #guide, code, pre, input, textarea, [contenteditable]) {
+          -webkit-user-select: text;
+          user-select: text;
         }
       }
 
@@ -9833,7 +9843,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               </span>
             </div>
             <!-- (What Studio is, said till your Library has a chart: in one line, a phone's shorter.) -->
-            <p id="home-lede" class="home-lede" hidden><span class="lede-long">Charts of Bitcoin's on-chain data. </span>Open a preset, change it, share it as a link.</p>
+            <p id="home-lede" class="home-lede" hidden>Charts of Bitcoin's on-chain data. Open a preset, change it, share it as a link.</p>
             <div id="home-tools" class="home-tools">
             <label class="home-filter">
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" /></svg>
@@ -24170,6 +24180,31 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The click a gesture makes at its end, swallowed (after a drag, a long press): a pointer's, never a key's; a new press clears it. */
       let swallowUntil = 0;
       const swallowClick = () => (swallowUntil = performance.now() + 600);
+      /**
+       * A finger's hold on what `selector` finds in `container` (none by a mouse: its button's own): `start(element)`, as
+       * it's pressed, gives what the hold does (none: nothing to hold), run once it's held still (a move past SLOP is a
+       * scroll); it says whether it took the hold, the click its release would make then swallowed. The system's own
+       * menu there, none. One way for every hold (⌘K's rows, a preset's tile).
+       * @param {HTMLElement} container @param {string} selector @param {(element: HTMLElement) => (() => boolean) | null} start
+       */
+      function onHold(container, selector, start) {
+        let timer = 0, taken = false, at = /** @type {[number, number]} */ ([0, 0]);
+        container.addEventListener("pointerdown", (event) => {
+          clearTimeout(timer);
+          taken = false;
+          const element = /** @type {HTMLElement | null} */ (event.pointerType === "touch" ? closest(event, selector) : null), held = element && start(element);
+          if (!element || !held) return;
+          at = [event.clientX, event.clientY];
+          timer = window.setTimeout(() => element.isConnected && held() && ((taken = true), navigator.vibrate?.(8)), 450);
+        });
+        container.addEventListener("pointermove", (event) => Math.hypot(event.clientX - at[0], event.clientY - at[1]) > SLOP && clearTimeout(timer));
+        for (const type of ["pointerup", "pointercancel"]) container.addEventListener(type, () => {
+          clearTimeout(timer);
+          if (taken) swallowClick();
+          taken = false;
+        });
+        container.addEventListener("contextmenu", (event) => TOUCH && closest(event, selector) && event.preventDefault());
+      }
       window.addEventListener("pointerdown", () => (swallowUntil = 0), true);
       window.addEventListener("click", (event) => {
         if (performance.now() > swallowUntil || event.detail === 0) return;
@@ -25182,6 +25217,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           save();
           renderCharts();
         } });
+      }
+      /**
+       * A preset's menu, from its ⋯ (`more`: a row's in the sidebar, a tile's): at it, or where it was asked for (a right
+       * click's, a hold's place); on a phone, titled by the preset.
+       * @param {HTMLElement} more @param {{ x: number, y: number } | null} [at]
+       */
+      function openPresetMenu(more, at = null) {
+        const i = Number(more.dataset.presetMenu);
+        menuOf(more, presetActions(i, more.closest("#chart-list, [data-preset-row]") ? "row" : "tile"), at, "", { title: phone.matches ? titleOf(presetDoc(i)) : "" });
       }
       /**
        * A preset's actions, where they show (`where`, as a chart's): open it, copy it into your charts (or into a folder),
@@ -27893,7 +27937,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           event.preventDefault();
           if (TOUCH && presetAt.matches("[data-preset]")) return;
           const more = /** @type {HTMLElement} */ (presetAt.querySelector("[data-preset-menu]"));
-          return menuOf(more, presetActions(Number(more.dataset.presetMenu), presetAt.matches("[data-preset-row]") ? "row" : "tile"), { x: event.clientX, y: event.clientY }, "", { title: phone.matches ? titleOf(presetDoc(Number(more.dataset.presetMenu))) : "" });
+          return openPresetMenu(more, { x: event.clientX, y: event.clientY });
         }
         const groupAt = closest(event, "#chart-list [data-group]");
         if (groupAt) {
@@ -30943,33 +30987,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       $("palette-actions").addEventListener("click", () => showActions());
       // By a finger, a row held: its other actions (there's no foot's Actions by touch); moved, it's a scroll.
-      {
-        let rowHold = 0, rowHeld = false, at = /** @type {[number, number]} */ ([0, 0]);
-        $("palette-list").addEventListener("pointerdown", (event) => {
-          const option = /** @type {HTMLElement | null} */ (event.pointerType === "touch" ? closest(event, "[data-option]") : null);
-          clearTimeout(rowHold);
-          if (!option) return;
-          at = [event.clientX, event.clientY];
-          rowHeld = false;
-          // (The result held, as it was: one replaced under the finger meanwhile (a search's later answer) is let go.)
-          const held = palette.items[Number(option.dataset.option)];
-          rowHold = window.setTimeout(() => {
-            if (!option.isConnected || palette.items[Number(option.dataset.option)] !== held) return;
-            palette.active = Number(option.dataset.option);
-            if (actionsFor(palette.items[palette.active]).length < 2) return;
-            rowHeld = true;
-            navigator.vibrate?.(8);
-            showActions(option);
-          }, 450);
-        });
-        $("palette-list").addEventListener("pointermove", (event) => Math.hypot(event.clientX - at[0], event.clientY - at[1]) > SLOP && clearTimeout(rowHold));
-        for (const type of ["pointerup", "pointercancel"]) $("palette-list").addEventListener(type, () => {
-          clearTimeout(rowHold);
-          if (rowHeld) swallowClick();
-          rowHeld = false;
-        });
-        $("palette-list").addEventListener("contextmenu", (event) => TOUCH && event.preventDefault());
-      }
+      // (The result held, as it was: one replaced under the finger meanwhile (a search's later answer) is let go.)
+      onHold($("palette-list"), "[data-option]", (option) => ((held) => () => {
+        if (palette.items[Number(option.dataset.option)] !== held) return false;
+        palette.active = Number(option.dataset.option);
+        if (actionsFor(palette.items[palette.active]).length < 2) return false;
+        showActions(option);
+        return true;
+      })(palette.items[Number(option.dataset.option)]));
+      // A preset's tile held: its menu, as its ⋯ (a hold never opens it: a tap does).
+      onHold($("gallery"), ".tile[data-preset] > [data-open-preset]", (open) => ((more) => (more ? () => (openPresetMenu(more), true) : null))(/** @type {HTMLElement | null} */ (open.parentElement?.querySelector("[data-preset-menu]") ?? null)));
       $("palette-path").addEventListener("click", (event) => {
         const crumb = closest(event, "[data-depth]");
         if (!crumb || crumb.hasAttribute("aria-current")) return;
@@ -33547,7 +33574,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       document.addEventListener("click", (event) => {
         // (A preset's ⋯, its row's in the sidebar, its tile's.)
         const presetMenu = closest(event, "[data-preset-menu]");
-        if (presetMenu) return menuOf(presetMenu, presetActions(Number(presetMenu.dataset.presetMenu), presetMenu.closest("#chart-list") ? "row" : "tile"), null, "", { title: phone.matches ? titleOf(presetDoc(Number(presetMenu.dataset.presetMenu))) : "" });
+        if (presetMenu) return openPresetMenu(presetMenu);
         const menuFor = closest(event, "[data-chart-menu], [data-scale-menu], [data-pane-menu], [data-folder-menu]");
         if (menuFor) return menuFor.dataset.chartMenu ? chartMenu(menuFor, menuFor.dataset.chartMenu) : menuFor.dataset.paneMenu ? paneActions(menuFor, menuFor.dataset.paneMenu) : menuFor.dataset.folderMenu ? folderActions(menuFor, menuFor.dataset.folderMenu) : scaleMenu(menuFor, menuFor.dataset.scaleMenu);
         // A folder in the sidebar: each click opens or closes it there (one under way turns back from where it is: clicks
