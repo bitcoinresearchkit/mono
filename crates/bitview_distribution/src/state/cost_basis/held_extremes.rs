@@ -1,3 +1,4 @@
+use bitview_primitives::CentsCompact;
 use brk_types::Cents;
 use statedb::Amount;
 
@@ -46,7 +47,7 @@ impl HeldOrigins for HeldExtremes {
         self.tree.reset();
         for (h, amount) in amounts.iter().enumerate() {
             if amount.sats != 0 {
-                self.tree.set_leaf(h, prices[h].price().into());
+                self.tree.set_leaf(h, u32::from(prices[h].price()));
             }
         }
         self.tree.build();
@@ -58,7 +59,7 @@ impl HeldOrigins for HeldExtremes {
 
     fn settle(&mut self, height: usize, amounts: &[Amount], prices: &[BucketedPrice]) {
         if amounts[height].sats != 0 {
-            self.tree.set(height, prices[height].price().into());
+            self.tree.set(height, u32::from(prices[height].price()));
         }
         for origin in self.spent.drain(..) {
             let origin = origin as usize;
@@ -72,8 +73,9 @@ impl HeldOrigins for HeldExtremes {
 impl HeldExtremes {
     /// The lowest and highest price of the origins held in `from..to`; NaN both where none is.
     pub fn range(&self, from: usize, to: usize) -> (Cents, Cents) {
+        let cents = |value: u32| Cents::from(CentsCompact::from(value));
         match self.tree.range(from, to) {
-            Some((low, high)) => (low.into(), high.into()),
+            Some((low, high)) => (cents(low), cents(high)),
             None => (Cents::NAN, Cents::NAN),
         }
     }
@@ -83,14 +85,15 @@ impl HeldExtremes {
 /// segment tree, its leaves from `size`, each node over its two children.
 #[derive(Default)]
 struct MinMaxTree {
-    /// A node's lowest (`u64::MAX` where none) and highest (`0` where none: the lowest tells).
-    low: Vec<u64>,
-    high: Vec<u64>,
+    /// A node's lowest (`u32::MAX` where none) and highest (`0` where none: the lowest tells), as `CentsCompact`'s.
+    low: Vec<u32>,
+    high: Vec<u32>,
     size: usize,
 }
 
 impl MinMaxTree {
-    const NONE: (u64, u64) = (u64::MAX, 0);
+    /// None held: the lowest's past any price (`CentsCompact`'s NaN, never an origin's), the highest's under any.
+    const NONE: (u32, u32) = (u32::MAX, 0);
 
     fn reserve(&mut self, len: usize) {
         if len <= self.size {
@@ -114,7 +117,7 @@ impl MinMaxTree {
     }
 
     /// A leaf alone: [`Self::build`] after a batch.
-    fn set_leaf(&mut self, at: usize, value: u64) {
+    fn set_leaf(&mut self, at: usize, value: u32) {
         debug_assert!(at < self.size, "position {at} past the reserved room");
         debug_assert!(value != Self::NONE.0, "a value can't be the lowest's none");
         (self.low[self.size + at], self.high[self.size + at]) = (value, value);
@@ -126,7 +129,7 @@ impl MinMaxTree {
         }
     }
 
-    fn set(&mut self, at: usize, value: u64) {
+    fn set(&mut self, at: usize, value: u32) {
         self.set_leaf(at, value);
         self.pull_up(at);
     }
@@ -155,7 +158,7 @@ impl MinMaxTree {
     }
 
     /// The lowest and highest over `from..to`, none where it holds none.
-    fn range(&self, from: usize, to: usize) -> Option<(u64, u64)> {
+    fn range(&self, from: usize, to: usize) -> Option<(u32, u32)> {
         debug_assert!(from <= to && to <= self.size);
         let (mut low, mut high) = Self::NONE;
         let (mut l, mut r) = (from + self.size, to + self.size);

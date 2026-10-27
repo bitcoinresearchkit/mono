@@ -19,9 +19,9 @@
  *   hidden there: see priced).
  * @typedef {Record<string, any>} Layer
  * @typedef {{ layers: Layer[], panes?: Record<string, any>[], range?: string, halvings?: boolean }} Sketch
- * @typedef {{ p: string[], t: string, c: Sketch }} Preset
+ * @typedef {{ p: string[], t: string, c: Sketch, s?: string }} Preset
  * @typedef {{ name: string, title: string, c: Sketch, priceHidden?: boolean }} ChartNode
- * @typedef {{ name: string, items: (ChartNode | SectionNode)[], workings?: boolean }} SectionNode `workings`: its charts are
+ * @typedef {{ name: string, items: (ChartNode | SectionNode)[], workings?: boolean, icon?: string }} SectionNode `workings`: its charts are
  * about the chain's workings, not the market (the price over them hidden: see priced)
  * @typedef {{ pools: Set<string>, height: number, year: number }} Facts the chain's, from its server: the pools that
  * have found a block, its height, the year
@@ -191,9 +191,9 @@ export function studioPresets(client, facts) {
   };
   /**
    * @param {string} name @param {(ChartNode | SectionNode | null | undefined | false)[]} items
-   * @param {{ workings?: boolean }} [options] @returns {SectionNode}
+   * @param {{ workings?: boolean, icon?: string }} [options] @returns {SectionNode}
    */
-  const section = (name, items, options = {}) => ({ name, items: /** @type {(ChartNode | SectionNode)[]} */ (items.filter(Boolean)), ...(options.workings ? { workings: true } : {}) });
+  const section = (name, items, options = {}) => ({ name, items: /** @type {(ChartNode | SectionNode)[]} */ (items.filter(Boolean)), ...(options.workings ? { workings: true } : {}), ...(options.icon ? { icon: options.icon } : {}) });
   /**
    * A family's member: its folders, or, with one alone (0-sat outputs: their UTXOs only), that one's charts, not a
    * folder in a folder. @param {string} name @param {(ChartNode | SectionNode | null | undefined | false)[]} items @returns {SectionNode}
@@ -615,7 +615,7 @@ export function studioPresets(client, facts) {
         // its halving's, every four.)
         ((cycles) => chart("Halving cycles", "The price's halving cycles, each from its start", [price(), ...Array.from({ length: cycles }, (_, n) => ({ formula: `halving(A, ${n})`, label: `${n ? 2008 + 4 * n : 2009}–${n + 1 < cycles ? 2012 + 4 * n : "now"}`, pane: 2, color: ["orange", "red", "blue", "violet", "green", "teal", "pink"][n % 7] }))], { log: [2], halvings: true, range: "max" }))(Math.floor((facts?.height ?? 840_000) / 210_000) + 1),
       ]),
-    ]),
+    ], { icon: "candles" }),
     section("Valuation", [
       chart("Market and realized cap", "Market cap and realized cap", [series(t.holders.all.supply.total.usd, "Market cap", { color: "green" }), series(t.holders.all.capital.realizedCap, "Realized cap", { color: "orange" })], { log: [1], priceHidden: true }),
       ...change(sup.marketCap.delta, "Market cap change", "Market cap change"),
@@ -659,31 +659,31 @@ export function studioPresets(client, facts) {
           return chart(label, `Rarity meter extremes: ${label}`, [series(own(node), label, { color: "orange", width: 2 }), ...bandLines(node, (v) => v, (p) => p === 50 || (low ? p <= 1 : p >= 99))], { log: [1] });
         })]),
       ]),
-    ]),
+    ], { icon: "scale" }),
     section("Supply", [
       chart("Circulating", "Circulating supply", [series(sup.circulating, "Supply", { color: "orange" }), series(sup.marketCap.value, "Market cap", { color: "green", pane: 2 })], { log: [2] }),
       chart("Inflation", "Inflation rate", [series(sup.inflationRate, "Inflation rate", { color: "orange" }), series(ct.adjusted.inflationRate, "Cointime-adjusted", { color: "violet" })], { log: [1] }),
       ...flow(sup.burned, "Burned", "Bitcoin burned"),
       chart("Velocity", "Velocity", [series(sup.velocity.btc, "In bitcoin", { color: "orange" }), series(sup.velocity.usd, "In dollars", { color: "green" }), series(ct.adjusted.velocity.btc, "Cointime-adjusted, in bitcoin", { color: "violet", hidden: true }), series(ct.adjusted.velocity.usd, "Cointime-adjusted, in dollars", { color: "sky", hidden: true })]),
-    ]),
+    ], { icon: "coins" }),
     section("Holders", [
       ...holderSets(entries(t.holders), (members, by) => family(members, holderName, { by })),
       // (The discount and premium coins: all coins split by the price they came in at, at or below or above the
       // capitalized price then.)
       section("Entry price", family(entries(t.entry), (key) => ({ name: named(client.ENTRY_NAMES, key), who: `${named(client.ENTRY_NAMES, key)}, entered ${ENTERED[key] ?? key} the capitalized price at the time` }), { by: "entry price", disjoint: true })),
-    ]),
+    ], { icon: "people" }),
     section("Coin age", [
       lastMovedChart(),
       section("Age bands", family(entries(t.age.ranges), (key) => ({ name: named(client.AGE_RANGE_NAMES, key).replace(/ old$/, ""), who: `UTXOs ${named(client.AGE_RANGE_NAMES, key).toLowerCase().replace(/^utxos /, "")}` }), { by: "age band", disjoint: true, known: { Supply: "HODL waves", "Realized cap": "realized cap HODL waves" } })),
       section("Halving epochs", family(members(t.age.halvingEpochs), (key) => ({ name: `Epoch ${key.slice(1)}`, who: `Coins last moved in halving epoch ${key.slice(1)}` }), { by: "halving epoch last moved", disjoint: true })),
       section("Vintages", family(members(t.age.vintages), (key) => ({ name: key.slice(1), who: `Coins last moved in ${key.slice(1)}` }), { by: "vintage", disjoint: true })),
-    ]),
-    section("Profitability", holderSets(entries(t.profitability), (groups) => groups.map(([key, bands]) => section(holderName(key).name, family(entries(bands), (band) => ({ name: named(client.PROFITABILITY_RANGE_NAMES, band), who: `${holderName(key).who}, ${named(client.PROFITABILITY_RANGE_NAMES, band).toLowerCase()}` }), { by: `profit band, ${holderName(key).who.toLowerCase()}`, disjoint: true, ...(key === "all" ? {} : { of: `${holderName(key).who.toLowerCase()}'` }) }))))),
+    ], { icon: "hourglass" }),
+    section("Profitability", holderSets(entries(t.profitability), (groups) => groups.map(([key, bands]) => section(holderName(key).name, family(entries(bands), (band) => ({ name: named(client.PROFITABILITY_RANGE_NAMES, band), who: `${holderName(key).who}, ${named(client.PROFITABILITY_RANGE_NAMES, band).toLowerCase()}` }), { by: `profit band, ${holderName(key).who.toLowerCase()}`, disjoint: true, ...(key === "all" ? {} : { of: `${holderName(key).who.toLowerCase()}'` }) })))), { icon: "percent" }),
     section("UTXOs", [
       chart("Count", "UTXO count", [series(t.utxoSet.count, "UTXOs", { color: "sky" })], { log: [1] }),
       section("By amount", family(entries(t.utxos.amounts), (key) => ({ name: named(client.AMOUNT_RANGE_NAMES, key), who: `UTXOs of ${named(client.AMOUNT_RANGE_NAMES, key)}` }), { by: "UTXO amount", disjoint: true })),
       section("By type", family(entries(t.utxos.types), (key) => ({ name: client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, who: `${client.SPENDABLE_TYPE_NAMES[key]?.short ?? key} outputs` }), { by: "output type", disjoint: true })),
-    ]),
+    ], { icon: "cube" }),
     section("Addresses", [
       ...addressCharts(t.addresses, "All addresses"),
       section("By type", [
@@ -693,7 +693,7 @@ export function studioPresets(client, facts) {
         ...entries(t.addresses.types).map(([key, a]) => section(client.SPENDABLE_TYPE_NAMES[key]?.short ?? key, addressCharts(a, `${client.SPENDABLE_TYPE_NAMES[key]?.short ?? key} addresses`))),
       ]),
       section("By balance", family(entries(t.addresses.balances), (key) => ({ name: named(client.AMOUNT_RANGE_NAMES, key), who: `Addresses holding ${named(client.AMOUNT_RANGE_NAMES, key)}` }), { by: "address balance", disjoint: true, of: "all addresses'" })),
-    ]),
+    ], { icon: "key" }),
     section("Mining", [
       section("Hashing", [
         // (The day's, noisy, under its average: thin and faint, the average the line to read.)
@@ -743,7 +743,7 @@ export function studioPresets(client, facts) {
           : [],
       ]),
       section("Pools", poolCharts(), { workings: true }),
-    ]),
+    ], { icon: "pickaxe" }),
     section("Network", [
       section("Blocks", [
         ...flow(blocks.count, "Count", "Blocks mined"),
@@ -800,7 +800,7 @@ export function studioPresets(client, facts) {
           ...entries(t.opReturn.policies).map(([key, node]) => section(policyName(key), opReturnCharts(node, (what) => `OP_RETURN ${what}: ${policyName(key)}`))),
         ]),
       ]),
-    ], { workings: true }),
+    ], { workings: true, icon: "nodes" }),
     section("Cointime", [
       // (HODLed or lost is the vaulted supply by another name: one line.)
       chart("Supply", "Vaulted and active supply", [...[["vaulted", "Vaulted"], ["active", "Active"]].flatMap(([key, label], i) => [series(ct.supply[key].btc, label, { color: ["green", "red"][i] }), series(ct.supply[key].usd, `${label}, value`, { color: ["green", "red"][i], pane: 2 })])]),
@@ -814,11 +814,11 @@ export function studioPresets(client, facts) {
       section("Value", entries(ct.value).flatMap(([key, node]) => flow(node, `Value ${key}`, `Cointime value ${key}`))),
       section("Age bands", cointimeBands(ct.ageRanges)),
       section(holderName("awake").name, weightedSets(ct.cohorts, "awake", "dormant", "Awake", "Dormant")),
-    ]),
+    ], { icon: "clock" }),
     section("Coinflow", [
       section("Age bands", coinflowBands(cf.ageRanges)),
       section(holderName("mobile").name, weightedSets(cf.cohorts, "mobile", "immobile", "Mobile", "Immobile")),
-    ]),
+    ], { icon: "swap" }),
     section("Bedrock", [
       // (Each floor, its modes' over the price: how far weighting moves it.)
       section("Compare", entries(entries(t.bedrock)[0][1].floor).map(([key]) => chart(`${percentileLabel(percentile(key))} floor`, `Bedrock ${percentileLabel(percentile(key))} floor by mode`, [price(), ...entries(t.bedrock).map(([mode, node], i, all) => series(node.floor[key], modeName(mode), { color: ramp(all.length)[i] }))]))),
@@ -849,7 +849,7 @@ export function studioPresets(client, facts) {
           chart("Supply-in-loss thresholds", `Bedrock's supply-in-loss thresholds, ${mode}`, entries(node.supplyInLossShareThreshold).map(([key, value], i, all) => series(value, percentileLabel(percentile(key)), { color: ramp(all.length, 25, 100)[i] }))),
         ]);
       }),
-    ]),
+    ], { icon: "layers" }),
   ];
 
   // ── Pieces the tree above uses ────────────────────────────────────────────
@@ -1142,10 +1142,17 @@ export function studioPresets(client, facts) {
 
   /** @type {Preset[]} */
   const presets = [];
+  // (A top section's icon on its first preset (`s`): the list says it once, the sidebar's tree hangs it on the section.)
+  let icon = "";
   const walk = (/** @type {(ChartNode | SectionNode)[]} */ items, /** @type {string[]} */ path, workings = false) => {
     for (const item of items) {
-      if ("items" in item) walk(item.items, [...path, item.name], workings || Boolean(item.workings));
-      else presets.push({ p: [...path, item.name], t: item.title, c: twoShown(priced(item.c, workings || Boolean(item.priceHidden)), [...path, item.name]) });
+      if ("items" in item) {
+        if (!path.length) icon = item.icon ?? "";
+        walk(item.items, [...path, item.name], workings || Boolean(item.workings));
+        continue;
+      }
+      presets.push({ p: [...path, item.name], t: item.title, c: twoShown(priced(item.c, workings || Boolean(item.priceHidden)), [...path, item.name]), ...(icon ? { s: icon } : {}) });
+      icon = "";
     }
   };
   walk(tree, []);

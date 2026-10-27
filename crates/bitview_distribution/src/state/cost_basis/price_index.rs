@@ -99,8 +99,8 @@ pub struct BucketedPrice {
 impl BucketedPrice {
     /// The price itself.
     #[inline]
-    pub fn price(self) -> Cents {
-        self.price.into()
+    pub fn price(self) -> CentsCompact {
+        self.price
     }
 }
 

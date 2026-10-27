@@ -935,20 +935,20 @@ the series its scale formats by, the first value in view where the tag shows a p
 `tests.html` 14: three series' tags, a view off their end panned so its last bar changes: each step, the price scale
 as drawn once every tag's made again.
 
-## 50. A series' tag as its series says, the axis as wide all through a pan
+## 50. A series' tags under the legend, the axis as wide all through a pan
 
-A series' `bvTagOf(index)` gives its last value's tag's price (or two: halfway between them as drawn, a stacked band's
-middle, on any scale) and words (its own value) for its last bar in view, where it gives them. A price scale's
-`bvTagsTop` keeps its tags under that height (Studio's legend over the pane). A price scale's `bvTagsWidth` is the
-widest its series' tags can be written (Studio's, from each series' values): the axis at least as wide all through a
+A price scale's `bvTagsTop` keeps its tags under that height (Studio's legend over the pane). A price scale's
+`bvTagsWidth` is the widest its series' tags can be written (Studio's, from each series' values): the axis at least as
+wide all through a
 pan, not resized each frame by the values passing (a tag reads the last bar in view; across a stack's 23 bands the
 widest changed every few frames, the plot jumping 8 px); a tag wider than that (one Studio's sample of the values
 missed) widens it once, as wide as any has been since it was given. A tag's pane side (a title) is drawn on the pane's
 top canvas alone, not under it too: it stays where it is as the picture moves (48), so titles no longer keep a pane
 from moving. (Its tag once followed its series' end into the plot, `bvAtEnd`, named, then not: it clashed with
-drawings and stacked where values are close; gone, the tags on the axis alone.)
+drawings and stacked where values are close; gone, the tags on the axis alone. And its place and words once came from
+the series, `bvTagOf`, a stacked band's tag at its middle with its own value: gone, a tag reads the axis where it sits,
+a stacked band's its sum there, as any line's.)
 
-- `ut.Yi`: `bvTagOf` read for the bar in view.
 - `bvAbove(t,i)`: the top views but a tag's pane side (`st`), in `bvMain`'s main canvas paint; `bvInside`: its upward
   pass from `bvTagsTop`; `Cm`, the axis's width: at least `bvTagsWidth`, and its series' tags' (`ut`) widest since
   (`bvSeen`, again from none when it's given anew or the axis shows another scale).
