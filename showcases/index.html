@@ -393,8 +393,11 @@
         color: var(--text);
         background: var(--app);
 
-        /* (A phone's: its words clear of the bar's two lines, held sideways too.) */
+        /* (A phone's: its words clear of the bar's two lines, held sideways too; its rows the space over them (its
+           picture's, see .art), its words, its buttons and its pages.) */
         @media (max-width: 719px) {
+          display: grid;
+          grid-template: 1fr repeat(3, auto) / 100%;
           min-height: min(540px, 72svh);
           padding-top: calc(110px + var(--bar-top));
         }
@@ -450,15 +453,19 @@
             linear-gradient(to bottom, rgb(13 12 11 / 0.75), rgb(13 12 11 / 0.25) 14%, transparent 26%);
         }
 
+        /* (A phone's: a band from the top to a set height over its words' foot, where it fades into their ground: the
+           picture as wide as a phone can show it, clear over the words, their first lines on its fade, the rest on the
+           dark. Its foot from the buttons' row, which every title shares: a title's words, however many lines, never move
+           or scale it. Full bleed, a phone showed a tenth of it, the most of that shaded for the words.) */
         @media (max-width: 719px) {
-          img {
-            object-position: 72% var(--art-y, 30%);
-          }
+          grid-row: auto / 3;
+          grid-column: 1;
+          bottom: 100px;
 
           &::after {
             background:
-              linear-gradient(to top, var(--app) 0, color-mix(in srgb, var(--app) 92%, transparent) 44%, color-mix(in srgb, var(--app) 45%, transparent) 64%, transparent 82%),
-              linear-gradient(to bottom, rgb(13 12 11 / 0.5), transparent 22%);
+              linear-gradient(to top, var(--app) 0, color-mix(in srgb, var(--app) 80%, transparent) 48px, transparent 150px),
+              linear-gradient(to bottom, rgb(13 12 11 / 0.55), transparent 110px);
           }
         }
       }
@@ -472,6 +479,30 @@
 
         > div {
           max-width: 600px;
+        }
+
+        /* (A phone's: its words, buttons and pages in the billboard's rows; its lines close, the picture over them the
+           taller.) */
+        @media (max-width: 719px) {
+          grid-row: 2 / -1;
+          display: grid;
+          grid-template-rows: subgrid;
+
+          .meta {
+            margin-top: 10px;
+          }
+
+          .blurb {
+            margin-top: 6px;
+          }
+
+          .buttons {
+            margin-top: 20px;
+          }
+
+          .paging {
+            margin-top: 18px;
+          }
         }
 
         /* (A desk: its titles' bars on its buttons' line, after them: a line less, the apps under it the higher.) */
@@ -491,12 +522,28 @@
         }
       }
 
-      /* (Its words change with the title: faded across, never a jump.) */
+      /* (Its words change with the title: faded across, never a jump; their room the tallest title's, however they wrap
+         here (each title's words, hidden, where the shown ones are: the script's), so nothing over or under them moves.) */
       .words {
+        display: grid;
+        align-items: end;
         transition: opacity 0.2s ease;
+
+        > * {
+          grid-area: 1 / 1;
+        }
 
         &.out {
           opacity: 0;
+        }
+      }
+
+      .room {
+        display: grid;
+        visibility: hidden;
+
+        > * {
+          grid-area: 1 / 1;
         }
       }
 
@@ -571,13 +618,7 @@
       }
 
       .blurb {
-        min-height: 3em;
         margin: 12px 0 0;
-
-        @media (min-width: 720px) {
-          min-height: 1.5em;
-        }
-
         color: var(--text);
         font-size: clamp(15px, 1.25vw, 18px);
         line-height: 1.5;
@@ -1927,10 +1968,12 @@
       <div class="art" aria-hidden="true"><img class="on" alt="" src="/assets/home/banners/studio.jpg" srcset="/assets/home/banners/studio.jpg 1900w, /assets/home/banners/studio@2x.jpg 2880w" sizes="100vw" fetchpriority="high" /></div>
       <div class="feature">
         <div class="words" id="words" aria-live="off">
-          <p class="kind"><svg aria-hidden="true"><use href="#mark" /></svg><span id="bb-kind">Charts</span></p>
-          <h2 class="title" id="bb-title" data-face="studio">Studio</h2>
-          <p class="meta" id="bb-meta"></p>
-          <p class="blurb" id="bb-blurb">Chart any series: overlay, stack, derive, share.</p>
+          <div>
+            <p class="kind"><svg aria-hidden="true"><use href="#mark" /></svg><span id="bb-kind">Charts</span></p>
+            <h2 class="title" id="bb-title" data-face="studio">Studio</h2>
+            <p class="meta" id="bb-meta"></p>
+            <p class="blurb" id="bb-blurb">Chart any series: overlay, stack, derive, share.</p>
+          </div>
         </div>
         <div class="buttons">
           <a class="primary" id="bb-open" href="/studio/" data-open="studio" aria-label="Open Studio"><svg aria-hidden="true"><use href="#i-play" /></svg>Open</a>
@@ -2124,6 +2167,24 @@
         $("pages").append(el("li", {}, button));
         return button;
       });
+      /** A title's words, into the shown ones or a copy of them. */
+      function fill(/** @type {Element} */ words, /** @type {Title} */ t) {
+        const title = /** @type {HTMLElement} */ (words.querySelector(".title"));
+        /** @type {Element} */ (words.querySelector(".kind span")).textContent = t.kind ?? "";
+        title.textContent = t.name;
+        title.dataset.face = t.id;
+        /** @type {Element} */ (words.querySelector(".meta")).innerHTML = meta(t);
+        /** @type {Element} */ (words.querySelector(".blurb")).textContent = t.line;
+      }
+      // (The words' room: every title's words, hidden, where the shown ones are.)
+      const shown = /** @type {Element} */ ($("words").firstElementChild);
+      const room = el("div", { className: "room" }, ...FEATURED.map((t) => {
+        const copy = /** @type {Element} */ (shown.cloneNode(true));
+        copy.querySelectorAll("[id]").forEach((node) => node.removeAttribute("id"));
+        fill(copy, t);
+        return copy;
+      }));
+      $("words").append(room);
       const SHOW = 9000;
       /** The title turned to (at), the one its words and buttons show (current: the same once its words are in). */
       let at = -1, current = 0, elapsed = 0, fading = 0;
@@ -2138,11 +2199,7 @@
         pages.forEach((b, k) => (b.setAttribute("aria-current", String(k === i)), b.style.setProperty("--done", reduced && k === i ? "100%" : "0%")));
         const words = $("words"), put = () => {
           current = i;
-          $("bb-kind").textContent = t.kind ?? "";
-          $("bb-title").textContent = t.name;
-          $("bb-title").dataset.face = t.id;
-          $("bb-meta").innerHTML = meta(t);
-          $("bb-blurb").textContent = t.line;
+          fill(shown, t);
           const open = /** @type {HTMLAnchorElement} */ ($("bb-open"));
           open.href = t.href;
           open.dataset.open = t.id;
@@ -2577,9 +2634,13 @@
           said(id, ", not answering: the last reading");
           return false;
         });
-      /** A title's fact changed: its billboard line anew, if it's the one showing. */
+      /** A title's fact changed: its billboard line anew, in the words' room and, if it's the one showing, shown. */
       function refresh(/** @type {string} */ id) {
-        if (FEATURED[current]?.id === id) $("bb-meta").innerHTML = meta(/** @type {Title} */ (byId.get(id)));
+        const k = FEATURED.findIndex((t) => t.id === id);
+        if (k < 0) return;
+        const line = meta(FEATURED[k]);
+        /** @type {Element} */ (room.children[k].querySelector(".meta")).innerHTML = line;
+        if (k === current) /** @type {Element} */ (shown.querySelector(".meta")).innerHTML = line;
       }
       const forget = (/** @type {string[]} */ ...ids) => ids.forEach((id) => (delete facts[id], refresh(id)));
       let sync = /** @type {any} */ (null), health = /** @type {any} */ (null), disk = "", stateSaid = "synced", rounds = 0, reading = false, counted = false;
