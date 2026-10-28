@@ -32,8 +32,9 @@ Only what's left. An item done is removed: its history is in the commits and log
   really need to do a polish/consistency pass over the whole app, and make a proper system"): inventory
   (_notes/system-20261028/inventory.md: 9 font sizes, 20 radii, 22 gaps, 63 heights, 47 shadows, 56 transitions),
   then the system written down for your check (_notes/system-20261028/system.md; corners inside corners concentric,
-  unless it makes no sense, you: "all radii inside radii follow the universal radii rule"), then area by area (sidebar, Home pages, chart header, panel, ⌘K, menus,
-  dialogs, phone), each checked, reviewed and committed.
+  unless it makes no sense, you: "all radii inside radii follow the universal radii rule"); the pass applied area by
+  area (2026-10-29: sidebar to dialogs and a phone's touch targets, see the system's notes); titles 18, ⌘K's rows 14
+  (you: "maybe it should be 16 or 18", "judge too please"): your look to confirm.
 - The folders on the rail: "a ton of polish" needed; what you saw beyond what's fixed (depth, one menu, the flash,
   menu-bar switching, the toggle's speed and stale rows).
 

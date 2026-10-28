@@ -365,7 +365,7 @@
           h1 {
             margin: 0;
             color: var(--ink);
-            font-size: 17px;
+            font-size: 18px;
             font-weight: 590;
           }
 
@@ -2404,7 +2404,7 @@
 
         h2 {
           color: var(--ink);
-          font-size: 17px;
+          font-size: 18px;
           font-weight: 590;
           line-height: 22px;
           letter-spacing: -0.015em;
@@ -2465,7 +2465,8 @@
         max-width: calc(100% - 7rem);
         align-items: center;
         color: var(--muted);
-        font-size: 17px;
+        /* (A title's size, the system's: the chart's, Quick Look's.) */
+        font-size: 18px;
         letter-spacing: -0.015em;
         line-height: 30px;
         white-space: nowrap;
@@ -2499,7 +2500,7 @@
         padding: 0 6px;
         color: var(--ink);
         background: none;
-        font-size: 17px;
+        font-size: 18px;
         font-weight: 590;
         line-height: 30px;
         letter-spacing: -0.015em;
@@ -6379,6 +6380,8 @@
         list-style: none;
         scrollbar-width: thin;
 
+        /* (Its rows' names a step over the app's rows' (14): a launcher's list, read at a glance as it's typed in; their
+           asides, headings and keys as they are.) */
         li {
           display: flex;
           align-items: center;
@@ -6386,6 +6389,7 @@
           height: 32px;
           border-radius: var(--radius-md);
           padding: 0 10px;
+          font-size: 14px;
           cursor: pointer;
 
           /* (The row ↵ runs: on the list's highlight, edged, as a menu's row reached by keys is; see glides.) */
@@ -6491,6 +6495,7 @@
           height: auto;
           padding: 24px 10px;
           color: var(--muted);
+          font-size: 13px;
           text-align: center;
           text-wrap: balance;
           cursor: default;
