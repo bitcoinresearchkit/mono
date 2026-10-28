@@ -5038,4 +5038,70 @@ export {
 	lineSeries as LineSeries,
 };
 
+
+// Bitview's patches (see PATCHES.md): what they add to the library's API, declared beside its own.
+export interface IChartApiBase<HorzScaleItem = Time> {
+	/** Draws the changes waiting at once (27). */
+	bvFlush(): void;
+}
+export interface ChartOptionsBase {
+	/** Each pane's area and baseline fills drawn at half resolution, under its series (30). */
+	bvHalfFills?: boolean;
+	/** A pan moves the picture, only what comes into view drawn (48). */
+	bvPanShift?: boolean;
+}
+export interface LayoutOptions {
+	/** The color marks' words are edged in (47). */
+	bvHalo?: string;
+}
+export interface HorzScaleOptions {
+	/** The least share of the view's width its data keeps, 0 to 1 (13). */
+	minVisibleDataRatio?: number;
+	/** The view held on screen as a price scale's width changes (20). */
+	bvHoldOnAxes?: boolean;
+}
+export interface PriceScaleOptions {
+	/** The height its tags are kept under (50). */
+	bvTagsTop?: number;
+	/** The widest its series' tags can be written: the axis at least as wide (50). */
+	bvTagsWidth?: number;
+}
+export interface CandlestickStyleOptions {
+	/** Its bars' corners rounded: a radius in CSS pixels, or one from the bar spacing (7). */
+	cornerRadius?: number | ((barSpacing: number) => number);
+}
+export interface HistogramStyleOptions {
+	/** Its bars' corners rounded: a radius in CSS pixels, or one from the bar spacing (7). */
+	cornerRadius?: number | ((barSpacing: number) => number);
+}
+export interface SeriesOptionsCommon {
+	/** A line drawn through fewer points: those it'd pass within a quarter of a pixel of, left out (29). */
+	bvSimplify?: boolean;
+	/** A stacked area's fill a band, from its line to its stack's fills under it: its stack's name (41). */
+	bvBandFill?: string;
+}
+export interface IPriceScaleApi {
+	/** The range shown, as prices; none before it's laid out (16). */
+	bvRange(): {
+		from: number;
+		to: number;
+	} | null;
+	/** A range of prices held, auto scale off (16). */
+	bvSetRange(range: {
+		from: number;
+		to: number;
+	}): void;
+	/** Auto scale on, its range found now, returned as bvRange says it (16). */
+	bvAutoRange(): {
+		from: number;
+		to: number;
+	} | null;
+}
+export interface ISeriesApi<TSeriesType extends SeriesType, HorzScaleItem = Time, TData = SeriesDataItemTypeMap<HorzScaleItem>[TSeriesType], TOptions = SeriesOptionsMap[TSeriesType], TPartialOptions = SeriesPartialOptionsMap[TSeriesType]> {
+	/** Older items put before the series' own (9). */
+	bvPrepend(data: TData[]): void;
+	/** Whether a point (client coordinates) is on either of its last value's tags, as last drawn (51). */
+	bvTagHit(x: number, y: number): boolean;
+}
+
 export {};

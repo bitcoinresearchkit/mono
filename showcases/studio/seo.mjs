@@ -1,4 +1,4 @@
-// Beside the page, for those who find Studio: sitemap.xml, every address it has (the Charts page, the presets' page,
+// Beside the page, for those who find Studio: sitemap.xml, every address it has (Home, the presets' page,
 // each section, each preset: the page's own code makes them, read from it), and llms.txt, its guide for assistants (the
 // page's own "about" section, as Markdown, with the presets' sections at their addresses). Made from the presets as a
 // server's chain makes them (the local one's by default), and written again whenever the presets or the guide change:

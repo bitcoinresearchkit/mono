@@ -19,10 +19,14 @@ Only what's left. An item done is removed: its history is in the commits and log
   a value scale under it, Reverse, the color in hand named, your own gradient kept as "Your own" once a ready-made
   is picked (this session).
 
+- Home's search a real search in place, not a dialog opened elsewhere: ⌘K anchored on its field, its results under it
+  (you, 2026-10-28: "changing the search into actual search instead of opening search", "oh that could be very good
+  ux").
+- On load, Recent in the sidebar: a preset not edited joins it only once the presets are read (a frame or two), the
+  rows under it moving down (seen in your recording of the marks flashing, 2026-10-28; the marks themselves fixed: kept
+  in the browser now).
 - The folders on the rail: "a ton of polish" needed; what you saw beyond what's fixed (depth, one menu, the flash,
   menu-bar switching, the toggle's speed and stale rows).
-- Shortcuts opening by itself during quick sidebar toggles: its button takes no press mid-slide now (5 presses on it as
-  it slid: none opened it); tell me if you still see it.
 
 ## Studio on the new server
 

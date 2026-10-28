@@ -975,3 +975,11 @@ clouds) stopped at its last bar in view while its lines ran on to the edge, up t
 bar's spacing). Now a custom series' renderer is given the same range as a line's, the canvas clipping what's past.
 
 - `SeriesCustomPaneView`'s `super(t,i,!1)` (the base view's `extendedVisibleRange`): `!0`.
+
+## Typings
+
+`dist/typings.d.ts` declares what the patches add to the API (the chart's `bvFlush`; a scale's `bvRange`, `bvSetRange`,
+`bvAutoRange`; a series' `bvPrepend`, `bvTagHit`; the options `bvHalfFills`, `bvPanShift`, `layout.bvHalo`,
+`minVisibleDataRatio`, `bvHoldOnAxes`, `bvTagsTop`, `bvTagsWidth`, `bvSimplify`, `bvBandFill`, a candlestick's and a histogram's
+`cornerRadius`), in one block at its end, merged into the
+library's own interfaces: a fresh download's typings take it again as it is.
