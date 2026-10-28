@@ -105,18 +105,10 @@
         box-sizing: border-box;
       }
 
-      /* (iOS tints its status bar with the first fixed box at the screen's top edge, else with the body's colour, and
-         passes over a see-through one, the bar over the billboard: so paper, in light, over a dark billboard. A strip of
-         the billboard's dark there, under the status bar or a few pixels below it, reading as the status bar's own: the
-         status bar dark in either scheme, the bottom bar still the page's.) */
-      @supports (-webkit-touch-callout: none) {
-        .edge {
-          position: fixed;
-          inset: 0 0 auto;
-          z-index: 31;
-          height: max(6px, env(safe-area-inset-top));
-          pointer-events: none;
-          background: #0d0c0b;
+      /* (A section from the bar's links slid to, not jumped to.) */
+      @media (prefers-reduced-motion: no-preference) {
+        html {
+          scroll-behavior: smooth;
         }
       }
 
@@ -128,6 +120,38 @@
         font: 15px/1.5 var(--sans);
         font-feature-settings: "cv11", "ss01";
         -webkit-font-smoothing: antialiased;
+      }
+
+      /* (iOS tints its status bar with the first fixed box at the screen's top edge, else with the body's colour, and
+         passes over a see-through one, the bar over the billboard: so paper, in light, over a dark billboard. In Safari,
+         a strip of the billboard's dark there, under the status bar or a few pixels below it, reading as the status
+         bar's own: the status bar dark in either scheme, the bottom bar still the page's. Installed from a home screen,
+         no strip: there a box makes the status bar solid, cut off hard above the bar, and without one iOS blurs the page
+         up into it, tinted with the body's colour; so the body's colour the billboard's dark, the page painted paper over
+         it, the root paper (where the page is pulled past either end).) */
+      @supports (-webkit-touch-callout: none) {
+        .edge {
+          position: fixed;
+          inset: 0 0 auto;
+          z-index: 31;
+          height: max(6px, env(safe-area-inset-top));
+          pointer-events: none;
+          background: #0d0c0b;
+        }
+
+        @media (display-mode: standalone) {
+          .edge {
+            display: none;
+          }
+
+          html {
+            background: var(--app);
+          }
+
+          body {
+            background: linear-gradient(var(--app), var(--app)) #0d0c0b;
+          }
+        }
       }
 
       a {
