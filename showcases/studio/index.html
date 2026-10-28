@@ -35972,11 +35972,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A folder's menu on the rail (its folders never open there), however it's opened (pointed at, pressed,
        * right-clicked): what's in it, in its order, a chart opened by a click, a folder's own beside it (a level at a
-       * time, each the same); then its own actions, as its ⋯ has them (opening and closing it aside: not there).
+       * time, each the same); then its page, and its own actions one row away (More: as its ⋯ has them, opening and
+       * closing it aside, not there), what's in it the menu's own.
        * @param {string} id @returns {Action[]}
        */
       function folderFlyout(id) {
-        const counts = chartCounts();
+        const counts = chartCounts(), own = () => folderRows(id, false, true).filter((row) => row.key !== "toggle" && row.key !== "view");
         return [
           // (The open chart, and the folder it's in at each level, dotted: its way down, as the rail's icon is.)
           ...childrenOf(id).map((each) => ("layers" in each
@@ -35984,7 +35985,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             : { key: `f:${each.id}`, icon: folderMark(each), label: each.name, aside: shortCount(counts.get(each.id) ?? 0), marked: !home && Boolean(chart.folder && isIn(chart.folder, each.id)), page: () => ({ title: each.name, heading: true, rows: () => folderFlyout(each.id) }) })),
           // (Empty, said so: not its actions under its name as if what's in it were missing.)
           ...(childrenOf(id).length ? [] : [{ key: "empty", label: "No charts yet", disabled: "Move charts here, or make one in it (New chart inside)" }]),
-          ...folderRows(id, false, true).filter((row) => row.key !== "toggle").map((row, k) => (k ? row : { ...row, apart: true })),
+          ...folderRows(id, false, true).filter((row) => row.key === "view").map((row) => ({ ...row, apart: true })),
+          { key: "more", icon: ICONS.more, label: "More", page: () => ({ title: folderById(id)?.name ?? "", heading: true, rows: own }) },
         ];
       }
       /** A section of the presets' menu on the rail, as a folder's (see folderFlyout): its presets, its sections; its page. @param {string} key @returns {Action[]} */
