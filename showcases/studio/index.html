@@ -27149,10 +27149,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             </div>`], ...layers.map((layer) => /** @type {[string, string]} */ ([layer.id, ((layer) => {
               const result = resolved?.results.get(layer.id);
               const loading = layer.series && !result;
-              const sub = result?.error ? `<span class="sub error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>` : layer.from ? `<span class="sub">${escape(fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`)}</span>` : layer.formula !== undefined ? (layer.label ? `<span class="sub code">ƒ ${escape(layer.formula)}</span>` : `<span class="sub">${escape(formulaLine(layer))}</span>`) : layer.type === "heatmap" ? `<span class="sub code">${escape(heatCode(layer))}</span>` : `<span class="sub code">${escape(layer.series ?? "")}</span>`;
+              // (Its second line: what's wrong, what it's between, its formula, its heatmap's code or its series; said whole in
+              // its tip, under its name, when either's cut short.)
+              const [subClass, subText] = result?.error ? ["sub error", result.error] : layer.from ? ["sub", fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`] : layer.formula !== undefined ? (layer.label ? ["sub code", `ƒ ${layer.formula}`] : ["sub", formulaLine(layer)]) : layer.type === "heatmap" ? ["sub code", heatCode(layer)] : ["sub code", layer.series ?? ""];
+              const sub = `<span class="${subClass}"${result?.error && result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(subText)}</span>`;
               return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
                 <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" data-tip="${layerPicks.has(layer.id) ? "Deselect" : "Select"}" ${layerPicks.has(layer.id) ? "checked" : ""} />
-                <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}>
+                <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(subText ? `${labelOf(layer)}\n${subText}` : labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}>
                   ${letterChip(layer)}
                   <span class="row-text"><span class="name">${escape(labelOf(layer))}</span>${sub}</span>
                   <span class="row-figures"${layer.type === "cloud" && result?.low ? ` style="min-width: ${valueSlot(layer, rowSizes.value, true)}px"` : ""}><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.type === "cloud" ? " data-lines" : ""}`}></span>${layer.type === "cloud" || layer.type === "signal" || layer.type === "heatmap" ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}</span>
@@ -35339,8 +35342,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function tipWanted(/** @type {HTMLElement} */ target) {
         // (On the rail, a row its menu names as the pointer rests on it: no tip before it. Reached by a key, its tip.)
         if (railed() && tipPointed && target.matches("#chart-list :is(.folder-item, .list-head-name, [data-open-chart], [data-open-preset])")) return false;
-        const name = target.querySelector(".name, .label, .head-name, .tile-name");
-        const repeats = Boolean(name) && name.scrollWidth <= name.clientWidth && name.textContent.trim() === target.dataset.tip;
+        // (A tip of two lines, a row's name and its second line: repeating only while both are shown whole.)
+        const name = target.querySelector(".name, .label, .head-name, .tile-name"), sub = target.querySelector(".sub"), [head, ...more] = (target.dataset.tip ?? "").split("\n");
+        const whole = (/** @type {Element | null} */ words) => Boolean(words) && /** @type {Element} */ (words).scrollWidth <= /** @type {Element} */ (words).clientWidth;
+        const repeats = whole(name) && name?.textContent?.trim() === head && (!more.length || (whole(sub) && sub?.textContent?.trim() === more.join("\n")));
         const keys = Boolean(target.dataset.kbd && answers(target.dataset.kbd));
         return !repeats || (target.closest(".sidebar") ? railed() || Boolean(tipPointed && target.contains(tipPointed) && tipPointed.closest("[data-icon], .chart-mark, .head-mark")) : keys);
       }
