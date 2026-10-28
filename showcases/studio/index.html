@@ -849,7 +849,8 @@
            slides, while theirs hold (see body[data-sliding] .chart-list); from this to the rail's square, as they go.) */
         width: calc(var(--side) - 16px);
         height: 32px;
-        margin: 12px 0 10px;
+        /* (Over Home's row by a step (8), a field over a list.) */
+        margin: 12px 0 8px;
         border: 0;
         border-radius: var(--radius-md);
         padding: 0 8px 0 13px;
@@ -1044,8 +1045,8 @@
         flex-direction: column;
         gap: var(--row-gap);
         min-height: 64px;
-        /* (Room on every side for a row's focus ring, its rows where they were.) */
-        margin: -1px -8px 0;
+        /* (Room on every side for a row's focus ring (its 3px), its rows where they'd be without it.) */
+        margin: -3px -8px 0;
         overflow: hidden auto;
         padding: 3px 8px 8px;
         scrollbar-width: thin;
@@ -1434,10 +1435,6 @@
           justify-content: center;
           width: 16px;
         }
-      }
-
-      #charts-nav {
-        margin-top: -2px;
       }
 
       /* A rule in the gap under them sets the charts apart (on the rail, a short one, at the same height). */
@@ -3863,12 +3860,13 @@
         }
       }
 
-      /* The big search fields: "Start a chart"'s (a button into ⌘K) and the grid's filter. */
+      /* The big search fields: Home's, an empty chart's "Search" (buttons into ⌘K) and the grid's filter: the system's big
+         field, as ⌘K's own. */
       :is(.search-cta, .home-filter) {
         display: flex;
         align-items: center;
         gap: 10px;
-        height: 44px;
+        height: 48px;
         border-radius: var(--radius-lg);
         padding: 0 14px;
         color: var(--muted);
@@ -6005,7 +6003,9 @@
         align-items: center;
         gap: 6px;
         border-bottom: 1px solid var(--line);
-        padding: 12px 10px 10px 20px;
+        /* (Its close button (a small one, 24, round 6) in the dialog's corner, concentric with it: 10 from its top and
+           side, its 6 and 10 the dialog's 16; by touch, its 44 reach whole inside.) */
+        padding: 10px 10px 10px 20px;
 
         h2 {
           margin: 0;
@@ -6089,10 +6089,11 @@
         }
 
         /* (Rolled up: its field's corners, Home's field's, rounding to its own as it unrolls.) */
-        /* (Its moving foot's corners round, as the field's are, its sides at its own: none till it's whole, its own then.) */
+        /* (Rolled up, the field's box exactly, its corners (no shadow about it yet: it comes as it unrolls); its moving
+           foot's corners round, as the field's, none once it's whole, its own then.) */
         &:is(:not([open]), [data-leaving], [data-arriving]) {
           transform: none;
-          clip-path: inset(-100px 0 calc(100% - 48px) 0 round 0 0 var(--radius-lg) var(--radius-lg));
+          clip-path: inset(0 0 calc(100% - 48px) 0 round var(--radius-lg));
           border-radius: var(--radius-lg);
         }
 
@@ -6675,7 +6676,8 @@
           height: 28px;
           margin: 0 -6px;
           border: 0;
-          border-radius: var(--radius-sm);
+          /* (A control's: 28 tall, 8 round, as the system has them.) */
+          border-radius: var(--radius-md);
           padding: 0 6px;
           color: inherit;
           background: none;
@@ -6905,7 +6907,8 @@
         min-width: 196px;
         max-height: calc(100dvh - 16px);
         overflow-y: auto;
-        border-radius: var(--radius-lg);
+        /* (A panel's 12: its rows' 8 and the 4 between, concentric with them.) */
+        border-radius: calc(var(--radius-md) + 4px);
         padding: 4px;
         scroll-padding-block: 4px;
         background: var(--raise);
@@ -6931,7 +6934,7 @@
           max-width: 22rem;
           height: 32px;
           border: 0;
-          border-radius: var(--radius-sm);
+          border-radius: var(--radius-md);
           padding: 0 10px;
           color: var(--text);
           background: none;
@@ -7169,7 +7172,8 @@
         display: flex;
         align-items: center;
         gap: 14px;
-        border-radius: var(--radius-xl);
+        /* (Its corners concentric with its buttons' (theirs and the 6 between): they sit in them.) */
+        border-radius: calc(var(--radius-md) + 6px);
         padding: 6px 6px 6px 10px;
         color: var(--ink);
         background: var(--raise);
@@ -7393,9 +7397,10 @@
         }
       }
 
+      /* (A big field's square beside it (New folder by the grid's filter): as tall.) */
       .field-cap {
-        width: 44px;
-        height: 44px;
+        width: 48px;
+        height: 48px;
         border-radius: var(--radius-lg);
         background: var(--field);
         box-shadow: inset 0 0 0 1px var(--line);
@@ -7489,7 +7494,6 @@
       }
 
       .home-search {
-        height: 48px;
         padding-left: var(--home-inset);
         font-size: 15px;
       }
@@ -7649,7 +7653,7 @@
       .gallery {
         display: flex;
         flex-direction: column;
-        gap: 28px;
+        gap: 32px;
         margin-top: 24px;
       }
 
@@ -7676,7 +7680,7 @@
       .shelf {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
         min-width: 0;
       }
 
@@ -7743,11 +7747,13 @@
         }
       }
 
+      /* (Its words on the page's column, as the page's title and the tiles' edges are: its ground, pointed at, a step
+         out into the gutter, as a row's.) */
       .shelf-title {
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        margin: 0;
+        margin: 0 0 0 -4px;
         border: 0;
         border-radius: var(--radius-sm);
         padding: 2px 4px;
@@ -8887,9 +8893,9 @@
           }
 
           > button {
-            /* (The sheet's width, a finger's row end to end: a long label cut inside it.) */
+            /* (The sheet's width, a finger's row end to end (44, as the system has it): a long label cut inside it.) */
             max-width: none;
-            height: 42px;
+            height: 44px;
             gap: 12px;
             font-size: 15px;
 
@@ -9921,8 +9927,9 @@
           height: 36px;
         }
 
+        /* (Rows met end to end, no reach between them: a finger's 44, as the system has it.) */
         :is(.layer-adds, .layer-actions) .nav-item {
-          height: 40px;
+          height: 44px;
         }
 
         /* (A row's → 44 from its ⋯, each one's reach its own; its name clear of both.) */
@@ -9974,11 +9981,11 @@
         }
 
         .menu > button {
-          height: 38px;
+          height: 44px;
         }
 
         .palette-list li {
-          min-height: 40px;
+          min-height: 44px;
         }
 
         .pick-check {
@@ -31646,8 +31653,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const left = $("palette").open ? -1 : palette.pages.findIndex((page) => page.left);
         if (left >= 0) leavePages(left);
       });
-      /** Whether ⌘K was opened by Home's search, to be on it (see placeOnHome). */
-      let paletteOnField = false;
+      /** Whether ⌘K was opened by Home's search, to be on it (see placeOnHome); its arrivals there, counted (see openPalette). */
+      let paletteOnField = false, paletteArrivals = 0;
       /**
        * ⌘K opened by Home's search (a click on it, typing in it; ⌘K itself, the sidebar's Search: ⌘K as everywhere),
        * browsing: on that search, as wide as it, its field over it (see
@@ -31712,7 +31719,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (dialog.dataset.leaving) (dismissing = false), arrive(dialog);
         // (On Home, on its search, see placeOnHome; its motion from its second frame, the first the opening's.)
         if (!dialog.open) (paletteOnField = onField), placeOnHome(), dialog.toggleAttribute("data-arriving", dialog.hasAttribute("data-on-home") && !reduced.matches);
-        if (dialog.hasAttribute("data-arriving")) requestAnimationFrame(() => requestAnimationFrame(() => dialog.removeAttribute("data-arriving")));
+        // (Its second frame; frames not running (a tab put away as it opened), a moment on all the same: never left unseen.)
+        // (This arrival's alone: ⌘K closed and opened again meanwhile, the next one's its own.)
+        if (dialog.hasAttribute("data-arriving")) ((arrived) => (requestAnimationFrame(() => requestAnimationFrame(arrived)), setTimeout(arrived, 100)))(((arrival) => () => arrival === paletteArrivals && dialog.removeAttribute("data-arriving"))(++paletteArrivals));
         if (!dialog.open) (input.inert = !keys), dialog.showModal(), (input.inert = false), !keys && dialog.focus();
         if (typing && TOUCH) input.focus();
         // (Its series, those by block only said so, and how many there are: the catalog indexed the rest of the way first.)
