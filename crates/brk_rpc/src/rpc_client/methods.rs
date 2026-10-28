@@ -244,26 +244,30 @@ impl Client {
     }
 
     pub fn wait_for_synced_node(&self) -> Result<()> {
-        self.wait_for_node_at(Height::ZERO)
+        self.wait_for_node_at(Height::ZERO).map(|_| ())
     }
 
-    /// Waits until the node has validated every header it knows and its chain reaches `height`.
-    /// `headers == blocks` alone passes a node back from a crash that lost blocks: until its
-    /// peers return them, it knows of no header left to validate.
-    pub fn wait_for_node_at(&self, height: Height) -> Result<()> {
-        let is_synced = || -> Result<bool> {
-            let info = self.get_blockchain_info()?;
-            Ok(info.headers == info.blocks && info.blocks >= i64::from(*height))
+    /// Waits until the node has validated every header it knows and its chain reaches `height`,
+    /// returning the lowest height it reported meanwhile: a node back from a crash comes back
+    /// below the blocks it lost. `headers == blocks` alone passes such a node: until its peers
+    /// return them, it knows of no header left to validate.
+    pub fn wait_for_node_at(&self, height: Height) -> Result<Height> {
+        let is_synced = |info: &GetBlockchainInfo| {
+            info.headers == info.blocks && info.blocks >= i64::from(*height)
         };
 
-        if !is_synced()? {
+        let mut info = self.get_blockchain_info()?;
+        let mut lowest = info.blocks;
+        if !is_synced(&info) {
             info!("Waiting for node to sync...");
-            while !is_synced()? {
-                sleep(Duration::from_secs(1))
-            }
+        }
+        while !is_synced(&info) {
+            sleep(Duration::from_secs(1));
+            info = self.get_blockchain_info()?;
+            lowest = lowest.min(info.blocks);
         }
 
-        Ok(())
+        Ok(Height::from(lowest as u64))
     }
 
     /// A `getrawtransaction` (non-verbose) result: the JSON string of the tx hex.

@@ -1,6 +1,8 @@
 #![doc = include_str!("../README.md")]
 
-use std::{collections::BTreeMap, fs, io::ErrorKind, path::Path, sync::Arc, thread, time::Instant};
+use std::{
+    collections::BTreeMap, fs, io::ErrorKind, mem, path::Path, sync::Arc, thread, time::Instant,
+};
 
 use bitcoin::{block::Header, consensus};
 use bitview_plugin::{
@@ -75,6 +77,9 @@ pub struct Indexer<M: StorageMode = Rw> {
     compute_start: M::WriteOnly<Lengths>,
     /// The outcome of the update's stores ingestion and checkpoint, running in the background.
     ingestion: M::WriteOnly<Option<Receiver<Result<()>>>>,
+    /// Whether the next resume reads back the newest blocks' positions: set at import, as a node
+    /// that crashed while bitviewd was stopped can have moved them unseen.
+    recheck_newest: M::WriteOnly<bool>,
     state: Arc<State>,
 }
 
@@ -237,6 +242,7 @@ impl Indexer {
                 resume: None,
                 compute_start: Lengths::default(),
                 ingestion: None,
+                recheck_newest: true,
                 state: Arc::default(),
             })
         };
@@ -403,6 +409,7 @@ impl Indexer {
     fn resume_point(&mut self) -> Result<ResumePoint> {
         self.finish_ingestion()?;
         self.vecs.db().sync_bg_tasks()?;
+        let recheck_newest = mem::take(&mut self.recheck_newest);
         let client = self.reader.client();
         let blockhash = &self.vecs.blocks.blockhash;
 
@@ -419,8 +426,7 @@ impl Indexer {
 
         // A node behind our tip (restarting, reindexing, back from a crash) would look like a
         // reorg to its height.
-        let node_height = client.get_last_height()?;
-        client.wait_for_node_at(tip)?;
+        let node_height = client.wait_for_node_at(tip)?;
         // Down our own hashes, not the node's parent links: a block the node lost in a crash
         // and the network orphaned since is unknown to it.
         let mut height = tip;
@@ -430,10 +436,13 @@ impl Indexer {
             ))?;
         }
         // Back from a crash, Core writes the blocks it lost again from its last flushed file size,
-        // in the order they come back: ours above the height it came back at may have moved, and
-        // the newest even when it came back while we were stopped.
-        let newest = Height::from(blockhash.len().saturating_sub(RECHECKED_BLOCKS));
-        let from = node_height.incremented().min(newest);
+        // in the order they come back: ours above the height it came back at may have moved, and,
+        // first after a start, the newest, in case it came back while we were stopped.
+        let mut from = node_height.incremented();
+        if recheck_newest {
+            let newest = blockhash.len().saturating_sub(RECHECKED_BLOCKS);
+            from = from.min(Height::from(newest));
+        }
         let mut next = height.incremented();
         let positions = self.vecs.blocks.position.collect_range(from, next);
         for (height, position) in (u32::from(from)..).map(Height::from).zip(positions) {
@@ -721,6 +730,7 @@ impl ReadOnlyClone for Indexer {
             resume: (),
             compute_start: (),
             ingestion: (),
+            recheck_newest: (),
             state: self.state.clone(),
         }
     }

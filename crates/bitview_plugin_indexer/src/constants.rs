@@ -5,9 +5,9 @@ use brk_types::{Height, Sats, TxIndex, Version};
 // added.
 pub const VERSION: Version = Version::new(45);
 
-/// The newest blocks every resume reads back at their stored positions, about a day of them: back
-/// from a crash, Core writes what it fetched since its last block-index write (about hourly)
-/// again, in the order it comes back.
+/// The newest blocks the first resume after a start reads back at their stored positions, about a
+/// day of them: back from a crash, Core writes what it fetched since its last block-index write
+/// (about hourly) again, in the order it comes back.
 pub const RECHECKED_BLOCKS: usize = 144;
 
 /// A BIP30 duplicate coinbase (https://github.com/bitcoin/bips/blob/master/bip-0030.mediawiki): it re-created
