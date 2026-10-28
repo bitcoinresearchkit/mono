@@ -12,6 +12,19 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Studio: raised by you, still open
 
+- Thumbnails and previews of a chart with a heatmap draw its price alone (Codex, 2026-10-28): the heatmap's days
+  aren't fetched for a tile. A sampled mini heatmap there, to decide.
+
+- Legend support for color scales (you, 2026-10-28: "right now it's bare"): a heatmap's legend item says nothing of
+  what its colors mean; with the gradient, any layer colored by value needs it too. One color-scale legend for both:
+  its colors as a bar, what its ends are worth, the reading marked on it.
+
+- A gradient color scheme for every layer type (you, 2026-10-27/28): colors by value, as a bar with a cursor per color
+  (2 to 4, every one draggable to its %, the outer ones capping: past them, their colors hold), listed under the bar,
+  smooth between them; min and max over the layer's history, relative to all of it (the default) or up to each date
+  (no hindsight), never the view (no repaint per pan). For heatmaps' intensity and lines alike, ideally all types.
+  After the heatmap lands.
+
 - The rail's icons (you, 2026-10-27: do it): an icon per preset section; your folders' first letter by default, an icon
   settable for each in the Library (no colors: you, powerful but not complicated).
 - Renaming or making a folder from the rail (you, 2026-10-27: do it): the compact editor beside its row, as mocked up,

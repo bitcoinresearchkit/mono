@@ -300,10 +300,11 @@ export function studioPresets(client, facts) {
    * the same parts). `who` its name in titles ("Short-term holders").
    * `whole`: the cohort is all of what its shares divide (a family's `all`), its shares a flat 100%, left out. `of`:
    * whose coins and capital its shares divide ("all", else a group's: a short-term holders' profit band's,
-   * "short-term holders'").
-   * @param {any} c @param {string} who @returns {(ChartNode | SectionNode)[]}
+   * "short-term holders'"). `urpd`: its URPD cohort ("sth", "age_1h_to_1d"), where it has one: its supply by cost
+   * basis, day by day, a heatmap behind the price.
+   * @param {any} c @param {string} who @param {string} [urpd] @returns {(ChartNode | SectionNode)[]}
    */
-  const cohort = (c, who, whole = false, of = "all") => {
+  const cohort = (c, who, whole = false, of = "all", urpd = undefined) => {
     const titled = (/** @type {string} */ what) => `${what}: ${who}`;
     const supply = c.supply, capital = c.capital, utxos = c.utxos, activity = c.activity, realized = c.realized, unrealized = c.unrealized, cost = c.costBasis;
     const inProfit = supply?.inProfit, inLoss = supply?.inLoss;
@@ -386,6 +387,7 @@ export function studioPresets(client, facts) {
         unrealized.nupl && chart("NUPL", titled("Net unrealized profit and loss (NUPL)"), [series(unrealized.nupl, "NUPL", { ...baseline, levels: [0.25, 0.5, 0.75].map((value) => ({ value, color: "gray", dash: 3 })) })]),
       ]),
       cost && section("Cost basis", [
+        urpd && chart("Heatmap", titled("Supply by cost basis"), [price(), { heatmap: urpd, color: "orange" }]),
         chart("Realized price", titled("Realized price"), [
           price(), series(cost.byCoin.realizedPrice, "Realized price", { color: "orange" }),
           ...(cost.byCoin.medianRealizedPrice ? [series(cost.byCoin.medianRealizedPrice, "Median realized price", { color: "yellow", hidden: true })] : []),
@@ -486,11 +488,11 @@ export function studioPresets(client, facts) {
    * A family of cohorts: its comparisons (each a chart of every member), then each member's charts.
    * @param {[string, any][]} members its members' keys and nodes
    * @param {(key: string) => { name: string, who: string }} naming each member's name (in the tree) and title (in charts)
-   * @param {{ by: string, disjoint?: boolean, of?: string, known?: Record<string, string>, charts?: (key: string, c: any, who: string) => (ChartNode | SectionNode)[] }} options
+   * @param {{ by: string, disjoint?: boolean, of?: string, known?: Record<string, string>, charts?: (key: string, c: any, who: string) => (ChartNode | SectionNode)[], urpd?: (key: string) => string | undefined }} options
    * `by`: what a comparison's title says it's by ("age band", "holder group, short-term"); `disjoint`: the members split
    * the whole (bands), so their amounts stack, and as shares; `of`: what the members' shares divide, if not all coins
    * (see cohort); `known`: the established name of a measure's shares, by the measure ("Supply": "HODL waves"), in their title;
-   * `charts`: each member's, if not a cohort's
+   * `charts`: each member's, if not a cohort's; `urpd`: each member's URPD cohort, where it has one (see cohort)
    * @returns {(ChartNode | SectionNode)[]}
    */
   const family = (members, naming, options) => {
@@ -536,11 +538,13 @@ export function studioPresets(client, facts) {
     ];
     return [
       ...(comparisons.length ? [section("Compare", comparisons)] : []),
-      ...members.map(([key, c]) => ((n) => member(n.name, options.charts ? options.charts(key, c, n.who) : cohort(c, n.who, key === "all", options.of)))(naming(key))),
+      ...members.map(([key, c]) => ((n) => member(n.name, options.charts ? options.charts(key, c, n.who) : cohort(c, n.who, key === "all", options.of, options.urpd?.(key))))(naming(key))),
     ];
   };
   /** The client's name for a member (its table's `long`), in sentence case. @param {Record<string, { long: string }>} table @param {string} key */
   const named = (table, key) => sentence(table[key]?.long ?? key);
+  /** The holder groups' URPD cohorts, by their keys (the weighted ones have none). */
+  const URPD_HOLDERS = /** @type {Record<string, string>} */ ({ all: "all", sth: "sth", lth: "lth", under4m: "age_under_4m", under6m: "age_under_6m", over4m: "age_over_4m", over6m: "age_over_6m" });
   /** A holder group's (or weighted cohort's) name, title, and what it adds to some coins ("Awake coins under 4 months old"). */
   const HOLDERS = /** @type {Record<string, [string, string, string]>} */ ({
     all: ["All coins", "All coins", ""], sth: ["Short-term holders", "Short-term holders", " of short-term holders"], lth: ["Long-term holders", "Long-term holders", " of long-term holders"],
@@ -667,14 +671,14 @@ export function studioPresets(client, facts) {
       chart("Velocity", "Velocity", [series(sup.velocity.btc, "In bitcoin", { color: "orange" }), series(sup.velocity.usd, "In dollars", { color: "green" }), series(ct.adjusted.velocity.btc, "Cointime-adjusted, in bitcoin", { color: "violet", hidden: true }), series(ct.adjusted.velocity.usd, "Cointime-adjusted, in dollars", { color: "sky", hidden: true })]),
     ], { icon: "coins" }),
     section("Holders", [
-      ...holderSets(entries(t.holders), (members, by) => family(members, holderName, { by })),
+      ...holderSets(entries(t.holders), (members, by) => family(members, holderName, { by, urpd: (key) => URPD_HOLDERS[key] })),
       // (The discount and premium coins: all coins split by the price they came in at, at or below or above the
       // capitalized price then.)
       section("Entry price", family(entries(t.entry), (key) => ({ name: named(client.ENTRY_NAMES, key), who: `${named(client.ENTRY_NAMES, key)}, entered ${ENTERED[key] ?? key} the capitalized price at the time` }), { by: "entry price", disjoint: true })),
     ], { icon: "people" }),
     section("Coin age", [
       lastMovedChart(),
-      section("Age bands", family(entries(t.age.ranges), (key) => ({ name: named(client.AGE_RANGE_NAMES, key).replace(/ old$/, ""), who: `UTXOs ${named(client.AGE_RANGE_NAMES, key).toLowerCase().replace(/^utxos /, "")}` }), { by: "age band", disjoint: true, known: { Supply: "HODL waves", "Realized cap": "realized cap HODL waves" } })),
+      section("Age bands", family(entries(t.age.ranges), (key) => ({ name: named(client.AGE_RANGE_NAMES, key).replace(/ old$/, ""), who: `UTXOs ${named(client.AGE_RANGE_NAMES, key).toLowerCase().replace(/^utxos /, "")}` }), { by: "age band", disjoint: true, urpd: (key) => `age_${client.AGE_RANGE_NAMES[key]?.id ?? key}`, known: { Supply: "HODL waves", "Realized cap": "realized cap HODL waves" } })),
       section("Halving epochs", family(members(t.age.halvingEpochs), (key) => ({ name: `Epoch ${key.slice(1)}`, who: `Coins last moved in halving epoch ${key.slice(1)}` }), { by: "halving epoch last moved", disjoint: true })),
       section("Vintages", family(members(t.age.vintages), (key) => ({ name: key.slice(1), who: `Coins last moved in ${key.slice(1)}` }), { by: "vintage", disjoint: true })),
     ], { icon: "hourglass" }),
