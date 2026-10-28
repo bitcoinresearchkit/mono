@@ -365,6 +365,8 @@ export function studioPresets(client, facts) {
           series(realized.profit.cumulative, "Profit", { color: "green" }), series(realized.loss.cumulative, "Loss", { color: "red" }),
           ...(realized.netPnl ? [series(realized.netPnl.cumulative, "Net", { pane: 2, ...baseline })] : []),
         ]),
+        // (Each day's net, as bubbles on the price: what was taken in profit or in loss, and where the price was.)
+        realized.netPnl?.sum?._24h && chart("Profit and loss on the price", titled("Net realized profit and loss on the price"), [price(), series(realized.netPnl.sum._24h, "Net", { type: "bubbles", ref: "A", color: "green", colorBelow: "red" })]),
         ...flow(realized.grossPnl, "Gross profit and loss", titled("Gross realized profit and loss")),
         realized.profitToLoss && chart("Profit to loss ratio", titled("Realized profit to loss ratio"), windows(realized.profitToLoss, "", { around: 1 }), { log: [1] }),
         ...flow(realized.valueDestroyed, "Value destroyed", titled("Value destroyed")),

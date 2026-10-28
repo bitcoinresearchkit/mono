@@ -49,6 +49,7 @@ Then, each if wanted:
 - "fill": "above", an area filled from its line up; "fillOpacity": its fill's strength at its top, 0.05 to 1 (0.2 if none, 0.1 filled above); "solid": true, its fill even all the way down rather than fading; "base": a baseline's or bars' base value (0 if none); "baseLine": {"color": "gray", "dash": 4}, that base's line ("tag": true shows its value on the axis; "line": false draws none).
 - "levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional; "tag": true shows its value on the axis; "line": false draws none, the level only naming or coloring its band). A level's "name" names the values from it up to the next level, read in its color in place of the number (the legend, the panel); "underName" on the layer names those under them all: {"levels": [{"value": -1, "name": "Limbo", "color": "orange", "line": false}, {"value": 1, "name": "Bull", "color": "green", "line": false}], "underName": "Bear", "color": "red", "byLevels": true} (without "byLevels", the names alone, the line in its color).
 - "priceLine": true: a line across at its latest value.
+- {"series": "net_realized_pnl", "type": "bubbles", "ref": "A"}: bubbles: its values as bubbles on layer A (the first layer if none; "ref": "", none, along its pane's middle), each date's at A's value there, its area its value's size, above zero in "color", below in "colorBelow" (red if none; "colors": 1, its one color). "size": the largest's diameter, 12, 16, 24, 32 or 48 pixels (24 if none); "hide": the share of the largest under which none is drawn, 0, 0.01, 0.05, 0.1 or 0.25 (0.05 if none); "scaleTo": "all", sized against all of its history (none: the largest in view full size).
 - "outline": true on a line, dots, an area, a baseline, bars, candles or a trend: edged in the chart's background (its line's width on each side; bars and candles 1.5px), standing out over what's under it.
 - "format": how its values read (by its unit if none): usd, btc, sats, percent, ratio, count, number, days, seconds, persecond, perday, bytes, vbytes, weight, sigops, hashrate, difficulty, feerate, hashprice, hashvalue, coindays, coinblocks, dollarblocks or dollardays.
 - "pane": 1, 2 and so on, top to bottom (1 if none); "side": its axis, left or right; "hidden": true.
@@ -109,17 +110,17 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Cointime prices (6): https://bitview.space/studio/presets/valuation/cointime-prices/
   - Rarity meter (44): https://bitview.space/studio/presets/valuation/rarity-meter/
 - Supply (5): https://bitview.space/studio/presets/supply/
-- Holders (358): https://bitview.space/studio/presets/holders/
+- Holders (367): https://bitview.space/studio/presets/holders/
   - Compare (15): https://bitview.space/studio/presets/holders/compare/
-  - All coins (38): https://bitview.space/studio/presets/holders/all-coins/
-  - Short-term holders (40): https://bitview.space/studio/presets/holders/short-term-holders/
-  - Long-term holders (38): https://bitview.space/studio/presets/holders/long-term-holders/
-  - Age cutoffs (171): https://bitview.space/studio/presets/holders/age-cutoffs/
-  - Entry price (56): https://bitview.space/studio/presets/holders/entry-price/
-- Coin age (1130): https://bitview.space/studio/presets/coin-age/
-  - Age bands (637): https://bitview.space/studio/presets/coin-age/age-bands/
-  - Halving epochs (116): https://bitview.space/studio/presets/coin-age/halving-epochs/
-  - Vintages (376): https://bitview.space/studio/presets/coin-age/vintages/
+  - All coins (39): https://bitview.space/studio/presets/holders/all-coins/
+  - Short-term holders (41): https://bitview.space/studio/presets/holders/short-term-holders/
+  - Long-term holders (39): https://bitview.space/studio/presets/holders/long-term-holders/
+  - Age cutoffs (175): https://bitview.space/studio/presets/holders/age-cutoffs/
+  - Entry price (58): https://bitview.space/studio/presets/holders/entry-price/
+- Coin age (1176): https://bitview.space/studio/presets/coin-age/
+  - Age bands (660): https://bitview.space/studio/presets/coin-age/age-bands/
+  - Halving epochs (121): https://bitview.space/studio/presets/coin-age/halving-epochs/
+  - Vintages (394): https://bitview.space/studio/presets/coin-age/vintages/
 - Profitability (237): https://bitview.space/studio/presets/profitability/
   - All coins (79): https://bitview.space/studio/presets/profitability/all-coins/
   - Short-term holders (79): https://bitview.space/studio/presets/profitability/short-term-holders/

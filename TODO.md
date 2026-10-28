@@ -19,12 +19,13 @@ Only what's left. An item done is removed: its history is in the commits and log
   a value scale under it, Reverse, the color in hand named, your own gradient kept as "Your own" once a ready-made
   is picked (this session).
 
-- ⌘K on Home: ⌘K's list, all of it (its rows, headings, pages and folders), on Home's field, as wide as it, as tall as
-  its rows up to 360, no preview, no keys' foot (you, 2026-10-28: "maybe it's cmd+k but wihtout the right part and the
-  helper strip and then bottom but we can do full navigation ?"): your look to confirm.
-- A new layer: a series as bubbles on another layer (you, 2026-10-28, of Glassnode's net realized profit/loss bubbles on
-  the price: "represent a series as bubbles attached to another layer", "maybe by having a min slider (and max ?), we
-  prob need something to set min/max size ? idk think very hard about this").
+- Home's search: by its field alone (⌘K is the normal ⌘K), ⌘K's list, all of it, on the field, 10 from its every edge,
+  unrolling from it, its corners rounding from the field's to its own (you, 2026-10-28/29: "we want the full power of
+  cmd+k but in a tighter window", "cmd+k on home screen should open the normal command palette", "maybe double radii was
+  right but we needed a smoother anim/motion ?"): your look to confirm.
+- Bubbles: built (a layer type: Add a layer › Bubbles, a layer's ⋯ › As bubbles on…, its Type; On, Size, Hide below,
+  Sized to; a preset per cohort, its day's net realized P&L on the price; you, 2026-10-28: "represent a series as bubbles
+  attached to another layer"): your look to confirm. Left: the bubble under the crosshair lit.
 - Outline: built (a layer's switch; presets over a heatmap or a cloud, the price's), the line's width on each side
   (you, 2026-10-28: "outline doesn't feel think enough"; half of it, before): your look to confirm.
 - A design system for all of Studio, then a polish and consistency pass applying it (you, 2026-10-28: "I think we

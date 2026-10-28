@@ -159,6 +159,12 @@
         --radius-lg: 10px;
         --radius-xl: 12px;
         --radius-2xl: 16px;
+        /* (Home's column's words, one inset: its field's, its live line's, its doors', those of ⌘K's rows on it (the
+           list's 10, a row's 10).) */
+        --home-inset: 20px;
+        /* (⌘K's corners on Home, unrolled: concentric with its rows' (theirs and the list's 10); rolled up, its field's,
+           Home's (see .palette[data-on-home]).) */
+        --home-radius: calc(var(--radius-md) + 10px);
         --side: 264px;
         --side-collapsed: 58px;
         scrollbar-color: var(--faint) transparent;
@@ -6048,7 +6054,7 @@
       /* ⌘K opened on Home (see placeOnHome): ⌘K's list, all of it (its rows, headings, pages and folders), on Home's
          search, part of the page (not dimmed): as wide as it, its field over it, as tall as its rows, at most 360 (less,
          where the window's foot is nearer); no preview, no keys' foot (a row's actions by the row, see showActions), its
-         corners concentric with its rows' (their radius and the list's padding). Coming, it unrolls down from the field
+         corners concentric with its rows' (their radius and the list's padding, 10 all round). Coming, it unrolls down from the field
          as it fades in, from its second frame (`data-arriving` its first, see openPalette: the dialog's opening is the
          heavy one, the page made inert, and a motion begun in it shows a third of the way on); going, it rolls back up
          into it as it fades out (no pop: its field stays on Home's), Home's field fading out and back under it (never a
@@ -6060,19 +6066,23 @@
         height: auto;
         max-height: min(360px, var(--on-room));
         margin: var(--on-y) 0 0 var(--on-x);
-        border-radius: calc(var(--radius-md) + 6px);
+        border-radius: var(--home-radius);
         --dim: transparent;
-        /* (Shown whole, its shadow too; rolled up, its field alone.) */
+        /* (Shown whole, its shadow too; rolled up, its field alone. Unrolling, as a thing that resizes does (in and out,
+           the layout's time): gentle from its first frame, never most of it in one.) */
         clip-path: inset(-100px);
-        transition: opacity var(--dur-small) var(--ease), clip-path var(--dur-panel) var(--ease);
+        transition: opacity var(--dur-small) var(--ease), clip-path var(--dur-layout) var(--ease-layout), border-radius var(--dur-layout) var(--ease-layout);
 
         &[open] {
           animation: none;
         }
 
+        /* (Rolled up: its field's corners, Home's field's, rounding to its own as it unrolls.) */
+        /* (Its moving foot's corners round, as the field's are, its sides at its own: none till it's whole, its own then.) */
         &:is(:not([open]), [data-leaving], [data-arriving]) {
           transform: none;
-          clip-path: inset(-100px -100px calc(100% - 48px) -100px);
+          clip-path: inset(-100px 0 calc(100% - 48px) 0 round 0 0 var(--radius-lg) var(--radius-lg));
+          border-radius: var(--radius-lg);
         }
 
         &[data-arriving] {
@@ -6081,10 +6091,10 @@
         }
 
         &:is(:not([open]), [data-leaving]) {
-          transition: opacity var(--dur-small) var(--ease), clip-path var(--dur-small) var(--ease-layout), visibility var(--dur-small);
+          transition: opacity var(--dur-small) var(--ease), clip-path var(--dur-small) var(--ease-layout), border-radius var(--dur-small) var(--ease-layout), visibility var(--dur-small);
 
           @supports (overlay: auto) {
-            transition: opacity var(--dur-small) var(--ease), clip-path var(--dur-small) var(--ease-layout), visibility var(--dur-small), display var(--dur-small) allow-discrete, overlay var(--dur-small) allow-discrete;
+            transition: opacity var(--dur-small) var(--ease), clip-path var(--dur-small) var(--ease-layout), border-radius var(--dur-small) var(--ease-layout), visibility var(--dur-small), display var(--dur-small) allow-discrete, overlay var(--dur-small) allow-discrete;
           }
         }
 
@@ -6099,6 +6109,21 @@
 
         .palette-left {
           border-right: 0;
+        }
+
+        /* (Its field's words as far in as Home's; its list as far from its every edge, its first heading too (its room
+           above it is for the rows over it), its rows' icons and words under the field's.) */
+        .palette-search {
+          padding-left: var(--home-inset);
+        }
+
+        .palette-list {
+          padding: 10px;
+          scroll-padding-block: 10px;
+
+          > .group:first-child {
+            padding-top: 0;
+          }
         }
       }
 
@@ -6446,12 +6471,8 @@
           font-size: 12px;
           font-weight: 510;
           cursor: default;
-
-          /* (Apart from the rows above it; the list's first, none: as near its top as the last row is to its foot.) */
-          &:first-child {
-            padding-top: 0;
-          }
         }
+
 
         .note {
           justify-content: center;
@@ -7458,6 +7479,7 @@
 
       .home-search {
         height: 48px;
+        padding-left: var(--home-inset);
         font-size: 15px;
       }
 
@@ -7544,7 +7566,7 @@
         justify-content: space-between;
         gap: 16px;
         margin: 0 0 6px;
-        padding: 0 14px;
+        padding: 0 var(--home-inset);
         color: var(--muted);
         font: 400 13px/18px var(--sans);
         font-variant-numeric: tabular-nums;
@@ -7558,7 +7580,7 @@
         justify-content: space-between;
         gap: 4px;
         /* (Their icons and words as far in as the field's: a button's own room, and this.) */
-        padding: 0 4px;
+        padding: 0 calc(var(--home-inset) - 10px);
       }
 
       .doors {
@@ -10354,6 +10376,7 @@
             <li>"fill": "above", an area filled from its line up; "fillOpacity": its fill's strength at its top, 0.05 to 1 (0.2 if none, 0.1 filled above); "solid": true, its fill even all the way down rather than fading; "base": a baseline's or bars' base value (0 if none); "baseLine": {"color": "gray", "dash": 4}, that base's line ("tag": true shows its value on the axis; "line": false draws none).</li>
             <li>"levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional; "tag": true shows its value on the axis; "line": false draws none, the level only naming or coloring its band). A level's "name" names the values from it up to the next level, read in its color in place of the number (the legend, the panel); "underName" on the layer names those under them all: {"levels": [{"value": -1, "name": "Limbo", "color": "orange", "line": false}, {"value": 1, "name": "Bull", "color": "green", "line": false}], "underName": "Bear", "color": "red", "byLevels": true} (without "byLevels", the names alone, the line in its color).</li>
             <li>"priceLine": true: a line across at its latest value.</li>
+            <li>{"series": "net_realized_pnl", "type": "bubbles", "ref": "A"}: bubbles: its values as bubbles on layer A (the first layer if none; "ref": "", none, along its pane's middle), each date's at A's value there, its area its value's size, above zero in "color", below in "colorBelow" (red if none; "colors": 1, its one color). "size": the largest's diameter, 12, 16, 24, 32 or 48 pixels (24 if none); "hide": the share of the largest under which none is drawn, 0, 0.01, 0.05, 0.1 or 0.25 (0.05 if none); "scaleTo": "all", sized against all of its history (none: the largest in view full size).</li>
             <li>"outline": true on a line, dots, an area, a baseline, bars, candles or a trend: edged in the chart's background (its line's width on each side; bars and candles 1.5px), standing out over what's under it.</li>
             <li>"format": how its values read (by its unit if none): usd, btc, sats, percent, ratio, count, number, days, seconds, persecond, perday, bytes, vbytes, weight, sigops, hashrate, difficulty, feerate, hashprice, hashvalue, coindays, coinblocks, dollarblocks or dollardays.</li>
             <li>"pane": 1, 2 and so on, top to bottom (1 if none); "side": its axis, left or right; "hidden": true.</li>
@@ -10528,9 +10551,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 <h2 class="home-question">What do you want to chart?</h2>
                 <p id="home-pulse" class="home-pulse" role="status">Connecting</p>
               </div>
-              <button type="button" class="search-cta home-search" data-action="search" data-typing data-kbd="⌘ K">
+              <!-- (No key of its own: ⌘K is ⌘K everywhere, see placeOnHome.) -->
+              <button type="button" class="search-cta home-search" data-action="search" data-typing>
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" /></svg>
-                <span>Search series, charts and commands</span><kbd class="mod">⌘K</kbd>
+                <span>Search series, charts and commands</span>
               </button>
             </div>
             <!-- (Home's doors, a group each, and New chart: see renderDoors.) -->
@@ -11173,6 +11197,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           histogram: '<rect x="1" y="6" width="2" height="5" rx=".5" fill="currentColor"/><rect x="5" y="2" width="2" height="9" rx=".5" fill="currentColor"/><rect x="9" y="5" width="2" height="6" rx=".5" fill="currentColor"/><rect x="13" y="3" width="2" height="8" rx=".5" fill="currentColor"/>',
           baseline: '<path d="M1 6.5h14" stroke="currentColor" stroke-dasharray="2 2" opacity=".5"/><path d="M1.5 4.5l3-2.5 4 5.5 2.5 2 3.5-1.5" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
           candles: '<path d="M4.5 3v8M11.5 1v2.5M11.5 8.5V10" stroke="currentColor"/><rect x="2" y="5" width="5" height="5" rx=".5" fill="currentColor"/><rect x="9.5" y="3.5" width="4" height="5" rx=".5" fill="none" stroke="currentColor"/>',
+          bubbles: '<circle cx="4.5" cy="7.5" r="2.5" fill="currentColor" fill-opacity=".35" stroke="currentColor"/><circle cx="11" cy="5.5" r="4" fill="currentColor" fill-opacity=".35" stroke="currentColor"/>',
         }[type] ?? (type === "signal" ? markBody("above", "currentColor") : "");
         return glyphSvg(body);
       };
@@ -11313,7 +11338,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const hollowOf = (layer, kind) => (layer.hollow === "both" || (kind === "up" ? layer.hollow === undefined : layer.hollow === "down"));
       /** A layer's candles' hollow ones, each kind as given (rising hollow, falling filled, unset). @param {boolean} up @param {boolean} down @returns {Layer["hollow"]} */
       const hollowFrom = (up, down) => (up ? (down ? "both" : undefined) : down ? "down" : "none");
-      const belowOf = (layer) => ((layer.type === "histogram" || layer.type === "candles" || TWO_KEPT.has(layer.type)) && layer.colors === 1 ? layer.color : layer.colorBelow ?? (TWO_KEPT.has(layer.type) ? layer.color : "red"));
+      const belowOf = (layer) => ((layer.type === "histogram" || layer.type === "candles" || layer.type === "bubbles" || TWO_KEPT.has(layer.type)) && layer.colors === 1 ? layer.color : layer.colorBelow ?? (TWO_KEPT.has(layer.type) ? layer.color : "red"));
       /**
        * A cloud colored by its layers, its colors theirs: its first one's where that's over, its second's where that is
        * (to an edge, its one layer's; in its edit, and as every edit's chart is normalized: they follow).
@@ -11447,7 +11472,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether a signal shows: itself shown, on a layer there and shown (hidden with it, else). @param {Layer} layer @param {Chart} [doc] */
       const signalShown = (layer, doc = chart) => layer.type === "signal" && !layer.hidden && ((on) => Boolean(on && !on.hidden))(doc.layers.find((item) => item.id === layer.ref));
       /** What a signal's marks can be on: a layer of one value drawn as itself (not a cloud, not a signal). @param {Chart} doc */
-      const markable = (doc) => doc.layers.filter((other) => other.type !== "cloud" && other.type !== "signal" && other.type !== "heatmap");
+      const markable = (doc) => doc.layers.filter((other) => other.type !== "cloud" && !placedOn(other) && other.type !== "heatmap");
       /**
        * The layer a new signal is marked on: the first its formula reads that can be (by its letter, else by the series it
        * names, in its order), else the first that can be; of those, a shown one before a hidden one (its marks seen).
@@ -11470,7 +11495,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A place's name as a choice says it: "Above the layer", "Shaded". @param {string} place */
       const placeName = (place) => ((text) => (place === "shade" ? "Shaded while up or down" : place === "on" ? "On the layer" : `${text} the layer`))(MARK_PLACES.find(([id]) => id === place)?.[1] ?? "");
       /** What can flip a trend: a layer of one value (not made from layers), not one of those it's made from. @param {Chart} doc @param {Layer} trend */
-      const refsFor = (doc, trend) => doc.layers.filter((layer) => !layer.from && layer.type !== "signal" && layer.type !== "heatmap" && !trend.from?.includes(layer.id) && !readsOf(layer, doc).has(trend.letter));
+      const refsFor = (doc, trend) => doc.layers.filter((layer) => !layer.from && !placedOn(layer) && layer.type !== "heatmap" && !trend.from?.includes(layer.id) && !readsOf(layer, doc).has(trend.letter));
       /** A trend's reference by default: a price on its scale (candles, a series named so), else the first of those there; none there, none. @param {Chart} doc @param {Layer} trend */
       const refFor = (doc, trend) => ((refs) => (refs.find((layer) => layer.type === "candles" || /^price/.test(layer.series ?? "")) ?? refs[0])?.id)(refsFor(doc, trend).filter((layer) => oneScale(layer, trend)));
       /** A type's name: a series' or a formula's, or one made from layers. */
@@ -11548,16 +11573,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A gradient's colors at most, at least (read back with a chart, at the start: see gradientOf). */
       const GRADIENT_MOST = 4, GRADIENT_LEAST = 2;
       /** @type {[string, string][]} */
-      const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"]];
+      const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"], ["bubbles", "Bubbles"]];
       /** The types drawn as a line: a dash and a shape apply. */
       const LINED = new Set(["line", "area", "baseline", "trend"]);
       /** The types an outline edges (the chart's background about what's drawn, see LWC patch 53): what a series is drawn as, and a trend's line. */
-      const OUTLINED = new Set(["line", "dots", "area", "histogram", "baseline", "candles", "trend"]);
+      const OUTLINED = new Set(["line", "dots", "area", "histogram", "baseline", "candles", "trend", "bubbles"]);
+      /** Bubbles' largest, across (24 pixels if none), and the share of it under which none is drawn (5% if none): each a choice of these. */
+      const BUBBLE_SIZES = [12, 16, 24, 32, 48], BUBBLE_SIZE = 24, BUBBLE_HIDES = [0, 0.01, 0.05, 0.1, 0.25], BUBBLE_HIDE = 0.05;
+      /** Whether a layer's values aren't drawn at their own height on its scale: a signal's (marks on its layer), bubbles' (sized on theirs). @param {Layer} layer */
+      const placedOn = (layer) => layer.type === "signal" || layer.type === "bubbles";
       /** How a line runs between its points: straight, in steps (a value that holds until it changes), or curved. @type {[string, string, number][]} */
       const SHAPES = [["straight", "Straight", LC.LineType.Simple], ["steps", "Steps", LC.LineType.WithSteps], ["curved", "Curved", LC.LineType.Curved]];
       const lineTypeOf = (layer) => SHAPES.find(([id]) => id === layer.shape)?.[2] ?? LC.LineType.Simple;
       /** A type's two colors, where it has two: what each is called. */
-      const PAIRS = { baseline: ["Above", "Below"], histogram: ["Above", "Below"], candles: ["Rising", "Falling"], trend: ["Resistance", "Support"], signal: ["Up", "Down"] };
+      const PAIRS = { baseline: ["Above", "Below"], histogram: ["Above", "Below"], candles: ["Rising", "Falling"], trend: ["Resistance", "Support"], signal: ["Up", "Down"], bubbles: ["Above zero", "Below zero"] };
       /** Whether a signal has a down state (below 0) in what's drawn: its second color, the down one's, then offered. @param {Layer} layer */
       const signedSignal = (layer) => layer.type === "signal" && Boolean(resolved?.results.get(layer.id)?.values?.some((/** @type {number} */ value) => value < 0));
       /**
@@ -11568,7 +11597,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * candles' two, rising and falling (their one, a choice).
        * @type {Record<string, string[]>}
        */
-      const COLOR_MODES = { line: ["one", "levels", "gradient", "from"], dots: ["one", "levels", "gradient", "from"], area: ["one", "levels", "gradient", "from"], histogram: ["one", "sides", "momentum", "levels", "gradient", "from"], baseline: ["sides"], trend: ["one", "sides", "gradient", "from"], cloud: ["layers", "one", "sides", "gradient", "from"], candles: ["one", "sides"], signal: ["one"], heatmap: ["one", "gradient"] };
+      const COLOR_MODES = { line: ["one", "levels", "gradient", "from"], dots: ["one", "levels", "gradient", "from"], area: ["one", "levels", "gradient", "from"], histogram: ["one", "sides", "momentum", "levels", "gradient", "from"], baseline: ["sides"], trend: ["one", "sides", "gradient", "from"], cloud: ["layers", "one", "sides", "gradient", "from"], candles: ["one", "sides"], bubbles: ["sides", "one"], signal: ["one"], heatmap: ["one", "gradient"] };
       /** The types that can take their colors from another layer, and those that can be colored by their levels. */
       const COLORED_FROM = new Set(Object.keys(COLOR_MODES).filter((type) => COLOR_MODES[type].includes("from")));
       const BY_LEVELS = new Set(Object.keys(COLOR_MODES).filter((type) => COLOR_MODES[type].includes("levels")));
@@ -12645,7 +12674,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /**
        * @typedef {{ id: string, letter: string, series?: string, formula?: string, label?: string, color: string,
-       *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, outline?: true, colorBelow?: string, colors?: 1 | 4, colorFading?: string, colorBelowFading?: string, opacity?: number,
+       *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, outline?: true, size?: number, hide?: number, scaleTo?: "all", colorBelow?: string, colors?: 1 | 4, colorFading?: string, colorBelowFading?: string, opacity?: number,
        *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
        *   shape?: string, levels?: Level[], fill?: string, fillOpacity?: number, solid?: true, hollow?: "down" | "both" | "none", place?: string, results?: boolean, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean,
        *   heatmap?: string, weight?: string, measure?: string, rows?: number, gradient?: [number, string][], upToDate?: true, byGradient?: true }} Layer
@@ -12659,6 +12688,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   (above it, unset; below; on it: an up mark's, a down one's mirrored), or shaded while up or down ("shade"); up
        *   in its color, down in its second (`colorBelow`, red unset). `results`: each stretch's result on the mark that ends it (see
        *   stretchResult).
+       *   Bubbles ("bubbles"): its values as bubbles on another layer (`ref`, the first that can carry them if none;
+       *   none, "": along its pane's middle), each date's at that layer's value there, its area its own value's size (see
+       *   bubbleView): `size` the largest's diameter, `hide` the share of it under which none is drawn, `scaleTo` "all":
+       *   sized against all of its history (unset: what's in view); above zero in its color, below in its second
+       *   (`colorBelow`, red unset; `colors` 1, its one).
        *   `colorFrom`: another layer's id, whose colors it takes date by date (see colorsAt): a line's, dots', an area's,
        *   bars', a cloud's or a trend's (not a baseline's, nor candles').
        *   `byLevels`: colored by its levels instead, date by date: above each, that level's color; under them all, its own
@@ -12822,7 +12856,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const EDGE_NAMES = /** @type {Record<string, string>} */ ({ top: "The pane's top", bottom: "The pane's bottom" });
       const edgeIcon = (/** @type {string} */ edge) => (edge === "top" ? ICONS.toTop : ICONS.toBottom);
       /** Members as given that can be: layers there, none made from layers (a cloud's edges too), each once. @param {Chart} doc @param {Iterable<string>} members */
-      const membersOf = (doc, members, cloud = false) => [...new Set(members)].filter((id) => (cloud && EDGES.includes(id)) || doc.layers.some((item) => item.id === id && !item.from && item.type !== "signal" && item.type !== "heatmap"));
+      const membersOf = (doc, members, cloud = false) => [...new Set(members)].filter((id) => (cloud && EDGES.includes(id)) || doc.layers.some((item) => item.id === id && !item.from && !placedOn(item) && item.type !== "heatmap"));
       /**
        * What it's made from, as kept (membersOf): a cloud's all, as given (two, its colors say which one's over), a
        * trend's in the chart's order. @param {Chart} doc @param {Iterable<string>} members
@@ -12845,14 +12879,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const fromShort = (layer, doc = chart) => {
         const ids = layer.from ?? [], members = (doc?.layers ?? []).filter((other) => ids.includes(other.id)), first = members[0];
         // (Their values read as one: on one scale, what flips a trend too.)
-        return ids.length < 2 ? (layer.type === "cloud" ? "Pick what it's between" : "Select two layers") : members.some((other) => !oneScale(other, first)) ? ONE_SCALE : layer.type !== "trend" || doc?.layers.some((other) => !other.from && other.type !== "signal" && !ids.includes(other.id) && (!first || oneScale(other, first))) ? "" : layer.ref && doc?.layers.some((other) => other.id === layer.ref) ? FLIP_APART : TREND_FLIP;
+        return ids.length < 2 ? (layer.type === "cloud" ? "Pick what it's between" : "Select two layers") : members.some((other) => !oneScale(other, first)) ? ONE_SCALE : layer.type !== "trend" || doc?.layers.some((other) => !other.from && !placedOn(other) && !ids.includes(other.id) && (!first || oneScale(other, first))) ? "" : layer.ref && doc?.layers.some((other) => other.id === layer.ref) ? FLIP_APART : TREND_FLIP;
       };
       /** Whether two layers are on one scale (their pane, their side): a cloud or a trend reads its layers' values as one. @param {Layer} a @param {Layer} b */
       const oneScale = (a, b) => a.pane === b.pane && a.side === b.side;
       /** A cloud's or a trend's first layer (not an edge), none if it has none. @param {Chart} doc @param {{ from?: string[] }} layer */
       const placedBy = (doc, layer) => doc.layers.find((other) => other.id === layer.from?.find((id) => !EDGES.includes(id))) ?? null;
       /** The layers a layer goes with: a cloud's or a trend's (not its pane's edges), a signal's own; else none. @param {Layer | null | undefined} layer */
-      const goesWith = (layer) => (layer?.type === "signal" ? (layer.ref ? [layer.ref] : []) : (layer?.from ?? []).filter((id) => !EDGES.includes(id)));
+      const goesWith = (layer) => (layer && placedOn(layer) ? (layer.ref ? [layer.ref] : []) : (layer?.from ?? []).filter((id) => !EDGES.includes(id)));
       /** Whether a layer goes where its layers go: a cloud or a trend of any (one of its pane's edges alone, or of none, is put), a signal marked on one. @param {Layer | null | undefined} layer */
       const follows = (layer) => goesWith(layer).length > 0;
       /**
@@ -12860,13 +12894,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * a signal, not one reading it (a loop), on one scale with `on` (one it'd be with: its first, the other of a cloud's
        * two; none, any). @param {Layer} item
        */
-      const memberable = (item, /** @type {Layer | null} */ self = null, /** @type {Layer | null} */ on = null) => !item.from && item.type !== "signal" && item.type !== "heatmap" && item !== self && !(self && readsOf(item).has(self.letter)) && (!on || oneScale(item, on));
+      const memberable = (item, /** @type {Layer | null} */ self = null, /** @type {Layer | null} */ on = null) => !item.from && !placedOn(item) && item.type !== "heatmap" && item !== self && !(self && readsOf(item).has(self.letter)) && (!on || oneScale(item, on));
       /** Whether some of a cloud's or a trend's layers (what flips it too) are on another scale than it: their values not one's. @param {Chart} doc @param {Layer} layer */
       const offScale = (doc, layer) => [...(layer.from ?? []), ...(layer.type === "trend" && layer.ref ? [layer.ref] : [])].some((id) => ((other) => other && !oneScale(other, layer))(doc.layers.find((item) => item.id === id)));
       const TREND_FLIP = "Needs a third layer, such as a price, to flip it", ONE_SCALE = "Not on one scale", FLIP_APART = "What flips it is on another scale";
       /** A trend's room on the chart: three layers not made from layers on one scale (two it rides, one to flip it), else why not. */
       const trendShort = () => {
-        const bases = chart.layers.filter((layer) => !layer.from && layer.type !== "signal");
+        const bases = chart.layers.filter((layer) => !layer.from && !placedOn(layer));
         return bases.length < 3 ? "Needs three layers: two to follow and a third that flips it" : bases.some((layer) => bases.filter((other) => oneScale(other, layer)).length >= 3) ? "" : "Needs three layers in one pane, on one side";
       };
       /**
@@ -12984,11 +13018,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const layer of doc.layers) if (layer.type === "cloud" && edgesOf(layer).length && !layer.byLayers && !layer.colorFrom && layer.colorBelow !== undefined && layer.colors === undefined) layer.colors = 1;
         // (How many colors: bars' one or four, a trend's or a cloud's one with a second kept; the colors picked kept,
         // whatever's used.)
-        for (const layer of doc.layers) if (layer.colors !== undefined && (!(layer.type === "histogram" ? layer.colors === 1 || layer.colors === 4 : layer.type === "candles" ? layer.colors === 1 : TWO_KEPT.has(layer.type) && layer.colors === 1 && layer.colorBelow !== undefined) || layer.colorFrom || layer.byLevels || layer.byLayers)) delete layer.colors;
-        // (A signal's layer gone: none, said so (""), so a reload doesn't mark it on another; a trend's, none.)
-        for (const layer of doc.layers) if (layer.ref && !(layer.type === "trend" ? refsFor(doc, layer) : layer.type === "signal" ? markable(doc) : []).some((other) => other.id === layer.ref)) layer.type === "signal" ? (layer.ref = "") : delete layer.ref;
+        for (const layer of doc.layers) if (layer.colors !== undefined && (!(layer.type === "histogram" ? layer.colors === 1 || layer.colors === 4 : layer.type === "candles" || layer.type === "bubbles" ? layer.colors === 1 : TWO_KEPT.has(layer.type) && layer.colors === 1 && layer.colorBelow !== undefined) || layer.colorFrom || layer.byLevels || layer.byLayers)) delete layer.colors;
+        // (Bubbles made so (another layer's turned into them): on the pane's first that can carry them, else the chart's.)
+        for (const layer of doc.layers) if (layer.type === "bubbles" && layer.ref === undefined) layer.ref = (markable(doc).find((other) => other.pane === layer.pane) ?? markable(doc)[0])?.id ?? "";
+        // (A signal's layer gone, or bubbles': none, said so (""), so a reload doesn't put them on another; a trend's, none.)
+        for (const layer of doc.layers) if (layer.ref && !(layer.type === "trend" ? refsFor(doc, layer) : placedOn(layer) ? markable(doc) : []).some((other) => other.id === layer.ref)) placedOn(layer) ? (layer.ref = "") : delete layer.ref;
         // A signal: marks on its layer (in its pane, on its side: below; its layer gone, none till another's picked: never
         // moved to another on its own); nothing of a line's look.
+        // Bubbles: nothing of a line's look, their sizes' fields theirs alone.
+        for (const layer of doc.layers) {
+          if (layer.type !== "bubbles") for (const key of ["size", "hide", "scaleTo"]) delete layer[key];
+          else for (const key of ["shape", "levels", "colorFrom", "byLevels", "byGradient", "priceLine", "base", "fill", "fillOpacity", "solid", "hollow", "baseLine", "underName"]) delete layer[key];
+        }
         for (const layer of doc.layers) {
           if (layer.type !== "signal") {
             delete layer.results;
@@ -13013,7 +13054,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const behind = (layer.type === "cloud") !== Boolean(doc.panes.find((pane) => pane.id === first.pane)?.reverse);
           doc.layers.splice(behind ? doc.layers.indexOf(/** @type {Layer} */ (members.at(-1))) + 1 : doc.layers.indexOf(first), 0, layer);
         }
-        for (const layer of doc.layers) if (layer.type === "signal") ((on) => on && Object.assign(layer, { pane: on.pane, side: on.side }))(doc.layers.find((other) => other.id === layer.ref));
+        for (const layer of doc.layers) if (placedOn(layer)) ((on) => on && Object.assign(layer, { pane: on.pane, side: on.side }))(doc.layers.find((other) => other.id === layer.ref));
         // (A pane's order with fewer than two layers is none: nothing then says it, nothing could turn it back.)
         for (const pane of doc.panes) if (pane.reverse && doc.layers.filter((layer) => layer.pane === pane.id).length < 2) delete pane.reverse;
         const used = new Set(doc.layers.map((layer) => layer.pane));
@@ -16283,7 +16324,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function sameRows(rows, at, was) {
         for (let k = 0; k < was.length; k++) {
           const a = rows[at + k], b = was[k];
-          if (a.time !== b.time || a.value !== b.value || a.color !== b.color || a.open !== b.open || a.high !== b.high || a.low !== b.low || a.close !== b.close || a.lineColor !== b.lineColor || a.topColor !== b.topColor || a.bottomColor !== b.bottomColor || a.side !== b.side) return false;
+          if (a.time !== b.time || a.value !== b.value || a.v !== b.v || a.y !== b.y || a.color !== b.color || a.open !== b.open || a.high !== b.high || a.low !== b.low || a.close !== b.close || a.lineColor !== b.lineColor || a.topColor !== b.topColor || a.bottomColor !== b.bottomColor || a.side !== b.side) return false;
         }
         return true;
       }
@@ -16433,7 +16474,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // alone, and a color or a width scrubbed stays smooth however many points there are. (Bars, their colors in
         // their points, are set again whole.)
         // (Not where it is among them: a layer moved, or its pane reversed, keeps its series, put in order below.)
-        const layerShape = (/** @type {Layer} */ layer) => JSON.stringify([layer.type, layer.type === "signal" && layer.place === "shade", fromUnfit(doc, layer), paneIndex.get(layer.pane), layer.side, layer.fill ?? "", baseOf(layer), modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane), edgesOf(layer).length > 1 && !cloudLayers(layer).length, layer.type === "cloud" && Boolean(layer.byLayers)]);
+        const layerShape = (/** @type {Layer} */ layer) => JSON.stringify([layer.type, layer.type === "signal" && layer.place === "shade", layer.type === "bubbles" && !layer.ref, fromUnfit(doc, layer), paneIndex.get(layer.pane), layer.side, layer.fill ?? "", baseOf(layer), modeOf(doc, layer), Boolean(layer.type === "candles" && data.results.get(layer.id)?.ohlc), stacked.has(layer.id), shares.has(layer.pane), edgesOf(layer).length > 1 && !cloudLayers(layer).length, layer.type === "cloud" && Boolean(layer.byLayers)]);
         /** @type {Map<string, { shape: string, shown?: Vector, ohlc?: any, stacked?: boolean, painted?: any[] | null, low?: Vector }>} */
         const kept = new Map();
         for (const layer of doc.layers) {
@@ -16560,6 +16601,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Kept up with live only where drawn: see movePrice.)
             if (known) heatSeries.add(series);
             else heatSeries.delete(series);
+          } else if (layer.type === "bubbles") {
+            // (On the layer they're on, at its scale (see normalize: its pane, its side); on none, along their pane's middle,
+            // on a scale of their own. Sized against the largest in view, or of all their history: see bubbleView.)
+            const on = doc.layers.some((other) => other.id === layer.ref), values = result?.values;
+            // (Its largest: of all its history; in view, as it's drawn, then kept by sizeBubbles as the view moves.)
+            const most = values ? mostIn(values, layer.scaleTo === "all" ? undefined : view.timeScale().getVisibleLogicalRange()) : 0;
+            const options = { ...common, lastValueVisible: false, priceLineVisible: false, up: alpha(base, 0.4 * op), upEdge: alpha(base, 0.8 * op), down: alpha(under, 0.4 * op), downEdge: alpha(under, 0.8 * op), size: layer.size ?? BUBBLE_SIZE, hide: layer.hide ?? BUBBLE_HIDE, most, halo: layer.outline ? css("--card") : "", hitTestTolerance: 0, ...(on ? {} : { priceScaleId: `bubbles:${layer.id}`, autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 1 } }) }) };
+            series = again ?? tracked(view.addCustomSeries(bubbleView(), options, pane));
+            if (again) series.applyOptions(lookOf(options));
+            // (On none: its scale's middle the pane's, its margins even.)
+            if (!on) series.priceScale().applyOptions({ scaleMargins: { top: 0.1, bottom: 0.1 } });
           } else if (candles) {
             // The close line stays to carry the last-value label in the layer's color (a hollow candle's would be the
             // background's); only its line and marker hide while candles show.
@@ -16592,6 +16644,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A heatmap's rows: its timeline's dates and the price's closes there (its scale's), its days drawn from its
           // look, see drawHeat.)
           if (layer.type === "heatmap") setRows(series, heatKnown(layer) ? data.times.map((time, i) => ({ time, close: result?.closes?.[i] ?? NaN })) : []);
+          // (Bubbles' rows: each date's own value (its size) and where it sits, the value there of the layer it's on, as
+          // drawn (a stack's, its total); on none, its pane's middle.)
+          else if (layer.type === "bubbles") setRows(series, result?.values ? bubbleRows(doc, data, layer, stacked) : []);
           else if (!result?.values && again && before?.shown) {
             series.setData([]);
             closes.get(layer.id)?.series.setData([]);
@@ -17150,7 +17205,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const layer of doc.layers) {
           const series = closes.get(layer.id)?.series ?? drawn.get(layer.id), result = data.results.get(layer.id), key = `${layer.pane}:${layer.side}`;
           // (A hidden one's too: shown again, the axis as wide, the view where it is.)
-          if (!series || !result?.values || layer.type === "signal" || layer.type === "cloud" || widths.get(key) === 0) continue;
+          if (!series || !result?.values || placedOn(layer) || layer.type === "cloud" || widths.get(key) === 0) continue;
           if (modeOf(doc, layer) >= 2) {
             widths.set(key, 0);
             continue;
@@ -17181,7 +17236,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {Chart} doc @param {Resolved} data @param {Layer} layer @returns {Vector}
        */
       function stackTagValues(doc, data, layer) {
-        const pane = doc.panes.find((item) => item.id === layer.pane), layers = doc.layers.filter((item) => item.pane === layer.pane && item.side === layer.side && !item.from && item.type !== "signal" && data.results.get(item.id)?.values);
+        const pane = doc.panes.find((item) => item.id === layer.pane), layers = doc.layers.filter((item) => item.pane === layer.pane && item.side === layer.side && !item.from && !placedOn(item) && data.results.get(item.id)?.values);
         const vectors = (pane?.reverse ? layers.reverse() : layers).map((item) => /** @type {Vector} */ (data.results.get(item.id)?.values)), key = vectors.map(idOf).join();
         let made = stackTags.get(key);
         if (made) return made;
@@ -17221,7 +17276,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * layer's.
        */
       function bandsOf(/** @type {Pane} */ pane) {
-        const layers = chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden && (!layer.from || !pane.stack) && layer.type !== "signal" && layer.type !== "heatmap");
+        const layers = chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden && (!layer.from || !pane.stack) && !placedOn(layer) && layer.type !== "heatmap");
         return pane.reverse ? layers.reverse() : layers;
       }
       /** Whether a pane's legend is its key: so many layers (see BANDS_FROM), stacked or not: too many to list. */
@@ -18167,7 +18222,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function keyPoint(/** @type {number} */ i) {
         // (A value as drawn: on a log scale, none at or under zero (a cloud's low too: it's drawn only above).)
         const at = (/** @type {Layer} */ item) => ((made) => ((value) => (modeOf(chart, item) === 1 && (!(value > 0) || (made?.low && !(made.low[i] > 0))) ? NaN : value))(made?.shown?.[i] ?? NaN))(built.get(item.id));
-        const layer = placing?.host ?? [layerById(selected), ...chart.layers].find((item) => item && !item.hidden && item.type !== "signal" && drawn.get(item.id) && Number.isFinite(at(item)));
+        const layer = placing?.host ?? [layerById(selected), ...chart.layers].find((item) => item && !item.hidden && !placedOn(item) && drawn.get(item.id) && Number.isFinite(at(item)));
         const value = !layer ? NaN : tool && keyValue && keyValue.layer === layer.id ? keyValue.value : Number.isFinite(at(layer)) ? at(layer) : placing ? (draft?.points.at(-1)?.[1] ?? NaN) : NaN;
         return layer && Number.isFinite(value) ? { layer, value } : null;
       }
@@ -18804,6 +18859,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (lensAt) lookAt(lensAt);
         nameAxis();
         if (writing) placeField();
+        sizeBubbles();
         viewMoved();
         placeBrush();
         fitCandles();
@@ -20642,7 +20698,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const layer of chart.layers) {
           const made = built.get(layer.id), series = drawn.get(layer.id);
           // (Not a signal's: its carrier's drawn nowhere.)
-          if (layer.pane !== pane || layer.hidden || layer.type === "signal" || !made || !series) continue;
+          if (layer.pane !== pane || layer.hidden || placedOn(layer) || !made || !series) continue;
           for (const value of layer.type === "candles" && !made.stacked && made.ohlc?.[bar] ? made.ohlc[bar] : made.low ? [made.low[bar], made.shown?.[bar]] : [made.shown?.[bar]]) {
             const at = Number.isFinite(value) ? series.priceToCoordinate(value) : null;
             if (at !== null && Math.abs(at - y) <= PULL && (!best || Math.abs(at - y) < best.off)) best = { layer: layer.id, value, y: at, off: Math.abs(at - y) };
@@ -20808,6 +20864,104 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           /** @param {any} row @returns {row is LC.CustomSeriesWhitespaceData<LC.Time>} */
           isWhitespace: (row) => !Number.isFinite(row.low) || !Number.isFinite(row.high),
           defaultOptions: () => ({ ...LC.customSeriesDefaultOptions, color: "transparent", top: false, bottom: false, midway: false }),
+        };
+      }
+
+      // ── Bubbles: a series' sizes on another layer ───────────────────────────────
+
+      /**
+       * Bubbles as the chart draws them (a "bubbles" layer, see Layer): a bubble a date, on the value there of the layer
+       * it's on (a row's `y`), its area its own value's size (`v`): the largest `most` (of what's in view, kept by
+       * sizeBubbles; of all its history) `size` across, each other by the square root of its share of it (area for size,
+       * as read), those under `hide` of it left out (a date without its own value, none: there all the same, so its
+       * values start where the layer's do, a percent or an indexed scale's base the same). Above zero in its color, below
+       * in its second, each filled faintly and edged (`up`, `upEdge`, `down`, `downEdge`); the largest drawn first, the
+       * smallest on top, none hidden behind a big one; outlined (`halo`), each ringed in the chart's background first.
+       * One of the chart's own series, on the layer's scale: hit where a bubble's drawn, no other way (see its
+       * hitTestTolerance).
+       */
+      /**
+       * Bubbles' rows: each date's own value (its size) and where it sits, the value there of the layer it's on as drawn (a
+       * stack's, its total; on a log scale, none at 0 or under, as it draws none); on none, its pane's middle.
+       * @param {Chart} doc @param {Resolved} data @param {Layer} layer @param {Map<string, { values: Vector }>} stacked
+       */
+      function bubbleRows(doc, data, layer, stacked) {
+        const own = /** @type {Vector} */ (data.results.get(layer.id)?.values), on = doc.layers.find((other) => other.id === layer.ref);
+        const at = on && (stacked.get(on.id)?.values ?? data.results.get(on.id)?.values), log = Boolean(on) && modeOf(doc, /** @type {Layer} */ (on)) === 1;
+        return data.times.map((time, i) => ({ time, v: own?.[i] ?? NaN, y: !on ? 0.5 : ((value) => (Number.isFinite(value) && (!log || value > 0) ? value : NaN))(at?.[i] ?? NaN) }));
+      }
+      /**
+       * Bubbles' largest in view, kept as the view moves (theirs sized to it, not to all of their history): set where it
+       * changes, the whole drawn again (never a pan's strip alone, sized by its own).
+       */
+      function sizeBubbles() {
+        if (!resolved) return;
+        for (const layer of drawnDoc?.layers ?? chart.layers) {
+          const series = drawn.get(layer.id), values = resolved.results.get(layer.id)?.values;
+          if (layer.type !== "bubbles" || layer.scaleTo === "all" || !series || !values) continue;
+          const most = mostIn(values, view.timeScale().getVisibleLogicalRange());
+          if (series.options().most !== most) series.applyOptions({ most });
+        }
+      }
+      /** Values' largest size (in all of them, without a range), 0 for none. @param {Vector} values @param {{ from: number, to: number } | null} [range] */
+      const mostIn = (values, range = { from: 0, to: values.length - 1 }) => {
+        let most = 0;
+        if (range) for (let i = Math.max(0, Math.ceil(range.from)); i <= Math.min(values.length - 1, Math.floor(range.to)); i++) if (Math.abs(values[i]) > most) most = Math.abs(values[i]);
+        return most;
+      };
+      function bubbleView() {
+        /** @type {any} */
+        let data = null, options = /** @type {any} */ ({});
+        // The bubbles drawn, by size, kept between frames, nothing made anew each: their bars, and as drawn (CSS pixels)
+        // their middles and radii, for what's hit.
+        let order = new Int32Array(0), ups = new Uint8Array(0), radii = new Float64Array(0), xs = radii, ys = radii, drawn = 0;
+        return {
+          renderer: () => ({
+            draw: (/** @type {any} */ target, /** @type {(price: number) => number | null} */ toY) => target.useBitmapCoordinateSpace((/** @type {any} */ scope) => {
+              drawn = 0;
+              const range = data?.visibleRange, most = options.most;
+              if (!range || !data.bars.length || !(most > 0)) return;
+              const { context, horizontalPixelRatio: h, verticalPixelRatio: v } = scope;
+              const from = Math.max(0, range.from), to = Math.min(data.bars.length, range.to);
+              if (order.length < to - from) (order = new Int32Array((to - from) * 2)), (ups = new Uint8Array((to - from) * 2)), ([radii, xs, ys] = [0, 0, 0].map(() => new Float64Array((to - from) * 2)));
+              const least = options.hide * most, R = options.size / 2;
+              let n = 0;
+              for (let i = from; i < to; i++) {
+                const { x, originalData: row } = data.bars[i], size = Math.abs(row.v), at = size > 0 && size >= least ? toY(row.y) : null;
+                if (at === null) continue;
+                (order[n] = n), (ups[n] = row.v >= 0 ? 1 : 0), (xs[n] = x), (ys[n] = at), (radii[n++] = R * Math.sqrt(Math.min(1, size / most)));
+              }
+              const sorted = order.subarray(0, n).sort((a, b) => radii[b] - radii[a]);
+              context.lineWidth = Math.max(1, Math.floor(h));
+              for (const k of sorted) {
+                const up = ups[k] === 1, cx = xs[k] * h, cy = ys[k] * v, r = radii[k] * h;
+                if (options.halo) {
+                  context.beginPath();
+                  context.arc(cx, cy, r + Math.max(1, Math.round(1.5 * h)), 0, Math.PI * 2);
+                  context.fillStyle = options.halo;
+                  context.fill();
+                }
+                context.beginPath();
+                context.arc(cx, cy, r, 0, Math.PI * 2);
+                context.fillStyle = up ? options.up : options.down;
+                context.fill();
+                context.strokeStyle = up ? options.upEdge : options.downEdge;
+                context.stroke();
+              }
+              drawn = n;
+            }),
+            // (A point in a bubble, the topmost: drawn last, the smallest.)
+            hitTest: (/** @type {number} */ x, /** @type {number} */ y) => {
+              let best = -1;
+              for (let k = 0; k < drawn; k++) if (Math.hypot(x - xs[k], y - ys[k]) <= radii[k] && (best < 0 || radii[k] < radii[best])) best = k;
+              return best < 0 ? null : { distance: 0, type: /** @type {const} */ ("point") };
+            },
+          }),
+          update: (/** @type {any} */ next, /** @type {LC.CustomSeriesOptions} */ given) => ((data = next), (options = given)),
+          priceValueBuilder: (/** @type {any} */ row) => [row.y],
+          /** @param {any} row @returns {row is LC.CustomSeriesWhitespaceData<LC.Time>} */
+          isWhitespace: (row) => !Number.isFinite(row.y),
+          defaultOptions: () => ({ ...LC.customSeriesDefaultOptions, up: "transparent", upEdge: "transparent", down: "transparent", downEdge: "transparent", size: BUBBLE_SIZE, hide: BUBBLE_HIDE, most: 0, halo: "", hitTestTolerance: 0 }),
         };
       }
 
@@ -22045,7 +22199,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!pane.stack) continue;
           const shares = pane.stack === "percent";
           for (const side of ["left", "right"]) {
-            const layers = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && !layer.from && layer.type !== "signal" && data.results.get(layer.id)?.values);
+            const layers = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && !layer.from && !placedOn(layer) && data.results.get(layer.id)?.values);
             if (!layers.length) continue;
             const n = data.results.get(layers[0].id).values.length, total = new Float64Array(n), group = `${pane.id}:${side}`;
             for (const [rank, layer] of (pane.reverse ? [...layers].reverse() : layers).entries()) {
@@ -22392,7 +22546,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const layer of doc.layers) {
           const all = gapped(data.results.get(layer.id)?.values, data.results.get(layer.id)), values = all && start ? Array.prototype.slice.call(all, start) : all, highAll = stacked.get(layer.id)?.values, high = highAll && start ? Array.prototype.slice.call(highAll, start) : highAll, bars = layer.type === "histogram" && modeOf(doc, layer) === 0;
           // (A chart's mark is its lines: a cloud, a range, isn't one; a signal's marks neither.)
-          if (!values || layer.type === "cloud" || layer.type === "signal") continue;
+          if (!values || layer.type === "cloud" || placedOn(layer)) continue;
           const base = baseOf(layer);
           own.set(layer.id, shapeOf(values, modeOf(doc, layer), bars, base));
           shapes.set(layer.id, high ? shapeOf(high, modeOf(doc, layer), bars, base) : own.get(layer.id));
@@ -22695,7 +22849,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Each side of a pane has its own scale, as on the chart.
           for (const side of ["left", "right"]) {
             // (A signal's marks aren't drawn this small.)
-            const shaped = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && layer.type !== "signal" && data.results.get(layer.id)?.values && !fromUnfit(doc, layer)).map((layer) => {
+            const shaped = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && !placedOn(layer) && data.results.get(layer.id)?.values && !fromUnfit(doc, layer)).map((layer) => {
               const values = /** @type {Vector} */ (gapped(stacked.get(layer.id)?.values ?? data.results.get(layer.id)?.values, data.results.get(layer.id))), mode = modeOf(doc, layer);
               // Percent and indexed scales start from the first value in view.
               let base = NaN;
@@ -24951,6 +25105,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (layer.type === "cloud") body = `<path d="M1 4.5c2.4-2 4.6-2.4 7-1.3s4.6 1 7-1.6v6.2c-2.4 2.6-4.6 2.6-7 1.5S3.4 8.1 1 10Z" fill="${color}" fill-opacity=".35"/>`;
         // (A signal's, its mark.)
         else if (layer.type === "signal") body = markBody(layer.place, color);
+        // (Bubbles', two: one in each of their colors, below zero and above.)
+        else if (layer.type === "bubbles") body = `<circle cx="4.5" cy="7.5" r="2.5" fill="${below}" fill-opacity=".4" stroke="${below}"/><circle cx="11" cy="5.5" r="4" fill="${color}" fill-opacity=".4" stroke="${color}"/>`;
         // (A heatmap's, cells of it: its unrealized P&L's, its loss over its profit.)
         else if (layer.type === "heatmap") body = [[0.3, 0.6, 1, 0.5], [0.6, 1, 0.45, 0.25], [1, 0.45, 0.2, 0.6]].map((row, r) => row.map((opacity, k) => `<rect x="${(1 + k * 3.6).toFixed(1)}" y="${(2 + r * 3.3).toFixed(1)}" width="3" height="2.7" rx=".5" fill="${layer.measure === "pnl" && !r ? below : color}" fill-opacity="${opacity}"/>`).join("")).join("");
         else if (ys && layer.type === "histogram" && modeOf(chart, layer) === 0) {
@@ -25170,6 +25326,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const presetMark = (/** @type {number} */ i) => markOf(presetMarks.get(presetMarkKey(i)) ?? []).replace("<svg ", `<svg data-preset-mark="${i}" `);
       /** The preset rows in sight, their marks drawn one at a time; one gone out of sight before its turn, let go of. */
       const presetMarkQueue = /** @type {Set<number>} */ (new Set());
+      /** ⌘K's preset rows in sight, their marks to draw; out of sight, or written again (see renderPalette), let go of. */
+      const paletteMarksSeen = new IntersectionObserver((entries) => {
+        for (const { target, isIntersecting } of entries) {
+          const i = Number(/** @type {HTMLElement} */ (target).dataset.presetMark);
+          if (isIntersecting) presetMarksAsked.add(i), paletteMarksAsked.add(i);
+          else presetMarksAsked.delete(i), paletteMarksAsked.delete(i);
+        }
+        drawPresetMarks();
+      }, { root: $("palette-list") });
+      /** The marks ⌘K's rows asked for, not drawn yet: its rows written again, let go of. */
+      const paletteMarksAsked = /** @type {Set<number>} */ (new Set());
+      const forgetPaletteMarks = () => (paletteMarksSeen.disconnect(), paletteMarksAsked.forEach((i) => presetMarksAsked.delete(i)), paletteMarksAsked.clear());
+      /**
+       * ⌘K's rows' preset marks as they're written: drawn since their rows were made (a row's icon as it was then), drawn;
+       * not drawn yet, watched till they're in sight. @param {ParentNode} rows
+       */
+      const seePaletteMarks = (rows) => {
+        for (const mark of rows.querySelectorAll("[data-preset-mark]")) {
+          const i = Number(/** @type {HTMLElement} */ (mark).dataset.presetMark);
+          if (!presetMarks.has(presetMarkKey(i))) paletteMarksSeen.observe(mark);
+          else if (!mark.classList.contains("chart-mark")) mark.outerHTML = presetMark(i);
+        }
+      };
       /** The presets a menu shows, their marks to draw (apart from the sidebar's rows in sight, which it clears). */
       const presetMarksAsked = /** @type {Set<number>} */ (new Set());
       const presetRowsSeen = new IntersectionObserver((entries) => {
@@ -27578,7 +27757,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const presetRow = (/** @type {number} */ i, deep = false) => {
         const preset = /** @type {Preset[]} */ (presets)[i], edited = keptPreset(i), title = edited ? titleOf(edited) : preset.t;
         return {
-          kind: "row", key: `preset:${i}`, icon: ICONS.presets, label: title, ...(deep ? { aside: preset.p.slice(0, -1).join(" › "), under: true } : {}), verb: "Open",
+          // (Its mark as the sidebar's, drawn once its row's in sight (see paletteMarksSeen); the presets' icon till then.)
+          kind: "row", key: `preset:${i}`, icon: presetMarks.has(presetMarkKey(i)) ? presetMark(i) : ICONS.presets.replace("<svg ", `<svg data-preset-mark="${i}" `), label: title, ...(deep ? { aside: preset.p.slice(0, -1).join(" › "), under: true } : {}), verb: "Open",
           run: () => pickPreset(i),
           actions: () => presetActions(i, "palette"),
           preview: (/** @type {HTMLElement} */ panel) => {
@@ -28337,6 +28517,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <button type="button" class="cap small sheet-close" data-action="close-sheet" aria-label="Close" data-tip="Close">${ICONS.close}</button>
           </div>
           ${sourceSection}
+          ${layer.type === "bubbles" ? bubbleSection(layer) : ""}
           <section>
             <h3>Style</h3>
             ${typeField([layer])}
@@ -28349,7 +28530,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ${candlesField([layer])}
             ${outlineField([layer])}
             ${priceLineField([layer])}
-            ${layer.from || signal || layer.type === "heatmap" ? "" : levelsField(layer, unit, result)}
+            ${layer.from || placedOn(layer) || layer.type === "heatmap" ? "" : levelsField(layer, unit, result)}
           </section>
           ${signal ? "" : `<section>
             <h3>Layout</h3>
@@ -28410,7 +28591,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       const opacityField = (/** @type {Layer[]} */ layers) => `<div class="field"><span>Opacity${resetFor("opacity", layers)}</span>${slider("opacity", layers)}</div>`;
       const widthField = (/** @type {Layer[]} */ layers) => {
-        if (!layers.every((layer) => layer.type !== "histogram" && layer.type !== "cloud" && layer.type !== "signal" && layer.type !== "heatmap")) return "";
+        if (!layers.every((layer) => layer.type !== "histogram" && layer.type !== "cloud" && !placedOn(layer) && layer.type !== "heatmap")) return "";
         const type = sharedBy(layers, (layer) => layer.type);
         return `<div class="field"><span>Width${resetFor("width", layers)}</span>${slider("width", layers, type === "candles" ? "The line candles turn into, zoomed out" : type === "dots" ? "Dot size, which also follows the zoom" : "")}</div>`;
       };
@@ -28440,7 +28621,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }).join("");
       };
       const priceLineField = (/** @type {Layer[]} */ layers) => {
-        if (!layers.every((layer) => layer.type !== "cloud" && layer.type !== "signal" && layer.type !== "heatmap")) return "";
+        if (!layers.every((layer) => layer.type !== "cloud" && !placedOn(layer) && layer.type !== "heatmap")) return "";
         const now = sharedBy(layers, (layer) => Boolean(layer.priceLine)), stacked = layers.some((layer) => layer.priceLine && chart.panes.find((pane) => pane.id === layer.pane)?.stack);
         return `<div class="field switch"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${now === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>${stacked ? `<p class="from-status" role="status">Not drawn in a stack.</p>` : ""}`;
       };
@@ -28448,6 +28629,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!layers.every((layer) => OUTLINED.has(layer.type))) return "";
         const now = sharedBy(layers, (layer) => Boolean(layer.outline));
         return `<div class="field switch"><span>Outline</span><div class="tabs" role="group" aria-label="Outline">${[[false, "Off", "No edge"], [true, "On", "Edged in the chart's background, to stand out over what's under it"]].map(([on, text, tip]) => `<button type="button" data-outline="${on ? 1 : 0}" aria-pressed="${now === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>`;
+      };
+      /**
+       * Bubbles' section in the inspector: the layer they're on (a menu of those that can carry them), their largest's
+       * size, what's too small to draw, what they're sized against. @param {Layer} layer
+       */
+      const bubbleSection = (layer) => {
+        const tabs = (/** @type {string} */ key, /** @type {string} */ label, /** @type {[string, string, string][]} */ list, /** @type {string} */ now) => `<div class="field"><span>${label}</span><div class="tabs" role="group" aria-label="${label}">${list.map(([value, text, says]) => `<button type="button" data-bubbles="${key}" data-value="${value}" aria-pressed="${now === value}" data-tip="${escape(says)}">${escape(text)}</button>`).join("")}</div></div>`;
+        return `<section>
+              <h3>Bubbles</h3>
+              <div class="field"><span>On</span><button type="button" class="preset" id="bubble-ref" aria-haspopup="menu" data-tip="The layer they're on">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Its pane's middle</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>
+              ${tabs("size", "Size", BUBBLE_SIZES.map((n) => [String(n), String(n), `The largest ${n} pixels across`]), String(layer.size ?? BUBBLE_SIZE))}
+              ${tabs("hide", "Hide below", BUBBLE_HIDES.map((n) => [String(n), n ? `${n * 100}%` : "None", n ? `None drawn under ${n * 100}% of the largest` : "Every one, however small"]), String(layer.hide ?? BUBBLE_HIDE))}
+              ${tabs("scale", "Sized to", [["", "In view", "The largest in view full size: zoomed in, as readable"], ["all", "All time", "The largest of all its history full size: sizes compare across periods"]], layer.scaleTo ?? "")}
+            </section>`;
       };
       const paneField = (/** @type {Layer[]} */ layers) => {
         if (layers.some(follows)) return "";
@@ -28736,7 +28931,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (layer.byLayers && modesOf(layer).includes("layers")) return "layers";
         if (layer.byLevels) return "levels";
         if (layer.type === "histogram") return layer.colors === 1 ? "one" : layer.colors === 4 ? "momentum" : "sides";
-        if (layer.type === "candles") return layer.colors === 1 ? "one" : "sides";
+        if (layer.type === "candles" || layer.type === "bubbles") return layer.colors === 1 ? "one" : "sides";
         if (layer.type === "baseline" || (TWO_KEPT.has(layer.type) && layer.colors !== 1 && layer.colorBelow !== undefined && modesOf(layer).includes("sides"))) return "sides";
         return "one";
       }
@@ -29208,7 +29403,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const colorSlot = new Map();
       const slotNow = (/** @type {Layer} */ layer) => ((places) => ((chosenSlot) => (places.some(([key]) => key === chosenSlot) ? /** @type {string} */ (chosenSlot) : places[0]?.[0] ?? "color"))(colorSlot.get(`${chart.id}:${layer.id}`)))(colorSlots(layer));
       /** What a layer can take its colors from: another layer, none taking its own (no loop of two). @param {Layer} layer */
-      const colorSources = (layer) => chart.layers.filter((other) => other.id !== layer.id && other.colorFrom !== layer.id && other.type !== "signal" && other.type !== "heatmap");
+      const colorSources = (layer) => chart.layers.filter((other) => other.id !== layer.id && other.colorFrom !== layer.id && !placedOn(other) && other.type !== "heatmap");
       /** What each way of coloring does, said beside it. */
       const MODE_ASIDES = { one: "The same all along", sides: "Above and below its base", momentum: "Growing and fading", levels: "Each level's color above it", layers: "Each one's own, where it's over", gradient: "By its value, its lowest to its highest", from: "Another layer's, by date" };
       /**
@@ -29927,7 +30122,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const letters = new Set();
         if (layer.formula !== undefined) try { for (const letter of refsOf(parse(layer.formula))) letters.add(letter); } catch {}
         // (A signal's ref is the layer it's marked on, not one it reads; a trend's, the one that flips it: read.)
-        for (const id of [...(layer.from ?? []), ...(layer.ref && layer.type !== "signal" ? [layer.ref] : [])]) {
+        for (const id of [...(layer.from ?? []), ...(layer.ref && !placedOn(layer) ? [layer.ref] : [])]) {
           const made = doc.layers.find((item) => item.id === id);
           if (made) letters.add(made.letter);
         }
@@ -30314,7 +30509,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (button.dataset.heatSet === "measure") reshape(item, (one) => (one.measure = value === "supply" ? undefined : value));
           else item.weight = value || undefined;
         });
-        else if (button.id === "trend-ref" || button.id === "signal-ref") refMenu(button, selected);
+        else if (button.id === "trend-ref" || button.id === "signal-ref" || button.id === "bubble-ref") refMenu(button, selected);
+        else if (button.dataset.bubbles) ((key, value) => editLayer((layer) => (key === "size" ? (layer.size = Number(value) === BUBBLE_SIZE ? undefined : Number(value)) : key === "hide" ? (layer.hide = Number(value) === BUBBLE_HIDE ? undefined : Number(value)) : (layer.scaleTo = value === "all" ? "all" : undefined))))(button.dataset.bubbles, button.dataset.value ?? "");
         else if (button.id === "signal-times") noValues(selected) ? notice(noValues(selected)) : openPage(timesPage(selected));
         else if (place) editLayer((layer) => (layer.place = place === "above" ? undefined : place));
         else if (action === "format-menu") formatMenu(button);
@@ -30591,6 +30787,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             : named.length === 1 ? [{ key: "to-series", icon: ICONS.series, label: "Turn into a series", aside: inPalette ? named[0] : undefined, mono: true, verb: "Turn", run: () => toSeries(id, named[0]) }]
             : named.length ? [{ key: "to-series", icon: ICONS.series, label: "Turn into a series", aside: inPalette ? `${named.length} series` : undefined, page: () => listPage("Turn into a series", () => seriesChoices(id), "Turn") }]
             : []),
+          // (Its values as bubbles on another layer, picked: see bubbleView.)
+          ...(layer.from || placedOn(layer) || layer.type === "heatmap" || !markable(chart).some((other) => other.id !== id) ? [] : [{ key: "bubbles", icon: glyph("bubbles"), label: "As bubbles on…", aside: inPalette ? "Sized by its values" : undefined, page: () => choicePage("As bubbles on", () => markable(chart).filter((other) => other.id !== id).map((other) => ({ key: other.id, icon: letterChip(other), label: labelOf(other), run: () => editById(id, (item) => reshape(item, (one) => Object.assign(one, { type: "bubbles", ref: other.id }))) }))) }]),
           // (Its settings', by its name: its eye there.)
           ...(where === "panel" ? [] : [{ key: "hide", icon: layer.hidden ? ICONS.eye : ICONS.eyeOff, label: layer.hidden ? "Show" : "Hide", kbd: "H", verb: layer.hidden ? "Show" : "Hide", stay: true, run: () => toggleHidden(id) }]),
           ...(layer.type !== "signal" && chart.layers.some((other) => other.pane === layer.pane && !itsOwn(other, layer)) ? [{ key: "solo", icon: ICONS.eye, label: alone ? "Show every layer in its pane" : "Show it alone in its pane", aside: inPalette && !alone ? "The others there hidden" : undefined, verb: "Show", stay: true, run: () => soloLayer(id) }] : []),
@@ -30709,7 +30907,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // ── Adding layers ─────────────────────────────────────────────────────────
 
       /** A series into this chart: with its unit's pane, else a new one; or a new pane, or `pane`, by choice. */
-      async function addSeries(name, { newPane = false, pane: into = /** @type {string | null} */ (null) } = {}) {
+      async function addSeries(name, { newPane = false, pane: into = /** @type {string | null} */ (null), bubbles = false } = {}) {
         const target = chart;
         if (!roomFor(target)) return;
         retryInfo(name);
@@ -30719,16 +30917,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         await presetsSettled();
         // (Another chart opened meanwhile, it's not added; the same one made anew (a preset refreshed), it is.)
         if (chart?.id !== target?.id || !roomFor(chart)) return;
-        if (meta && !datedIntervals(meta).length) return void blockOnly(name, (day) => addSeries(day, { newPane, pane: into }));
+        if (meta && !datedIntervals(meta).length) return void blockOnly(name, (day) => addSeries(day, { newPane, pane: into, bubbles }));
         const unit = meta ? unitOf(meta.type) : units.get(name) ?? "number";
         units.set(name, unit);
         // (A pane of its own wanted, every pane taken and the last a stack (where it would go): said, not summed into it.)
         const own = into ? null : newPane || !chart.layers.length ? undefined : paneShowing(chart, unit);
-        if (!into && !own && chart.layers.length && chart.panes.length >= MAX_PANES && chart.panes.at(-1)?.stack) return void notice(`A chart holds up to ${MAX_PANES} panes, the last a stack: add it to a pane from ⌘K's Actions`);
+        if (!bubbles && !into && !own && chart.layers.length && chart.panes.length >= MAX_PANES && chart.panes.at(-1)?.stack) return void notice(`A chart holds up to ${MAX_PANES} panes, the last a stack: add it to a pane from ⌘K's Actions`);
         /** @type {Layer | undefined} */
         let added;
         commit((doc) => {
           const look = firstLook(name, new Set(doc.layers.map((layer) => layer.color)));
+          // (As bubbles: on the chart's first layer that can carry them, where it is; none, a layer as any.)
+          const on = bubbles ? markable(doc)[0] : undefined;
+          if (on) return void doc.layers.push((added = makeLayer({ series: name, ...look, type: "bubbles", ref: on.id, pane: on.pane, side: on.side }, doc)));
           const found = into ? doc.panes.find((candidate) => candidate.id === into) : newPane || !doc.layers.length ? undefined : paneShowing(doc, unit);
           const sibling = found && doc.layers.find((layer) => layer.pane === found.id && unitFor(layer, resolved?.results.get(layer.id)) === unit);
           // (One of its unit stacked: not summed into it unasked, a pane of its own. A chart emptied: its pane as new.)
@@ -30825,7 +31026,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         toast(`Added ${labelOf(layer)}'s ${starts.length} halving cycles, each from its start`, editAdded(first));
       }
       /** Whether a trend is offered here: a layer that isn't made from layers (short of more, it says why: trendShort). */
-      const cloudable = () => chart.layers.some((layer) => !layer.from && layer.type !== "signal");
+      const cloudable = () => chart.layers.some((layer) => !layer.from && !placedOn(layer));
       /**
        * A layer made from layers (none made from layers: a cloud's two, its pane's edges among them maybe, a trend's two or
        * more), in the first one's pane, on its side; a cloud colored by them (each one's own where it's over); opened in
@@ -30952,7 +31153,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function refChoices(/** @type {string} */ id) {
         const trend = layerById(id);
         if (!trend) return [];
-        return (trend.type === "signal" ? markable(chart) : refsFor(chart, trend).filter((layer) => oneScale(layer, trend) || layer.id === trend.ref)).map((layer) => ({ key: layer.id, icon: letterChip(layer), label: labelOf(layer), current: trend.ref === layer.id, run: () => trend.ref === layer.id || editById(id, (item) => (item.ref = layer.id)) }));
+        return (placedOn(trend) ? markable(chart) : refsFor(chart, trend).filter((layer) => oneScale(layer, trend) || layer.id === trend.ref)).map((layer) => ({ key: layer.id, icon: letterChip(layer), label: labelOf(layer), current: trend.ref === layer.id, run: () => trend.ref === layer.id || editById(id, (item) => (item.ref = layer.id)) }));
       }
       /**
        * Formulas from a layer: the starters (each its first formula, on its letter), or one's own.
@@ -31293,7 +31494,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * What ⌘K's doing: browsing everything; adding a series (`into` a pane chosen beforehand: its id, or "new", each into a
        * new one); replacing a `layer`'s series; a formula, added (`into` a pane) or a layer's own, `editing`.
-       * @typedef {{ kind: "browse" } | { kind: "add", into: string | null } | { kind: "replace", layer: string } | { kind: "formula", editing: string | null, into: string | null, signal?: boolean, side?: string | null }} PaletteOp
+       * @typedef {{ kind: "browse" } | { kind: "add", into: string | null, bubbles?: boolean } | { kind: "replace", layer: string } | { kind: "formula", editing: string | null, into: string | null, signal?: boolean, side?: string | null }} PaletteOp
        */
       const palette = {
         path: /** @type {string[]} */ ([]),
@@ -31310,6 +31511,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** Adding a series: series and the catalog only. */
         get adding() {
           return this.op.kind === "add";
+        },
+        /** Adding a series as bubbles (on the chart's first layer that can carry them). */
+        get bubbles() {
+          return this.op.kind === "add" && Boolean(this.op.bubbles);
         },
         /** The layer whose series a pick replaces. */
         get replacing() {
@@ -31394,13 +31599,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const left = $("palette").open ? -1 : palette.pages.findIndex((page) => page.left);
         if (left >= 0) leavePages(left);
       });
+      /** Whether ⌘K was opened by Home's search, to be on it (see placeOnHome). */
+      let paletteOnField = false;
       /**
-       * ⌘K opened on Home, browsing, by its search or not: on that search, as wide as it, its field over it (see
+       * ⌘K opened by Home's search (a click on it, typing in it; ⌘K itself, the sidebar's Search: ⌘K as everywhere),
+       * browsing: on that search, as wide as it, its field over it (see
        * .palette[data-on-home]); kept on it as Home's box, or what of the page shows, changes. Where it can't be (a
        * phone's sheet, the field out of sight, or too low for ⌘K under it), where it always opens.
        */
       function placeOnHome() {
-        const dialog = $("palette"), at = palette.op.kind === "browse" && home && "top" in homeAt && !phone.matches ? document.querySelector(".home-search")?.getBoundingClientRect() : undefined;
+        const dialog = $("palette"), at = paletteOnField && palette.op.kind === "browse" && home && "top" in homeAt && !phone.matches ? document.querySelector(".home-search")?.getBoundingClientRect() : undefined;
         // (What of the page shows: a tablet's keyboard covers its foot.)
         const foot = viewport.offsetTop + viewport.height;
         const fits = Boolean(at && at.top >= viewport.offsetTop && foot - at.top - 16 >= 240);
@@ -31432,7 +31640,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * swapped; `formula`: a formula to add (`into` a pane) or, `editing`, a formula layer's own; `query` starts the
        * search, `path` the folder it opens on and `landOn` the row; `resume`: back where it was put away, if it can be.
        */
-      function openPalette({ add = false, replace = /** @type {string | null} */ (null), query = "", formula = false, editing = /** @type {string | null} */ (null), into = /** @type {string | null} */ (null), path = /** @type {string[] | null} */ (null), landOn = /** @type {string | null} */ (null), resume = false, typing = false, signal = false, side = /** @type {string | null} */ (null) } = {}) {
+      function openPalette({ add = false, replace = /** @type {string | null} */ (null), query = "", formula = false, editing = /** @type {string | null} */ (null), into = /** @type {string | null} */ (null), path = /** @type {string[] | null} */ (null), landOn = /** @type {string | null} */ (null), resume = false, typing = false, signal = false, side = /** @type {string | null} */ (null), bubbles = false, onField = false } = {}) {
         paletteOpenings++;
         // (Resumed only where it was browsing: adding, replacing or a formula start again.)
         const spot = resume && putAway?.browsing && (putAway.anywhere || (putAway.chart === chart.id && putAway.home === home)) ? putAway.state : null;
@@ -31446,7 +31654,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!spot) leavePages(0);
         Object.assign(palette, spot ?? { pages: [], root: {}, query, path: path ?? (back ? back.path.slice() : []), landOn: landOn ?? back?.key ?? null });
         paletteShown = null;
-        palette.op = replace ? { kind: "replace", layer: replace } : formula ? { kind: "formula", editing, into, signal, side } : add ? { kind: "add", into } : { kind: "browse" };
+        palette.op = replace ? { kind: "replace", layer: replace } : formula ? { kind: "formula", editing, into, signal, side } : add ? { kind: "add", into, bubbles } : { kind: "browse" };
         const dialog = $("palette"), input = $("palette-input");
         if (!dialog.open) (trailDrawn = ""), dialog.removeAttribute("data-half");
         // (By touch, opened with the focus on ⌘K, not its field: no keyboard till it's tapped (the Search tab too: a keyboard
@@ -31456,7 +31664,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Opened again as it leaves: it stays, put away no more.)
         if (dialog.dataset.leaving) (dismissing = false), arrive(dialog);
         // (On Home, on its search, see placeOnHome; its motion from its second frame, the first the opening's.)
-        if (!dialog.open) placeOnHome(), dialog.toggleAttribute("data-arriving", dialog.hasAttribute("data-on-home") && !reduced.matches);
+        if (!dialog.open) (paletteOnField = onField), placeOnHome(), dialog.toggleAttribute("data-arriving", dialog.hasAttribute("data-on-home") && !reduced.matches);
         if (dialog.hasAttribute("data-arriving")) requestAnimationFrame(() => requestAnimationFrame(() => dialog.removeAttribute("data-arriving")));
         if (!dialog.open) (input.inert = !keys), dialog.showModal(), (input.inert = false), !keys && dialog.focus();
         if (typing && TOUCH) input.focus();
@@ -31507,7 +31715,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const replacing = palette.replacing && layerById(palette.replacing)?.series;
         chip.hidden = (!palette.adding && !palette.formula && !replacing) || palette.pages.length > 0;
         const into = palette.into === "new" ? " · new pane" : palette.into ? ` · pane ${paneNumber(palette.into)}` : "";
-        chip.textContent = replacing ? `Replace ${layerById(palette.replacing)?.letter ?? ""}` : palette.formula ? (palette.editing ? `Edit ${layerById(palette.editing)?.letter ?? "formula"}` : palette.signal ? "Signal" : `Formula${into}`) : `Layer${into}`;
+        chip.textContent = replacing ? `Replace ${layerById(palette.replacing)?.letter ?? ""}` : palette.formula ? (palette.editing ? `Edit ${layerById(palette.editing)?.letter ?? "formula"}` : palette.signal ? "Signal" : `Formula${into}`) : palette.bubbles ? "Bubbles" : `Layer${into}`;
         $("palette").dataset.mode = palette.formula ? "formula" : "";
         chip.disabled = Boolean(replacing);
         if (replacing) delete chip.dataset.tip;
@@ -32322,6 +32530,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // or moved through.)
         palette.drawn = Math.min(palette.items.length, Math.max(PALETTE_PAGE, palette.active + PALETTE_PAGE / 2, same ? palette.drawn ?? 0 : 0));
         list.innerHTML = optionsHtml(0, palette.drawn) + (tail ? tail.replace("<li ", "<li data-tail ") : "");
+        forgetPaletteMarks();
+        seePaletteMarks(list);
         if (same) list.scrollTop = kept;
         // (A list taller than its rows, as many more as fill it: seen, laid out, on the next frame.)
         if (palette.drawn < palette.items.length) requestAnimationFrame(() => list.scrollHeight <= list.clientHeight + 400 && drawOptions(palette.drawn + PALETTE_PAGE));
@@ -32377,6 +32587,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const list = $("palette-list"), made = document.createElement("template");
         made.innerHTML = optionsHtml(palette.drawn, to);
         drawKeys(made.content);
+        seePaletteMarks(made.content);
         list.insertBefore(made.content, list.querySelector(":scope > [data-tail]"));
         palette.drawn = to;
       }
@@ -32443,9 +32654,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!item) return void (panel.innerHTML = "");
         if (item.kind === "formula") return previewFormula(panel);
         if (item.recipe) return previewFormula(panel, item);
-        // (A phone's has no room for it (hidden): nothing drawn there at each letter typed. A formula's is computed above:
-        // its row says what it finds.)
-        if (phone.matches) return void (panel.firstChild && (panel.innerHTML = ""));
+        // (A phone's has no room for it (hidden), nor Home's list: nothing drawn there at each letter typed, nor as it
+        // unrolls. A formula's is computed above: its row says what it finds.)
+        if (phone.matches || $("palette").hasAttribute("data-on-home")) return void (panel.firstChild && (panel.innerHTML = ""));
         if (item.kind === "row") return previewRow(panel, item);
         if (item.kind === "insert" && !item.series) return void (panel.innerHTML = previewPiece(item));
         if (item.kind === "folder") {
@@ -32597,7 +32808,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return [
             { icon: ICONS.plus, label: palette.into === "new" ? "Add to a new pane" : palette.into ? `Add to pane ${paneNumber(palette.into)}` : "Add to chart", kbd: "↵", run: () => choose() },
             { label: "Add and keep going", icon: ICONS.plus, kbd: "⌘↵", stay: true, run: () => choose(false, true) },
-            ...(chart.layers.length ? [...(room && palette.into !== "new" ? [{ label: "Add to a new pane", icon: ICONS.pane, kbd: "⇧↵", run: () => choose(true) }] : []), ...intoPanes((pane) => addSeries(name, { pane }))] : []),
+            ...(chart.layers.length && !palette.bubbles ? [...(room && palette.into !== "new" ? [{ label: "Add to a new pane", icon: ICONS.pane, kbd: "⇧↵", run: () => choose(true) }] : []), ...intoPanes((pane) => addSeries(name, { pane }))] : []),
             ...(layer?.series && layer.series !== name ? [{ label: `Replace ${layer.letter} with it`, icon: ICONS.swap, aside: labelOf(layer), run: () => replaceSeries(layer.id, name) }] : []),
             { label: "New chart with it", icon: ICONS.plus, run: () => newChartWith(name) },
             { label: "Copy the series name", icon: ICONS.copy, run: () => copyName(name) },
@@ -33072,6 +33283,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { kind: "row", key: "add:cloud", icon: ICONS.cloud, label: "Cloud", aside: "Filled between layers", group: "Made from your layers", other: true, under: true, verb: "Add", page: () => fromPage("cloud") },
           ] : []),
           ...(markable(chart).length ? [
+            { kind: "row", key: "add:bubbles", icon: glyph("bubbles"), label: "Bubbles", aside: "A series' sizes on a layer", group: "Made from your layers", other: true, under: true, verb: "Add", run: () => openPalette({ add: true, bubbles: true }) },
             { kind: "row", key: "add:signal", icon: ICONS.signal, label: "Signal", aside: "Marks where a formula turns up or down", group: "Made from your layers", other: true, under: true, verb: "Add", run: () => addSignal() },
           ] : []),
           ...(cloudable() ? [
@@ -33294,6 +33506,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               : layer.series ? [{ key: "series", icon: ICONS.swap, label: "Replace series", aside: layer.series, mono: true, verb: "Replace", group: first, leads: true, stay: true, run: () => changeSeries(id) }]
               : [{ key: "formula", icon: ICONS.formula, label: "Formula", aside: layer.formula, mono: true, verb: "Edit", group: first, leads: true, stay: true, run: () => editFormula(id) }]),
             ...(layer.type === "trend" ? [{ key: "ref", icon: ICONS.riding, label: "Flips when it touches", aside: ((ref) => (ref ? labelOf(ref) : "None"))(layerById(layer.ref ?? "")), group: "Trend", page: () => choicePage("Flips when it touches", () => refChoices(id)) }] : []),
+            ...(layer.type === "bubbles" ? [
+              { key: "ref", icon: glyph("bubbles"), label: "On", aside: ((ref) => (ref ? labelOf(ref) : "Its pane's middle"))(layerById(layer.ref ?? "")), group: "Bubbles", page: () => choicePage("On", () => refChoices(id)) },
+              { key: "size", icon: glyph("bubbles"), label: "Size", aside: `${layer.size ?? BUBBLE_SIZE} pixels`, group: "Bubbles", page: () => choicePage("Size", () => BUBBLE_SIZES.map((n) => ({ key: String(n), label: `${n} pixels`, aside: n === BUBBLE_SIZE ? "Its own" : undefined, current: (now().size ?? BUBBLE_SIZE) === n, ...both((item) => (item.size = n === BUBBLE_SIZE ? undefined : n)) }))) },
+              { key: "hide", icon: glyph("bubbles"), label: "Hide below", aside: ((n) => (n ? `${n * 100}% of the largest` : "None"))(layer.hide ?? BUBBLE_HIDE), group: "Bubbles", page: () => choicePage("Hide below", () => BUBBLE_HIDES.map((n) => ({ key: String(n), label: n ? `${n * 100}%` : "None", aside: n ? "Of the largest" : "Every one, however small", current: (now().hide ?? BUBBLE_HIDE) === n, ...both((item) => (item.hide = n === BUBBLE_HIDE ? undefined : n)) }))) },
+              { key: "sized", icon: glyph("bubbles"), label: "Sized to", aside: layer.scaleTo === "all" ? "All time" : "In view", verb: layer.scaleTo === "all" ? "Size to what's in view" : "Size to all time", group: "Bubbles", stay: true, run: set((item) => (item.scaleTo = item.scaleTo === "all" ? undefined : "all")) },
+            ] : []),
             ...(layer.type === "signal" ? [
               { key: "ref", icon: ICONS.signal, label: "Marked on", aside: ((ref) => (ref ? labelOf(ref) : "None"))(layerById(layer.ref ?? "")), group: first, page: () => choicePage("Marked on", () => refChoices(id)) },
               { key: "place", icon: glyphSvg(markBody(layer.place, "currentColor")), label: "Shown as", aside: placeName(layer.place ?? "above"), group: first, page: () => choicePage("Shown as", () => MARK_PLACES.map(([place]) => ({ key: place, icon: glyphSvg(markBody(place, "currentColor")), label: placeName(place), current: (now().place ?? "above") === place, run: set((item) => (item.place = place === "above" ? undefined : place)) }))) },
@@ -33321,7 +33539,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               ...(layer.type === "heatmap" ? [] : [{ key: "relative", icon: ICONS.calendar, label: "Relative to", aside: layer.upToDate ? "Up to each date" : "All of history", group: "Style", page: () => choicePage("Relative to", () => /** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "What each day showed then, no hindsight"]]).map(([on, text, says]) => ({ key: String(on), label: text, aside: says, current: Boolean(now().upToDate) === on, ...both((item) => (item.upToDate = on || undefined)) }))) }]),
             ] : []),
             { key: "opacity", icon: ICONS.sliders, label: "Opacity", aside: `${Math.round(opacityOf(layer) * 100)}%`, group: "Style", page: () => choicePage("Opacity", () => OPACITIES.map((opacity) => ({ key: String(opacity), icon: ICONS.sliders, label: `${Math.round(opacity * 100)}%`, current: opacityOf(now()) === opacity, ...both((item) => (item.opacity = opacity === defaultOpacity(item) ? undefined : opacity)) }))) },
-            ...(layer.type !== "histogram" ? [{ key: "width", icon: ICONS.sliders, label: "Width", aside: `${layer.width}px`, group: "Style", page: () => choicePage("Width", () => WIDTHS.map((width) => ({ key: String(width), icon: ICONS.sliders, label: `${width}px`, current: now().width === width, ...both((item) => (item.width = width)) }))) }] : []),
+            ...(layer.type !== "histogram" && !placedOn(layer) ? [{ key: "width", icon: ICONS.sliders, label: "Width", aside: `${layer.width}px`, group: "Style", page: () => choicePage("Width", () => WIDTHS.map((width) => ({ key: String(width), icon: ICONS.sliders, label: `${width}px`, current: now().width === width, ...both((item) => (item.width = width)) }))) }] : []),
             ...(lineish ? [
               { key: "dash", icon: dashGlyph(style[2], style[3]), label: "Line style", aside: style[1], group: "Style", page: () => choicePage("Line style", () => dashChoices(now().dash, (dash) => both((item) => (item.dash = dash)))) },
               { key: "shape", icon: shapeGlyph(layer.shape ?? "straight"), label: "Shape", aside: SHAPES.find(([shape]) => shape === (layer.shape ?? "straight"))?.[1], group: "Style", page: () => choicePage("Shape", () => SHAPES.map(([shape, text]) => ({ key: shape, icon: shapeGlyph(shape), label: text, aside: shape === "steps" ? "Each value held until the next" : undefined, current: (now().shape ?? "straight") === shape, ...both((item) => (item.shape = shape === "straight" ? undefined : shape)) }))) },
@@ -33334,8 +33552,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ] : []),
             ...(layer.type === "candles" ? /** @type {const} */ ([["up", "Rising"], ["down", "Falling"]]).map(([kind, name]) => ((hollow) => ({ key: `hollow-${kind}`, icon: glyph("candles"), label: `${name} candles`, aside: hollow ? "Hollow" : "Filled", verb: hollow ? "Fill them" : "Make them hollow", group: "Style", stay: true, run: set((item) => (item.hollow = hollowFrom(kind === "up" ? !hollowOf(item, "up") : hollowOf(item, "up"), kind === "down" ? !hollowOf(item, "down") : hollowOf(item, "down")))) }))(hollowOf(layer, kind))) : []),
             ...(OUTLINED.has(layer.type) ? [{ key: "outline", icon: OUTLINE_GLYPH, label: "Outline", aside: layer.outline ? "On" : "Off", verb: layer.outline ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.outline = !item.outline || undefined)) }] : []),
-            { key: "price-line", icon: dashGlyph(2, 2), label: "Price line", aside: layer.priceLine ? (layer.type !== "signal" && chart.panes.find((pane) => pane.id === layer.pane)?.stack ? "On, not drawn in a stack" : "On") : "Off", verb: layer.priceLine ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.priceLine = !item.priceLine || undefined)) },
-            { key: "levels", icon: dashGlyph(5, 3), label: "Levels", aside: layer.levels?.length ? `${plural(layer.levels.length, "level")}${((why) => (why ? `, ${why.toLowerCase()}` : ""))(acrossUnfit(chart, layer))}` : "None", group: "Style", page: () => levelsPage(id) },
+            ...(layer.type === "bubbles" ? [] : [
+              { key: "price-line", icon: dashGlyph(2, 2), label: "Price line", aside: layer.priceLine ? (layer.type !== "signal" && chart.panes.find((pane) => pane.id === layer.pane)?.stack ? "On, not drawn in a stack" : "On") : "Off", verb: layer.priceLine ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.priceLine = !item.priceLine || undefined)) },
+              { key: "levels", icon: dashGlyph(5, 3), label: "Levels", aside: layer.levels?.length ? `${plural(layer.levels.length, "level")}${((why) => (why ? `, ${why.toLowerCase()}` : ""))(acrossUnfit(chart, layer))}` : "None", group: "Style", page: () => levelsPage(id) },
+            ]),
             { key: "pane", icon: ICONS.pane, label: "Pane", aside: `Pane ${at + 1}`, group: "Layout", page: () => choicePage("Pane", () => paneChoices([id])) },
             { key: "side", icon: ICONS.axis, label: "Axis", aside: layer.side === "left" ? "Left" : "Right", verb: `To the ${layer.side === "left" ? "right" : "left"}`, group: "Layout", stay: true, run: set((item) => (item.side = item.side === "left" ? "right" : "left")) },
             ...panePage(layer.pane).rows().filter((row) => row.key === "scale" || row.key === "stack" || row.key === "order").map((row) => ({ ...row, group: "Layout" })),
@@ -33812,7 +34032,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!replacing) addedFrom = palette.adding && palette.path.length ? { chart: chart.id, path: palette.path.slice(), key: item.key } : null;
         if (keep && !replacing) {
           // Added, and ⌘K stays on these results: the next one is a ⌘↵ away.
-          addSeries(item.name, { newPane, pane: newPane ? null : palette.into }).then(() => {
+          addSeries(item.name, { newPane, pane: newPane ? null : palette.into, bubbles: palette.bubbles }).then(() => {
             renderPalette();
             paletteKeys();
           });
@@ -33820,7 +34040,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         $("palette").close();
         if (replacing) replaceSeries(replacing, item.name);
-        else addSeries(item.name, { newPane, pane: newPane ? null : palette.into });
+        else addSeries(item.name, { newPane, pane: newPane ? null : palette.into, bubbles: palette.bubbles });
       }
 
       $("palette-input").addEventListener("input", (event) => {
@@ -35593,7 +35813,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(FILLS.includes(layer.fillOpacity) ? { fillOpacity: layer.fillOpacity } : {}),
             ...(layer.solid === true ? { solid: true } : {}),
             ...(["down", "both", "none"].includes(layer.hollow) ? { hollow: layer.hollow } : {}),
-            ...((made === "trend" || (!made && layer.type === "signal")) && typeof layer.ref === "string" ? { ref: layer.ref } : {}),
+            ...((made === "trend" || (!made && (layer.type === "signal" || layer.type === "bubbles"))) && typeof layer.ref === "string" ? { ref: layer.ref } : {}),
+            ...(!made && layer.type === "bubbles" ? { size: BUBBLE_SIZES.includes(layer.size) && layer.size !== BUBBLE_SIZE ? layer.size : undefined, hide: BUBBLE_HIDES.includes(layer.hide) && layer.hide !== BUBBLE_HIDE ? layer.hide : undefined, scaleTo: layer.scaleTo === "all" ? "all" : undefined } : {}),
             ...(MARK_PLACES.some(([place]) => place !== "above" && place === layer.place) ? { place: layer.place } : {}),
             ...(!made && layer.type === "signal" && layer.results === true ? { results: true } : {}),
             ...(typeof layer.colorFrom === "string" ? { colorFrom: layer.colorFrom } : {}),
@@ -36789,7 +37010,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The Search tab opens ⌘K, not the keyboard: that comes with a tap in its field, see openPalette.)
         else if (action === "palette") openPalette({ resume: true });
         // (Home's search, drawn as a field: ⌘K afresh, its keyboard with it by touch, as a tap on a field asks.)
-        else if (action === "search") openPalette({ typing: true });
+        else if (action === "search") openPalette({ typing: true, onField: target.matches(".home-search") });
         else if (action === "new-chart") newChart();
         else if (action === "close-preview") closePreview(chartById(target.dataset.preview ?? "") ?? chart);
         else if (action === "add-series") openPalette({ add: true, typing: target.hasAttribute("data-typing") });
@@ -36847,8 +37068,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           leave(/** @type {HTMLDialogElement} */ (dialog));
         });
         dialog.addEventListener("close", () => $("toast").parentElement === dialog && (cutFade($("toast")), (all$("dialog[open]").at(-1) ?? document.body).append($("toast"))));
-        // (Closed: no series being added or replaced any more.)
-        if (dialog.id === "palette") dialog.addEventListener("close", () => palette.op.kind !== "formula" && (palette.op = { kind: "browse" }));
+        // (Closed: no series being added or replaced any more. Open again by then (a row that closes it and opens it another
+        // way: Bubbles, adding), its way the new one.)
+        if (dialog.id === "palette") dialog.addEventListener("close", () => !(/** @type {HTMLDialogElement} */ (dialog).open) && palette.op.kind !== "formula" && (palette.op = { kind: "browse" }));
       }
 
       /**
@@ -36968,7 +37190,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const search = /** @type {HTMLElement | null} */ (closest(event, "[data-typing]"));
         if (search && event.key.length === 1 && event.key !== " " && !mod && !event.altKey) {
           event.preventDefault();
-          openPalette({ add: search.dataset.action === "add-series", query: event.key, typing: true });
+          openPalette({ add: search.dataset.action === "add-series", query: event.key, typing: true, onField: search.matches(".home-search") });
           const input = $("palette-input");
           return void input.setSelectionRange(input.value.length, input.value.length);
         }
@@ -37373,6 +37595,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // one; each as the chart is drawn, a preview's while one shows.)
         const doc = drawnDoc ?? chart, inDoc = (/** @type {string | undefined} */ id) => doc.layers.find((item) => item.id === id);
         const movedIds = new Set(layers.map((layer) => layer.id)), painting = new Set(toPaint.map((item) => item.id));
+        // (Bubbles on a layer that moved, or moving themselves: their latest where it is now, at their size now (a live
+        // value written as a point's, none of theirs, put right); the dates opened meanwhile, empty.)
+        for (const layer of doc.layers) {
+          const series = drawn.get(layer.id);
+          if (layer.type !== "bubbles" || !series || !(movedIds.has(layer.id) || movedIds.has(layer.ref ?? ""))) continue;
+          if (!movedIds.has(layer.id)) for (const gap of added.slice(0, -1)) series.update({ time: gap });
+          const on = inDoc(layer.ref), y = on ? /** @type {Vector | undefined} */ (built.get(on.id)?.shown)?.[at] ?? NaN : 0.5;
+          series.update({ time, v: data.results.get(layer.id)?.values?.[at] ?? NaN, y: on && !(Number.isFinite(y) && (modeOf(doc, on) !== 1 || y > 0)) ? NaN : y });
+        }
         for (const [id, painted] of paintedPoints) {
           const layer = inDoc(id), last = painted.points[at];
           if (!layer || painting.has(id) || !painted.paintWith || painted.points.length !== at + 1 || !last || !("value" in last || "high" in last)) continue;
