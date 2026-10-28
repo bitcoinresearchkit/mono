@@ -34,7 +34,7 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
                 let mut response = Json(Health {
                     status: HealthStatus::Healthy,
                     service: Cow::Borrowed("brk"),
-                    version: ServerVersion(Cow::Borrowed(VERSION)),
+                    version: ServerVersion(Cow::Borrowed(VERSION.as_str())),
                     timestamp,
                     started_at: state.started_at.to_string(),
                     uptime_seconds: uptime.as_secs(),
@@ -134,6 +134,6 @@ pub(super) fn add_routes(router: ApiRouter<AppState>) -> ApiRouter<AppState> {
 
 async fn version(headers: HeaderMap, _: Empty) -> Response {
     Response::cached_bytes(&headers, &CacheParams::deploy(), "application/json", || {
-        Bytes::from_static(concat!("\"", env!("CARGO_PKG_VERSION"), "\"").as_bytes())
+        Bytes::from(format!("\"{}\"", *VERSION))
     })
 }

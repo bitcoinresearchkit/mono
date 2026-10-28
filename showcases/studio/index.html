@@ -1259,30 +1259,21 @@
         }
       }
 
-      /* A row that opens and closes (a group's head, a folder, a section of the presets): its way, what opens and closes
-         it (the row itself goes to its page), as it's pointed at or reached by a key, › closed, ⌄ open (after its count, a
-         head's; after its dot, holding the open chart); at rest, none, what's under it (or not) saying which (the list kept
-         quiet). By touch, always: nothing points at it first. */
+      /* A row that opens and closes (a group's head, a folder, a section of the presets): its way, as it's pointed at or
+         reached by a key, › closed, ⌄ open (after its count, a head's; after its dot, holding the open chart); at rest,
+         none, what's under it (or not) saying which (the list kept quiet). */
       :is(.list-head, .folder-row) .turn {
         display: inline-flex;
         flex: none;
         order: 1;
         align-self: center;
-        /* (A finger's or a pointer's room around it, its place as it was.) */
-        margin: -6px;
-        padding: 6px;
         color: var(--count);
         opacity: 0;
         rotate: 90deg;
-        transition: rotate var(--dur-small) var(--ease), color var(--fade);
-
-        &:hover:where(.can-hover *) {
-          color: var(--ink);
-        }
+        transition: rotate var(--dur-small) var(--ease);
       }
 
-      :is(.list-head, .folder-row):is(:hover:where(.can-hover *), :has(:focus-visible)) .turn,
-      :root:not(.can-hover) :is(.list-head, .folder-row) .turn {
+      :is(.list-head, .folder-row):is(:hover:where(.can-hover *), :has(:focus-visible)) .turn {
         opacity: 1;
       }
 
@@ -10846,11 +10837,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         fingers.addEventListener("change", mark);
       }
       const tablet = matchMedia("(max-width: 1100px)");
-      /** Studio's version: the Bitview server's that serves it (it comes with it), once it's said (else ""). */
+      /** Studio's version: the Bitview server's that serves it (it comes with it), as it says it (a release's, `v0.12.2`; a build of a commit, next's, `a1b2c3d`), once it's said (else ""). */
       let studioVersion = "";
       client.getVersion().then((said) => {
         studioVersion = typeof said === "string" ? said : "";
-        $("home-version").textContent = studioVersion ? `v${studioVersion}` : "";
+        $("home-version").textContent = studioVersion;
       }).catch(() => {});
       /** A Mac's keys (⌘, ⌥), else a PC's (Ctrl, Alt): as shortcuts are written. */
       const MAC = /Mac|iPhone|iPad/.test(navigator.platform);
@@ -24949,8 +24940,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether one of the sidebar's groups is closed there (on the rail too: its head's menu opens it). @param {Group} group */
       const groupShut = (group) => prefs.groupsClosed.includes(group);
       /**
-       * A group's head in the sidebar, as a folder's row: a click goes to its page, one on its turn opens or closes it there
-       * (kept); how many it holds, the turn showing which, as it's pointed at; its ⋯ (a right-click), its page first. Closed, holding the open chart, it
+       * A group's head in the sidebar, as a folder's row: a click opens or closes it there (kept); how many it holds, a
+       * turn showing which, as it's pointed at; its ⋯ (a right-click), its page first. Closed, holding the open chart, it
        * says so (as a folder does; holding the page shown, see renderSideNav). Its count none till it's known (the presets
        * not read yet).
        * @param {Group} group @param {number | null} count @param {boolean} holds @returns {[string, string]}
@@ -25056,8 +25047,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       /**
        * The presets in the sidebar, under your Library, under their name: their sections as folders are (a section's name
-       * goes to its page, its turn opens or closes it here, as kept), the presets in an open one as charts are (one opens
-       * it).
+       * opens or closes it here, as kept), the presets in an open one as charts are (one opens it).
        * @returns {[string, string][]}
        */
       function presetParts() {
@@ -25201,7 +25191,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return folder;
       }
       /**
-       * A folder opened or closed in the sidebar (its turn, ← →, its menu): what's in it unfolds from under it, or folds
+       * A folder opened or closed in the sidebar (its icon, ← →, its menu): what's in it unfolds from under it, or folds
        * back into it, and what's under them follows. Its icon turns at once; closing, the list is drawn without its charts
        * once they've folded away.
        */
@@ -25743,7 +25733,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...FOLDER_ICONS.map((name) => ({ key: name, icon: folderMark({ ...now(), icon: name }), label: capitalize(name), current: now().icon === name, run: () => setFolderIcon(id, name) })),
         ]) };
         return [
-          // (In ⌘K, opening it first, as its row's press does; in its menu, Rename first, as a chart's is.)
+          // (In ⌘K, View first, as its pages lead with their own (see viewRow); in its menu, Rename first, as a chart's is.)
           ...(inPalette ? [view, toggle, rename] : [view, rename, toggle]),
           icon,
           ...(inPalette && at > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", kbd: "⌥↑", verb: "Move", stay: true, run: () => stepFolder(id, -1) }] : []),
@@ -31447,7 +31437,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { title: prefs.linkView ? "Unlink the view" : "Link the view", text: prefs.linkView ? "Each chart goes back to its own dates; this one stays where it is." : "Every chart on the same dates, in every tab: moving the view moves it for all.", icon: "chain", kbd: "V", run: () => linkView(!prefs.linkView) },
           ...(empty ? [] : [{ title: panelShown() ? "Hide the layers panel" : "Show the layers panel", text: "The chart's layers and their settings.", icon: "panel", kbd: "P", run: () => togglePanel() }]),
           ...(phone.matches ? [] : [{ title: collapsed ? "Expand the sidebar" : "Collapse the sidebar", text: "Your Library and the presets, beside the chart.", icon: "sidebar", kbd: "\\", run: toggleSidebar, anywhere: true }]),
-          { title: "Studio's version", text: studioVersion ? `v${studioVersion}, the same as Bitview's.` : "The server hasn't reported its version yet.", icon: "recent", run: () => notice(studioVersion ? `Bitview Studio v${studioVersion}` : "The server hasn't reported its version yet"), anywhere: true },
+          { title: "Studio's version", text: studioVersion ? `${studioVersion}, the same as Bitview's.` : "The server hasn't reported its version yet.", icon: "recent", run: () => notice(studioVersion ? `Bitview Studio ${studioVersion}` : "The server hasn't reported its version yet"), anywhere: true },
           ...(!keyboard() ? [] : [{ title: "Shortcuts", text: "Every keyboard shortcut in Studio.", icon: "keyboard", kbd: "?", run: showShortcuts, anywhere: true }]),
           ...(!keyboard() ? [] : [true, false].map((on) => ({ title: `Single-key shortcuts: ${on ? "On" : "Off"}`, text: on ? "A letter, a digit or a sign alone acts (A adds a series, P the panel…)." : `Only shortcuts with ${keyText("⌘")} or ${keyText("⌥")} act: typing a letter by mistake does nothing.`, icon: "keyboard", anywhere: true, ...(prefs.keys === on ? { current: true } : { run: () => setSingleKeys(on) }) }))),
           { title: "How links work", text: "What a chart link holds, and how to write one or have an assistant write it.", icon: "link", run: showGuide, anywhere: true },
@@ -36508,20 +36498,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const menuFor = closest(event, "[data-chart-menu], [data-scale-menu], [data-pane-menu], [data-folder-menu]");
         const { chartMenu: chartId, paneMenu: paneId, folderMenu: folderId, scaleMenu: scaleId } = menuFor?.dataset ?? {};
         if (menuFor) return chartId ? chartMenu(menuFor, chartId) : paneId ? paneActions(menuFor, paneId) : folderId ? folderActions(menuFor, folderId) : scaleMenu(menuFor, /** @type {string} */ (scaleId));
-        // A folder in the sidebar, as a tree's row: a click goes to its page; on its way (›, ⌄), it opens or closes there
-        // (one under way turns back from where it is: clicks as fast as they come); renamed from its ⋯. A section of the
-        // presets and a group's head the same. On the rail, its menu (see railMenu).
-        const turned = Boolean(closest(event, ".turn"));
+        // A folder in the sidebar: each click opens or closes it there (one under way turns back from where it is: clicks
+        // as fast as they come); renamed from its ⋯. A section of the presets and a group's head the same. On the rail, its
+        // menu (see railMenu).
         const folderItem = closest(event, "[data-folder-item]");
-        if (folderItem) return railed() ? railMenu(folderItem) : ((id) => (turned ? toggleFolder(id) : goTo({ folder: id })))(/** @type {string} */ (folderItem.dataset.folderItem));
+        if (folderItem) return railed() ? railMenu(folderItem) : toggleFolder(/** @type {string} */ (folderItem.dataset.folderItem));
         const sectionMenu = closest(event, "[data-section-menu]");
         if (sectionMenu) return menuOf(sectionMenu, sectionRows(/** @type {string} */ (sectionMenu.dataset.sectionMenu)));
         const groupItem = closest(event, "[data-group-item]");
-        if (groupItem) return railed() ? railMenu(groupItem) : ((group) => (turned ? toggleGroup(group) : goTo(GROUP_OF[group][1])))(/** @type {Group} */ (groupItem.dataset.groupItem));
+        if (groupItem) return railed() ? railMenu(groupItem) : toggleGroup(/** @type {Group} */ (groupItem.dataset.groupItem));
         const groupMenu = closest(event, "[data-group-menu]");
         if (groupMenu) return menuOf(groupMenu, groupRows(/** @type {Group} */ (groupMenu.dataset.groupMenu)));
         const sectionItem = closest(event, "[data-section-item]");
-        if (sectionItem) return railed() ? railMenu(sectionItem) : ((key) => (turned ? toggleSection(key) : goTo(asPlace({ path: JSON.parse(key) }))))(/** @type {string} */ (sectionItem.dataset.sectionItem));
+        if (sectionItem) return railed() ? railMenu(sectionItem) : toggleSection(/** @type {string} */ (sectionItem.dataset.sectionItem));
         const sidePreset = closest(event, "#chart-list [data-open-preset]");
         if (sidePreset) return pickPreset(Number(sidePreset.dataset.openPreset));
         const recentItem = closest(event, "[data-open-recent]");

@@ -1387,7 +1387,9 @@ undefined one (e.g. NaN).
  * @property {Format=} format
  */
 /**
- * The server's version: its crate's, in SemVer (`0.12.2`; a pre-release, `0.13.0-beta.1`).
+ * The server's version: a release's, `v` and its SemVer (`v0.12.2`; a pre-release,
+ * `v0.13.0-beta.1`); built from a commit of the repository (`cargo install --git`, next's), that
+ * commit, short (`a1b2c3d`).
  *
  * @typedef {string} ServerVersion
  */

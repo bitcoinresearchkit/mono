@@ -29,6 +29,9 @@ Only what's left. An item done is removed: its history is in the commits and log
   then the system written down for your check (_notes/system-20261028/system.md; corners inside corners concentric,
   unless it makes no sense, you: "all radii inside radii follow the universal radii rule"), then area by area (sidebar, Home pages, chart header, panel, ⌘K, menus,
   dialogs, phone), each checked, reviewed and committed.
+- The sidebar: a folder's, a section's or a group's page from its row, as a button (you, 2026-10-28: "click of folders
+  and "presets" and "library" should be expand by default not go to, go to should be something else like an arrow"):
+  its place, your pick of four (→ ⋯, ⋯ →, → by the name, ⋯ by the name), mocked up.
 - The folders on the rail: "a ton of polish" needed; what you saw beyond what's fixed (depth, one menu, the flash,
   menu-bar switching, the toggle's speed and stale rows).
 

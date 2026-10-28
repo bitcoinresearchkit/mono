@@ -3,7 +3,7 @@
 use std::{
     any::Any,
     net::SocketAddr,
-    sync::Arc,
+    sync::{Arc, LazyLock},
     time::{Duration, Instant},
 };
 
@@ -61,6 +61,8 @@ mod response_time;
 #[cfg(feature = "series")]
 mod series_bodies;
 mod state;
+#[cfg(test)]
+mod tests;
 mod unacceptable_encoding;
 
 pub use api::ApiRoutes;
@@ -78,7 +80,47 @@ use raw_body::RawBodyPermit;
 #[cfg(feature = "series")]
 use series_bodies::SeriesBodies;
 
-pub(crate) const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// The version the server says it runs (`/version`, `/health`'s, every ETag's prefix):
+/// built by `cargo install --git` (next's), the commit it was built from, so each build is told
+/// apart; otherwise (a crates.io release, a local build), `v` and the release.
+pub(crate) static VERSION: LazyLock<String> = LazyLock::new(|| {
+    installed_commit().unwrap_or_else(|| format!("v{}", env!("CARGO_PKG_VERSION")))
+});
+
+/// The short commit `cargo install --git` built this binary from, as cargo recorded it: its record
+/// of installs (`.crates2.json`, in the root whose `bin/` holds the binary, its links followed)
+/// keys each by its package id, a git one ending `#` and the full commit. None for any other
+/// install, or none.
+fn installed_commit() -> Option<String> {
+    let exe = std::fs::canonicalize(std::env::current_exe().ok()?).ok()?;
+    let bin = exe.parent()?;
+    if bin.file_name()? != "bin" {
+        return None;
+    }
+    let record = std::fs::read(bin.parent()?.join(".crates2.json")).ok()?;
+    commit_installed(&record, exe.file_name()?.to_str()?)
+}
+
+/// In cargo's record of installs, the short commit this release's binary `name` was built from by
+/// `cargo install --git`; None if it came from anywhere else (another release's record, a source
+/// not a commit, a record not cargo's).
+fn commit_installed(record: &[u8], name: &str) -> Option<String> {
+    let record: serde_json::Value = serde_json::from_slice(record).ok()?;
+    record.get("installs")?.as_object()?.iter().find_map(|(id, install)| {
+        let bins = install.get("bins")?.as_array()?;
+        if !bins.iter().any(|bin| bin.as_str() == Some(name)) {
+            return None;
+        }
+        // (`name version (source)`, this release's, a git source's commit in hex digits.)
+        let (package, source) = id.strip_suffix(')')?.split_once(" (")?;
+        if package.split_once(' ')?.1 != env!("CARGO_PKG_VERSION") {
+            return None;
+        }
+        let (_, commit) = source.strip_prefix("git+")?.rsplit_once('#')?;
+        (commit.len() >= 7 && commit.bytes().all(|byte| byte.is_ascii_hexdigit()))
+            .then(|| commit[..7].to_string())
+    })
+}
 
 /// Per-request timeout. Hits return 504 Gateway Timeout.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(5);

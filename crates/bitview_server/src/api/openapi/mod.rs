@@ -190,7 +190,7 @@ Errors use `application/problem+json`:
 - [Bitview Studio](https://bitview.space/studio/) - Charts of any series, built on this API"#
                 .to_string(),
         ),
-        version: format!("v{VERSION}"),
+        version: VERSION.to_string(),
         contact: Some(Contact {
             name: Some("Bitview".to_string()),
             url: Some("https://github.com/bitcoinresearchkit/mono".to_string()),

@@ -13,7 +13,7 @@ impl Etag {
 
     /// A request's tag token without the release prefix, if it is this release's.
     pub fn unprefixed(token: &str) -> Option<&str> {
-        token.strip_prefix(VERSION)?.strip_prefix('-')
+        token.strip_prefix(VERSION.as_str())?.strip_prefix('-')
     }
 
     pub fn insert(&self, headers: &mut HeaderMap) {
@@ -36,7 +36,7 @@ impl From<String> for Etag {
         );
         let mut header = String::with_capacity(VERSION.len() + value.len() + 5);
         header.push_str("W/\"");
-        header.push_str(VERSION);
+        header.push_str(&VERSION);
         header.push('-');
         header.push_str(&value);
         header.push('"');
