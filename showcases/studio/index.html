@@ -30653,8 +30653,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...rank(browseRows(), rowText, words),
           ...rank(chart.layers.map((layer) => ({ ...layerRow(layer), group: "Layers" })), rowText, words),
           ...rank(chart.panes.map((pane, i) => ({ ...paneRow(pane.id, i), group: "Panes" })), rowText, words),
-          // (A setting by a word of its own, not its owner's alone: "mvrv" is the layer's row, "mvrv color" its color.)
-          ...rank(settings.filter((row) => words.some((typed) => typed.length > 1 && fitScore(row.itself, [typed]))), wayText, words).slice(0, 4),
+          // (A setting by a word of its own, not its owner's alone: "mvrv" is the layer's row, "mvrv color" its color; or
+          // of one of its choices: "gradient", its Colors, opened on Gradient.)
+          // (A slip in a choice's name finds it too: "dashde".)
+          ...((choices) => ((said) => rank(settings.filter((row) => words.some((typed) => typed.length > 1 && (fitScore(row.itself, [typed]) || fitScore(choices(row).said, [typed])))), said, words, said))((/** @type {any} */ row) => `${wayText(row)} ${choices(row).said}`).slice(0, 4).map((row) => {
+            // (Landed on by the words that don't name the setting nor its owner: "price line dashed", on Dashed; the
+            // one they fit best: "dashed", Dashed, not Long dashes.)
+            const asked = words.filter((typed) => typed.length > 1 && !fitScore(wayText(row), [typed]));
+            const chosen = asked.length ? choices(row).choices.map((choice) => /** @type {[any, number]} */ ([choice, fitScore(choice.label ?? "", asked)])).reduce((best, next) => (next[1] > best[1] ? next : best), [null, 0])[0]?.key : null;
+            return chosen == null ? row : { ...row, page: () => ((next) => ((palette.landOn = String(chosen)), next))(row.page()) };
+          }))(settingChoices()),
         ];
         // A date ("go to 2021", or just "nov 2021"): going there, on top.
         const span = everything && !home && chart.layers.length ? readDate(query.replace(/^go ?to\s+/i, "")) : null;
@@ -31457,7 +31465,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * in effect (ticked); `disabled`: why it can't act (said when pressed); `danger` marks it (red); `apart` sets it off
        * in a menu (a rule before it), as a new `group` does (in ⌘K, its heading); `text`, what ⌘K says of it as a command.
        * @typedef {{ label: string, aside?: string, text?: string, mono?: boolean, kbd?: string, icon?: string, run?: () => void, page?: () => Page, leads?: boolean, stay?: boolean, danger?: boolean, current?: boolean, marked?: boolean, disabled?: string, apart?: boolean, verb?: string, key?: string, group?: string, preview?: (panel: HTMLElement) => void, look?: (doc: Chart) => void }} Action
-       * @typedef {{ title: string | (() => string), heading?: boolean, placeholder?: string, rows: () => any[], options?: () => Action[], input?: { value: string, placeholder: string, read: (text: string) => string | null, hint: string | ((text: string) => string), verb: string, icon?: string, apply: (text: string) => void, preview?: (panel: HTMLElement, text: string) => void }, query?: string, landOn?: string | null, searches?: boolean, global?: boolean, left?: () => void }} Page
+       * @typedef {{ title: string | (() => string), heading?: boolean, placeholder?: string, rows: () => any[], options?: () => Action[], chooses?: boolean, input?: { value: string, placeholder: string, read: (text: string) => string | null, hint: string | ((text: string) => string), verb: string, icon?: string, apply: (text: string) => void, preview?: (panel: HTMLElement, text: string) => void }, query?: string, landOn?: string | null, searches?: boolean, global?: boolean, left?: () => void }} Page
        */
       const pageTitle = (/** @type {Page} */ page) => (typeof page.title === "function" ? page.title() : page.title);
       /** Edits from one word to another (a letter added, dropped, changed, two swapped), stopping past `most`. */
@@ -31506,8 +31514,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const dangerous = (/** @type {any} */ item) => Boolean(item.danger ?? item.command?.danger);
       /** What a row of ⌘K is called: a chart's title, a command's, a row's label (where a slip in typing still finds it). */
       const nameOf = (/** @type {any} */ item) => (item.kind === "chart" ? titleOf(chartById(item.key) ?? { title: "" }) : item.command?.title ?? item.label ?? "");
-      /** What's found, best first, then what's used most lately, then as listed (what removes, only when asked for). */
-      const rank = (list, textOf, words) => list.map((item, i) => /** @type {[any, number, number]} */ ([item, fitScore(textOf(item), words, nameOf(item)), i])).filter(([, score]) => score > 0).sort((a, b) => b[1] - a[1] || useScore(b[0].key) - useScore(a[0].key) || a[2] - b[2]).map(([item]) => item);
+      /**
+       * What's found, best first, then what's used most lately, then as listed (what removes, only when asked for);
+       * `named`, what a slip in typing still finds it by (see nameOf).
+       */
+      const rank = (list, textOf, words, named = nameOf) => list.map((item, i) => /** @type {[any, number, number]} */ ([item, fitScore(textOf(item), words, named(item)), i])).filter(([, score]) => score > 0).sort((a, b) => b[1] - a[1] || useScore(b[0].key) - useScore(a[0].key) || a[2] - b[2]).map(([item]) => item);
       /** What a row is found by: what it shows (its label, its aside, a layer's letter); a chart, by its title. */
       const rowText = (item) => (item.kind === "chart" ? titleOf(chartById(item.key) ?? { title: "" }) : `${item.label ?? ""} ${item.aside ?? ""} ${item.letter ?? ""}`);
       /** A way in, by what it is, not what it shows at its end (the chart's title: the chart's own row has it). */
@@ -31646,8 +31657,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * shows what a value would make of it.
        */
       function choicePage(title, options, preview = /** @type {any} */ (null)) {
-        // (Its search the choices', whatever its title: "Search move to folder" read as nothing.)
-        return { title, options, placeholder: "Search the choices", rows: () => options().map((option) => ({ kind: "row", verb: "Choose", ...(preview ? { preview: (panel) => preview(panel, option) } : {}), ...option, stay: true, run: () => {
+        // (Its search the choices', whatever its title: "Search move to folder" read as nothing. `chooses`: a setting's
+        // choices, what ⌘K's search finds it by too, see settingChoices.)
+        return { title, options, chooses: true, placeholder: "Search the choices", rows: () => options().map((option) => ({ kind: "row", verb: "Choose", ...(preview ? { preview: (panel) => preview(panel, option) } : {}), ...option, stay: true, run: () => {
           const page = palette.pages.at(-1);
           option.run();
           // (One that leads on to a page of its own, a new folder's name, leaves it there.)
@@ -31815,6 +31827,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }),
         })));
       }
+      /**
+       * A setting's choices (a choice page's, see choicePage; none for another page, a list's), each row's read once a
+       * search: what else it's found by (see settingRows), `said` their labels.
+       */
+      const settingChoices = () => {
+        const read = new Map();
+        /** @param {any} row @returns {{ said: string, choices: any[] }} */
+        return (row) => {
+          if (!read.has(row.key)) read.set(row.key, ((page) => ((choices) => ({ said: choices.map((choice) => choice.label ?? "").join(" "), choices }))(page?.chooses ? page.options() : []))(row.of?.()));
+          return read.get(row.key);
+        };
+      };
       /** Adding: what a layer can be besides a series, first on the page, in sight wherever it opens (and found by its words). */
       function otherLayerRows() {
         return [

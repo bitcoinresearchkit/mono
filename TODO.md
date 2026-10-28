@@ -19,12 +19,6 @@ Only what's left. An item done is removed: its history is in the commits and log
   back, its colors then shifting), not all of it; all of it would mean loading every chunk, or the day interval's
   extremes read beside it. To decide.
 
-- The rail's icons (you, 2026-10-27: do it): an icon per preset section; your folders' first letter by default, an icon
-  settable for each in the Library (no colors: you, powerful but not complicated).
-- Renaming or making a folder from the rail (you, 2026-10-27: do it): the compact editor beside its row, as mocked up,
-  not ⌘K's page.
-- Then a full pass over everything touched today and what it impacts (you, 2026-10-27): bugs, consistency, motion,
-  speed, duplication.
 - The folders on the rail: "a ton of polish" needed; what you saw beyond what's fixed (depth, one menu, the flash,
   menu-bar switching, the toggle's speed and stale rows).
 - Shortcuts opening by itself during quick sidebar toggles: its button takes no press mid-slide now (5 presses on it as
