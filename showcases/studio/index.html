@@ -899,12 +899,13 @@
         place-items: center;
       }
 
+      /* A row (the sidebar's, a menu's, ⌘K's: 32 each, see the system's rows). */
       .nav-item {
         display: flex;
         align-items: center;
         gap: 10px;
         width: 100%;
-        height: 30px;
+        height: 32px;
         border: 0;
         border-radius: var(--radius-md);
         padding: 0 8px 0 13px;
@@ -1135,11 +1136,16 @@
         }
       }
 
-      /* A row's ⋯ (a chart's, a folder's): at its end, shown as it's pointed at or reached. */
-      :is(.chart-row, .folder-row) .chart-more {
+      /* A row's ⋯ (a chart's, a folder's): at its end, shown as it's pointed at or reached; a row with a page (a folder's,
+         a section's, a group's head), its → before it, there to go to it (its ⋯ where every row's is). */
+      :is(.chart-row, .folder-row) :is(.chart-more, .chart-go) {
         position: absolute;
         right: 9px;
         opacity: 0;
+      }
+
+      .folder-row .chart-go {
+        right: 37px;
       }
 
       /* A sidebar row, a chart's or a folder's: its button, room at its end for the ⋯. */
@@ -1152,6 +1158,11 @@
         :is(.chart-item, .folder-item) {
           min-width: 0;
           padding-right: 34px;
+        }
+
+        /* (Its name clear of its → too.) */
+        &:has(> .chart-go) > .folder-item {
+          padding-right: 62px;
         }
       }
 
@@ -1321,7 +1332,7 @@
 
         &:hover:where(.can-hover *),
         &:has(:focus-visible) {
-          .chart-more {
+          :is(.chart-more, .chart-go) {
             opacity: 1;
           }
 
@@ -1898,7 +1909,7 @@
           /* A group's head, its mark alone (the rest faded, out of reach: buttons), its rule short as Charts' is: at the
              same height, nothing moves. */
           .list-head {
-            :is(.head-name, .count, .turn, .chart-more) {
+            :is(.head-name, .count, .turn, .chart-more, .chart-go) {
               visibility: hidden;
               opacity: 0;
               pointer-events: none;
@@ -1945,6 +1956,7 @@
           }
 
           .chart-more,
+          .chart-go,
           .nav-item kbd {
             visibility: hidden;
           }
@@ -1994,21 +2006,15 @@
           :is(.chart-row, .folder-row):is(.active, .in-folder, .action-row) > :is(.chart-item, .folder-item),
           .side-action,
           .side-foot .nav-item {
-            width: 30px;
-            margin-left: 6px;
-            padding: 0 0 0 7px;
-          }
-
-          .search {
-            height: 30px;
-            margin-top: 13px;
-            margin-bottom: 11px;
+            width: 32px;
+            margin-left: 5px;
+            padding: 0 0 0 8px;
           }
 
           .brand {
-            width: 30px;
-            margin-left: 6px;
-            padding: 0 0 0 3px;
+            width: 32px;
+            margin-left: 5px;
+            padding: 0 0 0 4px;
           }
 
           /* Holding ⌘ on the rail: each key takes the place of the icon or mini chart it opens. */
@@ -2086,9 +2092,9 @@
            where they stay): laid out once, not each frame (a long list, every frame's cost), squares once it's a rail,
            its own width meanwhile the open one's. */
         body[data-sidebar="collapsed"]:not([data-sliding]) .sidebar :is(.chart-row, .folder-row) > :is(.chart-item, .folder-item) {
-          width: 30px;
-          margin-left: 6px;
-          padding: 0 0 0 7px;
+          width: 32px;
+          margin-left: 5px;
+          padding: 0 0 0 8px;
         }
 
         /* (Its scroll as it was all through: the rows written anew and gliding, a browser's scroll anchoring would move it
@@ -2107,7 +2113,7 @@
           }
 
           .search {
-            transition: width var(--dur-layout) var(--ease-layout), height var(--dur-layout) var(--ease-layout), margin var(--dur-layout) var(--ease-layout), padding var(--dur-layout) var(--ease-layout), box-shadow var(--fade), color var(--fade);
+            transition: width var(--dur-layout) var(--ease-layout), margin var(--dur-layout) var(--ease-layout), padding var(--dur-layout) var(--ease-layout), box-shadow var(--fade), color var(--fade);
           }
 
           /* (The list's rows that hold their shape: see above.) */
@@ -2565,7 +2571,7 @@
           /* (A row's height, a row's gap under it: lit as one.) */
           border: 0;
           border-radius: var(--radius-md);
-          padding: 7px 13px 7px 39px;
+          padding: 8px 13px 8px 39px;
           color: var(--soft);
           background: none;
           /* (As the rows beside it, Charts', a folder's: a head with its mark is one of them, its rule what sets it apart.) */
@@ -2606,11 +2612,11 @@
            its line's. */
         .head-mark {
           position: absolute;
-          inset: 0 auto 0 6px;
+          inset: 0 auto 0 5px;
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 30px;
+          width: 32px;
           border-radius: var(--radius-md);
           transition: background var(--fade);
 
@@ -2628,10 +2634,14 @@
           font-variant-numeric: tabular-nums;
         }
 
-        .chart-more {
+        :is(.chart-more, .chart-go) {
           position: absolute;
           right: 9px;
           opacity: 0;
+        }
+
+        .chart-go {
+          right: 37px;
         }
 
         &:hover:where(.can-hover *),
@@ -2640,7 +2650,7 @@
             display: inline;
           }
 
-          .chart-more {
+          :is(.chart-more, .chart-go) {
             opacity: 1;
           }
         }
@@ -6072,7 +6082,7 @@
         input {
           flex: 1;
           min-width: 0;
-          height: 54px;
+          height: 48px;
           border: 0;
           padding: 0;
           outline: none;
@@ -6264,7 +6274,7 @@
           display: flex;
           align-items: center;
           gap: 10px;
-          height: 36px;
+          height: 32px;
           border-radius: var(--radius-md);
           padding: 0 10px;
           cursor: pointer;
@@ -7441,8 +7451,9 @@
       .home-question {
         margin: 0 0 24px;
         color: var(--ink);
-        font: 620 30px/1.2 var(--sans);
-        letter-spacing: -0.03em;
+        /* (A page's title, as every one's: see .home-head h1.) */
+        font: 590 28px/1.2 var(--sans);
+        letter-spacing: -0.026em;
       }
 
       /* Over Home's search, with it: Bitcoin as it is, live, quietly: the chain at its left, the price at its right, as far
@@ -9667,10 +9678,14 @@
         }
 
         /* (The rail's rows 44 apart, each one's reach meeting the next's and across the rail: its icons as they are, a
-           finger's room about them.) */
+           finger's room about them; its squares square, as a pointer's.) */
         body[data-sidebar="collapsed"] .sidebar {
           .chart-list {
-            --row-gap: 14px;
+            --row-gap: 12px;
+          }
+
+          .nav-item {
+            height: 32px;
           }
 
           :is(.chart-row, .folder-row) > .nav-item {
@@ -9679,7 +9694,7 @@
             &::before {
               content: "";
               position: absolute;
-              inset: -7px -14px;
+              inset: -6px -14px;
             }
           }
         }
@@ -9780,6 +9795,15 @@
           height: 40px;
         }
 
+        /* (A row's → 44 from its ⋯, each one's reach its own; its name clear of both.) */
+        :is(.folder-row, .list-head) .chart-go {
+          right: 53px;
+        }
+
+        .folder-row:has(> .chart-go) > .folder-item {
+          padding-right: 81px;
+        }
+
         /* (Rows, a list's, a menu's, ⌘K's, and a grid of swatches are reached as they are, no room between them: taller,
            as a finger needs. Swatches ten to a row as anywhere, packed: each as wide as a keyboard's key, as tall as a
            finger, a little larger (five to a row, spread across a sheet, read as loose).) */
@@ -9847,7 +9871,7 @@
 
         /* (A row's ⋯ out of sight and out of reach, the list kept quiet: a hold shows its menu, see onHold. A preview's ×
            there, its Close, always.) */
-        :is(.chart-row, .folder-row, .list-head) .chart-more[aria-haspopup="menu"] {
+        :is(.chart-row, .folder-row, .list-head) :is(.chart-more[aria-haspopup="menu"], .chart-go) {
           pointer-events: none;
         }
 
@@ -10879,6 +10903,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         sidebar: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M6 2.5v11"/>'),
         arrowUp: svg('<path d="M8 13V3M4 7l4-4 4 4"/>', 14),
         arrowDown: svg('<path d="M8 3v10M4 9l4 4 4-4"/>', 14),
+        // (Its page: a row's, View's wherever it's offered.)
+        arrowRight: svg('<path d="M3 8h10M9 4l4 4-4 4"/>', 14),
         axis: svg('<path d="M12 2.5v11M12 5h2M12 8h2M12 11h2"/><path d="M2 11 4.6 7.6l2.2 1.9L9.3 5"/>'),
         swap: svg('<path d="M3 5.5h9.5M10 3l2.5 2.5L10 8"/><path d="M13 10.5H3.5M6 8l-2.5 2.5L6 13"/>', 14),
         panel: svg('<rect x="2" y="2.5" width="12" height="11" rx="2"/><path d="M10 2.5v11"/>'),
@@ -13508,7 +13534,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const merged = new Map(previewsAside().map((doc) => [doc.id, doc]));
           // (One not edited (a link's, as it came): marked so, a preview again as it was, not an edited one.)
           for (const doc of mine) if (!((merged.get(doc.id)?.updated ?? -Infinity) > doc.updated)) merged.set(doc.id, touched.has(doc) ? doc : /** @type {any} */ ({ ...doc, untouched: true }));
-          aside = storage.set(PREVIEW_ASIDE, [...merged.values()]) || (storage.drop(PREVIEWS, THUMBS, PRESET_MARKS), storage.set(PREVIEW_ASIDE, [...merged.values()]));
+          aside = storage.set(PREVIEW_ASIDE, [...merged.values()]) || (storage.drop(PREVIEWS, THUMBS, PRESET_MARKS, SIDE_PRESETS), storage.set(PREVIEW_ASIDE, [...merged.values()]));
           if (aside) for (const doc of mine) asideDirty.delete(doc);
         }
         const write = () => {
@@ -13521,7 +13547,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return false;
           }
         };
-        const ok = write() || (storage.drop(PREVIEWS, THUMBS, PRESET_MARKS), write());
+        const ok = write() || (storage.drop(PREVIEWS, THUMBS, PRESET_MARKS, SIDE_PRESETS), write());
         // (Previews kept: let go of aside only once they're saved with your charts, never before; one rekeyed, once its
         // copy under its new id is written.)
         if (ok && aside && keptPreviews.size) {
@@ -13924,7 +13950,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const ids = Object.keys(all);
         if (ids.length > 100) for (const id of ids.sort((a, b) => (all[a]?.at ?? 0) - (all[b]?.at ?? 0)).slice(0, ids.length - 100)) delete all[id];
         // (Storage full: the caches let go of first, then again; not written, said once till one is.)
-        if (storage.set(VIEWS, all) || (storage.drop(PREVIEWS, THUMBS, PRESET_MARKS), storage.set(VIEWS, all))) (viewsBase = { ...all }), (viewsUnkept = false);
+        if (storage.set(VIEWS, all) || (storage.drop(PREVIEWS, THUMBS, PRESET_MARKS, SIDE_PRESETS), storage.set(VIEWS, all))) (viewsBase = { ...all }), (viewsUnkept = false);
         else if (!viewsUnkept) (viewsUnkept = true), notice("Can't remember where each chart was left: this browser's storage is full or blocked");
       };
       // (Another tab's linked view, taken here at once out of sight: shown already as it's turned to (see followLinked).)
@@ -24881,6 +24907,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const folder = item, closed = folder.closed || rail, holds = Boolean(current?.folder && isIn(current.folder, folder.id));
             return /** @type {[string, string]} */ ([`folder:${folder.id}`, `<div class="folder-row ${depth ? "in-folder" : ""} ${closed ? "closed" : ""} ${closed && holds ? "holds" : ""}" data-folder-row="${folder.id}" style="--depth: ${depth}">
               <button type="button" class="nav-item folder-item" data-folder-item="${folder.id}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${!closed}"`} data-tip="${escape(folder.name)}">${folderMark(folder)}<span class="label">${escape(folder.name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(counts.get(folder.id) ?? 0)}</span></button>
+              <button type="button" class="cap small chart-go" data-place="${escape(JSON.stringify({ folder: folder.id }))}" aria-label="View ${escape(folder.name)}" data-tip="View">${ICONS.arrowRight}</button>
               <button type="button" class="cap small chart-more" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}" data-tip="More">${ICONS.more}</button>
             </div>`]);
           })]),
@@ -24893,9 +24920,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // (The presets' rows in sight: their marks, drawn as they come; those drawn already, nothing to watch; those
         // gone, nothing to draw.)
+        // (Not before the presets are read: their rows as kept till then, see presetParts.)
         presetRowsSeen.disconnect();
         presetMarkQueue.clear();
-        for (const row of all$("[data-preset-row]", $("chart-list"))) if (!presetMarks.has(presetMarkKey(Number(row.dataset.presetRow)))) presetRowsSeen.observe(row);
+        if (presets) for (const row of all$("[data-preset-row]", $("chart-list"))) if (!presetMarks.has(presetMarkKey(Number(row.dataset.presetRow)))) presetRowsSeen.observe(row);
         // (Recent's presets, their marks asked for as written.)
         if (presetMarksAsked.size) drawPresetMarks();
         // The open one marked in place: a switch writes no row again (the focus on one stays where it is). (A preset's,
@@ -24948,11 +24976,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const sideHead = (group, count, holds) => {
         const [name, place] = GROUP_OF[group], shut = groupShut(group);
-        return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}" aria-label="${count === null ? name : `${name}, ${count}`}" data-tip="${name}"><span class="head-mark">${ICONS[GROUP_MARK[group]]}</span><span class="head-name">${name}</span>${count === null ? "" : `<span class="count">${shortCount(count)}</span>`}<span class="turn" aria-hidden="true">${ICONS.next}</span></button><button type="button" class="cap small chart-more" data-group-menu="${group}" aria-haspopup="menu" aria-label="More for ${name}" data-tip="More">${ICONS.more}</button></div>`];
+        return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}" aria-label="${count === null ? name : `${name}, ${count}`}" data-tip="${name}"><span class="head-mark">${ICONS[GROUP_MARK[group]]}</span><span class="head-name">${name}</span>${count === null ? "" : `<span class="count">${shortCount(count)}</span>`}<span class="turn" aria-hidden="true">${ICONS.next}</span></button><button type="button" class="cap small chart-go" data-place="${escape(JSON.stringify(place))}" aria-label="View ${name}" data-tip="View">${ICONS.arrowRight}</button><button type="button" class="cap small chart-more" data-group-menu="${group}" aria-haspopup="menu" aria-label="More for ${name}" data-tip="More">${ICONS.more}</button></div>`];
       };
       /** A group's menu in the sidebar (its ⋯, a right-click): its page; open or close it there. @param {Group} group @returns {Action[]} */
       const groupRows = (group) => [
-        { key: "view", icon: ICONS.grid, label: "View", aside: "Its page", run: () => goTo(asPlace(GROUP_OF[group][1])) },
+        { key: "view", icon: ICONS.arrowRight, label: "View", aside: "Its page", run: () => goTo(asPlace(GROUP_OF[group][1])) },
         ((shut) => ({ key: "toggle", icon: shut ? ICONS.folderOpen : ICONS.folder, label: shut ? "Expand" : "Collapse", stay: true, run: () => toggleGroup(group) }))(groupShut(group)),
         // (Your Library's, as a folder's: what can be made in it.)
         ...(group === "library" ? [{ key: "new-chart", icon: ICONS.plus, label: "New chart", kbd: "N", run: () => newChart() }, { key: "new-folder", icon: ICONS.folderAdd, label: "New folder", run: () => newFolder([], undefined, { side: true }) }] : []),
@@ -25052,9 +25080,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function presetParts() {
         const root = presetTree();
-        // (Not read yet: its head all the same, from the first frame (what it holds counted once it's read), not come in
-        // after the rest.)
-        if (!root || !presets) return [sideHead("presets", null, false)];
+        // (Not read yet: as they were last drawn, with the same sections open (the group open, not on the rail), from the
+        // first frame, not come in after the rest, out of reach till the presets' own replace them (a moment: what they'd
+        // run needs the presets); else, or they couldn't be read, its head alone, what it holds counted once it's read.)
+        if (!root || !presets) return sidePresets && !presetsFailed && !onRail() && !groupShut("presets") && sidePresets.open === JSON.stringify(prefs.presetsOpen) ? sidePresets.parts.map(([key, html]) => [key, html.replace(/^<div /, "<div inert ")]) : [sideHead("presets", null, false)];
         // (On the rail, none open: see renderCharts.)
         const rail = onRail(), open = new Set(rail ? [] : prefs.presetsOpen);
         // (The sections the open preset is in: one closed holds it, marked as a folder holding the open chart is.)
@@ -25075,13 +25104,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const section = item, shown = open.has(section.key), name = /** @type {string} */ (section.path.at(-1)), key = escape(section.key);
             parts.push([`section:${section.key}`, `<div class="folder-row section-row ${depth ? "in-folder" : ""} ${shown ? "" : "closed"} ${!shown && holding.has(section.key) ? "holds" : ""}" data-section-row="${key}" style="--depth: ${depth}">
               <button type="button" class="nav-item folder-item" data-section-item="${key}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${shown}"`} data-tip="${escape(name)}">${sectionMark(section, shown)}<span class="label">${escape(name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(section.count)}</span></button>
+              <button type="button" class="cap small chart-go" data-place="${escape(JSON.stringify({ path: section.path }))}" aria-label="View ${escape(name)}" data-tip="View">${ICONS.arrowRight}</button>
               <button type="button" class="cap small chart-more" data-section-menu="${key}" aria-haspopup="menu" aria-label="More for ${escape(name)}" data-tip="More">${ICONS.more}</button>
             </div>`]);
             if (shown) walk(section, depth + 1);
           }
         };
         walk(root, 0);
+        if (!rail) keepSidePresets(parts);
         return parts;
+      }
+      /**
+       * The presets' rows as the sidebar last drew them, open, and the sections open then (see presetParts): kept in this
+       * browser, the first to go when it's full, as a picture's are.
+       */
+      const SIDE_PRESETS = "bitview-studio:side-presets";
+      let sidePresets = ((kept) => (typeof kept?.open === "string" && Array.isArray(kept.parts) && kept.parts.every((part) => Array.isArray(part) && part.length === 2 && part.every((text) => typeof text === "string")) ? /** @type {{ open: string, parts: [string, string][] }} */ (kept) : null))(storage.get(SIDE_PRESETS, null));
+      const saveSidePresets = writeSoon(() => storage.set(SIDE_PRESETS, sidePresets));
+      /** The presets' rows drawn, kept if they're new. @param {[string, string][]} parts */
+      function keepSidePresets(parts) {
+        const open = JSON.stringify(prefs.presetsOpen);
+        if (sidePresets?.open === open && sidePresets.parts.length === parts.length && sidePresets.parts.every(([key, html], i) => parts[i][0] === key && parts[i][1] === html)) return;
+        sidePresets = { open, parts };
+        saveSidePresets();
       }
       /** An item's key in the sidebar's order: a folder's ("f:…"), a chart's ("c:…"), at any depth. @param {Chart | Folder} item */
       const sideKey = (item) => ("layers" in item ? `c:${item.id}` : `f:${item.id}`);
@@ -25206,7 +25251,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A section of the presets' menu in the sidebar (its ⋯, a right-click): its page; open or close it here. @returns {Action[]} */
       const sectionRows = (/** @type {string} */ key) => [
-        { key: "view", icon: ICONS.grid, label: "View", aside: "Its page", run: () => goTo(asPlace({ path: JSON.parse(key) })) },
+        { key: "view", icon: ICONS.arrowRight, label: "View", aside: "Its page", run: () => goTo(asPlace({ path: JSON.parse(key) })) },
         ((open) => ({ key: "toggle", icon: open ? ICONS.folder : ICONS.folderOpen, label: open ? "Collapse" : "Expand", stay: true, run: () => toggleSection(key) }))(prefs.presetsOpen.includes(key)),
       ];
       /** A section of the presets opened or closed in the sidebar, as a folder is (kept as left). @param {string} key */
@@ -25723,7 +25768,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const folder = folderById(id);
         if (!folder) return [];
         const peers = childrenOf(folder.parent), at = peers.indexOf(folder), leave = outOf([`f:${id}`]);
-        const view = { key: "view", icon: ICONS.grid, label: "View", aside: "Its page", run: () => goTo({ folder: id }) };
+        const view = { key: "view", icon: ICONS.arrowRight, label: "View", aside: "Its page", run: () => goTo({ folder: id }) };
         const toggle = { key: "toggle", icon: folder.closed ? ICONS.folderOpen : ICONS.folder, label: folder.closed ? "Expand" : "Collapse", ...(inPalette ? { aside: folder.closed ? "What's in it shown" : "What's in it out of sight" } : {}), verb: folder.closed ? "Expand" : "Collapse", stay: true, run: () => toggleFolder(id) };
         const rename = { key: "rename", icon: ICONS.pencil, label: "Rename", ...(inPalette ? { aside: folder.name, page: () => renameFolderPage(id) } : { run: () => renameFolder(id, inSide) }) };
         // (Its mark: its first letter, or an icon.)
@@ -26295,6 +26340,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       dragToReorder($("chart-list"), {
         item: "[data-chart-row], [data-folder-row]",
+        // (A row's → and ⋯ pressed: theirs, not a drag.)
+        refuse: (event) => Boolean(closest(event, ".chart-go, .chart-more")),
         idOf: sideId,
         label: (id) => (id.startsWith("f:") ? ((folder) => (folder ? `${folderMark(folder)}<span class="name">${escape(folder.name)}</span>` : ""))(folderById(id.slice(2))) : chartLabel(id.slice(2))),
         landing: (x, y, ids) => {
@@ -26737,6 +26784,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           renderRecommended();
           presetsArrived();
           renderHome();
+          // (The sidebar's presets as kept, let go of: its head alone.)
+          renderCharts();
           throw error;
         }));
       }
@@ -32868,7 +32917,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const recentRow = ({ id, preset }, deep = false) => (preset >= 0 ? presetRow(preset, deep) : { kind: "chart", key: id });
       /** A ⌘K page's first row, where it has a page of its own: that page (as a sidebar row's ⋯ › View). @param {Place} place */
-      const viewRow = (place) => ({ kind: "row", key: "page", icon: ICONS.grid, label: "View", aside: "Its page", verb: "View", run: () => goTo(place) });
+      const viewRow = (place) => ({ kind: "row", key: "page", icon: ICONS.arrowRight, label: "View", aside: "Its page", verb: "View", run: () => goTo(place) });
       /** Recent, as ⌘K's page: its own page, then the charts last opened, the latest first (as the sidebar has them). */
       const recentPage = () => {
         /** @type {Page} */
@@ -36485,7 +36534,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (By its own name, as its row: retitled here, by that.)
             ? { key: `p:${each}`, icon: presetMark(each), marked: each === open, label: ((doc) => (doc && titleOf(doc) !== all[each].t ? titleOf(doc) : /** @type {string} */ (all[each].p.at(-1))))(keptPreset(each)), run: () => pickPreset(each) }
             : { key: each.key, icon: sectionMark(each), label: /** @type {string} */ (each.path.at(-1)), aside: shortCount(each.count), marked: holding.includes(each.key), page: () => ({ title: /** @type {string} */ (each.path.at(-1)), heading: true, rows: () => sectionFlyout(each.key) }) })),
-          { key: "view", icon: ICONS.grid, label: "View", aside: "Its page", apart: true, run: () => goTo(asPlace({ path: JSON.parse(key) })) },
+          { key: "view", icon: ICONS.arrowRight, label: "View", aside: "Its page", apart: true, run: () => goTo(asPlace({ path: JSON.parse(key) })) },
         ];
       }
 
@@ -36501,6 +36550,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // A folder in the sidebar: each click opens or closes it there (one under way turns back from where it is: clicks
         // as fast as they come); renamed from its ⋯. A section of the presets and a group's head the same. On the rail, its
         // menu (see railMenu).
+        // (A row's →: its page.)
+        const page = closest(event, "#chart-list .chart-go");
+        if (page) return goTo(asPlace(JSON.parse(/** @type {string} */ (page.dataset.place))));
         const folderItem = closest(event, "[data-folder-item]");
         if (folderItem) return railed() ? railMenu(folderItem) : toggleFolder(/** @type {string} */ (folderItem.dataset.folderItem));
         const sectionMenu = closest(event, "[data-section-menu]");
