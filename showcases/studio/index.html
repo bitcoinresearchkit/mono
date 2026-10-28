@@ -1106,6 +1106,7 @@
           height: 2px;
           border-radius: 1px;
           background: var(--ink);
+          pointer-events: none;
         }
 
         &.drop-before::after {
@@ -1492,6 +1493,7 @@
             width: 2px;
             border-radius: 1px;
             background: var(--ink);
+            pointer-events: none;
           }
         }
 
@@ -2635,6 +2637,8 @@
             width: calc(100% - 16px);
             height: 1px;
             background: var(--line);
+            /* (A rule, not the head under it: pointed at, nothing's lit.) */
+            pointer-events: none;
           }
         }
       }
@@ -7676,6 +7680,7 @@
           width: 2px;
           border-radius: 1px;
           background: var(--ink);
+          pointer-events: none;
         }
 
         &.drop-before::before {
@@ -33805,10 +33810,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let openingByHover = false;
       let flyout = false;
       /**
-       * A pointer's rest before a menu shows for it (ms): on a sidebar's row, longer (a pass down the list opens none); on
-       * a button, shorter. And after it's left, before the menu goes: time to cross to it.
+       * A pointer's rest before a menu shows for it (ms), on a sidebar's row or a button: long enough that a pass down the
+       * list opens none, no longer (as macOS's submenus wait). And after it's left, before the menu goes: time to cross to it.
        */
-      const HOVER = { row: 350, button: 250, go: 260 };
+      const HOVER = { row: 200, button: 200, go: 260 };
       // Hover to look, press to keep (with a mouse): a closed folder's row, its charts beside it (pressed, it opens); the
       // chart's ⋯, its menu (pressed, kept). Gone as the pointer leaves the menu (and what opened it), a moment after
       // (time enough to cross to the flyout, right beside its row).
