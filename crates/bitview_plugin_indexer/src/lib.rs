@@ -354,15 +354,16 @@ impl Indexer {
             Err(error) => return Err(error),
         }
 
-        let Some(hash) = blockhash.collect_last() else {
+        if blockhash.is_empty() {
             return Ok(ImportValidation::Valid(local_lengths));
-        };
+        }
 
-        let tip_height = Height::from(self.vecs.blocks.blockhash.len() - 1);
-        let Some(position) = self.vecs.blocks.position.collect_one(tip_height) else {
-            return Ok(ImportValidation::Reset(
-                "Indexer tip block position is missing",
-            ));
+        // Below the newest blocks, which a node's crash can move and a resume reads back: a
+        // different block source still shows there.
+        let height = Height::from(blockhash.len().saturating_sub(RECHECKED_BLOCKS + 1));
+        let hash = blockhash.collect_one(height).expect("indexed height");
+        let Some(position) = self.vecs.blocks.position.collect_one(height) else {
+            return Ok(ImportValidation::Reset("Indexer block position is missing"));
         };
         if read_block_hash_at(reader, position)? != hash {
             return Ok(ImportValidation::Reset(
@@ -429,11 +430,13 @@ impl Indexer {
             ))?;
         }
         // Back from a crash, Core writes the blocks it lost again from its last flushed file size,
-        // in the order they come back: ours above the height it came back at may have moved.
-        let lost = node_height.incremented();
+        // in the order they come back: ours above the height it came back at may have moved, and
+        // the newest even when it came back while we were stopped.
+        let newest = Height::from(blockhash.len().saturating_sub(RECHECKED_BLOCKS));
+        let from = node_height.incremented().min(newest);
         let mut next = height.incremented();
-        let positions = self.vecs.blocks.position.collect_range(lost, next);
-        for (height, position) in (u32::from(lost)..).map(Height::from).zip(positions) {
+        let positions = self.vecs.blocks.position.collect_range(from, next);
+        for (height, position) in (u32::from(from)..).map(Height::from).zip(positions) {
             if !holds_block(&self.reader, position, &hash_at(height))? {
                 warn!("Block {height} moved in the node's block files: indexing it again");
                 next = height;
