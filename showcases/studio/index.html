@@ -16765,6 +16765,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function updateValues() {
         updateReadout();
         updateRowChanges();
+        // (A layer's panel open meanwhile, its latest not its line's caption: as it comes, a heatmap's once its day's in.)
+        for (const caption of document.querySelectorAll("[data-latest]")) {
+          const layer = layerById(/** @type {HTMLElement} */ (caption).dataset.latest ?? ""), result = layer && resolved?.results.get(layer.id);
+          if (layer) caption.textContent = latestSaid(layer, result, unitFor(layer, result));
+        }
       }
       /** A strip that scrolls sideways follows its scroll, and a wheel turns it, as on a tab strip (trackpads swipe it). */
       function strip(element) {
@@ -20193,6 +20198,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const heatName = (layer) => `${HEAT_MEASURES.find(([id]) => id === (layer.measure ?? "supply"))?.[1]} by cost basis, ${cohortName(layer.heatmap ?? "all").replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase())}${layer.weight ? `, ${/** @type {string} */ (HEAT_WEIGHTS.find(([id]) => id === layer.weight)?.[1]).toLowerCase()}` : ""}`;
       /** What a heatmap is, said where one's added. */
       const HEAT_ABOUT = "A holder group's supply, capital or unrealized P&L by the price it was bought at, day by day, behind the price (the URPD).";
+      /** A heatmap's code, where a series shows its name: its endpoint's, `urpd/` and its holders. @param {Layer} layer */
+      const heatCode = (layer) => `urpd/${layer.heatmap ?? "all"}`;
       /** A heatmap's latest day, as the API's path (its weight and density as it asks for them). @param {Chart} doc @param {Layer} layer */
       const heatPath = (doc, layer) => `/api/urpd/${encodeURIComponent(layer.heatmap ?? "all")}?agg=${heatGrid(doc, layer)?.agg ?? "log200"}${layer.weight ? `&weight=${layer.weight}` : ""}`;
       /** What each measure and weight is, said beside it. */
@@ -26176,6 +26183,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Whether start() has made the page what it shows first (till then, the address is the one asked for). */
       let started = false;
+      // (Nothing acted on before then (no chart open yet, a link still being read): a key, a press or a click, let go of,
+      // the browser's own keys aside; a click's own doing too (a link followed: a hash of its own drops the link read).
+      // The page's Reload clicked, said while it's slow to start, taken.)
+      for (const type of ["keydown", "pointerdown", "click"]) window.addEventListener(type, (event) => !started && !(type === "click" && event.target instanceof Element && event.target.closest(".booting")) && (event.stopImmediatePropagation(), type === "click" && event.preventDefault()), true);
       /** An address asked for that waits for the presets (they failed to load at first): opened once they're read. */
       let pendingRoute = "";
       /** The page's own description, as written in its head (the studio's, for your charts and the Charts page). */
@@ -26831,7 +26842,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             </div>`], ...layers.map((layer) => /** @type {[string, string]} */ ([layer.id, ((layer) => {
               const result = resolved?.results.get(layer.id);
               const loading = layer.series && !result;
-              const sub = result?.error ? `<span class="sub error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>` : layer.from ? `<span class="sub">${escape(fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`)}</span>` : layer.formula !== undefined ? (layer.label ? `<span class="sub code">ƒ ${escape(layer.formula)}</span>` : `<span class="sub">${escape(formulaLine(layer))}</span>`) : layer.type === "heatmap" ? `<span class="sub code">urpd/${escape(layer.heatmap ?? "all")}</span>` : `<span class="sub code">${escape(layer.series ?? "")}</span>`;
+              const sub = result?.error ? `<span class="sub error"${result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(result.error)}</span>` : layer.from ? `<span class="sub">${escape(fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`)}</span>` : layer.formula !== undefined ? (layer.label ? `<span class="sub code">ƒ ${escape(layer.formula)}</span>` : `<span class="sub">${escape(formulaLine(layer))}</span>`) : layer.type === "heatmap" ? `<span class="sub code">${escape(heatCode(layer))}</span>` : `<span class="sub code">${escape(layer.series ?? "")}</span>`;
               return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
                 <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" data-tip="${layerPicks.has(layer.id) ? "Deselect" : "Select"}" ${layerPicks.has(layer.id) ? "checked" : ""} />
                 <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}>
@@ -31935,7 +31946,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const open = () => layerPage(layer.id);
         return {
           kind: "row", key: `layer:${layer.id}`, icon: `${letterChip(layer)}`, label: labelOf(layer),
-          aside: layer.from ? `Between ${fromSpan(layer) || "no layers"}` : layer.type === "heatmap" ? `urpd/${layer.heatmap ?? "all"}` : layer.series ?? (layer.label ? layer.formula : formulaLine(layer)) ?? "", mono: !layer.from && Boolean(layer.series || layer.label || layer.type === "heatmap"), dim: Boolean(layer.hidden), letter: layer.letter, verb: "Open", page: open,
+          aside: layer.from ? `Between ${fromSpan(layer) || "no layers"}` : layer.type === "heatmap" ? heatCode(layer) : layer.series ?? (layer.label ? layer.formula : formulaLine(layer)) ?? "", mono: !layer.from && Boolean(layer.series || layer.label || layer.type === "heatmap"), dim: Boolean(layer.hidden), letter: layer.letter, verb: "Open", page: open,
           actions: () => [{ label: "Open", icon: ICONS.next, kbd: "↵", page: open }, ...open().rows().filter((row) => QUICK.has(row.key))],
           preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id),
         };
@@ -31961,7 +31972,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const both = bothOf(id);
           const now = () => layerById(id) ?? layer;
           // Grouped as the inspector's sections are, named as they are.
-          const first = layer.series ? "Series" : layer.type === "signal" ? "Signal" : "Formula";
+          // (Its name with what it is: a heatmap's, a cloud's or a trend's under theirs, not "Formula".)
+          const first = layer.series ? "Series" : layer.type === "signal" ? "Signal" : layer.type === "heatmap" ? "Heatmap" : layer.from ? (layer.type === "cloud" ? "Cloud" : "Trend") : "Formula";
           const style = dashOf(layer.dash);
           // A choice of its colors (a color, a way of coloring) previewed as it would draw: its look on a copy, its colors date by date.
           const lookOfChoice = (/** @type {HTMLElement} */ panel, /** @type {Action} */ option) => {
@@ -32194,6 +32206,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ].map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, id), ...row }));
         } };
       }
+      /**
+       * A layer's latest, said, where its line's caption doesn't say it: a cloud's range, a heatmap's cell at the price
+       * (its readout's at rest); else "—" till its line's drawn.
+       * @param {Layer} layer @param {Result | undefined} result @param {string} unit
+       */
+      function latestSaid(layer, result, unit) {
+        const last = (resolved?.times.length ?? 0) - 1;
+        if (layer.type === "cloud" && result?.values) return rangeAt(layer, { at: result.values.length - 1, rest: true }, unit);
+        if (layer.type === "heatmap" && last >= 0) return ((reading) => (reading ? `${reading.amount} at ${reading.at}` : "—"))(heatReading(layer, { at: last, rest: true }));
+        return "—";
+      }
       /** A layer: what it shows, its line as drawn now (in its color, or `color`), its type, unit, place, latest value. */
       function previewLayer(panel, id, color = null, /** @type {((i: number) => string | null) | null | undefined} */ tint = undefined) {
         const layer = layerById(id);
@@ -32201,14 +32224,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const result = resolved?.results.get(layer.id), unit = unitFor(layer, result), at = chart.panes.findIndex((pane) => pane.id === layer.pane);
         const about = layer.series ? known.get(layer.series)?.description : null;
         panel.innerHTML = `<h4 class="plain">${escape(labelOf(layer))}</h4>
-          <p class="description">${layer.from ? escape(`Between ${fromSpan(layer) || "no layers"}`) : `<code>${escape(layer.series ?? layer.formula ?? "")}</code>`}</p>
+          <p class="description">${layer.from ? escape(`Between ${fromSpan(layer) || "no layers"}`) : `<code>${escape(layer.series ?? layer.formula ?? (layer.type === "heatmap" ? heatCode(layer) : ""))}</code>`}</p>
           ${about ? `<div class="description clamped">${proseHtml(about)}</div>` : ""}
-          ${result?.error ? `<div class="error-box">${escape(result.detail ?? result.error)}.</div>` : layer.type === "cloud" ? "" : '<svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>'}
+          ${result?.error ? `<div class="error-box">${escape(result.detail ?? result.error)}.</div>` : layer.type === "cloud" || layer.type === "heatmap" ? "" : '<svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>'}
           <div class="info"><h5>Layer ${escape(layer.letter)}</h5><dl>
             <div><dt>Type</dt><dd>${escape(typeName(layer.type))}</dd></div>
             <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div>
             <div><dt>Layout</dt><dd>Pane ${at + 1}, ${layer.side === "left" ? "left" : "right"} axis</dd></div>
-            <div><dt>Latest</dt><dd class="spark-caption">${layer.type === "cloud" && result?.values ? escape(rangeAt(layer, { at: result.values.length - 1, rest: true }, unit)) : "—"}</dd></div>
+            <div><dt>Latest</dt><dd class="spark-caption"${layer.type === "cloud" || layer.type === "heatmap" ? ` data-latest="${escape(layer.id)}"` : ""}>${escape(latestSaid(layer, result, unit))}</dd></div>
           </dl></div>`;
         // (Its colors date by date, where they vary: as given, else as it's drawn; a color given, that one alone.)
         const dated = tint !== undefined ? tint : color ? null : resolved ? paintOf(chart, layer, resolved) : null;
