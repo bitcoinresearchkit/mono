@@ -20306,12 +20306,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * library had nothing on its scale to draw it on), as it is.
        */
       const heatIn = () => document.hidden || shownHeats().every((look) => (look.undrawable && !look.drawn) || (look.drawn && !heatWants.has(look.id) && ![...(look.keep ?? [])].some((key) => heatDays.get(key)?.pending)));
+      /**
+       * Each picture at a size of its own being made, its days (see chartImage): those it wants, asked for as the
+       * chart's own are; all it shows (`keys`), kept as the chart's are, till it's taken.
+       * @type {Set<{ wants: NonNullable<ReturnType<typeof heatWants.get>>, keys: Set<string> }>}
+       */
+      const heatExtras = new Set();
+      /**
+       * The days `keys` come (or failed), within `ms`, while `still` holds (what they're for): looked at every tenth of a
+       * second (a tab out of sight too).
+       */
+      const heatCome = (/** @type {string[]} */ keys, /** @type {number} */ ms, /** @type {() => boolean} */ still) => new Promise((done) => {
+        const end = performance.now() + ms, look = () => (keys.every((key) => heatDays.get(key) && !heatDays.get(key)?.pending) || !still() || performance.now() > end ? done(undefined) : setTimeout(look, 100));
+        look();
+      });
       /** The looks of the heatmaps the chart shows (with a price to draw on). */
       const shownHeats = () => chart.layers.flatMap((layer) => ((look) => (layer.type === "heatmap" && !layer.hidden && look && resolved?.results.get(layer.id)?.closes?.some(Number.isFinite) ? [look] : []))(heatLooks.get(layer.id)));
       /** The days wanted asked for, a few at once, the first wanted first. */
       function heatPump() {
         heatPumping = false;
-        const wanted = [...heatWants.values()].flat().filter((want) => !heatDays.has(want.key)).sort((a, b) => b.rank - a.rank || b.day.localeCompare(a.day));
+        const wanted = [...heatWants.values(), ...[...heatExtras].map((extra) => extra.wants)].flat().filter((want) => !heatDays.has(want.key)).sort((a, b) => b.rank - a.rank || b.day.localeCompare(a.day));
         for (const want of wanted) {
           if (heatAsking >= HEAT_AT_ONCE) break;
           if (heatDays.has(want.key)) continue;
@@ -20358,7 +20372,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The days drawn least recently let go of, past the most cells kept (those in view kept, however many). */
       function heatTrim() {
         if (heatCells <= HEAT_MOST_CELLS) return;
-        const shown = new Set([...heatLooks.values()].flatMap((look) => [...(look.keep ?? [])]));
+        const shown = new Set([...[...heatLooks.values()].flatMap((look) => [...(look.keep ?? [])]), ...[...heatExtras].flatMap((extra) => [...extra.keys])]);
         const done = [...heatDays].filter(([key, day]) => day.rows && !shown.has(key)).sort((a, b) => a[1].used - b[1].used);
         for (const [key, day] of done) {
           if (heatCells <= HEAT_MOST_CELLS * 0.8) break;
@@ -27724,8 +27738,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           gradientEdit((item) => (item.gradient && item.gradient.length > GRADIENT_LEAST ? (item.gradient.splice(k, 1), Math.max(0, k - 1)) : k), true);
         }
       });
-      // A place typed (or stepped by ↑ ↓): its color there as it's typed, between its neighbors, one undo step a field's
-      // edit, as every number's field; the field kept as typed till it's left, then showing where the color is.
+      // A place typed (or stepped by ↑ ↓): its color there as it's typed, between its neighbors, its keys within a second
+      // one undo step (coalesced), as every number's field's; the field kept as typed till it's left, then showing where
+      // the color is.
       $("inspector").addEventListener("input", (event) => {
         const field = /** @type {HTMLInputElement} */ (event.target);
         if (!field.dataset?.stopAt) return;
@@ -30669,7 +30684,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const presetRows = !everything || !presets ? [] : allOf(presetsMatching(words, 60).map((i) => ({ ...presetRow(i, true), group: "Presets" })), "Presets", "presets found", () => presetsPage([]), undefined, 60);
         // This chart's own: the ways in, its layers and panes, by name, series or formula; then any of their settings and
         // actions, by what they're of and what they are ("price color", "mvrv base").
-        // (The chart's settings, made once a search.)
+        // (The chart's settings, as kept while ⌘K's open: see settingsNow.)
         const settings = everything && !home ? settingsNow().rows : [];
         const own = !everything ? [] : home ? rank(browseRows(), rowText, words) : [
           ...rank(browseRows(), rowText, words),
@@ -31853,8 +31868,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * The chart's settings as last found (settingRows), and each one's choices as read (see settingChoices): kept while
        * ⌘K stays open (`paletteOpenings`, each time it opens: what changes behind it, a pan, a rename undone in the
        * Library, isn't kept) and the chart, its edits (revision; `updated`, a Library undo's too), its data, its view's
-       * width and range and the colors as they show are the same. (Found anew at each keystroke of a search, they were
-       * half its time on a phone, 30 layers: ~40 ms a key.)
+       * width and whether it shows its range (presetShown), and the colors as they show are the same. (Found anew at
+       * each keystroke of a search, they were half its time on a phone, 30 layers: ~40 ms a key.)
        */
       let settingsKept = { key: /** @type {any[]} */ ([]), rows: /** @type {any[]} */ ([]), choices: /** @type {Map<string, { said: string, choices: any[] }>} */ (new Map()) };
       let paletteOpenings = 0;
@@ -34558,12 +34573,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * phone's), a picture's own, 16:9, as one's shared, not a strip as tall as the screen.
        */
       const pictureSize = () => ((box) => (box.width >= 640 && box.width > box.height ? {} : { width: 1200, height: 675 }))($("chart").getBoundingClientRect());
+      /** What a picture's of: the chart open, as edited (its interval too, and back), the charts opened so far. */
+      const shownAs = () => `${chart.id} ${revision} ${navigations}`;
       /**
        * The picture of the chart, as it shows: its title; each pane's legend where it stands; the source, the interval,
        * the view's dates and the date of the values the legends show. None where the browser would give noise for it.
-       * @returns {Promise<HTMLCanvasElement>}
+       * `wait` (a script's), a heatmap's days at its size waited for first.
+       * @param {{ width?: number, height?: number, scale?: number }} [size] @returns {Promise<HTMLCanvasElement>}
        */
-      async function chartImage(/** @type {{ width?: number, height?: number, scale?: number }} */ size = {}) {
+      async function chartImage(size = {}, wait = false) {
         if (!canvasReadable()) throw new Error(UNREADABLE);
         const PAD = 28, FOOT = 40, title = titleOf(chart);
         // Laid out as its picture while it's read: at its size (a script's, whatever the window; else as shown), its panes
@@ -34571,76 +34589,123 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // drawn at once (no frame waited for: a tab out of sight has none); then exactly as it was (its zoom, its size, its
         // margins, its legends).
         const element = $("chart"), wrapper = /** @type {HTMLElement} */ (element.firstElementChild), sized = Boolean(size.width && size.height);
-        const style = element.getAttribute("style"), wrapped = [wrapper.style.width, wrapper.style.height], logical = view.timeScale().getVisibleLogicalRange(), heightWas = chartHeight;
+        const owner = shownAs();
         const width = sized ? /** @type {number} */ (size.width) - PAD * 2 : element.clientWidth;
         // (Its title on two lines where one doesn't hold it, its head taller only then: a picture has no hover, no tap, to
         // read the rest.)
         const titled = pictureTitle(title, width), HEAD = titled.length > 1 ? 86 : 60;
         const height = sized ? /** @type {number} */ (size.height) - HEAD - FOOT : element.clientHeight;
         if (!width || !height) throw new Error("The chart has no room: the window is of no size");
-        let shot, pieces, scale = 1, dates, axisHeight = 0, leftWidth = 0, restoreLegends = () => {};
-        // (Its resizes aren't the chart's: the view held as it is, see holdView.)
-        exporting = true;
+        /**
+         * The chart laid out as its picture, `read` run on it at once (what it reads, given back), then put back exactly
+         * as it was. @template T @param {() => T} read @returns {T}
+         */
+        const asPicture = (read) => {
+          // (As it is now: a pan between two of them (a probe's and the picture's), the one put back.)
+          const style = element.getAttribute("style"), wrapped = [wrapper.style.width, wrapper.style.height], logical = view.timeScale().getVisibleLogicalRange(), heightWas = chartHeight, shown = presetShown;
+          let restoreLegends = () => {};
+          // (Its resizes aren't the chart's: the view held as it is, see holdView.)
+          exporting = true;
+          try {
+            if (sized) Object.assign(element.style, { right: "auto", bottom: "auto", width: `${width}px`, height: `${height}px` });
+            // (A tab drawing no frames: its legends still to place, the chart's, not the one before.)
+            layOutLegends();
+            restoreLegends = presentLegends();
+            sizeChart(width, height);
+            chartHeight = height;
+            sizePanes();
+            if (sized && resolved && drawnChart === chart.id) {
+              fitSpacing(chart, resolved.times.length);
+              if (presetShown) applyRange(chart, resolved);
+              else if (logical) view.timeScale().setVisibleLogicalRange(logical);
+            }
+            marginsSet = "";
+            fitMargins();
+            sizeChart(width, height);
+            // (Its legends' forms at its size, before it's taken.)
+            fitLegends();
+            return read();
+          } finally {
+            restoreLegends();
+            if (style === null) element.removeAttribute("style");
+            else element.setAttribute("style", style);
+            chartHeight = heightWas;
+            // (The chart library's own frame back to its container's size, and following it again.)
+            sizeChart(element.clientWidth, element.clientHeight);
+            [wrapper.style.width, wrapper.style.height] = wrapped;
+            sizePanes();
+            if (sized && resolved && drawnChart === chart.id) fitSpacing(chart, resolved.times.length);
+            // (The room after the latest point the screen's again (a picture's, at its own width, may have had another).)
+            if (sized) view.applyOptions({ timeScale: { rightOffsetPixels: rightGap() } });
+            if (sized && logical) view.timeScale().setVisibleLogicalRange(logical);
+            // (Its range preset showing, shown again (as a relayout would, a frame on: none between a probe and the
+            // picture).)
+            if (sized && shown && resolved && drawnChart === chart.id) {
+              applyRange(chart, resolved);
+              if (!presetShown) setPresetShown(true);
+            }
+            marginsSet = "";
+            fitMargins();
+            // (Its view put back now, not as the library's next frame would: another picture right after reads it.)
+            view.bvFlush();
+            exporting = false;
+            lastBox = chartWidth();
+          }
+        };
+        /** @type {{ shot: HTMLCanvasElement, scale: number, pieces: ReturnType<typeof measureLegends>, dates: ReturnType<typeof viewDates>, axisHeight: number, leftWidth: number }} */
+        let taken;
+        /** @type {{ wants: NonNullable<ReturnType<typeof heatWants.get>>, keys: Set<string> }} */
+        const extra = { wants: [], keys: new Set() };
+        heatExtras.add(extra);
         try {
-          if (sized) Object.assign(element.style, { right: "auto", bottom: "auto", width: `${width}px`, height: `${height}px` });
-          // (A tab drawing no frames: its legends still to place, the chart's, not the one before.)
-          layOutLegends();
-          restoreLegends = presentLegends();
-          sizeChart(width, height);
-          chartHeight = height;
-          sizePanes();
-          if (sized && resolved && drawnChart === chart.id) {
-            fitSpacing(chart, resolved.times.length);
-            if (presetShown) applyRange(chart, resolved);
-            else if (logical) view.timeScale().setVisibleLogicalRange(logical);
+          // (`wait`, a script's at a size not the screen's: a heatmap's days there, asked for by a draw at it (the chart
+          // laid out so only while it's drawn), waited for with the page as it is, a few rounds while a draw asks for more
+          // (a coarser day's columns, then their own); still missing after them, no picture: why. Not a tap's: a share
+          // then would have lost the tap that allows it.)
+          if (sized && wait) for (let round = 0; shownHeats().length; round++) {
+            const asked = asPicture(() => {
+              view.takeScreenshot(true, false);
+              Object.assign(extra, { wants: [...heatWants.values()].flat(), keys: new Set(shownHeats().flatMap((look) => [...(look.keep ?? [])])) });
+              // (Those not in, nor failed: a failed one won't come.)
+              return [...extra.keys].filter((key) => !heatDays.get(key)?.rows && !heatDays.get(key)?.failed);
+            });
+            if (!asked.length) break;
+            if (round === 3) throw new Error("The heatmap's days are still loading");
+            heatPump();
+            await heatCome(asked, 20_000, () => shownAs() === owner);
+            // (The chart changed meanwhile (another opened, edited, another interval): none of it taken.)
+            if (shownAs() !== owner) throw new Error("The chart changed meanwhile");
           }
-          marginsSet = "";
-          fitMargins();
-          sizeChart(width, height);
-          // (Its legends' forms at its size, before it's taken.)
-          fitLegends();
           // All of it read now: while the marks load, another chart can open. (The drawings as they are, none selected.)
-          capturing = true;
-          repaintDrawings();
-          try {
-            shot = view.takeScreenshot(true, false);
-          } finally {
-            capturing = false;
+          taken = asPicture(() => {
+            capturing = true;
             repaintDrawings();
-          }
-          scale = shot.width / width;
-          // (The legends read at rest, the view's last point, as the foot dates them: not wherever the crosshair was.)
-          const hovered = hoverTime;
-          hoverTime = null;
-          updateReadout();
-          try {
-            pieces = measureLegends(scale);
-          } finally {
-            hoverTime = hovered;
+            let shot;
+            try {
+              shot = view.takeScreenshot(true, false);
+            } finally {
+              capturing = false;
+              repaintDrawings();
+            }
+            const scale = shot.width / width;
+            // (The legends read at rest, the view's last point, as the foot dates them: not wherever the crosshair was.)
+            const hovered = hoverTime;
+            hoverTime = null;
             updateReadout();
-          }
-          // (Its dates and its axes' size, as the shot has them.)
-          dates = viewDates();
-          axisHeight = view.timeScale().height();
-          leftWidth = view.priceScale("left").width();
+            let pieces;
+            try {
+              pieces = measureLegends(scale);
+            } finally {
+              hoverTime = hovered;
+              updateReadout();
+            }
+            // (Its dates and its axes' size, as the shot has them.)
+            return { shot, scale, pieces, dates: viewDates(), axisHeight: view.timeScale().height(), leftWidth: view.priceScale("left").width() };
+          });
         } finally {
-          restoreLegends();
-          if (style === null) element.removeAttribute("style");
-          else element.setAttribute("style", style);
-          chartHeight = heightWas;
-          // (The chart library's own frame back to its container's size, and following it again.)
-          sizeChart(element.clientWidth, element.clientHeight);
-          [wrapper.style.width, wrapper.style.height] = wrapped;
-          sizePanes();
-          if (sized && resolved && drawnChart === chart.id) fitSpacing(chart, resolved.times.length);
-          // (The room after the latest point the screen's again (a picture's, at its own width, may have had another).)
-          if (sized) view.applyOptions({ timeScale: { rightOffsetPixels: rightGap() } });
-          if (sized && logical) view.timeScale().setVisibleLogicalRange(logical);
-          marginsSet = "";
-          fitMargins();
-          exporting = false;
-          lastBox = chartWidth();
+          heatExtras.delete(extra);
         }
+        const { shot, scale, pieces, dates, axisHeight, leftWidth } = taken;
         // (The theme's colors too, as the shot has them: all read before the marks load, while another chart, theme or
         // size may come.)
         const cadence = CADENCE[shownIndex()], [sans, cardColor, inkColor, softColor, mutedColor, lineColor] = ["--sans", "--card", "--ink", "--soft", "--muted", "--line"].map(css);
@@ -36450,7 +36515,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (options.part !== undefined && options.part !== 0) {
             if (picture?.wanted !== wanted) throw new Error("Read part 0 first, of this chart, with the same options");
           } else {
-            const at = navigations, url = (await chartImage({ width, height, scale })).toDataURL(type, quality);
+            const at = navigations, url = (await chartImage({ width, height, scale }, true)).toDataURL(type, quality);
             if (at !== navigations) throw new Error("Another chart was opened meanwhile");
             picture = { wanted, url };
           }
@@ -36719,8 +36784,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const aside = storage.get(UNREAD, []), told = Array.isArray(aside) ? String(hashOf(JSON.stringify(aside))) : "";
         if (Array.isArray(aside) && aside.length && storage.get(`${UNREAD}:told`, "") !== told && storage.set(`${UNREAD}:told`, told)) notice(`${plural(aside.length, "saved chart")} couldn't be read here and ${aside.length === 1 ? "was" : "were"} set aside`, { label: "Download", run: () => download("bitview-charts-kept-aside.json", new Blob([JSON.stringify({ v: 2, charts: aside }, null, 2)], { type: "application/json" })) });
       }
-      // (Shown whatever start makes of it: one failing shows what it got to, not a page held out of sight.)
-      navigate(start().finally(() => ((document.documentElement.dataset.ready = ""), /** @type {any} */ (window).bitviewLaunch?.ready())));
+      // (Shown whatever start makes of it: one failing shows what it got to, not a page held out of sight, nor held from
+      // input (see started).)
+      navigate(start().finally(() => ((started = true), (document.documentElement.dataset.ready = ""), /** @type {any} */ (window).bitviewLaunch?.ready())));
     </script>
   </body>
 </html>
