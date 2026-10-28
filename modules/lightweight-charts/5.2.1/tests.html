@@ -794,5 +794,33 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   }
   say(`A tag's hit: 2 checks, ${pills.length} failing`);
   for (const f of pills) say(`  ✗ ${f}`);
-  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length, pinch: tapped.length, own: owned.length, later: later.length, edged: edged.length, shifted: shifted.length, tagged: tagged.length, pills: pills.length };
+  // 16. A series outlined (patch 53): a line, bars and candles, `bvOutline` on, the chart's `layout.bvHalo` blue: blue
+  // about each; without the option, none.
+  const outlined = [];
+  {
+    const blueAbout = async (kind, outline) => {
+      document.getElementById("a").innerHTML = ""; window.__charts = [];
+      const c = base(B, document.getElementById("a"), { layout: { background: { color: "#111" }, textColor: "#ccc", attributionLogo: false, bvHalo: "#0000ff" } });
+      const time = (k) => 1600000000 + k * 86400, white = { color: "#fff", upColor: "#fff", downColor: "#fff", wickUpColor: "#fff", wickDownColor: "#fff", borderVisible: false };
+      const s = c.addSeries(B[kind], { ...white, priceLineVisible: false, lastValueVisible: false, ...(outline ? { bvOutline: true } : {}) });
+      s.setData(Array.from({ length: 60 }, (_, k) => (kind === "CandlestickSeries" ? { time: time(k), open: 100 + (k % 7), high: 110 + (k % 5), low: 90 - (k % 3), close: 100 + (k % 4) } : { time: time(k), value: 100 + 10 * Math.sin(k / 5) })));
+      c.timeScale().fitContent();
+      await frames();
+      let blue = 0;
+      for (const canvas of document.getElementById("a").querySelectorAll("canvas")) {
+        const data = canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height).data;
+        for (let i = 0; i < data.length; i += 4) if (data[i + 2] > 200 && data[i] < 60 && data[i + 1] < 60) blue++;
+      }
+      c.remove(); window.__charts = [];
+      return blue;
+    };
+    for (const kind of ["LineSeries", "HistogramSeries", "CandlestickSeries"]) {
+      const [on, off] = [await blueAbout(kind, true), await blueAbout(kind, false)];
+      if (on < 50) outlined.push(`${kind} outlined: ${on} blue pixels about it`);
+      if (off) outlined.push(`${kind} not outlined: ${off} blue pixels`);
+    }
+  }
+  say(`Series outlined: 6 checks, ${outlined.length} failing`);
+  for (const f of outlined) say(`  ✗ ${f}`);
+  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length, pinch: tapped.length, own: owned.length, later: later.length, edged: edged.length, shifted: shifted.length, tagged: tagged.length, pills: pills.length, outlined: outlined.length };
 </script>

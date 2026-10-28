@@ -976,10 +976,29 @@ bar's spacing). Now a custom series' renderer is given the same range as a line'
 
 - `SeriesCustomPaneView`'s `super(t,i,!1)` (the base view's `extendedVisibleRange`): `!0`.
 
+## 53. A series outlined in the chart's background (an option)
+
+A line over a heatmap, a cloud or another line is crossed by what's under it: read through, it's lost in it. A series
+option, `bvOutline`, now edges what the series draws in the chart's `layout.bvHalo` (47), drawn under it, as a map's
+road is cased: where two lines cross, the one on top cuts a clean gap in the one under; over a fill it stands off it.
+Unset, or no halo set, nothing is drawn: as published.
+
+- The series' view (`Es.Tt`, each frame): its renderer handed the color (`bvO`, the halo where the series asks for
+  one; a theme's change, applied to the chart, in its next frame); an area's and a baseline's, their line's (`bvL`).
+- A line's renderer (`Me.et`: a line's, an area's, a baseline's): the line's path stroked first in it, three times as
+  wide (the line's width each side: half of it read as too thin), round joins, dashed as the line is (its dashes set by
+  its own width, a dashed band is dashed with it), none where a point hides the line (`transparent`: a trend's flips);
+  the line's own stroke after it walks the points kept by the first (29). Point markers (Studio's dots): each ringed,
+  the line's width wider (1 px at least), its dots drawn by `bvDots` (the renderer's own, named).
+- A histogram's (`sr.et`) and candles' (`tr.bvHalo`): 1.5 px (a device pixel at least) about each bar, each candle's
+  body and wick (to its last pixel, as drawn), one fill under them all (their corners' radii as much more).
+
+`tests.html` 16: a line over a band of another color, outlined (the halo's color beside the line), and not (none).
+
 ## Typings
 
 `dist/typings.d.ts` declares what the patches add to the API (the chart's `bvFlush`; a scale's `bvRange`, `bvSetRange`,
 `bvAutoRange`; a series' `bvPrepend`, `bvTagHit`; the options `bvHalfFills`, `bvPanShift`, `layout.bvHalo`,
-`minVisibleDataRatio`, `bvHoldOnAxes`, `bvTagsTop`, `bvTagsWidth`, `bvSimplify`, `bvBandFill`, a candlestick's and a histogram's
+`minVisibleDataRatio`, `bvHoldOnAxes`, `bvTagsTop`, `bvTagsWidth`, `bvSimplify`, `bvBandFill`, `bvOutline`, a candlestick's and a histogram's
 `cornerRadius`), in one block at its end, merged into the
 library's own interfaces: a fresh download's typings take it again as it is.

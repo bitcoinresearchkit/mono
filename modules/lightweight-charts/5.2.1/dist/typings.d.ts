@@ -5051,7 +5051,7 @@ export interface ChartOptionsBase {
 	bvPanShift?: boolean;
 }
 export interface LayoutOptions {
-	/** The color marks' words are edged in (47). */
+	/** The color marks' words are edged in (47), and outlined series (53). */
 	bvHalo?: string;
 }
 export interface HorzScaleOptions {
@@ -5079,6 +5079,8 @@ export interface SeriesOptionsCommon {
 	bvSimplify?: boolean;
 	/** A stacked area's fill a band, from its line to its stack's fills under it: its stack's name (41). */
 	bvBandFill?: string;
+	/** Edged in the layout's `bvHalo`: a line (an area's, a baseline's) as wide as it each side, dots ringed, bars and candles 1.5 px (53). */
+	bvOutline?: boolean;
 }
 export interface IPriceScaleApi {
 	/** The range shown, as prices; none before it's laid out (16). */

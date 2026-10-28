@@ -8053,6 +8053,22 @@
           stroke: var(--plot-ground, var(--card));
           stroke-width: 8;
         }
+
+        /* An outlined layer's band (see OUTLINED): the ground's color under its line, as wide again on each side, as the
+           chart's; under dots and bars, 1.5 more on each side (a bar's ends too). */
+        .halo {
+          stroke: var(--plot-ground, var(--card));
+          stroke-width: 4.5;
+        }
+
+        .halo.of-bars {
+          stroke-width: 5;
+          stroke-linecap: square;
+        }
+
+        .halo.of-dots {
+          stroke-width: 5.5;
+        }
       }
 
       :is(.tile-plot, .palette-plot) {
@@ -10338,6 +10354,7 @@
             <li>"fill": "above", an area filled from its line up; "fillOpacity": its fill's strength at its top, 0.05 to 1 (0.2 if none, 0.1 filled above); "solid": true, its fill even all the way down rather than fading; "base": a baseline's or bars' base value (0 if none); "baseLine": {"color": "gray", "dash": 4}, that base's line ("tag": true shows its value on the axis; "line": false draws none).</li>
             <li>"levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional; "tag": true shows its value on the axis; "line": false draws none, the level only naming or coloring its band). A level's "name" names the values from it up to the next level, read in its color in place of the number (the legend, the panel); "underName" on the layer names those under them all: {"levels": [{"value": -1, "name": "Limbo", "color": "orange", "line": false}, {"value": 1, "name": "Bull", "color": "green", "line": false}], "underName": "Bear", "color": "red", "byLevels": true} (without "byLevels", the names alone, the line in its color).</li>
             <li>"priceLine": true: a line across at its latest value.</li>
+            <li>"outline": true on a line, dots, an area, a baseline, bars, candles or a trend: edged in the chart's background (its line's width on each side; bars and candles 1.5px), standing out over what's under it.</li>
             <li>"format": how its values read (by its unit if none): usd, btc, sats, percent, ratio, count, number, days, seconds, persecond, perday, bytes, vbytes, weight, sigops, hashrate, difficulty, feerate, hashprice, hashvalue, coindays, coinblocks, dollarblocks or dollardays.</li>
             <li>"pane": 1, 2 and so on, top to bottom (1 if none); "side": its axis, left or right; "hidden": true.</li>
             <li>"letter": the letter formulas read it by. Copy link writes every layer's once one isn't the letter its place gives (a layer removed leaves the others' as they were): keep them.</li>
@@ -11163,6 +11180,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const markBody = (/** @type {string | undefined} */ place, /** @type {string} */ color) => (place === "shade" ? `<rect x="4.5" y="1" width="7" height="10" rx="1" fill="${color}" fill-opacity=".4"/>` : place === "on" ? `<circle cx="8" cy="6" r="3.2" fill="${color}"/>` : place === "below" ? `<path d="M8 2 12.5 7H9.6v3.5H6.4V7H3.5Z" fill="${color}"/>` : `<path d="M8 10 3.5 5h2.9V1.5h3.2V5h2.9Z" fill="${color}"/>`);
       /** A line shape, drawn on whole pixels at 16×12. */
       const shapeGlyph = (shape) => glyphSvg(`<path d="${{ straight: "M1.5 9.5l4-4 3 3 6-6", steps: "M1.5 9.5h3v-4h4v3h3v-6h3", curved: "M1.5 9.5C4 9.5 4 5 6.5 5s2.5 3.5 5 3.5 2-6 3-6" }[shape]}" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`);
+      /** An outline: a line over its band. */
+      const OUTLINE_GLYPH = glyphSvg('<path d="M1.5 9.5l4-4 3 3 6-6" stroke="currentColor" stroke-width="4" opacity=".3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M1.5 9.5l4-4 3 3 6-6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>');
       /** A line style, its dashes drawn on whole pixels at 16×12. */
       const dashGlyph = (dash, gap) => glyphSvg(`${Array.from({ length: Math.floor((14 + gap) / (dash + gap)) }, (_, k) => `<rect x="${1 + k * (dash + gap)}" y="5" width="${dash}" height="2" fill="currentColor"/>`).join("")}`);
 
@@ -11532,6 +11551,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"]];
       /** The types drawn as a line: a dash and a shape apply. */
       const LINED = new Set(["line", "area", "baseline", "trend"]);
+      /** The types an outline edges (the chart's background about what's drawn, see LWC patch 53): what a series is drawn as, and a trend's line. */
+      const OUTLINED = new Set(["line", "dots", "area", "histogram", "baseline", "candles", "trend"]);
       /** How a line runs between its points: straight, in steps (a value that holds until it changes), or curved. @type {[string, string, number][]} */
       const SHAPES = [["straight", "Straight", LC.LineType.Simple], ["steps", "Steps", LC.LineType.WithSteps], ["curved", "Curved", LC.LineType.Curved]];
       const lineTypeOf = (layer) => SHAPES.find(([id]) => id === layer.shape)?.[2] ?? LC.LineType.Simple;
@@ -12624,7 +12645,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /**
        * @typedef {{ id: string, letter: string, series?: string, formula?: string, label?: string, color: string,
-       *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, colorBelow?: string, colors?: 1 | 4, colorFading?: string, colorBelowFading?: string, opacity?: number,
+       *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, outline?: true, colorBelow?: string, colors?: 1 | 4, colorFading?: string, colorBelowFading?: string, opacity?: number,
        *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
        *   shape?: string, levels?: Level[], fill?: string, fillOpacity?: number, solid?: true, hollow?: "down" | "both" | "none", place?: string, results?: boolean, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean,
        *   heatmap?: string, weight?: string, measure?: string, rows?: number, gradient?: [number, string][], upToDate?: true, byGradient?: true }} Layer
@@ -12973,7 +12994,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             delete layer.results;
             continue;
           }
-          for (const key of ["shape", "levels", "colorFrom", "byLevels", "colors", "priceLine", "base", "format", "fill", "fillOpacity", "solid", "hollow", "baseLine", "underName"]) delete layer[key];
+          for (const key of ["shape", "levels", "colorFrom", "byLevels", "colors", "priceLine", "outline", "base", "format", "fill", "fillOpacity", "solid", "hollow", "baseLine", "underName"]) delete layer[key];
           if (layer.place === "above" || !MARK_PLACES.some(([place]) => place === layer.place)) delete layer.place;
         }
         if (!doc.panes.length) doc.panes.push({ id: uid(), mode: 1 });
@@ -16450,7 +16471,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const stack = stacked.get(layer.id);
           // (A stacked line: an area of no fill, its line where a line's is, the edge the band over it stops at (see
           // bvBandFill): a band shows its own layer's share alone.)
-          const outline = layer.type === "line" && Boolean(stack);
+          const stackedLine = layer.type === "line" && Boolean(stack);
           // (A signal's own series is never seen: its marks are on its layer's, see below. It's there as any layer's is, for
           // its values: the legend's, the crosshair's.)
           const signal = layer.type === "signal";
@@ -16458,6 +16479,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Its line drawn without the points it'd pass within a quarter of a pixel of: Firefox draws it three times as
             // fast, the same to the eye; see LWC patch 29.)
             bvSimplify: true,
+            // (Edged in the chart's background, its layout.bvHalo: see LWC patch 53.)
+            bvOutline: Boolean(layer.outline) && OUTLINED.has(layer.type),
             priceScaleId: layer.side,
             visible: !layer.hidden && !signal,
             priceLineVisible: Boolean(layer.priceLine) && !stack && !signal,
@@ -16493,7 +16516,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             : layer.type === "area" ? (([top, foot]) => ({ lineColor: color, topColor: alpha(base, top * op), bottomColor: alpha(base, foot * op) }))(fillOf(layer, Boolean(stack)))
             : layer.type === "histogram" ? { color: alpha(base, 0.75 * op) }
             : layer.type === "baseline" ? { topLineColor: color, topFillColor1: alpha(base, 0.24 * op), topFillColor2: alpha(base, 0.01 * op), bottomLineColor: below, bottomFillColor1: alpha(under, 0.01 * op), bottomFillColor2: alpha(under, 0.24 * op) }
-            : outline ? { lineColor: color, topColor: alpha(base, 0), bottomColor: alpha(base, 0) }
+            : stackedLine ? { lineColor: color, topColor: alpha(base, 0), bottomColor: alpha(base, 0) }
             : { color };
           const marker = { crosshairMarkerRadius: 4, crosshairMarkerBorderWidth: 2, crosshairMarkerBorderColor: css("--card") };
           const line = { lineWidth, lineStyle: layer.dash, lineType: lineTypeOf(layer) };
@@ -16554,7 +16577,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // (Stacked, its fill a band: from its line down to its stack's fills under it, a stack a side (patch 41).)
               : layer.type === "area" ? [LC.AreaSeries, { ...common, ...paint, ...marker, ...line, invertFilledArea: layer.fill === "above", bvBandFill: stack && layer.fill !== "above" ? layer.side : undefined }]
               : layer.type === "histogram" ? [LC.HistogramSeries, { ...common, ...paint, base: baseOf(layer), cornerRadius: stack ? 0 : BAR_CORNER }]
-              : outline ? [LC.AreaSeries, { ...common, ...paint, ...marker, ...line, bvBandFill: layer.side }]
+              : stackedLine ? [LC.AreaSeries, { ...common, ...paint, ...marker, ...line, bvBandFill: layer.side }]
               : layer.type === "baseline" ? [LC.BaselineSeries, { ...common, ...paint, ...marker, ...line, baseValue: { type: /** @type {const} */ ("price"), price: baseOf(layer) } }]
               : [LC.LineSeries, { ...common, ...paint, ...marker, ...line, ...(layer.type === "trend" ? (dated ? { priceLineColor: "", crosshairMarkerBackgroundColor: "" } : { priceLineColor: color, crosshairMarkerBackgroundColor: color }) : {}) }];
             series = again ?? tracked(view.addSeries(/** @type {any} */ (kind), options, pane));
@@ -16606,8 +16629,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const drawable = (value) => Number.isFinite(value) && (!log || value > 0);
             // (Painted date by date: a line's, dots' and bars' color, an area's line and fill, as its paint has them.)
             // (Its colors another layer's, they say something: its fill stronger, as a regime's.)
-            const fill = outline ? [0, 0] : fillOf(layer, Boolean(stack));
-            const paintWith = !dated ? null : layer.type === "area" || outline ? (/** @type {string} */ c) => ({ lineColor: op < 1 ? alpha(c, op) : c, topColor: alpha(c, fill[0] * op), bottomColor: alpha(c, fill[1] * op) })
+            const fill = stackedLine ? [0, 0] : fillOf(layer, Boolean(stack));
+            const paintWith = !dated ? null : layer.type === "area" || stackedLine ? (/** @type {string} */ c) => ({ lineColor: op < 1 ? alpha(c, op) : c, topColor: alpha(c, fill[0] * op), bottomColor: alpha(c, fill[1] * op) })
               : layer.type === "histogram" ? (/** @type {string} */ c) => ({ color: alpha(c, 0.75 * op) }) : (/** @type {string} */ c) => ({ color: op < 1 ? alpha(c, op) : c });
             const paintAt = paintWith && dated && ((/** @type {number} */ i) => paintWith(dated(i)));
             const points = layer.from && fromUnfit(doc, layer) ? [] : data.times.map((time, i) => (drawable(shown[i]) ? (result.breaks?.[i] ? { time, value: shown[i], color: "transparent" } : paintAt ? { time, value: shown[i], ...paintAt(i) } : { time, value: shown[i] }) : { time }));
@@ -22290,7 +22313,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       };
       /** What a mini chart depends on: its layers, its panes, and the day. @param {Chart} doc */
-      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.range, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.colors, layer.fill, layer.from, layer.ref, layer.colorFrom, layer.byLevels ? layer.levels : null, layer.byGradient ? [layer.gradient, layer.upToDate] : null, layer.type === "heatmap" ? [layer.heatmap, layer.weight, layer.measure, layer.rows ?? 200] : null, ...fadingKey(layer)])]);
+      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.range, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.colors, layer.fill, layer.from, layer.ref, layer.colorFrom, layer.byLevels ? layer.levels : null, layer.byGradient ? [layer.gradient, layer.upToDate] : null, layer.type === "heatmap" ? [layer.heatmap, layer.weight, layer.measure, layer.rows ?? 200] : null, layer.outline, ...fadingKey(layer)])]);
       /** Four-color bars' fading colors as drawn (their default the theme's): what a picture of them depends on. */
       const fadingKey = (/** @type {Layer} */ layer) => (layer.type === "histogram" && layer.colors === 4 ? [ink(fadingOf(layer, false)), ink(fadingOf(layer, true))] : []);
       /**
@@ -22493,8 +22516,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A layer drawn small, as its type draws on the chart: `k` its kind (a line, an area, a baseline, bars, dots, or one
        * of its lines across), `c` its color (`c2` under its base), `d` its line (or its bars above the base, `d2` those
        * below), `y0` a baseline's base, `top`/`bottom` its pane's extent (`up`: an area filled above; `band`: a stacked one's band, its path), `dash`
-       * its line style, `op` its opacity, `end` its latest point, `f` an area's fill (its top's opacity and its foot's: see fillOf).
-       * @typedef {{ k: string, c: string, c2?: string, d: string, d2?: string, y0?: number, top?: number, bottom?: number, up?: boolean, band?: string, f?: number[], dash?: string, op?: number, end?: number[], img?: string }} PlotMark
+       * its line style, `op` its opacity, `end` its latest point, `f` an area's fill (its top's opacity and its foot's: see fillOf),
+       * `o` outlined (see OUTLINED): its layer's place, from 1 (its marks drawn together, see previewSvg).
+       * @typedef {{ k: string, c: string, c2?: string, d: string, d2?: string, y0?: number, top?: number, bottom?: number, up?: boolean, band?: string, f?: number[], dash?: string, op?: number, end?: number[], img?: string, o?: number }} PlotMark
        * Quick Look's (a big one's) too: its dates along its foot (`ticks`, where), each pane side's highest and lowest
        * value (`scales`, where). A preset's: which preset it is, by its place in their tree (`of`, see templateDoc).
        * @typedef {{ seps: number[], marks: PlotMark[], end?: number, ticks?: { x: number, text: string }[], scales?: { y: number, text: string, side: string }[], of?: string }} Preview
@@ -22812,7 +22836,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 if (line !== false && yAt > paneTop && yAt < paneBottom) drawn.marks.push({ k: "across", c: color, d: `M0 ${yAt}H${W}`, ...(gap ? { dash: `${length} ${gap}` } : {}), ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}) });
               }
               const x = (/** @type {number} */ i) => round(((i - shown.from) / span) * W), at = ([i, value]) => `${x(i)} ${y(value)}`;
-              const look = { c: layer.color, ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}) };
+              const look = { c: layer.color, ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}), ...(layer.outline && OUTLINED.has(layer.type) ? { o: doc.layers.indexOf(layer) + 1 } : {}) };
               // (A stacked area's band, as the chart draws it (see bvBandFill): down to the nearest band or line under it with
               // a value there, else the stack's floor: zero, the pane's foot on a log scale.)
               const own = layer.type === "area" && layer.fill !== "above" ? stacked.get(layer.id) : undefined;
@@ -22931,39 +22955,53 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function previewSvg(drawn, place, size = PREVIEW) {
         const { width: W, height: H } = size, id = place.replace(/[^\w-]/g, "-"), defs = [];
         const body = drawn.seps.map((y) => `<path class="sep" d="M0 ${y}H${W}"/>`);
-        drawn.marks.forEach((mark, n) => {
+        // (Each mark's fill, its band if it's outlined (see svg.plot .halo), its line; a layer's (one `o`) together, as the
+        // chart draws them: every fill, every band, then every line, a band of one of its colors never over another's
+        // line; a band whole, as the chart's ground is, its layer's opacity on its fill and line alone.)
+        const parts = drawn.marks.map((mark, n) => {
           const c = escape(ink(mark.c)), c2 = escape(ink(mark.c2 ?? mark.c)), g = `${id}-${n}`, dash = mark.dash ? ` stroke-dasharray="${mark.dash}"` : "";
+          const halo = (/** @type {string | undefined} */ d, kind = "") => (mark.o && d ? `<path class="halo${kind}"${dash} d="${d}"/>` : "");
           const fade = (key, color, from, to, a, b) => `<linearGradient id="${g}${key}" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="${from}" y2="${to}"><stop offset="0" stop-color="${color}" stop-opacity="${a}"/><stop offset="1" stop-color="${color}" stop-opacity="${b}"/></linearGradient>`;
-          let html = "";
+          let under = "", band = "", over = "";
           // (A heatmap's picture, its pixels as they are: smoothed, a cell bled into the empty ones by it, a dark fringe.)
-          if (mark.k === "heat") html = `<image href="${mark.img}" x="0" y="${mark.top}" width="${W}" height="${/** @type {number} */ (mark.bottom) - /** @type {number} */ (mark.top)}" preserveAspectRatio="none" style="image-rendering: pixelated"/>`;
-          else if (mark.k === "across") html = `<path class="across" stroke="${c}"${dash} d="${mark.d}"/>`;
-          else if (mark.k === "band") html = `<path class="fill" style="fill:${c}" d="${mark.d}"/>`;
-          else if (mark.k === "bars") html = `<path class="bars" stroke="${c}" d="${mark.d}"/>${mark.d2 ? `<path class="bars" stroke="${c2}" d="${mark.d2}"/>` : ""}`;
-          else if (mark.k === "dots") html = `<path class="dots" stroke="${c}" d="${mark.d}"/>`;
+          if (mark.k === "heat") under = `<image href="${mark.img}" x="0" y="${mark.top}" width="${W}" height="${/** @type {number} */ (mark.bottom) - /** @type {number} */ (mark.top)}" preserveAspectRatio="none" style="image-rendering: pixelated"/>`;
+          else if (mark.k === "across") over = `<path class="across" stroke="${c}"${dash} d="${mark.d}"/>`;
+          else if (mark.k === "band") under = `<path class="fill" style="fill:${c}" d="${mark.d}"/>`;
+          else if (mark.k === "bars") (band = `${halo(mark.d, " of-bars")}${halo(mark.d2, " of-bars")}`), (over = `<path class="bars" stroke="${c}" d="${mark.d}"/>${mark.d2 ? `<path class="bars" stroke="${c2}" d="${mark.d2}"/>` : ""}`);
+          else if (mark.k === "dots") (band = halo(mark.d, " of-dots")), (over = `<path class="dots" stroke="${c}" d="${mark.d}"/>`);
           else if (mark.k === "baseline") {
             const y0 = /** @type {number} */ (mark.y0), f = closedTo(mark.d, y0);
             defs.push(`<clipPath id="${g}a"><rect width="${W}" height="${y0}"/></clipPath><clipPath id="${g}b"><rect y="${y0}" width="${W}" height="${H - y0}"/></clipPath>`, fade("u", c, mark.top, y0, 0.24, 0.01), fade("v", c2, y0, mark.bottom, 0.01, 0.24));
-            html = `<g clip-path="url(#${g}a)"><path class="fill" style="fill:url(#${g}u)" d="${f}"/><path stroke="${c}"${dash} d="${mark.d}"/></g><g clip-path="url(#${g}b)"><path class="fill" style="fill:url(#${g}v)" d="${f}"/><path stroke="${c2}"${dash} d="${mark.d}"/></g>`;
+            under = `<g clip-path="url(#${g}a)"><path class="fill" style="fill:url(#${g}u)" d="${f}"/></g><g clip-path="url(#${g}b)"><path class="fill" style="fill:url(#${g}v)" d="${f}"/></g>`;
+            band = halo(mark.d);
+            over = `<g clip-path="url(#${g}a)"><path stroke="${c}"${dash} d="${mark.d}"/></g><g clip-path="url(#${g}b)"><path stroke="${c2}"${dash} d="${mark.d}"/></g>`;
           } else {
-            let fill = "";
             // (Its fill as the chart's: see fillOf. A preview kept from before, the defaults then.)
             const [top, foot] = mark.f ?? (mark.up ? [0.12, 0.12] : mark.band ? [STACK_FILL, STACK_FILL] : [0.2, 0]);
-            if (mark.k === "area" && mark.up) fill = `<path class="fill" style="fill:color-mix(in srgb, ${c} ${top * 100}%, transparent)" d="${closedTo(mark.d, mark.top)}"/>`;
-            else if (mark.k === "area" && mark.band) fill = `<path class="fill" style="fill:color-mix(in srgb, ${c} ${top * 100}%, transparent)" d="${mark.band}"/>`;
+            if (mark.k === "area" && mark.up) under = `<path class="fill" style="fill:color-mix(in srgb, ${c} ${top * 100}%, transparent)" d="${closedTo(mark.d, mark.top)}"/>`;
+            else if (mark.k === "area" && mark.band) under = `<path class="fill" style="fill:color-mix(in srgb, ${c} ${top * 100}%, transparent)" d="${mark.band}"/>`;
             else if (mark.k === "area") {
               defs.push(fade("u", c, mark.top, mark.bottom, top, foot));
-              fill = `<path class="fill" style="fill:url(#${g}u)" d="${closedTo(mark.d, mark.bottom)}"/>`;
+              under = `<path class="fill" style="fill:url(#${g}u)" d="${closedTo(mark.d, mark.bottom)}"/>`;
             }
-            html = `${fill}<path stroke="${c}"${dash} d="${mark.d}"/>`;
+            band = halo(mark.d);
+            over = `<path stroke="${c}"${dash} d="${mark.d}"/>`;
           }
           // (Its end marked in Quick Look's picture alone, by its value beside it; a card's line just ends.)
           if (mark.end && size !== PREVIEW) {
             const [x, y] = mark.end, color = mark.k === "baseline" && y > /** @type {number} */ (mark.y0) ? c2 : c;
-            html += `<path class="ring" d="M${x} ${y}h0"/><path class="end" stroke="${color}" d="M${x} ${y}h0"/>`;
+            over += `<path class="ring" d="M${x} ${y}h0"/><path class="end" stroke="${color}" d="M${x} ${y}h0"/>`;
           }
-          body.push(mark.op ? `<g opacity="${mark.op}">${html}</g>` : html);
+          const faded = (/** @type {string} */ html) => (html && mark.op ? `<g opacity="${mark.op}">${html}</g>` : html);
+          return { o: mark.o, under: faded(under), band, over: faded(over) };
         });
+        for (let n = 0; n < parts.length; ) {
+          let end = n + 1;
+          while (parts[n].o && end < parts.length && parts[end].o === parts[n].o) end++;
+          const run = parts.slice(n, end);
+          body.push(...run.map((part) => part.under), ...run.map((part) => part.band), ...run.map((part) => part.over));
+          n = end;
+        }
         return `<svg class="plot" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">${defs.length ? `<defs>${defs.join("")}</defs>` : ""}${body.join("")}</svg>`;
       }
       /**
@@ -28309,6 +28347,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ${lineField([layer])}
             ${fillField([layer])}
             ${candlesField([layer])}
+            ${outlineField([layer])}
             ${priceLineField([layer])}
             ${layer.from || signal || layer.type === "heatmap" ? "" : levelsField(layer, unit, result)}
           </section>
@@ -28405,6 +28444,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const now = sharedBy(layers, (layer) => Boolean(layer.priceLine)), stacked = layers.some((layer) => layer.priceLine && chart.panes.find((pane) => pane.id === layer.pane)?.stack);
         return `<div class="field switch"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${now === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>${stacked ? `<p class="from-status" role="status">Not drawn in a stack.</p>` : ""}`;
       };
+      const outlineField = (/** @type {Layer[]} */ layers) => {
+        if (!layers.every((layer) => OUTLINED.has(layer.type))) return "";
+        const now = sharedBy(layers, (layer) => Boolean(layer.outline));
+        return `<div class="field switch"><span>Outline</span><div class="tabs" role="group" aria-label="Outline">${[[false, "Off", "No edge"], [true, "On", "Edged in the chart's background, to stand out over what's under it"]].map(([on, text, tip]) => `<button type="button" data-outline="${on ? 1 : 0}" aria-pressed="${now === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>`;
+      };
       const paneField = (/** @type {Layer[]} */ layers) => {
         if (layers.some(follows)) return "";
         const at = sharedBy(layers, (layer) => chart.panes.findIndex((pane) => pane.id === layer.pane)), name = at === undefined ? "Mixed" : `Pane ${at + 1}`;
@@ -28424,7 +28468,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const key = `many:${layers.map((layer) => layer.id).join()}`, focus = inspected === key ? focusKey(panel) : null, another = inspected !== key;
         inspected = key;
         actionsShown = "";
-        const style = [typeField(layers), colorField(layers), opacityField(layers), widthField(layers), lineField(layers), fillField(layers), candlesField(layers), priceLineField(layers)].join(""), layout = [paneField(layers), axisField(layers)].join("");
+        const style = [typeField(layers), colorField(layers), opacityField(layers), widthField(layers), lineField(layers), fillField(layers), candlesField(layers), outlineField(layers), priceLineField(layers)].join(""), layout = [paneField(layers), axisField(layers)].join("");
         rewrite(panel, `
           <div class="inspector-head">
             <button type="button" class="cap small" data-action="deselect" aria-label="Back to the layers" data-tip="Back to the layers" data-kbd="esc">${ICONS.back}</button>
@@ -30234,7 +30278,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("inspector").addEventListener("click", (event) => {
         const button = closest(event, "button");
         if (!button) return;
-        const { type, dash, shape, fill, solid, hollowUp, hollowDown, place, side, priceLine, results, action, insert, index, reset, colorSelect, replace, lineColor, lineDash, lineTag, levelMenu, act, colorSlot: slot, pickColor, colorSource: source } = button.dataset;
+        const { type, dash, shape, fill, solid, hollowUp, hollowDown, place, side, priceLine, outline, results, action, insert, index, reset, colorSelect, replace, lineColor, lineDash, lineTag, levelMenu, act, colorSlot: slot, pickColor, colorSource: source } = button.dataset;
         const paletteKey = button.closest("[data-palette]")?.getAttribute("data-palette");
         if (index) switchInterval(index);
         else if (slot) colorSlot.set(`${chart.id}:${selected}`, slot), renderInspector();
@@ -30307,6 +30351,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         else if (side) editLayer((layer) => (layer.side = side));
         else if (priceLine) editLayer((layer) => (layer.priceLine = priceLine === "1" || undefined));
+        else if (outline) editLayer((layer) => (layer.outline = outline === "1" || undefined));
         else if (results) editLayer((layer) => (layer.results = results === "1" || undefined));
         else if (insert) insertAtCaret(insert);
         else if (reset) {
@@ -33288,6 +33333,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               ...(layer.fill !== "above" && !stackedIn(layer) ? [{ key: "fill-style", icon: glyph("area"), label: "Fill style", aside: layer.solid ? "Solid" : "Gradient", verb: layer.solid ? "Make it a gradient" : "Make it solid", group: "Style", stay: true, run: set((item) => (item.solid = !item.solid || undefined)) }] : []),
             ] : []),
             ...(layer.type === "candles" ? /** @type {const} */ ([["up", "Rising"], ["down", "Falling"]]).map(([kind, name]) => ((hollow) => ({ key: `hollow-${kind}`, icon: glyph("candles"), label: `${name} candles`, aside: hollow ? "Hollow" : "Filled", verb: hollow ? "Fill them" : "Make them hollow", group: "Style", stay: true, run: set((item) => (item.hollow = hollowFrom(kind === "up" ? !hollowOf(item, "up") : hollowOf(item, "up"), kind === "down" ? !hollowOf(item, "down") : hollowOf(item, "down")))) }))(hollowOf(layer, kind))) : []),
+            ...(OUTLINED.has(layer.type) ? [{ key: "outline", icon: OUTLINE_GLYPH, label: "Outline", aside: layer.outline ? "On" : "Off", verb: layer.outline ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.outline = !item.outline || undefined)) }] : []),
             { key: "price-line", icon: dashGlyph(2, 2), label: "Price line", aside: layer.priceLine ? (layer.type !== "signal" && chart.panes.find((pane) => pane.id === layer.pane)?.stack ? "On, not drawn in a stack" : "On") : "Off", verb: layer.priceLine ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.priceLine = !item.priceLine || undefined)) },
             { key: "levels", icon: dashGlyph(5, 3), label: "Levels", aside: layer.levels?.length ? `${plural(layer.levels.length, "level")}${((why) => (why ? `, ${why.toLowerCase()}` : ""))(acrossUnfit(chart, layer))}` : "None", group: "Style", page: () => levelsPage(id) },
             { key: "pane", icon: ICONS.pane, label: "Pane", aside: `Pane ${at + 1}`, group: "Layout", page: () => choicePage("Pane", () => paneChoices([id])) },
@@ -35533,6 +35579,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             side: layer.side === "left" ? "left" : "right",
             hidden: layer.hidden === true || undefined,
             priceLine: layer.priceLine === true || undefined,
+            outline: layer.outline === true || undefined,
             colorBelow: isColor(layer.colorBelow) ? layer.colorBelow : undefined,
             colors: layer.colors === 1 || layer.colors === 4 ? layer.colors : undefined,
             colorFading: isColor(layer.colorFading) ? layer.colorFading : undefined,

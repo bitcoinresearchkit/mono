@@ -177,10 +177,12 @@ export function studioPresets(client, facts) {
    * logarithmic; else linear) and stacks.
    * @param {string} name @param {string} title @param {Layer[]} layers
    * `priceHidden`: the price on top starts hidden (a chart whose subject already moves with it, as market cap).
+   * Over a heatmap or a cloud, the price is outlined: edged in the chart's background, read on what's under it.
    * @param {{ log?: number[], stack?: Record<number, string>, range?: string, halvings?: boolean, priceHidden?: boolean }} [options]
    * @returns {ChartNode}
    */
   const chart = (name, title, layers, options = {}) => {
+    if (layers.some((layer) => layer.heatmap || layer.cloud)) layers = layers.map((layer) => (layer.series === t.price.ohlc.name ? { ...layer, outline: true } : layer));
     const count = Math.max(1, ...layers.map((layer) => layer.pane ?? 1));
     const panes = Array.from({ length: count }, (_, i) => {
       const n = i + 1, withPrice = layers.some((layer) => (layer.pane ?? 1) === n && layer.type === "candles");

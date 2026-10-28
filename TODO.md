@@ -25,10 +25,8 @@ Only what's left. An item done is removed: its history is in the commits and log
 - A new layer: a series as bubbles on another layer (you, 2026-10-28, of Glassnode's net realized profit/loss bubbles on
   the price: "represent a series as bubbles attached to another layer", "maybe by having a min slider (and max ?), we
   prob need something to set min/max size ? idk think very hard about this").
-- A border for lines, areas' lines, OHLC and the like (you, 2026-10-28: "should support having a border, border should be
-  like the color of bg of page so ~black/~white based on theme ofc and be 1/2 width of the line (some other rule for
-  candles), goal is make the data more visible, it hsould prob be a toggle switch on those series type"; the Bedrock
-  showcase had one once).
+- Outline: built (a layer's switch; presets over a heatmap or a cloud, the price's), the line's width on each side
+  (you, 2026-10-28: "outline doesn't feel think enough"; half of it, before): your look to confirm.
 - A design system for all of Studio, then a polish and consistency pass applying it (you, 2026-10-28: "I think we
   really need to do a polish/consistency pass over the whole app, and make a proper system"): inventory
   (_notes/system-20261028/inventory.md: 9 font sizes, 20 radii, 22 gaps, 63 heights, 47 shadows, 56 transitions),
