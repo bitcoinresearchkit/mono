@@ -35,12 +35,13 @@ fn run() -> Result<()> {
     init(Some(&server.logs_path()))?;
     raise_fd_limit();
     let data_path = server.data_path;
+    let reader = Reader::new(blocks_path, &client)?;
+    reader.check_network()?;
     client.wait_for_synced_node()?;
 
     let chain_height = client.get_last_height()?;
-    let benchmark = Benchmark::new(&data_path, &blocks_path, chain_height, cache_budget)?;
+    let benchmark = Benchmark::new(&data_path, reader.blocks_dir(), chain_height, cache_budget)?;
     info!("Benchmark results: {}", benchmark.path().display());
-    let reader = Reader::new(blocks_path, &client)?;
     let exit = Exit::new();
     exit.install_signal_handlers();
 

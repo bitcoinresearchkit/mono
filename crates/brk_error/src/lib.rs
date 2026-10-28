@@ -129,6 +129,9 @@ pub enum Error {
     )]
     RpcForbidden,
 
+    #[error("Bitview reads mainnet's blocks only, and this node runs {0}")]
+    NotMainnet(String),
+
     /// The node refused a submitted transaction (policy or consensus); the reason is the node's.
     #[error("{0}")]
     TxRejected(String),

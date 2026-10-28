@@ -6,6 +6,7 @@ use std::{
     sync::Arc,
 };
 
+use bitcoin::Network;
 use brk_error::{Error, Result};
 use brk_rpc::Client;
 use brk_types::{BlkPosition, BlockHash, Height, ReadBlock};
@@ -64,6 +65,15 @@ impl Reader {
     #[inline]
     pub fn xor_bytes(&self) -> XORBytes {
         self.0.xor_bytes
+    }
+
+    /// Errs unless the node runs mainnet: this reader parses mainnet's block files only (their
+    /// magic), and another network's would read as no blocks at all.
+    pub fn check_network(&self) -> Result<()> {
+        match self.0.client.get_network()? {
+            Network::Bitcoin => Ok(()),
+            network => Err(Error::NotMainnet(network.to_string())),
+        }
     }
 
     /// Errs when the blocks directory's `xor.dat` is unreadable or malformed, or no longer the

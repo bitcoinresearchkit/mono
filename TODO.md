@@ -41,11 +41,6 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
 
 ## Back end
 
-- bitviewd on a node that isn't mainnet: nothing says it reads mainnet only (the reader's `scan.rs` and the raw block
-  reads know only its magic), no block is read, and the main loop panics "an update publishes at least genesis". Wanted:
-  startup checks `getblockchaininfo.chain` (`Client::get_network`, used only by `blk` now) and stops with a clear
-  error.
-
 - Fill v1 block extras' `orphans` from the node's `getchaintips` (the non-active tips at the block's height, with their
   `prevhash`), as mempool.space does; it's always empty now. Additive, so after the release.
 
