@@ -391,28 +391,34 @@ impl Indexer {
         self.finish_ingestion()?;
         self.vecs.db().sync_bg_tasks()?;
         let client = self.reader.client();
+        let blockhash = &self.vecs.blocks.blockhash;
 
-        let last_blockhash = self.vecs.blocks.blockhash.collect_last();
-        // Rollback sim: do not remove
-        // let last_blockhash = self
-        //     .vecs
-        //     .blocks
-        //     .blockhash
-        //     .collect_one_at(self.vecs.blocks.blockhash.len() - 2);
-
-        // A node behind our tip (restarting, reindexing) would look like a reorg to its height.
-        client.wait_for_synced_node()?;
-        let Some(hash) = last_blockhash else {
+        let Some(tip) = Height::from(blockhash.len()).decremented() else {
+            client.wait_for_synced_node()?;
             return Ok(ResumePoint {
                 lengths: Lengths::default(),
                 prev_hash: None,
             });
         };
-        let (height, hash) = client.get_closest_valid_height(hash)?;
+        // Rollback sim: do not remove
+        // let tip = tip.decremented().unwrap();
+        let hash_at = |height| blockhash.collect_one(height).expect("a height up to the tip");
+
+        // A node behind our tip (restarting, reindexing, back from a crash) would look like a
+        // reorg to its height.
+        client.wait_for_node_at(tip)?;
+        // Down our own hashes, not the node's parent links: a block the node lost in a crash
+        // and the network orphaned since is unknown to it.
+        let mut height = tip;
+        while !client.is_in_best_chain(&hash_at(height))? {
+            height = height.decremented().ok_or(Error::NotFound(
+                "Reached genesis without finding main chain".into(),
+            ))?;
+        }
         match Lengths::resume_at(height.incremented(), &self.vecs, &self.stores)? {
             Some(lengths) => Ok(ResumePoint {
                 lengths,
-                prev_hash: Some(hash),
+                prev_hash: Some(hash_at(height)),
             }),
             None => Err(Error::Internal(
                 "Indexer became inconsistent after import; drop and re-import it",

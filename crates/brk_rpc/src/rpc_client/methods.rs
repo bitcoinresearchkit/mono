@@ -22,9 +22,9 @@ use super::{
 };
 use crate::BlockTemplateTx;
 
-/// Bitcoin Core's `-5` (`RPC_INVALID_ADDRESS_OR_KEY`) is the expected
-/// response when querying a confirmed transaction without `-txindex`.
-/// The mempool fetcher tolerates these per-item failures silently.
+/// Bitcoin Core's `-5` (`RPC_INVALID_ADDRESS_OR_KEY`): a block hash the node
+/// doesn't know, or a confirmed transaction queried without `-txindex`. The
+/// mempool fetcher tolerates these per-item failures silently.
 const RPC_NOT_FOUND: i32 = -5;
 const NO_ARGS: [(); 0] = [];
 
@@ -222,17 +222,12 @@ impl Client {
         Ok((entries, txs))
     }
 
-    pub fn get_closest_valid_height(&self, hash: BlockHash) -> Result<(Height, BlockHash)> {
-        let mut current = hash;
-        loop {
-            let info = self.get_block_header_info(&current)?;
-            if info.confirmations > 0 {
-                return Ok((Height::from(info.height as u64), current));
-            }
-            let prev = info.previous_block_hash.ok_or(Error::NotFound(
-                "Reached genesis without finding main chain".into(),
-            ))?;
-            current = Self::parse_block_hash(&prev, "previousblockhash")?;
+    /// Whether `hash` is on the node's best chain: false off it or unknown.
+    pub fn is_in_best_chain(&self, hash: &BlockHash) -> Result<bool> {
+        match self.get_block_header_info(hash) {
+            Ok(info) => Ok(info.confirmations > 0),
+            Err(Error::CorepcRPC(JsonRpcError::Rpc(rpc))) if rpc.code == RPC_NOT_FOUND => Ok(false),
+            Err(e) => Err(e),
         }
     }
 
@@ -249,9 +244,16 @@ impl Client {
     }
 
     pub fn wait_for_synced_node(&self) -> Result<()> {
+        self.wait_for_node_at(Height::ZERO)
+    }
+
+    /// Waits until the node has validated every header it knows and its chain reaches `height`.
+    /// `headers == blocks` alone passes a node back from a crash that lost blocks: until its
+    /// peers return them, it knows of no header left to validate.
+    pub fn wait_for_node_at(&self, height: Height) -> Result<()> {
         let is_synced = || -> Result<bool> {
             let info = self.get_blockchain_info()?;
-            Ok(info.headers == info.blocks)
+            Ok(info.headers == info.blocks && info.blocks >= i64::from(*height))
         };
 
         if !is_synced()? {

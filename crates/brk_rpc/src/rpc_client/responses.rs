@@ -13,9 +13,6 @@ pub struct GetBlockHeaderVerbose {
     /// Zero or less when the block is off the best chain.
     pub confirmations: i64,
     pub height: i64,
-    /// None for the genesis block.
-    #[serde(rename = "previousblockhash")]
-    pub(crate) previous_block_hash: Option<String>,
 }
 
 /// `getblocktemplate`.

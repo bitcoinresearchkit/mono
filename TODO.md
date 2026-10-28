@@ -41,6 +41,19 @@ The website is gone: the server serves the showcases, Bitview's front page (`sho
 
 ## Back end
 
+- Block positions after a node crash (Codex, reviewing the 2026-10-28 resume fix): Core writes the blocks it lost again
+  from its last flushed file size, so a different arrival order, or a stale block stored in between, moves blocks
+  bitviewd recorded. Their raw-block and transaction reads then fail, and if the tip moved, the next import resets the
+  whole indexer (only the tip's position is checked). It also happens when both crash and Core catches up before
+  bitviewd starts. Wanted: positions checked from the lowest block that could have moved, rolling back to the first one
+  that did, never a reset. It didn't hit 2026-10-28: 973543–973547 read back byte for byte, and on regtest five blocks
+  handed back in order kept their positions too.
+
+- bitviewd on a node that isn't mainnet: nothing says it reads mainnet only (the reader's `scan.rs` and the raw block
+  reads know only its magic), no block is read, and the main loop panics "an update publishes at least genesis". Wanted:
+  startup checks `getblockchaininfo.chain` (`Client::get_network`, used only by `blk` now) and stops with a clear
+  error.
+
 - Fill v1 block extras' `orphans` from the node's `getchaintips` (the non-active tips at the block's height, with their
   `prevhash`), as mempool.space does; it's always empty now. Additive, so after the release.
 

@@ -159,8 +159,6 @@ where
             sleep(Duration::from_secs(1));
         }
 
-        client.wait_for_synced_node()?;
-
         info!("Chain tip changed; updating...");
 
         let start = Instant::now();
