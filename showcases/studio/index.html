@@ -925,7 +925,6 @@
 
         kbd {
           opacity: 0;
-          transition: opacity var(--dur-micro) var(--ease);
         }
 
         &:hover:where(.can-hover *) {
@@ -973,9 +972,10 @@
           transition: opacity var(--dur-small) var(--ease), transform var(--dur-small) var(--ease), width var(--dur-small) var(--ease), height var(--dur-small) var(--ease);
         }
 
-        /* (Placed at once: come from none, it fades in where it lands; its row written anew, it's there as it was.) */
+        /* (Placed at once: come from none, there at once where it lands, with what the row shows as it's pointed at (its
+           ⋯, its way): nothing comes after it; its row written anew, it's there as it was.) */
         &[data-still]::before {
-          transition: opacity var(--dur-small) var(--ease);
+          transition: none;
         }
 
         &[data-glide="gone"]::before {
@@ -1133,11 +1133,6 @@
           min-width: 0;
           padding-right: 34px;
         }
-
-        /* (Room at its end for its count, as long as it gets: 111k.) */
-        .folder-item {
-          padding-right: 46px;
-        }
       }
 
       .chart-row {
@@ -1244,6 +1239,28 @@
         }
       }
 
+      /* A row that opens and closes (a group's head, a folder, a section of the presets): its way, as it's pointed at or
+         reached by a key, › closed, ⌄ open (after its count, a head's; after its dot, holding the open chart); at rest,
+         none, what's under it (or not) saying which (the list kept quiet). */
+      :is(.list-head, .folder-row) .turn {
+        display: inline-flex;
+        flex: none;
+        order: 1;
+        align-self: center;
+        color: var(--count);
+        opacity: 0;
+        rotate: 90deg;
+        transition: rotate var(--dur-small) var(--ease);
+      }
+
+      :is(.list-head, .folder-row):is(:hover:where(.can-hover *), :has(:focus-visible)) .turn {
+        opacity: 1;
+      }
+
+      :is(.list-head, .folder-row).closed .turn {
+        rotate: 0deg;
+      }
+
       /* A folder: its mark where a chart's is (a preset section's, its icon, else a folder, open or closed), its name, how
          many it holds; its charts under it, a step in, along a line down from its mark. Holding the open chart, closed, it
          says so. */
@@ -1259,15 +1276,27 @@
           }
         }
 
-        /* How many it holds, in its ⋯'s place (the column New folder's icon is in): the ⋯ takes it on hover, or reached
-           by a key; a click leaves the count. */
+        /* Its name only as wide as it is: what follows it, after it (its dot, holding the open chart; how many it holds, its
+           way, pointed at). */
+        .folder-item .label {
+          flex: 0 1 auto;
+        }
+
+        /* How many it holds, after its name, then its way, as a group's head has them, as it's pointed at or reached by a
+           key (its ⋯ at the row's end, clear of them); at rest, its name alone. */
         .folder-count {
-          position: absolute;
-          right: 12px;
+          display: none;
+          flex: none;
+          order: 2;
+          margin-left: -4px;
           color: var(--count);
           font: 510 12px/1 var(--sans);
           font-variant-numeric: tabular-nums;
-          text-align: right;
+        }
+
+        .turn {
+          order: 3;
+          margin-left: -4px;
         }
 
         &:hover:where(.can-hover *),
@@ -1276,8 +1305,8 @@
             opacity: 1;
           }
 
-          &:has(.chart-more) .folder-count {
-            visibility: hidden;
+          .folder-count {
+            display: inline;
           }
         }
 
@@ -1289,18 +1318,15 @@
           }
         }
 
-        /* (Closed over the open chart: a dot after its name, the logo's orange, the way back to it; its name only as wide as
-           it is, the dot clear of what an ellipsis cuts.) */
-        &.holds .folder-item {
+        /* (Closed over the open chart: a dot after its name, the logo's orange, the way back to it, clear of what an ellipsis
+           cuts.) */
+        &:is(.holds, .holds-page) .folder-item {
           color: var(--ink);
-
-          .label {
-            flex: 0 1 auto;
-          }
 
           &::after {
             content: "";
             flex: none;
+            order: 1;
             width: 5px;
             height: 5px;
             margin-left: -3px;
@@ -1382,7 +1408,8 @@
         position: relative;
         flex-shrink: 0;
         height: 0;
-        margin: 9px 0 1px;
+        /* (As far under Charts' words as each group's rule is from the words about it: Charts' row is taller than a head.) */
+        margin: 2px 0 1px;
 
         &::after {
           content: "";
@@ -1847,7 +1874,7 @@
           /* A group's head, its mark alone (the rest faded, out of reach: buttons), its rule short as Charts' is: at the
              same height, nothing moves. */
           .list-head {
-            :is(.head-name, .count, .turn, .chart-more, .list-head-add) {
+            :is(.head-name, .count, .turn, .chart-more) {
               visibility: hidden;
               opacity: 0;
               pointer-events: none;
@@ -1902,7 +1929,7 @@
 
           /* A folder holding the open chart, its dot on its icon's corner (the rail's folders never open: see railMenu),
              ringed in the rail's ground. */
-          .folder-row.holds .folder-item {
+          .folder-row:is(.holds, .holds-page) .folder-item {
             position: relative;
 
             &::after {
@@ -1912,6 +1939,19 @@
               margin: 0;
               box-shadow: 0 0 0 1.5px var(--app);
             }
+          }
+
+          /* (A head's the same, on its mark's corner.) */
+          .list-head:is(.holds, .holds-page) .head-mark::after {
+            content: "";
+            position: absolute;
+            top: 6px;
+            left: 19px;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: oklch(64.34% 0.191 44.41);
+            box-shadow: 0 0 0 1.5px var(--app);
           }
 
           /* The rail's icons stay where the open sidebar puts them (collapsing and expanding move nothing). (The list's
@@ -1967,8 +2007,9 @@
         }
 
         /* Opening, the words come once there's room for them: as the sidebar settles, not cut by its edge (opacity alone,
-           what a screen draws cheapest, a long list of them at once). */
-        .sidebar :is(.brand > :not(.logo), .search > :not([data-icon]), .nav-item > :not([data-icon], .chart-mark), .list-head :is(.head-name, .count, .list-head-add)) {
+           what a screen draws cheapest, a long list of them at once). Only then: at rest, what a row shows as it's pointed
+           at (its count, its way, its keys) comes at once, with its highlight and its ⋯. */
+        body[data-sliding] .sidebar :is(.brand > :not(.logo), .search > :not([data-icon]), .nav-item > :not([data-icon], .chart-mark), .list-head :is(.head-name, .count)) {
           transition: opacity var(--words-in) var(--ease) var(--words-wait);
         }
 
@@ -1983,16 +2024,10 @@
           transition: opacity var(--words-in) var(--ease) var(--words-wait), visibility 0s, background var(--fade), color var(--fade), transform var(--dur-micro) var(--ease);
         }
 
-        /* (The widest words a little later, the search's: once there's nearly room for them; a folder's count, at the
-           row's far end, once the edge has passed it.) */
+        /* (The widest words a little later, the search's: once there's nearly room for them.) */
         .sidebar .search > :not([data-icon]) {
           --words-wait: 170ms;
           --words-in: 110ms;
-        }
-
-        .sidebar .folder-count {
-          --words-wait: 190ms;
-          --words-in: 90ms;
         }
 
         /* (A row's mark at its far end, an edited preview's dot, an edited preset's pencil: out of sight while the sidebar
@@ -2002,12 +2037,6 @@
         }
 
         body[data-sliding] .sidebar :is([data-preview-row] .chart-item.edited, .preset-row.edited .chart-item)::after {
-          opacity: 0;
-          transition: none;
-        }
-
-        /* (Opening, a head's New folder out of sight till the sidebar's open: at its edge, it'd ride over the head's name.) */
-        body[data-sliding]:not([data-sidebar="collapsed"]) .sidebar .list-head-add {
           opacity: 0;
           transition: none;
         }
@@ -2526,8 +2555,20 @@
           }
         }
 
-        &.holds .list-head-name {
+        /* (Closed over the open chart, or the page shown: as a folder is, its dot after its name.) */
+        &:is(.holds, .holds-page) .list-head-name {
           color: var(--ink);
+
+          .head-name::after {
+            content: "";
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            margin-left: 6px;
+            border-radius: 50%;
+            background: oklch(64.34% 0.191 44.41);
+            vertical-align: 0.15em;
+          }
         }
 
         /* Its mark, in the rows' icons' column, its name where theirs start (on the rail, all it shows: as wide as the
@@ -2550,23 +2591,11 @@
           }
         }
 
+        /* (How many it holds, as a folder's: pointed at or reached by a key, with its way and its ⋯; at rest, its name alone.) */
         .count {
+          display: none;
           color: var(--count);
           font-variant-numeric: tabular-nums;
-        }
-
-        .turn {
-          display: inline-flex;
-          align-self: center;
-          color: var(--count);
-          opacity: 0;
-          rotate: 90deg;
-          transition: opacity var(--dur-micro) var(--ease), rotate var(--dur-small) var(--ease);
-        }
-
-        &.closed .turn {
-          opacity: 1;
-          rotate: 0deg;
         }
 
         .chart-more {
@@ -2575,19 +2604,12 @@
           opacity: 0;
         }
 
-        /* (New folder at the end, always there, in the column the rows' ⋯ are in; the head's own ⋯ before it.) */
-        .list-head-add {
-          position: absolute;
-          right: 9px;
-        }
-
-        &.adds .chart-more {
-          right: 33px;
-        }
-
         &:hover:where(.can-hover *),
         &:has(:focus-visible) {
-          .turn,
+          .count {
+            display: inline;
+          }
+
           .chart-more {
             opacity: 1;
           }
@@ -3878,7 +3900,6 @@
 
         kbd {
           opacity: 0;
-          transition: opacity var(--dur-micro) var(--ease);
         }
 
         &:hover:where(.can-hover *) {
@@ -3931,7 +3952,6 @@
           inset: 0 3px;
           background: var(--line-strong);
           opacity: 0;
-          transition: opacity var(--dur-micro) var(--ease);
         }
 
         &:is(:hover:where(.can-hover *), .dragging)::after {
@@ -5448,8 +5468,8 @@
         background: var(--g);
         box-shadow: inset 0 0 0 1px light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.08));
         /* (As the chart draws it: a heatmap's weakest fading into what's under it.) */
-        -webkit-mask-image: var(--fade, none);
-        mask-image: var(--fade, none);
+        -webkit-mask-image: var(--mask, none);
+        mask-image: var(--mask, none);
       }
 
 
@@ -7915,7 +7935,7 @@
         opacity: 0;
         appearance: none;
         cursor: pointer;
-        transition: opacity var(--dur-micro) var(--ease), border-color var(--dur-micro) var(--ease), background var(--dur-micro) var(--ease);
+        transition: border-color var(--dur-micro) var(--ease), background var(--dur-micro) var(--ease);
 
         &:hover:where(.can-hover *) {
           border-color: var(--soft);
@@ -9665,14 +9685,14 @@
           }
         }
 
-        /* (Its ⋯ always there: the count beside it, the name short of both.) */
-        .folder-row .folder-count {
-          right: 33px;
-          visibility: visible !important;
+        /* (Its ⋯ always there, as if pointed at: its count too, after its name, the name short of the ⋯; a group's head's
+           too.) */
+        :is(.folder-row .folder-count, .list-head .count) {
+          display: inline;
         }
 
         .folder-row .folder-item {
-          padding-right: 58px;
+          padding-right: 33px;
         }
 
         .side-cap[data-action="shortcuts"] {
@@ -13363,10 +13383,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         for (const [id, at] of Object.entries(deleted)) if (!(library.deleted[id] >= at)) library.deleted[id] = at;
         const ours = new Map(library.charts.map((doc) => [doc.id, doc])), theirs = new Map(incoming.map((doc) => [doc.id, doc]));
+        // (Saving here: the arrangement as this tab last wrote or took one in, each thing in it this tab's only where it
+        // changed it since (a chart moved there, a folder closed there: not saved back as it was here).)
+        const arranged = saving && arrangedAs ? /** @type {[string[], Folder[], [string, string][]]} */ (JSON.parse(arrangedAs)) : null, placedThen = new Map(arranged?.[2] ?? []);
+        // (Theirs, as written, before any copy of theirs is placed below: what this tab has in line with them from now on,
+        // its own changes still its own, see the end.)
+        const theirArrangement = saving ? JSON.stringify([orderOf(stored.order), folders, incoming.map((doc) => [doc.id, doc.folder ?? ""])]) : "";
         /** A chart's later copy, in its folder as the arrangement has it. @param {Chart | undefined} own @param {Chart | undefined} other */
         const later = (own, other) => {
           if (!own || !other) return /** @type {Chart} */ (own ?? other);
-          const doc = own.updated >= other.updated ? own : other, by = saving ? own : other;
+          const doc = own.updated >= other.updated ? own : other, by = saving && !(placedThen.has(own.id) && placedThen.get(own.id) === (own.folder ?? "")) ? own : other;
           if (by.folder) doc.folder = by.folder;
           else delete doc.folder;
           return doc;
@@ -13377,19 +13403,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const doc of merged) if (ours.get(doc.id) !== doc) histories.delete(doc.id);
         // (The open chart, whichever copy, stays.)
         library.charts = merged.filter((doc) => doc.id === chart?.id || !isDeleted(doc));
-        // (Saving here: this tab's folders, but each one's name and icon theirs unless changed here since this tab last wrote
-        // or took one in (as `arrangedAs` has them): a folder renamed there isn't saved back as it was.)
-        const base = saving && arrangedAs ? new Map(/** @type {Folder[]} */ (JSON.parse(arrangedAs)[1]).map((folder) => [folder.id, folder])) : null, other = new Map(folders.map((folder) => [folder.id, folder]));
+        // (Saving here: this tab's folders, but each one's name, icon, place and closing theirs unless changed here since
+        // this tab last wrote or took one in: a folder renamed or moved there isn't saved back as it was.)
+        const base = arranged ? new Map(arranged[1].map((folder) => [folder.id, folder])) : null, other = new Map(folders.map((folder) => [folder.id, folder]));
         const ourFolders = !base ? library.folders : library.folders.map((folder) => {
           const was = base.get(folder.id), theirs = other.get(folder.id);
           if (!was || !theirs) return folder;
           const out = /** @type {any} */ ({ ...folder });
-          for (const key of /** @type {const} */ (["name", "icon"])) if (folder[key] === was[key]) theirs[key] === undefined ? delete out[key] : (out[key] = theirs[key]);
+          for (const key of /** @type {const} */ (["name", "icon", "parent", "closed"])) if (folder[key] === was[key]) theirs[key] === undefined ? delete out[key] : (out[key] = theirs[key]);
           return /** @type {Folder} */ (out);
         });
         const [first, second] = saving ? [ourFolders, folders] : [folders, library.folders], firstIds = new Set(first.map((folder) => folder.id));
         library.folders = foldersOf([...first, ...second.filter((folder) => !firstIds.has(folder.id))].filter((folder) => !Object.hasOwn(library.deleted, folder.id)), library.charts);
-        if (!saving) library.order = orderOf(stored.order);
+        // (The order, theirs too unless changed here since.)
+        if (!saving || (arranged && JSON.stringify(library.order) === JSON.stringify(arranged[0]))) library.order = orderOf(stored.order);
         // The presets as edited: each preset's latest copy, here or there (one deleted, gone; the open one stays).
         const theirPresets = presetsOf(stored.presets), ourPresets = new Set(library.presets), byPreset = /** @type {Map<string, Chart>} */ (new Map());
         for (const doc of [...library.presets, ...theirPresets]) {
@@ -13400,8 +13427,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const doc of library.presets) if (!ourPresets.has(doc)) histories.delete(doc.id);
         // (Its charts this tab can't read, set aside: not counted, or each tab would save over the other's.)
         if (!saving && !writing && holdings(library.charts, library.folders, library.deleted, library.presets) !== holdings(incoming, folders, deleted, theirPresets)) save();
-        // (Taken in, theirs is the arrangement as last written.)
-        if (!saving) arrangedAs = arrangedNow();
+        // (Taken in, theirs is the arrangement as last written; saving here, its changes kept over theirs, the baseline
+        // theirs all the same: its changes still told apart from it, what it took of theirs not its own at a later take-in.)
+        arrangedAs = saving ? theirArrangement : arrangedNow();
         // (Still starting, a link being read: the library's taken, and start shows what's open once it's ready.)
         if (!chart) return;
         const current = isPreview(chart) ? chart : library.charts.find((doc) => doc.id === chart.id) ?? library.presets.find((doc) => doc.id === chart.id || (chart.preset !== undefined && doc.preset === chart.preset)) ?? chart;
@@ -22892,7 +22920,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // The same charts in the same order (and parts): only the tiles that changed are drawn again (a click on another
         // one, under way, isn't lost; focus and hover stay). Otherwise, all of them.
         const html = visible.map(tileHtml), tiles = all$(".tile", grid);
-        const layout = JSON.stringify(parts.map((part) => (part.kind === "shelf" ? [part.kind, JSON.stringify(part.place), part.name, part.count, part.docs.length, part.empty ?? ""] : part.kind === "grid" ? [part.kind, Boolean(part.previews), part.docs.length] : part.kind === "head" ? [part.kind, part.name, part.count] : [part.kind, part.html])));
+        const layout = JSON.stringify(parts.map((part) => (part.kind === "shelf" ? [part.kind, JSON.stringify(part.place), part.name, part.count, part.docs.length, part.empty ?? "", ((folder) => (folder ? folderMark(folder) : ""))(folderById(part.folder ?? ""))] : part.kind === "grid" ? [part.kind, Boolean(part.previews), part.docs.length] : part.kind === "head" ? [part.kind, part.name, part.count] : [part.kind, part.html])));
         if (layout === drawnLayout && tiles.length === visible.length && tiles.every((tile, i) => tile.dataset.homeCard === visible[i].id)) {
           tiles.forEach((tile, i) => drawnTiles.get(visible[i].id) !== html[i] && swapTile(tile, html[i]));
         } else {
@@ -23008,7 +23036,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Gone with the page it was on, the focus starts the new one: its name.)
         if (fromPage && !$("home").contains(document.activeElement)) $("home-title").focus({ preventScroll: true });
       }
-      /** Where the page is, lit in the sidebar: Charts at its top, the heads' pages, a folder of yours, a section of the presets. */
+      /**
+       * Where the page is, lit in the sidebar: Charts at its top, the heads' pages, a folder of yours, a section of the
+       * presets; closed over it (a head over a page of its own, a folder over one in it, a section over one under it),
+       * dotted, as one closed over the open chart is.
+       */
       function renderSideNav() {
         const lit = (/** @type {Element} */ element, /** @type {boolean} */ on) => on !== element.hasAttribute("aria-current") && (on ? element.setAttribute("aria-current", "page") : element.removeAttribute("aria-current"));
         const folder = home && "folder" in homeAt ? homeAt.folder : null, path = home && "path" in homeAt ? JSON.stringify(homeAt.path) : null, at = home ? JSON.stringify(homeAt) : "";
@@ -23016,6 +23048,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const head of all$("[data-at]", $("chart-list"))) lit(head, head.dataset.at === at);
         for (const button of all$("[data-folder-item]", $("chart-list"))) lit(button, button.dataset.folderItem === folder);
         for (const button of all$("[data-section-item]", $("chart-list"))) lit(button, button.dataset.sectionItem === path);
+        const over = (/** @type {Element | null} */ row, /** @type {boolean} */ on) => row?.classList.toggle("holds-page", on && row.classList.contains("closed"));
+        for (const head of all$(".list-head", $("chart-list"))) over(head, home && at !== /** @type {HTMLElement} */ (head.querySelector("[data-at]"))?.dataset.at && (head.getAttribute("data-group") === "library" ? folder !== null : head.getAttribute("data-group") === "presets" ? path !== null : false));
+        for (const row of all$("[data-folder-row]", $("chart-list"))) over(row, Boolean(folder) && folder !== row.dataset.folderRow && isIn(folder ?? undefined, /** @type {string} */ (row.dataset.folderRow)));
+        for (const row of all$("[data-section-row]", $("chart-list"))) over(row, path !== null && path !== row.dataset.sectionRow && path.startsWith(/** @type {string} */ (row.dataset.sectionRow).slice(0, -1) + ","));
         showAddress();
       }
       /** The most a shelf shows (its section's first), and a grid at once (more, a button away). */
@@ -24485,7 +24521,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if ("layers" in item) return /** @type {[string, string]} */ ([item.id, row(item, depth)]);
             const folder = item, closed = folder.closed || rail, holds = Boolean(current?.folder && isIn(current.folder, folder.id));
             return /** @type {[string, string]} */ ([`folder:${folder.id}`, `<div class="folder-row ${depth ? "in-folder" : ""} ${closed ? "closed" : ""} ${closed && holds ? "holds" : ""}" data-folder-row="${folder.id}" style="--depth: ${depth}">
-              <button type="button" class="nav-item folder-item" data-folder-item="${folder.id}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${!closed}"`} data-tip="${escape(folder.name)}">${folderMark(folder)}<span class="label">${escape(folder.name)}</span><span class="folder-count">${shortCount(counts.get(folder.id) ?? 0)}</span></button>
+              <button type="button" class="nav-item folder-item" data-folder-item="${folder.id}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${!closed}"`} data-tip="${escape(folder.name)}">${folderMark(folder)}<span class="label">${escape(folder.name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(counts.get(folder.id) ?? 0)}</span></button>
               <button type="button" class="cap small chart-more" data-folder-menu="${folder.id}" aria-haspopup="menu" aria-label="More for ${escape(folder.name)}" data-tip="More">${ICONS.more}</button>
             </div>`]);
           })]),
@@ -24543,15 +24579,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether one of the sidebar's groups is closed there (on the rail too: its head's menu opens it). @param {Group} group */
       const groupShut = (group) => prefs.groupsClosed.includes(group);
       /**
-       * A group's head in the sidebar, as a folder's row: a click opens or closes it there (kept), how many it holds, a
-       * turn showing which (closed, always); its ⋯ (a right-click), its page first. Closed, holding the open chart, it
-       * says so (as a folder does).
+       * A group's head in the sidebar, as a folder's row: a click opens or closes it there (kept); how many it holds, a
+       * turn showing which, as it's pointed at; its ⋯ (a right-click), its page first. Closed, holding the open chart, it
+       * says so (as a folder does; holding the page shown, see renderSideNav).
        * @param {Group} group @param {number} count @param {boolean} holds @returns {[string, string]}
        */
       const sideHead = (group, count, holds) => {
         const [name, place] = GROUP_OF[group], shut = groupShut(group);
         // (Your Library's: its New folder too, folders being its own.)
-        return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""} ${group === "library" ? "adds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}" aria-label="${name}, ${count}" data-tip="${name}"><span class="head-mark">${ICONS[GROUP_MARK[group]]}</span><span class="head-name">${name}</span><span class="count">${shortCount(count)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span></button><button type="button" class="cap small chart-more" data-group-menu="${group}" aria-haspopup="menu" aria-label="More for ${name}" data-tip="More">${ICONS.more}</button>${group === "library" ? `<button type="button" class="cap small list-head-add" data-new-folder aria-label="New folder" data-tip="New folder">${ICONS.folderAdd}</button>` : ""}</div>`];
+        return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}" aria-label="${name}, ${count}" data-tip="${name}"><span class="head-mark">${ICONS[GROUP_MARK[group]]}</span><span class="head-name">${name}</span><span class="count">${shortCount(count)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span></button><button type="button" class="cap small chart-more" data-group-menu="${group}" aria-haspopup="menu" aria-label="More for ${name}" data-tip="More">${ICONS.more}</button></div>`];
       };
       /** A group's menu in the sidebar (its ⋯, a right-click): its page; open or close it there. @param {Group} group @returns {Action[]} */
       const groupRows = (group) => [
@@ -24669,7 +24705,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
             const section = item, shown = open.has(section.key), name = /** @type {string} */ (section.path.at(-1)), key = escape(section.key);
             parts.push([`section:${section.key}`, `<div class="folder-row section-row ${depth ? "in-folder" : ""} ${shown ? "" : "closed"} ${!shown && holding.has(section.key) ? "holds" : ""}" data-section-row="${key}" style="--depth: ${depth}">
-              <button type="button" class="nav-item folder-item" data-section-item="${key}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${shown}"`} data-tip="${escape(name)}">${sectionMark(section, shown)}<span class="label">${escape(name)}</span><span class="folder-count">${shortCount(section.count)}</span></button>
+              <button type="button" class="nav-item folder-item" data-section-item="${key}" ${rail ? 'aria-haspopup="menu"' : `aria-expanded="${shown}"`} data-tip="${escape(name)}">${sectionMark(section, shown)}<span class="label">${escape(name)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span><span class="folder-count">${shortCount(section.count)}</span></button>
               <button type="button" class="cap small chart-more" data-section-menu="${key}" aria-haspopup="menu" aria-label="More for ${escape(name)}" data-tip="More">${ICONS.more}</button>
             </div>`]);
             if (shown) walk(section, depth + 1);
@@ -25131,7 +25167,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return () => void (placeAs(after, itemsOf(keysNow(moved))) && reorderStep(keysNow(moved), before, after));
         }, "Order put back");
       }
-      /** A folder deleted: what's in it kept (its charts, its folders), a level up where it was, with an Undo. */
+      /**
+       * A folder deleted: what's in it kept (its charts, its folders), a level up where it was, with an Undo; the focus,
+       * gone with its row, on what's in its place (the first of what was in it, else the one after it, before it, the
+       * folder it was in).
+       */
       function deleteFolder(/** @type {string} */ id) {
         const at = library.folders.findIndex((folder) => folder.id === id), folder = library.folders[at];
         if (!folder) return;
@@ -25150,6 +25190,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         setChildren([...siblings.slice(0, place), ...members, ...siblings.slice(place + 1)]);
         save();
         renderCharts();
+        const lost = !document.activeElement || document.activeElement === document.body || !document.activeElement.isConnected;
+        const next = members[0] ?? siblings[place + 1] ?? siblings[place - 1] ?? (folder.parent ? folderById(folder.parent) : undefined);
+        if (lost && next) /** @type {HTMLElement | null} */ ($("chart-list").querySelector("layers" in next ? `[data-open-chart="${CSS.escape(next.id)}"]` : `[data-folder-item="${CSS.escape(next.id)}"]`))?.focus({ preventScroll: true });
         toast(`Deleted “${folder.name}”${members.length ? ` (${charts === 1 ? "its chart was" : charts ? `its ${plural(charts, "chart")} were` : "what was in it was"} kept)` : ""}`, { label: "Undo", run: () => {
           if (folderById(id)) return;
           // (Back as a folder anew, its deletion standing: wherever that's been heard, this one isn't it.)
@@ -25229,9 +25272,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * Items (keys) put in a folder (`into`; none: the top), before `before` (a key there; none: at its end; `first`: at
        * its start), gliding there (from `dropY`, where let go); said, with an Undo (`quiet`: not). A folder never into
-       * itself, nor into one in it.
+       * itself, nor into one in it; nor into one gone (a menu open as another tab deleted it): said so.
        */
       function placeItems(/** @type {string[]} */ keys, /** @type {string | undefined} */ into, /** @type {string | null} */ before = null, { quiet = false, dropY = /** @type {number | null} */ (null) } = {}) {
+        if (into && !folderById(into)) return void notice("That folder was deleted meanwhile");
         // (Several, in the order the tree has them, however they were picked.)
         const order = keys.length > 1 ? treeOf().map(({ item }) => item) : [];
         const items = itemsOf(keys).sort((a, b) => order.indexOf(a) - order.indexOf(b)).filter((item) => (("layers" in item && isYours(item)) || (!("layers" in item) && !(into && isIn(into, item.id)))));
@@ -26047,7 +26091,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         event.preventDefault();
         newFolder([], "folder" in homeAt ? homeAt.folder || undefined : undefined);
       });
-      $("chart-list").addEventListener("click", (event) => closest(event, "[data-new-folder]") && newFolder([], undefined, { side: true }));
       $("chart-list").addEventListener("scroll", () => fitSoon($("chart-list"), true), { passive: true });
       new ResizeObserver(() => fitStrip($("chart-list"), true)).observe($("chart-list"));
       // The empty chart offers the recommended presets, each with its mini chart, name and place, in a row that scrolls
@@ -28483,7 +28526,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const stop = (/** @type {[number, string]} */ [place, tint], /** @type {number} */ i) => `<button type="button" class="gradient-stop" data-color-slot="stop${i}" data-stop="${i}" aria-pressed="${i === k}" style="left: ${place}%; --c: ${escape(cssColor(tint))}" aria-label="${escape(stopSaid([place, tint]))}" data-tip="${escape(stopSaid([place, tint]))}${escape(`\n${keyText(`Drag, or ← → to move it${few ? "" : "; ⌫ to remove it"}`)}`)}"></button>`;
         const fade = gradientFade(layer);
         const head = `<div class="field gradient-head"><span>Ready made</span><button type="button" class="preset" data-action="gradient-ready" aria-haspopup="menu" aria-label="Ready made: ${escape(readyName(stops))}">${gradientSwatch(stops)}<span class="name">${escape(readyName(stops))}</span>${CHEVRON}</button></div>`;
-        return `<div class="gradient-edit" role="group" aria-label="Its gradient">${head}<div class="gradient-scale" data-gradient-bar style="--g: ${escape(gradientCss(stops))}${fade ? `; --fade: ${fade}` : ""}"${stops.length < GRADIENT_MOST ? ' data-tip="A press adds a color here"' : ""}><span class="gradient-fill"></span>${stops.map(stop).join("")}</div>${gradientScale(layer)}${gradientHand(layer, k)}</div>`;
+        return `<div class="gradient-edit" role="group" aria-label="Its gradient">${head}<div class="gradient-scale" data-gradient-bar style="--g: ${escape(gradientCss(stops))}${fade ? `; --mask: ${fade}` : ""}"${stops.length < GRADIENT_MOST ? ' data-tip="A press adds a color here"' : ""}><span class="gradient-fill"></span>${stops.map(stop).join("")}</div>${gradientScale(layer)}${gradientHand(layer, k)}</div>`;
       }
       /** Where a gradient's values fall along it, under its bar (see gradientTicks; none yet, nothing). @param {Layer} layer */
       function gradientScale(layer) {
@@ -32280,9 +32323,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
       }
       const renameChartPage = (doc) => renamePage("Rename", doc.title ?? "", derivedTitle(doc), (text) => renameChart(chartById(doc.id) ?? doc, text));
-      /** A folder, as ⌘K's page: expand or collapse it, rename it, move it, delete it (what's in it kept), and what's in it. @returns {Page} */
-      const folderOwnPage = (/** @type {string} */ id) => ({ title: () => folderById(id)?.name ?? "Folder", placeholder: "Search this folder", rows: () => {
-        const folder = folderById(id);
+      /**
+       * A folder, as ⌘K's page: expand or collapse it, rename it, move it, delete it (what's in it kept), and what's in it;
+       * made again meanwhile (its deletion undone, redone), the folder it is now. @returns {Page}
+       */
+      const folderOwnPage = (/** @type {string} */ given) => ({ title: () => folderById(folderNow(given))?.name ?? "Folder", placeholder: "Search this folder", rows: () => {
+        const id = folderNow(given), folder = folderById(id);
         if (!folder) return [];
         return [
           ...folderRows(id, true).map((row) => ({ ...row, group: "Folder" })),
@@ -34404,16 +34450,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               return chain;
             }));
             const holds = held(docs.map((doc) => doc.folder)), heldThere = held(parsed.charts.map((item) => folders.get(item?.folder)?.id));
-            // (One here already, by the same path of names (a backup imported again, a folder with more in it since): that
-            // one, what's in it put in yours; not made again.)
+            // (One here already (a backup imported again, a folder with more in it since): that one, what's in it put in
+            // yours, not made again; by its id (renamed since, the same), else by its path of names where one alone here has
+            // it (two of one name, neither: a new one).)
             const namesOf = (/** @type {Folder} */ folder, /** @type {(id: string) => Folder | undefined} */ up, /** @type {number} */ most) => {
               const names = [];
               for (let at = /** @type {Folder | undefined} */ (folder), steps = 0; at && steps <= most; at = at.parent ? up(at.parent) : undefined, steps++) names.unshift(at.name);
               return JSON.stringify(names);
             };
             const pathThere = (/** @type {Folder} */ folder) => namesOf(folder, (id) => made.get(id), made.size), here = new Map(), into = new Map();
-            for (const folder of library.folders) ((key) => here.has(key) || here.set(key, folder.id))(namesOf(folder, folderById, library.folders.length));
-            for (const folder of folders.values()) ((id) => id && into.set(folder.id, id))(here.get(pathThere(folder)));
+            for (const folder of library.folders) ((key) => here.set(key, here.has(key) ? null : folder.id))(namesOf(folder, folderById, library.folders.length));
+            for (const [from, folder] of folders) ((id) => id && into.set(folder.id, id))(folderById(from) ? from : here.get(pathThere(folder)));
             for (const doc of docs) if (doc.folder && into.has(doc.folder)) doc.folder = into.get(doc.folder);
             for (const [from, folder] of folders) if (into.has(folder.id) || (!holds.has(folder.id) && heldThere.has(folder.id))) folders.delete(from);
             const kept = new Set([...folders.values()].map((folder) => folder.id));
