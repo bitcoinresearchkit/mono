@@ -19100,7 +19100,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function handlesOf(drawing, points, size) {
         const [a, b] = points;
-        // (A corner on one of its points (a line's ends): that point's, none of its own, its place kept.)
+        // (A corner on one of its points (a line's ends, a path's at a corner of its box): that point's, none of its own,
+        // its place kept.)
         if (THROUGH.has(drawing.kind)) return lit(drawing) ? [...points, ...boxCorners(drawing, points).map((corner) => (points.some((point) => finite(point) && Math.hypot(point.x - corner.x, point.y - corner.y) < 12) ? { x: NaN, y: NaN } : corner))] : points;
         // (An ellipse's corners are off it, on its box: there once it's selected, as a stroke's.)
         if (BOXES.has(drawing.kind) && (drawing.kind !== "ellipse" || lit(drawing))) return [a, { x: b.x, y: a.y }, b, { x: a.x, y: b.y }];
@@ -19109,10 +19110,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (drawing.kind === "brush" && lit(drawing)) return boxCorners(drawing, points);
         return [];
       }
-      /** The corners of the box around a stroke, a line or a path (see boundsOf), from its top left round; none, none shown. */
+      /**
+       * The corners of the box around a stroke, a line or a path (see boundsOf), from its top left round; none shown, or a
+       * dot (no width, no height: nothing to scale, it's moved), none.
+       */
       function boxCorners(drawing, points) {
         const box = boundsOf(drawing, points);
-        return Number.isFinite(box.left) ? [{ x: box.left, y: box.top }, { x: box.right, y: box.top }, { x: box.right, y: box.bottom }, { x: box.left, y: box.bottom }] : [];
+        return Number.isFinite(box.left) && (box.right > box.left || box.bottom > box.top) ? [{ x: box.left, y: box.top }, { x: box.right, y: box.top }, { x: box.right, y: box.bottom }, { x: box.left, y: box.bottom }] : [];
       }
       /**
        * The side of a box (a rectangle's, an ellipse's, a ruler's, a selected stroke's, line's or path's: its corners' box)
@@ -19124,14 +19128,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const across = x > left + reach && x < right - reach, down = y > top + reach && y < bottom - reach;
         return across && Math.abs(y - top) <= reach ? 4 : across && Math.abs(y - bottom) <= reach ? 6 : down && Math.abs(x - right) <= reach ? 5 : down && Math.abs(x - left) <= reach ? 7 : -1;
       }
-      /** The box around a text, a stroke, a line or a path: its outline, selected. */
+      /**
+       * The box around a text (clear of its words), a stroke, a line or a path (on its outermost points: its dots on its
+       * edges, a corner on one where it's there, one dot, see handlesOf): its outline, selected.
+       */
       function boundsOf(drawing, points) {
         if (drawing.kind === "text") {
           const place = textPlace(drawing, points[0]);
           return { left: place.x - place.width / 2 - 2, top: place.y - place.height / 2 - 2, right: place.x + place.width / 2 + 2, bottom: place.y + place.height / 2 + 2 };
         }
-        const shown = points.filter(finite), pad = drawing.width / 2 + 4;
-        return { left: Math.min(...shown.map((p) => p.x)) - pad, top: Math.min(...shown.map((p) => p.y)) - pad, right: Math.max(...shown.map((p) => p.x)) + pad, bottom: Math.max(...shown.map((p) => p.y)) + pad };
+        const shown = points.filter(finite);
+        return { left: Math.min(...shown.map((p) => p.x)), top: Math.min(...shown.map((p) => p.y)), right: Math.max(...shown.map((p) => p.x)), bottom: Math.max(...shown.map((p) => p.y)) };
       }
       /** A drawing's color as drawn: a ruler's, up or down; any other's, its own. */
       const colorOfDrawing = (/** @type {Drawing} */ drawing) => (drawing.kind === "ruler" ? css(rulerReading(drawing)?.rising === false ? "--danger" : "--up") : ink(drawing.color));
@@ -19371,7 +19378,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (From the last drawn, on top.)
           for (let i = this.shown.length - 1; i >= 0; i--) {
             const { drawing, points, box } = this.shown[i];
-            if (box && !(x >= box.left - reach && x <= box.right + reach && y >= box.top - reach && y <= box.bottom + reach)) continue;
+            // (Its box on its outermost points: a pointer as near as its line's reach, half its width out.)
+            const near = reach + drawing.width / 2 + 1;
+            if (box && !(x >= box.left - near && x <= box.right + near && y >= box.top - near && y <= box.bottom + near)) continue;
             // (A line across's or down's label over its dot: the dot only moves it, as its body does.)
             if (!body && (drawing.kind === "hline" || drawing.kind === "vline") && onLabel(drawing, points, this.size, x, y)) body = { drawing, handle: -1, over: "label" };
             // (A line's or a path's box, selected: its corners after its points, its sides after them, see moveTo.)
@@ -19384,7 +19393,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
             // (Under a drawing found above (a side of one too): only its points still win.)
             if (body) continue;
-            const side = sideOf(drawing, ring, x, y, reach);
+            // (A stroke's, a line's or a path's own, before its box's sides: its box is on its outermost points, all along
+            // it where it's flat.)
+            const side = (ends || drawing.kind === "brush") && touches(drawing, points, x, y, this.size, reach) ? -1 : sideOf(drawing, ring, x, y, reach);
             if (side >= 0) {
               body = { drawing, handle: ends + side, over: side % 2 ? "ew" : "ns" };
               continue;
@@ -21205,17 +21216,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A stroke stretched by a corner of its box to a point: every point as far across and up its box as it was, the opposite corner held. */
       function scaled(/** @type {Drawing} */ drawing, series, line, /** @type {number} */ corner, at) {
-        const points = onScreen(drawing, series, line), shown = points.filter(finite), pad = drawing.width / 2 + 4;
-        const box = { left: Math.min(...shown.map((p) => p.x)), right: Math.max(...shown.map((p) => p.x)), top: Math.min(...shown.map((p) => p.y)), bottom: Math.max(...shown.map((p) => p.y)) };
+        const points = onScreen(drawing, series, line), box = boundsOf(drawing, points);
         // A side (4 top, 5 right, 6 foot, 7 left) stretches it one way: the other way, as it is.
-        if (corner >= 4) at = { x: corner === 5 ? at.x : corner === 7 ? at.x : box.right + pad, y: corner === 4 || corner === 6 ? at.y : box.bottom + pad };
+        if (corner >= 4) at = { x: corner === 5 ? at.x : corner === 7 ? at.x : box.right, y: corner === 4 || corner === 6 ? at.y : box.bottom };
         const west = corner === 0 || corner === 3 || corner === 7, north = corner < 2 || corner === 4;
         const held = { x: west ? box.right : box.left, y: north ? box.bottom : box.top }, from = { x: west ? box.left : box.right, y: north ? box.top : box.bottom };
-        // The corner under the pointer is the box's, padded: the points' own corner lies the padding inside it, on the side
-        // the pointer is of the held corner (it can be taken past it). (A flat stroke, no height or no width, keeps it.)
-        const inside = (/** @type {number} */ to, /** @type {number} */ from) => (Math.abs(to - from) <= pad ? from : to + (to < from ? pad : -pad));
-        const to = { x: inside(at.x, held.x), y: inside(at.y, held.y) };
-        const sx = from.x === held.x ? 1 : (to.x - held.x) / (from.x - held.x), sy = from.y === held.y ? 1 : (to.y - held.y) / (from.y - held.y);
+        // (The corner under the pointer, its box's, on its points: it can be taken past the held one. A flat stroke, no
+        // height or no width, keeps it.)
+        const sx = from.x === held.x ? 1 : (at.x - held.x) / (from.x - held.x), sy = from.y === held.y ? 1 : (at.y - held.y) / (from.y - held.y);
         return points.flatMap((point) => {
           if (!finite(point)) return [];
           const value = series.coordinateToPrice(held.y + (point.y - held.y) * sy);
