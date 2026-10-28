@@ -13697,8 +13697,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const viewKey = (/** @type {string} */ id) => (prefs.linkView && id === chart?.id ? LINKED : id);
       /** The view a chart opens on (see viewKey). */
       const openView = (/** @type {Chart} */ doc) => leftView(viewKey(doc.id));
-      /** The view the open chart opens on now: the linked one it's taking, as taken (see followLinked); else its own. */
-      const openingView = (/** @type {Chart} */ doc) => (retaking && doc.id === retaking.id && viewKey(doc.id) === LINKED ? retaking.view : openView(doc));
+      /**
+       * The chart a link (a script, a file; read at the start too) just brought, to open at its own window: the view it came with, else its
+       * range, whatever view is linked (you: "a link's own range should win"); the linked one follows it once it's moved.
+       */
+      let linkWindow = "";
+      /** The view the open chart opens on now: a link's own (see linkWindow); the linked one it's taking, as taken (see followLinked); else its own. */
+      const openingView = (/** @type {Chart} */ doc) => (linkWindow === doc.id ? leftView(doc.id) : retaking && doc.id === retaking.id && viewKey(doc.id) === LINKED ? retaking.view : openView(doc));
       /** An edge of the view as the time of the point nearest it, and how many bars it lies from that point. */
       function edgeOf(logical, times) {
         const i = clamp(Math.round(logical), 0, times.length - 1);
@@ -13886,6 +13891,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** @param {Chart} doc */
       function openChart(doc) {
         if (doc.id !== chart?.id) navigations++;
+        // (Another opened before a link's is drawn: that one at its own window no more.)
+        if (linkWindow !== doc.id) linkWindow = "";
         // (Opened afresh: a block come meanwhile is in its data already.)
         blockAtHome = false;
         lastOpen = "";
@@ -16271,7 +16278,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Or the linked view it's taking, still its own: see openingView.)
         const opening = openingView(doc), taking = Boolean(retaking) && opening === retaking?.view;
         const left = drawnChart !== doc.id || drawnIndex !== doc.index || taking ? opening : null;
-        if (left && viewKey(doc.id) === LINKED) (linkedTook = taking ? /** @type {any} */ (retaking).at : viewsNow()[LINKED]?.at ?? 0), (handled = false);
+        // (A link's window, shown (its range, no view come with it): from now on, the chart's views as any chart's, the
+        // linked one in line with it till it's moved.)
+        const linkOpen = drawnChart !== doc.id && linkWindow === doc.id;
+        if (linkOpen) linkWindow = "";
+        if ((left || linkOpen) && viewKey(doc.id) === LINKED) (linkedTook = taking ? /** @type {any} */ (retaking).at : viewsNow()[LINKED]?.at ?? 0), (handled = false);
         retaking = null;
         // (A view at the latest from where its range starts, its room after the latest that range's (a quarter either way:
         // that room is a width's, another tab's may be another): that range itself, as a range shows, at the latest as it
@@ -16287,12 +16298,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           view.timeScale().setVisibleLogicalRange(target);
           setPresetShown(false);
           if (viewKey(doc.id) === LINKED) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(view.timeScale().getVisibleLogicalRange());
-        } else if (!visible || presetShown || onRange) {
+        } else if (!visible || presetShown || onRange || linkOpen) {
           applyRange(doc, data);
           view.bvFlush();
           applyRange(doc, data);
           setPresetShown(true);
-          if (onRange) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(view.timeScale().getVisibleLogicalRange());
+          if (onRange || linkOpen) linkedAt = ((range) => range && viewRecord(range, data.times, doc.index))(view.timeScale().getVisibleLogicalRange());
         }
         else if (shift && (glidingTo ?? logical)) {
           const range = /** @type {{ from: number, to: number }} */ (glidingTo ?? logical);
@@ -19083,31 +19094,37 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           at += widths[i] + 10;
         });
       }
-      /** Where a drawing is held: its ends, a box's corners; a line across, at its point (kept in view). */
+      /**
+       * Where a drawing is held: its ends (a line's, a path's: selected, its box's corners after them, as a stroke's), a
+       * box's corners; a line across, at its point (kept in view).
+       */
       function handlesOf(drawing, points, size) {
         const [a, b] = points;
-        if (THROUGH.has(drawing.kind)) return points;
+        // (A corner on one of its points (a line's ends): that point's, none of its own, its place kept.)
+        if (THROUGH.has(drawing.kind)) return lit(drawing) ? [...points, ...boxCorners(drawing, points).map((corner) => (points.some((point) => finite(point) && Math.hypot(point.x - corner.x, point.y - corner.y) < 12) ? { x: NaN, y: NaN } : corner))] : points;
         // (An ellipse's corners are off it, on its box: there once it's selected, as a stroke's.)
         if (BOXES.has(drawing.kind) && (drawing.kind !== "ellipse" || lit(drawing))) return [a, { x: b.x, y: a.y }, b, { x: a.x, y: b.y }];
         if (drawing.kind === "hline") return [{ x: clamp(Number.isFinite(a.x) ? a.x : size.width / 2, 10, size.width - 10), y: a.y }];
         if (drawing.kind === "vline") return [{ x: a.x, y: clamp(Number.isFinite(a.y) ? a.y : size.height / 2, 10, size.height - 10) }];
-        if (drawing.kind === "brush" && lit(drawing)) {
-          const box = boundsOf(drawing, points);
-          return Number.isFinite(box.left) ? [{ x: box.left, y: box.top }, { x: box.right, y: box.top }, { x: box.right, y: box.bottom }, { x: box.left, y: box.bottom }] : [];
-        }
+        if (drawing.kind === "brush" && lit(drawing)) return boxCorners(drawing, points);
         return [];
       }
+      /** The corners of the box around a stroke, a line or a path (see boundsOf), from its top left round; none, none shown. */
+      function boxCorners(drawing, points) {
+        const box = boundsOf(drawing, points);
+        return Number.isFinite(box.left) ? [{ x: box.left, y: box.top }, { x: box.right, y: box.top }, { x: box.right, y: box.bottom }, { x: box.left, y: box.bottom }] : [];
+      }
       /**
-       * The side of a box (a rectangle's, an ellipse's, a ruler's, a selected stroke's: its corners' box) a point is on,
-       * between its corners: 4 its top, 5 its right, 6 its foot, 7 its left; -1, none.
+       * The side of a box (a rectangle's, an ellipse's, a ruler's, a selected stroke's, line's or path's: its corners' box)
+       * a point is on, between its corners: 4 its top, 5 its right, 6 its foot, 7 its left; -1, none.
        */
       function sideOf(/** @type {Drawing} */ drawing, corners, x, y, reach) {
-        if (corners.length !== 4 || !(BOXES.has(drawing.kind) || drawing.kind === "brush")) return -1;
+        if (corners.length !== 4 || !(BOXES.has(drawing.kind) || drawing.kind === "brush" || THROUGH.has(drawing.kind))) return -1;
         const left = Math.min(...corners.map((p) => p.x)), right = Math.max(...corners.map((p) => p.x)), top = Math.min(...corners.map((p) => p.y)), bottom = Math.max(...corners.map((p) => p.y));
         const across = x > left + reach && x < right - reach, down = y > top + reach && y < bottom - reach;
         return across && Math.abs(y - top) <= reach ? 4 : across && Math.abs(y - bottom) <= reach ? 6 : down && Math.abs(x - right) <= reach ? 5 : down && Math.abs(x - left) <= reach ? 7 : -1;
       }
-      /** The box around a text or a stroke: its outline, selected. */
+      /** The box around a text, a stroke, a line or a path: its outline, selected. */
       function boundsOf(drawing, points) {
         if (drawing.kind === "text") {
           const place = textPlace(drawing, points[0]);
@@ -19130,7 +19147,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           context.strokeRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
           context.setLineDash([]);
         }
-        if (drawing.kind === "text" || drawing.kind === "brush") {
+        // (A line's or a path's, selected only: pointed at, its points say where it's held.)
+        if (drawing.kind === "text" || drawing.kind === "brush" || (THROUGH.has(drawing.kind) && lit)) {
           const box = boundsOf(drawing, points);
           context.strokeStyle = alpha(color, lit ? 0.9 : 0.45);
           context.lineWidth = 1;
@@ -19356,17 +19374,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (box && !(x >= box.left - reach && x <= box.right + reach && y >= box.top - reach && y <= box.bottom + reach)) continue;
             // (A line across's or down's label over its dot: the dot only moves it, as its body does.)
             if (!body && (drawing.kind === "hline" || drawing.kind === "vline") && onLabel(drawing, points, this.size, x, y)) body = { drawing, handle: -1, over: "label" };
+            // (A line's or a path's box, selected: its corners after its points, its sides after them, see moveTo.)
             const handles = handlesOf(drawing, points, this.size), handle = handles.findIndex((point) => Math.hypot(point.x - x, point.y - y) <= reach + 1);
+            const ends = THROUGH.has(drawing.kind) ? points.length : 0, ring = ends && lit(drawing) ? boxCorners(drawing, points) : handles.slice(ends);
             if (handle >= 0 && body?.drawing !== drawing) {
-              const middle = { x: handles.reduce((sum, point) => sum + point.x, 0) / handles.length, y: handles.reduce((sum, point) => sum + point.y, 0) / handles.length };
-              const corner = BOXES.has(drawing.kind) || drawing.kind === "brush";
+              const middle = { x: ring.reduce((sum, point) => sum + point.x, 0) / ring.length, y: ring.reduce((sum, point) => sum + point.y, 0) / ring.length };
+              const corner = BOXES.has(drawing.kind) || drawing.kind === "brush" || (ends > 0 && handle >= ends);
               return { drawing, handle, over: corner ? ((handles[handle].x - middle.x) * (handles[handle].y - middle.y) > 0 ? "nwse" : "nesw") : "handle" };
             }
             // (Under a drawing found above (a side of one too): only its points still win.)
             if (body) continue;
-            const side = sideOf(drawing, handles, x, y, reach);
+            const side = sideOf(drawing, ring, x, y, reach);
             if (side >= 0) {
-              body = { drawing, handle: side, over: side % 2 ? "ew" : "ns" };
+              body = { drawing, handle: ends + side, over: side % 2 ? "ew" : "ns" };
               continue;
             }
             if (onLabel(drawing, points, this.size, x, y)) body = { drawing, handle: -1, over: "label" };
@@ -19657,6 +19677,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...([...kinds].some((each) => hasLook(each, "color")) ? ['<i class="belt-rule"></i>'] : []),
             ...(drawing?.kind === "text" ? [button("text", "Edit the text", ICONS.pencil, false)] : []),
             ...(drawing && LINES.has(drawing.kind) ? [button("label", TOUCH ? (drawing.label ? "Edit the label" : "Add a label") : drawing.label ? "Edit the label (or double-click it)" : "Add a label (or double-click the line)", ICONS.label, false)] : []),
+            // (Each flip that changes how they show, as their menu offers it.)
+            ...flipsOf(drawings.map((item) => item.id)).map(([across, way, icon]) => button(`flip-${across ? "x" : "y"}`, `Flip ${way}`, ICONS[icon], false)),
             button("duplicate", drawings.length > 1 ? `Duplicate ${drawings.length} drawings` : "Duplicate", ICONS.duplicate, false, keyText("⌘D")),
             button("remove", drawings.length > 1 ? `Remove ${drawings.length} drawings` : "Remove", ICONS.trash, false, "⌫"),
           ] : []),
@@ -20017,6 +20039,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $(`draw-${part}`)?.focus();
         } else if (part === "dash") beltPopover(button, "Line style", beltTabs("Line style", DASHES.map(([dash, text, length, gap]) => `<button type="button" data-pick-dash="${dash}" aria-pressed="${look.dash === dash}" aria-label="${text}" data-tip="${text}">${dashGlyph(length, gap)}</button>`)), ({ pickDash }) => pickDash !== undefined && setLook("dash", Number(pickDash)));
         else if (part === "text" && drawing) startTyping(drawing, button);
+        else if (part === "flip-x" || part === "flip-y") flipDrawings(drawings, part === "flip-x");
         else if (part === "duplicate") duplicateDrawings(drawings);
         else if (part === "remove") removeDrawings(drawings);
         else if (part === "actions") menuOf(button, drawingRows(drawings, button), null, beltSide(), { title: drawing ? drawingNames().get(drawing.id) ?? "" : `${drawings.length} drawings` });
@@ -20110,7 +20133,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (On top as painted: as the pane's series are, its first layer's over the others (reversed, its last's); then the
         // later added; a point of one (a corner, an end; not a side) over any body.)
         const inPane = chart.layers.filter((layer) => layer.pane === id);
-        const order = new Map((chart.panes[pane.index].reverse ? inPane : inPane.reverse()).map((layer, i) => [layer.id, i])), score = (hit) => (hit.handle >= 0 && (hit.handle < 4 || THROUGH.has(hit.drawing.kind)) ? MAX_DRAWINGS * (chart.layers.length + 1) : 0) + (order.get(hit.drawing.layer) ?? 0) * MAX_DRAWINGS + shownDrawings.indexOf(hit.drawing);
+        const order = new Map((chart.panes[pane.index].reverse ? inPane : inPane.reverse()).map((layer, i) => [layer.id, i])), score = (hit) => (hit.handle >= 0 && hit.over !== "ew" && hit.over !== "ns" ? MAX_DRAWINGS * (chart.layers.length + 1) : 0) + (order.get(hit.drawing.layer) ?? 0) * MAX_DRAWINGS + shownDrawings.indexOf(hit.drawing);
         let found = null;
         for (const layer of chart.layers) {
           const hit = layer.pane === id ? sketches.get(drawn.get(layer.id))?.hit(at.x, at.y, reach) : null;
@@ -21138,7 +21161,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let undoTook = "", picks = 0;
       /**
        * Drawings taken hold of follow the pointer: by its body, every one selected with it; by one of its points, it alone (a
-       * line by an end, a box by a corner, the opposite one held; a stroke by a corner of its box, scaled from the opposite).
+       * line by an end, a box by a corner, the opposite one held; a stroke, a line or a path by a corner or a side of its
+       * box, scaled from the opposite).
        */
       function moveTo(event) {
         const at = plotPoint(event.clientX, event.clientY, moving.rect), { originals, target, handle } = moving, line = timeLine();
@@ -21165,7 +21189,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!host || !series) return;
         const point = () => pointFrom(at, host, { pull: original.kind !== "ruler" && !event.altKey });
         let points = original.points;
-        if (THROUGH.has(original.kind)) points = original.points.map((each, i) => (i === handle ? point() ?? each : each));
+        if (THROUGH.has(original.kind) && handle >= original.points.length) points = scaled(original, series, line, handle - original.points.length, at);
+        else if (THROUGH.has(original.kind)) points = original.points.map((each, i) => (i === handle ? point() ?? each : each));
         else if (BOXES.has(original.kind) && handle >= 4) {
           // A side: the point on that side takes the pointer's time (its left or right) or value (its top or foot).
           const [a, b] = onScreen(original, series, line), across = handle % 2 === 1, taken = point() ?? original.points[0];
@@ -34427,6 +34452,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (twin) return void (showLinked(twin), toast(`Opened “${titleOf(twin)}”, which you already have`));
           // (Onto a new chart still empty, the file takes its place: an empty preview left simply goes.)
           const before = chart;
+          linkWindow = doc.id;
           adopt(doc);
           const same = asThen([doc]);
           toast(`Imported “${titleOf(doc)}”`, { label: "Undo", run: () => {
@@ -36723,6 +36749,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A chart a link (or a script, a file) brought, shown: the one open drawn anew, at the link's window; one kept, opened; else a preview. */
       /** @returns {Chart} the chart shown (a preview of it already there, that one) */
       function showLinked(/** @type {Chart} */ doc) {
+        // (At its own window, whatever view is linked: the one it opens as, a preview like it if one's there.)
+        linkWindow = (doc === chart || library.charts.includes(doc) ? doc : previewLike(doc) ?? doc).id;
         if (doc === chart) leaveHome(() => { drawnChart = ""; refresh(true, true); });
         else if (library.charts.includes(doc)) leaveHome(() => openChart(doc));
         else return showPreview(doc);
@@ -37175,6 +37203,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const like = !library.charts.includes(shared) && previewLike(shared);
           if (like) (like.range = shared.range), takeView(shared.id, like.id);
           chart = like || shared;
+          linkWindow = chart.id;
           if (!library.charts.includes(chart)) addPreview(chart), keepAsideOpened(chart);
         }
         // (Charts another tab saved while this one was starting: the first of them, as a library's first is.)

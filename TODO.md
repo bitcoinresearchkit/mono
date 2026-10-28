@@ -18,10 +18,6 @@ Only what's left. An item done is removed: its history is in the commits and log
   cells were lit, the map one color), the weakest 30% fading into the chart, Inferno kept; the editor's bar as drawn,
   a value scale under it, Reverse, the color in hand named, your own gradient kept as "Your own" once a ready-made
   is picked (this session).
-- A link's own range, with "Link views" on (found on the iPhone, 2026-10-28): every chart opens on the one linked view,
-  a link with a range ("8y") too, as the setting says. The phone's was a pan past the latest bar (the chart lets a
-  view keep a sixth of itself on data), so a heatmap link opened mostly empty, its range's button unlit. Should a
-  link's range win over the linked view? To decide.
 
 - The folders on the rail: "a ton of polish" needed; what you saw beyond what's fixed (depth, one menu, the flash,
   menu-bar switching, the toggle's speed and stale rows).
