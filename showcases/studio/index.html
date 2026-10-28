@@ -7503,6 +7503,20 @@
         }
       }
 
+      /* (Its steps as its row is pointed at or reached by a key: at rest, its tiles alone, as a list's rows are.) */
+      .shelf .shelf-step {
+        opacity: 0;
+      }
+
+      .shelf:is(:hover:where(.can-hover *), :has(:focus-visible)) .shelf-step {
+        opacity: 1;
+
+        /* (At its row's end, as every control that can't act: dimmed.) */
+        &[aria-disabled="true"] {
+          opacity: 0.35;
+        }
+      }
+
       /* (Its steps, for a pointer that doesn't swipe across: none by touch.) */
       @media (hover: none) and (pointer: coarse) {
         .shelf-step {
