@@ -22876,9 +22876,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         } else if (!grid.hidden) {
           const items = childrenOf(folderId), counts = chartCounts();
           const own = items.flatMap((item) => ("layers" in item ? [item] : []));
-          // (Its folders first, as the sidebar has them; then its own charts.)
-          for (const folder of items.flatMap((item) => ("layers" in item ? [] : [item]))) parts.push({ kind: "shelf", name: folder.name, place: { folder: folder.id }, folder: folder.id, docs: treeOf(folder.id).flatMap(({ item }) => ("layers" in item ? [item] : [])).slice(0, SHELF), count: counts.get(folder.id) ?? 0 });
+          // (Its own charts first, under its name, as a section of the presets has its own: theirs; then each folder in it,
+          // named over its own row. After its folders, they read as the last one's.)
           if (own.length) parts.push({ kind: "grid", docs: own });
+          for (const folder of items.flatMap((item) => ("layers" in item ? [] : [item]))) parts.push({ kind: "shelf", name: folder.name, place: { folder: folder.id }, folder: folder.id, docs: treeOf(folder.id).flatMap(({ item }) => ("layers" in item ? [item] : [])).slice(0, SHELF), count: counts.get(folder.id) ?? 0 });
           if (!items.length) parts.push({ kind: "note", html: folderId ? `<p>${TOUCH ? "Nothing in it yet. Hold a chart, then tap Move" : "Nothing in it yet. Drag charts onto it in the sidebar, or use Move in a chart's menu."}</p>` : `<p>No charts yet. Start a new chart, or open a preset and save a copy.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`, card: true });
         }
         const visible = parts.flatMap((part) => (part.kind === "grid" || part.kind === "shelf" ? part.docs : []));
