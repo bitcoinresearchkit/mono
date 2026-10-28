@@ -19,11 +19,16 @@ Only what's left. An item done is removed: its history is in the commits and log
   a value scale under it, Reverse, the color in hand named, your own gradient kept as "Your own" once a ready-made
   is picked (this session).
 
-- Home, rethought (you, 2026-10-28: "what does the user want on a home screen", "maybe it should just be a general chart
-  search and nothing else ?", "let's focus on desktop for now"; of ⌘K opened from it, anchored, risen or lifted: "it's
-  still very far from good enough"): mockups of Home as a chart search (a real field, results as tiles in the page, Jump
-  back in / Start with before typing): not it either (you: "it's still not it"); to rethink. Meanwhile its field opens
-  ⌘K as ever.
+- ⌘K on Home: ⌘K's list, all of it (its rows, headings, pages and folders), on Home's field, as wide as it, as tall as
+  its rows up to 360, no preview, no keys' foot (you, 2026-10-28: "maybe it's cmd+k but wihtout the right part and the
+  helper strip and then bottom but we can do full navigation ?"): your look to confirm.
+- A new layer: a series as bubbles on another layer (you, 2026-10-28, of Glassnode's net realized profit/loss bubbles on
+  the price: "represent a series as bubbles attached to another layer", "maybe by having a min slider (and max ?), we
+  prob need something to set min/max size ? idk think very hard about this").
+- A border for lines, areas' lines, OHLC and the like (you, 2026-10-28: "should support having a border, border should be
+  like the color of bg of page so ~black/~white based on theme ofc and be 1/2 width of the line (some other rule for
+  candles), goal is make the data more visible, it hsould prob be a toggle switch on those series type"; the Bedrock
+  showcase had one once).
 - A design system for all of Studio, then a polish and consistency pass applying it (you, 2026-10-28: "I think we
   really need to do a polish/consistency pass over the whole app, and make a proper system"): inventory
   (_notes/system-20261028/inventory.md: 9 font sizes, 20 radii, 22 gaps, 63 heights, 47 shadows, 56 transitions),

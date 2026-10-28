@@ -1867,13 +1867,16 @@
            Safari): out at once, it'd read as a cut.) */
         dialog:not([open]),
         #quick:not(:popover-open),
-        :is(dialog, #quick)[data-leaving] {
+        dialog[data-leaving],
+        #quick[data-leaving] {
           transition-timing-function: var(--ease-layout);
         }
 
+        /* (Each its own selector: in one :is(), Quick Look's id would weigh on every dialog's, over their own ways out.) */
         dialog:not([open]),
         #quick:not(:popover-open),
-        :is(dialog, #quick)[data-leaving] {
+        dialog[data-leaving],
+        #quick[data-leaving] {
           visibility: hidden;
           opacity: 0;
           transform: translateY(6px) scale(0.985);
@@ -3866,7 +3869,7 @@
         background: var(--field);
         box-shadow: inset 0 0 0 1px var(--line);
         font-size: 13px;
-        transition: box-shadow var(--fade), color var(--fade);
+        transition: box-shadow var(--fade), color var(--fade), opacity var(--dur-micro) var(--ease);
 
         &:hover:where(.can-hover *) {
           box-shadow: inset 0 0 0 1px var(--faint);
@@ -6002,7 +6005,10 @@
         display: none;
       }
 
+      /* (What turns in it, a page sliding in as one fades out, clipped to it: never over its edge, nor a moment's
+         scrollbar.) */
       .palette {
+        overflow: clip;
         width: min(820px, calc(100vw - 32px));
         height: min(520px, calc(100dvh - 64px));
         margin-top: 12dvh;
@@ -6037,6 +6043,69 @@
             visibility: hidden;
           }
         }
+      }
+
+      /* ⌘K opened on Home (see placeOnHome): ⌘K's list, all of it (its rows, headings, pages and folders), on Home's
+         search, part of the page (not dimmed): as wide as it, its field over it, as tall as its rows, at most 360 (less,
+         where the window's foot is nearer); no preview, no keys' foot (a row's actions by the row, see showActions), its
+         corners concentric with its rows' (their radius and the list's padding). Coming, it unrolls down from the field
+         as it fades in, from its second frame (`data-arriving` its first, see openPalette: the dialog's opening is the
+         heavy one, the page made inert, and a motion begun in it shows a third of the way on); going, it rolls back up
+         into it as it fades out (no pop: its field stays on Home's), Home's field fading out and back under it (never a
+         moment without a field; its corners are rounder than the field's). */
+      .palette[data-on-home] {
+        /* (Its height its own: a modal dialog's held to the window's foot too.) */
+        bottom: auto;
+        width: var(--on-w);
+        height: auto;
+        max-height: min(360px, var(--on-room));
+        margin: var(--on-y) 0 0 var(--on-x);
+        border-radius: calc(var(--radius-md) + 6px);
+        --dim: transparent;
+        /* (Shown whole, its shadow too; rolled up, its field alone.) */
+        clip-path: inset(-100px);
+        transition: opacity var(--dur-small) var(--ease), clip-path var(--dur-panel) var(--ease);
+
+        &[open] {
+          animation: none;
+        }
+
+        &:is(:not([open]), [data-leaving], [data-arriving]) {
+          transform: none;
+          clip-path: inset(-100px -100px calc(100% - 48px) -100px);
+        }
+
+        &[data-arriving] {
+          opacity: 0;
+          transition: none;
+        }
+
+        &:is(:not([open]), [data-leaving]) {
+          transition: opacity var(--dur-small) var(--ease), clip-path var(--dur-small) var(--ease-layout), visibility var(--dur-small);
+
+          @supports (overlay: auto) {
+            transition: opacity var(--dur-small) var(--ease), clip-path var(--dur-small) var(--ease-layout), visibility var(--dur-small), display var(--dur-small) allow-discrete, overlay var(--dur-small) allow-discrete;
+          }
+        }
+
+        :is(.palette-preview, .palette-foot) {
+          display: none;
+        }
+
+        .palette-body {
+          flex: 0 1 auto;
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .palette-left {
+          border-right: 0;
+        }
+      }
+
+      /* (Home's field under ⌘K on it, see keepOnHome: an attribute of its own, not the page asking :has() of ⌘K, its
+         every change the whole page's styles again.) */
+      .home-search[data-under] {
+        opacity: 0;
       }
 
       /* (Its words as far in as Home's search's.) */
@@ -6259,10 +6328,13 @@
         background: var(--c);
       }
 
+      /* (Its scrollbar's room kept, where a scrollbar takes room: a page that scrolls and one that doesn't, its rows as
+         wide.) */
       .palette-list {
         flex: 1;
         --glide: var(--press);
         overflow-y: auto;
+        scrollbar-gutter: stable;
         margin: 0;
         padding: 6px;
         /* (A row reached by the arrows stops as far from the edge as the first one sits.) */
@@ -6374,6 +6446,11 @@
           font-size: 12px;
           font-weight: 510;
           cursor: default;
+
+          /* (Apart from the rows above it; the list's first, none: as near its top as the last row is to its foot.) */
+          &:first-child {
+            padding-top: 0;
+          }
         }
 
         .note {
@@ -7350,23 +7427,27 @@
         }
 
 
-        /* (Its question centered over its live line, its search and its doors: a column, their words one inset; a little
-           over the middle, clear of its horizon's highest.) */
+        /* (Its search where the eye rests, its middle 38% down the page, whatever's around it: its question and live line
+           over it, its doors under it (and what it finds, as it's typed in); a column, their words one inset.) */
         :is(.home-start, .home-doors) {
           width: min(640px, 100%);
           margin-inline: auto;
         }
 
         .home-start {
-          margin-top: auto;
+          position: relative;
+          margin-top: max(96px, calc(38dvh - var(--home-top) - 24px));
           text-align: center;
+        }
+
+        .home-over {
+          position: absolute;
+          inset: auto 0 100%;
         }
 
         /* (Its doors as close under the search as its live line is over it.) */
         .home-doors {
           margin-top: 4px;
-          margin-bottom: auto;
-          padding-bottom: 16vh;
         }
 
         /* (A phone's foot, its live line: said under the question.) */
@@ -10426,8 +10507,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <!-- (Home: under its question, Bitcoin as it is, live (as a phone's foot says it elsewhere); its search (⌘K's,
                  in ⌘K's words); then its doors, see renderDoors.) -->
             <div id="home-start" class="home-start" hidden>
-              <h2 class="home-question">What do you want to chart?</h2>
-              <p id="home-pulse" class="home-pulse" role="status">Connecting</p>
+              <div class="home-over">
+                <h2 class="home-question">What do you want to chart?</h2>
+                <p id="home-pulse" class="home-pulse" role="status">Connecting</p>
+              </div>
               <button type="button" class="search-cta home-search" data-action="search" data-typing data-kbd="⌘ K">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" /></svg>
                 <span>Search series, charts and commands</span><kbd class="mod">⌘K</kbd>
@@ -14443,10 +14526,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const doc = preset >= 0 ? presetDoc(preset) : kept?.preset !== undefined && presets ? undefined : kept;
         return doc?.layers.length ? [{ id, doc, preset }] : [];
       }).slice(0, RECENT_SHOWN);
-      /** A chart of Recent's opened, by its id: a preset's as a preset is (its edits, if any). @param {string} id */
+      /**
+       * A chart of Recent's opened, by its id: a preset's as a preset is (its edits, if any). Its row, picked, is in sight:
+       * no sections opened, nothing scrolled to.
+       * @param {string} id
+       */
       function openRecent(id) {
         const doc = chartById(id), preset = doc ? presetIndex(doc) : presetById(id);
-        if (preset >= 0) return pickPreset(preset);
+        if (preset >= 0) return openPreset(preset);
         delete document.body.dataset.sheet;
         go(doc);
       }
@@ -24931,15 +25018,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const openedPreset = current?.preset !== undefined ? presetIndex(current) : -1;
         for (const button of all$("[data-open-chart], [data-open-preset], [data-open-recent]", $("chart-list"))) {
           const on = button.dataset.openPreset !== undefined ? Number(button.dataset.openPreset) === openedPreset : (button.dataset.openChart ?? button.dataset.openRecent) === current?.id;
-          // (Scrolled to on the next frame, as it's laid out anyway (shown in it all the same): not here, mid-change, the
-          // whole page laid out for it at once.)
-          if (on && Number(button.dataset.openPreset) === presetToReveal) (presetToReveal = -1), requestAnimationFrame(() => button.scrollIntoView({ block: "nearest" }));
           // (Each, its row's mark and its own, set apart: a row written again in place keeps its button as it is.)
           button.closest(".chart-row")?.classList.toggle("active", on);
           if (on === button.hasAttribute("aria-current")) continue;
           if (on) button.setAttribute("aria-current", "page");
           else button.removeAttribute("aria-current");
         }
+        // (A preset picked: once its own row's drawn, its rows (Recent's too) shown.)
+        if (presetToReveal >= 0 && presetToReveal === openedPreset && $("chart-list").querySelector(`[data-open-preset="${openedPreset}"]`)) (presetToReveal = -1), revealNearest(openedPreset, /** @type {Chart} */ (current).id);
         // (Its Tab stop, the open one marked first.)
         roveList();
         renderSideNav();
@@ -27116,8 +27202,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * A preset picked (its tile, its row, ⌘K's, the empty chart's cards): opened, as itself, whatever's open, and where
-       * it is in the sidebar in sight: the presets and the sections it's in opened, its row (marked, as the open one's is)
-       * scrolled to.
+       * it is in the sidebar in sight: the presets and the sections it's in opened, its rows (marked, as the open one's
+       * are) in sight, the nearest scrolled to (see revealNearest).
        */
       function pickPreset(/** @type {number} */ i) {
         if (!presets?.[i]) return;
@@ -27138,6 +27224,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The preset whose row is scrolled to the next time the list marks it open (see pickPreset); -1, none. */
       let presetToReveal = -1;
+      /**
+       * A preset's rows in the sidebar (its own, Recent's: `id`, its chart's), one in sight: none in it, the nearest
+       * scrolled to; one in it already, nothing moves. On the next frame, as it's laid out anyway (shown in it all the
+       * same): not mid-change, the whole page laid out for it at once; its rows as they are then (written again since,
+       * the new ones).
+       * @param {number} preset @param {string} id
+       */
+      const revealNearest = (preset, id) => requestAnimationFrame(() => {
+        const seen = $("chart-list").getBoundingClientRect();
+        const away = (/** @type {HTMLElement} */ row) => ((box) => Math.max(0, seen.top - box.top, box.bottom - seen.bottom))(row.getBoundingClientRect());
+        // (Those shown: the rail's, none.)
+        const nearest = all$(`[data-open-preset="${preset}"], [data-open-recent="${CSS.escape(id)}"]`, $("chart-list")).filter((row) => row.getClientRects().length).sort((a, b) => away(a) - away(b))[0];
+        if (nearest && away(nearest) > 0) nearest.scrollIntoView({ block: "nearest" });
+      });
       /**
        * The presets opened and left as they were, let go of (all but `keep`), but those opened lately: Recent's, drawn at
        * once on a reload, before the presets are read (once they are, one gone since let go of too, one changed since
@@ -31250,6 +31350,39 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (left >= 0) leavePages(left);
       });
       /**
+       * ⌘K opened on Home, browsing, by its search or not: on that search, as wide as it, its field over it (see
+       * .palette[data-on-home]); kept on it as Home's box, or what of the page shows, changes. Where it can't be (a
+       * phone's sheet, the field out of sight, or too low for ⌘K under it), where it always opens.
+       */
+      function placeOnHome() {
+        const dialog = $("palette"), at = palette.op.kind === "browse" && home && "top" in homeAt && !phone.matches ? document.querySelector(".home-search")?.getBoundingClientRect() : undefined;
+        // (What of the page shows: a tablet's keyboard covers its foot.)
+        const foot = viewport.offsetTop + viewport.height;
+        const fits = Boolean(at && at.top >= viewport.offsetTop && foot - at.top - 16 >= 240);
+        dialog.toggleAttribute("data-on-home", fits);
+        if (at && fits) for (const [name, value] of Object.entries({ x: at.left, y: at.top, w: at.width, room: foot - at.top - 16 })) dialog.style.setProperty(`--on-${name}`, `${value}px`);
+      }
+      /**
+       * ⌘K kept on Home's field as Home's box, or what of the page shows, changes: where it always opens while there's no
+       * room there, back on it once there is. Moved or resized, a menu it opened goes (left where it was, it'd be by
+       * nothing), its path's crumbs fit to its width again.
+       */
+      const keepOnHome = () => {
+        if (!$("palette").open) return;
+        const was = $("palette").getBoundingClientRect();
+        placeOnHome();
+        const now = $("palette").getBoundingClientRect();
+        if (now.x === was.x && now.y === was.y && now.width === was.width && now.height === was.height) return;
+        if (ownerNow()?.closest("#palette")) paletteMenuGone();
+        trailDrawn = "";
+        renderPath();
+      };
+      new ResizeObserver(keepOnHome).observe($("home"));
+      // (Home's field out of sight while ⌘K's on it, back as it goes (closed, or leaving first: see leave).)
+      new MutationObserver(() => ((dialog) => document.querySelector(".home-search")?.toggleAttribute("data-under", dialog.open && dialog.hasAttribute("data-on-home") && !dialog.dataset.leaving && !dialog.hasAttribute("data-arriving")))($("palette"))).observe($("palette"), { attributes: true, attributeFilter: ["open", "data-on-home", "data-leaving", "data-arriving"] });
+      viewport.addEventListener("resize", keepOnHome);
+      viewport.addEventListener("scroll", keepOnHome);
+      /**
        * `add`: only series (to add to this chart, `into` a pane); `replace`: the id of a layer whose series is being
        * swapped; `formula`: a formula to add (`into` a pane) or, `editing`, a formula layer's own; `query` starts the
        * search, `path` the folder it opens on and `landOn` the row; `resume`: back where it was put away, if it can be.
@@ -31277,6 +31410,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const keys = !TOUCH || byKeys || typing;
         // (Opened again as it leaves: it stays, put away no more.)
         if (dialog.dataset.leaving) (dismissing = false), arrive(dialog);
+        // (On Home, on its search, see placeOnHome; its motion from its second frame, the first the opening's.)
+        if (!dialog.open) placeOnHome(), dialog.toggleAttribute("data-arriving", dialog.hasAttribute("data-on-home") && !reduced.matches);
+        if (dialog.hasAttribute("data-arriving")) requestAnimationFrame(() => requestAnimationFrame(() => dialog.removeAttribute("data-arriving")));
         if (!dialog.open) (input.inert = !keys), dialog.showModal(), (input.inert = false), !keys && dialog.focus();
         if (typing && TOUCH) input.focus();
         // (Its series, those by block only said so, and how many there are: the catalog indexed the rest of the way first.)
@@ -31309,7 +31445,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A key only a keyboard sends (an arrow, ⇥, esc, one held with ⌘, ⌃ or ⌥), not a screen's (letters, as a phone's
        * types them): a touch device's keyboard (an iPad's, no trackpad) in use, said by the page (`data-keyboard`) till a
-       * finger's down again; ⌘K by its keys then, its foot and the row they light.
+       * finger's down again; ⌘K by its keys then, its foot (where it has one: Home's hasn't) and the row they light.
        */
       const keyboardKey = (/** @type {KeyboardEvent} */ event) => event.metaKey || event.ctrlKey || event.altKey || /^(Arrow|Tab$|Escape$|Page|Home$|End$|F\d)/.test(event.key);
       const keyed = (/** @type {boolean} */ on) => on !== keyboard() && document.documentElement.toggleAttribute("data-keyboard", on);
@@ -32111,6 +32247,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const list = $("palette-list");
         const tail = pending ? `<li class="note"><span class="shimmer">Searching ${seriesCount ? grouped.format(seriesCount) : "every"} series…</span></li>` : note ? `<li class="note">${escape(note)}</li>` : "";
         palette.items = palette.items.filter((item) => ((palette.replacing || palette.adding) && !palette.pages.length ? item.kind === "series" || item.kind === "folder" || (palette.adding && item.other) : item.kind !== "chart" || Boolean(chartById(item.key))));
+        // (A menu by one of its rows (its actions, on Home; a held row's), gone with them: another may take its place.)
+        if (ownerNow()?.closest("#palette-list")) paletteMenuGone();
         // (Nothing found: the list alone, across.)
         $("palette").toggleAttribute("data-none", !palette.items.length && !pending);
         if (!palette.items.length) {
@@ -32143,9 +32281,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A list taller than its rows, as many more as fill it: seen, laid out, on the next frame.)
         if (palette.drawn < palette.items.length) requestAnimationFrame(() => list.scrollHeight <= list.clientHeight + 400 && drawOptions(palette.drawn + PALETTE_PAGE));
         drawKeys(list);
-        // A row landed on (coming back up) is brought into view, with its neighbors; in the same list, only if it's out
-        // of sight.
-        if (palette.active > 0) $(`option-${palette.active}`)?.scrollIntoView({ block: same ? "nearest" : "center" });
+        // A row landed on (coming back up) is brought into view, with its neighbors, where it's out of sight (in sight, the
+        // list stays at its top: a short one's first heading cut by a scroll to its middle, for nothing).
+        ((row) => row && ((box, seen) => box.bottom > seen.bottom || box.top < seen.top)(row.getBoundingClientRect(), list.getBoundingClientRect()) && row.scrollIntoView({ block: same ? "nearest" : "center" }))(palette.active > 0 ? $(`option-${palette.active}`) : null);
         activeOption();
         preview();
       }
@@ -32423,10 +32561,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (item.kind === "chart") return chartActions(item.key);
         return [];
       }
-      /** ⌘K in ⌘K: the highlighted row's actions, over the footer. */
-      function showActions(/** @type {HTMLElement} */ anchor = $("palette-actions")) {
+      /**
+       * A menu ⌘K opened put away by ⌘K itself (its rows written again, it moved): the focus back in ⌘K, if it was in the
+       * menu: its field by keys; by touch, ⌘K (no keyboard but by a tap on its field, as when it opened).
+       */
+      const paletteMenuGone = () => ((had) => (hideMenu(), had && (keyboard() ? $("palette-input") : $("palette")).focus({ preventScroll: true })))($("menu").contains(document.activeElement));
+      /** ⌘K in ⌘K: the highlighted row's actions, over the footer (on Home, it has none: by the row). */
+      function showActions(/** @type {HTMLElement | null} */ anchor = null) {
         // (Rows waiting for the series drawn first: the actions are the lit row's of what's typed.)
         palette.pending?.();
+        // (On Home, by its row, in sight.)
+        if (!anchor && $("palette").hasAttribute("data-on-home")) $(`option-${palette.active}`)?.scrollIntoView({ block: "nearest" });
+        anchor ??= $("palette").hasAttribute("data-on-home") ? $(`option-${palette.active}`) : $("palette-actions");
         quickHide();
         const item = palette.items[palette.active], actions = actionsFor(item);
         if (actions.length < 2) return;
