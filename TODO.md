@@ -13,7 +13,7 @@ Only what's left. An item done is removed: its history is in the commits and log
 ## Studio: raised by you, still open
 
 - Thumbnails and previews of a chart with a heatmap draw its price alone (Codex, 2026-10-28): the heatmap's days
-  aren't fetched for a tile. A sampled mini heatmap there, to decide.
+  aren't fetched for a tile (Quick Look's too: no value beside its name). A sampled mini heatmap there, to decide.
 
 - A gradient's range at an interval under a day (Codex, 2026-10-28): of the history loaded (it grows as you pan
   back, its colors then shifting), not all of it; all of it would mean loading every chunk, or the day interval's

@@ -29687,8 +29687,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         toast(`Added the ${labelOf(added).replace(/^(Cloud|Trend)/, (noun) => noun.toLowerCase())}${unfit ? `, but ${unfit === "Not in a stack" ? "stacked panes don't draw it" : "this pane's scale can't draw it"}` : ""}`, editAdded(added));
       }
       /**
-       * A heatmap of a cohort added: behind the price's layers (the pane ⌘K adds to, else the selected layer's, else the
-       * first); a pane with nothing in it, the price as its candles with it (what it's read against).
+       * A heatmap of a cohort added: behind the price's layers, in dollars as they are (the pane ⌘K adds to; else the
+       * selected layer's, where it reads in dollars or holds nothing; else one that reads in dollars, as a series goes
+       * to a pane of its unit (see paneShowing); else the first, empty, or a new one, on a log scale as the price is); a pane
+       * with nothing in it, the price as its candles with it (what it's read against).
        * @param {string} cohort
        */
       function addHeatmap(cohort) {
@@ -29696,9 +29698,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** @type {Layer | undefined} */
         let added;
         commit((doc) => {
-          const pane = doc.panes.find((item) => item.id === palette.into)?.id ?? doc.layers.find((layer) => layer.id === selected)?.pane ?? doc.panes[0].id;
-          if (!doc.layers.some((layer) => layer.pane === pane)) doc.layers.push(makeLayer({ series: tree.price.ohlc.name, label: "Price", type: "candles", color: "ink", colors: 1, pane }, doc));
-          added = makeLayer({ type: "heatmap", heatmap: cohort, pane, side: doc.layers.find((layer) => layer.pane === pane)?.side ?? "right" }, doc);
+          // (A heatmap's axis is in dollars, whatever it measures: another's pane is one.)
+          const inDollars = (/** @type {Layer} */ layer) => layer.type === "heatmap" || unitFor(layer, resolved?.results.get(layer.id)) === "usd";
+          // (Only a pane whose scale can draw it, linear or log: see heatGrid.)
+          const drawable = (/** @type {string | undefined} */ id) => ((item) => Boolean(item) && paneMode(item) < 2)(doc.panes.find((item) => item.id === id));
+          const empty = (/** @type {string | undefined} */ id) => drawable(id) && !doc.layers.some((layer) => layer.pane === id);
+          const dollars = (/** @type {string | undefined} */ id) => drawable(id) && doc.layers.some((layer) => layer.pane === id && inDollars(layer)) && !doc.panes.find((item) => item.id === id)?.stack;
+          const chosen = doc.layers.find((layer) => layer.id === selected)?.pane, first = doc.panes[0].id;
+          const pane = doc.panes.find((item) => item.id === palette.into)?.id ?? (chosen && (empty(chosen) || dollars(chosen)) ? chosen : doc.panes.find((item) => dollars(item.id))?.id ?? (empty(first) ? first : doc.panes.length < MAX_PANES ? ((made) => ((made.mode = 1), made.id))(newPaneIn(doc)) : doc.panes.find((item) => drawable(item.id))?.id ?? first));
+          // (The price with it only where there's room for both: the heatmap alone at the chart's last layer.)
+          if (!doc.layers.some((layer) => layer.pane === pane) && doc.layers.length + 2 <= MAX_LAYERS) doc.layers.push(makeLayer({ series: tree.price.ohlc.name, label: "Price", type: "candles", color: "ink", colors: 1, pane }, doc));
+          // (On the axis its dollars are read on, where the pane has one.)
+          const beside = doc.layers.filter((layer) => layer.pane === pane), side = (beside.find(inDollars) ?? beside[0])?.side ?? "right";
+          added = makeLayer({ type: "heatmap", heatmap: cohort, pane, side }, doc);
           const mine = doc.layers.flatMap((layer, i) => (layer.pane === pane ? [i] : []));
           doc.layers.splice(doc.panes.find((item) => item.id === pane)?.reverse ? mine[0] : mine[mine.length - 1] + 1, 0, added);
         });
