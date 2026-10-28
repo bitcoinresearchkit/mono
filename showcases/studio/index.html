@@ -5919,6 +5919,17 @@
         }
       }
 
+      /* The bubble under the crosshair, lit (see lightBubble): a ring about it in its edge's color, a pixel clear of it. */
+      .bubble-lit {
+        position: absolute;
+        z-index: 1;
+        box-sizing: border-box;
+        border: 2px solid var(--c);
+        border-radius: 50%;
+        pointer-events: none;
+        translate: -50% -50%;
+      }
+
       /* ── Dialogs, menus, toasts, tooltips ────────────────────────────────── */
 
       dialog {
@@ -18102,6 +18113,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const { price, time: at, series } = fingerCross.at;
           fingerCross.at = null;
           fingerCross.kept = at;
+          // (Set here, said by the chart to no one: its bubble lit as a moved one's is.)
+          lightBubble(at, series.getPane().paneIndex());
           return view.setCrosshairPosition(price, /** @type {any} */ (at), series);
         } else {
           fingerCross.at = null;
@@ -18124,10 +18137,41 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Its item kept in sight, a band's or a line's: not a line's under a finger swept across lines, the legend sliding
         // under it.)
         lightLegend(band ?? (param.point && param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null), false, Boolean(band) || !fingers.size);
+        lightBubble(param.point ? time : null, param.paneIndex);
         if (time === hoverTime) return;
         hoverTime = time;
         valuesSoon();
       });
+      /** The ring about the bubble under the crosshair (see lightBubble), and where that was. */
+      const bubbleRing = Object.assign(document.createElement("span"), { className: "bubble-lit" });
+      let bubbleAt = /** @type {{ time: number | null, pane: number | undefined }} */ ({ time: null, pane: undefined });
+      /**
+       * The bubble under the crosshair lit: a ring about it in its edge's color, over its pane's plot, moved as the
+       * crosshair moves (the chart isn't drawn again for it); of a date without one drawn (none of its own, under its
+       * layer's `hide`), none. Several layers' at a date, the one on top: its pane's first (a reversed pane's, its last),
+       * as the build orders them.
+       * @param {number | null} time @param {number | undefined} pane
+       */
+      function lightBubble(time, pane) {
+        bubbleAt = { time, pane };
+        let lit = null;
+        const doc = drawnDoc ?? chart;
+        if (time !== null && pane !== undefined && resolved && doc.layers.some((layer) => layer.type === "bubbles")) {
+          const x = view.timeScale().timeToCoordinate(/** @type {any} */ (time)), i = lowerBound(resolved.times, time);
+          for (const layer of doc.layers) {
+            const series = drawn.get(layer.id), row = series && layer.type === "bubbles" && !layer.hidden && doc.panes.findIndex((item) => item.id === layer.pane) === pane && resolved.times[i] === time ? series.dataByIndex(i) : null;
+            if (!row || x === null) continue;
+            const { most, hide, size, upEdge, downEdge } = series.options(), worth = Math.abs(row.v), y = Number.isFinite(row.y) ? series.priceToCoordinate(row.y) : null;
+            if (y === null || !(most > 0 && worth > 0 && worth >= hide * most) || (lit && !doc.panes[pane]?.reverse)) continue;
+            lit = { x, y, d: size * Math.sqrt(Math.min(1, worth / most)) + 6, color: row.v >= 0 ? upEdge : downEdge };
+          }
+        }
+        const plot = lit && view.panes()[/** @type {number} */ (pane)]?.getHTMLElement()?.children[1]?.firstElementChild;
+        if (!lit || !plot) return void bubbleRing.remove();
+        if (bubbleRing.parentElement !== plot) plot.append(bubbleRing);
+        Object.assign(bubbleRing.style, { left: `${lit.x}px`, top: `${lit.y}px`, width: `${lit.d}px`, height: `${lit.d}px` });
+        bubbleRing.style.setProperty("--c", lit.color);
+      }
       /**
        * The layer whose last value's tag is under a point (the client's coordinates), on its axis (see LWC patch 51); its
        * legend's item lit as a line pointed at lights it.
@@ -18242,6 +18286,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         fingerCross.kept = null;
         if (point) view.setCrosshairPosition(point.value, /** @type {any} */ (time), drawn.get(point.layer.id));
         else view.clearCrosshairPosition();
+        lightBubble(point ? time : null, point ? chart.panes.findIndex((pane) => pane.id === point.layer.pane) : undefined);
         if (point && draft && placing && !placing.held) {
           draft = { ...draft, points: [...draft.points.slice(0, -1), pointOf(time, point.value)] };
           repaintDrawings();
@@ -18258,6 +18303,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         keyTime = null;
         fingerCross.kept = null;
         view.clearCrosshairPosition();
+        lightBubble(null, undefined);
         hoverTime = null;
         valuesSoon();
       }
@@ -18860,6 +18906,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         nameAxis();
         if (writing) placeField();
         sizeBubbles();
+        lightBubble(bubbleAt.time, bubbleAt.pane);
         viewMoved();
         placeBrush();
         fitCandles();
@@ -18884,7 +18931,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // reads it, see fingerCross. A mouse's or the keys' crosshair takes its place.)
       $("chart").addEventListener("pointerdown", (event) => {
         fingerCross.dismissing = event.pointerType === "touch" && fingerCross.kept !== null && view.chartElement().contains(/** @type {Element} */ (event.target));
-        if (fingerCross.dismissing) (fingerCross.kept = null), view.clearCrosshairPosition();
+        if (fingerCross.dismissing) (fingerCross.kept = null), view.clearCrosshairPosition(), lightBubble(null, undefined);
       }, true);
       // (A mouse on the same date takes it over too.)
       view.chartElement().addEventListener("pointermove", (event) => event.pointerType !== "touch" && (fingerCross.kept = null));

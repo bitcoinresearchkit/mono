@@ -25,7 +25,7 @@ Only what's left. An item done is removed: its history is in the commits and log
   right but we needed a smoother anim/motion ?"): your look to confirm.
 - Bubbles: built (a layer type: Add a layer › Bubbles, a layer's ⋯ › As bubbles on…, its Type; On, Size, Hide below,
   Sized to; a preset per cohort, its day's net realized P&L on the price; you, 2026-10-28: "represent a series as bubbles
-  attached to another layer"): your look to confirm. Left: the bubble under the crosshair lit.
+  attached to another layer"): your look to confirm.
 - Outline: built (a layer's switch; presets over a heatmap or a cloud, the price's), the line's width on each side
   (you, 2026-10-28: "outline doesn't feel think enough"; half of it, before): your look to confirm.
 - A design system for all of Studio, then a polish and consistency pass applying it (you, 2026-10-28: "I think we
