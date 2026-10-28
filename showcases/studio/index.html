@@ -7501,6 +7501,17 @@
             color: var(--ink);
           }
         }
+
+        /* (How many it holds and its way on, as the sidebar's heads show them: as its row's pointed at or reached by a
+           key, together (nothing moves); at rest, its name (and its mark) alone; its count said all the same (its
+           label). A search's heads, what it found, say theirs always.) */
+        > :is(.count, svg) {
+          display: none;
+        }
+      }
+
+      .shelf:is(:hover:where(.can-hover *), :has(:focus-visible)) .shelf-title > :is(.count, svg) {
+        display: inline;
       }
 
       /* (Its steps as its row is pointed at or reached by a key: at rest, its tiles alone, as a list's rows are.) */
@@ -9672,6 +9683,11 @@
         .shelf-more,
         .tile .tile-more {
           opacity: 1;
+        }
+
+        /* (No pointing: a shelf's count and way always there, as the sidebar's.) */
+        .shelf-title > :is(.count, svg) {
+          display: inline;
         }
 
         /* (A row's ⋯ out of sight and out of reach, the list kept quiet: a hold shows its menu, see onHold. A preview's ×
@@ -23001,7 +23017,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * it says (else, that it has none).
        * @param {{ name: string, place: Place, folder?: string, count: number, previews?: boolean, empty?: string }} shelf @param {string} tiles
        */
-      const folderShelfHtml = ({ name, place, folder, count, previews, empty }, tiles) => `<section class="shelf${previews ? " previews" : ""}"><div class="shelf-head"${folder === undefined ? "" : ` data-grid-folder="${folder}"`}><button type="button" class="shelf-title" data-place="${escape(JSON.stringify(place))}">${((own) => (own ? folderMark(own) : ""))(folder ? folderById(folder) : undefined)}${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>${folder ? `<button type="button" class="cap small shelf-more" data-folder-menu="${folder}" aria-haspopup="menu" aria-label="More for ${escape(name)}" data-tip="More">${ICONS.more}</button>` : ""}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${tiles ? `${tiles}${seeAll(place, count)}` : empty || `<p class="shelf-empty">No charts in it yet</p>`}</div></section>`;
+      const folderShelfHtml = ({ name, place, folder, count, previews, empty }, tiles) => `<section class="shelf${previews ? " previews" : ""}"><div class="shelf-head"${folder === undefined ? "" : ` data-grid-folder="${folder}"`}><button type="button" class="shelf-title" data-place="${escape(JSON.stringify(place))}" aria-label="${escape(name)}, ${grouped.format(count)}">${((own) => (own ? folderMark(own) : ""))(folder ? folderById(folder) : undefined)}${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>${folder ? `<button type="button" class="cap small shelf-more" data-folder-menu="${folder}" aria-haspopup="menu" aria-label="More for ${escape(name)}" data-tip="More">${ICONS.more}</button>` : ""}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${tiles ? `${tiles}${seeAll(place, count)}` : empty || `<p class="shelf-empty">No charts in it yet</p>`}</div></section>`;
       /**
        * The tile last pressed on the page: of the tiles showing a chart (a preset on two shelves, the recommended's and its
        * section's), the one it grows out of and shrinks back into. Every tile says the chart it opens (`data-chart`): one
@@ -23190,7 +23206,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Every slot of a shelf's row filled (a keyboard's focus come into it: Tab reaches each tile). @param {HTMLElement} row */
       const fillRow = (row) => all$(":scope > .tile-slot", row).forEach(fillSlot);
-      const shelfHtml = (name, list, to, count = list.length, lead = false) => `<section class="shelf${lead ? " lead" : ""}" data-list="${listAt()}"><div class="shelf-head">${to ? `<button type="button" class="shelf-title" data-place="${escape(JSON.stringify({ path: to }))}">${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>` : `<h2 class="shelf-title">${escape(name)}</h2>`}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${shelfTilesHtml(list, lead)}${to ? seeAll({ path: to }, count) : ""}</div></section>`;
+      const shelfHtml = (name, list, to, count = list.length, lead = false) => `<section class="shelf${lead ? " lead" : ""}" data-list="${listAt()}"><div class="shelf-head">${to ? `<button type="button" class="shelf-title" data-place="${escape(JSON.stringify({ path: to }))}" aria-label="${escape(name)}, ${grouped.format(count)}">${escape(name)}<span class="count">${grouped.format(count)}</span>${ICONS.next}</button>` : `<h2 class="shelf-title">${escape(name)}</h2>`}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${shelfTilesHtml(list, lead)}${to ? seeAll({ path: to }, count) : ""}</div></section>`;
       /** The presets' side of the page, where it is (none in your Library): at the top, one shelf (the recommended, leading to them all); on their page, the recommended, then each section as a shelf; in a section, its own as a grid, then each section in it. */
       function renderGallery() {
         const field = /** @type {HTMLInputElement} */ ($("home-filter")), words = field.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
