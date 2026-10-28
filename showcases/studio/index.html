@@ -14800,7 +14800,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A heatmap's: no values a date (its days, many each, are drawn apart: see drawHeat), its measure's unit; the
         // price's closes, its scale's (see heatView).)
         const closes = ((price) => (price?.data && !isText(price.data) ? align(price.data).values : undefined))(fetched.get("price"));
-        for (const layer of doc.layers) if (layer.type === "heatmap") results.set(layer.id, { unit: (layer.measure ?? "supply") === "supply" ? "btc" : "usd", heat: true, closes });
+        // (Of a holder group Bitview doesn't have (a link's typo, one renamed): said, as a series' is, and never asked for.)
+        for (const layer of doc.layers) if (layer.type === "heatmap") results.set(layer.id, { unit: (layer.measure ?? "supply") === "supply" ? "btc" : "usd", heat: true, closes, ...(heatKnown(layer) ? {} : { error: "Not on Bitview", detail: "Bitview has no holder group by this name: renamed, removed, or mistyped" }) });
         /** The series formulas name, as they are (no transform: a formula applies its own). @type {Map<string, Result>} */
         const bySeries = new Map();
         for (const name of named) {
@@ -15578,8 +15579,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** Whether what's drawn is this chart with all its data (a build asked for, not yet: not yet, see buildSoon). */
       const settled = () => Boolean(resolved) && drawnChart === chart.id && drawnVersion === drawVersion && !buildAsked;
-      /** What a chart's data depends on: its interval and what each layer reads (in any order). */
-      const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.layers.map(({ id, letter, series, formula, type, from, ref }) => [id, letter, series, formula, from ? type : null, from ?? null, ref ?? null]).sort()]);
+      /**
+       * What a chart's data depends on: its interval and what each layer reads (in any order); a heatmap's holders and
+       * measure (its result's: whether Bitview has them, its unit).
+       */
+      const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.layers.map(({ id, letter, series, formula, type, from, ref, heatmap, measure }) => [id, letter, series, formula, from ? type : null, from ?? null, ref ?? null, type === "heatmap" ? [heatmap ?? "all", measure ?? "supply"] : null]).sort()]);
 
       /**
        * Cached data keeps each edit's rebuild cheap (missing data fetched first).
@@ -15954,16 +15958,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // alone on it (nothing else drawn on its pane's side: a signal's marks, or one with no values, don't count), the
             // price's then (its closes, see heatView).
             // (Its reference kept while it's the same map: a rebuild during a block's refresh draws on, see drawHeat.)
-            const look = /** @type {HeatLook} */ (heatLook(doc, layer, data, op)), was = heatLooks.get(layer.id);
+            const look = /** @type {HeatLook} */ (heatLook(doc, layer, data, op)), was = heatLooks.get(layer.id), known = heatKnown(layer);
             if (was && was.cohort === look.cohort && was.weight === look.weight && was.grid?.agg === look.grid?.agg && was.measure === look.measure) look.reference = was.reference;
-            heatLooks.set(layer.id, look);
+            // (Of a holder group Bitview doesn't have (as drawn: a valid one highlighted in ⌘K previews): nothing drawn,
+            // nothing asked for, no rows.)
+            if (known) heatLooks.set(layer.id, look);
+            else heatLooks.delete(layer.id), heatWants.delete(layer.id);
             const alone = !doc.layers.some((other) => other !== layer && other.pane === layer.pane && other.side === layer.side && !other.hidden && other.type !== "heatmap" && other.type !== "signal" && data.results.get(other.id)?.values);
             // (Hidden, not drawn: nothing to ask for.)
             if (layer.hidden) heatWants.delete(layer.id);
             const options = { ...common, lastValueVisible: false, priceLineVisible: false, heatId: layer.id, autoscaleInfoProvider: (/** @type {() => any} */ original) => (alone ? original() : null) };
             series = again ?? tracked(view.addCustomSeries(heatView(), options, pane));
             if (again) series.applyOptions({ ...lookOf(options), heatTick: ++heatTicks });
-            heatSeries.add(series);
+            // (Kept up with live only where drawn: see movePrice.)
+            if (known) heatSeries.add(series);
+            else heatSeries.delete(series);
           } else if (candles) {
             // The close line stays to carry the last-value label in the layer's color (a hollow candle's would be the
             // background's); only its line and marker hide while candles show.
@@ -15995,7 +16004,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const before = kept.get(layer.id);
           // (A heatmap's rows: its timeline's dates and the price's closes there (its scale's), its days drawn from its
           // look, see drawHeat.)
-          if (layer.type === "heatmap") setRows(series, data.times.map((time, i) => ({ time, close: result?.closes?.[i] ?? NaN })));
+          if (layer.type === "heatmap") setRows(series, heatKnown(layer) ? data.times.map((time, i) => ({ time, close: result?.closes?.[i] ?? NaN })) : []);
           else if (!result?.values && again && before?.shown) {
             series.setData([]);
             closes.get(layer.id)?.series.setData([]);
@@ -20192,6 +20201,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         ["age_under_4m", "Under 4 months old"], ["age_under_6m", "Under 6 months old"], ["age_over_4m", "Over 4 months old"], ["age_over_6m", "Over 6 months old"],
         ...Object.values(client.AGE_RANGE_NAMES).map(({ id, long }) => /** @type {[string, string]} */ ([`age_${id}`, long.split(" ").map((word, i) => (i && /^[A-Z][a-z]+$/.test(word) ? word.toLowerCase() : word)).join(" ").replace(/ old$/, "")])),
       ]);
+      /** Whether Bitview has a heatmap's holder group (a link's typo, one renamed: not). @param {Layer} layer */
+      const heatKnown = (layer) => HEAT_COHORTS.some(([id]) => id === (layer.heatmap ?? "all"));
       /** A cohort's name (one not listed: its id). */
       const cohortName = (/** @type {string} */ id) => HEAT_COHORTS.find(([one]) => one === id)?.[1] ?? id;
       /** A heatmap's name: its measure by cost basis, its cohort's, its weight's ("Supply by cost basis, short-term holders, awake"). @param {Layer} layer */
@@ -20228,9 +20239,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const rows = heatRows(layer.id);
         const menu = (/** @type {string} */ key) => ((row) => `<div class="field"><span>${escape(row.label)}</span><button type="button" class="preset" data-action="heat-menu" data-heat="${key}" aria-haspopup="menu" aria-label="${escape(`${row.label}: ${row.aside ?? ""}`)}"${row.disabled ? ` aria-disabled="true" data-tip="${escape(row.disabled)}"` : ""}><span class="name">${escape(row.aside ?? "")}</span>${CHEVRON}</button></div>`)(/** @type {any} */ (rows.find((row) => row.key === key)));
         const tabs = (/** @type {string} */ key, /** @type {string} */ label, /** @type {string[][]} */ list, /** @type {string} */ now) => `<div class="field"><span>${label}</span><div class="tabs" role="group" aria-label="${label}">${list.map(([value, text]) => `<button type="button" data-heat-set="${key}" data-value="${value}" aria-pressed="${now === value}" data-tip="${escape(HEAT_SAYS[value])}">${escape(text)}</button>`).join("")}</div></div>`;
+        // (Of a holder group Bitview doesn't have: said under it, another one to pick there.)
+        const gone = !heatKnown(layer) ? '<div class="error-box gone"><p>Bitview has no holder group by this name: renamed, removed, or mistyped. Pick another above.</p></div>' : "";
         return `<section>
               <h3>Heatmap</h3>
-              ${menu("holders")}
+              ${menu("holders")}${gone}
               ${tabs("measure", "Measure", [["supply", "Supply"], ["capital", "Capital"], ["pnl", "P&L"]], layer.measure ?? "supply")}
               ${tabs("weight", "Weight", HEAT_WEIGHTS, layer.weight ?? "")}
               ${menu("density")}
