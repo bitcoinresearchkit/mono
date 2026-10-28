@@ -37091,14 +37091,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Each layer's value at the picture's end, as the legend reads it there: a cloud to an edge, its one side.)
           const values = new Map(copy.layers.flatMap((layer) => {
             const result = data.results.get(layer.id), high = result?.values, low = result?.low, unit = unitFor(layer, result);
-            // (A heatmap's, as its legend reads it at rest: its open day's cell at that day's close, see heatReading.)
-            if (layer.type === "heatmap") return ((day) => {
-              const close = day?.close, k = Number(HEAT_PICTURE_AGG.slice(3));
+            // (A heatmap's, as its legend reads it at rest: its open day's cell at that day's close, see heatReading; at the
+            // chart's own density (the picture's coarser cells hold several), else the picture's.)
+            if (layer.type === "heatmap") return ((sample) => {
+              const fine = Boolean(sample?.fine?.rows), day = fine ? sample?.fine : sample?.open, k = fine ? Number(heatGrid(copy, layer)?.agg.slice(3) ?? 200) : Number(HEAT_PICTURE_AGG.slice(3)), close = day?.close;
               if (!day?.rows || !(Number(close) > 0)) return [];
               const row = Math.floor(k * Math.log10(Number(close) * 100)), at = lowerBound(day.rows, row), measure = layer.measure ?? "supply";
               const amount = day.rows[at] === row ? (measure === "capital" ? day.capital : measure === "pnl" ? day.pnl : day.supply)[at] : 0;
               return [[layer.id, `${format(amount, measure === "supply" ? "btc" : "usd")} at ${format(10 ** (row / k) / 100, "usd")}`]];
-            })(heat.get(layer.id)?.open);
+            })(heat.get(layer.id));
             if (!high || result.error) return [];
             let at = Math.min(drawn.end ?? high.length - 1, high.length - 1);
             while (at >= 0 && !Number.isFinite(high[at])) at--;
