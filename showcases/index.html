@@ -698,39 +698,46 @@
         }
       }
 
-      /* Each app's title in its own app's face, on the billboard and its cover, as a streaming title's logo: Studio and
-         DCA in Inter, heavy; Oracle and Globe in Lilex, as their pages are set;
-         The Satoshi Trail and Calendar in Instrument Serif, italic, as their titles and months are. */
-      [data-face="oracle"] {
-        font-family: var(--mono);
-        font-weight: 600;
-        letter-spacing: -0.05em;
+      /* Each app's title in its own app's face, on the billboard, its cover and its sheet, as a streaming title's logo:
+         Studio and DCA in Inter, heavy; Oracle and Globe in Lilex, as their pages are set;
+         The Satoshi Trail and Calendar in Instrument Serif, italic, as their titles and months are (its one weight, never
+         a made-up bold). Over those titles' own weight and spacing, wherever those are set. */
+      :is(.billboard .title, .tile .name, .about h3) {
+        &[data-face="oracle"] {
+          font-family: var(--mono);
+          font-weight: 600;
+          letter-spacing: -0.05em;
+        }
+
+        &[data-face="globe"] {
+          font-family: var(--mono);
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          text-transform: uppercase;
+        }
+
+        &:is([data-face="trail"], [data-face="calendar"]) {
+          font-family: Instrument, Georgia, serif;
+          font-style: italic;
+          font-weight: 400;
+          letter-spacing: -0.02em;
+        }
       }
 
-      [data-face="globe"] {
-        font-family: var(--mono);
-        font-weight: 600;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
-      }
-
-      [data-face="trail"],
-      [data-face="calendar"] {
-        font-family: Instrument, Georgia, serif;
-        font-style: italic;
-        font-weight: 400;
-        letter-spacing: -0.02em;
-      }
-
-      .billboard .title[data-face="trail"],
-      .billboard .title[data-face="calendar"] {
+      .billboard .title:is([data-face="trail"], [data-face="calendar"]) {
         font-size: clamp(50px, 7.2vw, 108px);
         line-height: 0.92;
       }
 
+      /* (A serif name a third larger than the others, as on the billboard, its small letters as tall: on a cover and in a
+         sheet, whose others are 30 px.) */
       .tile .name:is([data-face="trail"], [data-face="calendar"]) {
-        font-size: 1.3em;
+        font-size: calc(var(--name-size) * 1.3);
         line-height: 1;
+      }
+
+      .about h3:is([data-face="trail"], [data-face="calendar"]) {
+        font-size: 39px;
       }
 
       /* An arrow in words (a way on, a way out of the site): drawn, at the text's size, on its line. */
@@ -844,13 +851,9 @@
           margin-top: 44px;
         }
 
-        /* (The first shown: Jump back in, when there's any, else the apps.) */
-        &:not([hidden]):not(.shelf:not([hidden]) ~ *) {
+        /* (The first, the apps: close under the billboard.) */
+        &:first-child {
           margin-top: 16px;
-        }
-
-        &[hidden] {
-          display: none;
         }
       }
 
@@ -934,21 +937,7 @@
           > li {
             flex: none;
           }
-
-          .tile {
-
-            .name {
-              font-size: clamp(16px, 1.7vw, 26px);
-              letter-spacing: -0.025em;
-
-              @media (min-width: 900px) {
-                left: 18px;
-                bottom: 16px;
-              }
-            }
-          }
         }
-
       }
 
       /* A row's head: its title, and on a desk its two ways along, round, at its right end, as the App Store's; dimmed
@@ -1046,7 +1035,9 @@
           background: linear-gradient(to top, rgb(13 12 11 / 0.92), rgb(13 12 11 / 0.6) 40%, transparent);
         }
 
+        /* (An app's name, by its cover's width.) */
         .name {
+          --name-size: clamp(16px, 7.5cqw, 26px);
           position: absolute;
           left: 12px;
           right: 12px;
@@ -1055,17 +1046,16 @@
           display: -webkit-box;
           overflow: hidden;
           color: var(--ink);
-          font-size: 15px;
+          font-size: var(--name-size);
           font-weight: 750;
           line-height: 1.15;
-          letter-spacing: -0.015em;
+          letter-spacing: -0.025em;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
 
           @media (min-width: 900px) {
-            left: 14px;
-            bottom: 12px;
-            font-size: 17px;
+            left: 18px;
+            bottom: 16px;
           }
         }
 
@@ -1915,7 +1905,6 @@
     </section>
 
     <main id="shelves">
-      <section class="shelf" id="recent" hidden aria-labelledby="recent-title"><h2 id="recent-title">Jump back in</h2></section>
       <section class="shelf" aria-labelledby="apps-title"><h2 id="apps-title">Apps</h2></section>
       <section class="shelf" aria-labelledby="blocks-title"><h2 id="blocks-title">Latest blocks <span class="live">Live</span> <a href="/calendar/">Calendar<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
       <section class="shelf" aria-labelledby="pools-title"><h2 id="pools-title">Top 10 pools this week <a href="/globe/">Globe<svg class="glyph" aria-hidden="true"><use href="#i-go" /></svg></a></h2></section>
@@ -2039,21 +2028,25 @@
       /** The billboard's titles, in turn. */
       const FEATURED = ["studio", "oracle", "globe", "trail", "dca", "calendar"].map((id) => /** @type {Title} */ (byId.get(id)));
 
-      /** Each title opened on this device: how often, and when last, as stored now (another tab's opens kept). */
+      /** When each title was last opened on this device (ms), as stored now (another tab's opens kept; an earlier
+       * page's { n, at } read as its at; anything else that isn't a finite number left out, on its own). */
       const OPENS = "bitview.opened";
       function readOpens() {
         try {
           const raw = JSON.parse(localStorage.getItem(OPENS) ?? "{}") ?? {};
-          return /** @type {Record<string, { n: number, at: number }>} */ (Object.fromEntries(Object.entries(raw).map(([id, v]) => [id, typeof v === "number" ? { n: v, at: 0 } : v])));
+          return /** @type {Record<string, number>} */ (Object.fromEntries(Object.entries(raw).flatMap(([id, v]) => {
+            const at = typeof v === "number" ? v : v?.at;
+            return Number.isFinite(at) ? [[id, at]] : [];
+          })));
         } catch {
           return {};
         }
       }
-      /** As they were on arriving: the rows' order, and Jump back in (nothing moves while you look). */
+      /** As they were on arriving: the rows' order (nothing moves while you look). */
       const opens = readOpens();
       function opened(/** @type {string} */ id) {
         const now = readOpens();
-        now[id] = { n: (now[id]?.n ?? 0) + 1, at: Date.now() };
+        now[id] = Date.now();
         try {
           localStorage.setItem(OPENS, JSON.stringify(now));
         } catch {}
@@ -2065,7 +2058,8 @@
           const a = /** @type {HTMLElement | null} */ (/** @type {Element} */ (event.target).closest?.("a[data-open]"));
           if (a && (kind === "click" || /** @type {MouseEvent} */ (event).button === 1)) opened(/** @type {string} */ (a.dataset.open));
         });
-      const used = (/** @type {Title[]} */ list) => list.map((t, i) => [t, i]).sort(([a, i], [b, j]) => (opens[/** @type {Title} */ (b).id]?.n ?? 0) - (opens[/** @type {Title} */ (a).id]?.n ?? 0) || /** @type {number} */ (i) - /** @type {number} */ (j)).map(([t]) => /** @type {Title} */ (t));
+      /** The last opened first; the rest as listed. */
+      const used = (/** @type {Title[]} */ list) => [...list].sort((a, b) => (opens[b.id] ?? 0) - (opens[a.id] ?? 0));
 
       /** Live facts, by title, as this server says them: shown in the billboard and sheets. @type {Record<string, string>} */
       const facts = {};
@@ -2216,14 +2210,6 @@
       }
       const dev = row("dev-title");
       for (const t of used(DEV)) dev.append(card(t));
-
-      // (Jump back in: the titles opened here, the last opened first.)
-      const recent = Object.entries(opens).filter(([id]) => byId.has(id)).sort(([, a], [, b]) => b.at - a.at || b.n - a.n).map(([id]) => /** @type {Title} */ (byId.get(id)));
-      if (recent.length) {
-        $("recent").hidden = false;
-        const list = row("recent-title");
-        for (const t of recent) list.append(DEV.includes(t) ? card(t) : cover(t));
-      }
 
       // ── About: a sheet, its picture, its words, its way in ──
 
@@ -2663,7 +2649,7 @@
       addEventListener("resize", watchSections);
       // (At the page's foot the last sections can't reach the line: there, the last one lit; back up from it, the one
       // crossing again. Worked out in one place, whichever of the watchers and the scroll speaks last.)
-      const lastSection = /** @type {string} */ ([...document.querySelectorAll(".shelf:not([hidden]) h2")].at(-1)?.id);
+      const lastSection = /** @type {string} */ ([...document.querySelectorAll(".shelf h2")].at(-1)?.id);
       function update() {
         if (onBillboard) return;
         const id = innerHeight + scrollY >= document.documentElement.scrollHeight - 2 ? lastSection : crossing;
@@ -2684,7 +2670,7 @@
           // (Up or down: the nearest line of covers that way, a grid's next line or the next row, and in it the cover
           // nearest across.)
           const at = from.getBoundingClientRect(), down = key === "ArrowDown";
-          const ways = /** @type {HTMLElement[]} */ ([...document.querySelectorAll(".shelf:not([hidden]) .row > li > a")]).map((a) => /** @type {[HTMLElement, DOMRect]} */ ([a, a.getBoundingClientRect()]));
+          const ways = /** @type {HTMLElement[]} */ ([...document.querySelectorAll(".shelf .row > li > a")]).map((a) => /** @type {[HTMLElement, DOMRect]} */ ([a, a.getBoundingClientRect()]));
           const beyond = ways.filter(([, r]) => (down ? r.top > at.bottom - 4 : r.bottom < at.top + 4));
           const line = down ? Math.min(...beyond.map(([, r]) => r.top)) : Math.max(...beyond.map(([, r]) => r.bottom));
           target = /** @type {HTMLElement | undefined} */ (beyond.filter(([, r]) => Math.abs((down ? r.top : r.bottom) - line) < 8).sort(([, a], [, b]) => Math.abs(a.left - at.left) - Math.abs(b.left - at.left))[0]?.[0]);
