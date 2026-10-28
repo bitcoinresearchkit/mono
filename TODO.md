@@ -12,12 +12,16 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Studio: raised by you, still open
 
-- The gradient editor (you, 2026-10-28: "decent but could be better/cleaner"): proposed, one bar, round stops on a
-  track under it, only the color in hand below (its place as % and as its value, Remove), a row of gradient presets
-  (_notes/overnight-20261028/gradient-editor-before-after.png). To decide.
-
-- Thumbnails and previews of a chart with a heatmap draw its price alone (Codex, 2026-10-28): the heatmap's days
-  aren't fetched for a tile (Quick Look's too: no value beside its name). A sampled mini heatmap there, to decide.
+- The gradient editor and a heatmap's default colors (you, 2026-10-28: "think very hard, how would best designers in
+  the world do it", "look for the best setup possible"): built, your look to confirm
+  (_notes/overnight-20261028/heatmap-default-and-editor-before-after.png). A cell's strength to the 2.5th power (most
+  cells were lit, the map one color), the weakest 30% fading into the chart, Inferno kept; the editor's bar as drawn,
+  a value scale under it, Reverse, the color in hand named, your own gradient kept as "Your own" once a ready-made
+  is picked (this session).
+- On the iPhone (found 2026-10-28, in HEAD too): a #chart= link with a range ("8y") opens with its data squeezed into
+  the chart's left 40%, the rest empty past today, the range's button not lit (Chromium at the same size: right). The
+  visible range is ~5,000 bars wide, ending ~2,600 past the last bar: set at a narrower width, kept through the
+  resize. Investigating.
 
 - The folders on the rail: "a ton of polish" needed; what you saw beyond what's fixed (depth, one menu, the flash,
   menu-bar switching, the toggle's speed and stale rows).
