@@ -6873,13 +6873,38 @@
             font: 510 12px var(--sans);
           }
 
-          /* (Its ›, leading to another menu: at its end, after what it says.) */
+          /* (Its ›, leading to another menu: at its end, centered on the row as its icons are (not on a line of text, its
+             baseline's), half a pixel lower, on its words' middle (their ink sits that much under the row's); after what
+             it says, as close as a word's space (its glyph has room of its own in its box).) */
+          > span.sub {
+            display: flex;
+            flex: none;
+            translate: 0 0.5px;
+          }
+
           > span:not(.sub, .letter, .label, .chart-mark) + .sub {
-            margin-left: 6px;
+            margin-inline-start: -6px;
           }
 
           > .swatch {
             margin-inline: 1px;
+          }
+
+          /* (A folder's mark, a section's: as large as the icons beside it, its words where theirs are, as quiet.) */
+          > :is(.folder-mark, .section-mark) {
+            width: 14px;
+            height: 14px;
+          }
+
+          > .folder-mark {
+            border-radius: 4px;
+            color: var(--muted);
+            box-shadow: inset 0 0 0 1px currentColor;
+            font-size: 8px;
+          }
+
+          &[aria-checked="true"] > .folder-mark {
+            color: var(--ink);
           }
         }
 
@@ -8548,7 +8573,8 @@
             gap: 12px;
             font-size: 15px;
 
-            svg {
+            svg,
+            > :is(.folder-mark, .section-mark) {
               width: 16px;
               height: 16px;
             }
@@ -25288,8 +25314,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const rename = { key: "rename", icon: ICONS.pencil, label: "Rename", ...(inPalette ? { aside: folder.name, page: () => renameFolderPage(id) } : { run: () => renameFolder(id, inSide) }) };
         // (Its mark: its first letter, or an icon.)
         const now = () => folderById(id) ?? folder;
-        const icon = { key: "icon", icon: folderMark(folder), label: "Icon", aside: folder.icon ? capitalize(folder.icon) : "First letter", page: () => choicePage("Icon", () => [
-          { key: "letter", icon: folderMark({ ...now(), icon: undefined }), label: "First letter", aside: letterOf(now().name), current: !now().icon, run: () => setFolderIcon(id, undefined) },
+        const icon = { key: "icon", icon: folderMark(folder), label: "Icon", aside: folder.icon ? capitalize(folder.icon) : "Letter", page: () => choicePage("Icon", () => [
+          { key: "letter", icon: folderMark({ ...now(), icon: undefined }), label: "Letter", aside: letterOf(now().name), current: !now().icon, run: () => setFolderIcon(id, undefined) },
           ...FOLDER_ICONS.map((name) => ({ key: name, icon: folderMark({ ...now(), icon: name }), label: capitalize(name), current: now().icon === name, run: () => setFolderIcon(id, name) })),
         ]) };
         return [
@@ -31910,7 +31936,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (actions.length < 2) return;
         // (A series', on a phone: what it is over them, as the pane beside the list shows it on a computer.)
         const detail = phone.matches && item.kind === "series";
-        showMenu(anchor, (detail ? '<div class="palette-preview menu-detail"></div>' : "") + actions.map((action, i) => `${action.danger ? '<div class="menu-rule"></div>' : ""}<button type="button" data-action-index="${i}" ${action.danger ? 'class="danger"' : ""}>${action.icon ?? '<i class="menu-space"></i>'}${escape(action.label)}${action.kbd ? `<kbd>${escape(keyText(action.kbd))}</kbd>` : action.aside ? `<span>${escape(action.aside)}${action.page ? " ›" : ""}</span>` : action.page ? "<span>›</span>" : ""}</button>`).join(""), ({ actionIndex }) => runAction(actions[Number(actionIndex)], item));
+        showMenu(anchor, (detail ? '<div class="palette-preview menu-detail"></div>' : "") + actions.map((action, i) => `${action.danger ? '<div class="menu-rule"></div>' : ""}<button type="button" data-action-index="${i}" ${action.danger ? 'class="danger"' : ""}>${action.icon ?? '<i class="menu-space"></i>'}${escape(action.label)}${action.kbd ? `<kbd>${escape(keyText(action.kbd))}</kbd>` : action.aside ? `<span>${escape(action.aside)}</span>` : ""}${action.page ? `<span class="sub">${ICONS.next}</span>` : ""}</button>`).join(""), ({ actionIndex }) => runAction(actions[Number(actionIndex)], item));
         const box = detail ? /** @type {HTMLElement | null} */ ($("menu").querySelector(".menu-detail")) : null;
         if (box) previewSeries(box, item.name, () => box.isConnected && !$("menu").hidden);
       }
