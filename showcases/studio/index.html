@@ -19,7 +19,7 @@
     <!-- Its launch from a home screen, every showcase's (it says when it's ready: see start). -->
     <script src="/assets/launch/launch.js" data-app="Studio" data-color="#f2660f" data-wait></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
-    <meta name="description" content="Compose charts from any of Bitview's series: overlay them, stack panes, derive new ones with formulas, and keep, share or export the result, or open one from a link: a chart is a link, #chart= and its JSON (this page's text says how, and how to have its picture)." />
+    <meta name="description" content="Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link. Free, in the browser." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%22-0.63 -0.7311 1.26 1.4622%22%3E%3Cpath fill=%22oklch%2864.34%25 0.191 44.41%29%22 fill-rule=%22evenodd%22 d=%22M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z%22/%3E%3C/svg%3E" />
     <meta name="theme-color" content="#08090a" />
     <title>Bitview Studio: charts of Bitcoin's on-chain data</title>
@@ -9655,10 +9655,30 @@
       }
 
       @media (hover: none) {
-        :is(.chart-row, .folder-row, .list-head) .chart-more,
         .shelf-more,
         .tile .tile-more {
           opacity: 1;
+        }
+
+        /* (A row's ⋯ out of sight and out of reach, the list kept quiet: a hold shows its menu, see onHold. A preview's ×
+           there, its Close, always.) */
+        :is(.chart-row, .folder-row, .list-head) .chart-more[aria-haspopup="menu"] {
+          pointer-events: none;
+        }
+
+        .chart-row .chart-more:not([aria-haspopup="menu"]) {
+          opacity: 1;
+        }
+
+        #chart-list {
+          -webkit-touch-callout: none;
+          user-select: none;
+
+          /* (A name being typed: its own, as every field's.) */
+          :is(input, textarea) {
+            -webkit-touch-callout: default;
+            user-select: text;
+          }
         }
 
         /* (A tile's tick once picking's begun: a long press, or Select in its ⋯.) */
@@ -9705,14 +9725,9 @@
           }
         }
 
-        /* (Its ⋯ always there, as if pointed at: its count too, after its name, the name short of the ⋯; a group's head's
-           too.) */
+        /* (No pointing: its count always there, after its name; a group's head's too.) */
         :is(.folder-row .folder-count, .list-head .count) {
           display: inline;
-        }
-
-        .folder-row .folder-item {
-          padding-right: 33px;
         }
 
         .side-cap[data-action="shortcuts"] {
@@ -25979,7 +25994,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const { into, before } = besideItem(key, at.after, ids);
           placeItems(ids, into, before, { dropY: y });
         },
+        // (Held, its menu showed (see below): carried on from there, it goes, as iOS's does.)
+        lift: () => hideMenu(),
       });
+      // A row's menu by touch: held, the one its ⋯ shows (by touch out of sight, the list kept quiet: see the rows' ⋯).
+      // (On the rail, a press shows it already.)
+      onHold($("chart-list"), ".nav-item, .list-head-name", (row) => ((more) => (more && !railed() ? () => (more.click(), true) : null))(/** @type {HTMLElement | null} */ (row.parentElement?.querySelector(':scope > .chart-more[aria-haspopup="menu"]') ?? null)));
       // The grid's tiles move the charts in the list (the sidebar's order, and ⌘1–9's): those picked together. Found by the
       // filter, they're ranked, not in their order: there's no place to drop them into (a hold still picks).
       dragToReorder($("home-grid"), {
@@ -30038,6 +30058,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return rows;
       }
       document.addEventListener("contextmenu", (event) => {
+        // (By touch, a sidebar row's long press: its hold shows its menu, see onHold. Not a key's (⇧F10), a mouse's, nor
+        // a field's own.)
+        if (byTouch && closest(event, "#chart-list") && !typing(event.target)) return void event.preventDefault();
         // (The browser's own, after the menu key opened a row's menu: that one's open.)
         if (event.isTrusted && performance.now() - keyMenuAt < 500 && closest(event, "#chart-list")) return void event.preventDefault();
         // (A row on the rail: its one menu, as pointing at it or pressing it shows (see railMenu).)
