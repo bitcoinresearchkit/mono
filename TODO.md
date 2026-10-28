@@ -15,13 +15,6 @@ Only what's left. An item done is removed: its history is in the commits and log
 - Thumbnails and previews of a chart with a heatmap draw its price alone (Codex, 2026-10-28): the heatmap's days
   aren't fetched for a tile (Quick Look's too: no value beside its name). A sampled mini heatmap there, to decide.
 
-- A gradient's range at an interval under a day (Codex, 2026-10-28): of the history loaded (it grows as you pan
-  back, its colors then shifting), not all of it; all of it would mean loading every chunk, or the day interval's
-  extremes read beside it. To decide.
-
-- A heatmap's P&L colors (me, 2026-10-28): switched to P&L, profit keeps the layer's color (the presets' orange,
-  beside red for loss), where baselines read green over red. Profit green by default there? To decide.
-
 - The folders on the rail: "a ton of polish" needed; what you saw beyond what's fixed (depth, one menu, the flash,
   menu-bar switching, the toggle's speed and stale rows).
 - Shortcuts opening by itself during quick sidebar toggles: its button takes no press mid-slide now (5 presses on it as

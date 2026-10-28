@@ -387,7 +387,7 @@ export function studioPresets(client, facts) {
         unrealized.nupl && chart("NUPL", titled("Net unrealized profit and loss (NUPL)"), [series(unrealized.nupl, "NUPL", { ...baseline, levels: [0.25, 0.5, 0.75].map((value) => ({ value, color: "gray", dash: 3 })) })]),
       ]),
       cost && section("Cost basis", [
-        urpd && chart("Heatmap", titled("Supply by cost basis"), [price(), { heatmap: urpd, color: "orange" }]),
+        urpd && chart("Heatmap", titled("Supply by cost basis"), [price(), { heatmap: urpd }]),
         chart("Realized price", titled("Realized price"), [
           price(), series(cost.byCoin.realizedPrice, "Realized price", { color: "orange" }),
           ...(cost.byCoin.medianRealizedPrice ? [series(cost.byCoin.medianRealizedPrice, "Median realized price", { color: "yellow", hidden: true })] : []),

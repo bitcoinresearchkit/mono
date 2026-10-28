@@ -10839,31 +10839,68 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A second color, given one the first time (a trend's, a cloud's): a cloud's second layer's, else one apart from its first. @param {Layer} layer */
       const secondColor = (layer) => ((other) => (other && other !== layer.color ? other : layer.color === "red" ? "green" : "red"))(layer.type === "cloud" ? ownerOf(layer)?.layers.find((item) => item.id === layer.from?.[1])?.color : undefined);
       /**
-       * A layer's look before its last type change and as that type left it (its colors, whose colors it takes, colored by
-       * its levels), this session (not kept with it), by its chart's id and its own (a chart's copy has its layers' ids).
-       * @type {Map<string, { to: string, before: Record<string, any>, after: Record<string, any> }>}
+       * A layer's look before its last shape change and as that shape left it (its colors, whose colors it takes, colored
+       * by its levels or its gradient), the kind it was then (see kindOf), this session (not kept with it), by its chart's
+       * id and its own (a chart's copy has its layers' ids).
+       * @type {Map<string, { to: string, kind: string, before: Record<string, any>, after: Record<string, any> }>}
        */
       const looksLeft = new Map();
-      const LOOK_KEYS = /** @type {const} */ (["color", "colorBelow", "colorFrom", "byLevels"]);
+      const LOOK_KEYS = /** @type {const} */ (["color", "colorBelow", "colorFrom", "byLevels", "byGradient"]);
       /**
-       * A layer's type set (by either way to): what the type it leaves took or set (a baseline's green and red, colors
-       * from another layer or by its levels it drops), unchanged since, back as it was before it (a color picked since,
-       * kept); one made a baseline starts as the website draws one, green above its base and red below.
+       * Whether a layer reads two ways, over and under (a baseline over its base, a heatmap's unrealized P&L in profit or
+       * in loss): green over red by default (see kindLook). @param {{ type?: string, measure?: string }} layer
        */
-      const retype = (/** @type {Layer} */ layer, /** @type {Layer["type"]} */ type) => {
-        if (type === layer.type) return;
-        // (Its memory the type it's left's own: one of another (an undo since) holds nothing.)
-        const look = /** @type {Record<string, any>} */ (layer), key = `${chart?.id}:${layer.id}`, was = looksLeft.get(key);
-        if (was?.to === layer.type) for (const key of LOOK_KEYS) if (look[key] === was.after[key]) was.before[key] === undefined ? delete look[key] : (look[key] = was.before[key]);
+      const twoSided = (layer) => layer.type === "baseline" || (layer.type === "heatmap" && layer.measure === "pnl");
+      /**
+       * A heatmap of an amount's steps, as the website drew heat: inferno, its 4 colors that mixed (see gradientTable)
+       * come nearest it (0.023 apart in OKLab at most, at 64 places: about what an eye tells apart).
+       */
+      const HEAT_GRADIENT = /** @type {[number, string][]} */ ([[0, "#000004"], [20, "#420a68"], [81, "#fcaa15"], [100, "#fcffa4"]]);
+      /** A layer's kind, as its first look goes (see kindLook): two-sided, a heatmap of an amount, or neither. @param {{ type?: string, measure?: string }} layer */
+      const kindOf = (layer) => (twoSided(layer) ? "sided" : layer.type === "heatmap" ? "heat" : "");
+      /**
+       * A layer's own first color, where its kind has one (else the next free, see nextColor): two-sided, green (red its
+       * own below); a heatmap's, orange (its gradient's off). @param {{ type?: string, measure?: string }} layer
+       */
+      const kindColor = (layer) => ({ sided: "green", heat: "orange" })[kindOf(layer)] ?? null;
+      /**
+       * The look a layer's kind starts it with, onto `layer` (as `next`, its kind, reads): its color (kindColor); two-sided,
+       * its own red below, no gradient; a heatmap of an amount, colored by its gradient (its own kept, else HEAT_GRADIENT's).
+       * @param {Layer} layer @param {{ type?: string, measure?: string }} next
+       */
+      function kindLook(layer, next) {
+        const color = kindColor(next), kind = kindOf(next);
+        if (color) layer.color = color;
+        if (kind === "sided") delete layer.colorBelow, delete layer.byGradient;
+        if (kind === "heat") (layer.byGradient = true), (layer.gradient ??= structuredClone(HEAT_GRADIENT));
+      }
+      /** A layer's shape, as its look follows it: its type, a heatmap's P&L its own (see reshape). @param {Layer} layer */
+      const shapeKey = (layer) => (layer.type === "heatmap" && layer.measure === "pnl" ? "heatmap:pnl" : layer.type);
+      /**
+       * A layer's shape changed (its type, a heatmap's measure, by `edit`): what the shape it leaves took or set (two
+       * sides' green and red, colors from another layer or by its levels it drops), unchanged since, back as it was
+       * before it (a color picked since, kept); one of another kind starts as its kind does (kindLook: two-sided green
+       * over red, as the website draws a baseline; a heatmap of an amount on its steps), unless what came back is its
+       * own look of that kind. @param {Layer} layer @param {(layer: Layer) => void} edit
+       */
+      const reshape = (layer, edit) => {
+        const from = shapeKey(layer), kind = kindOf(layer), next = /** @type {Layer} */ ({ ...layer });
+        edit(next);
+        if (shapeKey(next) === from) return void edit(layer);
+        // (Its memory the shape it's left's own: one of another (an undo since) holds nothing.)
+        const look = /** @type {Record<string, any>} */ (layer), key = `${chart?.id}:${layer.id}`, was = looksLeft.get(key), back = was?.to === from;
+        if (back) for (const key of LOOK_KEYS) if (look[key] === was.after[key]) was.before[key] === undefined ? delete look[key] : (look[key] = was.before[key]);
         const before = Object.fromEntries(LOOK_KEYS.map((key) => [key, look[key]]));
-        if (type === "baseline") (layer.color = "green"), delete layer.colorBelow;
-        layer.type = type;
+        if (kindOf(next) !== kind && !(back && was.kind === kindOf(next))) kindLook(layer, next);
+        edit(layer);
+        const type = layer.type;
         // (As it'll be once normalized: what this type can't have, gone.)
         const after = Object.fromEntries(LOOK_KEYS.map((key) => [key, look[key]]));
         if (!COLORED_FROM.has(type)) delete after.colorFrom;
         if (!BY_LEVELS.has(type)) delete after.byLevels;
         // (Kept for the chart's own layer alone: a copy's, ⌘K's look at it, keeps nothing.)
-        if (chart?.layers.includes(layer)) looksLeft.set(key, { to: type, before, after });
+        // (The kind its look before was: the one it came back to, else the one it left.)
+        if (chart?.layers.includes(layer)) looksLeft.set(key, { to: shapeKey(layer), kind: back ? was.kind : kind, before, after });
         // (Colored by its levels again: one added meanwhile, its color.)
         if (layer.byLevels && BY_LEVELS.has(type)) colorLevels(layer);
       };
@@ -13395,7 +13432,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         drawnSteps.delete(state);
         // The chart as it was, all of it (what it didn't have then, it hasn't now); the range is a view, as a pan is: it
         // stays as it is.
-        const was = JSON.parse(state), folder = chart.folder, stamped = chart.updated, blank = chart.blank, types = new Map(chart.layers.map((layer) => [layer.id, layer.type]));
+        const was = JSON.parse(state), folder = chart.folder, stamped = chart.updated, blank = chart.blank, shapes = new Map(chart.layers.map((layer) => [layer.id, shapeKey(layer)]));
         // (A step of the range alone (see setRange): its range back, shown; any other keeps the view as it is.)
         // (Compared as undo leaves the rest: its folder, id and blank, kept as they are now.)
         const bare = (/** @type {Record<string, any>} */ doc) => JSON.stringify(Object.keys(doc).filter((key) => !["range", "updated", "folder", "id", "blank"].includes(key)).sort().map((key) => [key, doc[key]]));
@@ -13404,8 +13441,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The range is a view, as a pan is; its folder, the library's; its id, the chart's own (kept again, it may have
         // a new one): all stay as they are.)
         Object.assign(chart, was, { range: ranged ? was.range : chart.range, id: chart.id });
-        // (The looks remembered by the layers whose type this changed let go of: they were the steps' since, not this one's.)
-        for (const layer of chart.layers) if (types.get(layer.id) !== layer.type) looksLeft.delete(`${chart.id}:${layer.id}`);
+        // (The looks remembered by the layers whose shape this changed (a type, a heatmap's P&L) let go of: they were the
+        // steps' since, not this one's.)
+        for (const layer of chart.layers) if (shapes.get(layer.id) !== shapeKey(layer)) looksLeft.delete(`${chart.id}:${layer.id}`);
         // (A preview's step, kept aside as its edits are: reloaded, it's as it is now.)
         if (isPreview(chart) && !ranged) asideDirty.add(chart);
         if (folder) chart.folder = folder;
@@ -20226,7 +20264,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const choices = (/** @type {string} */ title, /** @type {[any, string][]} */ list, /** @type {(item: Layer) => any} */ value, /** @type {(item: Layer, choice: any) => void} */ apply, /** @type {(choice: any) => string | undefined} */ says = () => undefined) => () => choicePage(title, () => list.map(([choice, text]) => ({ key: String(choice), label: text, aside: says(choice), current: value(now()) === choice, ...both((item) => apply(item, choice)) })));
         return [
           { key: "holders", icon: ICONS.people, label: "Holders", aside: cohortName(layer.heatmap ?? "all"), group: "Heatmap", leads: true, page: choices("Holders", HEAT_COHORTS, (item) => item.heatmap ?? "all", (item, cohort) => (item.heatmap = cohort)) },
-          { key: "measure", icon: ICONS.coins, label: "Measure", aside: HEAT_MEASURES.find(([measure]) => measure === (layer.measure ?? "supply"))?.[1], group: "Heatmap", page: choices("Measure", HEAT_MEASURES, (item) => item.measure ?? "supply", (item, measure) => (item.measure = measure === "supply" ? undefined : measure), (measure) => HEAT_SAYS[measure]) },
+          { key: "measure", icon: ICONS.coins, label: "Measure", aside: HEAT_MEASURES.find(([measure]) => measure === (layer.measure ?? "supply"))?.[1], group: "Heatmap", page: choices("Measure", HEAT_MEASURES, (item) => item.measure ?? "supply", (item, measure) => reshape(item, (one) => (one.measure = measure === "supply" ? undefined : measure)), (measure) => HEAT_SAYS[measure]) },
           { key: "weight", icon: ICONS.hourglass, label: "Weight", aside: HEAT_WEIGHTS.find(([weight]) => weight === (layer.weight ?? ""))?.[1], group: "Heatmap", page: choices("Weight", HEAT_WEIGHTS, (item) => item.weight ?? "", (item, weight) => (item.weight = weight || undefined), (weight) => HEAT_SAYS[weight]) },
           grid
             ? { key: "density", icon: ICONS.layers, label: "Density", aside: `${layer.rows ?? 200} rows per ×10`, group: "Heatmap", page: choices("Density", HEAT_ROWS.map((n) => /** @type {[number, string]} */ ([n, `${n} rows per ×10`])), (item) => item.rows ?? 200, (item, n) => (item.rows = n === 200 ? undefined : n)) }
@@ -27834,7 +27872,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * heatmap's from indigo through rose to yellow (dark to bright, as heat); anything else's from blue to red.
        * @param {Layer} layer @returns {[number, string][]}
        */
-      const gradientFor = (layer) => (layer.type === "heatmap" ? (layer.measure === "pnl" ? [[0, "red"], [50, "gray"], [100, "green"]] : [[0, "indigo"], [55, "rose"], [100, "yellow"]]) : [[0, "blue"], [100, "red"]]);
+      const gradientFor = (layer) => (layer.type === "heatmap" ? (layer.measure === "pnl" ? [[0, "red"], [50, "gray"], [100, "green"]] : structuredClone(HEAT_GRADIENT)) : [[0, "blue"], [100, "red"]]);
       /**
        * A gradient as CSS draws it, across: its own colors (see gradientTable), each as shown, a sample of them (CSS's own
        * mixing, between its stops, would be another: through gray where they're mixed in sRGB).
@@ -28536,7 +28574,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Its name the old series': the new one's shows; one given, kept.)
           if (target.label === humanize(old)) delete target.label;
           // (Candles of a series without them: a line, as one added would be.)
-          if (target.type === "candles" && meta && !isOhlc(name)) retype(target, "line");
+          if (target.type === "candles" && meta && !isOhlc(name)) reshape(target, (item) => (item.type = "line"));
         });
         remember(name);
         undoToast(`Replaced “${was}” with “${humanize(name)}”`);
@@ -29193,7 +29231,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (action === "heat-menu") ((row) => (row?.disabled ? notice(row.disabled) : row?.page && ((page) => menuOf(button, page.options?.() ?? page.rows()))(row.page())))(heatRows(selected).find((row) => row.key === button.dataset.heat));
         else if (button.dataset.heatSet) editLayer((item) => {
           const value = button.dataset.value ?? "";
-          if (button.dataset.heatSet === "measure") item.measure = value === "supply" ? undefined : value;
+          if (button.dataset.heatSet === "measure") reshape(item, (one) => (one.measure = value === "supply" ? undefined : value));
           else item.weight = value || undefined;
         });
         else if (button.id === "trend-ref" || button.id === "signal-ref") refMenu(button, selected);
@@ -29203,7 +29241,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (action === "color-mode") menuOf(button, colorModeChoices(selected));
         else if (action === "color-from") menuOf(button, fromChoices(selected));
         else if (type && button.getAttribute("aria-disabled") === "true") notice(/** @type {string} */ (button.dataset.tip));
-        else if (type) editLayer((layer) => retype(layer, /** @type {Layer["type"]} */ (type)));
+        else if (type) editLayer((layer) => reshape(layer, (item) => (item.type = /** @type {Layer["type"]} */ (type))));
         else if (button.dataset.memberOf) {
           const member = button.dataset.memberOf;
           editLayer((layer, doc) => (layer.from = fromOf(doc, toggleMember(doc, layer.from ?? [], member), layer.type)));
@@ -29760,6 +29798,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (On the axis its dollars are read on, where the pane has one.)
           const beside = doc.layers.filter((layer) => layer.pane === pane), side = (beside.find(inDollars) ?? beside[0])?.side ?? "right";
           added = makeLayer({ type: "heatmap", heatmap: cohort, pane, side }, doc);
+          kindLook(added, added);
           const mine = doc.layers.flatMap((layer, i) => (layer.pane === pane ? [i] : []));
           doc.layers.splice(doc.panes.find((item) => item.id === pane)?.reverse ? mine[0] : mine[mine.length - 1] + 1, 0, added);
         });
@@ -32114,7 +32153,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ] : []),
             ...(!layer.from && layer.type !== "signal" ? [{ key: "cycles", icon: ICONS.pane, label: "Compare halving cycles", verb: "Compare", group: first, ...((why) => (why ? { aside: why, disabled: why } : { aside: "Each from its start" }))(unfitHere([cycleFormula(layer, 0)])), run: () => compareCycles(id) }] : []),
             { key: "name", icon: ICONS.pencil, label: "Name", aside: labelOf(layer), group: first, page: () => renamePage("Name", layer.label ?? "", labelOf({ ...layer, label: undefined }), (text) => editById(id, (item) => (item.label = text || undefined), { redraw: "none" })) },
-            { key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc || (layer.series && isOhlc(layer.series))).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => retype(item, type)) }))) },
+            { key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc || (layer.series && isOhlc(layer.series))).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => reshape(item, (one) => (one.type = type))) }))) },
             ...(layer.type === "baseline" || layer.type === "histogram" ? [{ key: "base", icon: ICONS.ruler, label: "Base", aside: format(baseOf(layer), unit), group: "Style", page: () => numberPage({ title: "Base", value: String(baseOf(layer)), fallback: 0, apply: (n) => editById(id, (item) => (item.base = n || undefined)) }) }] : []),
             ...(layer.type === "baseline" ? [lineRow(id, "base", "Base line", "Style")] : []),
             ...(modesOf(layer).length > 1 ? [{ key: "colors", icon: modeSwatch(layer, colorModeOf(layer)), label: "Colors", aside: modeName(colorModeOf(layer)), group: "Style", page: () => choicePage("Colors", () => colorModeChoices(id), lookOfChoice) }] : []),
@@ -34274,10 +34313,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (Array.isArray(layer.cloud)) return null;
           // (A series' first look, its unit as known here: one asked for meanwhile, the price's ink, else the next free.)
           const look = typeof layer.series === "string" ? firstLook(seriesName(layer.series), usedColors, typeof layer.type === "string" ? layer.type : undefined) : {};
-          // (A baseline's color is above its base, red its own below: never red above too.)
-          const baseline = (typeof layer.type === "string" ? layer.type : look.type) === "baseline";
-          const colors = baseline ? PALETTE.filter((name) => name !== "red") : PALETTE;
-          const color = look.color ?? colors.find((name) => !usedColors.has(name)) ?? colors[cycled++ % colors.length];
+          // (Its kind's own, as one made here (see kindColor); else the next free.)
+          const own = kindColor({ type: typeof layer.heatmap === "string" ? "heatmap" : typeof layer.type === "string" ? layer.type : look.type, measure: layer.measure });
+          const color = look.color ?? own ?? PALETTE.find((name) => !usedColors.has(name)) ?? PALETTE[cycled++ % PALETTE.length];
           usedColors.add(color);
           return color;
         });
@@ -34300,8 +34338,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             color: colors[i] ?? colors[ids.indexOf(members?.find((member) => ids.includes(member)))] ?? PALETTE[0],
             // (A cloud of no colors given: colored by its layers.)
             ...(kind === "cloud" && !colors[i] && layer.colorBelow === undefined ? { byLayers: true } : {}),
-            // (A gradient given alone: what it's colored by (kept off, `byGradient: false`, said so).)
+            // (A gradient given alone: what it's colored by (kept off, `byGradient: false`, said so). None, nor a color: a
+            // heatmap of an amount on its steps, as one made here (see kindLook).)
             ...(Array.isArray(layer.gradient) && layer.byGradient === undefined ? { byGradient: true } : {}),
+            ...(!isColor(layer.color) && layer.gradient === undefined && layer.byGradient === undefined && kindOf({ type: typeof layer.heatmap === "string" ? "heatmap" : layer.type, measure: layer.measure }) === "heat" ? { byGradient: true, gradient: structuredClone(HEAT_GRADIENT) } : {}),
             ...(number(layer.pane) !== null ? { pane: panes[clamp(/** @type {number} */ (number(layer.pane)), 1, panes.length) - 1].id } : layer.pane === undefined ? { pane: panes[0].id } : {}),
             ...(typeof layer.series === "string" ? { series: seriesName(layer.series), ...(({ type, base }) => ({ ...(type && layer.type === undefined ? { type } : {}), ...(base !== undefined && layer.base === undefined ? { base } : {}) }))(firstForm(seriesName(layer.series), typeof layer.type === "string" ? layer.type : undefined)) } : {}),
             ...(kind ? { [kind]: members } : {}),
