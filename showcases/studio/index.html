@@ -1468,6 +1468,19 @@
         margin-bottom: 4px;
       }
 
+      /* A pane's ⋯ and eye as a layer's are: pointed at or reached by a key, and its eye while it's off (what it says
+         then); at rest, its name and its scale alone. */
+      .pane-head {
+        > .cap {
+          opacity: 0;
+        }
+
+        &:is(:hover:where(.can-hover *), :has(:focus-visible)) > .cap,
+        > .cap.off {
+          opacity: 1;
+        }
+      }
+
       .layer-row {
         position: relative;
         display: flex;
@@ -9706,7 +9719,7 @@
           display: none;
         }
 
-        .layer-row > .cap {
+        :is(.layer-row, .pane-head) > .cap {
           opacity: 1;
         }
 
@@ -24588,13 +24601,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A group's head in the sidebar, as a folder's row: a click opens or closes it there (kept); how many it holds, a
        * turn showing which, as it's pointed at; its ⋯ (a right-click), its page first. Closed, holding the open chart, it
-       * says so (as a folder does; holding the page shown, see renderSideNav).
-       * @param {Group} group @param {number} count @param {boolean} holds @returns {[string, string]}
+       * says so (as a folder does; holding the page shown, see renderSideNav). Its count none till it's known (the presets
+       * not read yet).
+       * @param {Group} group @param {number | null} count @param {boolean} holds @returns {[string, string]}
        */
       const sideHead = (group, count, holds) => {
         const [name, place] = GROUP_OF[group], shut = groupShut(group);
-        // (Your Library's: its New folder too, folders being its own.)
-        return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}" aria-label="${name}, ${count}" data-tip="${name}"><span class="head-mark">${ICONS[GROUP_MARK[group]]}</span><span class="head-name">${name}</span><span class="count">${shortCount(count)}</span><span class="turn" aria-hidden="true">${ICONS.next}</span></button><button type="button" class="cap small chart-more" data-group-menu="${group}" aria-haspopup="menu" aria-label="More for ${name}" data-tip="More">${ICONS.more}</button></div>`];
+        return [`head:${group}`, `<div class="list-head ${shut ? "closed" : ""} ${shut && holds ? "holds" : ""}" data-group="${group}"><button type="button" class="list-head-name" data-group-item="${group}" data-at='${JSON.stringify(place)}' aria-expanded="${!shut}" aria-label="${count === null ? name : `${name}, ${count}`}" data-tip="${name}"><span class="head-mark">${ICONS[GROUP_MARK[group]]}</span><span class="head-name">${name}</span>${count === null ? "" : `<span class="count">${shortCount(count)}</span>`}<span class="turn" aria-hidden="true">${ICONS.next}</span></button><button type="button" class="cap small chart-more" data-group-menu="${group}" aria-haspopup="menu" aria-label="More for ${name}" data-tip="More">${ICONS.more}</button></div>`];
       };
       /** A group's menu in the sidebar (its ⋯, a right-click): its page; open or close it there. @param {Group} group @returns {Action[]} */
       const groupRows = (group) => [
@@ -24692,7 +24705,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function presetParts() {
         const root = presetTree();
-        if (!root || !presets) return [];
+        // (Not read yet: its head all the same, from the first frame (what it holds counted once it's read), not come in
+        // after the rest.)
+        if (!root || !presets) return [sideHead("presets", null, false)];
         // (On the rail, none open: see renderCharts.)
         const rail = onRail(), open = new Set(rail ? [] : prefs.presetsOpen);
         // (The sections the open preset is in: one closed holds it, marked as a folder holding the open chart is.)
@@ -27255,7 +27270,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const rows = [["head:pane", `<div class="pane-head">
               <span>Pane ${i + 1}</span><button type="button" class="pane-scale" data-scale-menu="${pane.id}" aria-haspopup="menu" aria-label="Pane ${i + 1} scale: ${paneChip(pane)}" data-tip="Scale, stack and order">${paneChip(pane)}${CHEVRON}</button><span class="spacer"></span>
               <button type="button" class="cap small" data-pane-menu="${pane.id}" aria-haspopup="menu" aria-label="More for pane ${i + 1}" data-tip="More">${ICONS.more}</button>
-              ${((shown) => `<button type="button" class="cap small" data-pane-eye="${pane.id}" aria-label="${shown ? "Hide" : "Show"} every layer in pane ${i + 1}" data-tip="${shown ? "Hide" : "Show"} every layer">${shown ? ICONS.eye : ICONS.eyeOff}</button>`)(layers.some((layer) => !layer.hidden))}
+              ${((shown) => `<button type="button" class="cap small ${shown ? "" : "off"}" data-pane-eye="${pane.id}" aria-label="${shown ? "Hide" : "Show"} every layer in pane ${i + 1}" data-tip="${shown ? "Hide" : "Show"} every layer">${shown ? ICONS.eye : ICONS.eyeOff}</button>`)(layers.some((layer) => !layer.hidden))}
             </div>`], ...layers.map((layer) => /** @type {[string, string]} */ ([layer.id, ((layer) => {
               const result = resolved?.results.get(layer.id);
               const loading = layer.series && !result;
