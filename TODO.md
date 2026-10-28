@@ -19,12 +19,16 @@ Only what's left. An item done is removed: its history is in the commits and log
   a value scale under it, Reverse, the color in hand named, your own gradient kept as "Your own" once a ready-made
   is picked (this session).
 
-- Home's search a real search in place, not a dialog opened elsewhere: ⌘K anchored on its field, its results under it
-  (you, 2026-10-28: "changing the search into actual search instead of opening search", "oh that could be very good
-  ux").
-- On load, Recent in the sidebar: a preset not edited joins it only once the presets are read (a frame or two), the
-  rows under it moving down (seen in your recording of the marks flashing, 2026-10-28; the marks themselves fixed: kept
-  in the browser now).
+- Home, rethought (you, 2026-10-28: "what does the user want on a home screen", "maybe it should just be a general chart
+  search and nothing else ?", "let's focus on desktop for now"; of ⌘K opened from it, anchored, risen or lifted: "it's
+  still very far from good enough"): mockups of Home as a chart search (a real field, results as tiles in the page, Jump
+  back in / Start with before typing), your pick before it's built. Meanwhile its field opens ⌘K as ever.
+- A design system for all of Studio, then a polish and consistency pass applying it (you, 2026-10-28: "I think we
+  really need to do a polish/consistency pass over the whole app, and make a proper system"): inventory
+  (_notes/system-20261028/inventory.md: 9 font sizes, 20 radii, 22 gaps, 63 heights, 47 shadows, 56 transitions),
+  then the system written down for your check (_notes/system-20261028/system.md; corners inside corners concentric,
+  unless it makes no sense, you: "all radii inside radii follow the universal radii rule"), then area by area (sidebar, Home pages, chart header, panel, ⌘K, menus,
+  dialogs, phone), each checked, reviewed and committed.
 - The folders on the rail: "a ton of polish" needed; what you saw beyond what's fixed (depth, one menu, the flash,
   menu-bar switching, the toggle's speed and stale rows).
 

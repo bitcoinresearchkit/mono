@@ -839,7 +839,9 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        width: 100%;
+        /* (As wide as the list's rows, the sidebar's, in its padding: not its 100%, which narrows under it as the sidebar
+           slides, while theirs hold (see body[data-sliding] .chart-list); from this to the rail's square, as they go.) */
+        width: calc(var(--side) - 16px);
         height: 32px;
         margin: 12px 0 10px;
         border: 0;
@@ -1014,6 +1016,20 @@
       .chart-list {
         /* (Its rows' gap, the same open and on the rail.) */
         --row-gap: 4px;
+
+        /* (Each row reaching half the gap to the next, unseen: rows meet, none of the list between them pointed at, the
+           highlight never left on a row not pointed at, see sidePoint. Under the row's own: its icon still the one pointed
+           at, for its tip.) */
+        :is(.chart-item, .folder-item, .list-head-name) {
+          position: relative;
+
+          &::before {
+            content: "";
+            position: absolute;
+            z-index: -1;
+            inset: calc(var(--row-gap) / -2) 0;
+          }
+        }
         /* (A row scrolled to clear of its edges' fade.) */
         scroll-padding-block: 28px;
         display: flex;
@@ -1243,21 +1259,30 @@
         }
       }
 
-      /* A row that opens and closes (a group's head, a folder, a section of the presets): its way, as it's pointed at or
-         reached by a key, › closed, ⌄ open (after its count, a head's; after its dot, holding the open chart); at rest,
-         none, what's under it (or not) saying which (the list kept quiet). */
+      /* A row that opens and closes (a group's head, a folder, a section of the presets): its way, what opens and closes
+         it (the row itself goes to its page), as it's pointed at or reached by a key, › closed, ⌄ open (after its count, a
+         head's; after its dot, holding the open chart); at rest, none, what's under it (or not) saying which (the list kept
+         quiet). By touch, always: nothing points at it first. */
       :is(.list-head, .folder-row) .turn {
         display: inline-flex;
         flex: none;
         order: 1;
         align-self: center;
+        /* (A finger's or a pointer's room around it, its place as it was.) */
+        margin: -6px;
+        padding: 6px;
         color: var(--count);
         opacity: 0;
         rotate: 90deg;
-        transition: rotate var(--dur-small) var(--ease);
+        transition: rotate var(--dur-small) var(--ease), color var(--fade);
+
+        &:hover:where(.can-hover *) {
+          color: var(--ink);
+        }
       }
 
-      :is(.list-head, .folder-row):is(:hover:where(.can-hover *), :has(:focus-visible)) .turn {
+      :is(.list-head, .folder-row):is(:hover:where(.can-hover *), :has(:focus-visible)) .turn,
+      :root:not(.can-hover) :is(.list-head, .folder-row) .turn {
         opacity: 1;
       }
 
@@ -1412,8 +1437,8 @@
         position: relative;
         flex-shrink: 0;
         height: 0;
-        /* (As far under Charts' words as each group's rule is from the words about it: Charts' row is taller than a head.) */
-        margin: 2px 0 1px;
+        /* (Home's rule, as every group's: 8px from the row above and from the head under it, the list's 4px gap counted.) */
+        margin: 5px 0 0;
 
         &::after {
           content: "";
@@ -1906,14 +1931,23 @@
             .list-head-name:hover:where(.can-hover *) .head-mark {
               background: var(--hover);
             }
+
+            /* (Its page shown: its mark's square lit, as Home's.) */
+            .list-head-name[aria-current="page"] {
+              background: none;
+
+              .head-mark {
+                background: var(--press);
+              }
+            }
           }
 
-          /* On the rail, the rule under Charts is short, at the same height: nothing moves. */
+          /* On the rail, the rule under Home is short, at the same height: nothing moves. */
           .side-rule {
             overflow: visible;
           }
 
-          /* (Centered under Charts' icon.) */
+          /* (Centered under Home's icon.) */
           .side-rule::after {
             left: 11px;
             width: 20px;
@@ -2537,19 +2571,26 @@
           align-items: baseline;
           gap: 6px;
           min-width: 0;
-          padding: 2px 13px 3px 39px;
+          /* (A row's height, a row's gap under it: lit as one.) */
           border: 0;
-          border-radius: var(--radius-sm);
+          border-radius: var(--radius-md);
+          padding: 7px 13px 7px 39px;
           color: var(--soft);
           background: none;
           /* (As the rows beside it, Charts', a folder's: a head with its mark is one of them, its rule what sets it apart.) */
           font: 510 13px/16px var(--sans);
           text-align: left;
           white-space: nowrap;
+          transition: background var(--fade), color var(--fade);
 
-          &:hover:where(.can-hover *),
+          &:hover:where(.can-hover *) {
+            color: var(--ink);
+          }
+
+          /* (Its page shown: lit as Home's row is, a folder's.) */
           &[aria-current="page"] {
             color: var(--ink);
+            background: var(--press);
           }
         }
 
@@ -2570,11 +2611,11 @@
         }
 
         /* Its mark, in the rows' icons' column, its name where theirs start (on the rail, all it shows: as wide as the
-           rail's squares, its ring and its hover theirs, as tall as the gap under it lets it be): on its name's capitals'
-           middle, a pixel over its line's. */
+           rail's squares, its ring and its hover theirs, as tall as its row): on its name's capitals' middle, a pixel over
+           its line's. */
         .head-mark {
           position: absolute;
-          inset: -4px auto -4px 6px;
+          inset: 0 auto 0 6px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -2613,20 +2654,21 @@
           }
         }
 
-        /* (The first, under Charts' rule, as far from it as the rule is from Charts and more.) */
+        /* (The first, under Home's rule: as far from it as the rule is from Home, see .side-rule.) */
         .side-rule + & {
-          margin-top: 6px;
+          margin-top: 4px;
         }
 
         /* Each group set apart from the one before by a rule, as New chart's: the previews', your Library's, the
            presets' (one closed, from its head). */
+        /* (Its rule as far from the row above as from the head: 8px each side, the list's 4px gap counted.) */
         :is(.chart-row, .folder-row, .list-head) + & {
-          margin-top: 17px;
+          margin-top: 13px;
 
           &::before {
             content: "";
             position: absolute;
-            top: -11px;
+            top: -9px;
             left: 8px;
             width: calc(100% - 16px);
             height: 1px;
@@ -3758,44 +3800,16 @@
       .empty-inner {
         width: min(720px, 100%);
 
-        /* Its foot: how a chart is also a link (another way to start one), and on the right its way out, (a new one,
-           with a chart to go back to) cancelled. */
+        /* Its foot: on the right, its way out (a new one, with a chart to go back to) cancelled. */
         .empty-foot {
           display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px 18px;
+          justify-content: flex-end;
           min-height: 28px;
           margin-top: 18px;
 
           #leave-empty {
-            margin: 0 -9px 0 auto;
+            margin-right: -9px;
           }
-        }
-      }
-
-      /* (A link set in words, the guide's, as the empty chart's and Home's foot have it.) */
-      .links-note {
-        margin: 0;
-        color: var(--muted);
-        font-size: 12px;
-      }
-
-      .links-note button {
-        border: 0;
-        padding: 0;
-        background: none;
-        font: inherit;
-        cursor: pointer;
-        color: var(--soft);
-        white-space: nowrap;
-        text-decoration: underline;
-        text-decoration-color: var(--line-strong);
-        text-underline-offset: 3px;
-
-        &:hover:where(.can-hover *) {
-          color: var(--ink);
         }
       }
 
@@ -6024,12 +6038,13 @@
         }
       }
 
+      /* (Its words as far in as Home's search's.) */
       .palette-search {
         display: flex;
         align-items: center;
         gap: 10px;
         border-bottom: 1px solid var(--line);
-        padding: 0 12px 0 16px;
+        padding: 0 12px 0 14px;
 
         > svg {
           width: 16px;
@@ -6068,6 +6083,7 @@
           min-width: 0;
           height: 54px;
           border: 0;
+          padding: 0;
           outline: none;
           background: none;
           color: var(--ink);
@@ -7307,45 +7323,48 @@
         font-variant-numeric: tabular-nums;
       }
 
-      /* A page of rows (the top's doors, Recent's charts): in a column of reading width, a phone's and a desktop's alike. */
-      .home.in-column .home-inner {
-        width: min(640px, 100%);
-      }
-
-      .home-rows {
-        margin-top: 20px;
-      }
-
       /* Home: its question, its search and its doors alone, in the middle of the page (a little above, where the eye
-         rests), in a narrow column. */
-      .home.at-home {
-        /* (Centered, its question, its live line and its doors; its search as wide as the column, wider than they are.) */
+         rests), in a narrow column. (Marked on what scrolls, not on the page around it: a copy of it fading out as
+         another page comes in keeps its own look, see goTo.) */
+      .home-scroll.at-home {
         .home-inner {
           display: flex;
           flex-direction: column;
-          width: min(640px, 100%);
           min-height: 100%;
+        }
+
+        /* (Its head: its name there for the reader and the focus, as every page's, shown by its question; its Undo and
+           Redo in its top corner's row, see .home-top.) */
+        .home-head {
+          margin: 0;
+
+          h1 {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip-path: inset(50%);
+            white-space: nowrap;
+          }
+        }
+
+
+        /* (Its question centered over its live line, its search and its doors: a column, their words one inset; a little
+           over the middle, clear of its horizon's highest.) */
+        :is(.home-start, .home-doors) {
+          width: min(640px, 100%);
+          margin-inline: auto;
+        }
+
+        .home-start {
+          margin-top: auto;
           text-align: center;
         }
 
-        .home-head {
-          justify-content: center;
-          margin: auto 0 20px;
-
-          h1 {
-            font-size: 30px;
-            font-weight: 620;
-            letter-spacing: -0.03em;
-          }
-
-          .home-undo {
-            display: none;
-          }
-        }
-
-        /* (A little over the middle: clear of its horizon's highest, about the middle.) */
-        .home-rows {
-          margin: 12px 0 auto;
+        /* (Its doors as close under the search as its live line is over it.) */
+        .home-doors {
+          margin-top: 4px;
+          margin-bottom: auto;
           padding-bottom: 16vh;
         }
 
@@ -7383,16 +7402,27 @@
         }
       }
 
-      /* Home's corners, over its horizon, Studio's own: the theme at the top right; at the bottom right, how links work,
-         the shortcuts (by keys), the version (a pill). */
+      /* Home's corners, over its horizon: at the top right, a row as the chart's head has (Undo and Redo, a rule, the
+         theme); at the bottom right, Studio's own (how links work, the shortcuts by keys, the version, a pill). */
       .home-corner {
         position: absolute;
         right: 12px;
         z-index: 1;
       }
 
-      .home-theme {
+      .home-top {
         top: 12px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        .home-undo {
+          display: flex;
+          gap: inherit;
+        }
+      }
+
+      .home-theme {
         color: var(--soft);
       }
 
@@ -7416,77 +7446,43 @@
         }
       }
 
-      /* Under Home's question: Bitcoin as it is, live (the block, the price, close together), quietly. */
+      /* Home's question, what it's for, over its live line and its search. */
+      .home-question {
+        margin: 0 0 24px;
+        color: var(--ink);
+        font: 620 30px/1.2 var(--sans);
+        letter-spacing: -0.03em;
+      }
+
+      /* Over Home's search, with it: Bitcoin as it is, live, quietly: the chain at its left, the price at its right, as far
+         in as the field's own words and its doors' (see .home-doors). */
       .home-pulse {
-        margin: -14px 0 20px;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 0 0 6px;
+        padding: 0 14px;
         color: var(--muted);
         font: 400 13px/18px var(--sans);
         font-variant-numeric: tabular-nums;
       }
 
-      /* Home's doors, a row under its search, centered: a group each, the app's ghost button (its mark beside its name,
-         as the sidebar's; how many, in its tip). */
+      /* Under Home's search, from its left, its doors: a group each, the app's ghost button (its mark beside its name, as
+         the sidebar's; how many, in its tip); at its right, New chart (a phone's in its tab bar). */
+      .home-doors {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 4px;
+        /* (Their icons and words as far in as the field's: a button's own room, and this.) */
+        padding: 0 4px;
+      }
+
       .doors {
         display: flex;
         flex-wrap: wrap;
-        justify-content: center;
         /* (Wrapped, their rows as far apart as a finger's reach of them, see the shared ::before.) */
         gap: 16px 4px;
-      }
-
-      /* Recent's charts: each its name over where it's from, its mark at its end; rows apart by their room. */
-      .chart-lines {
-        display: flex;
-        flex-direction: column;
-      }
-
-      .chart-line {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        min-height: 56px;
-        border: 0;
-        border-radius: var(--radius-lg);
-        margin: 0 -12px;
-        padding: 8px 12px;
-        color: var(--ink);
-        background: none;
-        text-align: left;
-        font: inherit;
-        transition: background var(--fade);
-
-        .line-text {
-          display: flex;
-          flex: 1;
-          flex-direction: column;
-          gap: 2px;
-          min-width: 0;
-        }
-
-        .name {
-          overflow: hidden;
-          font: 510 15px/20px var(--sans);
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .from {
-          overflow: hidden;
-          color: var(--muted);
-          font: 400 13px/17px var(--sans);
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        > .chart-mark {
-          flex: none;
-          width: 64px;
-          height: 22px;
-        }
-
-        &:is(:hover:where(.can-hover *), :focus-visible) {
-          background: var(--hover);
-        }
       }
 
       .home-grid {
@@ -8896,6 +8892,11 @@
           bottom: calc(var(--bar-room) + 8px);
         }
 
+        /* (A phone's New chart: its tab bar's.) */
+        .home-new {
+          display: none;
+        }
+
         /* (A phone's keys: none, nor its Shortcuts.) */
         .home-help [data-action="shortcuts"] {
           display: none;
@@ -8908,12 +8909,17 @@
           }
         }
 
-        /* (The theme in the row of Bitview's way back, at its end, as tall: see .home-brand.) */
-        .home-theme {
+        /* (Its top corner's row in the row of Bitview's way back, at its end, as tall: see .home-brand. Over the touch
+           rule's spacing: its buttons a finger's size already.) */
+        :root .home-top {
           top: calc(env(safe-area-inset-top) + 34px);
           right: 2px;
-          width: 44px;
-          height: 44px;
+          gap: 4px;
+
+          .cap {
+            width: 44px;
+            height: 44px;
+          }
         }
 
         .home-device {
@@ -9691,7 +9697,8 @@
            field or a row's main part, room for half of it, or none that way.) */
         .head-actions,
         .belt-tools,
-        .belt-context {
+        .belt-context,
+        .home-top {
           gap: 16px;
         }
 
@@ -9801,8 +9808,8 @@
           }
         }
 
-        /* (A help's summary, a link set in words: tall enough to hit, their words where they were.) */
-        :is(.help > summary, .links-note button) {
+        /* (A help's summary: tall enough to hit, its words where they were.) */
+        .help > summary {
           padding-block: 7px;
           margin-block: -7px;
         }
@@ -10175,7 +10182,7 @@
           </a>
           <span id="live" class="live waiting" role="status" tabindex="0" aria-label="Connecting" data-tip="Connecting"><i></i></span>
         </div>
-        <button class="search" type="button" data-action="palette" data-tip="Search or run a command" data-kbd="⌘ K" style="--i: 1"><span data-icon="browse"></span><span class="label">Search or run a command</span><kbd class="mod">⌘K</kbd></button>
+        <button class="search" type="button" data-action="palette" data-tip="Search series, charts and commands" data-kbd="⌘ K" style="--i: 1"><span data-icon="browse"></span><span class="label">Search</span><kbd class="mod">⌘K</kbd></button>
         <div id="chart-list" class="chart-list" style="--i: 2"></div>
         <input id="import-file" type="file" accept="application/json,.json" hidden />
         <div class="side-foot" style="--i: 3">
@@ -10327,9 +10334,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                     <div class="starts-head"><h2>Recommended</h2></div>
                     <div id="templates" class="templates strip"></div>
                   </div>
-                  <!-- (Another way to start one, an assistant writing its link; its way out: a new one, with a chart to go back
-                       to, cancelled.) -->
-                  <div class="empty-foot"><p class="links-note">Every chart is also a link: share it, or have an assistant write one. <button type="button" data-action="guide">How links work</button></p><button id="leave-empty" class="btn ghost small" type="button" data-action="leave-empty" hidden><span>Cancel</span><kbd>esc</kbd></button></div>
+                  <!-- (Its way out: a new one, with a chart to go back to, cancelled.) -->
+                  <div class="empty-foot"><button id="leave-empty" class="btn ghost small" type="button" data-action="leave-empty" hidden><span>Cancel</span><kbd>esc</kbd></button></div>
                 </div>
               </div>
             </div>
@@ -10376,7 +10382,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         <!-- (Home's horizon, under what's on it: see renderHorizon. Over it, in the page's corners, Studio's own: the theme
              at its top right; at its bottom right, how links work, the shortcuts (by keys), the version.) -->
         <div id="home-horizon" class="home-horizon" aria-hidden="true" hidden></div>
-        <button id="home-theme" class="cap home-corner home-theme" type="button" data-action="theme" aria-haspopup="menu" aria-label="Theme" data-tip="Theme" hidden></button>
+        <!-- (Home's top corner: Undo and Redo, there at Home (see renderHomeHead), a rule, the theme.) -->
+        <div id="home-top" class="home-corner home-top" hidden><span class="divider"></span><button id="home-theme" class="cap home-theme" type="button" data-action="theme" aria-haspopup="menu" aria-label="Theme" data-tip="Theme"></button></div>
         <nav id="home-help" class="home-corner home-help" aria-label="About Studio" hidden><button class="btn ghost small" type="button" data-action="guide">How links work</button><button class="btn ghost small" type="button" data-action="shortcuts" aria-label="Shortcuts" data-tip="Shortcuts" data-kbd="?"><span data-icon="keyboard"></span></button><span id="home-version" class="pill"></span></nav>
         <div class="home-scroll">
           <div class="home-inner">
@@ -10401,17 +10408,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             </label>
             <button id="home-new-folder" class="cap field-cap" type="button" aria-label="New folder" data-tip="New folder" data-icon="folderAdd"></button>
             </div>
-            <!-- (Home: under its question, Bitcoin as it is, live (as a phone's foot says it elsewhere); its search (⌘K's);
-                 then its doors, see renderRows.) -->
+            <!-- (Home: under its question, Bitcoin as it is, live (as a phone's foot says it elsewhere); its search (⌘K's,
+                 in ⌘K's words); then its doors, see renderDoors.) -->
             <div id="home-start" class="home-start" hidden>
+              <h2 class="home-question">What do you want to chart?</h2>
               <p id="home-pulse" class="home-pulse" role="status">Connecting</p>
               <button type="button" class="search-cta home-search" data-action="search" data-typing data-kbd="⌘ K">
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" /></svg>
-                <span>Search or run a command</span><kbd class="mod">⌘K</kbd>
+                <span>Search series, charts and commands</span><kbd class="mod">⌘K</kbd>
               </button>
             </div>
-            <!-- (Home's doors, a group each; Recent's page: its charts.) -->
-            <div id="home-rows" class="home-rows" hidden></div>
+            <!-- (Home's doors, a group each, and New chart: see renderDoors.) -->
+            <div id="home-doors" class="home-doors" hidden></div>
             <div id="home-grid" class="home-grid"></div>
             <div id="gallery" class="gallery" hidden></div>
             <div id="home-foot" class="home-foot" hidden>
@@ -14210,7 +14218,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const previous = chart;
         chart = doc;
         linkedAt = null;
-        // (A preset left as it was: nothing of it kept; a chart New chart made, left as it came, the same.)
+        // (A preset left as it was: nothing of it kept but for Recent; a chart New chart made, left as it came, let go of.)
         if (previous?.preset !== undefined && previous !== doc) prunePresets(doc);
         if (previous && previous !== doc && emptyYours(previous) && library.charts.includes(previous)) dropEmpty(previous);
         library.active = doc.id;
@@ -14412,7 +14420,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @returns {{ id: string, doc: Chart, preset: number }[]}
        */
       const recentCharts = () => viewed().flatMap((id) => {
-        const kept = chartById(id), preset = kept ? presetIndex(kept) : presetById(id), doc = kept ?? (preset >= 0 ? presetDoc(preset) : undefined);
+        const kept = chartById(id), preset = kept ? presetIndex(kept) : presetById(id);
+        // (A preset's as the presets have it once they're read: a copy kept here (another tab's too) of one changed since,
+        // as made now; of one gone, left out. Before, as its copy's kept.)
+        const doc = preset >= 0 ? presetDoc(preset) : kept?.preset !== undefined && presets ? undefined : kept;
         return doc?.layers.length ? [{ id, doc, preset }] : [];
       }).slice(0, RECENT_SHOWN);
       /** A chart of Recent's opened, by its id: a preset's as a preset is (its edits, if any). @param {string} id */
@@ -17406,12 +17417,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Each row's fold under way (see foldRows): no attribute, so a row written again in place keeps it. @type {WeakMap<Element, Animation>} */
       const foldOf = new WeakMap();
-      // The sidebar's charts and folders: the one pointed at (between rows, it stays; on a section's head, none; folding, none:
-      // the highlight would show whole over a row half shown); a row written anew (a folder opened, a chart), its own, by its key.
+      // The sidebar's rows, a chart's, a folder's, a group's head (a row too: it goes to its page; on the rail, its mark's own
+      // square lights it): the one pointed at (folding, none: the highlight would show whole over a row half shown); a row
+      // written anew (a folder opened, a chart), its own, by its key.
       const sideLight = glides($("chart-list"), {
         again: (gone) => {
-          const key = [.../** @type {HTMLElement} */ (gone.parentElement).attributes].find(({ name }) => /^data-.+-row$/.test(name));
-          return key ? $("chart-list").querySelector(`[${key.name}="${CSS.escape(key.value)}"] > :is(.chart-item, .folder-item)`) : null;
+          const key = [.../** @type {HTMLElement} */ (gone.parentElement).attributes].find(({ name }) => /^data-(?:.+-row|group)$/.test(name));
+          return key ? $("chart-list").querySelector(`[${key.name}="${CSS.escape(key.value)}"] > :is(.chart-item, .folder-item, .list-head-name)`) : null;
         },
         can: (item) => !foldOf.has(/** @type {Element} */ (item.closest("#chart-list > *"))),
       });
@@ -17425,9 +17437,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const at = `${event.clientX},${event.clientY}`;
         if (sideHeld && at === sidePointer) return;
         (sidePointer = at), (sideHeld = false);
-        const row = closest(event, ".chart-row, .folder-row");
-        if (row) sideLight(row.querySelector(":scope > :is(.chart-item, .folder-item)"));
-        else if (event.target !== $("chart-list")) sideLight(null);
+        const row = closest(event, railed() ? ".chart-row, .folder-row" : ".chart-row, .folder-row, .list-head");
+        // (Rows meet, each reaching half the gap to the next (see .chart-list): off them, by a group's rule or past the
+        // list's ends, none lit, not one left lit without its row's own (its count, its way, its ⋯).)
+        sideLight(row ? row.querySelector(":scope > :is(.chart-item, .folder-item, .list-head-name)") : null);
       };
       $("chart-list").addEventListener("pointerover", sidePoint);
       $("chart-list").addEventListener("pointermove", sidePoint);
@@ -22967,8 +22980,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A chart's words for the grid's filter: its title, its layers' names, series and formulas. @param {Chart} doc */
       const wordsOf = (doc) => [titleOf(doc), doc.folder ? folderPath(doc.folder) : "", ...doc.layers.flatMap((layer) => [labelOf(layer), layer.series ?? "", layer.formula ?? ""])].join(" ").toLowerCase().replace(/_/g, " ");
-      /** Your charts the page shows, in its order (its grid's, then its folders' shelves'), as last drawn. */
-      let shownYours = /** @type {Chart[]} */ ([]);
+      /** Your charts the page shows, in its order (its grid's, then its folders' shelves'), as last drawn; how many charts it shows (theirs, the previews', Recent's). */
+      let shownYours = /** @type {Chart[]} */ ([]), yoursFound = 0;
+      /** Recent's presets its page shows, as last drawn, each its preset (-1: the presets not read yet): their tiles theirs, drawn as theirs are (see drawYours). @type {Map<Chart, number>} */
+      let presetTiles = new Map();
       const shownCharts = () => shownYours.filter((doc) => library.charts.includes(doc));
       /** The filter's index of the charts (their words, their folders' names), kept till a chart or a folder changes. */
       let filterIndex = { key: "", charts: /** @type {Chart[]} */ ([]), index: /** @type {any} */ (null) };
@@ -22988,9 +23003,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const drawnTiles = new Map();
       let drawnLayout = "";
       /**
-       * The page, where it is (see homeAt): Home, its question, its search (⌘K's) and a door to each group; Recent's, its
-       * charts as rows; your Library's page or a folder's, its charts as a grid, then each folder in it as a shelf; the
-       * presets' or a section's, the same; the previews', a grid. Its search searches where it is.
+       * The page, where it is (see homeAt): Home, its question, its search (⌘K's) and a door to each group; your Library's
+       * page or a folder's, its charts as a grid, then each folder in it as a shelf; the presets' or a section's, the same;
+       * the previews' and Recent's, a grid. Its search searches where it is.
        */
       function renderHome() {
         if (!home) return;
@@ -23009,26 +23024,36 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           history.replaceState(homeState(), "");
         }
         renderHomeHead();
-        renderRows();
+        renderDoors();
         renderHorizon();
         renderYours();
         renderGallery();
         // (Searched: how many found, of both.)
         const query = $("home-filter").value.trim();
-        $("home-count").textContent = query ? `${grouped.format(shownYours.length + (home && "previews" in homeAt ? previewsShown().length : 0) + galleryFound + rowsFound)} found` : "";
+        $("home-count").textContent = query ? `${grouped.format(yoursFound + galleryFound)} found` : "";
       }
       /** The page's head: its name (a folder of yours, its menu beside it), the way up (each level a step to), its search, what's there to do. */
       function renderHomeHead() {
         const yours = "folder" in homeAt, folder = "folder" in homeAt ? folderById(homeAt.folder) : undefined, name = homeName(), top = "top" in homeAt;
-        // (Home's, a question, what it's for: its name is said by the sidebar's and the tab bar's.)
-        $("home-title").textContent = top ? "What do you want to chart?" : name;
-        // (Home: its question, its search and its doors, in the middle of the page, nothing else; Recent's rows, a column of reading width.)
-        $("home").classList.toggle("at-home", top);
-        $("home").classList.toggle("in-column", "recent" in homeAt);
+        // (Home's shown by its question, what it's for, see .home-question.)
+        $("home-title").textContent = name;
+        // (Home: its question, its search and its doors, in the middle of the page, nothing else.)
+        homeScroll().classList.toggle("at-home", top);
         $("home-tools").hidden = top;
         $("home-start").hidden = !top;
-        $("home-horizon").hidden = !top;
-        $("home-help").hidden = $("home-theme").hidden = !top;
+        // (Undo and Redo where every page has them, at its head's end; Home's, in its top corner, beside the theme.)
+        const undo = /** @type {HTMLElement} */ (document.querySelector(".home-undo"));
+        if (top && undo.parentElement !== $("home-top")) $("home-top").prepend(undo);
+        else if (!top && undo.parentElement !== $("home-title").parentElement) /** @type {HTMLElement} */ ($("home-title").parentElement).append(undo);
+        // (Home's own, around its page (its horizon, its corners): going and coming with it, as it fades (see goTo); back
+        // as its copy's still going, that copy gone first.)
+        for (const own of [$("home-horizon"), $("home-help"), $("home-top")]) {
+          if (own.hidden === !top) continue;
+          if (!top && started) fadeOut(own, [{ opacity: 1 }, { opacity: 0 }], MOTION.small, true, MOTION.ease);
+          else cutFade(own);
+          own.hidden = !top;
+          if (top && started && !reduced.matches) own.animate({ opacity: [0, 1] }, { duration: MOTION.small, easing: MOTION.ease });
+        }
         const more = $("home-title-more");
         more.hidden = !folder;
         if (folder) Object.assign(more.dataset, { folderMenu: folder.id }), more.setAttribute("aria-label", `More for ${folder.name}`);
@@ -23155,10 +23180,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const drawYours = serial(async () => {
         for (const id of yourQueue) {
           yourQueue.delete(id);
-          const doc = chartById(id);
-          // Drawn already (maybe from ⌘K), it's shown where it's still waited for. A failed fetch isn't drawn (nor
-          // kept): it says so, and it's asked for again as the server answers (see paint, retryPlots).
-          if (home && doc?.layers.length) paint(doc.id, await drawPreview(doc));
+          const doc = chartById(id) ?? [...presetTiles.keys()].find((tile) => tile.id === id);
+          // Drawn already (maybe from ⌘K), it's shown where it's still waited for (a preset's, from weekly data, as the
+          // gallery's). A failed fetch isn't drawn (nor kept): it says so, and it's asked for again as the server answers
+          // (see paint, retryPlots).
+          if (home && doc?.layers.length) paint(doc.id, await drawPreview(doc, presetTiles.has(doc) ? previewIndex(doc) : doc.index));
         }
       });
       /** Home's horizon as last drawn: its points, its last, the theme (drawn again only changed); its history's last ask failed (asked again, see updateStatus); one under way. */
@@ -23191,46 +23217,30 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><defs><linearGradient id="horizon-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="${color}" stop-opacity=".12"/><stop offset="1" stop-color="${color}" stop-opacity="0"/></linearGradient><linearGradient id="horizon-in" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".35" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff"/></linearGradient><mask id="horizon-mask"><rect width="${W}" height="${H}" fill="url(#horizon-in)"/></mask></defs><g mask="url(#horizon-mask)">${halvings}<polygon points="0,${H} ${line} ${W},${H}" fill="url(#horizon-fill)"/><polyline points="${line}" fill="none" stroke="${color}" stroke-opacity=".6" stroke-width="1.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></g></svg>`;
         }).catch(() => (horizonFailed = true));
       }
-      /** The rows as last drawn (drawn again only changed: focus and hover stay); how many a search found there. */
-      let rowsDrawn = "", rowsFound = 0;
+      /** Home's doors as last drawn (drawn again only changed: focus and hover stay). */
+      let doorsDrawn = "";
       /**
-       * The page's rows, where it has them. Home: under its search, a door each to the groups, as the sidebar has
-       * them (its mark, its name, how many, its way): Recent and the previews while there are some, your Library, the
-       * presets; nothing in them opened, whatever was come for. On Recent's page: its charts, each where it's from, its
-       * mark, as the search finds them.
+       * Home's doors, under its search: a door each to the groups, as the sidebar has them (its mark, its name, how many,
+       * its way): Recent and the previews while there are some, your Library, the presets; nothing in them opened,
+       * whatever was come for; New chart at the other end.
        */
-      function renderRows() {
-        const box = $("home-rows"), query = $("home-filter").value.trim(), top = home && "top" in homeAt, recent = home && "recent" in homeAt;
-        box.hidden = !top && !recent;
-        rowsFound = 0;
+      function renderDoors() {
+        const box = $("home-doors");
+        box.hidden = !home || !("top" in homeAt);
         if (box.hidden) return;
-        let html = "";
-        if (top) {
-          const counts = /** @type {Record<Group, number | null>} */ ({ recent: recentCharts().length, previews: listedPreviews().length, library: library.charts.length, presets: presets?.length ?? null });
-          const door = (/** @type {Group} */ group) => ((name, count) => ((said) => `<button type="button" class="btn ghost" data-place="${escape(JSON.stringify(GROUP_OF[group][1]))}" aria-label="${said}" data-tip="${said}"><span class="head-mark">${ICONS[GROUP_MARK[group]]}</span><span class="name">${name}</span></button>`)(count === null ? name : `${name}, ${plural(count, "chart")}`))(GROUP_OF[group][0], counts[group]);
-          // (Recent and the previews only while they hold some, as in the sidebar.)
-          html = `<nav class="doors" aria-label="Go to">${GROUPS.filter((group) => counts[group] !== 0 || group === "library" || group === "presets").map(door).join("")}</nav>`;
-        } else {
-          const items = recentCharts(), found = query ? foundOf(items.map((item) => item.doc)) : null, shown = found ? items.filter((item) => found.includes(item.doc)) : items;
-          rowsFound = shown.length;
-          // (Where it's from: a preset's section (the presets' own name left out), your folder in your Library, the previews.)
-          const fromOf = (/** @type {Place | null} */ place) => (place ? stepsTo(place).slice("path" in place ? 1 : 0).map((step) => step.name).join(" › ") : "");
-          const row = (/** @type {{ id: string, doc: Chart, preset: number }} */ item) => ((title, from) => `<button type="button" class="chart-line" data-open-recent="${item.id}" aria-label="${escape(`${title}, ${from}`)}"><span class="line-text"><span class="name" dir="auto">${escape(title)}</span><span class="from">${escape(from)}</span></span>${recentMark(item)}</button>`)(titleOf(item.doc), fromOf(item.preset >= 0 ? { path: /** @type {Preset[]} */ (presets)[item.preset].p.slice(0, -1) } : chartPlace(item.doc)));
-          html = shown.length ? `<div class="chart-lines">${shown.map(row).join("")}</div>`
-            : query ? `<p class="gallery-note">No recent charts match “${escape(query)}”</p>`
-            : '<div class="home-none"><p>Nothing opened yet. The charts you open show here, the latest first.</p></div>';
-        }
-        if (html !== rowsDrawn) {
-          const focus = focusKey(box);
-          box.innerHTML = rowsDrawn = html;
-          restoreFocus(box, focus);
-        }
-        if (presetMarksAsked.size) drawPresetMarks();
+        const counts = /** @type {Record<Group, number | null>} */ ({ recent: recentCharts().length, previews: listedPreviews().length, library: library.charts.length, presets: presets?.length ?? null });
+        const door = (/** @type {Group} */ group) => ((name, count) => ((said) => `<button type="button" class="btn ghost" data-place="${escape(JSON.stringify(GROUP_OF[group][1]))}" aria-label="${said}" data-tip="${said}">${ICONS[GROUP_MARK[group]]}${name}</button>`)(count === null ? name : `${name}, ${plural(count, "chart")}`))(GROUP_OF[group][0], counts[group]);
+        // (Recent and the previews only while they hold some, as in the sidebar.)
+        const html = `<nav class="doors" aria-label="Go to">${GROUPS.filter((group) => counts[group] !== 0 || group === "library" || group === "presets").map(door).join("")}</nav><button type="button" class="btn ghost home-new" data-action="new-chart" data-tip="New chart" data-kbd="N">${ICONS.plus}New chart</button>`;
+        if (html === doorsDrawn) return;
+        const focus = focusKey(box);
+        box.innerHTML = doorsDrawn = html;
+        restoreFocus(box, focus);
       }
       /**
-       * Your charts' side of the page, where it is (none in a section of the presets, at Home, on Recent's): the previews'
-       * page, a grid; your Library's or a folder's, its charts as a grid, then each folder in it as a shelf. Its tiles drawn
-       * again only where they changed.
+       * Your charts' side of the page, where it is (none in a section of the presets, at Home): the previews' page and
+       * Recent's, a grid (Recent's presets as their own tiles); your Library's or a folder's, its charts as a grid, then
+       * each folder in it as a shelf. Its tiles drawn again only where they changed.
        */
       function renderYours() {
         const grid = $("home-grid"), folderId = "folder" in homeAt ? homeAt.folder || undefined : undefined, onPreviews = "previews" in homeAt;
@@ -23238,7 +23248,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         grid.hidden = !yoursShown();
         /** @type {YoursPart[]} */
         const parts = [];
-        if (!grid.hidden && onPreviews) {
+        presetTiles = new Map();
+        if (!grid.hidden && "recent" in homeAt) {
+          const items = recentCharts(), found = query ? foundOf(items.map((item) => item.doc)) : null, shown = found ? items.filter((item) => found.includes(item.doc)) : items;
+          // (A preset's tile is the presets': till they're read, one waits in its place (-1); not read, said so, with a way
+          // to try again, as the presets' page says it.)
+          for (const item of shown) if (item.preset >= 0 || item.doc.preset !== undefined) presetTiles.set(item.doc, item.preset);
+          const failed = presetsFailed && shown.some((item) => presetTiles.get(item.doc) === -1), listed = failed ? shown.filter((item) => presetTiles.get(item.doc) !== -1) : shown;
+          if (listed.length) parts.push({ kind: "grid", docs: listed.map((item) => item.doc) });
+          if (failed) parts.push({ kind: "note", html: `<p class="gallery-note">The presets couldn't be read. <button type="button" class="btn ghost small" data-gallery-retry>Try again</button></p>`, flat: true });
+          else if (!listed.length) parts.push({ kind: "note", html: query ? `No recent charts match “${escape(query)}”` : "<p>Nothing opened yet. The charts you open show here, the latest first.</p>" });
+        } else if (!grid.hidden && onPreviews) {
           const previewed = query ? previewsShown() : listedPreviews();
           parts.push(previewed.length ? { kind: "grid", docs: previewed, previews: true } : { kind: "note", html: query ? `No previews match “${escape(query)}”` : "<p>No previews. Charts opened from a link appear here until you save or close them.</p>" });
         } else if (!grid.hidden && query) {
@@ -23251,27 +23271,30 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // named over its own row. After its folders, they read as the last one's.)
           if (own.length) parts.push({ kind: "grid", docs: own });
           for (const folder of items.flatMap((item) => ("layers" in item ? [] : [item]))) parts.push({ kind: "shelf", name: folder.name, place: { folder: folder.id }, folder: folder.id, docs: treeOf(folder.id).flatMap(({ item }) => ("layers" in item ? [item] : [])).slice(0, SHELF), count: counts.get(folder.id) ?? 0 });
-          if (!items.length) parts.push({ kind: "note", html: folderId ? `<p>${TOUCH ? "Nothing in it yet. Hold a chart, then tap Move" : "Nothing in it yet. Drag charts onto it in the sidebar, or use Move in a chart's menu."}</p>` : `<p>No charts yet. Start a new chart, or open a preset and save a copy.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`, card: true });
+          if (!items.length) parts.push({ kind: "note", html: folderId ? `<p>${TOUCH ? "Nothing in it yet. Start a chart in it, or hold a chart, then tap Move." : "Nothing in it yet. Start a chart in it, or drag charts onto it in the sidebar."}</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button></div>` : `<p>No charts yet. Start a new chart, or open a preset and save a copy.</p><div class="home-none-actions"><button class="btn small" type="button" data-action="new-chart">${ICONS.plus}New chart</button><button class="btn ghost small" type="button" data-action="import">${ICONS.upload}Import charts</button></div>`, card: true });
         }
         const visible = parts.flatMap((part) => (part.kind === "grid" || part.kind === "shelf" ? part.docs : []));
-        shownYours = visible.filter((doc) => !isPreview(doc));
+        yoursFound = visible.length;
+        shownYours = visible.filter((doc) => !isPreview(doc) && !presetTiles.has(doc));
         // Only what's shown stays picked: the bar acts on what can be seen (of your charts: no preview's picked).
         const ids = new Set(shownYours.map((doc) => doc.id));
         for (const id of [...picked]) if (!ids.has(id)) picked.delete(id);
         if (!picked.has(pickedLast)) pickedLast = [...picked].at(-1) ?? "";
-        const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest(".tile-open") ?? null)?.dataset.openChart;
+        const focused = /** @type {HTMLElement | null} */ (document.activeElement?.closest(".tile-open")?.closest(".tile") ?? null)?.dataset.chart;
         // The same charts in the same order (and parts): only the tiles that changed are drawn again (a click on another
         // one, under way, isn't lost; focus and hover stay). Otherwise, all of them.
-        const html = visible.map(tileHtml), tiles = all$(".tile", grid);
+        // (A tile by the chart it opens: a preset's, the preset's chart's, whether its copy is kept here or not.)
+        const html = visible.map((doc) => ((i) => (i === undefined ? tileHtml(doc) : i < 0 ? WAITING_TILE : presetTileHtml(i, doc)))(presetTiles.get(doc))), tiles = all$(".tile", grid);
+        const idOf = (/** @type {Chart} */ doc) => ((i) => (i === undefined || i < 0 ? doc.id : presetIdOf(presetKey(i))))(presetTiles.get(doc));
         const layout = JSON.stringify(parts.map((part) => (part.kind === "shelf" ? [part.kind, JSON.stringify(part.place), part.name, part.count, part.docs.length, ((folder) => (folder ? folderMark(folder) : ""))(folderById(part.folder ?? ""))] : part.kind === "grid" ? [part.kind, Boolean(part.previews), part.docs.length] : [part.kind, part.html])));
-        if (layout === drawnLayout && tiles.length === visible.length && tiles.every((tile, i) => tile.dataset.homeCard === visible[i].id)) {
-          tiles.forEach((tile, i) => drawnTiles.get(visible[i].id) !== html[i] && swapTile(tile, html[i]));
+        if (layout === drawnLayout && tiles.length === visible.length && tiles.every((tile, i) => tile.dataset.chart === idOf(visible[i]))) {
+          tiles.forEach((tile, i) => drawnTiles.get(idOf(visible[i])) !== html[i] && swapTile(tile, html[i]));
         } else {
           // (The focus comes back to its like. A tile drawn as it was is moved, not written again: a search typed, its
           // charts' mini charts aren't made anew.)
-          const focus = focusKey(grid), old = new Map(tiles.map((tile) => [/** @type {string} */ (tile.dataset.homeCard), tile]));
-          const htmlOf = new Map(visible.map((doc, i) => [doc.id, old.has(doc.id) && drawnTiles.get(doc.id) === html[i] ? `<i data-slot="${doc.id}"></i>` : html[i]]));
-          const tilesOf = (/** @type {Chart[]} */ docs) => docs.map((doc) => htmlOf.get(doc.id)).join("");
+          const focus = focusKey(grid), old = new Map(tiles.map((tile) => [/** @type {string} */ (tile.dataset.chart), tile]));
+          const htmlOf = new Map(visible.map((doc, i) => ((id) => [id, old.has(id) && drawnTiles.get(id) === html[i] ? `<i data-slot="${id}"></i>` : html[i]])(idOf(doc))));
+          const tilesOf = (/** @type {Chart[]} */ docs) => docs.map((doc) => htmlOf.get(idOf(doc))).join("");
           grid.innerHTML = parts.map((part) => (part.kind === "grid" ? `<div class="grid-tiles${part.previews ? " previews" : ""}">${tilesOf(part.docs)}</div>`
             : part.kind === "shelf" ? folderShelfHtml(part, tilesOf(part.docs))
             // (A search finding none says so under its heading, as the presets' does; a page with nothing, in its middle.)
@@ -23282,7 +23305,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         drawnLayout = layout;
         drawnTiles.clear();
-        visible.forEach((doc, i) => drawnTiles.set(doc.id, html[i]));
+        visible.forEach((doc, i) => drawnTiles.set(idOf(doc), html[i]));
         if (focused) tileOpen(focused)?.focus({ preventScroll: true });
         renderPicked();
         for (const frame of all$("[data-plot]", grid)) yourTilesSeen.observe(frame);
@@ -23338,7 +23361,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The key of the step shown (a page's, see homeState). */
       let shownKey = /** @type {string | undefined} */ (history.state?.key);
       /** Whether the page shows charts of yours (or previews) as tiles: your Library, a folder of it, the previews. */
-      const yoursShown = () => home && ("folder" in homeAt || "previews" in homeAt);
+      const yoursShown = () => home && ("folder" in homeAt || "previews" in homeAt || "recent" in homeAt);
       /**
        * The page at a place (a shelf's name, a step up, the sidebar's, ⌘K's), nothing searched, at its top; where it is
        * already, back at its top. A step of the history, where it was kept in the one it leaves (Back comes back there).
@@ -23729,7 +23752,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function renderPicked() {
         const n = picked.size;
         $("home").classList.toggle("picking", n > 0);
-        for (const tile of all$(".tile:not(.preview)", $("home-grid"))) {
+        for (const tile of all$(".tile[data-home-card]:not(.preview)", $("home-grid"))) {
           const on = picked.has(/** @type {string} */ (tile.dataset.homeCard));
           tile.classList.toggle("picked", on);
           ((check) => ((check.checked = on), (check.dataset.tip = on ? "Deselect" : "Select")))(/** @type {HTMLInputElement} */ (tile.querySelector(".tile-check")));
@@ -23745,9 +23768,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Picks a chart: added or taken off; with `range`, every chart from the last one picked to it. */
       function pickChart(id, range = false) {
         hideMenu();
-        // (A preview isn't one of the charts the bar acts on.)
-        if (isPreview(chartById(id))) return;
+        // (Your charts the page shows alone are what the bar acts on: not a preview, nor a preset's tile.)
         const ids = shownCharts().map((doc) => doc.id), from = ids.indexOf(pickedLast), to = ids.indexOf(id);
+        if (to < 0) return;
         if (range && picked.size && from >= 0 && to >= 0) for (const other of ids.slice(Math.min(from, to), Math.max(from, to) + 1)) picked.add(other);
         else if (picked.has(id)) {
           // (One taken off isn't where a run starts: the last one picked that's still there is.)
@@ -23985,8 +24008,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             renderHome();
           } else letGo($("home-filter"));
         } else if (event.key === "ArrowDown" || event.key === "Enter") {
-          // Down, or ↵, to the first chart through (yours first, then the presets'; Recent's, its rows).
-          const tiles = all$(".tile-open, .chart-line", $("home")).filter((tile) => tile.checkVisibility()), first = tiles[0];
+          // Down, or ↵, to the first chart through (yours first, then the presets').
+          const tiles = all$(".tile:not(.waiting) > .tile-open", $("home")).filter((tile) => tile.checkVisibility()), first = tiles[0];
           if (!first) return;
           event.preventDefault();
           if (event.key === "Enter" && tiles.length === 1) first.click();
@@ -24633,7 +24656,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // In the grid, the arrows walk the cards as they're laid out.
       $("home-grid").addEventListener("keydown", (event) => {
         const arrow = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key), focused = /** @type {HTMLElement} */ (document.activeElement);
-        if (arrow && event.altKey && !event.metaKey && !event.ctrlKey && focused.matches(".tile-open") && !$("home-filter").value.trim()) {
+        if (arrow && event.altKey && !event.metaKey && !event.ctrlKey && focused.matches("[data-open-chart]") && reorderable()) {
           event.preventDefault();
           const id = /** @type {string} */ (focused.dataset.openChart);
           stepChart(id, event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 1);
@@ -24673,8 +24696,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       /** A list's last card, its last shelf's row (or grid) written whole first (its last tiles may be slots yet). @param {HTMLElement} list */
       const lastCard = (list) => (((row) => row && fillRow(row))(all$(".shelf-row, .grid-tiles", list).at(-1)), /** @type {HTMLElement} */ (all$(CARDS, list).at(-1)));
-      /** What the arrows go along in the grid: the cards, and a shelf's last tile, to them all. */
-      const CARDS = ".tile-open, .shelf-all";
+      /** What the arrows go along in the grid: the cards (one still waited for, not yet), and a shelf's last tile, to them all. */
+      const CARDS = ".tile:not(.waiting) > .tile-open, .shelf-all";
       /**
        * The card an arrow goes to from another: ← → the one before or after; ↑ ↓ the nearest row above or below, as laid
        * out, its card nearest across (sections break the columns). @param {HTMLElement} from
@@ -24926,8 +24949,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether one of the sidebar's groups is closed there (on the rail too: its head's menu opens it). @param {Group} group */
       const groupShut = (group) => prefs.groupsClosed.includes(group);
       /**
-       * A group's head in the sidebar, as a folder's row: a click opens or closes it there (kept); how many it holds, a
-       * turn showing which, as it's pointed at; its ⋯ (a right-click), its page first. Closed, holding the open chart, it
+       * A group's head in the sidebar, as a folder's row: a click goes to its page, one on its turn opens or closes it there
+       * (kept); how many it holds, the turn showing which, as it's pointed at; its ⋯ (a right-click), its page first. Closed, holding the open chart, it
        * says so (as a folder does; holding the page shown, see renderSideNav). Its count none till it's known (the presets
        * not read yet).
        * @param {Group} group @param {number | null} count @param {boolean} holds @returns {[string, string]}
@@ -25033,7 +25056,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       /**
        * The presets in the sidebar, under your Library, under their name: their sections as folders are (a section's name
-       * opens or closes it here, as kept), the presets in an open one as charts are (one opens it).
+       * goes to its page, its turn opens or closes it here, as kept), the presets in an open one as charts are (one opens
+       * it).
        * @returns {[string, string][]}
        */
       function presetParts() {
@@ -25177,7 +25201,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return folder;
       }
       /**
-       * A folder opened or closed in the sidebar (its icon, ← →, its menu): what's in it unfolds from under it, or folds
+       * A folder opened or closed in the sidebar (its turn, ← →, its menu): what's in it unfolds from under it, or folds
        * back into it, and what's under them follows. Its icon turns at once; closing, the list is drawn without its charts
        * once they've folded away.
        */
@@ -26321,6 +26345,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       onHold($("chart-list"), ".nav-item, .list-head-name", (row) => ((more) => (more && !railed() ? () => (more.click(), true) : null))(/** @type {HTMLElement | null} */ (row.parentElement?.querySelector(':scope > .chart-more[aria-haspopup="menu"]') ?? null)));
       // The grid's tiles move the charts in the list (the sidebar's order, and ⌘1–9's): those picked together. Found by the
       // filter, they're ranked, not in their order: there's no place to drop them into (a hold still picks).
+      /** Whether the grid's charts can be moved in their order (dragged, ⌥-arrows): not searched, nor the previews' or Recent's (theirs, the order they were opened). */
+      const reorderable = () => !$("home-filter").value.trim() && ("folder" in homeAt);
       dragToReorder($("home-grid"), {
         item: "[data-home-card]",
         label: chartLabel,
@@ -26330,8 +26356,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         picking: () => picked.size > 0,
         unpick: () => clearPicks(),
         refuse: (event) => Boolean(closest(event, ".tile-check, .tile-more, .tile-rename, .tile.preview")),
-        // (Searched, or at the top, where your charts' shelf holds them from every folder: nowhere to drop them into.)
-        still: () => Boolean($("home-filter").value.trim()) || "top" in homeAt || "previews" in homeAt,
+        still: () => !reorderable(),
         sticky: true,
         landing: (x, y, ids) => {
           const under = document.elementFromPoint(x, y), head = /** @type {HTMLElement | null | undefined} */ (under?.closest("[data-grid-folder]"));
@@ -26749,7 +26774,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!$("palette").open || palette.formula || palette.adding || palette.replacing) return;
         const page = palette.pages.at(-1);
         if (page && !presetPages.has(page)) return;
-        palette.landOn = palette.items[palette.active]?.key ?? null;
+        // (A preset's copy kept here, Recent's, by its chart till now: its preset's row, by its id (the copy may be let go of by
+        // now: one changed since).)
+        const item = palette.items[palette.active], at = item?.kind === "chart" ? presetById(item.key) : -1;
+        palette.landOn = at >= 0 ? `preset:${at}` : item?.key ?? null;
         showPalette();
       }
       /**
@@ -27039,7 +27067,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * A preset opened: itself, to look at and to work on as it is (no preview to keep: its edits stay with it, here, till
-       * it's reset). As edited here, else as made, kept once it's edited (left as it is, it isn't).
+       * it's reset). As edited here, else as made, kept once it's edited (left as it is, only while it's among Recent's:
+       * see prunePresets).
        */
       function openPreset(/** @type {number} */ i) {
         if (!presets?.[i]) return;
@@ -27071,13 +27100,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The preset whose row is scrolled to the next time the list marks it open (see pickPreset); -1, none. */
       let presetToReveal = -1;
       /**
-       * The presets opened and left as they were, let go of (all but `keep`): nothing of theirs is kept. (Nothing to record:
-       * another tab's copy back is as it was, and goes the same way.)
+       * The presets opened and left as they were, let go of (all but `keep`), but those opened lately: Recent's, drawn at
+       * once on a reload, before the presets are read (once they are, one gone since let go of too, one changed since
+       * made anew). (Nothing to record: another tab's copy back is as it was, and goes the same way.)
        */
       function prunePresets(/** @type {Chart | null} */ keep) {
-        const left = library.presets.filter((doc) => doc === keep || !pristine(doc));
-        if (left.length === library.presets.length) return;
+        const lately = new Set(viewed());
+        const left = library.presets.filter((doc) => doc === keep || !pristine(doc) || (lately.has(doc.id) && (!presets || presetIndex(doc) >= 0)));
+        // (Recent's, once the presets are read, as they're made now: one changed since, made anew.)
+        const stale = presets ? left.filter((doc) => doc !== keep && pristine(doc) && keptPreset(presetIndex(doc), doc) !== doc) : [];
+        if (left.length === library.presets.length && !stale.length) return;
         library.presets = left;
+        for (const doc of stale) presetChart(presetIndex(doc));
         save();
       }
       /**
@@ -32838,11 +32872,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         ].filter((row) => !home || row.key === "page:recent" || row.key === "page:charts" || row.key === "page:presets").map((row) => ({ kind: "row", group: "Browse", verb: "Open", ...row }));
       }
       /**
-       * A chart of Recent's as ⌘K's row: one kept here (yours, a preview, a preset as edited) by its chart, its key the same
-       * before the presets are read and after; a preset as made, by the preset (`deep`: its place beside it).
+       * A chart of Recent's as ⌘K's row: a preset as every preset's (as edited here, if it is; `deep`: its place beside it),
+       * once the presets are read (before, by its copy kept here, see prunePresets); yours and a preview by their chart.
        * @param {{ id: string, preset: number }} item
        */
-      const recentRow = ({ id, preset }, deep = false) => (chartById(id) ? { kind: "chart", key: id } : presetRow(preset, deep));
+      const recentRow = ({ id, preset }, deep = false) => (preset >= 0 ? presetRow(preset, deep) : { kind: "chart", key: id });
       /** A ⌘K page's first row, where it has a page of its own: that page (as a sidebar row's ⋯ › View). @param {Place} place */
       const viewRow = (place) => ({ kind: "row", key: "page", icon: ICONS.grid, label: "View", aside: "Its page", verb: "View", run: () => goTo(place) });
       /** Recent, as ⌘K's page: its own page, then the charts last opened, the latest first (as the sidebar has them). */
@@ -33627,8 +33661,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         showActions(option);
         return true;
       })(palette.items[Number(option.dataset.option)]));
-      // A preset's tile held: its menu, as its ⋯ (a hold never opens it: a tap does).
-      onHold($("gallery"), ".tile[data-preset] > [data-open-preset]", (open) => ((more) => (more ? () => (openPresetMenu(more), true) : null))(/** @type {HTMLElement | null} */ (open.parentElement?.querySelector("[data-preset-menu]") ?? null)));
+      // A preset's tile held (the gallery's, Recent's): its menu, as its ⋯ (a hold never opens it: a tap does).
+      onHold($("home"), ".tile[data-preset] > [data-open-preset]", (open) => ((more) => (more ? () => (openPresetMenu(more), true) : null))(/** @type {HTMLElement | null} */ (open.parentElement?.querySelector("[data-preset-menu]") ?? null)));
       $("palette-path").addEventListener("click", (event) => {
         const crumb = closest(event, "[data-depth]");
         if (!crumb || crumb.hasAttribute("aria-current")) return;
@@ -36278,8 +36312,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("live").classList.toggle("offline", lost);
         $("live").classList.remove("waiting");
         renderHorizon();
-        $("home-live").textContent = $("home-pulse").textContent = [lost ? "Offline" : "Live", liveHeight ? `#${grouped.format(liveHeight)}` : "", !lost && livePrice ? dollarsAndCents(livePrice) : at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""].filter(Boolean).join("\u2009·\u2009");
+        const said = { status: lost ? "Offline" : "", block: liveHeight ? `#${grouped.format(liveHeight)}` : "", price: !lost && livePrice ? dollarsAndCents(livePrice) : at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "" };
+        $("home-live").textContent = [said.status, said.block, said.price].filter(Boolean).join("\u2009·\u2009");
         const block = liveHeight ? `Last block ${grouped.format(liveHeight)}${at ? `, ${ago(at.getTime())}` : ""}` : "";
+        // (Live said only when it isn't. Home's apart: the chain at its left, the price (or when it was last heard) at its
+        // right; each said in full by its tip, as the live dot's.)
+        $("home-pulse").replaceChildren(...[[[said.status, said.block].filter(Boolean).join("\u2009·\u2009"), block], [said.price, lost ? "Last heard" : "Price, as it trades"]].map(([text, tip]) => {
+          const half = document.createElement("span");
+          half.textContent = text;
+          if (tip) half.dataset.tip = tip;
+          return half;
+        }));
         liveTip(lost ? (navigator.onLine ? `${SERVER_HOST} isn't answering` : "This device is offline") : `Live from ${SERVER_HOST}`, ...(lost ? [block, "Trying again every 15 seconds"] : [livePrice ? `Price ${dollarsAndCents(livePrice)}, as it trades` : "", block, "A new block shows within seconds"]));
       }
       /** The live dot's tip, a line each (its first, what it is), its name all of it: the one open, said again. @param {...string} lines */
@@ -36465,19 +36508,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const menuFor = closest(event, "[data-chart-menu], [data-scale-menu], [data-pane-menu], [data-folder-menu]");
         const { chartMenu: chartId, paneMenu: paneId, folderMenu: folderId, scaleMenu: scaleId } = menuFor?.dataset ?? {};
         if (menuFor) return chartId ? chartMenu(menuFor, chartId) : paneId ? paneActions(menuFor, paneId) : folderId ? folderActions(menuFor, folderId) : scaleMenu(menuFor, /** @type {string} */ (scaleId));
-        // A folder in the sidebar: each click opens or closes it there (one under way turns back from where it is: clicks
-        // as fast as they come); its page, its ⋯'s View; renamed from there too. A section of the presets the same. On the
-        // rail, its menu (see railMenu).
+        // A folder in the sidebar, as a tree's row: a click goes to its page; on its way (›, ⌄), it opens or closes there
+        // (one under way turns back from where it is: clicks as fast as they come); renamed from its ⋯. A section of the
+        // presets and a group's head the same. On the rail, its menu (see railMenu).
+        const turned = Boolean(closest(event, ".turn"));
         const folderItem = closest(event, "[data-folder-item]");
-        if (folderItem) return railed() ? railMenu(folderItem) : toggleFolder(/** @type {string} */ (folderItem.dataset.folderItem));
+        if (folderItem) return railed() ? railMenu(folderItem) : ((id) => (turned ? toggleFolder(id) : goTo({ folder: id })))(/** @type {string} */ (folderItem.dataset.folderItem));
         const sectionMenu = closest(event, "[data-section-menu]");
         if (sectionMenu) return menuOf(sectionMenu, sectionRows(/** @type {string} */ (sectionMenu.dataset.sectionMenu)));
         const groupItem = closest(event, "[data-group-item]");
-        if (groupItem) return railed() ? railMenu(groupItem) : toggleGroup(/** @type {Group} */ (groupItem.dataset.groupItem));
+        if (groupItem) return railed() ? railMenu(groupItem) : ((group) => (turned ? toggleGroup(group) : goTo(GROUP_OF[group][1])))(/** @type {Group} */ (groupItem.dataset.groupItem));
         const groupMenu = closest(event, "[data-group-menu]");
         if (groupMenu) return menuOf(groupMenu, groupRows(/** @type {Group} */ (groupMenu.dataset.groupMenu)));
         const sectionItem = closest(event, "[data-section-item]");
-        if (sectionItem) return railed() ? railMenu(sectionItem) : toggleSection(/** @type {string} */ (sectionItem.dataset.sectionItem));
+        if (sectionItem) return railed() ? railMenu(sectionItem) : ((key) => (turned ? toggleSection(key) : goTo(asPlace({ path: JSON.parse(key) }))))(/** @type {string} */ (sectionItem.dataset.sectionItem));
         const sidePreset = closest(event, "#chart-list [data-open-preset]");
         if (sidePreset) return pickPreset(Number(sidePreset.dataset.openPreset));
         const recentItem = closest(event, "[data-open-recent]");
