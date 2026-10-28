@@ -19129,7 +19129,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return across && Math.abs(y - top) <= reach ? 4 : across && Math.abs(y - bottom) <= reach ? 6 : down && Math.abs(x - right) <= reach ? 5 : down && Math.abs(x - left) <= reach ? 7 : -1;
       }
       /**
-       * The box around a text (clear of its words), a stroke, a line or a path (on its outermost points: its dots on its
+       * The box around a text (clear of its words), a stroke, an ellipse, a line or a path (on its outermost points: its dots on its
        * edges, a corner on one where it's there, one dot, see handlesOf): its outline, selected.
        */
       function boundsOf(drawing, points) {
@@ -19146,16 +19146,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function paintHold(context, drawing, points, size, card, lit) {
         const color = colorOfDrawing(drawing);
         context.save();
-        if (drawing.kind === "ellipse" && lit && finite(points[0]) && finite(points[1])) {
-          const [a, b] = points;
-          context.strokeStyle = alpha(color, 0.5);
-          context.lineWidth = 1;
-          context.setLineDash([3, 3]);
-          context.strokeRect(Math.min(a.x, b.x), Math.min(a.y, b.y), Math.abs(b.x - a.x), Math.abs(b.y - a.y));
-          context.setLineDash([]);
-        }
-        // (A line's or a path's, selected only: pointed at, its points say where it's held.)
-        if (drawing.kind === "text" || drawing.kind === "brush" || (THROUGH.has(drawing.kind) && lit)) {
+        // (A box where its handles are off it (a text's, a stroke's, an ellipse's): faint, pointed at, as what a press
+        // takes; a line's or a path's, selected only: pointed at, its points say where it's held.)
+        if (drawing.kind === "text" || drawing.kind === "brush" || drawing.kind === "ellipse" || (THROUGH.has(drawing.kind) && lit)) {
           const box = boundsOf(drawing, points);
           context.strokeStyle = alpha(color, lit ? 0.9 : 0.45);
           context.lineWidth = 1;
@@ -21842,7 +21835,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       };
       /** What a mini chart depends on: its layers, its panes, and the day. @param {Chart} doc */
-      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.range, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.colors, layer.fill, layer.from, layer.ref, layer.colorFrom, layer.byLevels ? layer.levels : null, layer.byGradient ? [layer.gradient, layer.upToDate] : null, layer.type === "heatmap" ? [layer.heatmap, layer.weight, layer.measure] : null, ...fadingKey(layer)])]);
+      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.range, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.colors, layer.fill, layer.from, layer.ref, layer.colorFrom, layer.byLevels ? layer.levels : null, layer.byGradient ? [layer.gradient, layer.upToDate] : null, layer.type === "heatmap" ? [layer.heatmap, layer.weight, layer.measure, layer.rows ?? 200] : null, ...fadingKey(layer)])]);
       /** Four-color bars' fading colors as drawn (their default the theme's): what a picture of them depends on. */
       const fadingKey = (/** @type {Layer} */ layer) => (layer.type === "histogram" && layer.colors === 4 ? [ink(fadingOf(layer, false)), ink(fadingOf(layer, true))] : []);
       /**
@@ -22112,11 +22105,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const HEAT_PICTURE_AGG = "log50", HEAT_TILE_COLUMNS = 32, HEAT_QUICK_COLUMNS = 96;
       /**
        * Each heatmap's days a picture shows, by its layer's id: a day for each of its `columns`, evenly across what it
-       * shows (see previewShown), and the open day (its reference, as the chart's); asked for as the chart's are (a want
+       * shows (see previewShown), the open day, and the open day at the layer's own density (`fine`: the chart's
+       * reference, see heatPicture); asked for as the chart's are (a want
        * of its own, see heatExtras, after the chart's), waited for (20 s at most: those not in then, none). None shown
        * (hidden, a holder group Bitview doesn't have, a scale it can't be drawn on), none.
        * Each layer's, and whether all its days came (`whole`: failed for good, as they are).
-       * @typedef {Map<string, { days: (any)[], open: any }> & { whole?: boolean }} HeatSamples
+       * @typedef {Map<string, { days: (any)[], open: any, fine: any }> & { whole?: boolean }} HeatSamples
        * @param {Chart} doc @param {{ times: number[] }} data @param {number} most @param {number} columns @returns {Promise<HeatSamples>}
        */
       async function heatSamples(doc, data, most, columns) {
@@ -22128,21 +22122,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** @type {{ wants: NonNullable<ReturnType<typeof heatWants.get>>, keys: Set<string> }} */
         const extra = { wants: [], keys: new Set() };
         const keyed = layers.map((layer) => {
-          const cohort = layer.heatmap ?? "all", weight = layer.weight ?? "", key = (/** @type {string} */ day) => `${cohort}|${weight}|${HEAT_PICTURE_AGG}|${day}`;
-          for (const day of new Set([...at.filter((one) => one !== null), "latest"])) {
-            extra.keys.add(key(day));
+          const cohort = layer.heatmap ?? "all", weight = layer.weight ?? "", own = /** @type {NonNullable<ReturnType<typeof heatGrid>>} */ (heatGrid(doc, layer)).agg;
+          const key = (/** @type {string} */ day, agg = HEAT_PICTURE_AGG) => `${cohort}|${weight}|${agg}|${day}`;
+          // (The open day at its own density too: the chart's, its key the chart's, as often there already.)
+          for (const [day, agg] of [...new Set([...at.filter((one) => one !== null), "latest"])].map((day) => [day, HEAT_PICTURE_AGG]).concat([["latest", own]])) {
+            extra.keys.add(key(day, agg));
             // (A failure not for good, asked again in its time, as drawHeat asks.)
-            if ((heatDays.get(key(day))?.retryAt ?? Infinity) < Date.now()) heatDays.delete(key(day));
-            if (!heatDays.has(key(day))) extra.wants.push({ key: key(day), cohort, weight, agg: HEAT_PICTURE_AGG, day, rank: 0 });
+            if ((heatDays.get(key(day, agg))?.retryAt ?? Infinity) < Date.now()) heatDays.delete(key(day, agg));
+            if (!heatDays.has(key(day, agg))) extra.wants.push({ key: key(day, agg), cohort, weight, agg, day, rank: 0 });
           }
-          return /** @type {[string, (string | null)[], string]} */ ([layer.id, at.map((day) => (day === null ? null : key(day))), key("latest")]);
+          return /** @type {[string, (string | null)[], string, string]} */ ([layer.id, at.map((day) => (day === null ? null : key(day))), key("latest"), key("latest", own)]);
         });
         heatExtras.add(extra);
         try {
           heatPump();
           await heatCome([...extra.keys], 20_000, () => true);
           // (Some not in yet, or failed for now: drawn, but not kept as up to date, see drawPreview.)
-          const samples = /** @type {HeatSamples} */ (new Map(keyed.map(([id, keys, open]) => [id, { days: keys.map((key) => (key === null ? null : heatDays.get(key))), open: heatDays.get(open) }])));
+          const samples = /** @type {HeatSamples} */ (new Map(keyed.map(([id, keys, open, fine]) => [id, { days: keys.map((key) => (key === null ? null : heatDays.get(key))), open: heatDays.get(open), fine: heatDays.get(fine) }])));
           samples.whole = [...extra.keys].every((key) => heatDays.get(key)?.rows || (heatDays.get(key)?.failed && !heatDays.get(key)?.retryAt));
           return samples;
         } finally {
@@ -22152,17 +22148,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * A heatmap drawn small (a tile's, Quick Look's), as a picture (a PNG's data URL): each of its days a column, each
        * pixel row from `top` to `bottom` (twice as many, sharp) the cell at the price `priceAt` reads there, colored as
-       * the chart colors it (heatColor) against its open day's largest. None to draw, none.
+       * the chart colors it (heatColor): as much a row of the chart's as it holds on average (a cell holds several of
+       * them), against the chart's reference (its open day's largest row, at its density; not come, the open day's
+       * largest cell here: brighter, the gaps between its rows filled). None to draw, none.
        * @param {Chart} doc @param {Layer} layer @param {Resolved | { times: number[], results: Map<string, any> }} data
-       * @param {{ days: any[], open: any } | undefined} sample @param {(y: number) => number} priceAt @param {number} top @param {number} bottom
+       * @param {{ days: any[], open: any, fine: any } | undefined} sample @param {(y: number) => number} priceAt @param {number} top @param {number} bottom
        */
       function heatPicture(doc, layer, data, sample, priceAt, top, bottom) {
-        const look = heatLook(doc, layer, /** @type {Resolved} */ (data), opacityOf(layer)), most = sample?.open?.rows ? heatMost(sample.open, look.measure) : 0;
+        const look = heatLook(doc, layer, /** @type {Resolved} */ (data), opacityOf(layer)), k = Number(HEAT_PICTURE_AGG.slice(3)), rows = Number(heatGrid(doc, layer)?.agg.slice(3) ?? k);
+        // (A cell as so many of the chart's rows: the reference as large as they'd all be at it.)
+        const most = sample?.fine?.rows ? heatMost(sample.fine, look.measure) * (rows / k) : sample?.open?.rows ? heatMost(sample.open, look.measure) : 0;
         if (!sample || !most || !(bottom > top)) return null;
         const columns = sample.days.length, height = Math.round((bottom - top) * 2), canvas = document.createElement("canvas");
         canvas.width = columns;
         canvas.height = height;
-        const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d")), image = context.createImageData(columns, height), k = Number(HEAT_PICTURE_AGG.slice(3));
+        const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d")), image = context.createImageData(columns, height);
         for (let p = 0; p < height; p++) {
           const price = priceAt(top + (p + 0.5) / 2);
           if (!(price > 0)) continue;
