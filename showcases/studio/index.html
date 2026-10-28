@@ -22256,8 +22256,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // shown one's.)
         return `<span class="${frame} ${drawn && (!current || drawn.key === previewKey(doc)) ? "" : "pending"}" data-plot="${doc.id}"${drawn ? ` data-drawn="${drawingId(drawn)}"` : ""}>${drawn ? previewSvg(drawn, `${frame.split(" ")[0]}-${doc.id}`) : ""}</span>`;
       }
-      /** A layer in a tile's legend (Quick Look's: `after`, its value's place): its color's dot, its name. @param {Layer} layer */
-      const legendEntry = (layer, after = "") => `<span style="--c:${escape(ink(layer.color))}">${escape(labelOf(layer))}${after}</span>`;
+      /** A layer in a tile's legend (Quick Look's: `after`, its value's place): its color's dot (a gradient's, its colors), its name. @param {Layer} layer */
+      const legendEntry = (layer, after = "") => `<span style="--c:${escape(layer.byGradient && layer.gradient ? gradientCss(layer.gradient) : ink(layer.color))}">${escape(labelOf(layer))}${after}</span>`;
       /** A tile's interval, where it isn't a day's. @param {Chart} doc */
       const tileIndexHtml = (doc) => (doc.index === "day1" ? "" : `<span class="tile-index">${INTERVAL_LABEL[doc.index]}</span>`);
       /** A chart in the grid, as its own card: title (and its interval, where it isn't a day's), its layers' legend, its mini chart; a tick to pick it. @param {Chart} doc */
@@ -27203,8 +27203,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const inHand = () => (editingMany() ? pickedLayers() : [layerById(selected)].filter((layer) => layer !== undefined));
       /** What every one of some layers has, by `of`: that, or undefined where they differ (said "Mixed"). @template T @param {Layer[]} layers @param {(layer: Layer) => T} of */
       const sharedBy = (layers, of) => (layers.length && layers.every((layer) => of(layer) === of(layers[0])) ? of(layers[0]) : undefined);
-      /** How many levels the layer had as its panel was last drawn (a field kept as it's typed in only while they're the same). */
-      let inspectedLevels = 0;
+      /**
+       * How many levels and gradient colors the layer had as its panel was last drawn (a field kept as it's typed in only
+       * while they're the same). See fieldsShape.
+       */
+      let inspectedShape = "";
+      /** The fields a layer's panel has by index, their count: its levels', its gradient's colors'. @param {Layer} layer */
+      const fieldsShape = (layer) => `${layer.levels?.length ?? 0}:${layer.byGradient ? (layer.gradient?.length ?? 0) : 0}`;
       let expanded = false;
       /** The layer's actions as last written (written again only when they change). */
       let actionsShown = "";
@@ -27240,14 +27245,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           inspected = "";
           return;
         }
-        // While typing into this layer's formula or name, keep the field (and its caret) as it is.
+        // While typing into this layer's formula or name (or a number of it: its base, a level, a gradient's place), keep
+        // the field (and its caret) as it is.
         const active = document.activeElement;
         // (Turned into a series meanwhile, or into a formula, it's drawn anew.)
-        // (Its levels taken off or added meanwhile (a field's index another level's now): drawn anew, the field too.)
-        const shape = (layer.levels ?? []).length;
+        // (Its levels or gradient colors taken off or added meanwhile (a field's index another one's now): drawn anew, the
+        // field too.)
+        const shape = fieldsShape(layer);
         const typed = !panel.dataset.pressed;
         delete panel.dataset.pressed;
-        if (typed && active && inspected === layer.id && shape === inspectedLevels && Boolean($("formula")) === (layer.formula !== undefined) && panel.contains(active) && (["formula", "label", "base"].includes(active.id) || active.id.startsWith("level-"))) {
+        if (typed && active && inspected === layer.id && shape === inspectedShape && Boolean($("formula")) === (layer.formula !== undefined) && panel.contains(active) && (["formula", "label", "base"].includes(active.id) || active.id.startsWith("level-") || /** @type {HTMLElement} */ (active).dataset.stopAt !== undefined)) {
           updateFormula(layer);
           // (The interval may have changed: the spans offered follow.)
           suggestHere();
@@ -27260,10 +27267,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         const another = inspected !== layer.id;
         if (another) expanded = false;
-        // (A level's field, its levels changed meanwhile: not put back by its index, another level's now.)
-        const focus = inspected === layer.id && !(shape !== inspectedLevels && active?.closest?.(".levels")) ? focusKey(panel) : null;
+        // (A level's field or a gradient's, those changed meanwhile: not put back by its index, another one's now.)
+        const focus = inspected === layer.id && !(shape !== inspectedShape && active?.closest?.(".levels, .gradient-rows")) ? focusKey(panel) : null;
         inspected = layer.id;
-        inspectedLevels = (layer.levels ?? []).length;
+        inspectedShape = shape;
         const result = resolved?.results.get(layer.id);
         const meta = result?.info;
         const isFormula = layer.formula !== undefined, signal = layer.type === "signal";
@@ -27617,16 +27624,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         colorSlot.set(`${chart.id}:${selected}`, `stop${k}`);
         if (again) renderInspector(), refocus(`#inspector .gradient-stop[data-stop="${k}"]`);
       }
-      /** A gradient's cursor, its bar and its field, as its color `k` is now (drawn while a drag holds the inspector still). */
-      function showStop(/** @type {number} */ k) {
+      /**
+       * A gradient's cursor, its bar and its field (not one being typed in: `field` false), as its color `k` is now
+       * (drawn while a drag holds the inspector still).
+       */
+      function showStop(/** @type {number} */ k, field = true) {
         const layer = layerById(selected), stops = layer?.gradient, at = stops?.[k]?.[0];
         if (!stops || at === undefined) return;
         const cursor = /** @type {HTMLElement | null} */ ($("inspector").querySelector(`.gradient-stop[data-stop="${k}"]`)), bar = /** @type {HTMLElement | null} */ ($("inspector").querySelector("[data-gradient-bar]"));
-        cursor?.style.setProperty("left", `${at}%`);
+        if (cursor) {
+          // (What it says too: its tip's keys after its first line, as written.)
+          const said = stopSaid(stops[k]), tip = cursor.dataset.tip ?? "";
+          cursor.style.setProperty("left", `${at}%`);
+          cursor.setAttribute("aria-label", said);
+          cursor.dataset.tip = said + tip.slice(tip.indexOf("\n") < 0 ? tip.length : tip.indexOf("\n"));
+        }
         bar?.style.setProperty("--g", gradientCss(stops));
-        const field = /** @type {HTMLInputElement | null} */ ($("inspector").querySelector(`[data-stop-at="${k}"]`));
-        if (field) field.value = String(at);
+        const input = /** @type {HTMLInputElement | null} */ ($("inspector").querySelector(`[data-stop-at="${k}"]`));
+        if (input && field) input.value = String(at);
       }
+      /** A gradient's color, said: its name, its place. @param {[number, string]} stop */
+      const stopSaid = ([at, color]) => `${colorName(color)}, at ${at}%`;
       /** Where a point is across a gradient's bar, 0 to 100. */
       const barAt = (/** @type {HTMLElement} */ bar, /** @type {number} */ clientX) => ((box) => (box.width ? ((clientX - box.left) / box.width) * 100 : 0))(bar.getBoundingClientRect());
       // A cursor dragged: its color between its neighbors, one undo step a drag; the bar pressed elsewhere, a color added
@@ -27661,12 +27679,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           gradientEdit((item) => (item.gradient && item.gradient.length > GRADIENT_LEAST ? (item.gradient.splice(k, 1), Math.max(0, k - 1)) : k), true);
         }
       });
-      // A place typed: its color there, between its neighbors.
-      $("inspector").addEventListener("change", (event) => {
+      // A place typed (or stepped by ↑ ↓): its color there as it's typed, between its neighbors, one undo step a field's
+      // edit, as every number's field; the field kept as typed till it's left, then showing where the color is.
+      $("inspector").addEventListener("input", (event) => {
         const field = /** @type {HTMLInputElement} */ (event.target);
         if (!field.dataset?.stopAt) return;
-        const k = Number(field.dataset.stopAt), at = Number(field.value);
-        if (Number.isFinite(at)) gradientEdit((item) => (moveStop(item, k, at), k), true);
+        const k = Number(field.dataset.stopAt), at = readNumber(field.value);
+        if (!field.value.trim() || !Number.isFinite(at)) return;
+        editLayer((item) => moveStop(item, k, at), { coalesce: `stop:${selected}:${k}` });
+        // (Stepped, not typed (an InputEvent): the field at where it went, never past its neighbors.)
+        showStop(k, !(event instanceof InputEvent));
+      });
+      // (Left, not changed: a place stepped by ↑ ↓ is set by script, no `change` to follow.)
+      $("inspector").addEventListener("focusout", (event) => {
+        const field = /** @type {HTMLInputElement} */ (event.target);
+        if (field.dataset?.stopAt) showStop(Number(field.dataset.stopAt));
       });
       // (Several at different stops ("Mixed"): a key steps from the first's, and sets them all there.)
       sliders($("inspector"), { valueOf: (id) => ((layers) => (layers.length ? sharedBy(layers, SLIDERS[id].of) ?? SLIDERS[id].of(layers[0]) : undefined))(inHand()), set: setSlider });
@@ -27952,8 +27979,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function gradientEditor(layer, key, chip) {
         const stops = layer.gradient ?? [], few = stops.length <= GRADIENT_LEAST;
-        const cursor = (/** @type {[number, string]} */ [at, color], /** @type {number} */ k) => `<button type="button" class="gradient-stop" data-color-slot="stop${k}" data-stop="${k}" aria-pressed="${key === `stop${k}`}" style="left: ${at}%; --c: ${escape(cssColor(color))}" aria-label="${escape(`${colorName(color)}, at ${at}%`)}" data-tip="${escape(`${colorName(color)}, at ${at}%`)}${escape(`\n${keyText(`Drag, or ← → to move it${few ? "" : "; ⌫ to remove it"}`)}`)}"></button>`;
-        const row = (/** @type {[number, string]} */ [at], /** @type {number} */ k) => `<div class="gradient-row">${chip(`stop${k}`, `Color ${k + 1}`)}<span class="number-field"><input type="number" inputmode="numeric" min="0" max="100" step="1" value="${at}" data-stop-at="${k}" aria-label="Color ${k + 1}, its place" enterkeyhint="done" /><span class="unit">%</span></span>${few ? "" : `<button type="button" class="cap small" data-stop-remove="${k}" aria-label="Remove color ${k + 1}" data-tip="Remove">${ICONS.close}</button>`}</div>`;
+        const cursor = (/** @type {[number, string]} */ [at, color], /** @type {number} */ k) => `<button type="button" class="gradient-stop" data-color-slot="stop${k}" data-stop="${k}" aria-pressed="${key === `stop${k}`}" style="left: ${at}%; --c: ${escape(cssColor(color))}" aria-label="${escape(stopSaid([at, color]))}" data-tip="${escape(stopSaid([at, color]))}${escape(`\n${keyText(`Drag, or ← → to move it${few ? "" : "; ⌫ to remove it"}`)}`)}"></button>`;
+        const row = (/** @type {[number, string]} */ [at], /** @type {number} */ k) => `<div class="gradient-row">${chip(`stop${k}`, `Color ${k + 1}`)}<span class="number-field"><input class="number-input" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="${at}" data-stop-at="${k}" aria-label="Color ${k + 1}, its place" enterkeyhint="done" /><span class="unit">%</span></span>${few ? "" : `<button type="button" class="cap small" data-stop-remove="${k}" aria-label="Remove color ${k + 1}" data-tip="Remove">${ICONS.close}</button>`}</div>`;
         const ends = gradientEnds(layer);
         return `<div class="gradient-edit" role="group" aria-label="Its gradient"><div class="gradient-bar" data-gradient-bar style="--g: ${escape(gradientCss(stops))}"${stops.length < GRADIENT_MOST ? ' data-tip="A press adds a color here"' : ""}>${stops.map(cursor).join("")}</div>${ends ? `<div class="gradient-ends" aria-label="${escape(`From ${ends[0]} to ${ends[1]}`)}"><span>${escape(ends[0])}</span><span>${escape(ends[1])}</span></div>` : ""}<div class="gradient-rows">${stops.map(row).join("")}</div></div>`;
       }
@@ -29254,7 +29281,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!layer?.levels?.[i]) return [];
         const look = lineLook(layer, i);
         return /** @type {any[]} */ ([
-          { key: "line", icon: lineStyleGlyph(look), label: "Line", aside: lineStyleName(look), page: () => ({ title: "Line", rows: () => lineChoices(id, i) }) },
+          { key: "line", icon: lineStyleGlyph(look), label: "Line", aside: lineStyleName(look), page: () => ({ title: "Line", placeholder: "Search the choices", rows: () => lineChoices(id, i) }) },
           { key: "tag", icon: ICONS.label, label: "Value on the axis", current: Boolean(look.tag) && look.line !== false, ...(look.line === false ? { disabled: "Turn on the line to show its value on the axis" } : {}), run: () => setLineLook(id, i, "tag", look.tag ? undefined : true) },
           { key: "remove", icon: ICONS.trash, label: "Remove the level", danger: true, run: () => {
             editById(id, (item) => withoutLevel(item, i));
@@ -31583,7 +31610,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * shows what a value would make of it.
        */
       function choicePage(title, options, preview = /** @type {any} */ (null)) {
-        return { title, options, rows: () => options().map((option) => ({ kind: "row", verb: "Choose", ...(preview ? { preview: (panel) => preview(panel, option) } : {}), ...option, stay: true, run: () => {
+        // (Its search the choices', whatever its title: "Search move to folder" read as nothing.)
+        return { title, options, placeholder: "Search the choices", rows: () => options().map((option) => ({ kind: "row", verb: "Choose", ...(preview ? { preview: (panel) => preview(panel, option) } : {}), ...option, stay: true, run: () => {
           const page = palette.pages.at(-1);
           option.run();
           // (One that leads on to a page of its own, a new folder's name, leaves it there.)
@@ -32124,7 +32152,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A line across (a level, by index, or the base): a level's value; its color, its style; removing a level. @returns {Page} */
       function linePage(id, key, title) {
-        return { title, rows: () => {
+        return { title, placeholder: "Search its settings", rows: () => {
           const layer = layerById(id), level = key === "base" ? null : layer?.levels?.[Number(key)];
           if (!layer || (key !== "base" && !level)) return [];
           const now = () => lineLook(layerById(id) ?? layer, key), look = now();
