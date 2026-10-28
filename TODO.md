@@ -12,6 +12,10 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Studio: raised by you, still open
 
+- The gradient editor (you, 2026-10-28: "decent but could be better/cleaner"): proposed, one bar, round stops on a
+  track under it, only the color in hand below (its place as % and as its value, Remove), a row of gradient presets
+  (_notes/overnight-20261028/gradient-editor-before-after.png). To decide.
+
 - Thumbnails and previews of a chart with a heatmap draw its price alone (Codex, 2026-10-28): the heatmap's days
   aren't fetched for a tile (Quick Look's too: no value beside its name). A sampled mini heatmap there, to decide.
 
