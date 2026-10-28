@@ -871,20 +871,22 @@
           text-overflow: ellipsis;
         }
 
-        /* The way in to everything: its key always shows, quietly. */
+        /* The way in to everything: its key as every key shows, as it's pointed at or reached by a key, and while ⌘ is
+           held (see data-hints); at rest, its words alone. */
         kbd {
           flex-shrink: 0;
           color: var(--muted);
-          transition: color var(--fade);
+          opacity: 0;
         }
 
         &:hover:where(.can-hover *) {
           color: var(--soft);
           box-shadow: inset 0 0 0 1px var(--faint);
+        }
 
-          kbd {
-            color: var(--soft);
-          }
+        &:is(:hover:where(.can-hover *), :focus-visible) kbd {
+          color: var(--soft);
+          opacity: 1;
         }
       }
 
