@@ -30241,6 +30241,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * search, `path` the folder it opens on and `landOn` the row; `resume`: back where it was put away, if it can be.
        */
       function openPalette({ add = false, replace = null, query = "", formula = false, editing = /** @type {string | null} */ (null), into = /** @type {string | null} */ (null), path = /** @type {string[] | null} */ (null), landOn = /** @type {string | null} */ (null), resume = false, typing = false, signal = false, side = /** @type {string | null} */ (null) } = {}) {
+        paletteOpenings++;
         // (Resumed only where it was browsing: adding, replacing or a formula start again.)
         const spot = resume && putAway?.browsing && (putAway.anywhere || (putAway.chart === chart.id && putAway.home === home)) ? putAway.state : null;
         // (Adding to a chart with no room: said now, not once a series is picked.)
@@ -30608,7 +30609,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const suggested = root ? commands().filter((command) => command.suggested).map((command) => ({ kind: "command", key: command.title, command, group: "Commands" })) : [];
           // What you pick most from here, lately: three, a step closer. (Named for what orders them: "Recently used" read as
           // "Recent charts" again, above it.)
-          const usual = root && !browsing ? byUse([...commands().filter((command) => command.run).map((command) => ({ kind: "command", key: command.title, command })), ...browseRows(), ...(home ? [] : [...settingRows(), ...chart.layers.map(layerRow), ...chart.panes.map((pane, i) => paneRow(pane.id, i))])].filter((item) => useScore(item.key) > 0 && !dangerous(item) && !/^Download/.test(item.command?.title ?? item.label ?? ""))).slice(0, 3).map((item) => ({ ...item, group: "Frequently used" })) : [];
+          const usual = root && !browsing ? byUse([...commands().filter((command) => command.run).map((command) => ({ kind: "command", key: command.title, command })), ...browseRows(), ...(home ? [] : [...settingsNow().rows, ...chart.layers.map(layerRow), ...chart.panes.map((pane, i) => paneRow(pane.id, i))])].filter((item) => useScore(item.key) > 0 && !dangerous(item) && !/^Download/.test(item.command?.title ?? item.label ?? ""))).slice(0, 3).map((item) => ({ ...item, group: "Frequently used" })) : [];
           const fresh = (item) => !usual.some((other) => other.key === item.key);
           const others = root && palette.adding ? otherLayerRows() : [];
           // (Adding: what else a layer can be, first, a few rows in sight on any screen; then the series, what's added most,
@@ -30648,7 +30649,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // This chart's own: the ways in, its layers and panes, by name, series or formula; then any of their settings and
         // actions, by what they're of and what they are ("price color", "mvrv base").
         // (The chart's settings, made once a search.)
-        const settings = everything && !home ? settingRows() : [];
+        const settings = everything && !home ? settingsNow().rows : [];
         const own = !everything ? [] : home ? rank(browseRows(), rowText, words) : [
           ...rank(browseRows(), rowText, words),
           ...rank(chart.layers.map((layer) => ({ ...layerRow(layer), group: "Layers" })), rowText, words),
@@ -31828,11 +31829,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         })));
       }
       /**
-       * A setting's choices (a choice page's, see choicePage; none for another page, a list's), each row's read once a
-       * search: what else it's found by (see settingRows), `said` their labels.
+       * The chart's settings as last found (settingRows), and each one's choices as read (see settingChoices): kept while
+       * ⌘K stays open (`paletteOpenings`, each time it opens: what changes behind it, a pan, a rename undone in the
+       * Library, isn't kept) and the chart, its edits (revision; `updated`, a Library undo's too), its data, its view's
+       * width and range and the colors as they show are the same. (Found anew at each keystroke of a search, they were
+       * half its time on a phone, 30 layers: ~40 ms a key.)
+       */
+      let settingsKept = { key: /** @type {any[]} */ ([]), rows: /** @type {any[]} */ ([]), choices: /** @type {Map<string, { said: string, choices: any[] }>} */ (new Map()) };
+      let paletteOpenings = 0;
+      function settingsNow() {
+        const key = [paletteOpenings, chart.id, revision, chart.updated, resolved, home, presetShown, view.timeScale().width(), document.documentElement.dataset.theme, tokensMedia.map((media) => media.matches).join()];
+        if (key.some((part, i) => part !== settingsKept.key[i])) settingsKept = { key, rows: settingRows(), choices: new Map() };
+        return settingsKept;
+      }
+      /**
+       * A setting's choices (a choice page's, see choicePage; none for another page, a list's), each row's read once
+       * while its settings are kept (settingsNow): what else it's found by (see settingRows), `said` their labels.
        */
       const settingChoices = () => {
-        const read = new Map();
+        const read = settingsNow().choices;
         /** @param {any} row @returns {{ said: string, choices: any[] }} */
         return (row) => {
           if (!read.has(row.key)) read.set(row.key, ((page) => ((choices) => ({ said: choices.map((choice) => choice.label ?? "").join(" "), choices }))(page?.chooses ? page.options() : []))(row.of?.()));
