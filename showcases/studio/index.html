@@ -15955,8 +15955,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (again) series.applyOptions(lookOf(options));
           } else if (layer.type === "heatmap") {
             // A heatmap: each day's URPD behind the lines (see heatView): no tag, no line across; nothing to its scale but
-            // alone on it (nothing else drawn on its pane's side: a signal's marks, or one with no values, don't count), the
-            // price's then (its closes, see heatView).
+            // alone on it (nothing else drawn on its pane's side: a signal's marks, or one with no value its scale draws,
+            // don't count), the price's then (its closes, see heatView).
             // (Its reference kept while it's the same map: a rebuild during a block's refresh draws on, see drawHeat.)
             const look = /** @type {HeatLook} */ (heatLook(doc, layer, data, op)), was = heatLooks.get(layer.id), known = heatKnown(layer);
             if (was && was.cohort === look.cohort && was.weight === look.weight && was.grid?.agg === look.grid?.agg && was.measure === look.measure) look.reference = was.reference;
@@ -15964,7 +15964,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // nothing asked for, no rows.)
             if (known) heatLooks.set(layer.id, look);
             else heatLooks.delete(layer.id), heatWants.delete(layer.id);
-            const alone = !doc.layers.some((other) => other !== layer && other.pane === layer.pane && other.side === layer.side && !other.hidden && other.type !== "heatmap" && other.type !== "signal" && data.results.get(other.id)?.values);
+            // (A value its scale draws: a number, and above 0 on a log one.)
+            const log = modeOf(doc, layer) === 1, drawable = (/** @type {number} */ value) => Number.isFinite(value) && (!log || value > 0);
+            const alone = !doc.layers.some((other) => other !== layer && other.pane === layer.pane && other.side === layer.side && !other.hidden && other.type !== "heatmap" && other.type !== "signal" && data.results.get(other.id)?.values?.some(drawable));
             // (Hidden, not drawn: nothing to ask for.)
             if (layer.hidden) heatWants.delete(layer.id);
             const options = { ...common, lastValueVisible: false, priceLineVisible: false, heatId: layer.id, autoscaleInfoProvider: (/** @type {() => any} */ original) => (alone ? original() : null) };
@@ -20291,6 +20293,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (What it reads, the day come.)
         valuesSoon();
       }));
+      /**
+       * What waits for a heatmap's days (settle): woken as one's drawn, and as the tab's hidden (see heatIn).
+       * @type {Set<() => void>}
+       */
+      const heatWaiters = new Set();
+      document.addEventListener("visibilitychange", () => document.hidden && [...heatWaiters].forEach((wake) => wake()));
+      /**
+       * Whether the heatmaps shown have every day they show: each drawn since it was built, none wanted, none on its way
+       * (one that failed, for good or for now, as it is). What a picture waits for (see settle); a tab drawing no frames
+       * draws none, so asks for none: as it is; one with no price to draw on (its closes none), or `undrawable` (the
+       * library had nothing on its scale to draw it on), as it is.
+       */
+      const heatIn = () => document.hidden || shownHeats().every((look) => (look.undrawable && !look.drawn) || (look.drawn && !heatWants.has(look.id) && ![...(look.keep ?? [])].some((key) => heatDays.get(key)?.pending)));
+      /** The looks of the heatmaps the chart shows (with a price to draw on). */
+      const shownHeats = () => chart.layers.flatMap((layer) => ((look) => (layer.type === "heatmap" && !layer.hidden && look && resolved?.results.get(layer.id)?.closes?.some(Number.isFinite) ? [look] : []))(heatLooks.get(layer.id)));
       /** The days wanted asked for, a few at once, the first wanted first. */
       function heatPump() {
         heatPumping = false;
@@ -20436,10 +20453,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
       }
       /**
-       * A heatmap's look (see heatLook), and as last drawn: the days a column holds (`step`), the days it showed and
-       * wanted (`keep`), its reference (`reference`: the open day's largest cell, see heatStrip); its colors (`gradient`,
-       * its gradient's as shown, see gradientTable) and all it's painted by (`paint`, its strips' key).
-       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, step?: number, keep?: Set<string>, reference?: number }} HeatLook
+       * A heatmap's look (see heatLook), and as last drawn: whether it's been (`drawn`; `undrawable`, not two frames after
+       * its chart was, see settle), the days a column holds (`step`), the days it showed and wanted (`keep`), its
+       * reference (`reference`: the open day's largest cell, see heatStrip); its colors (`gradient`, its gradient's as
+       * shown, see gradientTable) and all it's painted by (`paint`, its strips' key).
+       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, drawn?: boolean, undrawable?: boolean, step?: number, keep?: Set<string>, reference?: number }} HeatLook
        */
       /**
        * Each heatmap's look, by its layer's id: what it draws and how (kept apart from its series' options, which the
@@ -20522,6 +20540,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function drawHeat(scope, toY, data, heat) {
         const range = data?.visibleRange, grid = heat?.grid;
         if (!heat) return;
+        // (Drawn: what waits for its days in (see heatIn) asks again, once this draw's done.)
+        heat.drawn = true;
+        if (heatWaiters.size) queueMicrotask(() => { for (const wake of [...heatWaiters]) wake(); });
         // (Nothing drawn: nothing wanted, nothing kept for it.)
         const none = () => void (heatWants.delete(heat.id), (heat.keep = undefined));
         if (!grid || !range || !data.bars.length || !resolved) return none();
@@ -36346,15 +36367,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The time given for all of it: the chart's way there and the fonts too.)
         const end = performance.now() + ms, left = () => Math.max(0, end - performance.now()), LATE = Symbol(), late = () => new Promise((done) => setTimeout(() => done(LATE), left()));
         if ((await Promise.race([navigating, late()])) === LATE || (await Promise.race([document.fonts.ready, late()])) === LATE) throw new Error("The chart is still loading");
-        while (home || !chart.layers.length || !settled()) {
+        while (home || !chart.layers.length || !settled() || !heatIn()) {
           if (home) throw new Error("No chart is open (Studio shows the Charts page)");
           if (!chart.layers.length) throw new Error("The chart has no layers");
           if (!left()) throw new Error("The chart is still loading");
           // (Woken by the draw, else at the time given: no timer chain, which a hidden tab would slow to one a minute.)
           await new Promise((done) => {
-            const wake = () => (clearTimeout(timer), drawnWaiters.delete(wake), done(undefined));
+            const wake = () => (clearTimeout(timer), drawnWaiters.delete(wake), heatWaiters.delete(wake), done(undefined));
             const timer = setTimeout(wake, left());
             drawnWaiters.add(wake);
+            heatWaiters.add(wake);
+            // (The chart drawn, a heatmap of it not two frames on: the library had nothing on its scale to draw it on
+            // (see heatIn).)
+            const undrawn = settled() && !document.hidden ? shownHeats().filter((look) => !look.drawn && !look.undrawable) : [];
+            if (undrawn.length) requestAnimationFrame(() => requestAnimationFrame(() => (undrawn.forEach((look) => (look.undrawable = !look.drawn)), wake())));
           });
         }
         // (Its reveal, the page's crossfade to it, its legends' fades, the chart's own wipe: each at its end now. A script
@@ -36368,6 +36394,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Drawn on its next frame, where there are frames: out of sight there are none, and a picture's drawn when it's made.)
         if (!document.hidden) await new Promise((done) => (requestAnimationFrame(() => done(undefined)), setTimeout(done, Math.min(100, left()))));
         ended();
+        // (That frame's draw asking a heatmap for days: waited for too.)
+        if (!heatIn()) return settle(left());
       }
       /** The picture a script last had (see png): made for the chart as it was, read again in parts. @type {{ wanted: string, url: string } | null} */
       let picture = null;
