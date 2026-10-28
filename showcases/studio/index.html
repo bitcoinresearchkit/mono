@@ -5412,6 +5412,97 @@
         }
       }
 
+      /* A gradient's editor (see gradientEditor): its bar, a cursor a color standing on it, the one being set ringed as a
+         chip is; its colors listed under it, each a chip, its place and a way to remove it. */
+      .gradient-edit {
+        display: grid;
+        gap: 10px;
+        padding: 12px 10px 10px;
+
+        .slot-chip {
+          height: 22px;
+          border: 0;
+          border-radius: var(--radius-sm);
+          padding: 0;
+          background: var(--c);
+          box-shadow: inset 0 0 0 1px light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.1));
+          cursor: pointer;
+
+          &[aria-pressed="true"] {
+            outline: 1.5px solid var(--ink);
+            outline-offset: 2px;
+          }
+        }
+      }
+
+      .gradient-bar {
+        position: relative;
+        height: 22px;
+        margin: 0 7px;
+        border-radius: var(--radius-sm);
+        background: var(--g);
+        box-shadow: inset 0 0 0 1px light-dark(rgb(0 0 0 / 0.1), rgb(255 255 255 / 0.1));
+        cursor: copy;
+        touch-action: none;
+      }
+
+      .gradient-stop {
+        position: absolute;
+        top: -4px;
+        bottom: -4px;
+        width: 14px;
+        margin-left: -7px;
+        border: 2px solid var(--card);
+        border-radius: 5px;
+        padding: 0;
+        background: var(--c);
+        box-shadow: 0 0 0 1px var(--line-strong), 0 1px 4px rgb(0 0 0 / 0.35);
+        cursor: grab;
+        touch-action: none;
+
+        /* (A finger's reach: 44px about it, as every control's.) */
+        &::before {
+          content: "";
+          position: absolute;
+          inset: -8px -15px;
+        }
+
+        &[aria-pressed="true"] {
+          outline: 1.5px solid var(--ink);
+          outline-offset: 2px;
+        }
+
+        &:active {
+          cursor: grabbing;
+        }
+      }
+
+      /* (What its ends are worth, under them.) */
+      .gradient-ends {
+        display: flex;
+        justify-content: space-between;
+        margin: -4px 0 0;
+        color: var(--muted);
+        font: 400 11px/16px var(--sans);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .gradient-rows {
+        display: grid;
+        gap: 6px;
+      }
+
+      .gradient-row {
+        display: grid;
+        grid-template-columns: 44px 1fr 28px;
+        align-items: center;
+        gap: 8px;
+
+        input {
+          width: 100%;
+        }
+      }
+
       /* Where it's from, as tabs across the editor (the one chosen as every segmented choice shows it), what it shows
          under them: Bitview's colors, inset; the surface edge to edge, its hex closing the editor; a fading one's own. */
       .color-editor .color-source {
@@ -9791,6 +9882,7 @@
             <li>"label": its name.</li>
             <li>"color": one of Bitview's (gray, red, orange, amber, yellow, avocado, lime, green, emerald, teal, cyan, sky, blue, indigo, violet, purple, fuchsia, pink, rose, or ink, the page's text color) a six-digit hex such as #ff8800, or oklch as Studio writes it, "oklch(0.7 0.15 45)", each as the dark theme (the default) shows it: the light one turns every color's lightness over, white showing as black; "colorBelow": a baseline's or bars' second color, under their base, a trend's on support, or a cloud's where its second layer is over (its own color if none).</li>
             <li>"colorFrom": "B" on a line, dots, an area, bars, a cloud or a trend: its colors taken from layer B date by date, as B is drawn (a baseline's above or below its base, bars' too, a trend's on resistance or support, by its levels if it's colored by them, else B's one color).</li>
+            <li>"gradient": [[0, "blue"], [60, "yellow"], [100, "red"]] on a line, dots, an area, bars, a cloud, a trend or a heatmap: its colors by its value instead, date by date, from its lowest value (0) to its highest (100), 2 to 4 colors, each at its place, mixed between them (past the outer ones, theirs); its lowest and highest of all its history (at an interval under a day, of what's loaded), or with "upToDate": true of its history up to each date (no hindsight); kept but off, "byGradient": false. A heatmap's by its cells' strength (its unrealized P&amp;L's: loss at 0, none at 50, profit at 100).</li>
             <li>"byLevels": true on a line, dots, an area or bars with levels: colored by them, date by date: above each level, that level's color (give each one its "color"); under them all, its own.</li>
             <li>"colors": 1 or 4 on bars: their one color; or four: above and below their base, each side's own where a bar grows from it ("color", "colorBelow"), fainter where it fades back toward it ("colorFading" above, "colorBelowFading" below; each side's own, fainter, if none). Unset, their two: "color" above, "colorBelow" under. 1 on a trend or a cloud with a "colorBelow": its one color, that second kept.</li>
             <li>"type": line, dots, area, histogram (bars), baseline, or candles (for an OHLC series such as price_ohlc); left out, the series' own look.</li>
@@ -10926,6 +11018,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const HEAT_WEIGHTS = /** @type {[string, string][]} */ ([["", "Every coin"], ["wakefulness", "Awake"], ["mobility", "Mobile"]]);
       /** A heatmap's densities, the URPD's: rows per ×10 in price, on a log scale or a linear one. */
       const HEAT_ROWS = [100, 200, 500];
+      /** A gradient's colors at most, at least (read back with a chart, at the start: see gradientOf). */
+      const GRADIENT_MOST = 4, GRADIENT_LEAST = 2;
       /** @type {[string, string][]} */
       const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"]];
       /** The types drawn as a line: a dash and a shape apply. */
@@ -10945,7 +11039,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * candles' two, rising and falling (their one, a choice).
        * @type {Record<string, string[]>}
        */
-      const COLOR_MODES = { line: ["one", "levels", "from"], dots: ["one", "levels", "from"], area: ["one", "levels", "from"], histogram: ["one", "sides", "momentum", "levels", "from"], baseline: ["sides"], trend: ["one", "sides", "from"], cloud: ["layers", "one", "sides", "from"], candles: ["one", "sides"], signal: ["one"] };
+      const COLOR_MODES = { line: ["one", "levels", "gradient", "from"], dots: ["one", "levels", "gradient", "from"], area: ["one", "levels", "gradient", "from"], histogram: ["one", "sides", "momentum", "levels", "gradient", "from"], baseline: ["sides"], trend: ["one", "sides", "gradient", "from"], cloud: ["layers", "one", "sides", "gradient", "from"], candles: ["one", "sides"], signal: ["one"], heatmap: ["one", "gradient"] };
       /** The types that can take their colors from another layer, and those that can be colored by their levels. */
       const COLORED_FROM = new Set(Object.keys(COLOR_MODES).filter((type) => COLOR_MODES[type].includes("from")));
       const BY_LEVELS = new Set(Object.keys(COLOR_MODES).filter((type) => COLOR_MODES[type].includes("levels")));
@@ -12016,7 +12110,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, colorBelow?: string, colors?: 1 | 4, colorFading?: string, colorBelowFading?: string, opacity?: number,
        *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
        *   shape?: string, levels?: Level[], fill?: string, fillOpacity?: number, solid?: true, hollow?: "down" | "both" | "none", place?: string, results?: boolean, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean,
-       *   heatmap?: string, weight?: string, measure?: string, rows?: number }} Layer
+       *   heatmap?: string, weight?: string, measure?: string, rows?: number, gradient?: [number, string][], upToDate?: true, byGradient?: true }} Layer
        *   Made from layers (`from`: the ids of the layers it's made of, none itself made from layers), by its type: a cloud
        *   ("cloud") is filled between its two, at each date (in two colors, `color` where the first is over the second,
        *   `colorBelow` where the second is, parting where they cross); a trend ("trend") is on the lowest of two or more
@@ -12031,6 +12125,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   bars', a cloud's or a trend's (not a baseline's, nor candles').
        *   `byLevels`: colored by its levels instead, date by date: above each, that level's color; under them all, its own
        *   (a line's, dots', an area's or bars'; never with `colorFrom`).
+       *   `byGradient`: colored by its value instead, date by date, along its `gradient`: its stops (2 to 4, each where it
+       *   is from 0% to 100% of the way from its lowest value to its highest, and its color), mixed between them; past its
+       *   outer ones, theirs. Its lowest and highest of all its history (at a fine interval, of what it holds), or
+       *   (`upToDate`) of its history up to each date (no hindsight). A heatmap's: by its cells' strength (see
+       *   heatStrip). Its gradient kept while it's colored otherwise. Never with `colorFrom`, `byLevels`, `byLayers`.
        *   `byLayers`: a cloud's, colored by its layers: each one's own where it's over, following them (its `color` and
        *   `colorBelow` theirs, see layersColors; never with `colorFrom`).
        *   `colors`: bars' (their two, above and below their base, unset): 1, their one; 4, MACD's, each side's own where a
@@ -12335,6 +12434,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Colors from another layer: one there, not itself, for a type that takes them.)
         // (Nor one taking its colors from this one: a pair, each the other's, has nothing to start from.)
         for (const layer of doc.layers) if (layer.colorFrom && (!COLORED_FROM.has(layer.type) || layer.colorFrom === layer.id || !doc.layers.some((other) => other.id === layer.colorFrom) || doc.layers.find((other) => other.id === layer.colorFrom)?.colorFrom === layer.id)) delete layer.colorFrom;
+        // (A gradient where its type takes one, its way of coloring alone; up to each date, a gradient's.)
+        for (const layer of doc.layers) if (layer.gradient && !(COLOR_MODES[layer.type] ?? []).includes("gradient")) delete layer.gradient;
+        for (const layer of doc.layers) if (!layer.gradient) delete layer.byGradient, delete layer.upToDate;
+        for (const layer of doc.layers) if (layer.byGradient) delete layer.colorFrom, delete layer.byLevels, delete layer.byLayers, delete layer.colors;
         for (const layer of doc.layers) if (layer.byLevels && (!BY_LEVELS.has(layer.type) || !layer.levels?.length || layer.colorFrom)) delete layer.byLevels;
         // (By its layers: a cloud's (of its pane's two edges, none), its colors theirs as they are now. A cloud to an edge
         // of two colors shows one (nothing crosses an edge): kept so, its second kept.)
@@ -12435,12 +12538,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * doesn't know it can't save it as one interval for good; 9, signals, so one that doesn't know them can't save them
        * as lines; 10, a signal's down color and results, so one that doesn't know them can't drop them; 11, an area's fill
        * opacity and solid fill, candles' one color and hollow bodies, so one that doesn't know them can't drop them; 12, a
-       * path (a drawing of many points) and a folder's icon, so one that doesn't know them can't drop them): one
-       * saved by a newer
+       * path (a drawing of many points) and a folder's icon, so one that doesn't know them can't drop them; 13, heatmaps
+       * and gradients, so one that doesn't know them can't turn a heatmap into a line or drop a gradient): one saved by a
+       * newer
        * Studio (a later number), or stored in a shape it can't read at all (damaged, another's), is opened read-only here,
        * said so, and kept as it is: it may hold what this one would drop, or lose entirely, if it saved over it.
        */
-      const SCHEMA = 12;
+      const SCHEMA = 13;
       let readOnly = Number(/** @type {any} */ (library)?.schema) > SCHEMA || (!Array.isArray(library?.charts) && (() => {
         try {
           return localStorage.getItem(STORE) !== null;
@@ -17051,6 +17155,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           }
         }
         const result = data.results.get(layer.id), values = result?.values, top = layer.color, under = belowOf(layer);
+        // By a gradient: its color at its value's place between its lowest and highest (see gradientPlaces).
+        if (layer.byGradient && layer.gradient && values) {
+          const table = gradientTable(layer.gradient), places = gradientPlaces(values, Boolean(layer.upToDate));
+          return (i) => (Number.isNaN(places[i]) ? null : table[Math.round(places[i] * (GRADIENT_STEPS - 1))]);
+        }
         // By its levels: the highest one at or under its value, its color; under them all, its own.
         if (layer.byLevels && values && layer.levels?.length) {
           const steps = levelSteps(layer);
@@ -17101,13 +17210,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const seen = new Set(); at && !seen.has(at.id); at = at.colorFrom ? doc.layers.find((item) => item.id === at?.colorFrom) : undefined) {
           seen.add(at.id);
           const result = data.results.get(at.id);
-          sig.push(ink(at.color), ink(belowOf(at)), at.base, at.type, result?.values, result?.sides, at.byLevels ? JSON.stringify(at.levels) : "", at.colors === 4 ? `${ink(fadingOf(at, false))} ${ink(fadingOf(at, true))}` : "", at.type === "cloud" && at.byLayers ? (result?.memberIds ?? []).map((id) => ink(doc.layers.find((item) => item.id === id)?.color ?? "")).join() : "", at.type === "cloud" && at.byLayers ? result?.members : undefined, at.type === "candles" ? result?.ohlc : undefined);
+          sig.push(ink(at.color), ink(belowOf(at)), at.base, at.type, result?.values, result?.sides, at.byLevels ? JSON.stringify(at.levels) : "", at.byGradient ? `${JSON.stringify(at.gradient)}${at.upToDate ? "|to date" : `|${rangeOf(result?.values ?? []).join()}`}|${light}` : "", at.colors === 4 ? `${ink(fadingOf(at, false))} ${ink(fadingOf(at, true))}` : "", at.type === "cloud" && at.byLayers ? (result?.memberIds ?? []).map((id) => ink(doc.layers.find((item) => item.id === id)?.color ?? "")).join() : "", at.type === "cloud" && at.byLayers ? result?.members : undefined, at.type === "candles" ? result?.ohlc : undefined);
         }
         return sig;
       }
       const samePaint = (/** @type {any[] | null | undefined} */ a, /** @type {any[]} */ b) => Boolean(a) && a?.length === b.length && b.every((value, i) => a?.[i] === value);
       /** Where a layer's colors vary date by date as the chart paints them (its colors another's, a trend's or a cloud's two): its colorsAt. */
-      const paintOf = (/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {{ times: number[], results: Map<string, any> }} */ data) => (layer.colorFrom || layer.byLevels || TWO_KEPT.has(layer.type) || (layer.type === "histogram" && layer.colors === 4) ? colorsAt(doc, layer, /** @type {Resolved} */ (data)) : null);
+      const paintOf = (/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {{ times: number[], results: Map<string, any> }} */ data) => (layer.colorFrom || layer.byLevels || (layer.byGradient && layer.type !== "heatmap") || TWO_KEPT.has(layer.type) || (layer.type === "histogram" && layer.colors === 4) ? colorsAt(doc, layer, /** @type {Resolved} */ (data)) : null);
       /** The color a layer is drawn in at its latest value (its name), where it varies (its colors another's, a trend's or a cloud's two); else null. @param {Layer} layer */
       function colorNow(layer) {
         const at = resolved ? paintOf(chart, layer, resolved) : null;
@@ -20240,11 +20349,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A pixel a row on a log scale (`grid`'s rows, even there); on a linear one (`step`, dollars), a pixel a step of
        * dollars, each its strongest row's (as a log scale's pixels show them, a row over several taking each): even
        * there too, so a column is one image, stretched, either way. Its ends (`bottom`, `top`) in dollars.
-       * @param {string} key @param {any} day @param {string} measure @param {number[]} up @param {number[]} down @param {number} opacity @param {number} most
+       * With a gradient, its color instead by its strength (unrealized P&L's: from its loss's at 0% through no gain at
+       * 50% to its profit's at 100%), opaque.
+       * @param {string} key @param {any} day @param {HeatLook} heat @param {number} most
        * @param {NonNullable<ReturnType<typeof heatGrid>>} grid @param {number} step
        */
-      function heatStrip(key, day, measure, up, down, opacity, most, grid, step) {
-        const look = `${measure}|${up}|${down}|${opacity}|${most}|${step}`, looks = heatStrips.get(key) ?? new Map(), had = looks.get(look);
+      function heatStrip(key, day, heat, most, grid, step) {
+        const { measure, up, down, opacity, gradient } = heat, look = `${heat.paint}|${most}|${step}`, looks = heatStrips.get(key) ?? new Map(), had = looks.get(look);
         // (The most recently drawn last: a few kept a day (two heatmaps of it, a color tried, a zoom), the oldest let go.)
         if (had) return looks.delete(look), looks.set(look, had), had;
         for (const other of looks.keys()) if (looks.size >= HEAT_LOOKS) looks.delete(other);
@@ -20270,13 +20381,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (let p = first; p <= last; p++) if (Math.abs(value) > Math.abs(strongest[p])) strongest[p] = value;
         }
         for (let p = 0; p < height; p++) {
-          const value = strongest[p];
-          if (!value) continue;
-          const [r, g, b] = value < 0 ? down : up, at = p * 4;
+          const value = strongest[p], strength = value ? Math.min(1, Math.max(0, 1 + Math.log10(Math.abs(value) / most) / HEAT_DECADES)) : 0;
+          if (!strength) continue;
+          const place = measure === "pnl" ? 0.5 + (Math.sign(value) * strength) / 2 : strength;
+          const [r, g, b] = gradient ? gradient[Math.round(place * (gradient.length - 1))] : value < 0 ? down : up, at = p * 4;
           image.data[at] = r;
           image.data[at + 1] = g;
           image.data[at + 2] = b;
-          image.data[at + 3] = Math.round(255 * opacity * Math.min(1, Math.max(0, 1 + Math.log10(Math.abs(value) / most) / HEAT_DECADES)) ** 2);
+          image.data[at + 3] = Math.round(255 * opacity * (gradient ? 1 : strength ** 2));
         }
         context.putImageData(image, 0, 0);
         const strip = { canvas, bottom, top, height };
@@ -20305,8 +20417,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * A heatmap's look (see heatLook), and as last drawn: the days a column holds (`step`), the days it showed and
-       * wanted (`keep`), its reference (`reference`: the open day's largest cell, see heatStrip).
-       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, step?: number, keep?: Set<string>, reference?: number }} HeatLook
+       * wanted (`keep`), its reference (`reference`: the open day's largest cell, see heatStrip); its colors (`gradient`,
+       * its gradient's as shown, see gradientTable) and all it's painted by (`paint`, its strips' key).
+       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, step?: number, keep?: Set<string>, reference?: number }} HeatLook
        */
       /**
        * Each heatmap's look, by its layer's id: what it draws and how (kept apart from its series' options, which the
@@ -20337,7 +20450,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A color's red, green and blue (a hex one). */
       const rgbOf = (/** @type {string} */ hex) => [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
       /** A heatmap's look, for its series' renderer (see heatLooks). @param {Chart} doc @param {Layer} layer @param {Resolved} data @param {number} opacity */
-      const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data.times), measure: layer.measure ?? "supply", up: rgbOf(ink(layer.color)), down: rgbOf(ink(belowOf(layer))), opacity });
+      const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data.times), measure: layer.measure ?? "supply", up: rgbOf(ink(layer.color)), down: rgbOf(ink(belowOf(layer))), opacity, gradient: layer.byGradient && layer.gradient ? gradientTable(layer.gradient).map((color) => rgbOf(ink(color))) : null, paint: `${layer.measure ?? "supply"}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
       /** The day a block of `by` days is drawn as: its last (the open one, at most). @param {HeatLook} heat @param {number} g */
       const heatOwner = (heat, g, /** @type {number} */ by) => Math.min(Math.ceil(g / by) * by, heat.days.length - 1);
       /** A day's key in heatDays, by its count (see heatCalendar). @param {HeatLook} heat @param {number} g */
@@ -20435,7 +20548,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!shown) want(ownerAt(owner, step * 16), step * 16);
           if (!shown || !shown.day.rows.length) return;
           if (!reference) return;
-          const strip = heatStrip(shown.key, shown.day, heat.measure, heat.up, heat.down, heat.opacity, reference, grid, dollars), x = Math.round(x0 * h), w = Math.max(1, Math.round(x1 * h) - x);
+          const strip = heatStrip(shown.key, shown.day, heat, reference, grid, dollars), x = Math.round(x0 * h), w = Math.max(1, Math.round(x1 * h) - x);
           const top = toY(strip.top), bottom = toY(strip.bottom);
           if (top === null || bottom === null || bottom < 0 || top > mediaSize.height) return;
           // (Fewer pixels than its rows: averaged; more, each row's own edge, sharp.)
@@ -23919,8 +24032,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const now = layer.type === "histogram" && layer.colors === 4 ? null : colorNow(layer), color = escape(ink(now ?? layer.color)), below = now ? color : escape(ink(belowOf(layer)));
         const x = (i) => 0.8 + (i / (ys.length - 1)) * 14.4, y = (value) => 11 - value * 10;
         let body = `<path d="M1.5 6.5h13" stroke="${color}" stroke-opacity=".4" stroke-width="1.4" stroke-dasharray="2 2"/>`;
+        // (A gradient's, a bar of its colors, low to high, whatever its type.)
+        if (layer.byGradient && layer.gradient) body = ((table) => Array.from({ length: 8 }, (_, k) => `<rect x="${(1 + k * 1.75).toFixed(2)}" y="3.5" width="1.85" height="6" fill="${escape(ink(table[Math.round((k / 7) * (table.length - 1))]))}"/>`).join(""))(gradientTable(layer.gradient));
         // A cloud's, a band in its color.
-        if (layer.type === "cloud") body = `<path d="M1 4.5c2.4-2 4.6-2.4 7-1.3s4.6 1 7-1.6v6.2c-2.4 2.6-4.6 2.6-7 1.5S3.4 8.1 1 10Z" fill="${color}" fill-opacity=".35"/>`;
+        else if (layer.type === "cloud") body = `<path d="M1 4.5c2.4-2 4.6-2.4 7-1.3s4.6 1 7-1.6v6.2c-2.4 2.6-4.6 2.6-7 1.5S3.4 8.1 1 10Z" fill="${color}" fill-opacity=".35"/>`;
         // (A signal's, its mark.)
         else if (layer.type === "signal") body = markBody(layer.place, color);
         // (A heatmap's, cells of it: its unrealized P&L's, its loss over its profit.)
@@ -27490,11 +27605,75 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           set(element.id, /** @type {number} */ (to));
         });
       }
+      /**
+       * A gradient's edit (`edit` gives back the color then to be set, its index), the one in hand's; `again`, the
+       * inspector drawn again with that color the one set, its cursor focused.
+       * @param {(item: Layer) => number} edit
+       */
+      function gradientEdit(edit, again = false) {
+        let k = -1;
+        editLayer((item) => (k = item.gradient ? edit(item) : k));
+        if (k < 0) return;
+        colorSlot.set(`${chart.id}:${selected}`, `stop${k}`);
+        if (again) renderInspector(), refocus(`#inspector .gradient-stop[data-stop="${k}"]`);
+      }
+      /** A gradient's cursor, its bar and its field, as its color `k` is now (drawn while a drag holds the inspector still). */
+      function showStop(/** @type {number} */ k) {
+        const layer = layerById(selected), stops = layer?.gradient, at = stops?.[k]?.[0];
+        if (!stops || at === undefined) return;
+        const cursor = /** @type {HTMLElement | null} */ ($("inspector").querySelector(`.gradient-stop[data-stop="${k}"]`)), bar = /** @type {HTMLElement | null} */ ($("inspector").querySelector("[data-gradient-bar]"));
+        cursor?.style.setProperty("left", `${at}%`);
+        bar?.style.setProperty("--g", gradientCss(stops));
+        const field = /** @type {HTMLInputElement | null} */ ($("inspector").querySelector(`[data-stop-at="${k}"]`));
+        if (field) field.value = String(at);
+      }
+      /** Where a point is across a gradient's bar, 0 to 100. */
+      const barAt = (/** @type {HTMLElement} */ bar, /** @type {number} */ clientX) => ((box) => (box.width ? ((clientX - box.left) / box.width) * 100 : 0))(bar.getBoundingClientRect());
+      // A cursor dragged: its color between its neighbors, one undo step a drag; the bar pressed elsewhere, a color added
+      // there.
+      $("inspector").addEventListener("pointerdown", (event) => {
+        const cursor = closest(event, ".gradient-stop"), bar = closest(event, "[data-gradient-bar]");
+        if (event.button !== 0 || !bar) return;
+        if (!cursor) return void (event.preventDefault(), gradientEdit((item) => addStop(item, barAt(bar, event.clientX)), true));
+        const k = Number(cursor.dataset.stop);
+        colorSlot.set(`${chart.id}:${selected}`, `stop${k}`);
+        pickPress(event, cursor, "scrubbing", (/** @type {{ clientX: number }} */ point) => {
+          const at = Math.round(barAt(bar, point.clientX)), now = layerById(selected)?.gradient?.[k]?.[0];
+          if (now === undefined || Math.round(clamp(at, layerById(selected)?.gradient?.[k - 1]?.[0] ?? 0, layerById(selected)?.gradient?.[k + 1]?.[0] ?? 100)) === now) return;
+          editLayer((item) => moveStop(item, k, at), { coalesce: `stop:${selected}:${k}` });
+          showStop(k);
+        });
+      });
+      // A cursor by the keys: ← → a step (⇧, ten), ⌫ gone (two left at least).
+      $("inspector").addEventListener("keydown", (event) => {
+        const cursor = /** @type {HTMLElement} */ (event.target);
+        if (!cursor.classList?.contains("gradient-stop")) return;
+        const k = Number(cursor.dataset.stop), by = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+        if (by) {
+          event.preventDefault();
+          event.stopPropagation();
+          editLayer((item) => moveStop(item, k, (item.gradient?.[k]?.[0] ?? 0) + by * (event.shiftKey ? 10 : 1)), { coalesce: `stop:${selected}:${k}` });
+          return void (renderInspector(), refocus(`#inspector .gradient-stop[data-stop="${k}"]`));
+        }
+        if (event.key === "Backspace" || event.key === "Delete") {
+          event.preventDefault();
+          event.stopPropagation();
+          gradientEdit((item) => (item.gradient && item.gradient.length > GRADIENT_LEAST ? (item.gradient.splice(k, 1), Math.max(0, k - 1)) : k), true);
+        }
+      });
+      // A place typed: its color there, between its neighbors.
+      $("inspector").addEventListener("change", (event) => {
+        const field = /** @type {HTMLInputElement} */ (event.target);
+        if (!field.dataset?.stopAt) return;
+        const k = Number(field.dataset.stopAt), at = Number(field.value);
+        if (Number.isFinite(at)) gradientEdit((item) => (moveStop(item, k, at), k), true);
+      });
       // (Several at different stops ("Mixed"): a key steps from the first's, and sets them all there.)
       sliders($("inspector"), { valueOf: (id) => ((layers) => (layers.length ? sharedBy(layers, SLIDERS[id].of) ?? SLIDERS[id].of(layers[0]) : undefined))(inHand()), set: setSlider });
 
       /** How a layer's colors are chosen now (see COLOR_MODES). @param {Layer} layer */
       function colorModeOf(layer) {
+        if (layer.byGradient && layer.gradient) return "gradient";
         if (layer.colorFrom) return "from";
         if (layer.byLayers && modesOf(layer).includes("layers")) return "layers";
         if (layer.byLevels) return "levels";
@@ -27504,13 +27683,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return "one";
       }
       /** A way of coloring, named for a layer of its type (a pair, by what its two are for). */
-      const modeName = (/** @type {string} */ mode) => (mode === "one" ? "One" : mode === "sides" ? "Two" : mode === "momentum" ? "Four" : mode === "levels" ? "By its levels" : mode === "layers" ? "By its layers" : "From a layer");
+      const modeName = (/** @type {string} */ mode) => (mode === "one" ? "One" : mode === "sides" ? "Two" : mode === "momentum" ? "Four" : mode === "levels" ? "By its levels" : mode === "layers" ? "By its layers" : mode === "gradient" ? "Gradient" : "From a layer");
       /**
        * A layer's colors in its way of coloring, each with what it's for: [its key (a Layer's field; "from", the layer it
        * takes them from), its label].
        * @param {Layer} layer @returns {[string, string][]}
        */
       function colorSlots(layer) {
+        // (A gradient's: its stops, each by where it is.)
+        if (layer.byGradient && layer.gradient) return layer.gradient.map(([at], k) => [`stop${k}`, `At ${at}%`]);
         // (A heatmap's: one; its unrealized P&L's, its profit's and its loss's.)
         if (layer.type === "heatmap") return layer.measure === "pnl" ? [["color", "In profit"], ["colorBelow", "In loss"]] : [["color", "Color"]];
         const mode = colorModeOf(layer), pair = layer.type === "cloud" ? ((letters) => (letters.length === 2 ? [`${letters[0]} over ${letters[1]}`, `${letters[1]} over ${letters[0]}`] : ["First over", "Second over"]))(fromLetters(layer)) : PAIRS[layer.type];
@@ -27526,14 +27707,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Bars' color where they fall back toward their base, above it or below (four colors): theirs, else their side's fainter. @param {Layer} layer */
       const fadingOf = (layer, /** @type {boolean} */ below) => (below ? layer.colorBelowFading : layer.colorFading) ?? faintOf(below ? belowOf(layer) : layer.color);
-      const colorOf = (/** @type {Layer} */ layer, /** @type {string} */ key) => (key === "colorBelow" ? belowOf(layer) : key === "colorFading" ? fadingOf(layer, false) : key === "colorBelowFading" ? fadingOf(layer, true) : layer.color);
+      const colorOf = (/** @type {Layer} */ layer, /** @type {string} */ key) => (key.startsWith("stop") ? layer.gradient?.[Number(key.slice(4))]?.[1] ?? layer.color : key === "colorBelow" ? belowOf(layer) : key === "colorFading" ? fadingOf(layer, false) : key === "colorBelowFading" ? fadingOf(layer, true) : layer.color);
       /**
        * One of a layer's colors, set (its way of coloring as it is): its own; its second, kept only where it isn't its
        * default (red below a baseline's base, bars' too; a trend's or a cloud's, as picked); a fading one of four (empty:
        * its side's fainter again).
        */
       function setColor(/** @type {Layer} */ layer, /** @type {string} */ key, /** @type {string} */ color) {
-        if (key === "colorFading") layer.colorFading = color || undefined;
+        if (key.startsWith("stop")) ((stop) => stop && color && (stop[1] = color))(layer.gradient?.[Number(key.slice(4))]);
+        else if (key === "colorFading") layer.colorFading = color || undefined;
         else if (key === "colorBelowFading") layer.colorBelowFading = color || undefined;
         else if (key === "colorBelow") layer.colorBelow = !TWO_KEPT.has(layer.type) && color === "red" ? undefined : color;
         else layer.color = color;
@@ -27547,13 +27729,81 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         delete layer.byLevels;
         delete layer.byLayers;
         delete layer.colors;
-        if (mode === "levels") (layer.byLevels = true), colorLevels(layer);
+        // (Its gradient kept, as its other colors are: colored by it again, as it was.)
+        delete layer.byGradient;
+        if (mode === "gradient") (layer.byGradient = true), (layer.gradient ??= gradientFor(layer));
+        else if (mode === "levels") (layer.byLevels = true), colorLevels(layer);
         else if (mode === "layers") (layer.byLayers = true), layersColors(layer, ownerOf(layer));
         else if (mode === "from") layer.colorFrom = from;
         else if ((layer.type === "histogram" && (mode === "one" || mode === "momentum")) || (layer.type === "candles" && mode === "one")) layer.colors = mode === "one" ? 1 : 4;
         // (Two the same, as its layers' may be: a second apart.)
         else if (TWO_KEPT.has(layer.type) && mode === "sides") layer.colorBelow = layer.colorBelow === undefined || layer.colorBelow === layer.color ? secondColor(layer) : layer.colorBelow;
         else if (TWO_KEPT.has(layer.type) && mode === "one" && layer.colorBelow !== undefined) layer.colors = 1;
+      }
+      // ── Gradients: colors by value ───────────────────────────────────────────────
+
+      /**
+       * A gradient a layer starts with: a heatmap's unrealized P&L through gray at no gain from loss to profit; another
+       * heatmap's from indigo through rose to yellow (dark to bright, as heat); anything else's from blue to red.
+       * @param {Layer} layer @returns {[number, string][]}
+       */
+      const gradientFor = (layer) => (layer.type === "heatmap" ? (layer.measure === "pnl" ? [[0, "red"], [50, "gray"], [100, "green"]] : [[0, "indigo"], [55, "rose"], [100, "yellow"]]) : [[0, "blue"], [100, "red"]]);
+      /**
+       * A gradient as CSS draws it, across: its own colors (see gradientTable), each as shown, a sample of them (CSS's own
+       * mixing, between its stops, would be another: through gray where they're mixed in sRGB).
+       * @param {[number, string][]} stops
+       */
+      const gradientCss = (stops) => ((table) => `linear-gradient(to right, ${Array.from({ length: 17 }, (_, k) => `${cssColor(table[Math.round((k / 16) * (table.length - 1))])} ${((k / 16) * 100).toFixed(2)}%`).join(", ")})`)(gradientTable(stops));
+      /** Each gradient's colors, by its stops: see gradientTable. @type {Map<string, string[]>} */
+      const gradientTables = new Map();
+      /** The page's ink as the dark shows it (`--ink`'s dark side): as colors are kept, see gradientTable. */
+      const INK_KEPT = "#f7f8f8";
+      /** How many colors a gradient is drawn in (each a value's place, rounded to the nearest of so many). */
+      const GRADIENT_STEPS = 64;
+      /**
+       * A gradient's colors as kept (each `oklch(…)`, as a color picked is: ink shows it in the theme), `GRADIENT_STEPS`
+       * of them from 0% to 100%: between two stops, mixed in OKLCH, lightness and chroma straight and hue the shorter
+       * way round (a gray one taking its neighbor's: no hue of its own), so two far apart stay vivid between (mixed in
+       * OKLab, blue to yellow went through gray); past its outer ones, theirs.
+       * @param {[number, string][]} stops @returns {string[]}
+       */
+      function gradientTable(stops) {
+        const key = JSON.stringify(stops), had = gradientTables.get(key);
+        if (had) return had;
+        // (Ink mixed as it's kept, the dark's: the light shows it dark as any other color, see ink.)
+        const lchs = stops.map(([, color]) => (color === "ink" ? hexToOklch(INK_KEPT) : oklchOf(color))), GRAY = 0.02;
+        const table = Array.from({ length: GRADIENT_STEPS }, (_, k) => {
+          const at = (k / (GRADIENT_STEPS - 1)) * 100, next = stops.findIndex(([where]) => where >= at);
+          const [a, b, t] = next <= 0 ? [next < 0 ? stops.length - 1 : 0, next < 0 ? stops.length - 1 : 0, 0] : [next - 1, next, (at - stops[next - 1][0]) / Math.max(1e-9, stops[next][0] - stops[next - 1][0])];
+          const [l0, c0, h0] = lchs[a], [l1, c1, h1] = lchs[b];
+          const from = c0 < GRAY ? h1 : h0, to = c1 < GRAY ? h0 : h1, turn = ((((to - from) % 360) + 540) % 360) - 180;
+          return `oklch(${+(l0 + (l1 - l0) * t).toFixed(4)} ${+(c0 + (c1 - c0) * t).toFixed(4)} ${+((((from + turn * t) % 360) + 360) % 360).toFixed(1)})`;
+        });
+        if (gradientTables.size > 200) gradientTables.clear();
+        gradientTables.set(key, table);
+        return table;
+      }
+      /** A layer's lowest and highest values (none: Infinity and -Infinity). @param {Vector | number[]} values @returns {[number, number]} */
+      function rangeOf(values) {
+        let low = Infinity, high = -Infinity;
+        for (const value of values) if (Number.isFinite(value)) (low = Math.min(low, value)), (high = Math.max(high, value));
+        return [low, high];
+      }
+      /**
+       * Where each value is between its lowest and its highest (0 to 1): of all its history, or (`upToDate`) of its
+       * history up to it (no hindsight: what that day would have shown). None where it has none.
+       * @param {Vector} values @param {boolean} upToDate @returns {Float64Array}
+       */
+      function gradientPlaces(values, upToDate) {
+        const places = new Float64Array(values.length).fill(NaN);
+        let [low, high] = upToDate ? [Infinity, -Infinity] : rangeOf(values);
+        for (let i = 0; i < values.length; i++) {
+          const value = values[i];
+          if (!Number.isFinite(value)) continue;
+          if (upToDate) (low = Math.min(low, value)), (high = Math.max(high, value));
+          places[i] = high > low ? (value - low) / (high - low) : 0.5;
+        }
+        return places;
       }
       /**
        * The surface, one plane, every point (u across, t down, 0 to 1) a color. Down, lightness, white at the top to
@@ -27654,6 +27904,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A way of coloring a layer, as a swatch: its colors top to bottom (by its levels, its bands; from a layer, its letter). */
       function modeSwatch(/** @type {Layer} */ layer, /** @type {string} */ mode) {
         if (mode === "levels") return bandsSwatch(layer);
+        // (A gradient's, across, as its bar is.)
+        if (mode === "gradient") return `<i class="swatch" style="background: ${escape(gradientCss(layer.gradient ?? gradientFor(layer)))}"></i>`;
         // (From a layer: which, once there is one; none chosen yet, no letter that would say one was.)
         if (mode === "from") return ((source) => (source ? letterChip(source) : ICONS.series))(layerById(layer.colorFrom ?? ""));
         const colors = mode === "momentum" ? [layer.color, fadingOf(layer, false), fadingOf(layer, true), belowOf(layer)] : mode === "sides" || (mode === "layers" && !edgesOf(layer).length) ? [layer.color, belowOf(layer)] : [layer.color];
@@ -27669,7 +27921,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function colorPicker(/** @type {Layer} */ layer) {
         const mode = colorModeOf(layer), name = modeName(mode), source = layerById(layer.colorFrom ?? ""), ways = modesOf(layer).length > 1;
         // The way: a choice, as every other, on its line's right (none to choose: its label alone).
-        const head = `<div class="field"><span>${mode === "one" ? "Color" : "Colors"}</span>${ways ? `<button type="button" id="color-mode" class="preset" data-action="color-mode" aria-haspopup="menu" aria-label="Colors: ${escape(name)}"><span class="name">${escape(name)}</span>${CHEVRON}</button>` : ""}</div>`;
+        const head = `<div class="field"><span>${mode === "gradient" ? `<span>Colors</span><button type="button" class="reset" data-action="gradient-add" aria-label="Add a color" ${(layer.gradient?.length ?? 0) >= GRADIENT_MOST ? `aria-disabled="true" data-tip="A gradient holds up to ${GRADIENT_MOST} colors"` : 'data-tip="Add a color, in the widest gap"'}>${ICONS.plus}</button>` : mode === "one" ? "Color" : "Colors"}</span>${ways ? `<button type="button" id="color-mode" class="preset" data-action="color-mode" aria-haspopup="menu" aria-label="Colors: ${escape(name)}"><span class="name">${escape(name)}</span>${CHEVRON}</button>` : ""}</div>`;
         if (mode === "from") return `${head}<div class="field color-slot"><span>Layer</span><button type="button" id="color-from" class="preset" data-action="color-from" aria-haspopup="menu" aria-label="Colors from: ${escape(source ? labelOf(source) : "")}">${source ? letterChip(source) : ""}<span class="name">${escape(source ? labelOf(source) : "")}</span>${CHEVRON}</button></div>`;
         // By its levels, by its layers: its colors theirs (none here).
         if (mode === "levels" || mode === "layers") return head;
@@ -27678,7 +27930,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // Which one (two, four): the colors themselves, under what they're for (four: its sides down, what the bar does
         // across), the one being set ringed.
         const chip = (/** @type {string} */ slot, /** @type {string} */ name) => `<button type="button" class="slot-chip" data-color-slot="${slot}" aria-pressed="${slot === key}" aria-label="${escape(name)}: ${escape(slotName(layer, slot))}" data-tip="${escape(slotName(layer, slot))}" style="--c:${escape(cssColor(colorOf(layer, slot)))}"></button>`;
-        const which = places.length > 2
+        const which = mode === "gradient" ? gradientEditor(layer, key, chip) : places.length > 2
           ? `<div class="color-slots four" role="group" aria-label="Which color"><span></span><span class="head">Growing</span><span class="head">Fading</span><span>Above</span>${chip("color", "Above, growing")}${chip("colorFading", "Above, fading")}<span>Below</span>${chip("colorBelow", "Below, growing")}${chip("colorBelowFading", "Below, fading")}</div>`
           : places.length > 1 ? `<div class="color-slots" role="group" aria-label="Which color">${places.map(([, name]) => `<span class="head">${escape(name)}</span>`).join("")}${places.map(([slot, name]) => chip(slot, name)).join("")}</div>` : "";
         // Where it's from: Bitview's colors; any other (the surface, its hex); a fading one's own, its growing one fainter.
@@ -27688,7 +27940,55 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const body = from === "custom" ? `<div class="color-box">${planeHtml(colorOf(layer, key), target, label)}${hexField(target, colorOf(layer, key))}</div>`
           : from === "auto" ? `<p class="color-auto"><i class="swatch" style="--c:${escape(cssColor(faintOf(side)))}"></i>Fainter ${escape(colorName(side).toLowerCase())}</p>`
           : swatchGrid(own && SWATCHES.includes(own) ? own : "");
-        return `${head}<div class="color-editor" data-palette="${key}">${which}${tabs}<div class="color-pick">${body}</div></div>`;
+        // (Relative to all of its history, or up to each date: not a heatmap's, each day its own.)
+        const relative = mode === "gradient" && layer.type !== "heatmap" ? `<div class="field"><span>Relative to</span><div class="tabs" role="group" aria-label="Relative to">${/** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "Its lowest and highest up to each date: what that day showed, no hindsight"]]).map(([on, text, tip]) => `<button type="button" data-gradient-to="${on ? 1 : ""}" aria-pressed="${Boolean(layer.upToDate) === on}" data-tip="${escape(tip)}">${text}</button>`).join("")}</div></div>` : "";
+        return `${head}<div class="color-editor" data-palette="${key}">${which}${tabs}<div class="color-pick">${body}</div></div>${relative}`;
+      }
+      /**
+       * A gradient's editor, above its color's: its bar, a cursor a color where it is (pressed, its color the one set under
+       * it; dragged, or moved by the arrows, between its neighbors; ⌫, gone, two left at least), a press on the bar a
+       * color added there; its colors listed under it, each its place, typed, and a way to remove it.
+       * @param {Layer} layer @param {string} key the color being set @param {(slot: string, name: string) => string} chip
+       */
+      function gradientEditor(layer, key, chip) {
+        const stops = layer.gradient ?? [], few = stops.length <= GRADIENT_LEAST;
+        const cursor = (/** @type {[number, string]} */ [at, color], /** @type {number} */ k) => `<button type="button" class="gradient-stop" data-color-slot="stop${k}" data-stop="${k}" aria-pressed="${key === `stop${k}`}" style="left: ${at}%; --c: ${escape(cssColor(color))}" aria-label="${escape(`${colorName(color)}, at ${at}%`)}" data-tip="${escape(`${colorName(color)}, at ${at}%`)}${escape(`\n${keyText(`Drag, or ← → to move it${few ? "" : "; ⌫ to remove it"}`)}`)}"></button>`;
+        const row = (/** @type {[number, string]} */ [at], /** @type {number} */ k) => `<div class="gradient-row">${chip(`stop${k}`, `Color ${k + 1}`)}<span class="number-field"><input type="number" inputmode="numeric" min="0" max="100" step="1" value="${at}" data-stop-at="${k}" aria-label="Color ${k + 1}, its place" enterkeyhint="done" /><span class="unit">%</span></span>${few ? "" : `<button type="button" class="cap small" data-stop-remove="${k}" aria-label="Remove color ${k + 1}" data-tip="Remove">${ICONS.close}</button>`}</div>`;
+        const ends = gradientEnds(layer);
+        return `<div class="gradient-edit" role="group" aria-label="Its gradient"><div class="gradient-bar" data-gradient-bar style="--g: ${escape(gradientCss(stops))}"${stops.length < GRADIENT_MOST ? ' data-tip="A press adds a color here"' : ""}>${stops.map(cursor).join("")}</div>${ends ? `<div class="gradient-ends" aria-label="${escape(`From ${ends[0]} to ${ends[1]}`)}"><span>${escape(ends[0])}</span><span>${escape(ends[1])}</span></div>` : ""}<div class="gradient-rows">${stops.map(row).join("")}</div></div>`;
+      }
+      /**
+       * What a gradient's ends are worth, as its values are written: its lowest and highest of all its history (up to each
+       * date, the same range in all); a heatmap's, its faintest cell seen and its reference (see heatStrip), its unrealized
+       * P&L's from its largest loss to its largest gain. None yet, none.
+       * @param {Layer} layer @returns {[string, string] | null}
+       */
+      function gradientEnds(layer) {
+        const result = resolved?.results.get(layer.id), unit = unitFor(layer, result);
+        // (A heatmap's unrealized P&L: its largest loss at its left end, its largest gain at its right, none in the middle.)
+        if (layer.type === "heatmap") return ((most) => (!most ? null : layer.measure === "pnl" ? [format(-most, unit), format(most, unit)] : [format(most / 10 ** HEAT_DECADES, unit), format(most, unit)]))(heatLooks.get(layer.id)?.reference ?? 0);
+        const [low, high] = rangeOf(result?.values ?? []);
+        return high >= low ? [format(low, unit), format(high, unit)] : null;
+      }
+      /** A gradient's color `k` moved to `at` (0 to 100, whole), between its neighbors: their order kept. @param {Layer} layer @param {number} k @param {number} at */
+      function moveStop(layer, k, at) {
+        const stops = layer.gradient;
+        if (!stops?.[k]) return;
+        stops[k][0] = Math.round(clamp(at, stops[k - 1]?.[0] ?? 0, stops[k + 1]?.[0] ?? 100));
+      }
+      /**
+       * A color added to a gradient at `at` (in the widest gap if none), as the gradient is there (nothing changes till
+       * it's set): its index, or -1 (as many as it holds). @param {Layer} layer @param {number} [at] @returns {number}
+       */
+      function addStop(layer, at) {
+        const stops = layer.gradient;
+        if (!stops || stops.length >= GRADIENT_MOST) return -1;
+        const gaps = [[0, stops[0][0]], ...stops.slice(1).map((stop, k) => [stops[k][0], stop[0]]), [stops[stops.length - 1][0], 100]];
+        const widest = gaps.reduce((best, gap) => (gap[1] - gap[0] > best[1] - best[0] ? gap : best));
+        const place = Math.round(at ?? (widest[0] + widest[1]) / 2), table = gradientTable(stops);
+        const k = stops.findIndex(([where]) => where > place), index = k < 0 ? stops.length : k;
+        stops.splice(index, 0, [place, table[Math.round((place / 100) * (GRADIENT_STEPS - 1))]]);
+        return index;
       }
       /** A color of four that fades (its default: its growing one, fainter). */
       const fadingSlot = (/** @type {string} */ key) => key === "colorFading" || key === "colorBelowFading";
@@ -27711,7 +28011,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** What a layer can take its colors from: another layer, none taking its own (no loop of two). @param {Layer} layer */
       const colorSources = (layer) => chart.layers.filter((other) => other.id !== layer.id && other.colorFrom !== layer.id && other.type !== "signal" && other.type !== "heatmap");
       /** What each way of coloring does, said beside it. */
-      const MODE_ASIDES = { one: "The same all along", sides: "Above and below its base", momentum: "Growing and fading", levels: "Each level's color above it", layers: "Each one's own, where it's over", from: "Another layer's, by date" };
+      const MODE_ASIDES = { one: "The same all along", sides: "Above and below its base", momentum: "Growing and fading", levels: "Each level's color above it", layers: "Each one's own, where it's over", gradient: "By its value, its lowest to its highest", from: "Another layer's, by date" };
       /**
        * A layer's ways of coloring as choices (its menu's, ⌘K's): those its type has, each said; by its levels once it has
        * some; from a layer, which (a page of them). @returns {Action[]}
@@ -28798,6 +29098,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (row.key === "remove") (all$(".layer-row .row-main", $("layer-list"))[Math.min(at, chart.layers.length - 1)] ?? /** @type {HTMLElement | null} */ (document.querySelector("#empty [data-action='add-series']")))?.focus();
         }
         else if (action === "pane-menu") paneMenu(button, inHand().map((layer) => layer.id), () => refocus("#pane"));
+        // (A gradient's: a color added, one removed, relative to all of history or up to each date.)
+        else if (action === "gradient-add") button.getAttribute("aria-disabled") === "true" ? notice(/** @type {string} */ (button.dataset.tip)) : gradientEdit((item) => addStop(item), true);
+        else if (button.dataset.stopRemove) gradientEdit((item) => ((k) => (item.gradient && item.gradient.length > GRADIENT_LEAST ? (item.gradient.splice(k, 1), Math.max(0, k - 1)) : k))(Number(button.dataset.stopRemove)), true);
+        else if (button.dataset.gradientTo !== undefined) editLayer((item) => (item.upToDate = button.dataset.gradientTo ? true : undefined));
         // (A heatmap's holders or density: its page's choices, see heatRows; its measure or weight, one of its tabs.)
         else if (action === "heat-menu") ((row) => (row?.disabled ? notice(row.disabled) : row?.page && ((page) => menuOf(button, page.options?.() ?? page.rows()))(row.page())))(heatRows(selected).find((row) => row.key === button.dataset.heat));
         else if (button.dataset.heatSet) editLayer((item) => {
@@ -31641,11 +31945,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           };
           // A color of it, its page: Bitview's colors, another; a fading one of four, its side's fainter too.
           const ROW_KEYS = /** @type {Record<string, string>} */ ({ color: "color", colorBelow: "color-below", colorFading: "color-fading", colorBelowFading: "color-below-fading" });
-          const color = (/** @type {string} */ key, /** @type {string} */ label) => ({ key: ROW_KEYS[key], icon: swatchOf(colorOf(layer, key)), label, aside: slotName(layer, key), group: "Style", page: () => choicePage(label, () => [
+          const color = (/** @type {string} */ key, /** @type {string} */ label) => ({ key: ROW_KEYS[key] ?? key, icon: swatchOf(colorOf(layer, key)), label, aside: slotName(layer, key), group: "Style", page: () => choicePage(label, () => [
             ...colorRows(key === "colorFading" ? now().colorFading ?? "" : key === "colorBelowFading" ? now().colorBelowFading ?? "" : colorOf(now(), key), (name) => set((item) => setColor(item, key, name))(), (doc, name) => {
               const item = doc.layers.find((other) => other.id === id);
               if (item) setColor(item, key, name);
             }),
+            // (A gradient's color: its place, typed; it removed (two left at least).)
+            ...(key.startsWith("stop") ? ((k, stops) => [
+              { key: "place", icon: ICONS.ruler, label: "Its place", aside: `${stops[k]?.[0] ?? 0}%`, page: () => numberPage({ title: `${label}, its place`, value: String(stops[k]?.[0] ?? 0), apply: (n) => editById(id, (item) => moveStop(item, k, n)) }) },
+              { key: "remove", icon: ICONS.trash, label: "Remove it", danger: true, ...(stops.length > GRADIENT_LEAST ? {} : { disabled: `A gradient has ${GRADIENT_LEAST} colors at least` }), run: () => editById(id, (item) => item.gradient && item.gradient.length > GRADIENT_LEAST && item.gradient.splice(k, 1)) },
+            ])(Number(key.slice(4)), now().gradient ?? []) : []),
             ...(key === "colorFading" || key === "colorBelowFading" ? [((side) => ({ key: "paler", icon: swatchOf(faintOf(side)), label: `Fainter ${colorName(side).toLowerCase()}`, aside: "The growing one's", current: (key === "colorFading" ? now().colorFading : now().colorBelowFading) === undefined, run: set((item) => setColor(item, key, "")), look: (/** @type {Chart} */ doc) => ((item) => item && setColor(item, key, ""))(doc.layers.find((one) => one.id === id)) }))(key === "colorFading" ? now().color : belowOf(now()))] : []),
           ], lookOfChoice) });
           const source = layerById(layer.colorFrom ?? "");
@@ -31672,6 +31981,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...colorSlots(layer).map(([key, label]) => (key === "from"
               ? { key: "color-from", icon: source ? letterChip(source) : ICONS.series, label: "Colors from", aside: source ? labelOf(source) : "", group: "Style", page: () => choicePage("Colors from", () => fromChoices(id), lookOfChoice) }
               : color(key, colorSlots(layer).length > 1 || colorModeOf(layer) === "levels" ? `Color ${label.replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase())}` : "Color"))),
+            // (A gradient's: another color, and what its lowest and highest are of (not a heatmap's: each day its own).)
+            ...(layer.byGradient && layer.gradient ? [
+              { key: "gradient-add", icon: ICONS.plus, label: "Add a color", aside: "In the widest gap", group: "Style", ...(layer.gradient.length < GRADIENT_MOST ? { run: set((item) => addStop(item)) } : { disabled: `A gradient holds up to ${GRADIENT_MOST} colors` }) },
+              ...(layer.type === "heatmap" ? [] : [{ key: "relative", icon: ICONS.calendar, label: "Relative to", aside: layer.upToDate ? "Up to each date" : "All of history", group: "Style", page: () => choicePage("Relative to", () => /** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "What each day showed then, no hindsight"]]).map(([on, text, says]) => ({ key: String(on), label: text, aside: says, current: Boolean(now().upToDate) === on, ...both((item) => (item.upToDate = on || undefined)) }))) }]),
+            ] : []),
             { key: "opacity", icon: ICONS.sliders, label: "Opacity", aside: `${Math.round(opacityOf(layer) * 100)}%`, group: "Style", page: () => choicePage("Opacity", () => OPACITIES.map((opacity) => ({ key: String(opacity), icon: ICONS.sliders, label: `${Math.round(opacity * 100)}%`, current: opacityOf(now()) === opacity, ...both((item) => (item.opacity = opacity === defaultOpacity(item) ? undefined : opacity)) }))) },
             ...(layer.type !== "histogram" ? [{ key: "width", icon: ICONS.sliders, label: "Width", aside: `${layer.width}px`, group: "Style", page: () => choicePage("Width", () => WIDTHS.map((width) => ({ key: String(width), icon: ICONS.sliders, label: `${width}px`, current: now().width === width, ...both((item) => (item.width = width)) }))) }] : []),
             ...(lineish ? [
@@ -31703,7 +32017,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // look, nor a place of its own: its layer's.)
           const NOT_A_SIGNAL = new Set(["type", "fill", "base", "levels", "to-series", "shape", "colors", "color-from", "width", "dash", "price-line", "pane", "side", "scale", "stack", "order", "up", "down", "format"]);
           // (A heatmap: its days, its cohort's: nothing of a line's look or a series' (its colors and opacity its own).)
-          const NOT_A_HEATMAP = new Set(["cycles", "type", "base", "colors", "color-from", "width", "dash", "shape", "fill", "fill-opacity", "fill-style", "price-line", "levels", "stack", "format"]);
+          const NOT_A_HEATMAP = new Set(["cycles", "type", "base", "color-from", "width", "dash", "shape", "fill", "fill-opacity", "fill-style", "price-line", "levels", "stack", "format"]);
           return (layer.type === "signal" ? rows.filter((row) => !NOT_A_SIGNAL.has(row.key)) : layer.type === "heatmap" ? rows.filter((row) => !NOT_A_HEATMAP.has(row.key)) : layer.from ? rows.filter((row) => !NOT_ITS.has(row.key)).map((row) => (row.key === "name" ? { ...row, group: typeName(layer.type) } : row)) : rows).map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, id), ...row }));
         } };
       }
@@ -33556,7 +33870,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function portable(doc) {
         if (doc === chart) saveView();
         const kept = doc === chart ? shownView() : openView(doc);
-        return { v: 3, title: doc.title, index: doc.index, range: doc.range, ...(doc.halvings ? { halvings: true } : {}), ...(doc.legend ? { legend: doc.legend } : {}), panes: doc.panes, layers: doc.layers.map(({ from, ...layer }) => (from ? { ...layer, [layer.type]: from } : layer)), ...(doc.drawings?.length ? { drawings: doc.drawings } : {}), ...(kept ? { view: kept } : {}) };
+        return { v: 3, title: doc.title, index: doc.index, range: doc.range, ...(doc.halvings ? { halvings: true } : {}), ...(doc.legend ? { legend: doc.legend } : {}), panes: doc.panes, layers: doc.layers.map(({ from, ...layer }) => ((one) => (one.gradient && !one.byGradient ? { ...one, byGradient: false } : one))(from ? { ...layer, [layer.type]: from } : layer)), ...(doc.drawings?.length ? { drawings: doc.drawings } : {}), ...(kept ? { view: kept } : {}) };
       }
       /** The view a file or a link carried with a chart, kept for it (as `saveView` keeps one). @param {Chart} doc */
       function keepCarriedView(doc, input) {
@@ -33612,7 +33926,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(doc.legend ? { legend: doc.legend } : {}),
           ...(plain ? {} : { panes: doc.panes.map(({ id, ...pane }) => pane) }),
           // (Not a series' path in the catalog: learned again where it opens.)
-          layers: doc.layers.map(({ id, letter, pane, from, ref, colorFrom, type, width, dash, side, path, paths, series, formula, ...all }) => ((rest) => ({
+          layers: doc.layers.map(({ id, letter, pane, from, ref, colorFrom, type, width, dash, side, path, paths, series, formula, byGradient, ...all }) => ((rest) => ({
             // (What it is first, then how it looks.)
             ...(series !== undefined ? { series } : formula !== undefined ? { formula } : {}),
             ...(from ? { [type]: from.map((member) => doc.layers.find((item) => item.id === member)?.letter ?? member) } : {}),
@@ -33624,6 +33938,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (A series' type always: left out, it's read as the series is mostly drawn, which one tab knows and another
             // doesn't yet: a line opened as a baseline, or candles.)
             ...((type !== "line" || series !== undefined) && !from && type !== "heatmap" ? { type } : {}),
+            // (A gradient on, said by itself; kept off, so.)
+            ...(all.gradient && !byGradient ? { byGradient: false } : {}),
             ...(width !== 1.5 && type !== "cloud" ? { width } : {}),
             ...(dash && type !== "cloud" ? { dash } : {}),
             ...(side !== "right" ? { side } : {}),
@@ -33833,6 +34149,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             color: colors[i] ?? colors[ids.indexOf(members?.find((member) => ids.includes(member)))] ?? PALETTE[0],
             // (A cloud of no colors given: colored by its layers.)
             ...(kind === "cloud" && !colors[i] && layer.colorBelow === undefined ? { byLayers: true } : {}),
+            // (A gradient given alone: what it's colored by (kept off, `byGradient: false`, said so).)
+            ...(Array.isArray(layer.gradient) && layer.byGradient === undefined ? { byGradient: true } : {}),
             ...(number(layer.pane) !== null ? { pane: panes[clamp(/** @type {number} */ (number(layer.pane)), 1, panes.length) - 1].id } : layer.pane === undefined ? { pane: panes[0].id } : {}),
             ...(typeof layer.series === "string" ? { series: seriesName(layer.series), ...(({ type, base }) => ({ ...(type && layer.type === undefined ? { type } : {}), ...(base !== undefined && layer.base === undefined ? { base } : {}) }))(firstForm(seriesName(layer.series), typeof layer.type === "string" ? layer.type : undefined)) } : {}),
             ...(kind ? { [kind]: members } : {}),
@@ -33861,6 +34179,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!Array.isArray(input)) return undefined;
         const levels = input.map((level) => (typeof level === "number" ? { value: level } : level)).filter((level) => Number.isFinite(level?.value)).slice(0, 12);
         return levels.length ? levels.map((level) => ({ value: level.value, ...lineStyleOf(level), ...(typeof level.name === "string" && level.name.trim() ? { name: level.name.trim().slice(0, 40) } : {}) })) : undefined;
+      }
+      /** A gradient read back: 2 to 4 stops, each a place (0 to 100, whole) and a color, in order; else none. @returns {[number, string][] | undefined} */
+      function gradientOf(/** @type {any} */ input) {
+        if (!Array.isArray(input) || input.length < GRADIENT_LEAST || input.length > GRADIENT_MOST) return undefined;
+        const stops = input.filter((stop) => Array.isArray(stop) && Number.isFinite(stop[0]) && isColor(stop[1])).map(([at, color]) => /** @type {[number, string]} */ ([Math.round(clamp(at, 0, 100)), color]));
+        return stops.length === input.length ? stops.sort((a, b) => a[0] - b[0]) : undefined;
       }
       /** Validates chart fields (only `keepIds` preserves valid, unique ids). @returns {Chart} */
       function validate(input, keepIds = false) {
@@ -33917,6 +34241,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(typeof layer.colorFrom === "string" ? { colorFrom: layer.colorFrom } : {}),
             ...(layer.byLevels === true ? { byLevels: true } : {}),
             ...(layer.byLayers === true ? { byLayers: true } : {}),
+            // (A gradient, on where it's said to be (a link's alone, see fromSketch); off, kept.)
+            ...((stops) => (stops ? { gradient: stops, ...(layer.byGradient === true ? { byGradient: true } : {}), ...(layer.upToDate === true ? { upToDate: true } : {}) } : {}))(gradientOf(layer.gradient)),
             levels: levelsOf(layer.levels),
             ...(typeof layer.underName === "string" && layer.underName.trim() && levelsOf(layer.levels) ? { underName: layer.underName.trim().slice(0, 40) } : {}),
             baseLine: Object.keys(lineStyleOf(layer.baseLine)).length ? lineStyleOf(layer.baseLine) : undefined,
@@ -35570,7 +35896,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const key = `${idOf(data)}:${price}:${layers.map((layer) => layer.id).join()}`;
         if (key === liveLast) return;
         liveLast = key;
-        let moved = false;
+        let moved = false, regrade = false;
         /** @type {{ id: string, series: any, painted: { points: any[], faint: boolean, paintWith?: (color: string) => Record<string, string> }, point: Record<string, any> }[]} */
         const toPaint = [];
         for (const layer of layers) {
@@ -35584,8 +35910,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (opens) while (last > 0 && !Number.isFinite(result.values[last])) last--;
           if (at - last > 100 || !Number.isFinite(result.values[last])) continue;
           const values = liveCopy(result.values), bar = result.ohlc?.[last], close = closes.get(layer.id), series = close?.series ?? drawn.get(layer.id);
+          // (Its gradient's range of all its history moved by it, either way: every point's color another, see below.)
+          const was = layer.byGradient && !layer.upToDate ? rangeOf(result.values).join() : "";
           values[at] = value;
           rescan(values, at);
+          if (was && rangeOf(values).join() !== was) regrade = true;
           // Its candles move too, drawn as candles or not (a switch to candles shows them as they are).
           const ohlc = bar ? liveCopy(result.ohlc) : result.ohlc;
           if (bar) {
@@ -35631,6 +35960,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (lensAt) lookAt(lensAt);
         if (!moved) return;
         liveMoves++;
+        // (A gradient's range moved by it: all of it colored again from the data in hand (the live value in it), see
+        // colorsAt and paintSig.)
+        if (regrade) buildSoon(false);
         // (The view's change windows were read from the old value; the navigator's shape from the data before it.)
         windows.data = null;
         drawOverview();
