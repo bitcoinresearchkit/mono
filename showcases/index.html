@@ -67,6 +67,15 @@
         --gutter: 16px;
         --lift: cubic-bezier(0.2, 0.7, 0.2, 1);
         --radius: 10px;
+        /* (Where the bar's line starts, under the status bar: installed on iOS, a little lower, out of the worst of the
+           blur iOS lays over an app's top some 40 pt down from its status bar, the bar's words in it else.) */
+        --bar-top: env(safe-area-inset-top);
+
+        @supports (-webkit-touch-callout: none) {
+          @media (display-mode: standalone) {
+            --bar-top: calc(env(safe-area-inset-top) + 12px);
+          }
+        }
 
         @media (min-width: 720px) {
           --gutter: 40px;
@@ -168,8 +177,8 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        height: calc(64px + env(safe-area-inset-top));
-        padding: env(safe-area-inset-top) var(--gutter) 0;
+        height: calc(64px + var(--bar-top));
+        padding: var(--bar-top) var(--gutter) 0;
         background: linear-gradient(to bottom, rgb(13 12 11 / 0.7), transparent);
         transition: background-color 0.3s, box-shadow 0.3s;
 
@@ -363,13 +372,13 @@
         /* (A phone's: its words clear of the bar's two lines, held sideways too.) */
         @media (max-width: 719px) {
           min-height: min(540px, 72svh);
-          padding-top: 110px;
+          padding-top: calc(110px + var(--bar-top));
         }
 
         /* (At least its share of the screen, taller only as its words need: they never come under the bar.) */
         @media (min-width: 720px) {
           min-height: clamp(360px, min(40svh, 30vw), 560px);
-          padding-top: 96px;
+          padding-top: calc(96px + var(--bar-top));
           padding-bottom: 28px;
 
           /* (Dark, the apps rise into its fade; on paper, the band ends cleanly above them.) */
@@ -390,13 +399,19 @@
           width: 100%;
           height: 100%;
           object-fit: cover;
-          object-position: 70% 35%;
+          /* (Its height in view, a third of the way down, where a picture doesn't say its own.) */
+          object-position: 70% var(--art-y, 35%);
           opacity: 0;
           transition: opacity 0.6s ease;
 
           /* (The one showing, still: one fades into the next, nothing else moves.) */
           &.on {
             opacity: 1;
+          }
+
+          /* (Studio's chart fills its picture's top half, over its dark ground: the top in view.) */
+          &[src$="/studio.jpg"] {
+            --art-y: 10%;
           }
         }
 
@@ -413,7 +428,7 @@
 
         @media (max-width: 719px) {
           img {
-            object-position: 72% 30%;
+            object-position: 72% var(--art-y, 30%);
           }
 
           &::after {
@@ -814,10 +829,10 @@
         margin-top: 36px;
 
         h2 {
-          scroll-margin-top: 80px;
+          scroll-margin-top: calc(80px + var(--bar-top));
 
           @media (max-width: 899px) {
-            scroll-margin-top: 112px;
+            scroll-margin-top: calc(112px + var(--bar-top));
           }
         }
 
