@@ -117,6 +117,18 @@ fn read_block_hash_at(reader: &Reader, position: BlkPosition) -> Result<BlockHas
     Ok(BlockHash::from(header.block_hash()))
 }
 
+/// Whether the blk record at `position` still holds `hash`: not once its file is gone or too short
+/// to reach it.
+fn holds_block(reader: &Reader, position: BlkPosition, hash: &BlockHash) -> Result<bool> {
+    match read_block_hash_at(reader, position) {
+        Ok(found) => Ok(found == *hash),
+        Err(Error::IO(e)) if matches!(e.kind(), ErrorKind::NotFound | ErrorKind::UnexpectedEof) => {
+            Ok(false)
+        }
+        Err(e) => Err(e),
+    }
+}
+
 fn recreate_plugin_dir(path: &Path, source_xor: XORBytes) -> Result<bool> {
     let removed = match fs::remove_dir_all(path) {
         Ok(()) => true,
@@ -402,10 +414,11 @@ impl Indexer {
         };
         // Rollback sim: do not remove
         // let tip = tip.decremented().unwrap();
-        let hash_at = |height| blockhash.collect_one(height).expect("a height up to the tip");
+        let hash_at = |height| blockhash.collect_one(height).expect("indexed height");
 
         // A node behind our tip (restarting, reindexing, back from a crash) would look like a
         // reorg to its height.
+        let node_height = client.get_last_height()?;
         client.wait_for_node_at(tip)?;
         // Down our own hashes, not the node's parent links: a block the node lost in a crash
         // and the network orphaned since is unknown to it.
@@ -415,10 +428,22 @@ impl Indexer {
                 "Reached genesis without finding main chain".into(),
             ))?;
         }
-        match Lengths::resume_at(height.incremented(), &self.vecs, &self.stores)? {
+        // Back from a crash, Core writes the blocks it lost again from its last flushed file size,
+        // in the order they come back: ours above the height it came back at may have moved.
+        let lost = node_height.incremented();
+        let mut next = height.incremented();
+        let positions = self.vecs.blocks.position.collect_range(lost, next);
+        for (height, position) in (u32::from(lost)..).map(Height::from).zip(positions) {
+            if !holds_block(&self.reader, position, &hash_at(height))? {
+                warn!("Block {height} moved in the node's block files: indexing it again");
+                next = height;
+                break;
+            }
+        }
+        match Lengths::resume_at(next, &self.vecs, &self.stores)? {
             Some(lengths) => Ok(ResumePoint {
                 lengths,
-                prev_hash: Some(hash_at(height)),
+                prev_hash: next.decremented().map(hash_at),
             }),
             None => Err(Error::Internal(
                 "Indexer became inconsistent after import; drop and re-import it",
