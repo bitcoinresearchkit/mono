@@ -27503,7 +27503,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function paneChoices(ids, after = () => {}) {
         const inPanes = new Set(chart.layers.filter((layer) => ids.includes(layer.id)).map((layer) => layer.pane)), theirs = (/** @type {string} */ id) => inPanes.size === 1 && inPanes.has(id);
         return [
-          ...chart.panes.map((pane, i) => ({ key: pane.id, label: `Pane ${i + 1}`, aside: paneNames(pane), current: theirs(pane.id), run: () => (theirs(pane.id) || moveLayers(ids, pane.id), after()) })),
+          ...chart.panes.map((pane, i) => ({ key: pane.id, icon: ICONS.pane, label: `Pane ${i + 1}`, aside: paneNames(pane), current: theirs(pane.id), run: () => (theirs(pane.id) || moveLayers(ids, pane.id), after()) })),
           { key: "new", icon: ICONS.plus, label: "New pane", apart: true, ...(chart.panes.length < MAX_PANES ? {} : { disabled: `A chart holds up to ${MAX_PANES} panes` }), run: () => (moveLayers(ids, null), after()) },
         ];
       }
@@ -33300,11 +33300,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function menuOf(anchor, rows, /** @type {{ x: number, y: number } | null} */ point = null, side = "", { heads = false, title = "", hover: asFlyout = false, named = "", back = /** @type {(() => void) | undefined} */ (undefined) } = {}) {
         const list = /** @type {Action[]} */ (rows.filter(Boolean));
         if (!list.length) return;
+        // (A menu of choices: its check's column on every row, the others' too (a way out, a new one): their icons in line.)
+        const checks = list.some((row) => row.current !== undefined);
         const html = list.map((row, i) => {
           const before = list[i - 1], apart = i > 0 && (row.apart || (row.group ?? "") !== (before.group ?? "") || (row.danger && !before.danger));
           const head = heads && row.group && row.group !== before?.group ? `<div class="menu-group">${escape(row.group)}</div>` : "";
           const choice = row.current !== undefined;
-          return `${apart ? '<div class="menu-rule"></div>' : ""}${head}<button type="button" data-pick="${escape(row.key ?? String(i))}"${choice ? ` aria-checked="${Boolean(row.current)}"` : ""}${row.danger ? ' class="danger"' : ""}${row.disabled ? ` aria-disabled="true" data-tip="${escape(row.disabled)}"` : ""}${row.page ? ' aria-haspopup="menu"' : ""}>${choice ? tick(Boolean(row.current)) : ""}${row.icon ?? ""}<span class="label">${escape(row.label)}</span>${row.marked ? '<i class="menu-dot" aria-hidden="true"></i>' : ""}${row.kbd ? `<kbd>${escape(keyText(row.kbd))}</kbd>` : row.disabled || row.aside ? `<span>${escape(row.disabled || row.aside || "")}</span>` : ""}</button>`;
+          return `${apart ? '<div class="menu-rule"></div>' : ""}${head}<button type="button" data-pick="${escape(row.key ?? String(i))}"${choice ? ` aria-checked="${Boolean(row.current)}"` : ""}${row.danger ? ' class="danger"' : ""}${row.disabled ? ` aria-disabled="true" data-tip="${escape(row.disabled)}"` : ""}${row.page ? ' aria-haspopup="menu"' : ""}>${checks ? tick(Boolean(row.current)) : ""}${row.icon ?? ""}<span class="label">${escape(row.label)}</span>${row.marked ? '<i class="menu-dot" aria-hidden="true"></i>' : ""}${row.kbd ? `<kbd>${escape(keyText(row.kbd))}</kbd>` : row.disabled || row.aside ? `<span>${escape(row.disabled || row.aside || "")}</span>` : ""}</button>`;
         }).join("");
         // (What it's for named on top wherever its name is out of sight: a row's on the rail; anything's on a phone, its
         // sheet over the page. However it's opened. Not a submenu's.)
