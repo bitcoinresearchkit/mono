@@ -10493,7 +10493,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 <div class="glow"></div>
               </div>
               <div id="unreached" class="loading-state unreached" role="status" hidden>
-                <p>Couldn't reach <span class="server-host"></span></p>
+                <p id="unreached-text">Couldn't reach <span class="server-host"></span></p>
                 <button type="button" class="btn small" data-action="retry-all">Retry</button>
               </div>
               <div id="all-hidden" class="loading-state unreached" role="status" hidden>
@@ -16308,6 +16308,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (drawnChart === doc.id && drawnIndex !== doc.index && openView(doc)?.index === drawnIndex) storeView(true);
         // (Nothing at all, bitview.space not answering: one word of it over the plot, not a red line per layer.)
         const unreached = result.failed.length > 0 && ![...result.results.values()].some((item) => item?.values);
+        if (unreached) sayUnreached();
         $("unreached").hidden = !unreached;
         $("navigator").classList.toggle("waiting", unreached);
         resolved = result;
@@ -36932,7 +36933,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let answeredAt = Date.now();
       const offline = () => !navigator.onLine || Date.now() - answeredAt > 60_000;
       /** Live, with the last block the server's series include and when it came. */
+      /** Nothing drawn for want of the server: what's wrong said as the live dot says it, this device offline or the server away. */
+      const sayUnreached = () => ($("unreached-text").textContent = navigator.onLine ? `Couldn't reach ${SERVER_HOST}` : "This device is offline");
       function updateStatus() {
+        sayUnreached();
         const at = liveAt ? new Date(liveAt * 1000) : null;
         // The block, then the price once it's known (till then, when the block came: the price comes in its place, nothing
         // before it moving); how long ago the block came in the tip.
@@ -37649,8 +37653,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       setInterval(checkLive, 15_000);
       // (The device's network gone: said at once, not a minute on; back, asked at once. Nothing said before the first
       // answer: it's still connecting.)
-      addEventListener("offline", () => !$("live").classList.contains("waiting") && updateStatus());
-      addEventListener("online", () => checkLive());
+      addEventListener("offline", () => (sayUnreached(), !$("live").classList.contains("waiting") && updateStatus()));
+      addEventListener("online", () => (sayUnreached(), checkLive()));
       // (Hidden, nothing is asked: back in view, the minute starts over.)
       document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && (answeredAt = Date.now()));
       document.addEventListener("visibilitychange", checkLive);
