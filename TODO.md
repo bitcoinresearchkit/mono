@@ -25,6 +25,11 @@ Only what's left. An item done is removed: its history is in the commits and log
   the unrealized P&L heatmap); a chart's mark shows them as dots; the minis (tiles, ⌘K's previews, Quick Look) read
   the chart's own days, each point its span's largest (_notes/overnight-20261029/bubbles-mini-days-before-after.png).
   Open: your look at the minis now.
+- The heatmap's profile (built 2026-10-29, f06229913): your look (_notes/overnight-20261029/heat-profile-built.png).
+  Not in it yet: split by holder group (two cohorts' bars side by side, as your picture's buying and selling); a bar's
+  own amount pointed at (the legend reads the price under the pointer); the minis (tiles, ⌘K's previews, Quick Look).
+- Next, asked: one system for every size, width, height, margin and padding (see the design-system item); then the
+  right panel and the legends reviewed (the least worked on).
 - A design system for all of Studio, then a polish and consistency pass applying it (you, 2026-10-28: "I think we
   really need to do a polish/consistency pass over the whole app, and make a proper system"): inventory
   (_notes/system-20261028/inventory.md: 9 font sizes, 20 radii, 22 gaps, 63 heights, 47 shadows, 56 transitions),
