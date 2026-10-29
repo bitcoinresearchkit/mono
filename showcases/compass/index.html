@@ -9,13 +9,13 @@
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f1ea" />
     <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0f14" />
     <title>Compass · Bitview</title>
-    <meta name="description" content="Where Bitcoin's market stands, day by day since 2011: price against what its long-term and short-term holders paid, and which way their trends point, in nine named states, with how long each has lasted." />
+    <meta name="description" content="Where Bitcoin's market stands, day by day since 2011: price against what its long-term and short-term holders paid, and which way their trends point: nine moods, from Fear to Optimism, and how long each has lasted." />
     <meta property="og:title" content="Compass · Bitview" />
-    <meta property="og:description" content="Where Bitcoin's market stands, day by day since 2011: price against what its long-term and short-term holders paid, and which way their trends point, in nine named states, with how long each has lasted." />
+    <meta property="og:description" content="Where Bitcoin's market stands, day by day since 2011: price against what its long-term and short-term holders paid, and which way their trends point: nine moods, from Fear to Optimism, and how long each has lasted." />
     <meta property="og:image" content="https://bitview.space/compass/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Compass on a day of Despair with a bull trend: the state's name over eight years of price, each day coloured by its state, the trend's lane under it" />
+    <meta property="og:image:alt" content="Compass on a day of Fear with a bull trend: the state's name over eight years of price, each day coloured by its state, the trend's lane under it" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <style>
@@ -48,15 +48,15 @@
         --cloud-short: light-dark(rgb(20 24 29 / 0.1), rgb(230 235 240 / 0.09));
         /* The nine states: greens where the cycle's up, reds where it's down, the moves against it cooler. (Each as
            text on the page, 4.5:1 and more in either scheme.) */
-        --s-bull: light-dark(oklch(0.5 0.15 150), oklch(0.78 0.18 150));
-        --s-pullback: light-dark(oklch(0.51 0.13 122), oklch(0.84 0.16 122));
-        --s-correction: light-dark(oklch(0.51 0.12 88), oklch(0.86 0.14 88));
-        --s-recovery: light-dark(oklch(0.5 0.1 190), oklch(0.8 0.12 190));
-        --s-crossroads: light-dark(oklch(0.52 0.02 250), oklch(0.76 0.02 250));
-        --s-breakdown: light-dark(oklch(0.52 0.16 52), oklch(0.78 0.16 52));
-        --s-bounce: light-dark(oklch(0.5 0.15 275), oklch(0.75 0.13 275));
-        --s-stalling: light-dark(oklch(0.52 0.17 345), oklch(0.74 0.16 345));
-        --s-bear: light-dark(oklch(0.52 0.19 27), oklch(0.7 0.19 27));
+        --s-optimism: light-dark(oklch(0.5 0.15 150), oklch(0.78 0.18 150));
+        --s-complacency: light-dark(oklch(0.51 0.13 122), oklch(0.84 0.16 122));
+        --s-anxiety: light-dark(oklch(0.51 0.12 88), oklch(0.86 0.14 88));
+        --s-hope: light-dark(oklch(0.5 0.1 190), oklch(0.8 0.12 190));
+        --s-doubt: light-dark(oklch(0.52 0.02 250), oklch(0.76 0.02 250));
+        --s-denial: light-dark(oklch(0.52 0.16 52), oklch(0.78 0.16 52));
+        --s-relief: light-dark(oklch(0.5 0.15 275), oklch(0.75 0.13 275));
+        --s-apathy: light-dark(oklch(0.52 0.17 345), oklch(0.74 0.16 345));
+        --s-fear: light-dark(oklch(0.52 0.19 27), oklch(0.7 0.19 27));
         --sans: Inter, -apple-system, system-ui, sans-serif;
         --serif: "Instrument Serif", ui-serif, Georgia, serif;
         --gutter: max(16px, env(safe-area-inset-left));
@@ -1042,7 +1042,7 @@
         <div class="atlas">
           <div>
             <div class="compass">
-              <svg id="compass" viewBox="-40 -40 680 890" role="img" aria-label="The nine states as a compass, the three trends under it"></svg>
+              <svg id="compass" viewBox="-40 -40 680 890" role="img" aria-label="The nine moods as a compass, the three trends under it"></svg>
             </div>
             <div class="scrub">
               <canvas id="strip" aria-hidden="true"></canvas>
@@ -1056,7 +1056,7 @@
           </div>
           <div class="shares">
             <div>
-              <h3>Time in each state</h3>
+              <h3>Time in each mood</h3>
               <ol id="states"></ol>
             </div>
             <div class="trends">
@@ -1112,23 +1112,23 @@
       /** Where price is against a cloud: 1 above, 0 inside, -1 below. @typedef {1 | 0 | -1} Side */
       /** The nine, by the cycle's side (the long-term cloud) then the moment's (the short-term): north the cycle up. */
       const STATES = [
-        { id: "bull", name: "Euphoria", cycle: 1, local: 1 },
-        { id: "pullback", name: "Pullback", cycle: 1, local: 0 },
-        { id: "correction", name: "Correction", cycle: 1, local: -1 },
-        { id: "recovery", name: "Recovery", cycle: 0, local: 1 },
-        { id: "crossroads", name: "Crossroads", cycle: 0, local: 0 },
-        { id: "breakdown", name: "Breakdown", cycle: 0, local: -1 },
-        { id: "bounce", name: "Bounce", cycle: -1, local: 1 },
-        { id: "stalling", name: "Stalling", cycle: -1, local: 0 },
-        { id: "bear", name: "Despair", cycle: -1, local: -1 },
+        { id: "optimism", name: "Optimism", cycle: 1, local: 1 },
+        { id: "complacency", name: "Complacency", cycle: 1, local: 0 },
+        { id: "anxiety", name: "Anxiety", cycle: 1, local: -1 },
+        { id: "hope", name: "Hope", cycle: 0, local: 1 },
+        { id: "doubt", name: "Doubt", cycle: 0, local: 0 },
+        { id: "denial", name: "Denial", cycle: 0, local: -1 },
+        { id: "relief", name: "Relief", cycle: -1, local: 1 },
+        { id: "apathy", name: "Apathy", cycle: -1, local: 0 },
+        { id: "fear", name: "Fear", cycle: -1, local: -1 },
       ];
       /** A state's index from its two sides. */
       const stateOf = (/** @type {number} */ cycle, /** @type {number} */ local) => (1 - cycle) * 3 + (1 - local);
       /** The trends' three: all three on a support, split, all three on a resistance; each in its corner state's colour. */
       const TRENDS = [
-        { name: "Bull", color: "bull", icon: '<path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" />' },
-        { name: "Limbo", color: "crossroads", icon: '<path d="M3 8h10" />' },
-        { name: "Bear", color: "bear", icon: '<path d="M8 3v10M3.5 8.5 8 13l4.5-4.5" />' },
+        { name: "Bull", color: "optimism", icon: '<path d="M8 13V3M3.5 7.5 8 3l4.5 4.5" />' },
+        { name: "Limbo", color: "doubt", icon: '<path d="M3 8h10" />' },
+        { name: "Bear", color: "fear", icon: '<path d="M8 3v10M3.5 8.5 8 13l4.5-4.5" />' },
       ];
       const trendIcon = (/** @type {number} */ t) => `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${TRENDS[t].icon}</svg>`;
       const SIDE_WORDS = { 1: "above", 0: "inside", [-1]: "below" };
@@ -2074,7 +2074,7 @@
           const { i, t } = /** @type {SVGElement} */ (cell).dataset;
           cell.classList.toggle("on", i !== undefined ? Number(i) === d.state[day] : Number(t) === d.trend[day]);
         }
-        compass.setAttribute("aria-label", `The nine states as a compass, the three trends under it: ${dated(day)}, ${STATES[d.state[day]].name}, ${TRENDS[d.trend[day]].name.toLowerCase()} trend, its path over the year before.`);
+        compass.setAttribute("aria-label", `The nine moods as a compass, the three trends under it: ${dated(day)}, ${STATES[d.state[day]].name}, ${TRENDS[d.trend[day]].name.toLowerCase()} trend, its path over the year before.`);
       }
 
       // ── The strip and its slider, under the compass: every day from the first to today, a playhead on the day shown ──
