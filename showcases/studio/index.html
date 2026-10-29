@@ -17456,8 +17456,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             continue;
           }
           legendShown.set(element, html);
-          // (Its focus kept: ↵ on an item selects its layer, which writes the legend again; a key's band painted first,
-          // its readout found by its band.)
+          // (Its focus kept: written again as what it shows changes (a layer renamed, recolored, hidden; a selection only
+          // marks it, see markLegends); a key's band painted first, its readout found by its band.)
           const focus = focusKey(element);
           element.innerHTML = html;
           if (pane && keyedPane(pane)) paintBand(element, pane);
@@ -22774,7 +22774,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @typedef {{ seps: number[], marks: PlotMark[], end?: number, ticks?: { x: number, text: string }[], scales?: { y: number, text: string, side: string }[], of?: string }} Preview
        */
       /** Each kind, with what it can't be drawn without. */
-      const PLOT_NEEDS = { line: [], dots: [], bars: [], across: [], band: [], bubble: ["w"], area: ["top", "bottom"], baseline: ["y0", "top", "bottom"], heat: ["img", "top", "bottom"] };
+      const PLOT_NEEDS = { line: [], dots: [], bars: [], across: [], band: [], bubble: ["w", "top", "bottom"], area: ["top", "bottom"], baseline: ["y0", "top", "bottom"], heat: ["img", "top", "bottom"] };
       const isPath = (d) => typeof d === "string" && /^[MLHVZh\d. -]*$/.test(d);
       const validMark = (mark) => Object.hasOwn(PLOT_NEEDS, mark?.k) && PLOT_NEEDS[mark.k].every((field) => mark[field] !== undefined) && isColor(mark.c) && (mark.c2 === undefined || isColor(mark.c2)) && isPath(mark.d)
         && (mark.d2 === undefined || isPath(mark.d2)) && [mark.y0, mark.top, mark.bottom, mark.op, mark.w].every((n) => n === undefined || Number.isFinite(n))
@@ -22959,10 +22959,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             for (let i = first; i <= last; i++) {
               const size = Math.abs(own[i]), b = Math.min(Math.floor(((i - shown.from) / span) * B), i <= shown.to ? B - 1 : B);
               if (!(size > 0 && size < Infinity) || size < least || b < 0 || b >= B || Math.abs(own[largest.get(b)?.i ?? NaN]) >= size) continue;
-              // (Its middle in its pane, as the chart clips them (a mini can't clip a pane: one half out, none); a layer off its
-              // scale (a hidden one in a 100% stack), none.)
-              const at = place(i);
-              if (Number.isFinite(at) && at >= paneTop && at <= paneBottom) largest.set(b, { i, at });
+              // (Clipped to its pane, as the chart's: one wholly out of it (a layer off its scale: a hidden one in a 100% stack),
+              // none.)
+              const at = place(i), radius = (across / 2) * Math.sqrt(Math.min(1, size / most));
+              if (Number.isFinite(at) && at >= paneTop - radius && at <= paneBottom + radius) largest.set(b, { i, at });
             }
             const sizes = new Map();
             for (const { i, at } of largest.values()) {
@@ -22972,7 +22972,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               else into.d2 += dot;
             }
             for (const [w, { d, d2 }] of [...sizes].sort(([a], [b]) => b - a)) {
-              const mark = { k: "bubble", c: layer.color, c2: belowOf(layer), d, ...(d2 ? { d2 } : {}), w, ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}), ...(layer.outline ? { o: doc.layers.indexOf(layer) + 1 } : {}) };
+              const mark = { k: "bubble", c: layer.color, c2: belowOf(layer), d, ...(d2 ? { d2 } : {}), w, top: paneTop, bottom: paneBottom, ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}), ...(layer.outline ? { o: doc.layers.indexOf(layer) + 1 } : {}) };
               drawn.marks.push(mark), ranks.set(mark, zOf.get(layer.id) ?? 0);
             }
           };
@@ -23070,6 +23070,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               if (bars && !unseen) (lo = Math.min(lo, base)), (hi = Math.max(hi, base));
               if (stack && mode === 0 && !unseen) (lo = Math.min(lo, 0)), (hi = Math.max(hi, 0));
               for (const point of points) for (const [, value] of point ?? []) (lo = Math.min(lo, value)), (hi = Math.max(hi, value));
+            }
+            // (A layer bubbles ride, its values as they ride it, its line's breaks not theirs: the chart's scale reads them, see
+            // bubbleView.)
+            for (const item of shaped) {
+              const values = carried.has(item.layer.id) ? stacked.get(item.layer.id)?.values ?? data.results.get(item.layer.id)?.values : null;
+              for (let i = first; values && i <= last; i++) ((value) => Number.isFinite(value) && ((lo = Math.min(lo, value)), (hi = Math.max(hi, value))))(item.scaled(values[i]));
             }
             // (A heatmap's days, behind its side's lines; alone there (or beside lines that give its scale no height), on
             // the price's closes too, as the chart scales it.)
@@ -23268,8 +23274,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else if (mark.k === "dots") (band = halo(mark.d, " of-dots")), (over = `<path class="dots" stroke="${c}" d="${mark.d}"/>`);
           // (Bubbles of a size: each its edge's dot, its fill's dot a pixel in over it, both mixed with the ground (the chart's
           // are see-through); a dot keeps its size as the frame stretches, so each is round. Outlined: a ring of the ground
-          // under each size's, over the larger ones', as the chart rings each in turn.)
-          else if (mark.k === "bubble") (ring = mark.o ? [mark.d, mark.d2].map((d) => (d ? `<path class="bubble" style="stroke-width:${(mark.w ?? 0) + 2}px;stroke:var(--plot-ground, var(--card))" d="${d}"/>` : "")).join("") : ""), (over = [[c, mark.d], [c2, mark.d2]].map(([color, d]) => (d ? `<path class="bubble" style="stroke-width:${mark.w}px;stroke:color-mix(in srgb, ${color} 80%, var(--plot-ground, var(--card)))" d="${d}"/>${(mark.w ?? 0) > 3 ? `<path class="bubble" style="stroke-width:${(mark.w ?? 0) - 2}px;stroke:color-mix(in srgb, ${color} 40%, var(--plot-ground, var(--card)))" d="${d}"/>` : ""}` : "")).join(""));
+          // under each size's, over the larger ones', as the chart rings each in turn. Clipped to its pane, as the chart's.)
+          else if (mark.k === "bubble") (defs.push(`<clipPath id="${g}c"><rect y="${mark.top}" width="${W}" height="${/** @type {number} */ (mark.bottom) - /** @type {number} */ (mark.top)}"/></clipPath>`), (ring = mark.o ? `<g clip-path="url(#${g}c)">${[mark.d, mark.d2].map((d) => (d ? `<path class="bubble" style="stroke-width:${(mark.w ?? 0) + 2}px;stroke:var(--plot-ground, var(--card))" d="${d}"/>` : "")).join("")}</g>` : ""), (over = `<g clip-path="url(#${g}c)">${[[c, mark.d], [c2, mark.d2]].map(([color, d]) => (d ? `<path class="bubble" style="stroke-width:${mark.w}px;stroke:color-mix(in srgb, ${color} 80%, var(--plot-ground, var(--card)))" d="${d}"/>${(mark.w ?? 0) > 3 ? `<path class="bubble" style="stroke-width:${(mark.w ?? 0) - 2}px;stroke:color-mix(in srgb, ${color} 40%, var(--plot-ground, var(--card)))" d="${d}"/>` : ""}` : "")).join("")}</g>`));
           else if (mark.k === "baseline") {
             const y0 = /** @type {number} */ (mark.y0), f = closedTo(mark.d, y0);
             defs.push(`<clipPath id="${g}a"><rect width="${W}" height="${y0}"/></clipPath><clipPath id="${g}b"><rect y="${y0}" width="${W}" height="${H - y0}"/></clipPath>`, fade("u", c, mark.top, y0, 0.24, 0.01), fade("v", c2, y0, mark.bottom, 0.01, 0.24));
@@ -29734,8 +29740,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * The surface drawn: every hue across, lightness down, each as vivid as the surface is there (and never more than
-       * sRGB holds, between the grid's points), so every point is a color the chart can draw. Drawn at CSS pixels and
-       * smoothed (it's all gradient), kept by size: nothing redraws it but a resize.
+       * sRGB holds, between the grid's points), so every point is a color the chart can draw. Drawn at half its CSS size
+       * and stretched (it's all gradient), kept by size: nothing redraws it but a resize.
        */
       const planes = new Map();
       const drawPlanes = () => all$(".plane").forEach(drawPlane);
@@ -32003,7 +32009,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(empty || chart.panes.length >= MAX_PANES ? [] : [{ title: "Add to a new pane", text: "A series in a new pane, below the others.", icon: "pane", keepOpen: true, run: () => openPalette({ add: true, into: "new" }) }]),
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
           ...(markable(chart).length ? [{ title: "Add bubbles", text: "A series' values as bubbles on a layer, each as big as its value, like a day's realized profit and loss on the price.", icon: glyph("bubbles"), keepOpen: true, run: () => openPalette({ add: true, bubbles: true }) }] : []),
-          ...(chart.layers.some((layer) => layer.type !== "cloud" && layer.type !== "signal") ? [{ title: "Add a signal", text: "Marks on a layer where a formula turns up or down, like A > sma(A, 200d), or (A > B) - (A < B).", icon: "signal", run: addSignal, keepOpen: true }] : []),
+          ...(markable(chart).length ? [{ title: "Add a signal", text: "Marks on a layer where a formula turns up or down, like A > sma(A, 200d), or (A > B) - (A < B).", icon: "signal", run: addSignal, keepOpen: true }] : []),
           ...(empty ? [] : [{ title: SHARE, text: "A link that opens this chart for anyone.", icon: "share", run: () => $("share").click(), suggested: true }]),
           ...(empty ? [] : [{ title: "Open image", text: "The chart's image, in a new tab.", icon: "link", run: () => exportAs("open") }]),
           ...(!isYours(chart) ? [] : [{ title: "Move to folder", text: `${titleOf(chart)} ${chart.folder ? `is now in ${folderPath(chart.folder)}` : "isn't in a folder"}.`, icon: "folder", keepOpen: true, run: () => pushPage(folderPage([chart.id])) }]),
@@ -33469,7 +33475,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Nothing found: the two things searched, to browse instead (every series, by topic; the presets, by section), and other words to try. */
       const browseInstead = () =>
         [
-          ...(home ? [] : [{ key: "browse:series", icon: ICONS.series, label: "Browse every series", aside: "By topic", text: "Every series, in folders by topic", run: () => openPalette({ add: true, path: [] }) }]),
+          ...(home ? [] : [{ key: "browse:series", icon: ICONS.series, label: "Browse every series", aside: "By topic", text: "Every series, in folders by topic", leads: true, run: () => openPalette({ add: true, path: [] }) }]),
           { key: "browse:presets", icon: ICONS.presets, label: "Browse the presets", aside: presets ? plural(presets.length, "chart") : "Loading…", text: "Ready-made charts, by section", page: () => presetsPage([]) },
         ].map(({ text, ...row }) => ({ kind: "row", group: "Nothing matches. Browse instead", verb: "Open", elsewhere: true, preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">${escape(row.label)}</h4><p class="description">${text}. Or try other words, describing what the series measures.</p>`), ...row }));
       function browseRows() {
