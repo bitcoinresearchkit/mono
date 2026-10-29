@@ -8715,12 +8715,6 @@
             display: none;
           }
 
-          /* (Its way out, at its end: the interval, the ranges and the navigator back.) */
-          .belt-done {
-            flex-shrink: 0;
-            margin-inline-start: 6px;
-          }
-
           .belt-row {
             display: flex;
             flex: 1;
@@ -8740,6 +8734,25 @@
           :is(.belt-tools, .belt-context) {
             flex-wrap: nowrap;
             flex-shrink: 0;
+          }
+
+          /* (Its tools alone: across it, evenly, all of them in view; its way out the chart's ⋯, Hide the drawing tools.
+             A tool in hand, its looks after them: the row slides.) */
+          .belt-row.spread > .belt-tools {
+            flex: 1;
+            justify-content: space-between;
+            gap: 0;
+
+            /* (Each its share of the row, 36 at most (where there's room, apart as elsewhere), a finger's reach that
+               share: up to the next one's, not over it.) */
+            .cap {
+              flex: 1 1 0;
+              max-width: 36px;
+
+              &::before {
+                inset: -4px 0;
+              }
+            }
           }
         }
 
@@ -20545,9 +20558,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const how = selectingArea ? "Drag a box around drawings to select them" : tool && (placing?.clicks ? next || (byKeys ? `Arrows to its ${other}, ↵ to place it` : `${capitalize(CLICK)} its ${other}`) : `${byKeys ? TOOLS[tool].keys : TOOLS[tool].tip}${toolKept ? ", as many as you like" : ""}`);
         // The tools, then what's in hand; drawings selected, only theirs (esc, or a click on the chart, and the tools are back).
         const html = `<button type="button" class="grip" id="belt-grip" aria-haspopup="menu" aria-label="Move the drawing tools" data-tip="Drag it to any side of the chart">${ICONS.grip}</button>
-          <div class="belt-row">${drawings.length ? "" : `<div class="belt-tools" role="group" aria-label="Tools">${tools}</div>`}
+          <div class="belt-row ${drawings.length || context ? "" : "spread"}">${drawings.length ? "" : `<div class="belt-tools" role="group" aria-label="Tools">${tools}</div>`}
           ${context ? `${drawings.length ? "" : '<i class="belt-rule"></i>'}<div class="belt-context" role="group" aria-label="${escape(tool ? `Next ${TOOLS[tool].noun}` : drawing ? drawingNames().get(drawing.id) ?? "" : `${drawings.length} drawings`)}">${context}</div>` : ""}</div>
-          ${how ? '<p class="belt-caption"><span></span><kbd>esc</kbd></p>' : ""}${phone.matches ? '<button type="button" class="btn small belt-done" data-belt="done">Done</button>' : ""}`;
+          ${how ? '<p class="belt-caption"><span></span><kbd>esc</kbd></p>' : ""}`;
         // (Its words set in place: the plot taking the focus or giving it up, as a belt's button is pressed, changes only
         // them, and the button pressed stays the one clicked.)
         const writeHow = () => {
@@ -20614,7 +20627,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (Math.abs(now.left - was.left) + Math.abs(now.top - was.top) + Math.abs(now.width - was.width) + Math.abs(now.height - was.height) < 2) return;
         const timing = { duration: MOTION.small, easing: MOTION.ease }, left = parseFloat(belt.style.left), top = parseFloat(belt.style.top);
         // (Measured all first, where they come to rest, then moved: one layout, and the box's own motion not in it.)
-        const upright = belt.classList.contains("upright"), parts = all$(":scope > .grip, .belt-row :is(button, .belt-rule), .belt-caption, .belt-done", belt).map((part) => /** @type {[HTMLElement, DOMRect, DOMRect | undefined]} */ ([part, part.getBoundingClientRect(), part.id ? partsWere.get(part.id) : undefined]));
+        const upright = belt.classList.contains("upright"), parts = all$(":scope > .grip, .belt-row :is(button, .belt-rule), .belt-caption", belt).map((part) => /** @type {[HTMLElement, DOMRect, DOMRect | undefined]} */ ([part, part.getBoundingClientRect(), part.id ? partsWere.get(part.id) : undefined]));
         // (What's in it held at its size as the box reshapes (narrower, its row would wrap: a tool on a second line, cut),
         // the box showing more of it or less.)
         // (Its boxes as laid out: its row's own, the row itself none, see .belt-row.)
@@ -20741,19 +20754,37 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         belt.animate({ width: [`${from.width}px`, `${to.width}px`], height: [`${from.height}px`, `${to.height}px`] }, timing);
       }
       /** The belt on (it stays) or off (it shows only while drawing, or with a drawing selected). */
-      function toggleBelt() {
-        prefs.belt.on = !prefs.belt.on;
+      /** The drawing tools on, shown at all times. */
+      function showBelt() {
+        prefs.belt.on = true;
         savePrefs();
         renderBelt();
       }
+      /**
+       * The drawing tools put away, now: off (shown again only while drawing, or with a drawing selected), and whatever's in
+       * hand with them, else they'd stay for it (a path being placed kept as it is, a tool, the magnifier, a selection,
+       * their keys).
+       */
+      function hideBelt() {
+        finishPath();
+        putDown();
+        chooseDrawings([]);
+        beltKeys = false;
+        $("belt").classList.remove("keys");
+        if (prefs.belt.on) (prefs.belt.on = false), savePrefs();
+        renderBelt();
+      }
+      /** The header's button: on, or off and put away. */
+      const toggleBelt = () => (prefs.belt.on ? hideBelt() : showBelt());
+      /** The drawing tools in sight (on, or up for what's in hand). */
+      const beltUp = () => !$("belt").hidden;
       /**
        * D: the belt, as its button: on (it stays) with its keys at hand (a tool's key picks it, arrows go along it, esc
        * lets go); D again, while they are, puts it away (whatever's in hand with it).
        */
       function focusBelt() {
         if ($("belt").classList.contains("keys")) {
-          putDown();
-          if (prefs.belt.on) toggleBelt();
+          hideBelt();
           return leaveBelt();
         }
         // (To draw: what's selected is let go, the tools come back.)
@@ -20872,10 +20903,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (each && event.detail === 2 && Object.hasOwn(TOOLS, each) && each !== "text") return takeUp(/** @type {DrawingKind} */ (each), true);
         if (each) return pickTool(each);
         if (part === "hide") return hideDrawings(!drawingsHidden);
-        // (A phone's: the tools put away (D's keys with them), the chart's foot back.)
-        // (A path being placed: Done finishes it.)
-        if (part === "done" && finishPath()) return;
-        if (part === "done") return void (putDown(), chooseDrawings([]), (beltKeys = false), $("belt").classList.remove("keys"), prefs.belt.on ? toggleBelt() : renderBelt());
         if (!look) return;
         if (part === "ends") return endsPopover(button);
         const words = tool ? prefs.pen : wordsIn([...chosen].map(drawingById));
@@ -32548,7 +32575,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...INTERVAL_ORDER.map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: supported(id) ? `Redraw every layer at ${INTERVAL_LABEL[id]}.` : `${NO_INTERVAL}.`, icon: "recent", ...(id === chart.index ? { current: true } : supported(id) ? { run: () => switchInterval(id) } : {}) })),
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string][]} */ ([[1, "Logarithmic scale"], [0, "Linear scale"]]).map(([mode, title]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
           ...(empty ? [] : [
-            { title: prefs.belt.on ? "Hide the drawing tools" : "Show the drawing tools", text: prefs.belt.on ? "They show only while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", icon: "draw", run: toggleBelt },
+            { title: beltUp() ? "Hide the drawing tools" : "Show the drawing tools", text: beltUp() ? "They show again while drawing, or with a drawing selected." : "The drawing tools, on the chart at all times.", icon: "draw", run: () => (beltUp() ? hideBelt() : showBelt()) },
             ...(tool ? [placingPath() ? { title: "Finish the path", text: "Keeps it as it is (two points at least); the chart pans again.", icon: tool, kbd: "esc", run: () => finishPath() } : { title: "Stop drawing", text: `Stops drawing; the chart pans again.`, icon: tool, kbd: "esc", run: () => takeUp("") }] : []),
             ...(tool && tool !== "text" && !toolKept ? [{ title: "Keep drawing", text: `Keeps the tool after each drawing, to draw several (esc to stop; double-clicking a tool does the same).`, icon: tool, run: () => takeUp(tool, true) }] : []),
             ...KINDS.filter((kind) => kind !== tool).map((kind) => ({ title: TOOLS[kind].verb, text: kind === "text" ? `${TOOLS[kind].tip}.` : `${TOOLS[kind].tip}: one, then the chart pans again (to draw several, ${TOUCH ? "tap its tool twice" : "double-click its tool"}, or Keep drawing).`, icon: kind, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, run: () => takeUp(kind) })),
@@ -34059,7 +34086,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { key: "add", icon: ICONS.plus, label: "Add a layer", kbd: "A", group: "tools", run: () => ($("chart-more").focus({ preventScroll: true }), openPalette({ add: true })) },
         ] : []),
         ...((tabletHead.matches || phone.matches) && chart.layers.length ? [
-          { key: "draw", icon: ICONS.draw, label: prefs.belt.on ? "Hide the drawing tools" : "Drawing tools", kbd: "D", group: "tools", run: toggleBelt },
+          { key: "draw", icon: ICONS.draw, label: beltUp() ? "Hide the drawing tools" : "Drawing tools", kbd: "D", group: "tools", run: () => (beltUp() ? hideBelt() : showBelt()) },
         ] : []),
         ...chartActions(chart.id, "head"),
       ];
