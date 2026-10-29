@@ -11607,15 +11607,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Bitview's colors by their own names, as links, files and the guide write them (the page's ink: white or black). */
       const ownName = (/** @type {string} */ key) => (key === "ink" ? (light ? "Black" : "White") : capitalize(key));
-      /** A color's name: Bitview's own as they're named, any other by the nearest familiar name to it as shown. */
+      /** Each color's name as found (by the theme it's shown in: see colorName), a few hundred kept. */
+      const colorNames = new Map();
+      /**
+       * A color's name: Bitview's own as they're named, any other by the nearest familiar name to it as shown (each found
+       * once: a familiar name's every one weighed, a sheet's colors each time it's written, a phone's engine without a JIT).
+       */
       function colorName(color) {
         if (SWATCHES.includes(color)) return ownName(color);
+        const key = `${light ? "light" : "dark"}:${color}`, had = colorNames.get(key);
+        if (had) return had;
         const [l, c, h] = shownOklch(color);
         let best = namesAt()[0], nearest = Infinity;
         for (const name of namesAt()) {
           const distance = nameDistance(l, c, h, name.l, name.c, name.h);
           if (distance < nearest) (nearest = distance), (best = name);
         }
+        if (colorNames.size > 500) colorNames.clear();
+        colorNames.set(key, capitalize(best.name));
         return capitalize(best.name);
       }
       /** The types whose second color is kept as picked, one color or two: a trend's (on a support), a cloud's (its second over). */
@@ -16547,6 +16556,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       });
       /** @type {Resolved | null} */
       let resolved = null;
+      /** How many times the open chart's data has changed here (read anew, grown, a live price moved in it). */
+      let dataRevision = 0;
+      /** The data each chart's card was drawn from here as it was left (see showHome): drawn again once it's changed. */
+      const cardsDrawn = new Map();
       /** Why a layer has no values to give: what went wrong, if something did, else that they're on their way; "" once they're here. */
       const noValues = (/** @type {string} */ id) => ((result) => (result?.values ? "" : result?.error ?? "Its data is still loading"))(resolved?.results.get(id));
       let drawVersion = 0;
@@ -16648,6 +16661,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("unreached").hidden = !unreached;
         $("navigator").classList.toggle("waiting", unreached);
         resolved = result;
+        dataRevision++;
         drawnData = drawingData;
         const reveal = first && doc.layers.length > 0 && !reduced.matches && !fromHome;
         endScaleGlide();
@@ -23681,7 +23695,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** What a card depends on past a mini chart's: its layers' looks the mark leaves out, the view it was left at and how much the chart shows. @param {Chart} doc */
       // (A heatmap's picture in its colors as the theme shows them: drawn again in the other. A profile shown, its bars and
       // its room after the latest (see previewShown): one kept from before them drawn again, others' as they were.)
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName, layer.fillOpacity, layer.solid, layer.hollow, layer.size, layer.hide, layer.scaleTo]), openView(doc), FINE.has(doc.index) ? Math.round(view.timeScale().width() / 50) : 0, doc.layers.some((layer) => heatLike(layer) && !layer.hidden) ? light : null, ...(profiled(doc) ? ["profile"] : [])]);
+      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName, layer.fillOpacity, layer.solid, layer.hollow, layer.size, layer.hide, layer.scaleTo, layer.byLayers]), openView(doc), FINE.has(doc.index) ? Math.round(view.timeScale().width() / 50) : 0, doc.layers.some((layer) => heatLike(layer) && !layer.hidden) ? light : null, ...(profiled(doc) ? ["profile"] : [])]);
       /**
        * How many bars a chart's preview shows at most (its data at `index`): its range's, as the chart opens on it (Max, at
        * a day or coarser, the whole history); finer, no more than fit the chart's width at four a pixel.
@@ -25534,9 +25548,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // The open chart as it is now: its card shows it before it shrinks into it. (Its data failed: none, its card's
         // own fetch tries again, see paint.)
         if (settled() && chart.layers.length && resolved && !resolved.failed.length) {
-          // (A heatmap's days aren't at hand at a card's density: its card kept till it's drawn with them, see drawPreview.)
-          previews.set(chart.id, { key: chart.layers.some((layer) => heatLike(layer) && !layer.hidden) ? "" : previewKey(chart), ...previewOf(chart, resolved) });
-          savePreviews();
+          // (A heatmap's days aren't at hand at a card's density: its card kept till it's drawn with them, see drawPreview.
+          // One drawn here as it is now already, of the same data (left as it was), kept.)
+          const key = chart.layers.some((layer) => heatLike(layer) && !layer.hidden) ? "" : previewKey(chart);
+          if (!key || previews.get(chart.id)?.key !== key || cardsDrawn.get(chart.id) !== dataRevision) previews.set(chart.id, { key, ...previewOf(chart, resolved) }), savePreviews(), cardsDrawn.set(chart.id, dataRevision);
         }
         // (A draft taken back only when Cancel (or esc) is the way there; one of yours never filled, whichever way; one
         // deleted, gone (nothing to shrink into).)
@@ -28247,8 +28262,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           await aFrame();
           presets = list;
           presetWords = list.map((preset) => `${preset.t} ${preset.p.join(" ")}`.toLowerCase());
-          // (Their words each once, for a slip in a search (see slipsOf), gathered meanwhile: no keystroke waits for them.)
+          // (Their words each once, for a slip in a search (see slipsOf), and their charts' ids (see presetById), gathered
+          // meanwhile: no keystroke, no way back to the grid, waits for them.)
           whenIdle(vocabNow);
+          whenIdle(idsNow);
           presetTitles = list.map((preset) => ((title) => ({ title, name: preset.p.at(-1)?.toLowerCase() ?? "", subject: title.split(": ")[0] }))(preset.t.toLowerCase()));
           // (Counted into place, not sorted: no comparison called thousands of times, a phone's engine without a JIT.)
           presetRank = Int32Array.from(list, (preset, i) => preset.p.length * 1000 + Math.min(presetTitles[i].title.length, 999));
@@ -28588,11 +28605,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A preset's chart's id: the same wherever it's opened (another tab's, a step of the history's), by which it is. */
       const presetIdOf = (/** @type {string} */ key) => `p${hashOf(key)}`;
-      /** Each preset by its chart's id (made once they're read). */
-      let presetIds = /** @type {{ for: Preset[] | null, at: Map<string, number> }} */ ({ for: null, at: new Map() });
+      /**
+       * Each preset by its chart's id, made as they come: a slice at a time in idle moments (none of it a long task, a
+       * phone's engine without a JIT: every preset's path hashed), the rest at once where one's asked for first.
+       */
+      let presetIds = /** @type {{ for: Preset[] | null, at: Map<string, number>, next: number }} */ ({ for: null, at: new Map(), next: 0 });
+      function idsNow(/** @type {{ timeRemaining: () => number } | undefined} */ deadline = undefined) {
+        const list = presets ?? [];
+        if (presetIds.for !== presets) presetIds = { for: presets, at: new Map(), next: 0 };
+        const until = deadline ? performance.now() + Math.min(8, Math.max(2, deadline.timeRemaining())) : Infinity;
+        while (presetIds.next < list.length) {
+          for (const end = Math.min(list.length, presetIds.next + 250); presetIds.next < end; presetIds.next++) presetIds.at.set(presetIdOf(JSON.stringify(list[presetIds.next].p)), presetIds.next);
+          if (presetIds.next < list.length && performance.now() >= until) return void whenIdle(idsNow);
+        }
+      }
       const presetById = (/** @type {string} */ id) => {
         if (!presets) return -1;
-        if (presetIds.for !== presets) presetIds = { for: presets, at: new Map(presets.map((preset, i) => [presetIdOf(JSON.stringify(preset.p)), i])) };
+        if (presetIds.for !== presets || presetIds.next < presets.length) idsNow();
         return presetIds.at.get(id) ?? -1;
       };
       /** Whether a preset's chart is as it was opened (none of its edits left), as last asked of its stamp. @type {WeakMap<Chart, { at: number, as: boolean }>} */
@@ -29300,7 +29329,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         updateValues();
         if (layersBehind) return;
         layersBehind = true;
-        whenIdle(() => layersBehind && writeLayers());
+        whenIdle((deadline) => layersBehind && (writeLayers(), roomsAhead(deadline)));
+      }
+      /**
+       * The rows' figures' room and their changes, measured ahead while the list is behind (a phone's sheet put away: its
+       * opening doesn't wait for them, 60 ms of it on a phone without a JIT): a layer at a time in idle moments, as the
+       * rows will ask (see figuresRoom, changeOver; each kept for the data, the view).
+       * @param {{ timeRemaining: () => number }} deadline
+       */
+      function roomsAhead(deadline, from = 0) {
+        const until = performance.now() + Math.min(8, Math.max(2, deadline.timeRemaining()));
+        for (let k = from; resolved && !panelShown() && k < chart.layers.length; k++) {
+          if (performance.now() >= until) return void whenIdle((next) => roomsAhead(next, k));
+          const layer = chart.layers[k], result = resolved.results.get(layer.id);
+          if (result) figuresRoom(layer, result), changeOver(layer, { at: lastShown(), rest: true });
+        }
       }
       function writeLayers() {
         layersBehind = false;
@@ -38965,6 +39008,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (let i = latest + 1; i <= current; i++) added.push(timeAt(index, i));
         if (added.length) {
           resolved = widened(resolved, added);
+          dataRevision++;
           // What's drawn now (a build from it is the same timeline, not one that grew).
           drawnTimes = resolved.times;
           // (A heatmap's bars too, at the price now: its newest column drawn there, see drawHeat.)
@@ -38975,6 +39019,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const key = `${idOf(data)}:${price}:${layers.map((layer) => layer.id).join()}`;
         if (key === liveLast) return;
         liveLast = key;
+        dataRevision++;
         let moved = false, regrade = false;
         /** @type {{ id: string, series: any, painted: { points: any[], faint: boolean, paintWith?: (color: string) => Record<string, string> }, point: Record<string, any> }[]} */
         const toPaint = [];
