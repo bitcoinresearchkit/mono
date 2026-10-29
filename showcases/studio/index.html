@@ -33650,7 +33650,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function browseRows() {
         const any = chart.layers.length > 0;
         return [
-          { key: "page:chart", icon: chartMark(chart), label: titleOf(chart), aside: "This chart", page: chartPage },
+          // (Its title any length: on a phone, its aside under it, as a found preset's is.)
+          { key: "page:chart", icon: chartMark(chart), label: titleOf(chart), aside: "This chart", under: true, page: chartPage },
           ...(recentCharts().length ? [{ key: "page:recent", icon: ICONS.recent, label: "Recent", aside: plural(recentCharts().length, "chart"), page: recentPage }] : []),
           { key: "page:charts", icon: ICONS.keep, label: "Library", aside: plural(library.charts.length, "chart"), page: chartsPage },
           ...(any ? [
@@ -33755,7 +33756,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { key: "add-bubbles", icon: glyph("bubbles"), label: "Add bubbles", verb: "Add", leads: true, stay: true, run: () => openPalette({ add: true, bubbles: true }) },
           { key: "add-signal", icon: ICONS.signal, label: "Add a signal", verb: "Add", leads: true, stay: true, run: addSignal },
         ] : []),
-        ...(cloudable() ? [{ key: "add-trend", icon: ICONS.riding, label: "Add a trend", page: () => fromPage("trend"), ...(trendShort() ? { aside: trendShort(), disabled: trendShort() } : {}) }] : []),
+        ...(cloudable() ? [{ key: "add-trend", icon: ICONS.riding, label: "Add a trend", page: () => fromPage("trend"), ...(trendShort() ? { aside: trendShort(), disabled: trendShort(), under: true } : {}) }] : []),
         { key: "add-heatmap", icon: ICONS.heatmap, label: "Add a heatmap", aside: "Supply by cost basis, day by day", page: heatAddPage },
       ].map((row) => ({ kind: "row", group, ...row }));
       /** ⌘K's page for a heatmap: a holder group to add one of (its supply by cost basis; the rest, its own to change). @returns {Page} */
@@ -33964,8 +33965,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { label: "Settings", icon: ICONS.sliders, page: () => drawingPage(drawing.id) },
             ...drawingPage(drawing.id).rows().filter((row) => ["flip-x", "flip-y", "duplicate", "remove"].includes(String(row.key))),
           ] })),
-          ...KINDS.map((kind) => ({ kind: "row", key: `tool:${kind}`, icon: TOOLS[kind].icon, label: TOOLS[kind].verb, aside: TOOLS[kind].tip, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, verb: "Draw", group: "Draw", run: () => takeUp(kind) })),
-          { kind: "row", key: "tool:magnifier", icon: ICONS.magnifier, label: "Magnifier", aside: "The chart under the pointer at twice the size", kbd: "D Z", verb: magnifying ? "Stop" : "Use", group: "Draw", run: () => takeUp(magnifying ? "" : "magnifier") },
+          ...KINDS.map((kind) => ({ kind: "row", key: `tool:${kind}`, icon: TOOLS[kind].icon, label: TOOLS[kind].verb, aside: TOOLS[kind].tip, under: true, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, verb: "Draw", group: "Draw", run: () => takeUp(kind) })),
+          { kind: "row", key: "tool:magnifier", icon: ICONS.magnifier, label: "Magnifier", aside: "The chart under the pointer at twice the size", under: true, kbd: "D Z", verb: magnifying ? "Stop" : "Use", group: "Draw", run: () => takeUp(magnifying ? "" : "magnifier") },
           ...(chart.drawings?.length ? [
             { kind: "row", key: "select-box", icon: ICONS.select, label: "Select drawings with a box", aside: "Drag a box around them", kbd: "D S", verb: "Select", group: "Select", run: () => takeUp("select") },
             { kind: "row", key: "select-all", icon: ICONS.select, label: "Select every drawing", aside: plural(chart.drawings.length, "drawing"), verb: "Select", group: "Select", run: () => chooseDrawings((chart.drawings ?? []).map((drawing) => drawing.id)) },
