@@ -22979,9 +22979,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           };
           // Each side of a pane has its own scale, as on the chart.
           for (const side of ["left", "right"]) {
-            // (A signal's marks aren't drawn this small. A hidden layer bubbles are on, unseen but there, as on the chart:
-            // their scale's and their places'.)
-            const shaped = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && (!layer.hidden || carried.has(layer.id)) && !placedOn(layer) && data.results.get(layer.id)?.values && !fromUnfit(doc, layer)).map((layer) => {
+            // (A signal's marks aren't drawn this small. A layer bubbles are on, hidden or not drawn here (a trend in a
+            // stacked pane), unseen but there, as on the chart: their scale's and their places'.)
+            const shaped = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && (!layer.hidden || carried.has(layer.id)) && !placedOn(layer) && data.results.get(layer.id)?.values && (!fromUnfit(doc, layer) || carried.has(layer.id))).map((layer) => {
               const values = /** @type {Vector} */ (gapped(stacked.get(layer.id)?.values ?? data.results.get(layer.id)?.values, data.results.get(layer.id))), mode = modeOf(doc, layer);
               // Percent and indexed scales start from the first value in view.
               let base = NaN;
@@ -23051,7 +23051,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const ranged = bands ? hull(bands) : band;
               // (Where a baseline's colors and bars part, as opposed to the base a percent or indexed scale counts from.)
               const parts = baseOf(layer);
-              return { layer, unseen: Boolean(layer.hidden), mode, from: base, scaled, values, bars: layer.type === "histogram" && mode === 0, base: parts, level: scaled(parts), points: whole ? band?.map(() => null) ?? points : ranged ? ranged.map((range, b) => (range ? range.map((value) => /** @type {[number, number]} */ ([shown.from + ((b + 0.5) * span) / B, value])) : null)) : points, band, bands, stack: stacked.has(layer.id) };
+              return { layer, unseen: Boolean(layer.hidden || fromUnfit(doc, layer)), mode, from: base, scaled, values, bars: layer.type === "histogram" && mode === 0, base: parts, level: scaled(parts), points: whole ? band?.map(() => null) ?? points : ranged ? ranged.map((range, b) => (range ? range.map((value) => /** @type {[number, number]} */ ([shown.from + ((b + 0.5) * span) / B, value])) : null)) : points, band, bands, stack: stacked.has(layer.id) };
             });
             // A stack's layers, sampled at the same points, every one's highs and lows: each is the sum of those under it,
             // so their edges never cross, and none loses its peaks (a 100% stack's top is flat).
@@ -27190,7 +27190,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           await aFrame();
           presets = list;
           presetWords = list.map((preset) => `${preset.t} ${preset.p.join(" ")}`.toLowerCase());
-          // (Their words each once, for a slip in a search (see slipFixed), gathered meanwhile: no keystroke waits for them.)
+          // (Their words each once, for a slip in a search (see slipsOf), gathered meanwhile: no keystroke waits for them.)
           whenIdle(vocabNow);
           presetTitles = list.map((preset) => ((title) => ({ title, name: preset.p.at(-1)?.toLowerCase() ?? "", subject: title.split(": ")[0] }))(preset.t.toLowerCase()));
           // (Counted into place, not sorted: no comparison called thousands of times, a phone's engine without a JIT.)
@@ -27909,16 +27909,30 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!under) presetsFound = { query, found };
         presetsCounted = found.length;
         // (Nothing found, and a word in no preset's words a slip off one that is (as ⌘K's rows forgive one, see fitScore):
-        // found as that word, as series and settings are found through a slip; of words as near, the first found with the
-        // rest typed (where it's searched). A slip only: the words as typed first.)
+        // found as that word, as series and settings are found through a slip; of the words each could be (the nearest
+        // first, then those more presets have), the first together found (where it's searched: a few tried, a dozen at
+        // most), else the nearest of each. A slip only: the words as typed first.)
         if (!found.length && !slipped) {
-          const extra = [...renamed.values()], slips = words.map((word) => slipsOf(word, extra)), fixed = words.slice();
-          const anyHolds = (/** @type {string[]} */ some) => {
-            for (let i = 0; i < presetWords.length; i++) if ((!under || under(i)) && some.every((word) => (renamed.get(i) ?? presetWords[i]).includes(word))) return true;
-            return false;
-          };
-          slips.forEach((options, k) => options.length && (fixed[k] = options.find((option) => anyHolds([...fixed.filter((_, j) => j !== k && !slips[j].length), ...fixed.slice(0, k).filter((_, j) => slips[j].length), option])) ?? options[0]));
-          if (fixed.some((word, k) => word !== words[k])) return presetsMatching(fixed, most, under, true);
+          const extra = [...renamed.values()], choices = words.map((word) => ((slips) => (slips.length ? slips : [word]))(slipsOf(word, extra)));
+          if (choices.some((options, k) => options[0] !== words[k])) {
+            const anyHolds = (/** @type {string[]} */ some) => {
+              for (let i = 0; i < presetWords.length; i++) if ((!under || under(i)) && some.every((word) => (renamed.get(i) ?? presetWords[i]).includes(word))) return true;
+              return false;
+            };
+            // (Each combination in turn, the last word's choices turning fastest, as an odometer's.)
+            const at = choices.map(() => 0), pick = () => choices.map((options, k) => options[at[k]]);
+            let fixed = pick();
+            for (let tries = 0; tries < 12; tries++) {
+              if (anyHolds(pick())) {
+                fixed = pick();
+                break;
+              }
+              let k = at.length - 1;
+              for (; k >= 0 && ++at[k] === choices[k].length; k--) at[k] = 0;
+              if (k < 0) break;
+            }
+            return presetsMatching(fixed, most, under, true);
+          }
         }
         // The best first: what's typed its name or its title's subject; then all its words in its title, starting it; then
         // the nearest the top, the shortest (presetOrder). Each one's fit found as it's reached, the fits in turn, till
