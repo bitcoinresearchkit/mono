@@ -1373,12 +1373,12 @@
         }
       }
 
-      /* Closed over the open chart (a folder, a group's head), or its page shown: a bar before its icon, the logo's orange,
-         the way back to it. In a folder, on the line down from the folder it's in, centered on it (whole pixels each side
+      /* The open chart's row, and what's closed over it (a folder, a group's head) or its page shown: a bar before its
+         icon, the logo's orange, the way to it. In a folder, on the line down from the folder it's in, centered on it (whole pixels each side
          of its middle, see the lines below); a row at the top, where its line would be: as far from its icon, at any
          depth. The rail's against its icon; a menu of what's in a folder, see .menu-holds. (A drag's line where it lands,
          over it, in its place meanwhile: see .drop-before.) */
-      :is(.folder-row, .list-head):is(.holds, .holds-page):not(.drop-before, .drop-after)::after {
+      :is(:is(.folder-row, .list-head):is(.holds, .holds-page), .chart-row.active):not(.drop-before, .drop-after)::after {
         content: "";
         position: absolute;
         top: 50%;
@@ -2010,8 +2010,8 @@
             background: var(--glide, var(--hover));
           }
 
-          /* (Closed over the open chart: its bar against its icon's lit box.) */
-          :is(.folder-row, .list-head):is(.holds, .holds-page):not(.drop-before, .drop-after)::after {
+          /* (The open chart, or closed over it: its bar against its icon's lit box.) */
+          :is(:is(.folder-row, .list-head):is(.holds, .holds-page), .chart-row.active):not(.drop-before, .drop-after)::after {
             left: 3px;
           }
 
