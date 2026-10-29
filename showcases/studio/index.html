@@ -11458,7 +11458,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         out[2] = -0.0041960863 * L - 0.7034186147 * M + 1.707614701 * S;
         return out;
       }
-      const inside = (rgb) => rgb.every((v) => v >= -1e-4 && v <= 1 + 1e-4);
+      /** Whether sRGB shows it (as plain comparisons: a picker's surface asks ~900,000 times, a phone without its JIT). */
+      const inside = (/** @type {number[]} */ rgb) => rgb[0] >= -1e-4 && rgb[0] <= 1 + 1e-4 && rgb[1] >= -1e-4 && rgb[1] <= 1 + 1e-4 && rgb[2] >= -1e-4 && rgb[2] <= 1 + 1e-4;
       const gamma = (x) => (x <= 0.0031308 ? 12.92 * x : 1.055 * x ** (1 / 2.4) - 0.055);
       /** The most chroma sRGB holds at a lightness and hue, found by halving; kept. */
       const maxChromas = new Map();
@@ -17135,7 +17136,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const writeHtml = (/** @type {Element} */ element, /** @type {string} */ html) => void (htmlWritten.get(element) !== html && (htmlWritten.set(element, html), (element.innerHTML = html)));
 
       /** A legend whose width changes (the window, a price scale) checks again whether it scrolls. */
-      const legendFit = new ResizeObserver((entries) => entries.forEach(({ target }) => fitStrip(/** @type {HTMLElement} */ (target))));
+      // (Resized, a legend's tags follow it, read as it's laid out: see fitLegends.)
+      const legendFit = new ResizeObserver((entries) => (entries.forEach(({ target }) => fitStrip(/** @type {HTMLElement} */ (target))), fitLegends()));
+      /** A pane's plot resized (a separator dragged, sizes undone, the window), the tags' room under its legend follows. */
+      const plotFit = new ResizeObserver(() => fitLegends());
       /** Full screen's button, in the chart's corner under its price scale (the right one's, else the left's). */
       function placeFull() {
         const row = $("chart").querySelector("table tr:last-child"), button = $("full");
@@ -17176,6 +17180,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           });
         }
         for (const legend of legends()) if (!kept.has(legend)) (legendFit.unobserve(legend), legend.remove());
+        plotFit.disconnect();
+        for (const legend of kept) plotFit.observe(/** @type {HTMLElement} */ (legend.parentElement));
         if (!chart || drawnChart !== chart.id) return;
         updateLegends();
         for (const legend of made) if (scrolled.get(legend.dataset.pane)) legend.scrollLeft = /** @type {number} */ (scrolled.get(legend.dataset.pane));
@@ -17204,12 +17210,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * Its legends' forms by the plot's width (narrow, no words after a key's strip; tight, the strip alone), and each
-       * pane's tags kept under its legend (see LWC patch 50: a crowded pane's spread up past it, else).
+       * pane's tags kept under its legend (see LWC patch 50: a crowded pane's spread up past it, else). `tags` false: the
+       * forms alone, a legend written (what it holds read as it's laid out, if it's resized: see legendFit; read now, a
+       * click's writes would all be laid out at once, mid-click).
        */
-      function fitLegends() {
+      function fitLegends(tags = true) {
         const width = view.timeScale().width();
         if (width) for (const legend of legends()) legend.toggleAttribute("data-narrow", width < KEY_NARROW), legend.toggleAttribute("data-tight", width < KEY_TIGHT);
-        chart?.panes.forEach((pane, i) => {
+        if (tags) chart?.panes.forEach((pane, i) => {
           if (!view.panes()[i]) return;
           // (Under its legend, but two tags' room left at least: a short pane's tags beside it rather than off its foot.)
           const legend = /** @type {HTMLElement | null} */ (document.querySelector(`#chart .legend[data-pane="${pane.id}"]`)), top = legend && !legend.hidden ? Math.max(0, Math.min(legend.offsetTop + legend.offsetHeight + 2, view.panes()[i].getHeight() - 44)) : 0;
@@ -17414,7 +17422,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               : fromUnfit(chart, layer) ? `<span class="legend-error">${fromUnfit(chart, layer)}</span>`
               : layer.hidden || !(result?.values || result?.heat) || (layer.type === "signal" && !signalShown(layer)) ? '<span class="legend-value"></span>'
               : `<span class="legend-value" data-value="${layer.id}" style="min-width: ${valueSlot(layer, 12)}px"></span>`;
-            return `<button type="button" class="${layer.hidden || (layer.type === "signal" && !signalShown(layer)) ? "hidden" : ""} ${layer.id === selected || layerPicks.has(layer.id) ? "selected" : ""}" data-select="${layer.id}">
+            return `<button type="button" class="${layer.hidden || (layer.type === "signal" && !signalShown(layer)) ? "hidden" : ""}" data-select="${layer.id}">
               <span class="legend-name">${legendNameHtml(layer)}</span>${value}
             </button>`;
           };
@@ -17435,16 +17443,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Mid-drag, a color or a width changed, not what it holds: no need to measure it again.)
           if (!holding) fitSoon(element);
         }
+        markLegends();
         // (Its bands named after the latest point too: renamed, recolored, as the legend is.)
-        fitLegends();
+        fitLegends(false);
         lightLegend(litLayer, true);
         updateValues();
+      }
+      /** The legends' items of the layer selected and those picked, marked so in place (a selection writes no legend anew). */
+      function markLegends() {
+        for (const item of all$(".legend [data-select]", $("chart"))) item.classList.toggle("selected", item.dataset.select === selected || layerPicks.has(/** @type {string} */ (item.dataset.select)));
       }
       function updateValues() {
         updateReadout();
         updateRowChanges();
-        // (A layer's panel open meanwhile, its latest not its line's caption: as it comes, a heatmap's once its day's in.)
-        for (const caption of document.querySelectorAll("[data-latest]")) {
+        // (⌘K's preview of a layer open meanwhile, its latest not its line's caption: as it comes, a heatmap's once its day's in.)
+        for (const caption of $("palette").querySelectorAll("[data-latest]")) {
           const layer = layerById(/** @type {HTMLElement} */ (caption).dataset.latest ?? ""), result = layer && resolved?.results.get(layer.id);
           if (layer) caption.textContent = latestSaid(layer, result, unitFor(layer, result));
         }
@@ -28250,10 +28263,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           row.querySelector(".row-main")?.toggleAttribute("aria-current", row.dataset.layer === selected);
           ((check) => ((check.checked = on), (check.dataset.tip = on ? "Deselect" : "Select")))(/** @type {HTMLInputElement} */ (row.querySelector(".row-check")));
         }
-        for (const item of all$(".legend [data-select]")) item.classList.toggle("selected", item.dataset.select === selected || layerPicks.has(/** @type {string} */ (item.dataset.select)));
+        markLegends();
         // (Marked here, not as last written: the next writes write them whole.)
         layersWritten = { keys: [], tail: [] };
-        for (const legend of legends()) legendShown.delete(legend);
         renderLayersBar();
         if (multiEdit) renderInspector();
       }
@@ -28411,7 +28423,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function select(id, sheet = true) {
         // (On a phone, one just added stays as it is, unselected: the chart in sight, the list the list; Edit opens it.)
         if (phone.matches && !sheet) return;
-        const fromList = $("layer-list").contains(document.activeElement);
+        const fromList = $("layer-list").contains(document.activeElement), unchosen = Boolean(id) && chosen.size > 0;
         selected = id;
         if (id) {
           chosen = new Set();
@@ -28419,11 +28431,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (selected && phone.matches && sheet) document.body.dataset.sheet = "panel";
         else if (selected && document.body.dataset.panel === "closed") document.body.toggleAttribute("data-peek", true);
-        renderLayers();
-        renderInspector();
-        updateLegends();
-        renderBelt();
-        repaintDrawings();
+        showSelection();
+        // (Drawings selected, let go: painted so.)
+        if (unchosen) repaintDrawings();
         if (fromList && selected) /** @type {HTMLElement | null} */ ($("inspector").querySelector('[data-action="deselect"]'))?.focus();
       }
       function deselect() {
@@ -28439,8 +28449,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Open for the while, the panel goes: a key's focus in it to its button, else the chart.)
         if (peeking) keepFocus($("panel"), () => $("panel-toggle"), () => $("plot-keys"));
         document.body.removeAttribute("data-peek");
-        refresh("none");
+        showSelection();
         if (fromSettings && !peeking) /** @type {HTMLElement | null} */ ($("layer-list").querySelector(`[data-select="${was}"]`))?.focus();
+      }
+
+      /** What shows which layer's selected: the list, the settings, the legends, the belt (nothing else drawn again). */
+      function showSelection() {
+        renderLayers();
+        renderInspector();
+        updateLegends();
+        renderBelt();
       }
 
       let inspected = "";
