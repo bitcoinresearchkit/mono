@@ -447,6 +447,35 @@
         }
       }
 
+      /* The way down, under it all: what the rest of the page holds. */
+      .more {
+        position: relative;
+        display: flex;
+        flex-basis: 100%;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        height: 24px;
+        margin-top: 6px;
+        color: var(--faint);
+        font-size: 12.5px;
+        font-weight: 500;
+        text-decoration: none;
+
+        &:hover {
+          color: var(--ink);
+        }
+
+        /* (A finger's reach, unseen, short of the buttons' over it.) */
+        @media (pointer: coarse) {
+          &::before {
+            content: "";
+            position: absolute;
+            inset: -6px 0 -10px;
+          }
+        }
+      }
+
       .controls {
         display: flex;
         flex-wrap: wrap;
@@ -539,6 +568,10 @@
 
       main {
         padding: 56px 0 24px;
+      }
+
+      .part {
+        scroll-margin-top: 24px;
       }
 
       .part + .part {
@@ -977,13 +1010,14 @@
             <button type="button" data-span="0" aria-pressed="false">Max</button>
           </div>
         </div>
+        <a class="more" href="#atlas">Where it's been and how it reads <span aria-hidden="true">↓</span></a>
       </div>
     </div>
 
     <p class="sr" id="said" aria-live="polite"></p>
 
     <main class="shell">
-      <section class="part" aria-labelledby="atlas-title">
+      <section class="part" id="atlas" aria-labelledby="atlas-title">
         <header><h2 id="atlas-title">Where it's been</h2><p id="atlas-since"></p></header>
         <div class="atlas">
           <div>
@@ -1315,7 +1349,10 @@
       /** Its layout, in CSS pixels: room at the right for today's ring, the trend's lane, the dates' row. (No price
        * axis: the day's price is said above.) */
       const EDGE = 12, LANE = 4, YEARS = 30;
-      /** The canvas's size; the plot's top (under where it stands) and the foot's top, measured. */
+      /** The room between the words over the chart and its highest price. */
+      const TOP_GAP = 16;
+      /** The canvas's size, the whole first screen; the prices' top (its pane runs to the screen's, the prices kept
+       * under where it stands: TOP_GAP under it) and the foot's top, measured. */
       let width = 0, height = 0, plotTop = 0, footTop = 0;
       /** The plot's price range (logs), eased as the span's days change. */
       let range = { lo: 0, hi: 1 };
@@ -1359,6 +1396,7 @@
 
         ctx.save();
         ctx.beginPath();
+        // (The prices' drawing kept under the words over it: a trend's line can run past the range, above them.)
         ctx.rect(0, plotTop - 8, right, bottom - plotTop + 9);
         ctx.clip();
 
@@ -1462,7 +1500,7 @@
         if (seen) {
           const x = Math.round(xOf(day)) + 0.5, y = yOf(d.close[day]);
           ctx.fillStyle = paint.line;
-          ctx.fillRect(x - 0.5, plotTop, 1, bottom + 8 + LANE - plotTop);
+          ctx.fillRect(x - 0.5, 0, 1, bottom + 8 + LANE);
           ctx.beginPath();
           ctx.arc(x, y, 4.5, 0, Math.PI * 2);
           ctx.fillStyle = paint.states[d.state[day]];
@@ -1574,7 +1612,7 @@
         const box = chart.getBoundingClientRect();
         width = box.width;
         height = box.height;
-        plotTop = $("hero").getBoundingClientRect().bottom - box.top + 8;
+        plotTop = $("hero").getBoundingClientRect().bottom - box.top + TOP_GAP;
         footTop = $("foot").getBoundingClientRect().top - box.top;
         redraw();
       }
@@ -1938,7 +1976,8 @@
             for (let i = d.first; i <= d.last; ) {
               let j = i;
               while (j + 1 <= d.last && of[j + 1] === of[i]) j++;
-              base.fillStyle = colors[of[i]];
+              // (Tinted as the compass's cells and the pan bar are, not at full strength.)
+              base.fillStyle = withAlpha(colors[of[i]], 0.5);
               base.fillRect(BAND.side + (i - d.first) * per, y, (j - i + 1) * per, height);
               i = j + 1;
             }
