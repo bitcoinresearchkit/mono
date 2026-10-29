@@ -990,18 +990,17 @@ export function studioPresets(client, facts) {
       ]);
     };
     /** A basis of two lines a group: each cloud three lines, as the one-line charts' are: the highest of its six, the
-     * middle of its three groups' medians (their sum less the highest and the lowest of them), and the lowest of its six;
+     * middle of its three groups' medians, and the lowest of its six;
      * coloured as those charts are, the upper band one colour, the lower another (letters: the price A, all holders' B,
      * the short-term lines C to E, the long-term F to H, the clouds I and J, the trends' edges K to P). */
     const ofTwo = (/** @type {string} */ name, /** @type {[string, string]} */ which, /** @type {string} */ said) => {
       const lines = (/** @type {[string, string, string][]} */ groups, /** @type {string} */ label, /** @type {[string, string, string]} */ colors) => {
-        const names = groups.flatMap(([key]) => which.map((w) => stat(key, w).name)), [a, b, c] = groups.map(([key]) => stat(key, "median").name);
-        const fold = (/** @type {string} */ fn) => names.reduce((all, n) => `${fn}(${all}, ${n})`);
+        const names = groups.flatMap(([key]) => which.map((w) => stat(key, w).name)).join(", "), medians = groups.map(([key]) => stat(key, "median").name).join(", ");
         const line = (/** @type {string} */ formula, /** @type {string} */ part, /** @type {string} */ color) => ({ formula, label: `${label}, ${part}`, format: "usd", color, opacity: 0.5 });
         return [
-          line(fold("min"), "lowest", colors[0]),
-          line(`${a} + ${b} + ${c} - max(max(${a}, ${b}), ${c}) - min(min(${a}, ${b}), ${c})`, "middle", colors[1]),
-          line(fold("max"), "highest", colors[2]),
+          line(`min(${names})`, "lowest", colors[0]),
+          line(`middle(${medians})`, "middle", colors[1]),
+          line(`max(${names})`, "highest", colors[2]),
         ];
       };
       return chart(name, `Compass: holder clouds of ${said}, and trends`, [
