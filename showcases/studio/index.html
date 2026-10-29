@@ -18188,7 +18188,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const series = drawn.get(layer.id), row = series && layer.type === "bubbles" && !layer.hidden && doc.panes.findIndex((item) => item.id === layer.pane) === pane && resolved.times[i] === time ? series.dataByIndex(i) : null;
             if (!row || x === null) continue;
             const { most, hide, size, upEdge, downEdge } = series.options(), worth = Math.abs(row.v), y = Number.isFinite(row.y) ? series.priceToCoordinate(row.y) : null;
-            if (y === null || !(most > 0 && worth > 0 && worth >= hide * most) || (lit && !doc.panes[pane]?.reverse)) continue;
+            if (y === null || !(most > 0 && worth > 0 && worth < Infinity && worth >= hide * most) || (lit && !doc.panes[pane]?.reverse)) continue;
             lit = { x, y, d: size * Math.sqrt(Math.min(1, worth / most)) + 6, color: row.v >= 0 ? upEdge : downEdge };
           }
         }
@@ -20979,7 +20979,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Values' largest size (in all of them, without a range), 0 for none. @param {Vector} values @param {{ from: number, to: number } | null} [range] */
       const mostIn = (values, range = { from: 0, to: values.length - 1 }) => {
         let most = 0;
-        if (range) for (let i = Math.max(0, Math.ceil(range.from)); i <= Math.min(values.length - 1, Math.floor(range.to)); i++) if (Math.abs(values[i]) > most) most = Math.abs(values[i]);
+        // (An infinite value none, as NaN is: else every other one as none beside it.)
+        if (range) for (let i = Math.max(0, Math.ceil(range.from)); i <= Math.min(values.length - 1, Math.floor(range.to)); i++) if (Math.abs(values[i]) > most && Math.abs(values[i]) < Infinity) most = Math.abs(values[i]);
         return most;
       };
       function bubbleView() {
@@ -21000,7 +21001,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const least = options.hide * most, R = options.size / 2;
               let n = 0;
               for (let i = from; i < to; i++) {
-                const { x, originalData: row } = data.bars[i], size = Math.abs(row.v), at = size > 0 && size >= least ? toY(row.y) : null;
+                const { x, originalData: row } = data.bars[i], size = Math.abs(row.v), at = size > 0 && size < Infinity && size >= least ? toY(row.y) : null;
                 if (at === null) continue;
                 (order[n] = n), (ups[n] = row.v >= 0 ? 1 : 0), (xs[n] = x), (ys[n] = at), (radii[n++] = R * Math.sqrt(Math.min(1, size / most)));
               }
@@ -22740,21 +22741,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const PREVIEWS = "bitview-studio:previews";
       const PREVIEW = { width: 320, height: 200, points: 120 };
       /**
-       * A layer drawn small, as its type draws on the chart: `k` its kind (a line, an area, a baseline, bars, dots, or one
-       * of its lines across), `c` its color (`c2` under its base), `d` its line (or its bars above the base, `d2` those
-       * below), `y0` a baseline's base, `top`/`bottom` its pane's extent (`up`: an area filled above; `band`: a stacked one's band, its path), `dash`
+       * A layer drawn small, as its type draws on the chart: `k` its kind (a line, an area, a baseline, bars, dots, one of
+       * its lines across, or bubbles of one size, `w` across), `c` its color (`c2` under its base), `d` its line (or its
+       * bars, or bubbles, above the base, `d2` those below), `y0` a baseline's base, `top`/`bottom` its pane's extent (`up`: an area filled above; `band`: a stacked one's band, its path), `dash`
        * its line style, `op` its opacity, `end` its latest point, `f` an area's fill (its top's opacity and its foot's: see fillOf),
        * `o` outlined (see OUTLINED): its layer's place, from 1 (its marks drawn together, see previewSvg).
-       * @typedef {{ k: string, c: string, c2?: string, d: string, d2?: string, y0?: number, top?: number, bottom?: number, up?: boolean, band?: string, f?: number[], dash?: string, op?: number, end?: number[], img?: string, o?: number }} PlotMark
+       * @typedef {{ k: string, c: string, c2?: string, d: string, d2?: string, y0?: number, top?: number, bottom?: number, up?: boolean, band?: string, f?: number[], dash?: string, op?: number, end?: number[], img?: string, o?: number, w?: number }} PlotMark
        * Quick Look's (a big one's) too: its dates along its foot (`ticks`, where), each pane side's highest and lowest
        * value (`scales`, where). A preset's: which preset it is, by its place in their tree (`of`, see templateDoc).
        * @typedef {{ seps: number[], marks: PlotMark[], end?: number, ticks?: { x: number, text: string }[], scales?: { y: number, text: string, side: string }[], of?: string }} Preview
        */
       /** Each kind, with what it can't be drawn without. */
-      const PLOT_NEEDS = { line: [], dots: [], bars: [], across: [], band: [], area: ["top", "bottom"], baseline: ["y0", "top", "bottom"], heat: ["img", "top", "bottom"] };
+      const PLOT_NEEDS = { line: [], dots: [], bars: [], across: [], band: [], bubble: ["w"], area: ["top", "bottom"], baseline: ["y0", "top", "bottom"], heat: ["img", "top", "bottom"] };
       const isPath = (d) => typeof d === "string" && /^[MLHVZh\d. -]*$/.test(d);
       const validMark = (mark) => Object.hasOwn(PLOT_NEEDS, mark?.k) && PLOT_NEEDS[mark.k].every((field) => mark[field] !== undefined) && isColor(mark.c) && (mark.c2 === undefined || isColor(mark.c2)) && isPath(mark.d)
-        && (mark.d2 === undefined || isPath(mark.d2)) && [mark.y0, mark.top, mark.bottom, mark.op].every((n) => n === undefined || Number.isFinite(n))
+        && (mark.d2 === undefined || isPath(mark.d2)) && [mark.y0, mark.top, mark.bottom, mark.op, mark.w].every((n) => n === undefined || Number.isFinite(n))
         && (mark.up === undefined || typeof mark.up === "boolean") && (mark.dash === undefined || (typeof mark.dash === "string" && /^[\d. ]+$/.test(mark.dash)))
         && (mark.end === undefined || (Array.isArray(mark.end) && mark.end.length === 2 && mark.end.every(Number.isFinite)))
         && (mark.img === undefined || (typeof mark.img === "string" && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(mark.img)));
@@ -22763,7 +22764,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const previews = new Map(Object.entries(storage.get(PREVIEWS, {})).filter(([, item]) => validPreview(item)));
       /** What a card depends on past a mini chart's: its layers' looks the mark leaves out, the view it was left at and how much the chart shows. @param {Chart} doc */
       // (A heatmap's picture in its colors as the theme shows them: drawn again in the other.)
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName, layer.fillOpacity, layer.solid, layer.hollow]), openView(doc), FINE.has(doc.index) ? Math.round(view.timeScale().width() / 50) : 0, doc.layers.some((layer) => layer.type === "heatmap" && !layer.hidden) ? light : null]);
+      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName, layer.fillOpacity, layer.solid, layer.hollow, layer.size, layer.hide, layer.scaleTo]), openView(doc), FINE.has(doc.index) ? Math.round(view.timeScale().width() / 50) : 0, doc.layers.some((layer) => layer.type === "heatmap" && !layer.hidden) ? light : null]);
       /**
        * How many bars a chart's preview shows at most (its data at `index`): its range's, as the chart opens on it (Max, at
        * a day or coarser, the whole history); finer, no more than fit the chart's width at four a pixel.
@@ -22908,6 +22909,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A folded pane takes no band: it shows nothing.)
         const folded = foldedPanes(doc), sizeOf = (pane, k) => (folded.has(pane.id) ? 0 : pane.size ?? defaultSize(k));
         const total = doc.panes.reduce((sum, pane, i) => sum + sizeOf(pane, i), 0), stacked = stackOf(doc, data);
+        // (The layers bubbles shown are on.)
+        const carried = new Set(doc.layers.filter((layer) => layer.type === "bubbles" && !layer.hidden && layer.ref).map((layer) => layer.ref));
         let top = 0;
         doc.panes.forEach((pane, k) => {
           const height = (sizeOf(pane, k) / total) * H;
@@ -22919,10 +22922,43 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // the back, to its foot); their lines across behind them all.
           const from = drawn.marks.length, ranks = new Map(), inPaneOrder = doc.layers.filter((layer) => layer.pane === pane.id);
           const zOf = new Map((pane.reverse ? inPaneOrder : [...inPaneOrder].reverse()).map((layer, z) => [layer.id, z]));
+          /**
+           * A bubbles layer as the chart draws it, each at `place` (its date's height, NaN for none): each bucket's largest
+           * (none past the view's end), as wide across as its size of the largest (in view, or of all time) has it, the
+           * largest first, by sizes a pixel apart (a size's bubbles one mark), ringed in the ground's color if outlined.
+           * @param {Layer} layer @param {(i: number) => number} place
+           */
+          const drawBubbles = (layer, place) => {
+            const own = data.results.get(layer.id)?.values;
+            if (layer.hidden || !own) return;
+            const most = layer.scaleTo === "all" ? mostIn(own) : mostIn(own, shown), least = (layer.hide ?? BUBBLE_HIDE) * most, across = (layer.size ?? BUBBLE_SIZE) * (big ? 1 : 0.6);
+            if (!(most > 0)) return;
+            const largest = new Map();
+            for (let i = first; i <= last; i++) {
+              const size = Math.abs(own[i]), b = Math.min(Math.floor(((i - shown.from) / span) * B), i <= shown.to ? B - 1 : B);
+              if (!(size > 0 && size < Infinity) || size < least || b < 0 || b >= B || Math.abs(own[largest.get(b)?.i ?? NaN]) >= size) continue;
+              // (Its middle in its pane, as the chart clips them (a mini can't clip a pane: one half out, none); a layer off its
+              // scale (a hidden one in a 100% stack), none.)
+              const at = place(i);
+              if (Number.isFinite(at) && at >= paneTop && at <= paneBottom) largest.set(b, { i, at });
+            }
+            const sizes = new Map();
+            for (const { i, at } of largest.values()) {
+              const w = Math.max(1, Math.round(across * Math.sqrt(Math.min(1, Math.abs(own[i]) / most)))), dot = `M${round(((i - shown.from) / span) * W)} ${at}h0`;
+              const into = sizes.get(w) ?? sizes.set(w, { d: "", d2: "" }).get(w);
+              if (own[i] >= 0) into.d += dot;
+              else into.d2 += dot;
+            }
+            for (const [w, { d, d2 }] of [...sizes].sort(([a], [b]) => b - a)) {
+              const mark = { k: "bubble", c: layer.color, c2: belowOf(layer), d, ...(d2 ? { d2 } : {}), w, ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}), ...(layer.outline ? { o: doc.layers.indexOf(layer) + 1 } : {}) };
+              drawn.marks.push(mark), ranks.set(mark, zOf.get(layer.id) ?? 0);
+            }
+          };
           // Each side of a pane has its own scale, as on the chart.
           for (const side of ["left", "right"]) {
-            // (A signal's marks aren't drawn this small.)
-            const shaped = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && !layer.hidden && !placedOn(layer) && data.results.get(layer.id)?.values && !fromUnfit(doc, layer)).map((layer) => {
+            // (A signal's marks aren't drawn this small. A hidden layer bubbles are on, unseen but there, as on the chart:
+            // their scale's and their places'.)
+            const shaped = doc.layers.filter((layer) => layer.pane === pane.id && layer.side === side && (!layer.hidden || carried.has(layer.id)) && !placedOn(layer) && data.results.get(layer.id)?.values && !fromUnfit(doc, layer)).map((layer) => {
               const values = /** @type {Vector} */ (gapped(stacked.get(layer.id)?.values ?? data.results.get(layer.id)?.values, data.results.get(layer.id))), mode = modeOf(doc, layer);
               // Percent and indexed scales start from the first value in view.
               let base = NaN;
@@ -22992,7 +23028,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const ranged = bands ? hull(bands) : band;
               // (Where a baseline's colors and bars part, as opposed to the base a percent or indexed scale counts from.)
               const parts = baseOf(layer);
-              return { layer, mode, from: base, scaled, values, bars: layer.type === "histogram" && mode === 0, base: parts, level: scaled(parts), points: whole ? band?.map(() => null) ?? points : ranged ? ranged.map((range, b) => (range ? range.map((value) => /** @type {[number, number]} */ ([shown.from + ((b + 0.5) * span) / B, value])) : null)) : points, band, bands, stack: stacked.has(layer.id) };
+              return { layer, unseen: Boolean(layer.hidden), mode, from: base, scaled, values, bars: layer.type === "histogram" && mode === 0, base: parts, level: scaled(parts), points: whole ? band?.map(() => null) ?? points : ranged ? ranged.map((range, b) => (range ? range.map((value) => /** @type {[number, number]} */ ([shown.from + ((b + 0.5) * span) / B, value])) : null)) : points, band, bands, stack: stacked.has(layer.id) };
             });
             // A stack's layers, sampled at the same points, every one's highs and lows: each is the sum of those under it,
             // so their edges never cross, and none loses its peaks (a 100% stack's top is flat).
@@ -23007,9 +23043,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               }
             }
             let lo = Infinity, hi = -Infinity;
-            for (const { mode, bars, base, points, stack } of shaped) {
-              if (bars) (lo = Math.min(lo, base)), (hi = Math.max(hi, base));
-              if (stack && mode === 0) (lo = Math.min(lo, 0)), (hi = Math.max(hi, 0));
+            for (const { mode, bars, base, points, stack, unseen } of shaped) {
+              // (An unseen layer's values alone, where bubbles sit: its bars', its stack's floor, not drawn.)
+              if (bars && !unseen) (lo = Math.min(lo, base)), (hi = Math.max(hi, base));
+              if (stack && mode === 0 && !unseen) (lo = Math.min(lo, 0)), (hi = Math.max(hi, 0));
               for (const point of points) for (const [, value] of point ?? []) (lo = Math.min(lo, value)), (hi = Math.max(hi, value));
             }
             // (A heatmap's days, behind its side's lines; alone there (or beside lines that give its scale no height), on
@@ -23041,6 +23078,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (big && drawn.scales) {
               let most = null, least = null;
               for (const item of shaped) {
+                if (item.unseen) continue;
                 for (const point of item.points) {
                   // (A bar's drawn to its far end from its base: that end alone.)
                   const ends = item.bars && point ? [point.reduce((far, next) => (Math.abs(next[1] - item.base) > Math.abs(far[1] - item.base) ? next : far))] : point ?? [];
@@ -23055,7 +23093,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               if (most) drawn.scales.push({ y: y(most.at), text: text(most), side });
               if (least && least.at !== most?.at) drawn.scales.push({ y: y(least.at), text: text(least), side });
             }
-            const drawLayer = ({ layer, scaled, bars, base, level, points, band, bands }) => {
+            const drawLayer = ({ layer, unseen, scaled, bars, base, level, points, band, bands }) => {
+              if (unseen) return;
               // (None stacked, nor on a % or indexed scale: see acrossUnfit.)
               const across = acrossUnfit(doc, layer) ? [] : [...(layer.levels ?? []).map((item, i) => [String(i), item.value]), ...(layer.type === "baseline" ? [["base", base]] : [])];
               for (const [key, value] of across) {
@@ -23143,7 +23182,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               drawLayer(item);
               for (let m = start; m < drawn.marks.length; m++) ranks.set(drawn.marks[m], drawn.marks[m].k === "across" ? -1 : zOf.get(item.layer.id) ?? 0);
             }
+            // (Bubbles on a layer drawn here, at its value there on this side's scale: as the chart reads it, its line's
+            // breaks not theirs.)
+            for (const layer of doc.layers) {
+              const on = layer.type === "bubbles" && layer.pane === pane.id && shaped.find((item) => item.layer.id === layer.ref), values = on && (stacked.get(on.layer.id)?.values ?? data.results.get(on.layer.id)?.values);
+              if (on && values) drawBubbles(layer, (i) => y(on.scaled(values[i])));
+            }
           }
+          // (Bubbles on none: along the pane's middle, whatever its sides draw.)
+          for (const layer of doc.layers) if (layer.type === "bubbles" && layer.pane === pane.id && !doc.layers.some((other) => other.id === layer.ref)) drawBubbles(layer, () => round((paneTop + paneBottom) / 2));
           drawn.marks.splice(from, Infinity, ...drawn.marks.slice(from).sort((a, b) => ranks.get(a) - ranks.get(b)));
         });
         return drawn;
@@ -23189,13 +23236,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const c = escape(ink(mark.c)), c2 = escape(ink(mark.c2 ?? mark.c)), g = `${id}-${n}`, dash = mark.dash ? ` stroke-dasharray="${mark.dash}"` : "";
           const halo = (/** @type {string | undefined} */ d, kind = "") => (mark.o && d ? `<path class="halo${kind}"${dash} d="${d}"/>` : "");
           const fade = (key, color, from, to, a, b) => `<linearGradient id="${g}${key}" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="${from}" y2="${to}"><stop offset="0" stop-color="${color}" stop-opacity="${a}"/><stop offset="1" stop-color="${color}" stop-opacity="${b}"/></linearGradient>`;
-          let under = "", band = "", over = "";
+          // (`ring`: a mark's own band, right under its line, never faded: an outlined bubble's.)
+          let under = "", band = "", over = "", ring = "";
           // (A heatmap's picture, its pixels as they are: smoothed, a cell bled into the empty ones by it, a dark fringe.)
           if (mark.k === "heat") under = `<image href="${mark.img}" x="0" y="${mark.top}" width="${W}" height="${/** @type {number} */ (mark.bottom) - /** @type {number} */ (mark.top)}" preserveAspectRatio="none" style="image-rendering: pixelated"/>`;
           else if (mark.k === "across") over = `<path class="across" stroke="${c}"${dash} d="${mark.d}"/>`;
           else if (mark.k === "band") under = `<path class="fill" style="fill:${c}" d="${mark.d}"/>`;
           else if (mark.k === "bars") (band = `${halo(mark.d, " of-bars")}${halo(mark.d2, " of-bars")}`), (over = `<path class="bars" stroke="${c}" d="${mark.d}"/>${mark.d2 ? `<path class="bars" stroke="${c2}" d="${mark.d2}"/>` : ""}`);
           else if (mark.k === "dots") (band = halo(mark.d, " of-dots")), (over = `<path class="dots" stroke="${c}" d="${mark.d}"/>`);
+          // (Bubbles of a size: each its edge's dot, its fill's dot a pixel in over it, both mixed with the ground (the chart's
+          // are see-through); a dot keeps its size as the frame stretches, so each is round. Outlined: a ring of the ground
+          // under each size's, over the larger ones', as the chart rings each in turn.)
+          else if (mark.k === "bubble") (ring = mark.o ? [mark.d, mark.d2].map((d) => (d ? `<path class="bubble" style="stroke-width:${(mark.w ?? 0) + 2}px;stroke:var(--plot-ground, var(--card))" d="${d}"/>` : "")).join("") : ""), (over = [[c, mark.d], [c2, mark.d2]].map(([color, d]) => (d ? `<path class="bubble" style="stroke-width:${mark.w}px;stroke:color-mix(in srgb, ${color} 80%, var(--plot-ground, var(--card)))" d="${d}"/>${(mark.w ?? 0) > 3 ? `<path class="bubble" style="stroke-width:${(mark.w ?? 0) - 2}px;stroke:color-mix(in srgb, ${color} 40%, var(--plot-ground, var(--card)))" d="${d}"/>` : ""}` : "")).join(""));
           else if (mark.k === "baseline") {
             const y0 = /** @type {number} */ (mark.y0), f = closedTo(mark.d, y0);
             defs.push(`<clipPath id="${g}a"><rect width="${W}" height="${y0}"/></clipPath><clipPath id="${g}b"><rect y="${y0}" width="${W}" height="${H - y0}"/></clipPath>`, fade("u", c, mark.top, y0, 0.24, 0.01), fade("v", c2, y0, mark.bottom, 0.01, 0.24));
@@ -23220,7 +23272,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             over += `<path class="ring" d="M${x} ${y}h0"/><path class="end" stroke="${color}" d="M${x} ${y}h0"/>`;
           }
           const faded = (/** @type {string} */ html) => (html && mark.op ? `<g opacity="${mark.op}">${html}</g>` : html);
-          return { o: mark.o, under: faded(under), band, over: faded(over) };
+          return { o: mark.o, under: faded(under), band, over: ring + faded(over) };
         });
         for (let n = 0; n < parts.length; ) {
           let end = n + 1;
