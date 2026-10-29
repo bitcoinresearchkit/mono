@@ -7640,6 +7640,11 @@
         letter-spacing: -0.026em;
       }
 
+      /* (Not live: said in red, what's beside it as it was last heard.) */
+      .live-off {
+        color: var(--danger);
+      }
+
       /* A live figure (the last block, the price, when it was last heard): its mark before it, as a door has its own, on
          its line's words (in a line: what's before it, "Offline", on the same baseline). */
       .live-figure {
@@ -37300,7 +37305,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("live").classList.remove("waiting");
         renderHorizon();
         const said = {
-          status: lost ? "Offline" : "",
+          status: lost ? '<span class="live-off">Offline</span>' : "",
           block: liveHeight ? liveFigure(ICONS.cube, "Block", grouped.format(liveHeight)) : "",
           price: !lost && livePrice ? liveFigure(ICONS.dollar, "Price in dollars", toTheCent.format(livePrice)) : at ? liveFigure(ICONS.clock, "Last heard at", at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })) : "",
         };
