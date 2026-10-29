@@ -15,7 +15,7 @@
     <meta property="og:image" content="https://bitview.space/compass/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Compass on a day of Fear with a bull trend: the state's name over eight years of price, each day coloured by its state, the trend's lane under it" />
+    <meta property="og:image:alt" content="Compass on a day of Apathy with a bull trend: the state's name over eight years of price, each day coloured by its state, the trend's lane under it" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <style>
@@ -1098,13 +1098,13 @@
         <ol class="how">
           <li>
             <h3>The long-term cloud: how holders feel</h3>
-            <p>The median price paid by coins held <b>over 4 months</b>, <b>over 5 months</b> and <b>over 6 months</b>: three lines close together, the cloud between them.</p>
-            <p>Price above it, more than half of the dollars each of those groups put in is in profit; below it, more than half is at a loss; inside, the groups differ. That's the compass's north and south.</p>
+            <p>The median and the average price paid, by dollar, by coins held <b>over 4 months</b>, <b>over 5 months</b> and <b>over 6 months</b>: six lines close together, the cloud between them.</p>
+            <p>Price above it, each of those groups has more than half of the dollars it put in in profit, and its average dollar too; below it, the same at a loss; inside, they differ. That's the compass's north and south.</p>
           </li>
           <li>
             <h3>The short-term cloud: how recent buyers feel</h3>
             <p>The same for coins held <b>under 4 months</b>, <b>under 5 months</b> and <b>under 6 months</b>: what recent buyers paid.</p>
-            <p>Above it, more than half of what each group paid is in profit; below it, more than half is at a loss; inside, the groups differ. That's east and west. Price is each day's close.</p>
+            <p>Above it, each group's median and average dollar is in profit; below it, both at a loss; inside, they differ. That's east and west. Price is each day's close.</p>
           </li>
           <li>
             <h3>Three trends set the territory</h3>
@@ -1112,7 +1112,7 @@
             <p>When all three hold supports, it's <b>bull</b> territory; all three resistances, <b>bear</b>; split, <b>limbo</b>.</p>
           </li>
         </ol>
-        <p class="note">A median here is by dollars and counts mostly the coins that move (<span id="weighting">each age group weighted by how likely its coins are ever to be spent</span>), so lost coins don't hold a cloud down. Every state is read from that day's numbers alone, never from what came after: today's can change by tonight's close.</p>
+        <p class="note">A median and an average here are by dollars and count mostly the coins that move (<span id="weighting">each age group weighted by how likely its coins are ever to be spent</span>), so lost coins don't hold a cloud down. Every state is read from that day's numbers alone, never from what came after: today's can change by tonight's close.</p>
       </section>
     </main>
 
@@ -1188,7 +1188,8 @@
       let coins = "mobile";
       const WEIGHTING = { mobile: "each age group weighted by how likely its coins are ever to be spent", awake: "each age group weighted by how much of its coin days have been spent" };
       /** A cloud's three medians, of the coins counted now. */
-      const cloudIds = (/** @type {"long" | "short"} */ cloud, which = coins) => (cloud === "long" ? ["age_over_4m", "lth", "age_over_6m"] : ["age_under_4m", "sth", "age_under_6m"]).map((k) => `${k}_${which}_cost_basis_by_dollar_median`);
+      /** A cloud's lines, of the coins counted: each of its three groups' median and average price paid, by dollar. */
+      const cloudIds = (/** @type {"long" | "short"} */ cloud, which = coins) => (cloud === "long" ? ["age_over_4m", "lth", "age_over_6m"] : ["age_under_4m", "sth", "age_under_6m"]).flatMap((k) => ["median", "avg"].map((stat) => `${k}_${which}_cost_basis_by_dollar_${stat}`));
       /** Every series read, by id: a switch of coins reads only its clouds'. @type {Map<string, Promise<Answer>>} */
       const answers = new Map();
       /** The series the page needs for some coins, by id, each read once. */
@@ -1262,11 +1263,17 @@
         const get = (/** @type {string} */ id) => byDay(answered[id], n);
         const close = get(SERIES.close), high = get(SERIES.high), low = get(SERIES.low);
         const lines = (/** @type {string[]} */ ids) => ids.map(get);
-        const cloudOf = (/** @type {Float64Array[]} */ three) => {
+        /** A cloud from its lines: their lowest and highest each day, where every one has a value. */
+        const cloudOf = (/** @type {Float64Array[]} */ members) => {
           const bottom = new Float64Array(n).fill(NaN), top = new Float64Array(n).fill(NaN);
           for (let i = 0; i < n; i++) {
-            const a = three[0][i], b = three[1][i], c = three[2][i];
-            if (a > 0 && b > 0 && c > 0) (bottom[i] = Math.min(a, b, c)), (top[i] = Math.max(a, b, c));
+            let low = Infinity, high = -Infinity;
+            for (const line of members) {
+              const value = line[i];
+              if (!(value > 0)) (low = NaN), (high = NaN);
+              else (low = Math.min(low, value)), (high = Math.max(high, value));
+            }
+            if (low > 0) (bottom[i] = low), (top[i] = high);
           }
           return /** @type {[Float64Array, Float64Array]} */ ([bottom, top]);
         };
