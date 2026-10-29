@@ -11623,6 +11623,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The types an outline edges (the chart's background about what's drawn, see LWC patch 53): what a series is drawn as, and a trend's line. */
       const OUTLINED = new Set(["line", "dots", "area", "histogram", "baseline", "candles", "trend", "bubbles"]);
       /** Bubbles' largest, across (24 pixels if none), and the share of it under which none is drawn (5% if none): each a choice of these. */
+      /** The crosshair's dot on a line: its radius and its edge's width (a lit bubble's ring clears it, see lightBubble). */
+      const MARKER = { radius: 4, border: 2 };
       const BUBBLE_SIZES = [12, 16, 24, 32, 48], BUBBLE_SIZE = 24, BUBBLE_HIDES = [0, 0.01, 0.05, 0.1, 0.25], BUBBLE_HIDE = 0.05;
       /** Whether a layer's values aren't drawn at their own height on its scale: a signal's (marks on its layer), bubbles' (sized on theirs). @param {Layer} layer */
       const placedOn = (layer) => layer.type === "signal" || layer.type === "bubbles";
@@ -16603,7 +16605,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             : layer.type === "baseline" ? { topLineColor: color, topFillColor1: alpha(base, 0.24 * op), topFillColor2: alpha(base, 0.01 * op), bottomLineColor: below, bottomFillColor1: alpha(under, 0.01 * op), bottomFillColor2: alpha(under, 0.24 * op) }
             : stackedLine ? { lineColor: color, topColor: alpha(base, 0), bottomColor: alpha(base, 0) }
             : { color };
-          const marker = { crosshairMarkerRadius: 4, crosshairMarkerBorderWidth: 2, crosshairMarkerBorderColor: css("--card") };
+          const marker = { crosshairMarkerRadius: MARKER.radius, crosshairMarkerBorderWidth: MARKER.border, crosshairMarkerBorderColor: css("--card") };
           const line = { lineWidth, lineStyle: layer.dash, lineType: lineTypeOf(layer) };
           let series;
           // (Drawn as before, the series as it was.)
@@ -18208,7 +18210,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (!row || x === null) continue;
             const { most, hide, size, upEdge, downEdge } = series.options(), worth = Math.abs(row.v), y = Number.isFinite(row.y) ? series.priceToCoordinate(row.y) : null;
             if (y === null || !(most > 0 && worth > 0 && worth < Infinity && worth >= hide * most) || (lit && !doc.panes[pane]?.reverse)) continue;
-            lit = { x, y, d: size * Math.sqrt(Math.min(1, worth / most)) + 6, color: row.v >= 0 ? upEdge : downEdge };
+            // (A pixel clear of the bubble, and of the crosshair's dot on its layer, a small bubble's under it.)
+            lit = { x, y, d: Math.max(size * Math.sqrt(Math.min(1, worth / most)), 2 * (MARKER.radius + MARKER.border)) + 6, color: row.v >= 0 ? upEdge : downEdge };
           }
         }
         const plot = lit && view.panes()[/** @type {number} */ (pane)]?.getHTMLElement()?.children[1]?.firstElementChild;
