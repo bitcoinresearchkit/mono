@@ -7276,6 +7276,8 @@
         box-shadow: var(--pop);
         font-size: 12px;
         line-height: 1.35;
+        /* (A run with no space in it, a formula's, broken at its edge: never past it, nor a line of its own for it.) */
+        overflow-wrap: anywhere;
         pointer-events: none;
         animation: appear var(--dur-micro) var(--ease);
 
@@ -11618,7 +11620,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const refsFor = (doc, trend) => doc.layers.filter((layer) => !layer.from && !placedOn(layer) && layer.type !== "heatmap" && !trend.from?.includes(layer.id) && !readsOf(layer, doc).has(trend.letter));
       /** A trend's reference by default: a price on its scale (candles, a series named so), else the first of those there; none there, none. @param {Chart} doc @param {Layer} trend */
       const refFor = (doc, trend) => ((refs) => (refs.find((layer) => layer.type === "candles" || /^price/.test(layer.series ?? "")) ?? refs[0])?.id)(refsFor(doc, trend).filter((layer) => oneScale(layer, trend)));
-      /** A type's name: a series' or a formula's, or one made from layers. */
       /** An unnamed formula's line (its name is its formula): what it is, in what once known. @param {Layer} layer */
       const formulaLine = (layer) => (layer.type === "signal" ? signalLine(layer) : ((result) => (result?.values ? `Formula · ${UNIT_NAMES[unitFor(layer, result)] ?? "Number"}` : "Formula"))(resolved?.results.get(layer.id)));
       /**
@@ -28487,7 +28488,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const loading = layer.series && !result;
               // (Its second line: what's wrong, what it's between, its formula, its heatmap's code or its series; said whole in
               // its tip, under its name, when either's cut short.)
-              const [subClass, subText] = result?.error ? ["sub error", result.error] : layer.from ? ["sub", fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`] : layer.formula !== undefined ? (layer.label ? ["sub code", `ƒ ${layer.formula}`] : ["sub", formulaLine(layer)]) : layer.type === "heatmap" ? ["sub code", heatCode(layer)] : ["sub code", layer.series ?? ""];
+              const [subClass, subText] = result?.error ? ["sub error", result.error] : layer.from ? ["sub", fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`] : layer.formula !== undefined ? (layer.label ? ["sub code", `ƒ\u00a0${layer.formula}`] : ["sub", formulaLine(layer)]) : layer.type === "heatmap" ? ["sub code", heatCode(layer)] : ["sub code", layer.series ?? ""];
               const sub = `<span class="${subClass}"${result?.error && result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(subText)}</span>`;
               return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
                 <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" data-tip="${layerPicks.has(layer.id) ? "Deselect" : "Select"}" ${layerPicks.has(layer.id) ? "checked" : ""} />
