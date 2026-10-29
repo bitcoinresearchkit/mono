@@ -615,6 +615,14 @@
           }
         }
 
+        /* (Words for an icon: a list's All and None.) */
+        &.words {
+          width: auto;
+          padding: 0 7px;
+          font: inherit;
+          font-weight: 510;
+        }
+
         &[aria-pressed="true"]:not(:disabled) {
           color: var(--ink);
           background: var(--press);
@@ -5238,6 +5246,17 @@
         font-weight: 400;
       }
 
+      /* A list's All and None, at its label's right (after its count). */
+      .list-actions {
+        display: flex;
+        gap: 2px;
+        margin: -4px -7px -4px auto;
+
+        .color-now + & {
+          margin-left: 4px;
+        }
+      }
+
 
       /* The guide's start, for people: a few words and this chart's link at hand, before the reference. */
       .guide-start {
@@ -5353,6 +5372,26 @@
         display: flex;
         flex-wrap: wrap;
         gap: 4px;
+
+        /* (A profile's lists: its holder groups two across, its age bands three, each by its short name.) */
+        &.holders,
+        &.ages {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+
+          button {
+            min-width: 0;
+          }
+        }
+
+        &.ages {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        /* (All coins alone, then a row each pair: the terms, under and over 4 months, under and over 6.) */
+        &.holders > :nth-child(2) {
+          grid-column-start: 1;
+        }
 
         /* (A profile's holder group's chip: its color before its name, faint till it's in.) */
         button > .swatch {
@@ -10106,6 +10145,12 @@
           bottom: -3px;
         }
 
+        /* (A list's All and None: their own width, down to the gap's middle, not onto its chips.) */
+        .list-actions .cap::before {
+          inset-inline: 0;
+          bottom: -2px;
+        }
+
         .layer-row > .cap::before {
           left: 0;
         }
@@ -11811,12 +11856,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * (Here, before the library's read: its profiles normalized as it is, see normalize.)
        * The URPD's cohorts (`GET /api/urpd`), named as the Holders presets name them (presets.js's HOLDERS; the age bands
-       * as the client's AGE_RANGE_NAMES, "old" left off): all coins, the age cutoffs, then the age bands from the youngest.
+       * as the client's AGE_RANGE_NAMES, "old" left off), each with its short name (where its list says what it is): all
+       * coins, then each complementary pair (the terms, under and over 4 months, under and over 6), then the age bands
+       * from the youngest.
        */
-      const HEAT_COHORTS = /** @type {[string, string][]} */ ([
-        ["all", "All coins"], ["sth", "Short-term holders"], ["lth", "Long-term holders"],
-        ["age_under_4m", "Under 4 months old"], ["age_under_6m", "Under 6 months old"], ["age_over_4m", "Over 4 months old"], ["age_over_6m", "Over 6 months old"],
-        ...Object.values(client.AGE_RANGE_NAMES).map(({ id, long }) => /** @type {[string, string]} */ ([`age_${id}`, long.split(" ").map((word, i) => (i && /^[A-Z][a-z]+$/.test(word) ? word.toLowerCase() : word)).join(" ").replace(/ old$/, "")])),
+      const HEAT_COHORTS = /** @type {[string, string, string][]} */ ([
+        ["all", "All coins", "All coins"], ["sth", "Short-term holders", "Short-term"], ["lth", "Long-term holders", "Long-term"],
+        ["age_under_4m", "Under 4 months old", "Under 4 months"], ["age_over_4m", "Over 4 months old", "Over 4 months"], ["age_under_6m", "Under 6 months old", "Under 6 months"], ["age_over_6m", "Over 6 months old", "Over 6 months"],
+        ...Object.values(client.AGE_RANGE_NAMES).map(({ id, long, short }) => /** @type {[string, string, string]} */ ([`age_${id}`, long.split(" ").map((word, i) => (i && /^[A-Z][a-z]+$/.test(word) ? word.toLowerCase() : word)).join(" ").replace(/ old$/, ""), short.replace("-", "–")])),
       ]);
       /** Whether Bitview has a heatmap's holder group (a link's typo, one renamed: not). @param {Layer} layer */
       const heatKnown = (layer) => ((known) => (layer.type === "profile" ? (layer.profile ?? []).every(known) : known(layer.heatmap ?? "all")))((/** @type {string} */ cohort) => HEAT_COHORTS.some(([id]) => id === cohort));
@@ -11832,6 +11879,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const profileColor = (layer, cohort) => (layer.cohortColors && Object.hasOwn(layer.cohortColors, cohort) ? layer.cohortColors[cohort] : cohortColor(cohort));
       /** A cohort's name (one not listed: its id). */
       const cohortName = (/** @type {string} */ id) => HEAT_COHORTS.find(([one]) => one === id)?.[1] ?? id;
+      /** A holder group's short name, where its list says what it is (a profile's, under Holders or Age bands: "Short-term", "1h–1d"). @param {string} id */
+      const cohortShort = (id) => HEAT_COHORTS.find(([one]) => one === id)?.[2] ?? id;
       /** A heatmap's measures: what its cells say (each day's URPD has all three: one switched, nothing's asked again). */
       const HEAT_MEASURES = /** @type {[string, string][]} */ ([["supply", "Supply"], ["capital", "Capital"], ["pnl", "Unrealized P&L"]]);
       /** A heatmap's weights, the URPD's: every coin as it is, or each age band's by its wakefulness (Cointime's) or mobility (Coinflow's). */
@@ -21551,6 +21600,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         editById(id, (item) => (item.profile = item.profile?.includes(cohort) ? item.profile.filter((other) => other !== cohort) : [...(item.profile ?? []), cohort]));
         if (!isOpen($("palette"))) refocus(`#inspector [data-cohort-of="${CSS.escape(cohort)}"]`);
       }
+      /**
+       * A profile's settings' two lists: its holder groups (all coins, the terms, the age cutoffs; then its groups Bitview
+       * doesn't have, to take out) and the age bands, the youngest first. @param {Layer} layer
+       */
+      const profileLists = (layer) => ({ holders: [...HEAT_COHORTS.slice(0, 7).map(([id]) => id), ...(layer.profile ?? []).filter((id) => !HEAT_COHORTS.some(([one]) => one === id))], ages: HEAT_AGES });
+      /**
+       * A profile's list (see profileLists) all in (those not in yet, after the others, in its order) or all out. The button
+       * pressed keeps the focus. @param {string} id @param {"holders" | "ages"} list @param {boolean} on
+       */
+      function setCohorts(id, list, on) {
+        const layer = layerById(id);
+        if (layer?.type !== "profile") return;
+        const ids = profileLists(layer)[list].filter((cohort) => !on || HEAT_COHORTS.some(([one]) => one === cohort));
+        editById(id, (item) => (item.profile = on ? [...(item.profile ?? []), ...ids.filter((cohort) => !item.profile?.includes(cohort))] : (item.profile ?? []).filter((cohort) => !ids.includes(cohort))));
+        refocus(`#inspector [data-cohorts-${on ? "in" : "out"}="${list}"]`);
+      }
       /** ⌘K's page of a profile's holder groups: each pressed in or out, as a trend's layers are (see fromPage). @param {string} id @returns {Page} */
       const cohortsPage = (id) => ({ title: "Holders", placeholder: "Search the holder groups", rows: () => {
         const layer = layerById(id), groups = layer?.profile ?? [];
@@ -21568,7 +21633,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A profile's, its groups pressed in or out; a heatmap's, its one.)
           layer.type === "profile"
             ? { key: "holders", icon: ICONS.people, label: "Holders", aside: ((groups) => (groups.length > 2 ? plural(groups.length, "group") : groups.map(cohortName).join(", ") || "None"))(layer.profile ?? []), group: "Profile", leads: true, page: () => cohortsPage(id) }
-            : { key: "holders", icon: ICONS.people, label: "Holders", aside: cohortName(layer.heatmap ?? "all"), group: "Heatmap", leads: true, page: choices("Holders", HEAT_COHORTS, (item) => item.heatmap ?? "all", (item, cohort) => (item.heatmap = cohort)) },
+            : { key: "holders", icon: ICONS.people, label: "Holders", aside: cohortName(layer.heatmap ?? "all"), group: "Heatmap", leads: true, page: choices("Holders", HEAT_COHORTS.map(([id, name]) => /** @type {[string, string]} */ ([id, name])), (item) => item.heatmap ?? "all", (item, cohort) => (item.heatmap = cohort)) },
           { key: "measure", icon: ICONS.coins, label: "Measure", aside: HEAT_MEASURES.find(([measure]) => measure === (layer.measure ?? "supply"))?.[1], group: kind, page: choices("Measure", HEAT_MEASURES, (item) => item.measure ?? "supply", (item, measure) => reshape(item, (one) => (one.measure = measure === "supply" ? undefined : measure)), (measure) => HEAT_SAYS[measure]) },
           { key: "weight", icon: ICONS.hourglass, label: "Weight", aside: HEAT_WEIGHTS.find(([weight]) => weight === (layer.weight ?? ""))?.[1], group: kind, page: choices("Weight", HEAT_WEIGHTS, (item) => item.weight ?? "", (item, weight) => (item.weight = weight || undefined), (weight) => HEAT_SAYS[weight]) },
           grid
@@ -21588,11 +21653,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const gone = !heatKnown(layer) ? '<div class="error-box gone"><p>Bitview has no holder group by this name: renamed, removed, or mistyped. Pick another above.</p></div>' : "";
         // (A profile's: its holder groups and age bands, each pressed in or out, as a trend's layers are (see
         // betweenField), each in its color; the first pressed at the edge.)
-        const groups = layer.profile ?? [], chips = (/** @type {[string, string][]} */ list, /** @type {string} */ label) => `<div class="from-of" role="group" aria-label="${label}">${list.map(([id, name]) => `<button type="button" data-cohort-of="${escape(id)}" aria-pressed="${groups.includes(id)}"><i class="swatch" style="--c: ${escape(cssColor(profileColor(layer, id)))}"></i><span class="name">${escape(name)}</span></button>`).join("")}</div>`;
+        // (Each list in a grid, each by its short name (its whole one its tip), all of it in or out at once: All, None.)
+        const groups = layer.profile ?? [], lists = profileLists(layer);
+        const chips = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ label) => `<div class="from-of ${list}" role="group" aria-label="${label}">${lists[list].map((id) => ((known) => `<button type="button" data-cohort-of="${escape(id)}" aria-pressed="${groups.includes(id)}"${known ? ` aria-label="${escape(cohortName(id))}" data-tip="${escape(cohortName(id))}"` : ""}><i class="swatch" style="--c: ${escape(cssColor(profileColor(layer, id)))}"></i><span class="name">${escape(known ? cohortShort(id) : `${id}: not on Bitview`)}</span></button>`)(HEAT_COHORTS.some(([one]) => one === id))).join("")}</div>`;
+        const both = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ name) => ((ids) => `<span class="list-actions"><button type="button" class="cap small words" data-cohorts-in="${list}" aria-label="All ${name}"${ids.every((id) => groups.includes(id) || !HEAT_COHORTS.some(([one]) => one === id)) ? ' aria-disabled="true"' : ""}>All</button><button type="button" class="cap small words" data-cohorts-out="${list}" aria-label="No ${name}"${ids.some((id) => groups.includes(id)) ? "" : ' aria-disabled="true"'}>None</button></span>`)(lists[list]);
         if (layer.type === "profile") return `<section>
               <h3>Profile</h3>
-              <div class="field"><span>Holders<span class="color-now">${groups.length ? plural(groups.length, "group") : "None"}</span></span>${chips([...HEAT_COHORTS.slice(0, 7), ...groups.filter((id) => !HEAT_COHORTS.some(([one]) => one === id)).map((id) => /** @type {[string, string]} */ ([id, `${id}: not on Bitview`]))], "Its holder groups")}</div>
-              <div class="field"><span>Age bands</span>${chips(HEAT_COHORTS.slice(7), "Its age bands")}</div>${gone}
+              <div class="field"><span>Holders<span class="color-now">${groups.length ? plural(groups.length, "group") : "None"}</span>${both("holders", "holder groups")}</span>${chips("holders", "Its holder groups")}</div>
+              <div class="field"><span>Age bands${both("ages", "age bands")}</span>${chips("ages", "Its age bands")}</div>${gone}
               ${tabs("measure", "Measure", [["supply", "Supply"], ["capital", "Capital"], ["pnl", "P&L"]], layer.measure ?? "supply")}
               ${tabs("weight", "Weight", HEAT_WEIGHTS, layer.weight ?? "")}
               ${menu("density")}
@@ -31809,6 +31877,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (type && button.getAttribute("aria-disabled") === "true") notice(/** @type {string} */ (button.dataset.tip));
         else if (type) editLayer((layer) => reshape(layer, (item) => (item.type = /** @type {Layer["type"]} */ (type))));
         else if (button.dataset.cohortOf) toggleCohort(selected, button.dataset.cohortOf);
+        else if (button.dataset.cohortsIn || button.dataset.cohortsOut) button.getAttribute("aria-disabled") !== "true" && setCohorts(selected, /** @type {"holders" | "ages"} */ (button.dataset.cohortsIn ?? button.dataset.cohortsOut), Boolean(button.dataset.cohortsIn));
         else if (button.dataset.memberOf) {
           const member = button.dataset.memberOf;
           editLayer((layer, doc) => (layer.from = fromOf(doc, toggleMember(doc, layer.from ?? [], member), layer.type)));
