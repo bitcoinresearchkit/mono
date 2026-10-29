@@ -1678,7 +1678,8 @@
       // how likely its coins are ever to move.)
       const Smart = (() => {
         /** Bedrock's floors, highest to deepest, and the share of the savings bought each day the price closes at or
-         * under one (the deepest it's under): a tenth, doubling with each, all at the last. */
+         * under one (the deepest it's under): a tenth, doubling with each, all at the last.
+         * @type {[string, number][]} */
         const FLOORS = [["p95", 0.1], ["p98", 0.2], ["p99", 0.4], ["p99_5", 0.8], ["p99_9", 1]];
         /** The young coins: younger than 6 months. */
         const young = "age_under_6m_mobile";
