@@ -2206,8 +2206,9 @@
         return `${t.live ? `<span class="live">Live</span>` : ""}${facts[t.id] ? `<span>${facts[t.id]}</span>` : ""}`;
       }
 
-      // ── The billboard: a title every nine seconds, its segment filling; held while pointed at or focused, paused by its
-      // button, not turning at all with less motion asked for; its frames asked for only while it turns ──
+      // ── The billboard: a title every nine seconds, its segment filling; held while pointed at, focused by keys or a sheet's
+      // open, paused by its button, not turning at all with less motion asked for; its frames asked for only while it
+      // turns ──
 
       const art = /** @type {HTMLElement} */ (document.querySelector(".art")), first = /** @type {HTMLImageElement} */ (art.querySelector("img"));
       // (Each at the size its screen draws: about 1,900 wide, or 2,880 for a sharp screen; as wide as the first one says
@@ -2274,8 +2275,11 @@
         fading = setTimeout(put, 200);
       }
       const billboard = $("billboard");
-      let stopped = false, hovered = false, focused = false, onScreen = true, running = false, last = 0;
-      const turning = () => !reduced && !stopped && !hovered && !focused && onScreen && !document.hidden;
+      let stopped = false, hovered = false, sheetOpen = false, onScreen = true, running = false, last = 0;
+      // (Held by a keyboard's focus in it, shown by its ring, read as it is: a click's (a title's bar, More info, its sheet's
+      // focus coming back) holds nothing, else it held until a click somewhere else; a key pressed on it after, it does.)
+      const keyed = () => billboard.contains(document.activeElement) && /** @type {Element} */ (document.activeElement).matches(":focus-visible");
+      const turning = () => !reduced && !stopped && !hovered && !keyed() && !sheetOpen && onScreen && !document.hidden;
       function wake() {
         if (running || !turning()) return;
         running = true;
@@ -2293,10 +2297,18 @@
       }
       billboard.addEventListener("pointerenter", (e) => e.pointerType === "mouse" && (hovered = true));
       billboard.addEventListener("pointerleave", () => ((hovered = false), wake()));
-      billboard.addEventListener("focusin", () => (focused = true));
-      billboard.addEventListener("focusout", (e) => billboard.contains(/** @type {Node | null} */ (e.relatedTarget)) || ((focused = false), wake()));
+      // (Woken once focus has moved: during its focusout, the standard still has the one leaving focused.)
+      billboard.addEventListener("focusout", (e) => billboard.contains(/** @type {Node | null} */ (e.relatedTarget)) || setTimeout(wake));
+      // (Held while a title's sheet is open, More info's or a cover's: nothing turns behind the one read. Its toggle caught
+      // on its way down: it doesn't bubble.)
+      document.addEventListener("toggle", (e) => {
+        if (!(/** @type {Element} */ (e.target).matches(".about"))) return;
+        sheetOpen = /** @type {ToggleEvent} */ (e).newState === "open";
+        wake();
+      }, true);
       document.addEventListener("visibilitychange", wake);
-      new IntersectionObserver(([e]) => ((onScreen = e.isIntersecting), wake())).observe(billboard);
+      // (Its last word: scrolled off and back between two of its calls, it says both, oldest first.)
+      new IntersectionObserver((entries) => ((onScreen = entries.at(-1).isIntersecting), wake())).observe(billboard);
       show(0);
       $("pause").hidden = reduced;
       $("pause").addEventListener("click", () => {
@@ -2769,8 +2781,8 @@
       // shows. A band across the screen's middle, in pixels: a percentage of rootMargin is of the width.)
       const links = [...document.querySelectorAll(".top nav a")];
       let onBillboard = true;
-      new IntersectionObserver(([e]) => {
-        onBillboard = e.isIntersecting;
+      new IntersectionObserver((entries) => {
+        onBillboard = entries.at(-1).isIntersecting;
         if (onBillboard) (lit = "", links.forEach((a) => a.setAttribute("aria-current", "false")));
         else update();
       }, { rootMargin: "-64px 0px 0px" }).observe(/** @type {Element} */ (document.querySelector(".buttons")));
