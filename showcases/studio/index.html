@@ -12822,6 +12822,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         ruler: { name: "Ruler", noun: "ruler", verb: "Measure a change", key: "M", tip: "Drag across the chart to measure a change", keys: "Arrows to each end, ↵ to place it", icon: ICONS.ruler },
       });
       const KINDS = /** @type {DrawingKind[]} */ (Object.keys(TOOLS));
+      /** What the magnifier shows, as its tool's hint says it (by touch, under the finger). */
+      const LENS_SAYS = `the chart under ${TOUCH ? "your finger" : "the pointer"} at twice the size`;
       /** The kinds placed by two points: a line's ends, a box's corners. */
       const PAIRED = new Set(["trend", "rect", "ellipse", "ruler"]);
       /** The kinds drawn through their points, one to the next (a trend line's two, a path's as many): its ends' looks, its segments. */
@@ -20344,7 +20346,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const beltTool = (/** @type {string} */ each) =>
         each === "cursor" ? { name: "Cursor", key: "", kbd: "esc", icon: ICONS.cursor }
         : each === "select" ? { name: "Select", tip: `Select: drag a box around drawings, or ${keyText("⌘")} and drag anytime`, key: "S", kbd: "D S", icon: ICONS.select }
-        : each === "magnifier" ? { name: "Magnifier", tip: "Magnifier: shows the chart under the pointer at twice the size", key: "Z", kbd: "D Z", icon: ICONS.magnifier }
+        : each === "magnifier" ? { name: "Magnifier", tip: `Magnifier: shows ${LENS_SAYS}`, key: "Z", kbd: "D Z", icon: ICONS.magnifier }
         : { name: TOOLS[each].name, key: TOOLS[each].key, kbd: each === "ruler" ? "M" : `D ${TOOLS[each].key}`, icon: TOOLS[each].icon };
       function renderBelt() {
         // (Its state as the belt's: a path being placed, its points are steps.)
@@ -32217,7 +32219,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(tool && tool !== "text" && !toolKept ? [{ title: "Keep drawing", text: `Keeps the tool after each drawing, to draw several (esc to stop; double-clicking a tool does the same).`, icon: tool, run: () => takeUp(tool, true) }] : []),
             ...KINDS.filter((kind) => kind !== tool).map((kind) => ({ title: TOOLS[kind].verb, text: kind === "text" ? `${TOOLS[kind].tip}.` : `${TOOLS[kind].tip}: one, then the chart pans again (to draw several, ${TOUCH ? "tap its tool twice" : "double-click its tool"}, or Keep drawing).`, icon: kind, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, run: () => takeUp(kind) })),
             { title: "Select drawings", text: `Drag a box around drawings to select them (or ${keyText("⌘")} and drag anytime); esc to stop.`, icon: "select", kbd: "D S", run: () => takeUp("select") },
-            { title: magnifying ? "Stop the magnifier" : "Magnifier", text: magnifying ? "The pointer is the pointer again." : `Shows the chart under the pointer at twice the size${TOUCH ? " (above your finger as you press)" : ""}; esc to stop.`, icon: "magnifier", kbd: "D Z", run: () => takeUp(magnifying ? "" : "magnifier") },
+            { title: magnifying ? "Stop the magnifier" : "Magnifier", text: magnifying ? "The pointer is the pointer again." : `Shows ${LENS_SAYS}${TOUCH ? ", above it as you press" : ""}; esc to stop.`, icon: "magnifier", kbd: "D Z", run: () => takeUp(magnifying ? "" : "magnifier") },
             ...(prefs.belt.on ? [{ title: "Dock the drawing tools", text: `Currently on the ${prefs.belt.dock} of the chart.`, icon: "draw", keepOpen: true, run: () => pushPage(choicePage("Dock the drawing tools", dockChoices)) }] : []),
             ...(chart.drawings?.length ? [{ title: drawingsHidden ? "Show the drawings" : "Hide the drawings", text: drawingsHidden ? "Shows them on the chart again." : "Hides the drawings without deleting them.", icon: drawingsHidden ? "eye" : "eyeOff", kbd: "⇧H", run: () => hideDrawings(!drawingsHidden, true) }] : []),
             ...(chart.drawings?.length ? [{ title: "Remove every drawing", text: `${plural(chart.drawings.length, "drawing")}. You can undo.`, icon: "trash", danger: true, run: clearDrawings }] : []),
@@ -33983,7 +33985,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...drawingPage(drawing.id).rows().filter((row) => ["flip-x", "flip-y", "duplicate", "remove"].includes(String(row.key))),
           ] })),
           ...KINDS.map((kind) => ({ kind: "row", key: `tool:${kind}`, icon: TOOLS[kind].icon, label: TOOLS[kind].verb, aside: TOOLS[kind].tip, under: true, kbd: kind === "ruler" ? "M" : `D ${TOOLS[kind].key}`, verb: "Draw", group: "Draw", run: () => takeUp(kind) })),
-          { kind: "row", key: "tool:magnifier", icon: ICONS.magnifier, label: "Magnifier", aside: "The chart under the pointer at twice the size", under: true, kbd: "D Z", verb: magnifying ? "Stop" : "Use", group: "Draw", run: () => takeUp(magnifying ? "" : "magnifier") },
+          { kind: "row", key: "tool:magnifier", icon: ICONS.magnifier, label: "Magnifier", aside: capitalize(LENS_SAYS), under: true, kbd: "D Z", verb: magnifying ? "Stop" : "Use", group: "Draw", run: () => takeUp(magnifying ? "" : "magnifier") },
           ...(chart.drawings?.length ? [
             { kind: "row", key: "select-box", icon: ICONS.select, label: "Select drawings with a box", aside: "Drag a box around them", kbd: "D S", verb: "Select", group: "Select", run: () => takeUp("select") },
             { kind: "row", key: "select-all", icon: ICONS.select, label: "Select every drawing", aside: plural(chart.drawings.length, "drawing"), verb: "Select", group: "Select", run: () => chooseDrawings((chart.drawings ?? []).map((drawing) => drawing.id)) },
