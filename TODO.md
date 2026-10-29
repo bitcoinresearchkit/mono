@@ -25,11 +25,10 @@ Only what's left. An item done is removed: its history is in the commits and log
   unrolling from it, its corners rounding from the field's to its own (you, 2026-10-28/29: "we want the full power of
   cmd+k but in a tighter window", "cmd+k on home screen should open the normal command palette", "maybe double radii was
   right but we needed a smoother anim/motion ?"): your look to confirm.
-- Bubbles: built (a layer type: Add a layer › Bubbles, a layer's ⋯ › As bubbles on…, its Type; On, Size, Hide below,
-  Sized to; a preset per cohort, its day's net realized P&L on the price; you, 2026-10-28: "represent a series as bubbles
-  attached to another layer"): your look to confirm, and the minis' (tiles, ⌘K's previews, Quick Look draw them now:
-  _notes/overnight-20261029/bubbles-mini-before-after.png); the presets' name, for "bubbles" to find them
-  (_notes/overnight-20261029/DECISIONS.md #4).
+- Bubbles: built, a kind of their own beside clouds, trends and signals (Add bubbles, a layer's ⋯ › As bubbles on…; not
+  a series' Type), On, Size, Hide below, Sized to, one color or two; presets per cohort (Profit and loss bubbles, and on
+  the unrealized P&L heatmap); a chart's mark shows them as dots. Open: the minis' look (tiles, ⌘K's previews, Quick
+  Look: _notes/overnight-20261029/bubbles-mini-before-after.png), something off in your first picture, not received.
 - Outline: built (a layer's switch; presets over a heatmap or a cloud, the price's), the line's width on each side
   (you, 2026-10-28: "outline doesn't feel think enough"; half of it, before): your look to confirm.
 - A design system for all of Studio, then a polish and consistency pass applying it (you, 2026-10-28: "I think we
