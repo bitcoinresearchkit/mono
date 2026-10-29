@@ -366,7 +366,13 @@ export function studioPresets(client, facts) {
           ...(realized.netPnl ? [series(realized.netPnl.cumulative, "Net", { pane: 2, ...baseline })] : []),
         ]),
         // (Each day's net, as bubbles on the price: what was taken in profit or in loss, and where the price was.)
-        realized.netPnl?.sum?._24h && chart("Profit and loss on the price", titled("Net realized profit and loss on the price"), [price(), series(realized.netPnl.sum._24h, "Net", { type: "bubbles", ref: "A", color: "green", colorBelow: "red" })]),
+        realized.netPnl?.sum?._24h && chart("Profit and loss bubbles", titled("Net realized profit and loss bubbles"), [price(), series(realized.netPnl.sum._24h, "Net", { type: "bubbles", ref: "A", color: "green", colorBelow: "red" })]),
+        // (Each day's profit and loss taken, bubbles on the price, over what's held in profit and in loss at each cost:
+        // where it's taken, against where it's held.)
+        urpd && realized.profit?.sum?._24h && chart("Profit and loss bubbles on the heatmap", titled("Realized profit and loss bubbles on the unrealized profit and loss heatmap"), [
+          price(), series(realized.profit.sum._24h, "Profit", { type: "bubbles", ref: "A", color: "green", colors: 1 }), series(realized.loss.sum._24h, "Loss", { type: "bubbles", ref: "A", color: "red", colors: 1 }),
+          { heatmap: urpd, measure: "pnl" },
+        ]),
         ...flow(realized.grossPnl, "Gross profit and loss", titled("Gross realized profit and loss")),
         realized.profitToLoss && chart("Profit to loss ratio", titled("Realized profit to loss ratio"), windows(realized.profitToLoss, "", { around: 1 }), { log: [1] }),
         ...flow(realized.valueDestroyed, "Value destroyed", titled("Value destroyed")),

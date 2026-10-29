@@ -1363,7 +1363,8 @@
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/activity/dormancy</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/holders/all-coins/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/all-coins/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/all-coins/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/realized/gross-profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/realized/gross-profit-and-loss-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/all-coins/realized/profit-to-loss-ratio</loc></url>
@@ -1404,7 +1405,8 @@
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/activity/dormancy</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/holders/short-term-holders/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/short-term-holders/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/short-term-holders/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/realized/gross-profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/realized/gross-profit-and-loss-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/short-term-holders/realized/profit-to-loss-ratio</loc></url>
@@ -1445,7 +1447,8 @@
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/activity/dormancy</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/holders/long-term-holders/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/long-term-holders/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/long-term-holders/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/realized/gross-profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/realized/gross-profit-and-loss-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/long-term-holders/realized/profit-to-loss-ratio</loc></url>
@@ -1499,7 +1502,8 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/activity/dormancy</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/realized/gross-profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/realized/gross-profit-and-loss-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-4-months-old/realized/profit-to-loss-ratio</loc></url>
@@ -1540,7 +1544,8 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/activity/dormancy</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/realized/gross-profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/realized/gross-profit-and-loss-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-4-months-old/realized/profit-to-loss-ratio</loc></url>
@@ -1579,7 +1584,8 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/activity/dormancy</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/realized/gross-profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/realized/gross-profit-and-loss-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/under-6-months-old/realized/profit-to-loss-ratio</loc></url>
@@ -1620,7 +1626,8 @@
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/activity/dormancy</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/realized/gross-profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/realized/gross-profit-and-loss-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/age-cutoffs/over-6-months-old/realized/profit-to-loss-ratio</loc></url>
@@ -1671,7 +1678,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/discount-coins/unrealized-profit-and-loss</loc></url>
@@ -1692,7 +1699,7 @@
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/holders/entry-price/premium-coins/unrealized-profit-and-loss</loc></url>
@@ -1736,7 +1743,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/under-1-hour/unrealized-profit-and-loss</loc></url>
@@ -1764,7 +1772,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-hour-to-1-day/unrealized-profit-and-loss</loc></url>
@@ -1792,7 +1801,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-day-to-1-week/unrealized-profit-and-loss</loc></url>
@@ -1820,7 +1830,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-week-to-1-month/unrealized-profit-and-loss</loc></url>
@@ -1848,7 +1859,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-to-2-months/unrealized-profit-and-loss</loc></url>
@@ -1876,7 +1888,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-months/unrealized-profit-and-loss</loc></url>
@@ -1904,7 +1917,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-months/unrealized-profit-and-loss</loc></url>
@@ -1932,7 +1946,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-months/unrealized-profit-and-loss</loc></url>
@@ -1960,7 +1975,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-months/unrealized-profit-and-loss</loc></url>
@@ -1988,7 +2004,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-9-months/unrealized-profit-and-loss</loc></url>
@@ -2016,7 +2033,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/9-months-to-1-year/unrealized-profit-and-loss</loc></url>
@@ -2044,7 +2062,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/1-year-to-18-months/unrealized-profit-and-loss</loc></url>
@@ -2072,7 +2091,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/18-months-to-2-years/unrealized-profit-and-loss</loc></url>
@@ -2100,7 +2120,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/2-to-3-years/unrealized-profit-and-loss</loc></url>
@@ -2128,7 +2149,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/3-to-4-years/unrealized-profit-and-loss</loc></url>
@@ -2156,7 +2178,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/4-to-5-years/unrealized-profit-and-loss</loc></url>
@@ -2184,7 +2207,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/5-to-6-years/unrealized-profit-and-loss</loc></url>
@@ -2212,7 +2236,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/6-to-7-years/unrealized-profit-and-loss</loc></url>
@@ -2240,7 +2265,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/7-to-8-years/unrealized-profit-and-loss</loc></url>
@@ -2268,7 +2294,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/8-to-10-years/unrealized-profit-and-loss</loc></url>
@@ -2296,7 +2323,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/10-to-12-years/unrealized-profit-and-loss</loc></url>
@@ -2324,7 +2352,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/12-to-15-years/unrealized-profit-and-loss</loc></url>
@@ -2352,7 +2381,8 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/activity/coin-days-created-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/realized/profit-and-loss-bubbles</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/realized/profit-and-loss-bubbles-on-the-heatmap</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/age-bands/15-plus-years/unrealized-profit-and-loss</loc></url>
@@ -2390,7 +2420,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-0/unrealized-profit-and-loss</loc></url>
@@ -2411,7 +2441,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-1/unrealized-profit-and-loss</loc></url>
@@ -2432,7 +2462,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-2/unrealized-profit-and-loss</loc></url>
@@ -2453,7 +2483,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-3/unrealized-profit-and-loss</loc></url>
@@ -2474,7 +2504,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/halving-epochs/epoch-4/unrealized-profit-and-loss</loc></url>
@@ -2511,7 +2541,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2009/unrealized-profit-and-loss</loc></url>
@@ -2532,7 +2562,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2010/unrealized-profit-and-loss</loc></url>
@@ -2553,7 +2583,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2011/unrealized-profit-and-loss</loc></url>
@@ -2574,7 +2604,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2012/unrealized-profit-and-loss</loc></url>
@@ -2595,7 +2625,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2013/unrealized-profit-and-loss</loc></url>
@@ -2616,7 +2646,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2014/unrealized-profit-and-loss</loc></url>
@@ -2637,7 +2667,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2015/unrealized-profit-and-loss</loc></url>
@@ -2658,7 +2688,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2016/unrealized-profit-and-loss</loc></url>
@@ -2679,7 +2709,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2017/unrealized-profit-and-loss</loc></url>
@@ -2700,7 +2730,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2018/unrealized-profit-and-loss</loc></url>
@@ -2721,7 +2751,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2019/unrealized-profit-and-loss</loc></url>
@@ -2742,7 +2772,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2020/unrealized-profit-and-loss</loc></url>
@@ -2763,7 +2793,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2021/unrealized-profit-and-loss</loc></url>
@@ -2784,7 +2814,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2022/unrealized-profit-and-loss</loc></url>
@@ -2805,7 +2835,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2023/unrealized-profit-and-loss</loc></url>
@@ -2826,7 +2856,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2024/unrealized-profit-and-loss</loc></url>
@@ -2847,7 +2877,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2025/unrealized-profit-and-loss</loc></url>
@@ -2868,7 +2898,7 @@
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/activity/coin-days-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/realized/profit-and-loss</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/realized/profit-and-loss-all-time</loc></url>
-<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/realized/profit-and-loss-on-the-price</loc></url>
+<url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/realized/profit-and-loss-bubbles</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/realized/value-destroyed</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/realized/value-destroyed-all-time</loc></url>
 <url><loc>https://bitview.space/studio/presets/coin-age/vintages/2026/unrealized-profit-and-loss</loc></url>
