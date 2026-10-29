@@ -31139,7 +31139,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const rows = [
           ...(where === "panel" ? [] : [{ key: "panel", icon: ICONS.sliders, label: "Settings", aside: inPalette ? "In the panel" : undefined, verb: "Open", run: () => select(id) }]),
           ...(menu && layer.series ? [{ key: "replace", icon: ICONS.swap, label: "Replace series", run: () => changeSeries(id) }] : []),
-          ...(layer.type === "cloud" || layer.type === "signal" || layer.type === "heatmap" ? [] : [{ key: "derive", icon: ICONS.formula, label: `New formula from ${layer.letter}`, aside: inPalette ? "An average, bands, a percentile…" : undefined, page: () => listPage(`New formula from ${layer.letter}`, () => deriveChoices(id), "Add") }]),
+          ...(layer.type === "cloud" || layer.type === "signal" || layer.type === "heatmap" ? [] : [{ key: "derive", icon: ICONS.formula, label: `New formula from ${layer.letter}`, aside: inPalette ? "An average, bands, a percentile…" : undefined, under: inPalette, page: () => listPage(`New formula from ${layer.letter}`, () => deriveChoices(id), "Add") }]),
           ...(layer.from || layer.type === "signal" || layer.type === "heatmap" ? []
             : layer.series ? [{ key: "to-formula", icon: ICONS.formula, label: "Turn into a formula", aside: inPalette ? "Of its series, to write around it" : undefined, verb: "Turn", run: () => toFormula(id) }]
             : named.length === 1 ? [{ key: "to-series", icon: ICONS.series, label: "Turn into a series", aside: inPalette ? named[0] : undefined, mono: true, verb: "Turn", run: () => toSeries(id, named[0]) }]
