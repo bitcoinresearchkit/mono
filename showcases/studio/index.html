@@ -5593,12 +5593,21 @@
         }
       }
 
-      /* (The color in hand, named, its swatch before it.) */
-      .gradient-named {
+      /* (The color in hand, named, its swatch before it: a value, as the field's choices read, not its label; its swatch
+         as large as its knob's drawn.) */
+      .field.gradient-hand > .gradient-named {
         display: flex;
+        justify-content: start;
         align-items: center;
         gap: 8px;
         min-width: 0;
+        color: var(--text);
+        font: 400 13px/16px var(--sans);
+
+        .swatch {
+          width: 14px;
+          height: 14px;
+        }
       }
 
       /* The color in hand, heading the picker that sets it, a line above and under it as between the editor's parts: its
@@ -29885,11 +29894,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (let i = 0, first = Math.ceil(low / step); high > low && i <= 10 && first + i <= Math.floor(high / step); i++) ticks.push([[(((first + i) * step - low) / (high - low)) * 100, (first + i) * step]]);
           ticks.sort((a, b) => Math.abs(b[0][1]) - Math.abs(a[0][1]));
         }
-        // (Kept, the first first, while its label is a gap clear of those kept: each as wide as it's set, see widest.)
-        const kept = /** @type {[number, string, number, number, boolean][]} */ ([]), GAP = 12;
-        const label = (/** @type {number} */ at, /** @type {string} */ text, own = false) => ((size) => /** @type {[number, string, number, number, boolean]} */ ([at, text, clamp((at / 100) * width - size / 2, 0, width - size), size, own]))(widest([text], own ? 510 : 400, 11));
-        for (const group of [...(worth && hand !== undefined ? [[label(hand, worth, true)]] : []), ...ticks.map((group) => group.map(([at, value]) => label(at, axisLabel(value))))]) {
-          if (group.every(([, , left, size]) => kept.every(([, , other, room]) => left >= other + room + GAP || left + size <= other - GAP))) kept.push(...group);
+        // (Kept, the first first, while its label is a gap clear of those kept: each as wide as it's set, see widest. Those
+        // under the color in hand's worth give way alone, the others of their group kept.)
+        const GAP = 12, label = (/** @type {number} */ at, /** @type {string} */ text, own = false) => ((size) => /** @type {[number, string, number, number, boolean]} */ ([at, text, clamp((at / 100) * width - size / 2, 0, width - size), size, own]))(widest([text], own ? 510 : 400, 11));
+        const clear = (/** @type {[number, string, number, number, boolean]} */ [, , left, size], /** @type {[number, string, number, number, boolean][]} */ others) => others.every(([, , other, room]) => left >= other + room + GAP || left + size <= other - GAP);
+        const own = worth && hand !== undefined ? [label(hand, worth, true)] : [], kept = [...own];
+        for (const group of ticks) {
+          const shown = group.map(([at, value]) => label(at, axisLabel(value))).filter((tick) => clear(tick, own));
+          if (shown.every((tick) => clear(tick, kept))) kept.push(...shown);
         }
         return kept.sort((a, b) => a[0] - b[0]).map(([at, text, left, , own]) => /** @type {[number, string, number, boolean]} */ ([at, text, left, own]));
       }
