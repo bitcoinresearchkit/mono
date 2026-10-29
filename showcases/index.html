@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js"></script>
+    <!-- (Installed from a home screen, the page under the status bar too, the billboard's art up under the clock: else
+         iOS fills that strip itself, flat or with the page blurred, as it chooses. Read when the page is added.) -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#0d0c0b" />
@@ -133,10 +136,9 @@
          passes over a see-through one, the bar over the billboard: so paper, in light, over a dark billboard. In Safari,
          a strip of the billboard's dark there, under the status bar or a few pixels below it, reading as the status
          bar's own: the status bar dark in either scheme, the bottom bar still the page's (the bar easing from it: see
-         .top). Installed from a home screen, no strip: iOS paints its status bar in the body's colour after a load, and
-         after a launch blurs the page up into it, tinted with that colour (its choice, not the page's); so the body's
-         colour the billboard's dark, the page painted paper over it, the root paper (where the page is pulled past
-         either end).) */
+         .top). Installed from a home screen, no strip: the page runs up under the status bar (see the head), iOS's blur
+         at the screen's edge tinted with the body's colour; so the body's colour the billboard's dark, the page painted
+         paper over it, the root paper (where the page is pulled past either end).) */
       @supports (-webkit-touch-callout: none) {
         .edge {
           position: fixed;
@@ -214,10 +216,12 @@
         background: linear-gradient(to bottom, rgb(13 12 11 / 0.7), transparent);
         transition: background-color 0.3s, box-shadow 0.3s;
 
-        /* (On iOS, under the status bar's dark (see .edge), flat or the page blurred: from that dark, easing into the
+        /* (In Safari on iOS, under the status bar's flat dark (the .edge strip): from that dark, easing into the
            billboard, no line where the two meet.) */
         @supports (-webkit-touch-callout: none) {
-          background: linear-gradient(#0d0c0b, rgb(13 12 11 / 0.85) 20px, rgb(13 12 11 / 0.6) 56px, transparent);
+          @media not (display-mode: standalone) {
+            background: linear-gradient(#0d0c0b, rgb(13 12 11 / 0.85) 20px, rgb(13 12 11 / 0.6) 56px, transparent);
+          }
         }
 
         /* (Past the billboard: solid, the page under it blurred.) */
@@ -227,10 +231,14 @@
           backdrop-filter: blur(20px) saturate(1.4);
           -webkit-backdrop-filter: blur(20px) saturate(1.4);
 
-          /* (On iOS, glass from the status bar's dark: where iOS blurs the page scrolled up under it (an installed
-             app, launched), the bar blurs it on, one pane; a dark bar under it cut it off hard.) */
+          /* (On iOS, glass: installed, under the clock as well, the page blurred under both alike; in Safari, from the
+             status bar's flat dark.) */
           @supports (-webkit-touch-callout: none) {
-            background: linear-gradient(#0d0c0b, rgb(13 12 11 / 0.55) 28px);
+            background: rgb(13 12 11 / 0.55);
+
+            @media not (display-mode: standalone) {
+              background: linear-gradient(#0d0c0b, rgb(13 12 11 / 0.55) 28px);
+            }
           }
         }
 
