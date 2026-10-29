@@ -71,9 +71,13 @@
 
   root.dataset.launch = "";
   const top = 2147483600;
+  // (The root orange too, under the cover until the page shows: on a phone (Lockdown's, slow), iOS starts an app drawn
+  // under its status bar with the page a status bar's height short of the screen, and grows it a moment later; the
+  // cover fills the page alone, and the strip left at the foot showed the page's own ground, dark.)
   const style = document.createElement("style");
   style.textContent = `
     html[data-launch]::after { content: ""; position: fixed; inset: 0; z-index: ${top}; background: ${ORANGE}; pointer-events: none; animation: bitview-launch-out 450ms ease 6s forwards; }
+    html[data-launch=""], html[data-launch="page"] { background: ${ORANGE}; }
     @layer bitview-launch {
       html[data-launch=""] body, html[data-launch=""] body * { visibility: hidden !important; }
     }
@@ -88,7 +92,9 @@
   bar.className = "bitview-launch-bar";
   root.append(bar);
   const gone = () => (delete root.dataset.launch, bar.remove());
-  // (Faded by itself, the page never ready: gone.)
+  // (Faded by itself, the page never ready: the root its own as the fade starts (the page's size long settled), gone at
+  // its end.)
+  root.addEventListener("animationstart", (event) => event.target === root && event.pseudoElement === "::after" && (root.dataset.launch = "fade"));
   root.addEventListener("animationend", (event) => event.target === root && event.pseudoElement === "::after" && gone());
   // The page drawn only once a frame of the orange alone is on the screen. iOS fades its launch screen out at the page's
   // first frame, and a page drawn into that frame makes it reach the screen late, the blank web view showing through

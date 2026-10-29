@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js" data-app="Oracle" data-color="#e86c1e"></script>
+    <!-- (Installed from a home screen, the page under the status bar too: else iOS fills that strip itself, flat or with
+         the page blurred, as it chooses. Read when the page is added.) -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f3f2ec" />
@@ -42,6 +45,16 @@
         --loss: light-dark(#c4302b, #ff6a5c);
         --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
         --gutter: max(20px, env(safe-area-inset-left));
+
+        /* (Where the bar starts, under the status bar: installed on iOS, lower, its words just out of the blur iOS lays
+           under its status bar (measured: sharp from 22 px down).) */
+        --bar-top: env(safe-area-inset-top);
+
+        @supports (-webkit-touch-callout: none) {
+          @media (display-mode: standalone) {
+            --bar-top: calc(env(safe-area-inset-top) + 22px);
+          }
+        }
       }
 
       /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
@@ -129,7 +142,7 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        padding-top: max(18px, env(safe-area-inset-top));
+        padding-top: max(18px, var(--bar-top));
         font-size: 13px;
 
         .brand {
@@ -156,6 +169,13 @@
 
       .hero {
         padding: clamp(20px, 5vh, 52px) 0 0;
+
+        /* (Installed on iOS, closer to the bar, which sits lower there: one block with it, more of the week in view.) */
+        @supports (-webkit-touch-callout: none) {
+          @media (display-mode: standalone) {
+            padding-top: 14px;
+          }
+        }
       }
 
       .eyebrow {

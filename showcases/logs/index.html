@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <!-- Its launch from a home screen, every showcase's. -->
     <script src="/assets/launch/launch.js" data-app="Logs" data-color="#4f5664"></script>
+    <!-- (Installed from a home screen, the page under the status bar too: else iOS fills that strip itself, flat or with
+         the page blurred, as it chooses. Read when the page is added.) -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <!-- (Its most scale 1, as Studio's: iOS doesn't zoom in on the search, its text under 16px.) -->
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
@@ -56,6 +59,16 @@
         --sans: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
         --mono: Lilex, ui-monospace, "SF Mono", Menlo, monospace;
         --gutter: max(16px, env(safe-area-inset-left));
+
+        /* (Where the bar starts, under the status bar: installed on iOS, a little lower, out of the blur iOS lays
+           under its status bar, its words as far down as the front page's.) */
+        --bar-top: env(safe-area-inset-top);
+
+        @supports (-webkit-touch-callout: none) {
+          @media (display-mode: standalone) {
+            --bar-top: calc(env(safe-area-inset-top) + 12px);
+          }
+        }
       }
 
       /* Increase Contrast (iOS's and macOS's, prefers-contrast: more): the greys toward the ink, each still a step
@@ -162,8 +175,8 @@
         flex: none;
         align-items: center;
         gap: 12px;
-        height: calc(52px + env(safe-area-inset-top));
-        padding: env(safe-area-inset-top) var(--gutter) 0;
+        height: calc(52px + var(--bar-top));
+        padding: var(--bar-top) var(--gutter) 0;
         border-bottom: 1px solid var(--line);
 
         .brand {
@@ -741,6 +754,8 @@
           bottom: 0;
           z-index: 5;
           width: min(380px, 100%);
+          /* (Installed, its close clear of the status bar, drawn over the page.) */
+          padding-top: max(16px, var(--bar-top));
           box-shadow: -18px 0 40px -20px rgb(0 0 0 / 0.45);
           animation: slide 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 
@@ -884,7 +899,7 @@
 
         .search {
           position: sticky;
-          top: calc(52px + env(safe-area-inset-top));
+          top: calc(52px + var(--bar-top));
           z-index: 2;
           padding: 8px var(--gutter);
           border-bottom: 1px solid var(--line);
