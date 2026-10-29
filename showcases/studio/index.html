@@ -11690,8 +11690,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       /** A signal, said: the layer its marks are on, how many there are (with its results, what they made). @param {Layer} layer */
       const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it on" : on.hidden ? `Hidden while ${labelOf(on)} is hidden` : `Signal on ${labelOf(on)}${values ? ` · ${plural(marksOf(layer, values).length, "time")}${((total) => (total === undefined ? "" : ` · ${resultText(total)} in all`))(layer.results ? resultsOf(layer) : undefined)}${fineDrawn() ? " in the loaded range" : ""}` : ""}`))(chart.layers.find((item) => item.id === layer.ref), resolved?.results.get(layer.id)?.values);
-      /** A layer's type, by its name: every type's (those drawn from a series, from layers, a signal, a heatmap). */
-      const typeName = (/** @type {string} */ type) => [...TYPES, ...FROM_TYPES, ["signal", "Signal"], ["heatmap", "Heatmap"]].find(([id]) => id === type)?.[1] ?? type;
+      /** A layer's type, by its name: every type's (those drawn from a series, from layers, a signal, bubbles, a heatmap). */
+      const typeName = (/** @type {string} */ type) => [...TYPES, ...FROM_TYPES, ["signal", "Signal"], ["bubbles", "Bubbles"], ["heatmap", "Heatmap"]].find(([id]) => id === type)?.[1] ?? type;
       /** A heatmap's measures: what its cells say (each day's URPD has all three: one switched, nothing's asked again). */
       const HEAT_MEASURES = /** @type {[string, string][]} */ ([["supply", "Supply"], ["capital", "Capital"], ["pnl", "Unrealized P&L"]]);
       /** A heatmap's weights, the URPD's: every coin as it is, or each age band's by its wakefulness (Cointime's) or mobility (Coinflow's). */
@@ -11700,8 +11700,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const HEAT_ROWS = [100, 200, 500];
       /** A gradient's colors at most, at least (read back with a chart, at the start: see gradientOf). */
       const GRADIENT_MOST = 4, GRADIENT_LEAST = 2;
-      /** @type {[string, string][]} */
-      const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"], ["bubbles", "Bubbles"]];
+      /**
+       * A series' looks, its Type's choices. Those made of other layers (a cloud, a trend, a signal, bubbles on a layer) are
+       * kinds of their own, added as such (Add a cloud, As bubbles on…), not a look to switch to.
+       * @type {[string, string][]}
+       */
+      const TYPES = [["line", "Line"], ["dots", "Dots"], ["area", "Area"], ["histogram", "Bars"], ["baseline", "Baseline"], ["candles", "Candles"]];
       /** The types drawn as a line: a dash and a shape apply. */
       const LINED = new Set(["line", "area", "baseline", "trend"]);
       /** The types an outline edges (the chart's background about what's drawn, see LWC patch 53): what a series is drawn as, and a trend's line. */
@@ -11717,6 +11721,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const hideText = (/** @type {number} */ share) => (share ? `${Math.round(share * 100)}%` : "None");
       /** Whether a layer's values aren't drawn at their own height on its scale: a signal's (marks on its layer), bubbles' (sized on theirs). @param {Layer} layer */
       const placedOn = (layer) => layer.type === "signal" || layer.type === "bubbles";
+      /** Whether a layer has a series' look, its Type one of TYPES: none made from layers, placed on one, or a heatmap. @param {Layer} layer */
+      const seriesLooked = (layer) => !layer.from && !placedOn(layer) && layer.type !== "heatmap";
       /** How a line runs between its points: straight, in steps (a value that holds until it changes), or curved. @type {[string, string, number][]} */
       const SHAPES = [["straight", "Straight", LC.LineType.Simple], ["steps", "Steps", LC.LineType.WithSteps], ["curved", "Curved", LC.LineType.Curved]];
       const lineTypeOf = (layer) => SHAPES.find(([id]) => id === layer.shape)?.[2] ?? LC.LineType.Simple;
@@ -29061,7 +29067,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * One layer's fields are these with it alone.
        */
       const typeField = (/** @type {Layer[]} */ layers) => {
-        if (!layers.every((layer) => !layer.from && layer.type !== "signal" && layer.type !== "heatmap")) return "";
+        if (!layers.every(seriesLooked)) return "";
         const now = sharedBy(layers, (layer) => layer.type), ohlc = layers.every((layer) => resolved?.results.get(layer.id)?.ohlc || (layer.series && isOhlc(layer.series)));
         return `<div class="field"><span>Type<span class="color-now">${escape(now === undefined ? "Mixed" : TYPES.find(([type]) => type === now)?.[1] ?? "")}</span></span><div class="tabs glyphs" role="group" aria-label="Chart type">${TYPES.map(([type, text]) => `<button type="button" data-type="${type}" aria-pressed="${now === type}" aria-label="${text}" ${type === "candles" && !ohlc ? "aria-disabled=\"true\" data-tip=\"Candles: only for open-high-low-close series\"" : `data-tip="${text}"`}>${glyph(type)}<span>${text}</span></button>`).join("")}</div></div>`;
       };
@@ -34042,7 +34048,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               { key: "hide", icon: glyph("bubbles"), label: "Hide below", aside: ((n) => (n ? `${hideText(n)} of the largest` : "None"))(layer.hide ?? BUBBLE_HIDE), group: "Bubbles", page: () => choicePage("Hide below", () => BUBBLE_HIDES.map((n) => ({ key: String(n), label: hideText(n), aside: n === BUBBLE_HIDE ? "Its own" : n ? undefined : "Every one, however small", current: (now().hide ?? BUBBLE_HIDE) === n, ...both((item) => (item.hide = n === BUBBLE_HIDE ? undefined : n)) }))) },
               { key: "sized", icon: glyph("bubbles"), label: "Sized to", aside: layer.scaleTo === "all" ? "All time" : "In view", verb: layer.scaleTo === "all" ? "Size to what's in view" : "Size to all time", group: "Bubbles", stay: true, run: set((item) => (item.scaleTo = item.scaleTo === "all" ? undefined : "all")) },
             ] : []),
-            { key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc || (layer.series && isOhlc(layer.series))).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => reshape(item, (one) => (one.type = type))) }))) },
+            ...(seriesLooked(layer) ? [{ key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc || (layer.series && isOhlc(layer.series))).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => reshape(item, (one) => (one.type = type))) }))) }] : []),
             ...(layer.type === "baseline" || layer.type === "histogram" ? [{ key: "base", icon: ICONS.ruler, label: "Base", aside: format(baseOf(layer), unit), group: "Style", page: () => numberPage({ title: "Base", value: String(baseOf(layer)), fallback: 0, apply: (n) => editById(id, (item) => (item.base = n || undefined)) }) }] : []),
             ...(layer.type === "baseline" ? [lineRow(id, "base", "Base line", "Style")] : []),
             ...(modesOf(layer).length > 1 ? [{ key: "colors", icon: modeSwatch(layer, colorModeOf(layer)), label: "Colors", aside: modeName(colorModeOf(layer)), group: "Style", page: () => choicePage("Colors", () => colorModeChoices(id), lookOfChoice) }] : []),
@@ -36311,7 +36317,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               : { formula: String(layer.formula ?? "").slice(0, FORMULA_MAX), ...(layer.paths && typeof layer.paths === "object" ? { paths: Object.fromEntries(Object.entries(layer.paths).filter(([name, path]) => isSeriesName(name) && isCatalogPath(path)).slice(0, 40)) } : {}) }),
             ...(typeof layer.label === "string" ? { label: layer.label.slice(0, 120) } : {}),
             color: isColor(layer.color) ? layer.color : undefined,
-            type: heat ? "heatmap" : made ?? (TYPES.some(([type]) => type === layer.type) || (layer.type === "signal" && typeof layer.series !== "string") ? layer.type : "line"),
+            type: heat ? "heatmap" : made ?? (TYPES.some(([type]) => type === layer.type) || layer.type === "bubbles" || (layer.type === "signal" && typeof layer.series !== "string") ? layer.type : "line"),
             width: WIDTHS.includes(layer.width) ? layer.width : 1.5,
             dash: DASHES.some(([style]) => style === layer.dash) ? layer.dash : 0,
             pane: paneFor(layer.pane),
