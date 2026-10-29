@@ -995,6 +995,13 @@ Unset, or no halo set, nothing is drawn: as published.
 
 `tests.html` 16: a line over a band of another color, outlined (the halo's color beside the line), and not (none).
 
+## 54. A series drawn fixed in the view (an option)
+
+A pan (48) moves a pane's picture with the time scale and draws only the strip that comes into view: right for what's
+drawn at its bars, wrong for what a series draws fixed in the view (Studio's heatmap profile, bars from the plot's right
+edge), moved with the picture and cut at the strip. A series option, `bvFixed`, now counts among what a pan can't move
+(`bvFixed`): its pane drawn whole, as with a relative gradient. Unset: as published (and as 48).
+
 ## Typings
 
 `dist/typings.d.ts` declares what the patches add to the API (the chart's `bvFlush`; a scale's `bvRange`, `bvSetRange`,

@@ -5081,6 +5081,8 @@ export interface SeriesOptionsCommon {
 	bvBandFill?: string;
 	/** Edged in the layout's `bvHalo`: a line (an area's, a baseline's) as wide as it each side, dots ringed, bars and candles 1.5 px (53). */
 	bvOutline?: boolean;
+	/** Drawn fixed in the view (a profile at the plot's edge): a pan draws its pane whole, not moved with the picture (54). */
+	bvFixed?: boolean;
 }
 export interface IPriceScaleApi {
 	/** The range shown, as prices; none before it's laid out (16). */

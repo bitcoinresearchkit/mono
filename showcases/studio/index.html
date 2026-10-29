@@ -10540,7 +10540,7 @@
             <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). min(A, B, C) and max(A, B, C) are the least and the most of several, date by date, middle(A, B, C) their median (of an even number, halfway between the two in the middle); each where all of them have a value. when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes); halving(A, n) is A over halving cycle n alone from 1× (0 the first, from the genesis block), and halving(A, 0, 2) that cycle moved to start where cycle 2 starts, day for day. date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 &amp; date &lt; 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo or y; some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
             <li>{"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns up or down: above 0 is up, below 0 down, 0 off (> < >= <= are 1 or 0, joined with &amp; and |: a condition is up where true; (B > 3.5) - (B < 1) is up, down or off). "place", "below" or "on" (above if none): where an up mark goes, a down one mirrored (above and below swapped), in "colorBelow" (red if none); or "shade": its stretches shaded, its layer's pane's height, down ones in "colorBelow". "results": true: on each mark that ends a stretch, what it made by layer A (A's change over it, up; the opposite, down), a dot where one ends off; their total, compounded, in its line.</li>
             <li>{"cloud": ["B", "C"]}: filled between those layers, two or more, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them). Between more, {"cloud": ["B", "C", "D"]}, a cloud between each two next to each other in that order (B and C, C and D), each in the color of whichever of its two is over: several clouds, made by one (where they cross out of order, two overlap). "color" alone, that one all along, from the lowest to the highest; between two alone, "color" and "colorBelow", those two (where B is over, where C is). "top" and "bottom" are its pane's edges: from its first layer up to the pane's top, from its last down to its bottom: {"cloud": ["A", "top"]}.</li>
-            <li>{"heatmap": "sth"}: a holder group's URPD day by day behind the price, a column a day, each price's cell as strong as its amount against the open day's largest, on a log scale (zoomed out, a day in so many, the days between not asked for): "all" (all coins), "sth", "lth", "age_under_4m", "age_under_6m", "age_over_4m", "age_over_6m", or an age band ("age_under_1h", "age_1h_to_1d" … "age_over_15y", as GET /api/urpd lists them). "measure": "supply" (if none), "capital", or "pnl" (unrealized, in "color" where in profit, "colorBelow" where in loss); "weight": "wakefulness" or "mobility" (none: every coin as it is); its rows: "rows", 100, 200 (if none) or 500 a ×10 in price, on a log scale or a linear one.</li>
+            <li>{"heatmap": "sth"}: a holder group's URPD day by day behind the price, a column a day, each price's cell as strong as its amount against the open day's largest, on a log scale (zoomed out, a day in so many, the days between not asked for): "all" (all coins), "sth", "lth", "age_under_4m", "age_under_6m", "age_over_4m", "age_over_6m", or an age band ("age_under_1h", "age_1h_to_1d" … "age_over_15y", as GET /api/urpd lists them). "measure": "supply" (if none), "capital", or "pnl" (unrealized, in "color" where in profit, "colorBelow" where in loss); "weight": "wakefulness" or "mobility" (none: every coin as it is); its rows: "rows", 100, 200 (if none) or 500 a ×10 in price, on a log scale or a linear one. "profile": "both", a day's URPD also as a profile at the chart's right edge (the day read: the latest at the view's end, the one pointed at), bars from the edge as long as their amounts, under its close in profit, over it in loss, the share of coins each side; the chart leaves room for it after its latest. "only", the profile alone (none: the columns alone).</li>
             <li>{"trend": ["B", "C"], "ref": "A"}: a line on the lowest of those layers until layer A (a price, say) touches it, then on the highest until A touches that, and so on (A an OHLC series, its highs and lows count, drawn as candles or not; else its value); width and dash as a line's.</li>
           </ul>
           <p>Then, each if wanted:</p>
@@ -11753,6 +11753,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const HEAT_MEASURES = /** @type {[string, string][]} */ ([["supply", "Supply"], ["capital", "Capital"], ["pnl", "Unrealized P&L"]]);
       /** A heatmap's weights, the URPD's: every coin as it is, or each age band's by its wakefulness (Cointime's) or mobility (Coinflow's). */
       const HEAT_WEIGHTS = /** @type {[string, string][]} */ ([["", "Every coin"], ["wakefulness", "Awake"], ["mobility", "Mobile"]]);
+      /** What a heatmap shows: its days as columns (none: those alone), a day's profile at the plot's right edge alone, or both. */
+      const HEAT_SHOWS = /** @type {[string, string][]} */ ([["", "Heatmap"], ["only", "Profile"], ["both", "Both"]]);
+      /** What each of those is, said beside it. */
+      const HEAT_SHOWN = /** @type {Record<string, string>} */ ({ "": "Its days as columns, behind the price", only: "A day's, at the chart's right edge, by its close", both: "The columns, and the profile at the right edge" });
       /** A heatmap's densities, the URPD's: rows per ×10 in price, on a log scale or a linear one. */
       const HEAT_ROWS = [100, 200, 500];
       /** A gradient's colors at most, at least (read back with a chart, at the start: see gradientOf). */
@@ -12904,7 +12908,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, outline?: true, size?: number, hide?: number, scaleTo?: "all", colorBelow?: string, colors?: 1 | 4, colorFading?: string, colorBelowFading?: string, opacity?: number,
        *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
        *   shape?: string, levels?: Level[], fill?: string, fillOpacity?: number, solid?: true, hollow?: "none", place?: string, results?: boolean, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean,
-       *   heatmap?: string, weight?: string, measure?: string, rows?: number, gradient?: [number, string][], upToDate?: true, byGradient?: true }} Layer
+       *   heatmap?: string, weight?: string, measure?: string, rows?: number, profile?: "both" | "only", gradient?: [number, string][], upToDate?: true, byGradient?: true }} Layer
        *   Made from layers (`from`: the ids of the layers it's made of, none itself made from layers), by its type: a cloud
        *   ("cloud") is filled between its two, at each date (in two colors, `color` where the first is over the second,
        *   `colorBelow` where the second is, parting where they cross); a trend ("trend") is on the lowest of two or more
@@ -15848,11 +15852,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A baseline's or bars' base: its own, else zero (as the website's). @param {Layer} layer */
       const baseOf = (layer) => layer.base ?? 0;
 
+      /** A heatmap's profile's width (see drawProfile): a fifth of the plot's, 72 at least, 200 at most. */
+      const profileWidth = (/** @type {number} */ width) => Math.round(clamp(width * 0.2, 72, 200));
+      /** Whether a chart shows a heatmap's profile: its room then after its latest, see rightGap. @param {Chart} doc */
+      const profiled = (doc) => doc.layers.some((layer) => layer.type === "heatmap" && layer.profile && !layer.hidden);
       /**
        * The room after the data's last value, in pixels, at any zoom: its line's end clear of the scale (as TradingView), a
-       * share of the chart's width, a phone's narrower, a large screen's no wider than 48. Any chart's (a preview's too).
+       * share of the chart's width, a phone's narrower, a large screen's no wider than 48; with a heatmap's profile, its
+       * width more, the latest day clear of it (the chart drawn: ⌘K's preview, while it shows). Any chart's (a preview's too).
        */
-      const rightGap = (width = view.timeScale().width()) => Math.round(clamp(width * 0.06, 16, 48));
+      const rightGap = (width = view.timeScale().width(), doc = drawnDoc ?? chart) => Math.round(clamp(width * 0.06, 16, 48)) + (doc && profiled(doc) ? profileWidth(width) : 0);
       /**
        * The least of the view its data keeps (a share of its width, all of the data when it holds less): a pan, a fling,
        * a zoom stops there, held by the chart itself as it moves (patch 13 of lightweight-charts), never a frame past it.
@@ -16827,7 +16836,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const alone = !doc.layers.some((other) => other !== layer && other.pane === layer.pane && other.side === layer.side && !other.hidden && other.type !== "heatmap" && other.type !== "signal" && data.results.get(other.id)?.values?.some(drawable));
             // (Hidden, not drawn: nothing to ask for.)
             if (layer.hidden) heatWants.delete(layer.id);
-            const options = { ...common, lastValueVisible: false, priceLineVisible: false, heatId: layer.id, autoscaleInfoProvider: (/** @type {() => any} */ original) => (alone ? original() : null) };
+            // (Its profile drawn fixed at the plot's edge: a pan draws its pane whole, see LWC patch 54.)
+            const options = { ...common, lastValueVisible: false, priceLineVisible: false, heatId: layer.id, bvFixed: Boolean(layer.profile && !layer.hidden), autoscaleInfoProvider: (/** @type {() => any} */ original) => (alone ? original() : null) };
             series = again ?? tracked(view.addCustomSeries(heatView(), options, pane));
             if (again) series.applyOptions({ ...lookOf(options), heatTick: ++heatTicks });
             // (Kept up with live only where drawn: see movePrice.)
@@ -17413,16 +17423,39 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const KEY_NARROW = 720;
       /** Under how wide a plot a stack's key is its strip alone (its ends' names left out: a band named as it's pointed at). */
       const KEY_TIGHT = 260;
+      /** Whether the open chart's view was last placed with a profile's room, and whose (see setGap): ⌘K's look's not counted. */
+      let roomPlaced = { id: "", on: false };
+      /**
+       * A view of the open chart that showed its latest with its room after it, at a plot `was` wide, as the same at the
+       * plot's width now: its room as wide as it is here (a heatmap's profile at its own width, not scaled with the view: a
+       * picture at another width). Else null. @param {{ from: number, to: number }} range @param {number} was
+       */
+      function atLatest(range, was) {
+        const width = view.timeScale().width(), last = (resolved?.times.length ?? 0) - 1, span = range.to - range.from;
+        if (!width || !was || last <= 0 || Math.abs(range.to - (last + (rightGap(was) * (span + 1)) / was - 0.5)) > 0.5) return null;
+        const to = last + (rightGap(width) * (span + 1)) / width - 0.5;
+        return { from: to - span, to };
+      }
       /**
        * The room after the latest point as the open chart has it now (its tags', or not: see rightGap), the view kept where
        * it is (the library would scroll to it), and its legends' forms with it. As it's laid out, not as it moves.
        */
       function setGap() {
-        const width = view.timeScale().width(), gap = rightGap(width);
-        if (width && gap !== view.timeScale().options().rightOffsetPixels) {
-          const range = view.timeScale().getVisibleLogicalRange();
-          view.applyOptions({ timeScale: { rightOffsetPixels: gap } });
-          if (range) view.timeScale().setVisibleLogicalRange(range);
+        const width = view.timeScale().width(), gap = rightGap(width), was = view.timeScale().options().rightOffsetPixels;
+        if (width) {
+          const range = view.timeScale().getVisibleLogicalRange(), last = (resolved?.times.length ?? 0) - 1, base = rightGap(width, /** @type {any} */ (null)), room = gap - base;
+          if (gap !== was) view.applyOptions({ timeScale: { rightOffsetPixels: gap } });
+          // (Showing the latest (as zoom has it: its room after it as it was, or its last bar in view with less room than
+          // now), its room after it as wide as it is now once a heatmap's profile comes or goes: the chart moved over for
+          // it, back as it goes. Elsewhere, or with more room after it already, where it was. A look ⌘K shows (see
+          // showLook) moves nothing: the view as it was, to come back to; chosen, it's the chart's, and moves it then.)
+          const span = range ? range.to - range.from : 0, end = (/** @type {number} */ px) => last + (px * (span + 1)) / width - 0.5;
+          // (The room it was placed with another chart's: none to move from, as it's placed for this one.)
+          // (The room as it was at this width: a resize places the view with it, see holdView.)
+          const on = room > 0, moves = !lookShown && roomPlaced.id === chart.id && on !== roomPlaced.on && range && last > 0 && range.to >= last - 0.5 && (Math.abs(range.to - end(base + (roomPlaced.on ? profileWidth(width) : 0))) <= 0.5 || range.to < end(gap));
+          if (moves) view.timeScale().setVisibleLogicalRange({ from: end(gap) - span, to: end(gap) });
+          else if (range && gap !== was) view.timeScale().setVisibleLogicalRange(range);
+          if (!lookShown) roomPlaced = { id: chart.id, on };
         }
         fitLegends();
       }
@@ -17673,6 +17706,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       function updateValues() {
         updateReadout();
+        profilesSoon();
         updateRowChanges();
         // (⌘K's preview of a layer open meanwhile, its latest not its line's caption: as it comes, a heatmap's once its day's in.)
         for (const caption of $("palette").querySelectorAll("[data-latest]")) {
@@ -21376,11 +21410,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           grid
             ? { key: "density", icon: ICONS.layers, label: "Density", aside: `${layer.rows ?? 200} rows per ×10`, group: "Heatmap", page: choices("Density", HEAT_ROWS.map((n) => /** @type {[number, string]} */ ([n, `${n} rows per ×10`])), (item) => item.rows ?? 200, (item, n) => (item.rows = n === 200 ? undefined : n)) }
             : { key: "density", icon: ICONS.layers, label: "Density", aside: "Not on this scale", disabled: "On a log or linear scale", group: "Heatmap" },
+          { key: "profile", icon: ICONS.heatmap, label: "Show", aside: HEAT_SHOWS.find(([show]) => show === (layer.profile ?? ""))?.[1], group: "Heatmap", page: choices("Show", HEAT_SHOWS, (item) => item.profile ?? "", (item, show) => (item.profile = show || undefined), (show) => HEAT_SHOWN[show]) },
         ];
       }
       /**
        * A heatmap's section in the inspector: its holders and its density, each a menu of its page's choices (see
-       * heatRows); its measure and its weight, each a row of three. @param {Layer} layer
+       * heatRows); its measure, its weight and what it shows (its columns, its profile, both), each a row of three. @param {Layer} layer
        */
       function heatSection(layer) {
         const rows = heatRows(layer.id);
@@ -21394,6 +21429,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               ${tabs("measure", "Measure", [["supply", "Supply"], ["capital", "Capital"], ["pnl", "P&L"]], layer.measure ?? "supply")}
               ${tabs("weight", "Weight", HEAT_WEIGHTS, layer.weight ?? "")}
               ${menu("density")}
+              ${tabs("profile", "Show", HEAT_SHOWS, layer.profile ?? "")}
             </section>`;
       }
       /** A column at least this wide (CSS pixels): zoomed out, a day in so many drawn, the days between never asked for. */
@@ -21649,7 +21685,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * its chart was, see settle), the days a column holds (`step`), the days it showed and wanted (`keep`), its
        * reference (`reference`: the open day's largest cell, see heatStrip); its colors (`gradient`, its gradient's as
        * shown, see gradientTable) and all it's painted by (`paint`, its strips' key).
-       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, drawn?: boolean, undrawable?: boolean, step?: number, keep?: Set<string>, reference?: number }} HeatLook
+       * Its profile, if it shows one (`profile`, see drawProfile): its colors, in profit and in loss, its close's line's
+       * (`mark`) and its words' halo; the point it was last drawn for (`profileAt`: none, -1, at rest).
+       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, profile: string, gain: string, lose: string, halo: string, mark: string, profileAt?: number, drawn?: boolean, undrawable?: boolean, step?: number, keep?: Set<string>, reference?: number }} HeatLook
        */
       /**
        * Each heatmap's look, by its layer's id: what it draws and how (kept apart from its series' options, which the
@@ -21680,7 +21718,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A color's red, green and blue (a hex one). */
       const rgbOf = (/** @type {string} */ hex) => [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
       /** A heatmap's look, for its series' renderer (see heatLooks). @param {Chart} doc @param {Layer} layer @param {Resolved} data @param {number} opacity */
-      const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data.times), measure: layer.measure ?? "supply", up: rgbOf(ink(layer.color)), down: rgbOf(ink(belowOf(layer))), opacity, gradient: layer.byGradient && layer.gradient ? gradientTable(layer.gradient).map((color) => rgbOf(ink(color))) : null, paint: `${layer.measure ?? "supply"}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
+      // (Its profile's colors: an unrealized P&L's own two, else the chart's green and red.)
+      const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data.times), measure: layer.measure ?? "supply", up: rgbOf(ink(layer.color)), down: rgbOf(ink(belowOf(layer))), opacity, profile: layer.profile ?? "", gain: ink(layer.measure === "pnl" ? layer.color : "green"), lose: ink(layer.measure === "pnl" ? belowOf(layer) : "red"), halo: css("--card"), mark: css("--ink"), gradient: layer.byGradient && layer.gradient ? gradientTable(layer.gradient).map((color) => rgbOf(ink(color))) : null, paint: `${layer.measure ?? "supply"}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
       /** The day a block of `by` days is drawn as: its last (the open one, at most). @param {HeatLook} heat @param {number} g */
       const heatOwner = (heat, g, /** @type {number} */ by) => Math.min(Math.ceil(g / by) * by, heat.days.length - 1);
       /** A day's key in heatDays, by its count (see heatCalendar). @param {HeatLook} heat @param {number} g */
@@ -21788,7 +21827,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!heatDays.get(keyOf(owner))?.rows) want(owner, step);
           if (!shown) want(ownerAt(owner, step * 16), step * 16);
           if (!shown || !shown.day.rows.length) return;
-          if (!reference) return;
+          // (Its profile alone: its days asked for as its columns', none drawn.)
+          if (!reference || heat.profile === "only") return;
           const strip = heatStrip(shown.key, shown.day, heat, reference, grid, dollars), x = Math.round(x0 * h), w = Math.max(1, Math.round(x1 * h) - x);
           const top = toY(strip.top), bottom = toY(strip.bottom);
           if (top === null || bottom === null || bottom < 0 || top > mediaSize.height) return;
@@ -21811,12 +21851,92 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (owner >= 0) column(owner, x0, x1);
         context.imageSmoothingEnabled = smooth;
+        if (heat.profile) drawProfile(scope, toY, heat, grid);
         heat.keep = keep;
         // (Those in view now take the place of any it wanted before.)
         if (!wanted.size) return void heatWants.delete(heat.id);
         heatWants.set(heat.id, [...wanted.values()]);
         if (!heatPumping) (heatPumping = true), queueMicrotask(heatPump);
       }
+      /**
+       * A heatmap's profile at the plot's right edge: the day the readout's at (at rest the view's last, the latest at its
+       * end; else the one pointed at), as its column shows it (see heatShown): its amounts by price as bars from the edge,
+       * a band a few pixels high each, as long as its amount against the largest in view; under its close in its color in
+       * profit, over it in its color in loss; an older day's close's line across it, and the share of its coins on each side. Drawn
+       * with the map, behind the lines (a picture has it, at rest); in the room the chart leaves for it after its latest,
+       * see rightGap. @param {any} scope @param {(price: number) => number | null} toY @param {HeatLook} heat @param {NonNullable<HeatLook["grid"]>} grid
+       */
+      function drawProfile(scope, toY, heat, grid) {
+        const point = capturing || !resolved ? { at: lastShown(), rest: true } : readPoint(), step = heat.step ?? 1;
+        heat.profileAt = point.rest ? -1 : point.at;
+        if (point.at < 0 || point.at >= heat.g.length) return;
+        const owner = heatOwner(heat, heat.g[point.at], step), day = heatShown(heat, owner, step)?.day, close = Number(day?.close);
+        if (!day?.rows.length || !(close > 0)) return;
+        const { context, mediaSize, horizontalPixelRatio: h, verticalPixelRatio: v } = scope, width = profileWidth(mediaSize.width), right = mediaSize.width - 2, height = mediaSize.height;
+        const values = /** @type {Float32Array} */ (heat.measure === "capital" ? day.capital : heat.measure === "pnl" ? day.pnl : day.supply), supply = /** @type {Float32Array} */ (day.supply), rows = day.rows;
+        // (Each band's amount, from its rows' middles; the coins under its close and in all.)
+        const BAND = 3, sums = new Float64Array(Math.ceil(height / BAND));
+        let under = 0, all = 0;
+        for (let k = 0; k < rows.length; k++) {
+          const price = grid.price(rows[k] + 0.5);
+          all += supply[k];
+          if (price < close) under += supply[k];
+          const y = toY(price);
+          if (y !== null && y >= 0 && y < height) sums[Math.floor(y / BAND)] += Math.abs(values[k]);
+        }
+        const most = sums.reduce((a, b) => Math.max(a, b), 0), line = toY(close);
+        if (!(most > 0) || line === null) return;
+        // (As strong as its layer's opacity lets it be, a little under its columns' full strength.)
+        const fill = (/** @type {string} */ color) => alpha(color, 0.6 * heat.opacity);
+        for (let b = 0; b < sums.length; b++) {
+          if (!sums[b]) continue;
+          const length = (sums[b] / most) * width, top = b * BAND;
+          context.fillStyle = fill(top + BAND / 2 > line ? heat.gain : heat.lose);
+          context.fillRect(Math.round((right - length) * h), Math.round(top * v), Math.max(1, Math.round(length * h)), Math.max(1, Math.round((BAND - 1) * v)));
+        }
+        // (An older day's close, across it, dashed: the latest's, the price's own line marks; the shares each side of it,
+        // at its start, haloed over its bars.)
+        const y = Math.round(line * v) + 0.5, left = right - width;
+        context.save();
+        if (owner !== heat.days.length - 1) {
+          context.strokeStyle = fill(heat.mark);
+          context.lineWidth = Math.max(1, Math.round(h));
+          context.setLineDash([3 * h, 3 * h]);
+          context.beginPath();
+          context.moveTo(Math.round(left * h), y);
+          context.lineTo(Math.round(right * h), y);
+          context.stroke();
+          context.setLineDash([]);
+        }
+        context.font = `510 ${Math.round(11 * v)}px ${chartSans}`;
+        context.lineJoin = "round";
+        context.lineWidth = 3 * v;
+        context.strokeStyle = heat.halo;
+        const say = (/** @type {string} */ text, /** @type {string} */ color, /** @type {number} */ at) => {
+          context.strokeText(text, Math.round((left + 4) * h), at);
+          context.fillStyle = color;
+          context.fillText(text, Math.round((left + 4) * h), at);
+        };
+        // (Too narrow for its words, a phone's: its shares alone, in their colors.)
+        const share = Math.round((100 * under) / (all || 1)), words = context.measureText(`${share}% in profit`).width <= (width - 8) * h;
+        if (line > 14) say(`${100 - share}%${words ? " in loss" : ""}`, heat.lose, Math.round((line - 5) * v));
+        if (line < height - 14) say(`${share}%${words ? " in profit" : ""}`, heat.gain, Math.round((line + 14) * v));
+        context.restore();
+      }
+      /**
+       * The heatmaps showing a profile of another point than the one read now (a pointer's, the keys', none), drawn again
+       * at the chart's next frame. (At rest each frame draws the view's last: a pan's frames are drawn anyway.)
+       */
+      const profilesSoon = () => {
+        const at = hoverTime === null ? -1 : indexOfTime(hoverTime);
+        for (const series of heatSeries) {
+          const look = heatLooks.get(series.options().heatId);
+          if (!look?.profile || look.profileAt === at || series.options().visible === false) continue;
+          // (Asked for once: a series that doesn't draw it (hidden, nothing to draw) isn't asked again at each move.)
+          look.profileAt = at;
+          series.applyOptions({ heatTick: ++heatTicks });
+        }
+      };
       /** A stroke with what adds nothing taken out: no point strays further than `tolerance` pixels from what's kept. */
       function simplify(points, tolerance) {
         if (points.length < 3) return points;
@@ -31242,6 +31362,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (button.dataset.heatSet) editLayer((item) => {
           const value = button.dataset.value ?? "";
           if (button.dataset.heatSet === "measure") reshape(item, (one) => (one.measure = value === "supply" ? undefined : value));
+          else if (button.dataset.heatSet === "profile") item.profile = value === "both" || value === "only" ? value : undefined;
           else item.weight = value || undefined;
         });
         else if (button.id === "trend-ref" || button.id === "signal-ref" || button.id === "bubble-ref") refMenu(button, selected);
@@ -36540,7 +36661,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const heat = !made && typeof layer.heatmap === "string" && /^[a-z0-9_]{1,40}$/.test(layer.heatmap) ? layer.heatmap : null;
           /** @type {Record<string, any>} */
           const spec = {
-            ...(heat ? { heatmap: heat, weight: HEAT_WEIGHTS.some(([id]) => id && id === layer.weight) ? layer.weight : undefined, measure: HEAT_MEASURES.some(([id]) => id !== "supply" && id === layer.measure) ? layer.measure : undefined, rows: HEAT_ROWS.includes(layer.rows) ? layer.rows : undefined } : madeOf ? { from: madeOf.filter((id) => typeof id === "string").map((id) => (EDGES.includes(id.toLowerCase()) ? id.toLowerCase() : id)).slice(0, MAX_LAYERS + 2) } : typeof layer.series === "string"
+            ...(heat ? { heatmap: heat, weight: HEAT_WEIGHTS.some(([id]) => id && id === layer.weight) ? layer.weight : undefined, measure: HEAT_MEASURES.some(([id]) => id !== "supply" && id === layer.measure) ? layer.measure : undefined, rows: HEAT_ROWS.includes(layer.rows) ? layer.rows : undefined, profile: layer.profile === "both" || layer.profile === "only" ? layer.profile : undefined } : madeOf ? { from: madeOf.filter((id) => typeof id === "string").map((id) => (EDGES.includes(id.toLowerCase()) ? id.toLowerCase() : id)).slice(0, MAX_LAYERS + 2) } : typeof layer.series === "string"
               ? { series: isSeriesName(layer.series) ? layer.series : "invalid_series_name", ...(isCatalogPath(layer.path) ? { path: layer.path } : {}) }
               : { formula: String(layer.formula ?? "").slice(0, FORMULA_MAX), ...(layer.paths && typeof layer.paths === "object" ? { paths: Object.fromEntries(Object.entries(layer.paths).filter(([name, path]) => isSeriesName(name) && isCatalogPath(path)).slice(0, 40)) } : {}) }),
             ...(typeof layer.label === "string" ? { label: layer.label.slice(0, 120) } : {}),
@@ -36783,7 +36904,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
          */
         const asPicture = (read) => {
           // (As it is now: a pan between two of them (a probe's and the picture's), the one put back.)
-          const style = element.getAttribute("style"), wrapped = [wrapper.style.width, wrapper.style.height], logical = view.timeScale().getVisibleLogicalRange(), heightWas = chartHeight, shown = presetShown;
+          const style = element.getAttribute("style"), wrapped = [wrapper.style.width, wrapper.style.height], logical = view.timeScale().getVisibleLogicalRange(), heightWas = chartHeight, shown = presetShown, screen = view.timeScale().width();
           let restoreLegends = () => {};
           // (Its resizes aren't the chart's: the view held as it is, see holdView.)
           exporting = true;
@@ -36798,7 +36919,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (sized && resolved && drawnChart === chart.id) {
               fitSpacing(chart, resolved.times.length);
               if (presetShown) applyRange(chart, resolved);
-              else if (logical) view.timeScale().setVisibleLogicalRange(logical);
+              else if (logical) view.timeScale().setVisibleLogicalRange(atLatest(logical, screen) ?? logical);
             }
             marginsSet = "";
             fitMargins();
