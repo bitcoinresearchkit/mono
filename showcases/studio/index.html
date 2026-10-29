@@ -14742,7 +14742,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A chart of Recent's mark: a preset's as the sidebar draws it (asked for, see presetMarksAsked), else its own. @param {{ doc: Chart, preset: number }} item */
       // (An edited preset's, before the presets are read: its mark as kept, by its copy, as the presets' rows will have it.)
-      const recentMark = ({ doc, preset }) => (preset >= 0 ? (presetMarks.has(presetMarkKey(preset)) || presetMarksAsked.add(preset), presetMark(preset)) : doc.preset !== undefined && presetMarks.has(`${doc.id}@${doc.updated}`) ? markOf(/** @type {any[]} */ (presetMarks.get(`${doc.id}@${doc.updated}`))) : chartMark(doc));
+      const recentMark = ({ doc, preset }) => (preset >= 0 ? (presetMarks.has(presetMarkKey(preset)) || presetMarksAsked.add(preset), presetMark(preset)) : doc.preset !== undefined && presetMarks.has(`${doc.id}@${doc.updated}`) ? markOf(presetMarks.get(`${doc.id}@${doc.updated}`) ?? NO_MARK) : chartMark(doc));
 
       // ── Sidebar ───────────────────────────────────────────────────────────────
 
@@ -22722,13 +22722,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const validLines = (/** @type {any} */ lines) => Array.isArray(lines) && lines.length <= 3
         && lines.every((line) => Array.isArray(line) && isColor(line[0]) && validYs(line[1]) && (line[2] == null || (MARK_KINDS.has(line[2]) && isColor(line[3]) && validLevel(line[4])))
           && (line[5] === undefined || (Array.isArray(line[5]) && line[5].length === line[1].length && line[5].every((color) => color === null || isColor(color)))));
-      const validThumb = (thumb) => typeof thumb?.key === "string" && validLines(thumb.lines)
+      /**
+       * A mark, as kept: its lines (see validLines); a heatmap's wash about one of them (that line, the colors over it and
+       * under it, its band's foot and top); a few of the largest bubbles, dots (each its color, across, up).
+       */
+      const validChartMark = (/** @type {any} */ mark) => typeof mark === "object" && mark !== null && validLines(mark.lines)
+        && Array.isArray(mark.washes) && mark.washes.length <= 1 && mark.washes.every((wash) => Array.isArray(wash) && Number.isInteger(wash[0]) && wash[0] >= 0 && wash[0] < mark.lines.length && isColor(wash[1]) && isColor(wash[2]) && validLevel(wash[3]) && validLevel(wash[4]))
+        && Array.isArray(mark.dots) && mark.dots.length <= 4 && mark.dots.every((dot) => Array.isArray(dot) && isColor(dot[0]) && validLevel(dot[1]) && validLevel(dot[2]));
+      const validThumb = (thumb) => typeof thumb?.key === "string" && validChartMark(thumb)
         && typeof thumb.marks === "object" && thumb.marks !== null && Object.values(thumb.marks).every(validYs)
         && (thumb.bases === undefined || (typeof thumb.bases === "object" && thumb.bases !== null && Object.values(thumb.bases).every(validLevel)));
       /**
-       * A chart's mark: up to three lines, each with its kind (none: a line), its second color and its base; and each
-       * layer's own, with its base (a baseline's, bars'), in hundredths of the height.
-       * @typedef {{ lines: ([string, (number | null)[]] | [string, (number | null)[], string, string, number] | [string, (number | null)[], string | null, string | null, number | null, (string | null)[]])[], marks: Record<string, (number | null)[]>, bases?: Record<string, number> }} Thumb
+       * A chart's mark: up to three lines, each with its kind (none: a line), its second color and its base; a heatmap's
+       * wash, bubbles' dots (see validMark); and each layer's own, with its base (a baseline's, bars'), in hundredths of
+       * the height.
+       * @typedef {{ washes: [number, string, string, number, number][], dots: [string, number, number][], lines: ([string, (number | null)[]] | [string, (number | null)[], string, string, number] | [string, (number | null)[], string | null, string | null, number | null, (string | null)[]])[], marks: Record<string, (number | null)[]>, bases?: Record<string, number> }} Thumb
        */
       /** @type {Map<string, Thumb & { key: string }>} */
       const thumbs = new Map(Object.entries(storage.get(THUMBS, {})).filter(([, thumb]) => validThumb(thumb)));
@@ -22839,6 +22847,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
         const total = groups.reduce((sum, group) => sum + group.size, 0);
         const lines = /** @type {Thumb["lines"]} */ ([]);
+        /** Each layer's line as drawn, and its pane's band. @type {Map<string, { index: number, band: { bottom: number, height: number } }>} */
+        const lineAt = new Map();
         let top = 1;
         for (const { pane, size, layers } of groups) {
           const height = size / total, gap = groups.length > 1 ? Math.min(0.08, height * 0.25) : 0;
@@ -22865,7 +22875,38 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const colors = dateColors && ys.map((value, k) => (value === null ? null : dateColors(start + Math.min(data.times.length - start - 1, Math.max(Math.floor(k * step), Math.floor((k + 1) * step) - 1))) ?? layer.color));
               if (colors) lines.push([layer.color, ys, kind ?? null, kind ? belowOf(layer) : null, kind ? (kind === "area" ? edge : level) : null, colors]);
               else lines.push(kind ? [layer.color, ys, kind, belowOf(layer), kind === "area" ? edge : level] : [layer.color, ys]);
+              lineAt.set(layer.id, { index: lines.length - 1, band });
             }
+          }
+        }
+        // A heatmap, a wash about the line it's behind (its pane's first drawn, the price as a rule): an unrealized P&L's,
+        // its loss's color over it, its profit's under it, as its cells are; another's, its color on both sides. Bubbles,
+        // their two largest (apart), dots on their layer's line, each in its side's color.
+        const washes = /** @type {Thumb["washes"]} */ ([]), dots = /** @type {Thumb["dots"]} */ ([]);
+        for (const layer of doc.layers) {
+          if (layer.hidden) continue;
+          // (Where the chart draws it: a holder group it knows, on a scale it can be, see heatGrid. In its colors: its
+          // gradient's, where it's colored by one (an unrealized P&L's, its ends: loss its lowest, profit its highest).)
+          if (layer.type === "heatmap" && !washes.length && heatKnown(layer) && heatGrid(doc, layer)) {
+            const behind = doc.layers.find((other) => other.pane === layer.pane && lineAt.has(other.id)), at = behind && lineAt.get(behind.id);
+            if (!at) continue;
+            const stops = layer.byGradient && layer.gradient ? layer.gradient : null, one = stops ? stops[Math.floor(stops.length / 2)][1] : layer.color;
+            const [loss, profit] = stops ? [stops[0][1], /** @type {[number, string]} */ (stops.at(-1))[1]] : [belowOf(layer), layer.color];
+            washes.push(layer.measure === "pnl" ? [at.index, loss, profit, at.band.bottom, at.band.bottom + at.band.height] : [at.index, one, one, at.band.bottom, at.band.bottom + at.band.height]);
+          } else if (layer.type === "bubbles" && layer.ref && lineAt.has(layer.ref) && dots.length < 4) {
+            const all = data.results.get(layer.id)?.values, values = all && start ? Array.prototype.slice.call(all, start) : all, ys = lines[/** @type {{ index: number }} */ (lineAt.get(layer.ref)).index][1];
+            if (!values) continue;
+            // (Bucketed as its line's points are: see shapeOf.)
+            const step = values.length / ys.length, peaks = [];
+            for (let k = 0; k < ys.length; k++) {
+              let far = NaN;
+              for (let i = Math.floor(k * step); i < Math.max(Math.floor(k * step) + 1, Math.floor((k + 1) * step)); i++) if (Number.isFinite(values[i]) && !(Math.abs(values[i]) <= Math.abs(far))) far = values[i];
+              if (Number.isFinite(far) && far !== 0 && ys[k] !== null) peaks.push({ k, far });
+            }
+            peaks.sort((a, b) => Math.abs(b.far) - Math.abs(a.far));
+            const chosen = [];
+            for (const peak of peaks) if (chosen.length < 2 && chosen.every((other) => Math.abs(other.k - peak.k) > 2)) chosen.push(peak);
+            for (const { k, far } of chosen) dots.push([far < 0 ? belowOf(layer) : layer.color, k / (ys.length - 1), /** @type {number} */ (ys[k])]);
           }
         }
         // Each layer alone fills its own mark; a baseline's and bars' with their base.
@@ -22879,7 +22920,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           marks[id] = place(points, Math.min(...range), Math.max(...range));
           if (layer && PAIRS[layer.type]) bases[id] = place([level], Math.min(...range), Math.max(...range))[0] ?? 0;
         }
-        return { lines, marks, bases };
+        return { lines, washes, dots: dots.slice(0, 4), marks, bases };
       }
       const orphan = (id) => !chartById(id);
       /** Writes our drawings over the stored ones (another tab's stay), without charts that are gone. */
@@ -22912,7 +22953,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       async function freshThumb(doc) {
         const key = thumbKey(doc), failed = thumbsFailed.get(doc.id);
         if (thumbs.get(doc.id)?.key === key || (failed?.key === key && Date.now() - failed.at < 30_000)) return false;
-        const drawing = doc.layers.length ? await drawThumb(structuredClone(doc)).catch(() => null) : { lines: [], marks: {} };
+        const drawing = doc.layers.length ? await drawThumb(structuredClone(doc)).catch(() => null) : { lines: [], washes: [], dots: [], marks: {} };
         if (!drawing) thumbsFailed.set(doc.id, { key, at: Date.now() });
         // Edited or deleted meanwhile: the next run draws what it has become.
         if (!drawing || thumbKey(doc) !== key || chartById(doc.id) !== doc) return false;
@@ -25458,14 +25499,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const chartMark = (doc) => {
         const thumb = thumbs.get(doc.id), kept = thumb && marksDrawn.get(thumb);
         if (kept?.light === light) return kept.svg;
-        const svg = markOf(thumb?.lines ?? []);
+        const svg = markOf(thumb ?? NO_MARK);
         if (thumb) marksDrawn.set(thumb, { light, svg });
         return svg;
       };
       /** The points of a run of a line's area: the run, closed down (or up) to `edge` under its ends. @param {string[]} part @param {number} edge */
       const areaPoints = (part, edge) => `${part[0].split(",")[0]},${edge} ${part.join(" ")} ${part.at(-1)?.split(",")[0]},${edge}`;
-      /** A mark drawn from a mini chart's lines. @param {any[]} lines */
-      const markOf = (lines) => {
+      /** A mark not drawn yet: a faint line. @type {Pick<Thumb, "lines" | "washes" | "dots">} */
+      const NO_MARK = { lines: [], washes: [], dots: [] };
+      /** A mark drawn from a mini chart: its lines, a heatmap's wash under them, bubbles' dots over them. @param {Pick<Thumb, "lines" | "washes" | "dots">} mark */
+      const markOf = ({ lines, washes, dots }) => {
         const y = (value) => 36 - value * 32, stroke = 'fill="none" stroke-width="1.4" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"';
         const polyline = (part, color) => `<polyline points="${part.join(" ")}" stroke="${color}" ${stroke}/>`;
         // Each line as its type: an area over a light fill, a baseline in its two colors about its base, bars, dots.
@@ -25489,7 +25532,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             return fill + polyline(part, color);
           }).join("");
         }).join("");
-        return `<svg class="chart-mark" viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true">${paths || `<path d="M4 30H116" stroke="currentColor" stroke-opacity=".35" stroke-width="1.4" vector-effect="non-scaling-stroke" stroke-dasharray="3 3"/>`}</svg>`;
+        // (A heatmap's wash about its line, faint: its color over it, its other under it, to its band's top and foot.)
+        const wash = washes.map(([k, over, under, bottom, top]) => ((ys) => runs(ys, (i) => 2 + (i / (ys.length - 1)) * 116, y).map((part) => `<polygon points="${areaPoints(part, y(top))}" fill="${escape(ink(over))}" fill-opacity=".2"/><polygon points="${areaPoints(part, y(bottom))}" fill="${escape(ink(under))}" fill-opacity=".2"/>`).join(""))(lines[k][1])).join("");
+        // (Bubbles' largest, dots on their line, as a dots line's are.)
+        const dotted = dots.map(([color, across, up]) => `<path d="M${(2 + across * 116).toFixed(1)} ${y(up).toFixed(1)}h0" stroke="${escape(ink(color))}" stroke-width="2.6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`).join("");
+        return `<svg class="chart-mark" viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true">${wash}${paths || `<path d="M4 30H116" stroke="currentColor" stroke-opacity=".35" stroke-width="1.4" vector-effect="non-scaling-stroke" stroke-dasharray="3 3"/>`}${dotted}</svg>`;
       };
       /**
        * A layer's own mark in the legend: its shape across its history, in its color and drawn as its type (bars for a
@@ -25718,15 +25765,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** How many of the presets' marks are kept in this browser (see PRESET_MARKS). */
       const KEPT_PRESET_MARKS = 200;
-      /** The presets' marks, as drawn (made as their rows come into sight; those of earlier visits, kept), by what each is of. @type {Map<string, any[]>} */
-      const presetMarks = new Map(((kept) => (kept && typeof kept === "object" ? Object.entries(kept).filter(([, lines]) => validLines(lines)) : []))(storage.get(PRESET_MARKS, {})));
+      /** The presets' marks, as drawn (made as their rows come into sight; those of earlier visits, kept), by what each is of. @type {Map<string, Pick<Thumb, "lines" | "washes" | "dots">>} */
+      const presetMarks = new Map(((kept) => (kept && typeof kept === "object" ? Object.entries(kept).filter(([, mark]) => validChartMark(mark)) : []))(storage.get(PRESET_MARKS, {})));
       const savePresetMarks = writeSoon(() => storage.set(PRESET_MARKS, Object.fromEntries([...presetMarks].slice(-KEPT_PRESET_MARKS))));
       /** Each preset's own tag, by what it is (its layers, its look): a mark kept of it as it was, not taken for it as it is now. @type {WeakMap<Preset, string>} */
       const presetTags = new WeakMap();
       // (By the preset, as made (as it is now); edited here, by its copy as it is: nothing else changes it.)
       const presetMarkKey = (/** @type {number} */ i) => ((doc) => (doc ? `${doc.id}@${doc.updated}` : ((preset) => `${presetKey(i)}#${presetTags.get(preset) ?? (presetTags.set(preset, hashOf(JSON.stringify(preset))), presetTags.get(preset))}`)(/** @type {Preset[]} */ (presets)[i])))(keptPreset(i));
       /** A preset's mark, as its row shows it: drawn, else the empty one till it is. */
-      const presetMark = (/** @type {number} */ i) => markOf(presetMarks.get(presetMarkKey(i)) ?? []).replace("<svg ", `<svg data-preset-mark="${i}" `);
+      const presetMark = (/** @type {number} */ i) => markOf(presetMarks.get(presetMarkKey(i)) ?? NO_MARK).replace("<svg ", `<svg data-preset-mark="${i}" `);
       /** The preset rows in sight, their marks drawn one at a time; one gone out of sight before its turn, let go of. */
       const presetMarkQueue = /** @type {Set<number>} */ (new Set());
       /** ⌘K's preset rows in sight, their marks to draw; out of sight, or written again (see renderPalette), let go of. */
@@ -25770,9 +25817,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           presetMarksAsked.delete(i);
           if (!presets?.[i] || presetMarks.has(presetMarkKey(i))) continue;
           const doc = presetDoc(i), key = presetMarkKey(i);
-          const drawing = doc.layers.length ? await drawThumb(structuredClone(doc)).catch(() => null) : { lines: [] };
+          const drawing = doc.layers.length ? await drawThumb(structuredClone(doc)).catch(() => null) : NO_MARK;
           if (!drawing) continue;
-          presetMarks.set(key, drawing.lines);
+          presetMarks.set(key, { lines: drawing.lines, washes: drawing.washes, dots: drawing.dots });
           for (const [old] of presetMarks) if (presetMarks.size > 400) presetMarks.delete(old);
           savePresetMarks();
           // (Wherever it shows: its row, a menu of its section's.)
