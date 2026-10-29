@@ -624,97 +624,6 @@
         font-size: 13px;
       }
 
-      /* The trend: its three as cards, the day shown's lit. */
-      .trend-cards {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 8px;
-        margin: 0;
-        padding: 0;
-        list-style: none;
-
-        @media (min-width: 720px) {
-          gap: 16px;
-        }
-
-        li {
-          display: grid;
-          align-content: start;
-          gap: 4px;
-          padding: 14px 12px;
-          border-radius: 16px;
-          background: color-mix(in srgb, var(--c) 6%, transparent);
-          box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c) 22%, transparent);
-          color: var(--c);
-          transition: background-color 0.2s, box-shadow 0.2s;
-
-          @media (min-width: 720px) {
-            gap: 6px;
-            padding: 22px 24px;
-          }
-        }
-
-        li.on {
-          background: color-mix(in srgb, var(--c) 18%, transparent);
-          box-shadow: inset 0 0 0 1.5px var(--c);
-        }
-
-        .name {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          font: 400 26px/1.1 var(--serif);
-
-          svg {
-            width: 18px;
-            height: 18px;
-          }
-
-          @media (min-width: 720px) {
-            font-size: 36px;
-
-            svg {
-              width: 24px;
-              height: 24px;
-            }
-          }
-        }
-
-        .share {
-          color: var(--ink);
-          font-size: 17px;
-          font-weight: 650;
-          font-variant-numeric: tabular-nums;
-
-          @media (min-width: 720px) {
-            font-size: 22px;
-          }
-        }
-
-        .stay {
-          min-height: 4.8em;
-          color: var(--soft);
-          font-size: 12.5px;
-          line-height: 1.6;
-          font-variant-numeric: tabular-nums;
-
-          @media (min-width: 720px) {
-            min-height: 1.6em;
-            font-size: 13px;
-          }
-        }
-      }
-
-      .trend-foot {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-top: 14px;
-        color: var(--soft);
-        font-size: 13px;
-      }
-
       /* Time in each: a row a state, longest first, its bar its share of every day; the trends after, the same way. */
       .shares {
         display: grid;
@@ -787,6 +696,17 @@
           color: var(--soft);
           font-size: 13px;
           font-variant-numeric: tabular-nums;
+        }
+
+        .trends .name {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+
+          svg {
+            width: 16px;
+            height: 16px;
+          }
         }
 
         .since {
@@ -918,10 +838,10 @@
         <div class="atlas">
           <div>
             <div class="compass">
-              <svg id="compass" viewBox="-40 -40 680 680" role="img" aria-label="The nine states as a compass"></svg>
+              <svg id="compass" viewBox="-40 -40 680 890" role="img" aria-label="The nine states as a compass, the three trends under it"></svg>
             </div>
             <div class="compass-foot">
-              <span>The half year before the day, as a path.</span>
+              <span>The half year before the day as a path; its trend lit.</span>
               <button type="button" class="replay" data-replay disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Replay</span></button>
             </div>
           </div>
@@ -930,17 +850,12 @@
               <h3>Time in each state</h3>
               <ol id="states"></ol>
             </div>
+            <div class="trends">
+              <h3>Time in each trend</h3>
+              <ol id="trends"></ol>
+            </div>
             <p class="since" id="counted"></p>
           </div>
-        </div>
-      </section>
-
-      <section class="part" aria-labelledby="trend-title">
-        <header><h2 id="trend-title">The trend</h2><p>Three short-term trends, agreeing or not</p></header>
-        <ol class="trend-cards" id="trends"></ol>
-        <div class="trend-foot">
-          <span>The day shown's trend, lit. Its share of every day, and how long it typically lasts.</span>
-          <button type="button" class="replay" data-replay disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Replay</span></button>
         </div>
       </section>
 
@@ -1498,7 +1413,8 @@
 
       // ── The compass ──
 
-      const CELL = 200, GAP = 6;
+      /** A compass cell's size, the gap between cells; the trend's row, its top and height. */
+      const CELL = 200, GAP = 6, TREND_Y = 668, TREND_H = 130;
       const compass = $("compass");
       /** A compass point (-1 to 1 each way) on the svg, which is 600 across inside its margin. */
       const at = (/** @type {number} */ v) => 300 + v * 0.97 * 300;
@@ -1516,12 +1432,20 @@
           cells.push(`<g class="cell" data-i="${i}" style="--c: var(--s-${s.id})"><rect x="${cx + GAP / 2}" y="${cy + GAP / 2}" width="${CELL - GAP}" height="${CELL - GAP}" rx="14" /></g>`);
           words.push(`<g class="cell" data-i="${i}" style="--c: var(--s-${s.id})"><text class="name" x="${cx + 18}" y="${cy + 44}">${s.name}</text><text class="share" x="${cx + 18}" y="${cy + 72}">${shares ? `${Math.round(shares[i].share * 100)}%` : "–"}</text></g>`);
         }
+        // (The trend's three under them, cells of the same kind: bear west, bull east, as the moment's sides are.)
+        const trends = days ? tally(days.trend, 3) : null;
+        for (const [i, t] of TRENDS.entries()) {
+          const cx = (2 - i) * CELL;
+          cells.push(`<g class="cell" data-t="${i}" style="--c: var(--s-${t.color})"><rect x="${cx + GAP / 2}" y="${TREND_Y + GAP / 2}" width="${CELL - GAP}" height="${TREND_H - GAP}" rx="14" /></g>`);
+          words.push(`<g class="cell" data-t="${i}" style="--c: var(--s-${t.color})"><g transform="translate(${cx + 16} ${TREND_Y + 22}) scale(1.5)" fill="none" stroke="var(--c)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${t.icon}</g><text class="name" x="${cx + 48}" y="${TREND_Y + 44}">${t.name}</text><text class="share" x="${cx + 18}" y="${TREND_Y + 72}">${trends ? `${Math.round(trends[i].share * 100)}%` : "–"}</text></g>`);
+        }
         // (The path under the cells' words, which keep a halo of the page's colour over it.)
         compass.innerHTML = `${cells.join("")}<g id="trail"></g>${words.join("")}${shares ? '<circle class="ring" id="ring" r="13" /><circle class="dot" id="dot" r="8" />' : ""}
           <text class="axis" x="300" y="-16" text-anchor="middle"><tspan class="point">N</tspan>  above the long-term cloud</text>
           <text class="axis" x="300" y="628" text-anchor="middle"><tspan class="point">S</tspan>  below the long-term cloud</text>
           <text class="axis" transform="translate(624 300) rotate(90)" text-anchor="middle"><tspan class="point">E</tspan>  above the short-term cloud</text>
-          <text class="axis" transform="translate(-24 300) rotate(-90)" text-anchor="middle"><tspan class="point">W</tspan>  below the short-term cloud</text>`;
+          <text class="axis" transform="translate(-24 300) rotate(-90)" text-anchor="middle"><tspan class="point">W</tspan>  below the short-term cloud</text>
+          <text class="axis" transform="translate(-24 ${TREND_Y + TREND_H / 2}) rotate(-90)" text-anchor="middle">trend</text>`;
         trail = compass.querySelector("#trail");
         dot = compass.querySelector("#dot");
       }
@@ -1544,8 +1468,11 @@
         const ring = /** @type {SVGCircleElement} */ (compass.querySelector("#ring"));
         ring.setAttribute("cx", cx);
         ring.setAttribute("cy", cy);
-        for (const cell of compass.querySelectorAll(".cell")) cell.classList.toggle("on", Number(/** @type {SVGElement} */ (cell).dataset.i) === d.state[day]);
-        compass.setAttribute("aria-label", `The nine states as a compass: ${dated(day)}, ${STATES[d.state[day]].name}, its path over the half year before.`);
+        for (const cell of compass.querySelectorAll(".cell")) {
+          const { i, t } = /** @type {SVGElement} */ (cell).dataset;
+          cell.classList.toggle("on", i !== undefined ? Number(i) === d.state[day] : Number(t) === d.trend[day]);
+        }
+        compass.setAttribute("aria-label", `The nine states as a compass, the three trends under it: ${dated(day)}, ${STATES[d.state[day]].name}, ${TRENDS[d.trend[day]].name.toLowerCase()} trend, its path over the half year before.`);
       }
 
       // ── Replaying the span: the day shown runs from its start to its end in about 8 seconds ──
@@ -1600,10 +1527,11 @@
         const row = (/** @type {number} */ i, /** @type {string} */ name, /** @type {{ share: number, runs: number, median: number } | null} */ s, /** @type {number} */ most, /** @type {string} */ color) =>
           `<li data-i="${i}" style="--c: ${color}"><span class="name">${name}</span><span class="share">${s ? `${(s.share * 100).toFixed(1)}%` : "–"}</span><span class="meter" aria-hidden="true"><i style="--w: ${s ? ((s.share / most) * 100).toFixed(1) : 0}%"></i></span><span class="stay">${!s ? "&nbsp;" : s.runs ? `${s.runs} ${s.runs === 1 ? "time" : "times"}, typically ${lasted(s.median)}` : "Never yet"}</span></li>`;
         $("states").innerHTML = STATES.map((s, i) => ({ s, i })).sort((p, q) => (states ? states[q.i].share - states[p.i].share : 0)).map(({ s, i }) => row(i, s.name, states?.[i] ?? null, top, `var(--s-${s.id})`)).join("");
-        $("trends").innerHTML = TRENDS.map((t, i) => ((c) => `<li data-i="${i}" style="--c: var(--s-${t.color})"><span class="name">${trendIcon(i)}${t.name}</span><span class="share">${c ? `${(c.share * 100).toFixed(1)}%` : "–"}</span><span class="stay">${!c ? "&nbsp;" : c.runs ? `${c.runs} ${c.runs === 1 ? "time" : "times"}, typically ${lasted(c.median)}` : "Never yet"}</span></li>`)(trends?.[i])).join("");
+        const topTrend = Math.max(...(trends ?? []).map((t) => t.share));
+        $("trends").innerHTML = TRENDS.map((t, i) => row(i, `${trendIcon(i)}${t.name}`, trends?.[i] ?? null, topTrend, `var(--s-${t.color})`)).join("");
         if (!d) return;
         const total = d.last - d.first + 1;
-        $("counted").textContent = `Every day from ${dated(d.first)} to today: ${grouped(total)} days. Typically: the median length of its runs, here and in the trend's.`;
+        $("counted").textContent = `Every day from ${dated(d.first)} to today: ${grouped(total)} days. Typically: the median length of its runs.`;
         $("atlas-since").textContent = `Since ${MONTHS[dateOf(d.first).getUTCMonth()]} ${dateOf(d.first).getUTCFullYear()}`;
       }
 
