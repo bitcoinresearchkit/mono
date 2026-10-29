@@ -829,7 +829,7 @@
       }
 
       /* Each app's title in its own app's face, on the billboard, its cover and its sheet, as a streaming title's logo:
-         Studio and DCA in Inter, heavy; Oracle and Globe in Lilex, as their pages are set;
+         Studio and Stack in Inter, heavy; Oracle and Globe in Lilex, as their pages are set;
          The Satoshi Trail and Calendar in Instrument Serif, italic, as their titles and months are (its one weight, never
          a made-up bold). Over those titles' own weight and spacing, wherever those are set. */
       :is(.billboard .title, .tile .name, .about h3) {
@@ -2133,7 +2133,7 @@
         { id: "oracle", kind: "Price", line: "Bitcoin's price, read from the chain alone.", href: "/oracle/", live: true },
         { id: "globe", kind: "Mining", line: "Where blocks are mined, live and since 2011.", href: "/globe/", live: true },
         { id: "trail", kind: "Supply", line: "Every coin by the price it last moved at, in 3D.", href: "/trail/" },
-        { id: "dca", kind: "Savings", line: "Bitcoin on a schedule, more when it's cheap.", href: "/dca/" },
+        { id: "stack", kind: "Savings", line: "Bitcoin on a schedule, more when it's cheap.", href: "/stack/" },
         { id: "calendar", kind: "Mining", line: "Every day's leading pool, every block of any day.", href: "/calendar/", live: true },
         { id: "series", kind: "Catalogue", line: "Every series, what it is and how to fetch it.", href: "/series/" },
         { id: "logs", kind: "Server", line: "This server at work, live.", href: "/logs/", live: true },
@@ -2152,7 +2152,7 @@
         "/oracle/": { "name": "Oracle", "about": "Bitcoin's price, read from the chain alone: no exchange, no feed. Block by block, with the evidence it was read from, and how it works, simply." },
         "/globe/": { "name": "Globe", "about": "Where Bitcoin's blocks are mined: every block by its mining pool's home country, live on a globe, and how that map has moved since 2011." },
         "/trail/": { "name": "The Satoshi Trail", "about": "A moving 2.5D terrain view of Bitcoin's UTXO realized price distribution." },
-        "/dca/": { "name": "Smart DCA", "about": "Dollar-cost averaging that saves from each all-time high and buys bitcoin from the cycle's floor: what any plan since 2010 would be worth, beside the plain plan buying the same each time, and how every start and length turned out." },
+        "/stack/": { "name": "Stack", "about": "Dollar-cost averaging that saves from each all-time high and buys bitcoin from the cycle's floor: what any plan since 2010 would be worth, beside the plain plan buying the same each time, and how every start and length turned out." },
         "/calendar/": { "name": "Calendar", "about": "Every day of every year since 2009, the mining pool that found the most Bitcoin blocks, and every block of any day." },
         "/series/": { "name": "Series", "about": "Every series Bitview computes from the chain, browsed like files: what each one is, its intervals, its history drawn, and how to fetch it." },
         "/logs/": { "name": "Logs", "about": "This Bitview server, live: requests a minute, response times, refusals and failures, each route, the last block, and every line it logs." },
@@ -2165,7 +2165,7 @@
       for (const t of APPS) t.face = t.id;
       const ALL = [...APPS, ...DEV], byId = new Map(ALL.map((t) => [t.id, t]));
       /** The billboard's titles, in turn. */
-      const FEATURED = ["studio", "oracle", "globe", "trail", "dca", "calendar"].map((id) => /** @type {Title} */ (byId.get(id)));
+      const FEATURED = ["studio", "oracle", "globe", "trail", "stack", "calendar"].map((id) => /** @type {Title} */ (byId.get(id)));
 
       /** When each title was last opened on this device (ms), as stored now (another tab's opens kept; an earlier
        * page's { n, at } read as its at; anything else that isn't a finite number left out, on its own). */
@@ -2727,10 +2727,10 @@
           part("price-panel", read("/api/v1/prices"), (p) => {
             $("price").textContent = dollars(p.USD);
             facts.oracle = `<b>${dollars(p.USD)}</b> read from the chain just now`;
-            facts.dca = `A dollar buys <b>${grouped(1e8 / p.USD)} sats</b> today`;
+            facts.stack = `A dollar buys <b>${grouped(1e8 / p.USD)} sats</b> today`;
             refresh("oracle");
-            refresh("dca");
-          }).then((ok) => ok || forget("oracle", "dca")),
+            refresh("stack");
+          }).then((ok) => ok || forget("oracle", "stack")),
           part("fees-panel", read("/api/v1/fees/recommended"), (f) => ($("fee").textContent = String(f.fastestFee >= 10 ? Math.round(f.fastestFee) : Number(f.fastestFee.toFixed(1))))),
           read("/api/blocks/tip/height", "text").then((h) => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = grouped(Number(h)))), () => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = "not answering"))),
           read("/api/v1/blocks").then((list) => {

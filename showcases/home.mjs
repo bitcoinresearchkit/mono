@@ -111,7 +111,7 @@ const PICTURES = {
   oracle: { url: "/oracle/", settle: 9000, cover: [0, 228, 928, 580], banner: [0, 244, 1440, 628] },
   globe: { url: "/globe/", settle: 9000, hide: "text", cover: [166, 44, 720, 450], banner: [43, 64, 966, 450] },
   trail: { url: "/trail/", settle: 12000, hide: "scene", cover: [230, 130, 960, 600], banner: [60, 80, 1360, 640] },
-  dca: { url: "/dca/", settle: 8000, cover: [192, 336, 640, 400], banner: [192, 341, 648, 300] },
+  stack: { url: "/stack/", settle: 8000, cover: [192, 336, 640, 400], banner: [192, 341, 648, 300] },
   calendar: { url: "/calendar/", settle: 9000, cover: [105, 100, 384, 240], banner: [105, 100, 863, 400] },
   series: { url: "/series/?series=hashrate", settle: 8000, cover: [880, 290, 432, 270] },
   logs: { url: "/logs/", settle: 6000, cover: [280, 228, 400, 250] },
