@@ -21205,10 +21205,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           for (let i = from; i < to && !n; i++) n = data.bars[i].originalData.values?.length ?? 0;
           const pairs = /** @type {[number, number][]} */ ([...Array.from({ length: Math.max(0, n - 1) }, (_, m) => [m, m + 1]), ...(options.top && n ? [[TOP, 0]] : []), ...(options.bottom && n ? [[n - 1, BOTTOM]] : [])]);
           for (const [a, b] of pairs) {
-            let k = 0, color = "", last = NaN, over = 0, column = 0, before = [NaN, NaN];
+            // (`shared`: the run starts on a column the one before it painted: alone, nothing more drawn. `split`: they
+            // crossed in the column the run's at, its next color `splitPaint`, see settle.)
+            let k = 0, color = "", last = NaN, over = 0, column = 0, before = [NaN, NaN], shared = false, split = false, splitPaint = "";
             const fill = () => {
               context.fillStyle = color;
-              if (k === 1) context.fillRect(xs[0] - h / 2, highs[0], h, lows[0] - highs[0]);
+              if (k === 1 && !shared) context.fillRect(xs[0] - h / 2, highs[0], h, lows[0] - highs[0]);
               else if (k > 1) {
                 context.beginPath();
                 for (let q = 0; q < k; q++) q ? context.lineTo(xs[q], highs[q]) : context.moveTo(xs[q], highs[q]);
@@ -21216,27 +21218,44 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 context.closePath();
                 context.fill();
               }
-              k = 0;
+              (k = 0), (shared = false);
             };
             const yOf = (/** @type {number} */ who, /** @type {any} */ row) => (who === TOP ? 0 : who === BOTTOM ? floor : Number.isFinite(row.values?.[who]) ? /** @type {number} */ (toY(row.values[who])) * v : NaN);
+            // (A column they crossed in, done (the next column's come, a gap, the end): the run so far ends there in its
+            // color, the next starts there in the color they ended on, the column painted once, as high and low as all
+            // its bars.)
+            const settle = () => {
+              if (!split) return;
+              split = false;
+              // (The run that column alone: nothing to end, the column the next one's, in its color.)
+              if (k === 1) return void (color = splitPaint);
+              const [x0, high0, low0] = [xs[k - 1], highs[k - 1], lows[k - 1]];
+              fill();
+              (xs[0] = x0), (highs[0] = high0), (lows[0] = low0), (k = 1), (color = splitPaint), (shared = true);
+            };
             for (let i = from; i < to; i++) {
               const { x, time, originalData: row } = data.bars[i], ya = yOf(a, row), yb = yOf(b, row);
-              if (time !== last + 1) fill();
+              if (time !== last + 1) settle(), fill();
               last = time;
               if (!Number.isFinite(ya) || !Number.isFinite(yb)) {
-                fill();
+                settle(), fill();
                 continue;
               }
               // (Over: the one higher up, its color; an edge's, its layer's.)
               const now = ya < yb || (ya === yb && over === a) ? a : b, here = Math.round(x * h), paint = options[`band${now < 0 ? (now === a ? b : a) : now}`] ?? options.color;
               if (k && xs[k - 1] === here) {
-                // (Bars narrower than a pixel: one column, as high and as low as any of them (crossing there too: its color
-                // the column's first).)
+                // (Bars narrower than a pixel: one column, as high and as low as any of them. Crossing there too: the run
+                // before ends at the column in its color, the next starts there in the new one's. Kept in the run, the
+                // run took the new color whole, from wherever it began: a stretch's color as the zoom put its bars in
+                // columns, changing as it zoomed.)
                 highs[k - 1] = Math.min(highs[k - 1], ya, yb);
                 lows[k - 1] = Math.max(lows[k - 1], ya, yb);
+                if (now !== over) split = true;
+                if (split) splitPaint = paint;
                 (over = now), (before = [ya, yb]);
                 continue;
               }
+              settle();
               if (k && now !== over) {
                 // They cross between the two bars: where their lines meet, both runs' point.
                 const d0 = before[0] - before[1], d1 = ya - yb, t0 = d0 / (d0 - d1), t = Number.isFinite(t0) && t0 >= 0 && t0 <= 1 ? t0 : 1, y = before[0] + t * (ya - before[0]), at = column + t * (here - column);
@@ -21247,6 +21266,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               (xs[k] = here), (highs[k] = Math.min(ya, yb)), (lows[k++] = Math.max(ya, yb));
               (color = paint), (over = now), (column = here), (before = [ya, yb]);
             }
+            settle();
             fill();
           }
         };
