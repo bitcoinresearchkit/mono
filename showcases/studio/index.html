@@ -23600,19 +23600,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @typedef {{ seps: number[], marks: PlotMark[], end?: number, ticks?: { x: number, text: string }[], scales?: { y: number, text: string, side: string }[], of?: string }} Preview
        */
       /** Each kind, with what it can't be drawn without. */
-      const PLOT_NEEDS = { line: [], dots: [], bars: [], across: [], band: [], bubble: ["w", "top", "bottom"], area: ["top", "bottom"], baseline: ["y0", "top", "bottom"], heat: ["img", "top", "bottom"] };
+      const PLOT_NEEDS = { line: [], dots: [], bars: [], across: [], band: [], bubble: ["w", "top", "bottom"], area: ["top", "bottom"], baseline: ["y0", "top", "bottom"], heat: ["img", "top", "bottom"], profile: ["f", "top", "bottom"] };
       const isPath = (d) => typeof d === "string" && /^[MLHVZh\d. -]*$/.test(d);
       const validMark = (mark) => Object.hasOwn(PLOT_NEEDS, mark?.k) && PLOT_NEEDS[mark.k].every((field) => mark[field] !== undefined) && isColor(mark.c) && (mark.c2 === undefined || isColor(mark.c2)) && isPath(mark.d)
         && (mark.d2 === undefined || isPath(mark.d2)) && [mark.y0, mark.top, mark.bottom, mark.op, mark.w].every((n) => n === undefined || Number.isFinite(n))
-        && (mark.up === undefined || typeof mark.up === "boolean") && (mark.dash === undefined || (typeof mark.dash === "string" && /^[\d. ]+$/.test(mark.dash)))
+        && (mark.up === undefined || typeof mark.up === "boolean") && (mark.f === undefined || (Array.isArray(mark.f) && mark.f.every(Number.isFinite))) && (mark.dash === undefined || (typeof mark.dash === "string" && /^[\d. ]+$/.test(mark.dash)))
         && (mark.end === undefined || (Array.isArray(mark.end) && mark.end.length === 2 && mark.end.every(Number.isFinite)))
         && (mark.img === undefined || (typeof mark.img === "string" && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(mark.img)));
       const validPreview = (item) => typeof item?.key === "string" && Array.isArray(item.seps) && item.seps.every(Number.isFinite) && Array.isArray(item.marks) && item.marks.every(validMark);
       /** @type {Map<string, Preview & { key: string }>} */
       const previews = new Map(Object.entries(storage.get(PREVIEWS, {})).filter(([, item]) => validPreview(item)));
       /** What a card depends on past a mini chart's: its layers' looks the mark leaves out, the view it was left at and how much the chart shows. @param {Chart} doc */
-      // (A heatmap's picture in its colors as the theme shows them: drawn again in the other.)
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName, layer.fillOpacity, layer.solid, layer.hollow, layer.size, layer.hide, layer.scaleTo]), openView(doc), FINE.has(doc.index) ? Math.round(view.timeScale().width() / 50) : 0, doc.layers.some((layer) => heatLike(layer) && !layer.hidden) ? light : null]);
+      // (A heatmap's picture in its colors as the theme shows them: drawn again in the other. A profile shown, its bars and
+      // its room after the latest (see previewShown): one kept from before them drawn again, others' as they were.)
+      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName, layer.fillOpacity, layer.solid, layer.hollow, layer.size, layer.hide, layer.scaleTo]), openView(doc), FINE.has(doc.index) ? Math.round(view.timeScale().width() / 50) : 0, doc.layers.some((layer) => heatLike(layer) && !layer.hidden) ? light : null, ...(profiled(doc) ? ["profile"] : [])]);
       /**
        * How many bars a chart's preview shows at most (its data at `index`): its range's, as the chart opens on it (Max, at
        * a day or coarser, the whole history); finer, no more than fit the chart's width at four a pixel.
@@ -23648,10 +23649,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * What a chart's picture shows of its data (`most` bars at most): the view it opens on, its own; the open one's,
        * linked, every chart's (as its chunks are, see spanOf); else its range. (Another chart's: the room any chart has
-       * after its latest point, not the open one's tags'.)
+       * after its latest point, not the open one's tags'.) A shown profile's room after the latest, as the chart leaves it
+       * (see rightGap): a quarter of the picture, where it ends at the latest.
        * @param {Chart} doc @param {{ times: number[] }} data @param {number} most
        */
-      const previewShown = (doc, data, most) => ((left) => (left ? within(viewOn(left, doc.index, data.times, rightGap()), "to") : presetWindow(doc, data, most, 0, 0)))(openView(doc));
+      const previewShown = (doc, data, most) => {
+        const left = openView(doc), shown = left ? within(viewOn(left, doc.index, data.times, rightGap()), "to") : presetWindow(doc, data, most, 0, 0), last = data.times.length - 1, ROOM = 0.25;
+        return profiled(doc) && shown.to >= last - 0.5 && shown.to - last < (shown.to - shown.from) * ROOM ? { from: shown.from, to: last + ((last - shown.from) * ROOM) / (1 - ROOM) } : shown;
+      };
       /**
        * The density a picture's heatmaps are sampled at: 50 rows a ×10 (a tile's few hundred pixels tall); their days, a
        * tile's (32: about 10 pixels a day) and Quick Look's (96).
@@ -23697,7 +23702,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * Each heatmap's days a picture shows, by its layer's id: a day for each of its `columns`, evenly across what it
        * shows (see previewShown), the open day, and the open day at the layer's own density (`fine`: the chart's
-       * reference, see heatPicture); asked for as the chart's are (a want
+       * reference, see heatPicture); each profile's, its groups' days on the last it shows (`days`, in its groups' order,
+       * as the chart's, see profilePoint); asked for as the chart's are (a want
        * of its own, see heatExtras, after the chart's), waited for (20 s at most: those not in then, none). None shown
        * (hidden, a holder group Bitview doesn't have, a scale it can't be drawn on), none.
        * Each layer's, and whether all its days came (`whole`: failed for good, as they are).
@@ -23705,24 +23711,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {Chart} doc @param {{ times: number[] }} data @param {number} most @param {number} columns @returns {Promise<HeatSamples>}
        */
       async function heatSamples(doc, data, most, columns) {
-        const layers = doc.layers.filter((layer) => layer.type === "heatmap" && !layer.hidden && heatKnown(layer) && heatGrid(doc, layer)), n = data.times.length;
+        const layers = doc.layers.filter((layer) => heatLike(layer) && !layer.hidden && (layer.type === "heatmap" || layer.profile?.length) && heatKnown(layer) && heatGrid(doc, layer)), n = data.times.length;
         const shown = n > 1 ? previewShown(doc, data, most) : null, span = shown ? shown.to - shown.from : 0;
         if (!layers.length || !shown || !(span >= 1)) return Object.assign(/** @type {HeatSamples} */ (new Map()), { whole: true });
         // (A column past the data (a view's room after its latest), no day: left empty.)
         const { g, days } = heatCalendar(data.times), at = Array.from({ length: columns }, (_, c) => ((i) => (i >= 0 && i < n ? days[g[i]] : null))(Math.round(shown.from + ((c + 0.5) / columns) * span)));
         /** @type {{ wants: NonNullable<ReturnType<typeof heatWants.get>>, keys: Set<string> }} */
         const extra = { wants: [], keys: new Set() };
+        const want = (/** @type {string} */ cohort, /** @type {string} */ weight, /** @type {string} */ agg, /** @type {string} */ day) => {
+          const key = `${cohort}|${weight}|${agg}|${day}`;
+          if (extra.keys.has(key)) return key;
+          extra.keys.add(key);
+          // (A failure not for good, asked again in its time, as drawHeat asks.)
+          if ((heatDays.get(key)?.retryAt ?? Infinity) < Date.now()) heatDays.delete(key);
+          if (!heatDays.has(key)) extra.wants.push({ key, cohort, weight, agg, day, rank: 0 });
+          return key;
+        };
+        // (A profile's day, the last it shows, as the chart's is the view's last.)
+        const end = days[g[clamp(Math.floor(shown.to), 0, n - 1)]];
         const keyed = layers.map((layer) => {
+          if (layer.type === "profile") return /** @type {[string, (string | null)[], string, string]} */ ([layer.id, (layer.profile ?? []).map((cohort) => want(cohort, layer.weight ?? "", HEAT_PICTURE_AGG, end)), "", ""]);
           const cohort = layer.heatmap ?? "all", weight = layer.weight ?? "", own = /** @type {NonNullable<ReturnType<typeof heatGrid>>} */ (heatGrid(doc, layer)).agg;
-          const key = (/** @type {string} */ day, agg = HEAT_PICTURE_AGG) => `${cohort}|${weight}|${agg}|${day}`;
           // (The open day at its own density too: the chart's, its key the chart's, as often there already.)
-          for (const [day, agg] of [...new Set([...at.filter((one) => one !== null), "latest"])].map((day) => [day, HEAT_PICTURE_AGG]).concat([["latest", own]])) {
-            extra.keys.add(key(day, agg));
-            // (A failure not for good, asked again in its time, as drawHeat asks.)
-            if ((heatDays.get(key(day, agg))?.retryAt ?? Infinity) < Date.now()) heatDays.delete(key(day, agg));
-            if (!heatDays.has(key(day, agg))) extra.wants.push({ key: key(day, agg), cohort, weight, agg, day, rank: 0 });
-          }
-          return /** @type {[string, (string | null)[], string, string]} */ ([layer.id, at.map((day) => (day === null ? null : key(day))), key("latest"), key("latest", own)]);
+          return /** @type {[string, (string | null)[], string, string]} */ ([layer.id, at.map((day) => (day === null ? null : want(cohort, weight, HEAT_PICTURE_AGG, day))), want(cohort, weight, HEAT_PICTURE_AGG, "latest"), want(cohort, weight, own, "latest")]);
         });
         heatExtras.add(extra);
         try {
@@ -23964,11 +23975,43 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const inPane = (value) => clamp(value, paneTop, paneBottom);
             // (Each heatmap's, at the back of its pane: its scale's, its price at each place where the side's lines read it.)
             for (const layer of heats) {
+              if (layer.type !== "heatmap") continue;
               const img = range ? heatPicture(doc, layer, data, /** @type {any} */ (heat.get(layer.id)), (place) => ((value) => (modeOf(doc, layer) === 1 ? 10 ** value : value))(lo + (1 - (place - band.top) / band.height) * range), paneTop, paneBottom) : null;
               // (Behind every other, in the pane's own order among themselves, as the chart draws them: see the sort below.)
               if (!img) continue;
               const mark = { k: "heat", c: layer.color, d: "", img, top: paneTop, bottom: paneBottom };
               drawn.marks.push(mark), ranks.set(mark, (zOf.get(layer.id) ?? 0) - doc.layers.length - 1);
+            }
+            // (Each profile's day (the last shown, as the chart's), its groups' bars from the right edge as the chart draws
+            // them (see profileBars): a fifth of the width at the most, binned by a few units, strong under the close, faint
+            // over it, a group a mark of each (see previewSvg); in the pane's order, as a series.)
+            for (const layer of heats) {
+              const sample = heat.get(layer.id), scaled = onScale(modeOf(doc, layer), NaN), rows = Number(HEAT_PICTURE_AGG.slice(3)), measure = layer.measure ?? "supply";
+              const groups = layer.type === "profile" && range ? (layer.profile ?? []).map((cohort, c) => ({ cohort, day: sample?.days[c] })).filter((item) => item.day?.rows) : [];
+              if (!groups.length) continue;
+              const BIN = 4, bins = Math.max(1, Math.ceil((paneBottom - paneTop) / BIN)), count = groups.length, sums = new Float64Array(bins * count), totals = new Float64Array(bins);
+              groups.forEach(({ day }, c) => {
+                const values = measure === "capital" ? day.capital : measure === "pnl" ? day.pnl : day.supply;
+                for (let k = 0; k < day.rows.length; k++) {
+                  const at = y(scaled(10 ** ((day.rows[k] + 0.5) / rows) / 100));
+                  if (!(at >= paneTop && at < paneBottom)) continue;
+                  const b = Math.floor((at - paneTop) / BIN), amount = Math.abs(values[k]);
+                  sums[b * count + c] += amount;
+                  totals[b] += amount;
+                }
+              });
+              const most = totals.reduce((a, b) => Math.max(a, b), 0), split = y(scaled(Number(groups[0].day.close))), paths = groups.map(() => ["", ""]), op = opacityOf(layer);
+              if (!(most > 0)) continue;
+              for (let b = 0; b < bins; b++) {
+                if (!totals[b]) continue;
+                const top = round(paneTop + b * BIN), bottom = round(Math.min(paneBottom, paneTop + (b + 1) * BIN - 1)), faint = (top + bottom) / 2 > split ? 0 : 1;
+                for (let c = 0, x = W; c < count; c++) {
+                  const length = (sums[b * count + c] / most) * W * 0.2;
+                  if (length) paths[c][faint] += `M${round(x - length)} ${top}H${round(x)}V${bottom}H${round(x - length)}Z`;
+                  x -= length;
+                }
+              }
+              groups.forEach(({ cohort }, c) => paths[c].forEach((d, faint) => d && ((mark) => (drawn.marks.push(mark), ranks.set(mark, zOf.get(layer.id) ?? 0)))({ k: "profile", c: profileColor(layer, cohort), d, f: [faint ? 0.32 : 0.72], top: paneTop, bottom: paneBottom, ...(op < 1 ? { op } : {}) })));
             }
             // (Quick Look's: the side's highest and lowest drawn, where they are, as the scale reads them: in their unit;
             // a change from the first value in view, as a percent; an index, from 100; a 100% stack's, its share.)
@@ -24138,6 +24181,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A heatmap's picture, its pixels as they are: smoothed, a cell bled into the empty ones by it, a dark fringe.)
           if (mark.k === "heat") under = `<image href="${mark.img}" x="0" y="${mark.top}" width="${W}" height="${/** @type {number} */ (mark.bottom) - /** @type {number} */ (mark.top)}" preserveAspectRatio="none" style="image-rendering: pixelated"/>`;
           else if (mark.k === "across") over = `<path class="across" stroke="${c}"${dash} d="${mark.d}"/>`;
+          // (A profile's group's bars, strong or faint (`f`), mixed over the ground, solid as the chart's.)
+          else if (mark.k === "profile") under = `<path class="fill" style="fill:color-mix(in srgb, ${c} ${Math.round((mark.f?.[0] ?? 1) * 100)}%, var(--plot-ground, var(--card)))" d="${mark.d}"/>`;
           else if (mark.k === "band") under = `<path class="fill" style="fill:${c}" d="${mark.d}"/>`;
           else if (mark.k === "bars") (band = `${halo(mark.d, " of-bars")}${halo(mark.d2, " of-bars")}`), (over = `<path class="bars" stroke="${c}" d="${mark.d}"/>${mark.d2 ? `<path class="bars" stroke="${c2}" d="${mark.d2}"/>` : ""}`);
           else if (mark.k === "dots") (band = halo(mark.d, " of-dots")), (over = `<path class="dots" stroke="${c}" d="${mark.d}"/>`);

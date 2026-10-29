@@ -27,8 +27,8 @@ Only what's left. An item done is removed: its history is in the commits and log
   Open: your look at the minis now.
 - Profile, a layer of its own (2026-10-29, 31734f9a8): bars as tall as their rows, solid (97f69ee60); on the view's last
   day (your call, as a visible range's profile), its key in the legend and a bar pointed at read there, its group lit
-  (your pick, A and the key: _notes/overnight-20261029/profile-point-A-legend.png); its groups all deselectable. Not in
-  it yet: the minis (tiles, ⌘K's previews, Quick Look).
+  (your pick, A and the key: _notes/overnight-20261029/profile-point-A-legend.png); its groups all deselectable; in the
+  minis too (tiles, ⌘K's previews, Quick Look: its real last day, room left after the line). Open: your look on a phone.
   Presets to try it: each group's Cost basis › Profile, Holders › Compare › Profile, Coin age › Age bands › Compare ›
   Profile; one palette for the holder groups everywhere (palette.js, 6c01ddb92).
 - Next, asked: one system for every size, width, height, margin and padding (see the design-system item); then the
