@@ -167,10 +167,12 @@
         }
       }
 
+      /* (Its brand low in it, near the date: clear of the blur iOS draws at the top of the screen.) */
       .bar {
         display: flex;
-        align-items: center;
+        align-items: flex-end;
         height: 56px;
+        padding-bottom: 4px;
         flex: none;
 
         .brand {
@@ -631,15 +633,15 @@
 
         .cell rect {
           fill: var(--c);
-          fill-opacity: 0.1;
+          fill-opacity: 0.14;
           stroke: var(--c);
-          stroke-opacity: 0.25;
+          stroke-opacity: 0.35;
           transition: fill-opacity 0.2s;
         }
 
         .cell.on rect {
-          fill-opacity: 0.24;
-          stroke-opacity: 0.7;
+          fill-opacity: 0.3;
+          stroke-opacity: 0.8;
         }
 
         .cell text {
@@ -733,6 +735,7 @@
           background: none;
           appearance: none;
           -webkit-appearance: none;
+          -webkit-tap-highlight-color: transparent;
           cursor: pointer;
 
           &:disabled {
@@ -750,11 +753,14 @@
           }
 
           /* (Its thumb unseen, 28px to take hold of: the playhead's drawn under it.) */
+          /* (iOS draws a thumb, white and shadowed, unless it's unseen outright.) */
           &::-webkit-slider-thumb {
             width: 28px;
             height: 36px;
             border: 0;
             background: none;
+            box-shadow: none;
+            opacity: 0;
             appearance: none;
             -webkit-appearance: none;
           }
@@ -764,32 +770,31 @@
             height: 36px;
             border: 0;
             background: none;
+            box-shadow: none;
+            opacity: 0;
           }
         }
       }
 
+      /* The day and Play on a line, what the compass draws said under them (never moving as the day changes). */
       .compass-foot {
-        display: flex;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: center;
-        justify-content: space-between;
-        gap: 12px;
+        gap: 4px 12px;
         width: calc(min(100%, 560px) * 600 / 680);
         margin: 10px auto 0;
         color: var(--soft);
         font-size: 13px;
 
-        /* (The day in a slot of its own, as wide as its longest date: the words after it never move as it changes.) */
         b {
-          flex: none;
-          width: 7.6em;
           color: var(--ink);
           font-weight: 600;
           font-variant-numeric: tabular-nums;
         }
 
         .legend {
-          flex: 1;
-          min-width: 0;
+          grid-column: 1 / -1;
         }
       }
 
@@ -1044,8 +1049,9 @@
               <input type="range" id="slider" min="0" max="0" value="0" disabled aria-label="The day shown, across the chart's span: the same as the chart's" />
             </div>
             <div class="compass-foot">
-              <b id="scrub-day">Today</b><span class="legend">The year before as a path, its trend lit.</span>
+              <b id="scrub-day">Today</b>
               <button type="button" class="replay" data-replay disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Play</span></button>
+              <span class="legend">The year before as a path, its trend lit.</span>
             </div>
           </div>
           <div class="shares">
@@ -1310,6 +1316,8 @@
           ink: resolved("var(--ink)"), faint: resolved("var(--faint)"), grid: resolved("var(--grid)"),
           long: resolved("var(--cloud-long)"), short: resolved("var(--cloud-short)"), app: resolved("var(--app)"),
         };
+        // (New colours: every drawing kept as a bitmap made again.)
+        stillKey = panKey = stripKey = "";
       }
 
       // ── What's shown: the span, the day ──
@@ -1361,7 +1369,14 @@
 
       // ── The chart ──
 
-      const chart = $("chart"), canvas = /** @type {HTMLCanvasElement} */ ($("canvas")), ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
+      const chart = $("chart"), canvas = /** @type {HTMLCanvasElement} */ ($("canvas")), onScreen = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
+      /** The chart's still part (its days, clouds, trends, price and lane) drawn once for a view, a range, a size and
+       * colours, then copied each frame under what moves (the day's lines and tags, the dates): playing, pointing or
+       * sliding through days costs a copy, not a drawing of every day. */
+      const stillCanvas = document.createElement("canvas"), stillContext = /** @type {CanvasRenderingContext2D} */ (stillCanvas.getContext("2d"));
+      let stillKey = "";
+      /** The context drawn on: the screen's, or the still part's while it's made. */
+      let ctx = onScreen;
       /** Its layout, in CSS pixels: the room at the right past the latest day (as Studio's chart leaves), the trend's
        * lane, the dates' row. (No price axis: the day's price is said above.) */
       const ROOM = 32, LANE = 4, YEARS = 30;
@@ -1403,7 +1418,7 @@
 
       function draw() {
         if (!days || !width) return;
-        const d = days, dpr = devicePixelRatio || 1, right = plotRight(), bottom = plotBottom();
+        const d = days, dpr = density(), right = plotRight(), bottom = plotBottom();
         // (Its bitmap at the screen's density now: a window moved to another display changes it, not its size.)
         if (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr)) (canvas.width = Math.round(width * dpr)), (canvas.height = Math.round(height * dpr));
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1413,89 +1428,110 @@
         // The day shown, and its date's tag along the foot (the labels it'd cover left out).
         const day = shownDay(), seen = day >= view.a - 0.5 && day <= view.b + 0.5;
         ctx.font = "600 11.5px Inter, system-ui, sans-serif";
-        const date = dated(day), dw = ctx.measureText(date).width + 14, dx = Math.max(dw / 2, Math.min(right - dw / 2, xOf(day)));
+        const date = dated(day), dw = ctx.measureText(date).width + 14, dx = Math.max(8 + dw / 2, Math.min(width - 8 - dw / 2, xOf(day)));
 
-        ctx.save();
-        ctx.beginPath();
-        // (The prices' drawing kept under the words over it: a trend's line can run past the range, above them.)
-        ctx.rect(0, plotTop - 8, right, bottom - plotTop + 9);
-        ctx.clip();
-
-        // The days under the price, each run of one state its colour, fading down.
-        for (let i = a; i <= b; ) {
-          const s = d.state[i];
-          let j = i;
-          while (j + 1 <= b && d.state[j + 1] === s) j++;
-          const gradient = ctx.createLinearGradient(0, plotTop, 0, bottom);
-          gradient.addColorStop(0, withAlpha(paint.states[s], 0.5));
-          gradient.addColorStop(1, withAlpha(paint.states[s], 0.06));
-          ctx.fillStyle = gradient;
+        // (The still part made again only when what it shows has changed.)
+        const key = [view.a, view.b, range.lo, range.hi, width, height, plotTop, footTop, dpr, paint.ink, paint.states.join()].join("|");
+        if (key !== stillKey) {
+          stillKey = key;
+          if (stillCanvas.width !== canvas.width || stillCanvas.height !== canvas.height) (stillCanvas.width = canvas.width), (stillCanvas.height = canvas.height);
+          ctx = stillContext;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.clearRect(0, 0, width, height);
+          ctx.save();
           ctx.beginPath();
-          ctx.moveTo(xOf(i) - halfDay(), bottom);
-          for (let k = i; k <= j; k++) ctx.lineTo(xOf(k) - (k === i ? halfDay() : 0), yOf(d.close[k]));
-          ctx.lineTo(xOf(j) + halfDay(), yOf(d.close[j]));
-          ctx.lineTo(xOf(j) + halfDay(), bottom);
-          ctx.closePath();
-          ctx.fill();
-          i = j + 1;
-        }
+          // (The prices' drawing kept under the words over it: a trend's line can run past the range, above them.)
+          ctx.rect(0, plotTop - 8, right, bottom - plotTop + 9);
+          ctx.clip();
 
-        // The two clouds, each filled between its bottom and top; the long-term one edged too.
-        for (const [cloud, fill, edged] of /** @type {const} */ ([[d.cloud.long, paint.long, true], [d.cloud.short, paint.short, false]])) {
-          ctx.beginPath();
-          for (let i = a; i <= b; i++) ctx.lineTo(xOf(i), yOf(cloud[1][i]));
-          for (let i = b; i >= a; i--) ctx.lineTo(xOf(i), yOf(cloud[0][i]));
-          ctx.closePath();
-          ctx.fillStyle = fill;
-          ctx.fill();
-          if (!edged) continue;
-          ctx.lineWidth = 1;
-          ctx.strokeStyle = paint.grid;
-          for (const edge of cloud) {
-            ctx.beginPath();
-            for (let i = a; i <= b; i++) ctx.lineTo(xOf(i), yOf(edge[i]));
-            ctx.stroke();
-          }
-        }
-
-        // The three trends' lines, thin, dashed, grey and faint, broken where they flip.
-        ctx.lineWidth = 1;
-        ctx.setLineDash([3, 3]);
-        for (const { sides, values } of d.trendLines) {
+          // The days under the price, each run of one state its colour, fading down: a state's runs one fill, of one
+          // gradient (nine at most, not one a run).
+          const runs = Array.from({ length: STATES.length }, () => /** @type {[number, number][]} */ ([]));
           for (let i = a; i <= b; ) {
             let j = i;
-            while (j + 1 <= b && sides[j + 1] === sides[i]) j++;
-            if (sides[i]) {
-              ctx.beginPath();
-              for (let k = i; k <= j; k++) ctx.lineTo(xOf(k), yOf(values[k]));
-              ctx.strokeStyle = withAlpha(paint.faint, 0.3);
-              ctx.stroke();
-            }
+            while (j + 1 <= b && d.state[j + 1] === d.state[i]) j++;
+            runs[d.state[i]].push([i, j]);
             i = j + 1;
           }
-        }
-        ctx.setLineDash([]);
+          for (const [s, ofState] of runs.entries()) {
+            if (!ofState.length) continue;
+            const gradient = ctx.createLinearGradient(0, plotTop, 0, bottom);
+            gradient.addColorStop(0, withAlpha(paint.states[s], 0.5));
+            gradient.addColorStop(1, withAlpha(paint.states[s], 0.06));
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            for (const [i, j] of ofState) {
+              ctx.moveTo(xOf(i) - halfDay(), bottom);
+              ctx.lineTo(xOf(i) - halfDay(), yOf(d.close[i]));
+              trace(d.close, i, j);
+              ctx.lineTo(xOf(j) + halfDay(), yOf(d.close[j]));
+              ctx.lineTo(xOf(j) + halfDay(), bottom);
+              ctx.closePath();
+            }
+            ctx.fill();
+          }
 
-        // The price, over all of it.
-        ctx.beginPath();
-        for (let i = a; i <= b; i++) ctx.lineTo(xOf(i), yOf(d.close[i]));
-        ctx.strokeStyle = paint.ink;
-        ctx.lineWidth = 1.5;
-        ctx.lineJoin = "round";
-        ctx.stroke();
-        ctx.restore();
+          // The two clouds, each filled between its bottom and top; the long-term one edged too.
+          for (const [cloud, fill, edged] of /** @type {const} */ ([[d.cloud.long, paint.long, true], [d.cloud.short, paint.short, false]])) {
+            ctx.beginPath();
+            trace(cloud[1], a, b);
+            trace(cloud[0], b, a);
+            ctx.closePath();
+            ctx.fillStyle = fill;
+            ctx.fill();
+            if (!edged) continue;
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = paint.grid;
+            for (const edge of cloud) {
+              ctx.beginPath();
+              trace(edge, a, b);
+              ctx.stroke();
+            }
+          }
 
-        // The trend's lane, thin and soft, each run in its colour, named in the price's column.
-        const lane = bottom + LANE_GAP;
-        for (let i = a; i <= b; ) {
-          const t = d.trend[i];
-          let j = i;
-          while (j + 1 <= b && d.trend[j + 1] === t) j++;
-          const x0 = Math.max(0, xOf(i) - halfDay()), x1 = Math.min(right, xOf(j) + halfDay());
-          ctx.fillStyle = withAlpha(paint.trends[t], 0.7);
-          ctx.fillRect(x0, lane, x1 - x0, LANE);
-          i = j + 1;
+          // The three trends' lines, thin, dashed, grey and faint, broken where they flip.
+          ctx.lineWidth = 1;
+          ctx.setLineDash([3, 3]);
+          for (const { sides, values } of d.trendLines) {
+            for (let i = a; i <= b; ) {
+              let j = i;
+              while (j + 1 <= b && sides[j + 1] === sides[i]) j++;
+              if (sides[i]) {
+                ctx.beginPath();
+                trace(values, i, j);
+                ctx.strokeStyle = withAlpha(paint.faint, 0.3);
+                ctx.stroke();
+              }
+              i = j + 1;
+            }
+          }
+          ctx.setLineDash([]);
+
+          // The price, over all of it.
+          ctx.beginPath();
+          trace(d.close, a, b);
+          ctx.strokeStyle = paint.ink;
+          ctx.lineWidth = 1.5;
+          ctx.lineJoin = "round";
+          ctx.stroke();
+          ctx.restore();
+
+          // The trend's lane, thin and soft, each run in its colour, named in the price's column.
+          const lane = bottom + LANE_GAP;
+          for (let i = a; i <= b; ) {
+            const t = d.trend[i];
+            let j = i;
+            while (j + 1 <= b && d.trend[j + 1] === t) j++;
+            const x0 = Math.max(0, xOf(i) - halfDay()), x1 = Math.min(right, xOf(j) + halfDay());
+            ctx.fillStyle = withAlpha(paint.trends[t], 0.7);
+            ctx.fillRect(x0, lane, x1 - x0, LANE);
+            i = j + 1;
+          }
+          ctx = onScreen;
         }
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.drawImage(stillCanvas, 0, 0);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
         // Years (or months, a year shown) along the foot.
         ctx.font = "500 11.5px Inter, system-ui, sans-serif";
@@ -1524,7 +1560,8 @@
           if (at < view.a - 0.5 || at > view.b + 0.5) return;
           const x = Math.round(xOf(at)) + 0.5, y = yOf(d.close[at]);
           ctx.fillStyle = withAlpha(paint.ink, kept ? 0.6 : 0.28);
-          if (pinned !== null || hovered !== null) ctx.fillRect(x - (kept ? 0.75 : 0.5), 0, kept ? 1.5 : 1, bottom + LANE_GAP + LANE);
+          // (From where the prices begin, never through the words over them.)
+          if (pinned !== null || hovered !== null) ctx.fillRect(x - (kept ? 0.75 : 0.5), plotTop - 8, kept ? 1.5 : 1, bottom + LANE_GAP + LANE - plotTop + 8);
           ctx.beginPath();
           ctx.arc(x, y, 4.5, 0, Math.PI * 2);
           ctx.fillStyle = paint.states[d.state[at]];
@@ -1547,7 +1584,40 @@
           ctx.fillText(date, dx, datesY() - 4);
         }
       }
+      /** The canvases' pixels to a CSS pixel: the screen's, 2 at most (a phone's 3 cost over twice the pixels to fill
+       * each frame, for a sharpness its eye can't tell). */
+      const density = () => Math.min(2, devicePixelRatio || 1);
       const halfDay = () => plotRight() / (view.b - view.a + 1) / 2;
+      /**
+       * A series' line, from one day to another (either way), into the path being made: each day while the view's days
+       * are no narrower than half a pixel; else, each pixel's column its lowest and highest, in the order they came, so no
+       * spike is lost and a long history costs two points a pixel, not one a day (short runs of a state too).
+       */
+      function trace(/** @type {ArrayLike<number>} */ values, /** @type {number} */ from, /** @type {number} */ to) {
+        const step = to >= from ? 1 : -1, end = to + step;
+        if (view.b - view.a + 1 <= 2 * plotRight()) {
+          for (let i = from; i !== end; i += step) ctx.lineTo(xOf(i), yOf(values[i]));
+          return;
+        }
+        let column = NaN, low = 0, high = 0, lowAt = 0, highAt = 0;
+        // (A column's points at its middle, but never past the run's own ends: a short run's fill stays its own.)
+        const left = Math.min(xOf(from), xOf(to)), right = Math.max(xOf(from), xOf(to));
+        const flush = () => {
+          if (column !== column) return;
+          const x = Math.max(left, Math.min(right, column + 0.5)), [first, second] = (lowAt - highAt) * step < 0 ? [low, high] : [high, low];
+          ctx.lineTo(x, yOf(first));
+          ctx.lineTo(x, yOf(second));
+        };
+        for (let i = from; i !== end; i += step) {
+          const at = Math.floor(xOf(i)), value = values[i];
+          if (at !== column) {
+            flush();
+            (column = at), (low = high = value), (lowAt = highAt = i);
+          } else if (value < low) (low = value), (lowAt = i);
+          else if (value > high) (high = value), (highAt = i);
+        }
+        flush();
+      }
       /** A colour at an opacity, as a canvas reads it (whatever form the browser resolved it to). */
       const withAlpha = (/** @type {string} */ color, /** @type {number} */ alpha) => `color-mix(in srgb, ${color} ${alpha * 100}%, transparent)`;
 
@@ -1822,7 +1892,7 @@
       }
       function drawPan() {
         if (!days) return;
-        const d = days, dpr = devicePixelRatio || 1, w = pan.clientWidth, h = pan.clientHeight, key = `${w}×${h}×${dpr}×${paint.ink}`;
+        const d = days, dpr = density(), w = pan.clientWidth, h = pan.clientHeight, key = `${w}×${h}×${dpr}×${paint.ink}`;
         for (const c of [panCanvas, panBase]) if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) (c.width = Math.round(w * dpr)), (c.height = Math.round(h * dpr));
         if (key !== panKey) {
           panKey = key;
@@ -2018,7 +2088,7 @@
       const BAND = { top: 9, states: 13, gap: 2, trends: 3, side: 8 };
       function drawStrip() {
         if (!days) return;
-        const d = days, dpr = devicePixelRatio || 1, w = strip.clientWidth, h = strip.clientHeight, key = `${w}×${h}×${dpr}×${paint.ink}`;
+        const d = days, dpr = density(), w = strip.clientWidth, h = strip.clientHeight, key = `${w}×${h}×${dpr}×${paint.ink}`;
         for (const c of [strip, stripBase]) if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) (c.width = Math.round(w * dpr)), (c.height = Math.round(h * dpr));
         if (key !== stripKey) {
           stripKey = key;
@@ -2200,7 +2270,7 @@
         if (pinned !== null) pinned = Math.max(days.first, Math.min(days.last - 1, pinned));
         if (span !== -1) (target = spanOf(span)), (view = { ...target });
         else viewTo(view.a, view.b - view.a + 1);
-        panKey = stripKey = "";
+        stillKey = panKey = stripKey = "";
         buildCompass();
         buildShares();
         following = true;
