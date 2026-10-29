@@ -4785,6 +4785,12 @@
             text-overflow: ellipsis;
             white-space: nowrap;
           }
+
+          /* (How formulas read, no call's help: its lines wrapped, read whole, in the same height, even.) */
+          &:not(:has(.call-sig)) p {
+            white-space: normal;
+            text-wrap: balance;
+          }
         }
       }
 
@@ -9756,6 +9762,16 @@
             white-space: normal;
             -webkit-box-orient: vertical;
             -webkit-line-clamp: 2;
+          }
+
+          /* (How formulas read, its first line on three, whole, its second on one, in the same height (narrower than a phone,
+             cut as a call's help is).) */
+          &:not(:has(.call-sig)) p {
+            -webkit-line-clamp: 3;
+
+            & + p {
+              -webkit-line-clamp: 1;
+            }
           }
         }
 
@@ -30487,7 +30503,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       };
       /** ⌘K's formula line, outside of a call: how a formula reads. */
-      const FORMULA_GUIDE = `<p class="call-what">Layers by their letter, series by their name, numbers, + − × ÷ ^, comparisons (&gt; &lt; == !=, &amp; and |), date and dates (2020-05-11), and functions.</p><p class="call-what">Inside a function's parentheses, its help shows here.</p>`;
+      const FORMULA_GUIDE = `<p class="call-what">Layers by their letter, series by their name, numbers, + − × ÷ ^, comparisons (&gt; &lt; == !=, &amp;&nbsp;and&nbsp;|), date and dates (2020-05-11), and functions.</p><p class="call-what">Inside a function's parentheses, its help shows here.</p>`;
       /**
        * The helper at the field being typed in, as the caret moves: under the inspector's formula, floating, over what
        * fits or completes the argument (one popover: nothing below it moves); in ⌘K, a line under the field for as long
