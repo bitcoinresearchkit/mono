@@ -24084,15 +24084,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {string} name @param {number[]} list @param {string[] | null} to
        */
       const shelfHtml = (name, list, to) => `<section class="shelf" data-list="${listAt()}"><div class="shelf-head">${to ? `<button type="button" class="shelf-title" data-place="${escape(JSON.stringify({ path: to }))}" aria-label="${escape(name)}, ${grouped.format(list.length)}">${escape(name)}<span class="count">${grouped.format(list.length)}</span>${ICONS.next}</button>` : `<h2 class="shelf-title">${escape(name)}</h2>`}<span class="spacer"></span>${SHELF_STEPS}</div><div class="shelf-row">${shelfTilesHtml(list)}${to ? seeAll({ path: to }, list.length) : ""}</div></section>`;
-      /** The presets' page, where it is (none elsewhere): theirs, the recommended, then each section as a shelf; a section's, its own as a grid, then each section in it. */
+      /**
+       * The presets' page, where it is: theirs, the recommended, then each section as a shelf; a section's, its own as a
+       * grid, then each section in it. Elsewhere, hidden as drawn (its plain page: a search's is found again), to come back
+       * to as it is, not written again.
+       */
       function renderGallery() {
         const field = /** @type {HTMLInputElement} */ ($("home-filter")), words = field.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
-        const shown = "path" in homeAt, path = "path" in homeAt ? homeAt.path : [];
+        const shown = "path" in homeAt, path = "path" in homeAt ? homeAt.path : [], back = shown && $("gallery").hidden;
         $("gallery").hidden = !shown;
         if (!shown) {
-          galleryDrawn = gallerySpot = "";
+          // (The focus in it let go, as a page gone lets it go (see goTo).)
+          if ($("gallery").contains(document.activeElement)) /** @type {HTMLElement} */ (document.activeElement).blur();
+          if (!galleryPlain) galleryDrawn = gallerySpot = "";
           galleryFound = 0;
-          galleryPlain = false;
           return;
         }
         if (!presets) void loadPresets().catch(() => {});
@@ -24100,9 +24105,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (A preset edited here shows as it is: drawn anew once one is; one only opened, kept as it was, shows as the preset
         // does, nothing to draw again for.)
         const spot = JSON.stringify([path, words, galleryShown]), drawn = JSON.stringify([spot, presets?.length ?? 0, presetsFailed, light, library.presets.filter((doc) => !pristine(doc)).map((doc) => `${doc.preset}@${doc.updated}`)]);
-        if (drawn === galleryDrawn) return;
-        // (The same place drawn anew (the theme switched): its scroll and its shelves' kept.)
-        const kept = spot === gallerySpot ? galleryPlace() : null;
+        if (drawn === galleryDrawn && !back) return;
+        // (Come back to as it was drawn (hidden meanwhile, see above), nothing it shows changed since.)
+        const again = back && drawn === galleryDrawn, lists = listsDrawn;
+        // (The same place drawn anew (the theme switched): its scroll and its shelves' kept. Come back to, a page come to.)
+        const kept = spot === gallerySpot && !back ? galleryPlace() : null;
         // (A search over the page as it was: that page kept aside, as drawn, to come back once the search is cleared.)
         if (words.length && galleryPlain && presets) galleryAside = { drawn: galleryDrawn, lists: listsDrawn, nodes: [...$("gallery").childNodes] };
         galleryPlain = !words.length;
@@ -24129,22 +24136,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (None in a section: said where, and the presets as a whole offered, where they hold some: no dead end.)
           const elsewhere = count || !path.length ? 0 : (presetsMatching(words, 0), presetsCounted);
           $("gallery").innerHTML = (count ? presetGridHtml(found, count) : `<p class="gallery-note">No presets ${path.length ? `in ${escape(/** @type {string} */ (path.at(-1)))} ` : ""}match “${escape(field.value.trim())}”${elsewhere ? ` <button type="button" class="btn small" data-search-all>Search all presets<span class="count">${grouped.format(elsewhere)}</span></button>` : ""}</p>`);
+        } else if (again) {
+          // (Kept, not written again: at its shelves' starts, as a page come to is (Back puts them where they were, see
+          // popstate).)
+          listsDrawn = lists;
+          for (const row of all$(".shelf-row", $("gallery"))) if (shelfScrolls.get(row)) (row.scrollLeft = 0), shelfScrolls.set(row, 0);
+          freshenTiles();
         } else if (galleryAside?.drawn === drawn) {
-          // (The page as it was before the search, nothing it shows changed since: put back, not written again. Each
-          // tile's plot as a written tile's would be (see plotHtml): its preset's drawing as it is now, shown if it's
-          // another (a chart drawn anew as it's left, `data-drawn`); none, or out of date (a day on), waiting in sight to
-          // be drawn; a failed one waits in sight too, for a retry.)
+          // (The page as it was before the search, nothing it shows changed since: put back, not written again.)
           $("gallery").replaceChildren(...galleryAside.nodes);
           listsDrawn = galleryAside.lists;
           galleryAside = null;
-          for (const frame of all$(".tile[data-preset] > .tile-open [data-plot]", $("gallery"))) {
-            // (A tile of its preset as it was (opened since: its copy's id now): written again, as a page written anew has it.)
-            const i = presetOf(frame), doc = presetDoc(i), now = previews.get(doc.id);
-            if (frame.dataset.plot !== doc.id) writeTile(/** @type {HTMLElement} */ (frame.closest(".tile")), i);
-            else if (!now || now.key !== previewKey(doc)) frame.classList.contains("failed") || frame.classList.add("pending");
-            else if (frame.dataset.drawn !== String(drawingId(now))) paint(doc.id, now, true);
-          }
-          for (const frame of all$(".failed[data-plot]", $("gallery"))) galleryTilesSeen.observe(frame);
+          freshenTiles();
         } else {
           galleryAside = null;
           const { own, groups } = sectionAt(path);
@@ -24158,6 +24161,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         restoreFocus($("gallery"), focus);
         for (const frame of all$(".pending[data-plot]", $("gallery"))) galleryTilesSeen.observe(frame);
         shelvesSoon();
+      }
+      /**
+       * A page of the presets kept as drawn, put back (see renderGallery): each tile's plot as a written tile's would be
+       * (see plotHtml): its preset's drawing as it is now, shown if it's another (a chart drawn anew as it's left,
+       * `data-drawn`); none, or out of date (a day on), waiting in sight to be drawn; a failed one waits in sight too, for
+       * a retry.
+       */
+      function freshenTiles() {
+        for (const frame of all$(".tile[data-preset] > .tile-open [data-plot]", $("gallery"))) {
+          // (A tile of its preset as it was (opened since: its copy's id now): written again, as a page written anew has it.)
+          const i = presetOf(frame), doc = presetDoc(i), now = previews.get(doc.id);
+          if (frame.dataset.plot !== doc.id) writeTile(/** @type {HTMLElement} */ (frame.closest(".tile")), i);
+          else if (!now || now.key !== previewKey(doc)) frame.classList.contains("failed") || frame.classList.add("pending");
+          else if (frame.dataset.drawn !== String(drawingId(now))) paint(doc.id, now, true);
+        }
+        for (const frame of all$(".failed[data-plot]", $("gallery"))) galleryTilesSeen.observe(frame);
       }
       /** The gallery as last drawn (where, the search, how much of it, the presets as read, the theme), its place, and how many it found. */
       let galleryDrawn = "", gallerySpot = "", galleryFound = 0;
@@ -24181,7 +24200,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const shelvesSoon = () => (shelvesFrame ||= requestAnimationFrame(() => ((shelvesFrame = 0), allShelfSteps())));
       /** Every shelf's steps and edges, its slots watched, a grid's too (all read first, then written: one layout, not one a shelf). */
       function allShelfSteps() {
-        const rows = all$(".shelf-row", $("home")), sizes = rows.map((row) => ({ at: row.scrollLeft, size: row.clientWidth, full: row.scrollWidth, cut: cutsOf(row) }));
+        const rows = shelfRows(), sizes = rows.map((row) => ({ at: row.scrollLeft, size: row.clientWidth, full: row.scrollWidth, cut: cutsOf(row) }));
         nearTiles(rows);
         rows.forEach((row, k) => fitShelf(row, sizes[k].at, sizes[k].size, sizes[k].full, sizes[k].cut));
       }
@@ -38493,14 +38512,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @type {WeakMap<HTMLElement, number>}
        */
       const shelfScrolls = new WeakMap();
+      /** The shelves on the page: not the presets' kept hidden under another (see renderGallery). */
+      const shelfRows = () => all$(".shelf-row:not([hidden] *)", $("home"));
       /** Where the page is: its scroll, and each shelf's. */
-      const galleryPlace = () => ({ top: homeScroll().scrollTop, rows: Object.fromEntries(all$(".shelf-row", $("home")).map((row) => [shelfKey(row), shelfScrolls.get(row) ?? 0])), shown: galleryShown });
+      const galleryPlace = () => ({ top: homeScroll().scrollTop, rows: Object.fromEntries(shelfRows().map((row) => [shelfKey(row), shelfScrolls.get(row) ?? 0])), shown: galleryShown });
       /** A shelf by what it is (where its name leads, else its name): kept where it was, whatever came before it since. */
       const shelfKey = (/** @type {HTMLElement} */ row) => ((title) => title?.getAttribute("data-place") ?? title?.firstChild?.textContent ?? "")(row.closest(".shelf")?.querySelector(".shelf-title"));
       /** The gallery back where it was (drawn with as much of it as it showed, see popstate). @param {{ top: number, rows: Record<string, number> }} place */
       function placeGallery(place) {
         // (Only those not there already: the rest aren't laid out for it.)
-        for (const row of all$(".shelf-row", $("home"))) {
+        for (const row of shelfRows()) {
           const left = place.rows[shelfKey(row)] ?? 0;
           if (left !== (shelfScrolls.get(row) ?? 0)) (row.scrollLeft = left), shelfScrolls.set(row, row.scrollLeft);
         }
