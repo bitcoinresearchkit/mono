@@ -2289,7 +2289,9 @@
           show(true);
           return;
         }
-        const d = days, at = shownDay();
+        // (From the day kept, where a pause left it, never the one a mouse is over: that's passing, and near today it
+        // would end the play at once.)
+        const d = days, at = pinned ?? d.last;
         playFrom = at >= d.last ? Math.max(d.first, Math.ceil(target.a)) : at;
         playSpeed = (Math.min(d.last, target.b) - target.a + 1) / 8000;
         playAt = performance.now();
