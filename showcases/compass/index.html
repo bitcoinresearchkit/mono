@@ -15,7 +15,7 @@
     <meta property="og:image" content="https://bitview.space/compass/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Compass on a day of Despair with a bull trend: the state's name over four years of price, each day coloured by its state, the trend's lane under it" />
+    <meta property="og:image:alt" content="Compass on a day of Despair with a bull trend: the state's name over eight years of price, each day coloured by its state, the trend's lane under it" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <style>
@@ -972,8 +972,8 @@
           <div class="ranges" role="group" aria-label="Span">
             <button type="button" data-span="91" aria-pressed="false">3M</button>
             <button type="button" data-span="365" aria-pressed="false">1Y</button>
-            <button type="button" data-span="1461" aria-pressed="true">4Y</button>
-            <button type="button" data-span="2922" aria-pressed="false">8Y</button>
+            <button type="button" data-span="1461" aria-pressed="false">4Y</button>
+            <button type="button" data-span="2922" aria-pressed="true">8Y</button>
             <button type="button" data-span="0" aria-pressed="false">Max</button>
           </div>
         </div>
@@ -1266,8 +1266,10 @@
       // ── What's shown: the span, the day ──
 
       const still = matchMedia("(prefers-reduced-motion: reduce)");
+      /** The span the chart opens on: 8 years, two halving cycles. */
+      const SPAN = 2922;
       /** The chart's span in days (0: all; -1: none, moved by hand), and the days it shows now (eased toward the span's). */
-      let span = 1461;
+      let span = SPAN;
       let view = { a: 0, b: 0 }, target = { a: 0, b: 0 };
       /** The day shown above: pinned (kept), or under the pointer for now; else the last. */
       let pinned = /** @type {number | null} */ (null), hovered = /** @type {number | null} */ (null);
@@ -1288,7 +1290,7 @@
       }
       function remember() {
         const query = new URLSearchParams(), name = Object.keys(SPANS).find((key) => SPANS[key] === span);
-        if (span !== 1461 && name) query.set("span", name);
+        if (span !== SPAN && name) query.set("span", name);
         if (pinned !== null) query.set("day", iso(pinned));
         if (coins !== "mobile") query.set("coins", coins);
         // (Safari refuses past 100 writes in 10 seconds: kept from it anyway, and written once a held key is let go.)
