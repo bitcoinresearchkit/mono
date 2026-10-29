@@ -23,8 +23,9 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 - Bubbles: built, a kind of their own beside clouds, trends and signals (Add bubbles, a layer's ⋯ › As bubbles on…; not
   a series' Type), On, Size, Hide below, Sized to, one color or two; presets per cohort (Profit and loss bubbles, and on
-  the unrealized P&L heatmap); a chart's mark shows them as dots. Open: the minis' look (tiles, ⌘K's previews, Quick
-  Look: _notes/overnight-20261029/bubbles-mini-before-after.png), something off in your first picture, not received.
+  the unrealized P&L heatmap); a chart's mark shows them as dots; the minis (tiles, ⌘K's previews, Quick Look) read
+  the chart's own days, each point its span's largest (_notes/overnight-20261029/bubbles-mini-days-before-after.png).
+  Open: your look at the minis now.
 - A design system for all of Studio, then a polish and consistency pass applying it (you, 2026-10-28: "I think we
   really need to do a polish/consistency pass over the whole app, and make a proper system"): inventory
   (_notes/system-20261028/inventory.md: 9 font sizes, 20 radii, 22 gaps, 63 heights, 47 shadows, 56 transitions),
