@@ -7661,7 +7661,13 @@
         justify-content: space-between;
         gap: 4px;
         /* (Their icons and words as far in as the field's: a button's own room, and this.) */
-        padding: 0 calc(var(--home-inset) - 10px);
+        padding: 0 calc(var(--home-inset) - 8px);
+
+        /* (Close set: all four on one line down to a 375-wide phone.) */
+        .btn {
+          gap: 4px;
+          padding-inline: 8px;
+        }
       }
 
       .doors {
