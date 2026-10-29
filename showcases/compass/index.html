@@ -1101,13 +1101,13 @@
         <ol class="how">
           <li>
             <h3>The long-term cloud: how holders feel</h3>
-            <p>The median and the average price paid, by dollar, by coins held <b>over 4 months</b>, <b>over 5 months</b> and <b>over 6 months</b>: six lines close together, the cloud between them.</p>
-            <p>Price above it, each of those groups has more than half of the dollars it put in in profit, and its average dollar too; below it, the same at a loss; inside, they differ. That's the compass's north and south.</p>
+            <p><span id="cloud-what">The 40th and the 60th percentile of the price paid</span>, by dollar, by coins held <b>over 4 months</b>, <b>over 5 months</b> and <b>over 6 months</b>: <span id="cloud-count">six</span> lines close together, the cloud between them.</p>
+            <p><span id="cloud-long"></span> That's the compass's north and south.</p>
           </li>
           <li>
             <h3>The short-term cloud: how recent buyers feel</h3>
             <p>The same for coins held <b>under 4 months</b>, <b>under 5 months</b> and <b>under 6 months</b>: what recent buyers paid.</p>
-            <p>Above it, each group's median and average dollar is in profit; below it, both at a loss; inside, they differ. That's east and west. Price is each day's close.</p>
+            <p><span id="cloud-short"></span> That's east and west. Price is each day's close.</p>
           </li>
           <li>
             <h3>Three trends set the territory</h3>
@@ -1115,13 +1115,13 @@
             <p>When all three hold supports, it's <b>bull</b> territory; all three resistances, <b>bear</b>; split, <b>limbo</b>.</p>
           </li>
         </ol>
-        <p class="note">A median and an average here are by dollars and count mostly the coins that move (<span id="weighting">each age group weighted by how likely its coins are ever to be spent</span>), so lost coins don't hold a cloud down. Every state is read from that day's numbers alone, never from what came after: today's can change by tonight's close.</p>
+        <p class="note">Every line here is by dollars and counts mostly the coins that move (<span id="weighting">each age group weighted by how likely its coins are ever to be spent</span>), so lost coins don't hold a cloud down. Every state is read from that day's numbers alone, never from what came after: today's can change by tonight's close.</p>
       </section>
     </main>
 
     <footer class="shell">
       <p>Read from this server: <a href="/api/series/price/day1">the daily price</a> and the holders' cost basis, as Bitview computes it from the chain. The same clouds and trends, to explore: <a href="/studio/presets/valuation/compass">Compass in Studio</a>.</p>
-      <p class="coins">Clouds counted from <span role="group" aria-label="Which coins the clouds count"><button type="button" data-coins="mobile" aria-pressed="true">mobile</button> or <button type="button" data-coins="awake" aria-pressed="false">awake</button></span> coins.<span id="coins-said" aria-live="polite"></span></p>
+      <p class="coins">Clouds from the <span role="group" aria-label="What the clouds are made from"><button type="button" data-basis="percentiles" aria-pressed="true">40th–60th percentiles</button>, <button type="button" data-basis="averages" aria-pressed="false">medians and averages</button> or <button type="button" data-basis="medians" aria-pressed="false">medians</button></span> of what <span role="group" aria-label="Which coins the clouds count"><button type="button" data-coins="mobile" aria-pressed="true">mobile</button> or <button type="button" data-coins="awake" aria-pressed="false">awake</button></span> coins paid.<span id="coins-said" aria-live="polite"></span></p>
     </footer>
 
     <script type="module">
@@ -1190,14 +1190,38 @@
        */
       let coins = "mobile";
       const WEIGHTING = { mobile: "each age group weighted by how likely its coins are ever to be spent", awake: "each age group weighted by how much of its coin days have been spent" };
-      /** A cloud's three medians, of the coins counted now. */
-      /** A cloud's lines, of the coins counted: each of its three groups' median and average price paid, by dollar. */
-      const cloudIds = (/** @type {"long" | "short"} */ cloud, which = coins) => (cloud === "long" ? ["age_over_4m", "lth", "age_over_6m"] : ["age_under_4m", "sth", "age_under_6m"]).flatMap((k) => ["median", "avg"].map((stat) => `${k}_${which}_cost_basis_by_dollar_${stat}`));
+      /**
+       * What the clouds are made from (chosen at the page's foot, like the coins): each of its three groups' 40th and 60th
+       * percentiles of the price paid, by dollar (inside, a group split: 40 to 60% of its dollars in profit), their medians
+       * and averages, or their medians alone. With How it reads' words for each.
+       * @typedef {"percentiles" | "averages" | "medians"} Basis
+       */
+      const BASES = {
+        percentiles: {
+          stats: ["p40", "p60"], what: "The 40th and the 60th percentile of the price paid", count: "six",
+          long: "Price above it, each of those groups has more than 60% of the dollars it put in in profit; below it, fewer than 40%; inside, they're split, or they disagree.",
+          short: "Above it, more than 60% of each group's dollars are in profit; below it, fewer than 40%; inside, they're split, or they disagree.",
+        },
+        averages: {
+          stats: ["median", "avg"], what: "The median and the average price paid", count: "six",
+          long: "Price above it, each of those groups has more than half of the dollars it put in in profit, and its average dollar too; below it, the same at a loss; inside, they differ.",
+          short: "Above it, each group's median and average dollar is in profit; below it, both at a loss; inside, they differ.",
+        },
+        medians: {
+          stats: ["median"], what: "The median price paid", count: "three",
+          long: "Price above it, more than half of the dollars each of those groups put in is in profit; below it, more than half is at a loss; inside, the groups differ.",
+          short: "Above it, more than half of what each group paid is in profit; below it, more than half is at a loss; inside, the groups differ.",
+        },
+      };
+      /** @type {Basis} */
+      let basis = "percentiles";
+      /** A cloud's lines, of some coins and a basis: each of its three groups' lines, by dollar. */
+      const cloudIds = (/** @type {"long" | "short"} */ cloud, which = coins, by = basis) => (cloud === "long" ? ["age_over_4m", "lth", "age_over_6m"] : ["age_under_4m", "sth", "age_under_6m"]).flatMap((k) => BASES[by].stats.map((stat) => `${k}_${which}_cost_basis_by_dollar_${stat}`));
       /** Every series read, by id: a switch of coins reads only its clouds'. @type {Map<string, Promise<Answer>>} */
       const answers = new Map();
-      /** The series the page needs for some coins, by id, each read once. */
-      async function readAll(which = coins) {
-        const ids = [SERIES.close, SERIES.high, SERIES.low, ...cloudIds("long", which), ...cloudIds("short", which), ...SERIES.floors, ...SERIES.ceilings];
+      /** The series the page needs for some coins and a basis, by id, each read once. */
+      async function readAll(which = coins, by = basis) {
+        const ids = [SERIES.close, SERIES.high, SERIES.low, ...cloudIds("long", which, by), ...cloudIds("short", which, by), ...SERIES.floors, ...SERIES.ceilings];
         for (const id of ids) if (!answers.has(id)) answers.set(id, read(id).catch((error) => (answers.delete(id), Promise.reject(error))));
         return Object.fromEntries(await Promise.all(ids.map(async (id) => [id, await answers.get(id)])));
       }
@@ -1261,7 +1285,7 @@
         return top > bottom ? -1 / 3 + ((2 / 3) * Math.log(price / bottom)) / Math.log(top / bottom) : 0;
       }
 
-      function compute(/** @type {Record<string, Answer>} */ answered, which = coins) {
+      function compute(/** @type {Record<string, Answer>} */ answered, which = coins, by = basis) {
         const n = Math.max(...Object.values(answered).map((a) => a.start + a.data.length));
         const get = (/** @type {string} */ id) => byDay(answered[id], n);
         const close = get(SERIES.close), high = get(SERIES.high), low = get(SERIES.low);
@@ -1280,7 +1304,7 @@
           }
           return /** @type {[Float64Array, Float64Array]} */ ([bottom, top]);
         };
-        const long = cloudOf(lines(cloudIds("long", which))), short = cloudOf(lines(cloudIds("short", which)));
+        const long = cloudOf(lines(cloudIds("long", which, by))), short = cloudOf(lines(cloudIds("short", which, by)));
         const floors = lines(SERIES.floors), ceilings = lines(SERIES.ceilings);
         const trends = floors.map((floor, k) => trendOf(floor, ceilings[k], low, high));
         const state = new Int8Array(n).fill(-1), trend = new Int8Array(n).fill(-1), x = new Float32Array(n), y = new Float32Array(n);
@@ -1388,6 +1412,7 @@
         if (span !== SPAN && name) query.set("span", name);
         if (pinned !== null) query.set("day", iso(pinned));
         if (coins !== "mobile") query.set("coins", coins);
+        if (basis !== "percentiles") query.set("clouds", basis);
         // (Safari refuses past 100 writes in 10 seconds: kept from it anyway, and written once a held key is let go.)
         try {
           history.replaceState(history.state, "", query.size ? `?${query}` : location.pathname);
@@ -2297,16 +2322,22 @@
 
       // ── Which coins the clouds count: the page's foot switches, everything's computed again in place ──
 
-      /** The pressed word, and How it reads' words for it. */
+      /** The pressed words, and How it reads' words for them. */
       function pressCoins() {
         for (const button of document.querySelectorAll("[data-coins]")) button.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (button).dataset.coins === coins));
+        for (const button of document.querySelectorAll("[data-basis]")) button.setAttribute("aria-pressed", String(/** @type {HTMLElement} */ (button).dataset.basis === basis));
         $("weighting").textContent = WEIGHTING[coins];
+        const b = BASES[basis];
+        $("cloud-what").textContent = b.what;
+        $("cloud-count").textContent = b.count;
+        $("cloud-long").textContent = b.long;
+        $("cloud-short").textContent = b.short;
       }
       let switching = false;
-      for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-coins]"))) button.addEventListener("click", async () => {
-        const next = /** @type {"mobile" | "awake"} */ (button.dataset.coins);
-        if (!days || switching || next === coins) return;
-        // (The day kept as it was pressed; the page's coins changed only once the new ones are read, and usable.)
+      /** Other coins or another basis: everything computed again in place, once the new clouds are read and usable. */
+      async function choose(/** @type {"mobile" | "awake"} */ nextCoins, /** @type {Basis} */ nextBasis) {
+        if (!days || switching || (nextCoins === coins && nextBasis === basis)) return;
+        // (The day kept as it was pressed; the page's choice changed only once the new clouds are read, and usable.)
         stopPlay();
         switching = true;
         for (const replay of replays) replay.disabled = true;
@@ -2314,18 +2345,18 @@
         /** @type {Days} */
         let computed;
         try {
-          computed = compute(await readAll(next), next);
+          computed = compute(await readAll(nextCoins, nextBasis), nextCoins, nextBasis);
           if (computed.first < 0) throw new Error("they have no days yet");
         } catch (error) {
           // (Its clouds' answers forgotten, so another try asks the server again.)
-          for (const id of [...cloudIds("long", next), ...cloudIds("short", next)]) answers.delete(id);
-          $("coins-said").textContent = ` The ${next} series couldn't be read: ${error instanceof Error ? error.message : error}.`;
+          for (const id of [...cloudIds("long", nextCoins, nextBasis), ...cloudIds("short", nextCoins, nextBasis)]) answers.delete(id);
+          $("coins-said").textContent = ` Those clouds' series couldn't be read: ${error instanceof Error ? error.message : error}.`;
           return;
         } finally {
           switching = false;
           for (const replay of replays) replay.disabled = false;
         }
-        coins = next;
+        (coins = nextCoins), (basis = nextBasis);
         days = computed;
         pressCoins();
         slider.min = String(days.first);
@@ -2341,7 +2372,9 @@
         following = true;
         remember();
         show(true);
-      });
+      }
+      for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-coins]"))) button.addEventListener("click", () => choose(/** @type {"mobile" | "awake"} */ (button.dataset.coins), basis));
+      for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-basis]"))) button.addEventListener("click", () => choose(coins, /** @type {Basis} */ (button.dataset.basis)));
 
       // ── Loading ──
 
@@ -2359,7 +2392,9 @@
         chart.classList.add("loading");
         try {
           // (The coins a link asks for, before anything's read.)
-          if (new URLSearchParams(location.search).get("coins") === "awake") coins = "awake";
+          const asked = new URLSearchParams(location.search), clouds = asked.get("clouds");
+          if (asked.get("coins") === "awake") coins = "awake";
+          if (clouds === "averages" || clouds === "medians") basis = clouds;
           pressCoins();
           const computed = compute(await readAll());
           if (computed.first < 0) throw new Error("the holders' series have no days yet");
