@@ -8936,6 +8936,14 @@
               width: 16px;
               height: 16px;
             }
+
+            /* (Its aside in what its name leaves, not a popover's few words: read whole where it fits, cut first, as
+               ⌘K's rows have it.) */
+            > :is(span:not([class]), kbd) {
+              flex: 1 1 0;
+              max-width: none;
+              text-align: end;
+            }
           }
         }
 
