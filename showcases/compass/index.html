@@ -1634,13 +1634,11 @@
         const mark = (/** @type {number} */ at, /** @type {boolean} */ kept) => {
           if (at < view.a - 0.5 || at > view.b + 0.5) return;
           const x = Math.round(xOf(at)) + 0.5, y = yOf(d.close[at]);
-          // (To the top of the pane; behind the words over the prices, a third as strong, so it never strikes them out.)
+          // (One strength from the top of the pane, behind the words over the prices, to the lane.)
           if (pinned !== null || hovered !== null) {
-            const alpha = kept ? 0.6 : 0.28, w = kept ? 1.5 : 1;
-            ctx.fillStyle = withAlpha(paint.ink, alpha / 3);
-            ctx.fillRect(x - w / 2, 0, w, plotTop - 8);
-            ctx.fillStyle = withAlpha(paint.ink, alpha);
-            ctx.fillRect(x - w / 2, plotTop - 8, w, bottom + LANE_GAP + LANE - plotTop + 8);
+            const w = kept ? 1.5 : 1;
+            ctx.fillStyle = withAlpha(paint.ink, kept ? 0.6 : 0.28);
+            ctx.fillRect(x - w / 2, 0, w, bottom + LANE_GAP + LANE);
           }
           ctx.beginPath();
           ctx.arc(x, y, 4.5, 0, Math.PI * 2);
