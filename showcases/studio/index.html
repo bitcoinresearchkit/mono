@@ -28510,9 +28510,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         commit((doc) => {
           const pane = into ? doc.panes.find((item) => item.id === into) : newPaneIn(doc);
           if (!pane) return;
-          const moving = doc.layers.filter((layer) => ids.includes(layer.id));
+          // (Those that go where these go (bubbles on one, a cloud between them), along with them, where they were among
+          // them: what's drawn over what, as it was.)
+          const along = new Set(ids);
+          // (A rider of a rider too, wherever it's listed: gathered till none's left.)
+          for (let more = true; more; ) {
+            more = false;
+            for (const layer of doc.layers) if (!along.has(layer.id) && follows(layer) && goesWith(layer).every((id) => along.has(id))) (along.add(layer.id), (more = true));
+          }
+          const moving = doc.layers.filter((layer) => along.has(layer.id));
           for (const layer of moving) layer.pane = pane.id;
-          doc.layers = [...doc.layers.filter((layer) => !ids.includes(layer.id)), ...moving];
+          doc.layers = [...doc.layers.filter((layer) => !along.has(layer.id)), ...moving];
         });
       }
       /**
