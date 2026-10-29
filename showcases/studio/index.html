@@ -21166,6 +21166,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const heatName = (layer) => `${HEAT_MEASURES.find(([id]) => id === (layer.measure ?? "supply"))?.[1]} by cost basis, ${cohortName(layer.heatmap ?? "all").replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase())}${layer.weight ? `, ${/** @type {string} */ (HEAT_WEIGHTS.find(([id]) => id === layer.weight)?.[1]).toLowerCase()}` : ""}`;
       /** What a heatmap is, said where one's added. */
       const HEAT_ABOUT = "A holder group's supply, capital or unrealized P&L by the price it was bought at, day by day, behind the price (the URPD).";
+      /** The same, in a row's few words. */
+      const HEAT_SHORT = "Holder groups' cost basis, day by day";
       /** A heatmap's code, where a series shows its name: its endpoint's, `urpd/` and its holders. @param {Layer} layer */
       const heatCode = (layer) => `urpd/${layer.heatmap ?? "all"}`;
       /** A heatmap's latest day, as the API's path (its weight and density as it asks for them). @param {Chart} doc @param {Layer} layer */
@@ -33638,7 +33640,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { kind: "row", key: "add:trend", icon: ICONS.riding, label: "Trend", aside: trendShort() || "Rides two layers, flipped by a third", group: "Made from your layers", other: true, under: true, verb: "Add", page: () => fromPage("trend"), ...(trendShort() ? { disabled: trendShort() } : {}) },
           ] : []),
           // (A heatmap: a holder group's URPD, its own data, not made from layers.)
-          { kind: "row", key: "add:heatmap", icon: ICONS.heatmap, label: "Heatmap", aside: "Holder groups' cost basis, day by day", preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Heatmap</h4><p class="description">${escape(HEAT_ABOUT)}</p>`), group: "Distributions", other: true, under: true, verb: "Add", page: heatAddPage },
+          { kind: "row", key: "add:heatmap", icon: ICONS.heatmap, label: "Heatmap", aside: HEAT_SHORT, preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Heatmap</h4><p class="description">${escape(HEAT_ABOUT)}</p>`), group: "Distributions", other: true, under: true, verb: "Add", page: heatAddPage },
         ];
       }
       /** Nothing found: the two things searched, to browse instead (every series, by topic; the presets, by section), and other words to try. */
@@ -33757,7 +33759,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { key: "add-signal", icon: ICONS.signal, label: "Add a signal", verb: "Add", leads: true, stay: true, run: addSignal },
         ] : []),
         ...(cloudable() ? [{ key: "add-trend", icon: ICONS.riding, label: "Add a trend", page: () => fromPage("trend"), ...(trendShort() ? { aside: trendShort(), disabled: trendShort(), under: true } : {}) }] : []),
-        { key: "add-heatmap", icon: ICONS.heatmap, label: "Add a heatmap", aside: "Supply by cost basis, day by day", page: heatAddPage },
+        { key: "add-heatmap", icon: ICONS.heatmap, label: "Add a heatmap", aside: HEAT_SHORT, under: true, page: heatAddPage },
       ].map((row) => ({ kind: "row", group, ...row }));
       /** ⌘K's page for a heatmap: a holder group to add one of (its supply by cost basis; the rest, its own to change). @returns {Page} */
       const heatAddPage = () => choicePage("Add a heatmap", () => HEAT_COHORTS.map(([cohort, name]) => ({ key: cohort, icon: ICONS.people, label: name, verb: "Add", run: () => addHeatmap(cohort) })));
