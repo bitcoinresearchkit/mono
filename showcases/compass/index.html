@@ -1918,12 +1918,15 @@
         panContext.setTransform(1, 0, 0, 1, 0, 0);
         panContext.clearRect(0, 0, panCanvas.width, panCanvas.height);
         panContext.drawImage(panBase, 0, 0);
-        // (Outside the window, dimmed.)
+        // (Outside the window, dimmed: all of it but the window's own rounded shape, as its frame draws it (12px wide at
+        // least, its corners 8px), so no bright corner shows past its frame.)
         panContext.setTransform(dpr, 0, 0, dpr, 0, 0);
-        const a = panX(view.a), b = Math.min(pan.clientWidth, panX(view.b + 1));
+        const a = panX(view.a), b = Math.min(pan.clientWidth, panX(view.b + 1)), wide = Math.max(b - a, 12);
+        panContext.beginPath();
+        panContext.rect(0, 0, w, h);
+        panContext.roundRect(a, 0, wide, h, Math.min(8, wide / 2));
         panContext.fillStyle = withAlpha(paint.app, 0.6);
-        panContext.fillRect(0, 0, a, h);
-        panContext.fillRect(b, 0, w - b, h);
+        panContext.fill("evenodd");
         pan.style.setProperty("--from", `${a}px`);
         pan.style.setProperty("--to", `${b}px`);
       }
