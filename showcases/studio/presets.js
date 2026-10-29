@@ -961,7 +961,8 @@ export function studioPresets(client, facts) {
    * short-term holders' and the long-term holders' (each three age groups, coins likely to move, by dollar), and the
    * short-term groups' trends between the lowest and highest price their coins were bought at. A basis of one line a
    * group (medians, averages) has its lines shown and its clouds coloured by which is over; one of two (percentiles,
-   * medians and averages), its clouds from the lowest of its six lines to the highest, as Compass draws them. */
+   * medians and averages), its clouds from the lowest of its six lines to the highest, as Compass draws them, through
+   * the middle of its three medians. */
   function compassCharts() {
     const short = /** @type {[string, string, string][]} */ ([["under4m", "Under 4 months", "yellow"], ["sth", "Short-term holders", "orange"], ["under6m", "Under 6 months", "red"]]);
     const long = /** @type {[string, string, string][]} */ ([["over4m", "Over 4 months", "cyan"], ["lth", "Long-term holders", "blue"], ["over6m", "Over 6 months", "violet"]]);
@@ -988,23 +989,31 @@ export function studioPresets(client, facts) {
         ...trends(10),
       ]);
     };
-    /** A basis of two lines a group: each cloud from the lowest of its six to the highest (letters: the price A, all
-     * holders' median B, the clouds' edges C to F, the clouds G and H, the trends' edges I to N). */
+    /** A basis of two lines a group: each cloud three lines, as the one-line charts' are: the highest of its six, the
+     * middle of its three groups' medians (their sum less the highest and the lowest of them), and the lowest of its six;
+     * coloured as those charts are, the upper band one colour, the lower another (letters: the price A, all holders' B,
+     * the short-term lines C to E, the long-term F to H, the clouds I and J, the trends' edges K to P). */
     const ofTwo = (/** @type {string} */ name, /** @type {[string, string]} */ which, /** @type {string} */ said) => {
-      const envelope = (/** @type {[string, string, string][]} */ groups, /** @type {string} */ label) => {
-        const names = groups.flatMap(([key]) => which.map((w) => stat(key, w).name));
+      const lines = (/** @type {[string, string, string][]} */ groups, /** @type {string} */ label, /** @type {[string, string, string]} */ colors) => {
+        const names = groups.flatMap(([key]) => which.map((w) => stat(key, w).name)), [a, b, c] = groups.map(([key]) => stat(key, "median").name);
         const fold = (/** @type {string} */ fn) => names.reduce((all, n) => `${fn}(${all}, ${n})`);
-        return [{ formula: fold("min"), label: `${label}, lowest`, format: "usd", color: "gray", hidden: true }, { formula: fold("max"), label: `${label}, highest`, format: "usd", color: "gray", hidden: true }];
+        const line = (/** @type {string} */ formula, /** @type {string} */ part, /** @type {string} */ color) => ({ formula, label: `${label}, ${part}`, format: "usd", color, opacity: 0.5 });
+        return [
+          line(fold("min"), "lowest", colors[0]),
+          line(`${a} + ${b} + ${c} - max(max(${a}, ${b}), ${c}) - min(min(${a}, ${b}), ${c})`, "middle", colors[1]),
+          line(fold("max"), "highest", colors[2]),
+        ];
       };
       return chart(name, `Compass: holder clouds of ${said}, and trends`, [
         price(),
         series(stat("all", "median"), "All holders", { color: "green", shape: "curved" }),
-        ...envelope(short, "Short-term cloud"),
-        ...envelope(long, "Long-term cloud"),
-        { cloud: ["C", "D"], label: "Short-term cloud", color: "orange", opacity: 0.3 },
-        { cloud: ["E", "F"], label: "Long-term cloud", color: "blue", opacity: 0.3 },
+        ...lines(short, "Short-term cloud", ["yellow", "orange", "red"]),
+        ...lines(long, "Long-term cloud", ["violet", "cyan", "blue"]),
+        // (Each band coloured by the line over it: the lower the middle's, the upper the highest's.)
+        { cloud: ["C", "D", "E"], label: "Short-term cloud", color: "red", colorBelow: "orange", byLayers: true, opacity: 0.5 },
+        { cloud: ["F", "G", "H"], label: "Long-term cloud", color: "blue", colorBelow: "cyan", byLayers: true, opacity: 0.5 },
         ...edges,
-        ...trends(8),
+        ...trends(10),
       ]);
     };
     // (Named as Compass names its bases: its link opens the one in use.)
