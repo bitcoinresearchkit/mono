@@ -332,7 +332,7 @@
         &.loading::after {
           content: "";
           position: absolute;
-          inset: 50% 104px 120px 0;
+          inset: 50% 12px 132px 0;
           border-radius: 0 12px 12px 0;
           background: var(--grid);
         }
@@ -606,6 +606,16 @@
         @media (min-width: 900px) {
           grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
           gap: 56px;
+
+          /* (The compass held in sight while its lists, longer, scroll by: where the screen's tall enough to hold it
+             whole, its play button too.) */
+          @media (min-height: 900px) {
+            > :first-child {
+              position: sticky;
+              top: 24px;
+              align-self: start;
+            }
+          }
         }
       }
 
@@ -841,7 +851,8 @@
             width: var(--w);
             height: 100%;
             border-radius: inherit;
-            background: currentColor;
+            /* (Tinted as the cells and the strip are.) */
+            background: color-mix(in srgb, currentColor 65%, transparent);
           }
         }
 
@@ -1286,14 +1297,14 @@
         probe.remove();
         return color;
       }
-      /** @type {{ states: string[], trends: string[], ink: string, faint: string, grid: string, line: string, long: string, short: string, app: string }} */
+      /** @type {{ states: string[], trends: string[], ink: string, faint: string, grid: string, long: string, short: string, app: string }} */
       let paint;
       function repaint() {
         paint = {
           states: STATES.map((s) => resolved(`var(--s-${s.id})`)),
           trends: TRENDS.map((t) => resolved(`var(--s-${t.color})`)),
           ink: resolved("var(--ink)"), faint: resolved("var(--faint)"), grid: resolved("var(--grid)"),
-          line: resolved("var(--line)"), long: resolved("var(--cloud-long)"), short: resolved("var(--cloud-short)"), app: resolved("var(--app)"),
+          long: resolved("var(--cloud-long)"), short: resolved("var(--cloud-short)"), app: resolved("var(--app)"),
         };
       }
 
@@ -1309,9 +1320,10 @@
       let pinned = /** @type {number | null} */ (null), hovered = /** @type {number | null} */ (null);
       const shownDay = () => hovered ?? pinned ?? /** @type {Days} */ (days).last;
 
+      /** A span's days, the room past the latest kept after them (see ROOM). */
       function spanOf(/** @type {number} */ s) {
-        const d = /** @type {Days} */ (days);
-        return { a: s ? Math.max(d.first, d.last - s + 1) : d.first, b: d.last };
+        const d = /** @type {Days} */ (days), a = s ? Math.max(d.first, d.last - s + 1) : d.first, length = d.last - a + 1;
+        return { a, b: a + length / (1 - roomShare()) - 1 };
       }
 
       // ── The address: the span and the day kept, so a link opens on them (?span=1y&day=2021-11-10) ──
@@ -1346,9 +1358,11 @@
       // ── The chart ──
 
       const chart = $("chart"), canvas = /** @type {HTMLCanvasElement} */ ($("canvas")), ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
-      /** Its layout, in CSS pixels: room at the right for today's ring, the trend's lane, the dates' row. (No price
-       * axis: the day's price is said above.) */
-      const EDGE = 12, LANE = 4, YEARS = 30;
+      /** Its layout, in CSS pixels: the room at the right past the latest day (as Studio's chart leaves), the trend's
+       * lane, the dates' row. (No price axis: the day's price is said above.) */
+      const ROOM = 32, LANE = 4, YEARS = 30;
+      /** ROOM as a share of the plot's width: of a view's days, how many are room past the latest. */
+      const roomShare = () => Math.min(0.5, ROOM / Math.max(1, plotRight()));
       /** The room between the words over the chart and its highest price. */
       const TOP_GAP = 16;
       /** The canvas's size, the whole first screen; the prices' top (its pane runs to the screen's, the prices kept
@@ -1357,7 +1371,7 @@
       /** The plot's price range (logs), eased as the span's days change. */
       let range = { lo: 0, hi: 1 };
 
-      const plotRight = () => width - EDGE, plotBottom = () => footTop - YEARS - LANE - 8;
+      const plotRight = () => width, plotBottom = () => footTop - YEARS - LANE - 8;
       /** The dates' baseline, under the lane. */
       const datesY = () => plotBottom() + 8 + LANE + 20;
       const xOf = (/** @type {number} */ day) => ((day - view.a + 0.5) / (view.b - view.a + 1)) * plotRight();
@@ -1496,18 +1510,24 @@
           for (const m of shown < 150 ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] : [0, 3, 6, 9]) label((Date.UTC(y, m, 1) - EPOCH) / DAY, m ? MONTHS[m] : String(y));
         }
 
-        // A line down the day shown, its price ringed, its date tagged along the foot (its price is said above).
-        if (seen) {
-          const x = Math.round(xOf(day)) + 0.5, y = yOf(d.close[day]);
-          ctx.fillStyle = paint.line;
-          ctx.fillRect(x - 0.5, 0, 1, bottom + 8 + LANE);
+        // The day kept, a firm line down it; the day pointed at, if another, a fainter one; each its price ringed. The day
+        // shown's date tagged along the foot (its price is said above).
+        const mark = (/** @type {number} */ at, /** @type {boolean} */ kept) => {
+          if (at < view.a - 0.5 || at > view.b + 0.5) return;
+          const x = Math.round(xOf(at)) + 0.5, y = yOf(d.close[at]);
+          ctx.fillStyle = withAlpha(paint.ink, kept ? 0.6 : 0.28);
+          ctx.fillRect(x - (kept ? 0.75 : 0.5), 0, kept ? 1.5 : 1, bottom + 8 + LANE);
           ctx.beginPath();
           ctx.arc(x, y, 4.5, 0, Math.PI * 2);
-          ctx.fillStyle = paint.states[d.state[day]];
+          ctx.fillStyle = paint.states[d.state[at]];
           ctx.fill();
           ctx.lineWidth = 2;
           ctx.strokeStyle = paint.app;
           ctx.stroke();
+        };
+        if (pinned !== null && pinned !== day) mark(pinned, true);
+        mark(day, day === pinned);
+        if (seen) {
           ctx.font = "600 11.5px Inter, system-ui, sans-serif";
           ctx.textBaseline = "middle";
           ctx.fillStyle = paint.ink;
@@ -1589,8 +1609,9 @@
       /** The view on `length` days from `a`, kept within the history; moved by hand, so no span's pressed. */
       function viewTo(/** @type {number} */ a, /** @type {number} */ length) {
         const d = /** @type {Days} */ (days);
-        length = Math.max(FEWEST, Math.min(d.last - d.first + 1, length));
-        a = Math.max(d.first, Math.min(d.last - length + 1, a));
+        // (All the history at most, with ROOM past its latest day; at most as far right as leaves that room.)
+        length = Math.max(FEWEST, Math.min((d.last - d.first + 1) / (1 - roomShare()), length));
+        a = Math.max(d.first, Math.min(d.last + roomShare() * length - length + 1, a));
         // (Already there, at an end: nothing moves, the span stays pressed.)
         if (Math.abs(a - view.a) < 1e-6 && Math.abs(a + length - 1 - view.b) < 1e-6) return;
         easing = null;
@@ -1603,9 +1624,10 @@
       }
       /** The view moved just enough to show a day (by its nearer end), as long as it is. */
       function keepVisible(/** @type {number} */ day) {
-        const length = target.b - target.a + 1;
+        const length = target.b - target.a + 1, room = roomShare() * length;
         if (day < Math.ceil(target.a)) viewTo(day, length);
-        else if (day > Math.floor(target.b + 0.5)) viewTo(day - length + 1, length);
+        // (Past its right: brought in where the latest day sits, the room after it.)
+        else if (day > Math.floor(target.b - room + 0.5)) viewTo(day + room - length + 1, length);
       }
 
       function size() {
@@ -1614,6 +1636,11 @@
         height = box.height;
         plotTop = $("hero").getBoundingClientRect().bottom - box.top + TOP_GAP;
         footTop = $("foot").getBoundingClientRect().top - box.top;
+        // (The room past the latest day is in pixels: a new width, the view's days measured again for it.)
+        if (days && !easing) {
+          if (span !== -1) (target = spanOf(span)), (view = { ...target });
+          else viewTo(view.a, view.b - view.a + 1);
+        }
         redraw();
       }
       for (const part of [chart, $("hero"), $("foot")]) new ResizeObserver(size).observe(part);
@@ -1735,7 +1762,7 @@
           // (About the day shown, where it is in the chart.)
           e.preventDefault();
           stopPlay();
-          const length = target.b - target.a + 1, next = Math.max(FEWEST, Math.min(d.last - d.first + 1, length * (e.key === "-" ? 1.25 : 0.8))), share = (at - target.a) / length;
+          const length = target.b - target.a + 1, next = Math.max(FEWEST, Math.min((d.last - d.first + 1) / (1 - roomShare()), length * (e.key === "-" ? 1.25 : 0.8))), share = (at - target.a) / length;
           viewTo(at - share * next, next);
         } else if (e.key === "Escape" && (pinned !== null || hovered !== null || d.last > target.b + 0.5)) {
           stopPlay();
@@ -1771,7 +1798,7 @@
       /** Which part of the window a point's on (its ends 10px wide, the window itself, or neither). */
       /** @returns {"start" | "end" | "window" | null} */
       function panPart(/** @type {number} */ x) {
-        const a = panX(view.a), b = panX(view.b + 1);
+        const a = panX(view.a), b = Math.min(pan.clientWidth, panX(view.b + 1));
         // (A window too short for its ends to be held apart is held whole, across the 12px it's drawn at at least, and
         // 6px about: a span's button or the keys size it.)
         if (b - a < 24) return x >= a - 6 && x <= Math.max(b, a + 12) + 6 ? "window" : null;
@@ -1807,7 +1834,7 @@
         panContext.drawImage(panBase, 0, 0);
         // (Outside the window, dimmed.)
         panContext.setTransform(dpr, 0, 0, dpr, 0, 0);
-        const a = panX(view.a), b = panX(view.b + 1);
+        const a = panX(view.a), b = Math.min(pan.clientWidth, panX(view.b + 1));
         panContext.fillStyle = withAlpha(paint.app, 0.6);
         panContext.fillRect(0, 0, a, h);
         panContext.fillRect(b, 0, w - b, h);
@@ -1838,7 +1865,11 @@
         else if (panning.part === "start") {
           const start = Math.max(days.first, Math.min(a + moved, b - FEWEST + 1));
           viewTo(start, b - start + 1);
-        } else viewTo(a, Math.min(days.last, Math.max(b + moved, a + FEWEST - 1)) - a + 1);
+        } else {
+          // (Its right end at most where the latest day keeps its room after it: b = last + share × (b − a + 1).)
+          const share = roomShare(), end = Math.min((days.last + share * (1 - a)) / (1 - share), Math.max(b + moved, a + FEWEST - 1));
+          viewTo(a, end - a + 1);
+        }
       });
       for (const type of ["pointerup", "pointercancel"]) pan.addEventListener(type, () => ((panning = null), pan.classList.remove("dragging")));
 
@@ -1986,19 +2017,19 @@
         stripContext.setTransform(1, 0, 0, 1, 0, 0);
         stripContext.clearRect(0, 0, strip.width, strip.height);
         stripContext.drawImage(stripBase, 0, 0);
-        // (The playhead: a line through the band, a knob on it, ringed in the page's colour.)
+        // (The playhead: a slim hollow capsule around the band on the day, the band seen through it, a stick up and down
+        // from its ends.)
         stripContext.setTransform(dpr, 0, 0, dpr, 0, 0);
         const x = BAND.side + ((shownDay() - d.first + 0.5) / (d.last - d.first + 1)) * (w - 2 * BAND.side);
-        stripContext.fillStyle = paint.app;
-        stripContext.fillRect(x - 2.5, 2, 5, h - 4);
+        const top = BAND.top - 3, bottom = BAND.top + BAND.states + BAND.gap + BAND.trends + 3, half = 4.5;
         stripContext.fillStyle = paint.ink;
-        stripContext.fillRect(x - 1, 3, 2, h - 6);
+        stripContext.fillRect(x - 1, 1, 2, Math.max(0, top - 1));
+        stripContext.fillRect(x - 1, bottom, 2, Math.max(0, h - 1 - bottom));
         stripContext.beginPath();
-        stripContext.arc(x, h / 2, 6, 0, Math.PI * 2);
-        stripContext.lineWidth = 2.5;
-        stripContext.strokeStyle = paint.app;
+        stripContext.roundRect(x - half, top, 2 * half, bottom - top, half);
+        stripContext.lineWidth = 2;
+        stripContext.strokeStyle = paint.ink;
         stripContext.stroke();
-        stripContext.fill();
       }
       /** The slider on the day shown, said as the chart's is. */
       function syncSlider() {
@@ -2063,7 +2094,7 @@
         }
         const d = days, at = shownDay();
         playFrom = at >= d.last ? Math.max(d.first, Math.ceil(target.a)) : at;
-        playSpeed = (target.b - target.a + 1) / 8000;
+        playSpeed = (Math.min(d.last, target.b) - target.a + 1) / 8000;
         playAt = performance.now();
         hovered = null;
         gliding = 0;
