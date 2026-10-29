@@ -919,7 +919,8 @@
         }
       }
 
-      /* How it reads: three parts, each a heading and its words. */
+      /* How it reads: three parts, each its number, a heading and its words; side by side, on rows they share, so each
+         part's heading and words start level with the others' whichever wraps. */
       .how {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
@@ -935,23 +936,29 @@
         }
 
         li {
-          counter-increment: part;
-        }
-
-        h3 {
-          display: flex;
-          align-items: baseline;
+          display: grid;
+          align-content: start;
           gap: 10px;
-          margin-bottom: 10px;
-          color: var(--ink);
-          font: 400 24px/1.2 var(--serif);
+          counter-increment: part;
 
+          @media (min-width: 900px) {
+            grid-row: span 3;
+            grid-template-rows: subgrid;
+          }
+
+          /* (Its number, a line of its own over its heading.) */
           &::before {
             content: "0" counter(part);
             color: var(--faint);
-            font: 600 12px var(--sans);
+            font: 600 12px/1 var(--sans);
             font-variant-numeric: tabular-nums;
+            letter-spacing: 0.04em;
           }
+        }
+
+        h3 {
+          color: var(--ink);
+          font: 400 24px/1.2 var(--serif);
         }
 
         p {
@@ -1101,18 +1108,24 @@
         <ol class="how">
           <li>
             <h3>The long-term cloud: how holders feel</h3>
-            <p><span id="cloud-what">The 40th and the 60th percentile of the price paid</span>, by dollar, by coins held <b>over 4 months</b>, <b>over 5 months</b> and <b>over 6 months</b>: <span id="cloud-count">six</span> lines close together, the cloud between them.</p>
-            <p><span id="cloud-long"></span> That's the compass's north and south.</p>
+            <div>
+              <p><span id="cloud-what">The 40th and the 60th percentile of the price paid</span>, by dollar, by coins held <b>over 4 months</b>, <b>over 5 months</b> and <b>over 6 months</b>: <span id="cloud-count">six</span> lines close together, the cloud between them.</p>
+              <p><span id="cloud-long"></span> That's the compass's north and south.</p>
+            </div>
           </li>
           <li>
             <h3>The short-term cloud: how recent buyers feel</h3>
-            <p>The same for coins held <b>under 4 months</b>, <b>under 5 months</b> and <b>under 6 months</b>: what recent buyers paid.</p>
-            <p><span id="cloud-short"></span> That's east and west. Price is each day's close.</p>
+            <div>
+              <p>The same for coins held <b>under 4 months</b>, <b>under 5 months</b> and <b>under 6 months</b>: what recent buyers paid.</p>
+              <p><span id="cloud-short"></span> That's east and west. Price is each day's close.</p>
+            </div>
           </li>
           <li>
             <h3>Three trends set the territory</h3>
-            <p>For the same three short-term groups, a line on the <b>lowest</b> price any of their coins was bought at, a support, until price touches it; then on the <b>highest</b>, a resistance, until price touches that.</p>
-            <p>When all three hold supports, it's <b>bull</b> territory; all three resistances, <b>bear</b>; split, <b>limbo</b>.</p>
+            <div>
+              <p>For the same three short-term groups, a line on the <b>lowest</b> price any of their coins was bought at, a support, until price touches it; then on the <b>highest</b>, a resistance, until price touches that.</p>
+              <p>When all three hold supports, it's <b>bull</b> territory; all three resistances, <b>bear</b>; split, <b>limbo</b>.</p>
+            </div>
           </li>
         </ol>
         <p class="note">Every line here is by dollars and counts mostly the coins that move (<span id="weighting">each age group weighted by how likely its coins are ever to be spent</span>), so lost coins don't hold a cloud down. Every state is read from that day's numbers alone, never from what came after: today's can change by tonight's close.</p>
