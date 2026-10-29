@@ -33571,11 +33571,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const supported = supportedIntervals();
         return choicePage("Interval", () => INTERVAL_ORDER.map((id) => ({ key: id, icon: ICONS.recent, label: CADENCE[id], aside: INTERVAL_LABEL[id], current: chart.index === id, ...(supported(id) ? { run: () => switchInterval(id) } : { disabled: NO_INTERVAL }) })));
       }
-      /** The ways to add a layer, as ⌘K's rows (under `group`): a series, a formula, a cloud, a trend. */
+      /** The ways to add a layer, as ⌘K's rows (under `group`): a series, a formula, a cloud, bubbles, a signal, a trend, a heatmap. */
       const addRows = (/** @type {string} */ group) => [
         { key: "add-series", icon: ICONS.plus, label: "Add a layer", kbd: "A", verb: "Add", leads: true, stay: true, run: () => openPalette({ add: true }) },
         { key: "add-formula", icon: ICONS.formula, label: "Add a formula", kbd: "F", verb: "Add", leads: true, stay: true, run: addFormula },
         ...(chart.layers.length ? [{ key: "add-cloud", icon: ICONS.cloud, label: "Add a cloud", page: () => fromPage("cloud") }] : []),
+        ...(markable(chart).length ? [
+          { key: "add-bubbles", icon: glyph("bubbles"), label: "Add bubbles", verb: "Add", leads: true, stay: true, run: () => openPalette({ add: true, bubbles: true }) },
+          { key: "add-signal", icon: ICONS.signal, label: "Add a signal", verb: "Add", leads: true, stay: true, run: addSignal },
+        ] : []),
         ...(cloudable() ? [{ key: "add-trend", icon: ICONS.riding, label: "Add a trend", page: () => fromPage("trend"), ...(trendShort() ? { aside: trendShort(), disabled: trendShort() } : {}) }] : []),
         { key: "add-heatmap", icon: ICONS.heatmap, label: "Add a heatmap", aside: "Supply by cost basis, day by day", page: heatAddPage },
       ].map((row) => ({ kind: "row", group, ...row }));
