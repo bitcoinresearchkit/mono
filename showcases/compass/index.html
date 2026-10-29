@@ -12,6 +12,11 @@
     <meta name="description" content="Where Bitcoin's market stands, day by day since 2011: price against what its long-term and short-term holders paid, and which way their trends point, in nine named states, with how long each has lasted." />
     <meta property="og:title" content="Compass · Bitview" />
     <meta property="og:description" content="Where Bitcoin's market stands, day by day since 2011: price against what its long-term and short-term holders paid, and which way their trends point, in nine named states, with how long each has lasted." />
+    <meta property="og:image" content="https://bitview.space/compass/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Compass on a day of Despair with a bull trend: the state's name over four years of price, each day coloured by its state, the trend's lane under it" />
+    <meta name="twitter:card" content="summary_large_image" />
     <link rel="icon" type="image/svg+xml" href="/assets/favicon/favicon.svg" />
     <style>
       @font-face {
@@ -39,8 +44,8 @@
         --line: light-dark(rgb(20 24 29 / 0.14), rgb(230 235 240 / 0.12));
         --grid: light-dark(rgb(20 24 29 / 0.06), rgb(230 235 240 / 0.05));
         --focus: light-dark(rgb(20 24 29 / 0.6), rgb(230 235 240 / 0.6));
-        --cloud-long: light-dark(rgb(20 24 29 / 0.16), rgb(230 235 240 / 0.15));
-        --cloud-short: light-dark(rgb(20 24 29 / 0.09), rgb(230 235 240 / 0.08));
+        --cloud-long: light-dark(rgb(20 24 29 / 0.08), rgb(230 235 240 / 0.07));
+        --cloud-short: light-dark(rgb(20 24 29 / 0.1), rgb(230 235 240 / 0.09));
         /* The nine states: greens where the cycle's up, reds where it's down, the moves against it cooler. (Each as
            text on the page, 4.5:1 and more in either scheme.) */
         --s-bull: light-dark(oklch(0.5 0.15 150), oklch(0.78 0.18 150));
@@ -49,9 +54,13 @@
         --s-recovery: light-dark(oklch(0.5 0.1 190), oklch(0.8 0.12 190));
         --s-crossroads: light-dark(oklch(0.52 0.02 250), oklch(0.76 0.02 250));
         --s-breakdown: light-dark(oklch(0.52 0.16 52), oklch(0.78 0.16 52));
-        --s-relief: light-dark(oklch(0.5 0.15 275), oklch(0.75 0.13 275));
+        --s-bounce: light-dark(oklch(0.5 0.15 275), oklch(0.75 0.13 275));
         --s-stalling: light-dark(oklch(0.52 0.17 345), oklch(0.74 0.16 345));
         --s-bear: light-dark(oklch(0.52 0.19 27), oklch(0.7 0.19 27));
+        /* The three trends' lines: under 4 months, 5 months, 6 months (as Studio's Compass preset colours them). */
+        --t-4m: light-dark(oklch(0.62 0.14 95), oklch(0.85 0.15 95));
+        --t-5m: light-dark(oklch(0.6 0.16 60), oklch(0.78 0.16 60));
+        --t-6m: light-dark(oklch(0.55 0.19 27), oklch(0.7 0.19 27));
         --sans: Inter, -apple-system, system-ui, sans-serif;
         --serif: "Instrument Serif", ui-serif, Georgia, serif;
         --gutter: max(16px, env(safe-area-inset-left));
@@ -63,8 +72,8 @@
           --soft: light-dark(#323a43, #bcc5ce);
           --faint: light-dark(#454e58, #9aa6b2);
           --line: light-dark(rgb(20 24 29 / 0.3), rgb(230 235 240 / 0.27));
-          --cloud-long: light-dark(rgb(20 24 29 / 0.26), rgb(230 235 240 / 0.24));
-          --cloud-short: light-dark(rgb(20 24 29 / 0.16), rgb(230 235 240 / 0.15));
+          --cloud-long: light-dark(rgb(20 24 29 / 0.14), rgb(230 235 240 / 0.13));
+          --cloud-short: light-dark(rgb(20 24 29 / 0.17), rgb(230 235 240 / 0.16));
         }
       }
 
@@ -140,13 +149,26 @@
 
       /* ── The first screen: the bar, where it stands, the chart filling the rest ── */
 
+      /* The first screen is the chart, edge to edge; the bar, where it stands and the foot sit over it, the plot drawn
+         between them. Only what's pressed over it takes the pointer: the rest of the screen moves the chart. */
       .stage {
+        position: relative;
         display: flex;
         flex-direction: column;
         height: 100svh;
         min-height: 600px;
         max-height: 1100px;
         padding-bottom: max(8px, env(safe-area-inset-bottom));
+
+        > :is(.bar, .hero, .foot) {
+          position: relative;
+          z-index: 1;
+          pointer-events: none;
+        }
+
+        :is(a, button, .pan) {
+          pointer-events: auto;
+        }
       }
 
       .bar {
@@ -215,6 +237,7 @@
         }
 
         .facts {
+          width: fit-content;
           display: flex;
           flex-wrap: wrap;
           align-items: center;
@@ -290,10 +313,9 @@
       /* The chart, everything down to its foot: price, the two clouds, the days coloured by their state, the trends'
          lane under them. */
       .chart {
-        position: relative;
-        flex: 1;
+        position: absolute;
+        inset: 0;
         margin: 0;
-        min-height: 240px;
         touch-action: pan-y;
         user-select: none;
         -webkit-user-select: none;
@@ -310,15 +332,15 @@
         &.loading::after {
           content: "";
           position: absolute;
-          inset: 12% 64px 34px 0;
-          border-radius: 12px;
+          inset: 50% 104px 120px 0;
+          border-radius: 0 12px 12px 0;
           background: var(--grid);
         }
       }
 
       .failed {
         position: absolute;
-        inset: 0 64px 34px 0;
+        inset: 40% 16px auto;
         display: grid;
         place-content: center;
         justify-items: center;
@@ -346,50 +368,82 @@
         flex-wrap: wrap;
         align-items: center;
         justify-content: space-between;
-        gap: 8px 20px;
-        flex: none;
+        gap: 10px 12px;
+        margin-top: auto;
         padding-top: 10px;
         font-size: 12.5px;
         color: var(--soft);
 
-        .key {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 4px 16px;
-          margin: 0;
-          padding: 0;
-          list-style: none;
+        /* (On a phone, the pan bar a row of its own, the buttons under it.) */
+        @media (max-width: 719px) {
+          .pan {
+            flex-basis: 100%;
+          }
+        }
+      }
 
-          li {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
+      /* The pan bar (Studio's navigator, as this page draws): all the history, the chart's days a window on it. */
+      .pan {
+        position: relative;
+        flex: 1 1 240px;
+        min-width: 0;
+        height: 32px;
+        overflow: hidden;
+        border-radius: 8px;
+        box-shadow: inset 0 0 0 1px var(--line);
+        touch-action: none;
+        cursor: pointer;
+
+        canvas {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+        }
+
+        .window {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: var(--from, 0);
+          width: max(var(--to, 0) - var(--from, 0), 12px);
+          border-radius: 8px;
+          box-shadow: inset 0 0 0 1.5px var(--soft);
+          pointer-events: none;
+
+          &::before,
+          &::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 2px;
+            height: 12px;
+            border-radius: 1px;
+            background: var(--soft);
+            transform: translateY(-50%);
           }
 
-          i {
-            width: 16px;
-            height: 9px;
-            border-radius: 2px;
+          &::before {
+            left: 4px;
           }
 
-          .long {
-            background: var(--cloud-long);
-            box-shadow: inset 0 0 0 1px var(--line);
+          &::after {
+            right: 4px;
           }
+        }
 
-          .short {
-            background: var(--cloud-short);
+        &:hover .window,
+        &.dragging .window {
+          box-shadow: inset 0 0 0 1.5px var(--ink);
+
+          &::before,
+          &::after {
+            background: var(--ink);
           }
+        }
 
-          .lane {
-            display: inline-flex;
-            gap: 2px;
-
-            i {
-              width: 8px;
-              background: var(--c);
-            }
-          }
+        &.dragging {
+          cursor: grabbing !important;
         }
       }
 
@@ -613,15 +667,83 @@
         }
       }
 
+      /* Every day as a strip, each in its state's colour over its trend's, a playhead on the day shown: the chart's day,
+         picked from down here too. As wide as the compass's cells; the slider half its thumb wider each side, so the
+         thumb's middle is on its day. */
+      .scrub {
+        position: relative;
+        width: calc(min(100%, 560px) * 600 / 680);
+        height: 36px;
+        margin: 18px auto 0;
+
+        /* (8px past each end, for the playhead's knob there.) */
+        canvas {
+          position: absolute;
+          top: 0;
+          left: -8px;
+          width: calc(100% + 16px);
+          height: 100%;
+        }
+
+        input {
+          position: absolute;
+          top: 0;
+          left: -14px;
+          width: calc(100% + 28px);
+          height: 100%;
+          margin: 0;
+          background: none;
+          appearance: none;
+          -webkit-appearance: none;
+          cursor: pointer;
+
+          &:disabled {
+            cursor: default;
+          }
+
+          &::-webkit-slider-runnable-track {
+            height: 36px;
+            background: none;
+          }
+
+          &::-moz-range-track {
+            height: 36px;
+            background: none;
+          }
+
+          /* (Its thumb unseen, 28px to take hold of: the playhead's drawn under it.) */
+          &::-webkit-slider-thumb {
+            width: 28px;
+            height: 36px;
+            border: 0;
+            background: none;
+            appearance: none;
+            -webkit-appearance: none;
+          }
+
+          &::-moz-range-thumb {
+            width: 28px;
+            height: 36px;
+            border: 0;
+            background: none;
+          }
+        }
+      }
+
       .compass-foot {
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        max-width: 560px;
-        margin: 14px auto 0;
+        width: calc(min(100%, 560px) * 600 / 680);
+        margin: 10px auto 0;
         color: var(--soft);
         font-size: 13px;
+
+        b {
+          color: var(--ink);
+          font-weight: 600;
+        }
       }
 
       /* Time in each: a row a state, longest first, its bar its share of every day; the trends after, the same way. */
@@ -795,30 +917,26 @@
     </style>
   </head>
   <body>
-    <div class="stage shell">
-      <header class="bar">
+    <div class="stage">
+      <figure class="chart loading" id="chart" tabindex="0" aria-label="Bitcoin's price day by day, each day coloured by its state, the trend under it: arrows move a day (Shift: a month), plus and minus zoom, Home and End go to the ends, Escape goes back to today">
+        <canvas id="canvas" aria-hidden="true"></canvas>
+        <div class="failed" id="failed" hidden></div>
+      </figure>
+      <header class="bar shell">
         <a class="brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>
       </header>
 
-      <section class="hero" id="hero" aria-labelledby="state">
+      <section class="hero shell" id="hero" aria-labelledby="state">
         <p class="day"><span id="day">Today</span><button type="button" class="today" id="today" hidden>Back to today</button></p>
         <h1 id="state"><span class="sr">Compass: </span><span id="name">…</span></h1>
         <p class="facts"><span class="trend" id="trend"></span><span class="num" id="price"></span><span class="run" id="since"></span></p>
         <p class="why" id="why"></p>
       </section>
 
-      <figure class="chart loading" id="chart" tabindex="0" aria-label="Bitcoin's price day by day, each day coloured by its state, the trend under it: arrows move a day (Shift: a month), Home and End go to the ends, Escape goes back to today">
-        <canvas id="canvas" aria-hidden="true"></canvas>
-        <div class="failed" id="failed" hidden></div>
-      </figure>
-      <div class="foot">
-        <ul class="key">
-          <li><i class="long" aria-hidden="true"></i>Long-term cloud</li>
-          <li><i class="short" aria-hidden="true"></i>Short-term cloud</li>
-          <li><span class="lane" aria-hidden="true"><i style="--c: var(--s-bull)"></i><i style="--c: var(--s-crossroads)"></i><i style="--c: var(--s-bear)"></i></span>Trend: bull, limbo, bear</li>
-        </ul>
+      <div class="foot shell" id="foot">
+        <div class="pan" id="pan" aria-hidden="true"><canvas id="pan-canvas"></canvas><div class="window"></div></div>
         <div class="controls">
-          <button type="button" class="replay" data-replay disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Replay</span></button>
+          <button type="button" class="replay" data-replay disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Play</span></button>
           <div class="ranges" role="group" aria-label="Span">
             <button type="button" data-span="91" aria-pressed="false">3M</button>
             <button type="button" data-span="365" aria-pressed="false">1Y</button>
@@ -840,9 +958,13 @@
             <div class="compass">
               <svg id="compass" viewBox="-40 -40 680 890" role="img" aria-label="The nine states as a compass, the three trends under it"></svg>
             </div>
+            <div class="scrub">
+              <canvas id="strip" aria-hidden="true"></canvas>
+              <input type="range" id="slider" min="0" max="0" value="0" disabled aria-label="The day shown, across the chart's span: the same as the chart's" />
+            </div>
             <div class="compass-foot">
-              <span>The half year before the day as a path; its trend lit.</span>
-              <button type="button" class="replay" data-replay disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Replay</span></button>
+              <span><b id="scrub-day">Today</b>: the half year before it as a path, its trend lit.</span>
+              <button type="button" class="replay" data-replay disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Play</span></button>
             </div>
           </div>
           <div class="shares">
@@ -863,19 +985,19 @@
         <header><h2 id="how-title">How it reads</h2></header>
         <ol class="how">
           <li>
-            <h3>The long-term cloud sets the cycle</h3>
-            <p>The median price paid by coins held <b>over 4 months</b>, <b>over 150 days</b> and <b>over 6 months</b>: three lines close together, the cloud between them.</p>
-            <p>Above it is a cycle's bull territory; below it, its bear territory; inside, a transition. That's the compass's north and south.</p>
+            <h3>The long-term cloud: how holders feel</h3>
+            <p>The median price paid by coins held <b>over 4 months</b>, <b>over 5 months</b> and <b>over 6 months</b>: three lines close together, the cloud between them.</p>
+            <p>Price above it, more than half of the dollars each of those groups put in is in profit; below it, more than half is at a loss; inside, the groups differ. That's the compass's north and south.</p>
           </li>
           <li>
-            <h3>The short-term cloud sets the moment</h3>
-            <p>The same for coins held <b>under 4 months</b>, <b>under 150 days</b> and <b>under 6 months</b>: what recent buyers paid.</p>
-            <p>Above it, the moment is bullish; below it, bearish; inside, undecided. That's east and west. Price is each day's close.</p>
+            <h3>The short-term cloud: how recent buyers feel</h3>
+            <p>The same for coins held <b>under 4 months</b>, <b>under 5 months</b> and <b>under 6 months</b>: what recent buyers paid.</p>
+            <p>Above it, more than half of what each group paid is in profit; below it, more than half is at a loss; inside, the groups differ. That's east and west. Price is each day's close.</p>
           </li>
           <li>
-            <h3>Three trends set the direction</h3>
+            <h3>Three trends set the territory</h3>
             <p>For the same three short-term groups, a line on the <b>lowest</b> price any of their coins was bought at, a support, until price touches it; then on the <b>highest</b>, a resistance, until price touches that.</p>
-            <p>When all three hold supports, the trend is <b>bull</b>; all three resistances, <b>bear</b>; split, it's in <b>limbo</b>.</p>
+            <p>When all three hold supports, it's <b>bull</b> territory; all three resistances, <b>bear</b>; split, <b>limbo</b>.</p>
           </li>
         </ol>
         <p class="note">A median here is by dollars and leaves out coins unlikely ever to move (each age group weighted by how likely its coins are to be spent), so lost coins don't hold a cloud down. Every state is read from that day's numbers alone, never from what came after: today's can change by tonight's close.</p>
@@ -908,7 +1030,7 @@
         { id: "recovery", name: "Recovery", cycle: 0, local: 1 },
         { id: "crossroads", name: "Crossroads", cycle: 0, local: 0 },
         { id: "breakdown", name: "Breakdown", cycle: 0, local: -1 },
-        { id: "relief", name: "Relief rally", cycle: -1, local: 1 },
+        { id: "bounce", name: "Bounce", cycle: -1, local: 1 },
         { id: "stalling", name: "Stalling", cycle: -1, local: 0 },
         { id: "bear", name: "Despair", cycle: -1, local: -1 },
       ];
@@ -948,8 +1070,11 @@
       };
 
       /** @typedef {{ start: number, data: (number | null)[] }} Answer */
+      /** The first day read: the price begins in July 2010, nothing before it counts. */
+      const START = (Date.UTC(2010, 6, 1) - EPOCH) / DAY;
+      /** A series by id, from START. */
       async function read(/** @type {string} */ id) {
-        const response = await fetch(`/api/series/${id}/day1`).catch((error) => {
+        const response = await fetch(`/api/series/${id}/day1?start=${START}`).catch((error) => {
           throw error instanceof TypeError ? new Error("this server couldn't be reached") : error;
         });
         const body = await response.json().catch(() => null);
@@ -988,7 +1113,7 @@
       /**
        * Every day's: close, each cloud's bottom and top, the state, the trend (0 up, 1 turning, 2 down), and where on
        * the compass (x the moment's, y the cycle's, each -1 to 1).
-       * @typedef {{ first: number, last: number, close: Float64Array, cloud: { long: [Float64Array, Float64Array], short: [Float64Array, Float64Array] }, state: Int8Array, trend: Int8Array, x: Float32Array, y: Float32Array }} Days
+       * @typedef {{ first: number, last: number, close: Float64Array, cloud: { long: [Float64Array, Float64Array], short: [Float64Array, Float64Array] }, trendLines: { sides: Int8Array, values: Float64Array }[], state: Int8Array, trend: Int8Array, x: Float32Array, y: Float32Array }} Days
        */
       /** @type {Days | null} */
       let days = null;
@@ -1039,7 +1164,9 @@
           for (const edge of [...long, ...short]) edge[i] = edge[i - 1];
           (state[i] = state[i - 1]), (trend[i] = trend[i - 1]), (x[i] = x[i - 1]), (y[i] = y[i - 1]);
         }
-        return { first, last, close, cloud: { long, short }, state, trend, x, y };
+        // (Each trend's line: its floor while on a support, its ceiling while on a resistance.)
+        const trendLines = trends.map((sides, k) => ({ sides, values: Float64Array.from(sides, (side, i) => (side === 1 ? floors[k][i] : side === -1 ? ceilings[k][i] : NaN)) }));
+        return { first, last, close, cloud: { long, short }, trendLines, state, trend, x, y };
       }
 
       /** The run of days a day's state belongs to: its first and its last. */
@@ -1050,15 +1177,15 @@
         return [a, b];
       }
 
-      /** Each kind's share of days, its runs and their median length. */
-      function tally(/** @type {Int8Array} */ of, /** @type {number} */ kinds) {
+      /** Each kind's share of the days from the first to a day (the last, unsaid), its runs and their median length. */
+      function tally(/** @type {Int8Array} */ of, /** @type {number} */ kinds, upTo = /** @type {Days} */ (days).last) {
         const d = /** @type {Days} */ (days), count = new Array(kinds).fill(0), runs = Array.from({ length: kinds }, () => /** @type {number[]} */ ([]));
         let since = d.first;
-        for (let i = d.first; i <= d.last; i++) {
+        for (let i = d.first; i <= upTo; i++) {
           count[of[i]]++;
-          if (i === d.last || of[i + 1] !== of[i]) runs[of[i]].push(i - since + 1), (since = i + 1);
+          if (i === upTo || of[i + 1] !== of[i]) runs[of[i]].push(i - since + 1), (since = i + 1);
         }
-        const total = d.last - d.first + 1;
+        const total = upTo - d.first + 1;
         return count.map((c, k) => {
           const sorted = runs[k].sort((a, b) => a - b);
           const mid = sorted.length >> 1;
@@ -1076,12 +1203,13 @@
         probe.remove();
         return color;
       }
-      /** @type {{ states: string[], trends: string[], ink: string, faint: string, grid: string, line: string, long: string, short: string, app: string }} */
+      /** @type {{ states: string[], trends: string[], lines: string[], ink: string, faint: string, grid: string, line: string, long: string, short: string, app: string }} */
       let paint;
       function repaint() {
         paint = {
           states: STATES.map((s) => resolved(`var(--s-${s.id})`)),
           trends: TRENDS.map((t) => resolved(`var(--s-${t.color})`)),
+          lines: ["4m", "5m", "6m"].map((months) => resolved(`var(--t-${months})`)),
           ink: resolved("var(--ink)"), faint: resolved("var(--faint)"), grid: resolved("var(--grid)"),
           line: resolved("var(--line)"), long: resolved("var(--cloud-long)"), short: resolved("var(--cloud-short)"), app: resolved("var(--app)"),
         };
@@ -1090,7 +1218,7 @@
       // ── What's shown: the span, the day ──
 
       const still = matchMedia("(prefers-reduced-motion: reduce)");
-      /** The chart's span in days (0: all), and the days it shows now (eased toward the span's). */
+      /** The chart's span in days (0: all; -1: none, moved by hand), and the days it shows now (eased toward the span's). */
       let span = 1461;
       let view = { a: 0, b: 0 }, target = { a: 0, b: 0 };
       /** The day shown above: pinned (kept), or under the pointer for now; else the last. */
@@ -1102,21 +1230,52 @@
         return { a: s ? Math.max(d.first, d.last - s + 1) : d.first, b: d.last };
       }
 
+      // ── The address: the span and the day kept, so a link opens on them (?span=1y&day=2021-11-10) ──
+
+      const SPANS = /** @type {Record<string, number>} */ ({ "3m": 91, "1y": 365, "4y": 1461, "8y": 2922, max: 0 });
+      const iso = (/** @type {number} */ day) => dateOf(day).toISOString().slice(0, 10);
+      /** The span's button pressed, none once the chart's been moved by hand. */
+      function pressSpans() {
+        for (const button of document.querySelectorAll("[data-span]")) button.setAttribute("aria-pressed", String(Number(/** @type {HTMLElement} */ (button).dataset.span) === span));
+      }
+      function remember() {
+        const query = new URLSearchParams(), name = Object.keys(SPANS).find((key) => SPANS[key] === span);
+        if (span !== 1461 && name) query.set("span", name);
+        if (pinned !== null) query.set("day", iso(pinned));
+        // (Safari refuses past 100 writes in 10 seconds: kept from it anyway, and written once a held key is let go.)
+        try {
+          history.replaceState(history.state, "", query.size ? `?${query}` : location.pathname);
+        } catch {}
+      }
+      /** What a link asks for, what it can of it: a span it names, a day from the first to the last but one, the span
+       * widened to show it. */
+      function readAddress() {
+        const d = /** @type {Days} */ (days), query = new URLSearchParams(location.search), asked = query.get("span"), day = query.get("day");
+        if (asked !== null && Object.hasOwn(SPANS, asked)) span = SPANS[asked];
+        const at = day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? (Date.parse(day) - EPOCH) / DAY : NaN;
+        if (Number.isInteger(at) && at >= d.first && at < d.last && iso(at) === day) pinned = at;
+        // (A day before the span: the shortest span that shows it.)
+        if (pinned !== null && span && pinned <= d.last - span) span = Object.values(SPANS).find((s) => !s || /** @type {number} */ (pinned) > d.last - s) ?? 0;
+      }
+
       // ── The chart ──
 
       const chart = $("chart"), canvas = /** @type {HTMLCanvasElement} */ ($("canvas")), ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
-      /** Its layout, in CSS pixels: the plot's right edge (the price axis after it), its bottom, the lane's. */
-      const AXIS = 60, LANE = 12, YEARS = 24;
-      let width = 0, height = 0;
+      /** Its layout, in CSS pixels: the price's column and the gutter after it, the trend's lane, the dates' row. */
+      const AXIS = 72, GUTTER = 16, LANE = 4, YEARS = 30;
+      /** The canvas's size; the plot's top (under where it stands) and the foot's top, measured. */
+      let width = 0, height = 0, plotTop = 0, footTop = 0;
       /** The plot's price range (logs), eased as the span's days change. */
       let range = { lo: 0, hi: 1 };
 
-      const plotRight = () => width - AXIS, plotBottom = () => height - YEARS - LANE - 10;
+      const plotRight = () => width - AXIS - GUTTER, plotBottom = () => footTop - YEARS - LANE - 8;
+      /** The dates' baseline, under the lane. */
+      const datesY = () => plotBottom() + 8 + LANE + 20;
       const xOf = (/** @type {number} */ day) => ((day - view.a + 0.5) / (view.b - view.a + 1)) * plotRight();
-      const yOf = (/** @type {number} */ price) => 8 + (1 - (Math.log(price) - range.lo) / (range.hi - range.lo)) * (plotBottom() - 8);
+      const yOf = (/** @type {number} */ price) => plotTop + (1 - (Math.log(price) - range.lo) / (range.hi - range.lo)) * (plotBottom() - plotTop);
       const dayAt = (/** @type {number} */ px) => {
         const d = /** @type {Days} */ (days);
-        return Math.max(Math.ceil(view.a), Math.min(d.last, Math.round(view.a - 0.5 + (px / plotRight()) * (view.b - view.a + 1))));
+        return Math.max(Math.ceil(view.a), Math.min(d.last, Math.floor(view.b + 0.5), Math.round(view.a - 0.5 + (px / plotRight()) * (view.b - view.a + 1))));
       };
 
       /** The price range of a span's days: its closes and both clouds, a little room above and below. */
@@ -1134,7 +1293,13 @@
 
       /** Price ticks on a log scale: 1, 2, 5 times powers of ten, as many as fit. */
       function ticks() {
-        const out = [], room = plotBottom() / 44;
+        const out = [], room = (plotBottom() - plotTop) / 44, lo = Math.exp(range.lo), hi = Math.exp(range.hi);
+        // (Over a narrow range, as a few months': even steps, 1, 2, 2.5 or 5 times a power of ten.)
+        if (hi / lo < 4) {
+          const raw = (hi - lo) / Math.max(2, Math.floor(room)), power = 10 ** Math.floor(Math.log10(raw)), step = /** @type {number} */ ([1, 2, 2.5, 5, 10].map((m) => m * power).find((v) => v >= raw));
+          for (let k = Math.ceil(lo / step); k * step <= hi; k++) out.push(k * step);
+          return out;
+        }
         for (const steps of [[1], [1, 2, 5], [1, 2, 3, 5, 7]]) {
           out.length = 0;
           for (let e = Math.floor(range.lo / Math.LN10); e <= Math.ceil(range.hi / Math.LN10); e++) {
@@ -1158,21 +1323,31 @@
         ctx.clearRect(0, 0, width, height);
         const a = Math.max(d.first, Math.floor(view.a)), b = Math.min(d.last, Math.ceil(view.b));
 
-        // (Price ticks across, their values at the right.)
+        // The day shown, and its date's tag along the foot (the labels it'd cover left out).
+        const day = shownDay(), seen = day >= view.a - 0.5 && day <= view.b + 0.5;
+        ctx.font = "600 11.5px Inter, system-ui, sans-serif";
+        const date = dated(day), dw = ctx.measureText(date).width + 14, dx = Math.max(dw / 2, Math.min(right - dw / 2, xOf(day)));
+
+        // (Price ticks across, their values at the right, but where the day's price is tagged.)
+        const tagY = seen ? Math.max(plotTop + 10, Math.min(bottom - 10, yOf(d.close[day]))) : NaN;
         ctx.font = "500 11.5px Inter, system-ui, sans-serif";
         ctx.textBaseline = "middle";
         ctx.textAlign = "left";
-        for (const v of ticks()) {
+        // (Top down, each at least 28px from the last kept: a log scale packs its upper ticks.)
+        let lastY = -Infinity;
+        for (const v of ticks().reverse()) {
           const y = Math.round(yOf(v)) + 0.5;
+          if (y - lastY < 28) continue;
+          lastY = y;
           ctx.fillStyle = paint.grid;
           ctx.fillRect(0, y - 0.5, right, 1);
           ctx.fillStyle = paint.faint;
-          ctx.fillText(short$(v), right + 10, y);
+          if (!(Math.abs(y - tagY) < 16)) ctx.fillText(short$(v), right + 10, y);
         }
 
         ctx.save();
         ctx.beginPath();
-        ctx.rect(0, 0, right, bottom + 1);
+        ctx.rect(0, plotTop - 8, right, bottom - plotTop + 9);
         ctx.clip();
 
         // The days under the price, each run of one state its colour, fading down.
@@ -1180,7 +1355,7 @@
           const s = d.state[i];
           let j = i;
           while (j + 1 <= b && d.state[j + 1] === s) j++;
-          const gradient = ctx.createLinearGradient(0, 0, 0, bottom);
+          const gradient = ctx.createLinearGradient(0, plotTop, 0, bottom);
           gradient.addColorStop(0, withAlpha(paint.states[s], 0.5));
           gradient.addColorStop(1, withAlpha(paint.states[s], 0.06));
           ctx.fillStyle = gradient;
@@ -1204,13 +1379,31 @@
           ctx.fill();
           if (!edged) continue;
           ctx.lineWidth = 1;
-          ctx.strokeStyle = paint.line;
+          ctx.strokeStyle = paint.grid;
           for (const edge of cloud) {
             ctx.beginPath();
             for (let i = a; i <= b; i++) ctx.lineTo(xOf(i), yOf(edge[i]));
             ctx.stroke();
           }
         }
+
+        // The three trends' lines, thin, dashed and faint, each its own colour, broken where they flip.
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        for (const [n, { sides, values }] of d.trendLines.entries()) {
+          for (let i = a; i <= b; ) {
+            let j = i;
+            while (j + 1 <= b && sides[j + 1] === sides[i]) j++;
+            if (sides[i]) {
+              ctx.beginPath();
+              for (let k = i; k <= j; k++) ctx.lineTo(xOf(k), yOf(values[k]));
+              ctx.strokeStyle = withAlpha(paint.lines[n], 0.4);
+              ctx.stroke();
+            }
+            i = j + 1;
+          }
+        }
+        ctx.setLineDash([]);
 
         // The price, over all of it.
         ctx.beginPath();
@@ -1219,53 +1412,68 @@
         ctx.lineWidth = 1.5;
         ctx.lineJoin = "round";
         ctx.stroke();
+
+        // Each cloud named at its right end, over its top (the short one under its bottom where they'd meet).
+        ctx.font = "500 11px Inter, system-ui, sans-serif";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "alphabetic";
+        ctx.lineWidth = 3;
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = paint.app;
+        ctx.fillStyle = paint.faint;
+        const longY = yOf(d.cloud.long[1][b]) - 6;
+        let shortY = yOf(d.cloud.short[1][b]) - 6;
+        if (Math.abs(shortY - longY) < 14) shortY = yOf(d.cloud.short[0][b]) + 14;
+        for (const [text, y] of /** @type {const} */ ([["Long-term cloud", longY], ["Short-term cloud", shortY]])) {
+          // (Not on a narrow plot, as a phone's, where they'd sit on the price: How it reads names them there.)
+          if (right < 560 || y < plotTop + 10 || y > bottom - 4) continue;
+          ctx.strokeText(text, right - 8, y);
+          ctx.fillText(text, right - 8, y);
+        }
         ctx.restore();
 
-        // The trend's lane, each run in its colour, named in the price's column.
+        // The trend's lane, thin and soft, each run in its colour, named in the price's column.
         const lane = bottom + 8;
         for (let i = a; i <= b; ) {
           const t = d.trend[i];
           let j = i;
           while (j + 1 <= b && d.trend[j + 1] === t) j++;
           const x0 = Math.max(0, xOf(i) - halfDay()), x1 = Math.min(right, xOf(j) + halfDay());
-          ctx.fillStyle = paint.trends[t];
+          ctx.fillStyle = withAlpha(paint.trends[t], 0.7);
           ctx.fillRect(x0, lane, x1 - x0, LANE);
           i = j + 1;
         }
+        ctx.font = "500 11px Inter, system-ui, sans-serif";
         ctx.fillStyle = paint.faint;
         ctx.textBaseline = "middle";
+        ctx.textAlign = "left";
         ctx.fillText("Trend", right + 10, lane + LANE / 2);
 
         // Years (or months, a year shown) along the foot.
+        ctx.font = "500 11.5px Inter, system-ui, sans-serif";
         ctx.fillStyle = paint.faint;
         ctx.textAlign = "center";
         ctx.textBaseline = "alphabetic";
         const shown = view.b - view.a, every = shown > 3000 ? 2 : 1;
         const from = dateOf(a), to = dateOf(b);
-        if (shown < 500) {
-          for (let y = from.getUTCFullYear(); y <= to.getUTCFullYear(); y++) {
-            for (const m of shown < 150 ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] : [0, 3, 6, 9]) {
-              const day = (Date.UTC(y, m, 1) - EPOCH) / DAY;
-              if (day < view.a || day > view.b) continue;
-              ctx.fillText(m ? MONTHS[m] : String(y), xOf(day), height - 6);
-            }
+        const label = (/** @type {number} */ at, /** @type {string} */ text) => {
+          const x = xOf(at);
+          if (at < view.a || at > view.b || x < 16 || x > right - 16 || (seen && Math.abs(x - dx) < dw / 2 + 18)) return;
+          ctx.fillText(text, x, datesY());
+        };
+        for (let y = from.getUTCFullYear(); y <= to.getUTCFullYear(); y++) {
+          if (shown >= 500) {
+            if (!(y % every)) label((Date.UTC(y, 0, 1) - EPOCH) / DAY, String(y));
+            continue;
           }
-        } else {
-          for (let y = from.getUTCFullYear() + 1; y <= to.getUTCFullYear(); y++) {
-            if (y % every) continue;
-            const day = (Date.UTC(y, 0, 1) - EPOCH) / DAY;
-            const x = xOf(day);
-            if (x < 16 || x > right - 16) continue;
-            ctx.fillText(String(y), x, height - 6);
-          }
+          for (const m of shown < 150 ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] : [0, 3, 6, 9]) label((Date.UTC(y, m, 1) - EPOCH) / DAY, m ? MONTHS[m] : String(y));
         }
 
-        // The day shown: a line down, its price ringed.
-        const day = shownDay();
-        if (day >= view.a - 0.5 && day <= view.b + 0.5) {
+        // A line down the day shown, its price ringed, tagged on the price's axis; its date tagged along the foot.
+        if (seen) {
           const x = Math.round(xOf(day)) + 0.5, y = yOf(d.close[day]);
           ctx.fillStyle = paint.line;
-          ctx.fillRect(x - 0.5, 0, 1, bottom + 8 + LANE);
+          ctx.fillRect(x - 0.5, plotTop, 1, bottom + 8 + LANE - plotTop);
           ctx.beginPath();
           ctx.arc(x, y, 4.5, 0, Math.PI * 2);
           ctx.fillStyle = paint.states[d.state[day]];
@@ -1273,70 +1481,136 @@
           ctx.lineWidth = 2;
           ctx.strokeStyle = paint.app;
           ctx.stroke();
+          ctx.font = "600 11.5px Inter, system-ui, sans-serif";
+          ctx.textBaseline = "middle";
+          const price = usd(d.close[day]), pw = ctx.measureText(price).width + 12, py = tagY;
+          ctx.fillStyle = paint.ink;
+          ctx.beginPath();
+          ctx.roundRect(right + 4, py - 10, pw, 20, 5);
+          ctx.roundRect(dx - dw / 2, datesY() - 14, dw, 20, 5);
+          ctx.fill();
+          ctx.fillStyle = paint.app;
+          ctx.textAlign = "left";
+          ctx.fillText(price, right + 10, py);
+          ctx.textAlign = "center";
+          ctx.fillText(date, dx, datesY() - 4);
         }
       }
       const halfDay = () => plotRight() / (view.b - view.a + 1) / 2;
       /** A colour at an opacity, as a canvas reads it (whatever form the browser resolved it to). */
       const withAlpha = (/** @type {string} */ color, /** @type {number} */ alpha) => `color-mix(in srgb, ${color} ${alpha * 100}%, transparent)`;
 
-      // (Drawn once a frame at most.)
+      // ── Drawing: one frame at a time, all that moves in it ──
+
+      /** A span's easing: where the view and the price range were as it began, where the range goes, when. @type {{ view: { a: number, b: number }, range: { lo: number, hi: number }, to: { lo: number, hi: number }, at: number } | null} */
+      let easing = null;
+      /** Whether the price range still eases after a view moved by hand. */
+      let following = false;
       let queued = 0;
-      const redraw = () => (queued ||= requestAnimationFrame(() => ((queued = 0), draw(), drawCompass())));
+      /** The one place anything's drawn, once a frame: a span's easing or the range's following moved on, a playing day
+       * moved on, then the chart, the compass, the strip and the pan bar. */
+      function frame(/** @type {number} */ now) {
+        queued = 0;
+        if (!days) return;
+        let more = false;
+        if (easing) {
+          const t = still.matches ? 1 : Math.min(1, (now - easing.at) / 300), e = 1 - (1 - t) ** 3, from = easing;
+          view = { a: from.view.a + (target.a - from.view.a) * e, b: from.view.b + (target.b - from.view.b) * e };
+          range = { lo: from.range.lo + (from.to.lo - from.range.lo) * e, hi: from.range.hi + (from.to.hi - from.range.hi) * e };
+          if (t < 1) more = true;
+          else easing = null;
+        } else if (following) {
+          const to = rangeOf(view), k = still.matches ? 1 : 0.3;
+          range = { lo: range.lo + (to.lo - range.lo) * k, hi: range.hi + (to.hi - range.hi) * k };
+          following = Math.abs(to.lo - range.lo) + Math.abs(to.hi - range.hi) > 1e-4;
+          more ||= following;
+        }
+        if (playing) more = advance(now) || more;
+        draw();
+        drawCompass();
+        drawStrip();
+        drawPan();
+        if (more) redraw();
+      }
+      const redraw = () => (queued ||= requestAnimationFrame(frame));
 
       /** To a span: the days and the price range eased there over 300 ms (at once, with reduced motion). */
-      let easing = 0;
       function goTo(/** @type {number} */ s) {
         stopPlay();
         span = s;
-        for (const button of document.querySelectorAll("[data-span]")) button.setAttribute("aria-pressed", String(Number(/** @type {HTMLElement} */ (button).dataset.span) === s));
+        pressSpans();
         target = spanOf(s);
-        const from = { ...view }, fromRange = { ...range }, toRange = rangeOf(target), start = performance.now();
-        cancelAnimationFrame(easing);
-        const step = (/** @type {number} */ now) => {
-          const t = still.matches || !view.b ? 1 : Math.min(1, (now - start) / 300), e = 1 - (1 - t) ** 3;
-          view = { a: from.a + (target.a - from.a) * e, b: from.b + (target.b - from.b) * e };
-          range = { lo: fromRange.lo + (toRange.lo - fromRange.lo) * e, hi: fromRange.hi + (toRange.hi - fromRange.hi) * e };
-          draw();
-          drawCompass();
-          if (t < 1) easing = requestAnimationFrame(step);
-        };
-        step(start);
+        // (A kept day before the new span: its first, so what's said and drawn agree.)
+        if (pinned !== null && pinned < target.a) pinned = Math.ceil(target.a);
+        easing = { view: { ...view }, range: { ...range }, to: rangeOf(target), at: performance.now() };
+        following = false;
+        remember();
+        show();
+      }
+
+      /** The fewest days the chart shows. */
+      const FEWEST = 30;
+      /** The view on `length` days from `a`, kept within the history; moved by hand, so no span's pressed. */
+      function viewTo(/** @type {number} */ a, /** @type {number} */ length) {
+        const d = /** @type {Days} */ (days);
+        length = Math.max(FEWEST, Math.min(d.last - d.first + 1, length));
+        a = Math.max(d.first, Math.min(d.last - length + 1, a));
+        // (Already there, at an end: nothing moves, the span stays pressed.)
+        if (Math.abs(a - view.a) < 1e-6 && Math.abs(a + length - 1 - view.b) < 1e-6) return;
+        easing = null;
+        view = { a, b: a + length - 1 };
+        target = { ...view };
+        if (span !== -1) (span = -1), pressSpans(), remember();
+        following = true;
+        tell();
+        redraw();
+      }
+      /** The view moved just enough to show a day (by its nearer end), as long as it is. */
+      function keepVisible(/** @type {number} */ day) {
+        const length = target.b - target.a + 1;
+        if (day < Math.ceil(target.a)) viewTo(day, length);
+        else if (day > Math.floor(target.b + 0.5)) viewTo(day - length + 1, length);
       }
 
       function size() {
         const box = chart.getBoundingClientRect();
         width = box.width;
         height = box.height;
-        draw();
+        plotTop = $("hero").getBoundingClientRect().bottom - box.top + 8;
+        footTop = $("foot").getBoundingClientRect().top - box.top;
+        redraw();
       }
-      new ResizeObserver(size).observe(chart);
+      for (const part of [chart, $("hero"), $("foot")]) new ResizeObserver(size).observe(part);
       // (A window moved to a screen of another density: drawn again at it, its size unchanged.)
       (function density() {
-        matchMedia(`(resolution: ${devicePixelRatio}dppx)`).addEventListener("change", () => (draw(), density()), { once: true });
+        matchMedia(`(resolution: ${devicePixelRatio}dppx)`).addEventListener("change", () => (redraw(), density()), { once: true });
       })();
 
-      // ── Pointing at a day ──
+      // ── Pointing at a day: a mouse shows the one under it, a click keeps it; a finger taps one, or slides across them
+      // and keeps the one it lifts on (an upright slide scrolls the page instead). The pan bar moves the chart. ──
 
-      // (A mouse shows the day under it and goes back as it leaves; a click keeps one. A finger drags across, and the
-      // day it lifts on is kept.)
       /** The day kept before a finger came down on the plot (undefined: none came down there). @type {number | null | undefined} */
       let kept;
+      const xIn = (/** @type {PointerEvent} */ e) => e.clientX - chart.getBoundingClientRect().left;
       chart.addEventListener("pointermove", (e) => {
         // (Not while a replay runs: it shows its own days.)
-        if (!days || playing || (e.pointerType !== "mouse" && !chart.hasPointerCapture(e.pointerId))) return;
-        const x = e.clientX - chart.getBoundingClientRect().left;
-        if (x > plotRight()) return;
-        hovered = dayAt(x);
-        if (e.pointerType !== "mouse") pinned = hovered;
+        if (!days || playing) return;
+        if (e.pointerType === "mouse") {
+          const x = xIn(e), y = e.clientY - chart.getBoundingClientRect().top, next = x <= plotRight() && y >= plotTop - 8 ? dayAt(x) : null;
+          if (next !== hovered) (hovered = next), show();
+          return;
+        }
+        if (kept === undefined) return;
+        hovered = pinned = dayAt(Math.min(xIn(e), plotRight()));
         show();
       });
       chart.addEventListener("pointerdown", (e) => {
         if (!days || e.button) return;
-        const x = e.clientX - chart.getBoundingClientRect().left;
+        const x = xIn(e);
         if (x > plotRight()) return;
         stopPlay();
         if (e.pointerType === "mouse") {
-          pinned = dayAt(x);
+          hovered = pinned = dayAt(x);
           show(true);
           return;
         }
@@ -1346,54 +1620,163 @@
         show();
       });
       chart.addEventListener("pointerup", (e) => {
-        if (e.pointerType === "mouse" || !days) return;
+        if (e.pointerType === "mouse" || kept === undefined) return;
         kept = undefined;
         hovered = null;
         show(true);
       });
-      // (A finger's drag the page took as a scroll: the day kept before it, again.)
+      // (A finger's slide the page took as a scroll: the day kept before it, again.)
       chart.addEventListener("pointercancel", () => {
-        if (kept !== undefined) pinned = kept;
+        if (kept === undefined) return;
+        pinned = kept;
         kept = undefined;
         hovered = null;
         show();
       });
       chart.addEventListener("pointerleave", (e) => {
-        if (e.pointerType !== "mouse") return;
+        if (e.pointerType !== "mouse" || hovered === null) return;
         hovered = null;
         show();
       });
       chart.addEventListener("keydown", (e) => {
         if (!days) return;
-        const d = days, at = pinned ?? d.last;
+        const d = days, at = shownDay();
         const moves = { ArrowLeft: e.shiftKey ? -30 : -1, ArrowRight: e.shiftKey ? 30 : 1, Home: -Infinity, End: Infinity };
         if (e.key in moves) {
           e.preventDefault();
           stopPlay();
           hovered = null;
-          const next = Math.max(Math.ceil(view.a), Math.min(d.last, at + /** @type {Record<string, number>} */ (moves)[e.key]));
+          const next = Math.max(d.first, Math.min(d.last, at + /** @type {Record<string, number>} */ (moves)[e.key]));
           pinned = next === d.last ? null : next;
-          show(true);
-        } else if (e.key === "Escape" && (pinned !== null || hovered !== null)) {
+          keepVisible(next);
+          show(!e.repeat);
+        } else if (e.key === "+" || e.key === "=" || e.key === "-") {
+          // (About the day shown, where it is in the chart.)
+          e.preventDefault();
+          const length = target.b - target.a + 1, next = Math.max(FEWEST, Math.min(d.last - d.first + 1, length * (e.key === "-" ? 1.25 : 0.8))), share = (at - target.a) / length;
+          viewTo(at - share * next, next);
+        } else if (e.key === "Escape" && (pinned !== null || hovered !== null || d.last > target.b + 0.5)) {
           stopPlay();
           (hovered = null), (pinned = null);
+          keepVisible(d.last);
           show(true);
         }
       });
+      chart.addEventListener("keyup", (e) => {
+        if (days && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) show(true);
+      });
       $("today").addEventListener("click", () => {
+        if (!days) return;
+        hovered = null;
         stopPlay();
         pinned = null;
+        keepVisible(days.last);
         show(true);
       });
 
+      // ── The pan bar: all the history, the chart's days a window on it; dragged to move, its ends to show more or
+      // fewer; pressed elsewhere, the window goes there ──
+
+      const pan = $("pan"), panCanvas = /** @type {HTMLCanvasElement} */ ($("pan-canvas")), panContext = /** @type {CanvasRenderingContext2D} */ (panCanvas.getContext("2d"));
+      /** Its history drawn once (for a size, a density, colours), the window over it each frame. */
+      const panBase = document.createElement("canvas");
+      let panKey = "";
+      /** What's held: the window, or one of its ends; where from. @type {{ part: "window" | "start" | "end", x: number, a: number, b: number } | null} */
+      let panning = null;
+      /** Where a day is on the bar, in its pixels, and the reverse. */
+      const panX = (/** @type {number} */ day) => { const d = /** @type {Days} */ (days); return ((day - d.first) / (d.last - d.first + 1)) * pan.clientWidth; };
+      const panDays = (/** @type {number} */ px) => { const d = /** @type {Days} */ (days); return (px / pan.clientWidth) * (d.last - d.first + 1); };
+      /** Which part of the window a point's on (its ends 10px wide, the window itself, or neither). */
+      /** @returns {"start" | "end" | "window" | null} */
+      function panPart(/** @type {number} */ x) {
+        const a = panX(view.a), b = panX(view.b + 1);
+        // (A window too short for its ends to be held apart is held whole, across the 12px it's drawn at at least, and
+        // 6px about: a span's button or the keys size it.)
+        if (b - a < 24) return x >= a - 6 && x <= Math.max(b, a + 12) + 6 ? "window" : null;
+        return Math.abs(x - a) <= 10 ? "start" : Math.abs(x - b) <= 10 ? "end" : x > a && x < b ? "window" : null;
+      }
+      function drawPan() {
+        if (!days) return;
+        const d = days, dpr = devicePixelRatio || 1, w = pan.clientWidth, h = pan.clientHeight, key = `${w}×${h}×${dpr}×${paint.ink}`;
+        for (const c of [panCanvas, panBase]) if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) (c.width = Math.round(w * dpr)), (c.height = Math.round(h * dpr));
+        if (key !== panKey) {
+          panKey = key;
+          const base = /** @type {CanvasRenderingContext2D} */ (panBase.getContext("2d")), per = w / (d.last - d.first + 1);
+          base.setTransform(dpr, 0, 0, dpr, 0, 0);
+          base.clearRect(0, 0, w, h);
+          let lo = Infinity, hi = -Infinity;
+          for (let i = d.first; i <= d.last; i++) (lo = Math.min(lo, d.close[i])), (hi = Math.max(hi, d.close[i]));
+          const y = (/** @type {number} */ price) => 4 + (1 - Math.log(price / lo) / Math.log(hi / lo)) * (h - 8);
+          for (let i = d.first; i <= d.last; ) {
+            let j = i;
+            while (j + 1 <= d.last && d.state[j + 1] === d.state[i]) j++;
+            base.fillStyle = withAlpha(paint.states[d.state[i]], 0.35);
+            base.fillRect((i - d.first) * per, 0, (j - i + 1) * per, h);
+            i = j + 1;
+          }
+          base.beginPath();
+          for (let i = d.first; i <= d.last; i++) base.lineTo((i - d.first + 0.5) * per, y(d.close[i]));
+          base.strokeStyle = paint.ink;
+          base.lineWidth = 1;
+          base.stroke();
+        }
+        panContext.setTransform(1, 0, 0, 1, 0, 0);
+        panContext.clearRect(0, 0, panCanvas.width, panCanvas.height);
+        panContext.drawImage(panBase, 0, 0);
+        // (Outside the window, dimmed.)
+        panContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const a = panX(view.a), b = panX(view.b + 1);
+        panContext.fillStyle = withAlpha(paint.app, 0.6);
+        panContext.fillRect(0, 0, a, h);
+        panContext.fillRect(b, 0, w - b, h);
+        pan.style.setProperty("--from", `${a}px`);
+        pan.style.setProperty("--to", `${b}px`);
+      }
+      pan.addEventListener("pointerdown", (e) => {
+        if (!days || e.button) return;
+        stopPlay();
+        pan.setPointerCapture(e.pointerId);
+        const x = e.clientX - pan.getBoundingClientRect().left, length = view.b - view.a + 1;
+        let part = panPart(x);
+        // (Pressed off the window: the window goes there, held by its middle.)
+        if (!part) viewTo(days.first + panDays(x) - length / 2, length), (part = "window");
+        panning = { part, x, a: view.a, b: view.b };
+        pan.classList.add("dragging");
+      });
+      pan.addEventListener("pointermove", (e) => {
+        if (!days) return;
+        const x = e.clientX - pan.getBoundingClientRect().left;
+        if (!panning) {
+          const part = panPart(x);
+          pan.style.cursor = part === "window" ? "grab" : part ? "ew-resize" : "pointer";
+          return;
+        }
+        const moved = panDays(x - panning.x), { a, b } = panning;
+        if (panning.part === "window") viewTo(a + moved, b - a + 1);
+        else if (panning.part === "start") {
+          const start = Math.max(days.first, Math.min(a + moved, b - FEWEST + 1));
+          viewTo(start, b - start + 1);
+        } else viewTo(a, Math.min(days.last, Math.max(b + moved, a + FEWEST - 1)) - a + 1);
+      });
+      for (const type of ["pointerup", "pointercancel"]) pan.addEventListener(type, () => ((panning = null), pan.classList.remove("dragging")));
+
       // ── Where it stands, above: the day shown's ──
 
+      /** The day shown, everywhere it's said and drawn. */
       function show(say = false) {
+        tell(say);
+        redraw();
+      }
+      /** The day shown, everywhere it's said: above, the slider, the shares. */
+      function tell(say = false) {
         if (!days) return;
         const d = days, day = shownDay(), s = d.state[day], t = d.trend[day], state = STATES[s];
         const isLast = day === d.last;
+        $("scrub-day").textContent = isLast ? "Today" : dated(day);
+        syncSlider();
+        updateShares(day);
         $("day").textContent = isLast ? `Today, ${dated(day)}` : dated(day);
-        $("today").hidden = isLast || hovered !== null;
+        $("today").hidden = (isLast && d.last <= target.b + 0.5) || hovered !== null;
         $("name").textContent = state.name;
         $("hero").style.setProperty("--state", `var(--s-${state.id})`);
         $("trend").innerHTML = `${trendIcon(t)}${TRENDS[t].name} trend`;
@@ -1407,8 +1790,8 @@
         $("why").textContent = why;
         for (const row of document.querySelectorAll("#states li")) row.classList.toggle("on", Number(/** @type {HTMLElement} */ (row).dataset.i) === s);
         for (const row of document.querySelectorAll("#trends li")) row.classList.toggle("on", Number(/** @type {HTMLElement} */ (row).dataset.i) === t);
+        if (say) remember();
         if (say) $("said").textContent = `${dated(day)}: ${state.name}, ${TRENDS[t].name.toLowerCase()} trend. ${why}`;
-        redraw();
       }
 
       // ── The compass ──
@@ -1426,6 +1809,7 @@
       /** The compass: before the days are read, its cells alone, their shares dashes. */
       function buildCompass() {
         const shares = days ? tally(days.state, 9) : null;
+        // (Its shares as of the day shown: see updateShares.)
         const cells = [], words = [];
         for (const [i, s] of STATES.entries()) {
           const col = 1 - s.local, row = 1 - s.cycle, cx = (2 - col) * CELL, cy = row * CELL;
@@ -1437,7 +1821,7 @@
         for (const [i, t] of TRENDS.entries()) {
           const cx = (2 - i) * CELL;
           cells.push(`<g class="cell" data-t="${i}" style="--c: var(--s-${t.color})"><rect x="${cx + GAP / 2}" y="${TREND_Y + GAP / 2}" width="${CELL - GAP}" height="${TREND_H - GAP}" rx="14" /></g>`);
-          words.push(`<g class="cell" data-t="${i}" style="--c: var(--s-${t.color})"><g transform="translate(${cx + 16} ${TREND_Y + 22}) scale(1.5)" fill="none" stroke="var(--c)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${t.icon}</g><text class="name" x="${cx + 48}" y="${TREND_Y + 44}">${t.name}</text><text class="share" x="${cx + 18}" y="${TREND_Y + 72}">${trends ? `${Math.round(trends[i].share * 100)}%` : "–"}</text></g>`);
+          words.push(`<g class="cell" data-t="${i}" style="--c: var(--s-${t.color})"><text class="name" x="${cx + 18}" y="${TREND_Y + 44}">${t.name}</text><g class="icon" data-x="${cx + 18}" fill="none" stroke="var(--c)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${t.icon}</g><text class="share" x="${cx + 18}" y="${TREND_Y + 72}">${trends ? `${Math.round(trends[i].share * 100)}%` : "–"}</text></g>`);
         }
         // (The path under the cells' words, which keep a halo of the page's colour over it.)
         compass.innerHTML = `${cells.join("")}<g id="trail"></g>${words.join("")}${shares ? '<circle class="ring" id="ring" r="13" /><circle class="dot" id="dot" r="8" />' : ""}
@@ -1448,13 +1832,26 @@
           <text class="axis" transform="translate(-24 ${TREND_Y + TREND_H / 2}) rotate(-90)" text-anchor="middle">trend</text>`;
         trail = compass.querySelector("#trail");
         dot = compass.querySelector("#dot");
+        compassDay = -1;
+        placeIcons();
       }
+      /** Each trend's arrow after its name, as wide as its font draws it (its size changes with the screen's). */
+      function placeIcons() {
+        for (const icon of compass.querySelectorAll("g.icon")) {
+          const name = /** @type {SVGTextElement} */ (icon.previousElementSibling), x = Number(/** @type {SVGGElement} */ (icon).dataset.x) + name.getComputedTextLength() + 10;
+          icon.setAttribute("transform", `translate(${x.toFixed(1)} ${TREND_Y + 23}) scale(1.4)`);
+        }
+      }
+      new ResizeObserver(placeIcons).observe(compass);
+      document.fonts.ready.then(placeIcons);
 
       /** The half year to the day shown, as a path fading into the past; the day a dot. */
       const TRAIL = 182;
+      /** The day the compass was last drawn for (-1: drawn again whatever the day). */
+      let compassDay = -1;
       function drawCompass() {
-        if (!days || !trail || !dot) return;
-        const d = days, day = shownDay(), from = Math.max(d.first, day - TRAIL);
+        if (!days || !trail || !dot || shownDay() === compassDay) return;
+        const d = days, day = (compassDay = shownDay()), from = Math.max(d.first, day - TRAIL);
         const segments = [];
         for (let i = from + 1; i <= day; i++) {
           const age = (day - i) / TRAIL, opacity = (0.08 + 0.72 * (1 - age) ** 1.5).toFixed(3);
@@ -1475,22 +1872,102 @@
         compass.setAttribute("aria-label", `The nine states as a compass, the three trends under it: ${dated(day)}, ${STATES[d.state[day]].name}, ${TRENDS[d.trend[day]].name.toLowerCase()} trend, its path over the half year before.`);
       }
 
-      // ── Replaying the span: the day shown runs from its start to its end in about 8 seconds ──
+      // ── The strip and its slider, under the compass: every day from the first to today, a playhead on the day shown ──
 
-      let playing = 0;
+      const strip = /** @type {HTMLCanvasElement} */ ($("strip")), stripContext = /** @type {CanvasRenderingContext2D} */ (strip.getContext("2d"));
+      const slider = /** @type {HTMLInputElement} */ ($("slider"));
+      /** Its days drawn once (for a size, a density, colours), the playhead over them each frame. */
+      const stripBase = document.createElement("canvas");
+      let stripKey = "";
+      /** The band the days are drawn in: their states, their trends under them. */
+      const BAND = { top: 9, states: 13, gap: 2, trends: 3, side: 8 };
+      function drawStrip() {
+        if (!days) return;
+        const d = days, dpr = devicePixelRatio || 1, w = strip.clientWidth, h = strip.clientHeight, key = `${w}×${h}×${dpr}×${paint.ink}`;
+        for (const c of [strip, stripBase]) if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) (c.width = Math.round(w * dpr)), (c.height = Math.round(h * dpr));
+        if (key !== stripKey) {
+          stripKey = key;
+          const base = /** @type {CanvasRenderingContext2D} */ (stripBase.getContext("2d")), per = (w - 2 * BAND.side) / (d.last - d.first + 1);
+          base.setTransform(dpr, 0, 0, dpr, 0, 0);
+          base.clearRect(0, 0, w, h);
+          for (const [of, colors, y, height] of /** @type {const} */ ([[d.state, paint.states, BAND.top, BAND.states], [d.trend, paint.trends, BAND.top + BAND.states + BAND.gap, BAND.trends]])) {
+            for (let i = d.first; i <= d.last; ) {
+              let j = i;
+              while (j + 1 <= d.last && of[j + 1] === of[i]) j++;
+              base.fillStyle = colors[of[i]];
+              base.fillRect(BAND.side + (i - d.first) * per, y, (j - i + 1) * per, height);
+              i = j + 1;
+            }
+          }
+        }
+        stripContext.setTransform(1, 0, 0, 1, 0, 0);
+        stripContext.clearRect(0, 0, strip.width, strip.height);
+        stripContext.drawImage(stripBase, 0, 0);
+        // (The playhead: a line through the band, a knob on it, ringed in the page's colour.)
+        stripContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+        const x = BAND.side + ((shownDay() - d.first + 0.5) / (d.last - d.first + 1)) * (w - 2 * BAND.side);
+        stripContext.fillStyle = paint.app;
+        stripContext.fillRect(x - 2.5, 2, 5, h - 4);
+        stripContext.fillStyle = paint.ink;
+        stripContext.fillRect(x - 1, 3, 2, h - 6);
+        stripContext.beginPath();
+        stripContext.arc(x, h / 2, 6, 0, Math.PI * 2);
+        stripContext.lineWidth = 2.5;
+        stripContext.strokeStyle = paint.app;
+        stripContext.stroke();
+        stripContext.fill();
+      }
+      /** The slider on the day shown, said as the chart's is. */
+      function syncSlider() {
+        if (!days) return;
+        const d = days, day = shownDay();
+        slider.value = String(day);
+        slider.setAttribute("aria-valuetext", `${dated(day)}: ${STATES[d.state[day]].name}, ${TRENDS[d.trend[day]].name.toLowerCase()} trend`);
+      }
+      slider.addEventListener("input", () => {
+        if (!days) return;
+        stopPlay();
+        hovered = null;
+        const day = Number(slider.value);
+        pinned = day >= days.last ? null : day;
+        keepVisible(day);
+        show();
+      });
+      slider.addEventListener("change", () => show(true));
+      new ResizeObserver(redraw).observe(strip);
+
+      // ── Playing: the day shown runs on to today at the chart's span in 8 seconds; paused, it stays where it is, and
+      // plays on from there (from today, it starts again at the chart's first day) ──
+
+      let playing = false, playFrom = 0, playAt = 0, playSpeed = 0;
       const replays = /** @type {HTMLButtonElement[]} */ ([...document.querySelectorAll("[data-replay]")]);
-      /** Each replay button says whether it plays: Stop while it does. */
+      const PLAY_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg>', PAUSE_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1h3v10H2zM7 1h3v10H7z" /></svg>';
+      /** Each play button says whether it plays: Pause while it does. */
       function saidPlaying(/** @type {boolean} */ on) {
         for (const button of replays) {
           button.setAttribute("aria-pressed", String(on));
-          /** @type {HTMLElement} */ (button.lastElementChild).textContent = on ? "Stop" : "Replay";
+          button.innerHTML = `${on ? PAUSE_ICON : PLAY_ICON}<span>${on ? "Pause" : "Play"}</span>`;
         }
       }
       function stopPlay() {
         if (!playing) return;
-        cancelAnimationFrame(playing);
-        playing = 0;
+        playing = false;
         saidPlaying(false);
+      }
+      /** A frame's step of play: the day for now, the chart kept on it; false once it's reached today. */
+      function advance(/** @type {number} */ now) {
+        const d = /** @type {Days} */ (days), day = Math.min(d.last, Math.round(playFrom + (now - playAt) * playSpeed));
+        if (day < d.last) {
+          // (Said again only for a new day: at a short span, several frames show one.)
+          if (day !== pinned) (pinned = day), keepVisible(day), tell();
+          return true;
+        }
+        playing = false;
+        pinned = null;
+        keepVisible(d.last);
+        saidPlaying(false);
+        tell(true);
+        return false;
       }
       for (const button of replays) button.addEventListener("click", () => {
         if (!days) return;
@@ -1499,23 +1976,16 @@
           show(true);
           return;
         }
-        const d = days, a = Math.ceil(target.a), b = d.last, start = performance.now(), length = 8000;
+        const d = days, at = shownDay();
+        playFrom = at >= d.last ? Math.max(d.first, Math.ceil(target.a)) : at;
+        playSpeed = (target.b - target.a + 1) / 8000;
+        playAt = performance.now();
         hovered = null;
+        pinned = playFrom;
+        keepVisible(playFrom);
+        playing = true;
         saidPlaying(true);
-        const step = (/** @type {number} */ now) => {
-          const t = Math.min(1, (now - start) / length);
-          pinned = Math.round(a + (b - a) * t);
-          if (t >= 1) {
-            pinned = null;
-            playing = 0;
-            saidPlaying(false);
-            show(true);
-            return;
-          }
-          show();
-          playing = requestAnimationFrame(step);
-        };
-        playing = requestAnimationFrame(step);
+        show();
       });
 
       // ── Time in each ──
@@ -1528,11 +1998,29 @@
           `<li data-i="${i}" style="--c: ${color}"><span class="name">${name}</span><span class="share">${s ? `${(s.share * 100).toFixed(1)}%` : "–"}</span><span class="meter" aria-hidden="true"><i style="--w: ${s ? ((s.share / most) * 100).toFixed(1) : 0}%"></i></span><span class="stay">${!s ? "&nbsp;" : s.runs ? `${s.runs} ${s.runs === 1 ? "time" : "times"}, typically ${lasted(s.median)}` : "Never yet"}</span></li>`;
         $("states").innerHTML = STATES.map((s, i) => ({ s, i })).sort((p, q) => (states ? states[q.i].share - states[p.i].share : 0)).map(({ s, i }) => row(i, s.name, states?.[i] ?? null, top, `var(--s-${s.id})`)).join("");
         const topTrend = Math.max(...(trends ?? []).map((t) => t.share));
-        $("trends").innerHTML = TRENDS.map((t, i) => row(i, `${trendIcon(i)}${t.name}`, trends?.[i] ?? null, topTrend, `var(--s-${t.color})`)).join("");
+        $("trends").innerHTML = TRENDS.map((t, i) => row(i, `${t.name}${trendIcon(i)}`, trends?.[i] ?? null, topTrend, `var(--s-${t.color})`)).join("");
         if (!d) return;
-        const total = d.last - d.first + 1;
-        $("counted").textContent = `Every day from ${dated(d.first)} to today: ${grouped(total)} days. Typically: the median length of its runs.`;
         $("atlas-since").textContent = `Since ${MONTHS[dateOf(d.first).getUTCMonth()]} ${dateOf(d.first).getUTCFullYear()}`;
+      }
+
+      /** Every share, bar and run count as of the day shown: the days from the first to it. (Rows keep their order, all
+       * history's, so none moves as a day changes.) */
+      function updateShares(/** @type {number} */ day) {
+        const d = /** @type {Days} */ (days), states = tally(d.state, 9, day), trends = tally(d.trend, 3, day);
+        for (const [list, of] of /** @type {const} */ ([[$("states"), states], [$("trends"), trends]])) {
+          const most = Math.max(...of.map((s) => s.share));
+          for (const row of /** @type {HTMLCollectionOf<HTMLElement>} */ (list.children)) {
+            const s = of[Number(row.dataset.i)];
+            /** @type {HTMLElement} */ (row.querySelector(".share")).textContent = `${(s.share * 100).toFixed(1)}%`;
+            /** @type {HTMLElement} */ (row.querySelector(".meter i")).style.setProperty("--w", `${((s.share / most) * 100).toFixed(1)}%`);
+            /** @type {HTMLElement} */ (row.querySelector(".stay")).textContent = s.runs ? `${s.runs} ${s.runs === 1 ? "time" : "times"}, typically ${lasted(s.median)}` : "Never yet";
+          }
+        }
+        for (const text of compass.querySelectorAll("text.share")) {
+          const { i, t } = /** @type {SVGElement} */ (/** @type {unknown} */ (text.parentNode)).dataset;
+          text.textContent = `${Math.round((i !== undefined ? states[Number(i)] : trends[Number(t)]).share * 100)}%`;
+        }
+        $("counted").textContent = `Every day from ${dated(d.first)} to ${day === d.last ? "today" : dated(day)}: ${grouped(day - d.first + 1)} days. Typically: the median length of its runs.`;
       }
 
       // ── Loading ──
@@ -1551,14 +2039,17 @@
         chart.classList.add("loading");
         try {
           const ids = [SERIES.close, SERIES.high, SERIES.low, ...SERIES.long, ...SERIES.short, ...SERIES.floors, ...SERIES.ceilings];
-          const answers = Object.fromEntries(await Promise.all(ids.map(async (id) => [id, await read(id)])));
-          days = compute(answers);
+          days = compute(Object.fromEntries(await Promise.all(ids.map(async (id) => [id, await read(id)]))));
           if (days.first < 0) throw new Error("the holders' series have no days yet");
           repaint();
           buildCompass();
           buildShares();
           chart.classList.remove("loading");
           for (const button of replays) button.disabled = false;
+          slider.min = String(days.first);
+          slider.max = String(days.last);
+          slider.disabled = false;
+          readAddress();
           view = spanOf(span);
           range = rangeOf(view);
           goTo(span);
