@@ -32741,10 +32741,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A slip in a choice's name finds it too: "dashde".)
           ...((choices) => ((said) => rank(settings.filter((row) => words.some((typed) => typed.length > 1 && (fitScore(row.itself, [typed]) || fitScore(choices(row).said, [typed])))), said, words, said))((/** @type {any} */ row) => `${wayText(row)} ${choices(row).said}`).slice(0, 4).map((row) => {
             // (Landed on by the words that don't name the setting nor its owner: "price line dashed", on Dashed; the
-            // one they fit best: "dashed", Dashed, not Long dashes.)
+            // one they fit best: "dashed", Dashed, not Long dashes. Said at its end, where its value is: found by it,
+            // "histogram" on a layer's As bubbles on…, it says why it's there.)
             const asked = words.filter((typed) => typed.length > 1 && !fitScore(wayText(row), [typed]));
-            const chosen = asked.length ? choices(row).choices.map((choice) => /** @type {[any, number]} */ ([choice, fitScore(choice.label ?? "", asked)])).reduce((best, next) => (next[1] > best[1] ? next : best), [null, 0])[0]?.key : null;
-            return chosen == null ? row : { ...row, page: () => ((next) => ((palette.landOn = String(chosen)), next))(row.page()) };
+            const chosen = asked.length ? choices(row).choices.map((choice) => /** @type {[any, number]} */ ([choice, fitScore(choice.label ?? "", asked)])).reduce((best, next) => (next[1] > best[1] ? next : best), [null, 0])[0] : null;
+            return chosen?.key == null ? row : { ...row, aside: chosen.label ?? row.aside, page: () => ((next) => ((palette.landOn = String(chosen.key)), next))(row.page()) };
           }))(settingChoices()),
         ];
         // A date ("go to 2021", or just "nov 2021"): going there, on top.
