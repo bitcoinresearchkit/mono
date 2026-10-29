@@ -10459,7 +10459,7 @@
             <li>"colors": 1 or 4 on bars: their one color; or four: above and below their base, each side's own where a bar grows from it ("color", "colorBelow"), fainter where it fades back toward it ("colorFading" above, "colorBelowFading" below; each side's own, fainter, if none). Unset, their two: "color" above, "colorBelow" under. 1 on a trend or a cloud with a "colorBelow": its one color, that second kept.</li>
             <li>"type": line, dots, area, histogram (bars), baseline, or candles (for an OHLC series such as price_ohlc); left out, the series' own look.</li>
             <li>"width": 0.5 to 5, by halves (1.5 if none); "dash": its line (0 solid, 1 dotted, 2 dashed, 3 long dashes, 4 sparse dots); "shape": straight, steps or curved; "opacity": 0.05 to 1, by 0.05 (1 if none; a cloud's 0.2, solid at 1).</li>
-            <li>"hollow": candles' hollow bodies, "down" (falling ones), "both" or "none" (rising ones if none); candles' "colors": 1, their one color (rising in "color", falling in "colorBelow", red if none, unset);</li>
+            <li>"hollow": "none", candles filled whether rising or falling (if none, hollow when rising, filled when falling, as is usual); candles' "colors": 1, their one color (rising in "color", falling in "colorBelow", red if none, unset);</li>
             <li>"fill": "above", an area filled from its line up; "fillOpacity": its fill's strength at its top, 0.05 to 1, by 0.05 (0.2 if none, 0.1 filled above); "solid": true, its fill even all the way down rather than fading; "base": a baseline's or bars' base value (0 if none); "baseLine": {"color": "gray", "dash": 4}, that base's line ("tag": true shows its value on the axis; "line": false draws none).</li>
             <li>"levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional; "tag": true shows its value on the axis; "line": false draws none, the level only naming or coloring its band). A level's "name" names the values from it up to the next level, read in its color in place of the number (the legend, the panel); "underName" on the layer names those under them all: {"levels": [{"value": -1, "name": "Limbo", "color": "orange", "line": false}, {"value": 1, "name": "Bull", "color": "green", "line": false}], "underName": "Bear", "color": "red", "byLevels": true} (without "byLevels", the names alone, the line in its color).</li>
             <li>"priceLine": true: a line across at its latest value.</li>
@@ -11423,10 +11423,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The types whose second color is kept as picked, one color or two: a trend's (on a support), a cloud's (its second over). */
       const TWO_KEPT = new Set(["trend", "cloud"]);
       /** A layer's second color: a baseline's or bars' under their base (red, unset; bars of one color, theirs); a trend's on a support, a cloud's where its second is over (its own, unset). */
-      /** Whether a layer's candles of a kind ("up", rising; "down", falling) are hollow: rising ones unset. @param {Layer} layer @param {string} kind */
-      const hollowOf = (layer, kind) => (layer.hollow === "both" || (kind === "up" ? layer.hollow === undefined : layer.hollow === "down"));
-      /** A layer's candles' hollow ones, each kind as given (rising hollow, falling filled, unset). @param {boolean} up @param {boolean} down @returns {Layer["hollow"]} */
-      const hollowFrom = (up, down) => (up ? (down ? "both" : undefined) : down ? "down" : "none");
+      /** Whether a layer's candles are hollow, as usual: hollow when rising, filled when falling (else all filled). @param {Layer} layer */
+      const hollowOf = (layer) => layer.hollow !== "none";
       const belowOf = (layer) => ((layer.type === "histogram" || layer.type === "candles" || layer.type === "bubbles" || TWO_KEPT.has(layer.type)) && layer.colors === 1 ? layer.color : layer.colorBelow ?? (TWO_KEPT.has(layer.type) ? layer.color : "red"));
       /**
        * A cloud colored by its layers, its colors theirs: its first one's where that's over, its second's where that is
@@ -12771,7 +12769,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @typedef {{ id: string, letter: string, series?: string, formula?: string, label?: string, color: string,
        *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, outline?: true, size?: number, hide?: number, scaleTo?: "all", colorBelow?: string, colors?: 1 | 4, colorFading?: string, colorBelowFading?: string, opacity?: number,
        *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
-       *   shape?: string, levels?: Level[], fill?: string, fillOpacity?: number, solid?: true, hollow?: "down" | "both" | "none", place?: string, results?: boolean, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean,
+       *   shape?: string, levels?: Level[], fill?: string, fillOpacity?: number, solid?: true, hollow?: "none", place?: string, results?: boolean, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean,
        *   heatmap?: string, weight?: string, measure?: string, rows?: number, gradient?: [number, string][], upToDate?: true, byGradient?: true }} Layer
        *   Made from layers (`from`: the ids of the layers it's made of, none itself made from layers), by its type: a cloud
        *   ("cloud") is filled between its two, at each date (in two colors, `color` where the first is over the second,
@@ -16648,7 +16646,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const painting = dated ? paintSig(doc, layer, data, op, base) : shadeDown ? [shadeDown] : null;
           // Colors are kept apart from the rest so a spotlight can fade them and give them back.
           /** @type {Record<string, string>} */
-          const paint = layer.type === "cloud" ? { color: alpha(base, op), ...(banded ? Object.fromEntries(/** @type {string[]} */ (result?.memberIds).map((id, k) => [`band${k}`, alpha(ink(doc.layers.find((item) => item.id === id)?.color ?? layer.color), op)])) : {}) } : signal && layer.place === "shade" ? { color: alpha(base, 0.14 * op) } : candles ? ((up, down) => ({ upColor: hollowOf(layer, "up") ? css("--card") : up, downColor: hollowOf(layer, "down") ? css("--card") : down, wickUpColor: up, wickDownColor: down, borderUpColor: up, borderDownColor: down }))(color, layer.colors === 1 ? color : below)
+          const paint = layer.type === "cloud" ? { color: alpha(base, op), ...(banded ? Object.fromEntries(/** @type {string[]} */ (result?.memberIds).map((id, k) => [`band${k}`, alpha(ink(doc.layers.find((item) => item.id === id)?.color ?? layer.color), op)])) : {}) } : signal && layer.place === "shade" ? { color: alpha(base, 0.14 * op) } : candles ? ((up, down) => ({ upColor: hollowOf(layer) ? css("--card") : up, downColor: down, wickUpColor: up, wickDownColor: down, borderUpColor: up, borderDownColor: down }))(color, layer.colors === 1 ? color : below)
             // An area filled above its line is evenly tinted: the fill's gradient runs by price, so above a line that runs
             // high it would all but vanish. Stacked, its band (from its line to the one under it, see bvBandFill) evenly too:
             // a band fading by price would read lighter the lower it sits.
@@ -29055,13 +29053,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           <div class="field"><span>Fill opacity${resetFor("fill-opacity", layers)}</span>${slider("fill-opacity", layers)}</div>
           ${fades ? `<div class="field"><span>Fill style</span><div class="tabs" role="group" aria-label="Fill style">${[[false, "Gradient", "Fading to nothing at its foot"], [true, "Solid", "Even all the way down"]].map(([on, text, tip]) => `<button type="button" data-solid="${on ? 1 : 0}" aria-pressed="${solid === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>` : ""}`;
       };
-      /** Candles' bodies, rising and falling, each hollow or filled (rising hollow, falling filled unset). */
+      /** Candles' bodies: hollow (when rising, filled when falling, as usual) or all filled. */
       const candlesField = (/** @type {Layer[]} */ layers) => {
         if (!layers.every((layer) => layer.type === "candles")) return "";
-        return [["up", "Rising"], ["down", "Falling"]].map(([kind, name]) => {
-          const now = sharedBy(layers, (layer) => hollowOf(layer, kind));
-          return `<div class="field"><span>${name}</span><div class="tabs" role="group" aria-label="${name} candles">${[[true, "Hollow"], [false, "Filled"]].map(([on, text]) => `<button type="button" data-hollow-${kind}="${on ? 1 : 0}" aria-pressed="${now === on}">${text}</button>`).join("")}</div></div>`;
-        }).join("");
+        const now = sharedBy(layers, hollowOf);
+        return `<div class="field"><span>Candles</span><div class="tabs" role="group" aria-label="Candles">${[[true, "Hollow", "Hollow when rising, filled when falling"], [false, "Filled", "Filled, rising or falling"]].map(([on, text, tip]) => `<button type="button" data-hollow="${on ? 1 : 0}" aria-pressed="${now === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>`;
       };
       const priceLineField = (/** @type {Layer[]} */ layers) => {
         if (!layers.every((layer) => layer.type !== "cloud" && !placedOn(layer) && layer.type !== "heatmap")) return "";
@@ -30931,7 +30927,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("inspector").addEventListener("click", (event) => {
         const button = closest(event, "button");
         if (!button) return;
-        const { type, dash, shape, fill, solid, hollowUp, hollowDown, place, side, priceLine, outline, results, action, insert, index, reset, colorSelect, replace, lineColor, lineDash, lineTag, levelMenu, act, colorSlot: slot, pickColor, colorSource: source } = button.dataset;
+        const { type, dash, shape, fill, solid, hollow, place, side, priceLine, outline, results, action, insert, index, reset, colorSelect, replace, lineColor, lineDash, lineTag, levelMenu, act, colorSlot: slot, pickColor, colorSource: source } = button.dataset;
         const paletteKey = button.closest("[data-palette]")?.getAttribute("data-palette");
         if (index) switchInterval(index);
         else if (slot) colorSlot.set(`${chart.id}:${selected}`, slot), renderInspector();
@@ -30985,7 +30981,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (shape) editLayer((layer) => (layer.shape = shape === "straight" ? undefined : shape));
         else if (fill) editLayer((layer) => (layer.fill = fill === "above" ? "above" : undefined));
         else if (solid !== undefined) editLayer((layer) => (layer.solid = solid === "1" || undefined));
-        else if (hollowUp !== undefined || hollowDown !== undefined) editLayer((layer) => (layer.hollow = hollowFrom(hollowUp === undefined ? hollowOf(layer, "up") : hollowUp === "1", hollowDown === undefined ? hollowOf(layer, "down") : hollowDown === "1")));
+        else if (hollow !== undefined) editLayer((layer) => (layer.hollow = hollow === "1" ? undefined : "none"));
         else if (action === "add-level") addLevel();
         else if (lineColor) lineMenu(button, lineColor, "color");
         else if (lineDash) lineMenu(button, lineDash, "dash");
@@ -34025,7 +34021,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               // (Its style where it fades: filled above or stacked, it's even already.)
               ...(layer.fill !== "above" && !stackedIn(layer) ? [{ key: "fill-style", icon: glyph("area"), label: "Fill style", aside: layer.solid ? "Solid" : "Gradient", verb: layer.solid ? "Make it a gradient" : "Make it solid", group: "Style", stay: true, run: set((item) => (item.solid = !item.solid || undefined)) }] : []),
             ] : []),
-            ...(layer.type === "candles" ? /** @type {const} */ ([["up", "Rising"], ["down", "Falling"]]).map(([kind, name]) => ((hollow) => ({ key: `hollow-${kind}`, icon: glyph("candles"), label: `${name} candles`, aside: hollow ? "Hollow" : "Filled", verb: hollow ? "Fill them" : "Make them hollow", group: "Style", stay: true, run: set((item) => (item.hollow = hollowFrom(kind === "up" ? !hollowOf(item, "up") : hollowOf(item, "up"), kind === "down" ? !hollowOf(item, "down") : hollowOf(item, "down")))) }))(hollowOf(layer, kind))) : []),
+            ...(layer.type === "candles" ? ((hollow) => [{ key: "hollow", icon: glyph("candles"), label: "Candles", aside: hollow ? "Hollow" : "Filled", verb: hollow ? "Fill them" : "Make them hollow", group: "Style", stay: true, run: set((item) => (item.hollow = hollowOf(item) ? "none" : undefined)) }])(hollowOf(layer)) : []),
             ...(OUTLINED.has(layer.type) ? [{ key: "outline", icon: OUTLINE_GLYPH, label: "Outline", aside: layer.outline ? "On" : "Off", verb: layer.outline ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.outline = !item.outline || undefined)) }] : []),
             ...(layer.type === "bubbles" ? [] : [
               { key: "price-line", icon: dashGlyph(2, 2), label: "Price line", aside: layer.priceLine ? (layer.type !== "signal" && chart.panes.find((pane) => pane.id === layer.pane)?.stack ? "On, not drawn in a stack" : "On") : "Off", verb: layer.priceLine ? "Turn off" : "Turn on", group: "Style", stay: true, run: set((item) => (item.priceLine = !item.priceLine || undefined)) },
@@ -36287,7 +36283,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(layer.fill === "above" ? { fill: "above" } : {}),
             ...(OPACITIES.includes(layer.fillOpacity) ? { fillOpacity: layer.fillOpacity } : {}),
             ...(layer.solid === true ? { solid: true } : {}),
-            ...(["down", "both", "none"].includes(layer.hollow) ? { hollow: layer.hollow } : {}),
+            ...(layer.hollow === "none" ? { hollow: "none" } : {}),
             ...((made === "trend" || (!made && (layer.type === "signal" || layer.type === "bubbles"))) && typeof layer.ref === "string" ? { ref: layer.ref } : {}),
             ...(!made && layer.type === "bubbles" ? { size: BUBBLE_SIZES.includes(layer.size) && layer.size !== BUBBLE_SIZE ? layer.size : undefined, hide: BUBBLE_HIDES.includes(layer.hide) && layer.hide !== BUBBLE_HIDE ? layer.hide : undefined, scaleTo: layer.scaleTo === "all" ? "all" : undefined } : {}),
             ...(MARK_PLACES.some(([place]) => place !== "above" && place === layer.place) ? { place: layer.place } : {}),
