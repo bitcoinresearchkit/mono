@@ -10439,7 +10439,7 @@
             <span class="logo"><svg viewBox="-0.63 -0.7311 1.26 1.4622" aria-hidden="true"><path fill="oklch(64.34% 0.191 44.41)" fill-rule="evenodd" d="M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z"/></svg></span>
             <span class="brand-name"><b>Bitview</b> Studio</span>
           </a>
-          <span id="live" class="live waiting" role="status" tabindex="0" aria-label="Connecting" data-tip="Connecting"><i></i></span>
+          <span id="live" class="live waiting" role="img" tabindex="0" aria-label="Connecting" data-tip="Connecting"><i></i></span>
         </div>
         <button class="search" type="button" data-action="palette" data-tip="Search series, charts and commands" data-kbd="⌘ K" style="--i: 1"><span data-icon="browse"></span><span class="label">Search</span><kbd class="mod">⌘K</kbd></button>
         <div id="chart-list" class="chart-list" style="--i: 2"></div>
@@ -10673,7 +10673,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             <div id="home-start" class="home-start" hidden>
               <div class="home-over">
                 <h2 class="home-question">What do you want to chart?</h2>
-                <p id="home-pulse" class="home-pulse" role="status">Connecting</p>
+                <p id="home-pulse" class="home-pulse">Connecting</p>
               </div>
               <!-- (No key of its own: ⌘K is ⌘K everywhere, see placeOnHome.) -->
               <button type="button" class="search-cta home-search" data-action="search" data-typing>
@@ -37268,9 +37268,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const offline = () => !navigator.onLine || Date.now() - answeredAt > 60_000;
       /** Live, with the last block the server's series include and when it came. */
       /** Nothing drawn for want of the server: what's wrong said as the live dot says it, this device offline or the server away. */
-      const sayUnreached = () => ($("unreached-text").textContent = navigator.onLine ? `Couldn't reach ${SERVER_HOST}` : "This device is offline");
+      // (Written only as it changes: it's a live region, and the same words written again at each price are said again.)
+      const sayUnreached = () => ((text) => $("unreached-text").textContent !== text && ($("unreached-text").textContent = text))(navigator.onLine ? `Couldn't reach ${SERVER_HOST}` : "This device is offline");
       /** A live figure (the last block, the price, when it was last heard): its mark before it, a screen reader's word for it. @param {string} icon @param {string} name @param {string} text */
       const liveFigure = (icon, name, text) => `<span class="live-figure"><span role="img" aria-label="${name}">${icon}</span>${escape(text)}</span>`;
+      /** Whether a screen reader was last told it's offline, or live (none yet: connecting; see updateStatus). */
+      let saidLost = /** @type {boolean | null} */ (null);
       function updateStatus() {
         sayUnreached();
         const at = liveAt ? new Date(liveAt * 1000) : null;
@@ -37288,6 +37291,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         $("live").classList.toggle("offline", lost);
         $("live").classList.remove("waiting");
+        // (To a screen reader, as it connects, goes offline or comes back, in the live dot's words: not each price, as a
+        // live line (or the dot's own name, were it one) read whenever it changes would, each second.)
+        if (lost !== saidLost) (saidLost = lost), say(lost ? (navigator.onLine ? `${SERVER_HOST} isn't answering` : "This device is offline") : `Live from ${SERVER_HOST}`);
         renderHorizon();
         const said = {
           status: lost ? '<span class="live-off">Offline</span>' : "",
