@@ -25,9 +25,10 @@ Only what's left. An item done is removed: its history is in the commits and log
   the unrealized P&L heatmap); a chart's mark shows them as dots; the minis (tiles, ⌘K's previews, Quick Look) read
   the chart's own days, each point its span's largest (_notes/overnight-20261029/bubbles-mini-days-before-after.png).
   Open: your look at the minis now.
-- The heatmap's profile (built 2026-10-29, f06229913): your look (_notes/overnight-20261029/heat-profile-built.png).
-  Not in it yet: split by holder group (two cohorts' bars side by side, as your picture's buying and selling); a bar's
-  own amount pointed at (the legend reads the price under the pointer); the minis (tiles, ⌘K's previews, Quick Look).
+- Profile, a layer of its own (2026-10-29, 31734f9a8): your look (_notes/overnight-20261029/profile-layer.png). Not in
+  it yet: a bar's own amount pointed at (its legend reads the share in profit); the minis (tiles, ⌘K's previews, Quick
+  Look). Open: the presets' holder-group comparisons color the groups by a ramp (short-term teal, long-term pink), the
+  profile and Compass as the app otherwise does (orange, blue): one palette everywhere?
 - Next, asked: one system for every size, width, height, margin and padding (see the design-system item); then the
   right panel and the legends reviewed (the least worked on).
 - A design system for all of Studio, then a polish and consistency pass applying it (you, 2026-10-28: "I think we
