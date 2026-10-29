@@ -49,11 +49,11 @@
         /* The nine states: greens where the cycle's up, reds where it's down, the moves against it cooler. (Each as
            text on the page, 4.5:1 and more in either scheme.) */
         --s-optimism: light-dark(oklch(0.5 0.15 150), oklch(0.78 0.18 150));
-        --s-complacency: light-dark(oklch(0.51 0.13 122), oklch(0.84 0.16 122));
+        --s-calm: light-dark(oklch(0.51 0.13 122), oklch(0.84 0.16 122));
         --s-anxiety: light-dark(oklch(0.51 0.12 88), oklch(0.86 0.14 88));
         --s-hope: light-dark(oklch(0.5 0.1 190), oklch(0.8 0.12 190));
         --s-doubt: light-dark(oklch(0.52 0.02 250), oklch(0.76 0.02 250));
-        --s-denial: light-dark(oklch(0.52 0.16 52), oklch(0.78 0.16 52));
+        --s-worry: light-dark(oklch(0.52 0.16 52), oklch(0.78 0.16 52));
         --s-relief: light-dark(oklch(0.5 0.15 275), oklch(0.75 0.13 275));
         --s-apathy: light-dark(oklch(0.52 0.17 345), oklch(0.74 0.16 345));
         --s-fear: light-dark(oklch(0.52 0.19 27), oklch(0.7 0.19 27));
@@ -232,6 +232,14 @@
           white-space: nowrap;
           text-overflow: ellipsis;
           transition: color 0.2s;
+
+          /* (The move it is beside the mood, small and plain, on its baseline, in its colour a little quieter.) */
+          small {
+            margin-left: 0.6rem;
+            opacity: 0.85;
+            font: 500 clamp(15px, 1.6vw, 19px) var(--sans);
+            letter-spacing: 0;
+          }
         }
 
         .facts {
@@ -673,6 +681,16 @@
           }
         }
 
+        /* (The move it is, small at its cell's foot.) */
+        .cell .move {
+          font: 500 14px var(--sans);
+          fill-opacity: 0.75;
+
+          @media (max-width: 600px) {
+            font-size: 19px;
+          }
+        }
+
         .axis {
           fill: var(--faint);
           font: 500 14px var(--sans);
@@ -838,6 +856,13 @@
         .name {
           grid-area: name;
           font: 400 22px/1.15 var(--serif);
+        }
+
+        /* (A mood's move beside it, small and plain, in its colour a little quieter.) */
+        .name small {
+          margin-left: 10px;
+          opacity: 0.85;
+          font: 500 13px var(--sans);
         }
 
         .share {
@@ -1013,7 +1038,7 @@
 
       <section class="hero shell" id="hero" aria-labelledby="state">
         <p class="day"><span id="day">Today</span><button type="button" class="today" id="today" hidden>Back to today</button></p>
-        <h1 id="state"><span class="sr">Compass: </span><span id="name">…</span></h1>
+        <h1 id="state"><span class="sr">Compass: </span><span id="name">…</span><small id="move"></small></h1>
         <p class="facts"><span class="trend" id="trend"></span><span class="num" id="price"></span><span class="run" id="since"></span></p>
         <p class="why" id="why"></p>
       </section>
@@ -1111,16 +1136,17 @@
 
       /** Where price is against a cloud: 1 above, 0 inside, -1 below. @typedef {1 | 0 | -1} Side */
       /** The nine, by the cycle's side (the long-term cloud) then the moment's (the short-term): north the cycle up. */
+      /** Each a mood (how the holders feel, by who's in profit) and the move it is (what price is doing). */
       const STATES = [
-        { id: "optimism", name: "Optimism", cycle: 1, local: 1 },
-        { id: "complacency", name: "Complacency", cycle: 1, local: 0 },
-        { id: "anxiety", name: "Anxiety", cycle: 1, local: -1 },
-        { id: "hope", name: "Hope", cycle: 0, local: 1 },
-        { id: "doubt", name: "Doubt", cycle: 0, local: 0 },
-        { id: "denial", name: "Denial", cycle: 0, local: -1 },
-        { id: "relief", name: "Relief", cycle: -1, local: 1 },
-        { id: "apathy", name: "Apathy", cycle: -1, local: 0 },
-        { id: "fear", name: "Fear", cycle: -1, local: -1 },
+        { id: "optimism", name: "Optimism", move: "Advance", cycle: 1, local: 1 },
+        { id: "calm", name: "Calm", move: "Pullback", cycle: 1, local: 0 },
+        { id: "anxiety", name: "Anxiety", move: "Correction", cycle: 1, local: -1 },
+        { id: "hope", name: "Hope", move: "Recovery", cycle: 0, local: 1 },
+        { id: "doubt", name: "Doubt", move: "Crossroads", cycle: 0, local: 0 },
+        { id: "worry", name: "Worry", move: "Breakdown", cycle: 0, local: -1 },
+        { id: "relief", name: "Relief", move: "Bounce", cycle: -1, local: 1 },
+        { id: "apathy", name: "Apathy", move: "Stalling", cycle: -1, local: 0 },
+        { id: "fear", name: "Fear", move: "Decline", cycle: -1, local: -1 },
       ];
       /** A state's index from its two sides. */
       const stateOf = (/** @type {number} */ cycle, /** @type {number} */ local) => (1 - cycle) * 3 + (1 - local);
@@ -1986,6 +2012,7 @@
         $("day").textContent = isLast ? `Today, ${dated(day)}` : dated(day);
         sayToday();
         $("name").textContent = state.name;
+        $("move").textContent = state.move;
         $("hero").style.setProperty("--state", `var(--s-${state.id})`);
         $("trend").innerHTML = `${trendIcon(t)}${TRENDS[t].name} trend`;
         $("trend").style.setProperty("--t", `var(--s-${TRENDS[t].color})`);
@@ -2022,7 +2049,7 @@
         for (const [i, s] of STATES.entries()) {
           const col = 1 - s.local, row = 1 - s.cycle, cx = (2 - col) * CELL, cy = row * CELL;
           cells.push(`<g class="cell" data-i="${i}" style="--c: var(--s-${s.id})"><rect x="${cx + GAP / 2}" y="${cy + GAP / 2}" width="${CELL - GAP}" height="${CELL - GAP}" rx="14" /></g>`);
-          words.push(`<g class="cell" data-i="${i}" style="--c: var(--s-${s.id})"><text class="name" x="${cx + 18}" y="${cy + 44}">${s.name}</text><text class="share" x="${cx + 18}" y="${cy + 72}">${shares ? `${Math.round(shares[i].share * 100)}%` : "–"}</text></g>`);
+          words.push(`<g class="cell" data-i="${i}" style="--c: var(--s-${s.id})"><text class="name" x="${cx + 18}" y="${cy + 44}">${s.name}</text><text class="share" x="${cx + 18}" y="${cy + 72}">${shares ? `${Math.round(shares[i].share * 100)}%` : "–"}</text><text class="move" x="${cx + 18}" y="${cy + 178}">${s.move}</text></g>`);
         }
         // (The trend's three under them, cells of the same kind: bear west, bull east, as the moment's sides are.)
         const trends = days ? tally(days.trend, 3) : null;
@@ -2208,7 +2235,7 @@
         const top = Math.max(...(states ?? []).map((s) => s.share));
         const row = (/** @type {number} */ i, /** @type {string} */ name, /** @type {{ share: number, runs: number, median: number } | null} */ s, /** @type {number} */ most, /** @type {string} */ color) =>
           `<li data-i="${i}" style="--c: ${color}"><span class="name">${name}</span><span class="share">${s ? `${(s.share * 100).toFixed(1)}%` : "–"}</span><span class="meter" aria-hidden="true"><i style="--w: ${s ? ((s.share / most) * 100).toFixed(1) : 0}%"></i></span><span class="stay">${!s ? "&nbsp;" : s.runs ? `${s.runs} ${s.runs === 1 ? "time" : "times"}, typically ${lasted(s.median)}` : "Never yet"}</span></li>`;
-        $("states").innerHTML = STATES.map((s, i) => ({ s, i })).sort((p, q) => (states ? states[q.i].share - states[p.i].share : 0)).map(({ s, i }) => row(i, s.name, states?.[i] ?? null, top, `var(--s-${s.id})`)).join("");
+        $("states").innerHTML = STATES.map((s, i) => ({ s, i })).sort((p, q) => (states ? states[q.i].share - states[p.i].share : 0)).map(({ s, i }) => row(i, `${s.name}<small>${s.move}</small>`, states?.[i] ?? null, top, `var(--s-${s.id})`)).join("");
         const topTrend = Math.max(...(trends ?? []).map((t) => t.share));
         $("trends").innerHTML = TRENDS.map((t, i) => row(i, `${t.name}${trendIcon(i)}`, trends?.[i] ?? null, topTrend, `var(--s-${t.color})`)).join("");
       }
