@@ -6465,11 +6465,12 @@
             display: contents;
           }
 
-          /* (A row's name before its aside: the name as long as it is, the aside in what's left (a series' id, a path, cut
-             first); a name longer than the row, cut at its end. What follows the name, at the row's end.) */
+          /* (A row's name before its aside, each its share of the row, see .item-meta; a name longer than its share, cut
+             at its end. What follows the name, at the row's end.) */
           .item-name {
-            flex: 0 1 auto;
+            flex: 2 1 0;
             min-width: 0;
+            max-width: max-content;
             overflow: hidden;
             color: var(--text);
             text-overflow: ellipsis;
@@ -6497,15 +6498,24 @@
             margin-inline-start: auto;
           }
 
+          /* (The name and it, each its share of the row (the name two thirds, it one), the room one doesn't need the
+             other's: "This chart" whole beside a long title, a long id whole beside "Profit"; both long, both cut, the name
+             the less. As large as the name, on its line (in
+             its color, a step back): a smaller one sat off its baseline; a series' id in mono a step smaller, as large to
+             the eye.) */
           .item-meta {
             flex: 1 1 0;
             min-width: 0;
+            max-width: max-content;
             text-align: end;
             overflow: hidden;
             color: var(--muted);
-            font-size: 12px;
             text-overflow: ellipsis;
             white-space: nowrap;
+
+            code {
+              font-size: 13px;
+            }
 
             &.error {
               color: var(--danger);
@@ -9065,6 +9075,7 @@
             flex-basis: 100%;
             max-width: none;
             padding-inline-start: 26px;
+            font-size: 12px;
             line-height: 16px;
             text-align: start;
             white-space: normal;
@@ -9093,11 +9104,17 @@
             grid-column: 2;
           }
 
+          /* (Under it, a second line, smaller.) */
           .item-meta {
             grid-column: 2;
             margin-inline-start: 0;
+            font-size: 12px;
             line-height: 16px;
             text-align: start;
+
+            code {
+              font-size: inherit;
+            }
           }
 
           &[aria-disabled] .item-meta {
