@@ -470,6 +470,11 @@
             --art-y: 10%;
             --art-top: 0.57;
           }
+
+          /* (Oracle's chart sits across its picture's middle: lowered, it sinks into the words' fade; kept at the top.) */
+          &[src$="/oracle.jpg"] {
+            --art-drop: 0px;
+          }
         }
 
         /* (Its words' ground: the picture darkened to the left and the foot, where they sit.) */
@@ -497,6 +502,15 @@
           img {
             bottom: auto;
             height: calc(100% / var(--art-top, 1));
+
+            /* (Installed on iOS, the page runs up under the status bar: the picture starts under it, where it did, and
+               its own top, mirrored, fills the strip above, its colours carried up to the screen's edge.) */
+            @supports (-webkit-touch-callout: none) {
+              @media (display-mode: standalone) {
+                top: var(--art-drop, env(safe-area-inset-top));
+                -webkit-box-reflect: above 0;
+              }
+            }
           }
 
           &::after {
