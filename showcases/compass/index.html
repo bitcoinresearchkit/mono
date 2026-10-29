@@ -44,8 +44,10 @@
         --line: light-dark(rgb(20 24 29 / 0.14), rgb(230 235 240 / 0.12));
         --grid: light-dark(rgb(20 24 29 / 0.06), rgb(230 235 240 / 0.05));
         --focus: light-dark(rgb(20 24 29 / 0.6), rgb(230 235 240 / 0.6));
-        --cloud-long: light-dark(rgb(20 24 29 / 0.08), rgb(230 235 240 / 0.07));
-        --cloud-short: light-dark(rgb(20 24 29 / 0.1), rgb(230 235 240 / 0.09));
+        /* (Soft, the light theme's softer still: on paper a grey reads stronger than on the night sea.) */
+        --cloud-long: light-dark(rgb(20 24 29 / 0.05), rgb(230 235 240 / 0.07));
+        --cloud-short: light-dark(rgb(20 24 29 / 0.065), rgb(230 235 240 / 0.09));
+        --trend-line: light-dark(rgb(20 24 29 / 0.1), rgb(230 235 240 / 0.16));
         /* The nine states: greens where the cycle's up, reds where it's down, the moves against it cooler. (Each as
            text on the page, 4.5:1 and more in either scheme.) */
         --s-optimism: light-dark(oklch(0.5 0.15 150), oklch(0.78 0.18 150));
@@ -68,8 +70,9 @@
           --soft: light-dark(#323a43, #bcc5ce);
           --faint: light-dark(#454e58, #9aa6b2);
           --line: light-dark(rgb(20 24 29 / 0.3), rgb(230 235 240 / 0.27));
-          --cloud-long: light-dark(rgb(20 24 29 / 0.14), rgb(230 235 240 / 0.13));
-          --cloud-short: light-dark(rgb(20 24 29 / 0.17), rgb(230 235 240 / 0.16));
+          --cloud-long: light-dark(rgb(20 24 29 / 0.1), rgb(230 235 240 / 0.13));
+          --cloud-short: light-dark(rgb(20 24 29 / 0.12), rgb(230 235 240 / 0.16));
+          --trend-line: light-dark(rgb(20 24 29 / 0.2), rgb(230 235 240 / 0.28));
         }
       }
 
@@ -1340,12 +1343,13 @@
         probe.remove();
         return color;
       }
-      /** @type {{ states: string[], trends: string[], ink: string, faint: string, grid: string, long: string, short: string, app: string }} */
+      /** @type {{ states: string[], trends: string[], trendLine: string, ink: string, faint: string, grid: string, long: string, short: string, app: string }} */
       let paint;
       function repaint() {
         paint = {
           states: STATES.map((s) => resolved(`var(--s-${s.id})`)),
           trends: TRENDS.map((t) => resolved(`var(--s-${t.color})`)),
+          trendLine: resolved("var(--trend-line)"),
           ink: resolved("var(--ink)"), faint: resolved("var(--faint)"), grid: resolved("var(--grid)"),
           long: resolved("var(--cloud-long)"), short: resolved("var(--cloud-short)"), app: resolved("var(--app)"),
         };
@@ -1408,6 +1412,10 @@
        * sliding through days costs a copy, not a drawing of every day. */
       const stillCanvas = document.createElement("canvas"), stillContext = /** @type {CanvasRenderingContext2D} */ (stillCanvas.getContext("2d"));
       let stillKey = "";
+      /** Where the kept day's tag is drawn (CSS pixels), a press on it letting the day go; null when there's none. @type {{ x: number, y: number, w: number, h: number } | null} */
+      let tag = null;
+      /** Whether a point of the chart is on that tag (8px about it, for a finger). */
+      const onTag = (/** @type {number} */ x, /** @type {number} */ y) => tag !== null && x > tag.x - 8 && x < tag.x + tag.w + 8 && y > tag.y - 8 && y < tag.y + tag.h + 8;
       /** The context drawn on: the screen's, or the still part's while it's made. */
       let ctx = onScreen;
       /** Its layout, in CSS pixels: the room at the right past the latest day (as Studio's chart leaves), the trend's
@@ -1461,7 +1469,10 @@
         // The day shown, and its date's tag along the foot (the labels it'd cover left out).
         const day = shownDay(), seen = day >= view.a - 0.5 && day <= view.b + 0.5;
         ctx.font = "600 11.5px Inter, system-ui, sans-serif";
-        const date = dated(day), dw = ctx.measureText(date).width + 14, dx = Math.max(8 + dw / 2, Math.min(width - 8 - dw / 2, xOf(day)));
+        // (The kept day's tag says it can be let go: ✕, a press on it goes back to today.)
+        const letGo = pinned !== null && day === pinned && day !== d.last;
+        const date = `${dated(day)}${letGo ? "  ✕" : ""}`, dw = ctx.measureText(date).width + 14, dx = Math.max(8 + dw / 2, Math.min(width - 8 - dw / 2, xOf(day)));
+        tag = letGo && seen ? { x: dx - dw / 2, y: datesY() - 14, w: dw, h: 20 } : null;
 
         // (The still part made again only when what it shows has changed.)
         const key = [view.a, view.b, range.lo, range.hi, width, height, plotTop, footTop, dpr, paint.ink, paint.states.join()].join("|");
@@ -1493,11 +1504,14 @@
             gradient.addColorStop(1, withAlpha(paint.states[s], 0.06));
             ctx.fillStyle = gradient;
             ctx.beginPath();
+            // (A run's edges halfway between its end day and the next run's, on the price's line there, so its fill
+            // meets its neighbour's under that line, never a step past it.)
+            const edge = (/** @type {number} */ k, /** @type {number} */ next) => (next < a || next > b ? yOf(d.close[k]) : (yOf(d.close[k]) + yOf(d.close[next])) / 2);
             for (const [i, j] of ofState) {
               ctx.moveTo(xOf(i) - halfDay(), bottom);
-              ctx.lineTo(xOf(i) - halfDay(), yOf(d.close[i]));
+              ctx.lineTo(xOf(i) - halfDay(), edge(i, i - 1));
               trace(d.close, i, j);
-              ctx.lineTo(xOf(j) + halfDay(), yOf(d.close[j]));
+              ctx.lineTo(xOf(j) + halfDay(), edge(j, j + 1));
               ctx.lineTo(xOf(j) + halfDay(), bottom);
               ctx.closePath();
             }
@@ -1532,7 +1546,7 @@
               if (sides[i]) {
                 ctx.beginPath();
                 trace(values, i, j);
-                ctx.strokeStyle = withAlpha(paint.faint, 0.3);
+                ctx.strokeStyle = paint.trendLine;
                 ctx.stroke();
               }
               i = j + 1;
@@ -1807,7 +1821,9 @@
         if (!gesture) {
           // (A mouse over the plot, not the words over its top: its day, but not while a replay shows its own.)
           if (e.pointerType !== "mouse" || playing) return;
-          const y = e.clientY - chart.getBoundingClientRect().top, next = x <= plotRight() && y >= plotTop - 8 ? dayAt(x) : null;
+          // (Over the plot and its lane, not the dates' row under them, where the kept day's tag waits to be pressed.)
+          const y = e.clientY - chart.getBoundingClientRect().top, next = x <= plotRight() && y >= plotTop - 8 && y <= plotBottom() + LANE_GAP + LANE + 6 ? dayAt(x) : null;
+          chart.style.cursor = onTag(x, y) ? "pointer" : "";
           if (next !== hovered) (hovered = next), show();
           return;
         }
@@ -1838,8 +1854,15 @@
         clearTimeout(g.timer);
         chart.classList.remove("grabbing");
         if (g.kind === "press") {
-          pinned = dayAt(g.x);
-          hovered = e.pointerType === "mouse" ? pinned : null;
+          // (Its tag pressed, or the kept day pressed again: the day let go, back to today. Else the day pressed, kept.)
+          const day = dayAt(g.x), y = g.y - chart.getBoundingClientRect().top;
+          if (onTag(g.x, y) || (pinned !== null && day === pinned)) {
+            (pinned = null), (hovered = null);
+            keepVisible(days.last);
+          } else {
+            pinned = day;
+            hovered = e.pointerType === "mouse" ? pinned : null;
+          }
           show(true);
         } else if (g.kind === "slide") {
           hovered = null;
