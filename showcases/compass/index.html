@@ -192,7 +192,7 @@
          so nothing under it moves as a day's words change. */
       .hero {
         flex: none;
-        padding: 8px 0 14px;
+        padding: 8px 0 8px;
 
         .day {
           display: flex;
@@ -591,11 +591,6 @@
           color: var(--ink);
           font: 400 32px/1.1 var(--serif);
         }
-
-        p {
-          color: var(--soft);
-          font-size: 13px;
-        }
       }
 
       .atlas {
@@ -783,9 +778,18 @@
         color: var(--soft);
         font-size: 13px;
 
+        /* (The day in a slot of its own, as wide as its longest date: the words after it never move as it changes.) */
         b {
+          flex: none;
+          width: 7.6em;
           color: var(--ink);
           font-weight: 600;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .legend {
+          flex: 1;
+          min-width: 0;
         }
       }
 
@@ -1029,7 +1033,7 @@
 
     <main class="shell">
       <section class="part" id="atlas" aria-labelledby="atlas-title">
-        <header><h2 id="atlas-title">Where it's been</h2><p id="atlas-since"></p></header>
+        <header><h2 id="atlas-title">Where it's been</h2></header>
         <div class="atlas">
           <div>
             <div class="compass">
@@ -1040,7 +1044,7 @@
               <input type="range" id="slider" min="0" max="0" value="0" disabled aria-label="The day shown, across the chart's span: the same as the chart's" />
             </div>
             <div class="compass-foot">
-              <span><b id="scrub-day">Today</b>: the half year before it as a path, its trend lit.</span>
+              <b id="scrub-day">Today</b><span class="legend">The year before as a path, its trend lit.</span>
               <button type="button" class="replay" data-replay disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Play</span></button>
             </div>
           </div>
@@ -1364,16 +1368,18 @@
       /** ROOM as a share of the plot's width: of a view's days, how many are room past the latest. */
       const roomShare = () => Math.min(0.5, ROOM / Math.max(1, plotRight()));
       /** The room between the words over the chart and its highest price. */
-      const TOP_GAP = 16;
+      const TOP_GAP = 8;
       /** The canvas's size, the whole first screen; the prices' top (its pane runs to the screen's, the prices kept
        * under where it stands: TOP_GAP under it) and the foot's top, measured. */
       let width = 0, height = 0, plotTop = 0, footTop = 0;
       /** The plot's price range (logs), eased as the span's days change. */
       let range = { lo: 0, hi: 1 };
 
-      const plotRight = () => width, plotBottom = () => footTop - YEARS - LANE - 8;
+      /** The lane's gap under the plot: none, its foot, not a stripe of its own. */
+      const LANE_GAP = 0;
+      const plotRight = () => width, plotBottom = () => footTop - YEARS - LANE - LANE_GAP;
       /** The dates' baseline, under the lane. */
-      const datesY = () => plotBottom() + 8 + LANE + 20;
+      const datesY = () => plotBottom() + LANE_GAP + LANE + 20;
       const xOf = (/** @type {number} */ day) => ((day - view.a + 0.5) / (view.b - view.a + 1)) * plotRight();
       const yOf = (/** @type {number} */ price) => plotTop + (1 - (Math.log(price) - range.lo) / (range.hi - range.lo)) * (plotBottom() - plotTop);
       const dayAt = (/** @type {number} */ px) => {
@@ -1390,8 +1396,9 @@
             if (p > 0) (lo = Math.min(lo, p)), (hi = Math.max(hi, p));
           }
         }
-        const pad = (Math.log(hi) - Math.log(lo)) * 0.06;
-        return { lo: Math.log(lo) - pad, hi: Math.log(hi) + pad };
+        // (Less above than below: the words over the chart are room enough.)
+        const span = Math.log(hi) - Math.log(lo);
+        return { lo: Math.log(lo) - span * 0.06, hi: Math.log(hi) + span * 0.03 };
       }
 
       function draw() {
@@ -1479,7 +1486,7 @@
         ctx.restore();
 
         // The trend's lane, thin and soft, each run in its colour, named in the price's column.
-        const lane = bottom + 8;
+        const lane = bottom + LANE_GAP;
         for (let i = a; i <= b; ) {
           const t = d.trend[i];
           let j = i;
@@ -1517,7 +1524,7 @@
           if (at < view.a - 0.5 || at > view.b + 0.5) return;
           const x = Math.round(xOf(at)) + 0.5, y = yOf(d.close[at]);
           ctx.fillStyle = withAlpha(paint.ink, kept ? 0.6 : 0.28);
-          if (pinned !== null || hovered !== null) ctx.fillRect(x - (kept ? 0.75 : 0.5), 0, kept ? 1.5 : 1, bottom + 8 + LANE);
+          if (pinned !== null || hovered !== null) ctx.fillRect(x - (kept ? 0.75 : 0.5), 0, kept ? 1.5 : 1, bottom + LANE_GAP + LANE);
           ctx.beginPath();
           ctx.arc(x, y, 4.5, 0, Math.PI * 2);
           ctx.fillStyle = paint.states[d.state[at]];
@@ -1965,8 +1972,8 @@
       new ResizeObserver(placeIcons).observe(compass);
       document.fonts.ready.then(placeIcons);
 
-      /** The half year to the day shown, as a path fading into the past; the day a dot. */
-      const TRAIL = 182;
+      /** The year to the day shown, as a path fading into the past; the day a dot. */
+      const TRAIL = 365;
       /** The day the compass was last drawn for (-1: drawn again whatever the day). */
       let compassDay = -1;
       function drawCompass() {
@@ -1989,7 +1996,7 @@
           const { i, t } = /** @type {SVGElement} */ (cell).dataset;
           cell.classList.toggle("on", i !== undefined ? Number(i) === d.state[day] : Number(t) === d.trend[day]);
         }
-        compass.setAttribute("aria-label", `The nine states as a compass, the three trends under it: ${dated(day)}, ${STATES[d.state[day]].name}, ${TRENDS[d.trend[day]].name.toLowerCase()} trend, its path over the half year before.`);
+        compass.setAttribute("aria-label", `The nine states as a compass, the three trends under it: ${dated(day)}, ${STATES[d.state[day]].name}, ${TRENDS[d.trend[day]].name.toLowerCase()} trend, its path over the year before.`);
       }
 
       // ── The strip and its slider, under the compass: every day from the first to today, a playhead on the day shown ──
@@ -2123,8 +2130,6 @@
         $("states").innerHTML = STATES.map((s, i) => ({ s, i })).sort((p, q) => (states ? states[q.i].share - states[p.i].share : 0)).map(({ s, i }) => row(i, s.name, states?.[i] ?? null, top, `var(--s-${s.id})`)).join("");
         const topTrend = Math.max(...(trends ?? []).map((t) => t.share));
         $("trends").innerHTML = TRENDS.map((t, i) => row(i, `${t.name}${trendIcon(i)}`, trends?.[i] ?? null, topTrend, `var(--s-${t.color})`)).join("");
-        if (!d) return;
-        $("atlas-since").textContent = `Since ${MONTHS[dateOf(d.first).getUTCMonth()]} ${dateOf(d.first).getUTCFullYear()}`;
       }
 
       /** Every share, bar and run count as of the day shown: the days from the first to it. (Rows keep their order, all
