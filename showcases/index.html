@@ -212,6 +212,14 @@
           box-shadow: 0 1px 0 rgb(246 243 238 / 0.06);
           backdrop-filter: blur(20px) saturate(1.4);
           -webkit-backdrop-filter: blur(20px) saturate(1.4);
+
+          /* (Installed on iOS, opaque: iOS then draws its status bar in its dark, the two one bar; see-through, iOS blurs
+             the page scrolled up under the status bar there instead, the billboard's colours over a dark bar.) */
+          @supports (-webkit-touch-callout: none) {
+            @media (display-mode: standalone) {
+              background: #0d0c0b;
+            }
+          }
         }
 
         nav {
@@ -388,7 +396,7 @@
         flex-direction: column;
         justify-content: flex-end;
         overflow: hidden;
-        /* (Its height leaves the apps in view under it: on a desk both their lines, on a phone their first.) */
+        /* (Its height leaves the apps in view under it: on a phone their first line, on a desk their top.) */
         padding: 0 0 8px;
         color: var(--text);
         background: var(--app);
@@ -402,16 +410,16 @@
           padding-top: calc(110px + var(--bar-top));
         }
 
-        /* (At least its share of the screen, taller only as its words need: they never come under the bar.) */
+        /* (A desk's, a streaming home's: most of the first screen, 16:9 of its width up to 78% of its height, the apps'
+           top under it; taller only as its words need: they never come under the bar.) */
         @media (min-width: 720px) {
-          min-height: clamp(360px, min(40svh, 30vw), 560px);
+          min-height: clamp(420px, min(56.25vw, 78svh), 1080px);
           padding-top: calc(96px + var(--bar-top));
-          padding-bottom: 28px;
+          padding-bottom: clamp(36px, 7svh, 88px);
 
-          /* (Dark, the apps rise into its fade; on paper, the band ends cleanly above them.) */
+          /* (Dark, the apps rise 96 px into its fade (main's margin); on paper, the band ends cleanly above them.) */
           @media (prefers-color-scheme: dark) {
-            min-height: clamp(400px, min(48svh, 36vw), 640px);
-            padding-bottom: 104px;
+            padding-bottom: calc(clamp(36px, 7svh, 88px) + 96px);
           }
         }
       }
@@ -436,9 +444,11 @@
             opacity: 1;
           }
 
-          /* (Studio's chart fills its picture's top half, over its dark ground: the top in view.) */
+          /* (Studio's chart fills its picture's top half, over its dark ground: the top in view; in a phone's band, its
+             top 57% as tall as the band.) */
           &[src$="/studio.jpg"] {
             --art-y: 10%;
+            --art-top: 0.57;
           }
         }
 
@@ -461,6 +471,13 @@
           grid-row: auto / 3;
           grid-column: 1;
           bottom: 100px;
+          overflow: hidden;
+
+          /* (A picture whose subject is its top: that top the band's height, the rest under it cut.) */
+          img {
+            bottom: auto;
+            height: calc(100% / var(--art-top, 1));
+          }
 
           &::after {
             background:
@@ -505,12 +522,33 @@
           }
         }
 
-        /* (A desk: its titles' bars on its buttons' line, after them: a line less, the apps under it the higher.) */
+        /* (A desk: its titles' bars on its buttons' line, after them: a line less, the apps under it the higher. Its fact
+           and buttons at the screen's scale, as its title and blurb are.) */
         @media (min-width: 720px) {
           display: grid;
           grid-template-columns: auto 1fr;
           align-items: center;
           column-gap: 32px;
+
+          > div {
+            max-width: clamp(520px, 42vw, 780px);
+          }
+
+          .meta {
+            font-size: clamp(14px, 1.05vw, 18px);
+          }
+
+          .buttons {
+            > * {
+              height: clamp(46px, 3.1vw, 58px);
+              padding: 0 clamp(26px, 2vw, 36px);
+              font-size: clamp(15px, 1.1vw, 19px);
+            }
+
+            .primary {
+              min-width: clamp(132px, 9vw, 172px);
+            }
+          }
 
           .words {
             grid-column: 1 / -1;
@@ -570,11 +608,15 @@
         margin: 10px 0 0;
         padding: 0;
         color: var(--ink);
-        font-size: clamp(40px, 5vw, 76px);
+        font-size: 40px;
         font-weight: 800;
         line-height: 0.95;
         letter-spacing: -0.045em;
         text-wrap: balance;
+
+        @media (min-width: 720px) {
+          font-size: clamp(40px, 6.4vw, 128px);
+        }
       }
 
       /* (What it is now: Live, and its fact, as a streaming title's year and length.) */
@@ -620,7 +662,7 @@
       .blurb {
         margin: 12px 0 0;
         color: var(--text);
-        font-size: clamp(15px, 1.25vw, 18px);
+        font-size: clamp(15px, 1.4vw, 23px);
         line-height: 1.5;
         text-wrap: pretty;
       }
@@ -805,8 +847,12 @@
       }
 
       .billboard .title:is([data-face="trail"], [data-face="calendar"]) {
-        font-size: clamp(50px, 7.2vw, 108px);
+        font-size: 50px;
         line-height: 0.92;
+
+        @media (min-width: 720px) {
+          font-size: clamp(50px, 8.4vw, 166px);
+        }
       }
 
       /* (A serif name a third larger than the others, as on the billboard, its small letters as tall: on a cover and in a
@@ -1965,7 +2011,7 @@
     <section class="billboard" id="billboard" aria-roledescription="carousel" aria-label="Featured">
       <!-- (The first title, in the page itself: there from the first frame, its picture and its words; the script adds the
            others. showcases/home.mjs checks it's FEATURED's first, as its own page names it.) -->
-      <div class="art" aria-hidden="true"><img class="on" alt="" src="/assets/home/banners/studio.jpg" srcset="/assets/home/banners/studio.jpg 1900w, /assets/home/banners/studio@2x.jpg 2880w" sizes="100vw" fetchpriority="high" /></div>
+      <div class="art" aria-hidden="true"><img class="on" alt="" src="/assets/home/banners/studio.jpg" srcset="/assets/home/banners/studio.jpg 1900w, /assets/home/banners/studio@2x.jpg 2880w" sizes="(min-width: 720px) max(1140px, 100vw, 2.3 * clamp(420px, min(56.25vw, 78vh), 1080px)), (min-width: 880px) 130vw, (min-width: 720px) 1140px, 275vw" fetchpriority="high" /></div>
       <div class="feature">
         <div class="words" id="words" aria-live="off">
           <div>
@@ -2152,10 +2198,13 @@
       // ── The billboard: a title every nine seconds, its segment filling; held while pointed at or focused, paused by its
       // button, not turning at all with less motion asked for; its frames asked for only while it turns ──
 
-      const art = /** @type {HTMLElement} */ (document.querySelector(".art"));
-      // (Each at the size its screen draws: about 1,900 wide, or 2,880 for a sharp desk.)
+      const art = /** @type {HTMLElement} */ (document.querySelector(".art")), first = /** @type {HTMLImageElement} */ (art.querySelector("img"));
+      // (Each at the size its screen draws: about 1,900 wide, or 2,880 for a sharp screen; as wide as the first one says
+      // they're drawn: on a desk the billboard's height times the widest banner's ratio, and 1,140 px at least (a narrow
+      // desk's billboard as tall as its words, up to some 495 px; where a browser can't work it out, 130vw or that), on a
+      // phone Studio's band, its top only, the widest there.)
       // (The first, in the page from its start; the others made here, loaded when near their turn.)
-      const pictures = FEATURED.map((t, i) => (i ? art.appendChild(el("img", { alt: "", src: banner(t.id), srcset: `${banner(t.id)} 1900w, ${banner(t.id).replace(".jpg", "@2x.jpg")} 2880w`, sizes: "100vw", loading: "lazy" })) : /** @type {HTMLImageElement} */ (art.querySelector("img"))));
+      const pictures = FEATURED.map((t, i) => (i ? art.appendChild(el("img", { alt: "", src: banner(t.id), srcset: `${banner(t.id)} 1900w, ${banner(t.id).replace(".jpg", "@2x.jpg")} 2880w`, sizes: first.sizes, loading: "lazy" })) : first));
       const pages = FEATURED.map((t, i) => {
         const button = el("button", { type: "button", ariaLabel: t.name });
         button.addEventListener("click", () => {
