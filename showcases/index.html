@@ -594,20 +594,12 @@
       }
 
       .kind {
-        display: flex;
-        align-items: center;
-        gap: 10px;
         margin: 0;
         color: var(--soft);
         font-size: 12.5px;
         font-weight: 650;
         letter-spacing: 0.08em;
         text-transform: uppercase;
-
-        svg {
-          width: 14px;
-          height: 16px;
-        }
       }
 
       .billboard .title {
@@ -699,6 +691,11 @@
           &:active {
             scale: 0.96;
           }
+        }
+
+        /* (One this browser can't use, hidden: over the display above.) */
+        > [hidden] {
+          display: none;
         }
 
         /* (Its icons at the type's size, wherever a button's made.) */
@@ -864,14 +861,18 @@
       }
 
       /* (A serif name a third larger than the others, as on the billboard, its small letters as tall: on a cover and in a
-         sheet, whose others are 30 px.) */
+         sheet, whose others are 40 px, 30 on a phone.) */
       .tile .name:is([data-face="trail"], [data-face="calendar"]) {
         font-size: calc(var(--name-size) * 1.3);
         line-height: 1;
       }
 
       .about h3:is([data-face="trail"], [data-face="calendar"]) {
-        font-size: 39px;
+        font-size: 52px;
+
+        @media (max-width: 599px) {
+          font-size: 39px;
+        }
       }
 
       /* An arrow in words (a way on, a way out of the site): drawn, at the text's size, on its line. */
@@ -1679,12 +1680,14 @@
         }
       }
 
-      /* ── About a title: a sheet (a card on a desk) ── */
+      /* ── About a title: a sheet (a card on a desk), as a streaming title's More info: its picture, and over its foot its
+         kind, its name and its ways in; what it shows now, its line and its words, beside what's known of it ── */
 
       .about {
-        width: min(560px, calc(100vw - 32px));
+        width: min(760px, calc(100vw - 32px));
         max-height: calc(100svh - 32px);
         overflow: auto;
+        overscroll-behavior: contain;
         border: 0;
         border-radius: 16px;
         padding: 0;
@@ -1705,36 +1708,6 @@
           margin: auto 0 0;
           border-radius: 20px 20px 0 0;
           padding-bottom: env(safe-area-inset-bottom);
-        }
-
-        .shot {
-          position: relative;
-          aspect-ratio: 16 / 9;
-
-          > .tile {
-            position: absolute;
-            inset: 0;
-            aspect-ratio: auto;
-            border-radius: 0;
-            box-shadow: none;
-            padding: 22px 24px;
-            font-size: 1.15em;
-          }
-
-          img {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-          }
-
-          &::after {
-            content: "";
-            position: absolute;
-            inset: 50% 0 0;
-            background: linear-gradient(to top, #181613, transparent);
-          }
         }
 
         .close {
@@ -1759,52 +1732,193 @@
           }
         }
 
-        > div:last-child {
+        .hero {
           position: relative;
-          margin-top: -36px;
-          padding: 0 24px 24px;
         }
 
-        /* (A developer's card for its picture, its words at its foot: the title under it, not over it, nothing fading.) */
-        .shot:has(> .card) {
-          border-bottom: 1px solid rgb(246 243 238 / 0.08);
+        .shot {
+          position: relative;
+          aspect-ratio: 16 / 9;
 
-          /* (Its name, the sheet's title already.) */
-          .label {
-            display: none;
+          > .tile {
+            position: absolute;
+            inset: 0;
+            aspect-ratio: auto;
+            border-radius: 0;
+            box-shadow: none;
+            padding: 22px 24px;
+            font-size: 1.15em;
           }
 
+          img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+
+          /* (Its foot into the sheet, under the words over it.) */
           &::after {
-            content: none;
+            content: "";
+            position: absolute;
+            inset: 30% 0 0;
+            background: linear-gradient(to top, #181613, rgb(24 22 19 / 0.75) 40%, transparent);
+          }
+        }
+
+        /* (On a phone under it, over its fade's last stretch: the picture shown, not covered.) */
+        .over {
+          position: absolute;
+          left: 32px;
+          right: 32px;
+          bottom: 4px;
+
+          @media (max-width: 599px) {
+            position: relative;
+            inset: auto;
+            margin-top: -44px;
+            padding: 0 20px;
+          }
+        }
+
+        /* (A developer's card for its picture: its words under it, not over it, nothing fading; its name the sheet's
+           title already.) */
+        .hero:has(.card) {
+          .shot {
+            aspect-ratio: 3 / 1;
+            border-bottom: 1px solid rgb(246 243 238 / 0.08);
+
+            /* (Taller on a phone: its statement's room at 320 px.) */
+            @media (max-width: 599px) {
+              aspect-ratio: 5 / 2;
+            }
+
+            .label {
+              display: none;
+            }
+
+            &::after {
+              content: none;
+            }
           }
 
-          & + div {
-            margin-top: 0;
-            padding-top: 20px;
+          .over {
+            position: static;
+            margin: 0;
+            padding: 22px 32px 0;
+
+            @media (max-width: 599px) {
+              padding: 18px 20px 0;
+            }
           }
         }
 
         h3 {
-          margin: 0;
+          margin: 8px 0 0;
           color: var(--ink);
-          font-size: 30px;
+          font-size: 40px;
           font-weight: 800;
-          letter-spacing: -0.035em;
-        }
+          line-height: 1;
+          letter-spacing: -0.04em;
+          text-wrap: balance;
 
-        .meta {
-          margin-top: 8px;
-          font-size: 13.5px;
-        }
-
-        p {
-          margin: 10px 0 0;
-          font-size: 15px;
-          text-wrap: pretty;
+          @media (max-width: 599px) {
+            font-size: 30px;
+          }
         }
 
         .buttons {
-          margin-top: 20px;
+          margin-top: 18px;
+
+          /* (On a phone, each its share of the width, a thumb's.) */
+          @media (max-width: 599px) {
+            > * {
+              flex: 1;
+            }
+          }
+        }
+
+        /* (Its words; beside them on a desk, under them on a phone, what's known of it.) */
+        .body {
+          display: grid;
+          gap: 20px 40px;
+          padding: 20px 32px 28px;
+
+          @media (min-width: 600px) {
+            grid-template-columns: minmax(0, 1fr) 180px;
+          }
+
+          @media (max-width: 599px) {
+            padding: 18px 20px 24px;
+          }
+        }
+
+        .meta {
+          margin: 0;
+        }
+
+        .lead {
+          margin: 12px 0 0;
+          color: var(--ink);
+          font-size: 16px;
+          font-weight: 600;
+          line-height: 1.4;
+          letter-spacing: -0.01em;
+          text-wrap: pretty;
+
+          &:first-child {
+            margin: 0;
+          }
+        }
+
+        .text {
+          margin: 12px 0 0;
+          font-size: 15px;
+          line-height: 1.55;
+          text-wrap: pretty;
+
+          .lead + & {
+            margin-top: 8px;
+          }
+        }
+
+        dl {
+          display: grid;
+          align-content: start;
+          gap: 14px;
+          margin: 0;
+
+          @media (max-width: 599px) {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            border-top: 1px solid rgb(246 243 238 / 0.08);
+            padding-top: 18px;
+          }
+        }
+
+        dt {
+          color: var(--muted);
+          font-size: 12.5px;
+        }
+
+        dd {
+          margin: 3px 0 0;
+          color: var(--ink);
+          font-size: 14px;
+          overflow-wrap: anywhere;
+        }
+
+        /* (Its address handed on: "Copied" there for a moment, its room kept.) */
+        .share span {
+          display: inline-flex;
+          flex-direction: column;
+
+          &::after {
+            content: "Copied";
+            height: 0;
+            overflow: hidden;
+            visibility: hidden;
+          }
         }
       }
 
@@ -1986,7 +2100,6 @@
   </head>
   <body>
     <svg width="0" height="0" style="position: absolute" aria-hidden="true">
-      <symbol id="mark" viewBox="0 0 26 30"><path d="M13 0L26 7.5L13 15L0 7.5Z" fill="oklch(80% 0.13 62)" /><path d="M0 7.5L13 15V30L0 22.5Z" fill="oklch(65% 0.19 46)" /><path d="M26 7.5L13 15V30L26 22.5Z" fill="oklch(54% 0.17 40)" /></symbol>
       <!-- The page's icons, one set: a 24 grid, a 2 stroke, round ends and joins; the filled ones (play, pause) as heavy
            as the stroked ones look. Play's triangle sits right of the middle, where it looks centred, its corners round. -->
       <symbol id="i-play" viewBox="0 0 24 24"><path d="M8.25 5.32v13.36c0 .86.93 1.4 1.68.97l11.07-6.68a1.12 1.12 0 0 0 0-1.94L9.93 4.35c-.75-.43-1.68.11-1.68.97z" fill="currentColor" /></symbol>
@@ -1994,6 +2107,7 @@
       <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9" /><path d="M12 11v5.25" /><circle cx="12" cy="7.75" r="0.75" fill="currentColor" stroke-width="1" /></symbol>
       <symbol id="i-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.75 5.5 8.25 12l6.5 6.5" /></symbol>
       <symbol id="i-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.25 5.5 15.75 12l-6.5 6.5" /></symbol>
+      <symbol id="i-share" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14.5v-11M8.25 7.25 12 3.5l3.75 3.75M8 10.5H6.5A1.5 1.5 0 0 0 5 12v7a1.5 1.5 0 0 0 1.5 1.5h11A1.5 1.5 0 0 0 19 19v-7a1.5 1.5 0 0 0-1.5-1.5H16" /></symbol>
       <symbol id="i-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.75 6.75l10.5 10.5M17.25 6.75 6.75 17.25" /></symbol>
       <symbol id="i-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 6.5 15 12l-5.5 5.5" /></symbol>
       <symbol id="i-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18 18 6M8 6h10v10" /></symbol>
@@ -2026,7 +2140,7 @@
       <div class="feature">
         <div class="words" id="words" aria-live="off">
           <div>
-            <p class="kind"><svg aria-hidden="true"><use href="#mark" /></svg><span id="bb-kind">Charts</span></p>
+            <p class="kind"><span id="bb-kind">Charts</span></p>
             <h2 class="title" id="bb-title" data-face="studio">Studio</h2>
             <p class="meta" id="bb-meta"></p>
             <p class="blurb" id="bb-blurb">Chart any series: overlay, stack, derive, share.</p>
@@ -2099,6 +2213,8 @@
 
       const groupedFormat = new Intl.NumberFormat("en-US");
       const grouped = (/** @type {number} */ n) => groupedFormat.format(Math.round(n));
+      /** A fee rate, in sat/vB, to a tenth: 0.5, 1.4, 12.3. */
+      const feeRate = (/** @type {number} */ v) => String(Number(v.toFixed(1)));
       const SI = ["", "K", "M", "B", "T", "P", "E", "Z"];
       /** Four digits and a letter past a thousand: 1.13Z, 164.5M, 0.817. */
       const short = (/** @type {number} */ v) => {
@@ -2123,28 +2239,29 @@
 
       // ── What there is: the titles, each its kind, a line, its words, its way in ──
 
-      // Each title: what this page says of it (its kind, its line, its way in); what its own page says of it (its name, its
+      // Each title: what this page says of it (its kind, its line, its way in; what it's made from, the data its app reads);
+      // what its own page says of it (its name, its
       // words), from FROM_APPS below, the apps' own pages read and written here by showcases/home.mjs, so a renamed or
       // reworded app is renamed and reworded here too: run it after changing one.
-      /** @typedef {{ id: string, name: string, kind?: string, line: string, about: string, href: string, live?: boolean, copy?: string, face?: string }} Title */
+      /** @typedef {{ id: string, name: string, kind?: string, line: string, about: string, href: string, live?: boolean, made?: string, copy?: string, face?: string }} Title */
       /** @type {Title[]} */
       const APPS = /** @type {any[]} */ ([
-        { id: "studio", kind: "Charts", line: "Chart any series: overlay, stack, derive, share.", href: "/studio/" },
-        { id: "oracle", kind: "Price", line: "Bitcoin's price, read from the chain alone.", href: "/oracle/", live: true },
-        { id: "globe", kind: "Mining", line: "Where blocks are mined, live and since 2011.", href: "/globe/", live: true },
-        { id: "trail", kind: "Supply", line: "Every coin by the price it last moved at, in 3D.", href: "/trail/" },
-        { id: "stack", kind: "Savings", line: "Bitcoin on a schedule, more when it's cheap.", href: "/stack/" },
-        { id: "calendar", kind: "Mining", line: "Every day's leading pool, every block of any day.", href: "/calendar/", live: true },
-        { id: "series", kind: "Catalogue", line: "Every series, what it is and how to fetch it.", href: "/series/" },
-        { id: "logs", kind: "Server", line: "This server at work, live.", href: "/logs/", live: true },
+        { id: "studio", kind: "Charts", line: "Chart any series: overlay, stack, derive, share.", href: "/studio/", made: "Every series Bitview computes from the chain" },
+        { id: "oracle", kind: "Price", line: "Bitcoin's price, read from the chain alone.", href: "/oracle/", live: true, made: "Round-dollar payments in each block" },
+        { id: "globe", kind: "Mining", line: "Where blocks are mined, live and since 2011.", href: "/globe/", live: true, made: "Each block's mining pool and its home country" },
+        { id: "trail", kind: "Supply", line: "Every coin by the price it last moved at, in 3D.", href: "/trail/", made: "Every unspent coin, by the price it last moved at" },
+        { id: "stack", kind: "Savings", line: "Bitcoin on a schedule, more when it's cheap.", href: "/stack/", made: "The daily price, Bedrock's floors, what young coins paid" },
+        { id: "calendar", kind: "Mining", line: "Every day's leading pool, every block of any day.", href: "/calendar/", live: true, made: "Each block's mining pool" },
+        { id: "series", kind: "Catalogue", line: "Every series, what it is and how to fetch it.", href: "/series/", made: "Bitview's catalogue of every series it computes" },
+        { id: "logs", kind: "Server", line: "This server at work, live.", href: "/logs/", live: true, made: "This server's own log" },
       ]);
       // (The developers' named by what they're for, here; their words their pages'.)
       /** @type {Title[]} */
       const DEV = /** @type {any[]} */ ([
-        { id: "api", name: "API", line: "Every series, block and address, over plain HTTP.", href: "/api/" },
-        { id: "run", name: "Run your own", line: "Bitview on your own node.", href: "/dev/", copy: "cargo install --locked bitviewd" },
-        { id: "brk", name: "Bitcoin Research Kit", line: "Rust crates for Bitcoin Core data.", href: "/brk/" },
-        { id: "mcp", name: "For assistants", line: "Bitview for Claude, ChatGPT and any MCP client.", about: "Add Bitview's MCP server to Claude, ChatGPT or any MCP client, or hand one this server's llms.txt.", href: "/llms.txt", copy: "https://mcp.bitview.space/" },
+        { id: "api", name: "API", line: "Every series, block and address, over plain HTTP.", href: "/api/", made: "Bitview's series, blocks, addresses and mempool" },
+        { id: "run", name: "Run your own", line: "Bitview on your own node.", href: "/dev/", made: "Your own Bitcoin Core node", copy: "cargo install --locked bitviewd" },
+        { id: "brk", name: "Bitcoin Research Kit", line: "Rust crates for Bitcoin Core data.", href: "/brk/", made: "Bitcoin Core's RPC and block files" },
+        { id: "mcp", name: "For assistants", line: "Bitview for Claude, ChatGPT and any MCP client.", about: "Add Bitview's MCP server to Claude, ChatGPT or any MCP client, or hand one this server's llms.txt.", href: "/llms.txt", made: "Bitview's API, for an assistant", copy: "https://mcp.bitview.space/" },
       ]);
       /* from the apps */
       const FROM_APPS = {
@@ -2379,45 +2496,69 @@
       const dev = row("dev-title");
       for (const t of used(DEV)) dev.append(card(t));
 
-      // ── About: a sheet, its picture, its words, its way in ──
+      // ── About: a sheet, its picture, its words, its ways in, what's known of it ──
 
       const sheet = el("div", { className: "about", popover: "auto", role: "dialog" });
       document.body.append(sheet);
       function about(/** @type {Title} */ t, /** @type {HTMLElement} */ source) {
+        const kind = t.kind ?? "For developers";
         const go = el("a", { className: "primary", href: t.href }, icon("i-play"), "Open");
         go.dataset.open = t.id;
         const shut = el("button", { className: "close", type: "button", ariaLabel: "Close" }, icon("i-close"));
         shut.addEventListener("click", () => sheet.hidePopover());
-        const m = el("p", { className: "meta" });
-        m.innerHTML = meta(t);
         const heading = el("h3", {}, t.name);
         if (t.face) heading.dataset.face = t.face;
-        const body = el("div", {}, heading, m, el("p", {}, t.about));
-        if (t.copy) body.append(copier(t.copy));
-        body.append(el("div", { className: "buttons" }, go));
-        // (Its picture: an app's cover; a developer's, its card as the row draws it.)
+        // (Its picture: a featured app's banner, the widest; another's cover; a developer's, its card as the row draws it.)
         const card = /** @type {HTMLElement | null} */ (document.querySelector(`#shelves a.dev-${t.id}`)?.cloneNode(true) ?? null);
         if (card) card.tabIndex = -1;
-        sheet.replaceChildren(shut, el("div", { className: "shot" }, card ?? el("img", { alt: "", src: poster(t.id) })), body);
+        const picture = card ?? el("img", { alt: "", src: FEATURED.includes(t) ? banner(t.id) : poster(t.id) });
+        // (What it shows now, if it shows anything.)
+        const now = meta(t), m = el("p", { className: "meta" });
+        m.innerHTML = now;
+        // (Its line as the lead, unless its words begin with it already.)
+        const lead = t.about.startsWith(t.line.replace(/\.$/, "")) ? [] : [el("p", { className: "lead" }, t.line)];
+        const words = el("div", {}, ...(now ? [m] : []), ...lead, el("p", { className: "text" }, t.about));
+        if (t.copy) words.append(copier(t.copy));
+        // (What tells it from the others, as a film's genre and cast: its kind, and what it's made from.)
+        const known = [["Category", kind], ...(t.made ? [["Made from", t.made]] : [])];
+        sheet.replaceChildren(
+          shut,
+          el("div", { className: "hero" }, el("div", { className: "shot" }, picture), el("div", { className: "over" }, el("p", { className: "kind" }, kind), heading, el("div", { className: "buttons" }, go, sharer(t)))),
+          el("div", { className: "body" }, words, el("dl", {}, ...known.map(([term, value]) => el("div", {}, el("dt", {}, term), el("dd", {}, value))))),
+        );
         sheet.setAttribute("aria-label", t.name);
         /** @type {any} */ (sheet).showPopover({ source });
+        // (Its top, as another's was left scrolled: once it's shown, a hidden one has none to scroll.)
+        sheet.scrollTop = 0;
         // (Keys go into it, to its way in; a tap's leaves no ring.)
         if (source.matches(":focus-visible")) go.focus();
       }
-      function copier(/** @type {string} */ text) {
-        const button = el("button", { type: "button", hidden: !navigator.clipboard, ariaLabel: `Copy ${text}` }, "Copy");
+      /** Says something's copied: on its label for a moment, and to a screen reader. */
+      function copiedOn(/** @type {HTMLElement} */ label) {
+        const was = label.textContent;
         let back = 0;
-        button.addEventListener("click", async () => {
-          try {
-            await navigator.clipboard.writeText(text);
-            clearTimeout(back);
-            button.textContent = "Copied";
-            $("copied").textContent = "";
-            setTimeout(() => ($("copied").textContent = "Copied"), 50);
-            back = setTimeout(() => (button.textContent = "Copy"), 1500);
-          } catch {}
-        });
+        return () => {
+          clearTimeout(back);
+          label.textContent = "Copied";
+          $("copied").textContent = "";
+          setTimeout(() => ($("copied").textContent = "Copied"), 50);
+          back = setTimeout(() => (label.textContent = was), 1500);
+        };
+      }
+      function copier(/** @type {string} */ text) {
+        const button = el("button", { type: "button", hidden: !navigator.clipboard, ariaLabel: `Copy ${text}` }, "Copy"), copied = copiedOn(button);
+        button.addEventListener("click", () => navigator.clipboard.writeText(text).then(copied, () => {}));
         return el("div", { className: "copy" }, el("code", {}, text), button);
+      }
+      /** A title's address handed on: to the system's share sheet where there's one, else copied. */
+      function sharer(/** @type {Title} */ t) {
+        const url = new URL(t.href, location.href).href, label = el("span", {}, "Share"), copied = copiedOn(label);
+        const button = el("button", { className: "secondary share", type: "button", hidden: !navigator.share && !navigator.clipboard }, icon("i-share"), label);
+        button.addEventListener("click", () => {
+          if (navigator.share) navigator.share({ title: `${t.name} · Bitview`, url }).catch(() => {});
+          else navigator.clipboard.writeText(url).then(copied, () => {});
+        });
+        return button;
       }
 
       // ── Live rows: the latest blocks, the week's pools, the charts, the topics ──
@@ -2468,7 +2609,7 @@
         const pool = b.extras?.pool ?? { slug: "unknown", name: "Unknown" };
         const when = el("div", { className: "ago" }, ago(b.timestamp));
         when.dataset.at = String(b.timestamp);
-        const fee = Number((b.extras?.medianFee ?? 0).toFixed(1)), fees = Number(((b.extras?.totalFees ?? 0) / 1e8).toFixed(3));
+        const fee = feeRate(b.extras?.medianFee ?? 0), fees = Number(((b.extras?.totalFees ?? 0) / 1e8).toFixed(3));
         const tile = el("a", { className: "tile block", href: `/calendar/?view=day&date=${iso(b.timestamp)}` },
           el("div", { className: "head" }, el("div", {}, el("div", { className: "height" }, grouped(b.height)), when), logo(pool.slug, pool.name)),
           el("div", {}, el("div", { className: "by" }, pool.name), el("div", { className: "facts" }, el("span", {}, `${grouped(b.tx_count)} txs`), el("span", { className: "sep" }, " · "), el("span", {}, `${fee} sat/vB`), el("span", { className: "fees" }, ` · ${fees} ₿ fees`))));
@@ -2743,7 +2884,8 @@
             refresh("oracle");
             refresh("stack");
           }).then((ok) => ok || forget("oracle", "stack")),
-          part("fees-panel", read("/api/v1/fees/recommended"), (f) => ($("fee").textContent = String(f.fastestFee >= 10 ? Math.round(f.fastestFee) : Number(f.fastestFee.toFixed(1))))),
+          // (The next block's rate as it is, not rounded up to a whole one as the recommended ones are.)
+          part("fees-panel", read("/api/v1/fees/precise"), (f) => ($("fee").textContent = feeRate(f.fastestFee))),
           read("/api/blocks/tip/height", "text").then((h) => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = grouped(Number(h)))), () => document.querySelectorAll(".api-answer").forEach((e) => (e.textContent = "not answering"))),
           read("/api/v1/blocks").then((list) => {
             drawBlocks(list);
