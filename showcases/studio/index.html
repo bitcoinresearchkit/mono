@@ -6993,6 +6993,11 @@
           &:is(:disabled, [aria-disabled="true"]) {
             opacity: 0.35;
             cursor: default;
+
+            /* (Why it can't be picked, in a few words: its name read first, the reason whole in its tip.) */
+            :is(span:not(.letter, .label, .chart-mark), kbd) {
+              max-width: 14em;
+            }
           }
 
           &.danger:is(:hover:where(.can-hover *), :focus-visible) {
@@ -7033,12 +7038,14 @@
             white-space: nowrap;
           }
 
-          /* (An aside: not its name, nor a mark (a folder's, a section's).) */
+          /* (An aside: not its name, nor a mark (a folder's, a section's). As wide as the longest the app says there, a
+             scale's ("Indexed to 100 at the first value in view"): a menu as wide as it needs, no wider; a row that
+             can't be picked, less, see above.) */
           :is(span:not(.letter, .label, .chart-mark), kbd) {
             display: inline;
             overflow: hidden;
             min-width: 0;
-            max-width: 14em;
+            max-width: 19em;
             height: auto;
             margin-left: auto;
             padding: 0;
