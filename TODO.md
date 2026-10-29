@@ -15,11 +15,10 @@ Only what's left. An item done is removed: its history is in the commits and log
 ## Studio: raised by you, still open
 
 - The gradient editor and a heatmap's default colors (you, 2026-10-28: "think very hard, how would best designers in
-  the world do it", "look for the best setup possible"): built, your look to confirm
-  (_notes/overnight-20261028/heatmap-default-and-editor-before-after.png). A cell's strength to the 2.5th power (most
-  cells were lit, the map one color), the weakest 30% fading into the chart, Inferno kept; the editor's bar as drawn,
-  a value scale under it, Reverse, the color in hand named, your own gradient kept as "Your own" once a ready-made
-  is picked (this session).
+  the world do it", "look for the best setup possible"): built, then reorganized (2026-10-29: Reverse and Add on the
+  ready-made gradient's line, the color in hand under the bar heading its picker, its worth under its knob, the scale's
+  values measured apart, the nearest color grabbed; _notes/overnight-20261029/gradient-editor-before-after.png). Your
+  look to confirm.
 
 - Bubbles: built, a kind of their own beside clouds, trends and signals (Add bubbles, a layer's ⋯ › As bubbles on…; not
   a series' Type), On, Size, Hide below, Sized to, one color or two; presets per cohort (Profit and loss bubbles, and on
