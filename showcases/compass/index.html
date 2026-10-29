@@ -1234,9 +1234,9 @@
       /** @typedef {{ start: number, data: (number | null)[] }} Answer */
       /** The first day read: the price begins in July 2010, nothing before it counts. */
       const START = (Date.UTC(2010, 6, 1) - EPOCH) / DAY;
-      /** A series by id, from START. */
-      async function read(/** @type {string} */ id) {
-        const response = await fetch(`/api/series/${id}/day1?start=${START}`).catch((error) => {
+      /** A series by id, from START (or a later day). */
+      async function read(/** @type {string} */ id, from = START) {
+        const response = await fetch(`/api/series/${id}/day1?start=${from}`).catch((error) => {
           throw error instanceof TypeError ? new Error("this server couldn't be reached") : error;
         });
         const body = await response.json().catch(() => null);
@@ -2374,24 +2374,73 @@
           for (const replay of replays) replay.disabled = false;
         }
         (coins = nextCoins), (basis = nextBasis);
-        days = computed;
         pressCoins();
+        hovered = null;
+        use(computed);
+        remember();
+        show(true);
+      }
+      /** New days (other coins, another basis, the live price, a new day): the same span and day on them, their
+       * drawings made again. */
+      function use(/** @type {Days} */ computed) {
+        const before = /** @type {Days} */ (days);
+        days = computed;
         slider.min = String(days.first);
         slider.max = String(days.last);
-        // (The same span and day, on the new days; their drawings made again.)
-        hovered = null;
         if (pinned !== null) pinned = Math.max(days.first, Math.min(days.last - 1, pinned));
-        if (span !== -1) (target = spanOf(span)), (view = { ...target });
-        else viewTo(view.a, view.b - view.a + 1);
+        // (Days that begin or end elsewhere: the span's on them. The same days, as a new price makes, move nothing.)
+        if (days.first !== before.first || days.last !== before.last) {
+          if (span !== -1) (target = spanOf(span)), (view = { ...target });
+          else viewTo(view.a, view.b - view.a + 1);
+        }
         stillKey = panKey = stripKey = "";
         buildCompass();
         buildShares();
         following = true;
-        remember();
-        show(true);
       }
       for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-coins]"))) button.addEventListener("click", () => choose(/** @type {"mobile" | "awake"} */ (button.dataset.coins), basis));
       for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-basis]"))) button.addEventListener("click", () => choose(coins, /** @type {Basis} */ (button.dataset.basis)));
+
+      // ── Live: today's price read every 10 seconds, today's state and trend with it; once the server has a new
+      // day (with its first block), every series read again ──
+
+      const LIVE = 10_000;
+      let living = false;
+      async function live() {
+        const was = days;
+        if (!was || living || switching || document.hidden) return;
+        living = true;
+        try {
+          /** @type {Days} */
+          let computed;
+          if (Math.floor((Date.now() - EPOCH) / DAY) > was.last) {
+            // (Until the new day's there, only asked whether it is: its price alone, from that day.)
+            if (!(await read(SERIES.close, was.last + 1)).data.length) return;
+            answers.clear();
+            computed = compute(await readAll());
+          } else {
+            const response = await fetch("/api/oracle/price");
+            const price = response.ok ? Number(await response.text()) : NaN, answered = await readAll();
+            const [close, high, low] = [SERIES.close, SERIES.high, SERIES.low].map((id) => answered[id]), today = (/** @type {Answer} */ a) => was.last - a.start;
+            if (!(price > 0) || close.data[today(close)] === price) return;
+            // (Today's close, and its high and low so far: kept in what's read, so a switch of coins keeps them too.)
+            close.data[today(close)] = price;
+            high.data[today(high)] = Math.max(high.data[today(high)] ?? price, price);
+            low.data[today(low)] = Math.min(low.data[today(low)] ?? price, price);
+            computed = compute(answered);
+          }
+          // (Something else changed the days meanwhile, or the new ones have none: left as they are.)
+          if (days !== was || switching || computed.first < 0) return;
+          use(computed);
+          show();
+        } catch {
+          // (Nothing read: the next try's in 10 seconds.)
+        } finally {
+          living = false;
+        }
+      }
+      setInterval(live, LIVE);
+      document.addEventListener("visibilitychange", live);
 
       // ── Loading ──
 
@@ -2429,6 +2478,7 @@
           range = rangeOf(view);
           goTo(span);
           show();
+          live();
         } catch (error) {
           // (What it read forgotten, so Try again asks the server again.)
           answers.clear();
