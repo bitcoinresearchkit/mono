@@ -7627,9 +7627,14 @@
       }
 
       /* A live figure (the last block, the price, when it was last heard): its mark before it, as a door has its own, on
-         its line's words (in a line: what's before it, "Offline", on the same baseline). */
+         its line's words (in a line: what's before it, "Offline", on the same baseline). Apart from what's before it by
+         more than its mark is from it: its mark says where it starts, no "·" needed. */
       .live-figure {
         white-space: nowrap;
+
+        :is(.live-off, .live-figure) + & {
+          margin-left: 0.5em;
+        }
 
         svg {
           width: 14px;
@@ -37289,11 +37294,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           block: liveHeight ? liveFigure(ICONS.cube, "Block", grouped.format(liveHeight)) : "",
           price: !lost && livePrice ? liveFigure(ICONS.dollar, "Price in dollars", toTheCent.format(livePrice)) : at ? liveFigure(ICONS.clock, "Last heard at", at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })) : "",
         };
-        $("home-live").innerHTML = [said.status, said.block, said.price].filter(Boolean).join("\u2009·\u2009");
+        $("home-live").innerHTML = [said.status, said.block, said.price].filter(Boolean).join(" ");
         const block = liveHeight ? `Last block ${grouped.format(liveHeight)}${at ? `, ${ago(at.getTime())}` : ""}` : "";
         // (Live said only when it isn't. Home's apart: the chain at its left, the price (or when it was last heard) at its
         // right; each said in full by its tip, as the live dot's.)
-        $("home-pulse").replaceChildren(...[[[said.status, said.block].filter(Boolean).join("\u2009·\u2009"), block], [said.price, lost ? "Last heard" : "Price, as it trades"]].map(([html, tip]) => {
+        $("home-pulse").replaceChildren(...[[[said.status, said.block].filter(Boolean).join(" "), block], [said.price, lost ? "Last heard" : "Price, as it trades"]].map(([html, tip]) => {
           const half = document.createElement("span");
           half.innerHTML = html;
           if (tip) half.dataset.tip = tip;
