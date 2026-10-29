@@ -1574,22 +1574,42 @@
         }
       }
 
+      /* A row: its mark, then two lines, each its own: its name and its value; under them, its series or its formula
+         (what's wrong, what it's between), then, when its value is older than the view's end, the date it's from and its
+         change (a heatmap's, the price its amount is at: see heatReading). Its figures' columns keep the room of the
+         widest they get (see figuresRoom: nothing moves as the crosshair reads), each line's words the rest of their own
+         line: a name isn't cut for the room of what's under it. */
       .row-main {
-        display: flex;
+        display: grid;
         flex: 1;
-        align-items: center;
-        gap: 10px;
+        /* (Its mark, its words, the date, what its change takes past its value's column, its value.) */
+        grid-template-columns: auto minmax(0, 1fr) minmax(var(--date-room, 0px), auto) minmax(var(--change-room, 0px), auto) minmax(var(--value-room, 0px), auto);
+        /* (The date's letters and the change's on one line, at their own sizes.) */
+        align-items: baseline;
         min-width: 0;
         border: 0;
         padding: 6px 4px 6px 9px;
         background: none;
         text-align: left;
         cursor: grab;
+
+        > .letter {
+          grid-area: 1 / 1 / 3 / 2;
+          align-self: center;
+          margin-right: 10px;
+        }
+      }
+
+      /* (Their parts in the row's columns.) */
+      :is(.row-text, .row-figures) {
+        display: contents;
       }
 
       .row-text {
-        flex: 1;
-        min-width: 0;
+        > * {
+          grid-column: 2 / -1;
+          min-width: 0;
+        }
 
         .name {
           display: block;
@@ -1621,6 +1641,16 @@
         }
       }
 
+      /* (With figures, the name beside its value, over the columns of what's under it; its series beside what's under it,
+         where there's any: a change, a date, a heatmap's price, a cloud's two lines.) */
+      .row-main:has(> .row-figures) > .row-text > .name {
+        grid-column: 2 / 5;
+      }
+
+      .row-main:has(> .row-figures > :is(.row-change, .row-value[data-lines]), > .row-figures:is(.dated, [data-as-of], [data-at])) > .row-text > :not(.name) {
+        grid-column: 2 / 3;
+      }
+
       .layer-row:is(.selected, .picked) .row-text .name {
         color: var(--ink);
       }
@@ -1632,30 +1662,29 @@
         border-radius: var(--radius-sm);
       }
 
-      /* A row's figures: its value, then one line under it (a name and its id beside them, as tall): its change, and
-         when its value is older than the view's end, the date it's from, before it (see asOf); a heatmap's, the price
-         its amount is at (see heatReading). */
+      /* A row's figures: its value at the end of its first line; at the end of its second, its change, after the date its
+         value's from when that's older than the view's end (see asOf), its room kept (`dated`) as the crosshair reads
+         other dates; a heatmap's, the price its amount is at (see heatReading). */
       .row-figures {
-        display: grid;
-        grid-template-columns: auto auto;
-        justify-items: end;
-        /* (The date's letters and the change's on one line, at their own sizes.) */
-        align-items: baseline;
-        flex-shrink: 0;
-
         > .row-value {
-          grid-column: 1 / -1;
+          grid-area: 1 / 5;
+          justify-self: end;
+          margin-left: 10px;
         }
 
         > .row-change {
-          grid-area: 2 / 2;
+          grid-area: 2 / 4 / 3 / 6;
+          justify-self: end;
+          margin-left: 10px;
           white-space: nowrap;
         }
 
-        &:is([data-as-of], [data-at])::after {
+        &:is(.dated, [data-as-of], [data-at])::after {
           content: attr(data-as-of);
-          grid-area: 2 / 1;
-          margin-right: 6px;
+          grid-area: 2 / 3;
+          justify-self: end;
+          /* (6px from the change after it.) */
+          margin: 0 -4px 0 10px;
           color: var(--muted);
           font: 400 11px/16px var(--sans);
           white-space: nowrap;
@@ -1665,22 +1694,20 @@
           content: attr(data-at);
         }
 
-        &:is([data-as-of], [data-at]):not(:has(> .row-change:not(:empty)))::after {
-          grid-column: 1 / -1;
+        /* (No change after it: to the line's end.) */
+        &:is(.dated, [data-as-of], [data-at]):not(:has(> .row-change:not(:empty)))::after {
+          grid-column: 3 / -1;
           margin-right: 0;
         }
 
-        /* (A cloud's, its highest over its lowest already two lines: beside its lowest.) */
-        &:has(> .row-value[data-lines]) {
-          > .row-value {
-            grid-area: 1 / 2 / 3 / 3;
-          }
+        /* (A cloud's, its highest over its lowest: both lines, the date beside its lowest.) */
+        > .row-value[data-lines] {
+          grid-row: 1 / 3;
+        }
 
-          &[data-as-of]::after {
-            grid-area: 2 / 1;
-            align-self: end;
-            margin-right: 6px;
-          }
+        &:is(.dated, [data-as-of], [data-at]):has(> .row-value[data-lines])::after {
+          grid-column: 3 / 5;
+          margin-right: -4px;
         }
       }
 
@@ -18731,30 +18758,38 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const figures of all$(".row-figures", $("layer-list"))) {
           const layer = layerById(/** @type {HTMLElement} */ (figures.closest("[data-layer]"))?.dataset.layer ?? ""), result = layer && resolved.results.get(layer.id);
           if (!layer || !result) continue;
-          const width = figuresRoom(layer, result);
-          if (figures.style.minWidth !== width) figures.style.minWidth = width;
+          const room = figuresRoom(layer, result), main = /** @type {HTMLElement} */ (figures.parentElement);
+          figures.classList.toggle("dated", room.dated);
+          for (const [name, px] of /** @type {const} */ ([["--value-room", room.value], ["--change-room", room.change], ["--date-room", room.date]])) {
+            if (main.style.getPropertyValue(name) !== (px ? `${px}px` : "")) px ? main.style.setProperty(name, `${px}px`) : main.style.removeProperty(name);
+          }
         }
         const head = $("changes-since"), text = since.size === 1 ? `Since ${pointLabel([...since][0])}` : since.size ? "Since the view's start" : "";
         if (head.textContent !== text) head.textContent = text;
         head.hidden = !text;
       }
       /**
-       * The room a row's figures keep while the crosshair runs: their widest value, and the line under it, the date its
-       * value at rest is from (see asOf; gone as the crosshair reads a point) beside its widest change; a cloud's date
-       * beside its two lines.
+       * The room a row's figure columns keep while the crosshair runs (see .row-main), their margins in, each the widest
+       * its figure gets: the value's; what its change under it takes past that; the date before the change, the one its
+       * value at rest is from (see asOf; gone as the crosshair reads a point, `dated` keeping its room); a cloud's date
+       * beside its two lines; a date with no change after it to the line's end, only what reaches past the value; a
+       * heatmap's price, the same.
+       * @returns {{ value: number, change: number, date: number, dated: boolean }}
        */
       function figuresRoom(/** @type {Layer} */ layer, /** @type {Result} */ result) {
-        if (layer.hidden || result.error) return "";
+        if (layer.hidden || result.error) return { value: 0, change: 0, date: 0, dated: false };
         // (A heatmap's: its amount over the price it's at, see heatReading.)
-        if (layer.type === "heatmap") return `${Math.max(valueSlot(layer, rowSizes.value, true), widest([`at ${format(888_888, "usd")}`], 400, 11))}px`;
+        if (layer.type === "heatmap") {
+          const value = valueSlot(layer, rowSizes.value, true) + 10;
+          return { value, change: 0, date: Math.max(0, widest([`at ${format(888_888, "usd")}`], 400, 11) + 10 - value), dated: false };
+        }
         const lines = layer.type === "cloud" && Boolean(result.low), value = valueSlot(layer, rowSizes.value, lines);
         // (Its date where the values' loop writes one: a value, or a cloud's; measured once a view, as the slots are.)
         const rest = { at: lastShown(), rest: true }, since = Number.isFinite(valueAt(layer, rest)) || result.low ? asOf(layer, rest) : "", measured = slotsNow();
         if (since && !measured.has(`asOf:${since}`)) measured.set(`asOf:${since}`, widest([since], 400, 11));
         const date = since ? /** @type {number} */ (measured.get(`asOf:${since}`)) : 0;
-        if (lines) return `${value + (date && date + 6)}px`;
-        const chip = layer.type === "cloud" || layer.type === "signal" ? 0 : chipSlot(layer);
-        return `${Math.max(value, date && chip ? date + 6 + chip : Math.max(date, chip))}px`;
+        const chip = layer.type === "cloud" || layer.type === "signal" ? 0 : chipSlot(layer), change = Math.max(0, chip - value);
+        return { value: value + 10, change, date: !date ? 0 : chip || lines ? date + 6 : Math.max(0, date - value - change), dated: Boolean(date) };
       }
       /**
        * The widest change a layer's chip can show in this view, padding included: those to its lowest and highest
@@ -28451,10 +28486,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const sub = `<span class="${subClass}"${result?.error && result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(subText)}</span>`;
               return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
                 <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" data-tip="${layerPicks.has(layer.id) ? "Deselect" : "Select"}" ${layerPicks.has(layer.id) ? "checked" : ""} />
-                <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(subText ? `${labelOf(layer)}\n${subText}` : labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}>
+                <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(subText ? `${labelOf(layer)}\n${subText}` : labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}${layer.type === "cloud" && result?.low ? ` style="--value-room: ${valueSlot(layer, rowSizes.value, true) + 10}px"` : ""}>
                   ${letterChip(layer)}
                   <span class="row-text"><span class="name">${escape(labelOf(layer))}</span>${sub}</span>
-                  <span class="row-figures"${layer.type === "cloud" && result?.low ? ` style="min-width: ${valueSlot(layer, rowSizes.value, true)}px"` : ""}><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.type === "cloud" ? " data-lines" : ""}`}></span>${layer.type === "cloud" || layer.type === "signal" || layer.type === "heatmap" ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}</span>
+                  <span class="row-figures"><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.type === "cloud" ? " data-lines" : ""}`}></span>${layer.type === "cloud" || layer.type === "signal" || layer.type === "heatmap" ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}</span>
                 </button>
                 <button type="button" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>
               </div>`;
