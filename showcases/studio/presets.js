@@ -369,7 +369,7 @@ export function studioPresets(client, facts) {
         realized.netPnl?.sum?._24h && chart("Profit and loss bubbles", titled("Net realized profit and loss bubbles"), [price(), series(realized.netPnl.sum._24h, "Net", { type: "bubbles", ref: "A", color: "green", colorBelow: "red" })]),
         // (Each day's profit and loss taken, bubbles on the price, over what's held in profit and in loss at each cost:
         // where it's taken, against where it's held.)
-        urpd && realized.profit?.sum?._24h && chart("Profit and loss bubbles on the heatmap", titled("Realized profit and loss bubbles on the unrealized profit and loss heatmap"), [
+        urpd && realized.profit?.sum?._24h && chart("Profit and loss bubbles on the heatmap", titled("Realized and unrealized profit and loss"), [
           price(), series(realized.profit.sum._24h, "Profit", { type: "bubbles", ref: "A", color: "green", colors: 1 }), series(realized.loss.sum._24h, "Loss", { type: "bubbles", ref: "A", color: "red", colors: 1 }),
           { heatmap: urpd, measure: "pnl" },
         ]),
