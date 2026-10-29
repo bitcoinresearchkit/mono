@@ -14339,9 +14339,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * it (see storeView). A chart laid out, resized or taking it moves its view too, as no one's move.
        */
       let handled = false;
+      /** A hand on the page since it started, ever (nothing done by its hand yet: what it shows can be put right unseen). */
+      let handledYet = false;
       /** The pointers held down (fingers, by their ids): a hand on the page till the last is let go (said halfway, a drag held on is still one). */
       const handsHeld = new Set();
-      for (const type of ["pointerdown", "wheel", "keydown"]) addEventListener(type, (event) => ((handled = true), event instanceof PointerEvent && handsHeld.add(event.pointerId)), { capture: true, passive: true });
+      for (const type of ["pointerdown", "wheel", "keydown"]) addEventListener(type, (event) => ((handled = handledYet = true), event instanceof PointerEvent && handsHeld.add(event.pointerId)), { capture: true, passive: true });
       for (const type of ["pointerup", "pointercancel"]) addEventListener(type, (event) => handsHeld.delete(/** @type {PointerEvent} */ (event).pointerId), { capture: true, passive: true });
       /**
        * The linked view the open chart is drawn again to take (see followLinked), as it was when taken: its chunks and its
@@ -25936,10 +25938,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!root || !presets) return sidePresets && !presetsFailed && !onRail() && !groupShut("presets") && sidePresets.open === JSON.stringify(prefs.presetsOpen) ? sidePresets.parts.map(([key, html]) => [key, html.replace(/^<div /, "<div inert ")]) : [sideHead("presets", null, false)];
         // (On the rail, none open: see renderCharts.)
         const rail = onRail(), open = new Set(rail ? [] : prefs.presetsOpen);
-        // (The sections the open preset is in: one closed holds it, marked as a folder holding the open chart is.)
+        // (The sections the open preset is in: one closed holds it, marked as a folder holding the open chart is; the
+        // head too, only so (a preset's chart whose place is gone is in none of them).)
         const at = !home && chart.preset !== undefined ? presetIndex(chart) : -1, holding = new Set(at < 0 ? [] : sectionKeys(at));
         /** @type {[string, string][]} */
-        const parts = [sideHead("presets", presets.length, !home && chart.preset !== undefined)];
+        const parts = [sideHead("presets", presets.length, at >= 0)];
         if (groupShut("presets")) return parts;
         const walk = (/** @type {PresetNode} */ node, /** @type {number} */ depth) => {
           for (const item of node.items) {
@@ -27608,7 +27611,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Adopted first: copies left as they were, stored, are still here for an adoption's stamp to pass.)
           adoptPresets();
           prunePresets(chart ?? null);
-          const at = chart?.preset !== undefined ? presetIndex(chart) : -1, now = at >= 0 ? presetChart(at) : chart;
+          // (The open one opened and left as it was, its place gone (renamed since): the preset that shows it now, as made,
+          // in its place, Recent's too; it let go of as it's left. None does, it stays as it is, in none of their sections.
+          // A link in the address bar being read (it waits for them): its chart opens instead, nothing opened before it.
+          // Only before a hand's been on the page: one may be editing it (a path half drawn, a title typed in ⌘K); left to
+          // it then, an edit moved with the presets on the next start, see adoptPresets.)
+          // (Asked first: making the one to open takes the open one's place.)
+          const at = chart?.preset === undefined || (reading.hash && currentRead(reading.run, reading.at)) ? -1 : presetIndex(chart) >= 0 ? presetIndex(chart) : pristine(chart) && !handledYet ? presetShowing(chart) : -1, now = at >= 0 ? presetChart(at) : chart;
           if (now && now !== chart) openChart(now);
           renderRecommended();
           presetsArrived();
@@ -28019,6 +28028,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const doc of stale) presetChart(presetIndex(doc));
         save();
       }
+      /** What a chart shows, its looks aside: its series and formulas, as a set; what's made from them (a cloud, a trend) an edit of it. */
+      const presetShows = (/** @type {Chart} */ doc) => JSON.stringify([...new Set(doc.layers.flatMap((layer) => layer.series ?? layer.formula ?? []))].sort());
+      /** A preset's chart's place's last name, as stored: a key that isn't one, none. */
+      const presetPlaceName = (/** @type {Chart} */ doc) => {
+        try {
+          const place = JSON.parse(doc.preset ?? "");
+          return Array.isArray(place) ? place.at(-1) : undefined;
+        } catch {
+          return undefined;
+        }
+      };
+      /**
+       * The preset that shows what a preset's chart whose place is gone shows (a preset renamed since, moved): of its name
+       * first, else the first that does; none, -1. @param {Chart} doc
+       */
+      function presetShowing(doc) {
+        const set = presetShows(doc), name = presetPlaceName(doc), alike = /** @type {Preset[]} */ (presets).flatMap((_, i) => (presetShows(freshPreset(i)) === set ? [i] : []));
+        return alike.find((i) => /** @type {Preset[]} */ (presets)[i].p.at(-1) === name) ?? alike[0] ?? -1;
+      }
       /**
        * Presets edited here whose place is gone (the presets arranged anew since, by a newer Studio): each moved to the
        * preset that now shows the same series, its edits there (edited: Reset brings that one back as made); none does,
@@ -28027,31 +28055,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * many it kept as charts).
        */
       function adoptPresets(/** @type {Chart[]} */ among = library.presets, told = true) {
-        // (Those left as they were opened aren't edits: prunePresets lets go of them, after. One another tab placed
-        // already (deleted here, kept only while it's open) is that tab's.)
+        // (Those left as they were opened aren't edits: prunePresets lets go of them, after (the open one, the preset that
+        // shows it now opened in its place, see presetShowing). One another tab placed already (deleted here, kept only
+        // while it's open) is that tab's.)
         const lost = among.filter((doc) => presetIndex(doc) < 0 && !pristine(doc) && !isDeleted(doc));
         if (!lost.length || readOnly) return 0;
-        // (What a chart shows, its looks aside: its series and formulas, as a set; what's made from them (a cloud, a
-        // trend) an edit of it.)
-        const shows = (/** @type {Chart} */ doc) => JSON.stringify([...new Set(doc.layers.flatMap((layer) => layer.series ?? layer.formula ?? []))].sort());
         // (A preset taken already: edited here, or the one open.)
         const taken = (/** @type {number} */ i) => ((had) => Boolean(had && (presetEdited(had) || had === chart)))(editedPreset(i));
         /** Each set's presets free to take one. @type {Map<string, number[]>} */
         const holders = new Map();
         /** @type {Preset[]} */ (presets).forEach((_, i) => {
           if (taken(i)) return;
-          const set = shows(freshPreset(i));
+          const set = presetShows(freshPreset(i));
           holders.set(set, [...(holders.get(set) ?? []), i]);
         });
-        // (Its place's last name, as stored: a key that isn't one, none.)
-        const nameOf = (/** @type {Chart} */ doc) => {
-          try {
-            const place = JSON.parse(doc.preset ?? "");
-            return Array.isArray(place) ? place.at(-1) : undefined;
-          } catch {
-            return undefined;
-          }
-        };
         // (Series by their paths first: renamed since, by their names now.)
         for (const doc of lost) normalize(doc);
         // Each to a preset of its set: those of the same name first, then the rest, one each.
@@ -28060,7 +28077,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const named of [true, false]) {
           for (const doc of lost) {
             if (to.has(doc)) continue;
-            const set = shows(doc), at = holders.get(set) ?? [], i = named ? at.find((j) => /** @type {Preset[]} */ (presets)[j].p.at(-1) === nameOf(doc)) : at[0];
+            const set = presetShows(doc), at = holders.get(set) ?? [], i = named ? at.find((j) => /** @type {Preset[]} */ (presets)[j].p.at(-1) === presetPlaceName(doc)) : at[0];
             if (i === undefined) continue;
             to.set(doc, i);
             holders.set(set, at.filter((j) => j !== i));
