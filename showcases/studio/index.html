@@ -11461,10 +11461,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The types whose second color is kept as picked, one color or two: a trend's (on a support), a cloud's (its second over). */
       const TWO_KEPT = new Set(["trend", "cloud"]);
-      /** A layer's second color: a baseline's or bars' under their base (red, unset; bars of one color, theirs); a trend's on a support, a cloud's where its second is over (its own, unset). */
+      /** The types in two colors, rising and falling (above and below zero), that can be in one (`colors: 1`): candles, bubbles. */
+      const TWO_OR_ONE = new Set(["candles", "bubbles"]);
       /** Whether a layer's candles are hollow, as usual: hollow when rising, filled when falling (else all filled). @param {Layer} layer */
       const hollowOf = (layer) => layer.hollow !== "none";
-      const belowOf = (layer) => ((layer.type === "histogram" || layer.type === "candles" || layer.type === "bubbles" || TWO_KEPT.has(layer.type)) && layer.colors === 1 ? layer.color : layer.colorBelow ?? (TWO_KEPT.has(layer.type) ? layer.color : "red"));
+      /** A layer's second color: a baseline's or bars' under their base (red, unset; bars of one color, theirs); a trend's on a support, a cloud's where its second is over (its own, unset). */
+      const belowOf = (layer) => ((layer.type === "histogram" || TWO_OR_ONE.has(layer.type) || TWO_KEPT.has(layer.type)) && layer.colors === 1 ? layer.color : layer.colorBelow ?? (TWO_KEPT.has(layer.type) ? layer.color : "red"));
       /**
        * A cloud colored by its layers, its colors theirs: its first one's where that's over, its second's where that is
        * (to an edge, its one layer's; in its edit, and as every edit's chart is normalized: they follow).
@@ -13151,7 +13153,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const layer of doc.layers) if (layer.type === "cloud" && edgesOf(layer).length && !layer.byLayers && !layer.colorFrom && layer.colorBelow !== undefined && layer.colors === undefined) layer.colors = 1;
         // (How many colors: bars' one or four, a trend's or a cloud's one with a second kept; the colors picked kept,
         // whatever's used.)
-        for (const layer of doc.layers) if (layer.colors !== undefined && (!(layer.type === "histogram" ? layer.colors === 1 || layer.colors === 4 : layer.type === "candles" || layer.type === "bubbles" ? layer.colors === 1 : TWO_KEPT.has(layer.type) && layer.colors === 1 && layer.colorBelow !== undefined) || layer.colorFrom || layer.byLevels || layer.byLayers)) delete layer.colors;
+        for (const layer of doc.layers) if (layer.colors !== undefined && (!(layer.type === "histogram" ? layer.colors === 1 || layer.colors === 4 : TWO_OR_ONE.has(layer.type) ? layer.colors === 1 : TWO_KEPT.has(layer.type) && layer.colors === 1 && layer.colorBelow !== undefined) || layer.colorFrom || layer.byLevels || layer.byLayers)) delete layer.colors;
         // (Bubbles made so (another layer's turned into them): on the pane's first that can carry them, else the chart's.)
         for (const layer of doc.layers) if (layer.type === "bubbles" && layer.ref === undefined) layer.ref = (markable(doc).find((other) => other.pane === layer.pane) ?? markable(doc)[0])?.id ?? "";
         // (A signal's layer gone, or bubbles': none, said so (""), so a reload doesn't put them on another; a trend's, none.)
@@ -29417,7 +29419,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (layer.byLayers && modesOf(layer).includes("layers")) return "layers";
         if (layer.byLevels) return "levels";
         if (layer.type === "histogram") return layer.colors === 1 ? "one" : layer.colors === 4 ? "momentum" : "sides";
-        if (layer.type === "candles" || layer.type === "bubbles") return layer.colors === 1 ? "one" : "sides";
+        if (TWO_OR_ONE.has(layer.type)) return layer.colors === 1 ? "one" : "sides";
         if (layer.type === "baseline" || (TWO_KEPT.has(layer.type) && layer.colors !== 1 && layer.colorBelow !== undefined && modesOf(layer).includes("sides"))) return "sides";
         return "one";
       }
@@ -29474,7 +29476,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (mode === "levels") (layer.byLevels = true), colorLevels(layer);
         else if (mode === "layers") (layer.byLayers = true), layersColors(layer, ownerOf(layer));
         else if (mode === "from") layer.colorFrom = from;
-        else if ((layer.type === "histogram" && (mode === "one" || mode === "momentum")) || (layer.type === "candles" && mode === "one")) layer.colors = mode === "one" ? 1 : 4;
+        else if ((layer.type === "histogram" && (mode === "one" || mode === "momentum")) || (TWO_OR_ONE.has(layer.type) && mode === "one")) layer.colors = mode === "one" ? 1 : 4;
         // (Two the same, as its layers' may be: a second apart.)
         else if (TWO_KEPT.has(layer.type) && mode === "sides") layer.colorBelow = layer.colorBelow === undefined || layer.colorBelow === layer.color ? secondColor(layer) : layer.colorBelow;
         else if (TWO_KEPT.has(layer.type) && mode === "one" && layer.colorBelow !== undefined) layer.colors = 1;
