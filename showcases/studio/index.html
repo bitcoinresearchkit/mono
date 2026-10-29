@@ -6819,13 +6819,15 @@
           white-space: pre-wrap;
         }
 
-        /* An example in a line: the code's face, on a faint ground. */
+        /* An example in a line: the code's face, on a faint ground (broken over lines, each piece its own, ends and all). */
         code {
           border-radius: var(--radius-sm);
           padding: 1px 4px;
           background: var(--field);
           font: 12px/18px var(--mono);
           overflow-wrap: anywhere;
+          -webkit-box-decoration-break: clone;
+          box-decoration-break: clone;
         }
       }
 
