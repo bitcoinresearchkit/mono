@@ -21,27 +21,19 @@ Only what's left. An item done is removed: its history is in the commits and log
   a value scale under it, Reverse, the color in hand named, your own gradient kept as "Your own" once a ready-made
   is picked (this session).
 
-- Home's search: by its field alone (⌘K is the normal ⌘K), ⌘K's list, all of it, on the field, 10 from its every edge,
-  unrolling from it, its corners rounding from the field's to its own (you, 2026-10-28/29: "we want the full power of
-  cmd+k but in a tighter window", "cmd+k on home screen should open the normal command palette", "maybe double radii was
-  right but we needed a smoother anim/motion ?"): your look to confirm.
 - Bubbles: built, a kind of their own beside clouds, trends and signals (Add bubbles, a layer's ⋯ › As bubbles on…; not
   a series' Type), On, Size, Hide below, Sized to, one color or two; presets per cohort (Profit and loss bubbles, and on
   the unrealized P&L heatmap); a chart's mark shows them as dots. Open: the minis' look (tiles, ⌘K's previews, Quick
   Look: _notes/overnight-20261029/bubbles-mini-before-after.png), something off in your first picture, not received.
-- Outline: built (a layer's switch; presets over a heatmap or a cloud, the price's), the line's width on each side
-  (you, 2026-10-28: "outline doesn't feel think enough"; half of it, before): your look to confirm.
 - A design system for all of Studio, then a polish and consistency pass applying it (you, 2026-10-28: "I think we
   really need to do a polish/consistency pass over the whole app, and make a proper system"): inventory
   (_notes/system-20261028/inventory.md: 9 font sizes, 20 radii, 22 gaps, 63 heights, 47 shadows, 56 transitions),
   then the system written down for your check (_notes/system-20261028/system.md; corners inside corners concentric,
   unless it makes no sense, you: "all radii inside radii follow the universal radii rule"); the pass applied area by
   area (2026-10-29: sidebar to dialogs and a phone's touch targets, see the system's notes); titles 18, ⌘K's rows 14
-  (you: "maybe it should be 16 or 18", "judge too please"): your look to confirm. Body kept at 13 (you: "I think I
+  (you: "maybe it should be 16 or 18", "judge too please"): fine for now, to tweak later (2026-10-29). Body kept at 13 (you: "I think I
   agree for 13"); 15 → 16 for the big fields and titles left open (you: "not sure"; _notes/type-15-vs-16.png): if ⌘K's
   query reads too close to its 14 rows, its field alone at 16.
-- The folders on the rail: "a ton of polish" needed; what you saw beyond what's fixed (depth, one menu, the flash,
-  menu-bar switching, the toggle's speed and stale rows).
 
 ## Studio on the new server
 
