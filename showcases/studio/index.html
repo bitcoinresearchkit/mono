@@ -13790,6 +13790,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         work({ timeRemaining: () => Math.max(0, end - performance.now()) });
       }, settle));
       /**
+       * Work in steps, a slice of them in an idle moment (`deadline`): as long as its time lasts, 2 to 8 ms (one step at
+       * least: a callback timed out has none left), none of it a long task (a phone's engine without a JIT), the rest
+       * asked for (`again`) in the next; none (asked now), all at once. `step` does one, true once there's none left.
+       * @param {{ timeRemaining: () => number } | undefined} deadline @param {() => boolean} step
+       * @param {(deadline: { timeRemaining: () => number }) => void} again
+       */
+      function inSlices(deadline, step, again) {
+        const until = deadline ? performance.now() + Math.min(8, Math.max(2, deadline.timeRemaining())) : Infinity;
+        while (!step()) if (performance.now() >= until) return void whenIdle(again);
+      }
+      /**
        * The catalog walked, a node a step (a generator: the page goes on at its own pace): its names to their dotted paths
        * as the client has them (a name in several places, its first), those by block only (by date in none of them), and
        * those under more than one top folder (a folder's place among them isn't theirs: see catalogTops). On its own, its
@@ -28476,11 +28487,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!presets || (addressBook.for === presets && addressBook.book)) return;
         if (addressBook.for !== presets) addressBook = { for: presets, steps: addressSteps(presets), book: null };
         const steps = /** @type {NonNullable<typeof addressBook.steps>} */ (addressBook.steps);
-        do {
-          const step = steps.next();
-          if (step.done) return void (addressBook.book = step.value);
-        } while (deadline.timeRemaining() > 1);
-        whenIdle(addressesSoon);
+        inSlices(deadline, () => ((step) => (step.done && (addressBook.book = step.value), Boolean(step.done)))(steps.next()), addressesSoon);
       };
       /**
        * What an address opens: a preset, a place of the presets'; none, nothing of theirs. Its slash as written, else the
@@ -28613,11 +28620,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function idsNow(/** @type {{ timeRemaining: () => number } | undefined} */ deadline = undefined) {
         const list = presets ?? [];
         if (presetIds.for !== presets) presetIds = { for: presets, at: new Map(), next: 0 };
-        const until = deadline ? performance.now() + Math.min(8, Math.max(2, deadline.timeRemaining())) : Infinity;
-        while (presetIds.next < list.length) {
+        inSlices(deadline, () => {
           for (const end = Math.min(list.length, presetIds.next + 250); presetIds.next < end; presetIds.next++) presetIds.at.set(presetIdOf(JSON.stringify(list[presetIds.next].p)), presetIds.next);
-          if (presetIds.next < list.length && performance.now() >= until) return void whenIdle(idsNow);
-        }
+          return presetIds.next >= list.length;
+        }, idsNow);
       }
       const presetById = (/** @type {string} */ id) => {
         if (!presets) return -1;
@@ -28955,12 +28961,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The presets' words (see presetVocab), at once; in an idle moment (`deadline`), as far as it goes, then the next. */
       function vocabNow(/** @type {{ timeRemaining: () => number } | undefined} */ deadline = undefined) {
         if (presetVocab.of !== presetWords) presetVocab = { of: presetWords, counts: new Map(), making: vocabMaking(presetWords) };
-        const until = deadline ? performance.now() + Math.min(8, Math.max(2, deadline.timeRemaining())) : Infinity;
-        while (presetVocab.making) {
-          const step = presetVocab.making.next();
-          if (step.done) (presetVocab.counts = step.value), (presetVocab.making = null);
-          else if (performance.now() >= until) return void whenIdle(vocabNow);
-        }
+        inSlices(deadline, () => ((step) => (step?.done && ((presetVocab.counts = step.value), (presetVocab.making = null)), !step || Boolean(step.done)))(presetVocab.making?.next()), vocabNow);
         return presetVocab.counts;
       }
       /**
@@ -29338,12 +29339,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {{ timeRemaining: () => number }} deadline
        */
       function roomsAhead(deadline, from = 0) {
-        const until = performance.now() + Math.min(8, Math.max(2, deadline.timeRemaining()));
-        for (let k = from; resolved && !panelShown() && k < chart.layers.length; k++) {
-          if (performance.now() >= until) return void whenIdle((next) => roomsAhead(next, k));
-          const layer = chart.layers[k], result = resolved.results.get(layer.id);
+        let k = from;
+        inSlices(deadline, () => {
+          if (!resolved || panelShown() || k >= chart.layers.length) return true;
+          const layer = chart.layers[k++], result = resolved.results.get(layer.id);
           if (result) figuresRoom(layer, result), changeOver(layer, { at: lastShown(), rest: true });
-        }
+          return false;
+        }, (next) => roomsAhead(next, k));
       }
       function writeLayers() {
         layersBehind = false;
@@ -30932,11 +30934,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let vividStarted = false;
       const vividAhead = () => !vividGrid && !vividStarted && ((vividStarted = true), whenIdle(vividSoon));
       function vividSoon(/** @type {{ timeRemaining: () => number }} */ deadline) {
-        const until = performance.now() + Math.min(8, Math.max(2, deadline.timeRemaining()));
-        while (!vividGrid && performance.now() < until) vividWork.next();
-        if (!vividGrid) whenIdle(vividSoon);
         // (Made: the surfaces shown meanwhile, waiting for it, drawn.)
-        else drawPlanes();
+        inSlices(deadline, () => Boolean(vividGrid || (vividWork.next(), vividGrid)) && (drawPlanes(), true), vividSoon);
       }
       /**
        * The grid made sooner, a surface showing and waiting for it: a few lines each frame (8 ms of one), not in idle
@@ -33351,10 +33350,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The ranks made while the page is idle, a slice at a time (all at once, 30 ms of a phone's). @param {{ timeRemaining: () => number }} deadline */
       function ranksSoon(deadline) {
         const steps = presets && catalogIndex ? rankSteps() : null;
-        if (!steps) return;
-        do if (steps.next().done) return;
-        while (deadline.timeRemaining() > 1);
-        whenIdle(ranksSoon);
+        if (steps) inSlices(deadline, () => Boolean(steps.next().done), ranksSoon);
       }
       /** The ranks being made, a few hundred presets a step, for the presets they're of (none: made, or none yet). */
       let ranking = /** @type {{ for: Preset[], steps: Generator<void, void> } | null} */ (null);
