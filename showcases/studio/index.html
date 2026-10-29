@@ -1278,7 +1278,7 @@
       }
 
       /* A row that opens and closes (a group's head, a folder, a section of the presets): its way, as it's pointed at or
-         reached by a key, › closed, ⌄ open (after its count, a head's; after its dot, holding the open chart); at rest,
+         reached by a key, › closed, ⌄ open (after its count, a head's); at rest,
          none, what's under it (or not) saying which (the list kept quiet). */
       :is(.list-head, .folder-row) .turn {
         display: inline-flex;
@@ -1314,8 +1314,7 @@
           }
         }
 
-        /* Its name only as wide as it is: what follows it, after it (its dot, holding the open chart; how many it holds, its
-           way, pointed at). */
+        /* Its name only as wide as it is: what follows it, after it (how many it holds, its way, pointed at). */
         .folder-item .label {
           flex: 0 1 auto;
         }
@@ -1356,21 +1355,9 @@
           }
         }
 
-        /* (Closed over the open chart: a dot after its name, the logo's orange, the way back to it, clear of what an ellipsis
-           cuts.) */
+        /* (Closed over the open chart: lit, its bar at its start, see below.) */
         &:is(.holds, .holds-page) .folder-item {
           color: var(--ink);
-
-          &::after {
-            content: "";
-            flex: none;
-            order: 1;
-            width: 5px;
-            height: 5px;
-            margin-left: -3px;
-            border-radius: 50%;
-            background: oklch(64.34% 0.191 44.41);
-          }
         }
 
         /* (Its page open: lit, as the open chart's row is.) */
@@ -1384,6 +1371,24 @@
           background: var(--press);
           box-shadow: inset 0 0 0 1px var(--edge);
         }
+      }
+
+      /* Closed over the open chart (a folder, a group's head), or its page shown: a bar before its icon, the logo's orange,
+         the way back to it. In a folder, on the line down from the folder it's in, centered on it (whole pixels each side
+         of its middle, see the lines below); a row at the top, where its line would be: as far from its icon, at any
+         depth. The rail's against its icon; a menu of what's in a folder, see .menu-holds. (A drag's line where it lands,
+         over it, in its place meanwhile: see .drop-before.) */
+      :is(.folder-row, .list-head):is(.holds, .holds-page):not(.drop-before, .drop-after)::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: calc(4px + var(--depth, 0) * 16px);
+        width: 2px;
+        height: 20px;
+        border-radius: 1px;
+        background: oklch(64.34% 0.191 44.41);
+        translate: 0 -50%;
+        pointer-events: none;
       }
 
       /* In a folder, a step in a level (as deep as it goes), along a line down from each folder's icon it's in. */
@@ -2005,31 +2010,9 @@
             background: var(--glide, var(--hover));
           }
 
-          /* A folder holding the open chart, its dot on its icon's corner (the rail's folders never open: see railMenu),
-             ringed in the rail's ground. */
-          .folder-row:is(.holds, .holds-page) .folder-item {
-            position: relative;
-
-            &::after {
-              position: absolute;
-              top: 6px;
-              left: 19px;
-              margin: 0;
-              box-shadow: 0 0 0 1.5px var(--app);
-            }
-          }
-
-          /* (A head's the same, on its mark's corner.) */
-          .list-head:is(.holds, .holds-page) .head-mark::after {
-            content: "";
-            position: absolute;
-            top: 6px;
-            left: 19px;
-            width: 5px;
-            height: 5px;
-            border-radius: 50%;
-            background: oklch(64.34% 0.191 44.41);
-            box-shadow: 0 0 0 1.5px var(--app);
+          /* (Closed over the open chart: its bar against its icon's lit box.) */
+          :is(.folder-row, .list-head):is(.holds, .holds-page):not(.drop-before, .drop-after)::after {
+            left: 3px;
           }
 
           /* The rail's icons stay where the open sidebar puts them (collapsing and expanding move nothing). (The list's
@@ -2625,20 +2608,9 @@
           }
         }
 
-        /* (Closed over the open chart, or the page shown: as a folder is, its dot after its name.) */
+        /* (Closed over the open chart, or the page shown: lit as a folder is, its bar at its start.) */
         &:is(.holds, .holds-page) .list-head-name {
           color: var(--ink);
-
-          .head-name::after {
-            content: "";
-            display: inline-block;
-            width: 5px;
-            height: 5px;
-            margin-left: 6px;
-            border-radius: 50%;
-            background: oklch(64.34% 0.191 44.41);
-            vertical-align: 0.15em;
-          }
         }
 
         /* Its mark, in the rows' icons' column, its name where theirs start (on the rail, all it shows: as wide as the
@@ -7122,15 +7094,22 @@
           }
         }
 
-        /* The open chart's way down: a dot after its name (the folder it's in at each level, the chart itself), the rail's
-           holding dot's. */
-        .menu-dot {
-          flex: none;
-          width: 5px;
-          height: 5px;
-          margin-left: -4px;
-          border-radius: 50%;
+        /* The open chart's way down (the folder it's in at each level, the chart itself): the sidebar's bar at the row's
+           start, in the menu's edge. */
+        > button:has(> .menu-holds) {
+          position: relative;
+        }
+
+        .menu-holds {
+          position: absolute;
+          top: 50%;
+          /* (Against the row's lit box.) */
+          left: -2px;
+          width: 2px;
+          height: 20px;
+          border-radius: 1px;
           background: oklch(64.34% 0.191 44.41);
+          translate: 0 -50%;
         }
 
         /* In a checked list, where an unchecked item's check would be. */
@@ -24045,7 +24024,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /**
        * Where the page is, lit in the sidebar: Charts at its top, the heads' pages, a folder of yours, a section of the
        * presets; closed over it (a head over a page of its own, a folder over one in it, a section over one under it),
-       * dotted, as one closed over the open chart is.
+       * barred, as one closed over the open chart is.
        */
       function renderSideNav() {
         const lit = (/** @type {Element} */ element, /** @type {boolean} */ on) => on !== element.hasAttribute("aria-current") && (on ? element.setAttribute("aria-current", "page") : element.removeAttribute("aria-current"));
@@ -34767,7 +34746,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const before = list[i - 1], apart = i > 0 && (row.apart || (row.group ?? "") !== (before.group ?? "") || (row.danger && !before.danger));
           const head = heads && row.group && row.group !== before?.group ? `<div class="menu-group">${escape(row.group)}</div>` : "";
           const choice = row.current !== undefined;
-          return `${apart ? '<div class="menu-rule"></div>' : ""}${head}<button type="button" data-pick="${escape(row.key ?? String(i))}"${choice ? ` aria-checked="${Boolean(row.current)}"` : ""}${row.danger ? ' class="danger"' : ""}${row.disabled ? ` aria-disabled="true" data-tip="${escape(row.disabled)}"` : ""}${row.page ? ' aria-haspopup="menu"' : ""}>${checks ? tick(Boolean(row.current)) : ""}${row.icon ?? ""}<span class="label">${escape(row.label)}</span>${row.marked ? '<i class="menu-dot" aria-hidden="true"></i>' : ""}${row.kbd ? `<kbd>${escape(keyText(row.kbd))}</kbd>` : row.disabled || row.aside ? `<span>${escape(row.disabled || row.aside || "")}</span>` : ""}</button>`;
+          return `${apart ? '<div class="menu-rule"></div>' : ""}${head}<button type="button" data-pick="${escape(row.key ?? String(i))}"${choice ? ` aria-checked="${Boolean(row.current)}"` : ""}${row.danger ? ' class="danger"' : ""}${row.disabled ? ` aria-disabled="true" data-tip="${escape(row.disabled)}"` : ""}${row.page ? ' aria-haspopup="menu"' : ""}>${checks ? tick(Boolean(row.current)) : ""}${row.icon ?? ""}<span class="label">${escape(row.label)}</span>${row.marked ? '<i class="menu-holds" aria-hidden="true"></i>' : ""}${row.kbd ? `<kbd>${escape(keyText(row.kbd))}</kbd>` : row.disabled || row.aside ? `<span>${escape(row.disabled || row.aside || "")}</span>` : ""}</button>`;
         }).join("");
         // (What it's for named on top wherever its name is out of sight: a row's on the rail; anything's on a phone, its
         // sheet over the page. However it's opened. Not a submenu's.)
@@ -37467,7 +37446,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function folderFlyout(id) {
         const counts = chartCounts(), own = () => folderRows(id, false, true).filter((row) => row.key !== "toggle" && row.key !== "view");
         return [
-          // (The open chart, and the folder it's in at each level, dotted: its way down, as the rail's icon is.)
+          // (The open chart, and the folder it's in at each level, marked: its way down, as the rail's icon is.)
           ...childrenOf(id).map((each) => ("layers" in each
             ? { key: each.id, icon: chartMark(each), label: titleOf(each), marked: !home && chart.id === each.id, run: () => go(chartById(each.id)) }
             : { key: `f:${each.id}`, icon: folderMark(each), label: each.name, aside: shortCount(counts.get(each.id) ?? 0), marked: !home && Boolean(chart.folder && isIn(chart.folder, each.id)), page: () => ({ title: each.name, heading: true, rows: () => folderFlyout(each.id) }) })),
@@ -37481,7 +37460,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function sectionFlyout(key) {
         const node = presetNodeAt(JSON.parse(key)), all = /** @type {Preset[]} */ (presets);
         if (!node) return [];
-        // (The open preset, and the section it's in at each level, dotted, as a folder's are.)
+        // (The open preset, and the section it's in at each level, marked, as a folder's are.)
         const open = !home && chart.preset !== undefined ? presetIndex(chart) : -1, holding = open < 0 ? [] : sectionKeys(open);
         // (Their marks drawn as they show, as a page of them has them.)
         for (const each of node.items) if (typeof each === "number" && !presetMarks.has(presetMarkKey(each))) presetMarksAsked.add(each);
