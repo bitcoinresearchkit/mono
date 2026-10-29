@@ -27,8 +27,8 @@ Only what's left. An item done is removed: its history is in the commits and log
   Open: your look at the minis now.
 - Profile, a layer of its own (2026-10-29, 31734f9a8): your look (_notes/overnight-20261029/profile-layer.png). Not in
   it yet: a bar's own amount pointed at (its legend reads the share in profit); the minis (tiles, ⌘K's previews, Quick
-  Look). Open: the presets' holder-group comparisons color the groups by a ramp (short-term teal, long-term pink), the
-  profile and Compass as the app otherwise does (orange, blue): one palette everywhere?
+  Look). Presets to try it: each group's Cost basis › Profile, Holders › Compare › Profile, Coin age › Age bands ›
+  Compare › Profile; one palette for the holder groups everywhere (palette.js, 6c01ddb92).
 - Next, asked: one system for every size, width, height, margin and padding (see the design-system item); then the
   right panel and the legends reviewed (the least worked on).
 - A design system for all of Studio, then a polish and consistency pass applying it (you, 2026-10-28: "I think we
