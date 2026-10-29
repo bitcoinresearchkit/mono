@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 2 2" style="--color: #e65b00">
-  <!-- Bitview's app icon (the home screen's, the manifest's: the PNGs beside it made from this): the logo's cube, pressed
-       into its ground, full bleed (each platform rounds its corners). One colour (the style's), its shades made from it as
-       Bitview's orange makes them: the ground lighter at the top, deeper at the foot, the cube deeper still. A showcase's
-       app has its own colour, its design's (`data-color`: see /assets/launch/launch.js). -->
+  <!-- Bitview's app icon (the home screen's, the manifest's: apps/, each made from this by showcases/home.mjs --icons):
+       the logo's cube, pressed into its ground, full bleed (each platform rounds its corners). One colour (the style's),
+       its shades made from it as Bitview's orange makes them: the ground lighter at the top, deeper at the foot, the cube
+       deeper still. A showcase's app has its own colour, its design's (`data-color` on its launch tag). -->
   <defs>
     <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" style="stop-color: oklch(from var(--color) calc(l + 0.039) c h)" />

@@ -3,15 +3,17 @@
 // description), and what it can't take from them checked: every app in the repository on it, every Studio chart and
 // section it links to in Studio's sitemap, every series it draws on the server. With --pictures, its pictures made
 // again from the apps as they are now (each from its app's own screen, cut where PICTURES says): after an app's
-// redesign, as well as its words; and its share card (assets/home/og.jpg, 1200×630, as links to it show it), the first
-// featured app's banner with Bitview's mark and name. Run it after changing an app, and before a release:
+// redesign, as well as its words; its share card (assets/home/og.jpg, 1200×630, as links to it show it), the first
+// featured app's banner with Bitview's mark and name; and every app's icon (assets/favicon/apps/). Run it after changing
+// an app, and before a release:
 //
 //   bun showcases/home.mjs [server]              writes FROM_APPS, then checks
 //   bun showcases/home.mjs --check [server]      fails if FROM_APPS isn't what it'd be now, or a check fails
 //   bun showcases/home.mjs --pictures [server]   also makes its pictures again (a Chromium: CHROMIUM=path, if not found)
+//   bun showcases/home.mjs --icons [server]      also makes every app's icon again, its pictures left (a colour changed)
 //   ... --page FILE                              another page than showcases/index.html (a draft of it)
-//   ... --pictures --only ID                     that app's pictures alone (a new app's), the share card too if it's its
-//                                                picture
+//   ... --pictures --only ID                     that app's pictures and icon alone (a new app's), the share card too if
+//                                                it's its picture
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -19,7 +21,7 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2), flag = (/** @type {string} */ name) => args.includes(name);
-const check = flag("--check"), pictures = flag("--pictures");
+const check = flag("--check"), pictures = flag("--pictures"), icons = flag("--icons");
 const pageAt = args.indexOf("--page"), PAGE = pageAt >= 0 ? args[pageAt + 1] : join(HERE, "index.html");
 const onlyAt = args.indexOf("--only"), ONLY = onlyAt >= 0 ? args[onlyAt + 1] : null;
 const SERVER = args.find((arg, i) => !arg.startsWith("--") && args[i - 1] !== "--page" && args[i - 1] !== "--only") ?? "http://127.0.0.1:3110";
@@ -82,6 +84,16 @@ const folders = new TextDecoder().decode(git.stdout).split("\n").filter(Boolean)
 // (On it: in its rows, APPS or DEV, the footer's links not counting.)
 for (const name of folders) if (![...apps, ...dev].includes(`/${name}/`)) problems.push(`/${name}/: an app not in the front page's rows (add it to APPS or DEV, or name its folder _${name} to keep it off)`);
 
+// ── Every app's icon ──
+
+// (Each app's, the front page's "bitview": Bitview's cube (assets/favicon/app-icon.svg) in its launch tag's colour
+// (data-color; the SVG's own orange if none), a file (assets/favicon/apps/NAME.png, as launch.js links it): a home
+// screen takes one best. Made with --pictures or --icons.)
+const ICONS = /** @type {Record<string, string | undefined>} */ (Object.fromEntries([
+  ["bitview", undefined],
+  ...folders.map((name) => [name, tags(readFileSync(join(HERE, name, "index.html"), "utf8"), "script").find((tag) => tag.src?.includes("/launch.js"))?.["data-color"]]),
+]));
+
 // ── Every way into Studio it has, in Studio's sitemap ──
 
 const sitemap = new Set([...readFileSync(join(HERE, "studio", "sitemap.xml"), "utf8").matchAll(/<loc>[^<]*\/studio\/presets\/([^<]*)<\/loc>/g)].map(([, path]) => path));
@@ -120,7 +132,7 @@ const PICTURES = {
   series: { url: "/series/?series=hashrate", settle: 8000, cover: [880, 290, 432, 270] },
   logs: { url: "/logs/", settle: 6000, cover: [280, 228, 400, 250] },
 };
-if (onlyAt >= 0 && !(ONLY && Object.hasOwn(PICTURES, ONLY))) throw new Error(`--only ${ONLY ?? ""}: not an app in PICTURES (${Object.keys(PICTURES).join(", ")})`);
+if (onlyAt >= 0 && !(ONLY && (Object.hasOwn(PICTURES, ONLY) || Object.hasOwn(ICONS, ONLY)))) throw new Error(`--only ${ONLY ?? ""}: not an app (${[...new Set([...Object.keys(PICTURES), ...Object.keys(ICONS)])].join(", ")})`);
 const featured = [...(/const FEATURED = \[([^\]]*)\]/.exec(html)?.[1] ?? "").matchAll(/"([a-z]+)"/g)].map(([, id]) => id);
 const appIds = [...(/const APPS = [^\[]*\[([\s\S]*?)\n      \]/.exec(html)?.[1] ?? "").matchAll(/id: "([a-z]+)"/g)].map(([, id]) => id);
 for (const id of appIds) if (!(id in PICTURES)) problems.push(`${id}: no cover's making in PICTURES`);
@@ -161,7 +173,9 @@ const SHARE_CARD = (/** @type {string} */ id) => `<!doctype html><meta charset="
 if (!/<meta property="og:image" content="https:\/\/bitview\.space\/assets\/home\/og\.jpg"/.test(html)) problems.push("The page's og:image isn't its share card, /assets/home/og.jpg");
 if (!existsSync(join(HERE, "assets", "home", "og.jpg"))) problems.push("No share card, assets/home/og.jpg: run with --pictures");
 
-if (pictures) await makePictures();
+if (pictures || icons) await makePictures();
+// (Every app's icon there, once any were made.)
+for (const name of Object.keys(ICONS)) if (!existsSync(join(HERE, "assets", "favicon", "apps", `${name}.png`))) problems.push(`${name}: no icon, assets/favicon/apps/${name}.png: run with --icons`);
 
 if (problems.length) {
   console.error(`${problems.length} to see to:\n${problems.map((p) => `  - ${p}`).join("\n")}`);
@@ -173,7 +187,7 @@ console.log(`In step: ${apps.length} apps and ${dev.length} developers' pages, $
  * density its size needs. */
 async function makePictures() {
   const binary = process.env.CHROMIUM ?? ["/Applications/Chromium.app/Contents/MacOS/Chromium", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome", "/usr/bin/chromium", "/usr/bin/google-chrome"].find(existsSync);
-  if (!binary) return void problems.push("No Chromium for --pictures: set CHROMIUM to one");
+  if (!binary) return void problems.push("No Chromium for --pictures or --icons: set CHROMIUM to one");
   const profile = mkdtempSync(join(tmpdir(), "home-pictures-"));
   /** @type {ReturnType<typeof Bun.spawn> | null} */
   let browser = null;
@@ -186,7 +200,7 @@ async function makePictures() {
     }
     if (!port) return void problems.push("The Chromium for --pictures didn't start");
     const out = join(HERE, "assets", "home");
-    for (const [id, recipe] of Object.entries(PICTURES)) {
+    for (const [id, recipe] of Object.entries(icons ? {} : PICTURES)) {
       if (ONLY && id !== ONLY) continue;
       const wanted = /** @type {[string, number[], number, number][]} */ ([
         ...(appIds.includes(id) ? [[`covers/${id}.jpg`, recipe.cover, 960, 80]] : []),
@@ -210,8 +224,22 @@ async function makePictures() {
         await tab.close();
       }
     }
+    // (Each app's icon, at 512 px: a home screen's 180, a manifest's 512.)
+    const svg = readFileSync(join(HERE, "assets", "favicon", "app-icon.svg"), "utf8");
+    for (const [name, color] of Object.entries(ICONS)) {
+      if (ONLY && name !== ONLY) continue;
+      const icon = (color ? svg.replace(/--color: [^;"]+/, `--color: ${color}`) : svg).replace("<svg", '<svg width="512" height="512"');
+      const tab = await screen(port, `${SERVER}/llms.txt`, [512, 512], 1, 300, undefined, `<style>body { margin: 0 } svg { display: block }</style>${icon}`);
+      try {
+        const shot = await tab.send("Page.captureScreenshot", { format: "png", clip: { x: 0, y: 0, width: 512, height: 512, scale: 1 } });
+        writeFileSync(join(HERE, "assets", "favicon", "apps", `${name}.png`), Buffer.from(shot.data, "base64"));
+        console.log(`made apps/${name}.png`);
+      } finally {
+        await tab.close();
+      }
+    }
     // (The share card: the billboard's first picture, Bitview's mark and name over it, set as the page is.)
-    if (ONLY && ONLY !== featured[0]) return;
+    if (icons || (ONLY && ONLY !== featured[0])) return;
     const card = await screen(port, `${SERVER}/llms.txt`, [1200, 630], 2, 1500, undefined, SHARE_CARD(featured[0]));
     try {
       const shot = await card.send("Page.captureScreenshot", { format: "jpeg", quality: 84, clip: { x: 0, y: 0, width: 1200, height: 630, scale: 0.5 } });

@@ -132,10 +132,11 @@
       /* (iOS tints its status bar with the first fixed box at the screen's top edge, else with the body's colour, and
          passes over a see-through one, the bar over the billboard: so paper, in light, over a dark billboard. In Safari,
          a strip of the billboard's dark there, under the status bar or a few pixels below it, reading as the status
-         bar's own: the status bar dark in either scheme, the bottom bar still the page's. Installed from a home screen,
-         no strip: there a box makes the status bar solid, cut off hard above the bar, and without one iOS blurs the page
-         up into it, tinted with the body's colour; so the body's colour the billboard's dark, the page painted paper over
-         it, the root paper (where the page is pulled past either end).) */
+         bar's own: the status bar dark in either scheme, the bottom bar still the page's (the bar easing from it: see
+         .top). Installed from a home screen, no strip: iOS paints its status bar in the body's colour after a load, and
+         after a launch blurs the page up into it, tinted with that colour (its choice, not the page's); so the body's
+         colour the billboard's dark, the page painted paper over it, the root paper (where the page is pulled past
+         either end).) */
       @supports (-webkit-touch-callout: none) {
         .edge {
           position: fixed;
@@ -213,6 +214,12 @@
         background: linear-gradient(to bottom, rgb(13 12 11 / 0.7), transparent);
         transition: background-color 0.3s, box-shadow 0.3s;
 
+        /* (On iOS, under the status bar's dark (see .edge), flat or the page blurred: from that dark, easing into the
+           billboard, no line where the two meet.) */
+        @supports (-webkit-touch-callout: none) {
+          background: linear-gradient(#0d0c0b, rgb(13 12 11 / 0.85) 20px, rgb(13 12 11 / 0.6) 56px, transparent);
+        }
+
         /* (Past the billboard: solid, the page under it blurred.) */
         &.solid {
           background: rgb(13 12 11 / 0.94);
@@ -220,12 +227,10 @@
           backdrop-filter: blur(20px) saturate(1.4);
           -webkit-backdrop-filter: blur(20px) saturate(1.4);
 
-          /* (Installed on iOS, opaque: iOS then draws its status bar in its dark, the two one bar; see-through, iOS blurs
-             the page scrolled up under the status bar there instead, the billboard's colours over a dark bar.) */
+          /* (On iOS, glass from the status bar's dark: where iOS blurs the page scrolled up under it (an installed
+             app, launched), the bar blurs it on, one pane; a dark bar under it cut it off hard.) */
           @supports (-webkit-touch-callout: none) {
-            @media (display-mode: standalone) {
-              background: #0d0c0b;
-            }
+            background: linear-gradient(#0d0c0b, rgb(13 12 11 / 0.55) 28px);
           }
         }
 
@@ -2944,7 +2949,7 @@
         if (onBillboard) (lit = "", links.forEach((a) => a.setAttribute("aria-current", "false")));
         else update();
       }, { rootMargin: "-64px 0px 0px" }).observe(/** @type {Element} */ (document.querySelector(".buttons")));
-      // (The bar solid as soon as the page moves, as a streaming home's: nothing slides under it see-through.)
+      // (The bar solid as soon as the page moves, as a streaming home's: what slides under it blurred, glass on iOS.)
       const bar = /** @type {HTMLElement} */ (document.querySelector(".top"));
       const solid = () => bar.classList.toggle("solid", scrollY > 4);
       addEventListener("scroll", solid, { passive: true });

@@ -5,8 +5,8 @@
 //
 // - Each showcase is an app of its own, the one added: its folder its start and its scope, named by the page
 //   (`data-app="Studio"`: "Bitview Studio", "Studio" under its icon; `data-color`, its design's own colour, Bitview's
-//   stamped cube in it); the front page, at "/", is Bitview, in its orange. Its manifest and icon made here, for all of
-//   them; iOS takes them and its launch screen from the page it's added from, at that moment.
+//   stamped cube in it); the front page, at "/", is Bitview, in its orange. Its manifest made and its icon linked here,
+//   for all of them; iOS takes them and its launch screen from the page it's added from, at that moment.
 // - In Safari, where a page is added to a home screen: its launch screen, Bitview's orange at the phone's size (iOS's
 //   white else while the app starts), made as soon as the page starts, not once it has loaded: added to a home screen
 //   before then, an app would launch white for good.
@@ -32,31 +32,19 @@
     // (iOS uses a launch screen only for a page that says it's an app.)
     ["meta", { name: "apple-mobile-web-app-capable", content: "yes" }],
   ])) document.head.append(Object.assign(document.createElement(tag), attributes));
-  // Its icon: Bitview's (app-icon.svg), in the app's colour (its shades made from it there). The manifest takes it as
-  // it is; Safari (a home screen's, a Mac's dock) takes no SVG icon, so it's drawn as a PNG too, a small one (a large
-  // one's encoding, and the manifest holding it, cost every page's load).
-  const color = script?.dataset.color;
-  const svg = fetch("/assets/favicon/app-icon.svg").then((response) => response.text()).then((icon) => color ? icon.replace(/--color: [^;"]+/, `--color: ${color}`) : icon);
+  // Its icon: Bitview's cube in the app's colour, a file (assets/favicon/apps/, each made from app-icon.svg in its page's
+  // `data-color` by showcases/home.mjs --icons): one drawn here never came on a phone in Lockdown Mode, its home screen
+  // left with the manifest's orange alone. The manifest made once the page is read, its description the page's own.
+  const icon = `${location.origin}/assets/favicon/apps/${app ? folder.slice(1, -1) : "bitview"}.png`;
   const link = (/** @type {string} */ rel, /** @type {string} */ href) => document.head.append(Object.assign(document.createElement("link"), { rel, href }));
-  svg.then((icon) => {
+  link("apple-touch-icon", icon);
+  document.addEventListener("DOMContentLoaded", () => {
     const description = /** @type {HTMLMetaElement | null} */ (document.querySelector('meta[name="description"]'))?.content;
     const manifest = {
       id: start, name, short_name: short, description, start_url: start, scope: start, display: "standalone",
-      theme_color: "#08090a", background_color: ORANGE, icons: [{ src: `data:image/svg+xml,${encodeURIComponent(icon)}`, sizes: "any", type: "image/svg+xml" }],
+      theme_color: "#08090a", background_color: ORANGE, icons: [{ src: icon, sizes: "512x512", type: "image/png" }],
     };
     link("manifest", `data:application/manifest+json,${encodeURIComponent(JSON.stringify(manifest))}`);
-  });
-  svg.then(async (icon) => {
-    const image = new Image(), canvas = document.createElement("canvas"), size = 180;
-    image.src = `data:image/svg+xml,${encodeURIComponent(icon.replace("<svg", `<svg width="${size}" height="${size}"`))}`;
-    await image.decode();
-    canvas.width = canvas.height = size;
-    canvas.getContext("2d")?.drawImage(image, 0, 0);
-    // (Encoded off the main thread: toDataURL took up to 50 ms of it, cold, as a page loads.)
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png")), reader = new FileReader();
-    if (!(blob instanceof Blob)) return;
-    reader.onload = () => link("apple-touch-icon", /** @type {string} */ (reader.result));
-    reader.readAsDataURL(blob);
   });
   if (standalone === false) {
     setTimeout(() => {
