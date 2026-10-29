@@ -5382,7 +5382,7 @@
 
         /* (Named, not `* + *`: a sibling rule ending in any element at all has a list anywhere on the page styled again
            whole as one of its children goes (the sidebar's, ~870 elements at each edit).) */
-        > :is(.color-source, .color-pick):not(:first-child) {
+        > :is(.gradient-hand, .color-source, .color-pick):not(:first-child) {
           border-top: 1px solid var(--line);
         }
 
@@ -5452,9 +5452,27 @@
         display: grid;
         gap: 10px;
         padding: 6px 12px 12px;
+      }
 
-        > .field {
-          margin: 0;
+      /* (Its gradient ready made, a select bare till pointed at as a field's choice is, its swatch in line with the bar's
+         start; across from it, its ways to reverse it and to add a color.) */
+      .gradient-head {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        margin: 0 -6px 0 -8px;
+
+        > .preset {
+          width: auto;
+          min-width: 0;
+          margin-right: auto;
+          padding: 0 6px 0 8px;
+          background: none;
+          box-shadow: none;
+
+          &:is(:hover:where(.can-hover *), [aria-expanded="true"]) {
+            background: var(--hover);
+          }
         }
       }
 
@@ -5553,7 +5571,8 @@
         }
       }
 
-      /* (Where its values fall, each under its place, as an axis writes them; those at its ends kept inside it.) */
+      /* (Where its values fall, each under its place, as an axis writes them, the color in hand's in ink; those at its ends
+         kept inside it: placed by gradientTicks, as wide as they're set.) */
       .gradient-ticks {
         position: relative;
         height: 16px;
@@ -5565,14 +5584,11 @@
 
         > span {
           position: absolute;
-          translate: -50%;
 
-          &.start {
-            translate: 0;
-          }
-
-          &.end {
-            translate: -100%;
+          /* (The color in hand's, under its knob.) */
+          &.own {
+            color: var(--ink);
+            font-weight: 510;
           }
         }
       }
@@ -5585,11 +5601,13 @@
         min-width: 0;
       }
 
-      /* The color in hand: its label, and across from it what its place is worth, its place, its removal, on one line
-         as a choice's are. */
+      /* The color in hand, heading the picker that sets it, a line above and under it as between the editor's parts: its
+         name, and across from it its place, its removal, on one line as a choice's are. */
       .field.gradient-hand {
         grid-template-columns: auto minmax(0, 1fr);
         align-items: center;
+        margin: 0;
+        padding: 8px 12px;
       }
 
       .gradient-hand .gradient-at {
@@ -5609,14 +5627,6 @@
         }
       }
 
-      .gradient-worth {
-        overflow: hidden;
-        color: var(--muted);
-        font-size: 13px;
-        font-variant-numeric: tabular-nums;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
 
       /* Where it's from, as tabs across the editor (the one chosen as every segmented choice shows it), what it shows
          under them: Bitview's colors, inset; the surface edge to edge, its hex closing the editor; a fading one's own. */
@@ -9952,7 +9962,8 @@
         .head-actions,
         .belt-tools,
         .belt-context,
-        .home-top {
+        .home-top,
+        .gradient-head {
           gap: 16px;
         }
 
@@ -29136,6 +29147,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const moves = (/** @type {HTMLElement} */ element) => element.id in SLIDERS && (Number(element.style.getPropertyValue("--at")) !== sliderAt(/** @type {keyof typeof SLIDERS} */ (element.id), layer) || (glidesUntil.get(element.id) ?? 0) > performance.now());
         const was = new Map(another || reduced.matches ? [] : all$("#inspector .stepper").filter(moves).map((element) => [element.id, { handle: getComputedStyle(element, "::after").left, fill: getComputedStyle(element, "::before").width }]));
         rewrite(panel, html);
+        // (Its gradient's bar watched, its ticks fitted to its width: see gradientWidth.)
+        gradientRoom.disconnect();
+        ((bar) => bar && gradientRoom.observe(bar))(panel.querySelector("[data-gradient-bar]"));
         drawKeys(panel);
         if (isFormula) updateFormula(layer);
         restoreFocus(panel, focus);
@@ -29446,9 +29460,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         const input = /** @type {HTMLInputElement | null} */ ($("inspector").querySelector(`[data-stop-at="${k}"]`));
         if (input && field) input.value = String(at);
-        // (The color in hand's: what its place is worth; the gradient ready made it is now, if one.)
-        const worth = $("inspector").querySelector("[data-stop-worth]"), ready = /** @type {HTMLElement | null} */ ($("inspector").querySelector('[data-action="gradient-ready"]'));
-        if (input && worth) worth.textContent = gradientWorth(layer, at) ?? "";
+        // (The color in hand's worth, under its knob where it is now; the gradient ready made it is now, if one.)
+        const ready = /** @type {HTMLElement | null} */ ($("inspector").querySelector('[data-action="gradient-ready"]'));
+        showScale();
         const named = hand?.isConnected ? hand.querySelector("[data-stop-name]") : $("inspector").querySelector("[data-stop-name]");
         if (named) named.innerHTML = `<i class="swatch" style="background: ${escape(cssColor(stops[k][1]))}"></i>${escape(colorName(stops[k][1]))}`;
         if (ready) ready.innerHTML = `${gradientSwatch(stops)}<span class="name">${escape(readyName(stops))}</span>${CHEVRON}`;
@@ -29458,12 +29472,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Where a point is across a gradient's bar, 0 to 100. */
       const barAt = (/** @type {HTMLElement} */ bar, /** @type {number} */ clientX) => ((box) => (box.width ? ((clientX - box.left) / box.width) * 100 : 0))(bar.getBoundingClientRect());
       // A cursor dragged: its color between its neighbors, one undo step a drag; the bar pressed elsewhere, a color added
-      // there.
+      // there. (Taken by the nearest within a finger's reach (22px either side), not by whichever's reach is on top: two
+      // close together, each where it's drawn.)
       $("inspector").addEventListener("pointerdown", (event) => {
-        const cursor = closest(event, ".gradient-stop"), bar = closest(event, "[data-gradient-bar]");
-        if (event.button !== 0 || !bar) return;
-        if (!cursor) return void (event.preventDefault(), gradientEdit((item) => addStop(item, barAt(bar, event.clientX)), true));
-        const k = Number(cursor.dataset.stop);
+        const bar = closest(event, "[data-gradient-bar]"), stops = layerById(selected)?.gradient;
+        if (event.button !== 0 || !bar || !stops?.length) return;
+        const at = barAt(bar, event.clientX), k = stops.reduce((near, [place], i) => (Math.abs(place - at) < Math.abs(stops[near][0] - at) ? i : near), 0);
+        const cursor = (Math.abs(stops[k][0] - at) / 100) * bar.offsetWidth <= 22 ? /** @type {HTMLElement | null} */ (bar.querySelector(`.gradient-stop[data-stop="${k}"]`)) : null;
+        if (!cursor) return void (event.preventDefault(), gradientEdit((item) => addStop(item, at), true));
         colorSlot.set(`${chart.id}:${selected}`, `stop${k}`);
         pickPress(event, cursor, "scrubbing", (/** @type {{ clientX: number }} */ point) => {
           const at = Math.round(barAt(bar, point.clientX)), now = layerById(selected)?.gradient?.[k]?.[0];
@@ -29522,8 +29538,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (layer.type === "baseline" || (TWO_KEPT.has(layer.type) && layer.colors !== 1 && layer.colorBelow !== undefined && modesOf(layer).includes("sides"))) return "sides";
         return "one";
       }
+      /** A P&L heatmap's one way of coloring is two colors: its profit's and its loss's (see colorSlots). */
+      const pairedOne = (/** @type {Layer} */ layer) => layer.type === "heatmap" && layer.measure === "pnl";
       /** A way of coloring, named for a layer of its type (a pair, by what its two are for). */
-      const modeName = (/** @type {string} */ mode) => (mode === "one" ? "One" : mode === "sides" ? "Two" : mode === "momentum" ? "Four" : mode === "levels" ? "By its levels" : mode === "layers" ? "By its layers" : mode === "gradient" ? "Gradient" : "From a layer");
+      const modeName = (/** @type {string} */ mode, /** @type {Layer} */ layer) => (mode === "one" ? (pairedOne(layer) ? "Two" : "One") : mode === "sides" ? "Two" : mode === "momentum" ? "Four" : mode === "levels" ? "By its levels" : mode === "layers" ? "By its layers" : mode === "gradient" ? "Gradient" : "From a layer");
       /**
        * A layer's colors in its way of coloring, each with what it's for: [its key (a Layer's field; "from", the layer it
        * takes them from), its label].
@@ -29748,7 +29766,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (mode === "gradient") return gradientSwatch(layer.gradient ?? gradientFor(layer));
         // (From a layer: which, once there is one; none chosen yet, no letter that would say one was.)
         if (mode === "from") return ((source) => (source ? letterChip(source) : ICONS.series))(layerById(layer.colorFrom ?? ""));
-        const colors = mode === "momentum" ? [layer.color, fadingOf(layer, false), fadingOf(layer, true), belowOf(layer)] : mode === "sides" || (mode === "layers" && !edgesOf(layer).length) ? [layer.color, belowOf(layer)] : [layer.color];
+        const colors = mode === "momentum" ? [layer.color, fadingOf(layer, false), fadingOf(layer, true), belowOf(layer)] : mode === "sides" || (mode === "one" && pairedOne(layer)) || (mode === "layers" && !edgesOf(layer).length) ? [layer.color, belowOf(layer)] : [layer.color];
         const share = 100 / colors.length;
         return `<i class="swatch" style="background: linear-gradient(to bottom, ${colors.map((color, k) => `${escape(cssColor(color))} ${(k * share).toFixed(1)}% ${((k + 1) * share).toFixed(1)}%`).join(", ")})"></i>`;
       }
@@ -29759,9 +29777,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * takes, each on its line, said by what it's for (from a layer: which).
        */
       function colorPicker(/** @type {Layer} */ layer) {
-        const mode = colorModeOf(layer), name = modeName(mode), source = layerById(layer.colorFrom ?? ""), ways = modesOf(layer).length > 1;
+        const mode = colorModeOf(layer), name = modeName(mode, layer), source = layerById(layer.colorFrom ?? ""), ways = modesOf(layer).length > 1;
         // The way: a choice, as every other, on its line's right (none to choose: its label alone).
-        const head = `<div class="field"><span>${mode === "gradient" ? `<span>Colors</span><button type="button" class="reset" data-action="gradient-add" aria-label="Add a color" ${(layer.gradient?.length ?? 0) >= GRADIENT_MOST ? `aria-disabled="true" data-tip="A gradient holds up to ${GRADIENT_MOST} colors"` : 'data-tip="Add a color, in the widest gap"'}>${ICONS.plus}</button><button type="button" class="reset" data-action="gradient-reverse" aria-label="Reverse the gradient" data-tip="Reverse the gradient">${ICONS.swap}</button>` : mode === "one" ? "Color" : "Colors"}</span>${ways ? `<button type="button" id="color-mode" class="preset" data-action="color-mode" aria-haspopup="menu" aria-label="Colors: ${escape(name)}"><span class="name">${escape(name)}</span>${CHEVRON}</button>` : ""}</div>`;
+        const head = `<div class="field"><span>${mode === "one" && !pairedOne(layer) ? "Color" : "Colors"}</span>${ways ? `<button type="button" id="color-mode" class="preset" data-action="color-mode" aria-haspopup="menu" aria-label="Colors: ${escape(name)}"><span class="name">${escape(name)}</span>${CHEVRON}</button>` : ""}</div>`;
         if (mode === "from") return `${head}<div class="field color-slot"><span>Layer</span><button type="button" id="color-from" class="preset" data-action="color-from" aria-haspopup="menu" aria-label="Colors from: ${escape(source ? labelOf(source) : "")}">${source ? letterChip(source) : ""}<span class="name">${escape(source ? labelOf(source) : "")}</span>${CHEVRON}</button></div>`;
         // By its levels, by its layers: its colors theirs (none here).
         if (mode === "levels" || mode === "layers") return head;
@@ -29843,88 +29861,93 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Where a layer's values fall along its gradient, as an axis's ticks are written (see axisLabel): a heatmap's at each
        * power of ten from its faintest cell seen to its reference (unrealized P&L's, a loss's and a gain's either side
        * of none, at 50%, kept or not together); else round steps from its lowest to its highest; each its place (0 to
-       * 100), the strongest kept where two would touch. None yet, none.
-       * @param {Layer} layer @returns {[number, string][]}
+       * 100) and its label's left on the bar as laid out (`width` across: under its place, inside it at its ends), the
+       * strongest kept where two would come closer than a gap. First of all, the color in hand's own worth under its
+       * knob (at `hand`: `own`), those near it giving way. None yet (or the bar not laid out), none.
+       * @param {Layer} layer @param {number} width @param {number} [hand] @returns {[number, string, number, boolean][]}
        */
-      function gradientTicks(layer) {
+      function gradientTicks(layer, width, hand) {
+        if (!width) return [];
         // (Each kept with the others of its group, or none of them.)
-        const result = resolved?.results.get(layer.id), ticks = /** @type {[number, number][][]} */ ([]);
+        const result = resolved?.results.get(layer.id), ticks = /** @type {[number, number][][]} */ ([]), worth = hand === undefined ? null : gradientWorth(layer, hand);
+        // (None to write (no reference yet, values all the same): the color in hand's alone.)
         if (layer.type === "heatmap") {
           const most = heatLooks.get(layer.id)?.reference ?? 0, pnl = layer.measure === "pnl";
-          if (!most) return [];
-          for (let power = Math.floor(Math.log10(most)); 10 ** power >= heatAmount(0, most); power--) {
+          for (let power = Math.floor(Math.log10(most)); most && 10 ** power >= heatAmount(0, most); power--) {
             const felt = heatFelt(10 ** power, most);
             ticks.push(pnl ? [[50 + felt * 50, 10 ** power], [50 - felt * 50, -(10 ** power)]] : [[felt * 100, 10 ** power]]);
           }
-          if (pnl) ticks.unshift([[50, 0]]);
+          if (pnl && most) ticks.unshift([[50, 0]]);
         } else {
-          const [low, high] = rangeOf(result?.values ?? []);
-          if (!(high > low)) return [];
-          const rough = (high - low) / 4, step = ((ten) => [1, 2, 5, 10].map((k) => k * ten).find((size) => size >= rough) ?? 10 * ten)(10 ** Math.floor(Math.log10(rough)));
+          const [low, high] = rangeOf(result?.values ?? []), rough = (high - low) / 4, step = ((ten) => [1, 2, 5, 10].map((k) => k * ten).find((size) => size >= rough) ?? 10 * ten)(10 ** Math.floor(Math.log10(rough)));
           // (Eleven at most, counted apart from the values: a step too small to move one (a range of a few ulps) still
           // ends, its ticks as one, the overlaps dropped below.)
-          for (let i = 0, first = Math.ceil(low / step); i <= 10 && first + i <= Math.floor(high / step); i++) ticks.push([[(((first + i) * step - low) / (high - low)) * 100, (first + i) * step]]);
+          for (let i = 0, first = Math.ceil(low / step); high > low && i <= 10 && first + i <= Math.floor(high / step); i++) ticks.push([[(((first + i) * step - low) / (high - low)) * 100, (first + i) * step]]);
           ticks.sort((a, b) => Math.abs(b[0][1]) - Math.abs(a[0][1]));
         }
-        // (Kept, the first first, while its label (about 2.7% of the bar a character, as laid out: see tickRoom) is 3%
-        // clear of those kept.)
-        const kept = /** @type {[number, string][]} */ ([]), clear = (/** @type {number} */ at, /** @type {string} */ text) => ((room) => kept.every(([other, said]) => ((near) => room[0] >= near[1] + 3 || room[1] <= near[0] - 3)(tickRoom(other, said))))(tickRoom(at, text));
-        for (const group of ticks) {
-          const labeled = group.map(([at, value]) => /** @type {[number, string]} */ ([at, axisLabel(value)]));
-          if (labeled.every(([at, text]) => clear(at, text))) kept.push(...labeled);
+        // (Kept, the first first, while its label is a gap clear of those kept: each as wide as it's set, see widest.)
+        const kept = /** @type {[number, string, number, number, boolean][]} */ ([]), GAP = 12;
+        const label = (/** @type {number} */ at, /** @type {string} */ text, own = false) => ((size) => /** @type {[number, string, number, number, boolean]} */ ([at, text, clamp((at / 100) * width - size / 2, 0, width - size), size, own]))(widest([text], own ? 510 : 400, 11));
+        for (const group of [...(worth && hand !== undefined ? [[label(hand, worth, true)]] : []), ...ticks.map((group) => group.map(([at, value]) => label(at, axisLabel(value))))]) {
+          if (group.every(([, , left, size]) => kept.every(([, , other, room]) => left >= other + room + GAP || left + size <= other - GAP))) kept.push(...group);
         }
-        return kept.sort((a, b) => a[0] - b[0]);
+        return kept.sort((a, b) => a[0] - b[0]).map(([at, text, left, , own]) => /** @type {[number, string, number, boolean]} */ ([at, text, left, own]));
       }
-      /**
-       * Where a tick's label is across a gradient's bar (0 to 100), its left and right: under its place; near an end,
-       * inside it. @param {number} at @param {string} text @returns {[number, number]}
-       */
-      const tickRoom = (at, text) => ((width) => ((left) => /** @type {[number, number]} */ ([left, left + width]))(at < 6 ? at : at > 94 ? at - width : at - width / 2))(text.length * 2.7);
       /**
        * How a gradient heatmap's weakest cells fade into the chart (see heatColor), as a mask across its bar: an amount's
        * from its lowest; unrealized P&L's either side of none. None else. @param {Layer} layer
        */
       const gradientFade = (layer) => (layer.type !== "heatmap" ? "" : layer.measure === "pnl" ? `linear-gradient(to right, #000 ${50 - 50 * HEAT_FADE}%, transparent 50%, #000 ${50 + 50 * HEAT_FADE}%)` : `linear-gradient(to right, transparent, #000 ${100 * HEAT_FADE}%)`);
       /**
-       * A gradient's editor, above its color's (under its colors' line: a way to add one, to reverse them): the gradient
-       * ready made it is (a select of them, see readyPage); its bar, as the chart draws it (a heatmap's weakest faded), its colors each a cursor through it where
-       * it is, its knob under it (pressed, its color the one set; dragged, or moved by the arrows, between its neighbors;
-       * ⌫, gone, two left at least), a press on the bar or under it a color added there; where its values fall along it
-       * (see gradientTicks); the color in hand alone, a row as every field's (its color, named; what its place is worth,
-       * its place, typed, a way to remove it).
+       * A gradient's editor, at the top of its colors' (under its colors' line): the gradient ready made it is (a select of
+       * them, see readyPage), across from it ways to reverse it and to add a color; its bar, as the chart draws it (a
+       * heatmap's weakest faded), its colors each a cursor through it where it is, its knob under it (pressed, its color
+       * the one set; dragged, or moved by the arrows, between its neighbors; ⌫, gone, two left at least), a press on the
+       * bar or under it a color added there; where its values fall along it (see gradientTicks). Then the color in hand,
+       * heading the picker that sets it: a row as every field's (its color, named; what its place is worth, its place,
+       * typed, a way to remove it).
        * @param {Layer} layer @param {string} key the color being set
        */
       function gradientEditor(layer, key) {
         const stops = layer.gradient ?? [], few = stops.length <= GRADIENT_LEAST, k = clamp(Number(key.slice(4)) || 0, 0, stops.length - 1);
         const stop = (/** @type {[number, string]} */ [place, tint], /** @type {number} */ i) => `<button type="button" class="gradient-stop" data-color-slot="stop${i}" data-stop="${i}" aria-pressed="${i === k}" style="left: ${place}%; --c: ${escape(cssColor(tint))}" aria-label="${escape(stopSaid([place, tint]))}" data-tip="${escape(stopSaid([place, tint]))}${escape(`\n${keyText(`Drag, or ← → to move it${few ? "" : "; ⌫ to remove it"}`)}`)}"></button>`;
         const fade = gradientFade(layer);
-        const head = `<div class="field gradient-head"><span>Ready made</span><button type="button" class="preset" data-action="gradient-ready" aria-haspopup="menu" aria-label="Ready made: ${escape(readyName(stops))}">${gradientSwatch(stops)}<span class="name">${escape(readyName(stops))}</span>${CHEVRON}</button></div>`;
-        return `<div class="gradient-edit" role="group" aria-label="Its gradient">${head}<div class="gradient-scale" data-gradient-bar style="--g: ${escape(gradientCss(stops))}${fade ? `; --mask: ${fade}` : ""}"${stops.length < GRADIENT_MOST ? ' data-tip="A press adds a color here"' : ""}><span class="gradient-fill"></span>${stops.map(stop).join("")}</div>${gradientScale(layer)}${gradientHand(layer, k)}</div>`;
-      }
-      /** Where a gradient's values fall along it, under its bar (see gradientTicks; none yet, nothing). @param {Layer} layer */
-      function gradientScale(layer) {
-        const ticks = gradientTicks(layer), ends = [gradientWorth(layer, 0), gradientWorth(layer, 100)];
-        return ticks.length ? `<div class="gradient-ticks" role="img" aria-label="${escape(ends[0] && ends[1] ? `From ${ends[0]} to ${ends[1]}` : ticks.map(([, text]) => text).join(", "))}">${ticks.map(([place, text]) => `<span style="left: ${place.toFixed(1)}%"${place < 6 ? ' class="start"' : place > 94 ? ' class="end"' : ""}>${escape(text)}</span>`).join("")}</div>` : "";
+        const head = `<div class="gradient-head"><button type="button" class="preset" data-action="gradient-ready" aria-haspopup="menu" aria-label="Ready made: ${escape(readyName(stops))}" data-tip="Gradients ready made">${gradientSwatch(stops)}<span class="name">${escape(readyName(stops))}</span>${CHEVRON}</button><button type="button" class="cap" data-action="gradient-reverse" aria-label="Reverse the gradient" data-tip="Reverse the gradient">${ICONS.swap}</button><button type="button" class="cap" data-action="gradient-add" aria-label="Add a color" ${stops.length >= GRADIENT_MOST ? `aria-disabled="true" data-tip="A gradient holds up to ${GRADIENT_MOST} colors"` : 'data-tip="Add a color, in the widest gap"'}>${ICONS.plus}</button></div>`;
+        return `<div class="gradient-edit" role="group" aria-label="Its gradient">${head}<div class="gradient-scale" data-gradient-bar style="--g: ${escape(gradientCss(stops))}${fade ? `; --mask: ${fade}` : ""}"${stops.length < GRADIENT_MOST ? ' data-tip="A press adds a color here"' : ""}><span class="gradient-fill"></span>${stops.map(stop).join("")}</div>${gradientScale(layer, stops[k]?.[0])}</div>${gradientHand(layer, k)}`;
       }
       /**
-       * The inspector's gradient scale and its color in hand's worth, as its layer's values are now (a heatmap's
-       * reference come or changed, see drawHeat; its place's field as it is).
+       * Where a gradient's values fall along it, under its bar, the color in hand's (at `hand`) under its knob (see
+       * gradientTicks; none yet, nothing). @param {Layer} layer @param {number} [hand]
+       */
+      function gradientScale(layer, hand) {
+        const ticks = gradientTicks(layer, gradientWidth, hand), ends = [gradientWorth(layer, 0), gradientWorth(layer, 100)], own = ticks.find((tick) => tick[3]);
+        return ticks.length ? `<div class="gradient-ticks" role="img" aria-label="${escape(`${ends[0] && ends[1] ? `From ${ends[0]} to ${ends[1]}` : ticks.map(([, text]) => text).join(", ")}${own ? `; the color in hand at ${own[1]}` : ""}`)}">${ticks.map(([, text, left, mine]) => `<span${mine ? ' class="own"' : ""} style="left: ${left.toFixed(1)}px">${escape(text)}</span>`).join("")}</div>` : "";
+      }
+      /** The width a gradient's bar is laid out at, its ticks fitted to it: kept as it changes (the panel's grip, a phone turned). */
+      let gradientWidth = 0;
+      const gradientRoom = new ResizeObserver((entries) => {
+        const width = entries[entries.length - 1].contentRect.width;
+        if (width && width !== gradientWidth) (gradientWidth = width), showScale();
+      });
+      /**
+       * The inspector's gradient scale, the color in hand's worth on it, as its layer's values are now and that color is
+       * (a heatmap's reference come or changed, see drawHeat; a color moved, see showStop; the bar's width, see
+       * gradientWidth).
        */
       function showScale() {
         const layer = layerById(selected), bar = $("inspector").querySelector("[data-gradient-bar]");
         if (!layer || !bar) return;
+        const input = /** @type {HTMLInputElement | null} */ ($("inspector").querySelector("[data-stop-at]"));
         $("inspector").querySelector(".gradient-ticks")?.remove();
-        bar.insertAdjacentHTML("afterend", gradientScale(layer));
-        const input = /** @type {HTMLInputElement | null} */ ($("inspector").querySelector("[data-stop-at]")), worth = $("inspector").querySelector("[data-stop-worth]");
-        if (input && worth) worth.textContent = gradientWorth(layer, layer.gradient?.[Number(input.dataset.stopAt)]?.[0] ?? 0) ?? "";
+        bar.insertAdjacentHTML("afterend", gradientScale(layer, input ? layer.gradient?.[Number(input.dataset.stopAt)]?.[0] : undefined));
       }
       /**
-       * A gradient's color in hand (its `k`th), a row as every field's: it, named; what its place is worth, its place,
-       * typed, a way to remove it (two left at least). @param {Layer} layer @param {number} k
+       * A gradient's color in hand (its `k`th), a row as every field's: it, named; its place, typed, a way to remove it
+       * (two left at least). (What its place is worth: under its knob, see gradientTicks.) @param {Layer} layer @param {number} k
        */
       function gradientHand(layer, k) {
         const stops = layer.gradient ?? [], few = stops.length <= GRADIENT_LEAST, at = stops[k]?.[0] ?? 0, color = stops[k]?.[1] ?? layer.color;
-        return `<div class="field gradient-hand"><span class="gradient-named" data-stop-name><i class="swatch" style="background: ${escape(cssColor(color))}"></i>${escape(colorName(color))}</span><span class="gradient-at"><span class="gradient-worth" data-stop-worth>${escape(gradientWorth(layer, at) ?? "")}</span><span class="number-field"><input class="number-input" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="${at}" data-stop-at="${k}" aria-label="${escape(colorName(color))}, its place" enterkeyhint="done" /><span class="unit">%</span></span><button type="button" class="cap small" data-stop-remove="${k}" aria-label="Remove ${escape(colorName(color))}" data-tip="${few ? `A gradient has ${GRADIENT_LEAST} colors at least` : "Remove"}"${few ? ' aria-disabled="true"' : ""}>${ICONS.close}</button></span></div>`;
+        return `<div class="field gradient-hand"><span class="gradient-named" data-stop-name><i class="swatch" style="background: ${escape(cssColor(color))}"></i>${escape(colorName(color))}</span><span class="gradient-at"><span class="number-field"><input class="number-input" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" value="${at}" data-stop-at="${k}" aria-label="${escape(colorName(color))}, its place" enterkeyhint="done" /><span class="unit">%</span></span><button type="button" class="cap small" data-stop-remove="${k}" aria-label="Remove ${escape(colorName(color))}" data-tip="${few ? `A gradient has ${GRADIENT_LEAST} colors at least` : "Remove"}"${few ? ' aria-disabled="true"' : ""}>${ICONS.trash}</button></span></div>`;
       }
       /**
        * What a place along a gradient (0 to 100) is worth, as its values are written: between its lowest and highest of
@@ -30002,7 +30025,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!layer) return [];
         const mode = colorModeOf(layer);
         return modesOf(layer).map((each) => ({
-          key: `mode:${each}`, icon: ((copy) => (setColorMode(copy, each), modeSwatch(copy, each)))(structuredClone(layer)), label: modeName(each), aside: each === "sides" && layer.type === "trend" ? "Resistance and support" : each === "sides" && layer.type === "cloud" ? "The one over's, parting where they cross" : /** @type {Record<string, string>} */ (MODE_ASIDES)[each], current: mode === each,
+          key: `mode:${each}`, icon: ((copy) => (setColorMode(copy, each), modeSwatch(copy, each)))(structuredClone(layer)), label: modeName(each, layer), aside: each === "sides" && layer.type === "trend" ? "Resistance and support" : each === "sides" && layer.type === "cloud" ? "The one over's, parting where they cross" : /** @type {Record<string, string>} */ (MODE_ASIDES)[each], current: mode === each,
           ...(each === "from" ? (colorSources(layer).length ? { page: () => choicePage("Colors from", () => fromChoices(id)) } : { disabled: "There's no other layer to take them from" })
             : each === "levels" && !layer.levels?.length ? { disabled: "Add a level first" }
             : { run: () => editById(id, (item) => setColorMode(item, each)), look: (/** @type {Chart} */ doc) => ((item) => item && setColorMode(item, each))(doc.layers.find((other) => other.id === id)) }),
@@ -31077,7 +31100,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const { type, dash, shape, fill, solid, hollow, place, side, priceLine, outline, results, action, insert, index, reset, colorSelect, replace, lineColor, lineDash, lineTag, levelMenu, act, colorSlot: slot, pickColor, colorSource: source } = button.dataset;
         const paletteKey = button.closest("[data-palette]")?.getAttribute("data-palette");
         if (index) switchInterval(index);
-        else if (slot) colorSlot.set(`${chart.id}:${selected}`, slot), renderInspector();
+        // (A gradient's color pressed by a pointer: the one nearest the press, taken as it went down (see the bar's
+        // pointerdown), not the one whose reach is on top.)
+        else if (slot) (button.matches(".gradient-stop") && event.detail) || colorSlot.set(`${chart.id}:${selected}`, slot), renderInspector();
         else if (source && paletteKey) {
           // (Auto is a color: its own, set now; Palette and Custom, where to pick one: shown. Several in hand, theirs.)
           const layers = inHand();
@@ -34144,7 +34169,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(seriesLooked(layer) ? [{ key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc || (layer.series && isOhlc(layer.series))).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => reshape(item, (one) => (one.type = type))) }))) }] : []),
             ...(layer.type === "baseline" || layer.type === "histogram" ? [{ key: "base", icon: ICONS.ruler, label: "Base", aside: format(baseOf(layer), unit), group: "Style", page: () => numberPage({ title: "Base", value: String(baseOf(layer)), fallback: 0, apply: (n) => editById(id, (item) => (item.base = n || undefined)) }) }] : []),
             ...(layer.type === "baseline" ? [lineRow(id, "base", "Base line", "Style")] : []),
-            ...(modesOf(layer).length > 1 ? [{ key: "colors", icon: modeSwatch(layer, colorModeOf(layer)), label: "Colors", aside: modeName(colorModeOf(layer)), group: "Style", page: () => choicePage("Colors", () => colorModeChoices(id), lookOfChoice) }] : []),
+            ...(modesOf(layer).length > 1 ? [{ key: "colors", icon: modeSwatch(layer, colorModeOf(layer)), label: "Colors", aside: modeName(colorModeOf(layer), layer), group: "Style", page: () => choicePage("Colors", () => colorModeChoices(id), lookOfChoice) }] : []),
             ...colorSlots(layer).map(([key, label]) => (key === "from"
               ? { key: "color-from", icon: source ? letterChip(source) : ICONS.series, label: "Colors from", aside: source ? labelOf(source) : "", group: "Style", page: () => choicePage("Colors from", () => fromChoices(id), lookOfChoice) }
               : color(key, colorSlots(layer).length > 1 || colorModeOf(layer) === "levels" ? `Color ${label.replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase())}` : "Color"))),
