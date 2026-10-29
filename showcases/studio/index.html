@@ -22829,6 +22829,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const index = await sampleable(doc, sampleIndex(doc, "month1", THUMB_POINTS));
         const data = await resolve({ ...doc, index });
         if (retryFailed(data, index)) return null;
+        const bubbles = await bubblesAt(doc, data, index);
+        if (!bubbles) return null;
         /** @type {Map<string, ReturnType<typeof shapeOf>>} */
         // (The chart's lines as it draws them, stacked; each layer's own mark, its own values.)
         const shapes = new Map(), own = new Map(), stacked = stackOf(doc, data, false);
@@ -22900,7 +22902,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const [loss, profit] = stops ? [stops[0][1], /** @type {[number, string]} */ (stops.at(-1))[1]] : [belowOf(layer), layer.color];
             washes.push(layer.measure === "pnl" ? [at.index, loss, profit, at.band.bottom, at.band.bottom + at.band.height] : [at.index, one, one, at.band.bottom, at.band.bottom + at.band.height]);
           } else if (layer.type === "bubbles" && layer.ref && lineAt.has(layer.ref) && dots.length < 4) {
-            const all = data.results.get(layer.id)?.values, values = all && start ? Array.prototype.slice.call(all, start) : all, ys = lines[/** @type {{ index: number }} */ (lineAt.get(layer.ref)).index][1];
+            const all = bubbles.get(layer.id) ?? data.results.get(layer.id)?.values, values = all && start ? Array.prototype.slice.call(all, start) : all, ys = lines[/** @type {{ index: number }} */ (lineAt.get(layer.ref)).index][1];
             if (!values) continue;
             // (Bucketed as its line's points are: see shapeOf.)
             const step = values.length / ys.length, peaks = [];
@@ -23060,6 +23062,43 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const HEAT_PICTURE_AGG = "log50", HEAT_TILE_COLUMNS = 32, HEAT_QUICK_COLUMNS = 96;
       /**
+       * Bubbles' values for a picture drawn at a coarser interval than its chart's (weeks for years, months for a mark): at
+       * each of its points, the largest by size (its sign kept) of the chart's own over its span, as the chart's buckets
+       * keep theirs. A day's sum read once a week is one day in seven: its largest days, the bubbles that read, missed.
+       * By layer, aligned with the picture's points; outside what its own series reaches at the chart's interval (a fine
+       * interval's: its view's chunks), the picture's own. None for a picture as fine as its chart; null when a fetch failed: the picture not
+       * kept, asked again (see retryFailed).
+       * @param {Chart} doc its own interval's @param {{ times: number[], results: Map<string, any> }} data the picture's @param {string} index the picture's
+       * @returns {Promise<Map<string, Float64Array> | null>}
+       */
+      async function bubblesAt(doc, data, index) {
+        const layers = doc.layers.filter((layer) => layer.type === "bubbles" && !layer.hidden), times = data.times, n = times.length;
+        if (!layers.length || !(INTERVAL_DAYS[index] > INTERVAL_DAYS[doc.index])) return new Map();
+        // (The chart as it's drawn, a copy: its frame and its view's span shared with it, see resolve and spanOf.)
+        const fine = await resolve(structuredClone(doc)).catch(() => null);
+        if (!fine || retryFailed(fine, doc.index)) return null;
+        return new Map(layers.flatMap((layer) => {
+          const values = fine.results.get(layer.id)?.values, own = data.results.get(layer.id)?.values;
+          if (!values || !own) return [];
+          // (Its own reach, not the timeline's: another layer's series may reach where its own didn't load.)
+          let from = 0, to = values.length - 1;
+          while (from <= to && !Number.isFinite(values[from])) from++;
+          while (to >= from && !Number.isFinite(values[to])) to--;
+          const out = new Float64Array(n).fill(NaN), first = fine.times[from], last = fine.times[to];
+          for (let k = 0; k < n; k++) {
+            if (!(times[k] >= first && times[k] <= last)) {
+              out[k] = own[k];
+              continue;
+            }
+            const end = k + 1 < n ? times[k + 1] : Infinity;
+            let far = NaN;
+            for (let j = lowerBound(fine.times, times[k]); j < fine.times.length && fine.times[j] < end; j++) if (Number.isFinite(values[j]) && !(Math.abs(values[j]) <= Math.abs(far))) far = values[j];
+            out[k] = far;
+          }
+          return [[layer.id, out]];
+        }));
+      }
+      /**
        * Each heatmap's days a picture shows, by its layer's id: a day for each of its `columns`, evenly across what it
        * shows (see previewShown), the open day, and the open day at the layer's own density (`fine`: the chart's
        * reference, see heatPicture); asked for as the chart's are (a want
@@ -23136,7 +23175,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {Chart} doc @param {{ times: number[], results: Map<string, any> }} data
        * @param {number} [most] the most bars the chart shows, in this data's interval @returns {Preview}
        */
-      function previewOf(doc, data, most = mostBars(), size = PREVIEW, heat = /** @type {HeatSamples} */ (new Map())) {
+      function previewOf(doc, data, most = mostBars(), size = PREVIEW, heat = /** @type {HeatSamples} */ (new Map()), bubbles = /** @type {Map<string, Float64Array>} */ (new Map())) {
         const { width: W, height: H } = size;
         const times = data.times, n = times.length;
         /** @type {Preview} */
@@ -23179,7 +23218,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
            * @param {Layer} layer @param {(i: number) => number} place
            */
           const drawBubbles = (layer, place) => {
-            const own = data.results.get(layer.id)?.values;
+            // (At the chart's own interval, each point its span's largest: see bubblesAt.)
+            const own = bubbles.get(layer.id) ?? data.results.get(layer.id)?.values;
             if (layer.hidden || !own) return;
             const most = layer.scaleTo === "all" ? mostIn(own) : mostIn(own, shown), least = (layer.hide ?? BUBBLE_HIDE) * most, across = (layer.size ?? BUBBLE_SIZE) * (big ? 1 : 0.6);
             if (!(most > 0)) return;
@@ -23587,15 +23627,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const data = await resolve(copy).catch(() => null);
           if (!data || retryFailed(data, index) || previewKey(doc) !== key) return null;
           // (Its heatmaps' days, a column of the tile each few pixels: see heatSamples.)
-          const heat = await heatSamples(copy, data, previewBars(doc, index), HEAT_TILE_COLUMNS);
-          if (previewKey(doc) !== key) return null;
+          const [heat, bubbles] = await Promise.all([heatSamples(copy, data, previewBars(doc, index), HEAT_TILE_COLUMNS), bubblesAt(doc, data, index)]);
+          if (!bubbles || previewKey(doc) !== key) return null;
           // Replaced meanwhile (another tab's edit): its successor is drawn on its own.
           if (!/^(recommended|preset):/.test(doc.id) && chartById(doc.id) !== doc) return null;
           // (A preset let go meanwhile, out of the last looked at: its drawing isn't kept either.)
           if (doc.id.startsWith("preset:") && !presetDocs.has(Number(doc.id.slice(7)))) return null;
           // (A preset's: which one, by its place, see templateDoc.)
           // (Its heatmaps' days not all in: shown, kept unkeyed, drawn again the next time it's asked for.)
-          const drawn = { key: heat.whole === false ? "" : key, ...previewOf(copy, data, previewBars(doc, index), PREVIEW, heat), ...(doc.id.startsWith("preset:") ? { of: presetKey(Number(doc.id.slice(7))) } : {}) };
+          const drawn = { key: heat.whole === false ? "" : key, ...previewOf(copy, data, previewBars(doc, index), PREVIEW, heat, bubbles), ...(doc.id.startsWith("preset:") ? { of: presetKey(Number(doc.id.slice(7))) } : {}) };
           // (The last drawn last: kept first, see savePreviews.)
           previews.delete(doc.id);
           previews.set(doc.id, drawn);
@@ -38677,11 +38717,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const data = await resolve(copy).catch(() => null);
           // (Not drawn, or some of it missing: not kept, asked again next time.)
           if (!data || retryFailed(data, index)) return void quickPictures.delete(key), null;
-          const heat = await heatSamples(copy, data, previewBars(doc, index), HEAT_QUICK_COLUMNS);
-          // (The theme changed meanwhile: its heatmaps' colors another's, none; its days not all in: shown, not kept.)
-          if (key !== `${doc.id}:${previewKey(doc)}:${light}`) return void quickPictures.delete(key), null;
+          const [heat, bubbles] = await Promise.all([heatSamples(copy, data, previewBars(doc, index), HEAT_QUICK_COLUMNS), bubblesAt(doc, data, index)]);
+          // (Its bubbles' fetch failed, or the theme changed meanwhile: its heatmaps' colors another's, none; its days not all
+          // in: shown, not kept.)
+          if (!bubbles || key !== `${doc.id}:${previewKey(doc)}:${light}`) return void quickPictures.delete(key), null;
           if (heat.whole === false) quickPictures.delete(key);
-          const drawn = previewOf(copy, data, previewBars(doc, index), QUICK_PICTURE, heat);
+          const drawn = previewOf(copy, data, previewBars(doc, index), QUICK_PICTURE, heat, bubbles);
           // (Each layer's value at the picture's end, as the legend reads it there: a cloud to an edge, its one side.)
           const values = new Map(copy.layers.flatMap((layer) => {
             const result = data.results.get(layer.id), high = result?.values, low = result?.low, unit = unitFor(layer, result);
