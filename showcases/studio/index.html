@@ -27190,6 +27190,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           await aFrame();
           presets = list;
           presetWords = list.map((preset) => `${preset.t} ${preset.p.join(" ")}`.toLowerCase());
+          // (Their words each once, for a slip in a search (see slipFixed), gathered meanwhile: no keystroke waits for them.)
+          whenIdle(vocabNow);
           presetTitles = list.map((preset) => ((title) => ({ title, name: preset.p.at(-1)?.toLowerCase() ?? "", subject: title.split(": ")[0] }))(preset.t.toLowerCase()));
           // (Counted into place, not sorted: no comparison called thousands of times, a phone's engine without a JIT.)
           presetRank = Int32Array.from(list, (preset, i) => preset.p.length * 1000 + Math.min(presetTitles[i].title.length, 999));
@@ -27833,6 +27835,45 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ...(doc && presetEdited(doc) ? [{ key: "reset", icon: ICONS.undo, label: "Reset", aside: "Discard your edits", apart: !head, run: () => resetPreset(doc) }] : []),
         ];
       }
+      /**
+       * The words of the presets' titles and places, each with how many presets have it, made again as the presets come:
+       * a slice at a time in idle moments (none of it a long task, a phone without its JIT), the rest at once when a
+       * search needs them first.
+       */
+      let presetVocab = { of: /** @type {string[] | null} */ (null), counts: /** @type {Map<string, number>} */ (new Map()), making: /** @type {Generator<void, Map<string, number>> | null} */ (null) };
+      function* vocabMaking(/** @type {string[]} */ texts) {
+        const counts = new Map();
+        for (let i = 0; i < texts.length; i++) {
+          for (const word of new Set(texts[i].split(/[^a-z0-9]+/))) if (word.length >= 3) counts.set(word, (counts.get(word) ?? 0) + 1);
+          if (i % 250 === 249) yield;
+        }
+        return counts;
+      }
+      /** The presets' words (see presetVocab), at once; in an idle moment (`deadline`), as far as it goes, then the next. */
+      function vocabNow(/** @type {{ timeRemaining: () => number } | undefined} */ deadline = undefined) {
+        if (presetVocab.of !== presetWords) presetVocab = { of: presetWords, counts: new Map(), making: vocabMaking(presetWords) };
+        const until = deadline ? performance.now() + Math.min(8, Math.max(2, deadline.timeRemaining())) : Infinity;
+        while (presetVocab.making) {
+          const step = presetVocab.making.next();
+          if (step.done) (presetVocab.counts = step.value), (presetVocab.making = null);
+          else if (performance.now() >= until) return void whenIdle(vocabNow);
+        }
+        return presetVocab.counts;
+      }
+      /**
+       * A word typed as no preset has it (nor a renamed one's title, `extra`), the words of theirs it's a slip off (from
+       * four letters, a letter; from seven, two; against as much of theirs as was typed and a letter, as fitScore's), the
+       * nearest first, then those more presets have; none if it's found as typed.
+       */
+      function slipsOf(/** @type {string} */ word, /** @type {string[]} */ extra) {
+        if (word.length < 4 || extra.some((text) => text.includes(word))) return [];
+        const counts = /** @type {Map<string, number>} */ (vocabNow()), most = word.length >= 7 ? 2 : 1, near = /** @type {[string, number, number][]} */ ([]);
+        for (const each of counts.keys()) if (each.includes(word)) return [];
+        const weigh = (/** @type {string} */ each, /** @type {number} */ count) => ((edits) => edits <= most && near.push([each, edits, count]))(editsBetween(word, each.slice(0, word.length + 1), most));
+        for (const [each, count] of counts) weigh(each, count);
+        for (const each of new Set(extra.flatMap((text) => text.split(/[^a-z0-9]+/)))) if (each.length >= 3 && !counts.has(each)) weigh(each, 1);
+        return near.sort((a, b) => a[1] - b[1] || b[2] - a[2]).map(([each]) => each);
+      }
       /** A preset's words for a search: its title as made, and as edited here, and where it is. */
       const presetSearchWords = (/** @type {number} */ i) => ((edited) => (edited ? `${presetWords[i]} ${titleOf(edited).toLowerCase()}` : presetWords[i]))(keptPreset(i));
       /** The last search over the presets (all of them, no `under`): typed on, it narrows what it found. */
@@ -27844,7 +27885,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * before ": "; then every word in its title, then its title starting with the first; at each, the nearest the top
        * of the tree, then the shortest title: the measure itself before its families' members), as many as `most`.
        */
-      function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ most, under = /** @type {((i: number) => boolean) | null} */ (null)) {
+      function presetsMatching(/** @type {string[]} */ words, /** @type {number} */ most, under = /** @type {((i: number) => boolean) | null} */ (null), slipped = false) {
         const list = /** @type {Preset[]} */ (presets), query = words.join(" ");
         // (Typed on from the last search, every match is among its matches.)
         const among = !under && presetsFound.query && query.startsWith(presetsFound.query) ? presetsFound.found : null, found = [];
@@ -27867,6 +27908,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else for (let i = 0; i < presetWords.length; i++) if ((!under || under(i)) && holds(renamed.get(i) ?? presetWords[i])) found.push(i);
         if (!under) presetsFound = { query, found };
         presetsCounted = found.length;
+        // (Nothing found, and a word in no preset's words a slip off one that is (as ⌘K's rows forgive one, see fitScore):
+        // found as that word, as series and settings are found through a slip; of words as near, the first found with the
+        // rest typed (where it's searched). A slip only: the words as typed first.)
+        if (!found.length && !slipped) {
+          const extra = [...renamed.values()], slips = words.map((word) => slipsOf(word, extra)), fixed = words.slice();
+          const anyHolds = (/** @type {string[]} */ some) => {
+            for (let i = 0; i < presetWords.length; i++) if ((!under || under(i)) && some.every((word) => (renamed.get(i) ?? presetWords[i]).includes(word))) return true;
+            return false;
+          };
+          slips.forEach((options, k) => options.length && (fixed[k] = options.find((option) => anyHolds([...fixed.filter((_, j) => j !== k && !slips[j].length), ...fixed.slice(0, k).filter((_, j) => slips[j].length), option])) ?? options[0]));
+          if (fixed.some((word, k) => word !== words[k])) return presetsMatching(fixed, most, under, true);
+        }
         // The best first: what's typed its name or its title's subject; then all its words in its title, starting it; then
         // the nearest the top, the shortest (presetOrder). Each one's fit found as it's reached, the fits in turn, till
         // `most` are: a word or two matches thousands, a few dozen show.

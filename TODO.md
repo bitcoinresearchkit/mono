@@ -4,7 +4,9 @@ Only what's left. An item done is removed: its history is in the commits and log
 
 ## Waiting on you
 
-- Test Studio on a real phone. Its motion was measured in headless Chromium only.
+- Test Studio on a real phone by hand: its touch gestures (a finger's pan, pinch, fling) can't be driven from here.
+  Measured on the iPhone (2026-10-29, Lockdown), the view moved by script a bar or more a frame: 60 fps at p90 on
+  Sats per Dollar (2012–13, 2011–15, the latest bar) and the Bubbles chart (8Y, Max), 2-4 frames over 20 ms in 120.
   - Scrolling, on Sats per Dollar:
     - pinch and fling across 2011–2015, where the axis labels change width most;
     - do the same at the latest bar;
