@@ -25,10 +25,12 @@ Only what's left. An item done is removed: its history is in the commits and log
   the unrealized P&L heatmap); a chart's mark shows them as dots; the minis (tiles, ⌘K's previews, Quick Look) read
   the chart's own days, each point its span's largest (_notes/overnight-20261029/bubbles-mini-days-before-after.png).
   Open: your look at the minis now.
-- Profile, a layer of its own (2026-10-29, 31734f9a8): your look (_notes/overnight-20261029/profile-layer.png). Not in
-  it yet: a bar's own amount pointed at (its legend reads the share in profit); the minis (tiles, ⌘K's previews, Quick
-  Look). Presets to try it: each group's Cost basis › Profile, Holders › Compare › Profile, Coin age › Age bands ›
-  Compare › Profile; one palette for the holder groups everywhere (palette.js, 6c01ddb92).
+- Profile, a layer of its own (2026-10-29, 31734f9a8): bars as tall as their rows, solid (97f69ee60); on the view's last
+  day (your call, as a visible range's profile), its key in the legend and a bar pointed at read there, its group lit
+  (your pick, A and the key: _notes/overnight-20261029/profile-point-A-legend.png); its groups all deselectable. Not in
+  it yet: the minis (tiles, ⌘K's previews, Quick Look).
+  Presets to try it: each group's Cost basis › Profile, Holders › Compare › Profile, Coin age › Age bands › Compare ›
+  Profile; one palette for the holder groups everywhere (palette.js, 6c01ddb92).
 - Next, asked: one system for every size, width, height, margin and padding (see the design-system item); then the
   right panel and the legends reviewed (the least worked on).
 - A design system for all of Studio, then a polish and consistency pass applying it (you, 2026-10-28: "I think we

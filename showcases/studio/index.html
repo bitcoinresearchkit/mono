@@ -2974,8 +2974,8 @@
           gap: 10px;
           min-height: 22px;
 
-          /* (A focused count stays, the keys' place kept under them.) */
-          &:has(> .legend-on:not([hidden])) > :is(.legend-key, .legend-all:not(:focus)) {
+          /* (A focused count stays, the keys' place kept under them; a profile's key, its own item's, stays.) */
+          &:has(> .legend-on:not([hidden])) > :is(.legend-key:not(.profile-key), .legend-all:not(:focus)) {
             display: none;
           }
 
@@ -3013,7 +3013,7 @@
           /* (A plot too narrow for its ends' names: the strip alone, a band named as it's pointed at; a band's line its share
              alone where it has one (a 100% stack's), its amount in the panel beside it.) */
           &[data-tight] {
-            .legend-key > span:not(.key-strip),
+            .legend-key:not(.profile-key) > span:not(.key-strip),
             .legend-on .legend-line:has(> .legend-share) > :not(.legend-share) {
               display: none;
             }
@@ -3068,6 +3068,33 @@
               width: 3px;
             }
           }
+        }
+
+        /* A profile's key, beside its item: its groups each a square of its color by its name (a few), or a strip of them
+           named at its ends (many), its words edged as an item's are; a bar of one pointed at, the item the group's, its
+           key aside (see paintProfileItems). In a picture, on more lines where it's long (see presentLegends). */
+        .profile-key {
+          gap: 4px 10px;
+          padding-left: 0;
+          paint-order: stroke fill;
+          -webkit-text-stroke: 4px var(--card);
+
+          > span:not(.key-strip) {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+
+            > i {
+              width: 8px;
+              height: 8px;
+              border-radius: 2px;
+              background: var(--c);
+            }
+          }
+        }
+
+        button[data-lit] + .profile-key {
+          display: none;
         }
 
         /* Only a row that scrolls takes the wheel; otherwise the chart under it keeps its zoom. */
@@ -10568,7 +10595,7 @@
             <li>{"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns up or down: above 0 is up, below 0 down, 0 off (> < >= <= are 1 or 0, joined with &amp; and |: a condition is up where true; (B > 3.5) - (B < 1) is up, down or off). "place", "below" or "on" (above if none): where an up mark goes, a down one mirrored (above and below swapped), in "colorBelow" (red if none); or "shade": its stretches shaded, its layer's pane's height, down ones in "colorBelow". "results": true: on each mark that ends a stretch, what it made by layer A (A's change over it, up; the opposite, down), a dot where one ends off; their total, compounded, in its line.</li>
             <li>{"cloud": ["B", "C"]}: filled between those layers, two or more, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them). Between more, {"cloud": ["B", "C", "D"]}, a cloud between each two next to each other in that order (B and C, C and D), each in the color of whichever of its two is over: several clouds, made by one (where they cross out of order, two overlap). "color" alone, that one all along, from the lowest to the highest; between two alone, "color" and "colorBelow", those two (where B is over, where C is). "top" and "bottom" are its pane's edges: from its first layer up to the pane's top, from its last down to its bottom: {"cloud": ["A", "top"]}.</li>
             <li>{"heatmap": "sth"}: a holder group's URPD day by day behind the price, a column a day, each price's cell as strong as its amount against the open day's largest, on a log scale (zoomed out, a day in so many, the days between not asked for): "all" (all coins), "sth", "lth", "age_under_4m", "age_under_6m", "age_over_4m", "age_over_6m", or an age band ("age_under_1h", "age_1h_to_1d" … "age_over_15y", as GET /api/urpd lists them). "measure": "supply" (if none), "capital", or "pnl" (unrealized, in "color" where in profit, "colorBelow" where in loss); "weight": "wakefulness" or "mobility" (none: every coin as it is); its rows: "rows", 100, 200 (if none) or 500 a ×10 in price, on a log scale or a linear one.</li>
-            <li>{"profile": ["lth", "sth"]}: holder groups' URPD on one day as a profile at the chart's right edge (the day read: the latest at the view's end, the one pointed at), bars from the edge, stacked, the first group's at the edge, each as long as its amount: in each group's color (all coins green, short-term holders orange, long-term blue; "cohortColors": {"sth": "red"}, a group's own), strong under that day's close (in profit), faint over it (in loss), with the share of their coins each side; the chart leaves room for it after its latest. Its groups as a heatmap's ("all", "sth", "lth", the age cutoffs, the age bands; one alone: "profile": "sth"), and "measure", "weight" and "rows" as a heatmap's.</li>
+            <li>{"profile": ["lth", "sth"]}: holder groups' URPD on the view's last day (the latest at its end) as a profile at the chart's right edge, bars from the edge, stacked, the first group's at the edge, each as long as its amount: in each group's color (all coins green, short-term holders orange, long-term blue; "cohortColors": {"sth": "red"}, a group's own), strong under that day's close (in profit), faint over it (in loss), with the share of their coins each side; the chart leaves room for it after its latest. Its groups as a heatmap's ("all", "sth", "lth", the age cutoffs, the age bands; one alone: "profile": "sth"), and "measure", "weight" and "rows" as a heatmap's.</li>
             <li>{"trend": ["B", "C"], "ref": "A"}: a line on the lowest of those layers until layer A (a price, say) touches it, then on the highest until A touches that, and so on (A an OHLC series, its highs and lows count, drawn as candles or not; else its value); width and dash as a line's.</li>
           </ul>
           <p>Then, each if wanted:</p>
@@ -11792,7 +11819,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         ...Object.values(client.AGE_RANGE_NAMES).map(({ id, long }) => /** @type {[string, string]} */ ([`age_${id}`, long.split(" ").map((word, i) => (i && /^[A-Z][a-z]+$/.test(word) ? word.toLowerCase() : word)).join(" ").replace(/ old$/, "")])),
       ]);
       /** Whether Bitview has a heatmap's holder group (a link's typo, one renamed: not). @param {Layer} layer */
-      const heatKnown = (layer) => ((known) => (layer.type === "profile" ? Boolean(layer.profile?.length) && /** @type {string[]} */ (layer.profile).every(known) : known(layer.heatmap ?? "all")))((/** @type {string} */ cohort) => HEAT_COHORTS.some(([id]) => id === cohort));
+      const heatKnown = (layer) => ((known) => (layer.type === "profile" ? (layer.profile ?? []).every(known) : known(layer.heatmap ?? "all")))((/** @type {string} */ cohort) => HEAT_COHORTS.some(([id]) => id === cohort));
       /** The URPD's age bands, the youngest first (after all coins and the age cutoffs). */
       const HEAT_AGES = HEAT_COHORTS.slice(7).map(([id]) => id);
       /**
@@ -13288,16 +13315,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const layer of doc.layers) if (layer.from) layer.from = fromOf(doc, layer.from, layer.type);
         // (A trend's reference one that can flip it, none else (it says so); no shape: a step would draw its flips.)
         for (const layer of doc.layers) if (layer.type === "trend") delete layer.shape;
-        // (A profile: its holder groups each once, its color its first one's (its letter's, its legend's), each group's own
-        // kept only where it isn't the group's, and only for those in it.)
+        // (A profile: its holder groups each once (none: it draws nothing till one's picked), its color its first one's (its
+        // letter's, its legend's), each group's own kept only where it isn't the group's, and only for those in it.)
         for (const layer of doc.layers) {
           if (layer.type !== "profile") continue;
           layer.profile = [...new Set(layer.profile ?? [])];
-          if (!layer.profile.length) layer.profile = ["all"];
           // (A group taken out takes its color with it, as a link keeps them.)
           for (const [cohort, color] of Object.entries(layer.cohortColors ?? {})) if (color === cohortColor(cohort) || !layer.profile.includes(cohort)) delete /** @type {Record<string, string>} */ (layer.cohortColors)[cohort];
           if (layer.cohortColors && !Object.keys(layer.cohortColors).length) delete layer.cohortColors;
-          layer.color = profileColor(layer, layer.profile[0]);
+          if (layer.profile.length) layer.color = profileColor(layer, layer.profile[0]);
         }
         // (Colors from another layer: one there, not itself, for a type that takes them.)
         // (Nor one taking its colors from this one: a pair, each the other's, has nothing to start from.)
@@ -15919,6 +15945,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const profileWidth = (/** @type {number} */ width) => Math.round(clamp(width * 0.2, 72, 200));
       /** A profile's bins' least height (pixels, a gap's in it): its rows, thinner, binned to it (see drawProfile). */
       const PROFILE_BIN = 3;
+      /** How strong a profile's groups are drawn but the one a bar's pointed at of (see profileHit). */
+      const PROFILE_DIM = 0.3;
       /** Whether a chart shows a heatmap's profile: its room then after its latest, see rightGap. @param {Chart} doc */
       const profiled = (doc) => doc.layers.some((layer) => layer.type === "profile" && !layer.hidden);
       /**
@@ -17683,6 +17711,29 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           + `<span class="legend-key" aria-hidden="true"><span>${escape(labelOf(bands[0]))}</span><span class="key-strip">${strip}</span><span>${escape(labelOf(/** @type {Layer} */ (bands.at(-1))))}</span></span>`
           + `<button type="button" class="legend-all" data-action="pane-layers" data-pane="${pane.id}" aria-label="View all ${bands.length} layers" data-tip="View all ${bands.length} layers"><span class="legend-all-words" aria-hidden="true">${bands.length} layers<span> · </span>View all</span><span class="legend-all-go" aria-hidden="true">${ICONS.next}</span></button>`;
       }
+      /**
+       * A profile's key, beside its item: its groups in their colors, a few each by its name, more as a strip named at its
+       * ends (as a stack's key). @param {Layer} layer
+       */
+      function profileKeyHtml(layer) {
+        const groups = layer.profile ?? [], color = (/** @type {string} */ cohort) => `<i style="--c:${escape(ink(profileColor(layer, cohort)))}"></i>`;
+        return `<span class="legend-key profile-key">${groups.length <= 4 ? groups.map((cohort) => `<span>${color(cohort)}<span>${escape(cohortName(cohort))}</span></span>`).join("") : `<span>${escape(cohortName(groups[0]))}</span><span class="key-strip">${groups.map(color).join("")}</span><span>${escape(cohortName(/** @type {string} */ (groups.at(-1))))}</span>`}</span>`;
+      }
+      /**
+       * The profiles' legend items: one a bar of which is pointed at (see litCohort), the group's (its mark, its name; its
+       * value the bar's, see profileReading), its key aside; else its own again.
+       */
+      function paintProfileItems() {
+        for (const button of all$(".legend button[data-select]", $("chart"))) {
+          const layer = layerById(button.dataset.select ?? ""), named = button.querySelector(".legend-name");
+          if (layer?.type !== "profile" || !named) continue;
+          const lit = litCohort(layer.id);
+          if ((button.dataset.lit ?? "") === lit) continue;
+          lit ? (button.dataset.lit = lit) : delete button.dataset.lit;
+          writeHtml(named, lit ? legendNameHtml(layer, `<svg class="series-mark" viewBox="0 0 16 12" aria-hidden="true">${profileMark([ink(profileColor(layer, lit))])}</svg>`, cohortName(lit)) : legendNameHtml(layer));
+          fitSoon(/** @type {HTMLElement} */ (button.closest(".legend")));
+        }
+      }
       /** A keyed legend's band, the pointer's else the selected one: its button the same, what it names set in place (a focus on it stays), its values written as they are (see updateReadout). */
       function paintBand(/** @type {HTMLElement} */ element, /** @type {Pane} */ pane) {
         const bands = bandsOf(pane), on = [bandLit, selected].map((id) => bands.find((layer) => layer.id === id)).find(Boolean);
@@ -17725,7 +17776,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * time axis), else at the view's end; a click selects. A stack of many, its key instead (see keyHtml).
        */
       /** A legend item's mark (its switch: an eye on it) and name, a band's pointed at as any layer's. @param {Layer} layer */
-      const legendNameHtml = (layer) => `<span class="legend-eye${layer.hidden ? " off" : ""}" data-toggle="${layer.id}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${seriesMark(layer)}<span class="eye">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</span></span><span class="name">${escape(labelOf(layer))}</span>`;
+      const legendNameHtml = (layer, mark = seriesMark(layer), name = layer.type === "profile" && !layer.label ? profileName(layer, false) : labelOf(layer)) => `<span class="legend-eye${layer.hidden ? " off" : ""}" data-toggle="${layer.id}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${mark}<span class="eye">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</span></span><span class="name">${escape(name)}</span>`;
       function updateLegends() {
         if (!chart) return;
         // (Nothing reached, the plot says so once: no layer's legend says it again.)
@@ -17742,7 +17793,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               : `<span class="legend-value" data-value="${layer.id}" style="min-width: ${valueSlot(layer, 12)}px"></span>`;
             return `<button type="button" class="${layer.hidden || (layer.type === "signal" && !signalShown(layer)) ? "hidden" : ""}" data-select="${layer.id}">
               <span class="legend-name">${legendNameHtml(layer)}</span>${value}
-            </button>`;
+            </button>${layer.type === "profile" && !layer.hidden && layer.profile?.length ? profileKeyHtml(layer) : ""}`;
           };
           // (A keyed pane: its key, and a heatmap's item beside it (not one of its bands, see bandsOf).)
           const mine = chart.layers.filter((layer) => layer.pane === element.dataset.pane);
@@ -17762,6 +17813,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!holding) fitSoon(element);
         }
         markLegends();
+        paintProfileItems();
         // (Its bands named after the latest point too: renamed, recolored, as the legend is.)
         fitLegends(false);
         lightLegend(litLayer, true);
@@ -17773,7 +17825,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       function updateValues() {
         updateReadout();
-        profilesSoon();
         updateRowChanges();
         // (⌘K's preview of a layer open meanwhile, its latest not its line's caption: as it comes, a heatmap's once its day's in.)
         for (const caption of $("palette").querySelectorAll("[data-latest]")) {
@@ -18072,7 +18123,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!layer || !result || result.error) continue;
           // (A named band's value: its name, in its color.)
           // (A heatmap's: its amount, the price it's at beside it in a legend, under it in a row.)
-          const inRow = element.classList.contains("row-value"), heat = result.heat ? heatReading(layer, point) : null;
+          const inRow = element.classList.contains("row-value"), heat = result.heat ? heatReading(layer, point, !inRow) : null;
           const value = valueAt(layer, point), band = result.low ? null : bandOf(layer, value), text = result.heat ? (heat ? (inRow || !heat.at ? heat.amount : `${heat.amount} at ${heat.at}`) : "—") : band ? band.name : result.low ? rangeAt(layer, point, unitFor(layer, result), "lines" in element.dataset) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "—";
           if (element.textContent !== text) element.textContent = text;
           // (Older than the rest: when it's from, after it.)
@@ -18502,9 +18553,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (param.sourceEvent || !param.point) pinCross(null);
         else if (crossSet) return void (!crossHeld && !exporting && holdCross());
         const time = param.time === undefined ? null : /** @type {number} */ (param.time);
-        if (fingers.size && param.point && time !== null && param.paneIndex !== undefined && !tool && !placing) {
+        // (The profiles whose bars it's among: not a picture's, see presentLegends.)
+        const profiles = heatLooks.size && !exporting ? profilesUnder(param) : [];
+        // (A finger's kept where it is: on a profile's bars past the data, on the view's last day, the one they show.)
+        const kept = time ?? (profiles.length && resolved ? resolved.times[lastShown()] ?? null : null);
+        if (fingers.size && param.point && kept !== null && param.paneIndex !== undefined && !tool && !placing) {
           const series = [...drawn.values()].find((item) => item.options().visible && item.getPane().paneIndex() === param.paneIndex), price = series?.coordinateToPrice(param.point.y);
-          fingerCross.at = series && price !== null && price !== undefined ? { price: Number(price), time, series } : null;
+          fingerCross.at = series && price !== null && price !== undefined ? { price: Number(price), time: kept, series } : null;
         } else if (!param.point && fingerCross.at && !fingers.size) {
           const { price, time: at, series } = fingerCross.at, layer = layerOfSeries(series);
           pinCross(layer === null ? null : { price, time: at, layer });
@@ -18512,6 +18567,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           fingerCross.kept = at;
           // (Set here, said by the chart to no one: its bubble lit as a moved one's is.)
           lightBubble(at, series.getPane().paneIndex());
+          // (Read on its day: on a profile's bars past the data, the view's last as it was, not the one it moves to.)
+          if (hoverTime !== at) (hoverTime = at), valuesSoon();
           return view.setCrosshairPosition(price, /** @type {any} */ (at), series);
         } else {
           fingerCross.at = null;
@@ -18526,6 +18583,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Where it is in its pane: a heatmap reads the price there, see heatReading.)
         heatAt = param.point && param.paneIndex !== undefined ? { pane: param.paneIndex, y: param.point.y } : null;
         if (heatLooks.size && heatAt) valuesSoon();
+        // (The bar under it lit, the frontmost profile's.)
+        const point = param.point;
+        if (!exporting) pointProfile(point ? profiles.reduce((/** @type {ReturnType<typeof profileHit>} */ hit, layer) => hit ?? profileHit(layer, point), null) : null);
         const band = bandAt(param) ?? (onLegend ? bandLit : null);
         if (band !== bandLit) {
           bandLit = band;
@@ -18533,7 +18593,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // (Its item kept in sight, a band's or a line's: not a line's under a finger swept across lines, the legend sliding
         // under it.)
-        lightLegend(band ?? (param.point && param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null), false, Boolean(band) || !fingers.size);
+        lightLegend(band ?? profileLit?.layer ?? (param.point && param.hoveredSeries ? layerOfSeries(param.hoveredSeries) : null), false, Boolean(band) || !fingers.size);
         lightBubble(param.point ? time : null, param.paneIndex);
         if (time === hoverTime) return;
         hoverTime = time;
@@ -18676,6 +18736,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!resolved) return;
         const time = resolved.times[i], range = view.timeScale().getVisibleLogicalRange();
         keyTime = time;
+        // (A profile's bar pointed at, let go: the keys' day read.)
+        pointProfile(null);
         // (The one it was, drawn again as the view moves, is no one's: see crossSet.)
         pinCross(null);
         // (Out of sight, the view moves just enough to show it.)
@@ -21466,28 +21528,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A profile's name: its measure's, of its holder groups (two named, more counted), its weight's ("Supply profile,
        * short-term and long-term holders"). @param {Layer} layer
        */
-      const profileName = (layer) => ((groups) => `${HEAT_MEASURES.find(([id]) => id === (layer.measure ?? "supply"))?.[1]} profile, ${groups.length > 2 ? (groups.every((cohort) => HEAT_AGES.includes(cohort)) ? (groups.length === HEAT_AGES.length ? "every age band" : `${groups.length} age bands`) : `${groups.length} holder groups`) : groups.map((cohort) => cohortName(cohort).replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase())).join(" and ")}${layer.weight ? `, ${/** @type {string} */ (HEAT_WEIGHTS.find(([id]) => id === layer.weight)?.[1]).toLowerCase()}` : ""}`)(layer.profile ?? []);
+      const profileName = (layer, grouped = true) => ((groups) => `${HEAT_MEASURES.find(([id]) => id === (layer.measure ?? "supply"))?.[1]} profile${!grouped || !groups.length ? "" : `, ${groups.length > 2 ? (groups.every((cohort) => HEAT_AGES.includes(cohort)) ? (groups.length === HEAT_AGES.length ? "every age band" : `${groups.length} age bands`) : `${groups.length} holder groups`) : groups.map((cohort) => cohortName(cohort).replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase())).join(" and ")}`}${layer.weight ? `, ${/** @type {string} */ (HEAT_WEIGHTS.find(([id]) => id === layer.weight)?.[1]).toLowerCase()}` : ""}`)(layer.profile ?? []);
       /** What a profile is, said where one's added, and in a row's few words. */
-      const PROFILE_ABOUT = "Holder groups' supply, capital or unrealized P&L by the price it was bought at, on one day (the latest, or the one pointed at), as bars at the chart's right edge: each group its color, under the price in profit.";
+      const PROFILE_ABOUT = "Holder groups' supply, capital or unrealized P&L by the price it was bought at, on the view's last day, as bars at the chart's right edge: each group its color, under the price in profit.";
       const PROFILE_SHORT = "Holder groups' cost basis, at the right edge";
       /** What a heatmap is, said where one's added. */
       const HEAT_ABOUT = "A holder group's supply, capital or unrealized P&L by the price it was bought at, day by day, behind the price (the URPD).";
       /** The same, in a row's few words. */
       const HEAT_SHORT = "Holder groups' cost basis, day by day";
       /** A heatmap's code, where a series shows its name: its endpoint's, `urpd/` and its holders. @param {Layer} layer */
-      const heatCode = (layer) => `urpd/${layer.type === "profile" ? (layer.profile ?? []).join("+") : layer.heatmap ?? "all"}`;
+      const heatCode = (layer) => ["urpd", layer.type === "profile" ? (layer.profile ?? []).join("+") : layer.heatmap ?? "all"].filter(Boolean).join("/");
       /** A heatmap's latest day, as the API's path (its weight and density as it asks for them). @param {Chart} doc @param {Layer} layer */
       const heatPath = (doc, layer) => `/api/urpd/${encodeURIComponent(layer.heatmap ?? "all")}?agg=${heatGrid(doc, layer)?.agg ?? "log200"}${layer.weight ? `&weight=${layer.weight}` : ""}`;
       /** What each measure and weight is, said beside it. */
       const HEAT_SAYS = /** @type {Record<string, string>} */ ({ supply: "Bitcoin held, by the price it last moved at", capital: "What it cost, by that price", pnl: "Its gain or loss now, by that price", "": "Each coin counted as it is", wakefulness: "Each age band by how much of its coin days are spent (Cointime)", mobility: "Each age band by how likely its coins are to move (Coinflow)" });
       /**
-       * A profile's holder group in or out (in, after the others: further from the edge); its last stays, said so. Its
-       * chip, or its row in ⌘K, keeps the focus. @param {string} id @param {string} cohort
+       * A profile's holder group in or out (in, after the others: further from the edge; out, its last too, none drawn till
+       * one's picked). Its chip, or its row in ⌘K, keeps the focus. @param {string} id @param {string} cohort
        */
       function toggleCohort(id, cohort) {
-        const layer = layerById(id);
-        if (!layer || layer.type !== "profile") return;
-        if (layer.profile?.length === 1 && layer.profile[0] === cohort) return notice("A profile shows one holder group at least");
+        if (layerById(id)?.type !== "profile") return;
         editById(id, (item) => (item.profile = item.profile?.includes(cohort) ? item.profile.filter((other) => other !== cohort) : [...(item.profile ?? []), cohort]));
         if (!isOpen($("palette"))) refocus(`#inspector [data-cohort-of="${CSS.escape(cohort)}"]`);
       }
@@ -21507,7 +21567,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return [
           // (A profile's, its groups pressed in or out; a heatmap's, its one.)
           layer.type === "profile"
-            ? { key: "holders", icon: ICONS.people, label: "Holders", aside: ((groups) => (groups.length > 2 ? plural(groups.length, "group") : groups.map(cohortName).join(", ")))(layer.profile ?? []), group: "Profile", leads: true, page: () => cohortsPage(id) }
+            ? { key: "holders", icon: ICONS.people, label: "Holders", aside: ((groups) => (groups.length > 2 ? plural(groups.length, "group") : groups.map(cohortName).join(", ") || "None"))(layer.profile ?? []), group: "Profile", leads: true, page: () => cohortsPage(id) }
             : { key: "holders", icon: ICONS.people, label: "Holders", aside: cohortName(layer.heatmap ?? "all"), group: "Heatmap", leads: true, page: choices("Holders", HEAT_COHORTS, (item) => item.heatmap ?? "all", (item, cohort) => (item.heatmap = cohort)) },
           { key: "measure", icon: ICONS.coins, label: "Measure", aside: HEAT_MEASURES.find(([measure]) => measure === (layer.measure ?? "supply"))?.[1], group: kind, page: choices("Measure", HEAT_MEASURES, (item) => item.measure ?? "supply", (item, measure) => reshape(item, (one) => (one.measure = measure === "supply" ? undefined : measure)), (measure) => HEAT_SAYS[measure]) },
           { key: "weight", icon: ICONS.hourglass, label: "Weight", aside: HEAT_WEIGHTS.find(([weight]) => weight === (layer.weight ?? ""))?.[1], group: kind, page: choices("Weight", HEAT_WEIGHTS, (item) => item.weight ?? "", (item, weight) => (item.weight = weight || undefined), (weight) => HEAT_SAYS[weight]) },
@@ -21531,7 +21591,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const groups = layer.profile ?? [], chips = (/** @type {[string, string][]} */ list, /** @type {string} */ label) => `<div class="from-of" role="group" aria-label="${label}">${list.map(([id, name]) => `<button type="button" data-cohort-of="${escape(id)}" aria-pressed="${groups.includes(id)}"><i class="swatch" style="--c: ${escape(cssColor(profileColor(layer, id)))}"></i><span class="name">${escape(name)}</span></button>`).join("")}</div>`;
         if (layer.type === "profile") return `<section>
               <h3>Profile</h3>
-              <div class="field"><span>Holders<span class="color-now">${plural(groups.length, "group")}</span></span>${chips([...HEAT_COHORTS.slice(0, 7), ...groups.filter((id) => !HEAT_COHORTS.some(([one]) => one === id)).map((id) => /** @type {[string, string]} */ ([id, `${id}: not on Bitview`]))], "Its holder groups")}</div>
+              <div class="field"><span>Holders<span class="color-now">${groups.length ? plural(groups.length, "group") : "None"}</span></span>${chips([...HEAT_COHORTS.slice(0, 7), ...groups.filter((id) => !HEAT_COHORTS.some(([one]) => one === id)).map((id) => /** @type {[string, string]} */ ([id, `${id}: not on Bitview`]))], "Its holder groups")}</div>
               <div class="field"><span>Age bands</span>${chips(HEAT_COHORTS.slice(7), "Its age bands")}</div>${gone}
               ${tabs("measure", "Measure", [["supply", "Supply"], ["capital", "Capital"], ["pnl", "P&L"]], layer.measure ?? "supply")}
               ${tabs("weight", "Weight", HEAT_WEIGHTS, layer.weight ?? "")}
@@ -21799,9 +21859,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * reference (`reference`: the open day's largest cell, see heatStrip); its colors (`gradient`, its gradient's as
        * shown, see gradientTable) and all it's painted by (`paint`, its strips' key).
        * A profile's (`kind`, see drawProfile): its holder groups and their colors, each one's day last shown (`last`), its
-       * shares' colors (in profit, in loss), its close's line's (`mark`) and its words' halo; the point it was last drawn
-       * for (`profileAt`: none, -1, at rest).
-       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, kind: string, cohorts: ReturnType<typeof profileShades>[], last: Map<string, { key: string, day: HeatDay & { rows: Int32Array } }>, gain: string, lose: string, halo: string, backdrop: string, mark: string, profileAt?: number, drawn?: boolean, undrawable?: boolean, step?: number, keep?: Set<string>, reference?: number }} HeatLook
+       * shares' colors (in profit, in loss), its close's line's (`mark`) and its words' halo; its bars as last drawn
+       * (`bars`, see profileHit).
+       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, kind: string, cohorts: ReturnType<typeof profileShades>[], last: Map<string, { key: string, day: HeatDay & { rows: Int32Array } }>, gain: string, lose: string, halo: string, backdrop: string, mark: string, bars?: { edges: number[], starts: number[], sums: Float64Array, count: number, most: number, width: number, right: number, ids: string[] }, drawn?: boolean, undrawable?: boolean, step?: number, keep?: Set<string>, reference?: number }} HeatLook
        */
       /**
        * Each heatmap's look, by its layer's id: what it draws and how (kept apart from its series' options, which the
@@ -21839,7 +21899,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       const profileShades = (id, color, opacity) => {
         const card = rgbOf(css("--card")), own = rgbOf(color), over = (/** @type {number} */ strength) => `rgb(${own.map((value, i) => Math.round(card[i] + (value - card[i]) * strength)).join(" ")} / ${opacity})`;
-        return { id, gain: over(0.72), loss: over(0.32) };
+        return { id, gain: over(0.72), loss: over(0.32), dimGain: over(0.72 * PROFILE_DIM), dimLoss: over(0.32 * PROFILE_DIM) };
       };
       const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.type === "profile" ? layer.profile?.[0] ?? "all" : layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data.times), measure: layer.measure ?? "supply", up: rgbOf(ink(layer.color)), down: rgbOf(ink(belowOf(layer))), opacity, kind: layer.type, cohorts: layer.type === "profile" ? (layer.profile ?? []).map((id) => profileShades(id, ink(profileColor(layer, id)), opacity)) : [], last: new Map(), gain: ink("green"), lose: ink("red"), halo: css("--card"), backdrop: alpha(css("--card"), opacity), mark: css("--ink"), gradient: layer.byGradient && layer.gradient ? gradientTable(layer.gradient).map((color) => rgbOf(ink(color))) : null, paint: `${layer.measure ?? "supply"}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
       /** The day a block of `by` days is drawn as: its last (the open one, at most). @param {HeatLook} heat @param {number} g */
@@ -21862,30 +21922,85 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return null;
       }
       /**
-       * A profile's reading at a point: the share of its holder groups' coins in profit, under that day's close ("65% in
-       * profit"), as it draws it (each group's day there, else the one it showed before, see drawProfile); none in, none.
-       * @param {HeatLook} look @param {{ at: number, rest: boolean }} point @returns {{ amount: string, at: string } | null}
+       * A profile's reading, on the day it shows (see profilePoint): the share of its holder groups' coins in profit, under
+       * that day's close ("65% in profit"), as it draws it (each group's day, else the one it showed before, see
+       * drawProfile); a legend's, a bar of it pointed at (`pointed`), that bar's group's amount and its prices ("₿412,345"
+       * at "$84.1K–$85.1K"); none in, none. @param {HeatLook} look @returns {{ amount: string, at: string } | null}
        */
-      function profileReading(look, point) {
+      function profileReading(look, pointed = false) {
         Object.assign(look, heatCalendar(/** @type {Resolved} */ (resolved).times));
+        const point = profilePoint();
         if (point.at < 0 || point.at >= look.g.length || !look.grid) return null;
-        const grid = look.grid, shown = profileDays(look, look.g[point.at]), close = profileClose(shown);
-        const share = close > 0 ? profileShare(shown, grid, close) : null;
+        const grid = look.grid, shown = profileDays(look, look.g[point.at]);
+        const bar = pointed && litCohort(look.id) ? profileLit : null, item = bar && shown.find((one) => one?.cohort.id === bar.cohort);
+        if (bar && item) {
+          const { rows } = item.day, values = /** @type {Float32Array} */ (look.measure === "capital" ? item.day.capital : look.measure === "pnl" ? item.day.pnl : item.day.supply);
+          let amount = 0;
+          for (let k = lowerBound(rows, bar.from); k < rows.length && rows[k] < bar.to; k++) amount += values[k];
+          return { amount: format(amount, look.measure === "supply" ? "btc" : "usd"), at: `$${compact(grid.price(bar.from))}–$${compact(grid.price(bar.to))}` };
+        }
+        const close = profileClose(shown), share = close > 0 ? profileShare(shown, grid, close) : null;
         return share === null ? null : { amount: `${share}% in profit`, at: "" };
       }
       /** The price the pointer's at in a pane (its index, its height there), while it's over the chart. @type {{ pane: number, y: number } | null} */
       let heatAt = null;
       /**
+       * The profile bar pointed at (see profileHit): its layer, its group, its rows (from, up to `to`); its group's bars
+       * drawn full, the others faint, its legend item the group's (see paintProfileItems).
+       * @type {{ layer: string, cohort: string, from: number, to: number } | null}
+       */
+      let profileLit = null;
+      /**
+       * The profiles whose bars the pointer's among (on their pane, at the plot's right edge, as wide as they're drawn: see
+       * profileWidth), the frontmost first (its first layer, else its last: see Pane): a pointer's or a finger's, not the
+       * keys'. @param {LC.MouseEventParams<LC.Time>} param @returns {Layer[]}
+       */
+      function profilesUnder(param) {
+        if (keyTime !== null || !param.point || param.paneIndex === undefined) return [];
+        const width = view.timeScale().width(), pane = chart.panes[param.paneIndex];
+        if (param.point.x < width - 2 - profileWidth(width)) return [];
+        const mine = chart.layers.filter((layer) => layer.type === "profile" && !layer.hidden && layer.pane === pane?.id);
+        return pane?.reverse ? mine.reverse() : mine;
+      }
+      /**
+       * A profile's bar under a point (its pane's pixels), as last drawn (see profileBars): its group, its bin's rows; none
+       * between them or left of them. (The first group's to the plot's edge.) @param {Layer} layer @param {{ x: number, y: number }} point
+       */
+      function profileHit(layer, point) {
+        const bars = heatLooks.get(layer.id)?.bars;
+        if (!bars) return null;
+        const { edges, starts, sums, count, most, width, right } = bars;
+        let bin = 0;
+        while (bin < edges.length - 1 && !(point.y <= edges[bin] && point.y > edges[bin + 1])) bin++;
+        for (let c = 0, x = right; bin < edges.length - 1 && c < count; c++) {
+          const length = (sums[bin * count + c] / most) * width, cohort = bars.ids[c];
+          if (length && cohort && point.x >= x - length && (!c || point.x <= x)) return { layer: layer.id, cohort, from: starts[bin], to: starts[bin + 1] };
+          x -= length;
+        }
+        return null;
+      }
+      /** The group of a profile's bar pointed at, if it's still in it and shown (none: ""). @param {string} id */
+      const litCohort = (id) => ((layer) => (profileLit?.layer === id && layer && !layer.hidden && layer.profile?.includes(profileLit.cohort) ? profileLit.cohort : ""))(layerById(id));
+      /** A bar pointed at (or none): lit (its profile drawn again as its group changes), its legend item and value. @param {{ layer: string, cohort: string, from: number, to: number } | null} hit */
+      function pointProfile(hit) {
+        const was = profileLit;
+        if (was?.layer === hit?.layer && was?.cohort === hit?.cohort && was?.from === hit?.from && was?.to === hit?.to) return;
+        profileLit = hit;
+        if (was?.layer !== hit?.layer || was?.cohort !== hit?.cohort) for (const id of new Set([was?.layer, hit?.layer])) if (id) drawn.get(id)?.applyOptions({ heatTick: ++heatTicks });
+        paintProfileItems();
+        valuesSoon();
+      }
+      /**
        * A heatmap's reading at a point: the cell at the price pointed at (in its pane; elsewhere, or at rest, the day's
        * close), on the day drawn there (see heatShown): its amount ("₿412K") and the price it's at ("$62,034", its
-       * cell's floor), the legend's on one line, a row's on two. None drawn, none.
+       * cell's floor), the legend's on one line, a row's on two (a profile's, see profileReading). None drawn, none.
        * @param {Layer} layer @param {{ at: number, rest: boolean }} point @returns {{ amount: string, at: string } | null}
        */
-      function heatReading(layer, point) {
+      function heatReading(layer, point, pointed = false) {
         const look = heatLooks.get(layer.id), grid = look?.grid;
         if (!look || !grid || !resolved) return null;
-        // (A profile's: the share of its groups' coins in profit on the day it shows, as it says it.)
-        if (look.kind === "profile") return profileReading(look, point);
+        // (A profile's: its own day's, whatever's pointed at.)
+        if (look.kind === "profile") return profileReading(look, pointed);
         Object.assign(look, heatCalendar(resolved.times));
         if (point.at < 0 || point.at >= look.g.length) return null;
         const shown = heatShown(look, heatOwner(look, look.g[point.at], look.step ?? 1), look.step ?? 1), day = shown?.day;
@@ -21994,17 +22109,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!heatPumping) (heatPumping = true), queueMicrotask(heatPump);
       }
       /**
-       * A profile (see heatLike): the day the readout's at (at rest the view's last, the latest at its end; else the one
-       * pointed at, or reached by the keys), each holder group's, asked for as it's wanted (one not in yet, the one it
-       * showed before: no blank between days); their amounts by price as bars from the plot's right edge, stacked, the
-       * first group's at the edge, a band a few pixels high each, as long as its amounts against the largest band in view;
-       * each group its color, strong under the day's close (in profit), faint over it (in loss); an older day's close's line
-       * across it (the latest's, the price's own line marks), and the share of their coins each side. Behind the lines (a
-       * picture has it, at rest); in the room the chart leaves for it after its latest, see rightGap.
-       * @param {any} scope @param {(price: number) => number | null} toY @param {HeatLook} heat
+       * The point a profile shows: the view's last day (the latest at its end), whatever's pointed at, as a visible range's
+       * profile: panned or zoomed, another.
        */
-      /** The point a profile shows: the readout's, a picture's at rest (its probes' and its shot's alike). */
-      const profilePoint = () => (exporting || capturing ? { at: lastShown(), rest: true } : readPoint());
+      const profilePoint = () => ({ at: lastShown(), rest: true });
       /**
        * A profile's holder groups' days shown for a day (`g`, see heatCalendar): each one's own once it's in, else the one
        * it showed before (none for a day that failed), in their order; `now`, its own. Drawn and read alike (see
@@ -22040,12 +22148,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return all > 0 ? Math.round((100 * under) / all) : null;
       }
+      /**
+       * A profile (see heatLike): the view's last day (see profilePoint), each holder group's, asked for as it's wanted
+       * (one not in yet, the one it showed before: no blank between days); their amounts by price as bars from the plot's
+       * right edge, stacked, the first group's at the edge (see profileBars); an older day's close's line across it (the
+       * latest's, the price's own line marks), and the share of their coins each side. In the room the chart leaves for
+       * it after its latest, see rightGap.
+       * @param {any} scope @param {(price: number) => number | null} toY @param {HeatLook} heat
+       */
       function drawProfile(scope, toY, heat) {
         const grid = heat.grid, none = () => void (heatWants.delete(heat.id), (heat.keep = undefined));
+        heat.bars = undefined;
         if (!grid || !resolved || !heat.cohorts.length) return none();
         Object.assign(heat, heatCalendar(resolved.times));
         const point = profilePoint();
-        heat.profileAt = point.rest ? -1 : point.at;
         if (point.at < 0 || point.at >= heat.g.length) return none();
         const g = heat.g[point.at], keep = new Set(), wanted = /** @type {NonNullable<ReturnType<typeof heatWants.get>>} */ ([]);
         for (const { id } of heat.cohorts) {
@@ -22112,16 +22228,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         hi = runEnd(hi);
         while (hi < high && short(runStart(hi), hi)) hi = runEnd(hi + 1);
         // (Each row's bin, from the lowest in view; each bin's edges, its floor's y and its top's.)
-        const span = hi + 1 - lo, binAt = new Int32Array(span), edges = [yOf(lo)];
+        const span = hi + 1 - lo, binAt = new Int32Array(span), edges = [yOf(lo)], starts = [lo];
         for (let k = 0, at = binOf(lo), from = lo; k < span; k++) {
           const row = lo + k, bin = binOf(row);
           if (bin !== at) {
-            if (!short(from, row - 1)) edges.push(yOf(row));
+            if (!short(from, row - 1)) edges.push(yOf(row)), starts.push(row);
             (at = bin), (from = row);
           }
           binAt[k] = edges.length - 1;
         }
-        edges.push(yOf(hi + 1));
+        edges.push(yOf(hi + 1)), starts.push(hi + 1);
         // (Each group's amount a bin; the groups', the longest bin's.)
         const bins = edges.length - 1, count = shown.length, sums = new Float64Array(bins * count), totals = new Float64Array(bins);
         shown.forEach((item, c) => {
@@ -22135,6 +22251,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         });
         const most = totals.reduce((a, b) => Math.max(a, b), 0);
         if (!(most > 0)) return;
+        // (As drawn, for a pointer on them: see profileHit.)
+        heat.bars = { edges, starts, sums, count, most, width, right, ids: shown.map((item) => item?.cohort.id ?? "") };
         // (Each bin's bar from its top to a pixel over its floor (one too thin for that, to its floor); that pixel the
         // card's, as long as its bar: over other layers, none seen through a profile but by its opacity.)
         const gap = Math.max(1, Math.round(v)), tops = new Int32Array(bins), bottoms = new Int32Array(bins);
@@ -22146,12 +22264,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           context.fillRect(left, bottom, Math.max(1, Math.round(right * h) - left), floor - bottom);
         }
         // (The groups stacked from the right edge, the first at it: each group's bars in two passes, strong under the close
-        // (in profit), faint over it, a bin it crosses split at it.)
-        const split = Math.round(line * v), from = new Float64Array(bins).fill(right);
+        // (in profit), faint over it, a bin it crosses split at it; a bar of one pointed at, the others' dimmed.)
+        const split = Math.round(line * v), from = new Float64Array(bins).fill(right), lit = exporting || capturing ? "" : litCohort(heat.id);
         shown.forEach((item, c) => {
           if (!item) return;
+          const dim = lit && item.cohort.id !== lit;
           for (const strong of [true, false]) {
-            context.fillStyle = strong ? item.cohort.gain : item.cohort.loss;
+            context.fillStyle = strong ? (dim ? item.cohort.dimGain : item.cohort.gain) : dim ? item.cohort.dimLoss : item.cohort.loss;
             for (let bin = 0; bin < bins; bin++) {
               const length = (sums[bin * count + c] / most) * width;
               if (!length) continue;
@@ -22196,20 +22315,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (line < size.height - 14) say(`${share}%${words ? " in profit" : ""}`, look.gain, Math.round(line + 14));
         context.restore();
       }
-      /**
-       * The profiles showing another point than the one read now (a pointer's, the keys', none), drawn again
-       * at the chart's next frame. (At rest each frame draws the view's last: a pan's frames are drawn anyway.)
-       */
-      const profilesSoon = () => {
-        const at = hoverTime === null ? -1 : indexOfTime(hoverTime);
-        for (const series of heatSeries) {
-          const look = heatLooks.get(series.options().heatId);
-          if (look?.kind !== "profile" || look.profileAt === at || series.options().visible === false) continue;
-          // (Asked for once: a series that doesn't draw it (hidden, nothing to draw) isn't asked again at each move.)
-          look.profileAt = at;
-          series.applyOptions({ heatTick: ++heatTicks });
-        }
-      };
       /** A stroke with what adds nothing taken out: no point strays further than `tolerance` pixels from what's kept. */
       function simplify(points, tolerance) {
         if (points.length < 3) return points;
@@ -26075,6 +26180,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const dotted = dots.map(([color, across, up]) => `<path d="M${(2 + across * 116).toFixed(1)} ${y(up).toFixed(1)}h0" stroke="${escape(ink(color))}" stroke-width="2.6" stroke-linecap="round" vector-effect="non-scaling-stroke"/>`).join("");
         return `<svg class="chart-mark" viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true">${wash}${paths || `<path d="M4 30H116" stroke="currentColor" stroke-opacity=".35" stroke-width="1.4" vector-effect="non-scaling-stroke" stroke-dasharray="3 3"/>`}${dotted}</svg>`;
       };
+      /** A profile's mark's bars, from the edge, each split in its colors (its first two groups', or a group's), the first at the edge. @param {string[]} colors */
+      const profileMark = (colors) => [[7, 1.5], [12, 4.75], [5, 8]].map(([length, at]) => colors.map((color, c) => ((part) => `<rect x="${(15 - part * (c + 1)).toFixed(1)}" y="${at}" width="${part.toFixed(1)}" height="2.5" fill="${escape(color)}"/>`)(length / colors.length)).join("")).join("");
       /**
        * A layer's own mark in the legend: its shape across its history, in its color and drawn as its type (bars for a
        * histogram, a filled line for an area), from its chart's drawing; a faint line until there's one. Kept from the
@@ -26095,7 +26202,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Bubbles', two: one in each of their colors, below zero and above.)
         else if (layer.type === "bubbles") body = `<circle cx="4.5" cy="7.5" r="2.5" fill="${below}" fill-opacity=".4" stroke="${below}"/><circle cx="11" cy="5.5" r="4" fill="${color}" fill-opacity=".4" stroke="${color}"/>`;
         // (A profile's, bars from the edge, each split in its first two groups' colors, the first at the edge.)
-        else if (layer.type === "profile") body = [[7, 1.5], [12, 4.75], [5, 8]].map(([length, at]) => (layer.profile ?? []).slice(0, 2).map((cohort, c, all) => ((part) => `<rect x="${(15 - part * (c + 1)).toFixed(1)}" y="${at}" width="${part.toFixed(1)}" height="2.5" fill="${escape(ink(profileColor(layer, cohort)))}"/>`)(length / all.length)).join("")).join("");
+        else if (layer.type === "profile") body = profileMark(layer.profile?.length ? layer.profile.slice(0, 2).map((cohort) => ink(profileColor(layer, cohort))) : [ink("gray")]);
         // (A heatmap's, cells of it: its unrealized P&L's, its loss over its profit.)
         else if (layer.type === "heatmap") body = [[0.3, 0.6, 1, 0.5], [0.6, 1, 0.45, 0.25], [1, 0.45, 0.2, 0.6]].map((row, r) => row.map((opacity, k) => `<rect x="${(1 + k * 3.6).toFixed(1)}" y="${(2 + r * 3.3).toFixed(1)}" width="3" height="2.7" rx=".5" fill="${layer.measure === "pnl" && !r ? below : color}" fill-opacity="${opacity}"/>`).join("")).join("");
         else if (ys && layer.type === "histogram" && modeOf(chart, layer) === 0) {
@@ -30282,6 +30389,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * takes, each on its line, said by what it's for (from a layer: which).
        */
       function colorPicker(/** @type {Layer} */ layer) {
+        // (A profile of no groups: none to color.)
+        if (layer.type === "profile" && !layer.profile?.length) return "";
         const mode = colorModeOf(layer), name = modeName(mode, layer), source = layerById(layer.colorFrom ?? ""), ways = modesOf(layer).length > 1;
         // The way: a choice, as every other, on its line's right (none to choose: its label alone).
         const head = `<div class="field"><span>${mode === "one" && !pairedOne(layer) && !(layer.type === "profile" && (layer.profile?.length ?? 0) > 1) ? "Color" : "Colors"}</span>${ways ? `<button type="button" id="color-mode" class="preset" data-action="color-mode" aria-haspopup="menu" aria-label="Colors: ${escape(name)}"><span class="name">${escape(name)}</span>${CHEVRON}</button>` : ""}</div>`;
@@ -36955,14 +37064,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A profile: its holder groups, one or a list, and each one's own color where given.)
           const cohort = (/** @type {any} */ id) => typeof id === "string" && /^[a-z0-9_]{1,40}$/.test(id);
           const groups = !made && !heat ? [...new Set((Array.isArray(layer.profile) ? layer.profile : [layer.profile]).filter(cohort))].slice(0, 40) : [];
+          const profiled = !made && !heat && (Array.isArray(layer.profile) || cohort(layer.profile));
           /** @type {Record<string, any>} */
           const spec = {
-            ...(heat || groups.length ? { ...(heat ? { heatmap: heat } : { profile: groups, ...(layer.cohortColors && typeof layer.cohortColors === "object" ? ((colors) => (Object.keys(colors).length ? { cohortColors: colors } : {}))(Object.fromEntries(Object.entries(layer.cohortColors).filter(([id, color]) => groups.includes(id) && isColor(color)))) : {}) }), weight: HEAT_WEIGHTS.some(([id]) => id && id === layer.weight) ? layer.weight : undefined, measure: HEAT_MEASURES.some(([id]) => id !== "supply" && id === layer.measure) ? layer.measure : undefined, rows: HEAT_ROWS.includes(layer.rows) ? layer.rows : undefined } : madeOf ? { from: madeOf.filter((id) => typeof id === "string").map((id) => (EDGES.includes(id.toLowerCase()) ? id.toLowerCase() : id)).slice(0, MAX_LAYERS + 2) } : typeof layer.series === "string"
+            ...(heat || profiled ? { ...(heat ? { heatmap: heat } : { profile: groups, ...(layer.cohortColors && typeof layer.cohortColors === "object" ? ((colors) => (Object.keys(colors).length ? { cohortColors: colors } : {}))(Object.fromEntries(Object.entries(layer.cohortColors).filter(([id, color]) => groups.includes(id) && isColor(color)))) : {}) }), weight: HEAT_WEIGHTS.some(([id]) => id && id === layer.weight) ? layer.weight : undefined, measure: HEAT_MEASURES.some(([id]) => id !== "supply" && id === layer.measure) ? layer.measure : undefined, rows: HEAT_ROWS.includes(layer.rows) ? layer.rows : undefined } : madeOf ? { from: madeOf.filter((id) => typeof id === "string").map((id) => (EDGES.includes(id.toLowerCase()) ? id.toLowerCase() : id)).slice(0, MAX_LAYERS + 2) } : typeof layer.series === "string"
               ? { series: isSeriesName(layer.series) ? layer.series : "invalid_series_name", ...(isCatalogPath(layer.path) ? { path: layer.path } : {}) }
               : { formula: String(layer.formula ?? "").slice(0, FORMULA_MAX), ...(layer.paths && typeof layer.paths === "object" ? { paths: Object.fromEntries(Object.entries(layer.paths).filter(([name, path]) => isSeriesName(name) && isCatalogPath(path)).slice(0, 40)) } : {}) }),
             ...(typeof layer.label === "string" ? { label: layer.label.slice(0, 120) } : {}),
             color: isColor(layer.color) ? layer.color : undefined,
-            type: heat ? "heatmap" : groups.length ? "profile" : made ?? (TYPES.some(([type]) => type === layer.type) || layer.type === "bubbles" || (layer.type === "signal" && typeof layer.series !== "string") ? layer.type : "line"),
+            type: heat ? "heatmap" : profiled ? "profile" : made ?? (TYPES.some(([type]) => type === layer.type) || layer.type === "bubbles" || (layer.type === "signal" && typeof layer.series !== "string") ? layer.type : "line"),
             width: WIDTHS.includes(layer.width) ? layer.width : 1.5,
             dash: DASHES.some(([style]) => style === layer.dash) ? layer.dash : 0,
             pane: paneFor(layer.pane),
@@ -37247,6 +37357,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Its view put back now, not as the library's next frame would: another picture right after reads it.)
             view.bvFlush();
             exporting = false;
+            // (A profile's bar pointed at, lit again: the picture's drew none.)
+            if (profileLit) drawn.get(profileLit.layer)?.applyOptions({ heatTick: ++heatTicks });
             lastBox = chartWidth();
             // (The crosshair set here, where it was: see crossHeld.)
             if (crossSet) holdCross();
@@ -37435,20 +37547,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           return { x: (rect.left - origin.left) * scale, y: (rect.top - origin.top) * scale, width: rect.width * scale, height: rect.height * scale };
         };
         const pieces = [];
+        /** A key as it shows: its strip's colors in their order, a profile's groups' squares; its names where they show (a tight plot's stack's key, its strip alone). @param {HTMLElement} key @param {boolean} faded */
+        const keyPieces = (key, faded) => {
+          const strip = /** @type {HTMLElement | null} */ (key.querySelector(".key-strip")), cells = strip ? all$("i", strip) : [];
+          if (strip) pieces.push({ ...box(strip), faded, svg: `<svg viewBox="0 0 ${cells.length} 1" width="${strip.offsetWidth}" height="${strip.offsetHeight}" preserveAspectRatio="none">${cells.map((cell, i) => `<rect x="${i}" width="1.02" height="1" fill="${getComputedStyle(cell).backgroundColor}"/>`).join("")}</svg>` });
+          for (const square of /** @type {HTMLElement[]} */ (all$(":scope > span:not(.key-strip) > i", key))) pieces.push({ ...box(square), faded, svg: `<svg viewBox="0 0 8 8" width="${square.offsetWidth}" height="${square.offsetHeight}"><rect width="8" height="8" rx="2" fill="${getComputedStyle(square).backgroundColor}"/></svg>` });
+          for (const words of /** @type {HTMLElement[]} */ (all$(":scope > span:not(.key-strip, :has(> i)), :scope > span > span", key))) {
+            if (!words.getClientRects().length) continue;
+            const style = getComputedStyle(words);
+            pieces.push({ ...box(words), faded, text: words.textContent?.trim() ?? "", font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ ("left") });
+          }
+        };
         for (const legend of shown) {
           const edge = legend.getBoundingClientRect().right;
-          // (A stack of many's key, as it shows: its ends' names and its colors in their order.)
-          const key = /** @type {HTMLElement | null} */ (legend.querySelector(":scope > .legend-key"));
-          if (key?.offsetParent) {
-            const strip = /** @type {HTMLElement} */ (key.querySelector(".key-strip")), cells = all$("i", strip);
-            pieces.push({ ...box(strip), svg: `<svg viewBox="0 0 ${cells.length} 1" width="${strip.offsetWidth}" height="${strip.offsetHeight}" preserveAspectRatio="none">${cells.map((cell, i) => `<rect x="${i}" width="1.02" height="1" fill="${getComputedStyle(cell).backgroundColor}"/>`).join("")}</svg>` });
-            // (Its ends' names where they show: a tight plot's key is its strip alone.)
-            for (const end of /** @type {HTMLElement[]} */ (all$(":scope > span:not(.key-strip)", key))) {
-              if (!end.getClientRects().length) continue;
-              const style = getComputedStyle(end);
-              pieces.push({ ...box(end), text: end.textContent?.trim() ?? "", font: `${style.fontWeight} ${parseFloat(style.fontSize) * scale}px ${style.fontFamily}`, color: style.color, align: /** @type {CanvasTextAlign} */ ("left") });
-            }
-          }
+          // (A stack of many's key, a profile's, as they show.)
+          for (const key of /** @type {HTMLElement[]} */ (all$(":scope > .legend-key", legend))) if (key.offsetParent) keyPieces(key, false);
           for (const button of legend.querySelectorAll("button")) {
             // (Hidden, out of the legend's place (a key's count and its band's item, one at a time), or past its edge.)
             if (button.style.display === "none" || !button.offsetParent || button.getBoundingClientRect().right > edge + 1) continue;
@@ -37476,8 +37589,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function presentLegends() {
         const strips = legends().map((legend) => /** @type {[HTMLElement, string]} */ ([legend, legend.style.cssText]));
         const buttons = all$("#chart .legend button").map((button) => /** @type {[HTMLElement, string, string]} */ ([button, button.className, button.style.display]));
-        const folded = foldedPanes(chart);
+        const keys = all$("#chart .legend .profile-key").map((key) => /** @type {[HTMLElement, string]} */ ([key, key.style.cssText]));
+        const folded = foldedPanes(chart), lit = profileLit;
+        // (A profile's item its own, its share read: no bar pointed at, see paintProfileItems.)
+        if (lit) (profileLit = null), paintProfileItems();
         for (const [legend] of strips) Object.assign(legend.style, { flexWrap: "wrap", overflow: "visible", rowGap: "2px" });
+        // (A profile's key onto more lines where it's longer than its pane is wide.)
+        for (const [key] of keys) Object.assign(key.style, { flexWrap: "wrap", flexShrink: "1", minWidth: "0" });
         for (const [button] of buttons) {
           if (button.classList.contains("hidden") && !folded.has(/** @type {HTMLElement | null} */ (button.closest(".legend"))?.dataset.pane ?? "")) button.style.display = "none";
           button.classList.remove("selected", "lit");
@@ -37485,6 +37603,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return () => {
           for (const [button, className, display] of buttons) (button.className = className), (button.style.display = display);
           for (const [legend, cssText] of strips) legend.style.cssText = cssText;
+          for (const [key, cssText] of keys) key.style.cssText = cssText;
+          if (lit && !profileLit) (profileLit = lit), paintProfileItems();
         };
       }
       /** The legends' marks, drawn from their own drawings (one that fails is left out). */
