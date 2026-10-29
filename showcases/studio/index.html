@@ -18194,13 +18194,28 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let crossHeld = false;
       /** A crosshair move with none: the chart's readout at rest (see dropCross). */
       const NO_CROSS = /** @type {LC.MouseEventParams<LC.Time>} */ ({ seriesData: new Map() });
+      /** A frame asked for to judge the crosshair set here, its date out of view (see holdCross). */
+      let crossLater = 0;
+      /** The crosshair set here from now on (none: null), the judging of the one before let go of (see holdCross). @param {typeof crossSet} pin */
+      const pinCross = (pin) => ((crossSet = pin), cancelAnimationFrame(crossLater), (crossLater = 0));
       /**
-       * The crosshair set here put back on its date and price, on its layer as drawn now; where it can't be (its date out of
-       * view, its layer gone, hidden or with nothing drawn: its scale places it by its first value), let go.
+       * The crosshair set here put back on its date and price, on its layer as drawn now; where it can't be (its layer gone,
+       * hidden (a signal, by its layer too) or with nothing drawn: its scale places it by its first value), let go. Its
+       * date out of view, maybe a moment's (a box resized, then its view kept; a range set, the chart's next frame's), it's
+       * judged a frame on (`settled`), none shown meanwhile: still out, let go.
        */
-      function holdCross() {
-        const { price, time, layer } = /** @type {NonNullable<typeof crossSet>} */ (crossSet), series = drawn.get(layer), item = layerById(layer), x = view.timeScale().timeToCoordinate(/** @type {any} */ (time));
-        if (!series || !item || item.hidden || x === null || x < 0 || x > view.timeScale().width() || series.priceToCoordinate(price) === null) return dropCross();
+      function holdCross(settled = false) {
+        const { price, time, layer } = /** @type {NonNullable<typeof crossSet>} */ (crossSet), series = drawn.get(layer), item = layerById(layer), i = indexOfTime(time);
+        if (!series || !item || item.hidden || (item.type === "signal" && !signalShown(item)) || series.priceToCoordinate(price) === null) return dropCross();
+        // (In view as the keys count it: see firstInView.)
+        if (i < 0 || i < firstInView() || i > lastShown()) {
+          if (settled) return dropCross();
+          // (Cleared, said to no one: the legends keep its date meanwhile.)
+          view.clearCrosshairPosition();
+          lightBubble(null, undefined);
+          crossLater ||= requestAnimationFrame(() => ((crossLater = 0), crossSet && holdCross(true)));
+          return;
+        }
         lightBubble(time, series.getPane().paneIndex());
         // (A heatmap reads its price on its line: see heatReading.)
         if (heatLooks.size) valuesSoon();
@@ -18208,14 +18223,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** The crosshair set here let go: none shown, the legends back at the view's end. */
       function dropCross() {
-        (crossSet = null), (fingerCross.kept = null);
+        pinCross(null), (fingerCross.kept = null);
         if (keyTime !== null) keyAway();
         else view.clearCrosshairPosition();
         crossMoved(NO_CROSS);
       }
       /** @param {LC.MouseEventParams<LC.Time>} param */
       function crossMoved(param) {
-        if (param.sourceEvent || !param.point) crossSet = null;
+        if (param.sourceEvent || !param.point) pinCross(null);
         else if (crossSet) return void (!crossHeld && !exporting && holdCross());
         const time = param.time === undefined ? null : /** @type {number} */ (param.time);
         if (fingers.size && param.point && time !== null && param.paneIndex !== undefined && !tool && !placing) {
@@ -18223,7 +18238,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           fingerCross.at = series && price !== null && price !== undefined ? { price: Number(price), time, series } : null;
         } else if (!param.point && fingerCross.at && !fingers.size) {
           const { price, time: at, series } = fingerCross.at, layer = layerOfSeries(series);
-          crossSet = layer === null ? null : { price, time: at, layer };
+          pinCross(layer === null ? null : { price, time: at, layer });
           fingerCross.at = null;
           fingerCross.kept = at;
           // (Set here, said by the chart to no one: its bubble lit as a moved one's is.)
@@ -18393,7 +18408,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const time = resolved.times[i], range = view.timeScale().getVisibleLogicalRange();
         keyTime = time;
         // (The one it was, drawn again as the view moves, is no one's: see crossSet.)
-        crossSet = null;
+        pinCross(null);
         // (Out of sight, the view moves just enough to show it.)
         const first = range ? firstInView() : i, last = lastShown(), shift = i < first ? i - first : i > last ? i - last : 0;
         if (range && shift) view.timeScale().setVisibleLogicalRange({ from: range.from + shift, to: range.to + shift });
@@ -18401,7 +18416,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const point = keyPoint(i);
         // (The chart says nothing of a crosshair set or cleared here: a finger's kept one, ended now, see fingerCross.)
         fingerCross.kept = null;
-        crossSet = point ? { price: point.value, time, layer: point.layer.id } : null;
+        pinCross(point ? { price: point.value, time, layer: point.layer.id } : null);
         if (point) view.setCrosshairPosition(point.value, /** @type {any} */ (time), drawn.get(point.layer.id));
         else view.clearCrosshairPosition();
         lightBubble(point ? time : null, point ? chart.panes.findIndex((pane) => pane.id === point.layer.pane) : undefined);
@@ -18419,7 +18434,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         keyValue = null;
         if (keyTime === null) return;
         keyTime = null;
-        (crossSet = null), (fingerCross.kept = null);
+        pinCross(null), (fingerCross.kept = null);
         view.clearCrosshairPosition();
         lightBubble(null, undefined);
         hoverTime = null;
@@ -19049,7 +19064,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       // reads it, see fingerCross. A mouse's or the keys' crosshair takes its place.)
       $("chart").addEventListener("pointerdown", (event) => {
         fingerCross.dismissing = event.pointerType === "touch" && fingerCross.kept !== null && view.chartElement().contains(/** @type {Element} */ (event.target));
-        if (fingerCross.dismissing) (fingerCross.kept = null), (crossSet = null), view.clearCrosshairPosition(), lightBubble(null, undefined);
+        if (fingerCross.dismissing) (fingerCross.kept = null), pinCross(null), view.clearCrosshairPosition(), lightBubble(null, undefined);
       }, true);
       // (A mouse on the same date takes it over too.)
       view.chartElement().addEventListener("pointermove", (event) => event.pointerType !== "touch" && (fingerCross.kept = null));
