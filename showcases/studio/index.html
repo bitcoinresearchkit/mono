@@ -24424,7 +24424,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function gridActions() {
         const ids = [...picked], n = ids.length, leave = outOf(chartKeys(ids)), one = n === 1 ? chartById(ids[0]) : null;
         return [
-          ...(one ? [{ key: "open", icon: ICONS.next, label: "Open", run: () => go(chartById(one.id)) }, { key: "rename", icon: ICONS.pencil, label: "Rename", run: () => batch("rename") }] : []),
+          ...(one ? [{ key: "open", icon: ICONS.arrowRight, label: "Open", run: () => go(chartById(one.id)) }, { key: "rename", icon: ICONS.pencil, label: "Rename", run: () => batch("rename") }] : []),
           { key: "duplicate", icon: ICONS.duplicate, label: "Duplicate", run: () => batch("duplicate") },
           { key: "folder", icon: ICONS.folder, label: "Move to folder", page: () => choicePage("Move to folder", () => folderChoices(chartKeys(ids), false)) },
           ...(leave ? [{ key: "out", icon: ICONS.folderOut, label: leave, run: () => moveToFolder(chartKeys(ids), null) }] : []),
@@ -27827,7 +27827,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function presetActions(i, where) {
         const doc = editedPreset(i), head = where === "head";
         return [
-          ...(where === "tile" || where === "palette" ? [{ key: "open", icon: ICONS.next, label: "Open", run: () => pickPreset(i) }] : []),
+          ...(where === "tile" || where === "palette" ? [{ key: "open", icon: ICONS.arrowRight, label: "Open", run: () => pickPreset(i) }] : []),
           ...(head ? [{ key: "rename", icon: ICONS.pencil, label: "Rename", run: renameInPlace }] : []),
           { key: "copy", icon: ICONS.duplicate, label: "Save a copy", aside: "Into your Library", run: () => void copyPreset(i) },
           { key: "copy-to", icon: ICONS.folder, label: "Save a copy to…", page: () => choicePage("Save a copy to", () => copyChoices(i)) },
@@ -33626,7 +33626,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const act = (/** @type {string} */ kind) => () => (tile && !preview ? batch(kind === "download" ? "export" : kind, null, [id]) : chartPick(id, kind));
         return [
           ...(phoneHead && canTravel(false) ? [{ key: "redo", icon: ICONS.redo, label: "Redo", group: "redo", run: redoLast }] : []),
-          ...(inPalette || tile ? [{ key: "open", icon: ICONS.next, label: "Open", kbd: inPalette ? "↵" : undefined, run: () => go(chartById(id)) }] : []),
+          ...(inPalette || tile ? [{ key: "open", icon: ICONS.arrowRight, label: "Open", kbd: inPalette ? "↵" : undefined, run: () => go(chartById(id)) }] : []),
           ...(tile && !preview && !picked.has(id) ? [{ key: "select", icon: ICONS.checkbox, label: "Select", run: () => pickChart(id) }] : []),
           ...(preview && doc.layers.length ? [{ key: "keep", icon: ICONS.keep, label: "Save", aside: inPalette ? undefined : "Into your Library", run: () => keepChart(doc) }] : []),
           { key: "rename", icon: ICONS.pencil, label: "Rename", ...(inPalette ? { page: () => renameChartPage(doc) } : head ? { run: renameInPlace } : { run: act("rename") }) },
@@ -33701,7 +33701,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return {
           kind: "row", key: `layer:${layer.id}`, icon: `${letterChip(layer)}`, label: labelOf(layer),
           aside: layer.from ? `Between ${fromSpan(layer) || "no layers"}` : layer.type === "heatmap" ? heatCode(layer) : layer.series ?? (layer.label ? layer.formula : formulaLine(layer)) ?? "", mono: !layer.from && Boolean(layer.series || layer.label || layer.type === "heatmap"), dim: Boolean(layer.hidden), letter: layer.letter, verb: "Open", page: open,
-          actions: () => [{ label: "Open", icon: ICONS.next, kbd: "↵", page: open }, ...open().rows().filter((row) => QUICK.has(row.key))],
+          actions: () => [{ label: "Open", icon: ICONS.arrowRight, kbd: "↵", page: open }, ...open().rows().filter((row) => QUICK.has(row.key))],
           preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id),
         };
       }
@@ -34037,7 +34037,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const pane = chart.panes[i], open = () => panePage(id);
         return {
           kind: "row", key: `pane:${id}`, icon: ICONS.pane, label: `Pane ${i + 1}`, aside: `${paneNames(pane)} · ${paneChip(pane)}${foldedPanes(chart).has(pane.id) ? " · Folded" : sizable(i) ? ` · ${shareOf(i)}%` : ""}`, verb: "Open", page: open,
-          actions: () => [{ label: "Open", icon: ICONS.next, kbd: "↵", page: open }, ...open().rows().filter((row) => !row.key.startsWith("layer:"))],
+          actions: () => [{ label: "Open", icon: ICONS.arrowRight, kbd: "↵", page: open }, ...open().rows().filter((row) => !row.key.startsWith("layer:"))],
           preview: (/** @type {HTMLElement} */ panel) => previewPane(panel, id),
         };
       }
