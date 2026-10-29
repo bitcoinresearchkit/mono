@@ -30140,7 +30140,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /**
        * What completes the word before the caret: for a capital, this chart's layers (but `self`); for a lowercase word,
-       * the functions, and series by name after them (`completeSeries`). A word already whole needs nothing.
+       * the functions, and series by name after them (`completeSeries`); for a span begun where a span goes, the usual
+       * spans it begins. A word already whole needs nothing.
        * @param {Layer | null | undefined} self
        */
       function completionsAt(text, caret, self) {
@@ -30153,6 +30154,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           items = formulaInputs(self).filter((item) => item.insert.startsWith(token));
           if (items.length === 1 && items[0].insert === token) items = [];
         } else if (token) items = Object.entries(FUNCTIONS).filter(([name]) => name.startsWith(token) && name !== token).map(([name, [, signature, what]]) => ({ insert: `${name}(`, title: signature, text: what }));
+        // (A span begun (its number, its letter), the whole of its argument, where a span goes: the usual ones it begins, as
+        // an empty one's offered, see fitsAt; none, as before: a number's (part of one: 1.5, 1e+2).)
+        const begun = token || !/^\s*(?:[,)]|$)/.test(text.slice(caret)) ? null : /[(,]\s*(\d+[a-z]*)$/.exec(text.slice(0, caret)), call = begun && callAt(text, caret);
+        const name = call?.f && ((signature) => signature.slice(signature.indexOf("(") + 1, -1).split(", ")[call.arg])(FUNCTIONS[call.f][1]);
+        const spans = begun && (name === "span" || name === "span?") ? spansFor(/** @type {string} */ (call?.f)).filter((item) => item.insert.startsWith(begun[1]) && item.insert !== begun[1]) : [];
+        if (begun && spans.length) return { start: caret - begun[1].length, token: begun[1], items: spans };
         return { start, token, items };
       }
       /**
@@ -30162,7 +30169,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {{ controller: AbortController | null }} holder @param {string} token @param {(series: { insert: string, title: string, text: string, series: true }[]) => void} add
        */
       function completeSeries(holder, token, add) {
-        if (token.length < 2 || /^[A-Z]/.test(token)) return;
+        if (token.length < 2 || !/^[a-z_]/.test(token)) return;
         const controller = (holder.controller = new AbortController());
         findSeries(token, 8, controller.signal).then((names) => {
           const series = names.filter(isSeriesName).map((name) => /** @type {const} */ ({ insert: name, title: name, text: "", series: true }));
@@ -30234,6 +30241,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const [, n, letter] = /** @type {RegExpExecArray} */ (/^(\d+)(mo|[hdwy])$/.exec(span));
         return Number(n) * SPAN_DAYS[SPAN_LETTERS[/** @type {keyof typeof SPAN_LETTERS} */ (letter)]];
       };
+      /**
+       * The usual spans a function's span takes at this interval, each in words: a window's, two points at least (one is the
+       * series itself); a shift's, a step at least; what's loaded holds them. In points where they aren't days.
+       * @param {string} f
+       */
+      function spansFor(f) {
+        const shift = ["change", "diff", "lag"].includes(f), loaded = FINE.has(chart.index) ? resolved?.times.length ?? 0 : Infinity;
+        const fit = SPANS.map(([span, words]) => /** @type {[string, string, number]} */ ([span, words, windowPoints(spanDays(span), chart.index)])).filter(([span, , points]) => (shift ? spanDays(span) >= 0.9 * INTERVAL_DAYS[chart.index] : points >= 2) && points <= loaded);
+        return fit.map(([span, words, points]) => ({ insert: span, title: span, text: chart.index === "day1" ? words : `${words} · ${grouped.format(points)} points at ${INTERVAL_LABEL[chart.index]}`, group: "Spans" }));
+      }
       /** Percents a percentile often takes, and what each is. */
       const PERCENTS = /** @type {[number, string][]} */ ([[5, "near the bottom"], [25, "the lower quartile"], [50, "the median"], [75, "the upper quartile"], [95, "near the top"]]);
       /**
@@ -30257,12 +30274,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const names = [...new Set([...seriesIn(chart), ...recent(), ...recommended])].filter((name) => isSeriesName(name) && !gone.has(name) && !drawn.has(name) && !isOhlc(name)).slice(0, 5);
           return { items: [...layers, ...names.map((name) => ({ insert: name, name, title: name, text: humanize(name), series: true }))], more: seriesCount > names.length ? `${grouped.format(seriesCount - names.length)} more series: type a few letters` : "" };
         }
-        if (name === "span" || name === "span?") {
-          // A window, two points at least (one is the series itself); a shift, a step at least. In points where they aren't days.
-          const shift = ["change", "diff", "lag"].includes(call.f), loaded = FINE.has(chart.index) ? resolved?.times.length ?? 0 : Infinity;
-          const fit = SPANS.map(([span, words]) => /** @type {[string, string, number]} */ ([span, words, windowPoints(spanDays(span), chart.index)])).filter(([span, , points]) => (shift ? spanDays(span) >= 0.9 * INTERVAL_DAYS[chart.index] : points >= 2) && points <= loaded);
-          return { items: fit.map(([span, words, points]) => ({ insert: span, title: span, text: chart.index === "day1" ? words : `${words} · ${grouped.format(points)} points at ${INTERVAL_LABEL[chart.index]}`, group: "Spans" })), more: "" };
-        }
+        if (name === "span" || name === "span?") return { items: spansFor(call.f), more: "" };
         if (name === "p") return { items: PERCENTS.map(([p, what]) => ({ insert: String(p), title: String(p), text: what, group: "Percents" })), more: "" };
         return null;
       }
