@@ -650,7 +650,7 @@ export function studioPresets(client, facts) {
       ((week, young, old) => chart("RHODL", "RHODL ratio", [price(), { formula: `${week} / (${young} + ${old}) * (date - 2009-01-03) / 86400`, label: "RHODL ratio", format: "number", pane: 2 }], { log: [2] }))(t.age.ranges._1dTo1w.capital.realizedCap.name, t.age.ranges._1yTo18m.capital.realizedCap.name, t.age.ranges._18mTo2y.capital.realizedCap.name),
       chart("On-chain prices", "Realized, true market mean, Cointime and capitalized prices", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: "orange" }), series(ct.prices.trueMarketMean.value, "True market mean", { color: "sky" }), series(ct.prices.cointime.value, "Cointime price", { color: "violet" }), series(t.holders.all.costBasis.byDollar.capitalizedPrice, "Capitalized price", { color: "green" })]),
       cloudsChart(),
-      compassChart(),
+      section("Compass", compassCharts()),
       chart("Cointime caps", "Cointime capitalizations", [...[["thermo", "Thermo cap"], ["investor", "Investor cap"], ["active", "Active cap"], ["vaulted", "Vaulted cap"], ["cointime", "Cointime cap"]].map(([key, label], i) => series(ct.caps[key], label, { color: ["orange", "green", "red", "sky", "violet"][i] })), series(ct.caps.investorness, "Investorness", { pane: 2, color: "green" }), series(ct.caps.producerness, "Producerness", { pane: 2, color: "orange" })], { log: [1] }),
       chart("Reserve risk", "Reserve risk", [price(), series(ct.reserveRisk.value, "Reserve risk", { pane: 2, color: "orange" }), series(ct.reserveRisk.hodlBank, "HODL bank", { pane: 3, color: "sky" })], { log: [2, 3] }),
       // (By its short name, as MVRV and NUPL are, the long one in its title: long, it and its all-time twin read alike, cut short.)
@@ -957,26 +957,63 @@ export function studioPresets(client, facts) {
       ...groups.map(([label, , color], i) => ({ cloud: [letter(1 + 2 * i), letter(2 + 2 * i)], label, color, opacity: 0.3 })),
     ]);
   }
-  /** Compass's chart (showcases/compass): the price against two clouds of the median dollar paid by coins likely to
-   * move, the short-term holders' and the long-term holders' (each three age groups), and the short-term groups' trends
-   * between the lowest and highest price their coins were bought at. */
-  function compassChart() {
+  /** Compass's charts (showcases/compass), one for each of its clouds' bases: the price against two clouds, the
+   * short-term holders' and the long-term holders' (each three age groups, coins likely to move, by dollar), and the
+   * short-term groups' trends between the lowest and highest price their coins were bought at. A basis of one line a
+   * group (medians, averages) has its lines shown and its clouds coloured by which is over; one of two (percentiles,
+   * medians and averages), its clouds from the lowest of its six lines to the highest, as Compass draws them. */
+  function compassCharts() {
     const short = /** @type {[string, string, string][]} */ ([["under4m", "Under 4 months", "yellow"], ["sth", "Short-term holders", "orange"], ["under6m", "Under 6 months", "red"]]);
     const long = /** @type {[string, string, string][]} */ ([["over4m", "Over 4 months", "cyan"], ["lth", "Long-term holders", "blue"], ["over6m", "Over 6 months", "violet"]]);
-    const median = (/** @type {[string, string, string]} */ [key, label, color]) => series(cf.cohorts[key].mobile.costBasis.byDollar.median, label, { color, opacity: 0.5 });
-    // (Letters: the price A, the short-term medians B to D, the long-term E to G, all holders' H, the clouds I and J, then
-    // each trend's lowest and highest, K to P. Each cloud coloured by which of its layers is over: its members ordered so.)
+    /** A group's line of a statistic, by dollar. */
+    const stat = (/** @type {string} */ key, /** @type {string} */ which) => {
+      const by = cf.cohorts[key].mobile.costBasis.byDollar;
+      return which === "avg" ? by.avg.value : by[which];
+    };
     const edges = short.flatMap(([key, label]) => [series(t.holders[key].costBasis.min, `${label}, lowest`, { color: "gray", hidden: true }), series(t.holders[key].costBasis.max, `${label}, highest`, { color: "gray", hidden: true })]);
-    return chart("Compass", "Compass: short- and long-term holder clouds and trends", [
-      price(),
-      ...short.map(median),
-      ...long.map(median),
-      series(cf.cohorts.all.mobile.costBasis.byDollar.median, "All holders", { color: "green", shape: "curved" }),
-      { cloud: ["D", "C", "B"], label: "Short-term cloud", color: "red", colorBelow: "orange", byLayers: true, opacity: 0.5 },
-      { cloud: ["F", "E", "G"], label: "Long-term cloud", color: "blue", colorBelow: "cyan", byLayers: true, opacity: 0.5 },
-      ...edges,
-      ...short.map(([, label, color], i) => ({ trend: [letter(10 + 2 * i), letter(11 + 2 * i)], ref: "A", label: `${label} trend`, color, dash: 2 })),
-    ]);
+    const trends = (/** @type {number} */ from) => short.map(([, label, color], i) => ({ trend: [letter(from + 2 * i), letter(from + 1 + 2 * i)], ref: "A", label: `${label} trend`, color, dash: 2 }));
+    /** A basis of one line a group: the user's own chart, its lines shown, its clouds coloured by which is over (letters:
+     * the price A, the short-term lines B to D, the long-term E to G, all holders' H, the clouds I and J, the trends'
+     * edges K to P). */
+    const ofOne = (/** @type {string} */ name, /** @type {string} */ which, /** @type {string} */ said) => {
+      const line = (/** @type {[string, string, string]} */ [key, label, color]) => series(stat(key, which), label, { color, opacity: 0.5 });
+      return chart(name, `Compass: holder clouds of ${said}, and trends`, [
+        price(),
+        ...short.map(line),
+        ...long.map(line),
+        series(stat("all", which), "All holders", { color: "green", shape: "curved" }),
+        { cloud: ["D", "C", "B"], label: "Short-term cloud", color: "red", colorBelow: "orange", byLayers: true, opacity: 0.5 },
+        { cloud: ["F", "E", "G"], label: "Long-term cloud", color: "blue", colorBelow: "cyan", byLayers: true, opacity: 0.5 },
+        ...edges,
+        ...trends(10),
+      ]);
+    };
+    /** A basis of two lines a group: each cloud from the lowest of its six to the highest (letters: the price A, all
+     * holders' median B, the clouds' edges C to F, the clouds G and H, the trends' edges I to N). */
+    const ofTwo = (/** @type {string} */ name, /** @type {[string, string]} */ which, /** @type {string} */ said) => {
+      const envelope = (/** @type {[string, string, string][]} */ groups, /** @type {string} */ label) => {
+        const names = groups.flatMap(([key]) => which.map((w) => stat(key, w).name));
+        const fold = (/** @type {string} */ fn) => names.reduce((all, n) => `${fn}(${all}, ${n})`);
+        return [{ formula: fold("min"), label: `${label}, lowest`, format: "usd", color: "gray", hidden: true }, { formula: fold("max"), label: `${label}, highest`, format: "usd", color: "gray", hidden: true }];
+      };
+      return chart(name, `Compass: holder clouds of ${said}, and trends`, [
+        price(),
+        series(stat("all", "median"), "All holders", { color: "green", shape: "curved" }),
+        ...envelope(short, "Short-term cloud"),
+        ...envelope(long, "Long-term cloud"),
+        { cloud: ["C", "D"], label: "Short-term cloud", color: "orange", opacity: 0.3 },
+        { cloud: ["E", "F"], label: "Long-term cloud", color: "blue", opacity: 0.3 },
+        ...edges,
+        ...trends(8),
+      ]);
+    };
+    // (Named as Compass names its bases: its link opens the one in use.)
+    return [
+      ofTwo("Percentiles", ["p40", "p60"], "the 40th–60th percentiles"),
+      ofOne("Medians", "median", "the medians"),
+      ofOne("Averages", "avg", "the averages"),
+      ofTwo("Medians and averages", ["median", "avg"], "the medians and averages"),
+    ];
   }
   /** Extreme events: the days each extreme's input crossed into its historical 0.1% tail (its 0.1st percentile for the
    * sell-side risk ratio, whose rare side is low), marked on the price. */

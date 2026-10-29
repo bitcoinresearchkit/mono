@@ -1120,8 +1120,8 @@
     </main>
 
     <footer class="shell">
-      <p>Read from this server: <a href="/api/series/price/day1">the daily price</a> and the holders' cost basis, as Bitview computes it from the chain. The same clouds and trends, to explore: <a href="/studio/presets/valuation/compass">Compass in Studio</a>.</p>
-      <p class="coins">Clouds from the <span role="group" aria-label="What the clouds are made from"><button type="button" data-basis="percentiles" aria-pressed="true">40th–60th percentiles</button>, <button type="button" data-basis="averages" aria-pressed="false">medians and averages</button> or <button type="button" data-basis="medians" aria-pressed="false">medians</button></span> of what <span role="group" aria-label="Which coins the clouds count"><button type="button" data-coins="mobile" aria-pressed="true">mobile</button> or <button type="button" data-coins="awake" aria-pressed="false">awake</button></span> coins paid.<span id="coins-said" aria-live="polite"></span></p>
+      <p>Read from this server: <a href="/api/series/price/day1">the daily price</a> and the holders' cost basis, as Bitview computes it from the chain. The same clouds and trends, to explore: <a id="in-studio" href="/studio/presets/valuation/compass/percentiles">Compass in Studio</a>.</p>
+      <p class="coins">Clouds from the <span role="group" aria-label="What the clouds are made from"><button type="button" data-basis="percentiles" aria-pressed="true">40th–60th percentiles</button>, <button type="button" data-basis="medians" aria-pressed="false">medians</button>, <button type="button" data-basis="averages" aria-pressed="false">averages</button> or <button type="button" data-basis="medians-and-averages" aria-pressed="false">medians and averages</button></span> of what <span role="group" aria-label="Which coins the clouds count"><button type="button" data-coins="mobile" aria-pressed="true">mobile</button> or <button type="button" data-coins="awake" aria-pressed="false">awake</button></span> coins paid.<span id="coins-said" aria-live="polite"></span></p>
     </footer>
 
     <script type="module">
@@ -1192,9 +1192,9 @@
       const WEIGHTING = { mobile: "each age group weighted by how likely its coins are ever to be spent", awake: "each age group weighted by how much of its coin days have been spent" };
       /**
        * What the clouds are made from (chosen at the page's foot, like the coins): each of its three groups' 40th and 60th
-       * percentiles of the price paid, by dollar (inside, a group split: 40 to 60% of its dollars in profit), their medians
-       * and averages, or their medians alone. With How it reads' words for each.
-       * @typedef {"percentiles" | "averages" | "medians"} Basis
+       * percentiles of the price paid, by dollar (inside, a group split: 40 to 60% of its dollars in profit), their medians,
+       * their averages, or both. With How it reads' words for each, and its chart in Studio.
+       * @typedef {"percentiles" | "medians" | "averages" | "medians-and-averages"} Basis
        */
       const BASES = {
         percentiles: {
@@ -1202,7 +1202,7 @@
           long: "Price above it, each of those groups has more than 60% of the dollars it put in in profit; below it, fewer than 40%; inside, they're split, or they disagree.",
           short: "Above it, more than 60% of each group's dollars are in profit; below it, fewer than 40%; inside, they're split, or they disagree.",
         },
-        averages: {
+        "medians-and-averages": {
           stats: ["median", "avg"], what: "The median and the average price paid", count: "six",
           long: "Price above it, each of those groups has more than half of the dollars it put in in profit, and its average dollar too; below it, the same at a loss; inside, they differ.",
           short: "Above it, each group's median and average dollar is in profit; below it, both at a loss; inside, they differ.",
@@ -1211,6 +1211,11 @@
           stats: ["median"], what: "The median price paid", count: "three",
           long: "Price above it, more than half of the dollars each of those groups put in is in profit; below it, more than half is at a loss; inside, the groups differ.",
           short: "Above it, more than half of what each group paid is in profit; below it, more than half is at a loss; inside, the groups differ.",
+        },
+        averages: {
+          stats: ["avg"], what: "The average price paid", count: "three",
+          long: "Price above it, each of those groups' average dollar is in profit; below it, at a loss; inside, the groups differ.",
+          short: "Above it, each group's average dollar is in profit; below it, at a loss; inside, the groups differ.",
         },
       };
       /** @type {Basis} */
@@ -2332,6 +2337,8 @@
         $("cloud-count").textContent = b.count;
         $("cloud-long").textContent = b.long;
         $("cloud-short").textContent = b.short;
+        // (Studio's chart of the same basis: its presets named as the bases are.)
+        /** @type {HTMLAnchorElement} */ ($("in-studio")).href = `/studio/presets/valuation/compass/${basis}`;
       }
       let switching = false;
       /** Other coins or another basis: everything computed again in place, once the new clouds are read and usable. */
@@ -2394,7 +2401,7 @@
           // (The coins a link asks for, before anything's read.)
           const asked = new URLSearchParams(location.search), clouds = asked.get("clouds");
           if (asked.get("coins") === "awake") coins = "awake";
-          if (clouds === "averages" || clouds === "medians") basis = clouds;
+          if (clouds !== null && clouds !== "percentiles" && Object.hasOwn(BASES, clouds)) basis = /** @type {Basis} */ (clouds);
           pressCoins();
           const computed = compute(await readAll());
           if (computed.first < 0) throw new Error("the holders' series have no days yet");
