@@ -1372,14 +1372,14 @@
         probe.remove();
         return color;
       }
-      /** @type {{ states: string[], trends: string[], trendLine: string, ink: string, faint: string, grid: string, long: string, short: string, app: string }} */
+      /** @type {{ states: string[], trends: string[], trendLine: string, ink: string, faint: string, long: string, short: string, app: string }} */
       let paint;
       function repaint() {
         paint = {
           states: STATES.map((s) => resolved(`var(--s-${s.id})`)),
           trends: TRENDS.map((t) => resolved(`var(--s-${t.color})`)),
           trendLine: resolved("var(--trend-line)"),
-          ink: resolved("var(--ink)"), faint: resolved("var(--faint)"), grid: resolved("var(--grid)"),
+          ink: resolved("var(--ink)"), faint: resolved("var(--faint)"),
           long: resolved("var(--cloud-long)"), short: resolved("var(--cloud-short)"), app: resolved("var(--app)"),
         };
         // (New colours: every drawing kept as a bitmap made again.)
@@ -1477,9 +1477,15 @@
       function rangeOf(/** @type {{ a: number, b: number }} */ v) {
         const d = /** @type {Days} */ (days);
         let lo = Infinity, hi = -Infinity;
-        for (let i = Math.max(d.first, Math.floor(v.a)); i <= Math.min(d.last, Math.ceil(v.b)); i++) {
-          for (const p of [d.close[i], d.cloud.long[0][i], d.cloud.long[1][i], d.cloud.short[0][i], d.cloud.short[1][i]]) {
-            if (p > 0) (lo = Math.min(lo, p)), (hi = Math.max(hi, p));
+        const from = Math.max(d.first, Math.floor(v.a)), to = Math.min(d.last, Math.ceil(v.b));
+        // (Each series in turn, no array made a day: called a frame while a view follows.)
+        for (const series of [d.close, d.cloud.long[0], d.cloud.long[1], d.cloud.short[0], d.cloud.short[1]]) {
+          for (let i = from; i <= to; i++) {
+            const p = series[i];
+            if (p > 0) {
+              if (p < lo) lo = p;
+              if (p > hi) hi = p;
+            }
           }
         }
         // (Less above than below: the words over the chart are room enough.)
@@ -1548,22 +1554,14 @@
             ctx.fill();
           }
 
-          // The two clouds, each filled between its bottom and top; the long-term one edged too.
-          for (const [cloud, fill, edged] of /** @type {const} */ ([[d.cloud.long, paint.long, true], [d.cloud.short, paint.short, false]])) {
+          // The two clouds, each filled between its bottom and top.
+          for (const [cloud, fill] of /** @type {const} */ ([[d.cloud.long, paint.long], [d.cloud.short, paint.short]])) {
             ctx.beginPath();
-            trace(cloud[1], a, b);
-            trace(cloud[0], b, a);
+            trace(cloud[1], a, b, true);
+            trace(cloud[0], b, a, true);
             ctx.closePath();
             ctx.fillStyle = fill;
             ctx.fill();
-            if (!edged) continue;
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = paint.grid;
-            for (const edge of cloud) {
-              ctx.beginPath();
-              trace(edge, a, b);
-              ctx.stroke();
-            }
           }
 
           // The three trends' lines, thin, dashed, grey and faint, broken where they flip.
@@ -1575,7 +1573,7 @@
               while (j + 1 <= b && sides[j + 1] === sides[i]) j++;
               if (sides[i]) {
                 ctx.beginPath();
-                trace(values, i, j);
+                trace(values, i, j, true);
                 ctx.strokeStyle = paint.trendLine;
                 ctx.stroke();
               }
@@ -1675,10 +1673,19 @@
        * are no narrower than half a pixel; else, each pixel's column its lowest and highest, in the order they came, so no
        * spike is lost and a long history costs two points a pixel, not one a day (short runs of a state too).
        */
-      function trace(/** @type {ArrayLike<number>} */ values, /** @type {number} */ from, /** @type {number} */ to) {
+      function trace(/** @type {ArrayLike<number>} */ values, /** @type {number} */ from, /** @type {number} */ to, smooth = false) {
         const step = to >= from ? 1 : -1, end = to + step;
         if (view.b - view.a + 1 <= 2 * plotRight()) {
           for (let i = from; i !== end; i += step) ctx.lineTo(xOf(i), yOf(values[i]));
+          return;
+        }
+        // (A smooth line, as a cloud's edge or a trend's: a point a column is all it needs.)
+        if (smooth) {
+          let column = NaN;
+          for (let i = from; i !== end; i += step) {
+            const at = Math.floor(xOf(i));
+            if (at !== column || i === to) (column = at), ctx.lineTo(xOf(i), yOf(values[i]));
+          }
           return;
         }
         let column = NaN, low = 0, high = 0, lowAt = 0, highAt = 0;
@@ -2067,8 +2074,13 @@
         redraw();
       }
       /** The day shown, everywhere it's said: above, the slider, the shares. */
+      /** The day last told, and the days it was told from: told again only when either changes (a span's change, a
+       * drag, keep the day). */
+      let toldDay = -1, toldDays = /** @type {Days | null} */ (null);
       function tell(say = false) {
         if (!days) return;
+        if (!say && shownDay() === toldDay && days === toldDays) return sayToday();
+        (toldDay = shownDay()), (toldDays = days);
         const d = days, day = shownDay(), s = d.state[day], t = d.trend[day], state = STATES[s];
         const isLast = day === d.last;
         $("scrub-day").textContent = isLast ? "Today" : dated(day);
