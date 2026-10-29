@@ -10463,7 +10463,7 @@
             <li>"fill": "above", an area filled from its line up; "fillOpacity": its fill's strength at its top, 0.05 to 1, by 0.05 (0.2 if none, 0.1 filled above); "solid": true, its fill even all the way down rather than fading; "base": a baseline's or bars' base value (0 if none); "baseLine": {"color": "gray", "dash": 4}, that base's line ("tag": true shows its value on the axis; "line": false draws none).</li>
             <li>"levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional; "tag": true shows its value on the axis; "line": false draws none, the level only naming or coloring its band). A level's "name" names the values from it up to the next level, read in its color in place of the number (the legend, the panel); "underName" on the layer names those under them all: {"levels": [{"value": -1, "name": "Limbo", "color": "orange", "line": false}, {"value": 1, "name": "Bull", "color": "green", "line": false}], "underName": "Bear", "color": "red", "byLevels": true} (without "byLevels", the names alone, the line in its color).</li>
             <li>"priceLine": true: a line across at its latest value.</li>
-            <li>{"series": "net_realized_pnl", "type": "bubbles", "ref": "A"}: bubbles: its values as bubbles on layer A (the first layer if none; "ref": "", none, along its pane's middle), each date's at A's value there, its area its value's size, above zero in "color", below in "colorBelow" (red if none; "colors": 1, its one color). "size": the largest's diameter, 12, 16, 24, 32 or 48 pixels (24 if none); "hide": the share of the largest under which none is drawn, 0, 0.01, 0.05, 0.1 or 0.25 (0.05 if none); "scaleTo": "all", sized against all of its history (none: the largest in view full size).</li>
+            <li>{"series": "net_realized_pnl", "type": "bubbles", "ref": "A"}: bubbles: its values as bubbles on layer A (the first layer if none; "ref": "", none, along its pane's middle), each date's at A's value there, its area its value's size, above zero in "color", below in "colorBelow" (red if none; "colors": 1, its one color). "size": the largest's diameter, 8 to 48 pixels by 4 (24 if none); "hide": the share of the largest under which none is drawn, 0 to 0.25 by 0.01 (0.05 if none); "scaleTo": "all", sized against all of its history (none: the largest in view full size).</li>
             <li>"outline": true on a line, dots, an area, a baseline, bars, candles or a trend: edged in the chart's background (its line's width on each side; bars and candles 1.5px), standing out over what's under it.</li>
             <li>"format": how its values read (by its unit if none): usd, btc, sats, percent, ratio, count, number, days, seconds, persecond, perday, bytes, vbytes, weight, sigops, hashrate, difficulty, feerate, hashprice, hashvalue, coindays, coinblocks, dollarblocks or dollardays.</li>
             <li>"pane": 1, 2 and so on, top to bottom (1 if none); "side": its axis, left or right; "hidden": true.</li>
@@ -11668,10 +11668,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const LINED = new Set(["line", "area", "baseline", "trend"]);
       /** The types an outline edges (the chart's background about what's drawn, see LWC patch 53): what a series is drawn as, and a trend's line. */
       const OUTLINED = new Set(["line", "dots", "area", "histogram", "baseline", "candles", "trend", "bubbles"]);
-      /** Bubbles' largest, across (24 pixels if none), and the share of it under which none is drawn (5% if none): each a choice of these. */
       /** The crosshair's dot on a line: its radius and its edge's width (a lit bubble's ring clears it, see lightBubble). */
       const MARKER = { radius: 4, border: 2 };
-      const BUBBLE_SIZES = [12, 16, 24, 32, 48], BUBBLE_SIZE = 24, BUBBLE_HIDES = [0, 0.01, 0.05, 0.1, 0.25], BUBBLE_HIDE = 0.05;
+      /**
+       * Bubbles' largest, across (8 to 48 pixels by 4, 24 if none), and the share of it under which none is drawn (none
+       * to 25% by 1%, 5% if none): their sliders' stops.
+       */
+      const BUBBLE_SIZES = Array.from({ length: 11 }, (_, i) => 8 + 4 * i), BUBBLE_SIZE = 24, BUBBLE_HIDES = Array.from({ length: 26 }, (_, i) => i / 100), BUBBLE_HIDE = 0.05;
+      /** A share under which bubbles aren't drawn, in words. */
+      const hideText = (/** @type {number} */ share) => (share ? `${Math.round(share * 100)}%` : "None");
       /** Whether a layer's values aren't drawn at their own height on its scale: a signal's (marks on its layer), bubbles' (sized on theirs). @param {Layer} layer */
       const placedOn = (layer) => layer.type === "signal" || layer.type === "bubbles";
       /** How a line runs between its points: straight, in steps (a value that holds until it changes), or curved. @type {[string, string, number][]} */
@@ -29072,16 +29077,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Bubbles' section in the inspector: the layer they're on (a menu of those that can carry them), their largest's
        * size, what's too small to draw, what they're sized against. @param {Layer} layer
        */
-      const bubbleSection = (layer) => {
-        const tabs = (/** @type {string} */ key, /** @type {string} */ label, /** @type {[string, string, string][]} */ list, /** @type {string} */ now) => `<div class="field"><span>${label}</span><div class="tabs" role="group" aria-label="${label}">${list.map(([value, text, says]) => `<button type="button" data-bubbles="${key}" data-value="${value}" aria-pressed="${now === value}" data-tip="${escape(says)}">${escape(text)}</button>`).join("")}</div></div>`;
-        return `<section>
+      const bubbleSection = (layer) => `<section>
               <h3>Bubbles</h3>
               <div class="field"><span>On</span><button type="button" class="preset" id="bubble-ref" aria-haspopup="menu" data-tip="The layer they're on">${((ref) => (ref ? `${letterChip(ref)}<span class="name">${escape(labelOf(ref))}</span>` : `<span class="name">Its pane's middle</span>`))(layerById(layer.ref ?? ""))}${CHEVRON}</button></div>
-              ${tabs("size", "Size", BUBBLE_SIZES.map((n) => [String(n), String(n), `The largest ${n} pixels across`]), String(layer.size ?? BUBBLE_SIZE))}
-              ${tabs("hide", "Hide below", BUBBLE_HIDES.map((n) => [String(n), n ? `${n * 100}%` : "None", n ? `None drawn under ${n * 100}% of the largest` : "Every one, however small"]), String(layer.hide ?? BUBBLE_HIDE))}
-              ${tabs("scale", "Sized to", [["", "In view", "The largest in view full size: zoomed in, as readable"], ["all", "All time", "The largest of all its history full size: sizes compare across periods"]], layer.scaleTo ?? "")}
+              <div class="field"><span>Size${resetFor("bubble-size", layer)}</span>${slider("bubble-size", layer, "The largest's size across")}</div>
+              <div class="field"><span>Hide below${resetFor("bubble-hide", layer)}</span>${slider("bubble-hide", layer, "None drawn under this share of the largest")}</div>
+              <div class="field"><span>Sized to</span><div class="tabs" role="group" aria-label="Sized to">${[["", "In view", "The largest in view full size: zoomed in, as readable"], ["all", "All time", "The largest of all its history full size: sizes compare across periods"]].map(([value, text, says]) => `<button type="button" data-bubbles-scale="${value}" aria-pressed="${(layer.scaleTo ?? "") === value}" data-tip="${says}">${text}</button>`).join("")}</div></div>
             </section>`;
-      };
       const paneField = (/** @type {Layer[]} */ layers) => {
         if (layers.some(follows)) return "";
         const at = sharedBy(layers, (layer) => chart.panes.findIndex((pane) => pane.id === layer.pane)), name = at === undefined ? "Mixed" : `Pane ${at + 1}`;
@@ -29123,6 +29125,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         "fill-opacity": { is: (layer) => layer.fillOpacity === undefined, set: (layer) => (layer.fillOpacity = undefined), text: (layer) => `${Math.round(fillOf({ ...layer, fillOpacity: undefined }, stackedIn(layer))[0] * 100)}%`, focus: "#fill-opacity" },
         base: { is: (layer) => baseOf(layer) === 0, set: (layer) => (layer.base = undefined), text: "0", focus: "#base" },
         format: { is: (layer) => !layer.format, set: (layer) => (layer.format = undefined), text: "Automatic", focus: "#format" },
+        "bubble-size": { is: (layer) => layer.size === undefined, set: (layer) => (layer.size = undefined), text: `${BUBBLE_SIZE}px`, focus: "#bubble-size" },
+        "bubble-hide": { is: (layer) => layer.hide === undefined, set: (layer) => (layer.hide = undefined), text: hideText(BUBBLE_HIDE), focus: "#bubble-hide" },
       };
       const resetFor = (key, /** @type {Layer | Layer[]} */ target) => {
         const layers = [target].flat(), spec = DEFAULTS[key];
@@ -29138,6 +29142,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         "draw-width": { label: "Width", stops: WIDTHS, of: (look) => look.width, text: (v) => `${v}px`, say: (v) => `${v} pixels` },
         "draw-opacity": { label: "Opacity", stops: OPACITIES, of: (look) => look.opacity ?? 1, text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent` },
         "fill-opacity": { label: "Fill opacity", stops: OPACITIES, of: (layer) => fillOf(layer, stackedIn(layer))[0], text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent`, set: (layer, v) => (layer.fillOpacity = v === fillOf({ ...layer, fillOpacity: undefined }, stackedIn(layer))[0] ? undefined : v) },
+        "bubble-size": { label: "Size", stops: BUBBLE_SIZES, of: (layer) => layer.size ?? BUBBLE_SIZE, text: (v) => `${v}px`, say: (v) => `${v} pixels`, set: (layer, v) => (layer.size = v === BUBBLE_SIZE ? undefined : v) },
+        "bubble-hide": { label: "Hide below", stops: BUBBLE_HIDES, of: (layer) => layer.hide ?? BUBBLE_HIDE, text: hideText, say: (v) => (v ? `${Math.round(v * 100)} percent of the largest` : "None"), set: (layer, v) => (layer.hide = v === BUBBLE_HIDE ? undefined : v) },
         opacity: { label: "Opacity", stops: OPACITIES, of: opacityOf, text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent`, set: (layer, v) => (layer.opacity = v === defaultOpacity(layer) ? undefined : v) },
       };
       /** The inspector's sliders gliding, by id: until when. */
@@ -30962,7 +30968,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else item.weight = value || undefined;
         });
         else if (button.id === "trend-ref" || button.id === "signal-ref" || button.id === "bubble-ref") refMenu(button, selected);
-        else if (button.dataset.bubbles) ((key, value) => editLayer((layer) => (key === "size" ? (layer.size = Number(value) === BUBBLE_SIZE ? undefined : Number(value)) : key === "hide" ? (layer.hide = Number(value) === BUBBLE_HIDE ? undefined : Number(value)) : (layer.scaleTo = value === "all" ? "all" : undefined))))(button.dataset.bubbles, button.dataset.value ?? "");
+        else if (button.dataset.bubblesScale !== undefined) editLayer((layer) => (layer.scaleTo = button.dataset.bubblesScale === "all" ? "all" : undefined));
         else if (button.id === "signal-times") noValues(selected) ? notice(noValues(selected)) : openPage(timesPage(selected));
         else if (place) editLayer((layer) => (layer.place = place === "above" ? undefined : place));
         else if (action === "format-menu") formatMenu(button);
@@ -33989,7 +33995,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(layer.type === "bubbles" ? [
               { key: "ref", icon: glyph("bubbles"), label: "On", aside: ((ref) => (ref ? labelOf(ref) : "Its pane's middle"))(layerById(layer.ref ?? "")), group: "Bubbles", page: () => choicePage("On", () => refChoices(id)) },
               { key: "size", icon: glyph("bubbles"), label: "Size", aside: `${layer.size ?? BUBBLE_SIZE} pixels`, group: "Bubbles", page: () => choicePage("Size", () => BUBBLE_SIZES.map((n) => ({ key: String(n), label: `${n} pixels`, aside: n === BUBBLE_SIZE ? "Its own" : undefined, current: (now().size ?? BUBBLE_SIZE) === n, ...both((item) => (item.size = n === BUBBLE_SIZE ? undefined : n)) }))) },
-              { key: "hide", icon: glyph("bubbles"), label: "Hide below", aside: ((n) => (n ? `${n * 100}% of the largest` : "None"))(layer.hide ?? BUBBLE_HIDE), group: "Bubbles", page: () => choicePage("Hide below", () => BUBBLE_HIDES.map((n) => ({ key: String(n), label: n ? `${n * 100}%` : "None", aside: n ? "Of the largest" : "Every one, however small", current: (now().hide ?? BUBBLE_HIDE) === n, ...both((item) => (item.hide = n === BUBBLE_HIDE ? undefined : n)) }))) },
+              { key: "hide", icon: glyph("bubbles"), label: "Hide below", aside: ((n) => (n ? `${hideText(n)} of the largest` : "None"))(layer.hide ?? BUBBLE_HIDE), group: "Bubbles", page: () => choicePage("Hide below", () => BUBBLE_HIDES.map((n) => ({ key: String(n), label: hideText(n), aside: n ? "Of the largest" : "Every one, however small", current: (now().hide ?? BUBBLE_HIDE) === n, ...both((item) => (item.hide = n === BUBBLE_HIDE ? undefined : n)) }))) },
               { key: "sized", icon: glyph("bubbles"), label: "Sized to", aside: layer.scaleTo === "all" ? "All time" : "In view", verb: layer.scaleTo === "all" ? "Size to what's in view" : "Size to all time", group: "Bubbles", stay: true, run: set((item) => (item.scaleTo = item.scaleTo === "all" ? undefined : "all")) },
             ] : []),
             { key: "type", icon: glyph(layer.type), label: "Type", aside: TYPES.find(([type]) => type === layer.type)?.[1], group: "Style", page: () => choicePage("Type", () => TYPES.filter(([type]) => type !== "candles" || result?.ohlc || (layer.series && isOhlc(layer.series))).map(([type, text]) => ({ key: type, icon: glyph(type), label: text, current: now().type === type, ...both((item) => reshape(item, (one) => (one.type = type))) }))) },
