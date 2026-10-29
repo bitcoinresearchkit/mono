@@ -5327,6 +5327,15 @@
         flex-wrap: wrap;
         gap: 4px;
 
+        /* (A profile's holder group's chip: its color before its name, faint till it's in.) */
+        button > .swatch {
+          margin-left: 3px;
+        }
+
+        button[aria-pressed="false"] > .swatch {
+          opacity: 0.45;
+        }
+
         button {
           display: inline-flex;
           align-items: center;
@@ -5422,6 +5431,24 @@
 
         &.four {
           grid-template-columns: auto 1fr 1fr;
+        }
+
+        /* (A profile's holder groups: as many as it has, each its name over its color, across in as many columns as fit.) */
+        &.cohorts {
+          grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+        }
+
+        .cohort-slot {
+          display: grid;
+          gap: 4px;
+          min-width: 0;
+
+          > .head {
+            overflow: hidden;
+            text-align: center;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
         }
 
         .slot-chip {
@@ -10540,7 +10567,8 @@
             <li>{"formula": "A / B"}: computed from other layers by their letters (the first layer is A, the second B, and so on) or from series by name, with + - * / ^, parentheses and functions such as sma(A, 200d), ema, highest, lowest, change, log, percentile(A, 95, 1y), rsi(A), macd(A), volatility(A, 30d), zscore(A) and cagr(A, 4y). min(A, B, C) and max(A, B, C) are the least and the most of several, date by date, middle(A, B, C) their median (of an even number, halfway between the two in the middle); each where all of them have a value. when(A, condition) keeps A where the condition holds, none elsewhere; rebase(A) starts each of its stretches at 1×, and rebase(A, halving_epoch) each halving cycle (a stretch also starts where its second changes); halving(A, n) is A over halving cycle n alone from 1× (0 the first, from the genesis block), and halving(A, 0, 2) that cycle moved to start where cycle 2 starts, day for day. date is each point's date, compared with one written 2020-05-11: when(A, date >= 2020-05-11 &amp; date &lt; 2024-04-20); == and != compare too. Spans are a number and a unit: h, d, w, mo or y; some have a usual one if left out, in points as the interval counts them (rsi's 14: 14 days at day1, 14 weeks at week1).</li>
             <li>{"formula": "B > 3.5", "type": "signal", "ref": "A"}: a signal: marks on layer A (the first layer if none) where the formula turns up or down: above 0 is up, below 0 down, 0 off (> < >= <= are 1 or 0, joined with &amp; and |: a condition is up where true; (B > 3.5) - (B < 1) is up, down or off). "place", "below" or "on" (above if none): where an up mark goes, a down one mirrored (above and below swapped), in "colorBelow" (red if none); or "shade": its stretches shaded, its layer's pane's height, down ones in "colorBelow". "results": true: on each mark that ends a stretch, what it made by layer A (A's change over it, up; the opposite, down), a dot where one ends off; their total, compounded, in its line.</li>
             <li>{"cloud": ["B", "C"]}: filled between those layers, two or more, at each date, in the color of the one over: B's own where B is over C, C's where C is (following them). Between more, {"cloud": ["B", "C", "D"]}, a cloud between each two next to each other in that order (B and C, C and D), each in the color of whichever of its two is over: several clouds, made by one (where they cross out of order, two overlap). "color" alone, that one all along, from the lowest to the highest; between two alone, "color" and "colorBelow", those two (where B is over, where C is). "top" and "bottom" are its pane's edges: from its first layer up to the pane's top, from its last down to its bottom: {"cloud": ["A", "top"]}.</li>
-            <li>{"heatmap": "sth"}: a holder group's URPD day by day behind the price, a column a day, each price's cell as strong as its amount against the open day's largest, on a log scale (zoomed out, a day in so many, the days between not asked for): "all" (all coins), "sth", "lth", "age_under_4m", "age_under_6m", "age_over_4m", "age_over_6m", or an age band ("age_under_1h", "age_1h_to_1d" … "age_over_15y", as GET /api/urpd lists them). "measure": "supply" (if none), "capital", or "pnl" (unrealized, in "color" where in profit, "colorBelow" where in loss); "weight": "wakefulness" or "mobility" (none: every coin as it is); its rows: "rows", 100, 200 (if none) or 500 a ×10 in price, on a log scale or a linear one. "profile": "both", a day's URPD also as a profile at the chart's right edge (the day read: the latest at the view's end, the one pointed at), bars from the edge as long as their amounts, under its close in profit, over it in loss, the share of coins each side; the chart leaves room for it after its latest. "only", the profile alone (none: the columns alone).</li>
+            <li>{"heatmap": "sth"}: a holder group's URPD day by day behind the price, a column a day, each price's cell as strong as its amount against the open day's largest, on a log scale (zoomed out, a day in so many, the days between not asked for): "all" (all coins), "sth", "lth", "age_under_4m", "age_under_6m", "age_over_4m", "age_over_6m", or an age band ("age_under_1h", "age_1h_to_1d" … "age_over_15y", as GET /api/urpd lists them). "measure": "supply" (if none), "capital", or "pnl" (unrealized, in "color" where in profit, "colorBelow" where in loss); "weight": "wakefulness" or "mobility" (none: every coin as it is); its rows: "rows", 100, 200 (if none) or 500 a ×10 in price, on a log scale or a linear one.</li>
+            <li>{"profile": ["lth", "sth"]}: holder groups' URPD on one day as a profile at the chart's right edge (the day read: the latest at the view's end, the one pointed at), bars from the edge, stacked, the first group's at the edge, each as long as its amount: in each group's color (all coins green, short-term holders orange, long-term blue; "cohortColors": {"sth": "red"}, a group's own), strong under that day's close (in profit), faint over it (in loss), with the share of their coins each side; the chart leaves room for it after its latest. Its groups as a heatmap's ("all", "sth", "lth", the age cutoffs, the age bands; one alone: "profile": "sth"), and "measure", "weight" and "rows" as a heatmap's.</li>
             <li>{"trend": ["B", "C"], "ref": "A"}: a line on the lowest of those layers until layer A (a price, say) touches it, then on the highest until A touches that, and so on (A an OHLC series, its highs and lows count, drawn as candles or not; else its value); width and dash as a line's.</li>
           </ul>
           <p>Then, each if wanted:</p>
@@ -11299,6 +11327,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         text: svg('<path d="M3.5 3.5h9M8 3.5v9M6.2 12.5h3.6"/>'),
         toTop: svg('<path d="M3 2.5h10M8 13.5V6M4.5 9.5 8 6l3.5 3.5"/>'),
         toBottom: svg('<path d="M3 13.5h10M8 2.5V10M4.5 6.5 8 10l3.5-3.5"/>'),
+        profile: svg('<g fill="currentColor" stroke="none"><rect x="8" y="2" width="6" height="2.2" rx=".6"/><rect x="4" y="5.3" width="10" height="2.2" rx=".6"/><rect x="2" y="8.6" width="12" height="2.2" rx=".6" fill-opacity=".5"/><rect x="9" y="11.9" width="5" height="2.2" rx=".6" fill-opacity=".5"/></g>'),
         heatmap: svg('<g fill="currentColor" stroke="none"><rect x="2.0" y="2.0" width="3.6" height="3.6" rx=".7" fill-opacity="0.25"/><rect x="6.2" y="2.0" width="3.6" height="3.6" rx=".7" fill-opacity="0.55"/><rect x="10.4" y="2.0" width="3.6" height="3.6" rx=".7" fill-opacity="0.9"/><rect x="2.0" y="6.2" width="3.6" height="3.6" rx=".7" fill-opacity="0.55"/><rect x="6.2" y="6.2" width="3.6" height="3.6" rx=".7" fill-opacity="1"/><rect x="10.4" y="6.2" width="3.6" height="3.6" rx=".7" fill-opacity="0.4"/><rect x="2.0" y="10.4" width="3.6" height="3.6" rx=".7" fill-opacity="0.9"/><rect x="6.2" y="10.4" width="3.6" height="3.6" rx=".7" fill-opacity="0.4"/><rect x="10.4" y="10.4" width="3.6" height="3.6" rx=".7" fill-opacity="0.2"/></g>'),
         cloud: svg('<path d="M2 6.2c2.1-1.9 3.9-2.3 6-1.3s3.9 1 6-1.4v5c-2.1 2.4-3.9 2.4-6 1.4s-3.9-.6-6 1.3Z" fill="currentColor" fill-opacity=".4" stroke="none"/><path d="M2 6.2c2.1-1.9 3.9-2.3 6-1.3s3.9 1 6-1.4M2 11.2c2.1-1.9 3.9-2.3 6-1.3s3.9 1 6-1.4"/>'),
         // (A signal: a mark pointing down onto a line.)
@@ -11549,6 +11578,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * Whether a layer reads two ways, over and under (a baseline over its base, a heatmap's unrealized P&L in profit or
        * in loss): green over red by default (see kindLook). @param {{ type?: string, measure?: string }} layer
        */
+      /** A holder group's URPD: a heatmap (its days as columns) or a profile (a day's, at the chart's right edge). @param {{ type?: string }} layer */
+      const heatLike = (layer) => layer.type === "heatmap" || layer.type === "profile";
       const twoSided = (layer) => layer.type === "baseline" || (layer.type === "heatmap" && layer.measure === "pnl");
       /**
        * A heatmap of an amount's steps, as the website drew heat: inferno, its 4 colors that mixed (see gradientTable)
@@ -11658,7 +11689,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether a signal shows: itself shown, on a layer there and shown (hidden with it, else). @param {Layer} layer @param {Chart} [doc] */
       const signalShown = (layer, doc = chart) => layer.type === "signal" && !layer.hidden && ((on) => Boolean(on && !on.hidden))(doc.layers.find((item) => item.id === layer.ref));
       /** What a signal's marks can be on: a layer of one value drawn as itself (not a cloud, not a signal). @param {Chart} doc */
-      const markable = (doc) => doc.layers.filter((other) => other.type !== "cloud" && !placedOn(other) && other.type !== "heatmap");
+      const markable = (doc) => doc.layers.filter((other) => other.type !== "cloud" && !placedOn(other) && !heatLike(other));
       /**
        * The layer a new signal is marked on: the first its formula reads that can be (by its letter, else by the series it
        * names, in its order), else the first that can be; of those, a shown one before a hidden one (its marks seen).
@@ -11681,7 +11712,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A place's name as a choice says it: "Above the layer", "Shaded". @param {string} place */
       const placeName = (place) => ((text) => (place === "shade" ? "Shaded while up or down" : place === "on" ? "On the layer" : `${text} the layer`))(MARK_PLACES.find(([id]) => id === place)?.[1] ?? "");
       /** What can flip a trend: a layer of one value (not made from layers), not one of those it's made from. @param {Chart} doc @param {Layer} trend */
-      const refsFor = (doc, trend) => doc.layers.filter((layer) => !layer.from && !placedOn(layer) && layer.type !== "heatmap" && !trend.from?.includes(layer.id) && !readsOf(layer, doc).has(trend.letter));
+      const refsFor = (doc, trend) => doc.layers.filter((layer) => !layer.from && !placedOn(layer) && !heatLike(layer) && !trend.from?.includes(layer.id) && !readsOf(layer, doc).has(trend.letter));
       /** A trend's reference by default: a price on its scale (candles, a series named so), else the first of those there; none there, none. @param {Chart} doc @param {Layer} trend */
       const refFor = (doc, trend) => ((refs) => (refs.find((layer) => layer.type === "candles" || /^price/.test(layer.series ?? "")) ?? refs[0])?.id)(refsFor(doc, trend).filter((layer) => oneScale(layer, trend)));
       /** An unnamed formula's line (its name is its formula): what it is, in what once known. @param {Layer} layer */
@@ -11748,15 +11779,35 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A signal, said: the layer its marks are on, how many there are (with its results, what they made). @param {Layer} layer */
       const signalLine = (layer) => ((on, values) => (!on ? "Pick a layer to mark it on" : on.hidden ? `Hidden while ${labelOf(on)} is hidden` : `Signal on ${labelOf(on)}${values ? ` · ${plural(marksOf(layer, values).length, "time")}${((total) => (total === undefined ? "" : ` · ${resultText(total)} in all`))(layer.results ? resultsOf(layer) : undefined)}${fineDrawn() ? " in the loaded range" : ""}` : ""}`))(chart.layers.find((item) => item.id === layer.ref), resolved?.results.get(layer.id)?.values);
       /** A layer's type, by its name: every type's (those drawn from a series, from layers, a signal, bubbles, a heatmap). */
-      const typeName = (/** @type {string} */ type) => [...TYPES, ...FROM_TYPES, ["signal", "Signal"], ["bubbles", "Bubbles"], ["heatmap", "Heatmap"]].find(([id]) => id === type)?.[1] ?? type;
+      const typeName = (/** @type {string} */ type) => [...TYPES, ...FROM_TYPES, ["signal", "Signal"], ["bubbles", "Bubbles"], ["heatmap", "Heatmap"], ["profile", "Profile"]].find(([id]) => id === type)?.[1] ?? type;
+      /**
+       * (Here, before the library's read: its profiles normalized as it is, see normalize.)
+       * The URPD's cohorts (`GET /api/urpd`), named as the Holders presets name them (presets.js's HOLDERS; the age bands
+       * as the client's AGE_RANGE_NAMES, "old" left off): all coins, the age cutoffs, then the age bands from the youngest.
+       */
+      const HEAT_COHORTS = /** @type {[string, string][]} */ ([
+        ["all", "All coins"], ["sth", "Short-term holders"], ["lth", "Long-term holders"],
+        ["age_under_4m", "Under 4 months old"], ["age_under_6m", "Under 6 months old"], ["age_over_4m", "Over 4 months old"], ["age_over_6m", "Over 6 months old"],
+        ...Object.values(client.AGE_RANGE_NAMES).map(({ id, long }) => /** @type {[string, string]} */ ([`age_${id}`, long.split(" ").map((word, i) => (i && /^[A-Z][a-z]+$/.test(word) ? word.toLowerCase() : word)).join(" ").replace(/ old$/, "")])),
+      ]);
+      /** Whether Bitview has a heatmap's holder group (a link's typo, one renamed: not). @param {Layer} layer */
+      const heatKnown = (layer) => ((known) => (layer.type === "profile" ? Boolean(layer.profile?.length) && /** @type {string[]} */ (layer.profile).every(known) : known(layer.heatmap ?? "all")))((/** @type {string} */ cohort) => HEAT_COHORTS.some(([id]) => id === cohort));
+      /** The URPD's age bands, the youngest first (after all coins and the age cutoffs). */
+      const HEAT_AGES = HEAT_COHORTS.slice(7).map(([id]) => id);
+      /**
+       * Each holder group's color, as the app draws it: all coins green, short-term holders orange, long-term blue, the
+       * age cutoffs as Compass has them (under 4 months yellow, under 6 red, over 4 cyan, over 6 violet); the age bands
+       * around the wheel from the youngest, as the presets compare them (see presets.js's ramp). @param {string} id
+       */
+      const cohortColor = (id) => ((own) => (Object.hasOwn(own, id) ? own[id] : null))(/** @type {Record<string, string>} */ ({ all: "green", sth: "orange", lth: "blue", age_under_4m: "yellow", age_under_6m: "red", age_over_4m: "cyan", age_over_6m: "violet" })) ?? ((at) => (at < 0 ? "gray" : `oklch(0.72 0.15 ${Math.round(HEAT_AGES.length > 1 ? 25 + (295 * at) / (HEAT_AGES.length - 1) : 25)})`))(HEAT_AGES.indexOf(id));
+      /** A profile's color for one of its holder groups: its own, else the group's (see cohortColor). @param {Layer} layer @param {string} cohort */
+      const profileColor = (layer, cohort) => (layer.cohortColors && Object.hasOwn(layer.cohortColors, cohort) ? layer.cohortColors[cohort] : cohortColor(cohort));
+      /** A cohort's name (one not listed: its id). */
+      const cohortName = (/** @type {string} */ id) => HEAT_COHORTS.find(([one]) => one === id)?.[1] ?? id;
       /** A heatmap's measures: what its cells say (each day's URPD has all three: one switched, nothing's asked again). */
       const HEAT_MEASURES = /** @type {[string, string][]} */ ([["supply", "Supply"], ["capital", "Capital"], ["pnl", "Unrealized P&L"]]);
       /** A heatmap's weights, the URPD's: every coin as it is, or each age band's by its wakefulness (Cointime's) or mobility (Coinflow's). */
       const HEAT_WEIGHTS = /** @type {[string, string][]} */ ([["", "Every coin"], ["wakefulness", "Awake"], ["mobility", "Mobile"]]);
-      /** What a heatmap shows: its days as columns (none: those alone), a day's profile at the plot's right edge alone, or both. */
-      const HEAT_SHOWS = /** @type {[string, string][]} */ ([["", "Heatmap"], ["only", "Profile"], ["both", "Both"]]);
-      /** What each of those is, said beside it. */
-      const HEAT_SHOWN = /** @type {Record<string, string>} */ ({ "": "Its days as columns, behind the price", only: "A day's, at the chart's right edge, by its close", both: "The columns, and the profile at the right edge" });
       /** A heatmap's densities, the URPD's: rows per ×10 in price, on a log scale or a linear one. */
       const HEAT_ROWS = [100, 200, 500];
       /** A gradient's colors at most, at least (read back with a chart, at the start: see gradientOf). */
@@ -11783,7 +11834,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether a layer's values aren't drawn at their own height on its scale: a signal's (marks on its layer), bubbles' (sized on theirs). @param {Layer} layer */
       const placedOn = (layer) => layer.type === "signal" || layer.type === "bubbles";
       /** Whether a layer has a series' look, its Type one of TYPES: none made from layers, placed on one, or a heatmap. @param {Layer} layer */
-      const seriesLooked = (layer) => !layer.from && !placedOn(layer) && layer.type !== "heatmap";
+      const seriesLooked = (layer) => !layer.from && !placedOn(layer) && !heatLike(layer);
       /** How a line runs between its points: straight, in steps (a value that holds until it changes), or curved. @type {[string, string, number][]} */
       const SHAPES = [["straight", "Straight", LC.LineType.Simple], ["steps", "Steps", LC.LineType.WithSteps], ["curved", "Curved", LC.LineType.Curved]];
       const lineTypeOf = (layer) => SHAPES.find(([id]) => id === layer.shape)?.[2] ?? LC.LineType.Simple;
@@ -12908,7 +12959,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        *   type: string, width: number, dash: number, pane: string, side: string, hidden?: boolean, priceLine?: boolean, outline?: true, size?: number, hide?: number, scaleTo?: "all", colorBelow?: string, colors?: 1 | 4, colorFading?: string, colorBelowFading?: string, opacity?: number,
        *   format?: string, base?: number, path?: string, paths?: Record<string, string>,
        *   shape?: string, levels?: Level[], fill?: string, fillOpacity?: number, solid?: true, hollow?: "none", place?: string, results?: boolean, baseLine?: { color?: string, dash?: number, line?: false, tag?: boolean }, underName?: string, from?: string[], ref?: string, colorFrom?: string, byLevels?: boolean, byLayers?: boolean,
-       *   heatmap?: string, weight?: string, measure?: string, rows?: number, profile?: "both" | "only", gradient?: [number, string][], upToDate?: true, byGradient?: true }} Layer
+       *   heatmap?: string, weight?: string, measure?: string, rows?: number, profile?: string[], cohortColors?: Record<string, string>, gradient?: [number, string][], upToDate?: true, byGradient?: true }} Layer
        *   Made from layers (`from`: the ids of the layers it's made of, none itself made from layers), by its type: a cloud
        *   ("cloud") is filled between its two, at each date (in two colors, `color` where the first is over the second,
        *   `colorBelow` where the second is, parting where they cross); a trend ("trend") is on the lowest of two or more
@@ -13089,7 +13140,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const EDGE_NAMES = /** @type {Record<string, string>} */ ({ top: "The pane's top", bottom: "The pane's bottom" });
       const edgeIcon = (/** @type {string} */ edge) => (edge === "top" ? ICONS.toTop : ICONS.toBottom);
       /** Members as given that can be: layers there, none made from layers (a cloud's edges too), each once. @param {Chart} doc @param {Iterable<string>} members */
-      const membersOf = (doc, members, cloud = false) => [...new Set(members)].filter((id) => (cloud && EDGES.includes(id)) || doc.layers.some((item) => item.id === id && !item.from && !placedOn(item) && item.type !== "heatmap"));
+      const membersOf = (doc, members, cloud = false) => [...new Set(members)].filter((id) => (cloud && EDGES.includes(id)) || doc.layers.some((item) => item.id === id && !item.from && !placedOn(item) && !heatLike(item)));
       /**
        * What it's made from, as kept (membersOf): a cloud's all, as given (two, its colors say which one's over), a
        * trend's in the chart's order. @param {Chart} doc @param {Iterable<string>} members
@@ -13127,7 +13178,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * a signal, not one reading it (a loop), on one scale with `on` (one it'd be with: its first, the other of a cloud's
        * two; none, any). @param {Layer} item
        */
-      const memberable = (item, /** @type {Layer | null} */ self = null, /** @type {Layer | null} */ on = null) => !item.from && !placedOn(item) && item.type !== "heatmap" && item !== self && !(self && readsOf(item).has(self.letter)) && (!on || oneScale(item, on));
+      const memberable = (item, /** @type {Layer | null} */ self = null, /** @type {Layer | null} */ on = null) => !item.from && !placedOn(item) && !heatLike(item) && item !== self && !(self && readsOf(item).has(self.letter)) && (!on || oneScale(item, on));
       /** Whether some of a cloud's or a trend's layers (what flips it too) are on another scale than it: their values not one's. @param {Chart} doc @param {Layer} layer */
       const offScale = (doc, layer) => [...(layer.from ?? []), ...(layer.type === "trend" && layer.ref ? [layer.ref] : [])].some((id) => ((other) => other && !oneScale(other, layer))(doc.layers.find((item) => item.id === id)));
       const TREND_FLIP = "Needs a third layer, such as a price, to flip it", ONE_SCALE = "Not on one scale", FLIP_APART = "What flips it is on another scale";
@@ -13236,6 +13287,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const layer of doc.layers) if (layer.from) layer.from = fromOf(doc, layer.from, layer.type);
         // (A trend's reference one that can flip it, none else (it says so); no shape: a step would draw its flips.)
         for (const layer of doc.layers) if (layer.type === "trend") delete layer.shape;
+        // (A profile: its holder groups each once, its color its first one's (its letter's, its legend's), each group's own
+        // kept only where it isn't the group's, and only for those in it.)
+        for (const layer of doc.layers) {
+          if (layer.type !== "profile") continue;
+          layer.profile = [...new Set(layer.profile ?? [])];
+          if (!layer.profile.length) layer.profile = ["all"];
+          // (A group taken out takes its color with it, as a link keeps them.)
+          for (const [cohort, color] of Object.entries(layer.cohortColors ?? {})) if (color === cohortColor(cohort) || !layer.profile.includes(cohort)) delete /** @type {Record<string, string>} */ (layer.cohortColors)[cohort];
+          if (layer.cohortColors && !Object.keys(layer.cohortColors).length) delete layer.cohortColors;
+          layer.color = profileColor(layer, layer.profile[0]);
+        }
         // (Colors from another layer: one there, not itself, for a type that takes them.)
         // (Nor one taking its colors from this one: a pair, each the other's, has nothing to start from.)
         for (const layer of doc.layers) if (layer.colorFrom && (!COLORED_FROM.has(layer.type) || layer.colorFrom === layer.id || !doc.layers.some((other) => other.id === layer.colorFrom) || doc.layers.find((other) => other.id === layer.colorFrom)?.colorFrom === layer.id)) delete layer.colorFrom;
@@ -13351,12 +13413,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * as lines; 10, a signal's down color and results, so one that doesn't know them can't drop them; 11, an area's fill
        * opacity and solid fill, candles' one color and hollow bodies, so one that doesn't know them can't drop them; 12, a
        * path (a drawing of many points) and a folder's icon, so one that doesn't know them can't drop them; 13, heatmaps
-       * and gradients, so one that doesn't know them can't turn a heatmap into a line or drop a gradient): one saved by a
-       * newer
+       * and gradients, so one that doesn't know them can't turn a heatmap into a line or drop a gradient; 14, profiles, so
+       * one that doesn't know them can't turn a profile into a line or drop its holder groups): one saved by a newer
        * Studio (a later number), or stored in a shape it can't read at all (damaged, another's), is opened read-only here,
        * said so, and kept as it is: it may hold what this one would drop, or lose entirely, if it saved over it.
        */
-      const SCHEMA = 13;
+      const SCHEMA = 14;
       let readOnly = Number(/** @type {any} */ (library)?.schema) > SCHEMA || (!Array.isArray(library?.charts) && (() => {
         try {
           return localStorage.getItem(STORE) !== null;
@@ -15541,7 +15603,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const formulaSeries = (doc) => [...new Set(doc.layers.flatMap((layer) => (layer.formula !== undefined ? [...seriesNamed(layer.formula), ...seriesUnnamed(layer.formula)] : [])))];
       /** Every series a chart reads, its layers' and its formulas', each once. @param {Chart} doc @returns {string[]} */
       // (A heatmap's dates, the price's: its days drawn on them, see drawHeat.)
-      const seriesIn = (doc) => [...new Set([...doc.layers.flatMap((layer) => (layer.series ? [layer.series] : layer.type === "heatmap" ? ["price"] : [])), ...formulaSeries(doc)])];
+      const seriesIn = (doc) => [...new Set([...doc.layers.flatMap((layer) => (layer.series ? [layer.series] : heatLike(layer) ? ["price"] : [])), ...formulaSeries(doc)])];
 
       /** Each chart's timeline and series on it, by its interval, while its data is the same (see resolve). @type {Map<string, any>} */
       const frames = new Map();
@@ -15659,7 +15721,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // price's closes, its scale's (see heatView).)
         const closes = ((price) => (price?.data && !isText(price.data) ? align(price.data).values : undefined))(fetched.get("price"));
         // (Of a holder group Bitview doesn't have (a link's typo, one renamed): said, as a series' is, and never asked for.)
-        for (const layer of doc.layers) if (layer.type === "heatmap") results.set(layer.id, { unit: (layer.measure ?? "supply") === "supply" ? "btc" : "usd", heat: true, closes, ...(heatKnown(layer) ? {} : { error: "Not on Bitview", detail: "Bitview has no holder group by this name: renamed, removed, or mistyped" }) });
+        for (const layer of doc.layers) if (heatLike(layer)) results.set(layer.id, { unit: (layer.measure ?? "supply") === "supply" ? "btc" : "usd", heat: true, closes, ...(heatKnown(layer) ? {} : { error: "Not on Bitview", detail: "Bitview has no holder group by this name: renamed, removed, or mistyped" }) });
         /** The series formulas name, as they are (no transform: a formula applies its own). @type {Map<string, Result>} */
         const bySeries = new Map();
         for (const name of named) {
@@ -15734,7 +15796,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               if (!target) throw new Error(goneLayer(doc, name) ?? `There is no layer ${name}`);
               if (target === layer) throw new Error(`${name} can't refer to itself`);
               if (target.type === "cloud") throw new Error(`${name} is a cloud: a range, not one value`);
-              if (target.type === "heatmap") throw new Error(`${name} is a heatmap: many values a date, not one`);
+              if (heatLike(target)) throw new Error(`${name} is a heatmap: many values a date, not one`);
               const result = computed(target);
               // (One with no value anywhere: none at each date, for this to make what it can of (an "or" of it, its other side).)
               if (result?.blank) return result.blank;
@@ -15855,7 +15917,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A heatmap's profile's width (see drawProfile): a fifth of the plot's, 72 at least, 200 at most. */
       const profileWidth = (/** @type {number} */ width) => Math.round(clamp(width * 0.2, 72, 200));
       /** Whether a chart shows a heatmap's profile: its room then after its latest, see rightGap. @param {Chart} doc */
-      const profiled = (doc) => doc.layers.some((layer) => layer.type === "heatmap" && layer.profile && !layer.hidden);
+      const profiled = (doc) => doc.layers.some((layer) => layer.type === "profile" && !layer.hidden);
       /**
        * The room after the data's last value, in pixels, at any zoom: its line's end clear of the scale (as TradingView), a
        * share of the chart's width, a phone's narrower, a large screen's no wider than 48; with a heatmap's profile, its
@@ -16446,7 +16508,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * What a chart's data depends on: its interval and what each layer reads (in any order); a heatmap's holders and
        * measure (its result's: whether Bitview has them, its unit).
        */
-      const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.layers.map(({ id, letter, series, formula, type, from, ref, heatmap, measure }) => [id, letter, series, formula, from ? type : null, from ?? null, ref ?? null, type === "heatmap" ? [heatmap ?? "all", measure ?? "supply"] : null]).sort()]);
+      const dataKey = (/** @type {Chart} */ doc) => JSON.stringify([doc.id, doc.index, doc.layers.map(({ id, letter, series, formula, type, from, ref, heatmap, profile, measure }) => [id, letter, series, formula, from ? type : null, from ?? null, ref ?? null, heatLike({ type }) ? [heatmap ?? "all", profile ?? null, measure ?? "supply"] : null]).sort()]);
 
       /**
        * Cached data keeps each edit's rebuild cheap (missing data fetched first).
@@ -16820,24 +16882,26 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const options = { ...common, ...paint, lastValueVisible: false, priceLineVisible: false, top, bottom, banded, ...(top && bottom && !cloudLayers(layer).length ? { priceScaleId: `shade:${layer.id}`, autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 1 } }) } : {}) };
             series = again ?? tracked(view.addCustomSeries(cloudView(), options, pane));
             if (again) series.applyOptions(lookOf(options));
-          } else if (layer.type === "heatmap") {
+          } else if (heatLike(layer)) {
             // A heatmap: each day's URPD behind the lines (see heatView): no tag, no line across; nothing to its scale but
             // alone on it (nothing else drawn on its pane's side: a signal's marks, or one with no value its scale draws,
             // don't count), the price's then (its closes, see heatView).
             // (Its reference kept while it's the same map: a rebuild during a block's refresh draws on, see drawHeat.)
             const look = /** @type {HeatLook} */ (heatLook(doc, layer, data, op)), was = heatLooks.get(layer.id), known = heatKnown(layer);
             if (was && was.cohort === look.cohort && was.weight === look.weight && was.grid?.agg === look.grid?.agg && was.measure === look.measure) look.reference = was.reference;
+            // (A profile's days last shown kept while they're read the same way: a group added draws the others at once.)
+            if (was?.kind === "profile" && look.kind === "profile" && was.weight === look.weight && was.grid?.agg === look.grid?.agg) look.last = was.last;
             // (Of a holder group Bitview doesn't have (as drawn: a valid one highlighted in ⌘K previews): nothing drawn,
             // nothing asked for, no rows.)
             if (known) heatLooks.set(layer.id, look);
             else heatLooks.delete(layer.id), heatWants.delete(layer.id);
             // (A value its scale draws: a number, and above 0 on a log one.)
             const log = modeOf(doc, layer) === 1, drawable = (/** @type {number} */ value) => Number.isFinite(value) && (!log || value > 0);
-            const alone = !doc.layers.some((other) => other !== layer && other.pane === layer.pane && other.side === layer.side && !other.hidden && other.type !== "heatmap" && other.type !== "signal" && data.results.get(other.id)?.values?.some(drawable));
+            const alone = !doc.layers.some((other) => other !== layer && other.pane === layer.pane && other.side === layer.side && !other.hidden && !heatLike(other) && other.type !== "signal" && data.results.get(other.id)?.values?.some(drawable));
             // (Hidden, not drawn: nothing to ask for.)
             if (layer.hidden) heatWants.delete(layer.id);
             // (Its profile drawn fixed at the plot's edge: a pan draws its pane whole, see LWC patch 54.)
-            const options = { ...common, lastValueVisible: false, priceLineVisible: false, heatId: layer.id, bvFixed: Boolean(layer.profile && !layer.hidden), autoscaleInfoProvider: (/** @type {() => any} */ original) => (alone ? original() : null) };
+            const options = { ...common, lastValueVisible: false, priceLineVisible: false, heatId: layer.id, bvFixed: layer.type === "profile" && !layer.hidden, autoscaleInfoProvider: (/** @type {() => any} */ original) => (alone ? original() : null) };
             series = again ?? tracked(view.addCustomSeries(heatView(), options, pane));
             if (again) series.applyOptions({ ...lookOf(options), heatTick: ++heatTicks });
             // (Kept up with live only where drawn: see movePrice.)
@@ -16885,7 +16949,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const before = kept.get(layer.id);
           // (A heatmap's rows: its timeline's dates and the price's closes there (its scale's), its days drawn from its
           // look, see drawHeat.)
-          if (layer.type === "heatmap") setRows(series, heatKnown(layer) ? data.times.map((time, i) => ({ time, close: result?.closes?.[i] ?? NaN })) : []);
+          if (heatLike(layer)) setRows(series, heatKnown(layer) ? data.times.map((time, i) => ({ time, close: result?.closes?.[i] ?? NaN })) : []);
           // (Bubbles' rows: each date's own value (its size) and where it sits, the value there of the layer it's on, as
           // drawn (a stack's, its total); on none, its pane's middle.)
           else if (layer.type === "bubbles") setRows(series, result?.values ? bubbleRows(doc, data, layer, stacked) : []);
@@ -16988,7 +17052,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         markSignals(doc, data, drawn, old);
         for (const series of old) heatSeries.delete(series), view.removeSeries(series);
-        for (const id of heatLooks.keys()) if (!doc.layers.some((layer) => layer.id === id && layer.type === "heatmap")) heatLooks.delete(id), heatWants.delete(id);
+        for (const id of heatLooks.keys()) if (!doc.layers.some((layer) => layer.id === id && heatLike(layer))) heatLooks.delete(id), heatWants.delete(id);
         for (const { series } of carriersBefore.values()) view.removeSeries(series);
         // Each pane's series front to back as the panel lists them (its first layer in front; reversed, its last), over its
         // lines across (in a stack, its foot in front of the taller ones: each band and bar shows whole). Drawn back first:
@@ -17558,7 +17622,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * layer's.
        */
       function bandsOf(/** @type {Pane} */ pane) {
-        const layers = chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden && (!layer.from || !pane.stack) && !placedOn(layer) && layer.type !== "heatmap");
+        const layers = chart.layers.filter((layer) => layer.pane === pane.id && !layer.hidden && (!layer.from || !pane.stack) && !placedOn(layer) && !heatLike(layer));
         return pane.reverse ? layers.reverse() : layers;
       }
       /** Whether a pane's legend is its key: so many layers (see BANDS_FROM), stacked or not: too many to list. */
@@ -17679,7 +17743,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           };
           // (A keyed pane: its key, and a heatmap's item beside it (not one of its bands, see bandsOf).)
           const mine = chart.layers.filter((layer) => layer.pane === element.dataset.pane);
-          const html = pane && keyedPane(pane) ? keyHtml(pane) + mine.filter((layer) => layer.type === "heatmap").map(item).join("") : mine.map(item).join("");
+          const html = pane && keyedPane(pane) ? keyHtml(pane) + mine.filter((layer) => heatLike(layer)).map(item).join("") : mine.map(item).join("");
           if (legendShown.get(element) === html) {
             if (pane && keyedPane(pane)) paintBand(element, pane);
             continue;
@@ -18006,13 +18070,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A named band's value: its name, in its color.)
           // (A heatmap's: its amount, the price it's at beside it in a legend, under it in a row.)
           const inRow = element.classList.contains("row-value"), heat = result.heat ? heatReading(layer, point) : null;
-          const value = valueAt(layer, point), band = result.low ? null : bandOf(layer, value), text = result.heat ? (heat ? (inRow ? heat.amount : `${heat.amount} at ${heat.at}`) : "—") : band ? band.name : result.low ? rangeAt(layer, point, unitFor(layer, result), "lines" in element.dataset) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "—";
+          const value = valueAt(layer, point), band = result.low ? null : bandOf(layer, value), text = result.heat ? (heat ? (inRow || !heat.at ? heat.amount : `${heat.amount} at ${heat.at}`) : "—") : band ? band.name : result.low ? rangeAt(layer, point, unitFor(layer, result), "lines" in element.dataset) : Number.isFinite(value) ? format(value, unitFor(layer, result)) : "—";
           if (element.textContent !== text) element.textContent = text;
           // (Older than the rest: when it's from, after it.)
           const since = Number.isFinite(value) || result.low ? asOf(layer, point) : "";
           // (A legend's, after its value; a row's, on the line under it, beside its change: see .row-figures.)
           const holder = inRow ? /** @type {HTMLElement} */ (element.parentElement) : element;
-          if (inRow && result.heat && (holder.dataset.at ?? "") !== (heat ? `at ${heat.at}` : "")) heat ? (holder.dataset.at = `at ${heat.at}`) : delete holder.dataset.at;
+          if (inRow && result.heat && (holder.dataset.at ?? "") !== (heat?.at ? `at ${heat.at}` : "")) heat?.at ? (holder.dataset.at = `at ${heat.at}`) : delete holder.dataset.at;
           if ((holder.dataset.asOf ?? "") !== since) {
             since ? (holder.dataset.asOf = since) : delete holder.dataset.asOf;
             // (A legend's slot as wide as it gets, its date too: read at another date, without it, nothing moves.)
@@ -18176,7 +18240,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       const samePaint = (/** @type {any[] | null | undefined} */ a, /** @type {any[]} */ b) => Boolean(a) && a?.length === b.length && b.every((value, i) => a?.[i] === value);
       /** Where a layer's colors vary date by date as the chart paints them (its colors another's, a trend's or a cloud's two): its colorsAt. */
-      const paintOf = (/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {{ times: number[], results: Map<string, any> }} */ data) => (layer.colorFrom || layer.byLevels || (layer.byGradient && layer.type !== "heatmap") || TWO_KEPT.has(layer.type) || (layer.type === "histogram" && layer.colors === 4) ? colorsAt(doc, layer, /** @type {Resolved} */ (data)) : null);
+      const paintOf = (/** @type {Chart} */ doc, /** @type {Layer} */ layer, /** @type {{ times: number[], results: Map<string, any> }} */ data) => (layer.colorFrom || layer.byLevels || (layer.byGradient && !heatLike(layer)) || TWO_KEPT.has(layer.type) || (layer.type === "histogram" && layer.colors === 4) ? colorsAt(doc, layer, /** @type {Resolved} */ (data)) : null);
       /** The color a layer is drawn in at its latest value (its name), where it varies (its colors another's, a trend's or a cloud's two); else null. @param {Layer} layer */
       function colorNow(layer) {
         const at = resolved ? paintOf(chart, layer, resolved) : null;
@@ -18265,8 +18329,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function valueSlot(layer, size, lines = false) {
         // (A heatmap's reading: a cell's amount, at its price beside it (a row's, `lines`, under it: its amount alone),
-        // each as wide as it's written, see heatReading.)
-        if (layer.type === "heatmap") return widest([8.888e6, 888_888, 88_888].flatMap((amount) => ((written) => (lines ? [written] : [888_888, 88_888].map((price) => `${written} at ${format(price, "usd")}`)))(format(amount, (layer.measure ?? "supply") === "supply" ? "btc" : "usd"))), 510, size);
+        // each as wide as it's written, see heatReading. A profile's: its share in profit, see profileReading.)
+        if (layer.type === "profile") return widest(["100% in profit"], 510, size, false);
+        if (heatLike(layer)) return widest([8.888e6, 888_888, 88_888].flatMap((amount) => ((written) => (lines ? [written] : [888_888, 88_888].map((price) => `${written} at ${format(price, "usd")}`)))(format(amount, (layer.measure ?? "supply") === "supply" ? "btc" : "usd"))), 510, size);
         const result = resolved?.results.get(layer.id), values = result?.values;
         if (!values) return 0;
         const unit = unitFor(layer, result), key = `${layer.id}:${unit}:${size}:${layer.from ? edgesOf(layer).join() : ""}:${lines ? "lines" : ""}:${named(layer) ? JSON.stringify([layer.underName, layer.levels?.map((level) => level.name)]) : ""}`;
@@ -18921,8 +18986,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function figuresRoom(/** @type {Layer} */ layer, /** @type {Result} */ result) {
         if (layer.hidden || result.error) return { value: 0, change: 0, date: 0, dated: false };
-        // (A heatmap's: its amount over the price it's at, see heatReading.)
-        if (layer.type === "heatmap") {
+        // (A heatmap's: its amount over the price it's at, see heatReading. A profile's: its share, one line.)
+        if (layer.type === "profile") return { value: valueSlot(layer, rowSizes.value) + 10, change: 0, date: 0, dated: false };
+        if (heatLike(layer)) {
           const value = valueSlot(layer, rowSizes.value, true) + 10;
           return { value, change: 0, date: Math.max(0, widest([`at ${format(888_888, "usd")}`], 400, 11) + 10 - value), dated: false };
         }
@@ -21371,51 +21437,65 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       // ── Heatmaps: the URPD, a day a column ──────────────────────────────────────
 
-      /**
-       * The URPD's cohorts (`GET /api/urpd`), named as the Holders presets name them (presets.js's HOLDERS; the age bands
-       * as the client's AGE_RANGE_NAMES, "old" left off): all coins, the age cutoffs, then the age bands from the youngest.
-       */
-      const HEAT_COHORTS = /** @type {[string, string][]} */ ([
-        ["all", "All coins"], ["sth", "Short-term holders"], ["lth", "Long-term holders"],
-        ["age_under_4m", "Under 4 months old"], ["age_under_6m", "Under 6 months old"], ["age_over_4m", "Over 4 months old"], ["age_over_6m", "Over 6 months old"],
-        ...Object.values(client.AGE_RANGE_NAMES).map(({ id, long }) => /** @type {[string, string]} */ ([`age_${id}`, long.split(" ").map((word, i) => (i && /^[A-Z][a-z]+$/.test(word) ? word.toLowerCase() : word)).join(" ").replace(/ old$/, "")])),
-      ]);
-      /** Whether Bitview has a heatmap's holder group (a link's typo, one renamed: not). @param {Layer} layer */
-      const heatKnown = (layer) => HEAT_COHORTS.some(([id]) => id === (layer.heatmap ?? "all"));
-      /** A cohort's name (one not listed: its id). */
-      const cohortName = (/** @type {string} */ id) => HEAT_COHORTS.find(([one]) => one === id)?.[1] ?? id;
       /** A heatmap's name: its measure by cost basis, its cohort's, its weight's ("Supply by cost basis, short-term holders, awake"). @param {Layer} layer */
-      const heatName = (layer) => `${HEAT_MEASURES.find(([id]) => id === (layer.measure ?? "supply"))?.[1]} by cost basis, ${cohortName(layer.heatmap ?? "all").replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase())}${layer.weight ? `, ${/** @type {string} */ (HEAT_WEIGHTS.find(([id]) => id === layer.weight)?.[1]).toLowerCase()}` : ""}`;
+      const heatName = (layer) => layer.type === "profile" ? profileName(layer) : `${HEAT_MEASURES.find(([id]) => id === (layer.measure ?? "supply"))?.[1]} by cost basis, ${cohortName(layer.heatmap ?? "all").replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase())}${layer.weight ? `, ${/** @type {string} */ (HEAT_WEIGHTS.find(([id]) => id === layer.weight)?.[1]).toLowerCase()}` : ""}`;
+      /**
+       * A profile's name: its measure's, of its holder groups (two named, more counted), its weight's ("Supply profile,
+       * short-term and long-term holders"). @param {Layer} layer
+       */
+      const profileName = (layer) => ((groups) => `${HEAT_MEASURES.find(([id]) => id === (layer.measure ?? "supply"))?.[1]} profile, ${groups.length > 2 ? `${groups.length} holder groups` : groups.map((cohort) => cohortName(cohort).replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase())).join(" and ")}${layer.weight ? `, ${/** @type {string} */ (HEAT_WEIGHTS.find(([id]) => id === layer.weight)?.[1]).toLowerCase()}` : ""}`)(layer.profile ?? []);
+      /** What a profile is, said where one's added, and in a row's few words. */
+      const PROFILE_ABOUT = "Holder groups' supply, capital or unrealized P&L by the price it was bought at, on one day (the latest, or the one pointed at), as bars at the chart's right edge: each group its color, under the price in profit.";
+      const PROFILE_SHORT = "Holder groups' cost basis, at the right edge";
       /** What a heatmap is, said where one's added. */
       const HEAT_ABOUT = "A holder group's supply, capital or unrealized P&L by the price it was bought at, day by day, behind the price (the URPD).";
       /** The same, in a row's few words. */
       const HEAT_SHORT = "Holder groups' cost basis, day by day";
       /** A heatmap's code, where a series shows its name: its endpoint's, `urpd/` and its holders. @param {Layer} layer */
-      const heatCode = (layer) => `urpd/${layer.heatmap ?? "all"}`;
+      const heatCode = (layer) => `urpd/${layer.type === "profile" ? (layer.profile ?? []).join("+") : layer.heatmap ?? "all"}`;
       /** A heatmap's latest day, as the API's path (its weight and density as it asks for them). @param {Chart} doc @param {Layer} layer */
       const heatPath = (doc, layer) => `/api/urpd/${encodeURIComponent(layer.heatmap ?? "all")}?agg=${heatGrid(doc, layer)?.agg ?? "log200"}${layer.weight ? `&weight=${layer.weight}` : ""}`;
       /** What each measure and weight is, said beside it. */
       const HEAT_SAYS = /** @type {Record<string, string>} */ ({ supply: "Bitcoin held, by the price it last moved at", capital: "What it cost, by that price", pnl: "Its gain or loss now, by that price", "": "Each coin counted as it is", wakefulness: "Each age band by how much of its coin days are spent (Cointime)", mobility: "Each age band by how likely its coins are to move (Coinflow)" });
       /**
+       * A profile's holder group in or out (in, after the others: further from the edge); its last stays, said so. Its
+       * chip, or its row in ⌘K, keeps the focus. @param {string} id @param {string} cohort
+       */
+      function toggleCohort(id, cohort) {
+        const layer = layerById(id);
+        if (!layer || layer.type !== "profile") return;
+        if (layer.profile?.length === 1 && layer.profile[0] === cohort) return notice("A profile shows one holder group at least");
+        editById(id, (item) => (item.profile = item.profile?.includes(cohort) ? item.profile.filter((other) => other !== cohort) : [...(item.profile ?? []), cohort]));
+        if (!isOpen($("palette"))) refocus(`#inspector [data-cohort-of="${CSS.escape(cohort)}"]`);
+      }
+      /** ⌘K's page of a profile's holder groups: each pressed in or out, as a trend's layers are (see fromPage). @param {string} id @returns {Page} */
+      const cohortsPage = (id) => ({ title: "Holders", placeholder: "Search the holder groups", rows: () => {
+        const layer = layerById(id), groups = layer?.profile ?? [];
+        // (Its groups Bitview doesn't have (a link's typo) last, to take out.)
+        return [...HEAT_COHORTS, ...groups.filter((cohort) => !HEAT_COHORTS.some(([one]) => one === cohort)).map((cohort) => /** @type {[string, string]} */ ([cohort, `${cohort}: not on Bitview`]))].map(([cohort, name], i) => ((on) => ({ kind: "row", key: cohort, icon: `<i class="swatch" style="--c: ${escape(cssColor(layer ? profileColor(layer, cohort) : cohortColor(cohort)))}"></i>`, label: name, aside: on ? "In it" : "", current: on, verb: on ? "Deselect" : "Select", stay: true, group: i < 7 ? "Holder groups" : i < HEAT_COHORTS.length ? "Age bands" : "Not on Bitview", run: () => toggleCohort(id, cohort) }))(groups.includes(cohort)));
+      } });
+      /**
        * A heatmap's rows in its page (see layerPage) and its inspector's menus: its holders, measure, weight and density,
        * each a choice shown on the chart while highlighted. @param {string} id
        */
       function heatRows(id) {
-        const both = bothOf(id), layer = /** @type {Layer} */ (layerById(id)), now = () => layerById(id) ?? layer, grid = heatGrid(chart, layer);
+        const both = bothOf(id), layer = /** @type {Layer} */ (layerById(id)), kind = layer.type === "profile" ? "Profile" : "Heatmap", now = () => layerById(id) ?? layer, grid = heatGrid(chart, layer);
         const choices = (/** @type {string} */ title, /** @type {[any, string][]} */ list, /** @type {(item: Layer) => any} */ value, /** @type {(item: Layer, choice: any) => void} */ apply, /** @type {(choice: any) => string | undefined} */ says = () => undefined) => () => choicePage(title, () => list.map(([choice, text]) => ({ key: String(choice), label: text, aside: says(choice), current: value(now()) === choice, ...both((item) => apply(item, choice)) })));
         return [
-          { key: "holders", icon: ICONS.people, label: "Holders", aside: cohortName(layer.heatmap ?? "all"), group: "Heatmap", leads: true, page: choices("Holders", HEAT_COHORTS, (item) => item.heatmap ?? "all", (item, cohort) => (item.heatmap = cohort)) },
-          { key: "measure", icon: ICONS.coins, label: "Measure", aside: HEAT_MEASURES.find(([measure]) => measure === (layer.measure ?? "supply"))?.[1], group: "Heatmap", page: choices("Measure", HEAT_MEASURES, (item) => item.measure ?? "supply", (item, measure) => reshape(item, (one) => (one.measure = measure === "supply" ? undefined : measure)), (measure) => HEAT_SAYS[measure]) },
-          { key: "weight", icon: ICONS.hourglass, label: "Weight", aside: HEAT_WEIGHTS.find(([weight]) => weight === (layer.weight ?? ""))?.[1], group: "Heatmap", page: choices("Weight", HEAT_WEIGHTS, (item) => item.weight ?? "", (item, weight) => (item.weight = weight || undefined), (weight) => HEAT_SAYS[weight]) },
+          // (A profile's, its groups pressed in or out; a heatmap's, its one.)
+          layer.type === "profile"
+            ? { key: "holders", icon: ICONS.people, label: "Holders", aside: ((groups) => (groups.length > 2 ? plural(groups.length, "group") : groups.map(cohortName).join(", ")))(layer.profile ?? []), group: "Profile", leads: true, page: () => cohortsPage(id) }
+            : { key: "holders", icon: ICONS.people, label: "Holders", aside: cohortName(layer.heatmap ?? "all"), group: "Heatmap", leads: true, page: choices("Holders", HEAT_COHORTS, (item) => item.heatmap ?? "all", (item, cohort) => (item.heatmap = cohort)) },
+          { key: "measure", icon: ICONS.coins, label: "Measure", aside: HEAT_MEASURES.find(([measure]) => measure === (layer.measure ?? "supply"))?.[1], group: kind, page: choices("Measure", HEAT_MEASURES, (item) => item.measure ?? "supply", (item, measure) => reshape(item, (one) => (one.measure = measure === "supply" ? undefined : measure)), (measure) => HEAT_SAYS[measure]) },
+          { key: "weight", icon: ICONS.hourglass, label: "Weight", aside: HEAT_WEIGHTS.find(([weight]) => weight === (layer.weight ?? ""))?.[1], group: kind, page: choices("Weight", HEAT_WEIGHTS, (item) => item.weight ?? "", (item, weight) => (item.weight = weight || undefined), (weight) => HEAT_SAYS[weight]) },
           grid
-            ? { key: "density", icon: ICONS.layers, label: "Density", aside: `${layer.rows ?? 200} rows per ×10`, group: "Heatmap", page: choices("Density", HEAT_ROWS.map((n) => /** @type {[number, string]} */ ([n, `${n} rows per ×10`])), (item) => item.rows ?? 200, (item, n) => (item.rows = n === 200 ? undefined : n)) }
-            : { key: "density", icon: ICONS.layers, label: "Density", aside: "Not on this scale", disabled: "On a log or linear scale", group: "Heatmap" },
-          { key: "profile", icon: ICONS.heatmap, label: "Show", aside: HEAT_SHOWS.find(([show]) => show === (layer.profile ?? ""))?.[1], group: "Heatmap", page: choices("Show", HEAT_SHOWS, (item) => item.profile ?? "", (item, show) => (item.profile = show || undefined), (show) => HEAT_SHOWN[show]) },
+            ? { key: "density", icon: ICONS.layers, label: "Density", aside: `${layer.rows ?? 200} rows per ×10`, group: kind, page: choices("Density", HEAT_ROWS.map((n) => /** @type {[number, string]} */ ([n, `${n} rows per ×10`])), (item) => item.rows ?? 200, (item, n) => (item.rows = n === 200 ? undefined : n)) }
+            : { key: "density", icon: ICONS.layers, label: "Density", aside: "Not on this scale", disabled: "On a log or linear scale", group: kind },
         ];
       }
       /**
        * A heatmap's section in the inspector: its holders and its density, each a menu of its page's choices (see
-       * heatRows); its measure, its weight and what it shows (its columns, its profile, both), each a row of three. @param {Layer} layer
+       * heatRows); its measure and its weight, each a row of three. A profile's: its holder groups as chips. @param {Layer} layer
        */
       function heatSection(layer) {
         const rows = heatRows(layer.id);
@@ -21423,13 +21503,23 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const tabs = (/** @type {string} */ key, /** @type {string} */ label, /** @type {string[][]} */ list, /** @type {string} */ now) => `<div class="field"><span>${label}</span><div class="tabs" role="group" aria-label="${label}">${list.map(([value, text]) => `<button type="button" data-heat-set="${key}" data-value="${value}" aria-pressed="${now === value}" data-tip="${escape(HEAT_SAYS[value])}">${escape(text)}</button>`).join("")}</div></div>`;
         // (Of a holder group Bitview doesn't have: said under it, another one to pick there.)
         const gone = !heatKnown(layer) ? '<div class="error-box gone"><p>Bitview has no holder group by this name: renamed, removed, or mistyped. Pick another above.</p></div>' : "";
+        // (A profile's: its holder groups and age bands, each pressed in or out, as a trend's layers are (see
+        // betweenField), each in its color; the first pressed at the edge.)
+        const groups = layer.profile ?? [], chips = (/** @type {[string, string][]} */ list, /** @type {string} */ label) => `<div class="from-of" role="group" aria-label="${label}">${list.map(([id, name]) => `<button type="button" data-cohort-of="${escape(id)}" aria-pressed="${groups.includes(id)}"><i class="swatch" style="--c: ${escape(cssColor(profileColor(layer, id)))}"></i><span class="name">${escape(name)}</span></button>`).join("")}</div>`;
+        if (layer.type === "profile") return `<section>
+              <h3>Profile</h3>
+              <div class="field"><span>Holders<span class="color-now">${plural(groups.length, "group")}</span></span>${chips([...HEAT_COHORTS.slice(0, 7), ...groups.filter((id) => !HEAT_COHORTS.some(([one]) => one === id)).map((id) => /** @type {[string, string]} */ ([id, `${id}: not on Bitview`]))], "Its holder groups")}</div>
+              <div class="field"><span>Age bands</span>${chips(HEAT_COHORTS.slice(7), "Its age bands")}</div>${gone}
+              ${tabs("measure", "Measure", [["supply", "Supply"], ["capital", "Capital"], ["pnl", "P&L"]], layer.measure ?? "supply")}
+              ${tabs("weight", "Weight", HEAT_WEIGHTS, layer.weight ?? "")}
+              ${menu("density")}
+            </section>`;
         return `<section>
               <h3>Heatmap</h3>
               ${menu("holders")}${gone}
               ${tabs("measure", "Measure", [["supply", "Supply"], ["capital", "Capital"], ["pnl", "P&L"]], layer.measure ?? "supply")}
               ${tabs("weight", "Weight", HEAT_WEIGHTS, layer.weight ?? "")}
               ${menu("density")}
-              ${tabs("profile", "Show", HEAT_SHOWS, layer.profile ?? "")}
             </section>`;
       }
       /** A column at least this wide (CSS pixels): zoomed out, a day in so many drawn, the days between never asked for. */
@@ -21503,7 +21593,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         look();
       });
       /** The looks of the heatmaps the chart shows (with a price to draw on). */
-      const shownHeats = () => chart.layers.flatMap((layer) => ((look) => (layer.type === "heatmap" && !layer.hidden && look && resolved?.results.get(layer.id)?.closes?.some(Number.isFinite) ? [look] : []))(heatLooks.get(layer.id)));
+      const shownHeats = () => chart.layers.flatMap((layer) => ((look) => (heatLike(layer) && !layer.hidden && look && resolved?.results.get(layer.id)?.closes?.some(Number.isFinite) ? [look] : []))(heatLooks.get(layer.id)));
       /** The days wanted asked for, a few at once, the first wanted first. */
       function heatPump() {
         heatPumping = false;
@@ -21685,9 +21775,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * its chart was, see settle), the days a column holds (`step`), the days it showed and wanted (`keep`), its
        * reference (`reference`: the open day's largest cell, see heatStrip); its colors (`gradient`, its gradient's as
        * shown, see gradientTable) and all it's painted by (`paint`, its strips' key).
-       * Its profile, if it shows one (`profile`, see drawProfile): its colors, in profit and in loss, its close's line's
-       * (`mark`) and its words' halo; the point it was last drawn for (`profileAt`: none, -1, at rest).
-       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, profile: string, gain: string, lose: string, halo: string, mark: string, profileAt?: number, drawn?: boolean, undrawable?: boolean, step?: number, keep?: Set<string>, reference?: number }} HeatLook
+       * A profile's (`kind`, see drawProfile): its holder groups and their colors, each one's day last shown (`last`), its
+       * shares' colors (in profit, in loss), its close's line's (`mark`) and its words' halo; the point it was last drawn
+       * for (`profileAt`: none, -1, at rest).
+       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, kind: string, cohorts: { id: string, color: string }[], last: Map<string, { key: string, day: HeatDay & { rows: Int32Array } }>, gain: string, lose: string, halo: string, mark: string, profileAt?: number, drawn?: boolean, undrawable?: boolean, step?: number, keep?: Set<string>, reference?: number }} HeatLook
        */
       /**
        * Each heatmap's look, by its layer's id: what it draws and how (kept apart from its series' options, which the
@@ -21719,7 +21810,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const rgbOf = (/** @type {string} */ hex) => [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
       /** A heatmap's look, for its series' renderer (see heatLooks). @param {Chart} doc @param {Layer} layer @param {Resolved} data @param {number} opacity */
       // (Its profile's colors: an unrealized P&L's own two, else the chart's green and red.)
-      const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data.times), measure: layer.measure ?? "supply", up: rgbOf(ink(layer.color)), down: rgbOf(ink(belowOf(layer))), opacity, profile: layer.profile ?? "", gain: ink(layer.measure === "pnl" ? layer.color : "green"), lose: ink(layer.measure === "pnl" ? belowOf(layer) : "red"), halo: css("--card"), mark: css("--ink"), gradient: layer.byGradient && layer.gradient ? gradientTable(layer.gradient).map((color) => rgbOf(ink(color))) : null, paint: `${layer.measure ?? "supply"}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
+      const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.type === "profile" ? layer.profile?.[0] ?? "all" : layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data.times), measure: layer.measure ?? "supply", up: rgbOf(ink(layer.color)), down: rgbOf(ink(belowOf(layer))), opacity, kind: layer.type, cohorts: layer.type === "profile" ? (layer.profile ?? []).map((id) => ({ id, color: ink(profileColor(layer, id)) })) : [], last: new Map(), gain: ink("green"), lose: ink("red"), halo: css("--card"), mark: css("--ink"), gradient: layer.byGradient && layer.gradient ? gradientTable(layer.gradient).map((color) => rgbOf(ink(color))) : null, paint: `${layer.measure ?? "supply"}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
       /** The day a block of `by` days is drawn as: its last (the open one, at most). @param {HeatLook} heat @param {number} g */
       const heatOwner = (heat, g, /** @type {number} */ by) => Math.min(Math.ceil(g / by) * by, heat.days.length - 1);
       /** A day's key in heatDays, by its count (see heatCalendar). @param {HeatLook} heat @param {number} g */
@@ -21739,6 +21830,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         return null;
       }
+      /**
+       * A profile's reading at a point: the share of its holder groups' coins in profit, under that day's close ("65% in
+       * profit"), as it draws it (each group's day there, else the one it showed before, see drawProfile); none in, none.
+       * @param {HeatLook} look @param {{ at: number, rest: boolean }} point @returns {{ amount: string, at: string } | null}
+       */
+      function profileReading(look, point) {
+        Object.assign(look, heatCalendar(/** @type {Resolved} */ (resolved).times));
+        if (point.at < 0 || point.at >= look.g.length || !look.grid) return null;
+        const grid = look.grid, shown = profileDays(look, look.g[point.at]), close = profileClose(shown);
+        if (!(close > 0)) return null;
+        let under = 0, all = 0;
+        for (const item of shown) if (item) for (let k = 0; k < item.day.rows.length; k++) ((coins) => ((all += coins), grid.price(item.day.rows[k] + 0.5) < close && (under += coins)))(/** @type {Float32Array} */ (item.day.supply)[k]);
+        return all > 0 ? { amount: `${Math.round((100 * under) / all)}% in profit`, at: "" } : null;
+      }
       /** The price the pointer's at in a pane (its index, its height there), while it's over the chart. @type {{ pane: number, y: number } | null} */
       let heatAt = null;
       /**
@@ -21750,6 +21855,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function heatReading(layer, point) {
         const look = heatLooks.get(layer.id), grid = look?.grid;
         if (!look || !grid || !resolved) return null;
+        // (A profile's: the share of its groups' coins in profit on the day it shows, as it says it.)
+        if (look.kind === "profile") return profileReading(look, point);
         Object.assign(look, heatCalendar(resolved.times));
         if (point.at < 0 || point.at >= look.g.length) return null;
         const shown = heatShown(look, heatOwner(look, look.g[point.at], look.step ?? 1), look.step ?? 1), day = shown?.day;
@@ -21777,6 +21884,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Drawn: what waits for its days in (see heatIn) asks again, once this draw's done.)
         heat.drawn = true;
         if (heatWaiters.size) queueMicrotask(() => { for (const wake of [...heatWaiters]) wake(); });
+        if (heat.kind === "profile") return drawProfile(scope, toY, heat);
         // (Nothing drawn: nothing wanted, nothing kept for it.)
         const none = () => void (heatWants.delete(heat.id), (heat.keep = undefined));
         if (!grid || !range || !data.bars.length || !resolved) return none();
@@ -21827,8 +21935,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!heatDays.get(keyOf(owner))?.rows) want(owner, step);
           if (!shown) want(ownerAt(owner, step * 16), step * 16);
           if (!shown || !shown.day.rows.length) return;
-          // (Its profile alone: its days asked for as its columns', none drawn.)
-          if (!reference || heat.profile === "only") return;
+          if (!reference) return;
           const strip = heatStrip(shown.key, shown.day, heat, reference, grid, dollars), x = Math.round(x0 * h), w = Math.max(1, Math.round(x1 * h) - x);
           const top = toY(strip.top), bottom = toY(strip.bottom);
           if (top === null || bottom === null || bottom < 0 || top > mediaSize.height) return;
@@ -21851,7 +21958,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (owner >= 0) column(owner, x0, x1);
         context.imageSmoothingEnabled = smooth;
-        if (heat.profile) drawProfile(scope, toY, heat, grid);
         heat.keep = keep;
         // (Those in view now take the place of any it wanted before.)
         if (!wanted.size) return void heatWants.delete(heat.id);
@@ -21859,47 +21965,90 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!heatPumping) (heatPumping = true), queueMicrotask(heatPump);
       }
       /**
-       * A heatmap's profile at the plot's right edge: the day the readout's at (at rest the view's last, the latest at its
-       * end; else the one pointed at), as its column shows it (see heatShown): its amounts by price as bars from the edge,
-       * a band a few pixels high each, as long as its amount against the largest in view; under its close in its color in
-       * profit, over it in its color in loss; an older day's close's line across it, and the share of its coins on each side. Drawn
-       * with the map, behind the lines (a picture has it, at rest); in the room the chart leaves for it after its latest,
-       * see rightGap. @param {any} scope @param {(price: number) => number | null} toY @param {HeatLook} heat @param {NonNullable<HeatLook["grid"]>} grid
+       * A profile (see heatLike): the day the readout's at (at rest the view's last, the latest at its end; else the one
+       * pointed at, or reached by the keys), each holder group's, asked for as it's wanted (one not in yet, the one it
+       * showed before: no blank between days); their amounts by price as bars from the plot's right edge, stacked, the
+       * first group's at the edge, a band a few pixels high each, as long as its amounts against the largest band in view;
+       * each group its color, strong under the day's close (in profit), faint over it (in loss); an older day's close's line
+       * across it (the latest's, the price's own line marks), and the share of their coins each side. Behind the lines (a
+       * picture has it, at rest); in the room the chart leaves for it after its latest, see rightGap.
+       * @param {any} scope @param {(price: number) => number | null} toY @param {HeatLook} heat
        */
-      function drawProfile(scope, toY, heat, grid) {
-        const point = capturing || !resolved ? { at: lastShown(), rest: true } : readPoint(), step = heat.step ?? 1;
+      /** The point a profile shows: the readout's, a picture's at rest (its probes' and its shot's alike). */
+      const profilePoint = () => (exporting || capturing ? { at: lastShown(), rest: true } : readPoint());
+      /**
+       * A profile's holder groups' days shown for a day (`g`, see heatCalendar): each one's own once it's in, else the one
+       * it showed before (none for a day that failed), in their order; `now`, its own. Drawn and read alike (see
+       * drawProfile, profileReading). @param {HeatLook} look @param {number} g
+       */
+      function profileDays(look, g) {
+        return look.cohorts.map(({ id, color }) => {
+          const key = `${id}|${look.weight}|${look.grid?.agg}|${look.days[g]}`, day = heatDays.get(key);
+          if (day?.rows) (day.used = ++heatUse), look.last.set(id, { key, day: /** @type {HeatDay & { rows: Int32Array }} */ (day) });
+          const had = day?.failed ? null : look.last.get(id);
+          return had ? { day: had.day, color, key: had.key, now: had.key === key } : null;
+        });
+      }
+      /** The close the days shown are split at: a group's own day's, else any's. @param {ReturnType<typeof profileDays>} shown */
+      const profileClose = (shown) => Number((shown.find((item) => item?.now) ?? shown.find(Boolean))?.day.close);
+      function drawProfile(scope, toY, heat) {
+        const grid = heat.grid, none = () => void (heatWants.delete(heat.id), (heat.keep = undefined));
+        if (!grid || !resolved || !heat.cohorts.length) return none();
+        Object.assign(heat, heatCalendar(resolved.times));
+        const point = profilePoint();
         heat.profileAt = point.rest ? -1 : point.at;
-        if (point.at < 0 || point.at >= heat.g.length) return;
-        const owner = heatOwner(heat, heat.g[point.at], step), day = heatShown(heat, owner, step)?.day, close = Number(day?.close);
-        if (!day?.rows.length || !(close > 0)) return;
+        if (point.at < 0 || point.at >= heat.g.length) return none();
+        const g = heat.g[point.at], keep = new Set(), wanted = /** @type {NonNullable<ReturnType<typeof heatWants.get>>} */ ([]);
+        for (const { id } of heat.cohorts) {
+          const key = `${id}|${heat.weight}|${grid.agg}|${heat.days[g]}`;
+          keep.add(key);
+          // (A failure not for good, asked again in its time.)
+          if ((heatDays.get(key)?.retryAt ?? Infinity) < Date.now()) heatDays.delete(key);
+          if (!heatDays.has(key)) wanted.push({ key, cohort: id, weight: heat.weight, agg: grid.agg, day: heat.days[g], rank: Number.MAX_SAFE_INTEGER });
+        }
+        const shown = profileDays(heat, g), close = profileClose(shown);
+        for (const item of shown) if (item) keep.add(item.key);
+        heat.keep = keep;
+        if (wanted.length) (heatWants.set(heat.id, wanted), heatPumping || ((heatPumping = true), queueMicrotask(heatPump)));
+        else heatWants.delete(heat.id);
+        if (!(close > 0)) return;
         const { context, mediaSize, horizontalPixelRatio: h, verticalPixelRatio: v } = scope, width = profileWidth(mediaSize.width), right = mediaSize.width - 2, height = mediaSize.height;
-        const values = /** @type {Float32Array} */ (heat.measure === "capital" ? day.capital : heat.measure === "pnl" ? day.pnl : day.supply), supply = /** @type {Float32Array} */ (day.supply), rows = day.rows;
-        // (Each band's amount, from its rows' middles; the coins under its close and in all.)
-        const BAND = 3, sums = new Float64Array(Math.ceil(height / BAND));
+        // (Each group's amount a band, from its rows' middles; the coins under the close and in all.)
+        const BAND = 3, bands = Math.ceil(height / BAND), sums = shown.map(() => new Float64Array(bands)), totals = new Float64Array(bands);
         let under = 0, all = 0;
-        for (let k = 0; k < rows.length; k++) {
-          const price = grid.price(rows[k] + 0.5);
-          all += supply[k];
-          if (price < close) under += supply[k];
-          const y = toY(price);
-          if (y !== null && y >= 0 && y < height) sums[Math.floor(y / BAND)] += Math.abs(values[k]);
-        }
-        const most = sums.reduce((a, b) => Math.max(a, b), 0), line = toY(close);
+        shown.forEach((item, c) => {
+          if (!item) return;
+          const { day } = item, rows = day.rows, supply = /** @type {Float32Array} */ (day.supply), values = /** @type {Float32Array} */ (heat.measure === "capital" ? day.capital : heat.measure === "pnl" ? day.pnl : day.supply);
+          for (let k = 0; k < rows.length; k++) {
+            const price = grid.price(rows[k] + 0.5);
+            all += supply[k];
+            if (price < close) under += supply[k];
+            const y = toY(price);
+            if (y === null || y < 0 || y >= height) continue;
+            const b = Math.floor(y / BAND), amount = Math.abs(values[k]);
+            sums[c][b] += amount;
+            totals[b] += amount;
+          }
+        });
+        const most = totals.reduce((a, b) => Math.max(a, b), 0), line = toY(close);
         if (!(most > 0) || line === null) return;
-        // (As strong as its layer's opacity lets it be, a little under its columns' full strength.)
-        const fill = (/** @type {string} */ color) => alpha(color, 0.6 * heat.opacity);
-        for (let b = 0; b < sums.length; b++) {
-          if (!sums[b]) continue;
-          const length = (sums[b] / most) * width, top = b * BAND;
-          context.fillStyle = fill(top + BAND / 2 > line ? heat.gain : heat.lose);
-          context.fillRect(Math.round((right - length) * h), Math.round(top * v), Math.max(1, Math.round(length * h)), Math.max(1, Math.round((BAND - 1) * v)));
+        for (let b = 0; b < bands; b++) {
+          if (!totals[b]) continue;
+          const top = b * BAND, strength = (top + BAND / 2 > line ? 0.72 : 0.32) * heat.opacity;
+          let x = right;
+          shown.forEach((item, c) => {
+            const length = (sums[c][b] / most) * width;
+            if (!item || !length) return;
+            context.fillStyle = alpha(item.color, strength);
+            context.fillRect(Math.round((x - length) * h), Math.round(top * v), Math.max(1, Math.round(x * h) - Math.round((x - length) * h)), Math.max(1, Math.round((BAND - 1) * v)));
+            x -= length;
+          });
         }
-        // (An older day's close, across it, dashed: the latest's, the price's own line marks; the shares each side of it,
-        // at its start, haloed over its bars.)
+        // (An older day's close, across it, dashed; the shares each side of it, at its start, haloed over its bars.)
         const y = Math.round(line * v) + 0.5, left = right - width;
         context.save();
-        if (owner !== heat.days.length - 1) {
-          context.strokeStyle = fill(heat.mark);
+        if (g !== heat.days.length - 1) {
+          context.strokeStyle = alpha(heat.mark, 0.6);
           context.lineWidth = Math.max(1, Math.round(h));
           context.setLineDash([3 * h, 3 * h]);
           context.beginPath();
@@ -21924,14 +22073,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         context.restore();
       }
       /**
-       * The heatmaps showing a profile of another point than the one read now (a pointer's, the keys', none), drawn again
+       * The profiles showing another point than the one read now (a pointer's, the keys', none), drawn again
        * at the chart's next frame. (At rest each frame draws the view's last: a pan's frames are drawn anyway.)
        */
       const profilesSoon = () => {
         const at = hoverTime === null ? -1 : indexOfTime(hoverTime);
         for (const series of heatSeries) {
           const look = heatLooks.get(series.options().heatId);
-          if (!look?.profile || look.profileAt === at || series.options().visible === false) continue;
+          if (look?.kind !== "profile" || look.profileAt === at || series.options().visible === false) continue;
           // (Asked for once: a series that doesn't draw it (hidden, nothing to draw) isn't asked again at each move.)
           look.profileAt = at;
           series.applyOptions({ heatTick: ++heatTicks });
@@ -22732,7 +22881,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const paneMode = (pane) => (!pane ? 0 : pane.stack === "percent" || (pane.stack && pane.mode > 1) ? 0 : pane.mode);
       /** The scales a pane can take now (a stack: linear and log; a 100% one: none to choose). @param {Pane} pane */
       const modesFor = (pane) => (pane.stack === "percent" ? [] : pane.stack ? [0, 1] : [0, 1, 2, 3]);
-      const labelOf = (layer) => layer.label || (layer.series ? humanize(layer.series) : layer.from ? fromName(layer) : layer.type === "heatmap" ? heatName(layer) : layer.formula || "Formula");
+      const labelOf = (layer) => layer.label || (layer.series ? humanize(layer.series) : layer.from ? fromName(layer) : heatLike(layer) ? heatName(layer) : layer.formula || "Formula");
       /**
        * A layer made from layers, named, unnamed: what it is, then its layers' letters (three at most; past that, how
        * many), then a cloud's edge (both: the pane). @param {{ from?: string[], type?: string }} layer @param {Chart | null} [doc]
@@ -22976,7 +23125,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
       };
       /** What a mini chart depends on: its layers, its panes, and the day. @param {Chart} doc */
-      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.range, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.colors, layer.fill, layer.from, layer.ref, layer.colorFrom, layer.byLevels ? layer.levels : null, layer.byGradient ? [layer.gradient, layer.upToDate] : null, layer.type === "heatmap" ? [layer.heatmap, layer.weight, layer.measure, layer.rows ?? 200] : null, layer.outline, ...fadingKey(layer)])]);
+      const thumbKey = (doc) => JSON.stringify([new Date().toISOString().slice(0, 10), doc.index, doc.range, doc.panes.map((pane) => [pane.mode, pane.size, pane.stack, pane.reverse]), doc.layers.map((layer) => [layer.id, layer.series, layer.formula, layer.hidden, layer.color, layer.side, doc.panes.findIndex((pane) => pane.id === layer.pane), layer.letter, layer.type, layer.base, layer.colorBelow, layer.colors, layer.fill, layer.from, layer.ref, layer.colorFrom, layer.byLevels ? layer.levels : null, layer.byGradient ? [layer.gradient, layer.upToDate] : null, heatLike(layer) ? [layer.heatmap, layer.profile, layer.cohortColors, layer.weight, layer.measure, layer.rows ?? 200] : null, layer.outline, ...fadingKey(layer)])]);
       /** Four-color bars' fading colors as drawn (their default the theme's): what a picture of them depends on. */
       const fadingKey = (/** @type {Layer} */ layer) => (layer.type === "histogram" && layer.colors === 4 ? [ink(fadingOf(layer, false)), ink(fadingOf(layer, true))] : []);
       /**
@@ -23234,7 +23383,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const previews = new Map(Object.entries(storage.get(PREVIEWS, {})).filter(([, item]) => validPreview(item)));
       /** What a card depends on past a mini chart's: its layers' looks the mark leaves out, the view it was left at and how much the chart shows. @param {Chart} doc */
       // (A heatmap's picture in its colors as the theme shows them: drawn again in the other.)
-      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName, layer.fillOpacity, layer.solid, layer.hollow, layer.size, layer.hide, layer.scaleTo]), openView(doc), FINE.has(doc.index) ? Math.round(view.timeScale().width() / 50) : 0, doc.layers.some((layer) => layer.type === "heatmap" && !layer.hidden) ? light : null]);
+      const previewKey = (doc) => JSON.stringify([thumbKey(doc), doc.layers.map((layer) => [layer.colors, layer.dash, layer.opacity, layer.levels, layer.baseLine, layer.underName, layer.fillOpacity, layer.solid, layer.hollow, layer.size, layer.hide, layer.scaleTo]), openView(doc), FINE.has(doc.index) ? Math.round(view.timeScale().width() / 50) : 0, doc.layers.some((layer) => heatLike(layer) && !layer.hidden) ? light : null]);
       /**
        * How many bars a chart's preview shows at most (its data at `index`): its range's, as the chart opens on it (Max, at
        * a day or coarser, the whole history); finer, no more than fit the chart's width at four a pixel.
@@ -25044,7 +25193,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // own fetch tries again, see paint.)
         if (settled() && chart.layers.length && resolved && !resolved.failed.length) {
           // (A heatmap's days aren't at hand at a card's density: its card kept till it's drawn with them, see drawPreview.)
-          previews.set(chart.id, { key: chart.layers.some((layer) => layer.type === "heatmap" && !layer.hidden) ? "" : previewKey(chart), ...previewOf(chart, resolved) });
+          previews.set(chart.id, { key: chart.layers.some((layer) => heatLike(layer) && !layer.hidden) ? "" : previewKey(chart), ...previewOf(chart, resolved) });
           savePreviews();
         }
         // (A draft taken back only when Cancel (or esc) is the way there; one of yours never filled, whichever way; one
@@ -25821,6 +25970,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (layer.type === "signal") body = markBody(layer.place, color);
         // (Bubbles', two: one in each of their colors, below zero and above.)
         else if (layer.type === "bubbles") body = `<circle cx="4.5" cy="7.5" r="2.5" fill="${below}" fill-opacity=".4" stroke="${below}"/><circle cx="11" cy="5.5" r="4" fill="${color}" fill-opacity=".4" stroke="${color}"/>`;
+        // (A profile's, bars from the edge, each split in its first two groups' colors, the first at the edge.)
+        else if (layer.type === "profile") body = [[7, 1.5], [12, 4.75], [5, 8]].map(([length, at]) => (layer.profile ?? []).slice(0, 2).map((cohort, c, all) => ((part) => `<rect x="${(15 - part * (c + 1)).toFixed(1)}" y="${at}" width="${part.toFixed(1)}" height="2.5" fill="${escape(ink(profileColor(layer, cohort)))}"/>`)(length / all.length)).join("")).join("");
         // (A heatmap's, cells of it: its unrealized P&L's, its loss over its profit.)
         else if (layer.type === "heatmap") body = [[0.3, 0.6, 1, 0.5], [0.6, 1, 0.45, 0.25], [1, 0.45, 0.2, 0.6]].map((row, r) => row.map((opacity, k) => `<rect x="${(1 + k * 3.6).toFixed(1)}" y="${(2 + r * 3.3).toFixed(1)}" width="3" height="2.7" rx=".5" fill="${layer.measure === "pnl" && !r ? below : color}" fill-opacity="${opacity}"/>`).join("")).join("");
         else if (ys && layer.type === "histogram" && modeOf(chart, layer) === 0) {
@@ -28830,14 +28981,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const loading = layer.series && !result;
               // (Its second line: what's wrong, what it's between, its formula, its heatmap's code or its series; said whole in
               // its tip, under its name, when either's cut short.)
-              const [subClass, subText] = result?.error ? ["sub error", result.error] : layer.from ? ["sub", fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`] : layer.formula !== undefined ? (layer.label ? ["sub code", `ƒ\u00a0${layer.formula}`] : ["sub", formulaLine(layer)]) : layer.type === "heatmap" ? ["sub code", heatCode(layer)] : ["sub code", layer.series ?? ""];
+              const [subClass, subText] = result?.error ? ["sub error", result.error] : layer.from ? ["sub", fromUnfit(chart, layer) || `Between ${fromSpan(layer)}${((silent) => (silent.length ? ` · ${silent.join(", ")} ${silent.length === 1 ? "has" : "have"} no data` : ""))(resolved ? chart.layers.filter((item) => layer.from?.includes(item.id) && !resolved?.results.get(item.id)?.values).map((item) => item.letter) : [])}`] : layer.formula !== undefined ? (layer.label ? ["sub code", `ƒ\u00a0${layer.formula}`] : ["sub", formulaLine(layer)]) : heatLike(layer) ? ["sub code", heatCode(layer)] : ["sub code", layer.series ?? ""];
               const sub = `<span class="${subClass}"${result?.error && result.detail ? ` data-tip="${escape(result.detail)}"` : ""}>${escape(subText)}</span>`;
               return `<div class="layer-row ${layer.hidden ? "hidden" : ""} ${layer.id === selected ? "selected" : ""} ${layerPicks.has(layer.id) ? "picked" : ""}" data-layer="${layer.id}">
                 <input type="checkbox" class="pick-check row-check" data-pick-layer="${layer.id}" style="${escape(`--c:${ink(layer.color)};--tick:${tickOn(layer.color)}`)}" aria-label="Select ${escape(labelOf(layer))}" data-tip="${layerPicks.has(layer.id) ? "Deselect" : "Select"}" ${layerPicks.has(layer.id) ? "checked" : ""} />
                 <button type="button" class="row-main" data-select="${layer.id}" data-tip="${escape(subText ? `${labelOf(layer)}\n${subText}` : labelOf(layer))}" ${layer.id === selected ? 'aria-current="true"' : ""}${layer.type === "cloud" && result?.low ? ` style="--value-room: ${valueSlot(layer, rowSizes.value, true) + 10}px"` : ""}>
                   ${letterChip(layer)}
                   <span class="row-text"><span class="name">${escape(labelOf(layer))}</span>${sub}</span>
-                  <span class="row-figures"><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.type === "cloud" ? " data-lines" : ""}`}></span>${layer.type === "cloud" || layer.type === "signal" || layer.type === "heatmap" ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}</span>
+                  <span class="row-figures"><span class="row-value ${loading ? "loading" : ""}" ${layer.hidden || result?.error ? "" : `data-value="${layer.id}"${layer.type === "cloud" ? " data-lines" : ""}`}></span>${layer.type === "cloud" || layer.type === "signal" || heatLike(layer) ? "" : `<span class="row-change" data-change="${layer.id}"></span>`}</span>
                 </button>
                 <button type="button" class="cap small" data-toggle="${layer.id}" aria-label="${layer.hidden ? "Show" : "Hide"} ${escape(labelOf(layer))}" data-tip="${layer.hidden ? "Show" : "Hide"}${layer.type === "signal" ? "" : `\n${keyText("⌥-click: alone in its pane")}`}">${layer.hidden ? ICONS.eyeOff : ICONS.eye}</button>
               </div>`;
@@ -29292,7 +29443,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Under one made from layers: what it lacks, else a trend's way, and why it isn't drawn here.)
         const fromError = layer.from ? fromShort(layer) || result?.error : "";
         const fromSays = layer.from && !fromError ? ((unfit) => [layer.type === "trend" ? TREND_SAYS : "", unfit === "Not in a stack" ? "not drawn in a stacked pane" : unfit === ONE_SCALE ? `not drawn: ${FLIP_APART.toLowerCase()}` : unfit ? "not drawn on a percent or indexed scale" : ""].filter(Boolean).join("; "))(fromUnfit(chart, layer)) : "";
-        const sourceSection = layer.type === "heatmap"
+        const sourceSection = heatLike(layer)
           ? heatSection(layer)
           : layer.from
           ? `<section>
@@ -29354,13 +29505,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ${candlesField([layer])}
             ${outlineField([layer])}
             ${priceLineField([layer])}
-            ${layer.from || placedOn(layer) || layer.type === "heatmap" ? "" : levelsField(layer, unit, result)}
+            ${layer.from || placedOn(layer) || heatLike(layer) ? "" : levelsField(layer, unit, result)}
           </section>
           ${signal ? "" : `<section>
             <h3>Layout</h3>
             ${paneField([layer])}
             ${axisField([layer])}
-            ${layer.type === "heatmap" ? "" : `<div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escape(formatName(layer, result))}"><span class="name">${escape(formatName(layer, result))}</span>${CHEVRON}</button></div>`}
+            ${heatLike(layer) ? "" : `<div class="field"><span>Format${resetFor("format", layer)}</span><button type="button" id="format" class="preset" data-action="format-menu" aria-haspopup="menu" aria-label="Format: ${escape(formatName(layer, result))}"><span class="name">${escape(formatName(layer, result))}</span>${CHEVRON}</button></div>`}
             <p class="shared-head">Pane ${chart.panes.findIndex((pane) => pane.id === layer.pane) + 1}'s, for every layer in it</p>
             ${stackOfPane === "percent" ? "" : `<div class="field"><span>Scale</span><div class="tabs" role="group" aria-label="Pane scale">${MODES.map(({ chip, tip, name }, mode) => `<button type="button" data-pane-mode="${layer.pane}" data-mode="${mode}" aria-pressed="${modeOf(chart, layer) === mode}" ${modesFor(layerPane).includes(mode) ? `data-tip="${mode < 2 ? `${tip} scale` : tip}"` : `aria-disabled="true" data-tip="${name} isn't available in a stacked pane (use linear or log)"`}>${chip}</button>`).join("")}</div></div>`}
             <div class="field"><span>Stack</span><div class="tabs" role="group" aria-label="Pane stack">${STACKS.map(([stack, name, tip]) => `<button type="button" data-pane-stack="${layer.pane}" data-stack="${stack}" aria-pressed="${stackOfPane === stack}" data-tip="${tip}">${stack === "percent" ? "100%" : name}</button>`).join("")}</div></div>
@@ -29409,7 +29560,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * picked for all of them; else none (a way of coloring of their own, which one color can't say).
        */
       const colorField = (/** @type {Layer[]} */ layers) => {
-        if (!layers.every((layer) => colorModeOf(layer) === "one")) return "";
+        // (A profile's colors are its groups', each its own: set in its own settings.)
+        if (!layers.every((layer) => colorModeOf(layer) === "one" && layer.type !== "profile")) return "";
         const now = sharedBy(layers, (layer) => layer.color), last = colorSource.get(`${chart.id}:${layers.map((layer) => layer.id).join()}:color`);
         const from = last && last.color === now ? last.source : now === undefined || SWATCHES.includes(now) ? "presets" : "custom";
         const tabs = `<div class="tabs color-source" role="group" aria-label="Color, its color from">${[["presets", "Palette"], ["custom", "Custom"]].map(([source, name]) => `<button type="button" data-color-source="${source}" aria-pressed="${source === from}">${name}</button>`).join("")}</div>`;
@@ -29418,7 +29570,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       const opacityField = (/** @type {Layer[]} */ layers) => `<div class="field"><span>Opacity${resetFor("opacity", layers)}</span>${slider("opacity", layers)}</div>`;
       const widthField = (/** @type {Layer[]} */ layers) => {
-        if (!layers.every((layer) => layer.type !== "histogram" && layer.type !== "cloud" && !placedOn(layer) && layer.type !== "heatmap")) return "";
+        if (!layers.every((layer) => layer.type !== "histogram" && layer.type !== "cloud" && !placedOn(layer) && !heatLike(layer))) return "";
         const type = sharedBy(layers, (layer) => layer.type);
         return `<div class="field"><span>Width${resetFor("width", layers)}</span>${slider("width", layers, type === "candles" ? "The line candles turn into, zoomed out" : type === "dots" ? "Dot size, which also follows the zoom" : "")}</div>`;
       };
@@ -29446,7 +29598,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return `<div class="field"><span>Candles</span><div class="tabs" role="group" aria-label="Candles">${[[true, "Hollow", "Hollow when rising, filled when falling"], [false, "Filled", "Filled, rising or falling"]].map(([on, text, tip]) => `<button type="button" data-hollow="${on ? 1 : 0}" aria-pressed="${now === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>`;
       };
       const priceLineField = (/** @type {Layer[]} */ layers) => {
-        if (!layers.every((layer) => layer.type !== "cloud" && !placedOn(layer) && layer.type !== "heatmap")) return "";
+        if (!layers.every((layer) => layer.type !== "cloud" && !placedOn(layer) && !heatLike(layer))) return "";
         const now = sharedBy(layers, (layer) => Boolean(layer.priceLine)), stacked = layers.some((layer) => layer.priceLine && chart.panes.find((pane) => pane.id === layer.pane)?.stack);
         return `<div class="field switch"><span>Price line</span><div class="tabs" role="group" aria-label="Price line">${[[false, "Off", "No line"], [true, "On", "A line across the chart at its latest value"]].map(([on, text, tip]) => `<button type="button" data-price-line="${on ? 1 : 0}" aria-pressed="${now === on}" data-tip="${tip}">${text}</button>`).join("")}</div></div>${stacked ? `<p class="from-status" role="status">Not drawn in a stack.</p>` : ""}`;
       };
@@ -29775,7 +29927,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function colorSlots(layer) {
         // (A gradient's: its stops, each by where it is.)
         if (layer.byGradient && layer.gradient) return layer.gradient.map(([at], k) => [`stop${k}`, `At ${at}%`]);
-        // (A heatmap's: one; its unrealized P&L's, its profit's and its loss's.)
+        // (A profile's: each holder group's. A heatmap's: one; its unrealized P&L's, its profit's and its loss's.)
+        if (layer.type === "profile") return (layer.profile ?? []).map((cohort) => [`cohort:${cohort}`, cohortName(cohort)]);
         if (layer.type === "heatmap") return layer.measure === "pnl" ? [["color", "In profit"], ["colorBelow", "In loss"]] : [["color", "Color"]];
         const mode = colorModeOf(layer), pair = layer.type === "cloud" ? ((letters) => (letters.length === 2 ? [`${letters[0]} over ${letters[1]}`, `${letters[1]} over ${letters[0]}`] : ["First over", "Second over"]))(fromLetters(layer)) : PAIRS[layer.type];
         return mode === "from" ? [["from", "Layer"]] : mode === "levels" ? [["color", "Under its levels"]] : mode === "layers" ? []
@@ -29790,7 +29943,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** Bars' color where they fall back toward their base, above it or below (four colors): theirs, else their side's fainter. @param {Layer} layer */
       const fadingOf = (layer, /** @type {boolean} */ below) => (below ? layer.colorBelowFading : layer.colorFading) ?? faintOf(below ? belowOf(layer) : layer.color);
-      const colorOf = (/** @type {Layer} */ layer, /** @type {string} */ key) => (key.startsWith("stop") ? layer.gradient?.[Number(key.slice(4))]?.[1] ?? layer.color : key === "colorBelow" ? belowOf(layer) : key === "colorFading" ? fadingOf(layer, false) : key === "colorBelowFading" ? fadingOf(layer, true) : layer.color);
+      const colorOf = (/** @type {Layer} */ layer, /** @type {string} */ key) => (key.startsWith("cohort:") ? profileColor(layer, key.slice(7)) : key.startsWith("stop") ? layer.gradient?.[Number(key.slice(4))]?.[1] ?? layer.color : key === "colorBelow" ? belowOf(layer) : key === "colorFading" ? fadingOf(layer, false) : key === "colorBelowFading" ? fadingOf(layer, true) : layer.color);
       /**
        * One of a layer's colors, set (its way of coloring as it is): its own; its second, kept only where it isn't its
        * default (red below a baseline's base, bars' too; a trend's or a cloud's, as picked); a fading one of four (empty:
@@ -29798,6 +29951,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function setColor(/** @type {Layer} */ layer, /** @type {string} */ key, /** @type {string} */ color) {
         if (key.startsWith("stop")) ((stop) => stop && color && (stop[1] = color))(layer.gradient?.[Number(key.slice(4))]);
+        // (A profile's holder group's: its own, see normalize.)
+        else if (key.startsWith("cohort:")) color && (layer.cohortColors = { ...layer.cohortColors, [key.slice(7)]: color });
         else if (key === "colorFading") layer.colorFading = color || undefined;
         else if (key === "colorBelowFading") layer.colorBelowFading = color || undefined;
         else if (key === "colorBelow") layer.colorBelow = !TWO_KEPT.has(layer.type) && color === "red" ? undefined : color;
@@ -30004,7 +30159,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function colorPicker(/** @type {Layer} */ layer) {
         const mode = colorModeOf(layer), name = modeName(mode, layer), source = layerById(layer.colorFrom ?? ""), ways = modesOf(layer).length > 1;
         // The way: a choice, as every other, on its line's right (none to choose: its label alone).
-        const head = `<div class="field"><span>${mode === "one" && !pairedOne(layer) ? "Color" : "Colors"}</span>${ways ? `<button type="button" id="color-mode" class="preset" data-action="color-mode" aria-haspopup="menu" aria-label="Colors: ${escape(name)}"><span class="name">${escape(name)}</span>${CHEVRON}</button>` : ""}</div>`;
+        const head = `<div class="field"><span>${mode === "one" && !pairedOne(layer) && !(layer.type === "profile" && (layer.profile?.length ?? 0) > 1) ? "Color" : "Colors"}</span>${ways ? `<button type="button" id="color-mode" class="preset" data-action="color-mode" aria-haspopup="menu" aria-label="Colors: ${escape(name)}"><span class="name">${escape(name)}</span>${CHEVRON}</button>` : ""}</div>`;
         if (mode === "from") return `${head}<div class="field color-slot"><span>Layer</span><button type="button" id="color-from" class="preset" data-action="color-from" aria-haspopup="menu" aria-label="Colors from: ${escape(source ? labelOf(source) : "")}">${source ? letterChip(source) : ""}<span class="name">${escape(source ? labelOf(source) : "")}</span>${CHEVRON}</button></div>`;
         // By its levels, by its layers: its colors theirs (none here).
         if (mode === "levels" || mode === "layers") return head;
@@ -30013,7 +30168,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // Which one (two, four): the colors themselves, under what they're for (four: its sides down, what the bar does
         // across), the one being set ringed.
         const chip = (/** @type {string} */ slot, /** @type {string} */ name) => `<button type="button" class="slot-chip" data-color-slot="${slot}" aria-pressed="${slot === key}" aria-label="${escape(name)}: ${escape(slotName(layer, slot))}" data-tip="${escape(slotName(layer, slot))}" style="--c:${escape(cssColor(colorOf(layer, slot)))}"></button>`;
-        const which = mode === "gradient" ? gradientEditor(layer, key) : places.length > 2
+        // (A profile's groups: each its name over its color, as many as it has.)
+        const which = mode === "gradient" ? gradientEditor(layer, key) : layer.type === "profile" ? (places.length > 1 ? `<div class="color-slots cohorts" role="group" aria-label="Which color">${places.map(([slot, name]) => `<span class="cohort-slot"><span class="head">${escape(name)}</span>${chip(slot, name)}</span>`).join("")}</div>` : "") : places.length > 2
           ? `<div class="color-slots four" role="group" aria-label="Which color"><span></span><span class="head">Growing</span><span class="head">Fading</span><span>Above</span>${chip("color", "Above, growing")}${chip("colorFading", "Above, fading")}<span>Below</span>${chip("colorBelow", "Below, growing")}${chip("colorBelowFading", "Below, fading")}</div>`
           : places.length > 1 ? `<div class="color-slots" role="group" aria-label="Which color">${places.map(([, name]) => `<span class="head">${escape(name)}</span>`).join("")}${places.map(([slot, name]) => chip(slot, name)).join("")}</div>` : "";
         // Where it's from: Bitview's colors; any other (the surface, its hex); a fading one's own, its growing one fainter.
@@ -30024,7 +30180,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           : from === "auto" ? `<p class="color-auto"><i class="swatch" style="--c:${escape(cssColor(faintOf(side)))}"></i>Fainter ${escape(colorName(side).toLowerCase())}</p>`
           : swatchGrid(own && SWATCHES.includes(own) ? own : "");
         // (Relative to all of its history, or up to each date: not a heatmap's, each day its own.)
-        const relative = mode === "gradient" && layer.type !== "heatmap" ? `<div class="field"><span>Relative to</span><div class="tabs" role="group" aria-label="Relative to">${/** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "Its lowest and highest up to each date: what that day showed, no hindsight"]]).map(([on, text, tip]) => `<button type="button" data-gradient-to="${on ? 1 : ""}" aria-pressed="${Boolean(layer.upToDate) === on}" data-tip="${escape(tip)}">${text}</button>`).join("")}</div></div>` : "";
+        const relative = mode === "gradient" && !heatLike(layer) ? `<div class="field"><span>Relative to</span><div class="tabs" role="group" aria-label="Relative to">${/** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "Its lowest and highest up to each date: what that day showed, no hindsight"]]).map(([on, text, tip]) => `<button type="button" data-gradient-to="${on ? 1 : ""}" aria-pressed="${Boolean(layer.upToDate) === on}" data-tip="${escape(tip)}">${text}</button>`).join("")}</div></div>` : "";
         return `${head}<div class="color-editor" data-palette="${key}">${which}${tabs}<div class="color-pick">${body}</div></div>${relative}`;
       }
       /**
@@ -30241,7 +30397,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const colorSlot = new Map();
       const slotNow = (/** @type {Layer} */ layer) => ((places) => ((chosenSlot) => (places.some(([key]) => key === chosenSlot) ? /** @type {string} */ (chosenSlot) : places[0]?.[0] ?? "color"))(colorSlot.get(`${chart.id}:${layer.id}`)))(colorSlots(layer));
       /** What a layer can take its colors from: another layer, none taking its own (no loop of two). @param {Layer} layer */
-      const colorSources = (layer) => chart.layers.filter((other) => other.id !== layer.id && other.colorFrom !== layer.id && !placedOn(other) && other.type !== "heatmap");
+      const colorSources = (layer) => chart.layers.filter((other) => other.id !== layer.id && other.colorFrom !== layer.id && !placedOn(other) && !heatLike(other));
       /** What each way of coloring does, said beside it. */
       const MODE_ASIDES = { one: "The same all along", sides: "Above and below its base", momentum: "Growing and fading", levels: "Each level's color above it", layers: "Each one's own, where it's over", gradient: "By its value, its lowest to its highest", from: "Another layer's, by date" };
       /**
@@ -31362,7 +31518,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (button.dataset.heatSet) editLayer((item) => {
           const value = button.dataset.value ?? "";
           if (button.dataset.heatSet === "measure") reshape(item, (one) => (one.measure = value === "supply" ? undefined : value));
-          else if (button.dataset.heatSet === "profile") item.profile = value === "both" || value === "only" ? value : undefined;
           else item.weight = value || undefined;
         });
         else if (button.id === "trend-ref" || button.id === "signal-ref" || button.id === "bubble-ref") refMenu(button, selected);
@@ -31374,6 +31529,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (action === "color-from") menuOf(button, fromChoices(selected));
         else if (type && button.getAttribute("aria-disabled") === "true") notice(/** @type {string} */ (button.dataset.tip));
         else if (type) editLayer((layer) => reshape(layer, (item) => (item.type = /** @type {Layer["type"]} */ (type))));
+        else if (button.dataset.cohortOf) toggleCohort(selected, button.dataset.cohortOf);
         else if (button.dataset.memberOf) {
           const member = button.dataset.memberOf;
           editLayer((layer, doc) => (layer.from = fromOf(doc, toggleMember(doc, layer.from ?? [], member), layer.type)));
@@ -31638,14 +31794,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const rows = [
           ...(where === "panel" ? [] : [{ key: "panel", icon: ICONS.sliders, label: "Settings", aside: inPalette ? "In the panel" : undefined, verb: "Open", run: () => select(id) }]),
           ...(menu && layer.series ? [{ key: "replace", icon: ICONS.swap, label: "Replace series", run: () => changeSeries(id) }] : []),
-          ...(layer.type === "cloud" || layer.type === "signal" || layer.type === "heatmap" ? [] : [{ key: "derive", icon: ICONS.formula, label: `New formula from ${layer.letter}`, aside: inPalette ? "An average, bands, a percentile…" : undefined, under: inPalette, page: () => listPage(`New formula from ${layer.letter}`, () => deriveChoices(id), "Add") }]),
-          ...(layer.from || layer.type === "signal" || layer.type === "heatmap" ? []
+          ...(layer.type === "cloud" || layer.type === "signal" || heatLike(layer) ? [] : [{ key: "derive", icon: ICONS.formula, label: `New formula from ${layer.letter}`, aside: inPalette ? "An average, bands, a percentile…" : undefined, under: inPalette, page: () => listPage(`New formula from ${layer.letter}`, () => deriveChoices(id), "Add") }]),
+          ...(layer.from || layer.type === "signal" || heatLike(layer) ? []
             : layer.series ? [{ key: "to-formula", icon: ICONS.formula, label: "Turn into a formula", aside: inPalette ? "Of its series, to write around it" : undefined, verb: "Turn", run: () => toFormula(id) }]
             : named.length === 1 ? [{ key: "to-series", icon: ICONS.series, label: "Turn into a series", aside: inPalette ? named[0] : undefined, mono: true, verb: "Turn", run: () => toSeries(id, named[0]) }]
             : named.length ? [{ key: "to-series", icon: ICONS.series, label: "Turn into a series", aside: inPalette ? `${named.length} series` : undefined, page: () => listPage("Turn into a series", () => seriesChoices(id), "Turn") }]
             : []),
           // (Its values as bubbles on another layer, picked: see bubbleView.)
-          ...(layer.from || placedOn(layer) || layer.type === "heatmap" || !markable(chart).some((other) => other.id !== id) ? [] : [{ key: "bubbles", icon: glyph("bubbles"), label: "As bubbles on…", aside: inPalette ? "Sized by its values" : undefined, page: () => choicePage("As bubbles on", () => markable(chart).filter((other) => other.id !== id).map((other) => ({ key: other.id, icon: letterChip(other), label: labelOf(other), run: () => editById(id, (item) => reshape(item, (one) => Object.assign(one, { type: "bubbles", ref: other.id }))) }))) }]),
+          ...(layer.from || placedOn(layer) || heatLike(layer) || !markable(chart).some((other) => other.id !== id) ? [] : [{ key: "bubbles", icon: glyph("bubbles"), label: "As bubbles on…", aside: inPalette ? "Sized by its values" : undefined, page: () => choicePage("As bubbles on", () => markable(chart).filter((other) => other.id !== id).map((other) => ({ key: other.id, icon: letterChip(other), label: labelOf(other), run: () => editById(id, (item) => reshape(item, (one) => Object.assign(one, { type: "bubbles", ref: other.id }))) }))) }]),
           // (Its settings', by its name: its eye there.)
           ...(where === "panel" ? [] : [{ key: "hide", icon: layer.hidden ? ICONS.eye : ICONS.eyeOff, label: layer.hidden ? "Show" : "Hide", kbd: "H", verb: layer.hidden ? "Show" : "Hide", stay: true, run: () => toggleHidden(id) }]),
           ...(layer.type !== "signal" && chart.layers.some((other) => other.pane === layer.pane && !itsOwn(other, layer)) ? [{ key: "solo", icon: ICONS.eye, label: alone ? "Show every layer in its pane" : "Show it alone in its pane", aside: inPalette && !alone ? "The others there hidden" : undefined, verb: "Show", stay: true, run: () => soloLayer(id) }] : []),
@@ -31654,7 +31810,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A cloud or a trend goes where its layers go, a signal where its layer goes.)
           ...(menu && !follows(layer) ? [{ key: "move", icon: ICONS.pane, label: "Move to pane", page: () => choicePage("Move to pane", () => paneChoices([id])) }] : []),
           // (Its data, as the chart has it, at its interval: any layer's, a formula's too; a series', where it comes from.)
-          ...(layer.type === "heatmap" ? [] : [{ key: "data", icon: ICONS.table, label: "Download data", aside: "CSV", verb: "Download", ...(noValues(id) ? { disabled: noValues(id) } : {}), run: () => exportData([layer]) }]),
+          ...(heatLike(layer) ? [] : [{ key: "data", icon: ICONS.table, label: "Download data", aside: "CSV", verb: "Download", ...(noValues(id) ? { disabled: noValues(id) } : {}), run: () => exportData([layer]) }]),
           // (A heatmap's, its latest day's URPD, as it asks for it.)
           ...(layer.type === "heatmap" ? [{ key: "api", icon: ICONS.link, label: "Open in the API", aside: "Its latest day, as JSON", verb: "Open", run: () => window.open(`${client.baseUrl}${heatPath(chart, layer)}`, "_blank", "noopener") }] : []),
           ...(layer.series ? [{ key: "api", icon: ICONS.link, label: "Open in the API", aside: "As JSON", verb: "Open", run: () => window.open(`${client.baseUrl}/api/series/${encodeURIComponent(/** @type {string} */ (layer.series))}/${chart.index}`, "_blank", "noopener") }] : []),
@@ -31920,15 +32076,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * selected layer's, where it reads in dollars or holds nothing; else one that reads in dollars, as a series goes
        * to a pane of its unit (see paneShowing); else the first, empty, or a new one, on a log scale as the price is); a pane
        * with nothing in it, the price as its candles with it (what it's read against).
-       * @param {string} cohort
+       * A profile the same way (`profile`: its holder groups, the first at the edge).
+       * @param {string} cohort @param {string[]} [profile]
        */
-      function addHeatmap(cohort) {
+      function addHeatmap(cohort, profile = undefined) {
         if (!roomFor(chart)) return;
         /** @type {Layer | undefined} */
         let added;
         commit((doc) => {
           // (A heatmap's axis is in dollars, whatever it measures: another's pane is one.)
-          const inDollars = (/** @type {Layer} */ layer) => layer.type === "heatmap" || unitFor(layer, resolved?.results.get(layer.id)) === "usd";
+          const inDollars = (/** @type {Layer} */ layer) => heatLike(layer) || unitFor(layer, resolved?.results.get(layer.id)) === "usd";
           // (Only a pane whose scale can draw it, linear or log: see heatGrid.)
           const drawable = (/** @type {string | undefined} */ id) => ((item) => Boolean(item) && paneMode(item) < 2)(doc.panes.find((item) => item.id === id));
           const empty = (/** @type {string | undefined} */ id) => drawable(id) && !doc.layers.some((layer) => layer.pane === id);
@@ -31939,7 +32096,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (!doc.layers.some((layer) => layer.pane === pane) && doc.layers.length + 2 <= MAX_LAYERS) doc.layers.push(makeLayer({ series: tree.price.ohlc.name, label: "Price", type: "candles", color: "ink", colors: 1, pane }, doc));
           // (On the axis its dollars are read on, where the pane has one.)
           const beside = doc.layers.filter((layer) => layer.pane === pane), side = (beside.find(inDollars) ?? beside[0])?.side ?? "right";
-          added = makeLayer({ type: "heatmap", heatmap: cohort, pane, side }, doc);
+          added = makeLayer(profile ? { type: "profile", profile, pane, side } : { type: "heatmap", heatmap: cohort, pane, side }, doc);
           kindLook(added, added);
           const mine = doc.layers.flatMap((layer, i) => (layer.pane === pane ? [i] : []));
           doc.layers.splice(doc.panes.find((item) => item.id === pane)?.reverse ? mine[0] : mine[mine.length - 1] + 1, 0, added);
@@ -31948,7 +32105,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         layerPicks.clear();
         select(added.id, false);
         const unfit = heatGrid(chart, added) ? "" : ", but this pane's scale can't draw it";
-        toast(`Added a heatmap: ${labelOf(added)}${unfit}`, editAdded(added));
+        toast(`Added a ${profile ? "profile" : "heatmap"}: ${labelOf(added)}${unfit}`, editAdded(added));
       }
       /**
        * The layers a cloud or a trend (`made`, one there; none, to be made, its first ticked `first`) can be between: none
@@ -32690,6 +32847,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             { title: "Add a cloud", text: "A fill between two or more layers (each pair of neighbors, in the upper one's color), or out to the pane's top or bottom.", icon: "cloud", keepOpen: true, run: () => pushPage(fromPage("cloud")) },
           ] : []),
           { title: "Add a heatmap", text: HEAT_ABOUT, icon: "heatmap", keepOpen: true, run: () => pushPage(heatAddPage()) },
+          { title: "Add a profile", text: PROFILE_ABOUT, icon: "profile", keepOpen: true, run: () => pushPage(profileAddPage()) },
           ...(cloudable() ? [
             // (Not now, it says why: dimmed, nothing to run.)
             { title: "Add a trend", text: trendShort() ? `${trendShort()}.` : "From layers: on the lowest of them until a price touches it, then on the highest until it touches that.", icon: "riding", ...(trendShort() ? {} : { keepOpen: true, run: () => pushPage(fromPage("trend")) }) },
@@ -34159,6 +34317,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ] : []),
           // (A heatmap: a holder group's URPD, its own data, not made from layers.)
           { kind: "row", key: "add:heatmap", icon: ICONS.heatmap, label: "Heatmap", aside: HEAT_SHORT, preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Heatmap</h4><p class="description">${escape(HEAT_ABOUT)}</p>`), group: "Distributions", other: true, under: true, verb: "Add", page: heatAddPage },
+          { kind: "row", key: "add:profile", icon: ICONS.profile, label: "Profile", aside: PROFILE_SHORT, preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Profile</h4><p class="description">${escape(PROFILE_ABOUT)}</p>`), group: "Distributions", other: true, under: true, verb: "Add", page: profileAddPage },
         ];
       }
       /** Nothing found: the two things searched, to browse instead (every series, by topic; the presets, by section), and other words to try. */
@@ -34278,9 +34437,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         ] : []),
         ...(cloudable() ? [{ key: "add-trend", icon: ICONS.riding, label: "Add a trend", page: () => fromPage("trend"), ...(trendShort() ? { aside: trendShort(), disabled: trendShort(), under: true } : {}) }] : []),
         { key: "add-heatmap", icon: ICONS.heatmap, label: "Add a heatmap", aside: HEAT_SHORT, under: true, page: heatAddPage },
+        { key: "add-profile", icon: ICONS.profile, label: "Add a profile", aside: PROFILE_SHORT, under: true, page: profileAddPage },
       ].map((row) => ({ kind: "row", group, ...row }));
       /** ⌘K's page for a heatmap: a holder group to add one of (its supply by cost basis; the rest, its own to change). @returns {Page} */
       const heatAddPage = () => choicePage("Add a heatmap", () => HEAT_COHORTS.map(([cohort, name]) => ({ key: cohort, icon: ICONS.people, label: name, verb: "Add", run: () => addHeatmap(cohort) })));
+      /** Adding a profile: long-term and short-term holders together first (the coins' two sides, each its color), then one group; more pressed in its settings. */
+      const profileAddPage = () => choicePage("Add a profile", () => [
+        { key: "lth+sth", icon: ICONS.profile, label: "Long-term and short-term holders", aside: "Each its color", verb: "Add", run: () => addHeatmap("lth", ["lth", "sth"]) },
+        ...HEAT_COHORTS.map(([cohort, name]) => ({ key: cohort, icon: `<i class="swatch" style="--c: ${escape(cssColor(cohortColor(cohort)))}"></i>`, label: name, verb: "Add", run: () => addHeatmap(cohort, [cohort]) })),
+      ]);
       /** @returns {Page} */
       function chartPage() {
         return { title: () => titleOf(chart), placeholder: "Search this chart", rows: () => {
@@ -34322,7 +34487,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const open = () => layerPage(layer.id);
         return {
           kind: "row", key: `layer:${layer.id}`, icon: `${letterChip(layer)}`, label: labelOf(layer),
-          aside: layer.from ? `Between ${fromSpan(layer) || "no layers"}` : layer.type === "heatmap" ? heatCode(layer) : layer.series ?? (layer.label ? layer.formula : formulaLine(layer)) ?? "", mono: !layer.from && Boolean(layer.series || layer.label || layer.type === "heatmap"), dim: Boolean(layer.hidden), letter: layer.letter, verb: "Open", page: open,
+          aside: layer.from ? `Between ${fromSpan(layer) || "no layers"}` : heatLike(layer) ? heatCode(layer) : layer.series ?? (layer.label ? layer.formula : formulaLine(layer)) ?? "", mono: !layer.from && Boolean(layer.series || layer.label || heatLike(layer)), dim: Boolean(layer.hidden), letter: layer.letter, verb: "Open", page: open,
           actions: () => [{ label: "Open", icon: ICONS.arrowRight, kbd: "↵", page: open }, ...open().rows().filter((row) => QUICK.has(row.key))],
           preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, layer.id),
         };
@@ -34349,7 +34514,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const now = () => layerById(id) ?? layer;
           // Grouped as the inspector's sections are, named as they are.
           // (Its name with what it is: a heatmap's, a cloud's or a trend's under theirs, not "Formula".)
-          const first = layer.series ? "Series" : layer.type === "signal" ? "Signal" : layer.type === "heatmap" ? "Heatmap" : layer.from ? (layer.type === "cloud" ? "Cloud" : "Trend") : "Formula";
+          const first = layer.series ? "Series" : layer.type === "signal" ? "Signal" : layer.type === "profile" ? "Profile" : heatLike(layer) ? "Heatmap" : layer.from ? (layer.type === "cloud" ? "Cloud" : "Trend") : "Formula";
           const style = dashOf(layer.dash);
           // A choice of its colors (a color, a way of coloring) previewed as it would draw: its look on a copy, its colors date by date.
           const lookOfChoice = (/** @type {HTMLElement} */ panel, /** @type {Action} */ option) => {
@@ -34375,7 +34540,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ], lookOfChoice) });
           const source = layerById(layer.colorFrom ?? "");
           const rows = [
-            ...(layer.type === "heatmap" ? heatRows(id) : layer.from ? [{ key: "between", icon: layer.type === "cloud" ? ICONS.cloud : ICONS.riding, label: "Between", aside: fromSpan(layer) || "None", group: layer.type === "cloud" ? "Cloud" : "Trend", leads: true, page: () => fromPage(/** @type {"cloud" | "trend"} */ (layer.type), id) }]
+            ...(heatLike(layer) ? heatRows(id) : layer.from ? [{ key: "between", icon: layer.type === "cloud" ? ICONS.cloud : ICONS.riding, label: "Between", aside: fromSpan(layer) || "None", group: layer.type === "cloud" ? "Cloud" : "Trend", leads: true, page: () => fromPage(/** @type {"cloud" | "trend"} */ (layer.type), id) }]
               : layer.series ? [{ key: "series", icon: ICONS.swap, label: "Replace series", aside: layer.series, mono: true, verb: "Replace", group: first, leads: true, stay: true, run: () => changeSeries(id) }]
               : [{ key: "formula", icon: ICONS.formula, label: "Formula", aside: layer.formula, mono: true, verb: "Edit", group: first, leads: true, stay: true, run: () => editFormula(id) }]),
             ...(layer.type === "trend" ? [{ key: "ref", icon: ICONS.riding, label: "Flips when it touches", aside: ((ref) => (ref ? labelOf(ref) : "None"))(layerById(layer.ref ?? "")), group: "Trend", page: () => choicePage("Flips when it touches", () => refChoices(id)) }] : []),
@@ -34410,7 +34575,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               { key: "gradient-ready", icon: gradientSwatch(layer.gradient), label: "Ready made", aside: readyName(layer.gradient), group: "Style", page: () => readyPage(id, lookOfChoice) },
               { key: "gradient-reverse", icon: ICONS.swap, label: "Reverse the gradient", aside: "Its lowest's color its highest's", group: "Style", run: () => reverseGradient(id) },
               { key: "gradient-add", icon: ICONS.plus, label: "Add a color", aside: "In the widest gap", group: "Style", ...(layer.gradient.length < GRADIENT_MOST ? { run: set((item) => addStop(item)) } : { disabled: `A gradient holds up to ${GRADIENT_MOST} colors` }) },
-              ...(layer.type === "heatmap" ? [] : [{ key: "relative", icon: ICONS.calendar, label: "Relative to", aside: layer.upToDate ? "Up to each date" : "All of history", group: "Style", page: () => choicePage("Relative to", () => /** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "What each day showed then, no hindsight"]]).map(([on, text, says]) => ({ key: String(on), label: text, aside: says, current: Boolean(now().upToDate) === on, ...both((item) => (item.upToDate = on || undefined)) }))) }]),
+              ...(heatLike(layer) ? [] : [{ key: "relative", icon: ICONS.calendar, label: "Relative to", aside: layer.upToDate ? "Up to each date" : "All of history", group: "Style", page: () => choicePage("Relative to", () => /** @type {[boolean, string, string][]} */ ([[false, "All of history", "Its lowest and highest of all its history"], [true, "Up to each date", "What each day showed then, no hindsight"]]).map(([on, text, says]) => ({ key: String(on), label: text, aside: says, current: Boolean(now().upToDate) === on, ...both((item) => (item.upToDate = on || undefined)) }))) }]),
             ] : []),
             { key: "opacity", icon: ICONS.sliders, label: "Opacity", aside: `${Math.round(opacityOf(layer) * 100)}%`, group: "Style", page: () => choicePage("Opacity", () => OPACITIES.map((opacity) => ({ key: String(opacity), icon: ICONS.sliders, label: `${Math.round(opacity * 100)}%`, current: opacityOf(now()) === opacity, ...both((item) => (item.opacity = opacity === defaultOpacity(item) ? undefined : opacity)) }))) },
             ...(layer.type !== "histogram" && !placedOn(layer) ? [{ key: "width", icon: ICONS.sliders, label: "Width", aside: `${layer.width}px`, group: "Style", page: () => choicePage("Width", () => WIDTHS.map((width) => ({ key: String(width), icon: ICONS.sliders, label: `${width}px`, current: now().width === width, ...both((item) => (item.width = width)) }))) }] : []),
@@ -34447,7 +34612,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const NOT_A_SIGNAL = new Set(["type", "fill", "base", "levels", "to-series", "shape", "colors", "color-from", "width", "dash", "price-line", "pane", "side", "scale", "stack", "order", "up", "down", "format"]);
           // (A heatmap: its days, its cohort's: nothing of a line's look or a series' (its colors and opacity its own).)
           const NOT_A_HEATMAP = new Set(["cycles", "type", "base", "color-from", "width", "dash", "shape", "fill", "fill-opacity", "fill-style", "price-line", "levels", "stack", "format"]);
-          return (layer.type === "signal" ? rows.filter((row) => !NOT_A_SIGNAL.has(row.key)) : layer.type === "heatmap" ? rows.filter((row) => !NOT_A_HEATMAP.has(row.key)) : layer.from ? rows.filter((row) => !NOT_ITS.has(row.key)).map((row) => (row.key === "name" ? { ...row, group: typeName(layer.type) } : row)) : rows).map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, id), ...row }));
+          return (layer.type === "signal" ? rows.filter((row) => !NOT_A_SIGNAL.has(row.key)) : heatLike(layer) ? rows.filter((row) => !NOT_A_HEATMAP.has(row.key)) : layer.from ? rows.filter((row) => !NOT_ITS.has(row.key)).map((row) => (row.key === "name" ? { ...row, group: typeName(layer.type) } : row)) : rows).map((row) => ({ kind: "row", preview: (/** @type {HTMLElement} */ panel) => previewLayer(panel, id), ...row }));
         } };
       }
       const swatchOf = (color) => `<i class="swatch" style="--c:${escape(cssColor(color))}"></i>`;
@@ -34603,7 +34768,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function latestSaid(layer, result, unit) {
         const last = (resolved?.times.length ?? 0) - 1;
         if (layer.type === "cloud" && result?.values) return rangeAt(layer, { at: result.values.length - 1, rest: true }, unit);
-        if (layer.type === "heatmap" && last >= 0) return ((reading) => (reading ? `${reading.amount} at ${reading.at}` : "—"))(heatReading(layer, { at: last, rest: true }));
+        if (heatLike(layer) && last >= 0) return ((reading) => (reading ? (reading.at ? `${reading.amount} at ${reading.at}` : reading.amount) : "—"))(heatReading(layer, { at: last, rest: true }));
         return "—";
       }
       /** A layer: what it shows, its line as drawn now (in its color, or `color`), its type, unit, place, latest value. */
@@ -34613,14 +34778,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const result = resolved?.results.get(layer.id), unit = unitFor(layer, result), at = chart.panes.findIndex((pane) => pane.id === layer.pane);
         const about = layer.series ? known.get(layer.series)?.description : null;
         panel.innerHTML = `<h4 class="plain">${escape(labelOf(layer))}</h4>
-          <p class="description">${layer.from ? escape(`Between ${fromSpan(layer) || "no layers"}`) : `<code>${escape(layer.series ?? layer.formula ?? (layer.type === "heatmap" ? heatCode(layer) : ""))}</code>`}</p>
+          <p class="description">${layer.from ? escape(`Between ${fromSpan(layer) || "no layers"}`) : `<code>${escape(layer.series ?? layer.formula ?? (heatLike(layer) ? heatCode(layer) : ""))}</code>`}</p>
           ${about ? `<div class="description clamped">${proseHtml(about)}</div>` : ""}
-          ${result?.error ? `<div class="error-box">${escape(result.detail ?? result.error)}.</div>` : layer.type === "cloud" || layer.type === "heatmap" ? "" : '<svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>'}
+          ${result?.error ? `<div class="error-box">${escape(result.detail ?? result.error)}.</div>` : layer.type === "cloud" || heatLike(layer) ? "" : '<svg class="spark" viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true"></svg>'}
           <div class="info"><h5>Layer ${escape(layer.letter)}</h5><dl>
             <div><dt>Type</dt><dd>${escape(typeName(layer.type))}</dd></div>
             <div><dt>Unit</dt><dd>${escape(UNIT_NAMES[unit] ?? "Number")}</dd></div>
             <div><dt>Layout</dt><dd>Pane ${at + 1}, ${layer.side === "left" ? "left" : "right"} axis</dd></div>
-            <div><dt>Latest</dt><dd class="spark-caption"${layer.type === "cloud" || layer.type === "heatmap" ? ` data-latest="${escape(layer.id)}"` : ""}>${escape(latestSaid(layer, result, unit))}</dd></div>
+            <div><dt>Latest</dt><dd class="spark-caption"${layer.type === "cloud" || heatLike(layer) ? ` data-latest="${escape(layer.id)}"` : ""}>${escape(latestSaid(layer, result, unit))}</dd></div>
           </dl></div>`;
         // (Its colors date by date, where they vary: as given, else as it's drawn; a color given, that one alone.)
         const dated = tint !== undefined ? tint : color ? null : resolved ? paintOf(chart, layer, resolved) : null;
@@ -36381,7 +36546,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...rest,
             // (A series' type always: left out, it's read as the series is mostly drawn, which one tab knows and another
             // doesn't yet: a line opened as a baseline, or candles.)
-            ...((type !== "line" || series !== undefined) && !from && type !== "heatmap" ? { type } : {}),
+            ...((type !== "line" || series !== undefined) && !from && !heatLike({ type }) ? { type } : {}),
             // (A gradient on, said by itself; kept off, so.)
             ...(all.gradient && !byGradient ? { byGradient: false } : {}),
             ...(width !== 1.5 && type !== "cloud" ? { width } : {}),
@@ -36659,14 +36824,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const madeOf = made ? layer.trend ?? layer.cloud ?? layer.from : null;
           // (A heatmap: its cohort, as the URPD names it, and its weight, measure and densities where valid.)
           const heat = !made && typeof layer.heatmap === "string" && /^[a-z0-9_]{1,40}$/.test(layer.heatmap) ? layer.heatmap : null;
+          // (A profile: its holder groups, one or a list, and each one's own color where given.)
+          const cohort = (/** @type {any} */ id) => typeof id === "string" && /^[a-z0-9_]{1,40}$/.test(id);
+          const groups = !made && !heat ? [...new Set((Array.isArray(layer.profile) ? layer.profile : [layer.profile]).filter(cohort))].slice(0, 40) : [];
           /** @type {Record<string, any>} */
           const spec = {
-            ...(heat ? { heatmap: heat, weight: HEAT_WEIGHTS.some(([id]) => id && id === layer.weight) ? layer.weight : undefined, measure: HEAT_MEASURES.some(([id]) => id !== "supply" && id === layer.measure) ? layer.measure : undefined, rows: HEAT_ROWS.includes(layer.rows) ? layer.rows : undefined, profile: layer.profile === "both" || layer.profile === "only" ? layer.profile : undefined } : madeOf ? { from: madeOf.filter((id) => typeof id === "string").map((id) => (EDGES.includes(id.toLowerCase()) ? id.toLowerCase() : id)).slice(0, MAX_LAYERS + 2) } : typeof layer.series === "string"
+            ...(heat || groups.length ? { ...(heat ? { heatmap: heat } : { profile: groups, ...(layer.cohortColors && typeof layer.cohortColors === "object" ? ((colors) => (Object.keys(colors).length ? { cohortColors: colors } : {}))(Object.fromEntries(Object.entries(layer.cohortColors).filter(([id, color]) => groups.includes(id) && isColor(color)))) : {}) }), weight: HEAT_WEIGHTS.some(([id]) => id && id === layer.weight) ? layer.weight : undefined, measure: HEAT_MEASURES.some(([id]) => id !== "supply" && id === layer.measure) ? layer.measure : undefined, rows: HEAT_ROWS.includes(layer.rows) ? layer.rows : undefined } : madeOf ? { from: madeOf.filter((id) => typeof id === "string").map((id) => (EDGES.includes(id.toLowerCase()) ? id.toLowerCase() : id)).slice(0, MAX_LAYERS + 2) } : typeof layer.series === "string"
               ? { series: isSeriesName(layer.series) ? layer.series : "invalid_series_name", ...(isCatalogPath(layer.path) ? { path: layer.path } : {}) }
               : { formula: String(layer.formula ?? "").slice(0, FORMULA_MAX), ...(layer.paths && typeof layer.paths === "object" ? { paths: Object.fromEntries(Object.entries(layer.paths).filter(([name, path]) => isSeriesName(name) && isCatalogPath(path)).slice(0, 40)) } : {}) }),
             ...(typeof layer.label === "string" ? { label: layer.label.slice(0, 120) } : {}),
             color: isColor(layer.color) ? layer.color : undefined,
-            type: heat ? "heatmap" : made ?? (TYPES.some(([type]) => type === layer.type) || layer.type === "bubbles" || (layer.type === "signal" && typeof layer.series !== "string") ? layer.type : "line"),
+            type: heat ? "heatmap" : groups.length ? "profile" : made ?? (TYPES.some(([type]) => type === layer.type) || layer.type === "bubbles" || (layer.type === "signal" && typeof layer.series !== "string") ? layer.type : "line"),
             width: WIDTHS.includes(layer.width) ? layer.width : 1.5,
             dash: DASHES.some(([style]) => style === layer.dash) ? layer.dash : 0,
             pane: paneFor(layer.pane),
@@ -38984,7 +39152,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const result = data.results.get(layer.id), high = result?.values, low = result?.low, unit = unitFor(layer, result);
             // (A heatmap's, as its legend reads it at rest: its open day's cell at that day's close, see heatReading; at the
             // chart's own density (the picture's coarser cells hold several), else the picture's.)
-            if (layer.type === "heatmap") return ((sample) => {
+            if (heatLike(layer)) return ((sample) => {
               const fine = Boolean(sample?.fine?.rows), day = fine ? sample?.fine : sample?.open, k = fine ? Number(heatGrid(copy, layer)?.agg.slice(3) ?? 200) : Number(HEAT_PICTURE_AGG.slice(3)), close = day?.close;
               if (!day?.rows || !(Number(close) > 0)) return [];
               const row = Math.floor(k * Math.log10(Number(close) * 100)), at = lowerBound(day.rows, row), measure = layer.measure ?? "supply";
