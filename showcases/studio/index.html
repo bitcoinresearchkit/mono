@@ -29746,7 +29746,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // faded in (made at once, a phone without its JIT had held half a second first). A pick reads the grid at once.)
         plane.toggleAttribute("data-waiting", !vividGrid);
         if (!vividGrid) return void vividNow();
-        const width = plane.clientWidth, height = plane.clientHeight, key = `${width}x${height}`;
+        // (Its colors worked out at half its size, stretched: a smooth field, the same to the eye, a quarter of the work (a
+        // phone without its JIT: ~75 ms at its size, on the tap that showed it). A pick reads the grid, not the canvas.)
+        const width = Math.ceil(plane.clientWidth / 2), height = Math.ceil(plane.clientHeight / 2), key = `${width}x${height}`;
         canvas.width = width;
         canvas.height = height;
         const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
