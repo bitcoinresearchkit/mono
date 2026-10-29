@@ -7640,6 +7640,20 @@
         letter-spacing: -0.026em;
       }
 
+      /* A live figure (the last block, the price, when it was last heard): its mark before it, as a door has its own, on
+         its line's words (in a line: what's before it, "Offline", on the same baseline). */
+      .live-figure {
+        white-space: nowrap;
+
+        svg {
+          width: 14px;
+          height: 14px;
+          margin-right: 5px;
+          /* (Its middle on the figures' middle.) */
+          vertical-align: -0.2em;
+        }
+      }
+
       /* Over Home's search, with it: Bitcoin as it is, live, quietly: the chain at its left, the price at its right, as far
          in as the field's own words and its doors' (see .home-doors). */
       .home-pulse {
@@ -11189,6 +11203,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         hourglass: svg('<path d="M4 2.5h8M4 13.5h8M5 2.5c0 3 6 3.5 6 5.5s-6 2.5-6 5.5M11 2.5c0 3-6 3.5-6 5.5s6 2.5 6 5.5"/>', 15),
         percent: svg('<path d="M12.5 3.5l-9 9M4.5 2.7a1.8 1.8 0 1 0 0 3.6 1.8 1.8 0 1 0 0-3.6zM11.5 9.7a1.8 1.8 0 1 0 0 3.6 1.8 1.8 0 1 0 0-3.6z"/>', 15),
         cube: svg('<path d="M8 2 13.5 5v6L8 14 2.5 11V5zM2.5 5 8 8l5.5-3M8 8v6"/>', 15),
+        dollar: svg('<path d="M8 1.5v13M11.2 3.8H6.7a2.1 2.1 0 0 0 0 4.2h2.6a2.1 2.1 0 0 1 0 4.2H4.8"/>', 15),
         key: svg('<path d="M5.5 7.5a3 3 0 1 0 0 6 3 3 0 1 0 0-6zM7.6 8.4 13 3M11 5l1.8 1.8M9.5 6.5 11 8"/>', 15),
         pickaxe: svg('<path d="M2.5 6.2C5 3.2 11 3.2 13.5 6.2M8 4.2v9.3"/>', 15),
         nodes: svg('<path d="M8 1.9a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 1 0 0-3.2zM3.5 10.4a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 1 0 0-3.2zM12.5 10.4a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 1 0 0-3.2zM7.2 5 4.3 10.6M8.8 5l2.9 5.6M5.1 12h5.8"/>', 15),
@@ -37264,6 +37279,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Live, with the last block the server's series include and when it came. */
       /** Nothing drawn for want of the server: what's wrong said as the live dot says it, this device offline or the server away. */
       const sayUnreached = () => ($("unreached-text").textContent = navigator.onLine ? `Couldn't reach ${SERVER_HOST}` : "This device is offline");
+      /** A live figure (the last block, the price, when it was last heard): its mark before it, a screen reader's word for it. @param {string} icon @param {string} name @param {string} text */
+      const liveFigure = (icon, name, text) => `<span class="live-figure"><span role="img" aria-label="${name}">${icon}</span>${escape(text)}</span>`;
       function updateStatus() {
         sayUnreached();
         const at = liveAt ? new Date(liveAt * 1000) : null;
@@ -37282,14 +37299,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("live").classList.toggle("offline", lost);
         $("live").classList.remove("waiting");
         renderHorizon();
-        const said = { status: lost ? "Offline" : "", block: liveHeight ? `#${grouped.format(liveHeight)}` : "", price: !lost && livePrice ? dollarsAndCents(livePrice) : at ? at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "" };
-        $("home-live").textContent = [said.status, said.block, said.price].filter(Boolean).join("\u2009·\u2009");
+        const said = {
+          status: lost ? "Offline" : "",
+          block: liveHeight ? liveFigure(ICONS.cube, "Block", grouped.format(liveHeight)) : "",
+          price: !lost && livePrice ? liveFigure(ICONS.dollar, "Price in dollars", toTheCent.format(livePrice)) : at ? liveFigure(ICONS.clock, "Last heard at", at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })) : "",
+        };
+        $("home-live").innerHTML = [said.status, said.block, said.price].filter(Boolean).join("\u2009·\u2009");
         const block = liveHeight ? `Last block ${grouped.format(liveHeight)}${at ? `, ${ago(at.getTime())}` : ""}` : "";
         // (Live said only when it isn't. Home's apart: the chain at its left, the price (or when it was last heard) at its
         // right; each said in full by its tip, as the live dot's.)
-        $("home-pulse").replaceChildren(...[[[said.status, said.block].filter(Boolean).join("\u2009·\u2009"), block], [said.price, lost ? "Last heard" : "Price, as it trades"]].map(([text, tip]) => {
+        $("home-pulse").replaceChildren(...[[[said.status, said.block].filter(Boolean).join("\u2009·\u2009"), block], [said.price, lost ? "Last heard" : "Price, as it trades"]].map(([html, tip]) => {
           const half = document.createElement("span");
-          half.textContent = text;
+          half.innerHTML = html;
           if (tip) half.dataset.tip = tip;
           return half;
         }));
