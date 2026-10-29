@@ -31913,6 +31913,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           ] : []),
           ...(empty || chart.panes.length >= MAX_PANES ? [] : [{ title: "Add to a new pane", text: "A series in a new pane, below the others.", icon: "pane", keepOpen: true, run: () => openPalette({ add: true, into: "new" }) }]),
           { title: "Add a formula", text: `A layer computed from others or from any series, like A / B or ${EXAMPLE}.`, icon: "formula", kbd: "F", run: addFormula, suggested: true, keepOpen: true },
+          ...(markable(chart).length ? [{ title: "Add bubbles", text: "A series' values as bubbles on a layer, each as big as its value, like a day's realized profit and loss on the price.", icon: glyph("bubbles"), keepOpen: true, run: () => openPalette({ add: true, bubbles: true }) }] : []),
           ...(chart.layers.some((layer) => layer.type !== "cloud" && layer.type !== "signal") ? [{ title: "Add a signal", text: "Marks on a layer where a formula turns up or down, like A > sma(A, 200d), or (A > B) - (A < B).", icon: "signal", run: addSignal, keepOpen: true }] : []),
           ...(empty ? [] : [{ title: SHARE, text: "A link that opens this chart for anyone.", icon: "share", run: () => $("share").click(), suggested: true }]),
           ...(empty ? [] : [{ title: "Open image", text: "The chart's image, in a new tab.", icon: "link", run: () => exportAs("open") }]),
@@ -32653,7 +32654,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (A command's icon by its name, or drawn already: a folder's mark.)
           const icon = item.kind === "folder" ? ICONS.folder : item.kind === "command" ? ICONS[item.command.icon] ?? (item.command.icon?.startsWith("<") ? item.command.icon : ICONS.series) : doc ? chartMark(doc) : ICONS.series;
           const name = item.kind === "folder" ? escape(humanizeKey(item.key)) : item.kind === "command" ? (searching ? highlightMatch(item.command.title, palette.query) : escape(item.command.title)) : doc ? (searching ? highlightMatch(titleOf(doc), palette.query) : escape(titleOf(doc))) : "";
-          const meta = item.kind === "folder" ? `<span class="item-mark"><span class="item-next" aria-hidden="true">${ICONS.next}</span></span>` : item.kind === "command" ? (item.command.current ? `<span class="item-mark" role="img" aria-label="In effect">${ICONS.check}</span>` : item.command.kbd && item.command.run && answers(item.command.kbd) ? `${keycaps(item.command.kbd)}` : "") : doc ? `<span class="item-meta">${plural(doc.layers.length, "layer")}</span>` : "";
+          const meta = item.kind === "folder" ? `<span class="item-mark"><span class="item-next" aria-hidden="true">${ICONS.next}</span></span>` : item.kind === "command" ? (item.command.current ? `<span class="item-mark" role="img" aria-label="In effect">${ICONS.check}</span>` : `${goesOn(item) ? `<span class="item-mark"><span class="item-next" aria-hidden="true">${ICONS.next}</span></span>` : ""}${item.command.kbd && item.command.run && answers(item.command.kbd) ? keycaps(item.command.kbd) : ""}`) : doc ? `<span class="item-meta">${plural(doc.layers.length, "layer")}</span>` : "";
           const idle = item.kind === "command" && !item.command.run && !item.command.current;
           return `${header}<li role="option" id="option-${i}" aria-posinset="${i + 1}" aria-setsize="${palette.items.length}"${described} data-kind="${item.kind}" data-option="${i}" aria-selected="${i === palette.active}" ${idle ? 'class="dim" aria-disabled="true"' : ""}>${icon}<span class="item-name">${name}</span>${meta}</li>`;
         })())).join("");
@@ -33109,9 +33110,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         $("palette-input").setAttribute("aria-label", page.input ? pageTitle(page) : `Search ${pageTitle(page).toLowerCase()}`);
       }
       /** A row: its icon, its label, at its end its value (or a check for the choice in effect), › if it opens a page (not while it can't). */
+      /** Whether a row of ⌘K's goes on inside it (a folder, a page, another search or an editor): its chevron says so, → takes it. */
+      function goesOn(/** @type {any} */ item) {
+        return item.kind === "folder" || (item.kind === "command" ? Boolean(item.command.keepOpen && item.command.run) : Boolean((item.page || item.leads) && !item.disabled));
+      }
       function rowHtml(item) {
         const aside = item.aside ? (item.mono ? `<code>${escape(item.aside)}</code>` : escape(item.aside)) : "";
-        const end = aside, marks = [item.current ? `<span role="img" aria-label="In effect">${ICONS.check}</span>` : "", (item.page || item.leads) && !item.disabled ? `<span class="item-next" aria-hidden="true">${ICONS.next}</span>` : ""].filter(Boolean).join(" ");
+        const end = aside, marks = [item.current ? `<span role="img" aria-label="In effect">${ICONS.check}</span>` : "", goesOn(item) ? `<span class="item-next" aria-hidden="true">${ICONS.next}</span>` : ""].filter(Boolean).join(" ");
         const query = palette.pages.at(-1)?.input ? "" : palette.query.trim();
         return `${item.icon ?? (item.current === undefined ? "" : '<i class="menu-space"></i>')}<span class="item-name">${query ? highlightMatch(item.label, query) : escape(item.label)}</span>${end ? `<span class="item-meta">${end}</span>` : ""}${marks ? `<span class="item-mark">${marks}</span>` : ""}${item.kbd ? `<span class="item-keys">${keycaps(item.kbd)}</span>` : ""}`;
       }
@@ -33356,14 +33361,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Adding: what a layer can be besides a series, first on the page, in sight wherever it opens (and found by its words). */
       function otherLayerRows() {
         return [
-          { kind: "row", key: "add:formula", icon: ICONS.formula, label: "Formula", aside: "From the layers, by their letters", kbd: "F", preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Formula</h4><p class="description">A new layer computed from the others by their letters, with + − × ÷ and functions, or from any series by name.</p><ul class="contents">${((letters) => [...(letters.length > 1 ? [`${letters[0]} / ${letters[1]}`] : []), `sma(${letters[0] ?? "A"}, 200d)`, `zscore(${letters[0] ?? "A"}, 1y)`, EXAMPLE])(chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter)).map((text) => `<li><code>${escape(text)}</code></li>`).join("")}</ul>`), group: "Made from your layers", other: true, under: true, verb: "Add", run: () => addFormula(palette.into) },
+          { kind: "row", key: "add:formula", icon: ICONS.formula, label: "Formula", aside: "From the layers, by their letters", kbd: "F", preview: (/** @type {HTMLElement} */ panel) => (panel.innerHTML = `<h4 class="plain">Formula</h4><p class="description">A new layer computed from the others by their letters, with + − × ÷ and functions, or from any series by name.</p><ul class="contents">${((letters) => [...(letters.length > 1 ? [`${letters[0]} / ${letters[1]}`] : []), `sma(${letters[0] ?? "A"}, 200d)`, `zscore(${letters[0] ?? "A"}, 1y)`, EXAMPLE])(chart.layers.filter((layer) => layer.type !== "cloud").map((layer) => layer.letter)).map((text) => `<li><code>${escape(text)}</code></li>`).join("")}</ul>`), group: "Made from your layers", other: true, under: true, verb: "Add", leads: true, run: () => addFormula(palette.into) },
           // (A cloud, wherever there are layers (its pane's two edges are two); a trend, from layers.)
           ...(chart.layers.length ? [
             { kind: "row", key: "add:cloud", icon: ICONS.cloud, label: "Cloud", aside: "Filled between layers", group: "Made from your layers", other: true, under: true, verb: "Add", page: () => fromPage("cloud") },
           ] : []),
           ...(markable(chart).length ? [
-            { kind: "row", key: "add:bubbles", icon: glyph("bubbles"), label: "Bubbles", aside: "A series' sizes on a layer", group: "Made from your layers", other: true, under: true, verb: "Add", run: () => openPalette({ add: true, bubbles: true }) },
-            { kind: "row", key: "add:signal", icon: ICONS.signal, label: "Signal", aside: "Marks where a formula turns up or down", group: "Made from your layers", other: true, under: true, verb: "Add", run: () => addSignal() },
+            { kind: "row", key: "add:bubbles", icon: glyph("bubbles"), label: "Bubbles", aside: "A series' sizes on a layer", group: "Made from your layers", other: true, under: true, verb: "Add", leads: true, run: () => openPalette({ add: true, bubbles: true }) },
+            { kind: "row", key: "add:signal", icon: ICONS.signal, label: "Signal", aside: "Marks where a formula turns up or down", group: "Made from your layers", other: true, under: true, verb: "Add", leads: true, run: () => addSignal() },
           ] : []),
           ...(cloudable() ? [
             { kind: "row", key: "add:trend", icon: ICONS.riding, label: "Trend", aside: trendShort() || "Rides two layers, flipped by a third", group: "Made from your layers", other: true, under: true, verb: "Add", page: () => fromPage("trend"), ...(trendShort() ? { disabled: trendShort() } : {}) },
@@ -34144,7 +34149,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (event.key === "ArrowDown" && plain) move(event.shiftKey ? 5 : 1);
         else if (event.key === "ArrowUp" && plain) move(event.shiftKey ? -5 : -1);
         else if (event.key === "Enter" && !event.altKey) event.repeat || choose(event.shiftKey, event.metaKey || event.ctrlKey);
-        else if (event.key === "ArrowRight" && plain && !event.shiftKey && (palette.items[palette.active]?.kind === "folder" || palette.items[palette.active]?.page || palette.items[palette.active]?.leads) && event.target.selectionStart === event.target.value.length) event.repeat || choose();
+        else if (event.key === "ArrowRight" && plain && !event.shiftKey && palette.items[palette.active] && goesOn(palette.items[palette.active]) && event.target.selectionStart === event.target.value.length) event.repeat || choose();
         else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && palette.pages.length) event.repeat || popPage();
         else if ((event.key === "ArrowLeft" || event.key === "Backspace") && !event.target.value && palette.path.length) event.repeat || goUp(palette.path.length - 1);
         else if (event.key === "Backspace" && !event.target.value && (palette.adding || palette.formula)) event.repeat || leaveScope();
