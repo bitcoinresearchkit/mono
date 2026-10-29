@@ -10272,7 +10272,7 @@
   </head>
   <body class="boot">
     <!-- The first stop by keys: past the guide (for scripts, at the start of the page's main) to the chart, or the grid. -->
-    <a class="skip" href="#main" onclick="event.preventDefault(); const keys = document.getElementById('plot-keys'); (document.body.hasAttribute('data-home') ? [document.getElementById('home-filter'), document.querySelector('.home-search')].find((field) => field.checkVisibility()) : keys && !keys.hidden ? keys : document.getElementById('title'))?.focus()">Skip to the chart</a>
+    <a class="skip" href="#main" onclick="event.preventDefault(); const keys = document.getElementById('plot-keys'); (document.body.hasAttribute('data-home') ? [document.getElementById('home-filter'), document.querySelector('.home-search')].find((field) => field.checkVisibility()) : keys && !keys.hidden ? keys : document.getElementById('title'))?.focus()">Skip to the content</a>
     <!-- Bitview's client didn't load (it comes from Studio's server): said, plainly. -->
     <div class="booting" role="status"><p>Connecting…</p><a class="btn" href="" onclick="location.reload(); return false">Reload</a></div>
     <div id="offline" class="offline" role="alert">
@@ -10543,7 +10543,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         <div id="home-horizon" class="home-horizon" aria-hidden="true" hidden></div>
         <!-- (Home's top corner: Undo and Redo, there at Home (see renderHomeHead), a rule, the theme.) -->
         <div id="home-top" class="home-corner home-top" hidden><span class="divider"></span><button id="home-theme" class="cap home-theme" type="button" data-action="theme" aria-haspopup="menu" aria-label="Theme" data-tip="Theme"></button></div>
-        <nav id="home-help" class="home-corner home-help" aria-label="About Studio" hidden><button class="btn ghost small" type="button" data-action="guide">How links work</button><button class="btn ghost small" type="button" data-action="shortcuts" aria-label="Shortcuts" data-tip="Shortcuts" data-kbd="?"><span data-icon="keyboard"></span></button><span id="home-version" class="pill"></span></nav>
         <div class="home-scroll">
           <div class="home-inner">
             <!-- (On a phone, the way back to Bitview, as every showcase has it: elsewhere, the sidebar's.) -->
@@ -10593,6 +10592,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             </div>
           </div>
         </div>
+        <!-- (Its bottom corner after what's on the page, as it's read: Tab reaches it last.) -->
+        <nav id="home-help" class="home-corner home-help" aria-label="About Studio" hidden><button class="btn ghost small" type="button" data-action="guide">How links work</button><button class="btn ghost small" type="button" data-action="shortcuts" aria-label="Shortcuts" data-tip="Shortcuts" data-kbd="?"><span data-icon="keyboard"></span></button><span id="home-version" class="pill"></span></nav>
         <div id="home-bar" class="pick-bar home-bar" role="group" aria-label="Selected charts" hidden>
           <span class="pick-count"><span id="home-picked" aria-live="polite"></span><button class="cap small" type="button" data-batch="clear" aria-label="Clear the selection" data-tip="Clear the selection" data-kbd="esc" data-icon="close"></button></span>
           <button class="btn ghost" type="button" data-batch="rename" aria-label="Rename"><span data-icon="pencil"></span><span class="label">Rename</span></button>
