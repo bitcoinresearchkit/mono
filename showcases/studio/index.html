@@ -3807,12 +3807,17 @@
       .empty-inner {
         width: min(720px, 100%);
 
-        /* Its foot: on the right, its way out (a new one, with a chart to go back to) cancelled. */
+        /* Its foot: on the left, a chart from a file; on the right, its way out (a new one, with a chart to go back to)
+           cancelled. Each in line with the page's words, its button's own room past them. */
         .empty-foot {
           display: flex;
-          justify-content: flex-end;
+          justify-content: space-between;
           min-height: 28px;
           margin-top: 18px;
+
+          > :first-child {
+            margin-left: -9px;
+          }
 
           #leave-empty {
             margin-right: -9px;
@@ -10595,8 +10600,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                     <div class="starts-head"><h2>Recommended</h2></div>
                     <div id="templates" class="templates strip"></div>
                   </div>
-                  <!-- (Its way out: a new one, with a chart to go back to, cancelled.) -->
-                  <div class="empty-foot"><button id="leave-empty" class="btn ghost small" type="button" data-action="leave-empty" hidden><span>Cancel</span><kbd>esc</kbd></button></div>
+                  <!-- (Or a chart from a file (one, it opens here; several, they join your Library); its way out: a new one, with
+                       a chart to go back to, cancelled.) -->
+                  <div class="empty-foot"><button class="btn ghost small" type="button" data-action="import" data-tip="A chart file, or a file of several charts exported together"><span data-icon="upload"></span><span>Import charts</span></button><button id="leave-empty" class="btn ghost small" type="button" data-action="leave-empty" hidden><span>Cancel</span><kbd>esc</kbd></button></div>
                 </div>
               </div>
             </div>
