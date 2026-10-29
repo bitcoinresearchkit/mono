@@ -650,6 +650,7 @@ export function studioPresets(client, facts) {
       ((week, young, old) => chart("RHODL", "RHODL ratio", [price(), { formula: `${week} / (${young} + ${old}) * (date - 2009-01-03) / 86400`, label: "RHODL ratio", format: "number", pane: 2 }], { log: [2] }))(t.age.ranges._1dTo1w.capital.realizedCap.name, t.age.ranges._1yTo18m.capital.realizedCap.name, t.age.ranges._18mTo2y.capital.realizedCap.name),
       chart("On-chain prices", "Realized, true market mean, Cointime and capitalized prices", [price(), series(t.holders.all.costBasis.byCoin.realizedPrice, "Realized price", { color: "orange" }), series(ct.prices.trueMarketMean.value, "True market mean", { color: "sky" }), series(ct.prices.cointime.value, "Cointime price", { color: "violet" }), series(t.holders.all.costBasis.byDollar.capitalizedPrice, "Capitalized price", { color: "green" })]),
       cloudsChart(),
+      compassChart(),
       chart("Cointime caps", "Cointime capitalizations", [...[["thermo", "Thermo cap"], ["investor", "Investor cap"], ["active", "Active cap"], ["vaulted", "Vaulted cap"], ["cointime", "Cointime cap"]].map(([key, label], i) => series(ct.caps[key], label, { color: ["orange", "green", "red", "sky", "violet"][i] })), series(ct.caps.investorness, "Investorness", { pane: 2, color: "green" }), series(ct.caps.producerness, "Producerness", { pane: 2, color: "orange" })], { log: [1] }),
       chart("Reserve risk", "Reserve risk", [price(), series(ct.reserveRisk.value, "Reserve risk", { pane: 2, color: "orange" }), series(ct.reserveRisk.hodlBank, "HODL bank", { pane: 3, color: "sky" })], { log: [2, 3] }),
       // (By its short name, as MVRV and NUPL are, the long one in its title: long, it and its all-time twin read alike, cut short.)
@@ -954,6 +955,25 @@ export function studioPresets(client, facts) {
         return [{ formula: fold("min"), label: `${label}, lowest`, format: "usd", color, width: 1 }, { formula: fold("max"), label: `${label}, highest`, format: "usd", color, width: 1 }];
       }),
       ...groups.map(([label, , color], i) => ({ cloud: [letter(1 + 2 * i), letter(2 + 2 * i)], label, color, opacity: 0.3 })),
+    ]);
+  }
+  /** Compass's chart (showcases/compass): the price against two clouds of the median dollar paid by coins likely to
+   * move, the short-term holders' and the long-term holders' (each three age groups), and the short-term groups' trends
+   * between the lowest and highest price their coins were bought at. */
+  function compassChart() {
+    const short = /** @type {[string, string, string][]} */ ([["under4m", "Under 4 months", "yellow"], ["sth", "Short-term holders", "orange"], ["under6m", "Under 6 months", "red"]]);
+    const long = /** @type {[string, string, string][]} */ ([["over4m", "Over 4 months", "cyan"], ["lth", "Long-term holders", "blue"], ["over6m", "Over 6 months", "violet"]]);
+    const median = (/** @type {[string, string, string]} */ [key, label, color]) => series(cf.cohorts[key].mobile.costBasis.byDollar.median, label, { color, opacity: 0.5 });
+    // (Letters: the price A, the short-term medians B to D, the long-term E to G, then each trend's lowest and highest.)
+    const edges = short.flatMap(([key, label]) => [series(t.holders[key].costBasis.min, `${label}, lowest`, { color: "gray", hidden: true }), series(t.holders[key].costBasis.max, `${label}, highest`, { color: "gray", hidden: true })]);
+    return chart("Compass", "Short- and long-term holders' clouds and trends (Compass)", [
+      price(),
+      ...short.map(median),
+      ...long.map(median),
+      { cloud: ["B", "C", "D"], label: "Short-term cloud", color: "orange", opacity: 0.3 },
+      { cloud: ["E", "F", "G"], label: "Long-term cloud", color: "blue", opacity: 0.3 },
+      ...edges,
+      ...short.map(([, label, color], i) => ({ trend: [letter(9 + 2 * i), letter(10 + 2 * i)], ref: "A", label: `${label} trend`, color, dash: 2 })),
     ]);
   }
   /** Extreme events: the days each extreme's input crossed into its historical 0.1% tail (its 0.1st percentile for the

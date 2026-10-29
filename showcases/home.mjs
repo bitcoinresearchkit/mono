@@ -10,6 +10,8 @@
 //   bun showcases/home.mjs --check [server]      fails if FROM_APPS isn't what it'd be now, or a check fails
 //   bun showcases/home.mjs --pictures [server]   also makes its pictures again (a Chromium: CHROMIUM=path, if not found)
 //   ... --page FILE                              another page than showcases/index.html (a draft of it)
+//   ... --pictures --only ID                     that app's pictures alone (a new app's), the share card too if it's its
+//                                                picture
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -19,7 +21,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2), flag = (/** @type {string} */ name) => args.includes(name);
 const check = flag("--check"), pictures = flag("--pictures");
 const pageAt = args.indexOf("--page"), PAGE = pageAt >= 0 ? args[pageAt + 1] : join(HERE, "index.html");
-const SERVER = args.find((arg, i) => !arg.startsWith("--") && args[i - 1] !== "--page") ?? "http://127.0.0.1:3110";
+const onlyAt = args.indexOf("--only"), ONLY = onlyAt >= 0 ? args[onlyAt + 1] : null;
+const SERVER = args.find((arg, i) => !arg.startsWith("--") && args[i - 1] !== "--page" && args[i - 1] !== "--only") ?? "http://127.0.0.1:3110";
 
 let html = readFileSync(PAGE, "utf8");
 /** What's wrong, all of it, said at the end. @type {string[]} */
@@ -112,10 +115,12 @@ const PICTURES = {
   globe: { url: "/globe/", settle: 9000, hide: "text", cover: [166, 44, 720, 450], banner: [43, 64, 966, 450] },
   trail: { url: "/trail/", settle: 12000, hide: "scene", cover: [230, 130, 960, 600], banner: [60, 80, 1360, 640] },
   stack: { url: "/stack/", settle: 8000, cover: [192, 336, 640, 400], banner: [192, 341, 648, 300] },
+  compass: { url: "/compass/", settle: 6000, cover: [130, 60, 1088, 680] },
   calendar: { url: "/calendar/", settle: 9000, cover: [105, 100, 384, 240], banner: [105, 100, 863, 400] },
   series: { url: "/series/?series=hashrate", settle: 8000, cover: [880, 290, 432, 270] },
   logs: { url: "/logs/", settle: 6000, cover: [280, 228, 400, 250] },
 };
+if (onlyAt >= 0 && !(ONLY && Object.hasOwn(PICTURES, ONLY))) throw new Error(`--only ${ONLY ?? ""}: not an app in PICTURES (${Object.keys(PICTURES).join(", ")})`);
 const featured = [...(/const FEATURED = \[([^\]]*)\]/.exec(html)?.[1] ?? "").matchAll(/"([a-z]+)"/g)].map(([, id]) => id);
 const appIds = [...(/const APPS = [^\[]*\[([\s\S]*?)\n      \]/.exec(html)?.[1] ?? "").matchAll(/id: "([a-z]+)"/g)].map(([, id]) => id);
 for (const id of appIds) if (!(id in PICTURES)) problems.push(`${id}: no cover's making in PICTURES`);
@@ -182,6 +187,7 @@ async function makePictures() {
     if (!port) return void problems.push("The Chromium for --pictures didn't start");
     const out = join(HERE, "assets", "home");
     for (const [id, recipe] of Object.entries(PICTURES)) {
+      if (ONLY && id !== ONLY) continue;
       const wanted = /** @type {[string, number[], number, number][]} */ ([
         ...(appIds.includes(id) ? [[`covers/${id}.jpg`, recipe.cover, 960, 80]] : []),
         ...(featured.includes(id) && "banner" in recipe ? [[`banners/${id}.jpg`, recipe.banner, 1900, 78], [`banners/${id}@2x.jpg`, recipe.banner, 2880, 64]] : []),
@@ -205,6 +211,7 @@ async function makePictures() {
       }
     }
     // (The share card: the billboard's first picture, Bitview's mark and name over it, set as the page is.)
+    if (ONLY && ONLY !== featured[0]) return;
     const card = await screen(port, `${SERVER}/llms.txt`, [1200, 630], 2, 1500, undefined, SHARE_CARD(featured[0]));
     try {
       const shot = await card.send("Page.captureScreenshot", { format: "jpeg", quality: 84, clip: { x: 0, y: 0, width: 1200, height: 630, scale: 0.5 } });
