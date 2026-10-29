@@ -525,13 +525,14 @@
         /* (A desk: its titles' bars on its buttons' line, after them: a line less, the apps under it the higher. Its fact
            and buttons at the screen's scale, as its title and blurb are.) */
         @media (min-width: 720px) {
+          --column: clamp(520px, 42vw, 780px);
           display: grid;
           grid-template-columns: auto 1fr;
           align-items: center;
           column-gap: 32px;
 
           > div {
-            max-width: clamp(520px, 42vw, 780px);
+            max-width: var(--column);
           }
 
           .meta {
@@ -550,8 +551,15 @@
             }
           }
 
+          /* (Its title on one line where the screen has room, wider than the words under it if it must, as a streaming
+             title's logo is; its blurb the column's.) */
           .words {
             grid-column: 1 / -1;
+            max-width: none;
+
+            .blurb {
+              max-width: var(--column);
+            }
           }
 
           .paging {
@@ -1029,7 +1037,10 @@
         gap: var(--grid-gap);
         margin: 0;
         padding: 6px var(--gutter) 14px;
+        /* (Sideways only: a Top 10's numerals, their boxes past its foot, made it scroll up and down too, a page's scroll
+           taken by it as the pointer crossed it.) */
         overflow-x: auto;
+        overflow-y: hidden;
         scroll-snap-type: x mandatory;
         scroll-padding: 0 var(--gutter);
         scrollbar-width: none;
