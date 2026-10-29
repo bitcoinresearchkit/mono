@@ -1850,10 +1850,10 @@
           }
         }
 
-        /* (Where a backdrop can't fade (Firefox): a modal dialog's dim, and Quick Look's, drawn by itself, as wide as the
+        /* (Where a backdrop can't fade (Firefox): a dialog's dim, and Quick Look's, drawn by itself, as wide as the
            screen, coming and going with it, and changing as it does (⌘K looking); its backdrop, none.) */
         @supports not (overlay: auto) {
-          :is(dialog:modal, #quick:popover-open) {
+          :is(dialog:popover-open, #quick:popover-open) {
             box-shadow: var(--pop), 0 0 0 200vmax var(--dim, transparent);
 
             &::backdrop {
@@ -1868,7 +1868,7 @@
 
         /* (Going, eased in and out, however it goes (closed, its transition's the closed one's; leaving first, in
            Safari): out at once, it'd read as a cut.) */
-        dialog:not([open]),
+        dialog:not(:popover-open),
         #quick:not(:popover-open),
         dialog[data-leaving],
         #quick[data-leaving] {
@@ -1876,7 +1876,7 @@
         }
 
         /* (Each its own selector: in one :is(), Quick Look's id would weigh on every dialog's, over their own ways out.) */
-        dialog:not([open]),
+        dialog:not(:popover-open),
         #quick:not(:popover-open),
         dialog[data-leaving],
         #quick[data-leaving] {
@@ -5952,7 +5952,7 @@
           animation: appear var(--dur-small) var(--ease);
         }
 
-        &[open] {
+        &:popover-open {
           animation: pop var(--dur-small) var(--ease);
         }
 
@@ -6048,7 +6048,7 @@
         /* (Its column its own, not its open state's: closed, it fades out laid out as it was.) */
         flex-direction: column;
 
-        &[open] {
+        &:popover-open {
           display: flex;
         }
 
@@ -6074,11 +6074,11 @@
          where the window's foot is nearer); no preview, no keys' foot (a row's actions by the row, see showActions), its
          corners concentric with its rows' (their radius and the list's padding, 10 all round). Coming, it unrolls down from the field
          as it fades in, from its second frame (`data-arriving` its first, see openPalette: the dialog's opening is the
-         heavy one, the page made inert, and a motion begun in it shows a third of the way on); going, it rolls back up
+         heavy one, and a motion begun in it shows a third of the way on); going, it rolls back up
          into it as it fades out (no pop: its field stays on Home's), Home's field fading out and back under it (never a
          moment without a field; its corners are rounder than the field's). */
       .palette[data-on-home] {
-        /* (Its height its own: a modal dialog's held to the window's foot too.) */
+        /* (Its height its own: a popover's held to the window's foot too.) */
         bottom: auto;
         width: var(--on-w);
         height: auto;
@@ -6091,14 +6091,14 @@
         clip-path: inset(-100px);
         transition: opacity var(--dur-small) var(--ease), clip-path var(--dur-layout) var(--ease-layout), border-radius var(--dur-layout) var(--ease-layout);
 
-        &[open] {
+        &:popover-open {
           animation: none;
         }
 
         /* (Rolled up: its field's corners, Home's field's, rounding to its own as it unrolls.) */
         /* (Rolled up, the field's box exactly, its corners (no shadow about it yet: it comes as it unrolls); its moving
            foot's corners round, as the field's, none once it's whole, its own then.) */
-        &:is(:not([open]), [data-leaving], [data-arriving]) {
+        &:is(:not(:popover-open), [data-leaving], [data-arriving]) {
           transform: none;
           clip-path: inset(0 0 calc(100% - 48px) 0 round var(--radius-lg));
           border-radius: var(--radius-lg);
@@ -6109,7 +6109,7 @@
           transition: none;
         }
 
-        &:is(:not([open]), [data-leaving]) {
+        &:is(:not(:popover-open), [data-leaving]) {
           transition: opacity var(--dur-small) var(--ease), clip-path var(--dur-small) var(--ease-layout), border-radius var(--dur-small) var(--ease-layout), visibility var(--dur-small);
 
           @supports (overlay: auto) {
@@ -8523,6 +8523,18 @@
         display: none;
       }
 
+      /* Under an open dialog (⌘K, the guide, the shortcuts), in the top layer: a click beside it taken, none going through
+         to the page (a popover's backdrop takes none: see showDialog); the dim, its backdrop's. */
+      .dialog-scrim {
+        inset: 0;
+        width: auto;
+        height: auto;
+        margin: 0;
+        border: 0;
+        padding: 0;
+        background: none;
+      }
+
       /* Under a phone's menu (a sheet): the page dimmed, and the touch that closes the menu taken (none goes through). */
       .menu-scrim {
         position: fixed;
@@ -9720,7 +9732,7 @@
           transition: transform var(--dur-layout) var(--ease-layout), background var(--dur-small) var(--ease);
 
           /* (Over a dialog's own pop.) */
-          &[open] {
+          &:popover-open {
             animation: none;
           }
 
@@ -9728,13 +9740,13 @@
             transition: transform var(--dur-layout) var(--ease-layout), background var(--dur-small) var(--ease), display var(--dur-layout) allow-discrete, overlay var(--dur-layout) allow-discrete;
           }
 
-          &:is(:not([open]), [data-leaving]) {
+          &:is(:not(:popover-open), [data-leaving]) {
             transform: translateY(100%);
             pointer-events: none;
           }
 
           @starting-style {
-            &[open] {
+            &:popover-open {
               transform: translateY(100%);
             }
           }
@@ -9748,12 +9760,12 @@
             }
           }
 
-          &:is(:not([open]), [data-leaving])::backdrop {
+          &:is(:not(:popover-open), [data-leaving])::backdrop {
             opacity: 0;
           }
 
           @starting-style {
-            &[open]::backdrop {
+            &:popover-open::backdrop {
               opacity: 0;
             }
           }
@@ -10664,7 +10676,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       </nav>
     </div>
 
-    <dialog id="palette" class="palette" aria-label="Search">
+    <dialog id="palette" class="palette" aria-label="Search" aria-modal="true" popover="manual" tabindex="-1">
       <div class="menu-handle" aria-hidden="true"></div>
       <div class="palette-search">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="4.5" /><path d="m10.5 10.5 3 3" /></svg>
@@ -10701,7 +10713,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       </div>
     </dialog>
 
-    <dialog id="guide" class="shortcuts guide" aria-label="How links work" tabindex="-1">
+    <dialog id="guide" class="shortcuts guide" aria-label="How links work" aria-modal="true" popover="manual" tabindex="-1">
       <div class="menu-handle" aria-hidden="true"></div>
       <div class="dialog-head">
         <h2>How links work</h2>
@@ -10710,7 +10722,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       </div>
       <div id="guide-body" class="guide-body"></div>
     </dialog>
-    <dialog id="shortcuts" class="shortcuts" aria-label="Shortcuts" tabindex="-1">
+    <dialog id="shortcuts" class="shortcuts" aria-label="Shortcuts" aria-modal="true" popover="manual" tabindex="-1">
       <div class="menu-handle" aria-hidden="true"></div>
       <div class="dialog-head">
         <h2>Shortcuts</h2>
@@ -13929,7 +13941,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!chart) return;
         const current = isPreview(chart) ? chart : library.charts.find((doc) => doc.id === chart.id) ?? library.presets.find((doc) => doc.id === chart.id || (chart.preset !== undefined && doc.preset === chart.preset)) ?? chart;
         drawThumbs();
-        if ($("palette").open) showPalette();
+        if (isOpen($("palette"))) showPalette();
         if (current === chart) return (pruneDrafts(), renderCharts());
         chart = /** @type {Chart} */ (current);
         pruneDrafts();
@@ -22120,7 +22132,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (The chart then has the keys, ⌘K closed: its arrows move it; by touch, none.)
         // (⌘K gives the focus back as it closes: taken from there.)
         const keys = () => $("plot-keys").focus({ preventScroll: true });
-        if (!TOUCH) /** @type {HTMLDialogElement} */ ($("palette")).open ? $("palette").addEventListener("close", keys, { once: true }) : keys();
+        if (!TOUCH) isOpen($("palette")) ? onClosed($("palette"), keys, true) : keys();
         // (A line across is at every date: it's in view wherever the view is.)
         if (!range || drawing.kind === "hline") return;
         const bars = drawing.points.map(([time]) => barOf(time)), first = Math.min(...bars), last = Math.max(...bars);
@@ -22528,8 +22540,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         buttons[stepIn(at, step * along, buttons.length, true)].focus();
       }, true);
 
-      /** The dialog on top, if one's open (the focus is in it; else the last opened, as they're laid in the page). */
-      const topDialog = () => /** @type {HTMLElement | null} */ (document.activeElement?.closest("dialog[open]") ?? all$("dialog[open]").at(-1) ?? null);
+      /**
+       * The dialogs open, in the order they opened: the last on top, as the top layer lays them (the page lays them in
+       * its own order). See showDialog.
+       * @type {HTMLElement[]}
+       */
+      const dialogsShown = [];
+      /** The dialog on top, if one's open. */
+      const topDialog = () => dialogsShown.at(-1) ?? null;
       /** Words for a screen reader alone, on the status line where the focus is (the page's, or an open dialog's). */
       function say(/** @type {string} */ text) {
         const line = /** @type {HTMLElement | null} */ ((topDialog() ?? document.body).querySelector(":scope > [data-said]"));
@@ -24753,8 +24771,46 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** A new chart, untouched, opened from the grid: leaving it goes back there. */
       const backToHome = () => (isPreview(chart) || emptyYours(chart)) && history.state?.fromHome === true && history.state.chart === chart.id;
       // Back and Forward, between the grid and the charts opened from it.
+      /**
+       * Whether a dialog (⌘K, the guide, the shortcuts) is open. Each is a popover in the top layer, not a modal dialog: a
+       * modal makes the whole page inert, its style worked out again at each open (and Safari's AutoFill measuring all
+       * of it as ⌘K's field takes the focus); what a modal does besides, done here (the keys kept in it, esc, a click
+       * beside it, Back on a phone).
+       * @param {Element} element
+       */
+      function isOpen(element) {
+        return element.matches(":popover-open");
+      }
+      /** `then` once a dialog has closed (by then, maybe open again: it says so); `once`, the first time alone. @param {HTMLElement} element @param {() => void} then */
+      function onClosed(element, then, once = false) {
+        const heard = (/** @type {Event} */ event) => {
+          if (/** @type {ToggleEvent} */ (event).oldState !== "open") return;
+          if (once) element.removeEventListener("toggle", heard);
+          then();
+        };
+        element.addEventListener("toggle", heard);
+      }
+      /** What each dialog was opened from: the focus back there as it closes, as a modal's goes. */
+      const dialogOpeners = /** @type {WeakMap<HTMLElement, Element | null>} */ (new WeakMap());
+      /**
+       * Each dialog's scrim, under it as it's open, taking a click beside it (a popover's backdrop takes none): its own,
+       * as a modal's backdrop is, over whatever it's opened over (another dialog too).
+       * @type {WeakMap<HTMLElement, HTMLElement>}
+       */
+      const dialogScrims = new WeakMap();
+      /**
+       * A dialog opened (see isOpen) on top, over its scrim, what had the focus kept to go back to.
+       * @param {HTMLElement} dialog
+       */
+      function showDialog(dialog) {
+        if (isOpen(dialog)) return;
+        dialogOpeners.set(dialog, document.activeElement);
+        dialogsShown.push(dialog);
+        dialogScrims.get(dialog)?.showPopover();
+        dialog.showPopover();
+      }
       /** Back, Forward or a link pasted in: whatever dialog is open closes first. */
-      const closeDialogs = () => all$("dialog[open]").forEach((dialog) => /** @type {HTMLDialogElement} */ (dialog).close());
+      const closeDialogs = () => all$("dialog:popover-open").forEach((dialog) => dialog.hidePopover());
       /** Whether this browser keeps a closing dialog or popover drawn while it leaves (`overlay`; Safari doesn't). */
       const keepsLeaving = CSS.supports("overlay: auto");
       let leavings = 0;
@@ -24763,13 +24819,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * keeps it drawn meanwhile, closed now, the style playing its way out; elsewhere (Safari: closed, gone at once), its
        * closed look played first (`data-leaving`, the style's own, as it'd go: a phone's sheet down, a dialog's settle
        * back out), out of reach, then closed. Opened again meanwhile (arrive), it stays. Closed by what it ran, it closes
-       * at once, there (`close()`): what follows is the page's (a modal dialog open, the page can't take the focus), and
+       * at once, there (hidden): what follows is the page's (a dialog open, the keys stay in it), and
        * the result's what's looked at, as Spotlight goes.
-       * @param {HTMLDialogElement | HTMLElement} element
+       * @param {HTMLElement} element
        */
       function leave(element) {
-        if (!(element instanceof HTMLDialogElement ? element.open : element.matches(":popover-open"))) return;
-        const shut = () => ((element.inert = false), delete element.dataset.leaving, element instanceof HTMLDialogElement ? element.close() : element.hidePopover());
+        if (!isOpen(element)) return;
+        const shut = () => ((element.inert = false), delete element.dataset.leaving, element.hidePopover());
         if (keepsLeaving || reduced.matches) return void shut();
         if (element.dataset.leaving) return;
         const mine = String(++leavings);
@@ -24780,8 +24836,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       /** A dialog or a popover opened again as it leaves (see leave): it stays. @param {HTMLElement} element */
       const arrive = (element) => ((element.inert = false), delete element.dataset.leaving);
-      // Back (Android's) closes a phone's sheet, the layers' or a menu's, as it does a dialog: a close watcher for each
-      // open one (where the browser has them), the last opened closed first, ⌘K's dialog among them. Closing the layers'
+      // Back (Android's) closes a phone's sheet, the layers' or a menu's, or a dialog: a close watcher for each open one
+      // (where the browser has them), the last opened closed first, ⌘K among them. Closing the layers'
       // sheet, its list next time (a layer's settings were in it).
       {
         const watchers = /** @type {Map<string, any>} */ (new Map());
@@ -24815,6 +24871,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         new MutationObserver(sync).observe(document.body, { attributes: true, attributeFilter: ["data-sheet"] });
         new MutationObserver(sync).observe($("menu"), { attributes: true, attributeFilter: ["hidden", "class"] });
+        // (A dialog, as a modal's was: put away as esc puts it away.)
+        for (const dialog of all$("dialog")) dialog.addEventListener("toggle", () => watch(dialog.id, phone.matches && isOpen(dialog), () => dialog.dispatchEvent(new Event("cancel", { cancelable: true })) && dialog.hidePopover()));
       }
       addEventListener("popstate", (event) => {
         // (The page left, where it was, by its step: its own can't be written now. Still coming back (a second step
@@ -25106,19 +25164,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         } catch {}
         slides.set(sheet, slide);
         beginOnTime(slide, ...(fade ? [fade] : []), ...own.filter((animation) => animation.playState !== "idle"));
-        const meanwhile = new MutationObserver(() => slide.cancel());
+        // (Opened or closed meanwhile, another way: let go of. A sheet's by its attributes, a dialog's as it toggles (a
+        // popover's state is none of them).)
+        let changed = false;
+        const meanwhile = new MutationObserver(() => slide.cancel()), toggled = () => ((changed = true), slide.cancel());
         meanwhile.observe(sheet, { attributes: true, attributeFilter: ["open", "hidden"] });
         meanwhile.observe(document.body, { attributes: true, attributeFilter: ["data-sheet"] });
+        sheet.addEventListener("beforetoggle", toggled);
+        const unheard = () => (meanwhile.disconnect(), sheet.removeEventListener("beforetoggle", toggled));
         slide.finished.then(() => {
           // (Opened or closed in the very task it ended in: its change not heard yet, but there.)
-          const changed = meanwhile.takeRecords().length > 0;
-          meanwhile.disconnect();
+          changed ||= meanwhile.takeRecords().length > 0;
+          unheard();
           if (later && !changed) close();
           // (Closed, at its closed place at once, out of sight already: its own way there, from where it went, not taken.)
           for (const animation of sheet.getAnimations()) if (animation instanceof CSSTransition && animation.transitionProperty === "transform") animation.finish();
           slide.cancel();
           fade?.cancel();
-        }, () => (meanwhile.disconnect(), fade?.cancel()));
+        }, () => (unheard(), fade?.cancel()));
       }
       /**
        * A sheet pressed as it slides away: stopped where it shows, open; how far down from its rest it shows then (as it
@@ -25905,7 +25968,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // Look's.)
           for (const [id, drawn] of previews) paint(id, drawn, true);
           if (quick) quickShow();
-          if (/** @type {HTMLDialogElement} */ ($("palette")).open) renderPalette();
+          if (isOpen($("palette"))) renderPalette();
           // (Words being typed on the chart: in their tone on this surface.)
           if (writing) dressField(writing.drawing);
         };
@@ -26323,7 +26386,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const places = treeOf().flatMap(({ item }) => (!("layers" in item) && !moved.some((id) => isIn(item.id, id)) ? [item] : [])), counts = chartCounts();
         return [
           ...places.map((folder) => ({ key: folder.id, icon: folderMark(folder), label: folderPath(folder.id), aside: plural(counts.get(folder.id) ?? 0, "chart"), current: from.size === 1 && from.has(folder.id), run: () => moveToFolder(keys, folder.id) })),
-          { key: "new", icon: ICONS.folderAdd, label: "New folder", apart: true, run: () => ($("palette").open && dismissPalette(), newFolder(keys, from.size === 1 ? [...from][0] : undefined)) },
+          { key: "new", icon: ICONS.folderAdd, label: "New folder", apart: true, run: () => (isOpen($("palette")) && dismissPalette(), newFolder(keys, from.size === 1 ? [...from][0] : undefined)) },
           ...(out && outOf(keys) ? [{ key: "out", icon: ICONS.folderOut, label: outOf(keys), run: () => moveToFolder(keys, null) }] : []),
         ];
       }
@@ -26352,8 +26415,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           icon,
           ...(inPalette && at > 0 ? [{ key: "up", icon: ICONS.arrowUp, label: "Move up", kbd: "⌥↑", verb: "Move", stay: true, run: () => stepFolder(id, -1) }] : []),
           ...(inPalette && at < peers.length - 1 ? [{ key: "down", icon: ICONS.arrowDown, label: "Move down", kbd: "⌥↓", verb: "Move", stay: true, run: () => stepFolder(id, 1) }] : []),
-          { key: "new-chart", icon: ICONS.plus, label: "New chart inside", run: () => ($("palette").open && dismissPalette(), newChart(id)) },
-          { key: "new-folder", icon: ICONS.folderAdd, label: "New folder inside", run: () => ($("palette").open && dismissPalette(), newFolder([], id, { side: inSide })) },
+          { key: "new-chart", icon: ICONS.plus, label: "New chart inside", run: () => (isOpen($("palette")) && dismissPalette(), newChart(id)) },
+          { key: "new-folder", icon: ICONS.folderAdd, label: "New folder inside", run: () => (isOpen($("palette")) && dismissPalette(), newFolder([], id, { side: inSide })) },
           { key: "folder", icon: ICONS.folder, label: "Move to folder", ...(inPalette ? { aside: folder.parent ? folderPath(folder.parent) : "None" } : {}), page: () => choicePage("Move to folder", () => folderChoices([`f:${id}`], inPalette)) },
           ...(leave ? [{ key: "out", icon: ICONS.folderOut, label: leave, run: () => moveToFolder([`f:${id}`], null) }] : []),
           { key: "delete", icon: ICONS.trash, label: "Delete the folder", aside: "Keeps its charts", verb: "Delete", danger: true, run: () => deleteFolder(id) },
@@ -27371,7 +27434,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         presetsFailed = false;
         renderRecommended();
         void loadPresets().catch(() => {});
-        if ($("palette").open) showPalette();
+        if (isOpen($("palette"))) showPalette();
         renderHome();
       }
       /** The pages the presets fill (each a group of them). @type {WeakSet<Page>} */
@@ -27381,7 +27444,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * it was on (what ↵ runs doesn't change under you). Elsewhere (a formula, adding a series, a setting), left as it is.
        */
       function presetsArrived() {
-        if (!$("palette").open || palette.formula || palette.adding || palette.replacing) return;
+        if (!isOpen($("palette")) || palette.formula || palette.adding || palette.replacing) return;
         const page = palette.pages.at(-1);
         if (page && !presetPages.has(page)) return;
         // (A preset's copy kept here, Recent's, by its chart till now: its preset's row, by its id (the copy may be let go of by
@@ -27906,7 +27969,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {number} i
        */
       function copyToNewFolder(i) {
-        if ($("palette").open) dismissPalette();
+        if (isOpen($("palette"))) dismissPalette();
         const copy = copyPreset(i, undefined, true);
         newFolder([`c:${copy.id}`], undefined, { step: false });
         const folder = library.folders.find((item) => item.id === copy.folder), same = asThen([copy]);
@@ -28294,15 +28357,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       new ResizeObserver(([entry]) => /** @type {HTMLElement} */ (document.querySelector(".app")).style.setProperty("--head-height", `${entry.borderBoxSize[0].blockSize}px`)).observe(/** @type {HTMLElement} */ (document.querySelector(".card-head")));
       // Escape is the page's: it does here what it does, and goes no further, so a browser's own full screen (macOS's,
       // ⌃⌘F) doesn't leave with it. (One a page asked for is the browser's to leave, see setFull.)
-      window.addEventListener("keydown", (event) => event.key === "Escape" && !document.querySelector("dialog[open]") && event.preventDefault(), true);
+      window.addEventListener("keydown", (event) => event.key === "Escape" && !document.querySelector("dialog:popover-open") && event.preventDefault(), true);
       // (A dialog's too: nothing in it having taken the key, its own way out, as the browser's would be (its cancel, then
       // closed unless that's refused), the key going no further: left to the browser, Firefox's full screen left with it.)
       window.addEventListener("keydown", (event) => {
-        // (The one on top: the one the focus is in, as only a modal on top can hold it; else the last in the page.)
-        const dialog = event.key === "Escape" && !event.defaultPrevented && !event.isComposing ? /** @type {HTMLDialogElement | undefined} */ (document.activeElement?.closest("dialog[open]") ?? all$("dialog[open]").at(-1)) : undefined;
+        // (The one on top.)
+        const dialog = event.key === "Escape" && !event.defaultPrevented && !event.isComposing ? topDialog() : undefined;
         if (!dialog) return;
         event.preventDefault();
-        if (dialog.dispatchEvent(new Event("cancel", { cancelable: true }))) dialog.close();
+        if (dialog.dispatchEvent(new Event("cancel", { cancelable: true }))) dialog.hidePopover();
+      });
+      // (Tab kept in the dialog on top, as a modal's is (see isOpen): past its last stop, its first; ⇧Tab before its
+      // first, its last; from outside it, in. The focus in what's over it (a menu, Quick Look), theirs.)
+      window.addEventListener("keydown", (event) => {
+        const dialog = event.key === "Tab" && !event.defaultPrevented ? topDialog() : undefined, active = document.activeElement;
+        if (!dialog || (active && !dialog.contains(active) && active.closest(":popover-open"))) return;
+        const stops = all$("button:not(:disabled), a[href], input:not(:disabled), textarea:not(:disabled), select:not(:disabled), summary, [tabindex]", dialog).filter((stop) => stop.tabIndex >= 0 && stop.checkVisibility({ visibilityProperty: true }) && !stop.closest("[inert]"));
+        const at = active instanceof HTMLElement ? stops.indexOf(active) : -1;
+        const to = event.shiftKey ? (at <= 0 ? stops.at(-1) : undefined) : at < 0 || at === stops.length - 1 ? stops[0] : undefined;
+        if (!to) return;
+        event.preventDefault();
+        to.focus();
       });
       const toggleHalvings = () => commit((doc) => (doc.halvings ? delete doc.halvings : (doc.halvings = true)), { look: true });
       /** How a chart's legends show: none, or (the default, "") over each pane, scrolling to the line pointed at. */
@@ -28685,7 +28760,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** On a phone, a layer just added: its settings a tap away (the chart, meanwhile, in sight). @param {Layer | undefined} layer */
       const editAdded = (layer) => (phone.matches && layer ? { label: "Edit", run: () => {
-        if ($("palette").open) dismissPalette();
+        if (isOpen($("palette"))) dismissPalette();
         if (layerById(layer.id)) select(layer.id);
       } } : undefined);
       /** A layer selected, its settings shown (on a phone, in its sheet; `sheet` false: one just added, left as it is there). */
@@ -30562,7 +30637,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // isn't finished, inside a call still open, it doesn't).
           const status = $("formula-status");
           if (help && id === "formula" && status?.classList.contains("error") && !isUnfinished(field?.value ?? "")) help += `<p class="call-error">${escape(status.textContent ?? "")}</p>`;
-          const html = help || (id === "palette-input" && $("palette").open && palette.formula ? FORMULA_GUIDE : "");
+          const html = help || (id === "palette-input" && isOpen($("palette")) && palette.formula ? FORMULA_GUIDE : "");
           if (element.dataset.shown === html) continue;
           element.dataset.shown = html;
           element.innerHTML = html;
@@ -31948,16 +32023,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         putAside();
         // (Quick Look in it put away with it, as it starts.)
         if (leaving) quickHide(), leave($("palette"));
-        else $("palette").close();
+        else $("palette").hidePopover();
       }
       $("palette").addEventListener("cancel", () => ((dismissing = true), putAside()));
       // (Closed by a series it added, or a preset it opened (for wherever the next opens): where it was kept.)
-      $("palette").addEventListener("close", () => {
-        if (!dismissing && !$("palette").open && (presetPicked() || seriesPicked())) putAside(presetPicked());
+      onClosed($("palette"), () => {
+        if (!dismissing && !isOpen($("palette")) && (presetPicked() || seriesPicked())) putAside(presetPicked());
         dismissing = false;
         // (A page left as it was when closed: what it began taken back, and gone from where ⌘K comes back to. Open again by
         // then (a row that closes it and opens a page, New folder's), the pages are the new ones: see openPalette.)
-        const left = $("palette").open ? -1 : palette.pages.findIndex((page) => page.left);
+        const left = isOpen($("palette")) ? -1 : palette.pages.findIndex((page) => page.left);
         if (left >= 0) leavePages(left);
       });
       /** Whether ⌘K was opened by Home's search, to be on it (see placeOnHome); its arrivals there, counted (see openPalette). */
@@ -31982,7 +32057,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * nothing), its path's crumbs fit to its width again.
        */
       const keepOnHome = () => {
-        if (!$("palette").open) return;
+        if (!isOpen($("palette"))) return;
         const was = $("palette").getBoundingClientRect();
         placeOnHome();
         const now = $("palette").getBoundingClientRect();
@@ -31993,7 +32068,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       };
       new ResizeObserver(keepOnHome).observe($("home"));
       // (Home's field out of sight while ⌘K's on it, back as it goes (closed, or leaving first: see leave).)
-      new MutationObserver(() => ((dialog) => document.querySelector(".home-search")?.toggleAttribute("data-under", dialog.open && dialog.hasAttribute("data-on-home") && !dialog.dataset.leaving && !dialog.hasAttribute("data-arriving")))($("palette"))).observe($("palette"), { attributes: true, attributeFilter: ["open", "data-on-home", "data-leaving", "data-arriving"] });
+      const underHome = (open = isOpen($("palette"))) => ((dialog) => document.querySelector(".home-search")?.toggleAttribute("data-under", open && dialog.hasAttribute("data-on-home") && !dialog.dataset.leaving && !dialog.hasAttribute("data-arriving")))($("palette"));
+      new MutationObserver(() => underHome()).observe($("palette"), { attributes: true, attributeFilter: ["data-on-home", "data-leaving", "data-arriving"] });
+      // (Opened or closed, said as it is, in the same frame.)
+      $("palette").addEventListener("beforetoggle", (event) => underHome(/** @type {ToggleEvent} */ (event).newState === "open"));
       viewport.addEventListener("resize", keepOnHome);
       viewport.addEventListener("scroll", keepOnHome);
       /**
@@ -32017,7 +32095,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         paletteShown = null;
         palette.op = replace ? { kind: "replace", layer: replace } : formula ? { kind: "formula", editing, into, signal, side } : add ? { kind: "add", into, bubbles } : { kind: "browse" };
         const dialog = $("palette"), input = $("palette-input");
-        if (!dialog.open) (trailDrawn = ""), dialog.removeAttribute("data-half");
+        if (!isOpen(dialog)) (trailDrawn = ""), dialog.removeAttribute("data-half");
         // (By touch, opened with the focus on ⌘K, not its field: no keyboard till it's tapped (the Search tab too: a keyboard
         // comes only when asked for). Opened by a tap on what's drawn as a field (an empty chart's search), its field at
         // once: the keyboard with it, as that tap asked, in it for iOS to allow it.)
@@ -32025,11 +32103,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Opened again as it leaves: it stays, put away no more.)
         if (dialog.dataset.leaving) (dismissing = false), arrive(dialog);
         // (On Home, on its search, see placeOnHome; its motion from its second frame, the first the opening's.)
-        if (!dialog.open) (paletteOnField = onField), placeOnHome(), dialog.toggleAttribute("data-arriving", dialog.hasAttribute("data-on-home") && !reduced.matches);
+        if (!isOpen(dialog)) (paletteOnField = onField), placeOnHome(), dialog.toggleAttribute("data-arriving", dialog.hasAttribute("data-on-home") && !reduced.matches);
         // (Its second frame; frames not running (a tab put away as it opened), a moment on all the same: never left unseen.)
         // (This arrival's alone: ⌘K closed and opened again meanwhile, the next one's its own.)
         if (dialog.hasAttribute("data-arriving")) ((arrived) => (requestAnimationFrame(() => requestAnimationFrame(arrived)), setTimeout(arrived, 100)))(((arrival) => () => arrival === paletteArrivals && dialog.removeAttribute("data-arriving"))(++paletteArrivals));
-        if (!dialog.open) (input.inert = !keys), dialog.showModal(), (input.inert = false), !keys && dialog.focus();
+        if (!isOpen(dialog)) (input.inert = !keys), showDialog(dialog), (input.inert = false), !keys && dialog.focus();
         if (typing && TOUCH) input.focus();
         // (Its series, those by block only said so, and how many there are: the catalog indexed the rest of the way first.)
         indexCatalog();
@@ -32108,7 +32186,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         showPalette();
         paletteKeys();
       }
-      addEventListener("resize", () => $("palette").open && ((trailDrawn = ""), renderPath()));
+      addEventListener("resize", () => isOpen($("palette")) && ((trailDrawn = ""), renderPath()));
       $("palette-scope").addEventListener("click", () => {
         if (palette.path.length) {
           goUp(0);
@@ -32533,7 +32611,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       let formulaAt = "";
       document.addEventListener("selectionchange", () => {
         const input = /** @type {HTMLInputElement} */ ($("palette-input"));
-        if (document.activeElement !== input || !palette.formula || !$("palette").open) return;
+        if (document.activeElement !== input || !palette.formula || !isOpen($("palette"))) return;
         if (`${input.value} ${input.selectionStart} ${input.selectionEnd}` !== formulaAt) showFormula();
       });
       /** A formula that reads, of this chart's layers (every one it names there) or of series by their names (every one known). */
@@ -32669,7 +32747,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           paletteKeys(true);
           return;
         }
-        $("palette").close();
+        $("palette").hidePopover();
         if (palette.editing) editById(palette.editing, (layer) => (layer.formula = text));
         else if (asSignal(text)) addSignalLayer(text, on);
         else addFormulaLayer(text, pane === "new" ? null : pane, side);
@@ -32978,7 +33056,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $("palette-count").textContent = found ? `${grouped.format(found)}${more ? "+" : ""} ${found === 1 && !more ? "result" : "results"}` : "No results";
           // (Said for a screen reader as the search answers: once a search, not again as the highlight moves.)
           const said = `${palette.query}|${$("palette-count").textContent}`;
-          if (said !== countSaidFor && $("palette").open && !$("palette-count").hidden) (countSaidFor = said), say($("palette-count").textContent);
+          if (said !== countSaidFor && isOpen($("palette")) && !$("palette-count").hidden) (countSaidFor = said), say($("palette-count").textContent);
         } else $("palette-count").textContent = seriesCount ? `${grouped.format(seriesCount)} series on Bitview` : "Bitview";
       }
 
@@ -33005,7 +33083,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       const sparks = new Map();
       // (Out of a phone's size with ⌘K open, its pane beside the list shows: what it says, drawn.)
-      phone.addEventListener("change", () => $("palette").open && !phone.matches && preview());
+      phone.addEventListener("change", () => isOpen($("palette")) && !phone.matches && preview());
       function preview() {
         updatePaletteKeys();
         const item = palette.items[palette.active];
@@ -33114,7 +33192,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       }
       function showLook(look) {
         // (Not shown (the chart's own still drawing): none, not the one before kept.)
-        if (!resolved || drawnChart !== chart.id || !$("palette").open) return clearLook();
+        if (!resolved || drawnChart !== chart.id || !isOpen($("palette"))) return clearLook();
         lookShown = look;
         // (At the interval of the data on screen: a switch still loading has its own; see shownIndex. A look is a
         // restyle: each series kept, its look applied.)
@@ -33130,7 +33208,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         looking = false;
         if (resolved && drawnChart === chart.id) build({ ...structuredClone(chart), index: shownIndex() }, resolved, false);
       }
-      $("palette").addEventListener("close", clearLook);
+      onClosed($("palette"), clearLook);
       /** A pane by what it shows: its layers' names, the first two. */
       const paneNames = (pane) => chart.layers.filter((layer) => layer.pane === pane.id).slice(0, 2).map(labelOf).join(", ") || "Empty";
       /**
@@ -33211,11 +33289,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         quickHide();
         if (action.disabled) return notice(action.disabled);
         if (action.page) return pushPage(action.page());
-        if (!action.stay) $("palette").close();
+        if (!action.stay) $("palette").hidePopover();
         const pages = palette.pages;
         action.run?.();
         // Still here, on the same page (the action didn't open another part of ⌘K): it shows what changed.
-        if (!$("palette").open || palette.pages !== pages) return;
+        if (!isOpen($("palette")) || palette.pages !== pages) return;
         palette.landOn = item?.key ?? null;
         showPalette();
         paletteKeys();
@@ -33327,9 +33405,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         pageComes(way);
       }
       /** ⌘K's list as it is, going (see turnPage). @param {1 | -1} way */
-      const pageLeaves = (way) => $("palette").open && fadeOut(pageSide(), [{ opacity: 1, transform: "none" }, { opacity: 0, transform: `translateX(${-8 * way}px)` }], MOTION.micro, true);
+      const pageLeaves = (way) => isOpen($("palette")) && fadeOut(pageSide(), [{ opacity: 1, transform: "none" }, { opacity: 0, transform: `translateX(${-8 * way}px)` }], MOTION.micro, true);
       /** ⌘K's list as it's now, coming (see turnPage). @param {1 | -1} way */
-      const pageComes = (way) => $("palette").open && !reduced.matches && pageSide().animate([{ opacity: 0, transform: `translateX(${8 * way}px)` }, { opacity: 1, transform: "none" }], { duration: MOTION.small, easing: MOTION.ease });
+      const pageComes = (way) => isOpen($("palette")) && !reduced.matches && pageSide().animate([{ opacity: 0, transform: `translateX(${8 * way}px)` }, { opacity: 1, transform: "none" }], { duration: MOTION.small, easing: MOTION.ease });
       /** A page's side of ⌘K: its path and its list, turned together (the path comes and goes with a page, the list under it). */
       const pageSide = () => /** @type {HTMLElement} */ ($("palette-list").parentElement);
       /** Back up to `depth` pages (0: the search), on the row that led on. */
@@ -33448,9 +33526,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const page = palette.pages.at(-1);
           option.run();
           // (One that leads on to a page of its own, a new folder's name, leaves it there.)
-          if (palette.pages.at(-1) !== page && $("palette").open) return;
+          if (palette.pages.at(-1) !== page && isOpen($("palette"))) return;
           if (palette.pages.length > 1) popPage();
-          else $("palette").close();
+          else $("palette").hidePopover();
         } })) };
       }
       /** How many bars a signal's time is shown among, at most: what led to it and what followed, seen (zoomed out further, in to that). */
@@ -33516,7 +33594,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           delete page.left;
           apply(text);
           if (palette.pages.length > 1 && !closes) popPage();
-          else $("palette").close();
+          else $("palette").hidePopover();
         } } };
         return page;
       }
@@ -34007,7 +34085,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           } });
           return [
             ...(drawing.kind === "text" ? [{ key: "text", icon: ICONS.pencil, label: "Text", aside: drawing.text, verb: "Edit", group: "Style", run: () => {
-              $("palette").close();
+              $("palette").hidePopover();
               const now = drawingById(id);
               if (now) startTyping(now, $("plot-keys"));
             } }] : []),
@@ -34344,7 +34422,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** ⌘K, straight on a page. @param {Page} page */
       function openPage(page) {
         // (Opened on it: ⌘K's own way in, no page turned; open already, the page it shows leaves.)
-        const was = $("palette").open;
+        const was = isOpen($("palette"));
         if (was) pageLeaves(1);
         openPalette();
         pushPage(page, false);
@@ -34383,19 +34461,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (item.kind === "command") {
           // (One saying how things are: nothing to do, ⌘K closes.)
-          if (!item.command.run) return void $("palette").close();
+          if (!item.command.run) return void $("palette").hidePopover();
           if (fromSearch()) noteUse(item.key);
-          if (!item.command.keepOpen) $("palette").close();
+          if (!item.command.keepOpen) $("palette").hidePopover();
           item.command.run();
           return;
         }
         if (item.kind === "chart") {
-          $("palette").close();
+          $("palette").hidePopover();
           go(chartById(item.key));
           return;
         }
         if (home) {
-          $("palette").close();
+          $("palette").hidePopover();
           return void newChartWith(item.name);
         }
         const replacing = palette.replacing;
@@ -34412,7 +34490,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           });
           return;
         }
-        $("palette").close();
+        $("palette").hidePopover();
         if (replacing) replaceSeries(replacing, item.name);
         else addSeries(item.name, { newPane, pane: newPane ? null : palette.into, bubbles: palette.bubbles });
       }
@@ -34474,7 +34552,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       $("palette-enter").addEventListener("click", () => {
         palette.pending?.();
         choose(false);
-        if ($("palette").open) paletteKeys();
+        if (isOpen($("palette"))) paletteKeys();
       });
       $("palette-actions").addEventListener("click", () => showActions());
       // By a finger, a row held: its other actions (there's no foot's Actions by touch); moved, it's a scroll.
@@ -34546,7 +34624,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (was) for (const motion of menu.getAnimations()) motion.finish();
         hideSubmenu();
         flyout = asFlyout || openingByHover;
-        // Inside a modal dialog, the menu must live in the dialog's top layer to be seen. (Named by what opened it.)
+        // Inside a dialog, the menu must live in the dialog (in the top layer) to be seen. (Named by what opened it.)
         const host = anchor.closest("dialog") ?? document.body;
         fillMenu(menu, host, html, named || calledBy(anchor), onPick);
         menu.setAttribute("role", menu.querySelector(":scope > .share-pop") ? "dialog" : "menu");
@@ -34801,8 +34879,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         // (A menu open in it (a result's actions) is dragged on its own: ⌘K under it stays.)
         const menuIn = () => !$("menu").hidden && sheet.contains($("menu"));
-        heightsSheet(sheet, { pulls: () => phone.matches && sheet.open && !menuIn(), grab: (event) => phone.matches && sheet.open && !menuIn() && Boolean(closest(event, ".menu-handle")) && "handle", whole: () => !heldUpright.matches || !sheet.hasAttribute("data-half"), size, close: dismissPalette });
-        $("palette-input").addEventListener("focus", () => sheet.hasAttribute("data-half") && onceKeys(() => sheet.open && sheet.hasAttribute("data-half") && document.activeElement === $("palette-input") && sizeSheet(sheet, () => size(true))));
+        heightsSheet(sheet, { pulls: () => phone.matches && isOpen(sheet) && !menuIn(), grab: (event) => phone.matches && isOpen(sheet) && !menuIn() && Boolean(closest(event, ".menu-handle")) && "handle", whole: () => !heldUpright.matches || !sheet.hasAttribute("data-half"), size, close: dismissPalette });
+        $("palette-input").addEventListener("focus", () => sheet.hasAttribute("data-half") && onceKeys(() => isOpen(sheet) && sheet.hasAttribute("data-half") && document.activeElement === $("palette-input") && sizeSheet(sheet, () => size(true))));
       }
       // A phone's menu sheet, dragged down by its top (its handle), or its rows at their top: as the layers' sheet goes, it
       // goes; else it comes back.
@@ -34847,16 +34925,16 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       for (const sheet of [$("shortcuts"), $("guide")]) {
         let base = 0, shown = 0;
         dragSheet(sheet, {
-          pulls: () => phone.matches && /** @type {HTMLDialogElement} */ (sheet).open,
+          pulls: () => phone.matches && isOpen(sheet),
           grab: (event) => {
-            if (!phone.matches || !(/** @type {HTMLDialogElement} */ (sheet).open) || (event && !closest(event, ".menu-handle"))) return false;
+            if (!phone.matches || !isOpen(sheet) || (event && !closest(event, ".menu-handle"))) return false;
             base = sheetTaken(sheet);
             sheet.style.transition = "none";
             return true;
           },
           move: (by) => ((sheet.style.transform = `translateY(${Math.max(0, by + base)}px)`), (shown = sheet.getBoundingClientRect().top)),
           back: () => (sheet.style.transition = sheet.style.transform = ""),
-          release: (by, speed) => Math.abs(by) >= 4 && sheetGoes(Math.max(0, by + base), speed, sheet.offsetHeight) && slideAway(sheet, () => /** @type {HTMLDialogElement} */ (sheet).close(), shown, speed),
+          release: (by, speed) => Math.abs(by) >= 4 && sheetGoes(Math.max(0, by + base), speed, sheet.offsetHeight) && slideAway(sheet, () => sheet.hidePopover(), shown, speed),
         });
       }
       /**
@@ -36727,7 +36805,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // name pointed at doesn't, unless it's cut short.
         if (!tipWanted(target)) return;
         const keys = target.dataset.kbd && answers(target.dataset.kbd) ? keycaps(target.dataset.kbd) : "";
-        // Inside a modal dialog, the tip must live in the dialog's top layer to be seen.
+        // Inside a dialog, the tip must live in the dialog (in the top layer) to be seen.
         const host = target.closest("dialog") ?? document.body;
         if (tip.parentElement !== host) host.append(tip);
         // (A tip of several lines: its first, what it is; the others, quieter, more about it.)
@@ -37081,7 +37159,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const html = (/** @type {Element[]} */ list) => codeIn(list.map((part) => part.outerHTML).join("")), rest = next === undefined ? [] : parts.slice(next);
         $("guide-body").innerHTML = `<section class="guide-start"><p>A chart's link opens it for anyone exactly as you see it: its layers, their look and the view. The link contains the whole chart (as JSON), so nothing is stored on a server. Your Library and your edited presets stay in this browser.</p>${open ? `<div class="guide-actions"><button type="button" class="btn small" data-guide="link">${ICONS.copy}Copy this chart's link</button><button type="button" class="btn small" data-guide="json">${ICONS.copy}Copy its JSON</button></div>` : ""}</section>${html(parts.slice(first, next))}${rest.length ? `<details class="help guide-more"><summary>For scripts and assistants</summary>${html(rest)}</details>` : ""}`;
         arrive($("guide"));
-        if (!$("guide").open) $("guide").showModal();
+        showDialog($("guide"));
         $("guide").focus();
       }
       $("guide").addEventListener("click", async (event) => {
@@ -37094,7 +37172,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function showShortcuts() {
         renderSingleKeys();
         arrive($("shortcuts"));
-        if (!$("shortcuts").open) $("shortcuts").showModal();
+        showDialog($("shortcuts"));
         $("shortcuts").focus();
       }
       /** A key a hint says the page answers to: any, but a single one (a letter, a digit, a sign) once those are off. */
@@ -37429,27 +37507,32 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else document.body.dataset.sheet = sheet;
         }
       });
-      // Clicking a dialog's backdrop closes it; a toast shown inside it moves back to the page.
+      // A click beside a dialog (on its scrim, see showDialog) puts it away; a toast shown inside it moves back to the page.
       for (const dialog of all$("dialog")) {
-        dialog.addEventListener("click", (event) => {
-          if (event.target !== dialog) return;
-          // (The dialog itself is the target on its padding and its children's margins too: only outside its box is
-          // the backdrop.)
-          const box = dialog.getBoundingClientRect();
-          if (event.clientX >= box.left && event.clientX <= box.right && event.clientY >= box.top && event.clientY <= box.bottom) return;
-          if (dialog.id === "palette") dismissPalette(true);
-          else leave(/** @type {HTMLDialogElement} */ (dialog));
+        const scrim = Object.assign(document.createElement("div"), { className: "dialog-scrim", popover: "manual" });
+        scrim.setAttribute("aria-hidden", "true");
+        scrim.addEventListener("click", () => (dialog.id === "palette" ? dismissPalette(true) : leave(dialog)));
+        dialog.before(scrim);
+        dialogScrims.set(dialog, scrim);
+        // (Closing: off the stack, its scrim gone with it, and the focus back where it was, as a modal's: there and then,
+        // before what follows moves it on.)
+        dialog.addEventListener("beforetoggle", (event) => {
+          if (/** @type {ToggleEvent} */ (event).newState !== "closed") return;
+          const to = dialogOpeners.get(dialog), at = document.activeElement;
+          if (dialogsShown.includes(dialog)) dialogsShown.splice(dialogsShown.indexOf(dialog), 1);
+          if (isOpen(scrim)) scrim.hidePopover();
+          if (to instanceof HTMLElement && to.isConnected && (!at || at === document.body || dialog.contains(at))) to.focus({ preventScroll: true });
         });
         // (esc: as it leaves, where the browser wouldn't play it: see leave. Unless something of it took the key: Quick Look.)
         dialog.addEventListener("cancel", (event) => {
           if (keepsLeaving || event.defaultPrevented) return;
           event.preventDefault();
-          leave(/** @type {HTMLDialogElement} */ (dialog));
+          leave(dialog);
         });
-        dialog.addEventListener("close", () => $("toast").parentElement === dialog && (cutFade($("toast")), (all$("dialog[open]").at(-1) ?? document.body).append($("toast"))));
+        onClosed(dialog, () => $("toast").parentElement === dialog && (cutFade($("toast")), (topDialog() ?? document.body).append($("toast"))));
         // (Closed: no series being added or replaced any more. Open again by then (a row that closes it and opens it another
         // way: Bubbles, adding), its way the new one.)
-        if (dialog.id === "palette") dialog.addEventListener("close", () => !(/** @type {HTMLDialogElement} */ (dialog).open) && palette.op.kind !== "formula" && (palette.op = { kind: "browse" }));
+        if (dialog.id === "palette") onClosed(dialog, () => !isOpen(dialog) && palette.op.kind !== "formula" && (palette.op = { kind: "browse" }));
       }
 
       /**
@@ -37557,11 +37640,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         if (mod && key === "k") {
           event.preventDefault();
-          if (!$("palette").open || $("palette").dataset.leaving) return openPalette({ resume: true });
+          if (!isOpen($("palette")) || $("palette").dataset.leaving) return openPalette({ resume: true });
           if (!$("menu").hidden && $("menu").closest("#palette")) return void (hideMenu(), paletteKeys());
           return showActions();
         }
-        if (document.querySelector("dialog[open]")) return;
+        if (document.querySelector("dialog:popover-open")) return;
         // An open menu has the keys (its own, and its arrows): the chart's don't act behind it. Esc closes it.
         if (!$("menu").hidden && event.key !== "Escape") return;
         // A search's button with the focus (an empty chart's "Search N series", the phone's Search): what's typed there
@@ -37726,7 +37809,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const layer = $("hints");
         layer.replaceChildren();
         if (!hinting()) return;
-        if (document.querySelector("dialog[open]")) return hideHints();
+        if (document.querySelector("dialog:popover-open")) return hideHints();
         const badges = [];
         // Only what ⌘ + a key runs: the single keys mean something else while ⌘ is down (⌘1 opens a chart, ⌘P prints).
         for (const element of all$("[data-kbd*='⌘']")) {
@@ -37771,7 +37854,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           if (event.repeat || hinting() || hintTimer || event.altKey || event.shiftKey) return;
           hintTimer = setTimeout(() => {
             hintTimer = 0;
-            if (document.querySelector("dialog[open]")) return;
+            if (document.querySelector("dialog:popover-open")) return;
             document.body.dataset.hints = "";
             placeHints();
           }, HINT_DELAY);
@@ -38499,7 +38582,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function quickShow() {
         // (Where it can't show (the window made a phone's), one showing goes: it would show another than the one lit.)
-        if (!quickWorks() || !$("palette").open) return void quickHide();
+        if (!quickWorks() || !isOpen($("palette"))) return void quickHide();
         const look = lookableAt(palette.items[palette.active]), key = look ? JSON.stringify([look.doc.id, previewKey(look.doc), titleOf(look.doc), look.doc.layers.map(labelOf), light]) : "";
         if (quick?.key === key && $("quick").matches(":popover-open")) return;
         quick = { key };
@@ -38542,11 +38625,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Its pictures not kept past it: the next look draws from the data as it is then.)
         quickPictures.clear();
         leave($("quick"));
-        if ($("palette").open) $("palette-input").focus({ preventScroll: true });
+        if (isOpen($("palette"))) $("palette-input").focus({ preventScroll: true });
       }
       const quickToggle = () => (quick ? quickHide() : quickShow());
       // (A click on it, on its chart too: the keys back to ⌘K's search.)
-      $("quick").addEventListener("pointerup", () => requestAnimationFrame(() => $("palette").open && $("palette-input").focus({ preventScroll: true })));
+      $("quick").addEventListener("pointerup", () => requestAnimationFrame(() => isOpen($("palette")) && $("palette-input").focus({ preventScroll: true })));
       // (Its ×, or around it: put away.)
       $("quick").addEventListener("click", (event) => {
         // (Rows waiting drawn first, and the look then theirs: what shows is what opens.)
@@ -38561,7 +38644,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         event.stopImmediatePropagation();
         quickHide();
       }, { capture: true });
-      $("palette").addEventListener("close", quickHide);
+      onClosed($("palette"), quickHide);
 
       async function start() {
         // (The arrangement as loaded: one changed from it, not written yet, is this tab's own.)
