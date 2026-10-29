@@ -28155,6 +28155,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (mark) (thumbs.set(copy.id, mark), saveThumbs());
         library.charts.unshift(copy);
         save();
+        // (In Recent, in the preset's stead (by its lasting id: its edits reset, its chart's is another): the same chart,
+        // under the same name, the copy what's looked at now; Undo opens the preset again, back in it.)
+        storage.set(VIEWED, viewed().filter((id) => id !== presetIdOf(presetKey(i))));
         // (The copy opened, at once (its toast then answers ⌘Z): it's what's worked on now; Undo, back to the preset, the
         // copy gone.)
         if (home) leaveHome(() => openChart(copy));
@@ -29578,8 +29581,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (layer.type === "baseline" || (TWO_KEPT.has(layer.type) && layer.colors !== 1 && layer.colorBelow !== undefined && modesOf(layer).includes("sides"))) return "sides";
         return "one";
       }
-      /** A P&L heatmap's one way of coloring is two colors: its profit's and its loss's (see colorSlots). */
-      const pairedOne = (/** @type {Layer} */ layer) => layer.type === "heatmap" && layer.measure === "pnl";
+      /** One way of coloring that's two colors (see colorSlots): a P&L heatmap's, its profit's and its loss's; a signal's that marks both ways, up and down. */
+      const pairedOne = (/** @type {Layer} */ layer) => (layer.type === "heatmap" && layer.measure === "pnl") || signedSignal(layer);
       /** A way of coloring, named for a layer of its type (a pair, by what its two are for). */
       const modeName = (/** @type {string} */ mode, /** @type {Layer} */ layer) => (mode === "one" ? (pairedOne(layer) ? "Two" : "One") : mode === "sides" ? "Two" : mode === "momentum" ? "Four" : mode === "levels" ? "By its levels" : mode === "layers" ? "By its layers" : mode === "gradient" ? "Gradient" : "From a layer");
       /**
