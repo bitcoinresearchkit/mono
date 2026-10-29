@@ -1512,11 +1512,12 @@
 
         // The day kept, a firm line down it; the day pointed at, if another, a fainter one; each its price ringed. The day
         // shown's date tagged along the foot (its price is said above).
+        // (Today, neither kept nor pointed at, its ring alone: a line there would read as the chart's edge.)
         const mark = (/** @type {number} */ at, /** @type {boolean} */ kept) => {
           if (at < view.a - 0.5 || at > view.b + 0.5) return;
           const x = Math.round(xOf(at)) + 0.5, y = yOf(d.close[at]);
           ctx.fillStyle = withAlpha(paint.ink, kept ? 0.6 : 0.28);
-          ctx.fillRect(x - (kept ? 0.75 : 0.5), 0, kept ? 1.5 : 1, bottom + 8 + LANE);
+          if (pinned !== null || hovered !== null) ctx.fillRect(x - (kept ? 0.75 : 0.5), 0, kept ? 1.5 : 1, bottom + 8 + LANE);
           ctx.beginPath();
           ctx.arc(x, y, 4.5, 0, Math.PI * 2);
           ctx.fillStyle = paint.states[d.state[at]];
@@ -1619,7 +1620,7 @@
         target = { ...view };
         if (span !== -1) (span = -1), pressSpans(), remember();
         following = true;
-        tell();
+        sayToday();
         redraw();
       }
       /** The view moved just enough to show a day (by its nearer end), as long as it is. */
@@ -1875,6 +1876,12 @@
 
       // ── Where it stands, above: the day shown's ──
 
+      /** "Back to today", there while another day's kept or today's out of the chart's view (not while one's pointed at):
+       * all a moved view changes in the words, so a drag says nothing else. */
+      function sayToday() {
+        const d = /** @type {Days} */ (days);
+        $("today").hidden = (shownDay() === d.last && d.last <= target.b + 0.5) || hovered !== null;
+      }
       /** The day shown, everywhere it's said and drawn. */
       function show(say = false) {
         tell(say);
@@ -1889,7 +1896,7 @@
         syncSlider();
         updateShares(day);
         $("day").textContent = isLast ? `Today, ${dated(day)}` : dated(day);
-        $("today").hidden = (isLast && d.last <= target.b + 0.5) || hovered !== null;
+        sayToday();
         $("name").textContent = state.name;
         $("hero").style.setProperty("--state", `var(--s-${state.id})`);
         $("trend").innerHTML = `${trendIcon(t)}${TRENDS[t].name} trend`;
