@@ -34396,9 +34396,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const tabletHead = matchMedia("(760px < width <= 1100px) and (height > 500px)");
       // (One of them focused as the window comes to a tablet's size: ⋯, where they are now.)
       tabletHead.addEventListener("change", () => tabletHead.matches && document.activeElement?.matches("#add, #draw-toggle") && $("chart-more").focus({ preventScroll: true }));
+      /** The header's own buttons, by the ⋯ rows they'd repeat: a preview's Save, a preset's Save a copy and Reset. */
+      const HEAD_OWN = new Map([["keep", "keep"], ["copy", "preset-copy"], ["reset", "preset-reset"]]);
       /**
        * The chart header's ⋯: the tools its header leaves to it first (a tablet's, Add and the drawing tools; a phone's,
-       * the drawing tools: its bar has Add), then the chart's.
+       * the drawing tools: its bar has Add), then the chart's, but for those its header shows (a phone's, an edited
+       * preset's Save a copy and Reset in it alone).
        */
       const headMenu = () => [
         ...(tabletHead.matches && chart.layers.length ? [
@@ -34408,7 +34411,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         ...((tabletHead.matches || phone.matches) && chart.layers.length ? [
           { key: "draw", icon: ICONS.draw, label: beltUp() ? "Hide the drawing tools" : "Drawing tools", kbd: "D", group: "tools", run: () => (beltUp() ? hideBelt() : showBelt()) },
         ] : []),
-        ...chartActions(chart.id, "head"),
+        ...chartActions(chart.id, "head").filter((row) => !$(HEAD_OWN.get(row.key ?? "") ?? "")?.checkVisibility()),
       ];
       /**
        * A chart's actions, where they show (`where`): "row", its sidebar row's ⋯ or right-click; "head", the header's ⋯
