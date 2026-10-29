@@ -964,16 +964,18 @@ export function studioPresets(client, facts) {
     const short = /** @type {[string, string, string][]} */ ([["under4m", "Under 4 months", "yellow"], ["sth", "Short-term holders", "orange"], ["under6m", "Under 6 months", "red"]]);
     const long = /** @type {[string, string, string][]} */ ([["over4m", "Over 4 months", "cyan"], ["lth", "Long-term holders", "blue"], ["over6m", "Over 6 months", "violet"]]);
     const median = (/** @type {[string, string, string]} */ [key, label, color]) => series(cf.cohorts[key].mobile.costBasis.byDollar.median, label, { color, opacity: 0.5 });
-    // (Letters: the price A, the short-term medians B to D, the long-term E to G, then each trend's lowest and highest.)
+    // (Letters: the price A, the short-term medians B to D, the long-term E to G, all holders' H, the clouds I and J, then
+    // each trend's lowest and highest, K to P. Each cloud coloured by which of its layers is over: its members ordered so.)
     const edges = short.flatMap(([key, label]) => [series(t.holders[key].costBasis.min, `${label}, lowest`, { color: "gray", hidden: true }), series(t.holders[key].costBasis.max, `${label}, highest`, { color: "gray", hidden: true })]);
-    return chart("Compass", "Short- and long-term holders' clouds and trends (Compass)", [
+    return chart("Compass", "Compass: short- and long-term holder clouds and trends", [
       price(),
       ...short.map(median),
       ...long.map(median),
-      { cloud: ["B", "C", "D"], label: "Short-term cloud", color: "orange", opacity: 0.3 },
-      { cloud: ["E", "F", "G"], label: "Long-term cloud", color: "blue", opacity: 0.3 },
+      series(cf.cohorts.all.mobile.costBasis.byDollar.median, "All holders", { color: "green", shape: "curved" }),
+      { cloud: ["D", "C", "B"], label: "Short-term cloud", color: "red", colorBelow: "orange", byLayers: true, opacity: 0.5 },
+      { cloud: ["F", "E", "G"], label: "Long-term cloud", color: "blue", colorBelow: "cyan", byLayers: true, opacity: 0.5 },
       ...edges,
-      ...short.map(([, label, color], i) => ({ trend: [letter(9 + 2 * i), letter(10 + 2 * i)], ref: "A", label: `${label} trend`, color, dash: 2 })),
+      ...short.map(([, label, color], i) => ({ trend: [letter(10 + 2 * i), letter(11 + 2 * i)], ref: "A", label: `${label} trend`, color, dash: 2 })),
     ]);
   }
   /** Extreme events: the days each extreme's input crossed into its historical 0.1% tail (its 0.1st percentile for the

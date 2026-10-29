@@ -43,6 +43,13 @@
         font-display: swap;
       }
 
+      /* (Upright, for Compass's name.) */
+      @font-face {
+        font-family: Instrument;
+        src: url("/assets/fonts/InstrumentSerif-Regular.woff2") format("woff2");
+        font-display: swap;
+      }
+
       /* Bitview's home screen, as a streaming service's: a billboard that turns through the featured titles on its own;
          under it shelves of things to open, each a way straight in (an app, a chart, a block, a pool), sliding sideways;
          each with an i for what it is. Dark where the pictures are, in either scheme. */
@@ -828,7 +835,8 @@
       /* Each app's title in its own app's face, on the billboard, its cover and its sheet, as a streaming title's logo:
          Studio and Stack in Inter, heavy; Oracle and Globe in Lilex, as their pages are set;
          The Satoshi Trail and Calendar in Instrument Serif, italic, as their titles and months are (its one weight, never
-         a made-up bold). Over those titles' own weight and spacing, wherever those are set. */
+         a made-up bold); Compass in it upright, as its states are named. Over those titles' own weight and spacing,
+         wherever those are set. */
       :is(.billboard .title, .tile .name, .about h3) {
         &[data-face="oracle"] {
           font-family: var(--mono);
@@ -849,9 +857,15 @@
           font-weight: 400;
           letter-spacing: -0.02em;
         }
+
+        &[data-face="compass"] {
+          font-family: Instrument, Georgia, serif;
+          font-weight: 400;
+          letter-spacing: -0.01em;
+        }
       }
 
-      .billboard .title:is([data-face="trail"], [data-face="calendar"]) {
+      .billboard .title:is([data-face="trail"], [data-face="calendar"], [data-face="compass"]) {
         font-size: 50px;
         line-height: 0.92;
 
@@ -862,12 +876,12 @@
 
       /* (A serif name a third larger than the others, as on the billboard, its small letters as tall: on a cover and in a
          sheet, whose others are 40 px, 30 on a phone.) */
-      .tile .name:is([data-face="trail"], [data-face="calendar"]) {
+      .tile .name:is([data-face="trail"], [data-face="calendar"], [data-face="compass"]) {
         font-size: calc(var(--name-size) * 1.3);
         line-height: 1;
       }
 
-      .about h3:is([data-face="trail"], [data-face="calendar"]) {
+      .about h3:is([data-face="trail"], [data-face="calendar"], [data-face="compass"]) {
         font-size: 52px;
 
         @media (max-width: 599px) {

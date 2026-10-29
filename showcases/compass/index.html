@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <!-- Its launch from a home screen, every showcase's. -->
-    <script src="/assets/launch/launch.js" data-app="Compass" data-color="#2f5d8a"></script>
+    <script src="/assets/launch/launch.js" data-app="Compass" data-color="#2f5d8a" data-wait></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f4f1ea" />
@@ -1086,7 +1086,7 @@
     </main>
 
     <footer class="shell">
-      <p>Read from this server: <a href="/api/series/price/day1">the daily price</a> and the holders' cost basis, as Bitview computes it from the chain. The same chart, to explore: <a href="/studio/presets/valuation/compass">Compass in Studio</a>.</p>
+      <p>Read from this server: <a href="/api/series/price/day1">the daily price</a> and the holders' cost basis, as Bitview computes it from the chain. The same clouds and trends, to explore: <a href="/studio/presets/valuation/compass">Compass in Studio</a>.</p>
       <p class="coins">Clouds counted from <span role="group" aria-label="Which coins the clouds count"><button type="button" data-coins="mobile" aria-pressed="true">mobile</button> or <button type="button" data-coins="awake" aria-pressed="false">awake</button></span> coins.<span id="coins-said" aria-live="polite"></span></p>
     </footer>
 
@@ -1557,7 +1557,13 @@
       let easing = null;
       /** Whether the price range still eases after a view moved by hand. */
       let following = false;
-      let queued = 0;
+      let queued = 0, launched = false;
+      /** A home screen's launch told, once, that the page is ready to be seen. */
+      function launch() {
+        if (launched) return;
+        launched = true;
+        /** @type {any} */ (window).bitviewLaunch?.ready();
+      }
       /** The one place anything's drawn, once a frame: a span's easing or the range's following moved on, a playing day
        * moved on, then the chart, the compass, the strip and the pan bar. */
       function frame(/** @type {number} */ now) {
@@ -1582,6 +1588,8 @@
         drawCompass();
         drawStrip();
         drawPan();
+        // (Its first frame drawn, at its size: a home screen's launch hands over to it now, not to an empty chart.)
+        if (width) launch();
         if (more) redraw();
       }
       const redraw = () => (queued ||= requestAnimationFrame(frame));
@@ -2244,6 +2252,8 @@
             Object.assign(document.createElement("button"), { type: "button", textContent: "Try again", onclick: load }),
           );
           $("failed").hidden = false;
+          // (Unread, it says so: the launch hands over to that.)
+          launch();
         }
       }
 
