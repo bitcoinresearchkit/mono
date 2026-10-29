@@ -10458,9 +10458,9 @@
             <li>"byLevels": true on a line, dots, an area or bars with levels: colored by them, date by date: above each level, that level's color (give each one its "color"); under them all, its own.</li>
             <li>"colors": 1 or 4 on bars: their one color; or four: above and below their base, each side's own where a bar grows from it ("color", "colorBelow"), fainter where it fades back toward it ("colorFading" above, "colorBelowFading" below; each side's own, fainter, if none). Unset, their two: "color" above, "colorBelow" under. 1 on a trend or a cloud with a "colorBelow": its one color, that second kept.</li>
             <li>"type": line, dots, area, histogram (bars), baseline, or candles (for an OHLC series such as price_ohlc); left out, the series' own look.</li>
-            <li>"width": 0.5 to 5, by halves (1.5 if none); "dash": its line (0 solid, 1 dotted, 2 dashed, 3 long dashes, 4 sparse dots); "shape": straight, steps or curved; "opacity": 0.1 to 1, by tenths (1 if none; a cloud's 0.2, solid at 1).</li>
+            <li>"width": 0.5 to 5, by halves (1.5 if none); "dash": its line (0 solid, 1 dotted, 2 dashed, 3 long dashes, 4 sparse dots); "shape": straight, steps or curved; "opacity": 0.05 to 1, by 0.05 (1 if none; a cloud's 0.2, solid at 1).</li>
             <li>"hollow": candles' hollow bodies, "down" (falling ones), "both" or "none" (rising ones if none); candles' "colors": 1, their one color (rising in "color", falling in "colorBelow", red if none, unset);</li>
-            <li>"fill": "above", an area filled from its line up; "fillOpacity": its fill's strength at its top, 0.05 to 1 (0.2 if none, 0.1 filled above); "solid": true, its fill even all the way down rather than fading; "base": a baseline's or bars' base value (0 if none); "baseLine": {"color": "gray", "dash": 4}, that base's line ("tag": true shows its value on the axis; "line": false draws none).</li>
+            <li>"fill": "above", an area filled from its line up; "fillOpacity": its fill's strength at its top, 0.05 to 1, by 0.05 (0.2 if none, 0.1 filled above); "solid": true, its fill even all the way down rather than fading; "base": a baseline's or bars' base value (0 if none); "baseLine": {"color": "gray", "dash": 4}, that base's line ("tag": true shows its value on the axis; "line": false draws none).</li>
             <li>"levels": [{"value": 1, "color": "gray", "dash": 3}]: lines across, at values (color and dash optional; "tag": true shows its value on the axis; "line": false draws none, the level only naming or coloring its band). A level's "name" names the values from it up to the next level, read in its color in place of the number (the legend, the panel); "underName" on the layer names those under them all: {"levels": [{"value": -1, "name": "Limbo", "color": "orange", "line": false}, {"value": 1, "name": "Bull", "color": "green", "line": false}], "underName": "Bear", "color": "red", "byLevels": true} (without "byLevels", the names alone, the line in its color).</li>
             <li>"priceLine": true: a line across at its latest value.</li>
             <li>{"series": "net_realized_pnl", "type": "bubbles", "ref": "A"}: bubbles: its values as bubbles on layer A (the first layer if none; "ref": "", none, along its pane's middle), each date's at A's value there, its area its value's size, above zero in "color", below in "colorBelow" (red if none; "colors": 1, its one color). "size": the largest's diameter, 12, 16, 24, 32 or 48 pixels (24 if none); "hide": the share of the largest under which none is drawn, 0, 0.01, 0.05, 0.1 or 0.25 (0.05 if none); "scaleTo": "all", sized against all of its history (none: the largest in view full size).</li>
@@ -11784,10 +11784,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       ];
       /** Line widths in pixels, by halves up to 5: the width slider's stops (the chart draws halves crisply on dense screens). */
       const WIDTHS = Array.from({ length: 10 }, (_, i) => (i + 1) / 2);
-      /** Opacities, in tenths: the opacity slider's stops. */
-      const OPACITIES = Array.from({ length: 10 }, (_, i) => (i + 1) / 10);
-      /** An area's fill's stops: its top's opacity (each kind's default among them, see fillOf). */
-      const FILLS = [0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1];
+      /** Opacities, by 5%: the opacity sliders' stops, a layer's, a drawing's and an area's fill's (each kind's default among them, see fillOf). */
+      const OPACITIES = Array.from({ length: 20 }, (_, i) => (i + 1) / 20);
       /** A layer's opacity: its own, else its type's (a cloud's fill a fifth, under what it spans; solid at 100%). */
       const defaultOpacity = (/** @type {{ type?: string }} */ layer) => (layer.type === "cloud" ? 0.2 : 1), opacityOf = (/** @type {Layer} */ layer) => layer.opacity ?? defaultOpacity(layer);
       /** A window's units in days (a month and a year on average), the letters formulas write them with, and each interval in days. */
@@ -29139,7 +29137,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // A drawing's, on the belt: the same stops, read the same (its look set by setDrawSlider).
         "draw-width": { label: "Width", stops: WIDTHS, of: (look) => look.width, text: (v) => `${v}px`, say: (v) => `${v} pixels` },
         "draw-opacity": { label: "Opacity", stops: OPACITIES, of: (look) => look.opacity ?? 1, text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent` },
-        "fill-opacity": { label: "Fill opacity", stops: FILLS, of: (layer) => fillOf(layer, stackedIn(layer))[0], text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent`, set: (layer, v) => (layer.fillOpacity = v === fillOf({ ...layer, fillOpacity: undefined }, stackedIn(layer))[0] ? undefined : v) },
+        "fill-opacity": { label: "Fill opacity", stops: OPACITIES, of: (layer) => fillOf(layer, stackedIn(layer))[0], text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent`, set: (layer, v) => (layer.fillOpacity = v === fillOf({ ...layer, fillOpacity: undefined }, stackedIn(layer))[0] ? undefined : v) },
         opacity: { label: "Opacity", stops: OPACITIES, of: opacityOf, text: (v) => `${Math.round(v * 100)}%`, say: (v) => `${Math.round(v * 100)} percent`, set: (layer, v) => (layer.opacity = v === defaultOpacity(layer) ? undefined : v) },
       };
       /** The inspector's sliders gliding, by id: until when. */
@@ -34017,7 +34015,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ] : []),
             ...(layer.type === "area" ? [
               { key: "fill", icon: glyph("area"), label: "Fill", aside: layer.fill === "above" ? "From the line up" : "From the line down", verb: layer.fill === "above" ? "Fill down" : "Fill up", group: "Style", stay: true, run: set((item) => (item.fill = item.fill === "above" ? undefined : "above")) },
-              { key: "fill-opacity", icon: ICONS.sliders, label: "Fill opacity", aside: `${Math.round(fillOf(layer, stackedIn(layer))[0] * 100)}%`, group: "Style", page: () => choicePage("Fill opacity", () => FILLS.map((fill) => ({ key: String(fill), icon: ICONS.sliders, label: `${Math.round(fill * 100)}%`, current: fillOf(now(), stackedIn(now()))[0] === fill, ...both((item) => (item.fillOpacity = fill === fillOf({ ...item, fillOpacity: undefined }, stackedIn(item))[0] ? undefined : fill)) }))) },
+              { key: "fill-opacity", icon: ICONS.sliders, label: "Fill opacity", aside: `${Math.round(fillOf(layer, stackedIn(layer))[0] * 100)}%`, group: "Style", page: () => choicePage("Fill opacity", () => OPACITIES.map((fill) => ({ key: String(fill), icon: ICONS.sliders, label: `${Math.round(fill * 100)}%`, current: fillOf(now(), stackedIn(now()))[0] === fill, ...both((item) => (item.fillOpacity = fill === fillOf({ ...item, fillOpacity: undefined }, stackedIn(item))[0] ? undefined : fill)) }))) },
               // (Its style where it fades: filled above or stacked, it's even already.)
               ...(layer.fill !== "above" && !stackedIn(layer) ? [{ key: "fill-style", icon: glyph("area"), label: "Fill style", aside: layer.solid ? "Solid" : "Gradient", verb: layer.solid ? "Make it a gradient" : "Make it solid", group: "Style", stay: true, run: set((item) => (item.solid = !item.solid || undefined)) }] : []),
             ] : []),
@@ -36281,7 +36279,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             ...(Number.isFinite(layer.base) ? { base: layer.base } : {}),
             ...(SHAPES.some(([id]) => id !== "straight" && id === layer.shape) ? { shape: layer.shape } : {}),
             ...(layer.fill === "above" ? { fill: "above" } : {}),
-            ...(FILLS.includes(layer.fillOpacity) ? { fillOpacity: layer.fillOpacity } : {}),
+            ...(OPACITIES.includes(layer.fillOpacity) ? { fillOpacity: layer.fillOpacity } : {}),
             ...(layer.solid === true ? { solid: true } : {}),
             ...(["down", "both", "none"].includes(layer.hollow) ? { hollow: layer.hollow } : {}),
             ...((made === "trend" || (!made && (layer.type === "signal" || layer.type === "bubbles"))) && typeof layer.ref === "string" ? { ref: layer.ref } : {}),
