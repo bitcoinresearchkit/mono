@@ -22956,17 +22956,22 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (layer.hidden || !own) return;
             const most = layer.scaleTo === "all" ? mostIn(own) : mostIn(own, shown), least = (layer.hide ?? BUBBLE_HIDE) * most, across = (layer.size ?? BUBBLE_SIZE) * (big ? 1 : 0.6);
             if (!(most > 0)) return;
-            const largest = new Map();
+            // (Each bucket's largest with its middle in its pane, and the largest just out of it, larger: clipped to its pane,
+            // as the chart's, what of it shows. Just out: within twice its radius, its size in pixels and its place in the
+            // picture's own units, a tile drawn as small as half of them. One wholly out (a layer off its scale: a hidden one
+            // in a 100% stack), none.)
+            const inside = new Map(), edge = new Map(), larger = (/** @type {Map<number, { i: number }>} */ kept, /** @type {number} */ b, /** @type {number} */ size) => !(Math.abs(own[kept.get(b)?.i ?? NaN]) >= size);
             for (let i = first; i <= last; i++) {
               const size = Math.abs(own[i]), b = Math.min(Math.floor(((i - shown.from) / span) * B), i <= shown.to ? B - 1 : B);
-              if (!(size > 0 && size < Infinity) || size < least || b < 0 || b >= B || Math.abs(own[largest.get(b)?.i ?? NaN]) >= size) continue;
-              // (Clipped to its pane, as the chart's: one wholly out of it (a layer off its scale: a hidden one in a 100% stack),
-              // none.)
+              if (!(size > 0 && size < Infinity) || size < least || b < 0 || b >= B) continue;
               const at = place(i), radius = (across / 2) * Math.sqrt(Math.min(1, size / most));
-              if (Number.isFinite(at) && at >= paneTop - radius && at <= paneBottom + radius) largest.set(b, { i, at });
+              if (!Number.isFinite(at)) continue;
+              if (at >= paneTop && at <= paneBottom) larger(inside, b, size) && inside.set(b, { i, at });
+              else if (at >= paneTop - 2 * radius && at <= paneBottom + 2 * radius) larger(edge, b, size) && edge.set(b, { i, at });
             }
+            for (const [b, out] of edge) if (larger(inside, b, Math.abs(own[out.i]))) inside.set(-1 - b, out);
             const sizes = new Map();
-            for (const { i, at } of largest.values()) {
+            for (const { i, at } of inside.values()) {
               const w = Math.max(1, Math.round(across * Math.sqrt(Math.min(1, Math.abs(own[i]) / most)))), dot = `M${round(((i - shown.from) / span) * W)} ${at}h0`;
               const into = sizes.get(w) ?? sizes.set(w, { d: "", d2: "" }).get(w);
               if (own[i] >= 0) into.d += dot;
