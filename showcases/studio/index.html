@@ -6418,6 +6418,15 @@
             }
           }
 
+          /* (A folder's or a section's mark, in that column too: its glyph in its middle, not at its line's top.) */
+          > span.chart-mark {
+            display: inline-flex;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+          }
+
           kbd {
             flex-shrink: 0;
           }
@@ -6991,6 +7000,16 @@
             width: 14px;
             height: 14px;
             color: var(--muted);
+          }
+
+          /* (A folder's or a section's mark: its glyph in its middle (not at its line's top), in the icons' column (a
+             sheet's icons are wider: as wide as its glyph).) */
+          > .chart-mark {
+            display: inline-flex;
+            flex-shrink: 0;
+            align-items: center;
+            justify-content: center;
+            min-width: 14px;
           }
 
           &[aria-checked="true"] svg {
