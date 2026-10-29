@@ -27,6 +27,8 @@
  * have found a block, its height, the year
  */
 
+import { HOLDER_COLORS, holderColor, wheelColor } from "./palette.js";
+
 /** @param {any} n */
 const isLeaf = (n) => typeof n?.name === "string" && typeof n.indexes === "function";
 /** Whether a series can be charted: by date (Studio charts by date; some are by block only). @param {any} n */
@@ -109,7 +111,7 @@ const ramps = new Map();
 /** A family's members' colors, in their order: hues around the wheel, evenly, as many as there are. @returns {readonly string[]} */
 function ramp(/** @type {number} */ count, from = 25, to = 320) {
   const key = `${count} ${from} ${to}`;
-  if (!ramps.has(key)) ramps.set(key, Array.from({ length: count }, (_, i) => `oklch(0.72 0.15 ${Math.round(count > 1 ? from + ((to - from) * i) / (count - 1) : from)})`));
+  if (!ramps.has(key)) ramps.set(key, Array.from({ length: count }, (_, i) => wheelColor(i, count, from, to)));
   return ramps.get(key);
 }
 /**
@@ -398,6 +400,7 @@ export function studioPresets(client, facts) {
       ]),
       cost && section("Cost basis", [
         urpd && chart("Heatmap", titled("Supply by cost basis"), [price(), { heatmap: urpd }]),
+        urpd && chart("Profile", titled("Supply profile"), [price(), { profile: [urpd] }]),
         chart("Realized price", titled("Realized price"), [
           price(), series(cost.byCoin.realizedPrice, "Realized price", { color: "orange" }),
           ...(cost.byCoin.medianRealizedPrice ? [series(cost.byCoin.medianRealizedPrice, "Median realized price", { color: "yellow", hidden: true })] : []),
@@ -498,18 +501,20 @@ export function studioPresets(client, facts) {
    * A family of cohorts: its comparisons (each a chart of every member), then each member's charts.
    * @param {[string, any][]} members its members' keys and nodes
    * @param {(key: string) => { name: string, who: string }} naming each member's name (in the tree) and title (in charts)
-   * @param {{ by: string, disjoint?: boolean, of?: string, known?: Record<string, string>, charts?: (key: string, c: any, who: string) => (ChartNode | SectionNode)[], urpd?: (key: string) => string | undefined }} options
+   * @param {{ by: string, disjoint?: boolean, profile?: boolean, of?: string, known?: Record<string, string>, charts?: (key: string, c: any, who: string) => (ChartNode | SectionNode)[], urpd?: (key: string) => string | undefined }} options
    * `by`: what a comparison's title says it's by ("age band", "holder group, short-term"); `disjoint`: the members split
    * the whole (bands), so their amounts stack, and as shares; `of`: what the members' shares divide, if not all coins
    * (see cohort); `known`: the established name of a measure's shares, by the measure ("Supply": "HODL waves"), in their title;
-   * `charts`: each member's, if not a cohort's; `urpd`: each member's URPD cohort, where it has one (see cohort)
+   * `charts`: each member's, if not a cohort's; `urpd`: each member's URPD cohort, where it has one (see cohort);
+   * `profile`: its members (all coins aside) split the whole: their supply profiles stacked in one chart
    * @returns {(ChartNode | SectionNode)[]}
    */
   const family = (members, naming, options) => {
-    const colors = ramp(members.length);
+    // (Holder groups each their own, wherever they're drawn (see palette.js); others around the wheel.)
+    const colors = ((wheel) => members.map(([key], i) => holderColor(key) ?? wheel[i]))(ramp(members.length));
     /** Every member's series (`pick` takes it from the member), as a chart's layers. @param {(c: any) => any} pick @param {Layer} [extra] */
-    // (A family's `all`, the others' reference: gray and dashed.)
-    const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), naming(key).name, { color: colors[i], ...extra, ...(key === "all" ? { color: "gray", dash: 3 } : {}) })] : []));
+    // (A family's `all`, the others' reference: dashed, in its color (all coins', green), else gray.)
+    const each = (pick, extra = {}) => members.flatMap(([key, c], i) => (byDate(pick(c)) ? [series(pick(c), naming(key).name, { color: colors[i], ...extra, ...(key === "all" ? { color: holderColor(key) ?? "gray", dash: 3 } : {}) })] : []));
     /**
      * A comparison: every member's `pick`, as lines; an amount (`additive`) of members that split the whole, stacked,
      * then as their shares of it ("Supply", "Supply share"). Its title says by what, its window last ("…by age band, 1
@@ -534,6 +539,8 @@ export function studioPresets(client, facts) {
       // (Overlapping members' shares as lines, all coins' 100% their reference; disjoint ones stack above.)
       ...(options.disjoint ? [] : [...compare("Share of all coins", (c) => c.supply?.share), ...compare("Share of all capital", (c) => c.capital?.share)]),
       ...compare("Realized price", (c) => c.costBasis?.byCoin?.realizedPrice, { price: true }),
+      // (Members that split the whole (all coins, the reference, left out), their URPDs stacked at the chart's edge, each its color.)
+      ...((groups) => (options.profile && groups.length > 1 ? [chart("Profile", `Supply profile by ${options.by}`, [price(), { profile: groups }])] : []))(members.flatMap(([key]) => (key === "all" ? [] : [options.urpd?.(key)]).filter((id) => typeof id === "string"))),
       ...compare("MVRV", (c) => c.costBasis?.byCoin?.avg?.mvrv, { level: 1, log: true }),
       ...compare("Share in profit", (c) => c.supply?.inProfit?.share),
       ...compare("NUPL", (c) => c.unrealized?.nupl, { level: 0 }),
@@ -682,14 +689,14 @@ export function studioPresets(client, facts) {
       chart("Velocity", "Velocity", [series(sup.velocity.btc, "In bitcoin", { color: "orange" }), series(sup.velocity.usd, "In dollars", { color: "green" }), series(ct.adjusted.velocity.btc, "Cointime-adjusted, in bitcoin", { color: "violet", hidden: true }), series(ct.adjusted.velocity.usd, "Cointime-adjusted, in dollars", { color: "sky", hidden: true })]),
     ], { icon: "coins" }),
     section("Holders", [
-      ...holderSets(entries(t.holders), (members, by) => family(members, holderName, { by, urpd: (key) => URPD_HOLDERS[key] })),
+      ...holderSets(entries(t.holders), (members, by) => family(members, holderName, { by, urpd: (key) => URPD_HOLDERS[key], profile: by === "holder group" })),
       // (The discount and premium coins: all coins split by the price they came in at, at or below or above the
       // capitalized price then.)
       section("Entry price", family(entries(t.entry), (key) => ({ name: named(client.ENTRY_NAMES, key), who: `${named(client.ENTRY_NAMES, key)}, entered ${ENTERED[key] ?? key} the capitalized price at the time` }), { by: "entry price", disjoint: true })),
     ], { icon: "people" }),
     section("Coin age", [
       lastMovedChart(),
-      section("Age bands", family(entries(t.age.ranges), (key) => ({ name: named(client.AGE_RANGE_NAMES, key).replace(/ old$/, ""), who: `UTXOs ${named(client.AGE_RANGE_NAMES, key).toLowerCase().replace(/^utxos /, "")}` }), { by: "age band", disjoint: true, urpd: (key) => `age_${client.AGE_RANGE_NAMES[key]?.id ?? key}`, known: { Supply: "HODL waves", "Realized cap": "realized cap HODL waves" } })),
+      section("Age bands", family(entries(t.age.ranges), (key) => ({ name: named(client.AGE_RANGE_NAMES, key).replace(/ old$/, ""), who: `UTXOs ${named(client.AGE_RANGE_NAMES, key).toLowerCase().replace(/^utxos /, "")}` }), { by: "age band", disjoint: true, profile: true, urpd: (key) => `age_${client.AGE_RANGE_NAMES[key]?.id ?? key}`, known: { Supply: "HODL waves", "Realized cap": "realized cap HODL waves" } })),
       section("Halving epochs", family(members(t.age.halvingEpochs), (key) => ({ name: `Epoch ${key.slice(1)}`, who: `Coins last moved in halving epoch ${key.slice(1)}` }), { by: "halving epoch last moved", disjoint: true })),
       section("Vintages", family(members(t.age.vintages), (key) => ({ name: key.slice(1), who: `Coins last moved in ${key.slice(1)}` }), { by: "vintage", disjoint: true })),
     ], { icon: "hourglass" }),
@@ -946,13 +953,12 @@ export function studioPresets(client, facts) {
   /** Bitcoin clouds: each holder group's awake and mobile realized and capitalized prices (its cohorts' together), a
    * cloud from the lowest to the highest. */
   function cloudsChart() {
-    const groups = /** @type {[string, string[], string][]} */ ([["Short-term holders", ["under4m", "sth", "under6m"], "#e19b00"], ["All holders", ["all"], "#f2660f"], ["Long-term holders", ["over4m", "lth", "over6m"], "#d50ced"]]);
+    const groups = /** @type {[string, string[], string][]} */ ([["Short-term holders", ["under4m", "sth", "under6m"], HOLDER_COLORS.sth], ["All holders", ["all"], HOLDER_COLORS.all], ["Long-term holders", ["over4m", "lth", "over6m"], HOLDER_COLORS.lth]]);
     return chart("Cost basis clouds", "Holder groups' cost basis ranges (Bitcoin clouds)", [
       price(),
       ...groups.flatMap(([label, keys, color]) => {
         const names = keys.flatMap((key) => [ct.cohorts[key].awake, cf.cohorts[key].mobile]).flatMap((cohort) => [cohort.costBasis.byCoin.realizedPrice.name, cohort.costBasis.byDollar.capitalizedPrice.name]);
-        const fold = (/** @type {string} */ fn) => names.reduce((all, name) => `${fn}(${all}, ${name})`);
-        return [{ formula: fold("min"), label: `${label}, lowest`, format: "usd", color, width: 1 }, { formula: fold("max"), label: `${label}, highest`, format: "usd", color, width: 1 }];
+        return [{ formula: `min(${names.join(", ")})`, label: `${label}, lowest`, format: "usd", color, width: 1 }, { formula: `max(${names.join(", ")})`, label: `${label}, highest`, format: "usd", color, width: 1 }];
       }),
       ...groups.map(([label, , color], i) => ({ cloud: [letter(1 + 2 * i), letter(2 + 2 * i)], label, color, opacity: 0.3 })),
     ]);
@@ -964,8 +970,8 @@ export function studioPresets(client, facts) {
    * medians and averages), its clouds from the lowest of its six lines to the highest, as Compass draws them, through
    * the middle of its three medians. */
   function compassCharts() {
-    const short = /** @type {[string, string, string][]} */ ([["under4m", "Under 4 months", "yellow"], ["sth", "Short-term holders", "orange"], ["under6m", "Under 6 months", "red"]]);
-    const long = /** @type {[string, string, string][]} */ ([["over4m", "Over 4 months", "cyan"], ["lth", "Long-term holders", "blue"], ["over6m", "Over 6 months", "violet"]]);
+    const short = /** @type {[string, string, string][]} */ ([["under4m", "Under 4 months", HOLDER_COLORS.under4m], ["sth", "Short-term holders", HOLDER_COLORS.sth], ["under6m", "Under 6 months", HOLDER_COLORS.under6m]]);
+    const long = /** @type {[string, string, string][]} */ ([["over4m", "Over 4 months", HOLDER_COLORS.over4m], ["lth", "Long-term holders", HOLDER_COLORS.lth], ["over6m", "Over 6 months", HOLDER_COLORS.over6m]]);
     /** A group's line of a statistic, by dollar. */
     const stat = (/** @type {string} */ key, /** @type {string} */ which) => {
       const by = cf.cohorts[key].mobile.costBasis.byDollar;
@@ -982,7 +988,7 @@ export function studioPresets(client, facts) {
         price(),
         ...short.map(line),
         ...long.map(line),
-        series(stat("all", which), "All holders", { color: "green", shape: "curved" }),
+        series(stat("all", which), "All holders", { color: HOLDER_COLORS.all, shape: "curved" }),
         { cloud: ["D", "C", "B"], label: "Short-term cloud", color: "red", colorBelow: "orange", byLayers: true, opacity: 0.5 },
         { cloud: ["F", "E", "G"], label: "Long-term cloud", color: "blue", colorBelow: "cyan", byLayers: true, opacity: 0.5 },
         ...edges,
@@ -1005,7 +1011,7 @@ export function studioPresets(client, facts) {
       };
       return chart(name, `Compass: holder clouds of ${said}, and trends`, [
         price(),
-        series(stat("all", "median"), "All holders", { color: "green", shape: "curved" }),
+        series(stat("all", "median"), "All holders", { color: HOLDER_COLORS.all, shape: "curved" }),
         ...lines(short, "Short-term cloud", ["yellow", "orange", "red"]),
         ...lines(long, "Long-term cloud", ["violet", "cyan", "blue"]),
         // (Each band coloured by the line over it: the lower the middle's, the upper the highest's.)

@@ -112,15 +112,15 @@ Each section's page lists its charts; each chart's own address is in https://bit
   - Cointime prices (6): https://bitview.space/studio/presets/valuation/cointime-prices/
   - Rarity meter (44): https://bitview.space/studio/presets/valuation/rarity-meter/
 - Supply (5): https://bitview.space/studio/presets/supply/
-- Holders (374): https://bitview.space/studio/presets/holders/
-  - Compare (15): https://bitview.space/studio/presets/holders/compare/
-  - All coins (40): https://bitview.space/studio/presets/holders/all-coins/
-  - Short-term holders (42): https://bitview.space/studio/presets/holders/short-term-holders/
-  - Long-term holders (40): https://bitview.space/studio/presets/holders/long-term-holders/
-  - Age cutoffs (179): https://bitview.space/studio/presets/holders/age-cutoffs/
+- Holders (382): https://bitview.space/studio/presets/holders/
+  - Compare (16): https://bitview.space/studio/presets/holders/compare/
+  - All coins (41): https://bitview.space/studio/presets/holders/all-coins/
+  - Short-term holders (43): https://bitview.space/studio/presets/holders/short-term-holders/
+  - Long-term holders (41): https://bitview.space/studio/presets/holders/long-term-holders/
+  - Age cutoffs (183): https://bitview.space/studio/presets/holders/age-cutoffs/
   - Entry price (58): https://bitview.space/studio/presets/holders/entry-price/
-- Coin age (1199): https://bitview.space/studio/presets/coin-age/
-  - Age bands (683): https://bitview.space/studio/presets/coin-age/age-bands/
+- Coin age (1223): https://bitview.space/studio/presets/coin-age/
+  - Age bands (707): https://bitview.space/studio/presets/coin-age/age-bands/
   - Halving epochs (121): https://bitview.space/studio/presets/coin-age/halving-epochs/
   - Vintages (394): https://bitview.space/studio/presets/coin-age/vintages/
 - Profitability (237): https://bitview.space/studio/presets/profitability/

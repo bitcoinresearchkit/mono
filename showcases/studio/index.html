@@ -10983,6 +10983,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { BitviewClient } from "/modules/bitview-client/index.js";
       import XKCD from "/modules/xkcd-colors/index.js";
       import * as LC from "/modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs";
+      import { holderColor, wheelColor } from "/studio/palette.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
       // Responses are kept here alone, as the page uses them (the client's copies, in memory and on disk, would be more).
@@ -11795,11 +11796,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The URPD's age bands, the youngest first (after all coins and the age cutoffs). */
       const HEAT_AGES = HEAT_COHORTS.slice(7).map(([id]) => id);
       /**
-       * Each holder group's color, as the app draws it: all coins green, short-term holders orange, long-term blue, the
-       * age cutoffs as Compass has them (under 4 months yellow, under 6 red, over 4 cyan, over 6 violet); the age bands
-       * around the wheel from the youngest, as the presets compare them (see presets.js's ramp). @param {string} id
+       * Each holder group's color, one palette wherever it's drawn (see palette.js, the presets' too): its own (all coins
+       * green, short-term holders orange, long-term blue, the age cutoffs around them; the URPD's age_under_4m is the
+       * tree's under4m); the age bands around the wheel from the youngest, as the presets compare them. @param {string} id
        */
-      const cohortColor = (id) => ((own) => (Object.hasOwn(own, id) ? own[id] : null))(/** @type {Record<string, string>} */ ({ all: "green", sth: "orange", lth: "blue", age_under_4m: "yellow", age_under_6m: "red", age_over_4m: "cyan", age_over_6m: "violet" })) ?? ((at) => (at < 0 ? "gray" : `oklch(0.72 0.15 ${Math.round(HEAT_AGES.length > 1 ? 25 + (295 * at) / (HEAT_AGES.length - 1) : 25)})`))(HEAT_AGES.indexOf(id));
+      const cohortColor = (id) => holderColor(id.replace(/^age_(under|over)_/, "$1")) ?? ((at) => (at < 0 ? "gray" : wheelColor(at, HEAT_AGES.length)))(HEAT_AGES.indexOf(id));
       /** A profile's color for one of its holder groups: its own, else the group's (see cohortColor). @param {Layer} layer @param {string} cohort */
       const profileColor = (layer, cohort) => (layer.cohortColors && Object.hasOwn(layer.cohortColors, cohort) ? layer.cohortColors[cohort] : cohortColor(cohort));
       /** A cohort's name (one not listed: its id). */
@@ -27866,7 +27867,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         try {
           if (typeof caches === "undefined") return JSON.parse(/** @type {string} */ ((await made(null)).text));
           const store = await caches.open("bitview-studio:presets");
-          const texts = await Promise.all([presetsUrl, clientUrl].map((url) => fetch(url).then((response) => (response.ok ? response.text() : Promise.reject(new Error(`${url}: ${response.status}`))))));
+          // (What they're made from: the presets, the palette they're colored by, the client.)
+          const texts = await Promise.all([presetsUrl, new URL("/studio/palette.js", location.origin).href, clientUrl].map((url) => fetch(url).then((response) => (response.ok ? response.text() : Promise.reject(new Error(`${url}: ${response.status}`))))));
           const hash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texts.join("\0"))))].map((byte) => byte.toString(16).padStart(2, "0")).join("");
           const key = new URL(`presets-${hash}.json`, location.origin).href, kept = await store.match(key);
           /** @param {{ facts: string, text?: string }} result */
