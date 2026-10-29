@@ -28851,7 +28851,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 <button type="button" class="cap small" data-action="copy-name" aria-label="Copy the series name" data-tip="Copy the series name">${ICONS.copy}</button>
               </div>
               ${result?.error ? errorBox(result, layer.series ?? "") : ""}
-              ${meta?.description ? `<div class="description ${expanded ? "" : "clamped"}">${proseHtml(meta.description)}</div>${meta.description.length > 220 ? `<button type="button" class="more" data-action="more">${expanded ? "Show less" : "Show more"}</button>` : ""}` : ""}
+              ${meta?.description ? `<div class="description ${expanded ? "" : "clamped"}">${proseHtml(meta.description)}</div>${meta.description.length > 220 ? `<button type="button" class="more" data-action="more" aria-expanded="${expanded}">${expanded ? "Show less" : "Show more"}</button>` : ""}` : ""}
               ${meta ? `<div class="facts"><span class="chip">${escape(UNIT_NAMES[unitOf(meta.type)] ?? "Number")}</span><span class="chip">${meta.indexes.length} intervals</span></div>` : ""}
             </section>`;
         const html = `
@@ -30919,6 +30919,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const description = $("inspector").querySelector(".description");
           description?.classList.toggle("clamped", !expanded);
           button.textContent = expanded ? "Show less" : "Show more";
+          button.setAttribute("aria-expanded", String(expanded));
         } else if (action === "change-series") changeSeries(selected);
         else if (action === "copy-name") copyName(layerById(selected)?.series ?? "");
         else if (action === "replace") {
