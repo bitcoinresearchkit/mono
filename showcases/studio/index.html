@@ -15917,6 +15917,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       /** A heatmap's profile's width (see drawProfile): a fifth of the plot's, 72 at least, 200 at most. */
       const profileWidth = (/** @type {number} */ width) => Math.round(clamp(width * 0.2, 72, 200));
+      /** A profile's bins' least height (pixels, a gap's in it): its rows, thinner, binned to it (see drawProfile). */
+      const PROFILE_BIN = 3;
       /** Whether a chart shows a heatmap's profile: its room then after its latest, see rightGap. @param {Chart} doc */
       const profiled = (doc) => doc.layers.some((layer) => layer.type === "profile" && !layer.hidden);
       /**
@@ -21464,7 +21466,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A profile's name: its measure's, of its holder groups (two named, more counted), its weight's ("Supply profile,
        * short-term and long-term holders"). @param {Layer} layer
        */
-      const profileName = (layer) => ((groups) => `${HEAT_MEASURES.find(([id]) => id === (layer.measure ?? "supply"))?.[1]} profile, ${groups.length > 2 ? `${groups.length} holder groups` : groups.map((cohort) => cohortName(cohort).replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase())).join(" and ")}${layer.weight ? `, ${/** @type {string} */ (HEAT_WEIGHTS.find(([id]) => id === layer.weight)?.[1]).toLowerCase()}` : ""}`)(layer.profile ?? []);
+      const profileName = (layer) => ((groups) => `${HEAT_MEASURES.find(([id]) => id === (layer.measure ?? "supply"))?.[1]} profile, ${groups.length > 2 ? (groups.every((cohort) => HEAT_AGES.includes(cohort)) ? (groups.length === HEAT_AGES.length ? "every age band" : `${groups.length} age bands`) : `${groups.length} holder groups`) : groups.map((cohort) => cohortName(cohort).replace(/^[A-Z](?=[a-z])/, (first) => first.toLowerCase())).join(" and ")}${layer.weight ? `, ${/** @type {string} */ (HEAT_WEIGHTS.find(([id]) => id === layer.weight)?.[1]).toLowerCase()}` : ""}`)(layer.profile ?? []);
       /** What a profile is, said where one's added, and in a row's few words. */
       const PROFILE_ABOUT = "Holder groups' supply, capital or unrealized P&L by the price it was bought at, on one day (the latest, or the one pointed at), as bars at the chart's right edge: each group its color, under the price in profit.";
       const PROFILE_SHORT = "Holder groups' cost basis, at the right edge";
@@ -21799,7 +21801,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * A profile's (`kind`, see drawProfile): its holder groups and their colors, each one's day last shown (`last`), its
        * shares' colors (in profit, in loss), its close's line's (`mark`) and its words' halo; the point it was last drawn
        * for (`profileAt`: none, -1, at rest).
-       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, kind: string, cohorts: { id: string, color: string }[], last: Map<string, { key: string, day: HeatDay & { rows: Int32Array } }>, gain: string, lose: string, halo: string, mark: string, profileAt?: number, drawn?: boolean, undrawable?: boolean, step?: number, keep?: Set<string>, reference?: number }} HeatLook
+       * @typedef {{ id: string, cohort: string, weight: string, grid: ReturnType<typeof heatGrid>, g: Int32Array, days: string[], measure: string, up: number[], down: number[], opacity: number, gradient: number[][] | null, paint: string, kind: string, cohorts: ReturnType<typeof profileShades>[], last: Map<string, { key: string, day: HeatDay & { rows: Int32Array } }>, gain: string, lose: string, halo: string, backdrop: string, mark: string, profileAt?: number, drawn?: boolean, undrawable?: boolean, step?: number, keep?: Set<string>, reference?: number }} HeatLook
        */
       /**
        * Each heatmap's look, by its layer's id: what it draws and how (kept apart from its series' options, which the
@@ -21831,7 +21833,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const rgbOf = (/** @type {string} */ hex) => [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
       /** A heatmap's look, for its series' renderer (see heatLooks). @param {Chart} doc @param {Layer} layer @param {Resolved} data @param {number} opacity */
       // (Its profile's colors: an unrealized P&L's own two, else the chart's green and red.)
-      const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.type === "profile" ? layer.profile?.[0] ?? "all" : layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data.times), measure: layer.measure ?? "supply", up: rgbOf(ink(layer.color)), down: rgbOf(ink(belowOf(layer))), opacity, kind: layer.type, cohorts: layer.type === "profile" ? (layer.profile ?? []).map((id) => ({ id, color: ink(profileColor(layer, id)) })) : [], last: new Map(), gain: ink("green"), lose: ink("red"), halo: css("--card"), mark: css("--ink"), gradient: layer.byGradient && layer.gradient ? gradientTable(layer.gradient).map((color) => rgbOf(ink(color))) : null, paint: `${layer.measure ?? "supply"}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
+      /**
+       * A profile's group's bars' colors: in profit and in loss, its color strong and faint over the card, solid (a profile
+       * over other layers hides them), the layer's opacity over that. @param {string} id @param {string} color (hex) @param {number} opacity
+       */
+      const profileShades = (id, color, opacity) => {
+        const card = rgbOf(css("--card")), own = rgbOf(color), over = (/** @type {number} */ strength) => `rgb(${own.map((value, i) => Math.round(card[i] + (value - card[i]) * strength)).join(" ")} / ${opacity})`;
+        return { id, gain: over(0.72), loss: over(0.32) };
+      };
+      const heatLook = (doc, layer, data, opacity) => ({ id: layer.id, cohort: layer.type === "profile" ? layer.profile?.[0] ?? "all" : layer.heatmap ?? "all", weight: layer.weight ?? "", grid: heatGrid(doc, layer), ...heatCalendar(data.times), measure: layer.measure ?? "supply", up: rgbOf(ink(layer.color)), down: rgbOf(ink(belowOf(layer))), opacity, kind: layer.type, cohorts: layer.type === "profile" ? (layer.profile ?? []).map((id) => profileShades(id, ink(profileColor(layer, id)), opacity)) : [], last: new Map(), gain: ink("green"), lose: ink("red"), halo: css("--card"), backdrop: alpha(css("--card"), opacity), mark: css("--ink"), gradient: layer.byGradient && layer.gradient ? gradientTable(layer.gradient).map((color) => rgbOf(ink(color))) : null, paint: `${layer.measure ?? "supply"}|${ink(layer.color)}|${ink(belowOf(layer))}|${opacity}|${layer.byGradient ? JSON.stringify(layer.gradient) : ""}|${light}` });
       /** The day a block of `by` days is drawn as: its last (the open one, at most). @param {HeatLook} heat @param {number} g */
       const heatOwner = (heat, g, /** @type {number} */ by) => Math.min(Math.ceil(g / by) * by, heat.days.length - 1);
       /** A day's key in heatDays, by its count (see heatCalendar). @param {HeatLook} heat @param {number} g */
@@ -21860,10 +21870,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         Object.assign(look, heatCalendar(/** @type {Resolved} */ (resolved).times));
         if (point.at < 0 || point.at >= look.g.length || !look.grid) return null;
         const grid = look.grid, shown = profileDays(look, look.g[point.at]), close = profileClose(shown);
-        if (!(close > 0)) return null;
-        let under = 0, all = 0;
-        for (const item of shown) if (item) for (let k = 0; k < item.day.rows.length; k++) ((coins) => ((all += coins), grid.price(item.day.rows[k] + 0.5) < close && (under += coins)))(/** @type {Float32Array} */ (item.day.supply)[k]);
-        return all > 0 ? { amount: `${Math.round((100 * under) / all)}% in profit`, at: "" } : null;
+        const share = close > 0 ? profileShare(shown, grid, close) : null;
+        return share === null ? null : { amount: `${share}% in profit`, at: "" };
       }
       /** The price the pointer's at in a pane (its index, its height there), while it's over the chart. @type {{ pane: number, y: number } | null} */
       let heatAt = null;
@@ -22003,15 +22011,35 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * drawProfile, profileReading). @param {HeatLook} look @param {number} g
        */
       function profileDays(look, g) {
-        return look.cohorts.map(({ id, color }) => {
-          const key = `${id}|${look.weight}|${look.grid?.agg}|${look.days[g]}`, day = heatDays.get(key);
+        return look.cohorts.map((cohort) => {
+          const id = cohort.id, key = `${id}|${look.weight}|${look.grid?.agg}|${look.days[g]}`, day = heatDays.get(key);
           if (day?.rows) (day.used = ++heatUse), look.last.set(id, { key, day: /** @type {HeatDay & { rows: Int32Array }} */ (day) });
           const had = day?.failed ? null : look.last.get(id);
-          return had ? { day: had.day, color, key: had.key, now: had.key === key } : null;
+          return had ? { day: had.day, cohort, key: had.key, now: had.key === key } : null;
         });
       }
       /** The close the days shown are split at: a group's own day's, else any's. @param {ReturnType<typeof profileDays>} shown */
       const profileClose = (shown) => Number((shown.find((item) => item?.now) ?? shown.find(Boolean))?.day.close);
+      /**
+       * The share of the days shown's coins in profit, bought under the close (a row by its middle), a percent, rounded;
+       * none, no coins. @param {ReturnType<typeof profileDays>} shown @param {NonNullable<HeatLook["grid"]>} grid @param {number} close
+       */
+      function profileShare(shown, grid, close) {
+        let under = 0, all = 0;
+        for (const item of shown) {
+          if (!item) continue;
+          const rows = item.day.rows, supply = /** @type {Float32Array} */ (item.day.supply);
+          // (The rows low to high: those under it, a run from the first.)
+          let cut = 0;
+          for (let to = rows.length; cut < to; ) {
+            const mid = (cut + to) >> 1;
+            if (grid.price(rows[mid] + 0.5) < close) cut = mid + 1;
+            else to = mid;
+          }
+          for (let k = 0; k < rows.length; k++) (all += supply[k]), k < cut && (under += supply[k]);
+        }
+        return all > 0 ? Math.round((100 * under) / all) : null;
+      }
       function drawProfile(scope, toY, heat) {
         const grid = heat.grid, none = () => void (heatWants.delete(heat.id), (heat.keep = undefined));
         if (!grid || !resolved || !heat.cohorts.length) return none();
@@ -22033,64 +22061,139 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (wanted.length) (heatWants.set(heat.id, wanted), heatPumping || ((heatPumping = true), queueMicrotask(heatPump)));
         else heatWants.delete(heat.id);
         if (!(close > 0)) return;
-        const { context, mediaSize, horizontalPixelRatio: h, verticalPixelRatio: v } = scope, width = profileWidth(mediaSize.width), right = mediaSize.width - 2, height = mediaSize.height;
-        // (Each group's amount a band, from its rows' middles; the coins under the close and in all.)
-        const BAND = 3, bands = Math.ceil(height / BAND), sums = shown.map(() => new Float64Array(bands)), totals = new Float64Array(bands);
-        let under = 0, all = 0;
+        const line = toY(close), share = profileShare(shown, grid, close), { context, mediaSize, horizontalPixelRatio: h, verticalPixelRatio: v } = scope;
+        if (line === null || share === null) return;
+        profileBars(scope, toY, heat, shown, line);
+        context.save();
+        context.scale(h, v);
+        paintProfileMarks(context, mediaSize, heat, { line, share, older: g !== heat.days.length - 1 });
+        context.restore();
+      }
+      /**
+       * A profile's bars (see drawProfile): each group's amount by the price it was bought at, binned, stacked from the
+       * chart's right edge, the first group at it; strong under the close (`line`, its y: in profit), faint over it.
+       * @param {any} scope @param {(price: number) => number | null} toY @param {HeatLook} heat @param {ReturnType<typeof profileDays>} shown @param {number} line
+       */
+      function profileBars(scope, toY, heat, shown, line) {
+        const { context, mediaSize, horizontalPixelRatio: h, verticalPixelRatio: v } = scope, grid = /** @type {NonNullable<HeatLook["grid"]>} */ (heat.grid), width = profileWidth(mediaSize.width), right = mediaSize.width - 2, height = mediaSize.height;
+        let low = Infinity, high = -Infinity;
+        for (const item of shown) if (item?.day.rows.length) (low = Math.min(low, item.day.rows[0])), (high = Math.max(high, item.day.rows[item.day.rows.length - 1]));
+        if (!(low <= high)) return;
+        // (The rows in view, a row from its floor price's y up to its next's: the first whose top is over the pane's
+        // bottom, the last whose floor is under its top.)
+        const yOf = (/** @type {number} */ row) => toY(grid.price(row)) ?? NaN;
+        let lo = low, hi = high + 1;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (yOf(mid + 1) < height) hi = mid;
+          else lo = mid + 1;
+        }
+        for (let last = high; hi < last; ) {
+          const mid = (hi + last + 1) >> 1;
+          if (yOf(mid) > 0) hi = mid;
+          else last = mid - 1;
+        }
+        if (hi < lo) return;
+        // (Rows into bins of PROFILE_BIN pixels at least, as many rows as it takes, on whole multiples of a row (a power
+        // of two on a linear scale, its rows taller as the price is higher): the same bins wherever the view's panned and
+        // whichever day is shown; a row that tall, its own bin, as tall as it is.)
+        const rowsFor = (/** @type {number} */ tall) => (tall >= PROFILE_BIN || !(tall > 0) ? 1 : grid.even ? Math.ceil(PROFILE_BIN / tall) : 2 ** Math.min(20, Math.ceil(Math.log2(PROFILE_BIN / tall))));
+        // (On a log scale, rows alike: as tall as a decade's over its rows, one where the scale's own offset at its foot is
+        // nothing ($100 to $1,000): only a zoom changes it.)
+        const uniform = grid.even ? rowsFor((yOf(grid.cell(100)) - yOf(grid.cell(1000))) / (grid.cell(1000) - grid.cell(100))) : 0;
+        const binOf = (/** @type {number} */ row) => ((rows) => Math.floor(row / rows) * rows)(uniform || rowsFor(yOf(row) - yOf(row + 1)));
+        // (A run, the rows binned alike, a bin; one cut short, where a linear scale's count of rows changes, part of the
+        // bin over it: the same bins wherever the view is. The bins at its edges whole.)
+        const runStart = (/** @type {number} */ row) => { while (binOf(row - 1) === binOf(row)) row--; return row; };
+        const runEnd = (/** @type {number} */ row) => { while (binOf(row + 1) === binOf(row)) row++; return row; };
+        const short = (/** @type {number} */ from, /** @type {number} */ to) => !uniform && yOf(from) - yOf(to + 1) < PROFILE_BIN - 0.01;
+        lo = runStart(lo);
+        for (let under = runStart(lo - 1); lo > low && short(under, lo - 1); under = runStart(lo - 1)) lo = under;
+        hi = runEnd(hi);
+        while (hi < high && short(runStart(hi), hi)) hi = runEnd(hi + 1);
+        // (Each row's bin, from the lowest in view; each bin's edges, its floor's y and its top's.)
+        const span = hi + 1 - lo, binAt = new Int32Array(span), edges = [yOf(lo)];
+        for (let k = 0, at = binOf(lo), from = lo; k < span; k++) {
+          const row = lo + k, bin = binOf(row);
+          if (bin !== at) {
+            if (!short(from, row - 1)) edges.push(yOf(row));
+            (at = bin), (from = row);
+          }
+          binAt[k] = edges.length - 1;
+        }
+        edges.push(yOf(hi + 1));
+        // (Each group's amount a bin; the groups', the longest bin's.)
+        const bins = edges.length - 1, count = shown.length, sums = new Float64Array(bins * count), totals = new Float64Array(bins);
         shown.forEach((item, c) => {
           if (!item) return;
-          const { day } = item, rows = day.rows, supply = /** @type {Float32Array} */ (day.supply), values = /** @type {Float32Array} */ (heat.measure === "capital" ? day.capital : heat.measure === "pnl" ? day.pnl : day.supply);
-          for (let k = 0; k < rows.length; k++) {
-            const price = grid.price(rows[k] + 0.5);
-            all += supply[k];
-            if (price < close) under += supply[k];
-            const y = toY(price);
-            if (y === null || y < 0 || y >= height) continue;
-            const b = Math.floor(y / BAND), amount = Math.abs(values[k]);
-            sums[c][b] += amount;
-            totals[b] += amount;
+          const { day } = item, rows = day.rows, values = /** @type {Float32Array} */ (heat.measure === "capital" ? day.capital : heat.measure === "pnl" ? day.pnl : day.supply);
+          for (let k = lowerBound(rows, lo); k < rows.length && rows[k] <= hi; k++) {
+            const bin = binAt[rows[k] - lo], amount = Math.abs(values[k]);
+            sums[bin * count + c] += amount;
+            totals[bin] += amount;
           }
         });
-        const most = totals.reduce((a, b) => Math.max(a, b), 0), line = toY(close);
-        if (!(most > 0) || line === null) return;
-        for (let b = 0; b < bands; b++) {
-          if (!totals[b]) continue;
-          const top = b * BAND, strength = (top + BAND / 2 > line ? 0.72 : 0.32) * heat.opacity;
-          let x = right;
-          shown.forEach((item, c) => {
-            const length = (sums[c][b] / most) * width;
-            if (!item || !length) return;
-            context.fillStyle = alpha(item.color, strength);
-            context.fillRect(Math.round((x - length) * h), Math.round(top * v), Math.max(1, Math.round(x * h) - Math.round((x - length) * h)), Math.max(1, Math.round((BAND - 1) * v)));
-            x -= length;
-          });
+        const most = totals.reduce((a, b) => Math.max(a, b), 0);
+        if (!(most > 0)) return;
+        // (Each bin's bar from its top to a pixel over its floor (one too thin for that, to its floor); that pixel the
+        // card's, as long as its bar: over other layers, none seen through a profile but by its opacity.)
+        const gap = Math.max(1, Math.round(v)), tops = new Int32Array(bins), bottoms = new Int32Array(bins);
+        context.fillStyle = heat.backdrop;
+        for (let bin = 0; bin < bins; bin++) {
+          const top = (tops[bin] = Math.round(edges[bin + 1] * v)), floor = Math.round(edges[bin] * v), bottom = (bottoms[bin] = floor - gap > top ? floor - gap : floor);
+          if (!totals[bin] || bottom === floor) continue;
+          const left = Math.round((right - (totals[bin] / most) * width) * h);
+          context.fillRect(left, bottom, Math.max(1, Math.round(right * h) - left), floor - bottom);
         }
-        // (An older day's close, across it, dashed; the shares each side of it, at its start, haloed over its bars.)
-        const y = Math.round(line * v) + 0.5, left = right - width;
+        // (The groups stacked from the right edge, the first at it: each group's bars in two passes, strong under the close
+        // (in profit), faint over it, a bin it crosses split at it.)
+        const split = Math.round(line * v), from = new Float64Array(bins).fill(right);
+        shown.forEach((item, c) => {
+          if (!item) return;
+          for (const strong of [true, false]) {
+            context.fillStyle = strong ? item.cohort.gain : item.cohort.loss;
+            for (let bin = 0; bin < bins; bin++) {
+              const length = (sums[bin * count + c] / most) * width;
+              if (!length) continue;
+              const x = from[bin], left = Math.round((x - length) * h), top = tops[bin], bottom = bottoms[bin];
+              const y0 = strong ? Math.max(top, split) : top, y1 = strong ? bottom : Math.min(bottom, split);
+              if (y1 > y0) context.fillRect(left, y0, Math.max(1, Math.round(x * h) - left), y1 - y0);
+              if (!strong) from[bin] = x - length;
+            }
+          }
+        });
+      }
+      /**
+       * A profile's close and shares, over its bars (in pixels as the page's): an older day's close dashed across it; the
+       * share of its coins each side of it (`share`, in profit), at its start, haloed.
+       * @param {CanvasRenderingContext2D} context @param {{ width: number, height: number }} size @param {HeatLook} look @param {{ line: number, share: number, older: boolean }} marks
+       */
+      function paintProfileMarks(context, size, look, marks) {
+        const { line, share } = marks, width = profileWidth(size.width), right = size.width - 2, left = right - width, y = Math.round(line) + 0.5;
         context.save();
-        if (g !== heat.days.length - 1) {
-          context.strokeStyle = alpha(heat.mark, 0.6);
-          context.lineWidth = Math.max(1, Math.round(h));
-          context.setLineDash([3 * h, 3 * h]);
+        if (marks.older) {
+          context.strokeStyle = alpha(look.mark, 0.6);
+          context.lineWidth = 1;
+          context.setLineDash([3, 3]);
           context.beginPath();
-          context.moveTo(Math.round(left * h), y);
-          context.lineTo(Math.round(right * h), y);
+          context.moveTo(left, y);
+          context.lineTo(right, y);
           context.stroke();
           context.setLineDash([]);
         }
-        context.font = `510 ${Math.round(11 * v)}px ${chartSans}`;
+        context.font = `510 11px ${chartSans}`;
         context.lineJoin = "round";
-        context.lineWidth = 3 * v;
-        context.strokeStyle = heat.halo;
+        context.lineWidth = 3;
+        context.strokeStyle = look.halo;
         const say = (/** @type {string} */ text, /** @type {string} */ color, /** @type {number} */ at) => {
-          context.strokeText(text, Math.round((left + 4) * h), at);
+          context.strokeText(text, left + 4, at);
           context.fillStyle = color;
-          context.fillText(text, Math.round((left + 4) * h), at);
+          context.fillText(text, left + 4, at);
         };
         // (Too narrow for its words, a phone's: its shares alone, in their colors.)
-        const share = Math.round((100 * under) / (all || 1)), words = context.measureText(`${share}% in profit`).width <= (width - 8) * h;
-        if (line > 14) say(`${100 - share}%${words ? " in loss" : ""}`, heat.lose, Math.round((line - 5) * v));
-        if (line < height - 14) say(`${share}%${words ? " in profit" : ""}`, heat.gain, Math.round((line + 14) * v));
+        const words = context.measureText(`${share}% in profit`).width <= width - 8;
+        if (line > 14) say(`${100 - share}%${words ? " in loss" : ""}`, look.lose, Math.round(line - 5));
+        if (line < size.height - 14) say(`${share}%${words ? " in profit" : ""}`, look.gain, Math.round(line + 14));
         context.restore();
       }
       /**
