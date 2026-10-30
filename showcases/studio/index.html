@@ -23951,6 +23951,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           drawn.scales = [];
         }
         const first = clamp(Math.floor(shown.from), 0, n - 1), last = clamp(Math.ceil(shown.to), 0, n - 1);
+        /** A bucket's first and last points in view (the last bucket's to the view's end). @param {number} b */
+        const bucketOf = (b) => ((edge) => [Math.max(first, Math.ceil(shown.from + (b * span) / B)), Math.min(last, b === B - 1 ? Math.max(edge, Math.floor(shown.to)) : edge)])(Math.ceil(shown.from + ((b + 1) * span) / B) - 1);
         const round = (value) => Math.round(value * 10) / 10;
         // (A folded pane takes no band: it shows nothing.)
         const folded = foldedPanes(doc), sizeOf = (pane, k) => (folded.has(pane.id) ? 0 : pane.size ?? defaultSize(k));
@@ -24046,7 +24048,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const result = data.results.get(layer.id), low = result?.low, whole = edgesOf(layer).length > 1 && !cloudLayers(layer).length;
               const band = low ? Array.from({ length: B }, (_, b) => {
                 let under = Infinity, over = -Infinity;
-                for (let i = Math.max(first, Math.ceil(shown.from + (b * span) / B)); i <= last && (i < shown.from + ((b + 1) * span) / B || (b === B - 1 && i <= shown.to)); i++) {
+                for (let [i, to] = bucketOf(b); i <= to; i++) {
                   if (whole) return /** @type {[number, number]} */ ([0, 0]);
                   const down = scaled(low[i]), up = scaled(/** @type {Vector} */ (values)[i]);
                   if (Number.isFinite(down) && Number.isFinite(up)) (under = Math.min(under, down)), (over = Math.max(over, up));
@@ -24067,7 +24069,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 const colors = ids.map((id) => doc.layers.find((item) => item.id === id)?.color ?? layer.color), n = members.length;
                 const ats = Array.from({ length: B }, (_, b) => {
                   let at = -1;
-                  for (let i = Math.max(first, Math.ceil(shown.from + (b * span) / B)); i <= last && (i < shown.from + ((b + 1) * span) / B || (b === B - 1 && i <= shown.to)); i++) if (Number.isFinite(low[i])) at = i;
+                  for (let [i, to] = bucketOf(b); i <= to; i++) if (Number.isFinite(low[i])) at = i;
                   return at;
                 });
                 const valueOf = (/** @type {number} */ m, /** @type {number} */ at) => (m === -1 ? Infinity : m === -2 ? -Infinity : scaled(members[m][at]));
