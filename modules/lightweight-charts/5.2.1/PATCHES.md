@@ -1108,6 +1108,40 @@ samples, all of it 602–607 → 449–527; 23 areas of 6,000 points set and dra
 27.8–29.0 → 28.3–30.2 ms, at 4x CPU 108–123 → 112–124 (no change), Mullvad Browser 67.9–69.6 → 64.6–66.3 ms. Studio's
 charts of ten presets the same to the pixel.
 
+## 59. An update in place: its last point made again alone
+
+An update replacing a series' last row in place (Studio's live price, each time it moves) told the series' view its
+data changed (`Pt("data")`), and the view made every point again from the rows at its next frame (`zM`): 5,920 points
+for one moved, about half an update's cost on the iPhone without its JIT. The data layer now says when an update
+replaced the last row in place (not historical, at the series' last row's time, a row, not whitespace, no conflation),
+and the view makes that point alone, into a copy of its points (what's kept on the array let go of, the coordinates'
+(43) and the pan strips' (48), as when all are made again), the others kept, the points' one style (`bvU`, 23) the new
+point's compared with the first's. Anything else since the last frame (a series set, its options, a point added or
+taken) makes them all again, as before; so do points that aren't the rows one for one (conflation), of more than one
+style, a curve's or a custom series' (a curve reads the points just past the view's edges, a custom series' renderer
+is handed every bar: their places, all made again, are none; kept, they're where an earlier frame left them).
+
+- The data layer, `pM`: `bvIn` on its answer.
+- The model's `Mb` and the series' `ht`: `Ia(bM)`, the series' `Ia` telling its view `"bvLast"` for an answer with
+  `bvIn`, `"data"` as before otherwise.
+- `class Es` (a series' view): `Pt("bvLast")` sets `bvLast`; `IM` makes all its points (`zM`) when its data changed,
+  else the last alone (`bvZL`) when that's all; `zM` is here, once, each kind's row-to-point maker apart (`bvMake(t)`:
+  `ye`'s for lines, areas, baselines and histograms, `Xe`'s for bars and candles, `zs`'s for custom series).
+
+`tests.html`: "updates in place" (as drawn): a line, an area and bars of one style each, their last values moved at
+rest and mid-pan, one taking a color of its own and back, a series of one point, a new last point then moved,
+whitespace last, a series set again then moved: 18/18 the same; with the last point not made again, 5/18. "A curve
+updated in place" (as drawn: drawn whole, narrowed, its scale changed and its last value moved before a frame): 4/4;
+with a curve's last point made alone, 2/4. Check 17, a custom series updated in place (drawn whole, narrowed, its last
+value moved): its bars' places as after its data set whole; with its last point made alone, not (a picture can't show
+it: patch 52 places the bar past each edge where the published library leaves it). Both cases found by Codex. (Its one
+style kept after a last point of its own color can't be seen: a line's or an area's point colors the stretch after it,
+and the last has none.) Its data is made when it's built: steps run on both libraries in turn, the seed shared.
+Measured, an update of the price drawn at once (`bvFlush`): the iPhone without its JIT, weekly (1,974 points) 7.1 →
+3.0–4.4 ms, daily (5,920) 11.4–12.0 → 7.8–8.2 ms; a line of 6,000 points over 23 areas, Chromium at 4x CPU 1.90–1.99 →
+0.60–0.63 ms, Mullvad Browser 1.25 → 0.83 ms. Studio's charts of seven presets, their series' last values moved, the
+same to the pixel.
+
 ## Typings
 
 `dist/typings.d.ts` declares what the patches add to the API (the chart's `bvFlush`; a scale's `bvRange`, `bvSetRange`,

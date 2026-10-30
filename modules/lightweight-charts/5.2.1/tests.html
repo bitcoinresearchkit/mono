@@ -210,6 +210,35 @@ scenario("data as columns", (L, el) => {
     ["emptied", () => set(s3, [], new Float64Array(0))], ...pan(c, 3, 400, 1400, 900),
     ["back", () => set(s3, times, v3)], ["last fit", () => c.timeScale().fitContent()]];
 });
+// Updates in place (patch 59: a last row replaced, its point made again alone): a line, an area and bars of one style
+// each, their last values moved, at rest and mid-pan; one taking a color of its own (no longer of one style) and back;
+// a series of one point; a new last point, then moved; whitespace last; a series set again, then moved. As drawn.
+scenario("updates in place", (L, el) => {
+  seed = 59;
+  const c = base(L, el);
+  const s1 = c.addSeries(L.LineSeries, { color: "#fff" }); s1.setData(walk(3000, 100, 0.02));
+  const s2 = c.addSeries(L.AreaSeries, { lineColor: "#0f8", topColor: "#0f84", bottomColor: "#0f80" }); s2.setData(walk(3000, 90, 0.02));
+  const s3 = c.addSeries(L.HistogramSeries, { color: "#08f", base: 0 }, 1); s3.setData(walk(3000, 0, 1, { negative: true }));
+  const s4 = c.addSeries(L.LineSeries, { color: "#f80", pointMarkersVisible: true }); s4.setData([{ time: day(2999), value: 95 }]);
+  // (Made here: steps run on both libraries in turn, the seed shared.)
+  const at = (s, value, extra = {}) => s.update({ time: day(2999), value, ...extra }), shorter = walk(2500, 0, 1, { negative: true });
+  return [["full", () => c.timeScale().fitContent()], ["the latest", () => c.timeScale().setVisibleLogicalRange({ from: 2900, to: 3005 })],
+    ["up", () => at(s1, 130)], ["down", () => at(s1, 70)], ["the area's", () => at(s2, 120)], ["the bars'", () => at(s3, 3)], ["one point's", () => at(s4, 110)],
+    ...pan(c, 3, 2850, 2900, 100), ["mid-pan, two", () => (at(s1, 100), at(s2, 60))], ["a color of its own", () => at(s1, 90, { color: "#f00" })], ["one style again", () => at(s1, 95)],
+    ["a new point", () => s1.update({ time: day(3000), value: 99 })], ["then moved", () => s1.update({ time: day(3000), value: 101 })],
+    ["whitespace last", () => s2.update({ time: day(2999) })], ["set again, then moved", () => { s3.setData(shorter); s3.update({ time: day(2499), value: -2 }); }],
+    ["fit", () => c.timeScale().fitContent()]];
+}, true);
+// A curve updated in place (patch 59: made again whole, as a curve reads the points past the view's edges): drawn whole,
+// narrowed, its scale changed and its last value moved before a frame. As drawn.
+scenario("a curve updated in place", (L, el) => {
+  seed = 591;
+  const c = base(L, el);
+  const s1 = c.addSeries(L.LineSeries, { color: "#f0f", lineType: 2 }); s1.setData(walk(3000, 50, 0.05));
+  const at = (value) => s1.update({ time: day(2999), value });
+  return [["full", () => c.timeScale().fitContent()], ["narrow", () => c.timeScale().setVisibleLogicalRange({ from: 2985.5, to: 3001 })],
+    ["its scale and its last value", () => { c.priceScale("right").applyOptions({ scaleMargins: { top: 0.4, bottom: 0.3 } }); at(70); }], ["moved again", () => at(30)]];
+}, true);
 // Points of their own colors among others of none (patch 58: a point of none takes the style made first): an area's
 // points each with one of its three colors (its line's, its fill's top or foot), restyled, then a live point with one.
 scenario("an area's points of their own colors", (L, el) => {
@@ -883,5 +912,32 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   }
   say(`Series outlined: 6 checks, ${outlined.length} failing`);
   for (const f of outlined) say(`  ✗ ${f}`);
-  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length, pinch: tapped.length, own: owned.length, later: later.length, edged: edged.length, shifted: shifted.length, tagged: tagged.length, pills: pills.length, outlined: outlined.length };
+
+  // 17. A custom series updated in place (patch 59, the patched library alone): its renderer is handed every bar, in view
+  // or not, so it's made again whole, its bars as after its data set whole (out of view, no place; a bar's place kept
+  // from an earlier frame would draw it there). Drawn whole, narrowed, its last value moved.
+  const placed = [];
+  {
+    const barsAfter = async (whole) => {
+      document.getElementById("a").innerHTML = ""; window.__charts = [];
+      seed = 592;
+      const c = base(B, document.getElementById("a")), rows = walk(300, 50, 0.05);
+      let bars = [];
+      const s = c.addCustomSeries({ renderer: () => ({ draw: () => {} }), update: (data) => (bars = data.bars), priceValueBuilder: (row) => [row.value], isWhitespace: (row) => !("value" in row), defaultOptions: () => ({ ...B.customSeriesDefaultOptions }) });
+      s.setData(rows);
+      c.timeScale().fitContent(); c.bvFlush(); await frames();
+      c.timeScale().setVisibleLogicalRange({ from: 289.5, to: 300 }); c.bvFlush(); await frames();
+      const moved = { time: rows[299].time, value: 40 };
+      whole ? s.setData([...rows.slice(0, 299), moved]) : s.update(moved);
+      c.bvFlush(); await frames();
+      const xs = bars.map((bar) => (Number.isFinite(bar.x) ? Math.round(bar.x * 100) : "none")).join(" ");
+      c.remove(); window.__charts = [];
+      return xs;
+    };
+    const [inPlace, whole] = [await barsAfter(false), await barsAfter(true)];
+    if (inPlace !== whole) placed.push(`its bars' places differ from its data set whole: ${inPlace.split(" ").filter((x, k) => x !== whole.split(" ")[k]).length} of 300`);
+  }
+  say(`A custom series updated in place: 1 check, ${placed.length} failing`);
+  for (const f of placed) say(`  ✗ ${f}`);
+  window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length, pinch: tapped.length, own: owned.length, later: later.length, edged: edged.length, shifted: shifted.length, tagged: tagged.length, pills: pills.length, outlined: outlined.length, placed: placed.length };
 </script>
