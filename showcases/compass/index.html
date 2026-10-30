@@ -1551,8 +1551,8 @@
         // The day shown, and its date's tag along the foot (the labels it'd cover left out).
         const day = shownDay(), seen = day >= view.a - 0.5 && day <= view.b + 0.5;
         ctx.font = "600 11.5px Inter, system-ui, sans-serif";
-        // (The kept day's tag says it can be let go: ✕, a press on it goes back to today.)
-        const letGo = pinned !== null && day === pinned && day !== d.last;
+        // (The kept day's tag says it can be let go: ✕, a press on it goes back to today. Not the playing day's.)
+        const letGo = pinned !== null && day === pinned && day !== d.last && !playing;
         const date = `${dated(day)}${letGo ? "  ✕" : ""}`, dw = ctx.measureText(date).width + 14, dx = Math.max(8 + dw / 2, Math.min(width - 8 - dw / 2, xOf(day)));
         tag = letGo && seen ? { x: dx - dw / 2, y: datesY() - 14, w: dw, h: 20 } : null;
 
@@ -1927,7 +1927,8 @@
         if (!days || e.button || gesture || (e.target instanceof Element && e.target.closest("button"))) return;
         const x = xIn(e);
         if (x > plotRight()) return;
-        stopPlay();
+        // (A flick stopped. Play goes on through a press, and ends once it's a drag or a slide.)
+        gliding = 0;
         chart.setPointerCapture(e.pointerId);
         gesture = { id: e.pointerId, kind: "press", x, y: e.clientY, a: view.a, length: view.b - view.a + 1, timer: 0, trail: [[e.timeStamp, x]] };
         // (A finger held still a moment slides through days, as a chart app's does.)
@@ -1935,6 +1936,7 @@
           gesture.timer = setTimeout(() => {
             if (gesture?.kind !== "press") return;
             gesture.kind = "slide";
+            endPlay();
             hovered = dayAt(gesture.x);
             show();
           }, 350);
@@ -1959,6 +1961,7 @@
           if (Math.hypot(x - g.x, e.clientY - g.y) < (e.pointerType === "mouse" ? 4 : 8)) return;
           clearTimeout(g.timer);
           g.kind = "move";
+          endPlay();
           hovered = null;
           chart.classList.add("grabbing");
           show();
@@ -2121,7 +2124,7 @@
       }
       pan.addEventListener("pointerdown", (e) => {
         if (!days || e.button) return;
-        stopPlay();
+        endPlay();
         pan.setPointerCapture(e.pointerId);
         const x = e.clientX - pan.getBoundingClientRect().left, length = view.b - view.a + 1;
         let part = panPart(x);
@@ -2341,7 +2344,8 @@
       new ResizeObserver(redraw).observe(strip);
 
       // ── Playing: the day shown runs on to today at the chart's span in 60 seconds; paused, it stays where it is, and
-      // plays on from there (from today, it starts again at the chart's first day) ──
+      // plays on from there (from today, it starts again at the chart's first day); a drag on the chart or the pan bar
+      // ends it, today shown again ──
 
       /** How long play takes over the chart's span, in ms. */
       const PLAY = 60_000;
@@ -2361,6 +2365,15 @@
         if (!playing) return;
         playing = false;
         saidPlaying(false);
+      }
+      /** Play ended outright, not paused (a drag takes the chart from it): its day let go too, today shown again, the
+       * next play from the chart's first day. */
+      function endPlay() {
+        gliding = 0;
+        if (!playing) return;
+        stopPlay();
+        pinned = null;
+        show(true);
       }
       /** A frame's step of play: the day for now, the chart kept on it; false once it's reached today. */
       function advance(/** @type {number} */ now) {
