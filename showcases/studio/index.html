@@ -16983,20 +16983,20 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           // (Drawn as before, the series as it was.)
           const again = kept.has(layer.id) ? was.get(layer.id) : undefined;
           if (!again) added = true;
+          /** Its series: the one kept, its look set anew (with what `also` adds), else made. @param {() => any} make @param {any} options */
+          const madeOrKept = (make, options, also = () => ({})) => (again ? (again.applyOptions({ ...lookOf(options), ...also() }), again) : tracked(make()));
           if (signal && layer.place === "shade") {
             // Shaded: its stretches, its pane's height (a band to both its edges, as a cloud between them is: on a scale
             // of its own, unseen), faint, behind what's drawn.
             const options = { ...common, ...paint, visible: signalShown(layer, doc), lastValueVisible: false, priceLineVisible: false, top: true, bottom: true, midway: true, priceScaleId: `shade:${layer.id}`, autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 1 } }) };
-            series = again ?? tracked(view.addCustomSeries(cloudView(), options, pane));
-            if (again) series.applyOptions(lookOf(options));
+            series = madeOrKept(() => view.addCustomSeries(cloudView(), options, pane), options);
           } else if (layer.type === "cloud") {
             // Its band alone: no label on the axis, no line across, no marker (its legend says its range); to its pane's edges
             // if it has them (both: on a scale of its own, unseen, its rows none of the pane's scales' business: drawn
             // whatever's on its side, or hidden, or how it's scaled).
             const [top, bottom] = EDGES.map((edge) => Boolean(layer.from?.includes(edge)));
             const options = { ...common, ...paint, lastValueVisible: false, priceLineVisible: false, top, bottom, banded, ...(top && bottom && !cloudLayers(layer).length ? { priceScaleId: `shade:${layer.id}`, autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 1 } }) } : {}) };
-            series = again ?? tracked(view.addCustomSeries(cloudView(), options, pane));
-            if (again) series.applyOptions(lookOf(options));
+            series = madeOrKept(() => view.addCustomSeries(cloudView(), options, pane), options);
           } else if (heatLike(layer)) {
             // A heatmap: each day's URPD behind the lines (see heatView): no tag, no line across; nothing to its scale but
             // alone on it (nothing else drawn on its pane's side: a signal's marks, or one with no value its scale draws,
@@ -17017,8 +17017,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             if (layer.hidden) heatWants.delete(layer.id);
             // (Its profile drawn fixed at the plot's edge: a pan draws its pane whole, see LWC patch 54.)
             const options = { ...common, lastValueVisible: false, priceLineVisible: false, heatId: layer.id, bvFixed: layer.type === "profile" && !layer.hidden, autoscaleInfoProvider: (/** @type {() => any} */ original) => (alone ? original() : null) };
-            series = again ?? tracked(view.addCustomSeries(heatView(), options, pane));
-            if (again) series.applyOptions({ ...lookOf(options), heatTick: ++heatTicks });
+            series = madeOrKept(() => view.addCustomSeries(heatView(), options, pane), options, () => ({ heatTick: ++heatTicks }));
             // (Kept up with live only where drawn: see movePrice.)
             if (known) heatSeries.add(series);
             else heatSeries.delete(series);
@@ -17029,8 +17028,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // (Its largest: of all its history; in view, as it's drawn, then kept by sizeBubbles as the view moves.)
             const most = values ? mostIn(values, layer.scaleTo === "all" ? undefined : view.timeScale().getVisibleLogicalRange()) : 0;
             const options = { ...common, lastValueVisible: false, priceLineVisible: false, up: alpha(base, 0.4 * op), upEdge: alpha(base, 0.8 * op), down: alpha(under, 0.4 * op), downEdge: alpha(under, 0.8 * op), size: layer.size ?? BUBBLE_SIZE, hide: layer.hide ?? BUBBLE_HIDE, most, halo: layer.outline ? css("--card") : "", hitTestTolerance: 0, ...(on ? {} : { priceScaleId: `bubbles:${layer.id}`, autoscaleInfoProvider: () => ({ priceRange: { minValue: 0, maxValue: 1 } }) }) };
-            series = again ?? tracked(view.addCustomSeries(bubbleView(), options, pane));
-            if (again) series.applyOptions(lookOf(options));
+            series = madeOrKept(() => view.addCustomSeries(bubbleView(), options, pane), options);
             // (On none: its scale's middle the pane's, its margins even.)
             if (!on) series.priceScale().applyOptions({ scaleMargins: { top: 0.1, bottom: 0.1 } });
           } else if (candles) {
@@ -17039,8 +17037,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const options = { ...common, ...paint, borderVisible: true, cornerRadius: BAR_CORNER, lastValueVisible: false, priceLineVisible: false, visible: !layer.hidden && candlesFit };
             const close = { color }, closeOptions = { ...common, ...close, ...marker, lineWidth, lineVisible: !candlesFit, crosshairMarkerVisible: !candlesFit };
             const closeAgain = again && wasCloses.get(layer.id)?.series;
-            series = again ?? tracked(view.addSeries(LC.CandlestickSeries, options, pane));
-            if (again) series.applyOptions(lookOf(options));
+            series = madeOrKept(() => view.addSeries(LC.CandlestickSeries, options, pane), options);
             if (closeAgain) closeAgain.applyOptions(lookOf(closeOptions));
             closes.set(layer.id, { candles: series, series: closeAgain || tracked(view.addSeries(LC.LineSeries, closeOptions, pane)), paint: close, rise: color, fall: layer.colors === 1 ? color : below, dated: Boolean(dated) });
             tintClose(layer.id);
@@ -17053,8 +17050,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               : stackedLine ? [LC.AreaSeries, { ...common, ...paint, ...marker, ...line, bvBandFill: layer.side }]
               : layer.type === "baseline" ? [LC.BaselineSeries, { ...common, ...paint, ...marker, ...line, baseValue: { type: /** @type {const} */ ("price"), price: baseOf(layer) } }]
               : [LC.LineSeries, { ...common, ...paint, ...marker, ...line, ...(layer.type === "trend" ? (dated ? { priceLineColor: "", crosshairMarkerBackgroundColor: "" } : { priceLineColor: color, crosshairMarkerBackgroundColor: color }) : {}) }];
-            series = again ?? tracked(view.addSeries(/** @type {any} */ (kind), options, pane));
-            if (again) series.applyOptions(lookOf(options));
+            series = madeOrKept(() => view.addSeries(/** @type {any} */ (kind), options, pane), options);
             if (layer.type === "dots") dotted.set(layer.id, { series, width: layer.width, radius });
           }
           paints.set(layer.id, paint);
