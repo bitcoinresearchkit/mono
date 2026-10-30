@@ -89,9 +89,19 @@ class Chart {
       for (const listener of this.clickListeners) listener(param);
     });
     this.timeScaleApi = new TimeScale(this);
-    // (Its panes' rows kept on them as it's laid out.)
+    // (Its DOM as the chart library's was, where Studio looks for it: a table of rows, each pane's (see Pane) and, last,
+    // the time axis' (its right corner's cell Studio's Full screen button's, the one cell taking the pointer), kept on
+    // them as it's laid out.)
+    this.table = document.createElement("table");
+    this.table.style.cssText = "position: absolute; inset: 0; display: block; pointer-events: none";
+    this.timeRow = row();
+    /** @type {HTMLElement} */ (this.timeRow.children[2]).style.pointerEvents = "auto";
+    this.table.append(this.timeRow);
+    element.append(this.table);
     this.engine.onLayout(() => {
+      const engine = this.engine;
       for (const pane of this.panesList) pane.place();
+      placeRow(this.timeRow, engine.height - engine.timeHeight, engine.timeHeight, engine.left, engine.time.width, engine.axis);
     });
   }
 
@@ -232,7 +242,7 @@ class Chart {
 
   remove() {
     this.engine.destroy();
-    for (const pane of this.panesList) pane.row.remove();
+    this.table.remove();
   }
 
   // ── Its panes and timeline ──
@@ -405,19 +415,13 @@ class Pane {
     this.updated = false;
     /** Its series' markers. @type {Marks[]} */
     this.marks = [];
-    // (Its DOM as the chart library's was, where Studio looks for it: a row over the pane (its box: getHTMLElement), its
-    // left axis', plot's and right axis' cells, the plot's a frame over it, first in it, its legend put in there. None
-    // of it takes the pointer: the chart's under it.)
-    this.row = document.createElement("div");
-    this.row.style.cssText = "position: absolute; left: 0; right: 0; pointer-events: none";
-    const cell = () => document.createElement("div");
-    this.plotCell = cell();
-    this.plotCell.style.cssText = "position: absolute; top: 0; bottom: 0";
-    this.frame = cell();
+    // (Its row in the chart's table (its box: getHTMLElement), over it: its plot's cell a frame over the plot, first in
+    // it, its legend put in there.)
+    this.row = row();
+    this.frame = document.createElement("div");
     this.frame.style.cssText = "position: relative; width: 100%; height: 100%";
-    this.plotCell.append(this.frame);
-    this.row.append(cell(), this.plotCell, cell());
-    chart.element.append(this.row);
+    this.row.children[1].append(this.frame);
+    chart.table.insertBefore(this.row, chart.timeRow);
     this.target = new Target();
   }
 
@@ -482,11 +486,10 @@ class Pane {
     return this.row;
   }
 
-  /** Its row over its pane, its plot's cell over its plot (the left axis' room before it). */
+  /** Its row over its pane. */
   place() {
     const engine = this.engine;
-    Object.assign(this.row.style, { top: `${engine.top}px`, height: `${engine.height}px` });
-    Object.assign(this.plotCell.style, { left: `${this.chart.engine.left}px`, width: `${engine.plot}px` });
+    placeRow(this.row, engine.top, engine.height, this.chart.engine.left, engine.plot, this.chart.engine.axis);
   }
 
   getHeight() {
@@ -1002,6 +1005,27 @@ class Marks {
       g.fill();
     }
   }
+}
+
+/** A row of the chart's table (a pane's, the time axis'): its left axis', plot's and right axis' cells. */
+function row() {
+  const tr = document.createElement("tr");
+  tr.style.cssText = "position: absolute; left: 0; right: 0; display: block";
+  for (let k = 0; k < 3; k++) {
+    const td = document.createElement("td");
+    td.style.cssText = "position: absolute; top: 0; bottom: 0; display: block; padding: 0";
+    tr.append(td);
+  }
+  return tr;
+}
+
+/** A row laid over the chart from `top`, `height` tall: its cells the left axis' `left`, the plot's `plot`, the right axis' `axis` wide. @param {HTMLElement} tr @param {number} top @param {number} height @param {number} left @param {number} plot @param {number} axis */
+function placeRow(tr, top, height, left, plot, axis) {
+  Object.assign(tr.style, { top: `${top}px`, height: `${height}px` });
+  const [a, b, c] = /** @type {HTMLElement[]} */ ([...tr.children]);
+  Object.assign(a.style, { left: "0px", width: `${left}px` });
+  Object.assign(b.style, { left: `${left}px`, width: `${plot}px` });
+  Object.assign(c.style, { left: `${left + plot}px`, width: `${axis}px` });
 }
 
 /** No views. */
