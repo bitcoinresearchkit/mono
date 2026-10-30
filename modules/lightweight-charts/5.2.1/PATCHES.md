@@ -1179,7 +1179,8 @@ drawing call, `setTransform`). As iPad's Split View resizes, the panes are now s
   as the published library sets them at each move and the chart laid out and drawn at once (`bvFlush`): the canvases
   measured unstretched (their size is read from their box, a transform's in it), and nothing painted between: no frame
   of the old heights. Resizing turned off, the separator gone, or its panes others (a pane removed: the widgets kept
-  and bound to other panes, `bvPa`, `bvPb`) mid-drag: unstretched, left as it was. A touch cancelled (iOS: a call, a
+  and bound to other panes, `bvPa`, `bvPb`), or their sizes set by another hand (a pane's Height chosen, an undo:
+  `bvFa`, `bvFb`, their stretch factors as the drag began) mid-drag: unstretched, left as it was. A touch cancelled (iOS: a call, a
   system gesture) ends a drag as one let go does (a `touchcancel` listener while a touch drags it, for that touch
   alone: the first of its start, as the library's handler follows it, `bvId`): before, its
   full-screen catcher stayed up. (The library's touch handling itself as published: its touch, kept, is let go of at
