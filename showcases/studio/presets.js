@@ -1206,11 +1206,11 @@ export function studioPresets(client, facts) {
     if (at === 0 && (c.layers[0].pane ?? 1) === 1) return c;
     // (Layers are named by their place, A first: a chart that names one would be read wrong with another before it.)
     if (at > 0 || c.layers.some((layer) => layer.cloud || /\b[A-Z]{1,2}\b/.test(layer.formula ?? ""))) throw new Error(`A preset names its layers by place without the price first: ${c.layers.map((layer) => layer.label).join(", ")}`);
-    const [first, ...rest] = c.panes ?? [{ mode: 0 }];
+    const panes = c.panes ?? [{ mode: 0 }], first = panes[0];
     return {
       ...c,
       layers: [{ ...price(), ...(hidden ? { hidden: true } : {}) }, ...c.layers.map((layer) => ({ ...layer, pane: (layer.pane ?? 1) + 1 }))],
-      panes: [{ mode: 1, size: 1.4 }, { ...first, size: first.size ?? 3 }, ...rest],
+      panes: [{ mode: 1, size: 1.4 }, { ...first, size: first.size ?? 3 }, ...panes.slice(1)],
     };
   };
 
@@ -1231,14 +1231,16 @@ export function studioPresets(client, facts) {
   const presets = [];
   // (A top section's icon on its first preset (`s`): the list says it once, the sidebar's tree hangs it on the section.)
   let icon = "";
+  // (By index, each place made once: thousands of presets, an engine without a JIT stepping an iterator for each.)
   const walk = (/** @type {(ChartNode | SectionNode)[]} */ items, /** @type {string[]} */ path, workings = false) => {
-    for (const item of items) {
+    for (let k = 0; k < items.length; k++) {
+      const item = items[k], place = path.concat(item.name);
       if ("items" in item) {
         if (!path.length) icon = item.icon ?? "";
-        walk(item.items, [...path, item.name], workings || Boolean(item.workings));
+        walk(item.items, place, workings || Boolean(item.workings));
         continue;
       }
-      presets.push({ p: [...path, item.name], t: item.title, c: twoShown(priced(item.c, workings || Boolean(item.priceHidden)), [...path, item.name]), ...(icon ? { s: icon } : {}) });
+      presets.push({ p: place, t: item.title, c: twoShown(priced(item.c, workings || Boolean(item.priceHidden)), place), ...(icon ? { s: icon } : {}) });
       icon = "";
     }
   };
