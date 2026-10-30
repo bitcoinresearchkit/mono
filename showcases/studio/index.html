@@ -11201,7 +11201,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       import { BitviewClient } from "/modules/bitview-client/index.js";
       import XKCD from "/modules/xkcd-colors/index.js";
       import * as LC from "/modules/lightweight-charts/5.2.1/dist/lightweight-charts.standalone.production.mjs";
-      import { holderColor, recencyColor, wheelColor } from "/studio/palette.js";
+      import { OKLCH, holderColor, recencyColor, wheelColor } from "/studio/palette.js";
       import { QuickMatch, QuickMatchConfig } from "/modules/quickmatch-js/src/index.js";
 
       // Responses are kept here alone, as the page uses them (the client's copies, in memory and on disk, would be more).
@@ -11728,18 +11728,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const rangeDays = (/** @type {string} */ id) => RANGES.find(([range]) => range === id)?.[2] ?? 0;
       /** The range a chart starts on, and a link that names none opens on: two cycles, the last 8 years (user, 2026-10-12). */
       const DEFAULT_RANGE = "8y";
-      /**
-       * Bitview's palette, as the website defines it: lightness, chroma, hue in OKLCH. A layer's color is one of these
-       * names, "ink" (the page's own), an exact "oklch(l c h)", or a hex; each is drawn in sRGB (the chart reads only
-       * that), converted on demand.
-       */
-      const OKLCH = {
-        gray: [0.55, 0, 0], red: [0.607, 0.241, 26.328], orange: [0.6764, 0.191, 44.41], amber: [0.7175, 0.1835, 64.199],
-        yellow: [0.738, 0.173, 80.9405], avocado: [0.72, 0.19, 110], lime: [0.708, 0.2165, 131.267], green: [0.675, 0.2065, 149.3965],
-        emerald: [0.646, 0.1575, 162.8525], teal: [0.652, 0.129, 183.6035], cyan: [0.662, 0.1345, 218.472], sky: [0.6365, 0.1635, 239.6445],
-        blue: [0.5845, 0.2295, 261.348], indigo: [0.548, 0.2475, 277.0415], violet: [0.5735, 0.2655, 292.863], purple: [0.5925, 0.2765, 303.1105],
-        fuchsia: [0.629, 0.294, 322.523], pink: [0.624, 0.245, 357.444], rose: [0.6155, 0.2495, 17.012],
-      };
       /**
        * Every color as the theme shows it, Bitview's and any picked alike (they're kept as the dark shows them): on the
        * dark, as it is; on the light, its lightness turned over along one curve: white as black and black as white,
@@ -33093,8 +33081,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         return Array.from({ length: year(Date.now() / 1000) - from + 1 }, (_, k) => ({ formula: `year(${layer.letter}, ${from + k})`, label: String(from + k) }));
       }
       /**
-       * A layer's halving cycles or years side by side (periodsOf's): a layer each, colored in time (the oldest violet,
-       * the newest amber: recencyColor), in a pane of their own on a log scale, all of history in view. Formulas, there to
+       * A layer's halving cycles or years side by side (periodsOf's): a layer each, colored in time (the oldest indigo,
+       * the newest orange: recencyColor), in a pane of their own on a log scale, all of history in view. Formulas, there to
        * read and change; not at an interval they can't be at. @param {string} id @param {"cycles" | "years"} which
        */
       function comparePeriods(id, which) {
