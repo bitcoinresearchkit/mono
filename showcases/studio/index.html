@@ -23205,8 +23205,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               stacked.set(layer.id, { values, under, scale: null, group, rank });
             }
             if (!shares) continue;
-            const scale = new Float64Array(n);
-            for (let i = 0; i < n; i++) scale[i] = total[i] ? 100 / total[i] : NaN;
+            // (A typed array's own map: on the phone, faster than a loop written out.)
+            const scale = total.map((sum) => (sum ? 100 / sum : NaN));
             for (const layer of layers) {
               const item = stacked.get(layer.id);
               for (let i = 0; i < n; i++) item.values[i] *= scale[i];
