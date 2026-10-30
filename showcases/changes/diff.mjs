@@ -11,6 +11,9 @@
 //                                                                    next minor, by default: 0.12.2 to 0.13.0)
 //   ... --cache                                                      keeps what it fetched in target/changes, for
 //                                                                    work on this script (never for a release)
+//   ... --cache --offline                                            fetches nothing: what the cache lacks is
+//                                                                    unreadable (a server since moved on, as prod is
+//                                                                    once next is released, never read for the old)
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,6 +27,7 @@ const servers = args.filter((arg, i) => !arg.startsWith("--") && i !== toAt + 1)
 const OLD = (servers[0] ?? "https://bitview.space").replace(/\/$/, "");
 const NEW = (servers[1] ?? "https://next.bitview.space").replace(/\/$/, "");
 const CACHE = args.includes("--cache") ? join(HERE, "..", "..", "target", "changes") : null;
+const OFFLINE = Boolean(CACHE) && args.includes("--offline");
 // (Requests at once, per server: gentle on a prod server that may be serving alone.)
 const AT_ONCE = 4;
 // (Values read per series: enough that two series match only if they're one, or one cohort's matches another's.)
@@ -42,6 +46,7 @@ async function get(url) {
       return JSON.parse(readFileSync(cached, "utf8"));
     } catch {}
   }
+  if (OFFLINE) throw new Error(`${url}: not in the cache`);
   for (let attempt = 1; ; attempt++) {
     const response = await fetch(url, { headers: { accept: "application/json" } }).catch((error) => error);
     if (response instanceof Response && response.ok) {
@@ -378,7 +383,10 @@ const cohortNow = new Map();
 // the rest, a cohort made of two (up to three: `utxos_under_5m_old_` came to `sth_` with it). A cohort found only now
 // and then, its series matching another's where they hold the same coins (`utxos_under_1k_sats_` and
 // `amount_100_to_1k_sats_` hold the same bitcoin, not the same outputs), isn't one: a sixth of the series it had whose
-// values could tell, at least, and as a second, three quarters of the share the first came with.
+// values could tell, at least, and as a second, three quarters of the share the first came with. Unless the two agree
+// both ways, every pair that came to the cohort now from it and every pair of it to the cohort now: a cohort that
+// lost most of its series (`addrs_1btc_to_10btc_`, 147 ids, to `balance_1_to_10_btc_`, 64) comes with fewer than a
+// sixth, while one matched by chance has the pairs of its own cohort now go elsewhere.
 /** @type {Map<string, number>} */
 const telling = new Map();
 for (const id of gone) {
@@ -392,6 +400,13 @@ const byCohortNow = new Map();
 for (const pair of evidence) {
   const prefix = cohortNow.get(pair.to);
   if (prefix) byCohortNow.set(prefix, [...(byCohortNow.get(prefix) ?? []), pair]);
+}
+// (Each prefix as it was, its pairs, wherever they came to.)
+/** @type {Map<string, number>} */
+const pairsOf = new Map();
+for (const { from } of evidence) {
+  const words = tokens(from);
+  for (let k = 1; k < words.length; k++) bump(pairsOf, words.slice(0, k).join("_") + "_");
 }
 /** @type {import("./rules.js").Rename[]} */
 const cohorts = [];
@@ -414,7 +429,9 @@ for (const [now, all] of byCohortNow) {
     if (!best) break;
     const share = most / (telling.get(best) || most);
     if (best === now) cohorts.push([best, now, most]);
-    else if (share >= Math.max(1 / 6, 0.75 * first)) cohorts.push([best, now, most]), (first ||= share);
+    else if (share >= Math.max(1 / 6, 0.75 * first) || (round === 0 && most === all.length && most === pairsOf.get(best))) {
+      cohorts.push([best, now, most]), (first ||= share);
+    }
     rest = rest.filter(({ from }) => !from.startsWith(best));
   }
 }
