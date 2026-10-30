@@ -20950,16 +20950,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           else part.animate({ opacity: [0, 1] }, timing);
         }
       }
-      /** The plot, in the canvas' coordinates: from its first pane's top to its last pane's foot, between the price axes. */
-      function plotBox() {
+      /**
+       * The plot, in the canvas' coordinates: from its first pane's top to its last pane's foot, between the price axes.
+       * `boxed`: as the chart will lie in its box once a layout's motion ends (its size held meanwhile: see sizeHeld), the
+       * box's own edges less its axes, following the box as it moves; else what shows of it. At rest, the same.
+       */
+      function plotBox(boxed = false) {
         const panes = view.panes(), first = panes[0]?.getHTMLElement(), last = panes.at(-1)?.getHTMLElement();
         if (!first || !last) return null;
         const canvas = $("canvas").getBoundingClientRect(), chartBox = $("chart").getBoundingClientRect(), element = view.chartElement().getBoundingClientRect();
         // (A scale not laid out yet: 0 wide, see patch 21 of lightweight-charts.)
-        const axis = view.priceScale("left", 0).width();
+        const axis = view.priceScale("left", 0).width(), firstTop = first.getBoundingClientRect().top, lastBottom = last.getBoundingClientRect().bottom;
         // (What shows of it: held larger than its box through a layout's motion, the chart's cut at the box's edges.)
-        const left = Math.max(element.left + axis, chartBox.left), right = Math.min(element.left + axis + view.timeScale().width(), chartBox.right);
-        const top = Math.max(first.getBoundingClientRect().top, chartBox.top), bottom = Math.min(last.getBoundingClientRect().bottom, chartBox.bottom);
+        const [left, right, top, bottom] = boxed
+          ? [chartBox.left + axis, chartBox.right - (element.width - axis - view.timeScale().width()), chartBox.top + (firstTop - element.top), chartBox.bottom - (element.bottom - lastBottom)]
+          : [Math.max(element.left + axis, chartBox.left), Math.min(element.left + axis + view.timeScale().width(), chartBox.right), Math.max(firstTop, chartBox.top), Math.min(lastBottom, chartBox.bottom)];
         return { left: left - canvas.left, top: top - canvas.top, width: Math.max(0, right - left), height: Math.max(0, bottom - top) };
       }
       /** The sides the drawing tools dock on, as choices (⌘K's, the grip's by keys). */
@@ -20980,7 +20985,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * or shrink.
        */
       function placeBelt(glide = false, stay = false) {
-        const belt = $("belt"), plot = belt.hidden || belt.classList.contains("held") ? null : plotBox();
+        // (Where the plot will be: through a layout's motion (the sidebar, the panel, full screen), the belt goes along with
+        // the chart's box, not with the chart held meanwhile (it'd jump to its place at the motion's end).)
+        const belt = $("belt"), plot = belt.hidden || belt.classList.contains("held") ? null : plotBox(true);
         if (!plot) return;
         // Measured at rest: a glide still going ends where it was going (its coming in, a fade and 4px, isn't one: it plays).
         belt.getAnimations().forEach((animation) => animation instanceof CSSAnimation || animation.finish());
