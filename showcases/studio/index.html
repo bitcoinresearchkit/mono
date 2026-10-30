@@ -12747,12 +12747,19 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** `f(value, the one a span earlier)`: the latest value `n` points back or before (a point may have none). */
       /**
        * x over period `n` (its points where `periods` is n: halving_epoch's cycles, each point's year) from 1× at its first
-       * value; moved by as many points as there are between period `n`'s first and period `at`'s, where `at` is given (its
-       * first past the data: all of it past it too).
+       * value (not 0: one before there's any, none), the whole period from that one (a gap in it, as a Feb 29 a year's shift
+       * leaves, doesn't start it again); moved by as many points as there are between period `n`'s first and period
+       * `at`'s, where `at` is given (its first past the data: all of it past it too).
        * @param {Vector} x @param {Vector} periods @param {number} n @param {number | undefined} at
        */
       function periodAlone(x, periods, n, at) {
-        const own = rebaseOf(x.map((value, i) => (periods[i] === n ? value : NaN)), null);
+        const own = new Float64Array(x.length).fill(NaN);
+        let base = NaN;
+        for (let i = 0; i < x.length; i++) {
+          if (periods[i] !== n || !Number.isFinite(x[i])) continue;
+          if (!base) base = x[i];
+          own[i] = base ? x[i] / base : NaN;
+        }
         if (at === undefined || at === n) return own;
         const firstOf = (/** @type {number} */ period) => ((i) => (i < 0 ? Infinity : i))(periods.findIndex((p) => p >= period));
         const by = firstOf(at) - firstOf(n), out = new Float64Array(x.length).fill(NaN);
@@ -31929,7 +31936,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * @param {Layer | null | undefined} self
        */
       function completionsAt(text, caret, self) {
-        const match = /(?<![\d.])[A-Za-z_][A-Za-z0-9_]*$/.exec(text.slice(0, caret));
+        // (A word from its start: not the tail of another, nor a span's unit, 1ha of 1halving.)
+        const match = /(?<![\w.])[A-Za-z_][A-Za-z0-9_]*$/.exec(text.slice(0, caret));
         const token = match?.[0] ?? "";
         const start = match ? match.index : caret;
         /** @type {{ insert: string, title: string, text: string, layer?: string, series?: boolean }[]} */
@@ -32967,7 +32975,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function periodsOf(layer, which) {
         const year = (/** @type {number} */ time) => new Date(time * 1000).getUTCFullYear();
         if (which === "cycles") return ((starts) => starts.map((start, n) => ({ formula: `halving(${layer.letter}, ${n})`, label: `${year(start)}–${starts[n + 1] ? year(starts[n + 1]) : "now"}` })))([GENESIS, ...minedHalvings()]);
-        const values = resolved?.results.get(layer.id)?.values, at = values ? values.findIndex(Number.isFinite) : -1, from = resolved && at >= 0 ? year(resolved.times[at]) : year(GENESIS);
+        // (Not before the first year year() takes: a week's or a month's first point can be dated before the genesis block.)
+        const values = resolved?.results.get(layer.id)?.values, at = values ? values.findIndex(Number.isFinite) : -1, from = Math.max(PERIODS_TAKEN.year[0], resolved && at >= 0 ? year(resolved.times[at]) : year(GENESIS));
         return Array.from({ length: year(Date.now() / 1000) - from + 1 }, (_, k) => ({ formula: `year(${layer.letter}, ${from + k})`, label: String(from + k) }));
       }
       /**
