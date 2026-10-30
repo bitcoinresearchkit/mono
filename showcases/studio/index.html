@@ -16702,9 +16702,13 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * a fine interval, the one that reaches back (elsewhere, rows kept would only take memory).
        */
       const rowsOf = /** @type {WeakMap<object, object[]>} */ (new WeakMap());
+      /** The chart library's series of values, which take theirs as columns too (its patch 57). */
+      const VALUED = new Set(["Line", "Area", "Baseline", "Histogram"]);
       /** A series holding a layer's data, its data followed (see rowsOf). @param {any} series @returns {any} */
       function tracked(series) {
-        const setData = series.setData.bind(series), update = series.update.bind(series);
+        const setData = series.setData.bind(series), update = series.update.bind(series), bvSetColumns = series.bvSetColumns.bind(series);
+        // (Set as columns (see the chart library's patch 57): never at a fine interval, its rows unknown.)
+        series.bvSetColumns = (/** @type {ArrayLike<number>} */ times, /** @type {ArrayLike<number>} */ values) => (rowsOf.delete(series), bvSetColumns(times, values));
         series.setData = (/** @type {any[]} */ rows) => {
           setData(rows);
           // (By the chart being built: a look's, mid-switch, at the old interval.)
@@ -17091,26 +17095,33 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const paintWith = !dated ? null : layer.type === "area" || stackedLine ? (/** @type {string} */ c) => ({ lineColor: op < 1 ? alpha(c, op) : c, topColor: alpha(c, fill[0] * op), bottomColor: alpha(c, fill[1] * op) })
               : layer.type === "histogram" ? (/** @type {string} */ c) => ({ color: alpha(c, 0.75 * op) }) : (/** @type {string} */ c) => ({ color: op < 1 ? alpha(c, op) : c });
             const paintAt = paintWith && dated && ((/** @type {number} */ i) => paintWith(dated(i)));
-            // (A row each date, by index, its value finite by a subtraction: no call each point, thousands a series.)
-            const times = layer.from && fromUnfit(doc, layer) ? [] : data.times, breaks = result.breaks, points = new Array(times.length);
-            for (let i = 0; i < times.length; i++) {
-              const time = times[i], value = shown[i];
-              points[i] = value - value === 0 && (!log || value > 0) ? (breaks?.[i] ? { time, value, color: "transparent" } : paintAt ? { time, value, ...paintAt(i) } : { time, value }) : { time };
-            }
-            if (paintWith) paintedPoints.set(layer.id, { points, faint: false, paintWith });
-            if (layer.type === "histogram" && !paintAt && layer.colors !== 1) {
-              // Bars below their base take the second color, each its own (the rest take the series').
-              const tint = alpha(under, 0.75 * op), from = baseOf(layer);
-              const bars = points.map((point) => ("value" in point && point.value < from ? { ...point, color: tint } : point));
-              if (bars.some((point) => "color" in point)) barsBelow.set(layer.id, { points: bars, color: tint, faded: faded({ color: tint }).color, faint: false });
-              setRows(series, bars);
-            } else setRows(series, candles
-              ? data.times.map((time, i) => (result.ohlc[i] && Number.isFinite(shown[i]) && (!log || at(result.ohlc[i][2], i) > 0) ? { time, open: at(result.ohlc[i][0], i), high: at(result.ohlc[i][1], i), low: at(result.ohlc[i][2], i), close: at(result.ohlc[i][3], i) } : { time }))
-              : points);
-            const close = closes.get(layer.id)?.series;
-            if (close) {
-              setRows(close, points);
-              tintClose(layer.id);
+            // (Plain values (no breaks, no colors of their own, a series of values), at a day or coarser: no row a date,
+            // its values handed over as a column (none where not finite, or not over zero on a log scale), its dates
+            // converted once for every layer on them: see the chart library's patch 57. Else a row each date, by index,
+            // its value finite by a subtraction: no call each point, thousands a series.)
+            const times = layer.from && fromUnfit(doc, layer) ? [] : data.times, breaks = result.breaks, close = closes.get(layer.id)?.series;
+            if (!breaks && !paintAt && !candles && !close && !(layer.type === "histogram" && layer.colors !== 1) && !FINE.has(doc.index) && VALUED.has(series.seriesType())) {
+              series.bvSetColumns(times, times.length ? (log ? shown.map((/** @type {number} */ value) => (value > 0 ? value : NaN)) : shown) : []);
+            } else {
+              const points = new Array(times.length);
+              for (let i = 0; i < times.length; i++) {
+                const time = times[i], value = shown[i];
+                points[i] = value - value === 0 && (!log || value > 0) ? (breaks?.[i] ? { time, value, color: "transparent" } : paintAt ? { time, value, ...paintAt(i) } : { time, value }) : { time };
+              }
+              if (paintWith) paintedPoints.set(layer.id, { points, faint: false, paintWith });
+              if (layer.type === "histogram" && !paintAt && layer.colors !== 1) {
+                // Bars below their base take the second color, each its own (the rest take the series').
+                const tint = alpha(under, 0.75 * op), from = baseOf(layer);
+                const bars = points.map((point) => ("value" in point && point.value < from ? { ...point, color: tint } : point));
+                if (bars.some((point) => "color" in point)) barsBelow.set(layer.id, { points: bars, color: tint, faded: faded({ color: tint }).color, faint: false });
+                setRows(series, bars);
+              } else setRows(series, candles
+                ? data.times.map((time, i) => (result.ohlc[i] && Number.isFinite(shown[i]) && (!log || at(result.ohlc[i][2], i) > 0) ? { time, open: at(result.ohlc[i][0], i), high: at(result.ohlc[i][1], i), low: at(result.ohlc[i][2], i), close: at(result.ohlc[i][3], i) } : { time }))
+                : points);
+              if (close) {
+                setRows(close, points);
+                tintClose(layer.id);
+              }
             }
             linesAcross(layer, pane, common.priceFormat, op);
           }
