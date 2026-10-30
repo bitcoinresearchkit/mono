@@ -819,7 +819,8 @@
         }
       }
 
-      /* The day and Play on a line, what the compass draws said under them (never moving as the day changes). */
+      /* The day, its price and Play on a line, what the compass draws said under them (Play never moving as the day
+         changes). */
       .compass-foot {
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto;
@@ -834,6 +835,17 @@
           color: var(--ink);
           font-weight: 600;
           font-variant-numeric: tabular-nums;
+        }
+
+        /* (The day's price after its date, a dot between.) */
+        .price {
+          color: var(--ink);
+          font-variant-numeric: tabular-nums;
+
+          &::before {
+            content: " · ";
+            color: var(--faint);
+          }
         }
 
         .legend {
@@ -1110,7 +1122,7 @@
               <input type="range" id="slider" min="0" max="0" value="0" disabled aria-label="The compass's day, from the first to today" />
             </div>
             <div class="compass-foot">
-              <b id="scrub-day">Today</b>
+              <span><b id="scrub-day">Today</b><span class="price" id="scrub-price"></span></span>
               <button type="button" class="replay" data-replay="atlas" aria-label="Play" disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Play</span></button>
               <span class="legend">The year before as a path, its trend lit.</span>
             </div>
@@ -2459,13 +2471,14 @@
       const atlasDay = () => atlasAt ?? /** @type {Days} */ (days).last;
       /** The compass's day last told, and the days it was told from. */
       let atlasTold = -1, atlasToldDays = /** @type {Days | null} */ (null);
-      /** The compass's day, everywhere it's said: under the strip, on the slider, in the lists (the compass and the
+      /** The compass's day, everywhere it's said: under the strip (with its price), on the slider, in the lists (the compass and the
        * strip drawn with the chart, in the frame). */
       function tellAtlas() {
         if (!days || (atlasDay() === atlasTold && days === atlasToldDays)) return;
         (atlasTold = atlasDay()), (atlasToldDays = days);
         const d = days, day = atlasDay(), s = d.state[day], t = d.trend[day];
         $("scrub-day").textContent = day === d.last ? "Today" : dated(day);
+        $("scrub-price").textContent = usd(d.close[day]);
         slider.value = String(day);
         slider.setAttribute("aria-valuetext", `${dated(day)}: ${STATES[s].name}, ${TRENDS[t].name.toLowerCase()} trend`);
         updateShares(day);
