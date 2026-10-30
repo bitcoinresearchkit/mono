@@ -1587,7 +1587,9 @@ has to be deleted by hand.
   only for a needed canonical header. It scanned 8 MB chunks backward from arbitrary offsets, where magic bytes
   inside a transaction could pass for a frame: with an unobfuscated blk file (a datadir created before Core 28, or run
   with `-blocksxor=0`), a crafted transaction carrying a recent canonical header could have had its bytes parsed as
-  that block
+  that block. A hole Core leaves where it failed to write a block (its disk access lost mid-write) is stepped over to
+  the frames it wrote after, as the backward scan did, rather than taken for the file's end, which stalled the
+  index for good
 - Projected mempool blocks (about 10 MB) and their diffs are built and sent two of each at a time, keeping their
   admission until the body is sent: each request built its own with no limit, so slow readers could each hold one while
   new requests built more. A matching conditional request still answers 304 before any build. Outspends, RBF trees,

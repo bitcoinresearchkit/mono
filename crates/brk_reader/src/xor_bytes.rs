@@ -8,6 +8,13 @@ pub(crate) const XOR_LEN: usize = 8;
 #[derive(Debug, Default, Clone, Copy, Deref, PartialEq, Eq)]
 pub struct XORBytes([u8; XOR_LEN]);
 
+#[cfg(test)]
+impl From<[u8; XOR_LEN]> for XORBytes {
+    fn from(mask: [u8; XOR_LEN]) -> Self {
+        Self(mask)
+    }
+}
+
 impl XORBytes {
     /// All-zero mask: nodes without `xor.dat` need no decode.
     #[inline]
