@@ -1911,14 +1911,15 @@
         matchMedia(`(resolution: ${devicePixelRatio}dppx)`).addEventListener("change", () => (redraw(), density()), { once: true });
       })();
 
-      // ── Pointing: a mouse shows the day under it, a click keeps it, a drag moves the chart (flicked, it glides on); a
-      // finger taps a day, drags the chart sideways (upright, the page scrolls), or holds a moment then slides through
-      // days. The pan bar moves it too. ──
+      // ── Pointing: a mouse shows the day under it, a drag moves the chart (flicked, it glides on); a finger drags the
+      // chart sideways (upright, the page scrolls), or holds a moment then slides through days, shown while it's down.
+      // Neither keeps a day (play's pause, the slider, the keys and a link do; its tag lets it go). The pan bar moves
+      // the chart too. ──
 
       /**
        * What a pointer down on the plot is doing: pressed (not yet moved), moving the chart, sliding through days; where
-       * it came down, the view then, the day kept then, its last moves (for a flick's speed).
-       * @type {{ id: number, kind: "press" | "move" | "slide", x: number, y: number, a: number, length: number, kept: number | null, timer: number, trail: [number, number][] } | null}
+       * it came down, the view then, its last moves (for a flick's speed).
+       * @type {{ id: number, kind: "press" | "move" | "slide", x: number, y: number, a: number, length: number, timer: number, trail: [number, number][] } | null}
        */
       let gesture = null;
       const xIn = (/** @type {PointerEvent} */ e) => e.clientX - chart.getBoundingClientRect().left;
@@ -1928,13 +1929,13 @@
         if (x > plotRight()) return;
         stopPlay();
         chart.setPointerCapture(e.pointerId);
-        gesture = { id: e.pointerId, kind: "press", x, y: e.clientY, a: view.a, length: view.b - view.a + 1, kept: pinned, timer: 0, trail: [[e.timeStamp, x]] };
+        gesture = { id: e.pointerId, kind: "press", x, y: e.clientY, a: view.a, length: view.b - view.a + 1, timer: 0, trail: [[e.timeStamp, x]] };
         // (A finger held still a moment slides through days, as a chart app's does.)
         if (e.pointerType !== "mouse") {
           gesture.timer = setTimeout(() => {
             if (gesture?.kind !== "press") return;
             gesture.kind = "slide";
-            hovered = pinned = dayAt(gesture.x);
+            hovered = dayAt(gesture.x);
             show();
           }, 350);
         }
@@ -1967,7 +1968,7 @@
           g.trail.push([e.timeStamp, x]);
           while (g.trail.length > 2 && e.timeStamp - g.trail[0][0] > 80) g.trail.shift();
         } else {
-          hovered = pinned = dayAt(Math.min(x, plotRight()));
+          hovered = dayAt(Math.min(x, plotRight()));
           show();
         }
       });
@@ -1978,15 +1979,10 @@
         clearTimeout(g.timer);
         chart.classList.remove("grabbing");
         if (g.kind === "press") {
-          // (Its tag pressed, or the kept day pressed again: the day let go, back to today. Else the day pressed, kept.)
-          const day = dayAt(g.x), y = g.y - chart.getBoundingClientRect().top;
-          if (onTag(g.x, y) || (pinned !== null && day === pinned)) {
-            (pinned = null), (hovered = null);
-            keepVisible(days.last);
-          } else {
-            pinned = day;
-            hovered = e.pointerType === "mouse" ? pinned : null;
-          }
+          // (A kept day's tag pressed: the day let go, back to today. Anywhere else, a press keeps nothing.)
+          if (!onTag(g.x, g.y - chart.getBoundingClientRect().top)) return;
+          (pinned = null), (hovered = null);
+          keepVisible(days.last);
           show(true);
         } else if (g.kind === "slide") {
           hovered = null;
@@ -2001,7 +1997,7 @@
           }
         }
       });
-      // (A finger's drag the page took as a scroll: the view and the day kept before it, again.)
+      // (A finger's drag the page took as a scroll: the view before it, again.)
       chart.addEventListener("pointercancel", (e) => {
         const g = gesture;
         if (!g || e.pointerId !== g.id) return;
@@ -2009,7 +2005,7 @@
         clearTimeout(g.timer);
         chart.classList.remove("grabbing");
         if (g.kind === "move") viewTo(g.a, g.length);
-        (pinned = g.kept), (hovered = null);
+        hovered = null;
         show();
       });
       chart.addEventListener("pointerleave", (e) => {
