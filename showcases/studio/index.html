@@ -37811,6 +37811,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (let k = stops.length - 1; k >= 0; k--) stops[k][0] = Math.min(stops[k][0], k < stops.length - 1 ? stops[k + 1][0] - 1 : 100);
         return stops;
       }
+      /**
+       * A formula as Studio writes it now, from one saved before: lag( (shift's name before it, the same meaning) as shift(,
+       * where that still fits (else as it was: one cut would be broken). Declared, not a const: charts are read at the
+       * start, before the script below runs.
+       */
+      function formulaNow(/** @type {string} */ formula) {
+        const now = formula.replace(/(?<![A-Za-z0-9_])lag(?=\s*\()/g, "shift");
+        return now.length <= FORMULA_MAX ? now : formula;
+      }
       /** Validates chart fields (only `keepIds` preserves valid, unique ids). @returns {Chart} */
       function validate(input, keepIds = false) {
         const taken = new Set();
@@ -37841,7 +37850,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const spec = {
             ...(heat || profiled ? { ...(heat ? { heatmap: heat } : { profile: groups, ...(layer.cohortColors && typeof layer.cohortColors === "object" ? ((colors) => (Object.keys(colors).length ? { cohortColors: colors } : {}))(Object.fromEntries(Object.entries(layer.cohortColors).filter(([id, color]) => groups.includes(id) && isColor(color)))) : {}) }), weight: HEAT_WEIGHTS.some(([id]) => id && id === layer.weight) ? layer.weight : undefined, measure: HEAT_MEASURES.some(([id]) => id !== "supply" && id === layer.measure) ? layer.measure : undefined, rows: HEAT_ROWS.includes(layer.rows) ? layer.rows : undefined } : madeOf ? { from: madeOf.filter((id) => typeof id === "string").map((id) => (EDGES.includes(id.toLowerCase()) ? id.toLowerCase() : id)).slice(0, MAX_LAYERS + 2) } : typeof layer.series === "string"
               ? { series: isSeriesName(layer.series) ? layer.series : "invalid_series_name", ...(isCatalogPath(layer.path) ? { path: layer.path } : {}) }
-              : { formula: String(layer.formula ?? "").slice(0, FORMULA_MAX), ...(layer.paths && typeof layer.paths === "object" ? { paths: Object.fromEntries(Object.entries(layer.paths).filter(([name, path]) => isSeriesName(name) && isCatalogPath(path)).slice(0, 40)) } : {}) }),
+              : { formula: formulaNow(String(layer.formula ?? "").slice(0, FORMULA_MAX)), ...(layer.paths && typeof layer.paths === "object" ? { paths: Object.fromEntries(Object.entries(layer.paths).filter(([name, path]) => isSeriesName(name) && isCatalogPath(path)).slice(0, 40)) } : {}) }),
             ...(typeof layer.label === "string" ? { label: layer.label.slice(0, 120) } : {}),
             color: isColor(layer.color) ? layer.color : undefined,
             type: heat ? "heatmap" : profiled ? "profile" : made ?? (TYPES.some(([type]) => type === layer.type) || layer.type === "bubbles" || (layer.type === "signal" && typeof layer.series !== "string") ? layer.type : "line"),
