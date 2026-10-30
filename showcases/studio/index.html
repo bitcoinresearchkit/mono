@@ -17100,14 +17100,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const at = (/** @type {number} */ value, /** @type {number} */ i) => (stack ? (stack.under[i] + value) * (stack.scale?.[i] ?? 1) : value);
             // Log scales can't show zero or negative values: they become gaps.
             const log = modeOf(doc, layer) === 1;
-            const drawable = (value) => Number.isFinite(value) && (!log || value > 0);
             // (Painted date by date: a line's, dots' and bars' color, an area's line and fill, as its paint has them.)
             // (Its colors another layer's, they say something: its fill stronger, as a regime's.)
             const fill = stackedLine ? [0, 0] : fillOf(layer, Boolean(stack));
             const paintWith = !dated ? null : layer.type === "area" || stackedLine ? (/** @type {string} */ c) => ({ lineColor: op < 1 ? alpha(c, op) : c, topColor: alpha(c, fill[0] * op), bottomColor: alpha(c, fill[1] * op) })
               : layer.type === "histogram" ? (/** @type {string} */ c) => ({ color: alpha(c, 0.75 * op) }) : (/** @type {string} */ c) => ({ color: op < 1 ? alpha(c, op) : c });
             const paintAt = paintWith && dated && ((/** @type {number} */ i) => paintWith(dated(i)));
-            const points = layer.from && fromUnfit(doc, layer) ? [] : data.times.map((time, i) => (drawable(shown[i]) ? (result.breaks?.[i] ? { time, value: shown[i], color: "transparent" } : paintAt ? { time, value: shown[i], ...paintAt(i) } : { time, value: shown[i] }) : { time }));
+            // (A row each date, by index, its value finite by a subtraction: no call each point, thousands a series.)
+            const times = layer.from && fromUnfit(doc, layer) ? [] : data.times, breaks = result.breaks, points = new Array(times.length);
+            for (let i = 0; i < times.length; i++) {
+              const time = times[i], value = shown[i];
+              points[i] = value - value === 0 && (!log || value > 0) ? (breaks?.[i] ? { time, value, color: "transparent" } : paintAt ? { time, value, ...paintAt(i) } : { time, value }) : { time };
+            }
             if (paintWith) paintedPoints.set(layer.id, { points, faint: false, paintWith });
             if (layer.type === "histogram" && !paintAt && layer.colors !== 1) {
               // Bars below their base take the second color, each its own (the rest take the series').
