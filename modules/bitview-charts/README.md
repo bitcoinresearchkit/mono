@@ -1,0 +1,67 @@
+# bitview-charts
+
+Time series charts drawn from columns: panes stacked over one time axis, each series a `Float64Array` on a shared
+timeline (an index a time). Built for many series of thousands of points on a phone without its JIT: no object a
+point, nothing made a frame, a pan moving the picture already drawn. Source modules, no build, typed by JSDoc.
+
+```js
+import { createChart, stack } from "/modules/bitview-charts/index.js";
+
+const chart = createChart(element);              // element: any box; the chart fills it
+chart.setTimes(times);                           // Float64Array of seconds, rising
+const price = chart.addPane({ share: 2, scale: { mode: "log" } });
+price.addLine({ values: close, color: "#f7931a", tag: true, priceLine: true });
+const bands = chart.addPane({ format: (v) => `${v}%` });
+bands.setRange(0, 100);                          // a fixed scale (none: fitted to what's in view)
+const edges = stack(members, { percent: true });
+edges.forEach((upper, k) => bands.addBand({ lower: k ? edges[k - 1] : undefined, upper, color: fills[k] }));
+chart.show(365);                                 // the last 365 points in view
+```
+
+## Chart
+
+- `createChart(element, { theme, axis, timeHeight, rightOffset, maxSpacing })`: `theme` is `DARK` (default) or
+  `LIGHT`, or your own (`background`, `text`, `grid`, `font`, `crosshair`, `badge`, `badgeText`, `separator`); `axis`,
+  the axis' width at the right (64); `rightOffset`, CSS pixels left empty past the last point (24).
+- `setTimes(times)`, `addPane(options)`, `removePane(pane)`, `show(span)`, `setRange(from, to)` (logical indices,
+  fractions allowed), `range`, `onRange(listener)`, `setCrosshair(index, y)`, `onCrosshair(listener)`,
+  `invalidate(whole)` (after changing a series: `invalidate(true)`), `destroy()`.
+- Input: a drag pans (a flick glides on, as iOS's lists do), a pinch or the wheel zooms about that point (the newest
+  point kept where it is while it's in view), a trackpad's sideways scroll pans. The crosshair: where a mouse is; a
+  finger held still for 350 ms shows it, and moves it then; a finger pans once it's moved 6 pixels. Separators between
+  panes drag to share their heights.
+
+## Panes
+
+- `addPane({ share, scale: { mode, top, bottom }, format })`: `share`, its part of the height; `mode`: `"linear"`,
+  `"log"`, `"percent"` (each series as its change from its first value in view) or `"indexed"` (100 at it); `top` and
+  `bottom`, room kept as shares of its height; `format`, how its values are written.
+- `addLine`, `addBand`, `addBars`, `addCandles`, `add(series)`, `remove(series)`, `setRange(lo, hi)` (none: fitted).
+
+## Series
+
+- `Line({ values, color, width, colors, palette, breaks, tag, priceLine })`: `colors` (a `Uint8Array` of indices into
+  `palette`) colors each segment by its first point; `breaks` (a `Uint8Array`, 1 at a point) stops the line after it;
+  `tag`, its last value on the axis; `priceLine`, a dotted line across at it.
+- `Band({ lower, upper, base, color, below })`: a fill between two columns; without `lower`, an area down to `base`;
+  with `below`, a baseline (under its base in that color).
+- `Bars({ values, base, color, colors, palette, radius })`, `Candles({ open, high, low, close, up, down })`.
+- `stack(members, { percent })`: a stack's edges from its members' columns.
+- Lines, bars and candles: `setValues(...)`, `set(i, ...)` (a live point), `setStyle(...)`; bands: `set({ lower, upper,
+  color, below })`; then `chart.invalidate(true)`.
+- `Custom({ draw, extent, first })`: a page's own (bubbles, a heatmap, drawings, marks), drawn by its hooks as part of
+  its pane's picture (see custom.js); `changed()` after a change.
+- `picture(chart)`: the chart as one canvas (an Export, a card).
+
+## How it draws
+
+- A pan moves each pane's picture by whole pixels and draws only the strip come into view; drawn whole at the first
+  frame nothing moves.
+- A zoom draws whole, or, where a pane takes more than 8 ms to draw whole (a CPU-drawn canvas at a large size),
+  stretches its last sharp picture till it's still.
+- Zoomed out, a line's pixel column is drawn as its first, low, high and last values, read from its summary by blocks
+  of 4, 8, 16… points (a draw's work by its columns, not its points); a band's, as its last point (a gap found by an
+  index, not a scan); bars' and candles', from their points.
+- Lines' ys on device pixels, a run at one y one segment; bevelled joins (half a round join's cost in Firefox).
+
+Its bench and its types: `showcases/_engine/` (`index.html`, `types.html`).

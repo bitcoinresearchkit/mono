@@ -57,6 +57,13 @@ export class Candles {
     (this.up = up), (this.down = down);
   }
 
+  /** Its first value at or after index `i` (a relative scale's base: its first in view), or NaN: none. @param {number} i */
+  first(i) {
+    const values = this.close;
+    for (let k = Math.max(0, i); k < values.length; k++) if (values[k] === values[k]) return values[k];
+    return NaN;
+  }
+
   /** @param {number} a @param {number} b @param {boolean} positive @param {Float64Array} out */
   extent(a, b, positive, out) {
     this.lows.extent(a, b, positive, out);

@@ -1,0 +1,23 @@
+// @ts-check
+// The chart as a picture (an Export, a card, a preview): its canvases (each pane's, the time axis', and the crosshair's
+// with `crosshair`) drawn into one, at the chart's size and its device pixels, as it shows now (drawn whole first, so no
+// pan's seams are in it). A picture at another size: a chart laid out at that size (an element of it, out of sight),
+// pictured, then destroyed.
+
+/**
+ * @param {import("./index.js").Chart} chart @param {{ crosshair?: boolean }} [options]
+ * @returns {HTMLCanvasElement}
+ */
+export function picture(chart, { crosshair = false } = {}) {
+  chart.render(true);
+  const dpr = chart.dpr, canvas = document.createElement("canvas");
+  canvas.width = Math.round(chart.width * dpr);
+  canvas.height = Math.round(chart.height * dpr);
+  const g = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d"));
+  g.fillStyle = chart.theme.background;
+  g.fillRect(0, 0, canvas.width, canvas.height);
+  for (const pane of chart.panes) g.drawImage(pane.canvas, 0, Math.round(pane.top * dpr));
+  g.drawImage(chart.timeAxis.canvas, 0, Math.round((chart.height - chart.timeHeight) * dpr));
+  if (crosshair) g.drawImage(chart.crosshair.canvas, 0, 0);
+  return canvas;
+}

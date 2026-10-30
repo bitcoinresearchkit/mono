@@ -6,6 +6,8 @@
 // `breaks` (a Uint8Array, 1 at a point): the line stops after that point, nothing drawn to the next (a trend's flip, a
 // stretch begun anew). `colors` (a Uint8Array of indices into `palette`): each segment in its first point's color.
 
+import { Summary, FIRST } from "./summary.js";
+
 const BLOCK = 64;
 
 /**
@@ -91,6 +93,7 @@ const run = {
     if (v < this.lo) (this.lo = v), (this.loAt = i);
     if (v > this.hi) (this.hi = v), (this.hiAt = i);
   },
+
   /**
    * Written at `x`, if it has points; then begun again.
    * @param {number} x @param {import("./scale.js").Scale} scale @param {Uint8Array | null} colors @param {Uint8Array | null} breaks
@@ -113,14 +116,20 @@ const run = {
 
 export class Line {
   /**
-   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[] }} [options]
+   * `tag`: its last value in a badge on its pane's axis, in its color; `priceLine`: a dotted line across at it.
+   * @param {{ values?: Float64Array, color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean }} [options]
    */
-  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [] } = {}) {
+  constructor({ values = new Float64Array(0), color = "#f7f8f8", width = 1.5, breaks = null, colors = null, palette = [], tag = false, priceLine = false } = {}) {
     this.color = color;
     this.width = width;
     this.breaks = breaks;
     this.colors = colors;
     this.palette = palette;
+    this.tag = tag;
+    this.priceLine = priceLine;
+    // (Its last point with a value, found once a version: NaN, none.)
+    this.lastAt = NaN;
+    this.lastVersion = -1;
     /** Changed at each change of its values or look: its pane's picture drawn whole then. */
     this.version = 0;
     /** @type {Float64Array} */
@@ -132,6 +141,8 @@ export class Line {
     this.blockHi = new Float64Array(0);
     /** @type {Float64Array} */
     this.blockPos = new Float64Array(0);
+    /** Its values summed up by blocks, for drawing zoomed out (see summary.js). @type {Summary | null} */
+    this.summary = null;
     this.setValues(values);
   }
 
@@ -139,6 +150,7 @@ export class Line {
   setValues(values) {
     this.version++;
     this.values = values;
+    this.summary = values.length >= 1 << FIRST ? new Summary(values) : null;
     const blocks = Math.ceil(values.length / BLOCK);
     if (this.blockLo.length !== blocks) (this.blockLo = new Float64Array(blocks)), (this.blockHi = new Float64Array(blocks)), (this.blockPos = new Float64Array(blocks));
     for (let b = 0; b < blocks; b++) this.#block(b);
@@ -148,13 +160,43 @@ export class Line {
   set(i, value) {
     this.version++;
     this.values[i] = value;
+    this.summary?.set(i);
     this.#block(Math.floor(i / BLOCK));
   }
 
-  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[] }} look */
-  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette }) {
+  /** @param {{ color?: string, width?: number, breaks?: Uint8Array | null, colors?: Uint8Array | null, palette?: string[], tag?: boolean, priceLine?: boolean }} look */
+  setStyle({ color = this.color, width = this.width, breaks = this.breaks, colors = this.colors, palette = this.palette, tag = this.tag, priceLine = this.priceLine }) {
     this.version++;
-    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette);
+    (this.color = color), (this.width = width), (this.breaks = breaks), (this.colors = colors), (this.palette = palette), (this.tag = tag), (this.priceLine = priceLine);
+  }
+
+  /** Its last point with a value (on a log scale, above zero), or -1: none. @param {boolean} log */
+  last(log) {
+    if (this.lastVersion !== this.version) {
+      this.lastVersion = this.version;
+      this.lastAt = NaN;
+      const values = this.values;
+      for (let i = values.length - 1; i >= 0; i--) if (values[i] === values[i]) {
+        this.lastAt = i;
+        break;
+      }
+    }
+    // (On a log scale, one above zero: the last with a value usually is.)
+    let i = this.lastAt === this.lastAt ? this.lastAt : -1;
+    if (log) while (i >= 0 && !(this.values[i] > 0)) i--;
+    return i;
+  }
+
+  /** Its first value at or after index `i` (a relative scale's base: its first in view), or NaN: none. @param {number} i */
+  first(i) {
+    const values = this.values;
+    for (let k = Math.max(0, i); k < values.length; k++) if (values[k] === values[k]) return values[k];
+    return NaN;
+  }
+
+  /** Its color at a point: its own, or its palette's there. @param {number} i */
+  colorAt(i) {
+    return this.colors && this.palette.length ? this.palette[this.colors[i]] ?? this.color : this.color;
   }
 
   /** @param {number} b */
@@ -170,6 +212,82 @@ export class Line {
     this.blockLo[b] = lo;
     this.blockHi[b] = hi;
     this.blockPos[b] = pos;
+  }
+
+  /**
+   * A plain line (no colors, no breaks) zoomed out: each pixel column's run as #trace's, read from its summary's clean
+   * blocks whole and its other points one by one, in one loop of its own (without a JIT, each call costs more than the
+   * work in it: a run, a scale's y, a block's search, each inline here).
+   * @param {import("./timeline.js").Timeline} time @param {import("./scale.js").Scale} scale @param {number} x0 @param {number} x1
+   */
+  #plain(time, scale, x0, x1) {
+    const values = this.values, n = values.length, levels = this.summary ? this.summary.levels : null, log = scale.mode === "log";
+    // (Each column's points as Timeline.index has them, its sums in the same order: the same columns to the bit.)
+    const from = time.from, span = time.to - time.from, width = time.width;
+    // (Its y: bottom - k * (t - ta), t the value as its scale reads it (v * m + c: as it is, or relative), or its log,
+    // from the scale's low end: no large terms cancelling.)
+    const ta = log ? Math.log10(scale.lo) : scale.lo, tb = log ? Math.log10(scale.hi) : scale.hi, top = scale.top * scale.height, room = scale.height - top - scale.bottom * scale.height;
+    const k = room / (tb - ta), bottom = top + room, m = scale.m, c = scale.c;
+    // (Each column from where the last one ended: its start computed once.)
+    let start = Math.ceil(from + ((Math.floor(x0) - 1) * span) / width);
+    for (let x = Math.floor(x0) - 1; x <= Math.ceil(x1) + 1; x++) {
+      const end = Math.ceil(from + ((x + 1) * span) / width), a = start < 0 ? 0 : start, b = end - 1 < n - 1 ? end - 1 : n - 1;
+      start = end;
+      let first = NaN, last = NaN, lo = Infinity, hi = -Infinity, loAt = 0, hiAt = 0, i = a;
+      while (i <= b) {
+        // (The largest clean block starting at i and ending by b: as large as i's alignment and what's left allow.)
+        if (levels && !(i & ((1 << FIRST) - 1)) && b - i + 1 >= 1 << FIRST) {
+          let size = Math.min(i ? i & -i : 1 << 30, 1 << (31 - Math.clz32(b - i + 1)));
+          for (; size >= 1 << FIRST; size >>= 1) {
+            const level = 31 - Math.clz32(size) - FIRST;
+            if (level >= levels.length) continue;
+            const at = levels[level], k = i >> (level + FIRST);
+            if (k >= at.first.length || (log ? at.low[k] : at.nan[k])) continue;
+            if (first !== first) first = at.first[k];
+            last = at.last[k];
+            if (at.lo[k] < lo) (lo = at.lo[k]), (loAt = at.loAt[k]);
+            if (at.hi[k] > hi) (hi = at.hi[k]), (hiAt = at.hiAt[k]);
+            break;
+          }
+          if (size >= 1 << FIRST) {
+            i += size;
+            continue;
+          }
+        }
+        const v = values[i];
+        if (log ? v > 0 : v === v) {
+          if (first !== first) first = v;
+          last = v;
+          if (v < lo) (lo = v), (loAt = i);
+          if (v > hi) (hi = v), (hiAt = i);
+        } else {
+          // (No value: the run so far written, the line broken.)
+          if (first === first) this.#run(x, first, last, lo, hi, loAt, hiAt, bottom, k, ta, m, c, log), (first = NaN), (lo = Infinity), (hi = -Infinity);
+          pen.lift();
+        }
+        i++;
+      }
+      if (first === first) this.#run(x, first, last, lo, hi, loAt, hiAt, bottom, k, ta, m, c, log);
+    }
+  }
+
+  /**
+   * A run written at `x`: its first, its low and high past its first and last in the order they came, its last.
+   * @param {number} x @param {number} first @param {number} last @param {number} lo @param {number} hi @param {number} loAt
+   * @param {number} hiAt @param {number} bottom @param {number} k @param {number} ta @param {number} m @param {number} c
+   * @param {boolean} log
+   */
+  #run(x, first, last, lo, hi, loAt, hiAt, bottom, k, ta, m, c, log) {
+    pen.to(x, bottom - k * ((log ? Math.log10(first) : first * m + c) - ta), 0, false);
+    const low = lo < first && lo < last, high = hi > first && hi > last;
+    // (Flat: its one point written.)
+    if (last === first && !low && !high) return;
+    if (low && high && hiAt < loAt) pen.to(x, bottom - k * ((log ? Math.log10(hi) : hi * m + c) - ta), 0, false), pen.to(x, bottom - k * ((log ? Math.log10(lo) : lo * m + c) - ta), 0, false);
+    else {
+      if (low) pen.to(x, bottom - k * ((log ? Math.log10(lo) : lo * m + c) - ta), 0, false);
+      if (high) pen.to(x, bottom - k * ((log ? Math.log10(hi) : hi * m + c) - ta), 0, false);
+    }
+    pen.to(x, bottom - k * ((log ? Math.log10(last) : last * m + c) - ta), 0, false);
   }
 
   /**
@@ -238,6 +356,7 @@ export class Line {
       }
       return;
     }
+    if (!colors && !breaks) return this.#plain(time, scale, x0, x1);
     // (Each pixel column's points as runs: its first, low, high and last; a point with no value ends a run and breaks
     // the line there, in its column too; a break ends a run after its point. Columns at whole pixels of the view, their
     // points at whole indices: a view moved by whole pixels holds the same columns.)

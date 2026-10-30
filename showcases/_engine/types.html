@@ -14,9 +14,10 @@
     <div id="chart"></div>
     <script type="module">
       // bitview-charts' series types on the price, to look at: candles with a cloud between its 50- and 200-day
-      // averages and the 200-day one colored by the price's side of it; its daily changes as bars, by their sign; the
-      // price rebased at each halving, its line broken at each restart.
-      import { createChart } from "/modules/bitview-charts/index.js";
+      // averages and the 200-day one colored by the price's side of it; its daily changes as bars, by their sign; its
+      // distance from the 200-day average as a baseline (over it, under it); the price rebased at each halving, its
+      // line broken at each restart, each halving marked by a series of the page's own.
+      import { compact, createChart } from "/modules/bitview-charts/index.js";
 
       const DAY = 86400, FIRST = Date.UTC(2009, 0, 1) / 1000, HALVINGS = ["2012-11-28", "2016-07-09", "2020-05-11", "2024-04-20"].map((d) => (Date.parse(d) / 1000 - FIRST) / DAY);
       const price = await (await fetch("/api/series/price_ohlc/day1")).json();
@@ -45,10 +46,22 @@
       top.addBand({ lower: fast, upper: slow, color: "rgba(124, 154, 255, 0.16)" });
       top.addCandles({ open, high, low, close });
       top.addLine({ values: slow, colors: side, palette: ["#26a69a", "#ef5350"], width: 1.5 });
-      const bars = chart.addPane({ share: 1, format: (v) => `${v}%` });
+      const bars = chart.addPane({ share: 1, format: (v) => `${compact(v)}%` });
       bars.addBars({ values: change, colors: sign, palette: ["#26a69a", "#ef5350"] });
-      const cycles = chart.addPane({ share: 1.4, scale: { mode: "log" }, format: (v) => `${v}×` });
+      const distance = chart.addPane({ share: 1, format: (v) => `${compact(v)}%` });
+      distance.addBand({ upper: Float64Array.from(close, (v, i) => ((v - slow[i]) / slow[i]) * 100), color: "rgba(38, 166, 154, 0.35)", below: "rgba(239, 83, 80, 0.35)" });
+      const cycles = chart.addPane({ share: 1.4, scale: { mode: "log" }, format: (v) => `${compact(v)}×` });
       cycles.addLine({ values: rebased, breaks, color: "#f7931a", width: 1.5 });
+      // (A series of the page's own: each halving a dashed line down the pane, drawn by its hook.)
+      cycles.addCustom({
+        draw(g, { time, scale, x0, x1 }) {
+          g.strokeStyle = "rgba(247, 147, 26, 0.5)";
+          g.setLineDash([3, 4]);
+          g.beginPath();
+          for (const h of HALVINGS) { const x = time.x(h); if (x >= x0 - 1 && x <= x1 + 1) g.moveTo(x, 0), g.lineTo(x, scale.height); }
+          g.stroke();
+        },
+      });
       chart.show(365 * 2);
       Object.assign(window, { chart });
     </script>

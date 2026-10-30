@@ -1,8 +1,10 @@
 // @ts-check
 // A pane's value scale: linear or logarithmic, fitted to what its series show (or set by hand), with room kept at its
-// top and bottom; values to y and back, and its ticks: round numbers about every 50 CSS pixels.
+// top and bottom; values to y and back, and its ticks: round numbers about every 50 CSS pixels. Or relative: each series
+// read against its first value in view (set by its pane before it's fitted or drawn: setBase), as its percent change
+// from it ("percent"), or with it at 100 ("indexed"); the scale's range, ticks and values then in those terms.
 
-/** @typedef {"linear" | "log"} ScaleMode */
+/** @typedef {"linear" | "log" | "percent" | "indexed"} ScaleMode */
 
 // (A log scale's ticks in a power of ten: all three with room, else the power alone.)
 const THIRDS = [1, 2, 5], ONE = [1];
@@ -11,6 +13,9 @@ export class Scale {
   /** @param {{ mode?: ScaleMode, top?: number, bottom?: number }} [options] */
   constructor({ mode = "linear", top = 0.1, bottom = 0.08 } = {}) {
     this.mode = mode;
+    // (A relative scale's reading of the series drawn now: t = v * m + c.)
+    this.m = 1;
+    this.c = 0;
     /** Room kept at the top and the bottom, as shares of the height. */
     this.top = top;
     this.bottom = bottom;
@@ -37,20 +42,47 @@ export class Scale {
     this.hi = hi;
   }
 
+  get relative() {
+    return this.mode === "percent" || this.mode === "indexed";
+  }
+
+  /**
+   * A relative scale's series read against `base` (its first value in view): its percent change from it, or 100 at it
+   * (a negative base read the other way, as the chart library did). Else, as they are.
+   * @param {number} base
+   */
+  setBase(base) {
+    if (!this.relative || !base || base !== base) return void ((this.m = 1), (this.c = 0));
+    const size = Math.abs(base);
+    this.m = 100 / size;
+    this.c = (-100 * base) / size + (this.mode === "indexed" ? (base < 0 ? -100 : 100) : 0);
+  }
+
+  /** An end of its range as it maps (its range is in its own terms: a relative one's already read). @param {number} v */
+  #end(v) {
+    return this.mode === "log" ? Math.log10(v) : v;
+  }
+
   /** @param {number} v */
   #t(v) {
-    return this.mode === "log" ? Math.log10(v) : v;
+    return this.mode === "log" ? Math.log10(v) : v * this.m + this.c;
   }
 
   /** The y of a value (NaN for none, or one a log scale can't show). @param {number} v */
   y(v) {
-    const a = this.#t(this.lo), b = this.#t(this.hi), top = this.top * this.height, room = this.height - top - this.bottom * this.height;
+    const a = this.#end(this.lo), b = this.#end(this.hi), top = this.top * this.height, room = this.height - top - this.bottom * this.height;
     return top + (1 - (this.#t(v) - a) / (b - a)) * room;
   }
 
-  /** The value at a y. @param {number} y */
+  /** The y of a value in its own terms (a tick's, a relative scale's percent or index: not read against a base). @param {number} t */
+  own(t) {
+    const a = this.#end(this.lo), b = this.#end(this.hi), top = this.top * this.height, room = this.height - top - this.bottom * this.height;
+    return top + (1 - (this.#end(t) - a) / (b - a)) * room;
+  }
+
+  /** The value at a y, in its own terms. @param {number} y */
   value(y) {
-    const a = this.#t(this.lo), b = this.#t(this.hi), top = this.top * this.height, room = this.height - top - this.bottom * this.height;
+    const a = this.#end(this.lo), b = this.#end(this.hi), top = this.top * this.height, room = this.height - top - this.bottom * this.height;
     const t = a + (1 - (y - top) / room) * (b - a);
     return this.mode === "log" ? 10 ** t : t;
   }
