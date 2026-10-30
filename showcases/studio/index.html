@@ -22027,7 +22027,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The day a block of `by` days is drawn as: its last (the open one, at most). @param {HeatLook} heat @param {number} g */
       const heatOwner = (heat, g, /** @type {number} */ by) => Math.min(Math.ceil(g / by) * by, heat.days.length - 1);
       /** A day's key in heatDays, by its count (see heatCalendar). @param {HeatLook} heat @param {number} g */
-      const heatKeyOf = (heat, g) => `${heat.cohort}|${heat.weight}|${heat.grid?.agg}|${heat.days[g]}`;
+      /** A heatmap day's key (see heatDays): its cohort, weight, density and day. @param {string} cohort @param {string} weight @param {string | undefined} agg @param {string | number} day */
+      const heatDayKey = (cohort, weight, agg, day) => `${cohort}|${weight}|${agg}|${day}`;
+      const heatKeyOf = (heat, g) => heatDayKey(heat.cohort, heat.weight, heat.grid?.agg, heat.days[g]);
+      /** Whether a day's in hand, asked for, or failed for good: one failed for a while, its time come, let go of to be asked again. @param {string} key */
+      const heatDayHeld = (key) => {
+        if ((heatDays.get(key)?.retryAt ?? Infinity) < Date.now()) heatDays.delete(key);
+        return heatDays.has(key);
+      };
       /**
        * The day a column of `step` days shows (`owner`, its last): its own once it's come, else the coarser blocks' over
        * it meanwhile (up to 16 times as many days); none (or its own failed), null. Drawn and read alike (see drawHeat,
@@ -22172,9 +22179,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const wanted = new Map();
         const want = (/** @type {number} */ g, /** @type {number} */ rank) => ((key) => {
           keep.add(key);
-          // (A failure not for good, asked again in its time.)
-          if ((heatDays.get(key)?.retryAt ?? Infinity) < Date.now()) heatDays.delete(key);
-          if (!heatDays.has(key) && !wanted.has(key)) wanted.set(key, { key, cohort: heat.cohort, weight: heat.weight, agg: grid.agg, day: heat.days[g], rank });
+          if (!heatDayHeld(key) && !wanted.has(key)) wanted.set(key, { key, cohort: heat.cohort, weight: heat.weight, agg: grid.agg, day: heat.days[g], rank });
         })(keyOf(g));
         /** The days it shows and wants: kept however many cells (see heatTrim). */
         const keep = new Set();
@@ -22287,11 +22292,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (point.at < 0 || point.at >= heat.g.length) return none();
         const g = heat.g[point.at], keep = new Set(), wanted = /** @type {NonNullable<ReturnType<typeof heatWants.get>>} */ ([]);
         for (const { id } of heat.cohorts) {
-          const key = `${id}|${heat.weight}|${grid.agg}|${heat.days[g]}`;
+          const key = heatDayKey(id, heat.weight, grid.agg, heat.days[g]);
           keep.add(key);
-          // (A failure not for good, asked again in its time.)
-          if ((heatDays.get(key)?.retryAt ?? Infinity) < Date.now()) heatDays.delete(key);
-          if (!heatDays.has(key)) wanted.push({ key, cohort: id, weight: heat.weight, agg: grid.agg, day: heat.days[g], rank: Number.MAX_SAFE_INTEGER });
+          if (!heatDayHeld(key)) wanted.push({ key, cohort: id, weight: heat.weight, agg: grid.agg, day: heat.days[g], rank: Number.MAX_SAFE_INTEGER });
         }
         const shown = profileDays(heat, g), close = profileClose(shown);
         for (const item of shown) if (item) keep.add(item.key);
@@ -23872,12 +23875,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         /** @type {{ wants: NonNullable<ReturnType<typeof heatWants.get>>, keys: Set<string> }} */
         const extra = { wants: [], keys: new Set() };
         const want = (/** @type {string} */ cohort, /** @type {string} */ weight, /** @type {string} */ agg, /** @type {string} */ day) => {
-          const key = `${cohort}|${weight}|${agg}|${day}`;
+          const key = heatDayKey(cohort, weight, agg, day);
           if (extra.keys.has(key)) return key;
           extra.keys.add(key);
-          // (A failure not for good, asked again in its time, as drawHeat asks.)
-          if ((heatDays.get(key)?.retryAt ?? Infinity) < Date.now()) heatDays.delete(key);
-          if (!heatDays.has(key)) extra.wants.push({ key, cohort, weight, agg, day, rank: 0 });
+          if (!heatDayHeld(key)) extra.wants.push({ key, cohort, weight, agg, day, rank: 0 });
           return key;
         };
         // (A profile's day, the last it shows, as the chart's is the view's last.)
