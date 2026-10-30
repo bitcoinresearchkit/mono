@@ -15789,7 +15789,9 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           let ohlc;
           for (let k = 0; k < data.data.length; k++) {
             const value = data.data[k], p = position[data.start - lo + k];
-            if (Array.isArray(value)) {
+            // (A number, as nearly all are, taken as it is: no call each value, thousands a series.)
+            if (typeof value === "number") values[p] = value;
+            else if (Array.isArray(value)) {
               (ohlc ??= new Array(length).fill(null))[p] = value;
               values[p] = Number(value[3]);
             } else if (value !== null && value !== undefined) values[p] = Number(value);
@@ -17698,7 +17700,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (made) return made;
         const n = vectors[0]?.length ?? 0, sum = new Float64Array(n), up = new Float64Array(n), down = new Float64Array(n), values = [];
         for (const own of vectors) {
-          for (let i = 0; i < n; i++) if (Number.isFinite(own[i])) (sum[i] += own[i]), own[i] > 0 ? (up[i] += own[i]) : (down[i] += own[i]);
+          // (Finite by a subtraction: no call each value.)
+          for (let i = 0; i < n; i++) {
+            const value = own[i];
+            if (value - value === 0) (sum[i] += value), value > 0 ? (up[i] += value) : (down[i] += value);
+          }
           values.push(...magnitudes(own), ...magnitudes(sum));
         }
         made = Float64Array.from([...values, ...magnitudes(up), ...magnitudes(down)]);
@@ -18462,8 +18468,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function slotOf(/** @type {Vector} */ values, /** @type {string} */ unit, /** @type {number} */ size) {
         const texts = new Set();
         const stride = Math.max(1, Math.floor(values.length / 240));
-        let lo = Infinity, hi = -Infinity, last = NaN;
-        for (let i = 0; i < values.length; i++) if (Number.isFinite(values[i])) (lo = Math.min(lo, values[i])), (hi = Math.max(hi, values[i])), (last = values[i]);
+        const [lo, hi] = rangeOf(values);
+        let last = NaN;
+        for (let i = values.length - 1; i >= 0; i--) if (values[i] - values[i] === 0) {
+          last = values[i];
+          break;
+        }
         for (const value of [lo, hi, last]) if (Number.isFinite(value)) texts.add(format(value, unit));
         for (let i = 0; i < values.length; i += stride) if (Number.isFinite(values[i])) texts.add(format(values[i], unit));
         return widest([...texts].sort((x, y) => y.length - x.length).slice(0, 5), 510, size);
@@ -18530,7 +18540,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const n = values.length, below = new Int32Array(n + 1);
         let first = n, nonZero = n;
         for (let i = 0; i < n; i++) {
-          const value = values[i], finite = Number.isFinite(value);
+          // (Finite by a subtraction: no call each value.)
+          const value = values[i], finite = value - value === 0;
           if (finite && first === n) first = i;
           if (finite && value && nonZero === n) nonZero = i;
           below[i + 1] = below[i] + (finite && value < 0 ? 1 : 0);
@@ -23185,14 +23196,17 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             const n = data.results.get(layers[0].id).values.length, total = new Float64Array(n), group = `${pane.id}:${side}`;
             for (const [rank, layer] of (pane.reverse ? [...layers].reverse() : layers).entries()) {
               const own = data.results.get(layer.id).values, values = new Float64Array(n), under = Float64Array.from(total);
+              // (Finite by a subtraction: no call each value.)
               for (let i = 0; i < n; i++) {
-                if (Number.isFinite(own[i])) values[i] = total[i] += shares && own[i] < 0 ? 0 : own[i];
+                const value = own[i];
+                if (value - value === 0) values[i] = total[i] += shares && value < 0 ? 0 : value;
                 else values[i] = NaN;
               }
               stacked.set(layer.id, { values, under, scale: null, group, rank });
             }
             if (!shares) continue;
-            const scale = total.map((sum) => (sum ? 100 / sum : NaN));
+            const scale = new Float64Array(n);
+            for (let i = 0; i < n; i++) scale[i] = total[i] ? 100 / total[i] : NaN;
             for (const layer of layers) {
               const item = stacked.get(layer.id);
               for (let i = 0; i < n; i++) item.values[i] *= scale[i];
