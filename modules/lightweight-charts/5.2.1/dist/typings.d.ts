@@ -5054,6 +5054,10 @@ export interface LayoutOptions {
 	/** The color marks' words are edged in (47), and outlined series (53). */
 	bvHalo?: string;
 }
+export interface LayoutPanesOptions {
+	/** How tall a separator's grip is, in CSS pixels, about its line: 9 by default (61). */
+	bvGrip?: number;
+}
 export interface HorzScaleOptions {
 	/** The least share of the view's width its data keeps, 0 to 1 (13). */
 	minVisibleDataRatio?: number;

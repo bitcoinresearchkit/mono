@@ -1163,10 +1163,39 @@ that makes them no longer styles them again; the same for a series whose data an
 iPhone without its JIT 334–336 → 278–279 ms; Chromium at 4x CPU 140–149 → 119–125 ms; Mullvad Browser 83 ms either
 way (its clock in frames). Studio's charts of ten presets the same to the pixel.
 
+## 61. A pane separator for fingers: its grip as tall as asked, the panes stretched while it's dragged
+
+A separator's grip was 9 px tall, a mouse's, hard to take by touch. And each move of a drag set the two panes' stretch
+factors and laid the chart out again: every canvas of both panes (their axes' too) made anew at its new size and drawn,
+~50 ms a move on the iPhone whether the chart's light or heavy (Safari's new canvases: a third of it in their first
+drawing call, `setTransform`). As iPad's Split View resizes, the panes are now stretched while dragged, drawn once let go.
+
+- The grip: `layout.panes.bvGrip`, its height in CSS pixels about its line (9 by default, as published), set again as
+  options change (`bvGrip`).
+- A drag: the two panes' heights kept as it starts (`rv.bvA`, `rv.bvB`); each move stretches their rows' cells' contents
+  (`bvScaleRow`: the one above about its top, the one below about its foot, to the heights the drag gives them) and moves
+  a line of the separator's own over its cell (the cell untouched: it holds the drag's full-screen catcher, which a
+  transform would shrink to it): nothing laid out or drawn. Let go (`bvEnd`): unstretched, then the stretch factors set
+  as the published library sets them at each move and the chart laid out and drawn at once (`bvFlush`): the canvases
+  measured unstretched (their size is read from their box, a transform's in it), and nothing painted between: no frame
+  of the old heights. Resizing turned off, the separator gone, or its panes others (a pane removed: the widgets kept
+  and bound to other panes, `bvPa`, `bvPb`) mid-drag: unstretched, left as it was. A touch cancelled (iOS: a call, a
+  system gesture) ends a drag as one let go does (a `touchcancel` listener while a touch drags it, for that touch
+  alone: the first of its start, as the library's handler follows it, `bvId`): before, its
+  full-screen catcher stayed up. (The library's touch handling itself as published: its touch, kept, is let go of at
+  the next one's end.)
+
+`tests.html` as before (it drags no separator). Measured: Chromium, a mouse drag of 120 px: mid-drag the panes' sizes as
+they were, their contents scaled 0.749 and 1.538; after, 478/223 → 358/343, nothing left stretched. The iOS Simulator
+by touch: a drag's frames 16–17 ms (its first two 29–33), the release drawn in 24 ms; at 3x, after a release, a cancel
+and a drag again, every canvas's backing its box's size times 3, nothing stretched, the catcher down. Found by Codex:
+the release measured stretched canvases; the drag's ends when resizing's turned off, the separator's gone, its panes
+bound to others, a touch cancelled.
+
 ## Typings
 
 `dist/typings.d.ts` declares what the patches add to the API (the chart's `bvFlush`; a scale's `bvRange`, `bvSetRange`,
-`bvAutoRange`; a series' `bvPrepend`, `bvTagHit`, `bvSetColumns`; the options `bvHalfFills`, `bvPanShift`, `layout.bvHalo`,
+`bvAutoRange`; a series' `bvPrepend`, `bvTagHit`, `bvSetColumns`; the options `bvHalfFills`, `bvPanShift`, `layout.bvHalo`, `layout.panes.bvGrip`,
 `minVisibleDataRatio`, `bvHoldOnAxes`, `bvTagsTop`, `bvTagsWidth`, `bvSimplify`, `bvBandFill`, `bvOutline`, a candlestick's and a histogram's
 `cornerRadius`), in one block at its end, merged into the
 library's own interfaces: a fresh download's typings take it again as it is.
