@@ -1002,6 +1002,37 @@ drawn at its bars, wrong for what a series draws fixed in the view (Studio's hea
 edge), moved with the picture and cut at the strip. A series option, `bvFixed`, now counts among what a pan can't move
 (`bvFixed`): its pane drawn whole, as with a relative gradient. Unset: as published (and as 48).
 
+## 55. A series updated in place: its pane alone drawn again
+
+A series' data applied (`Mb`, the data layer's answer) drew every pane again, whatever changed: the series' own change
+(`ht`) asked for its pane's scales (`Ea`, the pane's `ou`, which ends asking for every pane: `mr()`), its pane (`Ta`,
+whose mask, `Nd`, also sets every pane's level), the crosshair (`Ra`) and every pane (`mr()`); then `Mb` asked for every
+pane's scales and every pane (`zc`). When the answer carries no time scale points (`SM` undefined: no time added or
+taken, only that series changed) and the same base index, nothing another pane draws can change: its data, its scales,
+the time scale and its marks. (But with `ignoreWhitespaceIndices`: a point filled in where only whitespace was is a
+new mark, every pane's grid line.) Studio's live price moves the price's last point each second it changes: a stacked
+chart's 23 bands, in the pane below, were drawn again with it.
+
+- `Mb`: `bvPane`, `SM` undefined, the answer's base index (`Dc`) the time scale's (`Bt().Dc()`) and the time scale's
+  `ignoreWhitespaceIndices` off; passed to each series' `ht`, then `bvZcIn(series)` instead of `zc()`.
+- A series' `ht(t, i, bvPane)`: with it, none of its four asks (`bvZcIn` asks for its pane).
+- The model's `bvZcIn(series)`: each series' pane's scales again (the pane's `ou(!0)`, quiet: without its `mr()`), a mask
+  with those panes alone at the light level (`new Y(0)`, each `{rs:2}`), then `Ra()`, as `zc` does.
+- The time axis drawn at the most any pane is asked for (the mask's `bvMost()`, in the widget's `Rm`), not the mask's
+  own level: as published whenever a pane is drawn (its `Nd` masks set both), and for a pane asked for alone, a
+  primitive's time axis views drawn again with it.
+- Unchanged: an axis that the update widens lays every pane out again as published, the update drawn first at the old
+  width, the layout a frame on (traced frame by frame, both libraries: the same canvases' sizes and pixels each frame).
+
+`tests.html`: a picture is taken with the crosshair hidden, an option set, and setting one draws every pane again first:
+a pane left undrawn never showed. Scenarios now say whether theirs are taken as drawn (`asDrawn`: the canvases as they
+are, the crosshair's layer left out); not all, as a pane drawn again isn't always the same to the pixel (a candle's
+edges, a shade apart). As drawn: the two-pane candles scenarios, ending with updates in place (one widening the axis
+both panes share, on a linear scale; one in the pane below under the crosshair; the axis narrow again), and points
+filled in on whitespace left out of the marks (798 values apart without the `ignoreWhitespaceIndices` check). Measured,
+40 updates of the price's last point on the 23-band stack, drawn at once (`bvFlush`): Chromium at 4x CPU 7.9 → 2.4 ms
+an update; Mullvad Browser (headless, 2x) 11-12 → ~1.8 ms; the iPhone without its JIT ~19 → ~7 ms.
+
 ## Typings
 
 `dist/typings.d.ts` declares what the patches add to the API (the chart's `bvFlush`; a scale's `bvRange`, `bvSetRange`,

@@ -105,7 +105,8 @@ function ohlc(n, start, vol) {
   return out;
 }
 const scenarios = [];
-const scenario = (name, build) => scenarios.push({ name, build });
+// (`asDrawn`: its pictures the canvases as drawn, not drawn whole again first (see plot): for what a patch leaves undrawn.)
+const scenario = (name, build, asDrawn = false) => scenarios.push({ name, build, asDrawn });
 // Each build(L, el) makes a chart and returns its steps: [name, fn(chart, series)] run in order.
 const base = (L, el, extra = {}) => { const c = L.createChart(el, { width: 900, height: 520, layout: { background: { color: "#111" }, textColor: "#ccc", attributionLogo: false }, grid: { horzLines: { visible: false }, vertLines: { visible: false } }, ...extra, rightPriceScale: { entireTextOnly: true, minimumWidth: 90, ...extra.rightPriceScale }, leftPriceScale: { minimumWidth: 90, ...extra.leftPriceScale } }); window.__charts.push(c); return c; };
 const pan = (c, steps, from, to, width) => Array.from({ length: steps }, (_, k) => [`pan ${k}`, () => { const x = from + ((to - from) * k) / (steps - 1); c.timeScale().setVisibleLogicalRange({ from: x, to: x + width }); }]);
@@ -189,8 +190,25 @@ for (const mode of [0, 1]) scenario(`candles and bars mode ${mode}`, (L, el) => 
   const s1 = c.addSeries(L.CandlestickSeries, {}); s1.setData(ohlc(2500, 30000, 0.03));
   const s2 = c.addSeries(L.BarSeries, { thinBars: false }, 1); s2.setData(ohlc(2500, 1, 0.05));
   return [["full", () => c.timeScale().fitContent()], ...cross(c, s1, 4, 100, 2400), ...pan(c, 12, 0, 2200, 200), ...cross(c, s2, 4, 2210, 2390), ["restyle", () => s1.applyOptions({ upColor: "#0a0", downColor: "#a00" })], ...pan(c, 4, 2200, 2300, 150),
-    ["append", () => s1.update({ time: day(2500), open: 30000, high: 31000, low: 29000, close: 30500 })], ["replace", () => s1.update({ time: day(2500), open: 30000, high: 36000, low: 20000, close: 21000 })], ...pan(c, 4, 2300, 2450, 60)];
-});
+    ["append", () => s1.update({ time: day(2500), open: 30000, high: 31000, low: 29000, close: 30500 })], ["replace", () => s1.update({ time: day(2500), open: 30000, high: 36000, low: 20000, close: 21000 })],
+    // (Updates in place (patch 55: their pane alone drawn): one widening the axis every pane shares, one in the pane
+    // below under the crosshair, the axis narrow again. Widened on a linear scale only: log tags are written otherwise,
+    // as patched (1), and so as wide otherwise.)
+    ["the last bars", () => c.timeScale().setVisibleLogicalRange({ from: 2440, to: 2505 })], ...(mode ? [] : [["in place, the axis wider", () => s1.update({ time: day(2500), open: 30000, high: 9e9, low: 20000, close: 21000 })]]),
+    ...cross(c, s2, 2, 2490, 2499), ["in place, the pane below", () => s2.update({ time: day(2499), open: 1, high: 3, low: 0.5, close: 2 })], ["in place, the axis back", () => s1.update({ time: day(2500), open: 30000, high: 36000, low: 20000, close: 21000 })],
+    ...pan(c, 4, 2300, 2450, 60)];
+}, true);
+// (Whitespace left out of the time marks: points filled in on the same times (patch 55's way out) move every pane's grid.)
+scenario("whitespace left out of the marks", (L, el) => {
+  seed = 31;
+  const c = base(L, el, { timeScale: { ignoreWhitespaceIndices: true }, grid: { vertLines: { visible: true, color: "#555" }, horzLines: { visible: false } } });
+  // (A dozen bars, values at both ends: each filled in one its own mark.)
+  const sparse = (n) => Array.from({ length: n }, (_, i) => (i === 0 || i === n - 1 ? { time: day(i), value: 100 + rnd() * 10 } : { time: day(i) }));
+  const rows1 = sparse(12), s1 = c.addSeries(L.LineSeries, { color: "#fff" }), s2 = c.addSeries(L.LineSeries, { color: "#f80" }, 1);
+  s1.setData(rows1); s2.setData(sparse(12));
+  const filled = rows1.map((row, i) => (i === 4 || i === 7 ? { time: row.time, value: 95 + i } : row));
+  return [["full", () => c.timeScale().fitContent()], ["filled in, the same times", () => s1.setData(filled)], ["emptied again", () => s1.setData(rows1)], ["filled in again", () => s1.setData(filled)], ["fit", () => c.timeScale().fitContent()]];
+}, true);
 scenario("conflation", (L, el) => {
   seed = 7;
   const c = base(L, el, { timeScale: { enableConflation: true, minBarSpacing: 0.01 } });
@@ -241,7 +259,10 @@ scenario("corners off: radius 0, negative, NaN, a rule's 0", (L, el) => {
 const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.width, a.height).data, y = b.getContext("2d").getImageData(0, 0, b.width, b.height).data; if (x.length !== y.length) return -1; let n = 0; for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) n++; return n; };
 
   window.__charts = [];
-  const plot = (c) => { const s = c.takeScreenshot(), w = s.width - Math.ceil(c.priceScale("right").width() * devicePixelRatio) - Math.ceil(c.priceScale("left").width() * devicePixelRatio); return s.getContext("2d").getImageData(Math.ceil(c.priceScale("left").width() * devicePixelRatio), 0, w, s.height - Math.ceil(c.timeScale().height() * devicePixelRatio)).data; };
+  // (A picture hides the crosshair by setting an option, and setting one draws every pane again first: a pane a patch left
+  // undrawn wouldn't show. As drawn (the crosshair kept, on its own layer, left out): the canvases as they are, for the
+  // scenarios about what's drawn again; a pane drawn again isn't always the same to the pixel (its candles' edges).)
+  const plot = (c, asDrawn) => { const s = c.takeScreenshot(false, asDrawn), w = s.width - Math.ceil(c.priceScale("right").width() * devicePixelRatio) - Math.ceil(c.priceScale("left").width() * devicePixelRatio); return s.getContext("2d").getImageData(Math.ceil(c.priceScale("left").width() * devicePixelRatio), 0, w, s.height - Math.ceil(c.timeScale().height() * devicePixelRatio)).data; };
   const differ = (x, y) => { if (x.length !== y.length) return -1; let n = 0; for (let i = 0; i < x.length; i++) if (x[i] !== y[i]) n++; return n; };
   let steps = 0, bad = 0;
   for (const sc of scenarios) {
@@ -250,9 +271,9 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
     let first = "", wrong = 0;
     for (let k = 0; k < sa.length; k++) {
       sa[k][1](); sb[k][1](); await frames();
-      let d = differ(plot(window.__charts[0]), plot(window.__charts[1]));
+      let d = differ(plot(window.__charts[0], sc.asDrawn), plot(window.__charts[1], sc.asDrawn));
       // (A difference that is a frame's timing goes; one that stays is real.)
-      for (let again = 0; d !== 0 && again < 3; again++) { await frames(); d = differ(plot(window.__charts[0]), plot(window.__charts[1])); }
+      for (let again = 0; d !== 0 && again < 3; again++) { await frames(); d = differ(plot(window.__charts[0], sc.asDrawn), plot(window.__charts[1], sc.asDrawn)); }
       steps++;
       if (d !== 0) (wrong++, (first ||= `${sa[k][0]} (${d})`));
     }
