@@ -963,12 +963,14 @@ export function studioPresets(client, facts) {
   /** Bitcoin clouds: each holder group's awake and mobile realized and capitalized prices (its cohorts' together), a
    * cloud from the lowest to the highest. */
   function cloudsChart() {
+    /** The least or the most of several series, as formulas write it: min and max take two, so pairs of pairs. @param {"min" | "max"} f @param {string[]} names @returns {string} */
+    const across = (f, names) => (names.length === 1 ? names[0] : `${f}(${across(f, names.slice(0, names.length >> 1))}, ${across(f, names.slice(names.length >> 1))})`);
     const groups = /** @type {[string, string[], string][]} */ ([["Short-term holders", ["under4m", "sth", "under6m"], HOLDER_COLORS.sth], ["All holders", ["all"], HOLDER_COLORS.all], ["Long-term holders", ["over4m", "lth", "over6m"], HOLDER_COLORS.lth]]);
     return chart("Cost basis clouds", "Holder groups' cost basis ranges (Bitcoin clouds)", [
       price(),
       ...groups.flatMap(([label, keys, color]) => {
         const names = keys.flatMap((key) => [ct.cohorts[key].awake, cf.cohorts[key].mobile]).flatMap((cohort) => [cohort.costBasis.byCoin.realizedPrice.name, cohort.costBasis.byDollar.capitalizedPrice.name]);
-        return [{ formula: `min(${names.join(", ")})`, label: `${label}, lowest`, format: "usd", color, width: 1 }, { formula: `max(${names.join(", ")})`, label: `${label}, highest`, format: "usd", color, width: 1 }];
+        return [{ formula: across("min", names), label: `${label}, lowest`, format: "usd", color, width: 1 }, { formula: across("max", names), label: `${label}, highest`, format: "usd", color, width: 1 }];
       }),
       ...groups.map(([label, , color], i) => ({ cloud: [letter(1 + 2 * i), letter(2 + 2 * i)], label, color, opacity: 0.3 })),
     ]);
