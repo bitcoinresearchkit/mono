@@ -19255,11 +19255,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const key = `${idOf(source.values)}:${source.log}:${canvas.width}:${liveMoves}`;
           if (overviewShape.key !== key) {
             const scaled = Array.from(source.values, (value) => (Number.isFinite(value) && (!source.log || value > 0) ? (source.log ? Math.log10(value) : value) : NaN));
-            let lo = Infinity, hi = -Infinity;
-            for (const value of scaled) if (Number.isFinite(value)) {
-              lo = Math.min(lo, value);
-              hi = Math.max(hi, value);
-            }
+            let [lo, hi] = rangeOf(scaled);
             // The shape: smooth (each pixel's column its mean: a sketch of the series, not its noise). (A few points in
             // one column, a mean is one point, no line: their lowest and highest then.)
             let points = meansOf(scaled, canvas.width);
@@ -21705,17 +21701,11 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const groups = layer.profile ?? [], lists = profileLists(layer);
         const chips = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ label) => `<div class="from-of ${list}" role="group" aria-label="${label}">${lists[list].map((id) => ((known) => `<button type="button" data-cohort-of="${escape(id)}" aria-pressed="${groups.includes(id)}"${known ? ` aria-label="${escape(cohortName(id))}" data-tip="${escape(cohortName(id))}"` : ""}><i class="swatch" style="--c: ${escape(cssColor(profileColor(layer, id)))}"></i><span class="name">${escape(known ? cohortShort(id) : `${id}: not on Bitview`)}</span></button>`)(HEAT_COHORTS.some(([one]) => one === id))).join("")}</div>`;
         const both = (/** @type {"holders" | "ages"} */ list, /** @type {string} */ name) => ((ids) => `<span class="list-actions"><button type="button" class="cap small words" data-cohorts-in="${list}" aria-label="All ${name}"${ids.every((id) => groups.includes(id) || !HEAT_COHORTS.some(([one]) => one === id)) ? ' aria-disabled="true"' : ""}>All</button><button type="button" class="cap small words" data-cohorts-out="${list}" aria-label="No ${name}"${ids.some((id) => groups.includes(id)) ? "" : ' aria-disabled="true"'}>None</button></span>`)(lists[list]);
-        if (layer.type === "profile") return `<section>
-              <h3>Profile</h3>
-              <div class="field"><span>Holders<span class="color-now">${groups.length ? plural(groups.length, "group") : "None"}</span>${both("holders", "holder groups")}</span>${chips("holders", "Its holder groups")}</div>
-              <div class="field"><span>Age bands${both("ages", "age bands")}</span>${chips("ages", "Its age bands")}</div>${gone}
-              ${tabs("measure", "Measure", [["supply", "Supply"], ["capital", "Capital"], ["pnl", "P&L"]], layer.measure ?? "supply")}
-              ${tabs("weight", "Weight", HEAT_WEIGHTS, layer.weight ?? "")}
-              ${menu("density")}
-            </section>`;
+        // (A profile's holder groups and age bands, a heatmap's holder group; then their measure, weight and density alike.)
         return `<section>
-              <h3>Heatmap</h3>
-              ${menu("holders")}${gone}
+              <h3>${layer.type === "profile" ? "Profile" : "Heatmap"}</h3>
+              ${layer.type === "profile" ? `<div class="field"><span>Holders<span class="color-now">${groups.length ? plural(groups.length, "group") : "None"}</span>${both("holders", "holder groups")}</span>${chips("holders", "Its holder groups")}</div>
+              <div class="field"><span>Age bands${both("ages", "age bands")}</span>${chips("ages", "Its age bands")}</div>` : menu("holders")}${gone}
               ${tabs("measure", "Measure", [["supply", "Supply"], ["capital", "Capital"], ["pnl", "P&L"]], layer.measure ?? "supply")}
               ${tabs("weight", "Weight", HEAT_WEIGHTS, layer.weight ?? "")}
               ${menu("density")}
@@ -23496,8 +23486,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function shapeOf(values, mode, bars = false, base = 0) {
         const scale = onScale(mode, values.find((value) => Number.isFinite(value) && value !== 0) ?? NaN);
         const scaled = Array.from(values, scale);
-        let lo = Infinity, hi = -Infinity;
-        for (const value of scaled) if (Number.isFinite(value)) (lo = Math.min(lo, value)), (hi = Math.max(hi, value));
+        const [lo, hi] = rangeOf(scaled);
         const step = scaled.length / THUMB_POINTS, level = scale(base);
         const averaged = Array.from({ length: THUMB_POINTS }, (_, k) => {
           const bucket = scaled.slice(Math.floor(k * step), Math.max(Math.floor(k * step) + 1, Math.floor((k + 1) * step))).filter(Number.isFinite);
@@ -33934,8 +33923,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         caption.textContent = format(finite.at(-1), unit);
         const logScale = unit === "usd" && finite.every((value) => value > 0);
         const scaled = logScale ? values.map(Math.log10) : values;
-        let lo = Infinity, hi = -Infinity;
-        for (const value of scaled) if (Number.isFinite(value)) (lo = Math.min(lo, value)), (hi = Math.max(hi, value));
+        const [lo, hi] = rangeOf(scaled);
         const spots = columnsOf(scaled, 300).map(([i, value]) => ({ i, at: `${((i / (values.length - 1)) * 300).toFixed(1)},${(92 - ((value - lo) / (hi - lo || 1)) * 82).toFixed(1)}` })), points = spots.map((point) => point.at);
         // (Painted date by date: its line in pieces, each in its color.)
         const line = (/** @type {string[]} */ part, /** @type {string} */ stroke) => `<polyline points="${part.join(" ")}" fill="none" stroke="${escape(stroke)}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" />`;
