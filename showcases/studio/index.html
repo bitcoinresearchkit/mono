@@ -20867,13 +20867,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             button("back", `Background: ${backOf(words.back)[1]}`, backChip(words.back ?? "", words.color)),
           ])(tool ? prefs.pen : /** @type {Drawing} */ (wordsIn(drawings))) : []),
           ...([...kinds].some((each) => THROUGH.has(each)) ? [button("ends", `Ends: ${endName(look("ends").start)}, ${endName(look("ends").end).toLowerCase()}`, endsGlyph(look("ends").start, look("ends").end))] : []),
+          ...(drawings.length && [...kinds].some((each) => hasLook(each, "color")) ? ['<i class="belt-rule"></i>'] : []),
           // (A phone's: what's done to them (its text, its label, duplicate, remove) behind one ⋯, as a layer's are, the
           // looks in view: nothing past the strip's edge at any width. See selectionActions.)
           ...(drawings.length && phone.matches ? [
-            ...([...kinds].some((each) => hasLook(each, "color")) ? ['<i class="belt-rule"></i>'] : []),
             button("actions", drawings.length > 1 ? `More for ${drawings.length} drawings` : "More for the drawing", ICONS.more),
           ] : drawings.length ? [
-            ...([...kinds].some((each) => hasLook(each, "color")) ? ['<i class="belt-rule"></i>'] : []),
             ...(drawing?.kind === "text" ? [button("text", "Edit the text", ICONS.pencil, false)] : []),
             ...(drawing && LINES.has(drawing.kind) ? [button("label", TOUCH ? (drawing.label ? "Edit the label" : "Add a label") : drawing.label ? "Edit the label (or double-click it)" : "Add a label (or double-click the line)", ICONS.label, false)] : []),
             // (Each flip that changes how they show, as their menu offers it.)
@@ -30160,10 +30159,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!layers.every((layer) => colorModeOf(layer) === "one" && layer.type !== "profile")) return "";
         const now = sharedBy(layers, (layer) => layer.color), last = colorSource.get(`${chart.id}:${layers.map((layer) => layer.id).join()}:color`);
         const from = last && last.color === now ? last.source : now === undefined || SWATCHES.includes(now) ? "presets" : "custom";
-        const tabs = `<div class="tabs color-source" role="group" aria-label="Color, its color from">${[["presets", "Palette"], ["custom", "Custom"]].map(([source, name]) => `<button type="button" data-color-source="${source}" aria-pressed="${source === from}">${name}</button>`).join("")}</div>`;
+        const tabs = colorSourceTabs("Color", [["presets", "Palette"], ["custom", "Custom"]], from);
         const body = from === "custom" ? `<div class="color-box">${planeHtml(now ?? layers[0].color, "layer:color", "Color")}${hexField("layer:color", now ?? "")}</div>` : swatchGrid(now && SWATCHES.includes(now) ? now : "");
         return `<div class="field"><span>Color<span class="color-now">${escape(now === undefined ? "Mixed" : colorName(now))}</span></span></div><div class="color-editor" data-palette="color">${tabs}<div class="color-pick">${body}</div></div>`;
       };
+      /** Where a color's from, as tabs: `label`'s (the color's name), each source by its name, `from` the one shown. @param {string} label @param {[string, string][]} sources @param {string} from */
+      const colorSourceTabs = (label, sources, from) => `<div class="tabs color-source" role="group" aria-label="${escape(label)}, its color from">${sources.map(([source, name]) => `<button type="button" data-color-source="${source}" aria-pressed="${source === from}">${name}</button>`).join("")}</div>`;
       const opacityField = (/** @type {Layer[]} */ layers) => `<div class="field"><span>Opacity${resetFor("opacity", layers)}</span>${slider("opacity", layers)}</div>`;
       const widthField = (/** @type {Layer[]} */ layers) => {
         if (!layers.every((layer) => layer.type !== "histogram" && layer.type !== "cloud" && !placedOn(layer) && !heatLike(layer))) return "";
@@ -30778,7 +30779,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           : places.length > 1 ? `<div class="color-slots" role="group" aria-label="Which color">${places.map(([, name]) => `<span class="head">${escape(name)}</span>`).join("")}${places.map(([slot, name]) => chip(slot, name)).join("")}</div>` : "";
         // Where it's from: Bitview's colors; any other (the surface, its hex); a fading one's own, its growing one fainter.
         const sources = /** @type {[string, string][]} */ ([["presets", "Palette"], ["custom", "Custom"], ...(fadingSlot(key) ? [["auto", "Auto"]] : [])]);
-        const tabs = `<div class="tabs color-source" role="group" aria-label="${escape(label)}, its color from">${sources.map(([source, name]) => `<button type="button" data-color-source="${source}" aria-pressed="${source === from}">${name}</button>`).join("")}</div>`;
+        const tabs = colorSourceTabs(label, sources, from);
         const target = `layer:${key}`, side = key === "colorFading" ? layer.color : belowOf(layer);
         const body = from === "custom" ? `<div class="color-box">${planeHtml(colorOf(layer, key), target, label)}${hexField(target, colorOf(layer, key))}</div>`
           : from === "auto" ? `<p class="color-auto"><i class="swatch" style="--c:${escape(cssColor(faintOf(side)))}"></i>Fainter ${escape(colorName(side).toLowerCase())}</p>`
