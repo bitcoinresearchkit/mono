@@ -1078,7 +1078,7 @@
       <div class="foot shell" id="foot">
         <div class="pan" id="pan" aria-hidden="true"><canvas id="pan-canvas"></canvas><div class="window"></div></div>
         <div class="controls">
-          <button type="button" class="replay round" data-replay aria-label="Play" disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Play</span></button>
+          <button type="button" class="replay round" data-replay="chart" aria-label="Play" disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Play</span></button>
           <div class="zoom" role="group" aria-label="Zoom">
             <button type="button" data-zoom="1.25" aria-label="Zoom out"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8" /></svg></button>
             <button type="button" data-zoom="0.8" aria-label="Zoom in"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8M6 2v8" /></svg></button>
@@ -1107,11 +1107,11 @@
             </div>
             <div class="scrub">
               <canvas id="strip" aria-hidden="true"></canvas>
-              <input type="range" id="slider" min="0" max="0" value="0" disabled aria-label="The day shown, across the chart's span: the same as the chart's" />
+              <input type="range" id="slider" min="0" max="0" value="0" disabled aria-label="The compass's day, from the first to today" />
             </div>
             <div class="compass-foot">
               <b id="scrub-day">Today</b>
-              <button type="button" class="replay" data-replay aria-label="Play" disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Play</span></button>
+              <button type="button" class="replay" data-replay="atlas" aria-label="Play" disabled><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg><span>Play</span></button>
               <span class="legend">The year before as a path, its trend lit.</span>
             </div>
           </div>
@@ -1830,6 +1830,7 @@
         }
         if (gliding) more = glide(now) || more;
         if (playing) more = advance(now) || more;
+        if (atlasPlaying) more = advanceAtlas(now) || more;
         draw();
         drawCompass();
         drawStrip();
@@ -2202,9 +2203,8 @@
         tell(say);
         redraw();
       }
-      /** The day shown, everywhere it's said: above, the slider, the shares. */
-      /** The day last told, and the days it was told from: told again only when either changes (a span's change, a
-       * drag, keep the day). */
+      /** The day shown, everywhere it's said: above the chart. The day last told, and the days it was told from: told
+       * again only when either changes (a span's change, a drag, keep the day). */
       let toldDay = -1, toldDays = /** @type {Days | null} */ (null);
       function tell(say = false) {
         if (!days) return;
@@ -2212,9 +2212,6 @@
         (toldDay = shownDay()), (toldDays = days);
         const d = days, day = shownDay(), s = d.state[day], t = d.trend[day], state = STATES[s];
         const isLast = day === d.last;
-        $("scrub-day").textContent = isLast ? "Today" : dated(day);
-        syncSlider();
-        updateShares(day);
         $("day").textContent = isLast ? `Today, ${dated(day)}` : dated(day);
         sayToday();
         $("name").textContent = state.name;
@@ -2229,8 +2226,6 @@
         const cycleWords = SIDE_WORDS[state.cycle];
         const why = `${cycleWords[0].toUpperCase()}${cycleWords.slice(1)} the long-term cloud, ${SIDE_WORDS[state.local]} the short-term one; ${trendWords}.`;
         $("why").textContent = why;
-        for (const row of document.querySelectorAll("#states li")) row.classList.toggle("on", Number(/** @type {HTMLElement} */ (row).dataset.i) === s);
-        for (const row of document.querySelectorAll("#trends li")) row.classList.toggle("on", Number(/** @type {HTMLElement} */ (row).dataset.i) === t);
         if (say) remember();
         if (say) $("said").textContent = `${dated(day)}: ${state.name}, ${TRENDS[t].name.toLowerCase()} trend. ${why}`;
       }
@@ -2273,7 +2268,7 @@
           <text class="axis" transform="translate(-24 ${TREND_Y + TREND_H / 2}) rotate(-90)" text-anchor="middle">trend</text>`;
         trail = compass.querySelector("#trail");
         dot = compass.querySelector("#dot");
-        compassDay = -1;
+        compassDrawn = -1;
         placeIcons();
       }
       /** Each trend's arrow after its name, as wide as its font draws it (its size changes with the screen's). */
@@ -2286,13 +2281,13 @@
       new ResizeObserver(placeIcons).observe(compass);
       document.fonts.ready.then(placeIcons);
 
-      /** The year to the day shown, as a path fading into the past; the day a dot. */
+      /** The year to the compass's day, as a path fading into the past; the day a dot. */
       const TRAIL = 365;
       /** The day the compass was last drawn for (-1: drawn again whatever the day). */
-      let compassDay = -1;
+      let compassDrawn = -1;
       function drawCompass() {
-        if (!days || !trail || !dot || shownDay() === compassDay) return;
-        const d = days, day = (compassDay = shownDay()), from = Math.max(d.first, day - TRAIL);
+        if (!days || !trail || !dot || atlasDay() === compassDrawn) return;
+        const d = days, day = (compassDrawn = atlasDay()), from = Math.max(d.first, day - TRAIL);
         const segments = [];
         for (let i = from + 1; i <= day; i++) {
           const age = (day - i) / TRAIL, opacity = (0.08 + 0.72 * (1 - age) ** 1.5).toFixed(3);
@@ -2313,7 +2308,7 @@
         compass.setAttribute("aria-label", `The nine moods as a compass, the three trends under it: ${dated(day)}, ${STATES[d.state[day]].name}, ${TRENDS[d.trend[day]].name.toLowerCase()} trend, its path over the year before.`);
       }
 
-      // ── The strip and its slider, under the compass: every day from the first to today, a playhead on the day shown ──
+      // ── The strip and its slider, under the compass: every day from the first to today, a playhead on the compass's day ──
 
       const strip = /** @type {HTMLCanvasElement} */ ($("strip")), stripContext = /** @type {CanvasRenderingContext2D} */ (strip.getContext("2d"));
       const slider = /** @type {HTMLInputElement} */ ($("slider"));
@@ -2348,7 +2343,7 @@
         // (The playhead: a slim hollow capsule around the band on the day, the band seen through it, a stick up and down
         // from its ends.)
         stripContext.setTransform(dpr, 0, 0, dpr, 0, 0);
-        const x = BAND.side + ((shownDay() - d.first + 0.5) / (d.last - d.first + 1)) * (w - 2 * BAND.side);
+        const x = BAND.side + ((atlasDay() - d.first + 0.5) / (d.last - d.first + 1)) * (w - 2 * BAND.side);
         const top = BAND.top - 3, bottom = BAND.top + BAND.states + BAND.gap + BAND.trends + 3, half = 4.5;
         stripContext.fillStyle = paint.ink;
         stripContext.fillRect(x - 1, 1, 2, Math.max(0, top - 1));
@@ -2359,23 +2354,6 @@
         stripContext.strokeStyle = paint.ink;
         stripContext.stroke();
       }
-      /** The slider on the day shown, said as the chart's is. */
-      function syncSlider() {
-        if (!days) return;
-        const d = days, day = shownDay();
-        slider.value = String(day);
-        slider.setAttribute("aria-valuetext", `${dated(day)}: ${STATES[d.state[day]].name}, ${TRENDS[d.trend[day]].name.toLowerCase()} trend`);
-      }
-      slider.addEventListener("input", () => {
-        if (!days) return;
-        stopPlay();
-        hovered = null;
-        const day = Number(slider.value);
-        pinned = day >= days.last ? null : day;
-        keepVisible(day);
-        show();
-      });
-      slider.addEventListener("change", () => show(true));
       new ResizeObserver(redraw).observe(strip);
 
       // ── Playing: the day shown runs on to today at the chart's span in 60 seconds; paused, it stays where it is, and
@@ -2387,14 +2365,14 @@
       let playing = false, playFrom = 0, playAt = 0, playSpeed = 0;
       /** The day play last stopped on: still the kept day, it's paused there (a click on the chart plays on). */
       let pausedOn = /** @type {number | null} */ (null);
+      /** Both play buttons (the chart's, the compass's), disabled while there are no days. */
       const replays = /** @type {HTMLButtonElement[]} */ ([...document.querySelectorAll("[data-replay]")]);
+      const [chartPlay, atlasPlay] = /** @type {HTMLButtonElement[]} */ (["chart", "atlas"].map((which) => document.querySelector(`[data-replay="${which}"]`)));
       const PLAY_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1v10l9-5z" /></svg>', PAUSE_ICON = '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1h3v10H2zM7 1h3v10H7z" /></svg>';
-      /** Each play button says whether it plays: Pause while it does. */
-      function saidPlaying(/** @type {boolean} */ on) {
-        for (const button of replays) {
-          button.setAttribute("aria-label", on ? "Pause" : "Play");
-          button.innerHTML = `${on ? PAUSE_ICON : PLAY_ICON}<span>${on ? "Pause" : "Play"}</span>`;
-        }
+      /** A play button says whether it plays: Pause while it does. */
+      function saidPlaying(/** @type {HTMLButtonElement} */ button, /** @type {boolean} */ on) {
+        button.setAttribute("aria-label", on ? "Pause" : "Play");
+        button.innerHTML = `${on ? PAUSE_ICON : PLAY_ICON}<span>${on ? "Pause" : "Play"}</span>`;
       }
       /** Play stopped, and a flick with it: whatever else moves the day or the view takes over. */
       function stopPlay() {
@@ -2402,7 +2380,7 @@
         if (!playing) return;
         playing = false;
         pausedOn = pinned;
-        saidPlaying(false);
+        saidPlaying(chartPlay, false);
       }
       /** Play ended outright, not paused (a drag takes the chart from it): its day let go too, today shown again, the
        * next play from the chart's first day. */
@@ -2424,11 +2402,11 @@
         playing = false;
         pinned = null;
         keepVisible(d.last);
-        saidPlaying(false);
+        saidPlaying(chartPlay, false);
         tell(true);
         return false;
       }
-      for (const button of replays) button.addEventListener("click", () => {
+      chartPlay.addEventListener("click", () => {
         if (!days) return;
         if (!playing) return play();
         stopPlay();
@@ -2446,8 +2424,64 @@
         pinned = playFrom;
         keepVisible(playFrom);
         playing = true;
-        saidPlaying(true);
+        saidPlaying(chartPlay, true);
         show();
+      }
+
+      // ── The compass's own day, apart from the chart's: today, or one its slider or its Play picked; its strip, its
+      // path and the time in each follow it ──
+
+      /** The compass's day (null: today). */
+      let atlasAt = /** @type {number | null} */ (null);
+      const atlasDay = () => atlasAt ?? /** @type {Days} */ (days).last;
+      /** The compass's day last told, and the days it was told from. */
+      let atlasTold = -1, atlasToldDays = /** @type {Days | null} */ (null);
+      /** The compass's day, everywhere it's said: under the strip, on the slider, in the lists (the compass and the
+       * strip drawn with the chart, in the frame). */
+      function tellAtlas() {
+        if (!days || (atlasDay() === atlasTold && days === atlasToldDays)) return;
+        (atlasTold = atlasDay()), (atlasToldDays = days);
+        const d = days, day = atlasDay(), s = d.state[day], t = d.trend[day];
+        $("scrub-day").textContent = day === d.last ? "Today" : dated(day);
+        slider.value = String(day);
+        slider.setAttribute("aria-valuetext", `${dated(day)}: ${STATES[s].name}, ${TRENDS[t].name.toLowerCase()} trend`);
+        updateShares(day);
+        for (const row of document.querySelectorAll("#states li")) row.classList.toggle("on", Number(/** @type {HTMLElement} */ (row).dataset.i) === s);
+        for (const row of document.querySelectorAll("#trends li")) row.classList.toggle("on", Number(/** @type {HTMLElement} */ (row).dataset.i) === t);
+        redraw();
+      }
+      slider.addEventListener("input", () => {
+        if (!days) return;
+        stopAtlas();
+        const day = Number(slider.value);
+        atlasAt = day >= days.last ? null : day;
+        tellAtlas();
+      });
+
+      /** The compass's play: its day runs on to today over all the history in PLAY ms; paused, it stays; from today,
+       * it starts again at the first day. */
+      let atlasPlaying = false, atlasFrom = 0, atlasStart = 0;
+      atlasPlay.addEventListener("click", () => {
+        if (!days) return;
+        if (atlasPlaying) return stopAtlas();
+        atlasFrom = atlasAt ?? days.first;
+        atlasStart = performance.now();
+        atlasPlaying = true;
+        saidPlaying(atlasPlay, true);
+        redraw();
+      });
+      function stopAtlas() {
+        if (!atlasPlaying) return;
+        atlasPlaying = false;
+        saidPlaying(atlasPlay, false);
+      }
+      /** A frame's step of the compass's play: false once it's reached today. */
+      function advanceAtlas(/** @type {number} */ now) {
+        const d = /** @type {Days} */ (days), day = Math.min(d.last, Math.round(atlasFrom + ((now - atlasStart) * (d.last - d.first + 1)) / PLAY));
+        atlasAt = day < d.last ? day : null;
+        if (atlasAt === null) stopAtlas();
+        tellAtlas();
+        return atlasPlaying;
       }
 
       // ── Time in each ──
@@ -2463,7 +2497,7 @@
         $("trends").innerHTML = TRENDS.map((t, i) => row(i, `${t.name}${trendIcon(i)}`, trends?.[i] ?? null, topTrend, `var(--s-${t.color})`)).join("");
       }
 
-      /** Every share, bar and run count as of the day shown: the days from the first to it. (Rows keep their order, all
+      /** Every share, bar and run count as of the compass's day: the days from the first to it. (Rows keep their order, all
        * history's, so none moves as a day changes.) */
       function updateShares(/** @type {number} */ day) {
         const d = /** @type {Days} */ (days), states = tally(d.state, 9, day), trends = tally(d.trend, 3, day);
@@ -2537,6 +2571,7 @@
         slider.min = String(days.first);
         slider.max = String(days.last);
         if (pinned !== null) pinned = Math.max(days.first, Math.min(days.last - 1, pinned));
+        if (atlasAt !== null) atlasAt = Math.max(days.first, Math.min(days.last - 1, atlasAt));
         // (Days that begin or end elsewhere: the span's on them. The same days, as a new price makes, move nothing.)
         if (days.first !== before.first || days.last !== before.last) {
           if (span !== -1) (target = spanOf(span)), (view = { ...target });
@@ -2544,7 +2579,10 @@
         }
         stillKey = panKey = stripKey = "";
         if (rebuild) buildCompass(), buildShares();
-        else compassDay = -1;
+        else compassDrawn = -1;
+        // (Its lists built again, or their shares changed with the day: told again whatever its day.)
+        atlasTold = -1;
+        tellAtlas();
         following = true;
       }
       for (const button of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-coins]"))) button.addEventListener("click", () => choose(/** @type {"mobile" | "awake"} */ (button.dataset.coins), basis));
@@ -2627,6 +2665,7 @@
           range = rangeOf(view);
           goTo(span);
           show();
+          tellAtlas();
           live();
         } catch (error) {
           // (What it read forgotten, so Try again asks the server again.)
