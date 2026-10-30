@@ -15523,7 +15523,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       async function refetchTail(endpoint, index, held, to = undefined) {
         if (!held?.data.length) return null;
         const tail = await endpoint.slice(Math.max(held.start, held.start + held.data.length - (MUTABLE[index] ?? 1)), to).fetch(), keep = tail.start - held.start;
-        return tail.version === held.version && keep >= 0 && keep <= held.data.length ? { tail, keep, start: held.start, data: [...held.data.slice(0, keep), ...tail.data], version: tail.version } : null;
+        return tail.version === held.version && keep >= 0 && keep <= held.data.length ? { tail, keep, start: held.start, data: held.data.slice(0, keep).concat(tail.data), version: tail.version } : null;
       }
       /** Fetch once by interval (fine ones by chunk); `fresh` refetches the tail, keeping cached data if that fails. */
       function load(name, index, fresh = false, span = /** @type {Span | null} */ (null)) {
@@ -15535,7 +15535,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const endpoint = client.seriesEndpoint(name, /** @type {"day1"} */ (index));
           const held = fresh && cached ? await cached.catch(() => null) : null;
           const joined = await refetchTail(endpoint, index, held);
-          if (joined && held) return { start: joined.start, data: joined.data, times: [...held.times.slice(0, joined.keep), ...times(joined.tail.start, joined.tail.data.length)], version: joined.version };
+          if (joined && held) return { start: joined.start, data: joined.data, times: held.times.slice(0, joined.keep).concat(times(joined.tail.start, joined.tail.data.length)), version: joined.version };
           const response = await endpoint.fetch();
           return { start: response.start, data: response.data, times: times(response.start, response.data.length), version: response.version };
         });
@@ -39322,7 +39322,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         };
         const results = new Map([...data.results].map(([id, result]) => {
           const values = grown(result.values);
-          const ohlc = result.ohlc && [...result.ohlc, ...added.map(() => null)];
+          const ohlc = result.ohlc && result.ohlc.concat(added.map(() => null));
           if (ohlc) ownLive.add(ohlc);
           // (A trend's breaks and sides too, a cloud's sides, none on the bars added.)
           const more = (/** @type {Uint8Array | undefined} */ marks) => marks && ((out) => (out.set(marks), out))(new Uint8Array(marks.length + added.length));
@@ -39330,7 +39330,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           const closes = result.closes && ((out) => (out.set(/** @type {Vector} */ (result.closes)), out.fill(livePrice || NaN, result.closes?.length), out))(new Float64Array(result.closes.length + added.length));
           return [id, { ...result, values, ohlc, ...(result.low ? { low: grown(result.low) } : {}), ...(result.breaks ? { breaks: more(result.breaks) } : {}), ...(result.sides ? { sides: more(result.sides) } : {}), ...(closes ? { closes } : {}) }];
         }));
-        return { ...data, times: [...data.times, ...added], results };
+        return { ...data, times: data.times.concat(added), results };
       }
       /**
        * The live price onto those layers' point for the interval the clock is in, laid on the timeline if the server
