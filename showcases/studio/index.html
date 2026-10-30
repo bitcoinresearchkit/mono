@@ -16,33 +16,11 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <!-- Its launch from a home screen, every showcase's (it says when it's ready: see start). -->
-    <script src="/assets/launch/launch.js" data-app="Studio" data-color="#f2660f" data-wait></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content" />
-    <!-- Installed on an iPhone: laid out below the status bar, not under it (iOS 26 on lays a fade over a page's top under
-         it, some 16px past it, whatever's drawn there: a chart's header in it), decided before the page is drawn (the
-         viewport's tag replaced: one edited isn't read again). Its foot's inset read first, while under it, and kept:
-         below it, iOS says none though the page still reaches under the home indicator. Started on its side (no inset
-         said there either way): under it till it's turned upright. -->
-    <script>
-      if (navigator.standalone === true) {
-        const root = document.documentElement, upright = matchMedia("(orientation: portrait)");
-        const below = () => {
-          const probe = document.createElement("div");
-          probe.style.cssText = "position: fixed; height: env(safe-area-inset-bottom); visibility: hidden";
-          root.append(probe);
-          root.style.setProperty("--kept-bottom", `${probe.getBoundingClientRect().height}px`);
-          probe.remove();
-          root.toggleAttribute("data-kept-bottom", true);
-          const tag = document.querySelector('meta[name="viewport"]');
-          tag?.replaceWith(Object.assign(document.createElement("meta"), { name: "viewport", content: (tag.getAttribute("content") ?? "").replace(/,\s*viewport-fit=cover/, "") }));
-        };
-        if (upright.matches) below();
-        else upright.addEventListener("change", function turned() {
-          if (upright.matches) upright.removeEventListener("change", turned), below();
-        });
-      }
-    </script>
+    <!-- Its launch from a home screen, every showcase's (it says when it's ready: see start). Installed on an iPhone, laid
+         out below the status bar (a chart's header out of the fade iOS 26 lays over a page's top under it), Home's lists
+         softened where they scroll up to its top. -->
+    <script src="/assets/launch/launch.js" data-app="Studio" data-color="#f2660f" data-wait data-below-status data-edge=".home-scroll"></script>
     <meta name="description" content="Chart any of Bitview's Bitcoin on-chain series, or start from thousands of ready-made charts: overlay, stack, derive with formulas, draw, and share a chart as a link. Free, in the browser." />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%22-0.63 -0.7311 1.26 1.4622%22%3E%3Cpath fill=%22oklch%2864.34%25 0.191 44.41%29%22 fill-rule=%22evenodd%22 d=%22M-0.6299 -0.3674L-0.6267 -0.3841L-0.6172 -0.4011L-0.6012 -0.4188L-0.5788 -0.4373L-0.5501 -0.4571L-0.5149 -0.4784L-0.1922 -0.6647L-0.1553 -0.6850L-0.1211 -0.7016L-0.0890 -0.7145L-0.0585 -0.7237L-0.0290 -0.7293L-0.0000 -0.7311L0.0290 -0.7293L0.0585 -0.7237L0.0890 -0.7145L0.1211 -0.7016L0.1553 -0.6850L0.1922 -0.6647L0.5149 -0.4784L0.5501 -0.4571L0.5788 -0.4373L0.6012 -0.4188L0.6172 -0.4011L0.6267 -0.3841L0.6299 -0.3674L0.6299 0.3674L0.6267 0.3841L0.6172 0.4011L0.6012 0.4188L0.5788 0.4373L0.5501 0.4571L0.5149 0.4784L0.1922 0.6647L0.1553 0.6850L0.1211 0.7016L0.0890 0.7145L0.0585 0.7237L0.0290 0.7293L0.0000 0.7311L-0.0290 0.7293L-0.0585 0.7237L-0.0890 0.7145L-0.1211 0.7016L-0.1553 0.6850L-0.1922 0.6647L-0.5149 0.4784L-0.5501 0.4571L-0.5788 0.4373L-0.6012 0.4188L-0.6172 0.4011L-0.6267 0.3841L-0.6299 0.3674ZM0.0209 -0.6291L0.0423 -0.6251L0.0644 -0.6184L0.0876 -0.6090L0.1123 -0.5970L0.1390 -0.5824L0.4420 -0.4074L0.4545 -0.3979L0.4640 -0.3854L0.4700 -0.3709L0.4721 -0.3554L0.4700 -0.3399L0.4640 -0.3254L0.4545 -0.3129L0.4420 -0.3034L0.1390 -0.1284L0.1123 -0.1138L0.0876 -0.1017L0.0644 -0.0924L0.0423 -0.0857L0.0209 -0.0817L0.0000 -0.0804L0.0000 -0.0804L-0.0000 -0.0804L-0.0209 -0.0817L-0.0423 -0.0857L-0.0644 -0.0924L-0.0876 -0.1017L-0.1123 -0.1138L-0.1390 -0.1284L-0.4420 -0.3034L-0.4545 -0.3129L-0.4640 -0.3254L-0.4700 -0.3399L-0.4721 -0.3554L-0.4700 -0.3709L-0.4640 -0.3854L-0.4545 -0.3979L-0.4420 -0.4074L-0.1390 -0.5824L-0.1123 -0.5970L-0.0876 -0.6090L-0.0644 -0.6184L-0.0423 -0.6251Z%22/%3E%3C/svg%3E" />
     <meta name="theme-color" content="#08090a" />
@@ -96,10 +74,9 @@
         --sheet-whole: 0.88;
         /* (What an installed app's status bar takes at the top, for the script to read.) */
         --safe-top: env(safe-area-inset-top);
-        /* (What its foot takes: iOS's, or, installed on an iPhone (laid out below the status bar: see the head), the one
-           iOS said while it was under it, kept: below it, iOS says none, though the page still reaches under the home
-           indicator.) */
-        --safe-bottom: env(safe-area-inset-bottom);
+        /* (What its foot takes, --safe-bottom: the launcher's (laid out below the status bar, see the head). Home's edge
+           on its ground.) */
+        --edge-ground: var(--app);
         --sheet-half: 0.56;
         /* (Their heights on whole pixels: a sheet's top between two, Safari can leave a pixel's row of it unpainted, the
            page behind showing through under its handle.) */
@@ -251,13 +228,6 @@
       @media (display-mode: standalone) {
         html {
           min-height: 100lvh;
-        }
-      }
-
-      /* (Upright, the foot's inset kept once known (see the head); on its side, iOS says none either way.) */
-      @media (orientation: portrait) {
-        :root[data-kept-bottom] {
-          --safe-bottom: var(--kept-bottom);
         }
       }
 
@@ -7596,11 +7566,6 @@
         scrollbar-width: thin;
       }
 
-      /* (Installed on a phone only: see below.) */
-      .home-edge {
-        display: none;
-      }
-
       .home-inner {
         width: min(1040px, 100%);
         margin: 0 auto;
@@ -9840,88 +9805,10 @@
         }
 
         /* Installed, below the status bar (see the head): its room small (a phone's screen is small), what scrolls up
-           softened into the status bar by an edge of its own, as an app's list goes under its bar. A progressive blur,
-           as iOS's own: six layers each blurring twice the one under it, each masked to a band, the strongest at the top
-           (no variable blur in CSS: bands of it, overlapping), under the page's own ground fading out downward. None at
-           the top of the page; fully there once it's scrolled its height (each layer by the scroll's own timeline: a
-           layer under the container's opacity would blur nothing, its backdrop cut there). */
+           softened under the page's top by the launcher's edge (data-edge). */
         @media (display-mode: standalone) {
           .home-scroll {
             --home-room: 16px;
-            scroll-timeline: --home-scroll block;
-          }
-
-          .home-edge {
-            position: fixed;
-            inset: 0 0 auto;
-            z-index: 5;
-            display: block;
-            height: 44px;
-            pointer-events: none;
-
-            > i {
-              position: absolute;
-              inset: 0;
-              -webkit-backdrop-filter: blur(var(--blur));
-              backdrop-filter: blur(var(--blur));
-              -webkit-mask-image: linear-gradient(to top, var(--band));
-              mask-image: linear-gradient(to top, var(--band));
-              /* (None but by its scroll: none where scroll timelines aren't, or the list doesn't scroll.) */
-              opacity: 0;
-            }
-
-            > i:nth-child(1) {
-              --blur: 0.5px;
-              --band: transparent 0%, black 14%, black 29%, transparent 43%;
-            }
-
-            > i:nth-child(2) {
-              --blur: 1px;
-              --band: transparent 14%, black 29%, black 43%, transparent 57%;
-            }
-
-            > i:nth-child(3) {
-              --blur: 2px;
-              --band: transparent 29%, black 43%, black 57%, transparent 71%;
-            }
-
-            > i:nth-child(4) {
-              --blur: 4px;
-              --band: transparent 43%, black 57%, black 71%, transparent 86%;
-            }
-
-            > i:nth-child(5) {
-              --blur: 8px;
-              --band: transparent 57%, black 71%, black 86%, transparent 100%;
-            }
-
-            > i:nth-child(6) {
-              --blur: 16px;
-              --band: transparent 71%, black 86%;
-            }
-
-            /* (The ground, over them: the status bar's own at the top, gone by the edge's foot.) */
-            > i:nth-child(7) {
-              background: linear-gradient(var(--app), color-mix(in srgb, var(--app) 55%, transparent) 35%, color-mix(in srgb, var(--app) 0%, transparent));
-              -webkit-backdrop-filter: none;
-              backdrop-filter: none;
-              -webkit-mask-image: none;
-              mask-image: none;
-            }
-          }
-
-          @supports (animation-timeline: scroll()) {
-            .home-edge > i {
-              animation: home-edge linear both;
-              animation-timeline: --home-scroll;
-              animation-range: 0 32px;
-            }
-          }
-
-          @keyframes home-edge {
-            to {
-              opacity: 1;
-            }
           }
         }
 
@@ -10494,15 +10381,6 @@
           transition: none !important;
         }
 
-        /* (Home's edge kept: it follows the scroll, it isn't a motion of its own; see .home-edge.) */
-        @supports (animation-timeline: scroll()) {
-          .home-edge > i {
-            animation: home-edge linear both !important;
-            animation-timeline: --home-scroll !important;
-            animation-range: 0 32px !important;
-          }
-        }
-
         /* (Connecting's waits kept: a delay isn't motion; it shows after them at once.) */
         html:not([data-ready]) .booting {
           animation: booting 1ms 0.8s both !important;
@@ -10944,8 +10822,6 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         <!-- (Home's top corner: Undo and Redo, there at Home (see renderHomeHead), a rule, the theme.) -->
         <div id="home-top" class="home-corner home-top" hidden><span class="divider"></span><button id="home-theme" class="cap home-theme" type="button" data-action="theme" aria-haspopup="menu" aria-label="Theme" data-tip="Theme"></button></div>
         <div class="home-scroll">
-          <!-- (Installed on a phone: what scrolls up softened into the status bar, see .home-edge.) -->
-          <div class="home-edge" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
           <div class="home-inner">
             <!-- (On a phone, the way back to Bitview, as every showcase has it: elsewhere, the sidebar's.) -->
             <a class="brand home-brand" href="/"><img src="/assets/logo/logo.svg" alt="" />Bitview</a>

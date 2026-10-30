@@ -17,6 +17,9 @@
 //   blurring what's behind it: iOS's own blur, on its GPU; the page itself never blurred or drawn again). The status
 //   bar orange with it, the page's own after. Then nothing of it is left. Reduced motion: gone at once.
 // - Never ready (its script held back), the orange fades after a while all the same, the page's word of it shown.
+// - A page's own choices, installed: laid out below the status bar (`data-below-status`, its viewport tag before this
+//   script, its foot's room `--safe-bottom`), and its scrolling list softened under the page's top (`data-edge`, the
+//   list's selector; `--edge-ground`, the page's ground). Studio's both, so far: each app's to try on a phone.
 (() => {
   const ORANGE = "#e65b00";
   const root = document.documentElement, script = /** @type {HTMLScriptElement | null} */ (document.currentScript);
@@ -57,6 +60,71 @@
       link.rel = "apple-touch-startup-image";
       link.href = canvas.toDataURL("image/png");
       document.head.append(link);
+    });
+  }
+  // A page that asks (`data-below-status`), installed upright on an iPhone, laid out below the status bar, not under it:
+  // iOS 26 on lays a fade over a page's top under it, some 16px past it, whatever's drawn there. Decided before the page
+  // is drawn: its viewport tag (put before this script) replaced without viewport-fit=cover (one edited isn't read
+  // again). Its foot's inset read first, while under it, and kept: below it, iOS says none though the page still reaches
+  // under the home indicator. `--safe-bottom` is the foot's room to keep, wherever the page is: its own CSS uses it, not
+  // env(safe-area-inset-bottom). Started on its side (no inset said there either way): under it till turned upright.
+  const below = script?.hasAttribute("data-below-status"), edge = script?.dataset.edge;
+  if (below) {
+    const sheet = document.createElement("style");
+    sheet.textContent = `
+      :root { --safe-bottom: env(safe-area-inset-bottom); }
+      @media (orientation: portrait) { :root[data-kept-bottom] { --safe-bottom: var(--kept-bottom); } }`;
+    document.head.append(sheet);
+    if (standalone === true) {
+      const upright = matchMedia("(orientation: portrait)");
+      const lay = () => {
+        const probe = document.createElement("div");
+        probe.style.cssText = "position: fixed; height: env(safe-area-inset-bottom); visibility: hidden";
+        root.append(probe);
+        root.style.setProperty("--kept-bottom", `${probe.getBoundingClientRect().height}px`);
+        probe.remove();
+        root.toggleAttribute("data-kept-bottom", true);
+        const tag = document.querySelector('meta[name="viewport"]');
+        tag?.replaceWith(Object.assign(document.createElement("meta"), { name: "viewport", content: (tag.getAttribute("content") ?? "").replace(/,\s*viewport-fit=cover/, "") }));
+      };
+      if (upright.matches) lay();
+      else upright.addEventListener("change", function turned() {
+        if (upright.matches) upright.removeEventListener("change", turned), lay();
+      });
+    }
+  }
+  // Installed, a page's scrolling list (`data-edge`, its selector) softened where it scrolls up to the page's top, as an
+  // app's list goes under its bar: a progressive blur, as iOS's own, six layers each blurring twice the one under it,
+  // each masked to a band, the strongest at the top (no variable blur in CSS: bands of it, overlapping), under the
+  // page's ground (`--edge-ground`) fading out downward. None at the list's top; all there once it's scrolled 32px, each
+  // layer by the scroll's own timeline (a layer under a container's opacity would blur nothing, its backdrop cut there),
+  // under reduced motion too (it follows the scroll: no motion of its own). Over the page's own (z-index 5).
+  if (edge && matchMedia("(display-mode: standalone)").matches) {
+    const sheet = document.createElement("style");
+    sheet.textContent = `
+      ${edge} { scroll-timeline: --bitview-edge block; }
+      .bitview-edge { position: fixed; inset: 0 0 auto; z-index: 5; height: 44px; pointer-events: none; }
+      .bitview-edge > i { position: absolute; inset: 0; -webkit-backdrop-filter: blur(var(--blur)); backdrop-filter: blur(var(--blur)); -webkit-mask-image: linear-gradient(to top, var(--band)); mask-image: linear-gradient(to top, var(--band)); opacity: 0; }
+      .bitview-edge > i:nth-child(1) { --blur: 0.5px; --band: transparent 0%, black 14%, black 29%, transparent 43%; }
+      .bitview-edge > i:nth-child(2) { --blur: 1px; --band: transparent 14%, black 29%, black 43%, transparent 57%; }
+      .bitview-edge > i:nth-child(3) { --blur: 2px; --band: transparent 29%, black 43%, black 57%, transparent 71%; }
+      .bitview-edge > i:nth-child(4) { --blur: 4px; --band: transparent 43%, black 57%, black 71%, transparent 86%; }
+      .bitview-edge > i:nth-child(5) { --blur: 8px; --band: transparent 57%, black 71%, black 86%, transparent 100%; }
+      .bitview-edge > i:nth-child(6) { --blur: 16px; --band: transparent 71%, black 86%; }
+      .bitview-edge > i:nth-child(7) { background: linear-gradient(var(--edge-ground), color-mix(in srgb, var(--edge-ground) 55%, transparent) 35%, color-mix(in srgb, var(--edge-ground) 0%, transparent)); -webkit-backdrop-filter: none; backdrop-filter: none; -webkit-mask-image: none; mask-image: none; }
+      @supports (animation-timeline: scroll()) {
+        .bitview-edge > i { animation: bitview-edge linear both !important; animation-timeline: --bitview-edge !important; animation-range: 0 32px !important; }
+      }
+      @keyframes bitview-edge { to { opacity: 1; } }`;
+    document.head.append(sheet);
+    document.addEventListener("DOMContentLoaded", () => {
+      for (const list of document.querySelectorAll(edge)) {
+        const layers = document.createElement("div");
+        layers.className = "bitview-edge";
+        layers.setAttribute("aria-hidden", "true");
+        layers.innerHTML = "<i></i>".repeat(7);
+        list.prepend(layers);
+      }
     });
   }
   /** Said by a page that waits (`data-wait`): it's ready. Else as it loads. */
