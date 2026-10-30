@@ -165,7 +165,7 @@
           pointer-events: none;
         }
 
-        :is(a, button, .pan) {
+        :is(a, button, .pan, [data-light]) {
           pointer-events: auto;
         }
       }
@@ -649,6 +649,33 @@
         }
       }
 
+      /* A mood or trend lit (see light): pressable wherever it's named; the compass's other cells and the other rows
+         dimmed; where it's named over the chart, underlined. */
+      [data-light] {
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+
+        &:focus-visible {
+          outline: 2px solid var(--ink);
+          outline-offset: 3px;
+          border-radius: 6px;
+        }
+      }
+
+      .lighting :is(.compass .cell, .shares li):not(.lit) {
+        opacity: 0.3;
+      }
+
+      .compass .cell,
+      .shares li {
+        transition: opacity 0.2s;
+      }
+
+      .hero .lit {
+        text-decoration: underline 2px;
+        text-underline-offset: 0.15em;
+      }
+
       /* The compass: nine cells, north the cycle's best, east the moment's; the path to the day as a fading trail. */
       .compass {
         position: relative;
@@ -675,6 +702,11 @@
         .cell.on rect {
           fill-opacity: 0.3;
           stroke-opacity: 0.8;
+        }
+
+        /* (The path and the day's dot let a press through to the cell under them.) */
+        :is(#trail, .dot, .ring) {
+          pointer-events: none;
         }
 
         .cell text {
@@ -1082,8 +1114,8 @@
 
       <section class="hero shell" id="hero" aria-labelledby="state">
         <p class="day"><span id="day">Today</span><button type="button" class="today" id="today" hidden>Back to today</button></p>
-        <h1 id="state"><span class="sr">Compass: </span><span id="name">…</span><small id="move"></small></h1>
-        <p class="facts"><span class="trend" id="trend"></span><span class="num" id="price"></span><span class="run" id="since"></span></p>
+        <h1 id="state"><span class="sr">Compass: </span><span id="name" role="button" tabindex="0" aria-pressed="false">…</span><small id="move"></small></h1>
+        <p class="facts"><span class="trend" id="trend" role="button" tabindex="0" aria-pressed="false"></span><span class="num" id="price"></span><span class="run" id="since"></span></p>
         <p class="why" id="why"></p>
       </section>
 
@@ -1592,7 +1624,7 @@
         tag = letGo && seen ? { x: dx - dw / 2, y: datesY() - 14, w: dw, h: 20 } : null;
 
         // (The still part made again only when what it shows has changed.)
-        const key = [view.a, view.b, range.lo, range.hi, width, height, plotTop, footTop, dpr, paint.ink, paint.states.join()].join("|");
+        const key = [view.a, view.b, range.lo, range.hi, width, height, plotTop, footTop, dpr, paint.ink, paint.states.join(), litKey()].join("|");
         if (key !== stillKey) {
           stillKey = key;
           if (stillCanvas.width !== canvas.width || stillCanvas.height !== canvas.height) (stillCanvas.width = canvas.width), (stillCanvas.height = canvas.height);
@@ -1607,19 +1639,20 @@
           const bent = curved();
 
           // The days under the price, each run of one state its colour, fading down: a state's runs one fill, of one
-          // gradient (nine at most, not one a run).
-          const runs = Array.from({ length: STATES.length }, () => /** @type {[number, number][]} */ ([]));
+          // gradient (eighteen at most, lit or not, not one a run). A day not lit (see lit), faded.
+          const runs = Array.from({ length: STATES.length * 2 }, () => /** @type {[number, number][]} */ ([]));
           for (let i = a; i <= b; ) {
             let j = i;
-            while (j + 1 <= b && d.state[j + 1] === d.state[i]) j++;
-            runs[d.state[i]].push([i, j]);
+            const on = litDay(i);
+            while (j + 1 <= b && d.state[j + 1] === d.state[i] && litDay(j + 1) === on) j++;
+            runs[d.state[i] * 2 + (on ? 0 : 1)].push([i, j]);
             i = j + 1;
           }
-          for (const [s, ofState] of runs.entries()) {
+          for (const [k, ofState] of runs.entries()) {
             if (!ofState.length) continue;
-            const gradient = ctx.createLinearGradient(0, plotTop, 0, bottom);
-            gradient.addColorStop(0, withAlpha(paint.states[s], 0.5));
-            gradient.addColorStop(1, withAlpha(paint.states[s], 0.06));
+            const s = k >> 1, strength = k & 1 ? FADED : 1, gradient = ctx.createLinearGradient(0, plotTop, 0, bottom);
+            gradient.addColorStop(0, withAlpha(paint.states[s], 0.5 * strength));
+            gradient.addColorStop(1, withAlpha(paint.states[s], 0.06 * strength));
             ctx.fillStyle = gradient;
             ctx.beginPath();
             // (A run's edges halfway between its end day and the next run's, on the price's line there, so its fill
@@ -1681,11 +1714,11 @@
           // The trend's lane, thin and soft, each run in its colour, named in the price's column.
           const lane = bottom + LANE_GAP;
           for (let i = a; i <= b; ) {
-            const t = d.trend[i];
+            const t = d.trend[i], on = litDay(i);
             let j = i;
-            while (j + 1 <= b && d.trend[j + 1] === t) j++;
+            while (j + 1 <= b && d.trend[j + 1] === t && litDay(j + 1) === on) j++;
             const x0 = Math.max(0, xOf(i) - halfDay()), x1 = Math.min(right, xOf(j) + halfDay());
-            ctx.fillStyle = withAlpha(paint.trends[t], 0.7);
+            ctx.fillStyle = withAlpha(paint.trends[t], 0.7 * (on ? 1 : FADED));
             ctx.fillRect(x0, lane, x1 - x0, LANE);
             i = j + 1;
           }
@@ -2155,7 +2188,7 @@
       }
       function drawPan() {
         if (!days) return;
-        const d = days, dpr = density(), w = pan.clientWidth, h = pan.clientHeight, key = `${w}×${h}×${dpr}×${paint.ink}`;
+        const d = days, dpr = density(), w = pan.clientWidth, h = pan.clientHeight, key = `${w}×${h}×${dpr}×${paint.ink}×${litKey()}`;
         for (const c of [panCanvas, panBase]) if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) (c.width = Math.round(w * dpr)), (c.height = Math.round(h * dpr));
         if (key !== panKey) {
           panKey = key;
@@ -2167,8 +2200,9 @@
           const y = (/** @type {number} */ price) => 4 + (1 - Math.log(price / lo) / Math.log(hi / lo)) * (h - 8);
           for (let i = d.first; i <= d.last; ) {
             let j = i;
-            while (j + 1 <= d.last && d.state[j + 1] === d.state[i]) j++;
-            base.fillStyle = withAlpha(paint.states[d.state[i]], 0.35);
+            const on = litDay(i);
+            while (j + 1 <= d.last && d.state[j + 1] === d.state[i] && litDay(j + 1) === on) j++;
+            base.fillStyle = withAlpha(paint.states[d.state[i]], 0.35 * (on ? 1 : FADED));
             base.fillRect((i - d.first) * per, 0, (j - i + 1) * per, h);
             i = j + 1;
           }
@@ -2253,6 +2287,9 @@
         $("move").textContent = state.move;
         $("hero").style.setProperty("--state", `var(--s-${state.id})`);
         $("trend").innerHTML = `${trendIcon(t)}${TRENDS[t].name} trend`;
+        $("name").dataset.light = `state:${s}`;
+        $("trend").dataset.light = `trend:${t}`;
+        sayLit();
         $("trend").style.setProperty("--t", `var(--s-${TRENDS[t].color})`);
         const [from, to] = runOf(d.state, day), length = to - from + 1;
         $("since").innerHTML = to === d.last ? `Since ${dated(from, dateOf(from).getUTCFullYear() !== dateOf(d.last).getUTCFullYear())}<small>· ${lasted(length)}</small>` : `${dated(from, dateOf(from).getUTCFullYear() !== dateOf(to).getUTCFullYear())} – ${dated(to)}<small>· ${lasted(length)}</small>`;
@@ -2264,6 +2301,44 @@
         if (say) remember();
         if (say) $("said").textContent = `${dated(day)}: ${state.name}, ${TRENDS[t].name.toLowerCase()} trend. ${why}`;
       }
+
+      // ── A mood or a trend lit: pressed wherever it's named (its compass cell, its row, the words over the chart), its
+      // days keep their colours wherever days are drawn (the chart's fills and lane, the pan bar, the strip), every
+      // other day's faded, the price itself as it is; the compass's other cells and the other rows dimmed. Pressed
+      // again, or Escape, none ──
+
+      /** The mood or trend lit (null: none). @type {{ kind: "state" | "trend", i: number } | null} */
+      let lit = null;
+      /** How strongly a day not lit is drawn, against its own colour's usual strength. */
+      const FADED = 0.15;
+      /** Whether a day's lit: every day while nothing is. */
+      const litDay = (/** @type {number} */ day) => !lit || /** @type {Days} */ (days)[lit.kind][day] === lit.i;
+      /** What's lit, for the drawings kept as bitmaps (made again when it changes). */
+      const litKey = () => (lit ? `${lit.kind}:${lit.i}` : "");
+      /** A mood or trend ("state:3", "trend:0") lit, or let go if it was. */
+      function light(/** @type {string} */ what) {
+        lit = what === litKey() ? null : { kind: /** @type {"state" | "trend"} */ (what.split(":")[0]), i: Number(what.split(":")[1]) };
+        sayLit();
+        redraw();
+      }
+      /** What's lit, where it's named: pressed there, the others dimmed. */
+      function sayLit() {
+        for (const at of /** @type {NodeListOf<HTMLElement>} */ (document.querySelectorAll("[data-light]"))) {
+          const on = at.dataset.light === litKey();
+          at.classList.toggle("lit", on);
+          if (at.hasAttribute("role")) at.setAttribute("aria-pressed", String(on));
+        }
+        document.body.classList.toggle("lighting", lit !== null);
+      }
+      document.addEventListener("click", (e) => {
+        const at = e.target instanceof Element ? /** @type {HTMLElement | null} */ (e.target.closest("[data-light]")) : null;
+        if (at?.dataset.light && days) light(at.dataset.light);
+      });
+      document.addEventListener("keydown", (e) => {
+        const at = e.target instanceof HTMLElement || e.target instanceof SVGElement ? e.target : null;
+        if ((e.key === "Enter" || e.key === " ") && at?.dataset.light && at.getAttribute("role") === "button" && days) e.preventDefault(), light(at.dataset.light);
+        else if (e.key === "Escape" && lit) (lit = null), sayLit(), redraw();
+      });
 
       // ── The compass ──
 
@@ -2284,15 +2359,15 @@
         const cells = [], words = [];
         for (const [i, s] of STATES.entries()) {
           const col = 1 - s.local, row = 1 - s.cycle, cx = (2 - col) * CELL, cy = row * CELL;
-          cells.push(`<g class="cell" data-i="${i}" style="--c: var(--s-${s.id})"><rect x="${cx + GAP / 2}" y="${cy + GAP / 2}" width="${CELL - GAP}" height="${CELL - GAP}" rx="14" /></g>`);
-          words.push(`<g class="cell" data-i="${i}" style="--c: var(--s-${s.id})"><text class="name" x="${cx + 18}" y="${cy + 44}">${s.name}</text><text class="share" x="${cx + 18}" y="${cy + 72}">${shares ? `${Math.round(shares[i].share * 100)}%` : "–"}</text><text class="move" x="${cx + 18}" y="${cy + 178}">${s.move}</text></g>`);
+          cells.push(`<g class="cell" data-i="${i}" data-light="state:${i}" role="button" tabindex="0" aria-label="${s.name}: light its days" aria-pressed="false" style="--c: var(--s-${s.id})"><rect x="${cx + GAP / 2}" y="${cy + GAP / 2}" width="${CELL - GAP}" height="${CELL - GAP}" rx="14" /></g>`);
+          words.push(`<g class="cell" data-i="${i}" data-light="state:${i}" style="--c: var(--s-${s.id})"><text class="name" x="${cx + 18}" y="${cy + 44}">${s.name}</text><text class="share" x="${cx + 18}" y="${cy + 72}">${shares ? `${Math.round(shares[i].share * 100)}%` : "–"}</text><text class="move" x="${cx + 18}" y="${cy + 178}">${s.move}</text></g>`);
         }
         // (The trend's three under them, cells of the same kind: bear west, bull east, as the moment's sides are.)
         const trends = days ? tally(days.trend, 3) : null;
         for (const [i, t] of TRENDS.entries()) {
           const cx = (2 - i) * CELL;
-          cells.push(`<g class="cell" data-t="${i}" style="--c: var(--s-${t.color})"><rect x="${cx + GAP / 2}" y="${TREND_Y + GAP / 2}" width="${CELL - GAP}" height="${TREND_H - GAP}" rx="14" /></g>`);
-          words.push(`<g class="cell" data-t="${i}" style="--c: var(--s-${t.color})"><text class="name" x="${cx + 18}" y="${TREND_Y + 44}">${t.name}</text><g class="icon" data-x="${cx + 18}" fill="none" stroke="var(--c)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${t.icon}</g><text class="share" x="${cx + 18}" y="${TREND_Y + 72}">${trends ? `${Math.round(trends[i].share * 100)}%` : "–"}</text></g>`);
+          cells.push(`<g class="cell" data-t="${i}" data-light="trend:${i}" role="button" tabindex="0" aria-label="${t.name} trend: light its days" aria-pressed="false" style="--c: var(--s-${t.color})"><rect x="${cx + GAP / 2}" y="${TREND_Y + GAP / 2}" width="${CELL - GAP}" height="${TREND_H - GAP}" rx="14" /></g>`);
+          words.push(`<g class="cell" data-t="${i}" data-light="trend:${i}" style="--c: var(--s-${t.color})"><text class="name" x="${cx + 18}" y="${TREND_Y + 44}">${t.name}</text><g class="icon" data-x="${cx + 18}" fill="none" stroke="var(--c)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${t.icon}</g><text class="share" x="${cx + 18}" y="${TREND_Y + 72}">${trends ? `${Math.round(trends[i].share * 100)}%` : "–"}</text></g>`);
         }
         // (The path under the cells' words, which keep a halo of the page's colour over it.)
         compass.innerHTML = `${cells.join("")}<g id="trail"></g>${words.join("")}${shares ? '<circle class="ring" id="ring" r="13" /><circle class="dot" id="dot" r="8" />' : ""}
@@ -2305,6 +2380,7 @@
         dot = compass.querySelector("#dot");
         compassDrawn = -1;
         placeIcons();
+        sayLit();
       }
       /** Each trend's arrow after its name, as wide as its font draws it (its size changes with the screen's). */
       function placeIcons() {
@@ -2354,7 +2430,7 @@
       const BAND = { top: 9, states: 13, gap: 2, trends: 3, side: 8 };
       function drawStrip() {
         if (!days) return;
-        const d = days, dpr = density(), w = strip.clientWidth, h = strip.clientHeight, key = `${w}×${h}×${dpr}×${paint.ink}`;
+        const d = days, dpr = density(), w = strip.clientWidth, h = strip.clientHeight, key = `${w}×${h}×${dpr}×${paint.ink}×${litKey()}`;
         for (const c of [strip, stripBase]) if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) (c.width = Math.round(w * dpr)), (c.height = Math.round(h * dpr));
         if (key !== stripKey) {
           stripKey = key;
@@ -2364,9 +2440,10 @@
           for (const [of, colors, y, height] of /** @type {const} */ ([[d.state, paint.states, BAND.top, BAND.states], [d.trend, paint.trends, BAND.top + BAND.states + BAND.gap, BAND.trends]])) {
             for (let i = d.first; i <= d.last; ) {
               let j = i;
-              while (j + 1 <= d.last && of[j + 1] === of[i]) j++;
+              const on = litDay(i);
+              while (j + 1 <= d.last && of[j + 1] === of[i] && litDay(j + 1) === on) j++;
               // (Tinted as the compass's cells and the pan bar are, not at full strength.)
-              base.fillStyle = withAlpha(colors[of[i]], 0.5);
+              base.fillStyle = withAlpha(colors[of[i]], 0.5 * (on ? 1 : FADED));
               base.fillRect(BAND.side + (i - d.first) * per, y, (j - i + 1) * per, height);
               i = j + 1;
             }
@@ -2531,6 +2608,10 @@
         $("states").innerHTML = STATES.map((s, i) => ({ s, i })).sort((p, q) => (states ? states[q.i].share - states[p.i].share : 0)).map(({ s, i }) => row(i, `${s.name}<small>${s.move}</small>`, states?.[i] ?? null, top, `var(--s-${s.id})`)).join("");
         const topTrend = Math.max(...(trends ?? []).map((t) => t.share));
         $("trends").innerHTML = TRENDS.map((t, i) => row(i, `${t.name}${trendIcon(i)}`, trends?.[i] ?? null, topTrend, `var(--s-${t.color})`)).join("");
+        for (const [list, kind] of /** @type {const} */ ([["states", "state"], ["trends", "trend"]])) {
+          for (const li of /** @type {HTMLCollectionOf<HTMLElement>} */ ($(list).children)) Object.assign(li, { tabIndex: 0 }).setAttribute("role", "button"), (li.dataset.light = `${kind}:${li.dataset.i}`);
+        }
+        sayLit();
       }
 
       /** Every share, bar and run count as of the compass's day: the days from the first to it. (Rows keep their order, all
