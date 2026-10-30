@@ -21614,13 +21614,18 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
 
       // ── Heatmaps: the URPD, a day a column ──────────────────────────────────────
 
+      /** A heatmap's or a profile's measure by its name ("Supply"), its weight by its ("Every coin", "Awake"). @param {Layer} layer */
+      const measureName = (layer) => HEAT_MEASURES.find(([id]) => id === (layer.measure ?? "supply"))?.[1];
+      const weightName = (/** @type {Layer} */ layer) => HEAT_WEIGHTS.find(([id]) => id === (layer.weight ?? ""))?.[1];
+      /** Its weight as its name ends with it (", awake"; every coin: nothing). @param {Layer} layer */
+      const weightSaid = (layer) => (layer.weight ? `, ${/** @type {string} */ (weightName(layer)).toLowerCase()}` : "");
       /** A heatmap's name: its measure by cost basis, its cohort's, its weight's ("Supply by cost basis, short-term holders, awake"). @param {Layer} layer */
-      const heatName = (layer) => layer.type === "profile" ? profileName(layer) : `${HEAT_MEASURES.find(([id]) => id === (layer.measure ?? "supply"))?.[1]} by cost basis, ${inSentence(cohortName(layer.heatmap ?? "all"))}${layer.weight ? `, ${/** @type {string} */ (HEAT_WEIGHTS.find(([id]) => id === layer.weight)?.[1]).toLowerCase()}` : ""}`;
+      const heatName = (layer) => layer.type === "profile" ? profileName(layer) : `${measureName(layer)} by cost basis, ${inSentence(cohortName(layer.heatmap ?? "all"))}${weightSaid(layer)}`;
       /**
        * A profile's name: its measure's, of its holder groups (two named, more counted), its weight's ("Supply profile,
        * short-term and long-term holders"). @param {Layer} layer
        */
-      const profileName = (layer, grouped = true) => ((groups) => `${HEAT_MEASURES.find(([id]) => id === (layer.measure ?? "supply"))?.[1]} profile${!grouped || !groups.length ? "" : `, ${groups.length > 2 ? (groups.every((cohort) => HEAT_AGES.includes(cohort)) ? (groups.length === HEAT_AGES.length ? "every age band" : `${groups.length} age bands`) : `${groups.length} holder groups`) : groups.map((cohort) => inSentence(cohortName(cohort))).join(" and ")}`}${layer.weight ? `, ${/** @type {string} */ (HEAT_WEIGHTS.find(([id]) => id === layer.weight)?.[1]).toLowerCase()}` : ""}`)(layer.profile ?? []);
+      const profileName = (layer, grouped = true) => ((groups) => `${measureName(layer)} profile${!grouped || !groups.length ? "" : `, ${groups.length > 2 ? (groups.every((cohort) => HEAT_AGES.includes(cohort)) ? (groups.length === HEAT_AGES.length ? "every age band" : `${groups.length} age bands`) : `${groups.length} holder groups`) : groups.map((cohort) => inSentence(cohortName(cohort))).join(" and ")}`}${weightSaid(layer)}`)(layer.profile ?? []);
       /** What a profile is, said where one's added, and in a row's few words. */
       const PROFILE_ABOUT = "Holder groups' supply, capital or unrealized P&L by the price it was bought at, on the view's last day, as bars at the chart's right edge: each group its color, under the price in profit.";
       const PROFILE_SHORT = "Holder groups' cost basis, at the right edge";
@@ -21677,8 +21682,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           layer.type === "profile"
             ? { key: "holders", icon: ICONS.people, label: "Holders", aside: ((groups) => (groups.length > 2 ? plural(groups.length, "group") : groups.map(cohortName).join(", ") || "None"))(layer.profile ?? []), group: "Profile", leads: true, page: () => cohortsPage(id) }
             : { key: "holders", icon: ICONS.people, label: "Holders", aside: cohortName(layer.heatmap ?? "all"), group: "Heatmap", leads: true, page: choices("Holders", HEAT_COHORTS.map(([id, name]) => /** @type {[string, string]} */ ([id, name])), (item) => item.heatmap ?? "all", (item, cohort) => (item.heatmap = cohort)) },
-          { key: "measure", icon: ICONS.coins, label: "Measure", aside: HEAT_MEASURES.find(([measure]) => measure === (layer.measure ?? "supply"))?.[1], group: kind, page: choices("Measure", HEAT_MEASURES, (item) => item.measure ?? "supply", (item, measure) => reshape(item, (one) => (one.measure = measure === "supply" ? undefined : measure)), (measure) => HEAT_SAYS[measure]) },
-          { key: "weight", icon: ICONS.hourglass, label: "Weight", aside: HEAT_WEIGHTS.find(([weight]) => weight === (layer.weight ?? ""))?.[1], group: kind, page: choices("Weight", HEAT_WEIGHTS, (item) => item.weight ?? "", (item, weight) => (item.weight = weight || undefined), (weight) => HEAT_SAYS[weight]) },
+          { key: "measure", icon: ICONS.coins, label: "Measure", aside: measureName(layer), group: kind, page: choices("Measure", HEAT_MEASURES, (item) => item.measure ?? "supply", (item, measure) => reshape(item, (one) => (one.measure = measure === "supply" ? undefined : measure)), (measure) => HEAT_SAYS[measure]) },
+          { key: "weight", icon: ICONS.hourglass, label: "Weight", aside: weightName(layer), group: kind, page: choices("Weight", HEAT_WEIGHTS, (item) => item.weight ?? "", (item, weight) => (item.weight = weight || undefined), (weight) => HEAT_SAYS[weight]) },
           grid
             ? { key: "density", icon: ICONS.layers, label: "Density", aside: `${layer.rows ?? 200} rows per ×10`, group: kind, page: choices("Density", HEAT_ROWS.map((n) => /** @type {[number, string]} */ ([n, `${n} rows per ×10`])), (item) => item.rows ?? 200, (item, n) => (item.rows = n === 200 ? undefined : n)) }
             : { key: "density", icon: ICONS.layers, label: "Density", aside: "Not on this scale", disabled: "On a log or linear scale", group: kind },
