@@ -1317,10 +1317,10 @@
 
       <section class="part" id="index" aria-labelledby="index-title">
         <header><h2 id="index-title">The index</h2><p class="index-lines" id="index-lines" role="group" aria-label="Lines shown" data-alone=""><button type="button" data-line="index" aria-pressed="true"><i aria-hidden="true"></i>Index <b id="line-index"></b></button><button type="button" data-line="raw" aria-pressed="true"><i aria-hidden="true"></i>Raw <b id="line-raw"></b></button></p></header>
-        <figure class="index-chart" id="index-chart" aria-label="The index day by day, from a year after the first day to today, the raw one under it: point at a day to read it">
+        <figure class="index-chart" id="index-chart" aria-label="The index day by day, from a year after the first day to today, the raw one beside it, the trend under them: point at a day to read it">
           <canvas id="index-canvas" aria-hidden="true"></canvas>
         </figure>
-        <p class="note">How far the price is from each cloud's middle, the two distances added, ranked against every day before, each weighing half as much a halving cycle further back: <b>0</b> as far under both clouds as lately, <b>100</b> as far over. <span id="index-read"></span> The <b>raw</b> index, faint beside it or shown alone: the compass's own place ranked the same way, closer to the moods, and faster.</p>
+        <p class="note">How far the price is from each cloud's middle, the two distances added, ranked against every day before, each weighing half as much a halving cycle further back: <b>0</b> as far under both clouds as lately, <b>100</b> as far over. <span id="index-read"></span> The <b>raw</b> index, faint beside it or shown alone: the compass's own place ranked the same way, closer to the moods, and faster. The lane under them is the trend's, as under the price.</p>
       </section>
 
       <section class="part" aria-labelledby="how-title">
@@ -2667,8 +2667,9 @@
       new ResizeObserver(redraw).observe(strip);
 
       // ── The index, in a part of its own: every day from a year after the first to today, the index and the raw one,
-      // either or both (the raw one faint beside the index, in its colours alone); the day pointed at (or today) tagged
-      // along its foot with its price, ringed on each line, their values in the header's switches ──
+      // either or both (the raw one faint beside the index, in its colours alone), the trend's lane under them as under
+      // the price; the day pointed at (or today) tagged along its foot with its price, ringed on each line, their values
+      // in the header's switches ──
 
       const indexChart = $("index-chart"), indexCanvas = /** @type {HTMLCanvasElement} */ ($("index-canvas"));
       const indexContext = /** @type {CanvasRenderingContext2D} */ (indexCanvas.getContext("2d"));
@@ -2679,12 +2680,13 @@
       let indexAt = /** @type {number | null} */ (null);
       /** The lines shown: either or both, never neither. */
       const lines = { index: true, raw: true };
-      /** Its layout, in CSS pixels: its lines' top, the room at the right for its scale, the dates' row under it. */
-      const INDEX_LAYOUT = { top: 8, right: 30, dates: 26 };
+      /** Its layout, in CSS pixels: its lines' top, the room at the right for its scale, the trend's lane's gap under
+       * them, the lane and the dates' row under it. */
+      const INDEX_LAYOUT = { top: 8, right: 30, lane: 8, dates: 36 };
       function drawIndex() {
         const w = indexCanvas.clientWidth, h = indexCanvas.clientHeight;
         if (!days || !w) return;
-        const d = days, dpr = density(), right = w - INDEX_LAYOUT.right, bottom = h - INDEX_LAYOUT.dates, from = d.first + RANKED_AFTER;
+        const d = days, dpr = density(), right = w - INDEX_LAYOUT.right, bottom = h - INDEX_LAYOUT.dates, lane = bottom + INDEX_LAYOUT.lane, from = d.first + RANKED_AFTER;
         const x = (/** @type {number} */ day) => ((day - from + 0.5) / (d.last - from + 1)) * right;
         const y = (/** @type {number} */ index) => INDEX_LAYOUT.top + (1 - index / 100) * (bottom - INDEX_LAYOUT.top);
         const colourOf = (/** @type {number} */ index) => indexMix(index, [paint.states[0], paint.states[4], paint.states[8]]);
@@ -2740,6 +2742,17 @@
             }
           }
           g.globalAlpha = 1;
+          // The trend's lane, as under the price: each run in its colour; not lit, faded.
+          const half = right / (d.last - from + 1) / 2;
+          for (let i = from; i <= d.last; ) {
+            const t = d.trend[i], on = litDay(i);
+            let j = i;
+            while (j + 1 <= d.last && d.trend[j + 1] === t && litDay(j + 1) === on) j++;
+            const x0 = Math.max(0, x(i) - half), x1 = Math.min(right, x(j) + half);
+            g.fillStyle = withAlpha(paint.trends[t], 0.7 * (on ? 1 : FADED));
+            g.fillRect(x0, lane, x1 - x0, LANE);
+            i = j + 1;
+          }
           const today = Math.round(d.index[d.last]);
           $("index-read").textContent = `Today's, ${today}: further over them than on ${today}% of the days before.`;
         }
@@ -2761,7 +2774,7 @@
           if (!((to - year) % every) && yx > 16 && yx < right - 16 && Math.abs(yx - tx) > tw / 2 + 18) indexContext.fillText(String(year), yx, h - 6);
         }
         // A line down the day pointed at (today, its rings alone); each line shown ringed on it.
-        if (indexAt !== null) (indexContext.fillStyle = withAlpha(paint.ink, 0.28)), indexContext.fillRect(at - 0.5, 0, 1, bottom);
+        if (indexAt !== null) (indexContext.fillStyle = withAlpha(paint.ink, 0.28)), indexContext.fillRect(at - 0.5, 0, 1, lane + LANE);
         /** @type {[number, number, string][]} */
         const rings = [];
         if (lines.raw) rings.push(both ? [y(d.raw[day]), 3, withAlpha(paint.ink, 0.5)] : [y(d.raw[day]), 4.5, colourOf(d.raw[day])]);
