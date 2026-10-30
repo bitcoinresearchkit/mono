@@ -24162,12 +24162,24 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             // so their edges never cross, and none loses its peaks (a 100% stack's top is flat).
             const stack = shaped.filter((item) => item.stack);
             if (stack.length > 1) {
-              const shared = Array.from({ length: B }, (_, b) => [...new Set(stack.flatMap((item) => (item.points[b] ?? []).map(([i]) => i)))].sort((a, z) => a - z));
+              // (Each bucket's dates, any of its layers', in order, once each; each layer's values there, finite by a
+              // subtraction. By loops: no call a point.)
+              const shared = new Array(B);
+              for (let b = 0; b < B; b++) {
+                const all = [], indices = [];
+                for (const item of stack) for (const point of item.points[b] ?? []) all.push(point[0]);
+                all.sort((a, z) => a - z);
+                for (let k = 0; k < all.length; k++) if (k === 0 || all[k] !== all[k - 1]) indices.push(all[k]);
+                shared[b] = indices;
+              }
               for (const item of stack) {
-                item.points = shared.map((indices) => {
-                  const at = indices.map((i) => /** @type {[number, number]} */ ([i, item.inView[i]])).filter(([, value]) => Number.isFinite(value));
-                  return at.length ? at : null;
-                });
+                const points = new Array(B);
+                for (let b = 0; b < B; b++) {
+                  const at = [];
+                  for (const i of shared[b]) if (item.inView[i] - item.inView[i] === 0) at.push(/** @type {[number, number]} */ ([i, item.inView[i]]));
+                  points[b] = at.length ? at : null;
+                }
+                item.points = points;
               }
             }
             let lo = Infinity, hi = -Infinity;
@@ -24269,7 +24281,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 const yAt = y(scaled(value)), { color, dash, line } = lineLook(layer, key), [, , length, gap] = dashOf(dash);
                 if (line !== false && yAt > paneTop && yAt < paneBottom) drawn.marks.push({ k: "across", c: color, d: `M0 ${yAt}H${W}`, ...(gap ? { dash: `${length} ${gap}` } : {}), ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}) });
               }
-              const at = ([i, value]) => `${xText(i)} ${y(value)}`;
+              const at = (/** @type {[number, number]} */ point) => `${xText(point[0])} ${y(point[1])}`;
               const look = { c: layer.color, ...(opacityOf(layer) < 1 ? { op: opacityOf(layer) } : {}), ...(layer.outline && OUTLINED.has(layer.type) ? { o: doc.layers.indexOf(layer) + 1 } : {}) };
               // (A stacked area's band, as the chart draws it (see bvBandFill): down to the nearest band or line under it with
               // a value there, else the stack's floor: zero, the pane's foot on a log scale.)
@@ -24344,7 +24356,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               if (!runs.length) return;
               const along = (/** @type {number[]} */ part) => part.flatMap((b) => /** @type {[number, number][]} */ (points[b]));
               // (Its latest value's dot, in the color it's drawn in there.)
-              const pieces = byColor(joined(runs.map(along)), ([i]) => tintAt(i), layer.type !== "dots"), last = pieces.at(-1);
+              // (Painted date by date, its pieces by color; else one a run.)
+              const pieces = dateColors ? byColor(joined(runs.map(along)), ([i]) => tintAt(i), layer.type !== "dots") : runs.map((run) => ({ color: layer.color, points: along(run) })), last = pieces.at(-1);
               if (!last) return;
               const [endAt, endValue] = /** @type {[number, number]} */ (last.points.at(-1));
               const [, , length, gap] = LINED.has(layer.type) ? dashOf(layer.dash) : DASHES[0];
