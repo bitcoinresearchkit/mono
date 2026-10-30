@@ -10864,7 +10864,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       </section>
 
       <nav class="mobile-bar" aria-label="Studio">
-        <button id="mobile-charts" class="tab" type="button" data-action="charts"><span data-icon="home"></span><span>Home</span></button>
+        <button id="mobile-charts" class="tab" type="button" data-action="home-tab"><span data-icon="home"></span><span>Home</span></button>
         <button class="tab" type="button" data-action="palette" data-typing><span data-icon="browse"></span><span>Search</span></button>
         <button id="mobile-add" class="tab add" type="button" aria-haspopup="menu"><span data-icon="plus"></span><span class="label">Add</span></button>
         <button id="mobile-layers" class="tab" type="button" data-sheet="panel" aria-expanded="false"><span data-icon="panel"></span><span>Layers</span></button>
@@ -11391,7 +11391,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         label: svg('<path d="M2.5 8h2M11.5 8h2"/><rect x="4.5" y="5" width="7" height="6" rx="1.5"/>'),
         legend: svg('<path d="M2.5 5h2.5M7.5 5h6M2.5 11h2.5M7.5 11h4"/>'),
         keep: svg('<path d="M4.5 2.5h7v11L8 10.6l-3.5 2.9Z"/>'),
-        home: svg('<path d="M2.5 7.3 8 2.8l5.5 4.5V13a.5.5 0 0 1-.5.5H9.8V10H6.2v3.5H3a.5.5 0 0 1-.5-.5Z"/>'),
+        home: svg('<path d="M1.8 7.6 8 2.4l6.2 5.2"/><path d="M3.6 6.3v6.5a1.2 1.2 0 0 0 1.2 1.2h6.4a1.2 1.2 0 0 0 1.2-1.2V6.3"/><path d="M6.5 14v-3.2a1.5 1.5 0 0 1 3 0V14"/>'),
         checkbox: svg('<rect x="2.5" y="2.5" width="11" height="11" rx="3"/><path d="m5.4 8.2 1.8 1.8 3.4-3.7"/>'),
         expand: svg('<path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10"/>'),
         shrink: svg('<path d="M6 2.5V6H2.5M13.5 6H10V2.5M10 13.5V10h3.5M2.5 10H6v3.5"/>'),
@@ -38787,8 +38787,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else if (action === "import") $("import-file").click();
         else if (action === "download-all") downloadAll();
         // (Home, from anywhere, a chart too: a page of its own, not the one a chart was opened from (its path, Back, go
-        // there). The sidebar's, the phone's tab's.)
+        // there). The sidebar's.)
         else if (action === "charts") goTo({ top: true });
+        // (The phone's Home tab, as iOS's tabs are: from a chart, Home where it was left (its page, scrolled as it was);
+        // on a page of Home's, up to its top; at its top, back to the top of it.)
+        else if (action === "home-tab") {
+          if (home) goTo({ top: true });
+          // (As many of its cards as it showed, as Back brings it: past a reload too.)
+          else (galleryShown = Number.isInteger(leftPlace?.shown) ? /** @type {number} */ (leftPlace?.shown) : galleryShown), showHome(true, leftPlace);
+        }
         else if (action === "toggle-sidebar") toggleSidebar();
         else if (action === "toggle-panel") togglePanel();
         else if (action === "link-view") linkView(!prefs.linkView);
