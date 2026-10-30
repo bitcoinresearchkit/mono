@@ -13524,6 +13524,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const acrossUnfit = (doc, layer) => ((pane) => (pane?.stack ? "Not drawn in a stack" : paneMode(pane) >= 2 ? "Not drawn on a percent or indexed scale" : ""))(doc.panes.find((item) => item.id === layer.pane));
 
       const MAX_LAYERS = 40, MAX_PANES = 12, MAX_LEVELS = 12;
+      /** Layers enough that a chart's build takes more than a frame or two on a phone without its JIT (six daily series, some 36,000 points: ~100 ms): see draw. */
+      const MANY_LAYERS = 6;
       /** A formula's length at most: typed, as read from a link or a file. */
       const FORMULA_MAX = 1000;
       /** Whether a chart has room for another layer; says so when it doesn't. @param {Chart} doc */
@@ -16876,6 +16878,10 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const doc = structuredClone(chart);
         drawingData = dataKey(doc);
         const first = drawnChart !== doc.id;
+        // (Grown out of its card, a chart of many layers is built once it's grown, as one whose data loads is: its build
+        // mid-motion (23 bands' on a phone without its JIT, a third of a second) held the motion still. Fewer build in a
+        // frame or two, drawn as they grow.)
+        const later = first && fromHome && doc.layers.filter((layer) => !layer.hidden).length >= MANY_LAYERS;
         // Each chart keeps its span at each fine interval while the view it backs is the one the chart opens on (another
         // chart opened, its view left at this interval): back at it, it's as it was left, its chunks at hand (unless the
         // memory's budget let them go). Opening on its preset instead (an interval switch, a view left at another
@@ -16895,15 +16901,25 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           $("navigator").classList.add("waiting");
         }
         // (Another chart's, loading: the one before out of sight meanwhile, its lines and legend not under the words.)
-        $("chart").classList.toggle("waiting", showLoading && first);
+        $("chart").classList.toggle("waiting", (showLoading || later) && first);
         if (showLoading) $("unreached").hidden = true;
         // Data from memory, asked before the latest block: its tails come again. (Its span as asked: what it reaches.)
         const live = !FINE.has(doc.index) || spanOf(doc)?.live !== false;
         const result = await resolve(doc, fresh || stale(doc));
         // (Its data come while the chart grows out of its tile: drawn once it's grown, not built mid-motion (a phone's
         // build of a big one, a second, held the motion still).)
-        if (showLoading) await Promise.all(morphing.map((animation) => animation.finished.catch(() => {})));
+        if (showLoading || later) await Promise.all(morphing.map((animation) => animation.finished.catch(() => {})));
         if (version !== drawVersion) return false;
+        // (Back to the grid while it grew (its growth cancelled): built when it's opened again, as it grows (see
+        // leaveHome's undrawn), not during the shrink.)
+        if ((showLoading || later) && home) {
+          // (Its loading words gone with it: another opened next, its data at hand, says nothing of loading.)
+          $("loading").hidden = true;
+          $("progress").hidden = true;
+          $("navigator").classList.remove("waiting");
+          undrawn = true;
+          return false;
+        }
         $("loading").hidden = true;
         $("progress").hidden = true;
         $("navigator").classList.remove("waiting");
