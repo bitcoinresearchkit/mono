@@ -267,6 +267,9 @@ export class Pane {
     this.plot = Math.max(1, width - axis);
     this.scale.height = height;
     if (this.left) this.left.height = height;
+    // (Its ticks' room: at most one each 28 pixels (see Scale.ticks), a few more at the ends.)
+    const ticks = Math.ceil(height / 28) + 4;
+    if (this.ticks.length < ticks) (this.ticks = new Float64Array(ticks)), (this.axisTicks = new Float64Array(ticks));
     // (Its layer over everything: over its plot.)
     const over = this.overCanvas;
     if (over) {

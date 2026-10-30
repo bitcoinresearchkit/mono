@@ -114,17 +114,25 @@ export class Scale {
       const perDecade = this.height / decades;
       let set = 0;
       while (set + 1 < DECADE.length && DECADE_GAP[set + 1] * perDecade >= every) set++;
+      // (Every few decades: from the first power of ten in view (a range of a decade or more has one), else from the one
+      // under it, its 2s and 5s in view.)
       const steps = DECADE[set], every10 = perDecade >= every ? 1 : Math.ceil(every / perDecade);
-      for (let p = Math.floor(Math.log10(lo)); p <= Math.ceil(Math.log10(hi)) && count < out.length; p += every10)
+      for (let p = every10 > 1 ? Math.ceil(Math.log10(lo)) : Math.floor(Math.log10(lo)); p <= Math.ceil(Math.log10(hi)) && count < out.length; p += every10)
         for (let k = 0; k < steps.length; k++) {
           const v = steps[k] * 10 ** p;
           if (v >= lo && v <= hi && count < out.length) out[count++] = v;
         }
       return count;
     }
-    const raw = (hi - lo) / want, power = 10 ** Math.floor(Math.log10(raw)), unit = raw / power;
+    // (Round numbers a step apart: a log scale's (under a decade) closest at its top, where a value takes fewest pixels.)
+    const raw = this.mode === "log" ? (every * hi * Math.LN10 * decades) / this.height : (hi - lo) / want, power = 10 ** Math.floor(Math.log10(raw)), unit = raw / power;
     const step = (unit <= 1 ? 1 : unit <= 2 ? 2 : unit <= 2.5 ? 2.5 : unit <= 5 ? 5 : 10) * power;
     for (let v = Math.ceil(lo / step) * step; v <= hi && count < out.length; v += step) out[count++] = Math.abs(v) < step * 1e-9 ? 0 : v;
+    // (Too short for two steps of it (a log scale's few pixels): one round number in view at least.)
+    if (!count && out.length) {
+      const one = 10 ** Math.floor(Math.log10(hi - lo || Math.abs(hi) || 1)), v = Math.ceil(lo / one) * one;
+      if (v <= hi) out[count++] = v;
+    }
     return count;
   }
 }
