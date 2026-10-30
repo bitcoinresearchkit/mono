@@ -210,6 +210,17 @@ scenario("data as columns", (L, el) => {
     ["emptied", () => set(s3, [], new Float64Array(0))], ...pan(c, 3, 400, 1400, 900),
     ["back", () => set(s3, times, v3)], ["last fit", () => c.timeScale().fitContent()]];
 });
+// Points of their own colors among others of none (patch 58: a point of none takes the style made first): an area's
+// points each with one of its three colors (its line's, its fill's top or foot), restyled, then a live point with one.
+scenario("an area's points of their own colors", (L, el) => {
+  seed = 58;
+  const c = base(L, el);
+  const own = (i) => (i % 7 === 0 ? { topColor: "#f008" } : i % 11 === 0 ? { bottomColor: "#00f8" } : i % 13 === 0 ? { lineColor: "#ff0" } : {});
+  const s1 = c.addSeries(L.AreaSeries, { lineColor: "#0f8", topColor: "#0f84", bottomColor: "#0f80" }); s1.setData(walk(3000, 90, 0.02).map((row, i) => ("value" in row ? { ...row, ...own(i) } : row)));
+  return [["full", () => c.timeScale().fitContent()], ...pan(c, 3, 1000, 2000, 120),
+    ["restyled", () => s1.applyOptions({ lineColor: "#fff", topColor: "#fff4" })], ...pan(c, 2, 2000, 2400, 120),
+    ["a live point, its foot's own", () => s1.update({ time: day(3000), value: 95, bottomColor: "#f0f8" })], ["fit", () => c.timeScale().fitContent()]];
+});
 for (const mode of [0, 1]) scenario(`candles and bars mode ${mode}`, (L, el) => {
   seed = 123 + mode;
   const c = base(L, el, { rightPriceScale: { mode, entireTextOnly: true } });

@@ -1086,6 +1086,28 @@ opened again on Studio's age bands' 100% stack (23 bands): the iPhone without it
 interval's), the chart's build 388 → 334; Chromium at 4x CPU, the library's intake 53-54 → 44-56 ms (a JIT makes rows
 cheap: no gain there, no loss).
 
+## 58. A point of no colors of its own: its style made once
+
+Making a series' points from its rows (`zM`, at each data change) and restyling them (`BM`, at an options change) asked
+its style function for each point (`Sh`, then its type's in `St`: the row read, an object made of its colors or the
+options'), compared key by key with the first's (`bvSame`, 23): for a 23-band stack of 6,000 points, 138,000 of each at
+every change. A line's, a histogram's, an area's and a custom series' style is made of a point's own colors and the
+options alone (a baseline's line takes its color from its value, bars and candles theirs from open and close: not
+these), so a point with none of its type's own colors has the style of every other such point: made for the first one
+in a pass, the same object given to the others (`bvSame` not needed for them).
+
+- `class xt` (a series' colorer): `bvK`, its type's own colors' keys on a row (Line, Histogram, Custom: `R`; Area: `vt`,
+  `ah`, `oh`); `bvSh(t, i, c)`, `Sh`, but for a row with none of them the pass's own (`c.bvP`, made once).
+- `bvOwn()`'s `Sh` (points made, 23) and `BM()`: through `bvSh`; a style that's the first's object isn't compared.
+
+`tests.html`: "an area's points of their own colors" (points with one of an area's three colors each among points of
+none, restyled, a live point with one): 9/9 the same; 0/9 with an area's fill colors left out of `bvK` (530,210 values
+apart), and with a row's own colors never read, every scenario with colored points differs. Measured, an interval
+opened again on Studio's age bands' 100% stack: the iPhone without its JIT, its points made (`zM`) 228–232 → 134–169
+samples, all of it 602–607 → 449–527; 23 areas of 6,000 points set and drawn at once, each alone in a page: Chromium
+27.8–29.0 → 28.3–30.2 ms, at 4x CPU 108–123 → 112–124 (no change), Mullvad Browser 67.9–69.6 → 64.6–66.3 ms. Studio's
+charts of ten presets the same to the pixel.
+
 ## Typings
 
 `dist/typings.d.ts` declares what the patches add to the API (the chart's `bvFlush`; a scale's `bvRange`, `bvSetRange`,
