@@ -59,6 +59,8 @@
         --s-relief: light-dark(oklch(0.5 0.15 275), oklch(0.75 0.13 275));
         --s-apathy: light-dark(oklch(0.52 0.17 345), oklch(0.74 0.16 345));
         --s-fear: light-dark(oklch(0.52 0.19 27), oklch(0.7 0.19 27));
+        /* An index's colours, 0 to 100: Fear's, Doubt's, Optimism's. */
+        --index-ramp: linear-gradient(90deg, var(--s-fear), var(--s-doubt), var(--s-optimism));
         --sans: Inter, -apple-system, system-ui, sans-serif;
         --serif: "Instrument Serif", ui-serif, Georgia, serif;
         --gutter: max(16px, env(safe-area-inset-left));
@@ -327,7 +329,7 @@
                 position: absolute;
                 inset: 3px 0;
                 border-radius: 2px;
-                background: linear-gradient(90deg, var(--s-fear), var(--s-doubt), var(--s-optimism));
+                background: var(--index-ramp);
                 opacity: 0.45;
               }
 
@@ -688,17 +690,50 @@
         }
       }
 
-      /* The index's part: its whole history, the raw one faint under it; the day pointed at (or today) said in its
-         header, the line under it read the same way. */
-      .index-now {
+      /* The index's part: its whole history, the index and the raw one, either or both, by the switches in its header
+         (each its line's swatch, its name and its value on the day pointed at, or today). */
+      .index-lines {
+        display: flex;
+        gap: 16px;
         color: var(--soft);
         font-size: 13px;
         font-variant-numeric: tabular-nums;
 
-        b {
-          margin: 0 6px 0 8px;
-          color: var(--ink);
-          font-weight: 600;
+        button {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 0;
+          border: 0;
+          background: none;
+          color: inherit;
+          font: inherit;
+          cursor: pointer;
+          -webkit-tap-highlight-color: transparent;
+          transition: opacity 0.2s;
+
+          &[aria-pressed="false"] {
+            opacity: 0.4;
+          }
+
+          i {
+            width: 14px;
+            height: 3px;
+            border-radius: 2px;
+            background: var(--index-ramp);
+          }
+
+          b {
+            min-width: 3ch;
+            color: var(--ink);
+            font-weight: 600;
+          }
+        }
+
+        /* (The raw one's swatch faint, as its line beside the index; alone, in its colours.) */
+        &:not([data-alone="raw"]) [data-line="raw"] i {
+          height: 2px;
+          background: color-mix(in srgb, var(--ink) 30%, transparent);
         }
       }
 
@@ -1281,11 +1316,11 @@
       </section>
 
       <section class="part" id="index" aria-labelledby="index-title">
-        <header><h2 id="index-title">The index</h2><p class="index-now" id="index-now"></p></header>
+        <header><h2 id="index-title">The index</h2><p class="index-lines" id="index-lines" role="group" aria-label="Lines shown" data-alone=""><button type="button" data-line="index" aria-pressed="true"><i aria-hidden="true"></i>Index <b id="line-index"></b></button><button type="button" data-line="raw" aria-pressed="true"><i aria-hidden="true"></i>Raw <b id="line-raw"></b></button></p></header>
         <figure class="index-chart" id="index-chart" aria-label="The index day by day, from a year after the first day to today, the raw one under it: point at a day to read it">
           <canvas id="index-canvas" aria-hidden="true"></canvas>
         </figure>
-        <p class="note">How far the price is from each cloud's middle, the two distances added, ranked against every day before, each weighing half as much a halving cycle further back: <b>0</b> as far under both clouds as lately, <b>100</b> as far over. <span id="index-read"></span> The faint line is the <b>raw</b> index: the compass's own place ranked the same way, closer to the moods, and faster.</p>
+        <p class="note">How far the price is from each cloud's middle, the two distances added, ranked against every day before, each weighing half as much a halving cycle further back: <b>0</b> as far under both clouds as lately, <b>100</b> as far over. <span id="index-read"></span> The <b>raw</b> index, faint beside it or shown alone: the compass's own place ranked the same way, closer to the moods, and faster.</p>
       </section>
 
       <section class="part" aria-labelledby="how-title">
@@ -2631,16 +2666,19 @@
       }
       new ResizeObserver(redraw).observe(strip);
 
-      // ── The index, in a part of its own: every day from the first to today, the raw index faint under it; the day
-      // pointed at (or today) said over it, ringed on both ──
+      // ── The index, in a part of its own: every day from a year after the first to today, the index and the raw one,
+      // either or both (the raw one faint beside the index, in its colours alone); the day pointed at (or today) tagged
+      // along its foot with its price, ringed on each line, their values in the header's switches ──
 
       const indexChart = $("index-chart"), indexCanvas = /** @type {HTMLCanvasElement} */ ($("index-canvas"));
       const indexContext = /** @type {CanvasRenderingContext2D} */ (indexCanvas.getContext("2d"));
-      /** Its lines drawn once (for its days, a size, a density, colours, what's lit), the day pointed at over them. */
+      /** Its lines drawn once (for its days, a size, a density, colours, what's lit, which lines), the day over them. */
       const indexBase = document.createElement("canvas");
       let indexKey = "", indexDays = /** @type {Days | null} */ (null), indexTold = "";
       /** The day pointed at on it, or null: today's said. */
       let indexAt = /** @type {number | null} */ (null);
+      /** The lines shown: either or both, never neither. */
+      const lines = { index: true, raw: true };
       /** Its layout, in CSS pixels: its lines' top, the room at the right for its scale, the dates' row under it. */
       const INDEX_LAYOUT = { top: 8, right: 30, dates: 26 };
       function drawIndex() {
@@ -2649,7 +2687,9 @@
         const d = days, dpr = density(), right = w - INDEX_LAYOUT.right, bottom = h - INDEX_LAYOUT.dates, from = d.first + RANKED_AFTER;
         const x = (/** @type {number} */ day) => ((day - from + 0.5) / (d.last - from + 1)) * right;
         const y = (/** @type {number} */ index) => INDEX_LAYOUT.top + (1 - index / 100) * (bottom - INDEX_LAYOUT.top);
-        const key = `${w}×${h}×${dpr}×${paint.ink}×${litKey()}`;
+        const colourOf = (/** @type {number} */ index) => indexMix(index, [paint.states[0], paint.states[4], paint.states[8]]);
+        const both = lines.index && lines.raw;
+        const key = `${w}×${h}×${dpr}×${paint.ink}×${litKey()}×${lines.index}×${lines.raw}`;
         for (const c of [indexCanvas, indexBase]) if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) (c.width = Math.round(w * dpr)), (c.height = Math.round(h * dpr));
         if (key !== indexKey || d !== indexDays) {
           (indexKey = key), (indexDays = d);
@@ -2673,23 +2713,18 @@
             g.stroke();
           }
           g.setLineDash([]);
-          // Years along the foot, as many as fit.
-          g.textAlign = "center";
-          g.textBaseline = "alphabetic";
-          const since = dateOf(from).getUTCFullYear() + 1, to = dateOf(d.last).getUTCFullYear(), every = Math.ceil((to - since + 1) / Math.max(1, Math.floor(right / 64)));
-          for (let year = since; year <= to; year++) {
-            if ((to - year) % every) continue;
-            const at = x((Date.UTC(year, 0, 1) - EPOCH) / DAY);
-            if (at > 16 && at < right - 16) g.fillText(String(year), at, h - 6);
-          }
-          // The raw index, faint; the index over it in the colour of where it is (Fear's at 0, Doubt's at 50,
-          // Optimism's at 100). Each run of days not lit, faded.
+          // The lines shown, each in the colour of where it is (Fear's at 0, Doubt's at 50, Optimism's at 100); the
+          // raw one, beside the index, faint under it. Each run of days not lit, faded.
           const byHeight = g.createLinearGradient(0, y(100), 0, y(0));
           byHeight.addColorStop(0, paint.states[0]);
           byHeight.addColorStop(0.5, paint.states[4]);
           byHeight.addColorStop(1, paint.states[8]);
           g.lineJoin = "round";
-          for (const [values, style, lineWidth] of /** @type {const} */ ([[d.raw, withAlpha(paint.ink, 0.3), 1], [d.index, byHeight, 1.75]])) {
+          /** @type {[Float32Array, string | CanvasGradient, number][]} */
+          const shown = [];
+          if (lines.raw) shown.push([d.raw, both ? withAlpha(paint.ink, 0.3) : byHeight, both ? 1 : 1.75]);
+          if (lines.index) shown.push([d.index, byHeight, 1.75]);
+          for (const [values, style, lineWidth] of shown) {
             g.strokeStyle = style;
             g.lineWidth = lineWidth;
             for (let i = from; i <= d.last; ) {
@@ -2711,11 +2746,27 @@
         indexContext.setTransform(1, 0, 0, 1, 0, 0);
         indexContext.clearRect(0, 0, indexCanvas.width, indexCanvas.height);
         indexContext.drawImage(indexBase, 0, 0);
-        // The day pointed at, a line down it (today, its rings alone), both indexes ringed on it.
         indexContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+        // The day pointed at (or today), its date and price tagged along the foot, the years there left out under it.
         const day = indexAt ?? d.last, at = Math.round(x(day)) + 0.5;
+        indexContext.font = "600 11.5px Inter, system-ui, sans-serif";
+        const said = `${dated(day)} · ${usd(d.close[day])}`, tw = indexContext.measureText(said).width + 14, tx = Math.max(tw / 2, Math.min(right - tw / 2, at));
+        indexContext.font = "500 11px Inter, system-ui, sans-serif";
+        indexContext.fillStyle = paint.faint;
+        indexContext.textAlign = "center";
+        indexContext.textBaseline = "alphabetic";
+        const since = dateOf(from).getUTCFullYear() + 1, to = dateOf(d.last).getUTCFullYear(), every = Math.ceil((to - since + 1) / Math.max(1, Math.floor(right / 64)));
+        for (let year = since; year <= to; year++) {
+          const yx = x((Date.UTC(year, 0, 1) - EPOCH) / DAY);
+          if (!((to - year) % every) && yx > 16 && yx < right - 16 && Math.abs(yx - tx) > tw / 2 + 18) indexContext.fillText(String(year), yx, h - 6);
+        }
+        // A line down the day pointed at (today, its rings alone); each line shown ringed on it.
         if (indexAt !== null) (indexContext.fillStyle = withAlpha(paint.ink, 0.28)), indexContext.fillRect(at - 0.5, 0, 1, bottom);
-        for (const [cy, r, fill] of /** @type {const} */ ([[y(d.raw[day]), 3, withAlpha(paint.ink, 0.5)], [y(d.index[day]), 4.5, indexMix(d.index[day], [paint.states[0], paint.states[4], paint.states[8]])]])) {
+        /** @type {[number, number, string][]} */
+        const rings = [];
+        if (lines.raw) rings.push(both ? [y(d.raw[day]), 3, withAlpha(paint.ink, 0.5)] : [y(d.raw[day]), 4.5, colourOf(d.raw[day])]);
+        if (lines.index) rings.push([y(d.index[day]), 4.5, colourOf(d.index[day])]);
+        for (const [cy, r, fill] of rings) {
           indexContext.beginPath();
           indexContext.arc(at, cy, r, 0, Math.PI * 2);
           indexContext.fillStyle = fill;
@@ -2724,10 +2775,19 @@
           indexContext.strokeStyle = paint.app;
           indexContext.stroke();
         }
+        indexContext.font = "600 11.5px Inter, system-ui, sans-serif";
+        indexContext.textBaseline = "middle";
+        indexContext.fillStyle = paint.ink;
+        indexContext.beginPath();
+        indexContext.roundRect(tx - tw / 2, h - 20, tw, 20, 5);
+        indexContext.fill();
+        indexContext.fillStyle = paint.app;
+        indexContext.fillText(said, tx, h - 10);
         const told = `${day}|${d.index[day]}|${d.raw[day]}`;
         if (told !== indexTold) {
           indexTold = told;
-          $("index-now").innerHTML = `${day === d.last ? "Today" : dated(day)}<b>${Math.round(d.index[day])}</b>raw ${Math.round(d.raw[day])}`;
+          $("line-index").textContent = String(Math.round(d.index[day]));
+          $("line-raw").textContent = String(Math.round(d.raw[day]));
         }
       }
       new ResizeObserver(redraw).observe(indexCanvas);
@@ -2747,6 +2807,18 @@
       indexChart.addEventListener("pointermove", pointIndex);
       for (const type of ["pointerleave", "pointercancel"]) indexChart.addEventListener(type, leaveIndex);
       indexChart.addEventListener("pointerup", (e) => e.pointerType !== "mouse" && leaveIndex());
+      /** The header's switches, a line each: pressed, it's shown; the one shown alone stays (never neither). */
+      const lineSwitches = $("index-lines");
+      lineSwitches.addEventListener("click", (e) => {
+        const button = e.target instanceof Element ? /** @type {HTMLButtonElement | null} */ (e.target.closest("[data-line]")) : null;
+        if (!button) return;
+        const line = /** @type {"index" | "raw"} */ (button.dataset.line), other = line === "index" ? "raw" : "index";
+        if (lines[line] && !lines[other]) return;
+        lines[line] = !lines[line];
+        for (const each of /** @type {NodeListOf<HTMLButtonElement>} */ (lineSwitches.querySelectorAll("[data-line]"))) each.setAttribute("aria-pressed", String(lines[/** @type {"index" | "raw"} */ (each.dataset.line)]));
+        lineSwitches.dataset.alone = lines.index && lines.raw ? "" : lines.index ? "index" : "raw";
+        redraw();
+      });
 
       // ── Playing: the day shown runs on to today at the chart's span in 60 seconds; paused, it stays where it is, and
       // plays on from there (from today, it starts again at the chart's first day); a click on the chart pauses it or
