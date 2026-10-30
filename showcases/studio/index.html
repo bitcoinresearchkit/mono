@@ -16144,6 +16144,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The chart drawn at a size, at once (as the library's own watch did: no frame of what it was). */
       // (Its element filling its box after, whatever the library makes it (a pixel short, rounded): no strip under it.)
       const sizeChart = (/** @type {number} */ width, /** @type {number} */ height) => ((chartSize = { width, height }), view.resize(width, height, true), !sizeHeld && !exporting && Object.assign(view.chartElement().style, { width: "100%", height: "100%" }));
+      /** The chart drawn at a size, its stretch (the bars it shows across) kept as it was: see keepStretch. */
+      const sizeKeeping = (/** @type {number} */ width, /** @type {number} */ height) => {
+        const was = (view.bvFlush(), view.timeScale().getVisibleLogicalRange());
+        sizeChart(width, height);
+        keepStretch(was);
+      };
       /**
        * A layout's motion (the sidebar's, the panel's, full screen's, a peek's): the chart sized once for it, not at each
        * of its frames (each a new size: its canvases made anew, every series drawn again; Firefox shows a third of them).
@@ -16172,9 +16178,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         if (!inMotion.length) {
           const { width, height } = box.getBoundingClientRect();
           if (sizeHeld || Math.abs(width - chartWidth()) < 1 || !resolved?.times.length || !chart || drawnChart !== chart.id) return;
-          const was = (view.bvFlush(), view.timeScale().getVisibleLogicalRange());
-          sizeChart(width, height);
-          keepStretch(was);
+          sizeKeeping(width, height);
           Object.assign(view.chartElement().style, { width: "100%", height: "100%" });
           return;
         }
@@ -16390,9 +16394,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         // (Its view as it is now, a pan or a zoom meanwhile kept; another chart opened meanwhile drew itself.)
         const { width, height } = $("chart").getBoundingClientRect();
         if (stretchKept && stretchKept === chart?.id && drawnChart === chart.id) {
-          const was = (view.bvFlush(), view.timeScale().getVisibleLogicalRange());
-          sizeChart(width, height);
-          keepStretch(was);
+          sizeKeeping(width, height);
         } else if (width !== chartSize.width || height !== chartSize.height) sizeChart(width, height);
         stretchKept = null;
         chartHeight = $("chart").getBoundingClientRect().height;
