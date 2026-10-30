@@ -23966,16 +23966,27 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const columns = sample.days.length, height = Math.round((bottom - top) * 2), canvas = document.createElement("canvas");
         canvas.width = columns;
         canvas.height = height;
-        const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d")), image = context.createImageData(columns, height);
+        const context = /** @type {CanvasRenderingContext2D} */ (canvas.getContext("2d")), image = context.createImageData(columns, height), pixels = image.data;
+        // (Each pixel row's cell, once; a cell's color once a day, copied down the pixel rows it covers. None where the
+        // price isn't over zero: NaN.)
+        const cells = new Float64Array(height);
         for (let p = 0; p < height; p++) {
           const price = priceAt(top + (p + 0.5) / 2);
-          if (!(price > 0)) continue;
-          const row = Math.floor(k * Math.log10(price * 100));
-          sample.days.forEach((day, c) => {
-            if (!day?.rows) return;
-            const at = lowerBound(day.rows, row), values = amountsOf(day, look.measure);
-            if (day.rows[at] === row) heatColor(values[at], most, look, image.data, (p * columns + c) * 4);
-          });
+          cells[p] = price > 0 ? Math.floor(k * Math.log10(price * 100)) : NaN;
+        }
+        for (let c = 0; c < columns; c++) {
+          const day = sample.days[c];
+          if (!day?.rows) continue;
+          const values = amountsOf(day, look.measure);
+          for (let p = 0, was = NaN; p < height; p++) {
+            const row = cells[p], at = (p * columns + c) * 4;
+            if (row === was) pixels.copyWithin(at, at - columns * 4, at - columns * 4 + 4);
+            else if (row === row) {
+              const found = lowerBound(day.rows, row);
+              if (day.rows[found] === row) heatColor(values[found], most, look, pixels, at);
+            }
+            was = row;
+          }
         }
         context.putImageData(image, 0, 0);
         return canvas.toDataURL("image/png");
