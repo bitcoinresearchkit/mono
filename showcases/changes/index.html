@@ -3,11 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <!-- Its launch from a home screen, every showcase's; in the API's colour, which it's beside. -->
-    <script src="/assets/launch/launch.js" data-app="API changes" data-color="#af4000"></script>
+    <script src="/assets/launch/launch.js" data-app="Changes" data-color="#af4000"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="What each release of Bitview's API changed: endpoints and parameters gone or changed, and every series id renamed or removed, with where it went." />
+    <meta name="description" content="What each release of Bitview changed: its notes, and of its API, endpoints and parameters gone or changed and every series id renamed or removed, with where it went." />
     <meta name="color-scheme" content="light dark" />
-    <title>API changes · Bitview</title>
+    <title>Changes · Bitview</title>
     <link rel="icon" href="/assets/logo/logo.svg" type="image/svg+xml" />
     <style>
       @font-face {
@@ -381,6 +381,35 @@
           letter-spacing: 0.04em;
           text-transform: uppercase;
         }
+
+        /* (A kind of note's topic, beneath its kind.) */
+        h4 {
+          margin: 16px 0 0;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        /* (A release's date, beside its version.) */
+        .date {
+          margin-left: 8px;
+          color: var(--faint);
+          font-size: 13px;
+          font-weight: 500;
+          letter-spacing: 0;
+        }
+      }
+
+      /* (A note's own, beneath it.) */
+      .subs {
+        margin: 4px 0 0;
+        padding: 0 0 0 14px;
+        color: var(--soft);
+        list-style: none;
+
+        li::before {
+          content: "– ";
+          color: var(--faint);
+        }
       }
 
       /* ── Rows: a rename on a line, as it was, then as it is, then what its values were multiplied by and how many it
@@ -544,7 +573,7 @@
       <a class="to-api" href="/api">API reference</a>
     </header>
     <div class="page">
-      <h1>API changes</h1>
+      <h1>Changes</h1>
       <div class="releases" id="releases" role="tablist" aria-label="Releases"></div>
       <p class="lead" id="lead">Reading what changed…</p>
       <div class="figures" id="figures"></div>
@@ -557,11 +586,11 @@
 
     <script type="module">
       import { index, read } from "./rules.js";
+      import { releases } from "./changelog.js";
 
-      // The releases compared, newest first, each as from, to: `<from>.json` beside this page, written by diff.mjs
-      // from two servers, the one release's and the other's before it was released.
+      // The releases whose API was compared, newest first, each as from, to: `<from>.json` beside this page, written by
+      // diff.mjs from two servers, the one release's and the other's before it was released.
       const RELEASES = [["v0.12.2","v0.13.0"]];
-      const CHANGELOG = "https://github.com/bitcoinresearchkit/mono/blob/main/docs/CHANGELOG.md";
 
       const $ = (/** @type {string} */ id) => /** @type {HTMLElement} */ (document.getElementById(id));
       const escape = (/** @type {unknown} */ text) =>
@@ -591,8 +620,10 @@
       const SHOWN = 25;
       /**
        * @typedef {{ html: string, text: string }} Row
-       * @typedef {{ title?: string, rows: Row[], list?: "rows" | "ids" }} List
-       * @typedef {{ id: string, section: HTMLElement, link: HTMLElement, lists: { rows: Row[], element: HTMLElement, more: HTMLButtonElement, all: boolean }[] }} Section
+       * @typedef {{ group?: string, title?: string, said?: string, rows: Row[], list?: "rows" | "ids" }} List In a group
+       *   (a kind of note), the group's heading comes once, its lists' titles beneath it.
+       * @typedef {{ rows: Row[], element: HTMLElement, more: HTMLButtonElement, all: boolean, own: HTMLElement[], group?: HTMLElement }} Shown
+       * @typedef {{ id: string, section: HTMLElement, link: HTMLElement, lists: Shown[] }} Section
        */
       /** @type {Section[]} */
       const sections = [];
@@ -611,28 +642,42 @@
        * @param {string} title
        * @param {string} said
        * @param {List[]} lists
+       * @param {string} label its way in's, if not its title
        */
-      function addSection(id, title, said, lists) {
+      function addSection(id, title, said, lists, label = title) {
         lists = lists.filter((list) => list.rows.length);
         if (!lists.length) return;
         const section = document.createElement("section");
         section.id = id;
-        section.innerHTML = `<h2>${title}</h2><p>${said}</p>`;
+        section.innerHTML = `<h2>${title}</h2>${said ? `<p>${said}</p>` : ""}`;
         const entry = /** @type {Section} */ ({ id, section, lists: [] });
+        const make = (/** @type {string} */ tag, /** @type {string} */ html) => Object.assign(document.createElement(tag), { innerHTML: html });
+        /** @type {HTMLElement | undefined} */
+        let group;
         for (const list of lists) {
-          if (list.title) section.insertAdjacentHTML("beforeend", `<h3>${list.title}</h3>`);
-          const element = document.createElement("ul");
-          element.className = list.list ?? "rows";
+          if (list.group === undefined) group = undefined;
+          else if (list.group !== group?.dataset.group) {
+            group = make("h3", escape(list.group));
+            group.dataset.group = list.group;
+            section.append(group);
+          }
+          /** @type {HTMLElement[]} */
+          const own = [];
+          if (list.title) own.push(make(group ? "h4" : "h3", list.title));
+          if (list.said) own.push(make("p", list.said));
+          const rows = document.createElement("ul");
+          rows.className = list.list ?? "rows";
           const more = document.createElement("button");
           more.className = "more";
-          section.append(element, more);
-          const shown = { rows: list.rows.map((row) => ({ ...row, text: row.text.toLowerCase() })), element, more, all: false };
+          section.append(...own, rows, more);
+          /** @type {Shown} */
+          const shown = { rows: list.rows.map((row) => ({ ...row, text: row.text.toLowerCase() })), element: rows, more, all: false, own, group };
           more.addEventListener("click", () => ((shown.all = true), render()));
           entry.lists.push(shown);
         }
         const total = entry.lists.reduce((sum, list) => sum + list.rows.length, 0);
         entry.link = Object.assign(document.createElement("a"), { href: `#${id}` });
-        entry.link.innerHTML = `${title}<span>${grouped.format(total)}</span>`;
+        entry.link.innerHTML = `${label}<span>${grouped.format(total)}</span>`;
         $("nav").append(entry.link);
         $("sections").append(section);
         sections.push(entry);
@@ -648,18 +693,27 @@
             const limit = list.all ? found.length : SHOWN;
             list.element.innerHTML = found.slice(0, limit).map((row) => row.html).join("");
             list.element.hidden = !found.length;
-            list.element.previousElementSibling?.matches("h3") && list.element.previousElementSibling.toggleAttribute("hidden", !found.length);
+            for (const own of list.own) own.hidden = !found.length;
             list.more.hidden = found.length <= limit;
             list.more.textContent = `Show all ${grouped.format(found.length)}`;
             any ||= found.length > 0;
           }
+          // (A group's heading while any of its lists shows.)
+          for (const { group } of lists) if (group) group.hidden = !lists.some((list) => list.group === group && !list.element.hidden);
           section.hidden = !any;
           link.hidden = !any;
         }
       }
 
-      // ── The releases: a tab each, one read ──
+      // ── The releases: a tab each minor release, its notes from the changelog, and its API's changes if compared ──
 
+      /**
+       * @typedef {import("./changelog.js").Release} Release
+       * @typedef {{ name: string, label: string, notes: Release[], api?: string[] }} Tab A minor release (`0.12`), or
+       *   those not released yet; its releases' notes, newest first; the API comparison into it, as from, to.
+       */
+      /** @type {Tab[]} */
+      let tabs = [];
       /** @type {ReturnType<typeof index>} */
       let rules;
       /** @type {Set<string>} */
@@ -667,47 +721,108 @@
       /** @type {any} */
       let changes;
 
-      /** @param {string} release */
-      function tabs(release) {
+      const minorOf = (/** @type {string} */ version) => version.replace(/^v/, "").split(".").slice(0, 2).join(".");
+
+      /**
+       * The tabs: the changelog's releases by their minor, then each API comparison in the tab of the release it's
+       * into, those not released yet if it isn't out (a tab of its own if the changelog has neither).
+       * @param {Release[]} notes
+       */
+      function tabsOf(notes) {
+        /** @type {Tab[]} */
+        const tabs = [];
+        for (const release of notes) {
+          const name = release.version ? minorOf(release.version) : "unreleased";
+          let tab = tabs.find((tab) => tab.name === name);
+          if (!tab) tabs.push((tab = { name, label: release.version ? name : "Unreleased", notes: [] }));
+          tab.notes.push(release);
+        }
+        for (const [from, to] of RELEASES) {
+          const tab = tabs.find((tab) => tab.name === minorOf(to)) ?? tabs.find((tab) => tab.name === "unreleased");
+          if (tab) tab.api ??= [from, to];
+          else tabs.push({ name: minorOf(to), label: versions(from, to).join(" → "), notes: [], api: [from, to] });
+        }
+        return tabs;
+      }
+
+      /** @param {Tab} current */
+      function showTabs(current) {
         $("releases").replaceChildren(
-          ...RELEASES.map(([from, to]) => {
-            const tab = document.createElement("button");
-            tab.type = "button";
-            tab.role = "tab";
-            tab.ariaSelected = String(from === release);
-            tab.textContent = versions(from, to).join(" → ");
-            tab.addEventListener("click", () => from !== release && open(from));
-            return tab;
+          ...tabs.map((tab) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.role = "tab";
+            button.ariaSelected = String(tab === current);
+            button.textContent = tab.label;
+            button.addEventListener("click", () => tab !== current && open(tab));
+            return button;
           }),
         );
       }
 
-      /** A release's changes, its tab chosen (its address saying so, but for the newest's). @param {string} release */
-      function open(release) {
+      /** A tab's changes, the tab chosen (its address saying so, but for the newest's). @param {Tab} tab */
+      function open(tab) {
         const url = new URL(location.href);
-        if (release === RELEASES[0][0]) url.searchParams.delete("from");
-        else url.searchParams.set("from", release);
+        if (tab === tabs[0]) url.searchParams.delete("release");
+        else url.searchParams.set("release", tab.name);
         history.replaceState(null, "", url);
-        tabs(release);
-        return load(release).catch((error) => ($("lead").textContent = `The changes couldn't be read: ${error.message}.`));
+        showTabs(tab);
+        return load(tab).catch((error) => ($("lead").textContent = `The changes couldn't be read: ${error.message}.`));
       }
 
-      /** @param {string} release */
-      async function load(release) {
-        const response = await fetch(`./${release}.json`);
-        if (!response.ok) throw new Error(`${release}.json: ${response.status}`);
-        changes = await response.json();
-        rules = index(changes.rules);
-        different = new Set(changes.different);
+      const version = (/** @type {Release} */ release) => escape(release.version?.replace(/^v/, "") ?? "");
+
+      /** What a tab says first: what its notes are, and how to find an id of its API's. @param {Tab} tab */
+      function leadOf(tab) {
+        const released = tab.notes.filter((release) => release.version);
+        const notes = !tab.notes.length
+          ? ""
+          : !released.length
+            ? "What's coming, not released yet"
+            : released.length === 1
+              ? `What ${version(released[0])} changed`
+              : `What each ${escape(tab.name)} release changed, ${version(/** @type {Release} */ (released.at(-1)))} to ${version(released[0])}`;
+        if (!changes) return `${notes}.`;
+        const [from, to] = versions(changes.from, changes.to);
+        const api = `what ${escape(to)} changes of ${escape(from)}'s API. Type an id from ${escape(from)} above to see where it went.`;
+        return notes ? `${notes}: its notes, then ${api}` : api[0].toUpperCase() + api.slice(1);
+      }
+
+      /** A tab's notes: a section each release, its notes by kind and topic, found by the search as the rest. @param {Tab} tab */
+      function addNotes(tab) {
+        for (const release of tab.notes) {
+          const title = release.version ? `${version(release)}${release.date ? `<span class="date">${escape(release.date)}</span>` : ""}` : "Unreleased";
+          const lists = release.groups.map((group) => ({
+            group: group.kind,
+            title: group.topic?.html,
+            said: group.said.join(" "),
+            rows: group.notes.map((note) => ({ html: `<li class="whole">${note.html}</li>`, text: `${note.text} ${group.kind} ${group.topic?.text ?? ""}` })),
+          }));
+          addSection(release.version ?? "unreleased", title, release.said.join("</p><p>"), lists, release.version ? version(release) : "Unreleased");
+        }
+      }
+
+      /** @param {Tab} tab */
+      async function load(tab) {
+        changes = undefined;
+        different = new Set();
+        if (tab.api) {
+          const response = await fetch(`./${tab.api[0]}.json`);
+          if (!response.ok) throw new Error(`${tab.api[0]}.json: ${response.status}`);
+          changes = await response.json();
+          rules = index(changes.rules);
+          different = new Set(changes.different);
+        }
         sections.length = 0;
         $("sections").replaceChildren();
         $("nav").replaceChildren();
+        $("figures").replaceChildren();
+        $("lead").innerHTML = leadOf(tab);
+        addNotes(tab);
+        if (!changes) return void (render(), lookUp());
         const { series, endpoints, indexes } = changes;
-        const [from, to] = versions(changes.from, changes.to);
+        const [, to] = versions(changes.from, changes.to);
 
-        $("lead").innerHTML =
-          `What ${escape(to)} changes of ${escape(from)}'s API. Type an id from ${escape(from)} above to see where it went; ` +
-          `the <a href="${CHANGELOG}">changelog</a> tells the rest.`;
         const figure = (/** @type {number} */ count, /** @type {string} */ said) => `<div><strong>${grouped.format(count)}</strong><span>${said}</span></div>`;
         $("figures").innerHTML = [
           figure(series.renamed, "series ids renamed"),
@@ -888,6 +1003,9 @@
           // (Why, where the lists say: its whole cohort gone, or its measure from three cohorts or more.)
           const cohort = changes.removed.cohorts.find((/** @type {[string, number]} */ [prefix]) => id.startsWith(prefix));
           const measure = !cohort && changes.removed.measures.find((/** @type {[string, number]} */ [name]) => id.endsWith(`_${name}`));
+          // (Every id gone is in a list of the removed; one that's in none wasn't an id, as a word searched in the
+          // notes: nothing said of it.)
+          if (!cohort && !measure && !changes.removed.ids.includes(id)) return "";
           const near = await fetch(`/api/series/search?q=${encodeURIComponent(id)}&limit=5`).then((r) => (r.ok ? r.json() : []), () => []);
           return (
             `<p class="now">${code(id)} <span class="gone">isn't served</span> under any id we could find.</p>` +
@@ -898,7 +1016,7 @@
         })();
         if (ask !== asked) return;
         answer.innerHTML = said;
-        answer.hidden = false;
+        answer.hidden = !said;
       }
 
       let typing = 0;
@@ -908,11 +1026,14 @@
         typing = setTimeout(lookUp, 250);
       });
       $("search-form").addEventListener("submit", (event) => (event.preventDefault(), lookUp()));
-      // (A link may name an id, and a release: /changes/?id=utxos_2y_to_3y_old_supply&from=v0.12.2.)
-      const params = new URLSearchParams(location.search), asked0 = params.get("id"), from = params.get("from");
+      // (A link may name an id, and a release: /changes/?id=utxos_2y_to_3y_old_supply, /changes/?release=0.12.)
+      const params = new URLSearchParams(location.search), asked0 = params.get("id"), wanted = params.get("release");
       if (asked0) /** @type {HTMLInputElement} */ ($("q")).value = asked0;
-      if (RELEASES.length) open(RELEASES.some(([release]) => release === from) ? /** @type {string} */ (from) : RELEASES[0][0]);
-      else $("lead").textContent = "No release compared yet.";
+      // (Without the changelog, the API's comparisons alone.)
+      const changelog = await fetch("./CHANGELOG.md").then((response) => (response.ok ? response.text() : ""), () => "");
+      tabs = tabsOf(releases(changelog));
+      if (tabs.length) open(tabs.find((tab) => tab.name === wanted) ?? tabs[0]);
+      else $("lead").textContent = "No release yet.";
     </script>
   </body>
 </html>
