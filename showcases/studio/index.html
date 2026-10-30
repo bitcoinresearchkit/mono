@@ -25407,6 +25407,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** The charts picked, and the last one picked (where a ⇧-click's run starts). */
       const picked = new Set();
       let pickedLast = "";
+      /** A pick's checkbox (a card's, a layer row's) as it is: ticked or not, its tip what a click does. @param {HTMLInputElement} check @param {boolean} on */
+      const showPick = (check, on) => ((check.checked = on), (check.dataset.tip = on ? "Deselect" : "Select"));
       /** The picks shown: ticks, the bar and its count. While some are picked, a click picks rather than opens. */
       function renderPicked() {
         const n = picked.size;
@@ -25414,7 +25416,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         for (const tile of all$(".tile[data-home-card]:not(.preview)", $("home-grid"))) {
           const on = picked.has(/** @type {string} */ (tile.dataset.homeCard));
           tile.classList.toggle("picked", on);
-          ((check) => ((check.checked = on), (check.dataset.tip = on ? "Deselect" : "Select")))(/** @type {HTMLInputElement} */ (tile.querySelector(".tile-check")));
+          showPick(/** @type {HTMLInputElement} */ (tile.querySelector(".tile-check")), on);
         }
         $("home-bar").hidden = n === 0;
         document.body.toggleAttribute("data-charts-picked", n > 0);
@@ -29743,7 +29745,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           row.classList.toggle("picked", on);
           row.classList.toggle("selected", row.dataset.layer === selected);
           row.querySelector(".row-main")?.toggleAttribute("aria-current", row.dataset.layer === selected);
-          ((check) => ((check.checked = on), (check.dataset.tip = on ? "Deselect" : "Select")))(/** @type {HTMLInputElement} */ (row.querySelector(".row-check")));
+          showPick(/** @type {HTMLInputElement} */ (row.querySelector(".row-check")), on);
         }
         markLegends();
         // (Marked here, not as last written: the next writes write them whole.)
@@ -35866,8 +35868,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         else placeMenu(menu, host, anchor, point, side);
         if (was) {
           menu.style.animation = "none";
-          const now = menu.getBoundingClientRect();
-          if (!reduced.matches) menu.animate({ translate: [`${was.left - now.left}px ${was.top - now.top}px`, "0 0"] }, { duration: MOTION.micro, easing: MOTION.easeLayout });
+          slideFrom(menu, was);
         }
         // (The one ticked in sight, a long one's too: a select's choice low in its list. A flyout leaves the focus be; a
         // finger's menu takes it itself, no row lit as if a key had reached it: ↓ goes on from there.)
@@ -36218,8 +36219,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         settleMenu(sub);
         if (covering) /** @type {HTMLElement | null} */ (sub.querySelector("button:not(:disabled, [data-menu-back])"))?.focus({ preventScroll: true });
         if (was) {
-          const now = sub.getBoundingClientRect();
-          if (!reduced.matches) sub.animate({ translate: [`${was.left - now.left}px ${was.top - now.top}px`, "0 0"] }, { duration: MOTION.micro, easing: MOTION.easeLayout });
+          slideFrom(sub, was);
           // (The focus in its rows as they're swapped: on the row it's now beside, for the keys to go on from (over it, in
           // it: see covering).)
           if (had && !over) row.focus({ preventScroll: true });
@@ -36228,6 +36228,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         void sub.offsetWidth;
         sub.style.animation = "";
       }
+      /** A menu shown again elsewhere (its rows changed), sliding there from where it was (`was`, its box then). @param {HTMLElement} menu @param {DOMRect} was */
+      const slideFrom = (menu, was) => ((now) => reduced.matches || menu.animate({ translate: [`${was.left - now.left}px ${was.top - now.top}px`, "0 0"] }, { duration: MOTION.micro, easing: MOTION.easeLayout }))(menu.getBoundingClientRect());
       /**
        * A menu or a submenu as placed: a row's label or its title cut short, whole on hover (a row saying why it can't act
        * says that); its title held on top (see .menu-group), a row reached by keys scrolled in under it, not behind it.
