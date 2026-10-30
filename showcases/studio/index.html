@@ -24012,6 +24012,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         }
         // (Its bars: those whose middles are in it, as the chart's, see firstInView and lastShown.)
         const first = clamp(Math.ceil(shown.from), 0, n - 1), last = clamp(Math.floor(shown.to), 0, n - 1);
+        /** A bucket's middle, as a date's place. @param {number} b */
+        const middleOf = (b) => shown.from + ((b + 0.5) * span) / B;
         /** A bucket's first and last points in view (the last bucket's to the view's end). @param {number} b */
         const bucketOf = (b) => ((edge) => [Math.max(first, Math.ceil(shown.from + (b * span) / B)), Math.min(last, b === B - 1 ? Math.max(edge, Math.floor(shown.to)) : edge)])(Math.ceil(shown.from + ((b + 1) * span) / B) - 1);
         const round = (value) => Math.round(value * 10) / 10;
@@ -24156,7 +24158,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
               const ranged = bands ? hull(bands) : band;
               // (Where a baseline's colors and bars part, as opposed to the base a percent or indexed scale counts from.)
               const parts = baseOf(layer);
-              return { layer, unseen: Boolean(layer.hidden || fromUnfit(doc, layer)), mode, from: base, scaled, values, inView, bars: layer.type === "histogram" && mode === 0, base: parts, level: scaled(parts), points: whole ? band?.map(() => null) ?? points : ranged ? ranged.map((range, b) => (range ? range.map((value) => /** @type {[number, number]} */ ([shown.from + ((b + 0.5) * span) / B, value])) : null)) : points, band, bands, stack: stacked.has(layer.id) };
+              return { layer, unseen: Boolean(layer.hidden || fromUnfit(doc, layer)), mode, from: base, scaled, values, inView, bars: layer.type === "histogram" && mode === 0, base: parts, level: scaled(parts), points: whole ? band?.map(() => null) ?? points : ranged ? ranged.map((range, b) => (range ? range.map((value) => /** @type {[number, number]} */ ([middleOf(b), value])) : null)) : points, band, bands, stack: stacked.has(layer.id) };
             });
             // A stack's layers, sampled at the same points, every one's highs and lows: each is the sum of those under it,
             // so their edges never cross, and none loses its peaks (a 100% stack's top is flat).
@@ -24311,6 +24313,15 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 for (const piece of pieces) (by.get(piece.color) ?? by.set(piece.color, []).get(piece.color))?.push(piece.points);
                 return by;
               };
+              /** The buckets with something, run by run (each unbroken). @param {any[]} buckets */
+              const runsOf = (buckets) => {
+                /** @type {number[][]} */
+                const runs = [];
+                let run = [];
+                buckets.forEach((item, b) => (item ? run.push(b) : run.length && (runs.push(run), (run = []))));
+                if (run.length) runs.push(run);
+                return runs;
+              };
               /** Runs one after another, a gap between each (for byColor). @template T @param {T[][]} parts @returns {(T | null)[]} */
               const joined = (parts) => parts.flatMap((part, k) => (k ? [null, ...part] : part));
               /**
@@ -24319,18 +24330,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                */
               const drawBand = (ranges, tint, edged = true) => {
                 const above = (b) => ((edged && layer.from?.includes("top")) || /** @type {[number, number]} */ (ranges[b])[1] === Infinity ? paneTop : y(/** @type {[number, number]} */ (ranges[b])[1])), below = (b) => ((edged && layer.from?.includes("bottom")) || /** @type {[number, number]} */ (ranges[b])[0] === -Infinity ? paneBottom : y(/** @type {[number, number]} */ (ranges[b])[0]));
-                const runs = [];
-                let run = [];
-                ranges.forEach((range, b) => (range ? run.push(b) : run.length && (runs.push(run), (run = []))));
-                if (run.length) runs.push(run);
-                const middle = (/** @type {number} */ b) => x(shown.from + ((b + 0.5) * span) / B);
-                for (const [c, parts] of perColor(byColor(joined(runs), tint))) {
+                const middle = (/** @type {number} */ b) => x(middleOf(b));
+                for (const [c, parts] of perColor(byColor(joined(runsOf(ranges)), tint))) {
                   const d = parts.map((part) => `M${part.map((b) => `${middle(b)} ${above(b)}`).join("L")}L${[...part].reverse().map((b) => `${middle(b)} ${below(b)}`).join("L")}Z`).join("");
                   if (d) drawn.marks.push({ ...look, c, k: "band", d });
                 }
               };
               if (bands) return void bands.forEach(({ band: ranges, tint }) => drawBand(ranges, tint, false));
-              if (band) return void drawBand(band, (b) => tintAt(shown.from + ((b + 0.5) * span) / B));
+              if (band) return void drawBand(band, (b) => tintAt(middleOf(b)));
               if (bars) {
                 let d = "", d2 = "";
                 const painted = new Map();
@@ -24339,7 +24346,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 points.forEach((point, b) => {
                   if (!point) return;
                   const [i, value] = point.reduce((far, next) => (Math.abs(next[1] - base) > Math.abs(far[1] - base) ? next : far));
-                  const bar = `M${x(shown.from + ((b + 0.5) * span) / B)} ${y(base)}V${y(value)}`;
+                  const bar = `M${x(middleOf(b))} ${y(base)}V${y(value)}`;
                   if (dateColors) painted.set(tintAt(i), (painted.get(tintAt(i)) ?? "") + bar);
                   else if (value >= base) d += bar;
                   else d2 += bar;
@@ -24349,10 +24356,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
                 return;
               }
               // Its runs: the buckets with a value, unbroken.
-              const runs = [];
-              let run = [];
-              points.forEach((point, b) => (point ? run.push(b) : run.length && (runs.push(run), (run = []))));
-              if (run.length) runs.push(run);
+              const runs = runsOf(points);
               if (!runs.length) return;
               const along = (/** @type {number[]} */ part) => part.flatMap((b) => /** @type {[number, number][]} */ (points[b]));
               // (Its latest value's dot, in the color it's drawn in there.)
