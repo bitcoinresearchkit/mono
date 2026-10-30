@@ -278,6 +278,10 @@
               visibility: hidden;
             }
 
+            &.lit {
+              box-shadow: inset 0 0 0 2px var(--t, var(--ink)), inset 0 0 0 3.5px var(--app);
+            }
+
             svg {
               width: 14px;
               height: 14px;
@@ -650,8 +654,8 @@
       }
 
       /* A mood or trend lit (see light): pressable wherever it's named; the compass's other cells and the other rows
-         dimmed; where it's named over the chart, underlined: dotted and faint (stronger under a mouse) so it reads as
-         pressable without a hover, solid once lit. */
+         dimmed; over the chart, the mood underlined (dotted and faint, stronger under a mouse, so it reads as pressable
+         without a hover; solid once lit) and the trend's pill, already a button's shape, ringed inside once lit. */
       [data-light] {
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
@@ -672,7 +676,7 @@
         transition: opacity 0.2s;
       }
 
-      .hero [data-light] {
+      .hero h1 [data-light] {
         text-decoration: underline dotted 2px color-mix(in srgb, currentColor 30%, transparent);
         text-underline-offset: 0.15em;
 
