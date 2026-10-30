@@ -16917,7 +16917,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             across.push({ layer, mode: modeOf(doc, layer), pane, format, value, color: op < 1 ? alpha(ink(color), op) : ink(color), dash, tag: Boolean(tag) });
           }
         };
-        for (const [i, layer] of doc.layers.entries()) {
+        for (const layer of doc.layers) {
           const result = data.results.get(layer.id);
           // Its opacity on every color it paints (fills keep their own share of it).
           const op = opacityOf(layer), base = ink(layer.color), under = ink(belowOf(layer));
@@ -33347,7 +33347,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
           { title: "Import charts", text: "A chart file, or a file of several charts exported together.", icon: "upload", run: () => $("import-file").click(), anywhere: true },
           // A choice among a few (a theme, an interval, a scale, a legend): each, the one in effect ticked (typed, it says so).
           ...THEMES.map(([id, name, icon, text]) => ({ title: `Theme: ${name}`, text, icon, anywhere: true, ...(id === prefs.theme ? { current: true } : { run: () => setTheme(id) }) })),
-          ...(empty ? [] : RANGES.map(([id, label], i) => ({ id, label, i })).filter(({ id }) => presetFits(id)).map(({ id, label, i }) => ({ title: `Show the ${periodOf(id)}`, text: id !== "max" ? "Change the visible range." : FINE.has(chart.index) ? "As far back as fits on the screen (at a day or coarser, all of history), the price scales back on auto." : "All of history, the price scales back on auto.", icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
+          ...(empty ? [] : RANGES.map(([id], i) => ({ id, i })).filter(({ id }) => presetFits(id)).map(({ id, i }) => ({ title: `Show the ${periodOf(id)}`, text: id !== "max" ? "Change the visible range." : FINE.has(chart.index) ? "As far back as fits on the screen (at a day or coarser, all of history), the price scales back on auto." : "All of history, the price scales back on auto.", icon: "charts", kbd: String(i + 1), run: () => setRange(id) }))),
           ...INTERVAL_ORDER.map((id) => ({ follows: `${INTERVAL_LABEL[id]} ${CADENCE[id]}`, title: `Interval: ${CADENCE[id]}`, text: supported(id) ? `Redraw every layer at ${INTERVAL_LABEL[id]}.` : `${NO_INTERVAL}.`, icon: "recent", ...(id === chart.index ? { current: true } : supported(id) ? { run: () => switchInterval(id) } : {}) })),
           ...(empty || scalePane().stack === "percent" ? [] : [scalePane()].flatMap((pane) => /** @type {[number, string][]} */ ([[1, "Logarithmic scale"], [0, "Linear scale"]]).map(([mode, title]) => ({ title, text: `For ${chart.panes.length > 1 ? `pane ${chart.panes.indexOf(pane) + 1}, ${selected ? "the selected layer's" : "the first"}` : "the chart"}.`, icon: "axis", ...(paneMode(pane) === mode ? { current: true } : { kbd: paneMode(pane) < 2 ? "L" : undefined, run: () => setPaneMode(pane.id, mode) }) })))),
           ...(empty ? [] : [
