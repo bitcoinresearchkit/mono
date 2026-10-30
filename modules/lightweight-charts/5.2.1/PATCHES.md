@@ -1115,11 +1115,13 @@ data changed (`Pt("data")`), and the view made every point again from the rows a
 for one moved, about half an update's cost on the iPhone without its JIT. The data layer now says when an update
 replaced the last row in place (not historical, at the series' last row's time, a row, not whitespace, no conflation),
 and the view makes that point alone, into a copy of its points (what's kept on the array let go of, the coordinates'
-(43) and the pan strips' (48), as when all are made again), the others kept, the points' one style (`bvU`, 23) the new
-point's compared with the first's. Anything else since the last frame (a series set, its options, a point added or
-taken) makes them all again, as before; so do points that aren't the rows one for one (conflation), of more than one
-style, a curve's or a custom series' (a curve reads the points just past the view's edges, a custom series' renderer
-is handed every bar: their places, all made again, are none; kept, they're where an earlier frame left them).
+(43) and the pan strips' (48), as when all are made again), the others kept; of one style (`bvU`, 23) while the new
+point's is the first's. Anything else since the last frame (a series set, its options, a point added or taken) makes
+them all again, as before; so do points that aren't the rows one for one (conflation), a curve's or a custom series' (a
+curve reads the points just past the view's edges, a custom series' renderer is handed every bar: their places, all
+made again, are none; kept, they're where an earlier frame left them), and a line's or an area's of more than one
+style (its simplification, 43, reads whether they're one: made again, they may be). Bars' and candles' (rising and
+falling, two styles) are made alone: nothing of theirs reads it.
 
 - The data layer, `pM`: `bvIn` on its answer.
 - The model's `Mb` and the series' `ht`: `Ia(bM)`, the series' `Ia` telling its view `"bvLast"` for an answer with
@@ -1134,13 +1136,17 @@ whitespace last, a series set again then moved: 18/18 the same; with the last po
 updated in place" (as drawn: drawn whole, narrowed, its scale changed and its last value moved before a frame): 4/4;
 with a curve's last point made alone, 2/4. Check 17, a custom series updated in place (drawn whole, narrowed, its last
 value moved): its bars' places as after its data set whole; with its last point made alone, not (a picture can't show
-it: patch 52 places the bar past each edge where the published library leaves it). Both cases found by Codex. (Its one
-style kept after a last point of its own color can't be seen: a line's or an area's point colors the stretch after it,
-and the last has none.) Its data is made when it's built: steps run on both libraries in turn, the seed shared.
+it: patch 52 places the bar past each edge where the published library leaves it); and a simplified line whose last
+point alone had a color of its own, given none: drawn as after its data set whole (2,673 values apart with its last
+point made alone, then not of one style, not simplified). The three cases found by Codex. The candles scenarios'
+updates in place differ without the last point made again (31/38, 31/37). The scenarios' data is made when they're
+built: steps run on both libraries in turn, the seed shared.
 Measured, an update of the price drawn at once (`bvFlush`): the iPhone without its JIT, weekly (1,974 points) 7.1 →
 3.0–4.4 ms, daily (5,920) 11.4–12.0 → 7.8–8.2 ms; a line of 6,000 points over 23 areas, Chromium at 4x CPU 1.90–1.99 →
 0.60–0.63 ms, Mullvad Browser 1.25 → 0.83 ms. Studio's charts of seven presets, their series' last values moved, the
-same to the pixel.
+same to the pixel. Candles: on the iPhone a candle update drawn (weekly, 1,974) 3.8–3.9 → 3.2–3.6 ms; 20 s at rest on
+the age bands' 100% stack (the price as candles and a line, live) 257 → 151–158 samples, none of its points made again
+at a tick.
 
 ## Typings
 

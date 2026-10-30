@@ -913,9 +913,11 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
   say(`Series outlined: 6 checks, ${outlined.length} failing`);
   for (const f of outlined) say(`  ✗ ${f}`);
 
-  // 17. A custom series updated in place (patch 59, the patched library alone): its renderer is handed every bar, in view
-  // or not, so it's made again whole, its bars as after its data set whole (out of view, no place; a bar's place kept
-  // from an earlier frame would draw it there). Drawn whole, narrowed, its last value moved.
+  // 17. Updates in place as the data set whole (patch 59, the patched library alone). A custom series: its renderer is
+  // handed every bar, in view or not, so it's made again whole, its bars as after its data set whole (out of view, no
+  // place; a bar's place kept from an earlier frame would draw it there): drawn whole, narrowed, its last value moved. A
+  // simplified line whose last point alone had a color of its own, given none: of one style again, simplified, as drawn
+  // after its data set whole.
   const placed = [];
   {
     const barsAfter = async (whole) => {
@@ -935,9 +937,26 @@ const compare = (a, b) => { const x = a.getContext("2d").getImageData(0, 0, a.wi
       return xs;
     };
     const [inPlace, whole] = [await barsAfter(false), await barsAfter(true)];
-    if (inPlace !== whole) placed.push(`its bars' places differ from its data set whole: ${inPlace.split(" ").filter((x, k) => x !== whole.split(" ")[k]).length} of 300`);
+    if (inPlace !== whole) placed.push(`a custom series' bars' places differ from its data set whole: ${inPlace.split(" ").filter((x, k) => x !== whole.split(" ")[k]).length} of 300`);
+    const lineAfter = async (whole) => {
+      document.getElementById("a").innerHTML = ""; window.__charts = [];
+      seed = 593;
+      const c = base(B, document.getElementById("a")), rows = walk(6000, 50, 0.01);
+      const s = c.addSeries(B.LineSeries, { color: "#f00", bvSimplify: true, priceLineVisible: false, lastValueVisible: false });
+      s.setData([...rows.slice(0, -1), { ...rows.at(-1), color: "#00f" }]);
+      c.timeScale().fitContent(); c.bvFlush(); await frames();
+      whole ? s.setData(rows) : s.update(rows.at(-1));
+      c.bvFlush(); await frames();
+      const shot = c.takeScreenshot(false, true), data = shot.getContext("2d").getImageData(0, 0, shot.width, shot.height).data;
+      c.remove(); window.__charts = [];
+      return data;
+    };
+    const [lineInPlace, lineWhole] = [await lineAfter(false), await lineAfter(true)];
+    let apart = 0;
+    for (let i = 0; i < lineWhole.length; i++) if (lineInPlace[i] !== lineWhole[i]) apart++;
+    if (apart) placed.push(`a simplified line of one style again: ${apart} values apart from its data set whole`);
   }
-  say(`A custom series updated in place: 1 check, ${placed.length} failing`);
+  say(`Updates in place as the data set whole: 2 checks, ${placed.length} failing`);
   for (const f of placed) say(`  ✗ ${f}`);
   window.result = { marks: fails, pictures: bad, corners: corners.length, view: kept.length, sizes: sized.length, points: lost.length, pan: far.length, zoom: zoomed.length, pinch: tapped.length, own: owned.length, later: later.length, edged: edged.length, shifted: shifted.length, tagged: tagged.length, pills: pills.length, outlined: outlined.length, placed: placed.length };
 </script>
