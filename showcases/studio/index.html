@@ -24483,10 +24483,12 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       const legendEntry = (layer, after = "") => `<span style="--c:${escape(layer.byGradient && layer.gradient ? gradientCss(layer.gradient) : ink(layer.color))}">${escape(labelOf(layer))}${after}</span>`;
       /** A tile's interval, where it isn't a day's. @param {Chart} doc */
       const tileIndexHtml = (doc) => (doc.index === "day1" ? "" : `<span class="tile-index">${INTERVAL_LABEL[doc.index]}</span>`);
+      /** A card's legend: its shown layers' entries. @param {Chart} doc */
+      const cardLegend = (doc) => doc.layers.filter((layer) => !layer.hidden).map((layer) => legendEntry(layer)).join("");
       /** A chart in the grid, as its own card: title (and its interval, where it isn't a day's), its layers' legend, its mini chart; a tick to pick it. @param {Chart} doc */
       function tileHtml(doc) {
         const title = escape(titleOf(doc)), on = picked.has(doc.id), preview = isPreview(doc);
-        const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => legendEntry(layer)).join("");
+        const legend = cardLegend(doc);
         return `<div class="tile ${on ? "picked" : ""} ${preview ? "preview" : ""} ${preview && touched.has(doc) ? "edited" : ""}" data-home-card="${doc.id}" data-chart="${doc.id}">
             <button type="button" class="tile-open" data-open-chart="${doc.id}" aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend || (doc.layers.length ? "Every layer is hidden" : "No layers yet")}</span>${plotHtml(doc)}</button>
             <button type="button" class="cap small tile-more" data-tile-menu="${doc.id}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button>
@@ -24981,7 +24983,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        */
       function presetTileHtml(/** @type {number} */ i, doc = presetDoc(i), card = -1) {
         const title = escape(titleOf(doc));
-        const legend = doc.layers.filter((layer) => !layer.hidden).map((layer) => legendEntry(layer)).join("");
+        const legend = cardLegend(doc);
         return `<div class="tile preset-tile ${doc.preset !== undefined && presetEdited(doc) ? "edited" : ""}" data-preset="${i}"${card < 0 ? ` data-chart="${presetIdOf(presetKey(i))}"` : ""}><button type="button" class="tile-open" ${card < 0 ? `data-open-preset="${i}"` : `data-template="${card}"`} aria-label="${title}" data-tip="${title}"><span class="tile-head"><span class="tile-name">${title}</span>${tileIndexHtml(doc)}</span><span class="tile-legend">${legend}</span>${plotHtml(doc, true, card < 0 ? "tile-plot" : "template-plot tile-plot")}</button><button type="button" class="cap small tile-more" data-preset-menu="${i}" aria-haspopup="menu" aria-label="More for ${title}" data-tip="More">${ICONS.more}</button></div>`;
       }
       /** The gallery's lists as drawn, each by its place there (its grid's Show more finds its own by it). */
@@ -26122,11 +26124,14 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       function slideAway(sheet, close, from, speed) {
         const later = sheet instanceof HTMLDialogElement;
         slides.get(sheet)?.cancel();
-        // (A menu's sheet: closed at once, its copy sliding on (see fadeOut) from where it was let go, as fast.)
-        if (sheet === $("menu") && !reduced.matches) {
+        // (Where it's laid out, its transform aside: the slide's from where it showed to its own height past its place,
+        // past the foot it's on, however tall the screen gets meanwhile: a keyboard going down. As fast as the finger.)
+        const away = () => {
           const top = sheet.getBoundingClientRect().top - new DOMMatrix(getComputedStyle(sheet).transform).m42, by = document.documentElement.clientHeight + 16 - from;
-          return void hideMenu({ frames: [{ transform: `translateY(${from - top}px)` }, { transform: "translateY(calc(100% + 16px))" }], duration: MOTION.layout, easing: `cubic-bezier(0.4, ${clamp((0.4 * Math.max(0, speed) * MOTION.layout) / by, 0, 1).toFixed(3)}, 0.2, 1)` });
-        }
+          return { frames: [{ transform: `translateY(${from - top}px)` }, { transform: "translateY(calc(100% + 16px))" }], duration: MOTION.layout, easing: `cubic-bezier(0.4, ${clamp((0.4 * Math.max(0, speed) * MOTION.layout) / by, 0, 1).toFixed(3)}, 0.2, 1)` };
+        };
+        // (A menu's sheet: closed at once, its copy sliding on (see fadeOut) from where it was let go, as fast.)
+        if (sheet === $("menu") && !reduced.matches) return void hideMenu(away());
         if (!later) close();
         // (Typed into, let go of as it goes, the keyboard down with it: iOS draws a field's caret apart, left behind.)
         else if (sheet.contains(document.activeElement) && typing(document.activeElement)) /** @type {HTMLElement} */ (document.activeElement).blur();
@@ -26135,11 +26140,8 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
         const own = sheet.getAnimations().filter((animation) => animation instanceof CSSTransition);
         for (const animation of own) if (/** @type {CSSTransition} */ (animation).transitionProperty === "transform") animation.cancel();
         if (reduced.matches) return void (later && close());
-        // (Where it's laid out, its transform aside: the slide's from where it showed to its own height past its place,
-        // past the foot it's on, however tall the screen gets meanwhile: a keyboard going down.)
-        const top = sheet.getBoundingClientRect().top - new DOMMatrix(getComputedStyle(sheet).transform).m42, by = document.documentElement.clientHeight + 16 - from;
-        const timing = /** @type {KeyframeAnimationOptions} */ ({ duration: MOTION.layout, easing: `cubic-bezier(0.4, ${clamp((0.4 * Math.max(0, speed) * MOTION.layout) / by, 0, 1).toFixed(3)}, 0.2, 1)`, fill: "forwards" });
-        const slide = sheet.animate({ transform: [`translateY(${from - top}px)`, "translateY(calc(100% + 16px))"] }, timing);
+        const { frames, duration, easing } = away(), timing = /** @type {KeyframeAnimationOptions} */ ({ duration, easing, fill: "forwards" });
+        const slide = sheet.animate(frames, timing);
         slide.id = "away";
         let fade = /** @type {Animation | null} */ (null);
         try {
