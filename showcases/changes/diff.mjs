@@ -437,6 +437,24 @@ for (const [now, all] of byCohortNow) {
 }
 // (One prefix as it was, one cohort now: the one more of its series came to.)
 const cohortRules = [...new Map(cohorts.sort((a, b) => a[2] - b[2]).map((rule) => [rule[0], rule])).values()];
+// The profit and loss bands, renamed (`utxos_90pct_to_100pct_in_profit_` to `profit_90_to_100_percent_`) and drawn
+// against a price computed anew, so a few coins sit in the next band and no series of theirs matches by values (a
+// band's supply moves by under a percent): taken by name, where the band exists now and values made no rule of it,
+// their ids then read as computed anew. Counted as the ids it renames.
+{
+  const ruled = new Set(cohortRules.map(([from]) => from)), now = new Set(cohortNow.values());
+  /** @type {Map<string, [string, number]>} */
+  const bands = new Map();
+  for (const id of gone) {
+    const match = id.match(/^utxos_(\d+)pct_to_(\d+)pct_in_(profit|loss)_/);
+    const to = match && `${match[3]}_${match[1]}_to_${match[2]}_percent_`;
+    if (!match || !to || ruled.has(match[0]) || !now.has(to)) continue;
+    const band = bands.get(match[0]) ?? [to, 0];
+    if (newSeries.has(to + id.slice(match[0].length))) band[1]++;
+    bands.set(match[0], band);
+  }
+  for (const [from, [to, count]] of bands) cohortRules.push([from, to, count]);
+}
 const cohortIndex = index({ cohorts: cohortRules, measures: [], words: [], suffixes: [], ids: [] });
 /** The cohort rule an id as it was falls under, if any. @param {string} id */
 const cohortOf = (id) => cohortIndex.cohorts.find(([from]) => id.length > from.length && id.startsWith(from));
