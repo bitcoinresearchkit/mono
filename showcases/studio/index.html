@@ -23165,7 +23165,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
       /** Whether a layer's pane stacks it. @param {Layer} layer */
       const stackedIn = (layer, doc = chart) => Boolean(doc.panes.find((pane) => pane.id === layer.pane)?.stack);
       /** The open chart's stacks as last made, and what they were made of (see stackOf). */
-      let stacksMade = { key: "", stacked: /** @type {Map<string, { values: Float64Array, under: Float64Array, scale: Float64Array | null, group: string, rank: number }>} */ (new Map()) };
+      let stacksMade = { key: "", stacked: /** @type {Map<string, { values: Float64Array, under: Float64Array, scale: Float64Array | null, group: string, rank: number }>} */ (new Map()), times: /** @type {unknown} */ (null) };
       /**
        * What stacked panes draw: each layer shown on a side at its own value plus those of the layers before it in the
        * stack (the panel's order, its first at the foot: A, A+B, A+B+C; reversed, its last); in a 100% one, that as a
@@ -23173,7 +23173,7 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
        * a point adds none there and shows none (it starts where its data does); in a 100% stack, a negative one counts as
        * none (a share of a whole). `under` and `scale` take its own values there (a candle's open, high, low and close);
        * `group` names its stack (its pane and side), `rank` its place there (its foot 0).
-       * @param {Chart} doc @param {{ results: Map<string, any> }} data
+       * @param {Chart} doc @param {{ results: Map<string, any>, times?: number[] }} data
        * @returns {Map<string, { values: Float64Array, under: Float64Array, scale: Float64Array | null, group: string, rank: number }>} by layer
        */
       function stackOf(doc, data, kept = true) {
@@ -23210,8 +23210,21 @@ const picture = await studio.png({ width: 1200, height: 760, scale: 2 });
             }
           }
         }
-        if (key) stacksMade = { key, stacked };
+        if (!key) return stacked;
+        // (One that comes out as it was (a layer over it hidden, shown, another's moved), on the same dates, the one it
+        // was: its series not set again, see build.)
+        for (const [id, item] of stacksMade.times === data.times ? stacked : []) {
+          const was = stacksMade.stacked.get(id);
+          if (was && was.group === item.group && was.rank === item.rank && sameVector(was.values, item.values) && sameVector(was.under, item.under) && (was.scale === item.scale || (was.scale && item.scale && sameVector(was.scale, item.scale)))) stacked.set(id, was);
+        }
+        stacksMade = { key, stacked, times: data.times };
         return stacked;
+      }
+      /** Whether two runs of values are the same, a missing one where the other's is (NaN as NaN). @param {ArrayLike<number>} a @param {ArrayLike<number>} b */
+      function sameVector(a, b) {
+        if (a.length !== b.length) return false;
+        for (let i = 0; i < a.length; i++) if (a[i] !== b[i] && (a[i] === a[i] || b[i] === b[i])) return false;
+        return true;
       }
       /** A stack's scale, on a linear one, takes in zero: its foot (up from it, or down, a stack of negatives). */
       const fromZero = (mode) => (mode === 0 ? (/** @type {() => any} */ original) => {
